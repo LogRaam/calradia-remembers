@@ -1,24 +1,27 @@
+// Code written by Gabriel Mailhot, 21/05/2026.
+
+#region
+
 using TaleWorlds.GauntletUI;
 using TaleWorlds.GauntletUI.BaseTypes;
+
+#endregion
 
 namespace CalradiaRemembers.Chat
 {
     /// <summary>
-    /// Custom ScrollablePanel that supports a deferred "scroll to bottom"
-    /// request. The ViewModel sets ScrollToBottomRequested = true after adding
-    /// a message; on the next late update (after the base class has recomputed
-    /// MaxValue for the new content), we snap the vertical scrollbar to the
-    /// bottom.
-    ///
-    /// Self-registers into ActiveInstance on construction so ChatManager can
-    /// reach us directly without traversing the widget tree (GauntletLayer
-    /// does not expose Root in this Bannerlord version).
+    ///   Custom ScrollablePanel that supports a deferred "scroll to bottom"
+    ///   request. The ViewModel sets ScrollToBottomRequested = true after adding
+    ///   a message; on the next late update (after the base class has recomputed
+    ///   MaxValue for the new content), we snap the vertical scrollbar to the
+    ///   bottom.
+    ///   Self-registers into ActiveInstance on construction so ChatManager can
+    ///   reach us directly without traversing the widget tree (GauntletLayer
+    ///   does not expose Root in this Bannerlord version).
     /// </summary>
     public class ChatScrollablePanel : ScrollablePanel
     {
-        public static ChatScrollablePanel ActiveInstance { get; private set; }
-
-        public bool ScrollToBottomRequested { get; set; }
+        private int _scrollToBottomFramesRemaining;
 
         public ChatScrollablePanel(UIContext context) : base(context)
         {
@@ -26,25 +29,31 @@ namespace CalradiaRemembers.Chat
             ModLog.Info("ChatScrollablePanel: instance created and registered.");
         }
 
+
+        public static ChatScrollablePanel ActiveInstance { get; private set; }
+
+
+        public void RequestScrollToBottom()
+        {
+            _scrollToBottomFramesRemaining = 8;
+        }
+
         protected override void OnLateUpdate(float dt)
         {
-            // base.OnLateUpdate runs UpdateScrollablePanel which (re)computes
-            // VerticalScrollbar.MaxValue based on the current inner panel size.
             base.OnLateUpdate(dt);
 
-            if (!ScrollToBottomRequested) return;
+            if (_scrollToBottomFramesRemaining <= 0)
+                return;
+
             if (VerticalScrollbar == null)
             {
-                ModLog.Info("ChatScrollablePanel.OnLateUpdate: requested but VerticalScrollbar is null");
+                _scrollToBottomFramesRemaining--;
+
                 return;
             }
 
-            float before = VerticalScrollbar.ValueFloat;
-            float target = VerticalScrollbar.MaxValue;
-            VerticalScrollbar.ValueFloat = target;
-            ScrollToBottomRequested = false;
-
-            ModLog.Info($"ChatScrollablePanel.OnLateUpdate: scrolled from {before} to {target}");
+            VerticalScrollbar.ValueFloat = VerticalScrollbar.MaxValue;
+            _scrollToBottomFramesRemaining--;
         }
     }
 }

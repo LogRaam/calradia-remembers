@@ -70,12 +70,12 @@
           <Children>
 
             <ChatScrollablePanel Id="MessagesScrollPanel"
-                                                        WidthSizePolicy="StretchToParent"
-                                                        HeightSizePolicy="StretchToParent"
-                                                        AutoHideScrollBars="true"
-                                                        ClipRect="MessagesClipRect"
-                                                        InnerPanel="MessagesClipRect\MessagesList"
-                                                        VerticalScrollbar="..\MessagesScrollbar\Scrollbar">
+                                 WidthSizePolicy="StretchToParent"
+                                 HeightSizePolicy="StretchToParent"
+                                 AutoHideScrollBars="true"
+                                 ClipRect="MessagesClipRect"
+                                 InnerPanel="MessagesClipRect\MessagesList"
+                                 VerticalScrollbar="..\MessagesScrollbar\Scrollbar">
               <Children>
                 <Widget Id="MessagesClipRect"
                         WidthSizePolicy="StretchToParent"
@@ -96,7 +96,7 @@
                         <Widget WidthSizePolicy="StretchToParent"
                                 HeightSizePolicy="CoverChildren"
                                 HorizontalAlignment="Left"
-                                MarginBottom="14">
+                                MarginBottom="60">
                           <Children>
 
                             <!-- Avatar -->

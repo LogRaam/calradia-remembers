@@ -91,8 +91,8 @@ namespace CalradiaRemembers.Chat
                     return;
                 }
 
-                panel.ScrollToBottomRequested = true;
-                ModLog.Info("ScrollToBottom: flag set on ActiveInstance.");
+                panel.RequestScrollToBottom();
+                ModLog.Info("ScrollToBottom: requested on ActiveInstance.");
             }
             catch (Exception ex)
             {
