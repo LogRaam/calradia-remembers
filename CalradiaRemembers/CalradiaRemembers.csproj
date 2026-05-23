@@ -1,0 +1,130 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <RootNamespace>CalradiaRemembers</RootNamespace>
+    <AssemblyName>CalradiaRemembers</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+    <!--
+      OutputPath: where the build puts the DLLs (workspace folder, versionable in git).
+      AppendTargetFrameworkToOutputPath: prevents MSBuild from appending net472\ subdirectory.
+      AppendRuntimeIdentifierToOutputPath: prevents platform subfolder (x64\, etc.).
+    -->
+    <OutputPath>V:\OneDrive\Programmation\GIT Workspace\Calradia Remembers\CalradiaRemembers\bin\Win64_Shipping_Client\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+
+    <!-- Game install paths — only used by the DeployToBannerlord target below -->
+    <BannerlordInstallDir>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord</BannerlordInstallDir>
+    <BannerlordModuleDir>$(BannerlordInstallDir)\Modules\CalradiaRemembers</BannerlordModuleDir>
+    <BannerlordBinaryDir>$(BannerlordModuleDir)\bin\Win64_Shipping_Client</BannerlordBinaryDir>
+    <BannerlordGameBinaryDir>$(BannerlordInstallDir)\bin\Win64_Shipping_Client</BannerlordGameBinaryDir>
+  </PropertyGroup>
+
+  <!-- ─── Our SDK ───────────────────────────────────────────────────────── -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\LLM Roleplay Service\NpcMemoryService.Core\NpcMemoryService.Core.csproj">
+      <Private>true</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!-- ─── TaleWorlds DLLs (referenced from the game install) ────────────── -->
+
+  <ItemGroup>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="TaleWorlds.CampaignSystem">
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.CampaignSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Core">
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Engine.GauntletUI">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.Engine.GauntletUI.dll</HintPath>
+    </Reference>
+    <Reference Include="TaleWorlds.GauntletUI">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.GauntletUI.dll</HintPath>
+    </Reference>
+    <Reference Include="TaleWorlds.GauntletUI.Data">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.GauntletUI.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="TaleWorlds.GauntletUI.PrefabSystem">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.GauntletUI.PrefabSystem.dll</HintPath>
+    </Reference>
+    <Reference Include="TaleWorlds.InputSystem">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.InputSystem.dll</HintPath>
+    </Reference>
+    <Reference Include="TaleWorlds.Library">
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.Library.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Localization">
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.Localization.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.ModuleManager">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.ModuleManager.dll</HintPath>
+    </Reference>
+    <Reference Include="TaleWorlds.MountAndBlade">
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.MountAndBlade.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.ObjectSystem">
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.ObjectSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.SaveSystem">
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.SaveSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Engine">
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.Engine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(BannerlordGameBinaryDir)\Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.ScreenSystem">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.ScreenSystem.dll</HintPath>
+    </Reference>    
+  </ItemGroup>
+
+  <!--
+    ─── Auto-deploy to Bannerlord modules folder after build ────────────────
+    Copies ALL DLLs from the build output into the game's Modules folder.
+    This includes System.Text.Json and its transitive dependencies which are
+    required by NpcMemoryService.Core on .NET Framework 4.7.2.
+    Note: In a future phase we will switch to Newtonsoft.Json (already shipped
+    by Bannerlord) to eliminate these extra DLLs entirely.
+  -->
+  <Target Name="DeployToBannerlord" AfterTargets="Build">
+    <MakeDir Directories="$(BannerlordBinaryDir)" Condition="!Exists('$(BannerlordBinaryDir)')" />
+
+    <ItemGroup>
+      <DeployFiles Include="$(TargetDir)*.dll" />
+      <DeployFiles Include="$(TargetDir)*.pdb" />
+    </ItemGroup>
+
+<ItemGroup>
+  <None Include="..\ModuleFolder\GUI\**\*.*">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <Link>GUI\%(RecursiveDir)%(FileName)%(Extension)</Link>
+  </None>
+</ItemGroup>
+
+    <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(BannerlordBinaryDir)" SkipUnchangedFiles="true" />
+
+    <Message Text="[CalradiaRemembers] Deployed to $(BannerlordBinaryDir)" Importance="high" />
+  </Target>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy &quot;$(TargetDir)*.dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\bin\Win64_Shipping_Client\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)GUI\Prefabs\*.xml&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\GUI\Prefabs\&quot; /Y /I /R /D" />
+  </Target>
+
+</Project>
