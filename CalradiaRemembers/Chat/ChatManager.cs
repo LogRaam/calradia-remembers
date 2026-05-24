@@ -123,8 +123,12 @@ namespace CalradiaRemembers.Chat
         {
             ActiveViewModel = new ChatViewModel {OnCloseRequested = Close};
 
-            if (!string.IsNullOrWhiteSpace(npcName))
+            Hero conversationHero = Hero.OneToOneConversationHero;
+            if (conversationHero != null)
+                ActiveViewModel.SetNpcHero(conversationHero);
+            else if (!string.IsNullOrWhiteSpace(npcName))
                 ActiveViewModel.SetNpcName(npcName);
+
 
             // GauntletLayer ctor: (int localOrder, string categoryId, bool shouldClear)
             // shouldClear=false keeps the host screen's rendering visible behind us.

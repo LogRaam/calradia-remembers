@@ -9,23 +9,13 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Dialogue;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
 
 #endregion
 
 namespace CalradiaRemembers.Chat
 {
-    /// <summary>
-    ///   View model backing CalradiaRemembersChat.xml.
-    ///   Sprint 7.6.E — Real LLM pipeline:
-    ///   - ExecuteSendMessage is now async-friendly (fire-and-forget Task).
-    ///   - Disables Send button while waiting for LLM response.
-    ///   - Shows a "(considering...)" placeholder NPC message that gets
-    ///   replaced by the real response on completion.
-    ///   - Pulls dependencies from NpcMemoryCampaignBehavior.Instance and
-    ///   LlmDialogFlow.Profile / Session / Context (Option B).
-    ///   - Persists profile mutations (events, reputation) via ProfileMutator.
-    /// </summary>
     public sealed class ChatViewModel : ViewModel
     {
         private const string PlaceholderText = "(considering...)";
@@ -35,6 +25,7 @@ namespace CalradiaRemembers.Chat
 
         private MBBindingList<ChatMessageViewModel> _messages;
 
+        private Hero _npcHero;
         private string _npcName = "the lord";
         private string _sendButtonText = "Send";
 
@@ -93,8 +84,6 @@ namespace CalradiaRemembers.Chat
             }
         }
 
-        // ── Commands ──────────────────────────────────────────────────────────
-
         public Action OnCloseRequested { get; set; }
 
         [DataSourceProperty]
@@ -108,8 +97,6 @@ namespace CalradiaRemembers.Chat
                 OnPropertyChangedWithValue(value);
             }
         }
-
-        // ── Bound properties ──────────────────────────────────────────────────
 
         [DataSourceProperty]
         public string TitleText
@@ -130,7 +117,7 @@ namespace CalradiaRemembers.Chat
             if (string.IsNullOrWhiteSpace(text)) return;
             try
             {
-                _messages.Add(new ChatMessageViewModel(_npcName, text, false));
+                _messages.Add(new ChatMessageViewModel(_npcHero, _npcName, text, false));
                 ModLog.Info("AppendNpcMessage: added to _messages");
                 ChatManager.ScrollToBottom();
             }
@@ -148,7 +135,7 @@ namespace CalradiaRemembers.Chat
             if (string.IsNullOrWhiteSpace(text)) return;
             try
             {
-                _messages.Add(new ChatMessageViewModel("You", text, true));
+                _messages.Add(new ChatMessageViewModel(Hero.MainHero, "You", text, true));
                 ModLog.Info("AppendPlayerMessage: added to _messages");
                 ChatManager.ScrollToBottom();
             }
@@ -164,11 +151,6 @@ namespace CalradiaRemembers.Chat
             OnCloseRequested?.Invoke();
         }
 
-        /// <summary>
-        ///   Sprint 7.6.E: appends the player message, shows a placeholder NPC
-        ///   message, calls the LLM off the UI thread, then replaces the
-        ///   placeholder with the real response. Disables Send during the call.
-        /// </summary>
         public void ExecuteSendMessage()
         {
             var text = (InputText ?? "").Trim();
@@ -176,23 +158,28 @@ namespace CalradiaRemembers.Chat
             if (string.IsNullOrEmpty(text)) return;
             if (!IsSendEnabled) return;
 
-            // 1) Append player message immediately for UX feedback.
             AppendPlayerMessage(text);
 
-            // 2) Show a placeholder NPC message that we'll replace later.
-            ChatMessageViewModel placeholder = new ChatMessageViewModel(_npcName, PlaceholderText, false);
+            ChatMessageViewModel placeholder = new ChatMessageViewModel(_npcHero, _npcName, PlaceholderText, false);
             _messages.Add(placeholder);
 
-            // 3) Lock the Send button and clear the input field.
             IsSendEnabled = false;
             InputText = "";
 
-            // 4) Kick off the LLM call. Discard the task — errors are caught
-            //    in the continuation and surfaced via the placeholder.
             _ = RunLlmExchangeAsync(text, placeholder);
         }
 
-        // ── Public API for the dialog flow ────────────────────────────────────
+        public void SetNpcHero(Hero npcHero)
+        {
+            _npcHero = npcHero;
+
+            if (!string.IsNullOrWhiteSpace(npcHero?.Name?.ToString()))
+            {
+                _npcName = npcHero.Name.ToString();
+            }
+
+            TitleText = $"Calradia Remembers — {_npcName}";
+        }
 
         public void SetNpcName(string npcName)
         {
@@ -208,29 +195,16 @@ namespace CalradiaRemembers.Chat
                 ? s
                 : s.Substring(0, max) + "...";
 
-        /// <summary>
-        ///   Replaces the placeholder message's text by removing it from the list
-        ///   and inserting a new ChatMessageViewModel at the same position. We do
-        ///   this rather than mutating the placeholder in place because Gauntlet
-        ///   does not always refresh inline mutations of items in MBBindingList.
-        /// </summary>
         private void ReplacePlaceholder(ChatMessageViewModel placeholder, string newText)
         {
-            var idx = _messages.IndexOf(placeholder);
-            if (idx < 0)
-            {
-                // Placeholder was lost (chat closed?) — just append.
-                AppendNpcMessage(newText);
+            int idx = _messages.IndexOf(placeholder);
+            if (idx < 0) return;
 
-                return;
-            }
-
-            ChatMessageViewModel replacement = new ChatMessageViewModel(_npcName, newText, false);
+            ChatMessageViewModel replacement = new ChatMessageViewModel(_npcHero, _npcName, newText, false);
             _messages.RemoveAt(idx);
             _messages.Insert(idx, replacement);
+            ChatManager.ScrollToBottom();
         }
-
-        // ── LLM pipeline ──────────────────────────────────────────────────────
 
         private async Task RunLlmExchangeAsync(string playerMessage, ChatMessageViewModel placeholder)
         {
@@ -293,7 +267,6 @@ namespace CalradiaRemembers.Chat
 
                 ReplacePlaceholder(placeholder, npcLine);
 
-                // Persist profile mutations.
                 var gameDay = behavior.GameStateBridge.GetCurrentGameDay();
                 ProfileMutator.Apply(profile, response, gameDay);
                 behavior.Store.Set(profile);

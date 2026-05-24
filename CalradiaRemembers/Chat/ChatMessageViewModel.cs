@@ -2,6 +2,9 @@
 
 #region
 
+using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
+using TaleWorlds.Core.ViewModelCollection.ImageIdentifiers;
 using TaleWorlds.Library;
 
 #endregion
@@ -14,23 +17,37 @@ namespace CalradiaRemembers.Chat
         private const string PlayerColor = "#a8c8e0FF"; // cool blue
 
         private string _authorColor;
-        private string _avatarColor;
-        private string _avatarInitial;
         private string _displayText;
 
-        public ChatMessageViewModel(string authorName, string messageText, bool isPlayer)
+        // Flattened portrait properties.
+        // This avoids nested Gauntlet bindings such as @Portrait.Id inside an ItemTemplate.
+        private string _portraitId = "";
+        private string _portraitTextureProviderName = "";
+        private string _portraitAdditionalArgs = "";
+
+        public ChatMessageViewModel(Hero speakerHero, string authorName, string messageText, bool isPlayer)
         {
             _displayText = BuildDisplayText(authorName, messageText);
 
-            _avatarInitial = string.IsNullOrEmpty(authorName)
-                ? "?"
-                : authorName.Substring(0, 1).ToUpperInvariant();
+            if (speakerHero?.CharacterObject != null)
+            {
+                CharacterImageIdentifierVM portrait =
+                    new CharacterImageIdentifierVM(CharacterCode.CreateFrom(speakerHero.CharacterObject));
 
-            var color = isPlayer
-                ? PlayerColor
-                : NpcColor;
-            _authorColor = color;
-            _avatarColor = color;
+                _portraitId = portrait.Id ?? "";
+                _portraitTextureProviderName = portrait.TextureProviderName ?? "";
+                _portraitAdditionalArgs = portrait.AdditionalArgs ?? "";
+            }
+
+            ModLog.Info(
+                $"Portrait for {authorName}: " +
+                $"HeroNull={speakerHero == null}, " +
+                $"CharacterObjectNull={speakerHero?.CharacterObject == null}, " +
+                $"IdEmpty={string.IsNullOrEmpty(_portraitId)}, " +
+                $"TextureProvider='{_portraitTextureProviderName}', " +
+                $"Args='{_portraitAdditionalArgs}'");
+
+            _authorColor = isPlayer ? PlayerColor : NpcColor;
         }
 
         [DataSourceProperty]
@@ -46,31 +63,43 @@ namespace CalradiaRemembers.Chat
         }
 
         [DataSourceProperty]
-        public string AvatarColor
+        public string PortraitId
         {
-            get => _avatarColor;
+            get => _portraitId;
             set
             {
-                if (_avatarColor == value) return;
-                _avatarColor = value;
+                if (_portraitId == value) return;
+                _portraitId = value;
                 OnPropertyChangedWithValue(value);
             }
         }
 
         [DataSourceProperty]
-        public string AvatarInitial
+        public string PortraitTextureProviderName
         {
-            get => _avatarInitial;
+            get => _portraitTextureProviderName;
             set
             {
-                if (_avatarInitial == value) return;
-                _avatarInitial = value;
+                if (_portraitTextureProviderName == value) return;
+                _portraitTextureProviderName = value;
+                OnPropertyChangedWithValue(value);
+            }
+        }
+
+        [DataSourceProperty]
+        public string PortraitAdditionalArgs
+        {
+            get => _portraitAdditionalArgs;
+            set
+            {
+                if (_portraitAdditionalArgs == value) return;
+                _portraitAdditionalArgs = value;
                 OnPropertyChangedWithValue(value);
             }
         }
 
         /// <summary>
-        ///   Texte complet affiché : "<b>Nom:</b> message"
+        ///   Texte complet affiché : "Nom" puis le message à la ligne suivante.
         /// </summary>
         [DataSourceProperty]
         public string DisplayText
@@ -91,8 +120,6 @@ namespace CalradiaRemembers.Chat
             if (string.IsNullOrEmpty(authorName))
                 authorName = "Inconnu";
 
-            // Nom en gras doré + retour à la ligne + message en dessous
-            //return $"<b><color=#ffd700>{authorName}:</color></b>\n {messageText}";
             return $"{authorName}\n— {messageText}";
         }
 
