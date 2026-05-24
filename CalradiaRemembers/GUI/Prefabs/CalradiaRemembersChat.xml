@@ -1,8 +1,8 @@
 <Prefab>
   <Constants>
-    <Constant Name="Chat.Width"  Value="500" />
-    <Constant Name="Chat.Height" Value="700" />
-    <Constant Name="Avatar.Size" Value="44" />
+    <Constant Name="Chat.Width"  Value="700" />
+    <Constant Name="Chat.Height" Value="880" />
+    <Constant Name="Avatar.Size" Value="55" />
   </Constants>
 
   <Window Id="CalradiaRemembersChatWindow" Layer="Overlay">
@@ -20,26 +20,29 @@
 
       <Children>
 
-        <Widget WidthSizePolicy="StretchToParent"
+        <Widget Id="ChatPanelDecorativeFrame"
+                WidthSizePolicy="StretchToParent"
                 HeightSizePolicy="StretchToParent"
                 Sprite="frame_9"
                 ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
                 AlphaFactor="0.4"
                 IsDisabled="true" />
 
-        <Widget WidthSizePolicy="StretchToParent"
+        <Widget Id="TitleBar"
+                WidthSizePolicy="StretchToParent"
                 HeightSizePolicy="Fixed"
-                SuggestedHeight="60"
+                SuggestedHeight="70"
                 VerticalAlignment="Top"
                 Sprite="BlankWhiteSquare_9"
                 Color="#0d0a08FF">
           <Children>
-            <TextWidget WidthSizePolicy="StretchToParent"
+            <TextWidget Id="TitleTextWidget"
+                        WidthSizePolicy="StretchToParent"
                         HeightSizePolicy="StretchToParent"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Brush="Default"
-                        Brush.FontSize="20"
+                        Brush.FontSize="26"
                         Brush.FontColor="#c8a878FF"
                         Brush.TextHorizontalAlignment="Center"
                         Text="@TitleText"
@@ -47,18 +50,20 @@
           </Children>
         </Widget>
 
-        <Widget WidthSizePolicy="StretchToParent"
+        <Widget Id="TitleDivider"
+                WidthSizePolicy="StretchToParent"
                 HeightSizePolicy="Fixed"
-                SuggestedHeight="2"
+                SuggestedHeight="3"
                 VerticalAlignment="Top"
-                PositionYOffset="60"
+                PositionYOffset="69"
                 Sprite="BlankWhiteSquare_9"
                 Color="#3a2f24FF"
                 IsDisabled="true" />
 
-        <Widget WidthSizePolicy="StretchToParent"
+        <Widget Id="MessagesArea"
+                WidthSizePolicy="StretchToParent"
                 HeightSizePolicy="Fixed"
-                SuggestedHeight="460"
+                SuggestedHeight="655"
                 VerticalAlignment="Top"
                 PositionYOffset="70"
                 MarginLeft="15"
@@ -68,6 +73,7 @@
             <ChatScrollablePanel Id="MessagesScrollPanel"
                                  WidthSizePolicy="StretchToParent"
                                  HeightSizePolicy="StretchToParent"
+                                 MarginRight="32"
                                  AutoHideScrollBars="true"
                                  ClipRect="MessagesClipRect"
                                  InnerPanel="MessagesClipRect\MessagesList"
@@ -88,29 +94,34 @@
                                           StackLayout.LayoutMethod="VerticalTopToBottom">
                       <ItemTemplate>
 
-                        <Widget WidthSizePolicy="StretchToParent"
+                        <Widget Id="MessageRow"
+                                WidthSizePolicy="StretchToParent"
                                 HeightSizePolicy="CoverChildren"
                                 HorizontalAlignment="Left"
-                                MarginBottom="60">
+                                MarginTop="12"
+                                MarginBottom="2">
                           <Children>
 
-                            <Widget WidthSizePolicy="Fixed"
+                            <Widget Id="AvatarContainer"
+                                    WidthSizePolicy="Fixed"
                                     HeightSizePolicy="Fixed"
-                                    SuggestedWidth="44"
-                                    SuggestedHeight="44"
+                                    SuggestedWidth="96"
+                                    SuggestedHeight="88"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Top"
+                                    MarginTop="2"
                                     Sprite="BlankWhiteSquare_9"
-                                    Color="#221d18FF">
+                                    Color="#221d18FF"
+                                    AlphaFactor="0.0">
                               <Children>
 
                                 <ImageIdentifierWidget Id="AvatarPortrait"
                                                        WidthSizePolicy="Fixed"
                                                        HeightSizePolicy="Fixed"
-                                                       SuggestedWidth="44"
+                                                       SuggestedWidth="88"
                                                        SuggestedHeight="44"
                                                        HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center"
+                                                       VerticalAlignment="Top"
                                                        TextureProviderName="@PortraitTextureProviderName"
                                                        ImageId="@PortraitId"
                                                        AdditionalArgs="@PortraitAdditionalArgs"
@@ -118,22 +129,25 @@
                                                        HideWhenNull="false"
                                                        IsDisabled="true" />
 
-                                <Widget WidthSizePolicy="StretchToParent"
-                                        HeightSizePolicy="StretchToParent"
+                                <Widget Id="AvatarFrame"
+                                        WidthSizePolicy="StretchToParent"
+                                        HeightSizePolicy="StretchToParent"                                        
                                         Sprite="frame_9"
-                                        ExtendLeft="2" ExtendTop="2" ExtendRight="2" ExtendBottom="2"
+                                        ExtendLeft="15" ExtendTop="22" ExtendRight="15" ExtendBottom="-22"
                                         AlphaFactor="0.25"
                                         IsDisabled="true" />
                               </Children>
                             </Widget>
 
-                            <RichTextWidget WidthSizePolicy="StretchToParent"
+                            <RichTextWidget Id="MessageText"
+                                            WidthSizePolicy="StretchToParent"
                                             HeightSizePolicy="CoverChildren"
                                             HorizontalAlignment="Left"
                                             VerticalAlignment="Top"
-                                            MarginLeft="55"
+                                            MarginLeft="112"
+                                            MarginRight="18"
                                             Brush="Default"
-                                            Brush.FontSize="15"
+                                            Brush.FontSize="22"
                                             Brush.FontColor="@AuthorColor"
                                             Brush.TextHorizontalAlignment="Left"
                                             Text="@DisplayText"
@@ -153,44 +167,43 @@
             <Standard.VerticalScrollbar Id="MessagesScrollbar"
                                         HeightSizePolicy="StretchToParent"
                                         HorizontalAlignment="Right"
-                                        MarginRight="2" />
+                                        MarginRight="0" />
 
           </Children>
         </Widget>
 
-        <Widget WidthSizePolicy="StretchToParent"
+        <Widget Id="InputArea"
+                WidthSizePolicy="StretchToParent"
                 HeightSizePolicy="Fixed"
-                SuggestedHeight="60"
+                SuggestedHeight="78"
                 VerticalAlignment="Bottom"
-                PositionYOffset="-95"
+                PositionYOffset="-80"
                 MarginLeft="15"
-                MarginRight="15">
+                MarginRight="5">
           <Children>
 
-            <Widget WidthSizePolicy="Fixed"
-                    HeightSizePolicy="Fixed"
-                    SuggestedWidth="370"
-                    SuggestedHeight="44"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Sprite="BlankWhiteSquare_9"
-                    Color="#0d0a08FF">
+            <Widget Id="InputBox"
+                         WidthSizePolicy="Fixed"
+                         HeightSizePolicy="Fixed"
+                         SuggestedWidth="550"
+                         SuggestedHeight="60"
+                         HorizontalAlignment="Left"
+                         VerticalAlignment="Center"
+                         Sprite="BlankWhiteSquare_9"
+                          Color="#0d0a08DD"
+                          AlphaFactor="0.4">
               <Children>
-                <Widget WidthSizePolicy="StretchToParent"
-                        HeightSizePolicy="StretchToParent"
-                        Sprite="frame_9"
-                        ExtendLeft="3" ExtendTop="3" ExtendRight="3" ExtendBottom="3"
-                        AlphaFactor="0.3"
-                        IsDisabled="true" />
                 <EditableTextWidget Id="MessageInput"
                                     WidthSizePolicy="StretchToParent"
                                     HeightSizePolicy="StretchToParent"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center"
-                                    MarginLeft="10"
-                                    MarginRight="10"
+                                    MarginLeft="12"
+                                    MarginRight="12"
+                                    MarginTop="6"
+                                    MarginBottom="6"
                                     Brush="Default"
-                                    Brush.FontSize="14"
+                                    Brush.FontSize="20"
                                     Brush.FontColor="#e8d8b8FF"
                                     Brush.TextHorizontalAlignment="Left"
                                     Text="@InputText" />
@@ -198,24 +211,26 @@
             </Widget>
 
             <ButtonWidget Id="SendButton"
-                          WidthSizePolicy="Fixed"
-                          HeightSizePolicy="Fixed"
-                          SuggestedWidth="80"
-                          SuggestedHeight="44"
-                          HorizontalAlignment="Right"
-                          VerticalAlignment="Center"
-                          DoNotPassEventsToChildren="true"
-                          Brush="ButtonBrush1"
-                          UpdateChildrenStates="true"
-                          IsEnabled="@IsSendEnabled"
-                          Command.Click="ExecuteSendMessage">
+              WidthSizePolicy="Fixed"
+              HeightSizePolicy="Fixed"
+              SuggestedWidth="105"
+              SuggestedHeight="60"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              MarginRight="25"
+              DoNotPassEventsToChildren="true"
+              Brush="ButtonBrush1"
+              UpdateChildrenStates="true"
+              IsEnabled="@IsSendEnabled"
+              Command.Click="ExecuteSendMessage">
               <Children>
-                <TextWidget WidthSizePolicy="StretchToParent"
+                <TextWidget Id="SendButtonTextWidget"
+                            WidthSizePolicy="StretchToParent"
                             HeightSizePolicy="StretchToParent"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Brush="Popup.Button.Text"
-                            Brush.FontSize="14"
+                            Brush.FontSize="20"
                             Text="@SendButtonText" />
               </Children>
             </ButtonWidget>
@@ -226,7 +241,7 @@
         <ButtonWidget Id="CloseButton"
                       WidthSizePolicy="Fixed"
                       HeightSizePolicy="Fixed"
-                      SuggestedWidth="180"
+                      SuggestedWidth="230"
                       SuggestedHeight="44"
                       HorizontalAlignment="Center"
                       VerticalAlignment="Bottom"
@@ -236,12 +251,13 @@
                       UpdateChildrenStates="true"
                       Command.Click="ExecuteClose">
           <Children>
-            <TextWidget WidthSizePolicy="StretchToParent"
+            <TextWidget Id="CloseButtonTextWidget"
+                        WidthSizePolicy="StretchToParent"
                         HeightSizePolicy="StretchToParent"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Brush="Popup.Button.Text"
-                        Brush.FontSize="16"
+                        Brush.FontSize="20"
                         Text="@CloseButtonText" />
           </Children>
         </ButtonWidget>
