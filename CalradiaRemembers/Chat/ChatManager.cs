@@ -113,7 +113,7 @@ namespace CalradiaRemembers.Chat
         private static void FreeResources()
         {
             _activeLayer = null;
-            _activeMovieId = default(GauntletMovieIdentifier);
+            _activeMovieId = null;
             ActiveViewModel = null;
             _hostScreen = null;
             _timeControlModeSaved = false;

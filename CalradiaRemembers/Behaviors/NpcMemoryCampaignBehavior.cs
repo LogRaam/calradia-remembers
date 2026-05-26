@@ -33,14 +33,17 @@ namespace CalradiaRemembers.Behaviors
     /// </summary>
     public sealed class NpcMemoryCampaignBehavior : CampaignBehaviorBase
     {
-        //private const string LogTag = "NPC Memory Service";
+        public static NpcMemoryCampaignBehavior Instance;
+
+        // ONE LlmDialogFlow, owned by the behavior. Accessible from outside via Instance.
+        public readonly LlmDialogFlow DialogFlow = new();
+
+        // ONE VanillaDialogueRecorder, owned by the behavior. Holds a real reference
+        // so the instance survives as long as the behavior does.
+        public readonly VanillaDialogueRecorder DialogueRecorder = new();
         public readonly IGameStateBridge GameStateBridge = new BannerlordGameStateBridge();
         public readonly LlmServices LlmServices = new();
-
-        // ── State ─────────────────────────────────────────────────────────────
-
         public readonly BannerlordNpcMemoryStore Store = new();
-        private readonly LlmDialogFlow _dialogFlow = new();
 
         public NpcMemoryCampaignBehavior()
         {
@@ -48,9 +51,6 @@ namespace CalradiaRemembers.Behaviors
             LlmServices.Initialize();
         }
 
-        // ── Singleton ─────────────────────────────────────────────────────────
-
-        public static NpcMemoryCampaignBehavior Instance { get; private set; }
 
         // ── Lifecycle hooks ───────────────────────────────────────────────────
 
@@ -146,10 +146,10 @@ namespace CalradiaRemembers.Behaviors
             EnsureTestProfile();
             DisplayLoadedProfiles();
 
-            _dialogFlow.Register(campaignGameStarter);
+            DialogFlow.Register(campaignGameStarter);
             ModLog.Info("Dialog flow registered.");
 
-            VanillaDialogueRecorder.Subscribe();
+            DialogueRecorder.Subscribe();
         }
 
         #endregion

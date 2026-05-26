@@ -117,7 +117,7 @@ namespace CalradiaRemembers.Chat
 
         #region private
 
-        private static string BuildDisplayText(string authorName, string messageText)
+        private string BuildDisplayText(string authorName, string messageText)
         {
             if (string.IsNullOrEmpty(authorName))
                 authorName = "Inconnu";

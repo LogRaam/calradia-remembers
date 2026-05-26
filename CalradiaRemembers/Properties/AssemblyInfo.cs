@@ -1,6 +1,11 @@
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
+﻿// Code written by Gabriel Mailhot, 16/05/2026.
+
+#region
+
+using System.Reflection;
 using System.Runtime.InteropServices;
+
+#endregion
 
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information

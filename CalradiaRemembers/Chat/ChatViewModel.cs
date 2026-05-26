@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 19/05/2026.
+// Code written by Gabriel Mailhot, 23/05/2026.
 
 #region
 
@@ -6,7 +6,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Dialogue;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
@@ -173,10 +172,7 @@ namespace CalradiaRemembers.Chat
         {
             _npcHero = npcHero;
 
-            if (!string.IsNullOrWhiteSpace(npcHero?.Name?.ToString()))
-            {
-                _npcName = npcHero.Name.ToString();
-            }
+            if (!string.IsNullOrWhiteSpace(npcHero?.Name?.ToString())) _npcName = npcHero.Name.ToString();
 
             TitleText = $"Calradia Remembers — {_npcName}";
         }
@@ -197,7 +193,8 @@ namespace CalradiaRemembers.Chat
 
         private void ReplacePlaceholder(ChatMessageViewModel placeholder, string newText)
         {
-            int idx = _messages.IndexOf(placeholder);
+            var idx = _messages.IndexOf(placeholder);
+
             if (idx < 0) return;
 
             ChatMessageViewModel replacement = new ChatMessageViewModel(_npcHero, _npcName, newText, false);
@@ -211,9 +208,9 @@ namespace CalradiaRemembers.Chat
             try
             {
                 NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
-                NpcProfile profile = LlmDialogFlow.Profile;
-                ChatSession session = LlmDialogFlow.Session;
-                EncounterContext context = LlmDialogFlow.Context;
+                NpcProfile profile = NpcMemoryCampaignBehavior.Instance.DialogFlow.Profile;
+                ChatSession session = NpcMemoryCampaignBehavior.Instance.DialogFlow.Session;
+                EncounterContext context = NpcMemoryCampaignBehavior.Instance.DialogFlow.Context;
 
                 if (behavior == null || profile == null || session == null)
                 {

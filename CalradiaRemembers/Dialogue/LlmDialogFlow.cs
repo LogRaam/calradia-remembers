@@ -32,11 +32,12 @@ namespace CalradiaRemembers.Dialogue
     /// </summary>
     public sealed class LlmDialogFlow
     {
-        public static EncounterContext Context { get; private set; }
+        //private readonly VanillaDialogueRecorder _vanillaDialogRecorder = new();
+        public EncounterContext Context { get; private set; }
 
-        public static NpcProfile Profile { get; private set; }
+        public NpcProfile Profile { get; private set; }
 
-        public static ChatSession Session { get; private set; }
+        public ChatSession Session { get; private set; }
 
         public void Register(CampaignGameStarter starter)
         {
@@ -52,7 +53,7 @@ namespace CalradiaRemembers.Dialogue
 
         #region private
 
-        private static NpcProfile GetOrCreateProfile(Hero hero, BannerlordNpcMemoryStore store)
+        private NpcProfile GetOrCreateProfile(Hero hero, BannerlordNpcMemoryStore store)
         {
             NpcProfile existing = store.Get(hero.StringId);
             if (existing != null)
@@ -69,7 +70,7 @@ namespace CalradiaRemembers.Dialogue
             return fresh;
         }
 
-        private static bool IsHeroEligible()
+        private bool IsHeroEligible()
         {
             Hero hero = Hero.OneToOneConversationHero;
 
@@ -81,7 +82,7 @@ namespace CalradiaRemembers.Dialogue
         }
 
 
-        private static void OnPlayerSelectedChat()
+        private void OnPlayerSelectedChat()
         {
             ModLog.Info("=== OnPlayerSelectedChat STARTED ===");
 
@@ -131,9 +132,9 @@ namespace CalradiaRemembers.Dialogue
             }
         }
 
-        private static void SeedCapturedVanillaLinesIntoChat(ChatViewModel vm)
+        private void SeedCapturedVanillaLinesIntoChat(ChatViewModel vm)
         {
-            IReadOnlyList<VanillaDialogueRecorder.CapturedLine> captured = VanillaDialogueRecorder.GetCapturedLines();
+            IReadOnlyList<VanillaDialogueRecorder.CapturedLine> captured = NpcMemoryCampaignBehavior.Instance.DialogueRecorder.GetCapturedLines();
             ModLog.Info($"Seeding {captured.Count} vanilla lines into chat");
             foreach (VanillaDialogueRecorder.CapturedLine line in captured)
                 if (line.IsPlayer)
@@ -147,33 +148,7 @@ namespace CalradiaRemembers.Dialogue
                     Session.AddNpcMessage(line.Text);
                 }
 
-            VanillaDialogueRecorder.Clear();
-        }
-
-        private static void SeedChatWithVanillaLines(ChatViewModel vm)
-        {
-            if (vm != null) return;
-
-            IReadOnlyList<VanillaDialogueRecorder.CapturedLine> captured = VanillaDialogueRecorder.GetCapturedLines();
-            var linesConsumed = 0;
-            foreach (VanillaDialogueRecorder.CapturedLine line in captured)
-            {
-                if (line.IsPlayer)
-                {
-                    vm.AppendPlayerMessage(line.Text);
-                    Session.AddPlayerMessage(line.Text);
-                }
-                else
-                {
-                    vm.AppendNpcMessage(line.Text);
-                    Session.AddNpcMessage(line.Text);
-                }
-
-                linesConsumed++;
-            }
-
-            VanillaDialogueRecorder.Clear();
-            ModLog.Info($"Seeded chat with {linesConsumed} vanilla line(s).");
+            NpcMemoryCampaignBehavior.Instance.DialogueRecorder.Clear();
         }
 
         #endregion
