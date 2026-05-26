@@ -1,7 +1,6 @@
 // Code written by Gabriel Mailhot, 17/05/2026.
-// Updated 24/05/2026: Style C archetypes — short name + actionable micro-description (Sprint 8.1).
-//                     Added ~15 new combinations for richer personality coverage.
-// Updated 24/05/2026: Romantic profile generation via RomanticProfileBuilder (Sprint 8.2).
+// Updated 24/05/2026: Style C archetypes (Sprint 8.1).
+// Updated 24/05/2026: Passes archetype to RomanticProfileBuilder (Sprint 8.3).
 
 #region
 
@@ -14,15 +13,13 @@ using TaleWorlds.CampaignSystem.CharacterDevelopment;
 
 namespace CalradiaRemembers.Mapping
 {
-    /// <summary>
-    ///   Builds an <see cref="NpcProfile" /> from a Bannerlord <see cref="Hero" />.
-    ///   Sprint 8.2: also attaches a deterministic <see cref="RomanticProfile"/>
-    ///   so the NPC has stable orientation, preferences, and kinks across sessions.
-    /// </summary>
     public static class HeroProfileMapper
     {
         public static NpcProfile FromHero(Hero hero)
         {
+            // Compute archetype once — used for both Trait and RomanticProfile.
+            string archetype = RetrievePersonalityFor(hero);
+
             NpcProfile profile = new()
             {
                 Id          = hero.StringId,
@@ -30,17 +27,15 @@ namespace CalradiaRemembers.Mapping
                 Faction     = hero.MapFaction?.Name?.ToString() ?? "Unaligned",
                 Clan        = hero.Clan?.Name?.ToString() ?? "No clan",
                 Personality = BuildPersonality(hero),
-                Trait       = RetrievePersonalityFor(hero)
+                Trait       = archetype
             };
 
-            profile.Romantic = RomanticProfileBuilder.Build(hero);
+            profile.Romantic = RomanticProfileBuilder.Build(hero, archetype);
 
             return profile;
         }
 
         #region private
-
-        // ── Personality builder ───────────────────────────────────────────────
 
         private static string BuildPersonality(Hero hero)
         {
@@ -67,8 +62,6 @@ namespace CalradiaRemembers.Mapping
             return "A person of some standing in Calradia.";
         }
 
-        // ── Trait score conversion ────────────────────────────────────────────
-
         private static int ConvertLevel(int score)
         {
             if (score <= -4000) return -2;
@@ -77,8 +70,6 @@ namespace CalradiaRemembers.Mapping
             if (score >=  1000) return  1;
             return 0;
         }
-
-        // ── Archetype routing (Sprint 8.1) ────────────────────────────────────
 
         private static string RetrievePersonalityFor(Hero hero)
         {
@@ -112,21 +103,16 @@ namespace CalradiaRemembers.Mapping
             return count;
         }
 
-        // ── One active trait ──────────────────────────────────────────────────
-
         private static string OneTraitPersonality(Traits t)
         {
-            if (t.Honor       == 1) return "Honourable. Their word is their bond — they will refuse a profitable lie over a costly truth, and hold others to the same standard.";
-            if (t.Mercy       == 1) return "Kind-Hearted. Extends compassion where others would not, believes in second chances. Can be mistaken for weakness by those who prey on it.";
-            if (t.Valor       == 1) return "Daring. Seeks glory in danger and scorns those who hesitate. The battlefield is where they feel most alive.";
-            if (t.Generosity  == 1) return "Generous To Friends. Shares freely with those who have earned their loyalty — but gives nothing to strangers who have not yet proved their worth.";
-            if (t.Calculating == 1) return "Ambitious. Every word is weighed, every favor catalogued. Speaks with purpose and expects the same from others.";
-            if (t.Valor       ==-1) return "Conventional. Avoids unnecessary risk and prefers the safe path — not cowardly, but no hero either. Stability over glory.";
-
+            if (t.Honor       == 1)  return "Honourable. Their word is their bond — they will refuse a profitable lie over a costly truth, and hold others to the same standard.";
+            if (t.Mercy       == 1)  return "Kind-Hearted. Extends compassion where others would not, believes in second chances. Can be mistaken for weakness by those who prey on it.";
+            if (t.Valor       == 1)  return "Daring. Seeks glory in danger and scorns those who hesitate. The battlefield is where they feel most alive.";
+            if (t.Generosity  == 1)  return "Generous To Friends. Shares freely with those who have earned their loyalty — but gives nothing to strangers who have not yet proved their worth.";
+            if (t.Calculating == 1)  return "Ambitious. Every word is weighed, every favor catalogued. Speaks with purpose and expects the same from others.";
+            if (t.Valor       == -1) return "Conventional. Avoids unnecessary risk and prefers the safe path — not cowardly, but no hero either. Stability over glory.";
             return "Thoroughly Conventional. Neither particularly noble nor cruel — shaped more by circumstance than character.";
         }
-
-        // ── Two active traits ─────────────────────────────────────────────────
 
         private static string TwoTraitPersonality(Traits t)
         {
@@ -156,11 +142,8 @@ namespace CalradiaRemembers.Mapping
             if (t.Mercy == -1 && t.Valor == -1)                return "Cold And Cowardly. Neither brave nor kind. Avoids danger and shows no mercy when others face it in their place.";
             if (t.Calculating == -1 && t.Honor == 1)           return "Impulsive But Honest. Says what they mean and acts on instinct — no schemes, no plots, just blunt principle and unfiltered reaction.";
             if (t.Mercy == -1 && t.Generosity == -1)           return "Bitter And Hard. Neither gives nor forgives. Life in Calradia has not been kind to them, and they see no reason to be kind to others.";
-
             return "Thoroughly Conventional. Neither particularly noble nor cruel — shaped more by circumstance than character.";
         }
-
-        // ── Three active traits ───────────────────────────────────────────────
 
         private static string ThreeTraitPersonality(Traits t)
         {
@@ -176,28 +159,22 @@ namespace CalradiaRemembers.Mapping
             if (t.Generosity == -1 && t.Valor == -1 && t.Calculating == 1)   return "The Shadow Schemer. Risk-averse, tight-fisted, and calculating. Never fights when they can maneuver; never spends when they can leverage debt instead.";
             if (t.Honor == 1 && t.Mercy == -1 && t.Calculating == 1)         return "The Cold Judge. Principled and strategic, utterly without compassion. Enforces their code precisely and punishes deviation without a moment's hesitation.";
             if (t.Mercy == 1 && t.Generosity == 1 && t.Valor == 1)           return "The Beloved Warrior. Brave, generous, and compassionate — the kind of lord who inspires songs. Not always wise, but deeply loved by those they lead.";
-
             return "Thoroughly Conventional. Neither particularly noble nor cruel — shaped more by circumstance than character.";
         }
-
-        // ── Four active traits ────────────────────────────────────────────────
 
         private static string FourTraitPersonality(Traits t)
         {
-            if (t.Generosity == 1 && t.Honor == 1 && t.Valor == 1 && t.Mercy == 1)                 return "Gallant. Brave, generous, honorable, and merciful — the ideal knight, if such a thing truly exists in Calradia. Inspires loyalty and earns respect even from enemies.";
-            if (t.Generosity == 1 && t.Honor == -1 && t.Valor == 1 && t.Calculating == -1)         return "Passionate Rogue. Bold and generous but acts on impulse without regard for oaths or plans. Magnificent in a charge, disastrous in a negotiation.";
-            if (t.Generosity == 1 && t.Honor == 1 && t.Mercy == -1 && t.Calculating == -1)         return "Stiff-Necked Idealist. Principled and open-handed but inflexible — demands others meet their standard and punishes those who fall short without remorse.";
-            if (t.Honor == -1 && t.Valor == -1 && t.Mercy == 1 && t.Calculating == 1)              return "Devious But Soft-Headed. Schemes and manipulates but cannot bring themselves to see plans through when real suffering is required. A schemer without the stomach for it.";
-            if (t.Generosity == 1 && t.Honor == -1 && t.Mercy == 1 && t.Calculating == 1)          return "The Charming Manipulator. Warm, generous, and compassionate on the surface — but every kindness is calculated, every friendship a future leverage point.";
-            if (t.Generosity == 1 && t.Valor == 1 && t.Mercy == -1 && t.Calculating == -1)         return "Reckless And Unforgiving. Bold and generous with friends, merciless and impulsive with enemies. Their feasts are legendary — and so are their vendettas.";
-            if (t.Generosity == 2 && t.Honor == 2 && t.Mercy == 1 && t.Calculating == 1)           return "Decent And Kind. Genuinely good — generous, honest, merciful, and thoughtful. Rare in Calradia. Most assume there is an angle; there is none.";
-            if (t.Honor == -1 && t.Valor == -1 && t.Mercy == -1 && t.Calculating == -1)            return "The Hollow Lord. No courage, no compassion, no honor, no cunning. Holds their title by inheritance alone. A vacancy wearing armor, waiting to be removed.";
-            if (t.Honor == 1 && t.Valor == 1 && t.Mercy == 1 && t.Calculating == 1)                return "The Complete Warrior. Brave, principled, merciful, and calculating — a rare and formidable combination. Either the realm's greatest protector or its most dangerous adversary.";
-
+            if (t.Generosity == 1 && t.Honor == 1 && t.Valor == 1 && t.Mercy == 1)                return "Gallant. Brave, generous, honorable, and merciful — the ideal knight, if such a thing truly exists in Calradia. Inspires loyalty and earns respect even from enemies.";
+            if (t.Generosity == 1 && t.Honor == -1 && t.Valor == 1 && t.Calculating == -1)        return "Passionate Rogue. Bold and generous but acts on impulse without regard for oaths or plans. Magnificent in a charge, disastrous in a negotiation.";
+            if (t.Generosity == 1 && t.Honor == 1 && t.Mercy == -1 && t.Calculating == -1)        return "Stiff-Necked Idealist. Principled and open-handed but inflexible — demands others meet their standard and punishes those who fall short without remorse.";
+            if (t.Honor == -1 && t.Valor == -1 && t.Mercy == 1 && t.Calculating == 1)             return "Devious But Soft-Headed. Schemes and manipulates but cannot bring themselves to see plans through when real suffering is required. A schemer without the stomach for it.";
+            if (t.Generosity == 1 && t.Honor == -1 && t.Mercy == 1 && t.Calculating == 1)         return "The Charming Manipulator. Warm, generous, and compassionate on the surface — but every kindness is calculated, every friendship a future leverage point.";
+            if (t.Generosity == 1 && t.Valor == 1 && t.Mercy == -1 && t.Calculating == -1)        return "Reckless And Unforgiving. Bold and generous with friends, merciless and impulsive with enemies. Their feasts are legendary — and so are their vendettas.";
+            if (t.Generosity == 2 && t.Honor == 2 && t.Mercy == 1 && t.Calculating == 1)          return "Decent And Kind. Genuinely good — generous, honest, merciful, and thoughtful. Rare in Calradia. Most assume there is an angle; there is none.";
+            if (t.Honor == -1 && t.Valor == -1 && t.Mercy == -1 && t.Calculating == -1)           return "The Hollow Lord. No courage, no compassion, no honor, no cunning. Holds their title by inheritance alone. A vacancy wearing armor, waiting to be removed.";
+            if (t.Honor == 1 && t.Valor == 1 && t.Mercy == 1 && t.Calculating == 1)               return "The Complete Warrior. Brave, principled, merciful, and calculating — a rare and formidable combination. Either the realm's greatest protector or its most dangerous adversary.";
             return "Thoroughly Conventional. Neither particularly noble nor cruel — shaped more by circumstance than character.";
         }
-
-        // ── Five active traits ────────────────────────────────────────────────
 
         private static string FiveTraitPersonality(Traits t)
         {
@@ -211,7 +188,6 @@ namespace CalradiaRemembers.Mapping
                 return "The Spider. No virtue but cleverness — lies, schemes, hoards, and avoids danger without shame. Rules through fear and manipulation, never through respect or love.";
             if (t.Honor == 1 && t.Valor == 1 && t.Mercy == 1 && t.Generosity == 1 && t.Calculating == -1)
                 return "The Impulsive Saint. Brave, generous, honorable, and merciful — but acts entirely on feeling, never on strategy. Beloved by all, outmaneuvered by most.";
-
             return "Thoroughly Conventional. Neither particularly noble nor cruel — shaped more by circumstance than character.";
         }
 
