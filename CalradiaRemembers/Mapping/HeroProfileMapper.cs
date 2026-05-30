@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
@@ -52,6 +53,17 @@ namespace CalradiaRemembers.Mapping
         ///   Safe to call on every load — it is a no-op for already up-to-date profiles
         ///   and only logs when an actual upgrade happens.
         /// </summary>
+        /// <summary>
+        ///   Rebuilds <see cref="NpcProfile.Personality" /> from live hero state and the
+        ///   current <see cref="CulturalTraditionsLoader" /> cache. Call at every session
+        ///   launch so cultural descriptions are always up to date (users may edit the JSON).
+        /// </summary>
+        public static void RefreshPersonality(NpcProfile profile, Hero hero)
+        {
+            if (profile == null || hero == null) return;
+            profile.Personality = BuildPersonality(hero);
+        }
+
         public static void UpgradeIfNeeded(NpcProfile profile, Hero hero)
         {
             if (profile == null || hero == null) return;
@@ -141,11 +153,16 @@ namespace CalradiaRemembers.Mapping
         private static string BuildPersonality(Hero hero)
         {
             var parts = new List<string>();
-            var culture = hero.Culture?.Name?.ToString();
-            if (!string.IsNullOrEmpty(culture)) parts.Add($"A {culture} by culture.");
+            var cultureName = hero.Culture?.Name?.ToString() ?? "";
+            var culturalDesc = CulturalTraditionsLoader.Get(cultureName);
+
+            parts.Add(!string.IsNullOrEmpty(culturalDesc)
+                ? culturalDesc
+                : !string.IsNullOrEmpty(cultureName) ? $"A {cultureName} by culture." : "");
+
             parts.Add(DescribeRank(hero));
 
-            return string.Join(" ", parts);
+            return string.Join(" ", parts.Where(p => !string.IsNullOrEmpty(p)));
         }
 
         // ── Trait score conversion ────────────────────────────────────────────

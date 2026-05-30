@@ -103,12 +103,34 @@ namespace CalradiaRemembers.Behaviors
         private void OnSessionLaunched(CampaignGameStarter campaignGameStarter)
         {
             ModLog.Info("Campaign session launched.");
+            CulturalTraditionsLoader.Load();
             DisplayLoadedProfiles();
             UpgradeLegacyProfiles();
+            RefreshRelationships();
             DialogFlow.Register(campaignGameStarter);
             ModLog.Info("Dialog flow registered.");
 
             DialogueRecorder.Subscribe();
+        }
+
+        private void RefreshRelationships()
+        {
+            var refreshed = 0;
+            foreach (var id in Store.ListIds())
+            {
+                NpcProfile profile = Store.Get(id);
+                if (profile == null) continue;
+
+                Hero hero = Hero.FindFirst(h => h.StringId == id);
+                if (hero == null) continue;
+
+                HeroProfileMapper.RefreshPersonality(profile, hero);
+                profile.Relationships = RelationshipsBuilder.Build(hero);
+                refreshed++;
+            }
+
+            if (refreshed > 0)
+                ModLog.Info($"Refreshed personality and relationships for {refreshed} profile(s).");
         }
 
         private void UpgradeLegacyProfiles()

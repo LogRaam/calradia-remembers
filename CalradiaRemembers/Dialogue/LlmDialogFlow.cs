@@ -72,6 +72,7 @@ namespace CalradiaRemembers.Dialogue
             }
 
             NpcProfile fresh = HeroProfileMapper.FromHero(hero);
+            fresh.Relationships = RelationshipsBuilder.Build(hero);
             store.Set(fresh);
             ModLog.Info($"Created new profile for {hero.Name} from Hero traits.");
             return fresh;
