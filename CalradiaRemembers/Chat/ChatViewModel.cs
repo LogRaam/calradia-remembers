@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 23/05/2026.
+// Code written by Gabriel Mailhot, 26/05/2026.
 
 #region
 
@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
@@ -17,17 +18,23 @@ namespace CalradiaRemembers.Chat
 {
     public sealed class ChatViewModel : ViewModel
     {
+        /// <summary>
+        ///   When true, the full system prompt and full NPC response are logged
+        ///   on every LLM exchange. Useful for verifying that romantic sketches,
+        ///   traits, and other prompt sections are correctly injected.
+        ///   Toggle this off once you're done diagnosing — it floods the log.
+        /// </summary>
+        private const bool LogFullPromptAndResponse = true;
+
         private const string PlaceholderText = "(considering...)";
+
         private string _closeButtonText = "End conversation";
         private string _inputText = "";
         private bool _isSendEnabled = true;
-
         private MBBindingList<ChatMessageViewModel> _messages;
-
         private Hero _npcHero;
         private string _npcName = "the lord";
         private string _sendButtonText = "Send";
-
         private string _titleText = "Calradia Remembers";
 
         public ChatViewModel()
@@ -156,24 +163,18 @@ namespace CalradiaRemembers.Chat
 
             if (string.IsNullOrEmpty(text)) return;
             if (!IsSendEnabled) return;
-
             AppendPlayerMessage(text);
-
             ChatMessageViewModel placeholder = new ChatMessageViewModel(_npcHero, _npcName, PlaceholderText, false);
             _messages.Add(placeholder);
-
             IsSendEnabled = false;
             InputText = "";
-
             _ = RunLlmExchangeAsync(text, placeholder);
         }
 
         public void SetNpcHero(Hero npcHero)
         {
             _npcHero = npcHero;
-
             if (!string.IsNullOrWhiteSpace(npcHero?.Name?.ToString())) _npcName = npcHero.Name.ToString();
-
             TitleText = $"Calradia Remembers — {_npcName}";
         }
 
@@ -186,17 +187,11 @@ namespace CalradiaRemembers.Chat
 
         #region private
 
-        private static string Truncate(string s, int max)
-            => string.IsNullOrEmpty(s) || s.Length <= max
-                ? s
-                : s.Substring(0, max) + "...";
-
         private void ReplacePlaceholder(ChatMessageViewModel placeholder, string newText)
         {
             var idx = _messages.IndexOf(placeholder);
 
             if (idx < 0) return;
-
             ChatMessageViewModel replacement = new ChatMessageViewModel(_npcHero, _npcName, newText, false);
             _messages.RemoveAt(idx);
             _messages.Insert(idx, replacement);
@@ -230,11 +225,26 @@ namespace CalradiaRemembers.Chat
 
                 ModLog.Info($"Player → {profile.Name}: \"{playerMessage}\"");
 
-                WorldState world = new WorldState {
+                WorldState world = new() {
                     CurrentDay = behavior.GameStateBridge.GetCurrentGameDay(),
                     ActiveConflicts = "",
                     Rumors = ""
                 };
+
+                // ── Diagnostic: log the full system prompt sent to the LLM ─────
+                if (LogFullPromptAndResponse)
+                    try
+                    {
+                        IPromptBuilder promptBuilder = behavior.LlmServices.ChatService.PromptBuilder;
+                        var systemPrompt = promptBuilder.BuildSystemPrompt(profile, world, context);
+                        ModLog.Info("=== SYSTEM PROMPT START ===");
+                        ModLog.Info(systemPrompt);
+                        ModLog.Info("=== SYSTEM PROMPT END ===");
+                    }
+                    catch (Exception ex)
+                    {
+                        ModLog.Info($"(prompt logging failed: {ex.Message})");
+                    }
 
                 var startMs = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
 
@@ -261,16 +271,27 @@ namespace CalradiaRemembers.Chat
                 var npcLine = !string.IsNullOrWhiteSpace(response?.Dialogue)
                     ? response.Dialogue
                     : "(silence...)";
-
                 ReplacePlaceholder(placeholder, npcLine);
 
                 var gameDay = behavior.GameStateBridge.GetCurrentGameDay();
                 ProfileMutator.Apply(profile, response, gameDay);
                 behavior.Store.Set(profile);
 
-                ModLog.Info($"{profile.Name} → \"{Truncate(npcLine, 120)}\" ({elapsedMs} ms)");
+                // ── Diagnostic: log full response (no truncation) ──────────────
+                if (LogFullPromptAndResponse)
+                {
+                    ModLog.Info("=== NPC RESPONSE START ===");
+                    ModLog.Info(npcLine);
+                    ModLog.Info("=== NPC RESPONSE END ===");
+                    ModLog.Info($"({elapsedMs} ms)");
+                }
+                else
+                {
+                    ModLog.Info($"{profile.Name} → \"{npcLine}\" ({elapsedMs} ms)");
+                }
+
                 if (response.NewEventData != null)
-                    ModLog.Info($"  [EVENT] {response.NewEventData.Type}: {Truncate(response.NewEventData.Summary, 100)}");
+                    ModLog.Info($"  [EVENT] {response.NewEventData.Type}: {response.NewEventData.Summary}");
                 if (response.Reputation != null)
                     ModLog.Info($"  [REP] clan={response.Reputation.ClanDelta} faction={response.Reputation.FactionDelta}");
                 if (result.Usage != null)

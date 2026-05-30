@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Dialogue;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
@@ -96,60 +97,44 @@ namespace CalradiaRemembers.Behaviors
             }
         }
 
-        // ── Phase 7.2 validation helpers ──────────────────────────────────────
-
-        /// <summary>
-        ///   Creates a test NPC profile on first run (empty store).
-        ///   On subsequent loads the profile will already be in the store —
-        ///   confirming persistence works end-to-end.
-        /// </summary>
-        private void EnsureTestProfile()
-        {
-            const string testId = "npc_raganvad_test";
-
-            if (Store.Get(testId) != null)
-            {
-                ModLog.Info("Test profile found in save — persistence OK.");
-
-                return;
-            }
-
-            ModLog.Info("No save data — creating test profile.");
-
-            NpcProfile profile = new() {
-                Id = testId,
-                Name = "Raganvad (Test)",
-                Faction = "Sturgia",
-                Clan = "Vagiroving",
-                Personality = "Phase 7.2 persistence test."
-            };
-
-            profile.Events.Add(new NotableEvent(
-                142,
-                NotableEventType.FirstMeeting,
-                "Player met Raganvad for the first time during Phase 7.2 testing."));
-
-            profile.Events.Add(new NotableEvent(
-                142,
-                NotableEventType.Agreement,
-                "Raganvad agreed to test the persistence system."));
-
-            Store.Set(profile);
-            ModLog.Info($"Test profile created ({profile.Events.Count} events). Save the game to persist.");
-        }
 
         // ── Session launched ──────────────────────────────────────────────────
 
         private void OnSessionLaunched(CampaignGameStarter campaignGameStarter)
         {
             ModLog.Info("Campaign session launched.");
-            EnsureTestProfile();
             DisplayLoadedProfiles();
-
+            UpgradeLegacyProfiles();
             DialogFlow.Register(campaignGameStarter);
             ModLog.Info("Dialog flow registered.");
 
             DialogueRecorder.Subscribe();
+        }
+
+        private void UpgradeLegacyProfiles()
+        {
+            var upgraded = 0;
+            foreach (var id in Store.ListIds())
+            {
+                NpcProfile profile = Store.Get(id);
+
+                if (profile == null) continue;
+
+                Hero hero = Hero.FindFirst(h => h.StringId == id);
+
+                if (hero == null) continue; // hero gone — skip silently
+
+                var beforeNeedsRomantic = profile.Romantic == null;
+                var beforeStaleTrait = string.IsNullOrEmpty(profile.Trait) || profile.Trait.StartsWith("Thoroughly Conventional");
+
+                if (!beforeNeedsRomantic && !beforeStaleTrait) continue;
+
+                HeroProfileMapper.UpgradeIfNeeded(profile, hero);
+                upgraded++;
+            }
+
+            if (upgraded > 0)
+                ModLog.Info($"Upgraded {upgraded} legacy profile(s) at session launch.");
         }
 
         #endregion
