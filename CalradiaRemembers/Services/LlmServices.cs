@@ -7,6 +7,7 @@
 
 using System;
 using System.Net.Http;
+using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.LlmClient;
 using NpcMemoryService.Core.LlmClient.OpenRouter;
 using NpcMemoryService.Core.Parsing;
@@ -58,6 +59,13 @@ namespace CalradiaRemembers.Services
                 return _chatService;
             }
         }
+
+        /// <summary>
+        ///   Forces the next access to <see cref="ChatService"/> to rebuild the
+        ///   <see cref="PromptBuilder"/> with the latest file-loaded content.
+        ///   Call after reloading narrative files at session launch.
+        /// </summary>
+        public void Invalidate() => _chatService = null;
 
         public void Dispose()
         {
@@ -112,8 +120,11 @@ namespace CalradiaRemembers.Services
         {
             PromptBuilder promptBuilder = new PromptBuilder
             {
-                AdultLevel = ModSettings.AdultContentLevel,
-                PlayerIsFemale = Hero.MainHero?.IsFemale ?? false
+                AdultLevel                = ModSettings.AdultContentLevel,
+                PlayerIsFemale            = Hero.MainHero?.IsFemale ?? false,
+                WorldDescription          = NarrativeLoader.WorldDescription,
+                PlayerDescription         = NarrativeLoader.PlayerDescription,
+                BehaviorGuidelinesOverride = NarrativeLoader.BehaviorGuidelines
             };
 
             ModLog.Info($"PromptBuilder built (AdultLevel={ModSettings.AdultContentLevel}, " +

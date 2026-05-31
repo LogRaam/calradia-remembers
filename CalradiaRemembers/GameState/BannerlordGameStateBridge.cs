@@ -2,6 +2,9 @@
 
 #region
 
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Encounters;
@@ -51,6 +54,36 @@ namespace CalradiaRemembers.GameState
                 return DiplomaticStatus.AtWar;
 
             return DiplomaticStatus.AtPeace;
+        }
+
+        public string GetSeasonName()
+        {
+            // Bannerlord year = 84 campaign days (21 per season).
+            int dayOfYear = (int)(CampaignTime.Now.ToDays % 84);
+            if (dayOfYear < 21) return "Spring";
+            if (dayOfYear < 42) return "Summer";
+            if (dayOfYear < 63) return "Autumn";
+            return "Winter";
+        }
+
+        public string GetActiveConflicts()
+        {
+            if (Kingdom.All == null) return "";
+
+            var seen = new HashSet<string>();
+            var wars = new List<string>();
+            var kingdoms = Kingdom.All.Where(k => !k.IsEliminated).ToList();
+
+            for (int i = 0; i < kingdoms.Count; i++)
+            for (int j = i + 1; j < kingdoms.Count; j++)
+            {
+                Kingdom a = kingdoms[i];
+                Kingdom b = kingdoms[j];
+                if (FactionManager.IsAtWarAgainstFaction(a, b))
+                    wars.Add($"{a.Name} vs {b.Name}");
+            }
+
+            return wars.Count > 0 ? string.Join("; ", wars) : "";
         }
 
         public PlayerStatusVsNpc GetPlayerStatus(Hero npc)

@@ -692,12 +692,13 @@ namespace CalradiaRemembers.Mapping
 
         private static SexualOrientation DetermineOrientation(Random rng)
         {
+            // Homosexual, Pansexual and Asexual are kept in the enum for mod use
+            // but are not assigned in vanilla: lords marry the opposite gender by
+            // game mechanic, so pure homosexuality creates incoherent data.
             int roll = rng.Next(100);
-            if (roll <  70) return SexualOrientation.Heterosexual;
-            if (roll <  85) return SexualOrientation.Bisexual;
-            if (roll <  95) return SexualOrientation.Homosexual;
-            if (roll <  98) return SexualOrientation.Pansexual;
-            return SexualOrientation.Asexual;
+            if (roll < 65) return SexualOrientation.Heterosexual;
+            if (roll < 90) return SexualOrientation.BiCurious;
+            return SexualOrientation.Bisexual;
         }
 
         // ── Preferences ───────────────────────────────────────────────────────

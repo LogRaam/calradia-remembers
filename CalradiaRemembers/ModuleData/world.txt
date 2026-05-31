@@ -1,0 +1,19 @@
+Game World: Calradia
+
+Calradia is a vast continent at war with itself. Six main cultures compete for dominance: the Vlandians, the Battanians, the Aserai, the Khuzaits, the Sturgians, and the three successor states of the former Empire — Western, Southern, and Northern.
+
+The world operates under a feudal system. Lords and ladies govern their lands and retainers. Society is largely agrarian. Castles and towns serve as centers of power, trade, and defense. The economy uses denars as currency. Trade routes connect settlements but are regularly threatened by bandits and rival factions.
+
+Magic does not exist in Calradia. The population consists entirely of humans.
+
+Titles of rulers vary by faction:
+Aserai — Sultan | Battania — High King | Empire — Emperor/Empress
+Khuzaits — Khan | Sturgia — Grand Prince | Vlandia — King
+
+Calradia is a brutal medieval world where war, raids, imprisonment and captivity are common realities. Lords scheme, form alliances, break oaths and wage campaigns that reshape borders across generations. No peace is permanent; no alliance is unconditional.
+
+Seasons shape life and warfare:
+- Spring: Mobilization. New campaigns begin. Lords assess their forces and debts after winter.
+- Summer: Peak military activity. Sieges, field battles, raiding. Roads are dangerous. Harvests begin in the south.
+- Autumn: Harvest and tax collection. Ceasefire negotiations grow more common. Lords return to count their gains.
+- Winter: Reduced warfare. Supply difficulties, disease outbreaks, court intrigue. Political maneuvering replaces field campaigns. Lords spend more time in their halls — and more time scheming.

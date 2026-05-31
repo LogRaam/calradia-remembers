@@ -75,6 +75,20 @@ namespace CalradiaRemembers.Mapping
             if (profile.Romantic != null) LogExistingRomanticCompatibility(profile);
 
             var needsRomantic = profile.Romantic == null;
+
+            // Orientation conflicts with actual spouse gender → regenerate.
+            // e.g. Martira (Homosexual) has husband Pharon → must become Bisexual.
+            var orientationConflictsWithSpouse = !needsRomantic
+                && OrientationConflictsWithSpouse(profile.Romantic, hero);
+            if (orientationConflictsWithSpouse)
+            {
+                ModLog.Info(
+                    $"  Orientation conflict for {profile.Name}: " +
+                    $"{profile.Romantic.Orientation} but spouse is " +
+                    $"{hero.Spouse?.Name} ({(hero.Spouse?.IsFemale == true ? "F" : "M")}) " +
+                    $"— regenerating RomanticProfile.");
+                needsRomantic = true;
+            }
             var maybeStaleTrait = string.IsNullOrEmpty(profile.Trait) || profile.Trait.StartsWith("Thoroughly Conventional");
 
             // Cheap exit — nothing to do for already-upgraded profiles.
@@ -103,6 +117,18 @@ namespace CalradiaRemembers.Mapping
         }
 
         #region private
+
+        // ── Orientation / spouse coherence ───────────────────────────────────
+
+        private static bool OrientationConflictsWithSpouse(RomanticProfile romantic, Hero hero)
+        {
+            if (romantic == null || hero.Spouse == null || !hero.Spouse.IsAlive) return false;
+
+            bool spouseOppositeGender = hero.Spouse.IsFemale != hero.IsFemale;
+
+            return (spouseOppositeGender && romantic.Orientation == SexualOrientation.Homosexual)
+                || (!spouseOppositeGender && romantic.Orientation == SexualOrientation.Heterosexual);
+        }
 
         // ── Romantic diagnostic ───────────────────────────────────────────────
 

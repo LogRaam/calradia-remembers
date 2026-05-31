@@ -25,5 +25,15 @@ namespace CalradiaRemembers.GameState
 
         /// <summary>The current in-game day (from <c>CampaignTime.Now</c>).</summary>
         int GetCurrentGameDay();
+
+        /// <summary>Current season name: Spring, Summer, Autumn, or Winter.</summary>
+        string GetSeasonName();
+
+        /// <summary>
+        ///   Short summary of active inter-kingdom wars, suitable for injection
+        ///   into the world state section of the system prompt.
+        ///   Returns an empty string when there are no active wars.
+        /// </summary>
+        string GetActiveConflicts();
     }
 }

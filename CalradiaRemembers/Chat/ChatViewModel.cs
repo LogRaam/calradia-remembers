@@ -226,9 +226,10 @@ namespace CalradiaRemembers.Chat
                 ModLog.Info($"Player → {profile.Name}: \"{playerMessage}\"");
 
                 WorldState world = new() {
-                    CurrentDay = behavior.GameStateBridge.GetCurrentGameDay(),
-                    ActiveConflicts = "",
-                    Rumors = ""
+                    CurrentDay      = behavior.GameStateBridge.GetCurrentGameDay(),
+                    Season          = behavior.GameStateBridge.GetSeasonName(),
+                    ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
+                    Rumors          = ""
                 };
 
                 // ── Diagnostic: log the full system prompt sent to the LLM ─────
