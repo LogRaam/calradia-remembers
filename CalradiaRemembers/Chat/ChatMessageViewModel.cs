@@ -18,6 +18,7 @@ namespace CalradiaRemembers.Chat
 
         private string _authorColor;
         private string _displayText;
+        private bool _showAvatar = true;
         private string _portraitAdditionalArgs = "";
 
         // Flattened portrait properties.
@@ -52,6 +53,17 @@ namespace CalradiaRemembers.Chat
                 : NpcColor;
         }
 
+        /// <summary>
+        ///   System notification line (relation change, gold transfer): no portrait,
+        ///   no author prefix. The color encodes whether the outcome is favorable.
+        /// </summary>
+        public ChatMessageViewModel(string systemText, string colorHex)
+        {
+            _displayText = systemText ?? "";
+            _authorColor = colorHex;
+            _showAvatar  = false; // no portrait/frame for a system line
+        }
+
         [DataSourceProperty]
         public string AuthorColor
         {
@@ -67,6 +79,18 @@ namespace CalradiaRemembers.Chat
         /// <summary>
         ///   Texte complet affiché : "Nom" puis le message à la ligne suivante.
         /// </summary>
+        [DataSourceProperty]
+        public bool ShowAvatar
+        {
+            get => _showAvatar;
+            set
+            {
+                if (_showAvatar == value) return;
+                _showAvatar = value;
+                OnPropertyChangedWithValue(value);
+            }
+        }
+
         [DataSourceProperty]
         public string DisplayText
         {

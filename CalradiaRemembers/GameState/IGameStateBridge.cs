@@ -4,13 +4,12 @@ using TaleWorlds.CampaignSystem;
 namespace CalradiaRemembers.GameState
 {
     /// <summary>
-    /// Read-only abstraction over TaleWorlds' campaign state for everything
-    /// the mod needs to know about the game world. All game-state lookups
-    /// should go through this interface — no direct <c>Hero.MainHero</c>
+    /// Abstraction over TaleWorlds' campaign state for everything
+    /// the mod needs to read from or write to the game world. All game-state
+    /// access should go through this interface — no direct <c>Hero.MainHero</c>
     /// or <c>Campaign.Current</c> calls anywhere else in the mod.
     ///
-    /// In a later phase we will add write operations
-    /// (ChangeRelation, AddItem, etc.) here as well.
+    /// Sprint 10: write operations added (<see cref="ExecuteAction"/>).
     /// </summary>
     public interface IGameStateBridge
     {
@@ -35,5 +34,20 @@ namespace CalradiaRemembers.GameState
         ///   Returns an empty string when there are no active wars.
         /// </summary>
         string GetActiveConflicts();
+
+        /// <summary>
+        ///   The live game relation between the player and <paramref name="npc"/>
+        ///   ([-100, 100]). This is the single authoritative relationship score;
+        ///   it is synced into the prompt's CURRENT STANCE each turn. Returns 0 if
+        ///   either hero is missing.
+        /// </summary>
+        int GetPlayerRelation(Hero npc);
+
+        /// <summary>
+        ///   Executes a game action emitted by the LLM in an [ACTION] block and
+        ///   returns a short outcome to surface in the chat, or null when the action
+        ///   changed nothing (unknown type, gated out, invalid parameters).
+        /// </summary>
+        ActionOutcome ExecuteAction(GameAction action, Hero npcHero, ActionContext context);
     }
 }

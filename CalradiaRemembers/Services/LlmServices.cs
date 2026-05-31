@@ -120,11 +120,16 @@ namespace CalradiaRemembers.Services
         {
             PromptBuilder promptBuilder = new PromptBuilder
             {
-                AdultLevel                = ModSettings.AdultContentLevel,
-                PlayerIsFemale            = Hero.MainHero?.IsFemale ?? false,
-                WorldDescription          = NarrativeLoader.WorldDescription,
-                PlayerDescription         = NarrativeLoader.PlayerDescription,
-                BehaviorGuidelinesOverride = NarrativeLoader.BehaviorGuidelines
+                AdultLevel                 = ModSettings.AdultContentLevel,
+                PlayerIsFemale             = Hero.MainHero?.IsFemale ?? false,
+                WorldDescription           = NarrativeLoader.WorldDescription,
+                PlayerDescription          = NarrativeLoader.PlayerDescription,
+                BehaviorGuidelinesOverride = NarrativeLoader.BehaviorGuidelines,
+                ActionVocabulary           = ActionVocabularyLoader.Vocabulary,
+                // The NPC's standing is the live game relation (synced each turn),
+                // moved only through the gated change_relation action — so the LLM
+                // does not write a parallel reputation score.
+                EnableReputationBlock      = false
             };
 
             ModLog.Info($"PromptBuilder built (AdultLevel={ModSettings.AdultContentLevel}, " +

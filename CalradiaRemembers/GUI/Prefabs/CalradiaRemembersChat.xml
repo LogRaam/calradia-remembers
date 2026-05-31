@@ -110,6 +110,7 @@
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Top"
                                     MarginTop="2"
+                                    IsVisible="@ShowAvatar"
                                     Sprite="BlankWhiteSquare_9"
                                     Color="#221d18FF"
                                     AlphaFactor="0.0">

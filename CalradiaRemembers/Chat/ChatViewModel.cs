@@ -6,6 +6,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.GameState;
+using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Services;
@@ -27,6 +29,10 @@ namespace CalradiaRemembers.Chat
         private const bool LogFullPromptAndResponse = true;
 
         private const string PlaceholderText = "(considering...)";
+
+        // System notification line colors (relation/gold outcomes shown inline in chat).
+        private const string SystemGainColor = "#9fe0a0FF"; // soft green — favorable
+        private const string SystemLossColor = "#e0a0a0FF"; // soft red — unfavorable
 
         private string _closeButtonText = "End conversation";
         private string _inputText = "";
@@ -134,6 +140,24 @@ namespace CalradiaRemembers.Chat
             }
         }
 
+        /// <summary>
+        ///   Adds a system notification line to the chat (relation change, gold
+        ///   transfer). Color-coded by whether the outcome favors the player.
+        /// </summary>
+        public void AppendSystemMessage(string text, bool isPositive)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            try
+            {
+                _messages.Add(new ChatMessageViewModel(text, isPositive ? SystemGainColor : SystemLossColor));
+                ChatManager.ScrollToBottom();
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"AppendSystemMessage threw {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
         public void AppendPlayerMessage(string text)
         {
             ModLog.Info($"AppendPlayerMessage called with text='{text?.Substring(0, Math.Min(40, text?.Length ?? 0))}...'");
@@ -205,7 +229,10 @@ namespace CalradiaRemembers.Chat
                 NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
                 NpcProfile profile = NpcMemoryCampaignBehavior.Instance.DialogFlow.Profile;
                 ChatSession session = NpcMemoryCampaignBehavior.Instance.DialogFlow.Session;
-                EncounterContext context = NpcMemoryCampaignBehavior.Instance.DialogFlow.Context;
+                // Rebuild context each turn so it reflects events added during this session
+                // (avoids stale "never met" after the first exchange adds a FirstMeeting event).
+                EncounterContext context = EncounterContextBuilder.Build(
+                    _npcHero, profile, behavior.GameStateBridge);
 
                 if (behavior == null || profile == null || session == null)
                 {
@@ -231,6 +258,10 @@ namespace CalradiaRemembers.Chat
                     ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
                     Rumors          = ""
                 };
+
+                // ── Single source of truth: the NPC's stance in the prompt mirrors
+                //    the live game relation, gated only through change_relation. ──
+                profile.ReputationWithPlayer = behavior.GameStateBridge.GetPlayerRelation(_npcHero);
 
                 // ── Diagnostic: log the full system prompt sent to the LLM ─────
                 if (LogFullPromptAndResponse)
@@ -276,6 +307,21 @@ namespace CalradiaRemembers.Chat
 
                 var gameDay = behavior.GameStateBridge.GetCurrentGameDay();
                 ProfileMutator.Apply(profile, response, gameDay);
+
+                // ── Execute game actions emitted by the LLM ───────────────────
+                // RelationGate may stamp profile.LastRelationGainHour, so persist
+                // AFTER actions run (below), not before.
+                if (response.Actions != null && response.Actions.Count > 0)
+                {
+                    ActionContext actionContext = new ActionContext(profile, response.NewEventData?.Type);
+                    foreach (GameAction action in response.Actions)
+                    {
+                        ActionOutcome outcome =
+                            behavior.GameStateBridge.ExecuteAction(action, _npcHero, actionContext);
+                        if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);
+                    }
+                }
+
                 behavior.Store.Set(profile);
 
                 // ── Diagnostic: log full response (no truncation) ──────────────
@@ -295,6 +341,8 @@ namespace CalradiaRemembers.Chat
                     ModLog.Info($"  [EVENT] {response.NewEventData.Type}: {response.NewEventData.Summary}");
                 if (response.Reputation != null)
                     ModLog.Info($"  [REP] clan={response.Reputation.ClanDelta} faction={response.Reputation.FactionDelta}");
+                if (response.Actions != null && response.Actions.Count > 0)
+                    ModLog.Info($"  [ACTIONS] {response.Actions.Count} action(s) dispatched.");
                 if (result.Usage != null)
                     ModLog.Info($"  [TOKENS] prompt={result.Usage.PromptTokens} (cached:{result.Usage.CachedPromptTokens ?? 0}) | completion={result.Usage.CompletionTokens}");
             }

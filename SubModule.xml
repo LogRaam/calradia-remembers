@@ -1,34 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Module>
-    <Name value="NPC Memory Service" />
-    <Id value="NpcMemoryService" />
+    <Name value="Calradia Remembers" />
+    <Id value="CalradiaRemembers" />
     <Version value="v1.0.0" />
-    <DefaultModule value="false" />
-    <ModuleCategory value="Singleplayer" />
     <SingleplayerModule value="true" />
     <MultiplayerModule value="false" />
-
     <DependedModules>
         <DependedModule Id="Native" />
         <DependedModule Id="SandBoxCore" />
+        <DependedModule Id="Sandbox" />
         <DependedModule Id="CustomBattle" />
-        <DependedModule Id="SandBox" />
         <DependedModule Id="StoryMode" />
     </DependedModules>
-
     <SubModules>
         <SubModule>
-            <Name value="NPC Memory Service" />
-            <DLLName value="NpcMemoryService.Bannerlord.dll" />
-            <SubModuleClassType value="NpcMemoryService.Bannerlord.NpcMemoryServiceSubmodule" />
+            <Name value="CalradiaRemembers" />
+            <DLLName value="CalradiaRemembers.dll" />
+            <SubModuleClassType value="CalradiaRemembers.NpcMemoryServiceSubmodule" />
             <Tags>
                 <Tag key="DedicatedServerType" value="none" />
-                <Tag key="IsNoRenderModeElement" value="false" />
             </Tags>
         </SubModule>
     </SubModules>
-
-    <Xmls>
-        <!-- Reserved for future XML data definitions (action vocabularies, etc.) -->
-    </Xmls>
+    <Sounds>
+        <SoundBank Name="CalradiaRemembers.bank" />
+    </Sounds>
 </Module>

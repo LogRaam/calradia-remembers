@@ -2,13 +2,19 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Core;
+using TaleWorlds.Engine;
+using TaleWorlds.Localization;
 
 #endregion
 
@@ -112,6 +118,121 @@ namespace CalradiaRemembers.GameState
                 return PlayerStatusVsNpc.Vassal;
 
             return PlayerStatusVsNpc.Free;
+        }
+
+        public int GetPlayerRelation(Hero npc)
+        {
+            if (npc == null) return 0;
+            // GetRelationWithPlayer reads the same store that
+            // ChangeRelationAction.ApplyPlayerRelation writes to.
+            // CharacterRelationManager.GetHeroRelation is a separate
+            // internal dict and does not reflect ApplyPlayerRelation changes.
+            return (int)npc.GetRelationWithPlayer();
+        }
+
+        // ── Sprint 10: action execution ───────────────────────────────────────
+
+        public ActionOutcome ExecuteAction(GameAction action, Hero npcHero, ActionContext context)
+        {
+            if (action == null) return null;
+
+            switch (action.Type?.ToLowerInvariant())
+            {
+                case "change_relation":
+                    return ExecuteChangeRelation(action, npcHero, context);
+                case "give_gold":
+                    return ExecuteGiveGold(action, npcHero);
+                case "take_gold":
+                    return ExecuteTakeGold(action, npcHero);
+                default:
+                    ModLog.Info($"[ACTION] Unknown type '{action.Type}' — ignored.");
+                    return null;
+            }
+        }
+
+        private ActionOutcome ExecuteChangeRelation(GameAction action, Hero npcHero, ActionContext context)
+        {
+            if (!TryGetInt(action.Parameters, "delta", out int proposed)) return null;
+            if (npcHero == null || Hero.MainHero == null || context?.Profile == null) return null;
+
+            bool captive = GetPlayerStatus(npcHero) == PlayerStatusVsNpc.NpcIsCaptive;
+            int delta = RelationGate.Resolve(
+                proposed, context.Profile, context.EmittedEvent, CampaignTime.Now.ToHours, captive);
+
+            if (delta == 0)
+            {
+                ModLog.Info($"[ACTION] change_relation: proposed {proposed:+#;-#;0} gated to 0 (cooldown/clamp).");
+                return null;
+            }
+
+            // Apply silently (affectRelatives:false keeps our tuned magnitude exact;
+            // showQuickNotification:false suppresses the vanilla banner, which labels
+            // the change with the clan/family name rather than the hero).
+            ChangeRelationAction.ApplyPlayerRelation(npcHero, delta, false, false);
+            ModLog.Info($"[ACTION] change_relation: {npcHero.Name} {delta:+#;-#;0} (proposed {proposed:+#;-#;0})");
+
+            string message = delta > 0
+                ? $"{npcHero.Name} regards you more warmly. ({delta:+#;-#;0})"
+                : $"{npcHero.Name} regards you more coldly. ({delta:+#;-#;0})";
+
+            // Banner: correct hero name + NPC portrait. No soundEventPath — that
+            // parameter does not trigger custom-bank events reliably. Sound below.
+            MBInformationManager.AddQuickInformation(
+                new TextObject(message), 0, npcHero.CharacterObject);
+
+            // Play the custom sound directly via FMOD event API.
+            string soundPath = delta > 0 ? ModSettings.RelationIncreaseSound : ModSettings.RelationDecreaseSound;
+            PlaySound(soundPath);
+
+            return new ActionOutcome(message, delta > 0);
+        }
+
+        private static ActionOutcome ExecuteGiveGold(GameAction action, Hero npcHero)
+        {
+            if (!TryGetInt(action.Parameters, "amount", out int amount)) return null;
+            if (amount <= 0 || npcHero == null || Hero.MainHero == null) return null;
+
+            amount = ClampInt(amount, 1, 10000);
+            GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, amount, false);
+            ModLog.Info($"[ACTION] give_gold: {npcHero.Name} → player {amount} gold");
+            return new ActionOutcome($"{npcHero.Name} gives you {amount} denars.", true);
+        }
+
+        private static ActionOutcome ExecuteTakeGold(GameAction action, Hero npcHero)
+        {
+            if (!TryGetInt(action.Parameters, "amount", out int amount)) return null;
+            if (amount <= 0 || npcHero == null || Hero.MainHero == null) return null;
+
+            amount = ClampInt(amount, 1, 10000);
+            GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, amount, false);
+            ModLog.Info($"[ACTION] take_gold: player → {npcHero.Name} {amount} gold");
+            return new ActionOutcome($"You give {npcHero.Name} {amount} denars.", false);
+        }
+
+        private static bool TryGetInt(IReadOnlyDictionary<string, string> parameters, string key, out int value)
+        {
+            value = 0;
+            return parameters.TryGetValue(key, out string raw)
+                   && int.TryParse(raw, out value);
+        }
+
+        private static int ClampInt(int value, int min, int max)
+            => value < min ? min : value > max ? max : value;
+
+        private static void PlaySound(string eventPath)
+        {
+            if (string.IsNullOrWhiteSpace(eventPath)) return;
+            try
+            {
+                // PlaySound2D is the correct API for UI/2D sounds — it handles
+                // non-positional playback without requiring a scene context.
+                bool played = SoundEvent.PlaySound2D(eventPath);
+                ModLog.Info($"[SOUND] PlaySound2D('{eventPath}') = {played}.");
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[SOUND] PlaySound failed for '{eventPath}': {ex.Message}");
+            }
         }
     }
 }

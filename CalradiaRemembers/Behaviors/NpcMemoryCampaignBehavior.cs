@@ -105,6 +105,7 @@ namespace CalradiaRemembers.Behaviors
             ModLog.Info("Campaign session launched.");
             CulturalTraditionsLoader.Load();
             NarrativeLoader.Load();
+            ActionVocabularyLoader.Load();
             LlmServices.Invalidate();   // rebuild PromptBuilder with fresh file content
             DisplayLoadedProfiles();
             UpgradeLegacyProfiles();

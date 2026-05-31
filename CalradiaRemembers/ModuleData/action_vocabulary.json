@@ -1,0 +1,17 @@
+[
+  {
+    "type": "change_relation",
+    "description": "Reflect a genuine shift in how you regard the player — this is the ONLY way your relationship with them changes. Emit only when something real passes between you, never for idle pleasantries. Set 'delta' to the magnitude your heart actually feels: +1 when the player earns sincere warmth this exchange; a larger positive is justified only by a truly significant, self-evident moment such as physical intimacy. For a wrong done to you, make 'delta' negative and scale it to the gravity — a cold rebuff (-2), an insult (-5), the betrayal of a real agreement (-15); if you are the player's captive and they treat you with cruelty, your regard may collapse entirely. Trust is slow to grow and quick to break. The game enforces pacing and limits, so state what you feel honestly and let it decide what lands.",
+    "parameters": [ "delta" ]
+  },
+  {
+    "type": "give_gold",
+    "description": "Transfer gold from you to the player (payment, reward, gift, bribe). The amount must reflect your actual willingness — do not give what you would not give.",
+    "parameters": [ "amount" ]
+  },
+  {
+    "type": "take_gold",
+    "description": "Transfer gold from the player to you (tribute, fee, debt repaid). Only emit if the player has agreed or you have the authority to demand it.",
+    "parameters": [ "amount" ]
+  }
+]

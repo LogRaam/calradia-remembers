@@ -25,5 +25,23 @@ namespace CalradiaRemembers
         /// </summary>
         public static AdultContentLevel AdultContentLevel { get; set; }
             = AdultContentLevel.Hardcore;
+
+        /// <summary>
+        ///   Sound event path played when a negative relation change occurs.
+        ///   Example: "event:/ui/notification/relation_decrease"
+        /// </summary>
+        /// <summary>
+        ///   Sound event path played when a negative relation change occurs.
+        ///   Vanilla fallback — replace with "event:/CR_Negative" once the custom
+        ///   soundbank strings-loading issue is resolved in FMOD Studio.
+        /// </summary>
+        public static string RelationDecreaseSound { get; set; } = "event:/ui/persuasion/critical_fail";
+
+        /// <summary>
+        ///   Sound event path played when a positive relation change occurs.
+        ///   Vanilla fallback — replace with "event:/CR_Positive" once the custom
+        ///   soundbank strings-loading issue is resolved in FMOD Studio.
+        /// </summary>
+        public static string RelationIncreaseSound { get; set; } = "event:/ui/persuasion/success";
     }
 }
