@@ -80,6 +80,38 @@ namespace CalradiaRemembers
             return "LLM diagnostic started. Watch the combat log and the log file for results.";
         }
 
+        // ── Help ─────────────────────────────────────────────────────────────
+
+        /// <summary>cr.help — list all cr.* commands with a short description.</summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("help", "cr")]
+        public static string Help(List<string> args)
+        {
+            return
+                "Calradia Remembers console commands (group: cr)\n" +
+                "\n" +
+                "RELATION\n" +
+                "  cr.relation <delta> [name]           Simulate change_relation (event Other) — cap +1, cooldown 8h\n" +
+                "  cr.relation_intimate <delta> [name]  Same with Intimacy event — cap +3, bypasses cooldown\n" +
+                "  cr.relation_reset [name]             Clear the relation-gain cooldown\n" +
+                "  cr.info [name]                       Show relation, captive status, cooldown remaining\n" +
+                "\n" +
+                "GOLD\n" +
+                "  cr.give_gold <amount> [name]         NPC gives the player gold\n" +
+                "  cr.take_gold <amount> [name]         Player gives the NPC gold\n" +
+                "\n" +
+                "DISCOVERY\n" +
+                "  cr.discover [name]                   Seed 3 test DiscoveredTraits (encyclopedia test)\n" +
+                "\n" +
+                "QUESTS\n" +
+                "  cr.quest [name]                      Seed a bandit_clear quest on the NPC (journal opens)\n" +
+                "  cr.quest_done [name]                 Force-stamp the outstanding quest as satisfied (journal updates)\n" +
+                "  cr.quest_complete [name]             Pay reward and close the journal entry with success\n" +
+                "  cr.quest_abandon [name]              Force-abandon the outstanding quest (-3 regard, journal closes)\n" +
+                "  cr.quests [name]                     List the NPC's quests with their current state\n" +
+                "\n" +
+                "[name] is an optional name fragment (case-insensitive). If omitted, the current conversation NPC is used.";
+        }
+
         // ── Sprint 10: action testing (group "cr") ────────────────────────────
 
         [CommandLineFunctionality.CommandLineArgumentFunction("relation", "cr")]
