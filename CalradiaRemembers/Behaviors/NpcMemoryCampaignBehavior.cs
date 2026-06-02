@@ -122,6 +122,7 @@ namespace CalradiaRemembers.Behaviors
 
             DialogueRecorder.Subscribe();
             QuestTracker.Subscribe();
+            QuestJournalBridge.ReconcileOnSessionLaunch(Store);
         }
 
         /// <summary>

@@ -214,6 +214,10 @@ namespace CalradiaRemembers.Quests
             NpcMemoryCampaignBehavior.Instance?.Store.Set(profile);
             ModLog.Info($"[QUEST] satisfied for {profile.Name}: {evidence}");
             InformPlayer($"Task progress — {evidence}. Report back to {profile.Name}.");
+
+            // Update the journal mirror so the player sees "Done" without waiting to open chat.
+            Hero giver = Hero.FindFirst(h => h.StringId == profile.Id);
+            QuestJournalBridge.NotifyDeedDone(quest, giver);
         }
 
         /// <summary>

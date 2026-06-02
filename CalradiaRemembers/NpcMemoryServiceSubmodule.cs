@@ -70,6 +70,7 @@ namespace CalradiaRemembers
             InitializeUiExtender();
         }
 
+
         /// <summary>
         ///   Boots UIExtenderEx so our encyclopedia mixin + prefab patch are applied
         ///   (adds the NPC's personal regard to their encyclopedia hero page).

@@ -80,6 +80,7 @@ namespace CalradiaRemembers.Quests
                         quest.Status = QuestStatus.Cancelled;
                         AddEvent(profile, gameDay, NotableEventType.Other,
                             $"Set aside the task to {Describe(quest)} — circumstances changed.");
+                        QuestJournalBridge.CloseAsCancelled(quest, giverHero, "Circumstances changed — this task is no longer needed.");
                         changed = true;
                         continue;
                     }
@@ -90,6 +91,7 @@ namespace CalradiaRemembers.Quests
                         ApplyPenalty(profile);
                         AddEvent(profile, gameDay, NotableEventType.Conflict,
                             $"The player let the deadline lapse on the task to {Describe(quest)} — a disappointment.");
+                        QuestJournalBridge.CloseAsFailed(quest, giverHero, $"You did not complete this task in time. {profile.Name} is disappointed.");
                         ModLog.Info($"[QUEST] expired for {profile.Name}: {Describe(quest)} (-{DeadlineFailurePenalty} regard).");
                         changed = true;
                     }
@@ -163,6 +165,9 @@ namespace CalradiaRemembers.Quests
             AddEvent(giver, gameDay, NotableEventType.Agreement, $"Asked the player to {Describe(quest)}.");
             store.Set(giver);
 
+            // Open a vanilla quest journal mirror so the player can track it.
+            QuestJournalBridge.OpenMirror(quest, giverHero);
+
             ModLog.Info($"[QUEST] {giver.Name} issued: {Describe(quest)} " +
                         $"(reward {quest.RewardGold}g/+{quest.RewardRelation}, deadline {quest.DeadlineDay?.ToString() ?? "none"}).");
             notify?.Invoke($"New task from {giver.Name}: {Describe(quest)}.", true);
@@ -183,6 +188,7 @@ namespace CalradiaRemembers.Quests
             ActionOutcome reward = bridge?.GrantQuestReward(giverHero, giver, quest.RewardGold, quest.RewardRelation);
             quest.Status = QuestStatus.Completed;
             AddEvent(giver, gameDay, NotableEventType.Collaboration, $"The player completed the task to {Describe(quest)}.");
+            QuestJournalBridge.CloseAsCompleted(quest, giverHero);
             store.Set(giver);
 
             if (reward != null) notify?.Invoke(reward.Message, true);
@@ -207,6 +213,7 @@ namespace CalradiaRemembers.Quests
             giver.ReputationWithPlayer = after < -100 ? -100 : after;
             AddEvent(giver, gameDay, NotableEventType.Conflict,
                 $"The player gave up the task to {Describe(quest)} — a broken word, however honest.");
+            QuestJournalBridge.CloseAsFailed(quest, FindGiverHero(giver), "You chose not to complete this task.");
             store.Set(giver);
 
             ModLog.Info($"[QUEST] {giver.Name}: player abandoned '{quest.Type}' (-{AbandonPenalty} regard).");
@@ -254,6 +261,9 @@ namespace CalradiaRemembers.Quests
 
             return removed;
         }
+
+        private static Hero FindGiverHero(NpcProfile profile)
+            => profile == null ? null : Hero.FindFirst(h => h.StringId == profile.Id);
 
         private static IFaction ResolveFactionById(string id)
         {
