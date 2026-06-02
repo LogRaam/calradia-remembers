@@ -129,7 +129,10 @@ namespace CalradiaRemembers.Services
                 // The NPC's standing is the live game relation (synced each turn),
                 // moved only through the gated change_relation action — so the LLM
                 // does not write a parallel reputation score.
-                EnableReputationBlock      = false
+                EnableReputationBlock      = false,
+                // The mod can verify deeds (QuestDeedTracker) and pay rewards, so the
+                // NPC is allowed to offer and resolve informal quests.
+                EnableQuests               = true
             };
 
             ModLog.Info($"PromptBuilder built (AdultLevel={ModSettings.AdultContentLevel}, " +

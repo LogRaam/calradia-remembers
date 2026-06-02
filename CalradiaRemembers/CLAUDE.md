@@ -87,13 +87,15 @@ Key design decisions:
 5. Relationships (top-5 friends, top-5 enemies, family, liege, faction leader)
 6. Cultural traditions
 7. Current stance (relation score → natural language)
-8. Narrative (world.txt, player_description.txt)
-9. Response format instructions
-10. Action instructions (change_relation / give_gold / take_gold)
-11. Discovery instructions (gated: AdultLevel != Off)
-12. CURRENT ENCOUNTER (scene, war status, player status, days since last meeting)
-13. NAMES MENTIONED (only when playerMessage contains matching hero name tokens)
-14. Conversation history (ChatSession.Messages)
+8. YOUR QUESTS (gated: EnableQuests — outstanding / done-ready / past, with verified evidence)
+9. Narrative (world.txt, player_description.txt)
+10. Response format instructions
+11. Action instructions (change_relation / give_gold / take_gold)
+12. Discovery instructions (gated: AdultLevel != Off)
+13. Quest instructions (gated: EnableQuests — [QUEST] vocabulary + [QUEST_COMPLETE] rules)
+14. CURRENT ENCOUNTER (scene, war status, player status, days since last meeting)
+15. NAMES MENTIONED (only when playerMessage contains matching hero name tokens)
+16. Conversation history (ChatSession.Messages)
 
 ---
 
@@ -108,6 +110,8 @@ Key design decisions:
 | Captive floor | −100 | Only when `GetPlayerStatus == NpcIsCaptive` |
 
 `NpcProfile.LastRelationGainHour` persisted. Gate enforced in `BannerlordGameStateBridge.ExecuteAction`.
+
+**Quest rewards bypass the gate** (`GrantQuestReward`): a completed quest is verified by real game events, so its promised relation (≤10, fixed at issue) is applied in full, ignoring cooldown/cap.
 
 ---
 
@@ -186,6 +190,10 @@ cr.give_gold <amount> [name]
 cr.take_gold <amount> [name]
 cr.info [name]                       # relation, captive status, cooldown remaining
 cr.discover [name]                   # seeds 3 test DiscoveredTraits (encyclopedia testing)
+cr.quest [name]                      # seed a bandit_clear quest (issue→inject→complete path)
+cr.quest_done [name]                 # force-stamp outstanding quest satisfied (test reward w/o battle)
+cr.quest_abandon [name]              # force-abandon outstanding quest (test broken-word penalty)
+cr.quests [name]                     # list NPC quests + state
 ```
 
 ---
@@ -203,20 +211,23 @@ cr.discover [name]                   # seeds 3 test DiscoveredTraits (encycloped
 
 > This is the only section that changes per sprint. Keep it short.
 
-**Sprint 10.5 — Discovery system + contextual name injection** ✅ build OK, pending in-game test
+**Sprint 11 — Informal quests** ✅ build OK (SDK + mod), pending in-game test
+
+Verifiable deeds only — no roleplay-only completion. A quest is stamped done only from a real, player-involved game event. **No ephemeral journal**: proof is stamped on the quest itself (`SatisfiedOnDay` + `Evidence`), which persists with the profile across save/load.
 
 Delivered:
-- `[DISCOVERY]` block: `SectionResponseParser` → `ParsedResponse.Discovery` → `ProfileMutator` (dedup by key)
-- `NpcProfile.DiscoveredTraits` persisted + re-injected into prompt (gated AdultLevel != Off)
-- Encyclopedia: `EncyclopediaHeroPageDiscoveryMixin` + `HeroPageDiscoveryPatchA/B` + `CR_HeroDiscoveryLabel/Items.xml`
-- `ContextualNameResolver` + `EncounterContextBuilder` updated → `NAMES MENTIONED` block in prompt
-- `DescribeRelation()` for roleplay descriptions (replaces raw relation numbers)
-- `LogFullPromptAndResponse = false` (production cleanup)
-- `cr.discover [name]` command
+- SDK: `QuestType` / `QuestStatus` / `InformalQuest` / `QuestProposal` / `QuestCompletionClaim`; `NpcProfile.ActiveQuests`; parser `[QUEST]`/`[QUEST_COMPLETE]`; PromptBuilder `EnableQuests` + `AppendQuestInstructions` + `AppendActiveQuests` (YOUR QUESTS)
+- Mod: `QuestFactory` (resolve+clamp), `QuestService` (issue/complete/daily maintenance/letter lookup), `QuestDeedTracker` (campaign-event matching → stamp), `GrantQuestReward` on bridge (bypasses RelationGate, verified), behavior wiring (subscribe + daily tick), `EnableQuests=true`, ChatViewModel hook, letter delivery dialogue button, `cr.quest`/`cr.quest_done`/`cr.quests`
+- 11 quest types: bandit_clear/hideout, attack_faction/lord/caravan, raid_village, siege, capture/execute/rescue, deliver_letter (dialogue button)
+- Reward fixed at issue (gold≤5000, relation≤10); deadline expiry → −5 regard + memory; war-end → cancel; `[QUEST_ABANDON]` → Abandoned −3 regard
+- All deed types are player-gated (won battle / player struck / player captured). `rescue_prisoner` detected from player victory scanning defeated parties' `PrisonRoster` (NOT `HeroPrisonerReleased`, which has no rescuer info)
 
 Pending:
-- In-game test: `cr.discover`, live `[DISCOVERY]` parsing, `NAMES MENTIONED` injection
-- Commit both repos (multiple sprints accumulated since Sprint 10)
-- Update HANDOFF.md with Sprint 10.5 completion
+- In-game test — esp. the real-deed path (cheats force-stamp, they DON'T exercise `QuestDeedTracker` matching). Test sequence in HANDOFF.
+- ⚠️ `rescue_prisoner` — confirm the freed ally is still in the defeated party's `PrisonRoster` at `MapEventEnded` (before aftermath scatters them)
+- ⚠️ `bandit_hideout` settlement = nearest town (hideout's own settlement is ignored) — confirm it stamps
+- Commit both repos
 
-Next sprint planned: **Sprint 11 — Informal quests**
+Tooling note: `ilspycmd` installed as global dotnet tool — decompile the game DLLs to verify TaleWorlds API signatures (`ilspycmd -t <FullTypeName> "<dll>"`). Used this sprint to verify all `CampaignEvents.*` delegate shapes.
+
+Next sprint planned: **Sprint 11.5 — Patrol/scouting** (time-based, approximate); **Sprint 12 — diplomatic declare-war**

@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Quests;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -60,6 +61,18 @@ namespace CalradiaRemembers.Dialogue
 
         public void Register(CampaignGameStarter starter)
         {
+            // 0. Letter delivery: only shows when the player carries an outstanding
+            //    message addressed to THIS hero. Selecting it marks the errand delivered
+            //    and opens the chat so the recipient can react.
+            starter.AddPlayerLine(
+                "calradia_remembers_deliver_letter",
+                "hero_main_options",
+                "calradia_remembers_dummy_token",
+                "I bear a message for you, carried on another's behalf.",
+                CanDeliverLetter,
+                DeliverLetterAndOpenChat,
+                115);                                // above "We need to talk..."
+
             // 1. Player opens the interaction → routes to the greeting token so the
             //    NPC can react with an expression matching the current relation.
             starter.AddPlayerLine(
@@ -154,6 +167,43 @@ namespace CalradiaRemembers.Dialogue
             if (!hero.IsAlive) return false;
             if (hero == Hero.MainHero) return false;
             return true;
+        }
+
+        /// <summary>
+        ///   True when the player is carrying an undelivered message addressed to the
+        ///   current conversation hero.
+        /// </summary>
+        private bool CanDeliverLetter()
+        {
+            if (!IsHeroEligible()) return false;
+            if (NpcMemoryCampaignBehavior.Instance == null) return false;
+
+            Hero recipient = Hero.OneToOneConversationHero;
+            return QuestService.FindOutstandingLetterFor(
+                recipient, NpcMemoryCampaignBehavior.Instance.Store) != null;
+        }
+
+        /// <summary>
+        ///   Marks the letter delivered the instant the player hands it over, then opens
+        ///   the chat so the recipient can respond. The reward stays with the giver — the
+        ///   player collects it by reporting back to them later.
+        /// </summary>
+        private void DeliverLetterAndOpenChat()
+        {
+            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+            Hero recipient = Hero.OneToOneConversationHero;
+            if (behavior == null || recipient == null) { OnPlayerSelectedChat(); return; }
+
+            LetterErrand errand = QuestService.FindOutstandingLetterFor(recipient, behavior.Store);
+            if (errand != null)
+            {
+                int day = behavior.GameStateBridge.GetCurrentGameDay();
+                QuestService.MarkLetterDelivered(errand, recipient, day, behavior.Store);
+                _pendingGreeting = "*You hand over the sealed letter.* So — word reaches me at last. " +
+                                   "Let us speak of what it carries.";
+            }
+
+            OnPlayerSelectedChat();
         }
 
         /// <summary>

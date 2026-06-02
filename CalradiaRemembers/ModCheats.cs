@@ -11,8 +11,10 @@ using CalradiaRemembers.Chat;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Quests;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Library;
 
 #endregion
@@ -153,6 +155,127 @@ namespace CalradiaRemembers
 
             behavior.Store.Set(profile);
             return $"{hero.Name}: {added} discovery/ies added ({profile.DiscoveredTraits.Count} total). Open encyclopedia to verify.";
+        }
+
+        // ── Sprint 11: informal quest testing (group "cr") ────────────────────
+
+        /// <summary>
+        ///   cr.quest [name]
+        ///   Seeds a bandit-clear quest (near a real village, 10-day deadline, 300g/+3)
+        ///   on the NPC, through the real issue path. Tests prompt injection of the quest
+        ///   and the giver acknowledging it. Pair with cr.quest_done to test the reward.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("quest", "cr")]
+        public static string SeedQuest(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            string village = Settlement.All.FirstOrDefault(s => s.IsVillage)?.Name?.ToString();
+            if (village == null) return "No village found to anchor the quest.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            int day = behavior.GameStateBridge.GetCurrentGameDay();
+
+            var proposal = new QuestProposal {
+                Type             = QuestType.BanditClear,
+                Description      = $"Clear the bandits troubling the roads near {village}.",
+                TargetSettlement = village,
+                DeadlineDays     = 10,
+                RewardGold       = 300,
+                RewardRelation   = 3
+            };
+            var fake = new ParsedResponse { Dialogue = "", QuestGiven = proposal };
+
+            QuestService.ApplyResponse(profile, hero, fake, day,
+                behavior.GameStateBridge, behavior.Store,
+                (text, positive) => ChatManager.ActiveViewModel?.AppendSystemMessage(text, positive));
+
+            int outstanding = profile.ActiveQuests.Count(q => q.IsOutstanding);
+            return $"{hero.Name}: seeded bandit_clear near {village} ({outstanding} outstanding quest(s)).";
+        }
+
+        /// <summary>
+        ///   cr.quest_done [name]
+        ///   Force-stamps the NPC's outstanding quest as satisfied (bypassing real events)
+        ///   so the giver will offer to reward it on the next exchange. Tests the
+        ///   completion + reward path without fighting a battle.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("quest_done", "cr")]
+        public static string ForceQuestDone(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q => q.IsOutstanding);
+            if (quest == null) return $"{hero.Name} has no outstanding quest. Seed one with cr.quest first.";
+
+            int day = behavior.GameStateBridge.GetCurrentGameDay();
+            quest.SatisfiedOnDay = day;
+            quest.Evidence = "(debug) forced complete";
+            behavior.Store.Set(profile);
+            return $"{hero.Name}: quest '{quest.Type}' marked satisfied. Talk to them to collect {quest.RewardGold}g/+{quest.RewardRelation}.";
+        }
+
+        /// <summary>
+        ///   cr.quest_abandon [name]
+        ///   Force-abandons the NPC's outstanding quest (as if the player told them they
+        ///   quit), applying the broken-word penalty. Tests the abandon path without the LLM.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("quest_abandon", "cr")]
+        public static string ForceQuestAbandon(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            int before = profile.ReputationWithPlayer;
+            int day = behavior.GameStateBridge.GetCurrentGameDay();
+
+            var fake = new ParsedResponse { Dialogue = "", QuestAbandoned = new QuestAbandonClaim() };
+            QuestService.ApplyResponse(profile, hero, fake, day,
+                behavior.GameStateBridge, behavior.Store,
+                (text, positive) => ChatManager.ActiveViewModel?.AppendSystemMessage(text, positive));
+
+            return $"{hero.Name}: abandon applied (regard {before}→{profile.ReputationWithPlayer}).";
+        }
+
+        /// <summary>
+        ///   cr.quests [name]
+        ///   Lists the NPC's quests with their state.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("quests", "cr")]
+        public static string ListQuests(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            if (profile.ActiveQuests.Count == 0) return $"{hero.Name} has no quests.";
+
+            var lines = profile.ActiveQuests.Select(q =>
+            {
+                string state = q.IsOutstanding ? "outstanding"
+                    : q.IsAwaitingReward ? "DONE (awaiting reward)"
+                    : q.Status.ToString();
+                string deadline = q.DeadlineDay.HasValue ? $", deadline day {q.DeadlineDay}" : "";
+                return $"  [{q.Type}] {state}{deadline} — {q.Description}";
+            });
+
+            return $"{hero.Name} quests:\n" + string.Join("\n", lines);
         }
 
         [CommandLineFunctionality.CommandLineArgumentFunction("relation_reset", "cr")]

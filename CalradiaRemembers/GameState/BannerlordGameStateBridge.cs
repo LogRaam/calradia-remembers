@@ -191,6 +191,40 @@ namespace CalradiaRemembers.GameState
             return new ActionOutcome(message, delta > 0);
         }
 
+        public ActionOutcome GrantQuestReward(Hero npcHero, NpcProfile profile, int gold, int relation)
+        {
+            if (npcHero == null || Hero.MainHero == null || profile == null) return null;
+
+            var parts = new List<string>();
+
+            if (gold > 0)
+            {
+                int amount = ClampInt(gold, 1, 100000);
+                GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, amount, true);
+                parts.Add($"{amount} denars");
+            }
+
+            if (relation > 0)
+            {
+                // Verified reward: applied straight to the personal score, bypassing the
+                // RelationGate cooldown/cap — the deed was confirmed by real game events.
+                int before = profile.ReputationWithPlayer;
+                int after = ClampInt(before + relation, -100, 100);
+                profile.ReputationWithPlayer = after;
+                profile.LastRelationGainHour = CampaignTime.Now.ToHours;
+                if (after != before) parts.Add($"+{after - before} regard");
+                ModLog.Info($"[QUEST] reward relation: {npcHero.Name} {before}→{after} (+{relation} promised)");
+            }
+
+            if (parts.Count == 0) return null;
+
+            string message = $"{npcHero.Name} rewards you: {string.Join(", ", parts)}.";
+            MBInformationManager.AddQuickInformation(new TextObject(message), 0, npcHero.CharacterObject);
+            PlaySound(ModSettings.RelationIncreaseSound);
+            ModLog.Info($"[QUEST] {message}");
+            return new ActionOutcome(message, true);
+        }
+
         private static ActionOutcome ExecuteGiveGold(GameAction action, Hero npcHero)
         {
             if (!TryGetInt(action.Parameters, "amount", out int amount)) return null;

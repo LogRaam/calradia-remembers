@@ -49,5 +49,14 @@ namespace CalradiaRemembers.GameState
         ///   changed nothing (unknown type, gated out, invalid parameters).
         /// </summary>
         ActionOutcome ExecuteAction(GameAction action, Hero npcHero, ActionContext context);
+
+        /// <summary>
+        ///   Pays the reward promised by a completed informal quest: <paramref name="gold"/>
+        ///   denars from the NPC to the player, and <paramref name="relation"/> added to the
+        ///   NPC's personal regard. Unlike routine warmth, a verified quest reward bypasses
+        ///   the relation cooldown and cap — the deed was confirmed by real game events.
+        ///   Returns a combined outcome for the chat, or null when nothing was granted.
+        /// </summary>
+        ActionOutcome GrantQuestReward(Hero npcHero, NpcProfile profile, int gold, int relation);
     }
 }

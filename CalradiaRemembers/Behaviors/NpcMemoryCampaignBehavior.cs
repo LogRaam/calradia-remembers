@@ -7,6 +7,7 @@ using System.Linq;
 using CalradiaRemembers.Dialogue;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Quests;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
@@ -46,6 +47,10 @@ namespace CalradiaRemembers.Behaviors
         public readonly LlmServices LlmServices = new();
         public readonly BannerlordNpcMemoryStore Store = new();
 
+        // ONE QuestDeedTracker, owned by the behavior. Subscribes to campaign events at
+        // session launch so its listeners die with the campaign (no statics holding world refs).
+        public readonly QuestDeedTracker QuestTracker = new();
+
         public NpcMemoryCampaignBehavior()
         {
             Instance = this;
@@ -59,6 +64,8 @@ namespace CalradiaRemembers.Behaviors
         {
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(
                 this, OnSessionLaunched);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(
+                this, OnDailyTick);
         }
 
         /// <summary>
@@ -114,7 +121,15 @@ namespace CalradiaRemembers.Behaviors
             ModLog.Info("Dialog flow registered.");
 
             DialogueRecorder.Subscribe();
+            QuestTracker.Subscribe();
         }
+
+        /// <summary>
+        ///   Runs the quest lifecycle pass once per game day: expire overdue quests
+        ///   (with a consequence) and cancel ones whose war premise has ended.
+        /// </summary>
+        private void OnDailyTick()
+            => QuestService.RunDailyMaintenance(Store, GameStateBridge.GetCurrentGameDay());
 
         private void RefreshRelationships()
         {

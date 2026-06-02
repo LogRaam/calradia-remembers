@@ -348,6 +348,12 @@ namespace CalradiaRemembers.Chat
                     SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer ?? 0);
                 }
 
+                // ── Informal quests: issue a newly offered task, pay out a verified one ──
+                Quests.QuestService.ApplyResponse(
+                    profile, _npcHero, response, gameDay,
+                    behavior.GameStateBridge, behavior.Store,
+                    (text, positive) => AppendSystemMessage(text, positive));
+
                 behavior.Store.Set(profile);
 
                 // ── Diagnostic: log full response (no truncation) ──────────────
