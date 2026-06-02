@@ -219,9 +219,43 @@ namespace CalradiaRemembers
 
             int day = behavior.GameStateBridge.GetCurrentGameDay();
             quest.SatisfiedOnDay = day;
-            quest.Evidence = "(debug) forced complete";
+            quest.Evidence = "(debug) forced complete on day " + day;
             behavior.Store.Set(profile);
-            return $"{hero.Name}: quest '{quest.Type}' marked satisfied. Talk to them to collect {quest.RewardGold}g/+{quest.RewardRelation}.";
+
+            // Update the journal mirror so "Done" appears without a real battle.
+            QuestJournalBridge.NotifyDeedDone(quest, hero);
+
+            return $"{hero.Name}: quest '{quest.Type}' marked satisfied — journal updated. " +
+                   $"Use cr.quest_complete to pay {quest.RewardGold}g/+{quest.RewardRelation} and close the journal.";
+        }
+
+        /// <summary>
+        ///   cr.quest_complete [name]
+        ///   Simulates the NPC acknowledging the completed quest: closes the journal
+        ///   entry with success and pays the promised reward. Requires cr.quest_done
+        ///   first (the quest must already be in the awaiting-reward state).
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("quest_complete", "cr")]
+        public static string ForceQuestComplete(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            if (!profile.ActiveQuests.Any(q => q.IsAwaitingReward))
+                return $"{hero.Name} has no quest awaiting reward. Use cr.quest_done first.";
+
+            int day = behavior.GameStateBridge.GetCurrentGameDay();
+            var fake = new ParsedResponse { Dialogue = "", QuestCompleted = new QuestCompletionClaim() };
+
+            QuestService.ApplyResponse(profile, hero, fake, day,
+                behavior.GameStateBridge, behavior.Store,
+                (text, positive) => ChatManager.ActiveViewModel?.AppendSystemMessage(text, positive));
+
+            return $"{hero.Name}: quest completed — journal closed, reward paid.";
         }
 
         /// <summary>
