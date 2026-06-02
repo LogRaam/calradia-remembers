@@ -38,14 +38,29 @@
           <Children>
             <TextWidget Id="TitleTextWidget"
                         WidthSizePolicy="StretchToParent"
-                        HeightSizePolicy="StretchToParent"
+                        HeightSizePolicy="Fixed"
+                        SuggestedHeight="40"
                         HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
+                        VerticalAlignment="Top"
+                        MarginTop="6"
                         Brush="Default"
-                        Brush.FontSize="26"
+                        Brush.FontSize="24"
                         Brush.FontColor="#c8a878FF"
                         Brush.TextHorizontalAlignment="Center"
                         Text="@TitleText"
+                        IsDisabled="true" />
+            <TextWidget Id="RelationSummaryWidget"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="Fixed"
+                        SuggestedHeight="22"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Bottom"
+                        MarginBottom="6"
+                        Brush="Default"
+                        Brush.FontSize="16"
+                        Brush.FontColor="#9a8a78FF"
+                        Brush.TextHorizontalAlignment="Center"
+                        Text="@RelationSummary"
                         IsDisabled="true" />
           </Children>
         </Widget>

@@ -25,7 +25,8 @@ namespace CalradiaRemembers.Mapping
                 Faction = hero.MapFaction?.Name?.ToString() ?? "Unaligned",
                 Clan = hero.Clan?.Name?.ToString() ?? "No clan",
                 Personality = BuildPersonality(hero),
-                Trait = archetype
+                Trait = archetype,
+                SpouseName = hero.Spouse?.IsAlive == true ? hero.Spouse.Name?.ToString() : null
             };
 
             profile.Romantic = RomanticProfileBuilder.Build(hero, archetype);
@@ -62,6 +63,7 @@ namespace CalradiaRemembers.Mapping
         {
             if (profile == null || hero == null) return;
             profile.Personality = BuildPersonality(hero);
+            profile.SpouseName = hero.Spouse?.IsAlive == true ? hero.Spouse.Name?.ToString() : null;
         }
 
         public static void UpgradeIfNeeded(NpcProfile profile, Hero hero)

@@ -43,19 +43,88 @@ namespace CalradiaRemembers.Dialogue
         public NpcProfile Profile { get; private set; }
         public ChatSession Session { get; private set; }
 
+        // Dialogue token for the relation-gated greeting that sets the NPC's
+        // facial expression before the chat window opens (Sprint 10.5).
+        private const string GreetingToken = "calradia_remembers_greeting";
+
+        // Clean greeting texts (no [if:...] tag). The dialogue line shows text+tag
+        // for the facial animation; this clean copy is appended to the chat window,
+        // because the recorder captures the line too late to seed it.
+        private const string GreetWarmText = "Ah, it is good to see you. Come — what weighs on your mind?";
+        private const string GreetNeutralText = "Yes? What is it you wished to discuss?";
+        private const string GreetColdText = "You. State your business, and be brief about it.";
+
+        // Set by the chosen greeting line just before the chat opens, consumed when
+        // the chat window is seeded.
+        private string _pendingGreeting;
+
         public void Register(CampaignGameStarter starter)
         {
+            // 1. Player opens the interaction → routes to the greeting token so the
+            //    NPC can react with an expression matching the current relation.
             starter.AddPlayerLine(
                 "calradia_remembers_open_chat",      // ID unique
                 "hero_main_options",                 // input (où apparaît l'option)
-                "calradia_remembers_dummy_token",    // ← TOKEN CUSTOM QUI N'EXISTE PAS
+                GreetingToken,
                 "We need to talk...",
                 IsHeroEligible,
-                OnPlayerSelectedChat,
+                null,
                 110);                                // priorité haute pour apparaître en haut
+
+            // 2. NPC greeting, gated by relation. The trailing [if:convo_*] tag is a
+            //    native facial-animation directive — the engine applies it to the
+            //    conversation agent (same mechanism vanilla uses to show anger when
+            //    threatened) and it persists on the background NPC while the chat is
+            //    open. The greeting's consequence opens the chat directly, so no
+            //    second click is needed; output routes to a non-existent token
+            //    (proven pattern — avoids the auto-trigger-first-option bug).
+            starter.AddDialogLine(
+                "calradia_remembers_greet_warm",
+                GreetingToken, "calradia_remembers_dummy_token",
+                GreetWarmText + "[if:convo_calm_friendly]",
+                () => MoodForConversationHero() == GreetingMood.Warm,
+                () => OpenChatWithGreeting(GreetWarmText));
+            starter.AddDialogLine(
+                "calradia_remembers_greet_neutral",
+                GreetingToken, "calradia_remembers_dummy_token",
+                GreetNeutralText + "[if:convo_normal]",
+                () => MoodForConversationHero() == GreetingMood.Neutral,
+                () => OpenChatWithGreeting(GreetNeutralText));
+            starter.AddDialogLine(
+                "calradia_remembers_greet_cold",
+                GreetingToken, "calradia_remembers_dummy_token",
+                GreetColdText + "[if:convo_stern]",
+                () => MoodForConversationHero() == GreetingMood.Cold,
+                () => OpenChatWithGreeting(GreetColdText));
         }
 
         #region private
+
+        private enum GreetingMood
+        {
+            Warm,
+            Neutral,
+            Cold
+        }
+
+        /// <summary>
+        ///   Maps the NPC's PERSONAL regard (our per-hero score) to a coarse greeting
+        ///   mood — so a noble can greet the player warmly despite their clan's enmity
+        ///   (secret allies/lovers), or coldly despite the clan being friendly. A later
+        ///   sprint can refine this into finer bands (−1..−25 vs −26..−50) with distinct
+        ///   expressions. New NPCs (no profile yet) default to Neutral.
+        /// </summary>
+        private static GreetingMood MoodForConversationHero()
+        {
+            Hero hero = Hero.OneToOneConversationHero;
+            if (hero == null || NpcMemoryCampaignBehavior.Instance == null) return GreetingMood.Neutral;
+
+            NpcProfile profile = NpcMemoryCampaignBehavior.Instance.Store.Get(hero.StringId);
+            int personal = profile?.ReputationWithPlayer ?? 0;
+            if (personal >= 10) return GreetingMood.Warm;
+            if (personal <= -10) return GreetingMood.Cold;
+            return GreetingMood.Neutral;
+        }
 
         private NpcProfile GetOrCreateProfile(Hero hero, BannerlordNpcMemoryStore store)
         {
@@ -85,6 +154,16 @@ namespace CalradiaRemembers.Dialogue
             if (!hero.IsAlive) return false;
             if (hero == Hero.MainHero) return false;
             return true;
+        }
+
+        /// <summary>
+        ///   Stashes the chosen greeting (so it can be appended to the chat after the
+        ///   captured vanilla lines) and opens the chat window.
+        /// </summary>
+        private void OpenChatWithGreeting(string greeting)
+        {
+            _pendingGreeting = greeting;
+            OnPlayerSelectedChat();
         }
 
         private void OnPlayerSelectedChat()
@@ -121,7 +200,14 @@ namespace CalradiaRemembers.Dialogue
                 ChatViewModel vm = ChatManager.ActiveViewModel;
                 ModLog.Info($"ChatManager.ActiveViewModel = {(vm != null ? "OK" : "NULL")}");
 
-                if (vm != null) SeedCapturedVanillaLinesIntoChat(vm);
+                if (vm != null)
+                {
+                    SeedCapturedVanillaLinesIntoChat(vm);
+                    // Show both scores in the header from the first frame.
+                    vm.SetRelationSummary(
+                        Profile.ReputationWithPlayer,
+                        behavior.GameStateBridge.GetPlayerRelation(hero));
+                }
 
                 ModLog.Info("=== OnPlayerSelectedChat COMPLETED SUCCESSFULLY ===");
             }
@@ -152,6 +238,15 @@ namespace CalradiaRemembers.Dialogue
                 }
 
             NpcMemoryCampaignBehavior.Instance.DialogueRecorder.Clear();
+
+            // Append the relation-gated greeting as the most recent NPC line. The
+            // recorder captures it too late to be in 'captured', so we add it here.
+            if (!string.IsNullOrEmpty(_pendingGreeting))
+            {
+                vm.AppendNpcMessage(_pendingGreeting);
+                Session.AddNpcMessage(_pendingGreeting);
+                _pendingGreeting = null;
+            }
         }
 
         #endregion

@@ -1,0 +1,15 @@
+<DummyRoot>
+  <ListPanel HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren" MarginTop="12" MarginLeft="30">
+    <Children>
+      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren"
+                              VerticalAlignment="Bottom"
+                              Brush="Encyclopedia.Stat.DefinitionText"
+                              Text="@CalradiaPersonalRelationLabel"
+                              MarginRight="5" />
+      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren"
+                              VerticalAlignment="Bottom"
+                              Brush="Encyclopedia.Stat.ValueText"
+                              Text="@CalradiaPersonalRelation" />
+    </Children>
+  </ListPanel>
+</DummyRoot>

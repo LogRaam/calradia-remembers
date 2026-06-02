@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using Bannerlord.UIExtenderEx;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using TaleWorlds.CampaignSystem;
@@ -66,6 +67,26 @@ namespace CalradiaRemembers
             base.OnSubModuleLoad();
             Log($"{ModName} v1.0.0 loaded.");
             RegisterGuiResources();
+            InitializeUiExtender();
+        }
+
+        /// <summary>
+        ///   Boots UIExtenderEx so our encyclopedia mixin + prefab patch are applied
+        ///   (adds the NPC's personal regard to their encyclopedia hero page).
+        /// </summary>
+        private void InitializeUiExtender()
+        {
+            try
+            {
+                UIExtender extender = UIExtender.Create(ModuleId);
+                extender.Register(typeof(NpcMemoryServiceSubmodule).Assembly);
+                extender.Enable();
+                Log("UIExtender enabled (encyclopedia personal-relation extension).");
+            }
+            catch (Exception ex)
+            {
+                Log($"UIExtender init failed: {ex.GetType().Name}: {ex.Message}");
+            }
         }
 
         #region private

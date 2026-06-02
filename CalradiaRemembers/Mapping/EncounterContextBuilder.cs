@@ -19,14 +19,25 @@ namespace CalradiaRemembers.Mapping
     /// </summary>
     public static class EncounterContextBuilder
     {
+        /// <summary>
+        ///   Builds an <see cref="EncounterContext" /> for the given NPC.
+        ///   When <paramref name="playerMessage" /> is provided, the resolver scans it
+        ///   for hero names and injects a contextual hint so the NPC can answer
+        ///   questions about third parties accurately — or ask for clarification when
+        ///   a name is ambiguous.
+        /// </summary>
         public static EncounterContext Build(
             Hero hero,
             NpcProfile profile,
-            IGameStateBridge bridge) => new() {
-            PlayerStatus = ResolvePlayerStatus(hero, profile, bridge),
-            WarStatus = bridge.GetDiplomaticStatus(hero),
+            IGameStateBridge bridge,
+            string playerMessage = null) => new() {
+            PlayerStatus      = ResolvePlayerStatus(hero, profile, bridge),
+            WarStatus         = bridge.GetDiplomaticStatus(hero),
             DaysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge),
-            Scene = bridge.GetCurrentScene()
+            Scene             = bridge.GetCurrentScene(),
+            ContextualNames   = string.IsNullOrWhiteSpace(playerMessage)
+                ? null
+                : ContextualNameResolver.Resolve(hero, playerMessage)
         };
 
         #region private

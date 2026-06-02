@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Chat
         ///   traits, and other prompt sections are correctly injected.
         ///   Toggle this off once you're done diagnosing — it floods the log.
         /// </summary>
-        private const bool LogFullPromptAndResponse = true;
+        private const bool LogFullPromptAndResponse = false;
 
         private const string PlaceholderText = "(considering...)";
 
@@ -42,6 +42,7 @@ namespace CalradiaRemembers.Chat
         private string _npcName = "the lord";
         private string _sendButtonText = "Send";
         private string _titleText = "Calradia Remembers";
+        private string _relationSummary = "";
 
         public ChatViewModel()
         {
@@ -120,6 +121,27 @@ namespace CalradiaRemembers.Chat
                 _titleText = value;
                 OnPropertyChangedWithValue(value);
             }
+        }
+
+        /// <summary>
+        ///   Subtitle showing the NPC's clan standing and personal regard for the player.
+        /// </summary>
+        [DataSourceProperty]
+        public string RelationSummary
+        {
+            get => _relationSummary;
+            set
+            {
+                if (_relationSummary == value) return;
+                _relationSummary = value;
+                OnPropertyChangedWithValue(value);
+            }
+        }
+
+        /// <summary>Updates the header subtitle with the two relationship scores.</summary>
+        public void SetRelationSummary(int personal, int clan)
+        {
+            RelationSummary = $"Clan {clan:+#;-#;0}   ·   Personal {personal:+#;-#;0}";
         }
 
         public void AppendNpcMessage(string text)
@@ -232,7 +254,7 @@ namespace CalradiaRemembers.Chat
                 // Rebuild context each turn so it reflects events added during this session
                 // (avoids stale "never met" after the first exchange adds a FirstMeeting event).
                 EncounterContext context = EncounterContextBuilder.Build(
-                    _npcHero, profile, behavior.GameStateBridge);
+                    _npcHero, profile, behavior.GameStateBridge, playerMessage);
 
                 if (behavior == null || profile == null || session == null)
                 {
@@ -259,9 +281,11 @@ namespace CalradiaRemembers.Chat
                     Rumors          = ""
                 };
 
-                // ── Single source of truth: the NPC's stance in the prompt mirrors
-                //    the live game relation, gated only through change_relation. ──
-                profile.ReputationWithPlayer = behavior.GameStateBridge.GetPlayerRelation(_npcHero);
+                // ── Mirror the clan-level game relation into the prompt's clan standing.
+                //    The personal score (ReputationWithPlayer) is our own per-NPC value
+                //    and is left untouched here — only change_relation moves it. ──
+                profile.ClanRelationWithPlayer = behavior.GameStateBridge.GetPlayerRelation(_npcHero);
+                SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer.Value);
 
                 // ── Diagnostic: log the full system prompt sent to the LLM ─────
                 if (LogFullPromptAndResponse)
@@ -320,6 +344,8 @@ namespace CalradiaRemembers.Chat
                             behavior.GameStateBridge.ExecuteAction(action, _npcHero, actionContext);
                         if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);
                     }
+                    // The personal score may have moved — refresh the header.
+                    SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer ?? 0);
                 }
 
                 behavior.Store.Set(profile);

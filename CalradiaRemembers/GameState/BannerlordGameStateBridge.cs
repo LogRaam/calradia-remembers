@@ -165,11 +165,15 @@ namespace CalradiaRemembers.GameState
                 return null;
             }
 
-            // Apply silently (affectRelatives:false keeps our tuned magnitude exact;
-            // showQuickNotification:false suppresses the vanilla banner, which labels
-            // the change with the clan/family name rather than the hero).
-            ChangeRelationAction.ApplyPlayerRelation(npcHero, delta, false, false);
-            ModLog.Info($"[ACTION] change_relation: {npcHero.Name} {delta:+#;-#;0} (proposed {proposed:+#;-#;0})");
+            // Apply to OUR per-NPC personal score, NOT Bannerlord's relation. The game's
+            // relation is clan-level by design (DiplomacyModel.GetHeroesForEffectiveRelation
+            // collapses all clan members to the clan leader), so writing it spreads the
+            // change across the whole clan. The personal score lives per-hero on the
+            // profile — no spread — and drives the prompt's personal regard + greeting mood.
+            int before = context.Profile.ReputationWithPlayer;
+            int after = ClampInt(before + delta, -100, 100);
+            context.Profile.ReputationWithPlayer = after;
+            ModLog.Info($"[ACTION] change_relation (personal): {npcHero.Name} {before}→{after} (delta {delta:+#;-#;0}, proposed {proposed:+#;-#;0})");
 
             string message = delta > 0
                 ? $"{npcHero.Name} regards you more warmly. ({delta:+#;-#;0})"

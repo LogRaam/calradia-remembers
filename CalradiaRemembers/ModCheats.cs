@@ -35,6 +35,7 @@ namespace CalradiaRemembers
     ///   cr.take_gold &lt;amount&gt; [name]          — player gives the NPC gold
     ///   cr.info [name]                          — relation, cooldown state, captive status
     ///   cr.relation_reset [name]                — clear the relation-gain cooldown stamp
+    ///   cr.discover [name]                      — inject 3 test discoveries (Sprint 10.5 encyclopedia test)
     ///   [name] is an optional name fragment; if omitted, the current conversation NPC is used.
     /// </summary>
     public static class ModCheats
@@ -117,6 +118,41 @@ namespace CalradiaRemembers
 
             return $"{hero.Name}: relation={behavior.GameStateBridge.GetPlayerRelation(hero)}, " +
                    $"captive={captive}, lastGain={lastGain}, cooldown={cooldown} (now {now:F1}h).";
+        }
+
+        /// <summary>
+        ///   cr.discover [name]
+        ///   Injects 3 test discoveries into the NPC's profile so the encyclopedia
+        ///   discovery section can be validated without playing through a conversation.
+        ///   Safe to call repeatedly — deduplicated by key.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("discover", "cr")]
+        public static string SimulateDiscover(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            int added = 0;
+            int day = (int)CampaignTime.Now.ToDays;
+            DiscoveredTrait[] seeds = {
+                new DiscoveredTrait { Key = "orientation",          Description = "She seems drawn to men.",                           GameDay = day },
+                new DiscoveredTrait { Key = "archetype",            Description = "She moves with the quiet confidence of someone who knows their worth.", GameDay = day },
+                new DiscoveredTrait { Key = "preference_dominant",  Description = "She prefers to lead in her relationships.",         GameDay = day }
+            };
+
+            foreach (DiscoveredTrait seed in seeds)
+            {
+                bool exists = profile.DiscoveredTraits.Exists(t =>
+                    string.Equals(t.Key, seed.Key, StringComparison.OrdinalIgnoreCase));
+                if (!exists) { profile.DiscoveredTraits.Add(seed); added++; }
+            }
+
+            behavior.Store.Set(profile);
+            return $"{hero.Name}: {added} discovery/ies added ({profile.DiscoveredTraits.Count} total). Open encyclopedia to verify.";
         }
 
         [CommandLineFunctionality.CommandLineArgumentFunction("relation_reset", "cr")]
