@@ -31,13 +31,16 @@ namespace CalradiaRemembers.Mapping
             NpcProfile profile,
             IGameStateBridge bridge,
             string playerMessage = null) => new() {
-            PlayerStatus      = ResolvePlayerStatus(hero, profile, bridge),
-            WarStatus         = bridge.GetDiplomaticStatus(hero),
+            PlayerStatus         = ResolvePlayerStatus(hero, profile, bridge),
+            WarStatus            = bridge.GetDiplomaticStatus(hero),
             DaysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge),
-            Scene             = bridge.GetCurrentScene(),
-            ContextualNames   = string.IsNullOrWhiteSpace(playerMessage)
+            Scene                = bridge.GetCurrentScene(),
+            ContextualNames      = string.IsNullOrWhiteSpace(playerMessage)
                 ? null
-                : ContextualNameResolver.Resolve(hero, playerMessage)
+                : ContextualNameResolver.Resolve(hero, playerMessage),
+            PlayerSpouseName     = Hero.MainHero?.Spouse?.IsAlive == true
+                ? Hero.MainHero.Spouse.Name?.ToString()
+                : null
         };
 
         #region private
