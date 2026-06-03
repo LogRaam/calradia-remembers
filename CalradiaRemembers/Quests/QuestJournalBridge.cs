@@ -41,11 +41,17 @@ namespace CalradiaRemembers.Quests
             {
                 var mirror = new CalradiaRemembersQuest(quest, giver);
                 ModLog.Info($"[QUEST-JOURNAL] opened mirror: {mirror.StringId}");
+
+                // Verify it actually registered.
+                int count = Campaign.Current?.QuestManager?.Quests
+                    ?.OfType<CalradiaRemembersQuest>().Count() ?? -1;
+                ModLog.Info($"[QUEST-JOURNAL] CR quests in manager after open: {count}");
             }
             catch (Exception ex)
             {
                 // Journal failure is never allowed to break the quest itself.
-                ModLog.Error($"[QUEST-JOURNAL] OpenMirror failed for {giver.Name}: {ex.Message}");
+                ModLog.Error($"[QUEST-JOURNAL] OpenMirror failed for {giver?.Name}: {ex.GetType().Name}: {ex.Message}");
+                ModLog.Error($"[QUEST-JOURNAL] Stack: {ex.StackTrace}");
             }
         }
 

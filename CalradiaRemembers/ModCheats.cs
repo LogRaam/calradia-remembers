@@ -344,6 +344,29 @@ namespace CalradiaRemembers
             return $"{hero.Name} quests:\n" + string.Join("\n", lines);
         }
 
+        /// <summary>
+        ///   cr.journal_check
+        ///   Diagnostic: prints how many CalradiaRemembers quests are registered in
+        ///   Campaign.Current.QuestManager and lists their StringIds. Use to verify
+        ///   that cr.quest actually created a QuestBase mirror in the journal.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("journal_check", "cr")]
+        public static string JournalCheck(List<string> args)
+        {
+            if (!TryContext(out _, out string error)) return error;
+
+            var qm = Campaign.Current?.QuestManager;
+            if (qm == null) return "QuestManager not available.";
+
+            var crQuests = qm.Quests.OfType<CalradiaRemembersQuest>().ToList();
+            if (crQuests.Count == 0)
+                return "No CalradiaRemembers quests in QuestManager. (OpenMirror may have failed — check the log or try cr.quest again.)";
+
+            var lines = crQuests.Select(q =>
+                $"  {q.StringId}  giver={q.QuestGiver?.Name}  isSpecialType={q.IsSpecialQuest}");
+            return $"{crQuests.Count} CR quest(s) in QuestManager:\n" + string.Join("\n", lines);
+        }
+
         [CommandLineFunctionality.CommandLineArgumentFunction("relation_reset", "cr")]
         public static string ResetRelationCooldown(List<string> args)
         {
