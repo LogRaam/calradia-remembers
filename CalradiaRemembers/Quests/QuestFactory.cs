@@ -83,6 +83,10 @@ namespace CalradiaRemembers.Quests
                 case QuestType.DeliverLetter:
                     return BindHero(quest, proposal.TargetHero, giver);
 
+                case QuestType.ProvideGold:
+                    // No external target — the quest giver is the implicit recipient.
+                    return true;
+
                 case QuestType.ScoutArmy:
                     // Prefer a named army leader; fall back to any army of the named faction;
                     // fall back to the giver's first enemy kingdom when neither is specified.

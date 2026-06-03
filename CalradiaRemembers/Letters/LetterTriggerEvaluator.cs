@@ -4,8 +4,10 @@
 #region
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Quests;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
@@ -37,11 +39,19 @@ namespace CalradiaRemembers.Letters
         // We cap how many letters queue up from a single event.
         private const int MaxLettersPerEvent = 2;
 
+        // Days after birth before the child-support request letter is sent.
+        private const int ChildSupportDelayDays = 7;
+
+        // Fixed gold amount requested for child support.
+        private const int ChildSupportAmount = 750;
+
         public void Subscribe()
         {
             CampaignEvents.TournamentFinished.AddNonSerializedListener(this, OnTournamentFinished);
             // Signature: (CharacterObject winner, MBReadOnlyList<CharacterObject> participants, Town town, ItemObject prize)
             CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
+            CampaignEvents.OnGivenBirthEvent.AddNonSerializedListener(this, OnGivenBirth);
+            // Signature: (Hero mother, List<Hero> aliveChildren, int stillbornCount)
             ModLog.Info("LetterTriggerEvaluator subscribed.");
         }
 
@@ -152,6 +162,42 @@ namespace CalradiaRemembers.Letters
                     behavior.LlmServices, behavior.Store, today);
                 queued++;
             }
+        }
+
+        private void OnGivenBirth(Hero mother, List<Hero> aliveChildren, int stillbornCount)
+        {
+            if (mother == null || aliveChildren == null || aliveChildren.Count == 0) return;
+
+            // Only fire if the player is the father of at least one surviving child.
+            var playerChildren = aliveChildren.Where(c => c.Father == Hero.MainHero).ToList();
+            if (playerChildren.Count == 0) return;
+
+            var behavior = NpcMemoryCampaignBehavior.Instance;
+            if (behavior == null) return;
+
+            NpcProfile profile = behavior.Store.Get(mother.StringId);
+            if (profile == null) return;
+
+            int today = (int)CampaignTime.Now.ToDays;
+            bool isLegitimate = mother == Hero.MainHero?.Spouse;
+
+            string childDesc = playerChildren.Count == 1
+                ? $"a {(playerChildren[0].IsFemale ? "daughter" : "son")} named {playerChildren[0].Name}"
+                : $"{playerChildren.Count} children";
+            string context = $"{(isLegitimate ? "Legitimate" : "Illegitimate")} birth. She has given birth to {childDesc} on day {today}.";
+
+            // Birth announcement — sent immediately.
+            LetterGenerationService.QueueInitialLetter(
+                profile, mother, LetterReason.BirthAnnouncement, context,
+                behavior.LlmServices, behavior.Store, today);
+
+            // Child support request — sent a week later; quest opens on delivery.
+            string supportContext = context + $" She is now asking the player for {ChildSupportAmount} denars to help raise the child.";
+            LetterGenerationService.QueueInitialLetter(
+                profile, mother, LetterReason.ChildSupportRequest, supportContext,
+                behavior.LlmServices, behavior.Store, today + ChildSupportDelayDays);
+
+            ModLog.Info($"[LETTER] birth letters queued: {mother.Name} → player ({childDesc}, {(isLegitimate ? "legitimate" : "illegitimate")}).");
         }
 
         // ── Daily condition evaluators ─────────────────────────────────────────

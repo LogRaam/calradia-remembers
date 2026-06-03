@@ -6,7 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Quests;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -244,7 +246,37 @@ namespace CalradiaRemembers.GameState
             amount = ClampInt(amount, 1, 10000);
             GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, amount, false);
             ModLog.Info($"[ACTION] take_gold: player → {npcHero.Name} {amount} gold");
+
+            // If this NPC has an outstanding ProvideGold quest, any payment satisfies it.
+            StampProvideGoldIfOutstanding(npcHero, amount);
+
             return new ActionOutcome($"You give {npcHero.Name} {amount} denars.", false);
+        }
+
+        /// <summary>
+        ///   Stamps an outstanding <see cref="QuestType.ProvideGold" /> quest as satisfied
+        ///   the moment the player gives any gold to the quest giver. Any non-zero payment
+        ///   counts — the LLM can acknowledge whether the amount was sufficient in dialogue.
+        /// </summary>
+        private static void StampProvideGoldIfOutstanding(Hero npcHero, int amountGiven)
+        {
+            var store = NpcMemoryCampaignBehavior.Instance?.Store;
+            if (store == null || npcHero == null) return;
+
+            NpcProfile profile = store.Get(npcHero.StringId);
+            if (profile == null) return;
+
+            InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q =>
+                q.Type == QuestType.ProvideGold && q.IsOutstanding);
+            if (quest == null) return;
+
+            int day = (int)CampaignTime.Now.ToDays;
+            quest.SatisfiedOnDay = day;
+            quest.Evidence = $"Player provided {amountGiven} denars on day {day}.";
+            store.Set(profile);
+
+            QuestJournalBridge.NotifyDeedDone(quest, npcHero);
+            ModLog.Info($"[QUEST] ProvideGold satisfied: {npcHero.Name} received {amountGiven} denars.");
         }
 
         private static bool TryGetInt(IReadOnlyDictionary<string, string> parameters, string key, out int value)

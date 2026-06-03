@@ -294,6 +294,7 @@ namespace CalradiaRemembers.Quests
                 case QuestType.ExecuteEnemy:    return $"kill {q.TargetHeroName}";
                 case QuestType.RescuePrisoner:  return $"free {q.TargetHeroName}";
                 case QuestType.DeliverLetter:   return $"carry a message to {q.TargetHeroName}";
+                case QuestType.ProvideGold:     return "provide financial support for your child";
                 default:                        return "carry out a task";
             }
         }
