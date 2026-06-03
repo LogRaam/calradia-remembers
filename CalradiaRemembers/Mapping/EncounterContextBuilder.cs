@@ -40,10 +40,32 @@ namespace CalradiaRemembers.Mapping
                 : ContextualNameResolver.Resolve(hero, playerMessage),
             PlayerSpouseName     = Hero.MainHero?.Spouse?.IsAlive == true
                 ? Hero.MainHero.Spouse.Name?.ToString()
-                : null
+                : null,
+            PlayerClanTier  = Hero.MainHero?.Clan?.Tier ?? 0,
+            PlayerArenaRank = ResolveArenaRank(),
+            PlayerArenaWins = ResolveArenaWins()
         };
 
         #region private
+
+        private static int ResolveArenaRank()
+        {
+            try { return Campaign.Current?.TournamentManager?.GetLeaderBoardRank(Hero.MainHero) ?? 0; }
+            catch { return 0; }
+        }
+
+        private static int ResolveArenaWins()
+        {
+            try
+            {
+                var lb = Campaign.Current?.TournamentManager?.GetLeaderboard();
+                if (lb == null) return 0;
+                foreach (var kvp in lb)
+                    if (kvp.Key == Hero.MainHero) return kvp.Value;
+                return 0;
+            }
+            catch { return 0; }
+        }
 
         private static int ComputeDaysSinceLastMeeting(NpcProfile profile, IGameStateBridge bridge)
         {

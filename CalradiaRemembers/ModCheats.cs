@@ -99,6 +99,9 @@ namespace CalradiaRemembers
                 "  cr.give_gold <amount> [name]         NPC gives the player gold\n" +
                 "  cr.take_gold <amount> [name]         Player gives the NPC gold\n" +
                 "\n" +
+                "PLAYER STANDING\n" +
+                "  cr.standing                          Show player clan tier and arena rank/wins\n" +
+                "\n" +
                 "DISCOVERY\n" +
                 "  cr.discover [name]                   Seed 3 test DiscoveredTraits (encyclopedia test)\n" +
                 "\n" +
@@ -111,6 +114,48 @@ namespace CalradiaRemembers
                 "  cr.quests [name]                     List the NPC's quests with their current state\n" +
                 "\n" +
                 "[name] is an optional name fragment (case-insensitive). If omitted, the current conversation NPC is used.";
+        }
+
+        // ── Sprint 12a: player standing diagnostic ────────────────────────────
+
+        /// <summary>
+        ///   cr.standing
+        ///   Shows the player's clan tier and arena rank/wins — the two standing metrics
+        ///   that drive NPC social-attraction instructions in the prompt.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("standing", "cr")]
+        public static string ShowStanding(List<string> args)
+        {
+            if (!TryContext(out _, out string error)) return error;
+
+            Hero player = Hero.MainHero;
+            if (player == null) return "Player hero not available.";
+
+            int clanTier = player.Clan?.Tier ?? 0;
+            string clanName = player.Clan?.Name?.ToString() ?? "no clan";
+
+            int arenaRank = 0;
+            int arenaWins = 0;
+            try
+            {
+                var tm = Campaign.Current?.TournamentManager;
+                if (tm != null)
+                {
+                    arenaRank = tm.GetLeaderBoardRank(player);
+                    var lb = tm.GetLeaderboard();
+                    foreach (var kvp in lb)
+                        if (kvp.Key == player) { arenaWins = kvp.Value; break; }
+                }
+            }
+            catch { /* TournamentManager not yet initialised — leave at 0 */ }
+
+            string rankStr = arenaRank > 0 ? $"#{arenaRank} ({arenaWins} win(s))" : "unranked (0 tournament wins)";
+            string attractionNote = clanTier >= 3 ? " [marriage interest threshold MET]" : " [marriage interest threshold NOT met (need tier 3+)]";
+            string arenaNote = arenaRank > 0 && arenaRank <= 10 ? " [affair interest threshold MET]" : " [affair interest threshold NOT met (need rank 1–10)]";
+
+            return $"Player standing:\n" +
+                   $"  Clan: {clanName} — tier {clanTier}{attractionNote}\n" +
+                   $"  Arena rank: {rankStr}{arenaNote}";
         }
 
         // ── Sprint 10: action testing (group "cr") ────────────────────────────
