@@ -54,7 +54,7 @@ namespace CalradiaRemembers.Quests
 
             AddLog(BuildDescriptionText(quest));
             SetDialogs();
-            InitializeQuestOnCreation();
+            StartQuest();
         }
 
         public override TextObject Title
