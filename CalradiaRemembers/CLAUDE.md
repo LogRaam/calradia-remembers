@@ -211,18 +211,15 @@ cr.quests [name]                     # list NPC quests + state
 
 > This is the only section that changes per sprint. Keep it short.
 
-**Sprint 11.5 — Scout Army Quest** ✅ build OK (SDK + mod), pending in-game test
+**Sprint 12b-birth** ✅ build OK (pending in-game test) — last completed sprint.
 
-New quest type `ScoutArmy`: locate a moving enemy army on the campaign map, get close enough to observe it (no battle), and report back with military intel.
+Full NPC→player letter correspondence + birth mechanic:
+- 4 letter triggers active: TournamentVictory, BattleVictory, RomanticCorrespondence, SpouseCorrespondence
+- Birth: `OnGivenBirthEvent` → BirthAnnouncement + ChildSupportRequest (7j après)
+- `ProvideGold` (13th QuestType): opened when letter received, stamped by `take_gold` action
+- Chat reply mode: closes after send, NPC response queued as new PendingLetter
+- Anti-spam: cooldown + in-transit guard + `IsWithPlayer` (no letter to party member)
 
-Detection: `QuestDeedTracker.OnHourlyTick` — when player is within `ScoutRangeUnits=3.0f` campaign-map units of an active enemy army (`party.Army != null && party.Army.LeaderParty == party`). Evidence string stamped: `"Scouted the army of X near Y on day N: ~T troops, cavalry-heavy, with A, B"`.
+13 quest types total. Full details: HANDOFF Sprint 12b section.
 
-Targeting: named army leader (`TargetHeroId`) > named faction (`TargetFactionId`) > auto-bound to giver's first enemy kingdom (`BindFirstEnemyFaction`).
-
-New console command: `cr.quest_scout [name]`.
-
-**Sprint 11 — Informal quests** ✅ build OK (pending in-game test)
-
-12 quest types total (11 from Sprint 11 + ScoutArmy). See HANDOFF Sprint 11 section for full details.
-
-Next sprint planned: **Sprint 12 — diplomatic declare-war** (geopolitical context + faction-leader gating)
+**Next sprint: 12d** — Player → NPC letters (taverne hire + async reply chain)
