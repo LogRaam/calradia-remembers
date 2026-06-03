@@ -211,15 +211,17 @@ cr.quests [name]                     # list NPC quests + state
 
 > This is the only section that changes per sprint. Keep it short.
 
-**Sprint 12b-birth** ✅ build OK (pending in-game test) — last completed sprint.
+**Sprint 14** ✅ build OK (pending in-game validation) — last completed sprint.
 
-Full NPC→player letter correspondence + birth mechanic:
-- 4 letter triggers active: TournamentVictory, BattleVictory, RomanticCorrespondence, SpouseCorrespondence
-- Birth: `OnGivenBirthEvent` → BirthAnnouncement + ChildSupportRequest (7j après)
-- `ProvideGold` (13th QuestType): opened when letter received, stamped by `take_gold` action
-- Chat reply mode: closes after send, NPC response queued as new PendingLetter
-- Anti-spam: cooldown + in-transit guard + `IsWithPlayer` (no letter to party member)
+Multi-NPC witnesses:
+- `WitnessEntry` model (SDK) + `EncounterContext.Witnesses` + `EncounterContext.PrivacyRequested`
+- `PromptBuilder.AppendWitnesses`: injects `WITNESSES PRESENT` section; `request_privacy` ACTION instructions when pending
+- Privacy gate in `AppendIntimacyConsentRules`: with witnesses → physical intimacy blocked; except Hardcore+captive
+- `WitnessResolver` (mod): settlement branch (HeroesWithoutParty + settlement.Parties) + campaign map; filters known profiles; companion picker via `ShowMultiSelectionInquiry`; `DiagnoseWitnesses` for `cr.witnesses`
+- `ChatViewModel`: `_witnesses` list, `WitnessesText`/`HasWitnesses`/`IsPrivateRequestVisible` properties, `ExecuteRequestPrivate` (auto-sends synthetic LLM message), `request_privacy` action handler
+- XML: TitleBar 95px, witnesses line + "Request Private" button
+- `LlmDialogFlow.OnPlayerSelectedChat`: `ResolveAutoWitnesses` → `SetWitnesses` → `ShowCompanionPickerIfNeeded`
+- Console: `cr.witnesses [name]` (diagnostic), `cr.witness [name]` (seed), `cr.rep_set <v> [name]` (force rep)
+- **⚠️ Unverified**: does `Hero.CurrentSettlement` populate during Talk? Run `cr.witnesses [name]` in Keep to confirm.
 
-13 quest types total. Full details: HANDOFF Sprint 12b section.
-
-**Next sprint: 12d** — Player → NPC letters (taverne hire + async reply chain)
+**Next**: in-game validation of WitnessResolver, then Sprint 12c — Visible courier party

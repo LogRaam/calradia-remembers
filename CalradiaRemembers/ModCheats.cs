@@ -13,6 +13,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Quests;
+using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -94,6 +95,7 @@ namespace CalradiaRemembers
                 "  cr.relation <delta> [name]           Simulate change_relation (event Other) — cap +1, cooldown 8h\n" +
                 "  cr.relation_intimate <delta> [name]  Same with Intimacy event — cap +3, bypasses cooldown\n" +
                 "  cr.relation_reset [name]             Clear the relation-gain cooldown\n" +
+                "  cr.rep_set <value> [name]            Force-set ReputationWithPlayer (bypasses gate — for testing)\n" +
                 "  cr.info [name]                       Show relation, captive status, cooldown remaining\n" +
                 "\n" +
                 "GOLD\n" +
@@ -102,6 +104,11 @@ namespace CalradiaRemembers
                 "\n" +
                 "LETTERS\n" +
                 "  cr.letter [name]                     Queue a RomanticCorrespondence test letter from the NPC (immediate delivery)\n" +
+                "  cr.compose [name]                    Open the letter compose window to write to the NPC (Sprint 12d test path)\n" +
+                "\n" +
+                "MULTI-NPC WITNESSES\n" +
+                "  cr.witnesses [name]                  Diagnose: log settlement/party presence data for an NPC (Talk-vs-Visit check)\n" +
+                "  cr.witness [witnessName]             Add a witness to the open chat session (manual seed for testing)\n" +
                 "\n" +
                 "PLAYER STANDING\n" +
                 "  cr.standing                          Show player clan tier and arena rank/wins\n" +
@@ -118,6 +125,86 @@ namespace CalradiaRemembers
                 "  cr.quests [name]                     List the NPC's quests with their current state\n" +
                 "\n" +
                 "[name] is an optional name fragment (case-insensitive). If omitted, the current conversation NPC is used.";
+        }
+
+        // ── Multi-NPC witnesses ───────────────────────────────────────────────
+
+        /// <summary>
+        ///   cr.witnesses [name]
+        ///   Runs WitnessResolver.DiagnoseWitnesses for the given NPC and prints a
+        ///   detailed report: CurrentSettlement, StayingInSettlement, HeroesWithoutParty
+        ///   names with profile flags, party leaders inside the settlement, and
+        ///   available player companions. Use this to verify which collection holds
+        ///   present lords during a Talk conversation (vs Visit).
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("witnesses", "cr")]
+        public static string DiagnoseWitnesses(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            return WitnessResolver.DiagnoseWitnesses(hero, behavior.Store);
+        }
+
+        /// <summary>
+        ///   cr.witness [witnessName]
+        ///   Adds a named witness to the currently open chat session. Primary test path
+        ///   for the multi-NPC feature — validates prompt injection, header UI, and the
+        ///   request_privacy round-trip without needing a real settlement context.
+        ///   The chat window must be open first (e.g. via cr.chat or a normal conversation).
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("witness", "cr")]
+        public static string AddWitness(List<string> args)
+        {
+            if (ChatManager.ActiveViewModel == null)
+                return "No chat window is open. Open a conversation first.";
+
+            string nameFragment = args.Count > 0 ? string.Join(" ", args).Trim() : null;
+            if (string.IsNullOrWhiteSpace(nameFragment))
+                return "Usage: cr.witness [name]";
+
+            Hero witnessHero = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                h != Hero.MainHero && h.IsAlive
+                && h.Name?.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0);
+
+            string displayName = witnessHero?.Name?.ToString() ?? nameFragment;
+            string relation = "a lord present";
+            if (witnessHero != null)
+            {
+                int rel = witnessHero.GetRelation(Hero.MainHero);
+                relation = rel >= 20 ? "a lord you regard with trust"
+                         : rel <= -20 ? "a rival lord"
+                         : "a lord you know";
+            }
+
+            var entry = new WitnessEntry { Name = displayName, RelationToNpc = relation };
+            ChatManager.ActiveViewModel.AddWitness(entry);
+            return $"Witness '{displayName}' ({relation}) added to chat session.";
+        }
+
+        // ── Sprint 12d: player letter compose ─────────────────────────────────
+
+        /// <summary>
+        ///   cr.compose [name]
+        ///   Opens the letter compose window for the given NPC. Primary test path for
+        ///   Sprint 12d — validates the compose UI and delivery pipeline without
+        ///   requiring a tavernkeeper conversation.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("compose", "cr")]
+        public static string ComposeLetter(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            ChatManager.OpenForCompose(profile);
+            return $"Compose window opened for {hero.Name}.";
         }
 
         // ── Sprint 12b: letter testing ────────────────────────────────────────
@@ -490,6 +577,34 @@ namespace CalradiaRemembers
             var lines = crQuests.Select(q =>
                 $"  {q.StringId}  giver={q.QuestGiver?.Name}  isSpecialType={q.IsSpecialQuest}");
             return $"{crQuests.Count} CR quest(s) in QuestManager:\n" + string.Join("\n", lines);
+        }
+
+        /// <summary>
+        ///   cr.rep_set &lt;value&gt; [name]
+        ///   Directly sets ReputationWithPlayer to the given value, bypassing RelationGate.
+        ///   Use for testing scenarios that require a specific trust level (e.g. +100 to
+        ///   verify that a trusted NPC accepts a private audience request).
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("rep_set", "cr")]
+        public static string SetReputation(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            if (args.Count == 0 || !int.TryParse(args[0], out int value))
+                return "Usage: cr.rep_set <value> [name]  (e.g. cr.rep_set 100 Alympia)";
+
+            var nameArgs = args.Count > 1 ? args.GetRange(1, args.Count - 1) : new List<string>();
+            Hero hero = ResolveHero(nameArgs);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            int previous = profile.ReputationWithPlayer;
+            profile.ReputationWithPlayer = value;
+            behavior.Store.Set(profile);
+
+            ModLog.Info($"[cr.rep_set] {hero.Name}: rep {previous} → {value} (gate bypassed).");
+            return $"{hero.Name}: ReputationWithPlayer set to {value} (was {previous}).";
         }
 
         [CommandLineFunctionality.CommandLineArgumentFunction("relation_reset", "cr")]

@@ -29,28 +29,19 @@ namespace CalradiaRemembers.Chat
         public ChatMessageViewModel(Hero speakerHero, string authorName, string messageText, bool isPlayer)
         {
             _displayText = BuildDisplayText(authorName, messageText);
+            ResolvePortrait(speakerHero, authorName);
+            _authorColor = isPlayer ? PlayerColor : NpcColor;
+        }
 
-            if (speakerHero?.CharacterObject != null)
-            {
-                CharacterImageIdentifierVM portrait =
-                    new CharacterImageIdentifierVM(CharacterCode.CreateFrom(speakerHero.CharacterObject));
-
-                _portraitId = portrait.Id ?? "";
-                _portraitTextureProviderName = portrait.TextureProviderName ?? "";
-                _portraitAdditionalArgs = portrait.AdditionalArgs ?? "";
-            }
-
-            ModLog.Info(
-                $"Portrait for {authorName}: " +
-                $"HeroNull={speakerHero == null}, " +
-                $"CharacterObjectNull={speakerHero?.CharacterObject == null}, " +
-                $"IdEmpty={string.IsNullOrEmpty(_portraitId)}, " +
-                $"TextureProvider='{_portraitTextureProviderName}', " +
-                $"Args='{_portraitAdditionalArgs}'");
-
-            _authorColor = isPlayer
-                ? PlayerColor
-                : NpcColor;
+        /// <summary>
+        ///   Witness variant: uses an explicitly provided color so each witness
+        ///   gets their own distinct hue in the chat window.
+        /// </summary>
+        public ChatMessageViewModel(Hero speakerHero, string authorName, string messageText, string colorHex)
+        {
+            _displayText = BuildDisplayText(authorName, messageText);
+            ResolvePortrait(speakerHero, authorName);
+            _authorColor = colorHex ?? NpcColor;
         }
 
         /// <summary>
@@ -140,6 +131,25 @@ namespace CalradiaRemembers.Chat
         }
 
         #region private
+
+        private void ResolvePortrait(Hero speakerHero, string authorName)
+        {
+            if (speakerHero?.CharacterObject != null)
+            {
+                CharacterImageIdentifierVM portrait =
+                    new CharacterImageIdentifierVM(CharacterCode.CreateFrom(speakerHero.CharacterObject));
+                _portraitId                  = portrait.Id ?? "";
+                _portraitTextureProviderName = portrait.TextureProviderName ?? "";
+                _portraitAdditionalArgs      = portrait.AdditionalArgs ?? "";
+            }
+            ModLog.Info(
+                $"Portrait for {authorName}: " +
+                $"HeroNull={speakerHero == null}, " +
+                $"CharacterObjectNull={speakerHero?.CharacterObject == null}, " +
+                $"IdEmpty={string.IsNullOrEmpty(_portraitId)}, " +
+                $"TextureProvider='{_portraitTextureProviderName}', " +
+                $"Args='{_portraitAdditionalArgs}'");
+        }
 
         private string BuildDisplayText(string authorName, string messageText)
         {

@@ -3,6 +3,8 @@
 #region
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
@@ -54,6 +56,35 @@ namespace CalradiaRemembers.Chat
         private bool _isLetterReplyMode;
         private PendingLetter _replyLetter;
         private NpcProfile _replyProfile;
+
+        // ── Letter compose mode ───────────────────────────────────────────────
+        // When true, the chat is used to write a NEW letter to an NPC.
+        // No LLM call is made — the typed message is sealed and queued directly.
+        private bool _isComposeMode;
+        private NpcProfile _composeRecipientProfile;
+
+        // ── Multi-NPC witnesses ───────────────────────────────────────────────
+        // Mutable list — authoritative for the session; cleared on privacy-accepted.
+        // Passed into EncounterContext each turn so PromptBuilder can inject them.
+        private readonly List<WitnessEntry> _witnesses = new List<WitnessEntry>();
+
+        // Hash-based palette: each witness gets a deterministic color from their
+        // HeroStringId so Martira is always the same shade across conversations.
+        private static readonly string[] WitnessPalette = {
+            "#88c890FF",  // soft green
+            "#d4a84bFF",  // warm gold
+            "#c87878FF",  // muted rose
+            "#a08ac8FF"   // light purple
+        };
+        private readonly Dictionary<string, string> _witnessColors = new Dictionary<string, string>();
+        // Set when the player clicks "Request Private" — injected once, then cleared.
+        private bool _privacyRequestPending;
+        // Set once the request is used (accepted or refused) — button never reappears.
+        private bool _privacyRequestUsed;
+
+        private string _witnessesText = "";
+        private bool _hasWitnesses;
+        private bool _isPrivateRequestVisible;
 
         public ChatViewModel()
         {
@@ -149,10 +180,80 @@ namespace CalradiaRemembers.Chat
             }
         }
 
+        /// <summary>One-line list of witness names shown below the title bar.</summary>
+        [DataSourceProperty]
+        public string WitnessesText
+        {
+            get => _witnessesText;
+            set
+            {
+                if (_witnessesText == value) return;
+                _witnessesText = value;
+                OnPropertyChangedWithValue(value);
+            }
+        }
+
+        /// <summary>True when at least one witness is present — drives IsVisible on the witnesses line.</summary>
+        [DataSourceProperty]
+        public bool HasWitnesses
+        {
+            get => _hasWitnesses;
+            set
+            {
+                if (_hasWitnesses == value) return;
+                _hasWitnesses = value;
+                OnPropertyChangedWithValue(value);
+            }
+        }
+
+        /// <summary>True when the "Request Private" button should be shown.</summary>
+        [DataSourceProperty]
+        public bool IsPrivateRequestVisible
+        {
+            get => _isPrivateRequestVisible;
+            set
+            {
+                if (_isPrivateRequestVisible == value) return;
+                _isPrivateRequestVisible = value;
+                OnPropertyChangedWithValue(value);
+            }
+        }
+
         /// <summary>Updates the header subtitle with the two relationship scores.</summary>
         public void SetRelationSummary(int personal, int clan)
         {
             RelationSummary = $"Clan {clan:+#;-#;0}   ·   Personal {personal:+#;-#;0}";
+        }
+
+        /// <summary>
+        ///   Appends a witness reaction as a separate chat message, resolved to the
+        ///   witness's own portrait if their <see cref="WitnessEntry.HeroStringId" />
+        ///   is known. Falls back to name-only when the hero cannot be found.
+        /// </summary>
+        public void AppendWitnessReaction(string witnessName, string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            try
+            {
+                // Resolve portrait hero and color from the live witness list.
+                Hero witnessHero = null;
+                string color = WitnessPalette[0]; // fallback
+                foreach (WitnessEntry w in _witnesses)
+                {
+                    if (!string.Equals(w.Name, witnessName, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!string.IsNullOrEmpty(w.HeroStringId))
+                        witnessHero = Hero.FindFirst(h => h.StringId == w.HeroStringId);
+                    if (_witnessColors.TryGetValue(w.Name, out string c)) color = c;
+                    break;
+                }
+
+                _messages.Add(new ChatMessageViewModel(witnessHero, witnessName, text, color));
+                ChatManager.ScrollToBottom();
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"AppendWitnessReaction threw {ex.GetType().Name}: {ex.Message}");
+            }
         }
 
         public void AppendNpcMessage(string text)
@@ -234,18 +335,105 @@ namespace CalradiaRemembers.Chat
             OnCloseRequested?.Invoke();
         }
 
+        /// <summary>Adds a single witness to the session. Used by the console command for testing.</summary>
+        public void AddWitness(WitnessEntry entry)
+        {
+            if (entry == null) return;
+            _witnesses.Add(entry);
+            _witnessColors[entry.Name] = ColorForWitness(entry);
+            RefreshWitnessUi();
+            ModLog.Info($"[WITNESSES] added: {entry.Name} ({entry.RelationToNpc}) color={_witnessColors[entry.Name]}");
+        }
+
+        /// <summary>Replaces the full witness list (called by WitnessResolver at session open).</summary>
+        public void SetWitnesses(List<WitnessEntry> witnesses)
+        {
+            _witnesses.Clear();
+            _witnessColors.Clear();
+            if (witnesses != null)
+                foreach (WitnessEntry w in witnesses)
+                {
+                    _witnesses.Add(w);
+                    _witnessColors[w.Name] = ColorForWitness(w);
+                }
+            RefreshWitnessUi();
+        }
+
+        /// <summary>
+        ///   Player requests a private audience — sets the injection flag then immediately
+        ///   fires an LLM exchange so the NPC can accept or refuse in the same turn.
+        ///   The synthetic player line is shown in the chat and sent to the LLM.
+        /// </summary>
+        public void ExecuteRequestPrivate()
+        {
+            if (_privacyRequestUsed || _witnesses.Count == 0) return;
+            _privacyRequestPending = true;
+            _privacyRequestUsed    = true;
+            RefreshWitnessUi();
+            ModLog.Info("[WITNESSES] player requested private audience.");
+            // Trigger immediate exchange; _privacyRequestPending is already true so
+            // EncounterContextBuilder will inject the privacy request into the prompt.
+            InputText = "I would speak with you privately.";
+            ExecuteSendMessage();
+        }
+
+        /// <summary>
+        ///   Switches the chat into compose mode: no LLM call, no NPC portrait.
+        ///   The player types a message and "Seal &amp; Send" queues it as a
+        ///   <see cref="PlayerLetter" /> with delivery delay.
+        /// </summary>
+        public void ActivateComposeMode(NpcProfile recipientProfile)
+        {
+            _isComposeMode           = true;
+            _composeRecipientProfile = recipientProfile;
+
+            TitleText       = $"Compose Letter to {recipientProfile.Name}";
+            CloseButtonText = "Cancel";
+            SendButtonText  = "Seal & Send";
+        }
+
         public void ExecuteSendMessage()
         {
             var text = (InputText ?? "").Trim();
-
             if (string.IsNullOrEmpty(text)) return;
             if (!IsSendEnabled) return;
+
+            // Compose mode: seal the letter without any LLM call.
+            if (_isComposeMode)
+            {
+                SealAndSendLetter(text);
+                return;
+            }
+
             AppendPlayerMessage(text);
             ChatMessageViewModel placeholder = new ChatMessageViewModel(_npcHero, _npcName, PlaceholderText, false);
             _messages.Add(placeholder);
             IsSendEnabled = false;
             InputText = "";
             _ = RunLlmExchangeAsync(text, placeholder);
+        }
+
+        private void SealAndSendLetter(string content)
+        {
+            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+            if (behavior == null || _composeRecipientProfile == null)
+            {
+                ChatManager.Close();
+                return;
+            }
+
+            int today        = behavior.GameStateBridge.GetCurrentGameDay();
+            int deliveryDays = PlayerLetterService.CreateAndQueue(
+                _composeRecipientProfile, content, today, behavior.Store);
+
+            string days = deliveryDays == 1 ? "1 day" : $"{deliveryDays} days";
+            MBInformationManager.AddQuickInformation(
+                new TextObject($"Your courier departs. The letter will reach" +
+                               $" {_composeRecipientProfile.Name} in approximately {days}."));
+
+            ModLog.Info($"[PLAYER LETTER] sealed to {_composeRecipientProfile.Name} ({deliveryDays}d delivery).");
+            InputText = "";
+            ChatManager.Close();
         }
 
         public void SetNpcHero(Hero npcHero)
@@ -263,6 +451,21 @@ namespace CalradiaRemembers.Chat
         }
 
         #region private
+
+        private string ColorForWitness(WitnessEntry entry)
+        {
+            string key = entry.HeroStringId ?? entry.Name ?? "";
+            int hash = System.Math.Abs(key.GetHashCode());
+            return WitnessPalette[hash % WitnessPalette.Length];
+        }
+
+        private void RefreshWitnessUi()
+        {
+            bool any = _witnesses.Count > 0;
+            WitnessesText        = any ? "Present: " + string.Join(" · ", _witnesses.Select(w => w.Name)) : "";
+            HasWitnesses         = any;
+            IsPrivateRequestVisible = any && !_privacyRequestUsed && !_isComposeMode && !_isLetterReplyMode;
+        }
 
         private void ReplacePlaceholder(ChatMessageViewModel placeholder, string newText)
         {
@@ -291,8 +494,13 @@ namespace CalradiaRemembers.Chat
                     : NpcMemoryCampaignBehavior.Instance.DialogFlow.Session;
                 // Rebuild context each turn so it reflects events added during this session
                 // (avoids stale "never met" after the first exchange adds a FirstMeeting event).
+                // Pass current witnesses and any pending privacy request for prompt injection.
+                var witnessSnapshot = _witnesses.Count > 0
+                    ? _witnesses.AsReadOnly()
+                    : null;
                 EncounterContext context = EncounterContextBuilder.Build(
-                    _npcHero, profile, behavior.GameStateBridge, playerMessage);
+                    _npcHero, profile, behavior.GameStateBridge, playerMessage,
+                    witnessSnapshot, _privacyRequestPending);
 
                 if (behavior == null || profile == null || session == null)
                 {
@@ -393,6 +601,17 @@ namespace CalradiaRemembers.Chat
 
                 ReplacePlaceholder(placeholder, npcLine);
 
+                // Witness reactions — displayed as separate messages with their own portraits,
+                // immediately after the NPC's line and before any system messages.
+                if (response.WitnessReactions != null && response.WitnessReactions.Count > 0)
+                {
+                    foreach (WitnessReaction wr in response.WitnessReactions)
+                    {
+                        AppendWitnessReaction(wr.Name, wr.Text);
+                        ModLog.Info($"  [WITNESS] {wr.Name}: \"{wr.Text}\"");
+                    }
+                }
+
                 var gameDay = behavior.GameStateBridge.GetCurrentGameDay();
                 ProfileMutator.Apply(profile, response, gameDay);
 
@@ -404,6 +623,9 @@ namespace CalradiaRemembers.Chat
                     ActionContext actionContext = new ActionContext(profile, response.NewEventData?.Type);
                     foreach (GameAction action in response.Actions)
                     {
+                        // request_privacy is handled below — not a game-world action.
+                        if (string.Equals(action.Type, "request_privacy",
+                                StringComparison.OrdinalIgnoreCase)) continue;
                         ActionOutcome outcome =
                             behavior.GameStateBridge.ExecuteAction(action, _npcHero, actionContext);
                         if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);
@@ -412,6 +634,34 @@ namespace CalradiaRemembers.Chat
                     SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer ?? 0);
                 }
 
+                // ── Privacy request resolution ────────────────────────────────
+                if (_privacyRequestPending)
+                {
+                    _privacyRequestPending = false;
+                    bool privacyAccepted = false;
+                    if (response.Actions != null)
+                        foreach (GameAction action in response.Actions)
+                        {
+                            if (!string.Equals(action.Type, "request_privacy",
+                                    StringComparison.OrdinalIgnoreCase)) continue;
+                            action.Parameters.TryGetValue("result", out var privacyResult);
+                            privacyAccepted = string.Equals(privacyResult, "accepted",
+                                StringComparison.OrdinalIgnoreCase);
+                            break;
+                        }
+                    if (privacyAccepted)
+                    {
+                        _witnesses.Clear();
+                        RefreshWitnessUi();
+                        ModLog.Info("[WITNESSES] private audience accepted — witnesses cleared.");
+                    }
+                    else
+                    {
+                        ModLog.Info("[WITNESSES] private audience refused — witnesses remain.");
+                    }
+                }
+                // ─────────────────────────────────────────────────────────────
+
                 // ── Informal quests: issue a newly offered task, pay out a verified one ──
                 Quests.QuestService.ApplyResponse(
                     profile, _npcHero, response, gameDay,
@@ -419,6 +669,9 @@ namespace CalradiaRemembers.Chat
                     (text, positive) => AppendSystemMessage(text, positive));
 
                 behavior.Store.Set(profile);
+
+                // Mark any delivered player letters read now that the NPC has responded.
+                PlayerLetterService.MarkLettersRead(profile, behavior.Store);
 
                 // ── Diagnostic: log full response (no truncation) ──────────────
                 if (LogFullPromptAndResponse)

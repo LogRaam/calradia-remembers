@@ -127,6 +127,7 @@ namespace CalradiaRemembers.Behaviors
             DialogueRecorder.Subscribe();
             QuestTracker.Subscribe();
             LetterEvaluator.Subscribe();
+            new TaverneLetterBehavior().Register(campaignGameStarter);
             QuestJournalBridge.ReconcileOnSessionLaunch(Store);
         }
 
@@ -139,6 +140,7 @@ namespace CalradiaRemembers.Behaviors
             int today = GameStateBridge.GetCurrentGameDay();
             QuestService.RunDailyMaintenance(Store, today);
             LetterDeliveryService.CheckDeliveries(Store, today);
+            PlayerLetterService.CheckDeliveries(Store, today);
             LetterEvaluator.EvaluateDaily(Store, LlmServices, today);
         }
 

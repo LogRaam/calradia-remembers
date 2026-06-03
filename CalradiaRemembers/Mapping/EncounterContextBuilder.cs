@@ -30,7 +30,9 @@ namespace CalradiaRemembers.Mapping
             Hero hero,
             NpcProfile profile,
             IGameStateBridge bridge,
-            string playerMessage = null) => new() {
+            string playerMessage = null,
+            System.Collections.Generic.IReadOnlyList<NpcMemoryService.Core.Models.WitnessEntry> witnesses = null,
+            bool privacyRequested = false) => new() {
             PlayerStatus         = ResolvePlayerStatus(hero, profile, bridge),
             WarStatus            = bridge.GetDiplomaticStatus(hero),
             DaysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge),
@@ -41,9 +43,11 @@ namespace CalradiaRemembers.Mapping
             PlayerSpouseName     = Hero.MainHero?.Spouse?.IsAlive == true
                 ? Hero.MainHero.Spouse.Name?.ToString()
                 : null,
-            PlayerClanTier  = Hero.MainHero?.Clan?.Tier ?? 0,
-            PlayerArenaRank = ResolveArenaRank(),
-            PlayerArenaWins = ResolveArenaWins()
+            PlayerClanTier   = Hero.MainHero?.Clan?.Tier ?? 0,
+            PlayerArenaRank  = ResolveArenaRank(),
+            PlayerArenaWins  = ResolveArenaWins(),
+            Witnesses        = witnesses,
+            PrivacyRequested = privacyRequested
         };
 
         #region private

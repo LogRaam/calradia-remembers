@@ -31,7 +31,7 @@
         <Widget Id="TitleBar"
                 WidthSizePolicy="StretchToParent"
                 HeightSizePolicy="Fixed"
-                SuggestedHeight="70"
+                SuggestedHeight="95"
                 VerticalAlignment="Top"
                 Sprite="BlankWhiteSquare_9"
                 Color="#0d0a08FF">
@@ -49,6 +49,20 @@
                         Brush.TextHorizontalAlignment="Center"
                         Text="@TitleText"
                         IsDisabled="true" />
+            <TextWidget Id="WitnessesTextWidget"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="Fixed"
+                        SuggestedHeight="20"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Top"
+                        MarginTop="47"
+                        IsVisible="@HasWitnesses"
+                        Brush="Default"
+                        Brush.FontSize="14"
+                        Brush.FontColor="#7a9070FF"
+                        Brush.TextHorizontalAlignment="Center"
+                        Text="@WitnessesText"
+                        IsDisabled="true" />
             <TextWidget Id="RelationSummaryWidget"
                         WidthSizePolicy="StretchToParent"
                         HeightSizePolicy="Fixed"
@@ -62,6 +76,30 @@
                         Brush.TextHorizontalAlignment="Center"
                         Text="@RelationSummary"
                         IsDisabled="true" />
+            <ButtonWidget Id="RequestPrivateButton"
+                          WidthSizePolicy="Fixed"
+                          HeightSizePolicy="Fixed"
+                          SuggestedWidth="130"
+                          SuggestedHeight="22"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Bottom"
+                          MarginBottom="6"
+                          MarginRight="10"
+                          IsVisible="@IsPrivateRequestVisible"
+                          DoNotPassEventsToChildren="true"
+                          Brush="ButtonBrush1"
+                          UpdateChildrenStates="true"
+                          Command.Click="ExecuteRequestPrivate">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Brush="Popup.Button.Text"
+                            Brush.FontSize="14"
+                            Text="Request Private" />
+              </Children>
+            </ButtonWidget>
           </Children>
         </Widget>
 
@@ -70,7 +108,7 @@
                 HeightSizePolicy="Fixed"
                 SuggestedHeight="3"
                 VerticalAlignment="Top"
-                PositionYOffset="69"
+                PositionYOffset="94"
                 Sprite="BlankWhiteSquare_9"
                 Color="#3a2f24FF"
                 IsDisabled="true" />
@@ -78,9 +116,9 @@
         <Widget Id="MessagesArea"
                 WidthSizePolicy="StretchToParent"
                 HeightSizePolicy="Fixed"
-                SuggestedHeight="655"
+                SuggestedHeight="630"
                 VerticalAlignment="Top"
-                PositionYOffset="70"
+                PositionYOffset="95"
                 MarginLeft="15"
                 MarginRight="15">
           <Children>

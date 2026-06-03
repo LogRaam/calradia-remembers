@@ -10,6 +10,7 @@ using CalradiaRemembers.Chat;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Storage;
+using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 
@@ -257,6 +258,19 @@ namespace CalradiaRemembers.Dialogue
                     vm.SetRelationSummary(
                         Profile.ReputationWithPlayer,
                         behavior.GameStateBridge.GetPlayerRelation(hero));
+
+                    // ── Witness resolution ────────────────────────────────────
+                    // Auto-detect lords present (sync, safe — returns empty on failure).
+                    List<WitnessEntry> autoWitnesses =
+                        WitnessResolver.ResolveAutoWitnesses(hero, behavior.Store);
+                    if (autoWitnesses.Count > 0)
+                    {
+                        vm.SetWitnesses(autoWitnesses);
+                        // Companion picker: async overlay — fail-soft, chat stays open
+                        // on any exception (handled inside ShowCompanionPickerIfNeeded).
+                        WitnessResolver.ShowCompanionPickerIfNeeded();
+                    }
+                    // ─────────────────────────────────────────────────────────
                 }
 
                 ModLog.Info("=== OnPlayerSelectedChat COMPLETED SUCCESSFULLY ===");

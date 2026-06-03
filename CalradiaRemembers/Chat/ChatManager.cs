@@ -53,6 +53,18 @@ namespace CalradiaRemembers.Chat
         // ── Public API ────────────────────────────────────────────────────────
 
         /// <summary>
+        ///   Opens the chat window in compose mode so the player can write a letter
+        ///   to the given NPC. No LLM call is made — when the player sends, the
+        ///   message is sealed as a <see cref="NpcMemoryService.Core.Models.PlayerLetter" />
+        ///   and the window closes.
+        /// </summary>
+        public static void OpenForCompose(NpcMemoryService.Core.Models.NpcProfile recipientProfile)
+        {
+            Open(recipientProfile?.Name);
+            ActiveViewModel?.ActivateComposeMode(recipientProfile);
+        }
+
+        /// <summary>
         ///   Opens the chat window pre-loaded with a received letter and ready for
         ///   the player to compose a reply. When the player sends their message the
         ///   chat closes instead of showing an inline response — the NPC's reply is
