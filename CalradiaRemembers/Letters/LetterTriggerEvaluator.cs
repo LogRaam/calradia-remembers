@@ -82,6 +82,7 @@ namespace CalradiaRemembers.Letters
 
                 Hero hero = Hero.FindFirst(h => h.StringId == id);
                 if (hero == null || !hero.IsAlive) continue;
+                if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
 
                 // Friendly NPCs congratulate; rivals or hostiles might challenge.
                 if (profile.ReputationWithPlayer < 10) continue;
@@ -139,6 +140,7 @@ namespace CalradiaRemembers.Letters
 
                 Hero hero = Hero.FindFirst(h => h.StringId == id);
                 if (hero == null || !hero.IsAlive) continue;
+                if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
 
                 // Ally of the player (same faction or high personal regard) celebrates.
                 bool sameOrAllied = hero.MapFaction != null
@@ -163,11 +165,13 @@ namespace CalradiaRemembers.Letters
                 if (profile?.Romantic == null) continue;
                 if (profile.Romantic.Status < RomanticStatus.Courting) continue;
                 if (profile.ReputationWithPlayer < 15) continue;
-                if (!CanSendLetter(profile, today, 10)) continue;
-                if (DaysSinceLastEvent(profile, today) < 3) continue; // met recently
 
                 Hero hero = Hero.FindFirst(h => h.StringId == id);
                 if (hero == null || !hero.IsAlive) continue;
+                if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
+
+                if (!CanSendLetter(profile, today, 10)) continue;
+                if (DaysSinceLastEvent(profile, today) < 3) continue; // met recently
 
                 string context = $"Romantic status: {profile.Romantic.Status}. " +
                                  $"Last saw the player {DaysSinceLastEvent(profile, today)} days ago.";
@@ -185,6 +189,7 @@ namespace CalradiaRemembers.Letters
         {
             Hero spouse = Hero.MainHero?.Spouse;
             if (spouse == null || !spouse.IsAlive) return;
+            if (IsWithPlayer(spouse)) return; // spouse is travelling with the player — no letter needed
 
             NpcProfile profile = store.Get(spouse.StringId);
             if (profile == null) return;
@@ -199,6 +204,20 @@ namespace CalradiaRemembers.Letters
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
+
+        /// <summary>
+        ///   True when the NPC is currently traveling with the player — in the same
+        ///   party or a party led by the player. They would write a letter to someone
+        ///   far away, not to someone riding beside them.
+        /// </summary>
+        private static bool IsWithPlayer(Hero hero)
+        {
+            if (hero == null) return false;
+            MobileParty main = MobileParty.MainParty;
+            if (main == null) return false;
+            MobileParty heroParty = hero.PartyBelongedTo;
+            return heroParty == main || heroParty?.LeaderHero == Hero.MainHero;
+        }
 
         /// <summary>True when the NPC has no letter in transit and respects the cooldown.</summary>
         private static bool CanSendLetter(NpcProfile profile, int today, int cooldownDays)
