@@ -249,6 +249,15 @@ namespace CalradiaRemembers.Chat
 
                 _messages.Add(new ChatMessageViewModel(witnessHero, witnessName, text, color));
                 ChatManager.ScrollToBottom();
+
+                // Inject into the active session so the main NPC's next LLM turn can
+                // reference what the witness said. Skip letter-reply and compose modes.
+                if (!_isLetterReplyMode && !_isComposeMode)
+                {
+                    NpcMemoryService.Core.Models.ChatSession session =
+                        NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Session;
+                    session?.AddWitnessStatement(witnessName, text);
+                }
             }
             catch (Exception ex)
             {
