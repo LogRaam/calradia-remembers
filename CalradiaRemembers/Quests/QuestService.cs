@@ -165,12 +165,12 @@ namespace CalradiaRemembers.Quests
             AddEvent(giver, gameDay, NotableEventType.Agreement, $"Asked the player to {Describe(quest)}.");
             store.Set(giver);
 
-            // Open a vanilla quest journal mirror so the player can track it.
+            // Open a vanilla quest journal mirror — StartQuest() fires its own
+            // native notification, so we don't add a second one here.
             QuestJournalBridge.OpenMirror(quest, giverHero);
 
             ModLog.Info($"[QUEST] {giver.Name} issued: {Describe(quest)} " +
                         $"(reward {quest.RewardGold}g/+{quest.RewardRelation}, deadline {quest.DeadlineDay?.ToString() ?? "none"}).");
-            notify?.Invoke($"New task from {giver.Name}: {Describe(quest)}.", true);
         }
 
         private static void CompleteQuest(NpcProfile giver, Hero giverHero, QuestCompletionClaim claim,
