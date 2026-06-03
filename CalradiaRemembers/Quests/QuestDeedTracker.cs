@@ -42,6 +42,7 @@ namespace CalradiaRemembers.Quests
             // Rescue is detected from the player's own victory (OnMapEventEnded), NOT from
             // HeroPrisonerReleased: that event carries no rescuer, so it cannot tell a
             // player rescue from an AI one — crediting it would break the player-link rule.
+            CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
             ModLog.Info("QuestDeedTracker subscribed to campaign events.");
         }
 
@@ -107,6 +108,29 @@ namespace CalradiaRemembers.Quests
                 if (quest.Type == QuestType.ExecuteEnemy
                     && string.Equals(quest.TargetHeroId, victim.StringId, StringComparison.Ordinal))
                     Stamp(profile, quest, $"Killed {victim.Name} on day {day}", day);
+            });
+        }
+
+        private void OnHourlyTick()
+        {
+            MobileParty main = MobileParty.MainParty;
+            if (main == null) return;
+
+            Vec2 playerPos = main.GetPosition2D;
+            int day = CurrentDay();
+
+            ForEachOutstandingQuest((profile, quest) =>
+            {
+                if (quest.Type != QuestType.ScoutArmy) return;
+
+                Hero giverHero = Hero.FindFirst(h => h.StringId == profile.Id);
+                if (giverHero?.MapFaction == null) return;
+
+                MobileParty spotted = FindEnemyArmyInRange(quest, giverHero, playerPos);
+                if (spotted == null) return;
+
+                string evidence = DescribeArmy(spotted, day);
+                Stamp(profile, quest, evidence, day);
             });
         }
 
@@ -190,6 +214,98 @@ namespace CalradiaRemembers.Quests
         #endregion
 
         #region helpers
+
+        // Visual detection radius in campaign-map units (matches typical party spotting range).
+        private const float ScoutRangeUnits = 3.0f;
+
+        /// <summary>
+        ///   Returns the first active enemy army visible from <paramref name="playerPos"/>
+        ///   that satisfies the scout quest's target constraints. Null if none in range.
+        ///   "Army" means the <see cref="MobileParty.Army"/> is non-null and this party is its
+        ///   leader — lone wandering lords are excluded.
+        /// </summary>
+        private static MobileParty FindEnemyArmyInRange(InformalQuest quest, Hero giverHero, Vec2 playerPos)
+        {
+            foreach (MobileParty party in MobileParty.All)
+            {
+                // Must be the leader of a real army (not a lone wandering lord).
+                if (party.Army == null || party.Army.LeaderParty != party) continue;
+
+                // Must be within visual range.
+                if (party.GetPosition2D.Distance(playerPos) > ScoutRangeUnits) continue;
+
+                // Must be at war with the quest giver's faction.
+                if (!FactionManager.IsAtWarAgainstFaction(giverHero.MapFaction, party.MapFaction)) continue;
+
+                // If a specific army leader was named, it must match.
+                if (!string.IsNullOrEmpty(quest.TargetHeroId))
+                {
+                    if (party.LeaderHero?.StringId != quest.TargetHeroId) continue;
+                }
+                // If a faction was named, the army must belong to it.
+                else if (!string.IsNullOrEmpty(quest.TargetFactionId))
+                {
+                    if (party.MapFaction?.StringId != quest.TargetFactionId) continue;
+                }
+
+                return party;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        ///   Builds an evidence string that describes the army's composition: total
+        ///   troop count, rough cavalry ratio, and up to three notable lords (excluding
+        ///   the army commander, who is named at the start). Used as quest evidence so the
+        ///   LLM sees concrete scouting intel when the player reports back.
+        /// </summary>
+        private static string DescribeArmy(MobileParty armyLeader, int day)
+        {
+            int total = 0, cavalry = 0;
+            foreach (MobileParty p in armyLeader.Army.Parties)
+            {
+                for (int i = 0; i < p.MemberRoster.Count; i++)
+                {
+                    var elem = p.MemberRoster.GetElementCopyAtIndex(i);
+                    total += elem.Number;
+                    FormationClass fc = elem.Character?.DefaultFormationClass ?? FormationClass.Infantry;
+                    if (fc == FormationClass.Cavalry || fc == FormationClass.HorseArcher
+                        || fc == FormationClass.LightCavalry || fc == FormationClass.HeavyCavalry)
+                        cavalry += elem.Number;
+                }
+            }
+
+            string composition = total > 0 && cavalry > total * 0.5f ? "cavalry-heavy"
+                               : total > 0 && cavalry > total * 0.3f ? "mixed forces"
+                               : "infantry-heavy";
+
+            var nobles = armyLeader.Army.Parties
+                .Where(p => p != armyLeader && p.LeaderHero != null && p.LeaderHero.IsLord)
+                .Take(3)
+                .Select(p => p.LeaderHero.Name.ToString())
+                .ToList();
+            string nobleStr = nobles.Count > 0 ? $", with {string.Join(", ", nobles)}" : "";
+
+            Settlement nearest = FindNearestTownOrCastle(armyLeader.GetPosition2D);
+            string locationStr = nearest != null ? $" near {nearest.Name}" : "";
+
+            string leaderName = armyLeader.LeaderHero?.Name?.ToString() ?? armyLeader.Name.ToString();
+            return $"Scouted the army of {leaderName}{locationStr} on day {day}: ~{total} troops, {composition}{nobleStr}";
+        }
+
+        private static Settlement FindNearestTownOrCastle(Vec2 pos)
+        {
+            Settlement best = null;
+            float bestDist = float.MaxValue;
+            foreach (Settlement s in Settlement.All)
+            {
+                if (!(s.IsTown || s.IsCastle)) continue;
+                float d = s.GetPosition2D.Distance(pos);
+                if (d < bestDist) { bestDist = d; best = s; }
+            }
+            return best;
+        }
 
         private static void ForEachOutstandingQuest(Action<NpcProfile, InformalQuest> visit)
         {

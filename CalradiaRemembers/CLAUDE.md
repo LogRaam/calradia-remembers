@@ -211,23 +211,18 @@ cr.quests [name]                     # list NPC quests + state
 
 > This is the only section that changes per sprint. Keep it short.
 
-**Sprint 11 — Informal quests** ✅ build OK (SDK + mod), pending in-game test
+**Sprint 11.5 — Scout Army Quest** ✅ build OK (SDK + mod), pending in-game test
 
-Verifiable deeds only — no roleplay-only completion. A quest is stamped done only from a real, player-involved game event. **No ephemeral journal**: proof is stamped on the quest itself (`SatisfiedOnDay` + `Evidence`), which persists with the profile across save/load.
+New quest type `ScoutArmy`: locate a moving enemy army on the campaign map, get close enough to observe it (no battle), and report back with military intel.
 
-Delivered:
-- SDK: `QuestType` / `QuestStatus` / `InformalQuest` / `QuestProposal` / `QuestCompletionClaim`; `NpcProfile.ActiveQuests`; parser `[QUEST]`/`[QUEST_COMPLETE]`; PromptBuilder `EnableQuests` + `AppendQuestInstructions` + `AppendActiveQuests` (YOUR QUESTS)
-- Mod: `QuestFactory` (resolve+clamp), `QuestService` (issue/complete/daily maintenance/letter lookup), `QuestDeedTracker` (campaign-event matching → stamp), `GrantQuestReward` on bridge (bypasses RelationGate, verified), behavior wiring (subscribe + daily tick), `EnableQuests=true`, ChatViewModel hook, letter delivery dialogue button, `cr.quest`/`cr.quest_done`/`cr.quests`
-- 11 quest types: bandit_clear/hideout, attack_faction/lord/caravan, raid_village, siege, capture/execute/rescue, deliver_letter (dialogue button)
-- Reward fixed at issue (gold≤5000, relation≤10); deadline expiry → −5 regard + memory; war-end → cancel; `[QUEST_ABANDON]` → Abandoned −3 regard
-- All deed types are player-gated (won battle / player struck / player captured). `rescue_prisoner` detected from player victory scanning defeated parties' `PrisonRoster` (NOT `HeroPrisonerReleased`, which has no rescuer info)
+Detection: `QuestDeedTracker.OnHourlyTick` — when player is within `ScoutRangeUnits=3.0f` campaign-map units of an active enemy army (`party.Army != null && party.Army.LeaderParty == party`). Evidence string stamped: `"Scouted the army of X near Y on day N: ~T troops, cavalry-heavy, with A, B"`.
 
-Pending:
-- In-game test — esp. the real-deed path (cheats force-stamp, they DON'T exercise `QuestDeedTracker` matching). Test sequence in HANDOFF.
-- ⚠️ `rescue_prisoner` — confirm the freed ally is still in the defeated party's `PrisonRoster` at `MapEventEnded` (before aftermath scatters them)
-- ⚠️ `bandit_hideout` settlement = nearest town (hideout's own settlement is ignored) — confirm it stamps
-- Commit both repos
+Targeting: named army leader (`TargetHeroId`) > named faction (`TargetFactionId`) > auto-bound to giver's first enemy kingdom (`BindFirstEnemyFaction`).
 
-Tooling note: `ilspycmd` installed as global dotnet tool — decompile the game DLLs to verify TaleWorlds API signatures (`ilspycmd -t <FullTypeName> "<dll>"`). Used this sprint to verify all `CampaignEvents.*` delegate shapes.
+New console command: `cr.quest_scout [name]`.
 
-Next sprint planned: **Sprint 11.5 — Patrol/scouting** (time-based, approximate); **Sprint 12 — diplomatic declare-war**
+**Sprint 11 — Informal quests** ✅ build OK (pending in-game test)
+
+12 quest types total (11 from Sprint 11 + ScoutArmy). See HANDOFF Sprint 11 section for full details.
+
+Next sprint planned: **Sprint 12 — diplomatic declare-war** (geopolitical context + faction-leader gating)

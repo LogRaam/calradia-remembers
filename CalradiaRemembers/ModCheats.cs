@@ -104,6 +104,7 @@ namespace CalradiaRemembers
                 "\n" +
                 "QUESTS\n" +
                 "  cr.quest [name]                      Seed a bandit_clear quest on the NPC (journal opens)\n" +
+                "  cr.quest_scout [name]                Seed a scout_army quest on the NPC (uses giver's first enemy)\n" +
                 "  cr.quest_done [name]                 Force-stamp the outstanding quest as satisfied (journal updates)\n" +
                 "  cr.quest_complete [name]             Pay reward and close the journal entry with success\n" +
                 "  cr.quest_abandon [name]              Force-abandon the outstanding quest (-3 regard, journal closes)\n" +
@@ -228,6 +229,50 @@ namespace CalradiaRemembers
 
             int outstanding = profile.ActiveQuests.Count(q => q.IsOutstanding);
             return $"{hero.Name}: seeded bandit_clear near {village} ({outstanding} outstanding quest(s)).";
+        }
+
+        /// <summary>
+        ///   cr.quest_scout [name]
+        ///   Seeds a scout_army quest on the NPC, targeting their first enemy kingdom.
+        ///   Pair with cr.quest_done to test the completion reward, or let proximity
+        ///   detection fire naturally (OnHourlyTick) for a real-path test.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("quest_scout", "cr")]
+        public static string SeedScoutQuest(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            IFaction enemy = hero.MapFaction != null
+                ? Kingdom.All?.FirstOrDefault(k =>
+                    !k.IsEliminated && FactionManager.IsAtWarAgainstFaction(hero.MapFaction, k))
+                : null;
+
+            if (enemy == null)
+                return $"{hero.Name} is not at war with any kingdom — cannot seed a scout_army quest.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            int day = behavior.GameStateBridge.GetCurrentGameDay();
+
+            var proposal = new QuestProposal {
+                Type          = QuestType.ScoutArmy,
+                Description   = $"Find where the armies of {enemy.Name} are moving and report back.",
+                TargetFaction = enemy.Name?.ToString(),
+                DeadlineDays  = 15,
+                RewardGold    = 400,
+                RewardRelation = 3
+            };
+            var fake = new ParsedResponse { Dialogue = "", QuestGiven = proposal };
+
+            QuestService.ApplyResponse(profile, hero, fake, day,
+                behavior.GameStateBridge, behavior.Store,
+                (text, positive) => ChatManager.ActiveViewModel?.AppendSystemMessage(text, positive));
+
+            int outstanding = profile.ActiveQuests.Count(q => q.IsOutstanding);
+            return $"{hero.Name}: seeded scout_army quest targeting {enemy.Name} ({outstanding} outstanding quest(s)).";
         }
 
         /// <summary>

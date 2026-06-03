@@ -83,6 +83,15 @@ namespace CalradiaRemembers.Quests
                 case QuestType.DeliverLetter:
                     return BindHero(quest, proposal.TargetHero, giver);
 
+                case QuestType.ScoutArmy:
+                    // Prefer a named army leader; fall back to any army of the named faction;
+                    // fall back to the giver's first enemy kingdom when neither is specified.
+                    if (!string.IsNullOrWhiteSpace(proposal.TargetHero))
+                        return BindHero(quest, proposal.TargetHero, giver);
+                    if (!string.IsNullOrWhiteSpace(proposal.TargetFaction))
+                        return BindFaction(quest, proposal.TargetFaction);
+                    return BindFirstEnemyFaction(quest, giver);
+
                 default:
                     return false;
             }
@@ -156,6 +165,23 @@ namespace CalradiaRemembers.Quests
 
             return Clan.All?.FirstOrDefault(c => !c.IsEliminated && NameEquals(c.Name, name))
                    ?? Clan.All?.FirstOrDefault(c => !c.IsEliminated && NameContains(c.Name, name));
+        }
+
+        /// <summary>
+        ///   Binds the quest to the first active kingdom at war with <paramref name="giver"/>'s
+        ///   faction. Used as the ScoutArmy fallback when the LLM does not name a target.
+        /// </summary>
+        private static bool BindFirstEnemyFaction(InformalQuest quest, Hero giver)
+        {
+            if (giver?.MapFaction == null) return false;
+
+            IFaction enemy = Kingdom.All?.FirstOrDefault(k =>
+                !k.IsEliminated && FactionManager.IsAtWarAgainstFaction(giver.MapFaction, k));
+            if (enemy == null) return false;
+
+            quest.TargetFactionId   = enemy.StringId;
+            quest.TargetFactionName = enemy.Name?.ToString();
+            return true;
         }
 
         private static bool NameEquals(TaleWorlds.Localization.TextObject n, string q)
