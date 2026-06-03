@@ -52,6 +52,25 @@ namespace CalradiaRemembers.Chat
 
         // ── Public API ────────────────────────────────────────────────────────
 
+        /// <summary>
+        ///   Opens the chat window pre-loaded with a received letter and ready for
+        ///   the player to compose a reply. When the player sends their message the
+        ///   chat closes instead of showing an inline response — the NPC's reply is
+        ///   queued as a new <see cref="NpcMemoryService.Core.Models.PendingLetter" />.
+        /// </summary>
+        public static void OpenForLetterReply(
+            NpcMemoryService.Core.Models.NpcProfile profile,
+            TaleWorlds.CampaignSystem.Hero npcHero,
+            NpcMemoryService.Core.Models.PendingLetter letter)
+        {
+            Open(profile.Name);
+            if (ActiveViewModel == null) return;
+
+            // Point the VM at the correct hero so the relation summary resolves.
+            ActiveViewModel.SetNpcHero(npcHero);
+            ActiveViewModel.ActivateLetterReplyMode(letter, profile);
+        }
+
         public static void Open(string npcName = null)
         {
             if (IsOpen)

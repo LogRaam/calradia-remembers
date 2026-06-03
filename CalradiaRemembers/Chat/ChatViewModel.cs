@@ -7,12 +7,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Letters;
 using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.Localization;
 
 #endregion
 
@@ -43,6 +46,14 @@ namespace CalradiaRemembers.Chat
         private string _sendButtonText = "Send";
         private string _titleText = "Calradia Remembers";
         private string _relationSummary = "";
+
+        // ── Letter reply mode ─────────────────────────────────────────────────
+        // When true, the chat is composing a reply to a received letter.
+        // After the player sends, the NPC's LLM response is queued as a new
+        // PendingLetter rather than displayed in the chat window.
+        private bool _isLetterReplyMode;
+        private PendingLetter _replyLetter;
+        private NpcProfile _replyProfile;
 
         public ChatViewModel()
         {
@@ -198,6 +209,26 @@ namespace CalradiaRemembers.Chat
             }
         }
 
+        /// <summary>
+        ///   Switches the chat into letter-reply mode. The received letter is shown as
+        ///   the first message; when the player sends their reply the chat closes and the
+        ///   NPC's generated response becomes a new <see cref="PendingLetter" />.
+        /// </summary>
+        public void ActivateLetterReplyMode(PendingLetter letter, NpcProfile profile)
+        {
+            _isLetterReplyMode = true;
+            _replyLetter       = letter;
+            _replyProfile      = profile;
+
+            TitleText       = $"Correspondence with {profile.Name}";
+            CloseButtonText = "Discard";
+            SendButtonText  = "Send reply";
+
+            // Pre-load the received letter as the opening NPC message.
+            if (!string.IsNullOrWhiteSpace(letter.Content))
+                _messages.Add(new ChatMessageViewModel(_npcHero, profile.Name, letter.Content, false));
+        }
+
         public void ExecuteClose()
         {
             OnCloseRequested?.Invoke();
@@ -249,8 +280,15 @@ namespace CalradiaRemembers.Chat
             try
             {
                 NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
-                NpcProfile profile = NpcMemoryCampaignBehavior.Instance.DialogFlow.Profile;
-                ChatSession session = NpcMemoryCampaignBehavior.Instance.DialogFlow.Session;
+
+                // In letter reply mode the chat was opened outside of normal dialogue:
+                // use the pre-loaded reply profile and a fresh session.
+                NpcProfile profile = _isLetterReplyMode
+                    ? _replyProfile
+                    : NpcMemoryCampaignBehavior.Instance.DialogFlow.Profile;
+                ChatSession session = _isLetterReplyMode
+                    ? new ChatSession()
+                    : NpcMemoryCampaignBehavior.Instance.DialogFlow.Session;
                 // Rebuild context each turn so it reflects events added during this session
                 // (avoids stale "never met" after the first exchange adds a FirstMeeting event).
                 EncounterContext context = EncounterContextBuilder.Build(
@@ -327,6 +365,32 @@ namespace CalradiaRemembers.Chat
                 var npcLine = !string.IsNullOrWhiteSpace(response?.Dialogue)
                     ? response.Dialogue
                     : "(silence...)";
+
+                // ── Letter reply intercept ─────────────────────────────────────
+                // In letter reply mode we don't show the NPC's response in chat.
+                // Instead we package it as a new PendingLetter and close the window.
+                if (_isLetterReplyMode && _replyLetter != null && _replyProfile != null)
+                {
+                    _replyLetter.PlayerReply = playerMessage;
+
+                    Hero giverHero = Hero.FindFirst(h => h.StringId == _replyProfile.Id);
+                    LetterGenerationService.QueueReplyLetter(
+                        _replyProfile, giverHero, _replyLetter,
+                        behavior.LlmServices, behavior.Store,
+                        behavior.GameStateBridge.GetCurrentGameDay());
+
+                    ProfileMutator.Apply(profile, response, behavior.GameStateBridge.GetCurrentGameDay());
+                    behavior.Store.Set(profile);
+
+                    MBInformationManager.AddQuickInformation(
+                        new TextObject($"Your reply to {_replyProfile.Name} has been sealed and sent."));
+
+                    ModLog.Info($"[LETTER] reply sent to {_replyProfile.Name}; NPC response queued as new letter.");
+                    ChatManager.Close();
+                    return;
+                }
+                // ── End letter reply intercept ─────────────────────────────────
+
                 ReplacePlaceholder(placeholder, npcLine);
 
                 var gameDay = behavior.GameStateBridge.GetCurrentGameDay();

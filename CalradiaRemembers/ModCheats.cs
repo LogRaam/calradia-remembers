@@ -10,6 +10,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Letters;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Quests;
 using NpcMemoryService.Core.Models;
@@ -99,6 +100,9 @@ namespace CalradiaRemembers
                 "  cr.give_gold <amount> [name]         NPC gives the player gold\n" +
                 "  cr.take_gold <amount> [name]         Player gives the NPC gold\n" +
                 "\n" +
+                "LETTERS\n" +
+                "  cr.letter [name]                     Queue a RomanticCorrespondence test letter from the NPC (immediate delivery)\n" +
+                "\n" +
                 "PLAYER STANDING\n" +
                 "  cr.standing                          Show player clan tier and arena rank/wins\n" +
                 "\n" +
@@ -114,6 +118,37 @@ namespace CalradiaRemembers
                 "  cr.quests [name]                     List the NPC's quests with their current state\n" +
                 "\n" +
                 "[name] is an optional name fragment (case-insensitive). If omitted, the current conversation NPC is used.";
+        }
+
+        // ── Sprint 12b: letter testing ────────────────────────────────────────
+
+        /// <summary>
+        ///   cr.letter [name]
+        ///   Queues a test letter from the NPC with DeliveryDay = today so it shows
+        ///   up on the next daily tick (or immediately via cr.letter_deliver).
+        ///   Uses RomanticCorrespondence as the reason so personality is exercised.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("letter", "cr")]
+        public static string SeedLetter(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+            LetterGenerationService.QueueInitialLetter(
+                profile, hero,
+                LetterReason.RomanticCorrespondence,
+                $"Test letter. Romantic status: {profile.Romantic?.Status.ToString() ?? "unknown"}.",
+                behavior.LlmServices, behavior.Store, today);
+
+            // Force immediate delivery by pre-dating it.
+            // The LLM call is async; the letter appears on next daily tick once generated.
+            return $"{hero.Name}: letter generation queued. It will appear at the next daily tick.";
         }
 
         // ── Sprint 12a: player standing diagnostic ────────────────────────────
