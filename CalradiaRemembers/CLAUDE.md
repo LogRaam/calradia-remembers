@@ -211,17 +211,22 @@ cr.quests [name]                     # list NPC quests + state
 
 > This is the only section that changes per sprint. Keep it short.
 
-**Sprint 14** ✅ build OK (pending in-game validation) — last completed sprint.
+**Sprint 14 + 14b** ✅ validated in-game (2026-06-03) — last completed sprint.
 
-Multi-NPC witnesses:
-- `WitnessEntry` model (SDK) + `EncounterContext.Witnesses` + `EncounterContext.PrivacyRequested`
-- `PromptBuilder.AppendWitnesses`: injects `WITNESSES PRESENT` section; `request_privacy` ACTION instructions when pending
-- Privacy gate in `AppendIntimacyConsentRules`: with witnesses → physical intimacy blocked; except Hardcore+captive
-- `WitnessResolver` (mod): settlement branch (HeroesWithoutParty + settlement.Parties) + campaign map; filters known profiles; companion picker via `ShowMultiSelectionInquiry`; `DiagnoseWitnesses` for `cr.witnesses`
-- `ChatViewModel`: `_witnesses` list, `WitnessesText`/`HasWitnesses`/`IsPrivateRequestVisible` properties, `ExecuteRequestPrivate` (auto-sends synthetic LLM message), `request_privacy` action handler
-- XML: TitleBar 95px, witnesses line + "Request Private" button
-- `LlmDialogFlow.OnPlayerSelectedChat`: `ResolveAutoWitnesses` → `SetWitnesses` → `ShowCompanionPickerIfNeeded`
-- Console: `cr.witnesses [name]` (diagnostic), `cr.witness [name]` (seed), `cr.rep_set <v> [name]` (force rep)
-- **⚠️ Unverified**: does `Hero.CurrentSettlement` populate during Talk? Run `cr.witnesses [name]` in Keep to confirm.
+Multi-NPC witnesses (14) + active witness reactions (14b):
+- `WitnessEntry` (SDK): Name, RelationToNpc, IsPlayerCompanion, HeroStringId, **Persona** (archetype label)
+- `WitnessReaction` (SDK) + `ParsedResponse.WitnessReactions`; parser handles `[WITNESS_REACTION]` blocks
+- `EncounterContext`: +Witnesses, +PrivacyRequested
+- `PromptBuilder.AppendWitnesses`: `WITNESSES PRESENT` w/ persona; `[WITNESS_REACTION]` format (gesture/spoken line, in-character, speaks up on provocation); `request_privacy` when pending. SCENE DISCIPLINE carve-out so a directly-addressed witness may still react
+- `ChatSession.AddWitnessStatement`: injects `[Name]: ...` as user-role so the main NPC sees/reacts next turn (14b)
+- Privacy gate in `AppendIntimacyConsentRules`: witnesses → intimacy blocked; except Hardcore+captive
+- `WitnessResolver` (mod): settlement (HeroesWithoutParty + Parties) + campaign map; known-profile filter; `ResolvePersona` from profile.Trait; companion picker `ShowMultiSelectionInquiry`; `DiagnoseWitnesses`
+- `ChatViewModel`: `_witnesses` + per-witness hash colors; `AppendWitnessReaction` (own portrait+color, injects to session); `ExecuteRequestPrivate`; `request_privacy` + **`end_conversation`** handlers
+- `ChatMessageViewModel`: witness-color constructor overload
+- XML: TitleBar 95px, witnesses line, "Request Private" button
+- **`end_conversation` action**: NPC ends exchange on grave affront / refused-then-pressed advance / farewell → input locked, "Leave" button, paired negative `change_relation`
+- `change_relation` vocab strengthened: crude advance (-5), lewd proposition before witnesses (-8), never-stay-neutral directive
+- Console: `cr.witnesses` (diagnostic), `cr.witness` (seed), `cr.rep_set` (force rep)
+- Verified: `Hero.CurrentSettlement` populates during Talk (Poros test); witnesses react in-character; relation drops + persists to encyclopedia
 
-**Next**: in-game validation of WitnessResolver, then Sprint 12c — Visible courier party
+**Next**: Sprint 12c — Visible courier party (MobileParty on map, bandit interception)
