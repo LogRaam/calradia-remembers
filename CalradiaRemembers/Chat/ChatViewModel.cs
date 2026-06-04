@@ -86,6 +86,10 @@ namespace CalradiaRemembers.Chat
         private bool _hasWitnesses;
         private bool _isPrivateRequestVisible;
 
+        // Set when the NPC emits an end_conversation action — locks input so the
+        // player can only read the farewell and leave.
+        private bool _conversationEnded;
+
         public ChatViewModel()
         {
             _messages = new MBBindingList<ChatMessageViewModel>();
@@ -632,8 +636,11 @@ namespace CalradiaRemembers.Chat
                     ActionContext actionContext = new ActionContext(profile, response.NewEventData?.Type);
                     foreach (GameAction action in response.Actions)
                     {
-                        // request_privacy is handled below — not a game-world action.
+                        // request_privacy and end_conversation are chat-flow controls,
+                        // handled below — not game-world actions for the bridge.
                         if (string.Equals(action.Type, "request_privacy",
+                                StringComparison.OrdinalIgnoreCase)) continue;
+                        if (string.Equals(action.Type, "end_conversation",
                                 StringComparison.OrdinalIgnoreCase)) continue;
                         ActionOutcome outcome =
                             behavior.GameStateBridge.ExecuteAction(action, _npcHero, actionContext);
@@ -669,6 +676,24 @@ namespace CalradiaRemembers.Chat
                         ModLog.Info("[WITNESSES] private audience refused — witnesses remain.");
                     }
                 }
+                // ─────────────────────────────────────────────────────────────
+
+                // ── Conversation end resolution ───────────────────────────────
+                // The NPC may end the exchange (grave insult, refused advance pressed
+                // again, or a natural farewell). Lock input; the player reads and leaves.
+                if (response.Actions != null)
+                    foreach (GameAction action in response.Actions)
+                    {
+                        if (!string.Equals(action.Type, "end_conversation",
+                                StringComparison.OrdinalIgnoreCase)) continue;
+                        _conversationEnded      = true;
+                        IsSendEnabled           = false;
+                        IsPrivateRequestVisible = false;
+                        CloseButtonText         = "Leave";
+                        AppendSystemMessage($"{profile.Name} has ended the conversation.", false);
+                        ModLog.Info($"[CONVERSATION] {profile.Name} ended the conversation.");
+                        break;
+                    }
                 // ─────────────────────────────────────────────────────────────
 
                 // ── Informal quests: issue a newly offered task, pay out a verified one ──
@@ -712,7 +737,8 @@ namespace CalradiaRemembers.Chat
             }
             finally
             {
-                IsSendEnabled = true;
+                // Keep input locked if the NPC ended the conversation.
+                IsSendEnabled = !_conversationEnded;
             }
         }
 

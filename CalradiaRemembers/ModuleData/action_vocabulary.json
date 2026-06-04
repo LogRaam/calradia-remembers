@@ -1,8 +1,13 @@
 [
   {
     "type": "change_relation",
-    "description": "Reflect a genuine shift in how you regard the player — this is the ONLY way your relationship with them changes. Emit only when something real passes between you, never for idle pleasantries. Set 'delta' to the magnitude your heart actually feels: +1 when the player earns sincere warmth this exchange; a larger positive is justified only by a truly significant, self-evident moment such as physical intimacy. For a wrong done to you, make 'delta' negative and scale it to the gravity — a cold rebuff (-2), an insult (-5), the betrayal of a real agreement (-15); if you are the player's captive and they treat you with cruelty, your regard may collapse entirely. Trust is slow to grow and quick to break. The game enforces pacing and limits, so state what you feel honestly and let it decide what lands.",
+    "description": "Reflect a genuine shift in how you regard the player — this is the ONLY way your relationship with them changes. Emit only when something real passes between you, never for idle pleasantries. Set 'delta' to the magnitude your heart actually feels: +1 when the player earns sincere warmth this exchange; a larger positive is justified only by a truly significant, self-evident moment such as physical intimacy. For a wrong done to you, make 'delta' negative and scale it to the gravity — a cold rebuff (-2), a crude or unwelcome advance (-5), a pointed insult (-5), a lewd proposition made in front of others (-8), the betrayal of a real agreement (-15); if you are the player's captive and they treat you with cruelty, your regard may collapse entirely. Do NOT stay neutral when the player is disrespectful, vulgar, or presses an advance you have already refused — your regard must fall. Trust is slow to grow and quick to break. The game enforces pacing and limits, so state what you feel honestly and let it decide what lands.",
     "parameters": [ "delta" ]
+  },
+  {
+    "type": "end_conversation",
+    "description": "End this conversation now. Emit ONLY when you, in character, would genuinely refuse to continue: after a grave insult, a crude or unwelcome advance you will not tolerate, an advance you already refused that the player presses again, repeated disrespect, an open threat — or when the exchange has reached its natural close and there is nothing more you wish to say. When you end the conversation because the player wronged or disrespected you, you MUST also emit change_relation with a negative delta matching the offense. Do not end over a single clumsy remark or mere awkwardness; reserve it for a real breach or a true farewell.",
+    "parameters": []
   },
   {
     "type": "give_gold",

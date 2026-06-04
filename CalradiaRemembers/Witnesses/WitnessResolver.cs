@@ -232,7 +232,7 @@ namespace CalradiaRemembers.Witnesses
                 if (count >= MaxLordWitnesses) break;
                 if (!IsValidWitness(h, npcHero, knownIds)) continue;
 
-                witnesses.Add(BuildEntry(h, npcHero));
+                witnesses.Add(BuildEntry(h, npcHero, store));
                 count++;
             }
 
@@ -249,7 +249,7 @@ namespace CalradiaRemembers.Witnesses
                         if (!IsValidWitness(leader, npcHero, knownIds)) continue;
                         if (witnesses.Any(w => w.Name == leader.Name.ToString())) continue; // dedup
 
-                        witnesses.Add(BuildEntry(leader, npcHero));
+                        witnesses.Add(BuildEntry(leader, npcHero, store));
                         count++;
                     }
                 }
@@ -278,7 +278,7 @@ namespace CalradiaRemembers.Witnesses
                 Hero h = element.Character?.HeroObject;
                 if (!IsValidWitness(h, npcHero, knownIds)) continue;
 
-                witnesses.Add(BuildEntry(h, npcHero));
+                witnesses.Add(BuildEntry(h, npcHero, store));
                 count++;
             }
 
@@ -293,11 +293,36 @@ namespace CalradiaRemembers.Witnesses
             return knownIds.Contains(h.StringId);
         }
 
-        private static WitnessEntry BuildEntry(Hero h, Hero npcHero) => new WitnessEntry {
+        private static WitnessEntry BuildEntry(Hero h, Hero npcHero, BannerlordNpcMemoryStore store) => new WitnessEntry {
             Name          = h.Name.ToString(),
             RelationToNpc = DescribeWitnessRelation(npcHero, h),
-            HeroStringId  = h.StringId
+            HeroStringId  = h.StringId,
+            Persona       = ResolvePersona(h, store)
         };
+
+        /// <summary>
+        ///   Extracts a concise character descriptor (the archetype label — the first
+        ///   sentence of the profile's Trait) so the main NPC can voice this witness's
+        ///   reactions in character. Returns null when no profile or trait is available.
+        /// </summary>
+        private static string ResolvePersona(Hero h, BannerlordNpcMemoryStore store)
+        {
+            try
+            {
+                NpcProfile profile = store?.Get(h.StringId);
+                string trait = profile?.Trait;
+                if (string.IsNullOrWhiteSpace(trait)) return null;
+
+                // Take the first sentence (archetype name), lower-cased for natural reading.
+                int dot = trait.IndexOf('.');
+                string label = dot > 0 ? trait.Substring(0, dot) : trait;
+                return label.Trim();
+            }
+            catch
+            {
+                return null;
+            }
+        }
 
         private static List<Hero> GetPlayerCompanions()
         {
