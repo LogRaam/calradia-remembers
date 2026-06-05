@@ -1,9 +1,11 @@
 // Code written by Gabriel Mailhot, 03/06/2026.
 // Sprint 12d: player-to-NPC letters — taverne courier conversation hook.
+// Sprint 12c: courier hire now costs 500 denars; hooked to the Tavern Keeper's
+//             service hub ("tavernkeeper_talk"), not the Tavern Maid.
 
 #region
 
-using System;
+using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
@@ -18,27 +20,33 @@ using TaleWorlds.Localization;
 namespace CalradiaRemembers.Letters
 {
     /// <summary>
-    ///   Registers a courier-hire option in the tavernkeeper conversation. The player
-    ///   is prompted for a recipient name, then for the message body. Both steps use
-    ///   <see cref="TextInquiryData" /> so they work on any screen. The chat window
-    ///   is opened in compose mode to let the player write their message.
-    ///
-    ///   NOTE: The taverne conversation token ("tavernkeeper") has not been validated
-    ///   in-game. The primary test path for Sprint 12d is <c>cr.compose [name]</c>.
+    ///   Registers a courier-hire option in the Tavern Keeper's service menu. The player
+    ///   is prompted for a recipient name via <see cref="TextInquiryData" />, then the chat
+    ///   window opens in compose mode (charging <see cref="CourierHireCost" /> on send).
+    ///   Hooked to the keeper's <c>"tavernkeeper_talk"</c> hub — the Tavern Maid serves
+    ///   drinks only and is not the right vendor for this.
     /// </summary>
     public sealed class TaverneLetterBehavior
     {
-        /// <summary>Adds the courier-hire dialog lines to the campaign's conversation pool.</summary>
+        /// <summary>Denars charged for hiring a courier at the tavern.</summary>
+        public const int CourierHireCost = 500;
+
+        /// <summary>
+        ///   Adds the courier-hire option to the Tavern Keeper's service menu.
+        ///   The keeper's player-option hub uses the <c>"tavernkeeper_talk"</c> token —
+        ///   the same hub that lists companion recruitment and "people to hire". The
+        ///   option loops back to that hub so the conversation continues naturally.
+        /// </summary>
         public void Register(CampaignGameStarter starter)
         {
             starter.AddPlayerLine(
                 "cr_hire_courier_option",
-                "tavernkeeper",
+                "tavernkeeper_talk",
                 "cr_hire_courier_confirm",
-                "I need to hire a courier to send a letter.",
+                $"I need to hire a courier to send a letter. ({CourierHireCost} denars)",
                 CanHireCourier,
                 null,
-                100);
+                110);
 
             starter.AddDialogLine(
                 "cr_hire_courier_confirm_line",
@@ -53,68 +61,74 @@ namespace CalradiaRemembers.Letters
 
         private static bool CanHireCourier()
         {
-            if (CharacterObject.OneToOneConversationCharacter?.Occupation != Occupation.TavernWench)
-                return false;
-
+            // The "tavernkeeper_talk" token already scopes this to a tavern keeper, so we
+            // only need at least one known, living, reachable NPC the player could write to.
             var store = NpcMemoryCampaignBehavior.Instance?.Store;
             if (store == null) return false;
 
             return store.ListIds().Any(id =>
             {
                 Hero h = Hero.FindFirst(x => x.StringId == id);
-                return h != null && h.IsAlive && h != Hero.MainHero;
+                return h != null && h != Hero.MainHero && CourierService.CanReceiveLetter(h);
             });
         }
 
         // ── Consequences ──────────────────────────────────────────────────────
 
+        /// <summary>
+        ///   Presents a searchable list of every known, living, and reachable NPC the
+        ///   player could write to. Selecting one opens the compose window. A list
+        ///   removes the ambiguity and typos of free-text name entry.
+        /// </summary>
         private static void OnHireCourier()
         {
-            InformationManager.ShowTextInquiry(new TextInquiryData(
-                titleText:                "Hire a Courier",
-                text:                     "Enter the name of the recipient:",
-                isAffirmativeOptionShown: true,
-                isNegativeOptionShown:    true,
-                affirmativeText:          "Search",
-                negativeText:             "Cancel",
-                affirmativeAction:        OnRecipientNameEntered,
-                negativeAction:           null,
-                shouldInputBeObfuscated:  false,
-                textCondition:            null,
-                soundEventPath:           "",
-                defaultInputText:         ""), pauseGameActiveState: false);
-        }
-
-        private static void OnRecipientNameEntered(string nameFragment)
-        {
-            if (string.IsNullOrWhiteSpace(nameFragment)) return;
-
             var store = NpcMemoryCampaignBehavior.Instance?.Store;
             if (store == null) return;
 
-            // Find the first known NPC whose name matches the fragment.
-            NpcProfile profile = null;
+            var elements = new List<InquiryElement>();
             foreach (string id in store.ListIds())
             {
                 Hero h = Hero.FindFirst(x => x.StringId == id);
-                if (h == null || !h.IsAlive || h == Hero.MainHero) continue;
-
-                if (h.Name?.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    profile = store.Get(id);
-                    break;
-                }
+                if (h == null || h == Hero.MainHero || !CourierService.CanReceiveLetter(h)) continue;
+                elements.Add(new InquiryElement(id, h.Name.ToString(), null));
             }
 
-            if (profile == null)
+            if (elements.Count == 0)
             {
                 MBInformationManager.AddQuickInformation(
-                    new TextObject($"No known NPC named '{nameFragment}' found."));
+                    new TextObject("You know no one you could write to (or reach) yet."));
                 return;
             }
 
-            string recipientName = profile.Name;
-            ChatManager.OpenForCompose(profile);
+            MBInformationManager.ShowMultiSelectionInquiry(
+                new MultiSelectionInquiryData(
+                    titleText:                "Hire a Courier",
+                    descriptionText:          $"Choose the recipient ({CourierHireCost} denars on dispatch):",
+                    inquiryElements:          elements,
+                    isExitShown:              true,
+                    minSelectableOptionCount: 1,
+                    maxSelectableOptionCount: 1,
+                    affirmativeText:          "Write Letter",
+                    negativeText:             "Cancel",
+                    affirmativeAction:        OnRecipientSelected,
+                    negativeAction:           null,
+                    soundEventPath:           "",
+                    isSeachAvailable:         true), // (sic) — the engine API misspells "Search"
+                pauseGameActiveState: false,
+                prioritize:           true);
+        }
+
+        private static void OnRecipientSelected(List<InquiryElement> selected)
+        {
+            if (selected == null || selected.Count == 0) return;
+
+            var id = selected[0].Identifier as string;
+            if (string.IsNullOrEmpty(id)) return;
+
+            NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(id);
+            if (profile == null) return;
+
+            ChatManager.OpenForCompose(profile, CourierHireCost);
         }
     }
 }

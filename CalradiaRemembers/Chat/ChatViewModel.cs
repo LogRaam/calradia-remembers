@@ -62,6 +62,8 @@ namespace CalradiaRemembers.Chat
         // No LLM call is made — the typed message is sealed and queued directly.
         private bool _isComposeMode;
         private NpcProfile _composeRecipientProfile;
+        // Gold charged when the letter is sealed (0 = free, e.g. console test path).
+        private int _composeCourierCost;
 
         // ── Multi-NPC witnesses ───────────────────────────────────────────────
         // Mutable list — authoritative for the session; cleared on privacy-accepted.
@@ -393,14 +395,18 @@ namespace CalradiaRemembers.Chat
         /// <summary>
         ///   Switches the chat into compose mode: no LLM call, no NPC portrait.
         ///   The player types a message and "Seal &amp; Send" queues it as a
-        ///   <see cref="PlayerLetter" /> with delivery delay.
+        ///   <see cref="PlayerLetter" /> with delivery delay. When <paramref name="courierCost" />
+        ///   is positive, that many denars are charged on send (insufficient gold aborts).
         /// </summary>
-        public void ActivateComposeMode(NpcProfile recipientProfile)
+        public void ActivateComposeMode(NpcProfile recipientProfile, int courierCost = 0)
         {
             _isComposeMode           = true;
             _composeRecipientProfile = recipientProfile;
+            _composeCourierCost      = courierCost;
 
-            TitleText       = $"Compose Letter to {recipientProfile.Name}";
+            TitleText = courierCost > 0
+                ? $"Compose Letter to {recipientProfile.Name} — {courierCost} denars"
+                : $"Compose Letter to {recipientProfile.Name}";
             CloseButtonText = "Cancel";
             SendButtonText  = "Seal & Send";
         }
@@ -433,6 +439,20 @@ namespace CalradiaRemembers.Chat
             {
                 ChatManager.Close();
                 return;
+            }
+
+            // Courier hire fee: refuse if the player cannot afford it (keep the window
+            // open so the message isn't lost), otherwise deduct before dispatching.
+            if (_composeCourierCost > 0)
+            {
+                if (Hero.MainHero.Gold < _composeCourierCost)
+                {
+                    MBInformationManager.AddQuickInformation(new TextObject(
+                        $"You cannot afford the courier ({_composeCourierCost} denars)."));
+                    return;
+                }
+                Hero.MainHero.ChangeHeroGold(-_composeCourierCost);
+                ModLog.Info($"[PLAYER LETTER] courier fee charged: {_composeCourierCost} denars.");
             }
 
             int today        = behavior.GameStateBridge.GetCurrentGameDay();

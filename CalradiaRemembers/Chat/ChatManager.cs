@@ -58,10 +58,11 @@ namespace CalradiaRemembers.Chat
         ///   message is sealed as a <see cref="NpcMemoryService.Core.Models.PlayerLetter" />
         ///   and the window closes.
         /// </summary>
-        public static void OpenForCompose(NpcMemoryService.Core.Models.NpcProfile recipientProfile)
+        public static void OpenForCompose(
+            NpcMemoryService.Core.Models.NpcProfile recipientProfile, int courierCost = 0)
         {
             Open(recipientProfile?.Name);
-            ActiveViewModel?.ActivateComposeMode(recipientProfile);
+            ActiveViewModel?.ActivateComposeMode(recipientProfile, courierCost);
         }
 
         /// <summary>

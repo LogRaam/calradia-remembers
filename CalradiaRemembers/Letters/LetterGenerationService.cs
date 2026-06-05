@@ -45,6 +45,25 @@ namespace CalradiaRemembers.Letters
         }
 
         /// <summary>
+        ///   Fire-and-forget entry point triggered when a player letter is delivered.
+        ///   The LLM decides whether to reply; if yes, it picks a delay (1-7 days) and
+        ///   writes the letter body. A <see cref="PendingLetter" /> is stored with
+        ///   <see cref="PendingLetter.DispatchDay" /> set; the reply courier is spawned
+        ///   on the main-thread daily tick once that day arrives.
+        /// </summary>
+        public static void QueueReplyToPlayerLetter(
+            NpcProfile profile, Hero senderHero, PlayerLetter playerLetter,
+            LlmServices llmServices, BannerlordNpcMemoryStore store, int today)
+        {
+            _ = GeneratePlayerLetterReplyAsync(profile, senderHero, playerLetter, llmServices, store, today)
+                  .ContinueWith(t =>
+                  {
+                      if (t.Exception != null)
+                          ModLog.Error($"[LETTER] player-letter reply generation failed for {profile.Name}: {t.Exception.GetBaseException().Message}");
+                  }, TaskScheduler.Default);
+        }
+
+        /// <summary>
         ///   Fire-and-forget entry point for the NPC's reply to a player response.
         /// </summary>
         public static void QueueReplyLetter(
@@ -60,6 +79,73 @@ namespace CalradiaRemembers.Letters
         }
 
         #region private
+
+        private static async Task GeneratePlayerLetterReplyAsync(
+            NpcProfile profile, Hero senderHero, PlayerLetter playerLetter,
+            LlmServices llmServices, BannerlordNpcMemoryStore store, int today)
+        {
+            if (llmServices?.ChatService == null) return;
+            if (string.IsNullOrWhiteSpace(playerLetter.Content)) return;
+
+            string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
+            string message = LetterPromptBuilder.BuildPlayerLetterReplyDecisionMessage(
+                profile, playerLetter.Content, playerName);
+
+            string rawDecision = await CallLlmForLetterAsync(llmServices, profile, message);
+            if (string.IsNullOrWhiteSpace(rawDecision)) return;
+
+            // Parse PASS vs DELAY:N + letter body. Tolerant: default delay on bad format.
+            string trimmed = rawDecision.Trim();
+            if (trimmed.StartsWith("PASS", StringComparison.OrdinalIgnoreCase)
+             || trimmed.Equals("no reply", StringComparison.OrdinalIgnoreCase)
+             || trimmed.Equals("no", StringComparison.OrdinalIgnoreCase))
+            {
+                // Log the LLM's reason (everything after "PASS:" on the first line).
+                string reason = string.Empty;
+                int colon = trimmed.IndexOf(':');
+                if (colon >= 0 && colon < trimmed.Length - 1)
+                    reason = trimmed.Substring(colon + 1).Split('\n')[0].Trim();
+                string reasonSuffix = string.IsNullOrEmpty(reason) ? "" : $" — {reason}";
+                ModLog.Info($"[LETTER] {profile.Name} chose not to reply{reasonSuffix}");
+                return;
+            }
+
+            int delayDays = 2;
+            string letterBody = trimmed;
+
+            int firstNewline = trimmed.IndexOf('\n');
+            string firstLine  = firstNewline > 0
+                ? trimmed.Substring(0, firstNewline).Trim()
+                : trimmed;
+
+            if (firstLine.StartsWith("DELAY:", StringComparison.OrdinalIgnoreCase))
+            {
+                string delayStr = firstLine.Substring("DELAY:".Length).Trim();
+                if (int.TryParse(delayStr, out int parsed) && parsed >= 1 && parsed <= 14)
+                    delayDays = parsed;
+                letterBody = firstNewline > 0 ? trimmed.Substring(firstNewline).Trim() : string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(letterBody)) return;
+
+            int dispatchDay  = today + delayDays;
+            int travelDays   = ComputeDeliveryDays(senderHero);
+
+            var reply = new PendingLetter {
+                SenderId    = profile.Id,
+                SenderName  = profile.Name,
+                Reason      = LetterReason.PlayerLetterReply,
+                Content     = letterBody,
+                SentOnDay   = today,
+                DispatchDay = dispatchDay,
+                DeliveryDay = dispatchDay + travelDays, // fallback if courier lost before spawning
+                IsDelivered = false
+            };
+
+            profile.SentLetters.Add(reply);
+            store.Set(profile);
+            ModLog.Info($"[LETTER] {profile.Name} will reply to player's letter — courier departs day {dispatchDay} ({delayDays}d delay).");
+        }
 
         private static async Task GenerateInitialAsync(
             NpcProfile profile, Hero giverHero, LetterReason reason, string triggerContext,

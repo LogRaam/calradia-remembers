@@ -9,6 +9,7 @@ using System.Reflection;
 using Bannerlord.UIExtenderEx;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.Engine.GauntletUI;
@@ -66,6 +67,18 @@ namespace CalradiaRemembers
         {
             base.OnSubModuleLoad();
             Log($"{ModName} v1.0.0 loaded.");
+
+            try
+            {
+                var harmony = new Harmony(ModuleId);
+                harmony.PatchAll();
+                Log("Harmony patches applied.");
+            }
+            catch (Exception ex)
+            {
+                Log($"Harmony patch failed: {ex.Message}");
+            }
+
             RegisterGuiResources();
             InitializeUiExtender();
         }

@@ -43,20 +43,42 @@ namespace CalradiaRemembers.Letters
             };
 
             recipientProfile.ReceivedPlayerLetters.Add(letter);
+
+            // Sprint 12c: a dead, captured, or vanished recipient cannot receive letters —
+            // mark the letter undeliverable up front and spawn no courier.
+            Hero recipient = Hero.FindFirst(h => h.StringId == recipientProfile.Id);
+            if (!CourierService.CanReceiveLetter(recipient))
+            {
+                letter.IsLost = true;
+                store.Set(recipientProfile);
+                ModLog.Info($"[PLAYER LETTER] {recipientProfile.Name} cannot receive letters " +
+                            $"(dead/captured/absent) — marked undeliverable.");
+                return deliveryDays;
+            }
+
+            // Spawn a visible courier carrying this letter. On success the courier drives
+            // delivery (on arrival); on spawn failure the date-based fallback delivers.
+            CourierService.TrySpawnCourier(letter, recipient);
+
             store.Set(recipientProfile);
             ModLog.Info($"[PLAYER LETTER] queued to {recipientProfile.Name} — " +
-                        $"delivery day {today + deliveryDays} ({deliveryDays}d).");
+                        $"delivery day {today + deliveryDays} ({deliveryDays}d), " +
+                        $"courier={(letter.CourierPartyId ?? "none")}.");
             return deliveryDays;
         }
 
         /// <summary>
-        ///   Daily pass: marks in-transit letters as delivered when their
-        ///   <see cref="PlayerLetter.DeliveryDay" /> has arrived. No popup —
-        ///   the player discovers the effect at their next conversation with the NPC.
+        ///   Daily pass. Sprint 12c: letters with a live courier are delivered by
+        ///   <see cref="CourierService.TickCouriers" /> on arrival; this method now only
+        ///   handles the date-based fallback for letters whose courier never spawned
+        ///   (spawn failed or a legacy letter). Lost letters are skipped entirely.
         /// </summary>
         public static void CheckDeliveries(BannerlordNpcMemoryStore store, int today)
         {
             if (store == null) return;
+
+            // Courier-driven delivery (arrival / safety deadline / vanished) runs first.
+            CourierService.TickCouriers(store, today);
 
             foreach (string id in store.ListIds())
             {
@@ -67,10 +89,13 @@ namespace CalradiaRemembers.Letters
                 bool changed = false;
                 foreach (PlayerLetter letter in profile.ReceivedPlayerLetters)
                 {
-                    if (letter.IsDelivered || letter.DeliveryDay > today) continue;
+                    if (letter.IsDelivered || letter.IsLost) continue;
+                    if (!string.IsNullOrEmpty(letter.CourierPartyId)) continue; // courier handles it
+                    if (letter.DeliveryDay > today) continue;
+
                     letter.IsDelivered = true;
                     changed = true;
-                    ModLog.Info($"[PLAYER LETTER] delivered to {profile.Name} " +
+                    ModLog.Info($"[PLAYER LETTER] delivered (date fallback) to {profile.Name} " +
                                 $"(sent day {letter.SentOnDay}).");
                 }
 

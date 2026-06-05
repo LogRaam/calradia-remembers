@@ -12,7 +12,10 @@ using CalradiaRemembers.Quests;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
+using CalradiaRemembers.Letters;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 
 #endregion
 
@@ -70,6 +73,43 @@ namespace CalradiaRemembers.Behaviors
                 this, OnSessionLaunched);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(
                 this, OnDailyTick);
+            // Sprint 12c: detect when a player-letter courier is destroyed in transit.
+            CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(
+                this, OnMobilePartyDestroyed);
+            // Sprint 12c: deliver promptly when a courier enters the recipient's settlement.
+            CampaignEvents.SettlementEntered.AddNonSerializedListener(
+                this, OnSettlementEntered);
+            // Sprint 12c: deliver within 1 game hour of the courier catching the recipient,
+            // instead of waiting up to 1 game day for the daily tick.
+            CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(
+                this, OnHourlyTickParty);
+        }
+
+        /// <summary>
+        ///   Fires every game hour for each party. Used to deliver courier letters within
+        ///   1 hour of arrival rather than waiting for the daily tick.
+        /// </summary>
+        private void OnHourlyTickParty(MobileParty party)
+        {
+            Letters.CourierService.CheckCourierArrival(party, Store);
+        }
+
+        /// <summary>
+        ///   When any mobile party is destroyed, check whether it was a letter courier
+        ///   and, if so, mark the carried letter lost (handled in CourierService).
+        /// </summary>
+        private void OnMobilePartyDestroyed(MobileParty destroyed, PartyBase destroyer)
+        {
+            Letters.CourierService.HandlePartyDestroyed(destroyed, Store);
+        }
+
+        /// <summary>
+        ///   When a party enters a settlement, check whether it is a letter courier
+        ///   reaching its recipient and, if so, deliver immediately.
+        /// </summary>
+        private void OnSettlementEntered(MobileParty party, Settlement settlement, Hero hero)
+        {
+            Letters.CourierService.HandleSettlementEntered(party, settlement, Store);
         }
 
         /// <summary>
@@ -128,6 +168,7 @@ namespace CalradiaRemembers.Behaviors
             QuestTracker.Subscribe();
             LetterEvaluator.Subscribe();
             new TaverneLetterBehavior().Register(campaignGameStarter);
+            CourierService.RebuildActiveCourierSet(Store);
             QuestJournalBridge.ReconcileOnSessionLaunch(Store);
         }
 
@@ -142,6 +183,68 @@ namespace CalradiaRemembers.Behaviors
             LetterDeliveryService.CheckDeliveries(Store, today);
             PlayerLetterService.CheckDeliveries(Store, today);
             LetterEvaluator.EvaluateDaily(Store, LlmServices, today);
+            TriggerPendingReplies(today);
+            SpawnPendingReplyCouriers(today);
+        }
+
+        /// <summary>
+        ///   Scans for delivered player letters that have not yet triggered an LLM reply
+        ///   and queues the reply generation (async). Sets <c>HasTriggeredReply</c> to
+        ///   prevent duplicate calls on subsequent ticks.
+        /// </summary>
+        private void TriggerPendingReplies(int today)
+        {
+            foreach (string id in Store.ListIds())
+            {
+                NpcProfile profile = Store.Get(id);
+                if (profile?.ReceivedPlayerLetters == null) continue;
+
+                bool changed = false;
+                foreach (PlayerLetter letter in profile.ReceivedPlayerLetters)
+                {
+                    if (!letter.IsDelivered || letter.IsLost || letter.HasTriggeredReply) continue;
+                    letter.HasTriggeredReply = true;
+                    changed = true;
+
+                    Hero hero = Hero.FindFirst(h => h.StringId == profile.Id);
+                    if (hero == null) continue;
+
+                    LetterGenerationService.QueueReplyToPlayerLetter(
+                        profile, hero, letter, LlmServices, Store, today);
+                }
+
+                if (changed) Store.Set(profile);
+            }
+        }
+
+        /// <summary>
+        ///   Spawns reply couriers (NPC→player) whose <c>DispatchDay</c> has arrived.
+        ///   Must run on the main thread — MobileParty creation is not thread-safe.
+        /// </summary>
+        private void SpawnPendingReplyCouriers(int today)
+        {
+            foreach (string id in Store.ListIds())
+            {
+                NpcProfile profile = Store.Get(id);
+                if (profile?.SentLetters == null) continue;
+
+                bool changed = false;
+                foreach (PendingLetter letter in profile.SentLetters)
+                {
+                    if (letter.IsDelivered || letter.IsLost) continue;
+                    if (letter.Reason != LetterReason.PlayerLetterReply) continue;
+                    if (!string.IsNullOrEmpty(letter.CourierPartyId)) continue; // already dispatched
+                    if (letter.DispatchDay == 0 || today < letter.DispatchDay) continue;
+
+                    Hero sender = Hero.FindFirst(h => h.StringId == profile.Id);
+                    if (sender == null) continue;
+
+                    if (CourierService.TrySpawnReplyCourier(letter, sender))
+                        changed = true;
+                }
+
+                if (changed) Store.Set(profile);
+            }
         }
 
         private void RefreshRelationships()

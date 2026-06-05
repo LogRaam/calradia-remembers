@@ -105,6 +105,8 @@ namespace CalradiaRemembers
                 "LETTERS\n" +
                 "  cr.letter [name]                     Queue a RomanticCorrespondence test letter from the NPC (immediate delivery)\n" +
                 "  cr.compose [name]                    Open the letter compose window to write to the NPC (Sprint 12d test path)\n" +
+                "  cr.courier [name]                    Dispatch a test letter + spawn the visible courier party (Sprint 12c)\n" +
+                "  cr.courier_slow [name]               Spawn a SLOW engageable courier to observe bandit interception\n" +
                 "\n" +
                 "MULTI-NPC WITNESSES\n" +
                 "  cr.witnesses [name]                  Diagnose: log settlement/party presence data for an NPC (Talk-vs-Visit check)\n" +
@@ -205,6 +207,70 @@ namespace CalradiaRemembers
             NpcProfile profile = GetOrCreateProfile(behavior, hero);
             ChatManager.OpenForCompose(profile);
             return $"Compose window opened for {hero.Name}.";
+        }
+
+        // ── Sprint 12c: visible courier testing ───────────────────────────────
+
+        /// <summary>
+        ///   cr.courier [name]
+        ///   Dispatches a test letter to the given NPC immediately, spawning the visible
+        ///   courier party. Use to watch the courier travel the map, be intercepted, or
+        ///   deliver — without going through the compose window.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("courier", "cr")]
+        public static string DispatchCourier(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            int today = behavior.GameStateBridge.GetCurrentGameDay();
+            int days = PlayerLetterService.CreateAndQueue(
+                profile, "A test message carried by courier.", today, behavior.Store);
+
+            PlayerLetter letter = profile.ReceivedPlayerLetters.LastOrDefault();
+            string courier = letter?.CourierPartyId ?? "FAILED (date fallback)";
+            return $"Courier dispatched to {hero.Name} (~{days}d). Party: {courier}.";
+        }
+
+        /// <summary>
+        ///   cr.courier_slow [name]
+        ///   Like cr.courier but spawns a SLOW, engageable courier (speed 2, does not avoid
+        ///   hostiles) so bandit interception and the [COURIER] destroyed path can actually
+        ///   be observed — the normal fast courier almost always outruns threats.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("courier_slow", "cr")]
+        public static string DispatchSlowCourier(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+            var letter = new PlayerLetter {
+                RecipientId   = profile.Id,
+                RecipientName = profile.Name,
+                Content       = "A slow test courier — easy prey for bandits.",
+                SentOnDay     = today,
+                DeliveryDay   = today + 8
+            };
+            profile.ReceivedPlayerLetters.Add(letter);
+
+            Hero recipient = Hero.FindFirst(h => h.StringId == profile.Id);
+            bool spawned = CourierService.TrySpawnCourier(
+                letter, recipient, speedOverride: 2.0f, avoidHostile: false);
+            behavior.Store.Set(profile);
+
+            return spawned
+                ? $"SLOW courier dispatched to {hero.Name} (party {letter.CourierPartyId}). Watch for interception."
+                : $"Slow courier spawn FAILED for {hero.Name} (date fallback active).";
         }
 
         // ── Sprint 12b: letter testing ────────────────────────────────────────

@@ -28,8 +28,11 @@ namespace CalradiaRemembers.Letters
                 NpcProfile profile = store.Get(id);
                 if (profile?.SentLetters == null || profile.SentLetters.Count == 0) continue;
 
+                // Skip letters that have an active reply courier — the courier handles delivery.
                 PendingLetter due = profile.SentLetters
-                    .FirstOrDefault(l => !l.IsDelivered && l.DeliveryDay <= today);
+                    .FirstOrDefault(l => !l.IsDelivered && !l.IsLost
+                                      && string.IsNullOrEmpty(l.CourierPartyId)
+                                      && l.DeliveryDay <= today);
 
                 if (due == null) continue;
 
