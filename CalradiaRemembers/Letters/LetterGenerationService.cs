@@ -167,13 +167,14 @@ namespace CalradiaRemembers.Letters
                 Reason      = reason,
                 Content     = content,
                 SentOnDay   = today,
-                DeliveryDay = today + deliveryDays,
+                DispatchDay = today,                  // courier departs as soon as letter is written
+                DeliveryDay = today + deliveryDays,   // fallback if courier not yet spawned on load
                 IsDelivered = false
             };
 
             profile.SentLetters.Add(letter);
             store.Set(profile);
-            ModLog.Info($"[LETTER] queued from {profile.Name} ({reason}), arrives in {deliveryDays} day(s).");
+            ModLog.Info($"[LETTER] queued from {profile.Name} ({reason}), courier dispatches day {today}.");
         }
 
         private static async Task GenerateReplyAsync(
@@ -196,13 +197,14 @@ namespace CalradiaRemembers.Letters
                 Reason      = originalLetter.Reason,
                 Content     = content,
                 SentOnDay   = today,
+                DispatchDay = today,
                 DeliveryDay = today + deliveryDays,
                 IsDelivered = false
             };
 
             profile.SentLetters.Add(reply);
             store.Set(profile);
-            ModLog.Info($"[LETTER] reply queued from {profile.Name}, arrives in {deliveryDays} day(s).");
+            ModLog.Info($"[LETTER] reply queued from {profile.Name}, courier dispatches day {today}.");
         }
 
         /// <summary>

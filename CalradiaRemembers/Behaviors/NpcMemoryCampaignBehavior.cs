@@ -232,7 +232,6 @@ namespace CalradiaRemembers.Behaviors
                 foreach (PendingLetter letter in profile.SentLetters)
                 {
                     if (letter.IsDelivered || letter.IsLost) continue;
-                    if (letter.Reason != LetterReason.PlayerLetterReply) continue;
                     if (!string.IsNullOrEmpty(letter.CourierPartyId)) continue; // already dispatched
                     if (letter.DispatchDay == 0 || today < letter.DispatchDay) continue;
 
