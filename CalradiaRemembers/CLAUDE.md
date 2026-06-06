@@ -229,4 +229,29 @@ Multi-NPC witnesses (14) + active witness reactions (14b):
 - Console: `cr.witnesses` (diagnostic), `cr.witness` (seed), `cr.rep_set` (force rep)
 - Verified: `Hero.CurrentSettlement` populates during Talk (Poros test); witnesses react in-character; relation drops + persists to encyclopedia
 
-**Next**: Sprint 12c — Visible courier party (MobileParty on map, bandit interception)
+**Sprint 12c + 12d** ✅ validated in-game (2026-06-05) — last completed sprint.
+
+Visible courier party (player→NPC) + NPC reply by courier:
+- `CourierService`: spawn/tick/arrive/destroy; `SetMoveEngageParty` for party targets; Harmony speed floor 6.5 via `CourierSpeedPatch`; `HashSet<string> _activeCourierIds` for O(1) identity (rebuilt on session launch); `HourlyTickPartyEvent` for < 1h delivery latency; `TrySpawnReplyCourier` for NPC→player direction (uses `SetMoveGoToPoint` + hourly refresh to avoid `PlayerEncounter`)
+- `CourierSpeedPatch`: Harmony postfix on `DefaultPartySpeedCalculatingModel.CalculateFinalSpeed`; uses `IsCourier(StringId)` — no display-string allocation on hot path
+- `TaverneLetterBehavior`: 500-denar hire; searchable NPC selector (`MultiSelectionInquiryData`); hooked to `tavernkeeper_talk`
+- `PlayerLetterService`: courier-driven delivery; date-based fallback; `HasTriggeredReply` prevents duplicate LLM calls
+- `LetterGenerationService.QueueReplyToPlayerLetter`: async LLM decides PASS or DELAY:N; PASS reason logged; stores `PendingLetter` with `DispatchDay`; MobileParty spawn deferred to main-thread daily tick (`SpawnPendingReplyCouriers`)
+- SDK: `PlayerLetter.HasTriggeredReply`, `CourierPartyId`, `IsLost`; `PendingLetter.DispatchDay`, `CourierPartyId`, `IsLost`; `LetterReason.PlayerLetterReply`; `LetterPromptBuilder.BuildPlayerLetterReplyDecisionMessage`
+
+**Sprint 12e** ✅ — all NPC-initiated letters (tournament, romantic, spouse, birth, in-person reply) now arrive via a visible courier (every `PendingLetter` gets `DispatchDay = today`; `SpawnPendingReplyCouriers` picks them up).
+
+**Sprint 15A + 15B** ⏳ built, in-game round-trip NOT yet verified (blocked earlier by API key outage):
+- 15A (SDK `PromptBuilder.AppendWitnesses`): witnesses may react PROACTIVELY (strong opinion, known fact, persona, several turns of silence), not only when provoked; silence is also characterful.
+- 15B (mod `ChatViewModel`): the player can address a witness directly (sticky `_currentSpeakerHeroId`). Detection = participant name in a *stage direction* (`*...*`) or vocative; `AddressStopWords` filters connectors. The turn is routed to that witness's profile (full `ChatAsync`), reply shown under their portrait/colour; `ResolveAddressedSpeaker`/`SpeakerForCurrent`/`BuildContextWitnesses`. Per-call attributed transcript (`_transcript`) rebuilds each speaker's `ChatSession` from `_messages` (own lines→assistant, others→`[Name]:` user) — replaces `DialogFlow.Session` for the exchange. Indicator "▸ Speaking to X" via `WitnessesText`. Title stays the main NPC. Scope: one routed speaker/turn; NPC→NPC chaining is 15C (not built). **To verify: address Martira → re-address Alympia → she references what Martira said.**
+
+**Sprint 16** ✅ MCM mod options (distribution):
+- `Settings/CrSettings.cs` (`AttributeGlobalSettings`, Global scope — NOT per-save): OpenRouter API Key, Model, Test Connection button, Adult Content Level dropdown (default Mature), Verbose Logging toggle.
+- `Settings/ApiKeyTester.cs`: probes `/auth/key`, popup OK/401/error; works from main menu, no tokens.
+- `ModSettings` is now a façade reading `CrSettings.Instance` (fallback Mature / false).
+- **Live key + model** (no restart, no reload): `OpenRouterConfig.ApiKeyProvider`/`ModelProvider` + `ResolveApiKey/ResolveModel`, read per request; `LlmServices.IsAvailable` computed live; `ChatService` rebuilds when AdultLevel changes. Precedence: MCM value → `OPENROUTER_API_KEY` env var.
+- MCM = hard dependency (`Bannerlord.MBOptionScreen` in SubModule.xml; `MCMv5.dll` reference).
+- Known cosmetic: MCM native-options screen renders the list flipped (TaleWorlds ListPanel layout fix that MCM predates) — not our bug; fixed by an up-to-date MCM. Ordering attributes currently compensate.
+- Security: API key was leaked via committed `ConsoleRunner/Properties/launchSettings.json` (auto-disabled by OpenRouter) — scrubbed; key now env-var/MCM only.
+
+**Next**: verify 15B round-trip in-game; Nexus release polish (min MCM version on page); 15C (NPC→NPC, capped) deferred.

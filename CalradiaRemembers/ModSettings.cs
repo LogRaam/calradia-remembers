@@ -1,7 +1,9 @@
 // Code written by Gabriel Mailhot, 26/05/2026.
+// Sprint 16: AdultContentLevel now reads from the MCM menu (CrSettings) via a façade.
 
 #region
 
+using CalradiaRemembers.Settings;
 using NpcMemoryService.Core.Models;
 
 #endregion
@@ -9,22 +11,40 @@ using NpcMemoryService.Core.Models;
 namespace CalradiaRemembers
 {
     /// <summary>
-    ///   Mod-wide static settings. Sprint 8.2 keeps this simple: hard-coded
-    ///   values that a future sprint (mod options UI) will replace with a
-    ///   proper settings menu.
-    ///   To change the adult content level for testing, edit
-    ///   <see cref="AdultContentLevel" /> below.
+    ///   Mod-wide settings façade. Sprint 16 backs <see cref="AdultContentLevel" /> with
+    ///   the MCM menu (<see cref="CrSettings" />) so callers are unchanged; the sound
+    ///   paths remain hard-coded fallbacks.
     /// </summary>
     public static class ModSettings
     {
         /// <summary>
-        ///   How much of the romantic profile is injected into the LLM system
-        ///   prompt. Default is <see cref="NpcMemoryService.Core.Models.AdultContentLevel.Mature" /> — safe
-        ///   for general play, allows romance and attraction in dialogue but
-        ///   nothing explicit.
+        ///   How much of the romantic profile is injected into the LLM system prompt.
+        ///   Read live from the MCM menu. Falls back to <c>Mature</c> (romance, nothing
+        ///   explicit) when MCM has not loaded — the release-safe default, never Hardcore.
         /// </summary>
-        public static AdultContentLevel AdultContentLevel { get; set; }
-            = AdultContentLevel.Hardcore;
+        public static AdultContentLevel AdultContentLevel
+        {
+            get
+            {
+                CrSettings s = CrSettings.Instance;
+                if (s?.AdultContentLevel == null)
+                    return NpcMemoryService.Core.Models.AdultContentLevel.Mature;
+
+                switch (s.AdultContentLevel.SelectedValue)
+                {
+                    case "Off":      return NpcMemoryService.Core.Models.AdultContentLevel.Off;
+                    case "Explicit": return NpcMemoryService.Core.Models.AdultContentLevel.Explicit;
+                    case "Hardcore": return NpcMemoryService.Core.Models.AdultContentLevel.Hardcore;
+                    default:         return NpcMemoryService.Core.Models.AdultContentLevel.Mature;
+                }
+            }
+        }
+
+        /// <summary>
+        ///   When true, the full system prompt and NPC response are logged on every LLM
+        ///   exchange. Read live from the MCM menu; off by default.
+        /// </summary>
+        public static bool VerboseLogging => CrSettings.Instance?.VerboseLogging ?? false;
 
         /// <summary>
         ///   Sound event path played when a negative relation change occurs.

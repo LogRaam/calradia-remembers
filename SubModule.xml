@@ -8,6 +8,7 @@
     <DependedModules>
         <DependedModule Id="Bannerlord.Harmony" />
         <DependedModule Id="Bannerlord.UIExtenderEx" />
+        <DependedModule Id="Bannerlord.MBOptionScreen" />
         <DependedModule Id="Native" />
         <DependedModule Id="SandBoxCore" />
         <DependedModule Id="Sandbox" />

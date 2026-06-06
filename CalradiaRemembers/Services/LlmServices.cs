@@ -41,21 +41,36 @@ namespace CalradiaRemembers.Services
 
         private HttpClient _httpClient;
         private NpcChatService _chatService;
+        private NpcMemoryService.Core.Models.AdultContentLevel _builtAdultLevel;
 
-        public bool IsAvailable { get; private set; }
         public ILlmClient LlmClient { get; private set; }
-        public string ModelId { get; private set; }
+
+        /// <summary>The model currently in effect — read live from the MCM menu.</summary>
+        public string ModelId => ResolveModel();
 
         /// <summary>
-        ///   Lazily-constructed chat service. The PromptBuilder inside is
-        ///   built on first access so it can read live settings + player data.
+        ///   Live availability: the stack is built and a non-empty API key currently
+        ///   resolves (from the MCM menu or the env var). Computed each access so a key
+        ///   entered in-game takes effect on the next turn — no restart, no save reload.
+        /// </summary>
+        public bool IsAvailable => LlmClient != null && !string.IsNullOrWhiteSpace(ResolveApiKey());
+
+        /// <summary>
+        ///   Lazily-constructed chat service. The PromptBuilder inside is built on first
+        ///   access — and rebuilt whenever the adult-content level changes — so options
+        ///   edits apply without a restart.
         /// </summary>
         public NpcChatService ChatService
         {
             get
             {
-                if (_chatService == null && IsAvailable)
-                    _chatService = BuildChatService();
+                if (!IsAvailable) return null;
+                NpcMemoryService.Core.Models.AdultContentLevel current = ModSettings.AdultContentLevel;
+                if (_chatService == null || _builtAdultLevel != current)
+                {
+                    _chatService     = BuildChatService();
+                    _builtAdultLevel = current;
+                }
                 return _chatService;
             }
         }
@@ -79,37 +94,56 @@ namespace CalradiaRemembers.Services
         /// </summary>
         public bool Initialize()
         {
-            var apiKey = Environment.GetEnvironmentVariable(ApiKeyEnvVar);
-            if (string.IsNullOrWhiteSpace(apiKey))
-            {
-                ModLog.Error($"Environment variable {ApiKeyEnvVar} is not set. LLM features disabled.");
-                ModLog.Info($"To enable LLM dialogue, set {ApiKeyEnvVar} to your OpenRouter API key " +
-                            "via Windows Environment Variables, then restart the game.");
-                IsAvailable = false;
-                return false;
-            }
-
             try
             {
                 _httpClient = new HttpClient();
 
-                OpenRouterConfig config = new OpenRouterConfig { ApiKey = apiKey, Model = DefaultModel };
+                // The client reads the key live via ResolveApiKey on every request, so a key
+                // entered in the MCM menu applies immediately — no restart, no save reload.
+                OpenRouterConfig config = new OpenRouterConfig {
+                    ApiKeyProvider = ResolveApiKey,
+                    ModelProvider  = ResolveModel
+                };
                 LlmClient = new OpenRouterClient(_httpClient, config);
 
-                ModelId = DefaultModel;
-                IsAvailable = true;
-                ModLog.Info($"LLM stack initialized with model {DefaultModel}.");
-                return true;
+                if (string.IsNullOrWhiteSpace(ResolveApiKey()))
+                    ModLog.Info("LLM stack built, but no OpenRouter API key is set yet. " +
+                                "Add it in Mods → Mod Options → Calradia Remembers (applies immediately).");
+                else
+                    ModLog.Info($"LLM stack initialized with model {DefaultModel}.");
+
+                return IsAvailable;
             }
             catch (Exception ex)
             {
                 ModLog.Error($"Failed to initialize LLM stack: {ex.Message}");
-                IsAvailable = false;
                 return false;
             }
         }
 
         #region private
+
+        /// <summary>
+        ///   Resolves the OpenRouter API key. A key entered in the MCM menu wins; the
+        ///   <c>OPENROUTER_API_KEY</c> environment variable remains a fallback for
+        ///   developer setups and power users. Whitespace is treated as unset.
+        /// </summary>
+        private static string ResolveApiKey()
+        {
+            string mcmKey = Settings.CrSettings.Instance?.ApiKey;
+            if (!string.IsNullOrWhiteSpace(mcmKey)) return mcmKey.Trim();
+            return Environment.GetEnvironmentVariable(ApiKeyEnvVar);
+        }
+
+        /// <summary>
+        ///   Resolves the OpenRouter model id: the MCM menu value wins; falls back to the
+        ///   built-in default. Read live on every request via <c>ModelProvider</c>.
+        /// </summary>
+        private static string ResolveModel()
+        {
+            string mcmModel = Settings.CrSettings.Instance?.Model;
+            return string.IsNullOrWhiteSpace(mcmModel) ? DefaultModel : mcmModel.Trim();
+        }
 
         /// <summary>
         ///   Builds the chat service with a PromptBuilder configured against

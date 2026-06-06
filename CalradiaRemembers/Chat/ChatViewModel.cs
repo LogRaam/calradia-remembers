@@ -25,14 +25,6 @@ namespace CalradiaRemembers.Chat
 {
     public sealed class ChatViewModel : ViewModel
     {
-        /// <summary>
-        ///   When true, the full system prompt and full NPC response are logged
-        ///   on every LLM exchange. Useful for verifying that romantic sketches,
-        ///   traits, and other prompt sections are correctly injected.
-        ///   Toggle this off once you're done diagnosing — it floods the log.
-        /// </summary>
-        private const bool LogFullPromptAndResponse = false;
-
         private const string PlaceholderText = "(considering...)";
 
         // System notification line colors (relation/gold outcomes shown inline in chat).
@@ -92,9 +84,46 @@ namespace CalradiaRemembers.Chat
         // player can only read the farewell and leave.
         private bool _conversationEnded;
 
+        // ── Sprint 15B: addressing a witness directly ─────────────────────────
+        // Cream color matching ChatMessageViewModel's default NPC hue, used when the
+        // main NPC appears as a reacting witness (while another participant speaks).
+        private const string NpcCreamColor = "#e8d8b8FF";
+
+        // Attributed conversation history — the single source of truth for rebuilding
+        // each speaker's ChatSession per turn (their own lines as assistant, everyone
+        // else's as "[Name]: …" user lines). Kept in lockstep with the displayed
+        // conversational messages (player, main NPC, witnesses); system lines excluded.
+        private readonly List<TranscriptEntry> _transcript = new List<TranscriptEntry>();
+
+        // The witness the player is currently addressing (sticky). Null = main NPC.
+        private string _currentSpeakerHeroId;
+
         public ChatViewModel()
         {
             _messages = new MBBindingList<ChatMessageViewModel>();
+        }
+
+        /// <summary>One attributed line of conversation history.</summary>
+        private sealed class TranscriptEntry
+        {
+            public bool   IsPlayer;
+            public string SpeakerName;
+            public string SpeakerHeroId;
+            public string Text;
+        }
+
+        /// <summary>
+        ///   Resolved identity of whoever speaks this turn — the main NPC by default,
+        ///   or a witness the player addressed. Carries the profile/hero/colour needed
+        ///   to route the LLM call and render the reply under the right portrait.
+        /// </summary>
+        private sealed class ChatSpeaker
+        {
+            public bool       IsMain;
+            public Hero       Hero;
+            public string     Name;
+            public NpcProfile Profile;
+            public string     Color;   // null → default NPC cream
         }
 
         [DataSourceProperty]
@@ -241,29 +270,38 @@ namespace CalradiaRemembers.Chat
             if (string.IsNullOrWhiteSpace(text)) return;
             try
             {
-                // Resolve portrait hero and color from the live witness list.
-                Hero witnessHero = null;
-                string color = WitnessPalette[0]; // fallback
-                foreach (WitnessEntry w in _witnesses)
+                // Resolve portrait hero, color, and hero id. The reacting party may be a
+                // listed witness OR the main NPC (when another participant holds the floor).
+                Hero   witnessHero = null;
+                string color       = WitnessPalette[0]; // fallback
+                string heroId      = null;
+
+                if (string.Equals(witnessName, _npcName, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!string.Equals(w.Name, witnessName, StringComparison.OrdinalIgnoreCase)) continue;
-                    if (!string.IsNullOrEmpty(w.HeroStringId))
-                        witnessHero = Hero.FindFirst(h => h.StringId == w.HeroStringId);
-                    if (_witnessColors.TryGetValue(w.Name, out string c)) color = c;
-                    break;
+                    witnessHero = _npcHero;
+                    color       = NpcCreamColor;
+                    heroId      = _npcHero?.StringId;
+                }
+                else
+                {
+                    foreach (WitnessEntry w in _witnesses)
+                    {
+                        if (!string.Equals(w.Name, witnessName, StringComparison.OrdinalIgnoreCase)) continue;
+                        heroId = w.HeroStringId;
+                        if (!string.IsNullOrEmpty(w.HeroStringId))
+                            witnessHero = Hero.FindFirst(h => h.StringId == w.HeroStringId);
+                        if (_witnessColors.TryGetValue(w.Name, out string c)) color = c;
+                        break;
+                    }
                 }
 
                 _messages.Add(new ChatMessageViewModel(witnessHero, witnessName, text, color));
                 ChatManager.ScrollToBottom();
 
-                // Inject into the active session so the main NPC's next LLM turn can
-                // reference what the witness said. Skip letter-reply and compose modes.
+                // Record into the attributed transcript so every speaker's next rebuilt
+                // session sees this reaction as a "[Name]: …" line. Skip letter/compose.
                 if (!_isLetterReplyMode && !_isComposeMode)
-                {
-                    NpcMemoryService.Core.Models.ChatSession session =
-                        NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Session;
-                    session?.AddWitnessStatement(witnessName, text);
-                }
+                    RecordTranscript(false, witnessName, heroId, text);
             }
             catch (Exception ex)
             {
@@ -271,7 +309,7 @@ namespace CalradiaRemembers.Chat
             }
         }
 
-        public void AppendNpcMessage(string text)
+        public void AppendNpcMessage(string text, bool recordTranscript = true)
         {
             ModLog.Info($"AppendNpcMessage called with text='{text?.Substring(0, Math.Min(40, text?.Length ?? 0))}...'");
 
@@ -281,6 +319,7 @@ namespace CalradiaRemembers.Chat
                 _messages.Add(new ChatMessageViewModel(_npcHero, _npcName, text, false));
                 ModLog.Info("AppendNpcMessage: added to _messages");
                 ChatManager.ScrollToBottom();
+                if (recordTranscript) RecordTranscript(false, _npcName, _npcHero?.StringId, text);
             }
             catch (Exception ex)
             {
@@ -307,7 +346,7 @@ namespace CalradiaRemembers.Chat
             }
         }
 
-        public void AppendPlayerMessage(string text)
+        public void AppendPlayerMessage(string text, bool recordTranscript = true)
         {
             ModLog.Info($"AppendPlayerMessage called with text='{text?.Substring(0, Math.Min(40, text?.Length ?? 0))}...'");
 
@@ -317,6 +356,7 @@ namespace CalradiaRemembers.Chat
                 _messages.Add(new ChatMessageViewModel(Hero.MainHero, "You", text, true));
                 ModLog.Info("AppendPlayerMessage: added to _messages");
                 ChatManager.ScrollToBottom();
+                if (recordTranscript) RecordTranscript(true, "You", Hero.MainHero?.StringId, text);
             }
             catch (Exception ex)
             {
@@ -424,12 +464,19 @@ namespace CalradiaRemembers.Chat
                 return;
             }
 
-            AppendPlayerMessage(text);
-            ChatMessageViewModel placeholder = new ChatMessageViewModel(_npcHero, _npcName, PlaceholderText, false);
+            // Sprint 15B: route this turn to whoever the player is addressing — the main
+            // NPC by default, or a witness named in a stage direction / vocative (sticky).
+            ChatSpeaker speaker = _isLetterReplyMode ? MainSpeaker() : ResolveAddressedSpeaker(text);
+            RefreshWitnessUi(); // refresh the "Speaking to …" indicator
+
+            // Display only — the player line is committed to the transcript after the call
+            // so BuildSessionFor doesn't double-count it (ChatAsync adds it itself).
+            AppendPlayerMessage(text, recordTranscript: false);
+            ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
             _messages.Add(placeholder);
             IsSendEnabled = false;
             InputText = "";
-            _ = RunLlmExchangeAsync(text, placeholder);
+            _ = RunLlmExchangeAsync(text, speaker, placeholder);
         }
 
         private void SealAndSendLetter(string content)
@@ -495,58 +542,281 @@ namespace CalradiaRemembers.Chat
         private void RefreshWitnessUi()
         {
             bool any = _witnesses.Count > 0;
-            WitnessesText        = any ? "Present: " + string.Join(" · ", _witnesses.Select(w => w.Name)) : "";
+            string baseList = any ? "Present: " + string.Join(" · ", _witnesses.Select(w => w.Name)) : "";
+
+            // Sprint 15B: when addressing a witness, surface it so a misfire is visible.
+            if (!string.IsNullOrEmpty(_currentSpeakerHeroId))
+            {
+                WitnessEntry cur = _witnesses.FirstOrDefault(w => w.HeroStringId == _currentSpeakerHeroId);
+                WitnessesText = cur == null
+                    ? baseList
+                    : $"▸ Speaking to {cur.Name}      {baseList}";
+            }
+            else
+            {
+                WitnessesText = baseList;
+            }
+
             HasWitnesses         = any;
             IsPrivateRequestVisible = any && !_privacyRequestUsed && !_isComposeMode && !_isLetterReplyMode;
         }
 
-        private void ReplacePlaceholder(ChatMessageViewModel placeholder, string newText)
+        private void ReplacePlaceholder(ChatMessageViewModel placeholder, string newText, ChatSpeaker speaker)
         {
             var idx = _messages.IndexOf(placeholder);
 
             if (idx < 0) return;
-            ChatMessageViewModel replacement = new ChatMessageViewModel(_npcHero, _npcName, newText, false);
             _messages.RemoveAt(idx);
-            _messages.Insert(idx, replacement);
+            _messages.Insert(idx, MakeSpeakerMessage(speaker, newText));
             ChatManager.ScrollToBottom();
         }
 
-        private async Task RunLlmExchangeAsync(string playerMessage, ChatMessageViewModel placeholder)
+        // ── Sprint 15B helpers ────────────────────────────────────────────────
+
+        private void RecordTranscript(bool isPlayer, string name, string heroId, string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            _transcript.Add(new TranscriptEntry {
+                IsPlayer      = isPlayer,
+                SpeakerName   = name,
+                SpeakerHeroId = heroId,
+                Text          = text
+            });
+        }
+
+        private ChatMessageViewModel MakeSpeakerMessage(ChatSpeaker speaker, string text)
+            => speaker.IsMain || string.IsNullOrEmpty(speaker.Color)
+                ? new ChatMessageViewModel(speaker.Hero, speaker.Name, text, false)
+                : new ChatMessageViewModel(speaker.Hero, speaker.Name, text, speaker.Color);
+
+        private ChatSpeaker MainSpeaker() => new ChatSpeaker {
+            IsMain  = true,
+            Hero    = _npcHero,
+            Name    = _npcName,
+            Profile = NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile,
+            Color   = null
+        };
+
+        /// <summary>
+        ///   Resolves who the player is addressing this turn and updates the sticky
+        ///   <see cref="_currentSpeakerHeroId" />. Detection prefers a participant named
+        ///   inside a *stage direction*, then a vocative; otherwise the previous addressee
+        ///   sticks. Falls back to the main NPC when the addressee can't be resolved.
+        /// </summary>
+        private ChatSpeaker ResolveAddressedSpeaker(string text)
+        {
+            string detectedId = DetectAddressedParticipant(text);
+            if (detectedId != null)
+                _currentSpeakerHeroId = detectedId == _npcHero?.StringId ? null : detectedId;
+
+            return SpeakerForCurrent();
+        }
+
+        private ChatSpeaker SpeakerForCurrent()
+        {
+            if (string.IsNullOrEmpty(_currentSpeakerHeroId)) return MainSpeaker();
+
+            WitnessEntry w = _witnesses.FirstOrDefault(x => x.HeroStringId == _currentSpeakerHeroId);
+            Hero h = w?.HeroStringId != null ? Hero.FindFirst(x => x.StringId == w.HeroStringId) : null;
+            NpcProfile p = w?.HeroStringId != null
+                ? NpcMemoryCampaignBehavior.Instance?.Store?.Get(w.HeroStringId)
+                : null;
+
+            if (w == null || h == null || p == null)
+            {
+                _currentSpeakerHeroId = null; // addressee gone — revert to main NPC
+                return MainSpeaker();
+            }
+
+            _witnessColors.TryGetValue(w.Name, out string color);
+            return new ChatSpeaker {
+                IsMain  = false,
+                Hero    = h,
+                Name    = w.Name,
+                Profile = p,
+                Color   = color ?? WitnessPalette[0]
+            };
+        }
+
+        /// <summary>
+        ///   Builds the witness list to inject into <paramref name="speaker" />'s prompt:
+        ///   every other participant. When a witness holds the floor, the main NPC is
+        ///   added as a witness so the speaker knows whose audience they share.
+        /// </summary>
+        private System.Collections.Generic.IReadOnlyList<WitnessEntry> BuildContextWitnesses(ChatSpeaker speaker)
+        {
+            if (speaker.IsMain)
+                return _witnesses.Count > 0 ? _witnesses.AsReadOnly() : null;
+
+            var list = new List<WitnessEntry>();
+            foreach (WitnessEntry w in _witnesses)
+                if (w.HeroStringId != speaker.Hero?.StringId) list.Add(w);
+
+            if (_npcHero != null)
+                list.Add(new WitnessEntry {
+                    Name              = _npcName,
+                    RelationToNpc     = "the host of this conversation, standing beside you",
+                    HeroStringId      = _npcHero.StringId,
+                    IsPlayerCompanion = false,
+                    Persona           = null
+                });
+
+            return list.Count > 0 ? list : null;
+        }
+
+        private NpcMemoryService.Core.Models.ChatSession BuildSessionFor(ChatSpeaker speaker)
+        {
+            var session = new NpcMemoryService.Core.Models.ChatSession();
+            string speakerId = speaker.Hero?.StringId;
+
+            foreach (TranscriptEntry e in _transcript)
+            {
+                if (e.IsPlayer)
+                    session.AddPlayerMessage(e.Text);
+                else if (!string.IsNullOrEmpty(speakerId) && e.SpeakerHeroId == speakerId)
+                    session.AddNpcMessage(e.Text);          // this speaker's own prior line
+                else
+                    session.AddWitnessStatement(e.SpeakerName, e.Text); // anyone else, attributed
+            }
+
+            return session;
+        }
+
+        // ── Address detection (heuristic) ─────────────────────────────────────
+
+        // Bannerlord name connectors and address filler — never distinctive enough to
+        // address by. Mirrors the stop-word set noted for ContextualNameResolver so an
+        // epithet like "Hophtalamos of the Hand" is not matched on "the"/"of"/"hand".
+        private static readonly HashSet<string> AddressStopWords =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+                "the", "of", "and", "al", "de", "van", "von", "ibn", "bint", "fen", "hand"
+            };
+
+        /// <summary>
+        ///   Returns the hero id of the participant the player is addressing, or null when
+        ///   none is explicitly addressed (caller keeps the sticky addressee). A bare
+        ///   mention is NOT an address — only a stage direction or a vocative counts.
+        /// </summary>
+        private string DetectAddressedParticipant(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return null;
+
+            var participants = new List<(string id, HashSet<string> tokens)>();
+            if (_npcHero != null) participants.Add((_npcHero.StringId, DistinctiveNameTokens(_npcName)));
+            foreach (WitnessEntry w in _witnesses)
+                if (!string.IsNullOrEmpty(w.HeroStringId))
+                    participants.Add((w.HeroStringId, DistinctiveNameTokens(w.Name)));
+            if (participants.Count == 0) return null;
+
+            // 1. Stage directions (between asterisks) — strongest address signal.
+            int star = text.IndexOf('*');
+            while (star >= 0)
+            {
+                int end = text.IndexOf('*', star + 1);
+                if (end < 0) break;
+                string seg = text.Substring(star + 1, end - star - 1);
+                string id = MatchMentioned(seg, participants);
+                if (id != null) return id;
+                star = text.IndexOf('*', end + 1);
+            }
+
+            // 2. Vocative — a participant name adjacent to an address cue.
+            return MatchVocative(text, participants);
+        }
+
+        private static string MatchMentioned(string segment, List<(string id, HashSet<string> tokens)> participants)
+        {
+            foreach (string w in SplitWords(segment))
+            {
+                string bare = BareWord(w);
+                if (bare.Length < 3) continue;
+                foreach (var p in participants)
+                    if (p.tokens.Contains(bare)) return p.id;
+            }
+            return null;
+        }
+
+        private static string MatchVocative(string text, List<(string id, HashSet<string> tokens)> participants)
+        {
+            // Single tokenization: one raw-word pass. Compare on the punctuation-stripped
+            // word, but read the address cue from the SAME word's trailing punctuation —
+            // so the two never desync (the bug a separate token array would reintroduce).
+            string[] words = SplitWords(text);
+            for (int i = 0; i < words.Length; i++)
+            {
+                string bare = BareWord(words[i]);
+                if (bare.Length < 3) continue;
+
+                bool cue = i == 0
+                        || words[i].EndsWith(",") || words[i].EndsWith("?")
+                        || words[i].EndsWith(".") || words[i].EndsWith("!")
+                        || (i + 1 < words.Length && BareWord(words[i + 1]) == "you");
+                if (!cue) continue;
+
+                foreach (var p in participants)
+                    if (p.tokens.Contains(bare)) return p.id;
+            }
+            return null;
+        }
+
+        private static HashSet<string> DistinctiveNameTokens(string name)
+        {
+            var set = new HashSet<string>();
+            foreach (string t in Tokenize(name))
+                if (t.Length >= 3 && !AddressStopWords.Contains(t)) set.Add(t);
+            return set;
+        }
+
+        private static string[] SplitWords(string s)
+            => (s ?? "").Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+
+        private static string BareWord(string w)
+            => w.Trim(' ', '\t', '\n', '\r', ',', '.', '?', '!', '"', '\'', ':', ';', '(', ')', '*')
+                .ToLowerInvariant();
+
+        private static string[] Tokenize(string s)
+            => (s ?? "")
+               .ToLowerInvariant()
+               .Split(new[] { ' ', '\t', '\n', '\r', ',', '.', '?', '!', '"', '\'', ':', ';', '(', ')', '*' },
+                      StringSplitOptions.RemoveEmptyEntries);
+
+        private async Task RunLlmExchangeAsync(string playerMessage, ChatSpeaker speaker, ChatMessageViewModel placeholder)
         {
             try
             {
                 NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
 
                 // In letter reply mode the chat was opened outside of normal dialogue:
-                // use the pre-loaded reply profile and a fresh session.
-                NpcProfile profile = _isLetterReplyMode
-                    ? _replyProfile
-                    : NpcMemoryCampaignBehavior.Instance.DialogFlow.Profile;
+                // use the pre-loaded reply profile and a fresh session. Otherwise route to
+                // whoever the player addressed (main NPC or a witness) and rebuild that
+                // speaker's session from the attributed transcript (correct attribution).
+                NpcProfile profile = _isLetterReplyMode ? _replyProfile : speaker.Profile;
                 ChatSession session = _isLetterReplyMode
                     ? new ChatSession()
-                    : NpcMemoryCampaignBehavior.Instance.DialogFlow.Session;
-                // Rebuild context each turn so it reflects events added during this session
-                // (avoids stale "never met" after the first exchange adds a FirstMeeting event).
-                // Pass current witnesses and any pending privacy request for prompt injection.
-                var witnessSnapshot = _witnesses.Count > 0
-                    ? _witnesses.AsReadOnly()
-                    : null;
-                EncounterContext context = EncounterContextBuilder.Build(
-                    _npcHero, profile, behavior.GameStateBridge, playerMessage,
-                    witnessSnapshot, _privacyRequestPending);
+                    : BuildSessionFor(speaker);
 
                 if (behavior == null || profile == null || session == null)
                 {
-                    ReplacePlaceholder(placeholder, "(I can't seem to gather my thoughts...)");
+                    ReplacePlaceholder(placeholder, "(I can't seem to gather my thoughts...)", speaker);
                     ModLog.Error("LLM pipeline: behavior/profile/session not initialized.");
 
                     return;
                 }
 
+                // Rebuild context each turn so it reflects events added during this session
+                // (avoids stale "never met" after the first exchange adds a FirstMeeting event).
+                // The witness list is everyone EXCEPT the current speaker (main NPC included
+                // when a witness holds the floor).
+                EncounterContext context = EncounterContextBuilder.Build(
+                    speaker.Hero, profile, behavior.GameStateBridge, playerMessage,
+                    BuildContextWitnesses(speaker), _privacyRequestPending);
+
                 if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
                 {
-                    ReplacePlaceholder(placeholder, "(My voice fails me. The connection is lost.)");
-                    ModLog.Error("LLM pipeline: LLM services unavailable.");
+                    ReplacePlaceholder(placeholder,
+                        "(No OpenRouter API key is set. Open Mods → Mod Options → Calradia Remembers, " +
+                        "paste your key from openrouter.ai/keys, then load your save.)", speaker);
+                    ModLog.Error("LLM pipeline: LLM services unavailable (no API key?).");
 
                     return;
                 }
@@ -563,11 +833,12 @@ namespace CalradiaRemembers.Chat
                 // ── Mirror the clan-level game relation into the prompt's clan standing.
                 //    The personal score (ReputationWithPlayer) is our own per-NPC value
                 //    and is left untouched here — only change_relation moves it. ──
-                profile.ClanRelationWithPlayer = behavior.GameStateBridge.GetPlayerRelation(_npcHero);
-                SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer.Value);
+                profile.ClanRelationWithPlayer = behavior.GameStateBridge.GetPlayerRelation(speaker.Hero);
+                if (speaker.IsMain)
+                    SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer.Value);
 
                 // ── Diagnostic: log the full system prompt sent to the LLM ─────
-                if (LogFullPromptAndResponse)
+                if (ModSettings.VerboseLogging)
                     try
                     {
                         IPromptBuilder promptBuilder = behavior.LlmServices.ChatService.PromptBuilder;
@@ -596,7 +867,7 @@ namespace CalradiaRemembers.Chat
 
                 if (!result.IsSuccess)
                 {
-                    ReplacePlaceholder(placeholder, "(My words escape me...)");
+                    ReplacePlaceholder(placeholder, "(My words escape me...)", speaker);
                     ModLog.Error($"LLM call failed in {elapsedMs} ms: {result.ErrorMessage}");
 
                     return;
@@ -632,10 +903,17 @@ namespace CalradiaRemembers.Chat
                 }
                 // ── End letter reply intercept ─────────────────────────────────
 
-                ReplacePlaceholder(placeholder, npcLine);
+                ReplacePlaceholder(placeholder, npcLine, speaker);
+
+                // Commit this turn to the attributed transcript — player first, then the
+                // speaker's line — so every participant's next rebuilt session sees it
+                // correctly attributed. (Done here, after the call, so BuildSessionFor
+                // above did not double-count the current player message.)
+                RecordTranscript(true, "You", Hero.MainHero?.StringId, playerMessage);
+                RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
 
                 // Witness reactions — displayed as separate messages with their own portraits,
-                // immediately after the NPC's line and before any system messages.
+                // immediately after the speaker's line and before any system messages.
                 if (response.WitnessReactions != null && response.WitnessReactions.Count > 0)
                 {
                     foreach (WitnessReaction wr in response.WitnessReactions)
@@ -663,11 +941,13 @@ namespace CalradiaRemembers.Chat
                         if (string.Equals(action.Type, "end_conversation",
                                 StringComparison.OrdinalIgnoreCase)) continue;
                         ActionOutcome outcome =
-                            behavior.GameStateBridge.ExecuteAction(action, _npcHero, actionContext);
+                            behavior.GameStateBridge.ExecuteAction(action, speaker.Hero, actionContext);
                         if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);
                     }
-                    // The personal score may have moved — refresh the header.
-                    SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer ?? 0);
+                    // The personal score may have moved — refresh the header (main NPC only;
+                    // the header reflects the conversation's host, not a routed witness).
+                    if (speaker.IsMain)
+                        SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer ?? 0);
                 }
 
                 // ── Privacy request resolution ────────────────────────────────
@@ -688,6 +968,7 @@ namespace CalradiaRemembers.Chat
                     if (privacyAccepted)
                     {
                         _witnesses.Clear();
+                        _currentSpeakerHeroId = null; // no witnesses left — back to the main NPC
                         RefreshWitnessUi();
                         ModLog.Info("[WITNESSES] private audience accepted — witnesses cleared.");
                     }
@@ -718,7 +999,7 @@ namespace CalradiaRemembers.Chat
 
                 // ── Informal quests: issue a newly offered task, pay out a verified one ──
                 Quests.QuestService.ApplyResponse(
-                    profile, _npcHero, response, gameDay,
+                    profile, speaker.Hero, response, gameDay,
                     behavior.GameStateBridge, behavior.Store,
                     (text, positive) => AppendSystemMessage(text, positive));
 
@@ -728,7 +1009,7 @@ namespace CalradiaRemembers.Chat
                 PlayerLetterService.MarkLettersRead(profile, behavior.Store);
 
                 // ── Diagnostic: log full response (no truncation) ──────────────
-                if (LogFullPromptAndResponse)
+                if (ModSettings.VerboseLogging)
                 {
                     ModLog.Info("=== NPC RESPONSE START ===");
                     ModLog.Info(npcLine);
@@ -751,7 +1032,7 @@ namespace CalradiaRemembers.Chat
             }
             catch (Exception ex)
             {
-                ReplacePlaceholder(placeholder, "(My voice falters...)");
+                ReplacePlaceholder(placeholder, "(My voice falters...)", speaker);
                 ModLog.Error($"RunLlmExchangeAsync threw {ex.GetType().Name}: {ex.Message}");
                 ModLog.Error($"Stack: {ex.StackTrace}");
             }
