@@ -11,10 +11,13 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Mapping;
+using NpcMemoryService.Core.Captivity;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -30,6 +33,10 @@ namespace CalradiaRemembers.Chat
         // System notification line colors (relation/gold outcomes shown inline in chat).
         private const string SystemGainColor = "#9fe0a0FF"; // soft green — favorable
         private const string SystemLossColor = "#e0a0a0FF"; // soft red — unfavorable
+
+        // Scene narration (second-person prose during captive/CNC scenes): pale violet,
+        // distinct from dialogue, no portrait — reads like a novel's narration.
+        private const string SceneNarrationColor = "#c0a8d0FF";
 
         private string _closeButtonText = "End conversation";
         private string _inputText = "";
@@ -83,6 +90,253 @@ namespace CalradiaRemembers.Chat
         // Set when the NPC emits an end_conversation action — locks input so the
         // player can only read the farewell and leave.
         private bool _conversationEnded;
+
+        // ── Sprint 15C: NPC→witness auto-exchange ─────────────────────────────
+        // Maximum NPC→witness auto-exchanges per player turn. Each exchange is one
+        // LLM call; the chain terminates early if witnesses fall silent.
+        private const int WitnessExchangeCap = 3;
+        // How many auto-exchanges have fired this player turn. Reset on every send.
+        private int _witnessExchangesThisRound;
+        // True while RunNpcWitnessExchangeAsync is in flight; prevents the
+        // RunLlmExchangeAsync finally block from re-enabling input prematurely.
+        private bool _npcWitnessExchangePending;
+
+        // ── Sprint 17: captive encounter mode ────────────────────────────────
+        // When opened from CaptiveEncounterService, the chat runs with the captor
+        // as main NPC. The profile and CNC context are stored here rather than via
+        // DialogFlow (which is only populated during vanilla conversations).
+        private bool               _isCaptiveEncounterMode;
+        private NpcProfile         _captiveEncounterProfile;
+        private bool               _captiveEncounterIsCollective;
+        private CaptiveSceneIntent _captiveEncounterIntent;
+        private bool               _captiveMemoryFinalized; // idempotency guard for the end-of-scene memory record
+
+        // Captive scene continuation — fires when the NPC emits NARRATION without asking a question.
+        // Between iterations the player sees "Continue / Try something" buttons (IsScenePaused).
+        // Pressing Continue fires one more LLM turn; Try something restores normal text input.
+        // At the last beat (cap-1) the prompt is told to conclude and dismiss the prisoner so the
+        // scene resolves gracefully rather than looping.
+        private const int MaxSceneContinuations = 4;
+        private int       _sceneContinuations   = 0;
+        private bool      _sceneContinuationPending = false;
+
+        // Pause state — stored context so ExecuteContinue can resume without parameters.
+        private bool                      _isScenePaused;
+        private ChatSpeaker               _scenePauseSpeaker;
+        private NpcMemoryCampaignBehavior _scenePauseBehavior;
+
+        public void ActivateCaptiveEncounterMode(
+            NpcProfile captorProfile, bool isCollective,
+            CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation)
+        {
+            _isCaptiveEncounterMode        = true;
+            _captiveEncounterProfile       = captorProfile;
+            _captiveEncounterIsCollective  = isCollective;
+            _captiveEncounterIntent        = intent;
+
+            // Public humiliation: being abased before witnesses stains the player's standing.
+            // Only collective scenes with a degrading intent count — there is no audience to
+            // shame the player otherwise, and an interrogation/reward is not an abasement.
+            if (isCollective && IsHumiliatingIntent(intent))
+                ApplyPublicHumiliationPenalty();
+
+            // The captor initiates — the player was dragged in and has no opening line.
+            // Fire an NPC-led turn so the scene starts on its own, driven by a synthetic
+            // stage cue that is sent to the LLM but never shown or logged as a player line.
+            ChatSpeaker captor = MainSpeaker();
+            if (captor.Profile == null)
+            {
+                ModLog.Error("Captive encounter: no captor profile — cannot open the scene.");
+                return;
+            }
+
+            ChatMessageViewModel placeholder = MakeSpeakerMessage(captor, PlaceholderText);
+            _messages.Add(placeholder);
+            IsSendEnabled = false;
+
+            string opener = BuildCaptiveOpener(isCollective, intent);
+            _ = RunLlmExchangeAsync(opener, captor, placeholder, suppressPlayerLine: true);
+        }
+
+        private static string BuildCaptiveOpener(bool isCollective, CaptiveSceneIntent intent)
+        {
+            switch (intent)
+            {
+                case CaptiveSceneIntent.Interrogation:
+                    return isCollective
+                        ? "[The guards drag the prisoner before you and force them to their knees. Others are present. You seek information or leverage. Begin the interrogation in your own voice.]"
+                        : "[The bound prisoner stands before you. You are alone with them — the guards have withdrawn. You seek information or leverage. Begin in your own voice.]";
+                case CaptiveSceneIntent.PersonalDesire:
+                    return isCollective
+                        ? "[You have had the prisoner brought to you. Others are present at your invitation. What you want from this person is personal — you intend to act on it, not merely speak about it. The scene is yours to begin.]"
+                        : "[The bound prisoner stands before you. You are completely alone with them — no guards remain in the room. You want something from this person that goes beyond words — begin the encounter, and move toward it.]";
+                case CaptiveSceneIntent.Domination:
+                    return isCollective
+                        ? "[The prisoner is brought before you and an audience of your choosing. You intend to establish where power lies. Begin in your own voice.]"
+                        : "[The bound prisoner stands before you. You are alone with them — the guards have withdrawn. You intend to make clear what their position truly means. This is not a trial or a negotiation. Begin in your own voice.]";
+                case CaptiveSceneIntent.Torture:
+                    return isCollective
+                        ? "[The prisoner is brought in. Others are present — to witness, to participate, or both. What follows is not gentle. Begin in your own voice.]"
+                        : "[The bound prisoner stands before you. You are alone with them — no one else is present. What you intend is not an interrogation. Begin in your own voice.]";
+                case CaptiveSceneIntent.Training:
+                    return isCollective
+                        ? "[The prisoner is brought before you and those you permit to attend. This is a training session — you are conditioning them toward obedience, building on what they have already been taught. Begin in your own voice.]"
+                        : "[The bound prisoner stands before you — yours to shape. You are alone with them; the guards have withdrawn. This is a training session: continue conditioning them toward obedience. Begin in your own voice.]";
+                case CaptiveSceneIntent.Reward:
+                    return isCollective
+                        ? "[The prisoner is brought before you and a chosen audience. You mean to reward their cooperation — and perhaps to let others see your favor. Begin in your own voice.]"
+                        : "[The bound prisoner stands before you. You are alone with them — the guards have withdrawn. You summoned them to reward their cooperation, not to punish. Begin in your own voice.]";
+                default:
+                    return "[The bound prisoner stands before you. Begin in your own voice.]";
+            }
+        }
+
+        /// <summary>
+        ///   Intents that constitute a public abasement of the player. Interrogation is
+        ///   official, and Reward is favor — neither shames the player before an audience.
+        /// </summary>
+        private static bool IsHumiliatingIntent(CaptiveSceneIntent intent)
+            => intent == CaptiveSceneIntent.Torture
+            || intent == CaptiveSceneIntent.Domination
+            || intent == CaptiveSceneIntent.PersonalDesire
+            || intent == CaptiveSceneIntent.Training;
+
+        /// <summary>
+        ///   Applies the standing penalty for being abased before witnesses and surfaces it
+        ///   in the chat. The bridge only mutates the real campaign when the player is truly
+        ///   a prisoner; console test scenes still show the message for verification.
+        /// </summary>
+        private void ApplyPublicHumiliationPenalty()
+        {
+            int witnessCount = _witnesses?.Count ?? 0;
+            if (witnessCount <= 0) return;
+
+            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+            if (behavior?.GameStateBridge == null) return;
+
+            (int renownLoss, int influenceLoss) = behavior.GameStateBridge.ApplyPlayerPublicHumiliation(witnessCount);
+            if (renownLoss <= 0 && influenceLoss <= 0) return;
+
+            AppendSystemMessage(
+                $"Word of this will spread. Your standing suffers — renown -{renownLoss}, influence -{influenceLoss}.",
+                false);
+        }
+
+        // ── Sprint 17: captive scene memory ───────────────────────────────────
+
+        /// <summary>
+        ///   Records the captive scene in the captor's memory. Called once when the scene
+        ///   closes (from <see cref="ChatManager.Close" />). Two stages:
+        ///   (1) a base Captivity event recorded synchronously — guaranteed even if the
+        ///       async summary never returns;
+        ///   (2) a richer first-person summary generated asynchronously from the scene
+        ///       transcript, which replaces the base summary on arrival.
+        ///   Idempotent and a no-op outside captive mode.
+        /// </summary>
+        public void FinalizeCaptiveSceneMemory()
+        {
+            if (_captiveMemoryFinalized || !_isCaptiveEncounterMode) return;
+            _captiveMemoryFinalized = true;
+
+            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+            NpcProfile profile = _captiveEncounterProfile;
+            if (behavior?.Store == null || profile == null) return;
+
+            int    gameDay     = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
+            string intentVerb  = CaptiveIntentVerb(_captiveEncounterIntent);
+            string baseSummary = BuildCaptiveBaseSummary(intentVerb);
+
+            // Stage 1 — synchronous base capture.
+            var baseEvent = new NotableEvent(gameDay, NotableEventType.Captivity, baseSummary);
+            profile.Events.Add(baseEvent);
+            behavior.Store.Set(profile);
+            ModLog.Info($"[CAPTIVE MEMORY] base event recorded for {profile.Name}: \"{baseSummary}\"");
+
+            // Stage 2 — async rich summary (fire-and-forget; replaces the base on success).
+            string transcript = BuildSceneTranscriptText();
+            if (string.IsNullOrWhiteSpace(transcript) || behavior.LlmServices?.LlmClient == null) return;
+
+            bool playerIsFemale = Services.LlmServices.TestPlayerGenderOverride ?? Hero.MainHero?.IsFemale ?? false;
+            _ = GenerateAndApplyCaptiveSummaryAsync(behavior, profile.Id, baseEvent, transcript, intentVerb, playerIsFemale);
+        }
+
+        private static async Task GenerateAndApplyCaptiveSummaryAsync(
+            NpcMemoryCampaignBehavior behavior, string captorId, NotableEvent baseEvent,
+            string transcript, string intentVerb, bool playerIsFemale)
+        {
+            try
+            {
+                NpcProfile captor = behavior.Store.Get(captorId);
+                if (captor == null) return;
+
+                var summarizer = new CaptiveSceneSummarizer(behavior.LlmServices.LlmClient);
+
+                string rich;
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+                {
+                    rich = await Task.Run(() => summarizer.SummarizeAsync(
+                                              captor, transcript, intentVerb, playerIsFemale, cts.Token))
+                                     .ConfigureAwait(false);
+                }
+
+                if (string.IsNullOrWhiteSpace(rich)) return;
+
+                // Re-fetch fresh and replace the base event's summary by value match.
+                NpcProfile fresh = behavior.Store.Get(captorId);
+                if (fresh == null) return;
+                int idx = fresh.Events.FindLastIndex(e => e.Equals(baseEvent));
+                if (idx < 0) return;
+
+                fresh.Events[idx] = fresh.Events[idx] with { summary = rich.Trim() };
+                behavior.Store.Set(fresh);
+                ModLog.Info($"[CAPTIVE MEMORY] rich summary applied for {captor.Name}: \"{rich.Trim()}\"");
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[CAPTIVE MEMORY] summary generation failed: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        private static string CaptiveIntentVerb(CaptiveSceneIntent intent) => intent switch {
+            CaptiveSceneIntent.Interrogation  => "interrogated",
+            CaptiveSceneIntent.PersonalDesire => "took my pleasure from",
+            CaptiveSceneIntent.Domination     => "dominated and subdued",
+            CaptiveSceneIntent.Torture        => "tortured",
+            CaptiveSceneIntent.Training       => "trained and conditioned",
+            CaptiveSceneIntent.Reward         => "rewarded",
+            _                                 => "kept as my prisoner"
+        };
+
+        private string BuildCaptiveBaseSummary(string intentVerb)
+        {
+            string player   = Hero.MainHero?.Name?.ToString() ?? "the player";
+            string audience = _captiveEncounterIsCollective && (_witnesses?.Count ?? 0) > 0
+                ? ", before my soldiers"
+                : ", in private";
+            return $"Held {player} as my captive and {intentVerb} them{audience}.";
+        }
+
+        /// <summary>Renders the attributed transcript as plain text for the scene summarizer.</summary>
+        private string BuildSceneTranscriptText()
+        {
+            if (_transcript == null || _transcript.Count == 0) return "";
+
+            var sb = new System.Text.StringBuilder();
+            foreach (TranscriptEntry e in _transcript)
+            {
+                if (string.IsNullOrWhiteSpace(e.Text)) continue;
+                string who = e.IsPlayer ? "Prisoner" : e.SpeakerName;
+                sb.AppendLine($"{who}: {e.Text}");
+            }
+            return sb.ToString();
+        }
+
+        // ── Story Log ─────────────────────────────────────────────────────────
+        // True once the conversation intro has been written this session (lazy —
+        // deferred until the first player message so witnesses are already set).
+        private bool   _storyIntroWritten;
+        // Settlement or location description captured when the conversation opens.
+        private string _storyLocation;
 
         // ── Sprint 15B: addressing a witness directly ─────────────────────────
         // Cream color matching ChatMessageViewModel's default NPC hue, used when the
@@ -254,6 +508,28 @@ namespace CalradiaRemembers.Chat
             }
         }
 
+        /// <summary>
+        ///   True while the captive scene is mid-narration and the player must choose
+        ///   "Continue" or "Try something". Hides the normal input area and shows the
+        ///   two scene-pause buttons instead.
+        /// </summary>
+        [DataSourceProperty]
+        public bool IsScenePaused
+        {
+            get => _isScenePaused;
+            set
+            {
+                if (_isScenePaused == value) return;
+                _isScenePaused = value;
+                OnPropertyChangedWithValue(value);
+                OnPropertyChanged(nameof(IsNormalInputVisible));
+            }
+        }
+
+        /// <summary>Inverse of <see cref="IsScenePaused"/> — drives the normal InputBox + SendButton.</summary>
+        [DataSourceProperty]
+        public bool IsNormalInputVisible => !_isScenePaused;
+
         /// <summary>Updates the header subtitle with the two relationship scores.</summary>
         public void SetRelationSummary(int personal, int clan)
         {
@@ -265,7 +541,7 @@ namespace CalradiaRemembers.Chat
         ///   witness's own portrait if their <see cref="WitnessEntry.HeroStringId" />
         ///   is known. Falls back to name-only when the hero cannot be found.
         /// </summary>
-        public void AppendWitnessReaction(string witnessName, string text)
+        public void AppendWitnessReaction(string witnessName, string text, bool recordTranscript = true)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             try
@@ -297,15 +573,41 @@ namespace CalradiaRemembers.Chat
 
                 _messages.Add(new ChatMessageViewModel(witnessHero, witnessName, text, color));
                 ChatManager.ScrollToBottom();
+                StoryLog.WriteWitnessLine(witnessName, text);
 
                 // Record into the attributed transcript so every speaker's next rebuilt
                 // session sees this reaction as a "[Name]: …" line. Skip letter/compose.
-                if (!_isLetterReplyMode && !_isComposeMode)
+                // recordTranscript=false is used by 15C, which commits manually after the
+                // auto-reply LLM call so the session doesn't double-count the reactions.
+                if (recordTranscript && !_isLetterReplyMode && !_isComposeMode)
                     RecordTranscript(false, witnessName, heroId, text);
             }
             catch (Exception ex)
             {
                 ModLog.Error($"AppendWitnessReaction threw {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        ///   Displays a scene-narration line (second-person prose, no portrait) and mirrors
+        ///   it to the story log and attributed transcript. Used for [NARRATION] blocks in
+        ///   captive/CNC scenes. Recorded as a "Scene" statement so the speaker's next
+        ///   rebuilt session sees what physically happened.
+        /// </summary>
+        public void AppendNarration(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            try
+            {
+                _messages.Add(new ChatMessageViewModel(text, SceneNarrationColor));
+                ChatManager.ScrollToBottom();
+                StoryLog.WriteNarration(text);
+                if (!_isLetterReplyMode && !_isComposeMode)
+                    RecordTranscript(false, "Scene", null, text);
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"AppendNarration threw {ex.GetType().Name}: {ex.Message}");
             }
         }
 
@@ -433,6 +735,34 @@ namespace CalradiaRemembers.Chat
         }
 
         /// <summary>
+        ///   Player chose "Continue" during a captive scene pause. Fires one more NPC-led
+        ///   narration turn. Input stays locked until the NPC asks a question or the scene ends.
+        /// </summary>
+        public void ExecuteContinue()
+        {
+            if (!_isScenePaused || _scenePauseSpeaker == null || _scenePauseBehavior == null) return;
+            IsScenePaused             = false;
+            _sceneContinuations++;
+            _sceneContinuationPending = true;
+            IsSendEnabled             = false;
+            _ = RunCaptiveSceneContinuationAsync();
+        }
+
+        /// <summary>
+        ///   Player chose "Try something" during a captive scene pause. Restores the normal
+        ///   text input so the player can type a response and break the scene's flow.
+        /// </summary>
+        public void ExecuteTrySomething()
+        {
+            if (!_isScenePaused) return;
+            IsScenePaused        = false;
+            _sceneContinuations  = 0;
+            _scenePauseSpeaker   = null;
+            _scenePauseBehavior  = null;
+            IsSendEnabled        = !_conversationEnded;
+        }
+
+        /// <summary>
         ///   Switches the chat into compose mode: no LLM call, no NPC portrait.
         ///   The player types a message and "Seal &amp; Send" queues it as a
         ///   <see cref="PlayerLetter" /> with delivery delay. When <paramref name="courierCost" />
@@ -476,6 +806,8 @@ namespace CalradiaRemembers.Chat
             _messages.Add(placeholder);
             IsSendEnabled = false;
             InputText = "";
+            _witnessExchangesThisRound = 0; // reset the 15C cap for this new player turn
+            _sceneContinuations        = 0; // reset scene-continuation count for this new player turn
             _ = RunLlmExchangeAsync(text, speaker, placeholder);
         }
 
@@ -511,6 +843,7 @@ namespace CalradiaRemembers.Chat
                 new TextObject($"Your courier departs. The letter will reach" +
                                $" {_composeRecipientProfile.Name} in approximately {days}."));
 
+            StoryLog.WriteLetterSent(_composeRecipientProfile.Name, content, today);
             ModLog.Info($"[PLAYER LETTER] sealed to {_composeRecipientProfile.Name} ({deliveryDays}d delivery).");
             InputText = "";
             ChatManager.Close();
@@ -521,6 +854,8 @@ namespace CalradiaRemembers.Chat
             _npcHero = npcHero;
             if (!string.IsNullOrWhiteSpace(npcHero?.Name?.ToString())) _npcName = npcHero.Name.ToString();
             TitleText = $"Calradia Remembers — {_npcName}";
+            _storyIntroWritten = false;
+            _storyLocation     = BuildStoryLocation();
         }
 
         public void SetNpcName(string npcName)
@@ -531,6 +866,37 @@ namespace CalradiaRemembers.Chat
         }
 
         #region private
+
+        // ── Story Log helpers ─────────────────────────────────────────────────
+
+        // Writes the conversation intro once — deferred until the first player
+        // message so _witnesses is already populated by SetWitnesses.
+        private void EnsureStoryIntro()
+        {
+            if (_storyIntroWritten) return;
+            _storyIntroWritten = true;
+            if (!StoryLog.IsEnabled) return;
+            int day = (int)TaleWorlds.CampaignSystem.CampaignTime.Now.ToDays;
+            string[] witnesses = _witnesses.Select(w => w.Name).ToArray();
+            StoryLog.WriteConversationIntro(_npcName, witnesses, _storyLocation, day);
+        }
+
+        private static string BuildStoryLocation()
+        {
+            try
+            {
+                Settlement s =
+                    MobileParty.MainParty?.CurrentSettlement
+                    ?? Hero.MainHero?.CurrentSettlement
+                    ?? Hero.MainHero?.StayingInSettlement;
+                if (s == null) return null;
+                string kind = s.IsCastle ? "the castle of"
+                            : s.IsTown   ? "the town of"
+                                         : "the village of";
+                return $"{kind} {s.Name}";
+            }
+            catch { return null; }
+        }
 
         private string ColorForWitness(WitnessEntry entry)
         {
@@ -589,13 +955,18 @@ namespace CalradiaRemembers.Chat
                 ? new ChatMessageViewModel(speaker.Hero, speaker.Name, text, false)
                 : new ChatMessageViewModel(speaker.Hero, speaker.Name, text, speaker.Color);
 
-        private ChatSpeaker MainSpeaker() => new ChatSpeaker {
-            IsMain  = true,
-            Hero    = _npcHero,
-            Name    = _npcName,
-            Profile = NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile,
-            Color   = null
-        };
+        private ChatSpeaker MainSpeaker()
+        {
+            NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile
+                ?? (_isCaptiveEncounterMode ? _captiveEncounterProfile : null);
+            return new ChatSpeaker {
+                IsMain  = true,
+                Hero    = _npcHero,
+                Name    = _npcName,
+                Profile = profile,
+                Color   = null
+            };
+        }
 
         /// <summary>
         ///   Resolves who the player is addressing this turn and updates the sticky
@@ -664,13 +1035,21 @@ namespace CalradiaRemembers.Chat
             return list.Count > 0 ? list : null;
         }
 
-        private NpcMemoryService.Core.Models.ChatSession BuildSessionFor(ChatSpeaker speaker)
+        /// <param name="excludeLastN">
+        ///   When non-zero, skips the last N entries of the transcript.
+        ///   Used by Sprint 15C to build the NPC's session before the witness reactions
+        ///   are committed, so those reactions appear only as the stimulus playerMessage
+        ///   and are not double-counted in the session history.
+        /// </param>
+        private NpcMemoryService.Core.Models.ChatSession BuildSessionFor(ChatSpeaker speaker, int excludeLastN = 0)
         {
             var session = new NpcMemoryService.Core.Models.ChatSession();
             string speakerId = speaker.Hero?.StringId;
+            int limit = System.Math.Max(0, _transcript.Count - excludeLastN);
 
-            foreach (TranscriptEntry e in _transcript)
+            for (int i = 0; i < limit; i++)
             {
+                TranscriptEntry e = _transcript[i];
                 if (e.IsPlayer)
                     session.AddPlayerMessage(e.Text);
                 else if (!string.IsNullOrEmpty(speakerId) && e.SpeakerHeroId == speakerId)
@@ -780,7 +1159,8 @@ namespace CalradiaRemembers.Chat
                .Split(new[] { ' ', '\t', '\n', '\r', ',', '.', '?', '!', '"', '\'', ':', ';', '(', ')', '*' },
                       StringSplitOptions.RemoveEmptyEntries);
 
-        private async Task RunLlmExchangeAsync(string playerMessage, ChatSpeaker speaker, ChatMessageViewModel placeholder)
+        private async Task RunLlmExchangeAsync(string playerMessage, ChatSpeaker speaker, ChatMessageViewModel placeholder,
+            bool suppressPlayerLine = false)
         {
             try
             {
@@ -809,7 +1189,12 @@ namespace CalradiaRemembers.Chat
                 // when a witness holds the floor).
                 EncounterContext context = EncounterContextBuilder.Build(
                     speaker.Hero, profile, behavior.GameStateBridge, playerMessage,
-                    BuildContextWitnesses(speaker), _privacyRequestPending);
+                    BuildContextWitnesses(speaker), _privacyRequestPending,
+                    isCollectiveCaptiveScene: _isCaptiveEncounterMode && _captiveEncounterIsCollective,
+                    // Force Captive when this is a captive encounter — robust for the real
+                    // path and required for the console test path (player isn't truly imprisoned).
+                    playerStatusOverride: _isCaptiveEncounterMode ? PlayerStatusVsNpc.Captive : (PlayerStatusVsNpc?)null,
+                    captiveIntent: _captiveEncounterIntent);
 
                 if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
                 {
@@ -897,6 +1282,7 @@ namespace CalradiaRemembers.Chat
                     MBInformationManager.AddQuickInformation(
                         new TextObject($"Your reply to {_replyProfile.Name} has been sealed and sent."));
 
+                    StoryLog.WriteLetterSent(_replyProfile.Name, playerMessage, behavior.GameStateBridge.GetCurrentGameDay());
                     ModLog.Info($"[LETTER] reply sent to {_replyProfile.Name}; NPC response queued as new letter.");
                     ChatManager.Close();
                     return;
@@ -909,18 +1295,37 @@ namespace CalradiaRemembers.Chat
                 // speaker's line — so every participant's next rebuilt session sees it
                 // correctly attributed. (Done here, after the call, so BuildSessionFor
                 // above did not double-count the current player message.)
-                RecordTranscript(true, "You", Hero.MainHero?.StringId, playerMessage);
+                // suppressPlayerLine: the captive-opening turn carries a synthetic scene
+                // cue as playerMessage that must never enter the history or story log.
+                if (!suppressPlayerLine)
+                    RecordTranscript(true, "You", Hero.MainHero?.StringId, playerMessage);
                 RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
 
-                // Witness reactions — displayed as separate messages with their own portraits,
-                // immediately after the speaker's line and before any system messages.
-                if (response.WitnessReactions != null && response.WitnessReactions.Count > 0)
+                // Story log: intro (lazy, once per conversation) + player line + NPC line.
+                // Skipped in letter-reply mode — the player's message becomes a new letter,
+                // which is logged separately in the letter-reply intercept below.
+                if (!_isLetterReplyMode && !_isComposeMode)
                 {
-                    foreach (WitnessReaction wr in response.WitnessReactions)
-                    {
-                        AppendWitnessReaction(wr.Name, wr.Text);
-                        ModLog.Info($"  [WITNESS] {wr.Name}: \"{wr.Text}\"");
-                    }
+                    EnsureStoryIntro();
+                    if (!suppressPlayerLine) StoryLog.WritePlayerLine(playerMessage);
+                    StoryLog.WriteNpcLine(speaker.Name, npcLine);
+                }
+
+                // Scene narration ([NARRATION]) — explicit second-person physical action,
+                // shown after the speaker's dialogue. Recorded to transcript + story log.
+                if (!string.IsNullOrWhiteSpace(response.Narration))
+                    AppendNarration(response.Narration);
+
+                // Witness reactions — displayed immediately after the speaker's line.
+                // recordTranscript: false here; the 15C path commits them inside
+                // RunNpcWitnessExchangeAsync AFTER the auto-reply, so they are not
+                // double-counted in the session that feeds the follow-up LLM call.
+                // The normal (no 15C) path commits them explicitly below.
+                var witnessReactions = CollectWitnessReactions(response);
+                foreach (var (wn, _, wt) in witnessReactions)
+                {
+                    AppendWitnessReaction(wn, wt, recordTranscript: false);
+                    ModLog.Info($"  [WITNESS] {wn}: \"{wt}\"");
                 }
 
                 var gameDay = behavior.GameStateBridge.GetCurrentGameDay();
@@ -943,6 +1348,23 @@ namespace CalradiaRemembers.Chat
                         ActionOutcome outcome =
                             behavior.GameStateBridge.ExecuteAction(action, speaker.Hero, actionContext);
                         if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);
+
+                        // Story log: narrative description of game-world consequences.
+                        if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (action.Parameters.TryGetValue("delta", out string ds) && int.TryParse(ds, out int d))
+                                StoryLog.WriteRelationChange(profile.Name, d);
+                        }
+                        else if (string.Equals(action.Type, "give_gold", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (action.Parameters.TryGetValue("amount", out string ags) && int.TryParse(ags, out int ag))
+                                StoryLog.WriteGoldTransfer(profile.Name, ag, npcGives: true);
+                        }
+                        else if (string.Equals(action.Type, "take_gold", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (action.Parameters.TryGetValue("amount", out string ats) && int.TryParse(ats, out int at))
+                                StoryLog.WriteGoldTransfer(profile.Name, at, npcGives: false);
+                        }
                     }
                     // The personal score may have moved — refresh the header (main NPC only;
                     // the header reflects the conversation's host, not a routed witness).
@@ -980,8 +1402,9 @@ namespace CalradiaRemembers.Chat
                 // ─────────────────────────────────────────────────────────────
 
                 // ── Conversation end resolution ───────────────────────────────
-                // The NPC may end the exchange (grave insult, refused advance pressed
-                // again, or a natural farewell). Lock input; the player reads and leaves.
+                // Two paths lock input so the player can only leave:
+                // 1. end_conversation action (NPC refuses — anger, insult, etc.)
+                // 2. farewell event (NPC naturally closes the exchange)
                 if (response.Actions != null)
                     foreach (GameAction action in response.Actions)
                     {
@@ -995,6 +1418,16 @@ namespace CalradiaRemembers.Chat
                         ModLog.Info($"[CONVERSATION] {profile.Name} ended the conversation.");
                         break;
                     }
+
+                if (!_conversationEnded
+                    && response.NewEventData?.Type == NotableEventType.Farewell)
+                {
+                    _conversationEnded      = true;
+                    IsSendEnabled           = false;
+                    IsPrivateRequestVisible = false;
+                    CloseButtonText         = "Leave";
+                    ModLog.Info("[CONVERSATION] farewell event — input locked.");
+                }
                 // ─────────────────────────────────────────────────────────────
 
                 // ── Informal quests: issue a newly offered task, pay out a verified one ──
@@ -1007,6 +1440,44 @@ namespace CalradiaRemembers.Chat
 
                 // Mark any delivered player letters read now that the NPC has responded.
                 PlayerLetterService.MarkLettersRead(profile, behavior.Store);
+
+                // ── Sprint 15C: NPC auto-replies once to witness reactions ─────
+                // When the main NPC held the floor and witnesses reacted, give them one
+                // automatic counter-reply before returning control to the player.
+                // Cap: once per player turn (_witnessExchangesThisRound reset in ExecuteSendMessage).
+                // Only fires when the main NPC was the speaker (not a 15B witness turn).
+                if (witnessReactions.Count > 0 && speaker.IsMain
+                    && _witnessExchangesThisRound < WitnessExchangeCap && !_conversationEnded)
+                {
+                    _witnessExchangesThisRound++;
+                    _npcWitnessExchangePending = true;
+                    _ = RunNpcWitnessExchangeAsync(witnessReactions, speaker, behavior);
+                    return; // finally runs but input stays locked (_npcWitnessExchangePending)
+                }
+                // Normal path (no 15C follow-up): commit reactions to attributed transcript.
+                foreach (var (wName, wHeroId, wText) in witnessReactions)
+                    RecordTranscript(false, wName, wHeroId, wText);
+                // ─────────────────────────────────────────────────────────────────
+
+                // ── Captive scene continuation ────────────────────────────────────
+                // When the NPC emitted a NARRATION block but did NOT end their dialogue
+                // with a question, the scene is still unfolding — fire another NPC-led
+                // turn automatically. The player cannot interrupt mid-act.
+                // Cap prevents runaway loops; question detection uses the trailing '?'
+                // heuristic (robust for the structured captive scene flow).
+                if (_isCaptiveEncounterMode && !_conversationEnded && !_npcWitnessExchangePending
+                    && !string.IsNullOrWhiteSpace(response?.Narration)
+                    && !NpcAskedQuestion(npcLine)
+                    && _sceneContinuations < MaxSceneContinuations)
+                {
+                    // Pause: show Continue / Try something buttons; wait for player choice.
+                    _scenePauseSpeaker  = MainSpeaker();
+                    _scenePauseBehavior = behavior;
+                    IsScenePaused       = true;
+                    return; // finally runs; input stays locked via _isScenePaused guard
+                }
+                _sceneContinuations = 0;
+                // ─────────────────────────────────────────────────────────────────
 
                 // ── Diagnostic: log full response (no truncation) ──────────────
                 if (ModSettings.VerboseLogging)
@@ -1038,9 +1509,350 @@ namespace CalradiaRemembers.Chat
             }
             finally
             {
-                // Keep input locked if the NPC ended the conversation.
+                // Keep input locked if the NPC ended the conversation, if a 15C witness-exchange
+                // is in flight, if a scene continuation is pending, or if we are paused waiting
+                // for the player to press Continue / Try something. Each async path re-enables
+                // input in its own finally when it terminates.
+                if (!_npcWitnessExchangePending && !_sceneContinuationPending && !_isScenePaused)
+                    IsSendEnabled = !_conversationEnded;
+            }
+        }
+
+        /// <summary>
+        ///   Sprint 15C: automatic NPC counter-reply loop for witness reactions.
+        ///   Iterates up to <see cref="WitnessExchangeCap" /> times; each iteration is
+        ///   one LLM call. The loop terminates early when witnesses fall silent.
+        ///   On the final exchange the prompt instructs the NPC to close the beat
+        ///   rather than ask the witness another question.
+        ///   Reactions are displayed immediately and committed to the transcript just
+        ///   before each LLM call so the session history never double-counts them.
+        ///   Re-enables player input in its <c>finally</c> block.
+        /// </summary>
+        private async Task RunNpcWitnessExchangeAsync(
+            System.Collections.Generic.List<(string name, string heroId, string text)> firstReactions,
+            ChatSpeaker mainSpeaker,
+            NpcMemoryCampaignBehavior behavior)
+        {
+            var currentReactions = firstReactions;
+
+            try
+            {
+                NpcProfile profile = mainSpeaker.Profile;
+
+                if (profile == null || behavior?.LlmServices == null || !behavior.LlmServices.IsAvailable)
+                {
+                    foreach (var (n, h, t) in currentReactions) RecordTranscript(false, n, h, t);
+                    return;
+                }
+
+                WorldState world = new WorldState {
+                    CurrentDay      = behavior.GameStateBridge.GetCurrentGameDay(),
+                    Season          = behavior.GameStateBridge.GetSeasonName(),
+                    ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
+                    Rumors          = ""
+                };
+
+                while (true)
+                {
+                    bool isLast = _witnessExchangesThisRound >= WitnessExchangeCap;
+
+                    // Session built WITHOUT currentReactions — they are not committed yet.
+                    // They travel as the stimulus so the LLM sees them as the final user turn.
+                    ChatSession session = BuildSessionFor(mainSpeaker);
+                    string stimulus = string.Join("\n",
+                        currentReactions.Select(r => $"[{r.name}]: {r.text}"));
+
+                    EncounterContext context = EncounterContextBuilder.Build(
+                        mainSpeaker.Hero, profile, behavior.GameStateBridge,
+                        playerMessage:          null,
+                        witnesses:              BuildContextWitnesses(mainSpeaker),
+                        privacyRequested:       false,
+                        isWitnessExchangeTurn:  true,
+                        isLastWitnessExchange:  isLast,
+                        captiveIntent:          _captiveEncounterIntent);
+
+                    ChatMessageViewModel placeholder = MakeSpeakerMessage(mainSpeaker, PlaceholderText);
+                    _messages.Add(placeholder);
+                    ChatManager.ScrollToBottom();
+
+                    NpcChatResult result;
+                    using (System.Threading.CancellationTokenSource cts =
+                        new System.Threading.CancellationTokenSource())
+                    {
+                        result = await Task.Run(() =>
+                                               behavior.LlmServices.ChatService.ChatAsync(
+                                                   profile, world, session, stimulus, context, cts.Token))
+                                           .ConfigureAwait(false);
+                    }
+
+                    // Commit currentReactions before the NPC reply so the transcript order
+                    // is: witness → NPC, matching what was displayed on screen.
+                    foreach (var (n, h, t) in currentReactions)
+                        RecordTranscript(false, n, h, t);
+
+                    if (!result.IsSuccess)
+                    {
+                        ReplacePlaceholder(placeholder, "(The moment passes in silence.)", mainSpeaker);
+                        ModLog.Error($"[15C] exchange {_witnessExchangesThisRound} failed: {result.ErrorMessage}");
+                        break;
+                    }
+
+                    string npcReply = !string.IsNullOrWhiteSpace(result.Response?.Dialogue)
+                        ? result.Response.Dialogue
+                        : "(silence...)";
+
+                    ReplacePlaceholder(placeholder, npcReply, mainSpeaker);
+                    RecordTranscript(false, mainSpeaker.Name, mainSpeaker.Hero?.StringId, npcReply);
+                    StoryLog.WriteNpcLine(mainSpeaker.Name, npcReply);
+
+                    if (!string.IsNullOrWhiteSpace(result.Response?.Narration))
+                        AppendNarration(result.Response.Narration);
+
+                    ModLog.Info($"[15C:{_witnessExchangesThisRound}] {mainSpeaker.Name}: \"{npcReply}\"");
+                    if (result.Usage != null)
+                        ModLog.Info($"  [15C TOKENS] prompt={result.Usage.PromptTokens} | completion={result.Usage.CompletionTokens}");
+
+                    // End-conversation action is honored even in auto-exchange.
+                    if (result.Response?.Actions != null)
+                        foreach (GameAction action in result.Response.Actions)
+                        {
+                            if (!string.Equals(action.Type, "end_conversation",
+                                    StringComparison.OrdinalIgnoreCase)) continue;
+                            _conversationEnded      = true;
+                            IsPrivateRequestVisible = false;
+                            CloseButtonText         = "Leave";
+                            AppendSystemMessage($"{profile.Name} has ended the conversation.", false);
+                            ModLog.Info($"[15C] {profile.Name} ended the conversation.");
+                            break;
+                        }
+
+                    if (_conversationEnded || isLast) break;
+
+                    // Collect new witness reactions from this response.
+                    // Display them immediately (without committing) — they become
+                    // the next iteration's currentReactions and stimulus.
+                    var nextReactions = CollectWitnessReactions(result.Response);
+                    if (nextReactions.Count == 0) break; // witnesses fell silent — natural end
+
+                    foreach (var (n, _, t) in nextReactions)
+                        AppendWitnessReaction(n, t, recordTranscript: false);
+
+                    currentReactions = nextReactions;
+                    _witnessExchangesThisRound++;
+                }
+            }
+            catch (Exception ex)
+            {
+                foreach (var (n, h, t) in currentReactions) RecordTranscript(false, n, h, t);
+                ModLog.Error($"[15C] RunNpcWitnessExchangeAsync threw {ex.GetType().Name}: {ex.Message}");
+            }
+            finally
+            {
+                _npcWitnessExchangePending = false;
                 IsSendEnabled = !_conversationEnded;
             }
+        }
+
+        /// <summary>
+        ///   Captive scene continuation loop (Sprint 17).
+        ///   Fires when the NPC emitted a NARRATION block but did not end their dialogue with a
+        ///   question — the scene is still unfolding and the player cannot interrupt.
+        ///   Each iteration sends a synthetic "continue" cue; the loop stops when the NPC asks a
+        ///   question, emits end_conversation, emits no narration, or the cap is reached.
+        /// </summary>
+        /// <summary>
+        ///   Fires ONE narration continuation turn (called by <see cref="ExecuteContinue"/>).
+        ///   Uses the speaker/behavior stored at pause time. After the call, either pauses
+        ///   again (NPC still mid-act) or releases input to the player (NPC asked a question
+        ///   or the act is complete).
+        /// </summary>
+        private async Task RunCaptiveSceneContinuationAsync()
+        {
+            ChatSpeaker               speaker  = _scenePauseSpeaker;
+            NpcMemoryCampaignBehavior behavior = _scenePauseBehavior;
+
+            try
+            {
+                NpcProfile profile = speaker?.Profile;
+                if (profile == null || behavior?.LlmServices == null || !behavior.LlmServices.IsAvailable)
+                    return;
+
+                // The stimulus is the LAST thing the model sees before generating, so it carries
+                // the most weight. Offer three explicit exits and force a wrap on the final beat.
+                bool isFinalBeat = _sceneContinuations >= MaxSceneContinuations - 1;
+                string stimulus = isFinalBeat
+                    ? "[Bring the scene to its conclusion NOW. If a peak has not yet been reached, reach it "
+                      + "this turn; then resolve it with a final remark, dismiss the prisoner, and emit "
+                      + "end_conversation. Do not escalate further and do not repeat previous actions.]"
+                    : "[The scene continues from where you left off — do not restart. Move it FORWARD: "
+                      + "introduce a NEW action or escalate; do not repeat what you already described. "
+                      + "Then choose ONE: (a) continue the act with something new; (b) if you want the "
+                      + "prisoner to speak, end your dialogue with a direct question; (c) if you have reached "
+                      + "your satisfaction or a natural peak, conclude — a final remark, dismiss the prisoner, "
+                      + "and emit end_conversation.]";
+
+                ChatSession session = BuildSessionFor(speaker);
+                WorldState world = new WorldState {
+                    CurrentDay      = behavior.GameStateBridge.GetCurrentGameDay(),
+                    Season          = behavior.GameStateBridge.GetSeasonName(),
+                    ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
+                    Rumors          = ""
+                };
+                EncounterContext context = EncounterContextBuilder.Build(
+                    speaker.Hero, profile, behavior.GameStateBridge,
+                    playerMessage:            null,
+                    witnesses:                BuildContextWitnesses(speaker),
+                    privacyRequested:         false,
+                    isCollectiveCaptiveScene: _captiveEncounterIsCollective,
+                    playerStatusOverride:     PlayerStatusVsNpc.Captive,
+                    captiveIntent:            _captiveEncounterIntent,
+                    isFinalSceneBeat:         isFinalBeat);
+
+                ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+                _messages.Add(placeholder);
+                ChatManager.ScrollToBottom();
+
+                NpcChatResult result;
+                using (System.Threading.CancellationTokenSource cts =
+                    new System.Threading.CancellationTokenSource())
+                {
+                    result = await Task.Run(() =>
+                                           behavior.LlmServices.ChatService.ChatAsync(
+                                               profile, world, session, stimulus, context, cts.Token))
+                                       .ConfigureAwait(false);
+                }
+
+                if (!result.IsSuccess)
+                {
+                    ReplacePlaceholder(placeholder, "(The moment passes.)", speaker);
+                    ModLog.Error($"[SCENE] continuation {_sceneContinuations} failed: {result.ErrorMessage}");
+                    return;
+                }
+
+                string npcLine = !string.IsNullOrWhiteSpace(result.Response?.Dialogue)
+                    ? result.Response.Dialogue
+                    : "(silence...)";
+
+                ReplacePlaceholder(placeholder, npcLine, speaker);
+                RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
+                StoryLog.WriteNpcLine(speaker.Name, npcLine);
+
+                if (!string.IsNullOrWhiteSpace(result.Response?.Narration))
+                    AppendNarration(result.Response.Narration);
+
+                ModLog.Info($"[SCENE:{_sceneContinuations}] {speaker.Name}: \"{npcLine}\"");
+                if (result.Usage != null)
+                    ModLog.Info($"  [SCENE TOKENS] prompt={result.Usage.PromptTokens} | completion={result.Usage.CompletionTokens}");
+
+                if (result.Response?.Actions != null)
+                    foreach (GameAction action in result.Response.Actions)
+                    {
+                        if (!string.Equals(action.Type, "end_conversation",
+                                StringComparison.OrdinalIgnoreCase)) continue;
+                        _conversationEnded      = true;
+                        IsPrivateRequestVisible = false;
+                        CloseButtonText         = "Leave";
+                        AppendSystemMessage($"{profile.Name} has ended the conversation.", false);
+                        ModLog.Info($"[SCENE] {profile.Name} ended the conversation.");
+                        break;
+                    }
+
+                if (_conversationEnded) return;
+
+                // NPC asked the player a question → hand control back
+                if (NpcAskedQuestion(npcLine)) { _sceneContinuations = 0; return; }
+
+                // No narration → act is complete, hand control back
+                if (string.IsNullOrWhiteSpace(result.Response?.Narration)) { _sceneContinuations = 0; return; }
+
+                // Still mid-act and under cap → pause again for the next player choice
+                if (_sceneContinuations < MaxSceneContinuations)
+                {
+                    _scenePauseSpeaker  = speaker;
+                    _scenePauseBehavior = behavior;
+                    IsScenePaused       = true;
+                }
+                else
+                {
+                    _sceneContinuations = 0; // cap reached — give player control
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[SCENE] RunCaptiveSceneContinuationAsync threw {ex.GetType().Name}: {ex.Message}");
+            }
+            finally
+            {
+                _sceneContinuationPending = false;
+                if (!_isScenePaused)
+                    IsSendEnabled = !_conversationEnded;
+            }
+        }
+
+        /// <summary>
+        ///   Returns true when the NPC's dialogue ends with a question mark, signalling that the
+        ///   prisoner may now respond. Ignores trailing whitespace and common stage-direction wrappers.
+        /// </summary>
+        private static bool NpcAskedQuestion(string dialogue)
+        {
+            if (string.IsNullOrWhiteSpace(dialogue)) return false;
+            // Strip trailing stage directions (*...*) so a real question before them is found.
+            string stripped = System.Text.RegularExpressions.Regex.Replace(dialogue, @"\*[^*]*\*\s*$", "").TrimEnd();
+            return stripped.EndsWith("?");
+        }
+
+        /// <summary>
+        ///   Extracts witness reactions from a <see cref="ParsedResponse" />, resolving
+        ///   each witness's hero id from the current session's witness list and NPC hero.
+        ///   Returns an empty list when there are no reactions.
+        /// </summary>
+        private System.Collections.Generic.List<(string name, string heroId, string text)>
+            CollectWitnessReactions(ParsedResponse response)
+        {
+            var result = new System.Collections.Generic.List<(string name, string heroId, string text)>();
+            if (response?.WitnessReactions == null) return result;
+
+            foreach (WitnessReaction wr in response.WitnessReactions)
+            {
+                if (string.IsNullOrWhiteSpace(wr.Text)) continue;
+
+                // The LLM sometimes copies the whole prompt label ("A soldier (one of your
+                // men…)") into the name. Strip any parenthetical role so we match — and
+                // DISPLAY — only the canonical short name, never the POV-NPC role text.
+                string emitted = StripWitnessRole(wr.Name);
+
+                string heroId        = null;
+                string canonicalName = emitted;
+                if (string.Equals(emitted, _npcName, StringComparison.OrdinalIgnoreCase))
+                {
+                    heroId        = _npcHero?.StringId;
+                    canonicalName = _npcName;
+                }
+                else
+                    foreach (WitnessEntry we in _witnesses)
+                        if (string.Equals(we.Name, emitted, StringComparison.OrdinalIgnoreCase))
+                        {
+                            heroId        = we.HeroStringId;
+                            canonicalName = we.Name; // canonical casing/spelling
+                            break;
+                        }
+
+                result.Add((canonicalName, heroId, wr.Text));
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        ///   Strips a trailing parenthetical role from a witness name, e.g.
+        ///   "A soldier (one of your men, present on your orders)" → "A soldier".
+        ///   Defends against the LLM echoing the full prompt label as the reaction name.
+        /// </summary>
+        private static string StripWitnessRole(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return name;
+            int paren = name.IndexOf('(');
+            return paren > 0 ? name.Substring(0, paren).Trim() : name.Trim();
         }
 
         #endregion

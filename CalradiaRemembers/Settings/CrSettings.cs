@@ -51,10 +51,23 @@ namespace CalradiaRemembers.Settings
         [SettingPropertyGroup("OpenRouter", GroupOrder = 3)]
         public Action TestConnection { get; set; } = ApiKeyTester.Run;
 
+        [SettingPropertyBool("Enable Logging", RequireRestart = false, Order = 0,
+            HintText = "Master switch for all mod logging — both the on-screen messages and the " +
+                       "CalradiaRemembers.log file. Off by default; turn on only to capture a bug report.")]
+        [SettingPropertyGroup("Diagnostics", GroupOrder = 1)]
+        public bool EnableLogging { get; set; } = false;
+
         [SettingPropertyBool("Verbose Logging", RequireRestart = false, Order = -1,
             HintText = "Logs the full system prompt and NPC response to the mod log on every exchange. " +
-                       "Turn on only when capturing a bug report — it floods the log.")]
+                       "Turn on only when capturing a bug report — it floods the log. Requires Enable Logging.")]
         [SettingPropertyGroup("Diagnostics", GroupOrder = 1)]
         public bool VerboseLogging { get; set; } = false;
+
+        [SettingPropertyBool("Story Log", RequireRestart = false, Order = -2,
+            HintText = "Writes a clean narrative transcript of every conversation and letter to " +
+                       "CalradiaRemembers_story.log in your Bannerlord Logs folder. " +
+                       "No timestamps or technical noise — reads like a novel.")]
+        [SettingPropertyGroup("Diagnostics", GroupOrder = 1)]
+        public bool StoryLogging { get; set; } = false;
     }
 }

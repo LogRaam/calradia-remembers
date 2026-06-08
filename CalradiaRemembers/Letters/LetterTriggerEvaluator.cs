@@ -1,13 +1,10 @@
 // Code written by Gabriel Mailhot, 02/06/2026.
-// Sprint 12b: NPC-initiated letter correspondence — trigger evaluation.
 
 #region
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Quests;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
@@ -22,268 +19,311 @@ using TaleWorlds.Library;
 
 namespace CalradiaRemembers.Letters
 {
-    /// <summary>
-    ///   Listens to campaign events and evaluates daily conditions to decide when
-    ///   an NPC should initiate a letter to the player. Fires
-    ///   <see cref="LetterGenerationService.QueueInitialLetter" /> when a trigger
-    ///   condition is met, subject to per-NPC cooldowns and in-transit limits.
-    ///
-    ///   Sprint 12b triggers: <see cref="TournamentVictory" />, <see cref="BattleVictory" />,
-    ///   <see cref="RomanticCorrespondence" />, <see cref="SpouseCorrespondence" />.
-    /// </summary>
-    public sealed class LetterTriggerEvaluator
-    {
-        // Minimum days between two letters from the same NPC (anti-spam).
-        private const int DefaultCooldownDays = 15;
+   /// <summary>
+   ///   Listens to campaign events and evaluates daily conditions to decide when
+   ///   an NPC should initiate a letter to the player. Fires
+   ///   <see cref="LetterGenerationService.QueueInitialLetter" /> when a trigger
+   ///   condition is met, subject to per-NPC cooldowns and in-transit limits.
+   /// </summary>
+   public sealed class LetterTriggerEvaluator
+   {
+      // Fixed gold amount requested for child support.
+      private const int ChildSupportAmount = 750;
 
-        // We cap how many letters queue up from a single event.
-        private const int MaxLettersPerEvent = 2;
+      // Days after birth before the child-support request letter is sent.
+      private const int ChildSupportDelayDays = 7;
 
-        // Days after birth before the child-support request letter is sent.
-        private const int ChildSupportDelayDays = 7;
+      // Minimum days between two letters from the same NPC (anti-spam).
+      private const int DefaultCooldownDays = 15;
 
-        // Fixed gold amount requested for child support.
-        private const int ChildSupportAmount = 750;
+      // We cap how many letters queue up from a single event.
+      private const int MaxLettersPerEvent = 2;
 
-        public void Subscribe()
-        {
-            CampaignEvents.TournamentFinished.AddNonSerializedListener(this, OnTournamentFinished);
-            // Signature: (CharacterObject winner, MBReadOnlyList<CharacterObject> participants, Town town, ItemObject prize)
-            CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
-            CampaignEvents.OnGivenBirthEvent.AddNonSerializedListener(this, OnGivenBirth);
-            // Signature: (Hero mother, List<Hero> aliveChildren, int stillbornCount)
-            ModLog.Info("LetterTriggerEvaluator subscribed.");
-        }
+      // ── Daily evaluation (called from OnDailyTick) ────────────────────────
 
-        // ── Daily evaluation (called from OnDailyTick) ────────────────────────
+      public void EvaluateDaily(BannerlordNpcMemoryStore store, LlmServices llmServices, int today)
+      {
+         EvaluateRomanticCorrespondence(store, llmServices, today);
+         EvaluateSpouseCorrespondence(store, llmServices, today);
+      }
 
-        public void EvaluateDaily(BannerlordNpcMemoryStore store, LlmServices llmServices, int today)
-        {
-            EvaluateRomanticCorrespondence(store, llmServices, today);
-            EvaluateSpouseCorrespondence(store, llmServices, today);
-        }
+      public void Subscribe()
+      {
+         CampaignEvents.TournamentFinished.AddNonSerializedListener(this, OnTournamentFinished);
+         // Signature: (CharacterObject winner, MBReadOnlyList<CharacterObject> participants, Town town, ItemObject prize)
+         CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
+         CampaignEvents.OnGivenBirthEvent.AddNonSerializedListener(this, OnGivenBirth);
+         // Signature: (Hero mother, List<Hero> aliveChildren, int stillbornCount)
+         ModLog.Info("LetterTriggerEvaluator subscribed.");
+      }
 
-        // ── Event handlers ────────────────────────────────────────────────────
+      #region private
 
-        private void OnTournamentFinished(CharacterObject winner,
-            MBReadOnlyList<CharacterObject> participants, Town town, ItemObject prize)
-        {
-            if (winner?.HeroObject != Hero.MainHero) return;
+      /// <summary>True when the NPC has no letter in transit and respects the cooldown.</summary>
+      private static bool CanSendLetter(NpcProfile profile, int today, int cooldownDays)
+      {
+         if (profile.SentLetters.Count == 0) return true;
 
-            var behavior = NpcMemoryCampaignBehavior.Instance;
-            if (behavior == null) return;
+         // Block if a letter is still in transit.
+         bool inTransit = profile.SentLetters.Any(l => !l.IsDelivered && l.DeliveryDay > today);
 
-            int today = (int)CampaignTime.Now.ToDays;
-            int arenaRank = behavior.GameStateBridge != null
-                ? (Campaign.Current?.TournamentManager?.GetLeaderBoardRank(Hero.MainHero) ?? 0)
-                : 0;
+         if (inTransit) return false;
 
-            string context = $"Player won a tournament at {town?.Name}.";
-            if (arenaRank > 0) context += $" They are now ranked #{arenaRank} in the tournament leaderboard.";
+         // Enforce cooldown from most recent letter sent.
+         int lastSent = profile.SentLetters.Max(l => l.SentOnDay);
 
-            int queued = 0;
-            foreach (string id in behavior.Store.ListIds())
-            {
-                if (queued >= MaxLettersPerEvent) break;
+         return today - lastSent >= cooldownDays;
+      }
 
-                NpcProfile profile = behavior.Store.Get(id);
-                if (profile == null) continue;
-                if (!CanSendLetter(profile, today, DefaultCooldownDays)) continue;
+      /// <summary>Days since the last notable event in this NPC's profile (proxy for last meeting).</summary>
+      private static int DaysSinceLastEvent(NpcProfile profile, int today)
+      {
+         if (profile.Events.Count == 0) return int.MaxValue;
 
-                Hero hero = Hero.FindFirst(h => h.StringId == id);
-                if (hero == null || !hero.IsAlive) continue;
-                if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
+         return today - profile.Events.Max(e => e.gameDay);
+      }
 
-                // Friendly NPCs congratulate; rivals or hostiles might challenge.
-                if (profile.ReputationWithPlayer < 10) continue;
+      // ── Daily condition evaluators ─────────────────────────────────────────
 
-                LetterGenerationService.QueueInitialLetter(
-                    profile, hero, LetterReason.TournamentVictory, context,
-                    behavior.LlmServices, behavior.Store, today);
-                queued++;
-            }
-        }
+      private static void EvaluateRomanticCorrespondence(
+         BannerlordNpcMemoryStore store,
+         LlmServices llmServices,
+         int today)
+      {
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
 
-        private void OnMapEventEnded(MapEvent mapEvent)
-        {
-            if (mapEvent == null || !mapEvent.IsPlayerMapEvent) return;
+            if (profile?.Romantic == null) continue;
+            if (profile.Romantic.Status < RomanticStatus.Courting) continue;
+            if (profile.ReputationWithPlayer < 15) continue;
 
-            bool playerAttacker = mapEvent.AttackerSide?.IsMainPartyAmongParties() == true;
-            bool playerDefender = mapEvent.DefenderSide?.IsMainPartyAmongParties() == true;
-            if (!playerAttacker && !playerDefender) return;
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
 
-            BattleSideEnum playerSide = playerAttacker ? BattleSideEnum.Attacker : BattleSideEnum.Defender;
-            if (mapEvent.WinningSide != playerSide) return;
+            if (hero == null || !hero.IsAlive) continue;
+            if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
 
-            BattleSideEnum losingSide = playerAttacker ? BattleSideEnum.Defender : BattleSideEnum.Attacker;
-            var loserParties = mapEvent.GetMapEventSide(losingSide)?.Parties;
-            if (loserParties == null) return;
+            if (!CanSendLetter(profile, today, 10)) continue;
+            if (DaysSinceLastEvent(profile, today) < 3) continue; // met recently
 
-            // Only notable victories: at least one enemy lord was defeated.
-            bool hasDefeatedLord = loserParties.Any(p =>
-                p.Party?.LeaderHero != null && p.Party.LeaderHero.IsLord);
-            if (!hasDefeatedLord) return;
-
-            // Skip bandit-only battles — nobody of note would write about clearing thieves.
-            bool allBandits = loserParties.All(p => p.Party?.MapFaction?.IsBanditFaction == true);
-            if (allBandits) return;
-
-            var behavior = NpcMemoryCampaignBehavior.Instance;
-            if (behavior == null) return;
-
-            int today = (int)CampaignTime.Now.ToDays;
-            string defeatedNames = string.Join(", ",
-                loserParties
-                    .Where(p => p.Party?.LeaderHero?.IsLord == true)
-                    .Select(p => p.Party.LeaderHero.Name.ToString())
-                    .Take(2));
-            string context = $"Player won a battle, defeating {defeatedNames}.";
-
-            int queued = 0;
-            foreach (string id in behavior.Store.ListIds())
-            {
-                if (queued >= 1) break; // cap at 1 per battle
-
-                NpcProfile profile = behavior.Store.Get(id);
-                if (profile == null) continue;
-                if (!CanSendLetter(profile, today, DefaultCooldownDays)) continue;
-
-                Hero hero = Hero.FindFirst(h => h.StringId == id);
-                if (hero == null || !hero.IsAlive) continue;
-                if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
-
-                // Ally of the player (same faction or high personal regard) celebrates.
-                bool sameOrAllied = hero.MapFaction != null
-                    && hero.MapFaction == Hero.MainHero?.MapFaction;
-                if (!sameOrAllied || profile.ReputationWithPlayer < 20) continue;
-
-                LetterGenerationService.QueueInitialLetter(
-                    profile, hero, LetterReason.BattleVictory, context,
-                    behavior.LlmServices, behavior.Store, today);
-                queued++;
-            }
-        }
-
-        private void OnGivenBirth(Hero mother, List<Hero> aliveChildren, int stillbornCount)
-        {
-            if (mother == null || aliveChildren == null || aliveChildren.Count == 0) return;
-
-            // Only fire if the player is the father of at least one surviving child.
-            var playerChildren = aliveChildren.Where(c => c.Father == Hero.MainHero).ToList();
-            if (playerChildren.Count == 0) return;
-
-            var behavior = NpcMemoryCampaignBehavior.Instance;
-            if (behavior == null) return;
-
-            NpcProfile profile = behavior.Store.Get(mother.StringId);
-            if (profile == null) return;
-
-            int today = (int)CampaignTime.Now.ToDays;
-            bool isLegitimate = mother == Hero.MainHero?.Spouse;
-
-            string childDesc = playerChildren.Count == 1
-                ? $"a {(playerChildren[0].IsFemale ? "daughter" : "son")} named {playerChildren[0].Name}"
-                : $"{playerChildren.Count} children";
-            string context = $"{(isLegitimate ? "Legitimate" : "Illegitimate")} birth. She has given birth to {childDesc} on day {today}.";
-
-            // Birth announcement — sent immediately.
-            LetterGenerationService.QueueInitialLetter(
-                profile, mother, LetterReason.BirthAnnouncement, context,
-                behavior.LlmServices, behavior.Store, today);
-
-            // Child support request — sent a week later; quest opens on delivery.
-            string supportContext = context + $" She is now asking the player for {ChildSupportAmount} denars to help raise the child.";
-            LetterGenerationService.QueueInitialLetter(
-                profile, mother, LetterReason.ChildSupportRequest, supportContext,
-                behavior.LlmServices, behavior.Store, today + ChildSupportDelayDays);
-
-            ModLog.Info($"[LETTER] birth letters queued: {mother.Name} → player ({childDesc}, {(isLegitimate ? "legitimate" : "illegitimate")}).");
-        }
-
-        // ── Daily condition evaluators ─────────────────────────────────────────
-
-        private static void EvaluateRomanticCorrespondence(
-            BannerlordNpcMemoryStore store, LlmServices llmServices, int today)
-        {
-            foreach (string id in store.ListIds())
-            {
-                NpcProfile profile = store.Get(id);
-                if (profile?.Romantic == null) continue;
-                if (profile.Romantic.Status < RomanticStatus.Courting) continue;
-                if (profile.ReputationWithPlayer < 15) continue;
-
-                Hero hero = Hero.FindFirst(h => h.StringId == id);
-                if (hero == null || !hero.IsAlive) continue;
-                if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
-
-                if (!CanSendLetter(profile, today, 10)) continue;
-                if (DaysSinceLastEvent(profile, today) < 3) continue; // met recently
-
-                string context = $"Romantic status: {profile.Romantic.Status}. " +
-                                 $"Last saw the player {DaysSinceLastEvent(profile, today)} days ago.";
-
-                LetterGenerationService.QueueInitialLetter(
-                    profile, hero, LetterReason.RomanticCorrespondence, context,
-                    llmServices, store, today);
-
-                return; // one romantic letter per daily tick
-            }
-        }
-
-        private static void EvaluateSpouseCorrespondence(
-            BannerlordNpcMemoryStore store, LlmServices llmServices, int today)
-        {
-            Hero spouse = Hero.MainHero?.Spouse;
-            if (spouse == null || !spouse.IsAlive) return;
-            if (IsWithPlayer(spouse)) return; // spouse is travelling with the player — no letter needed
-
-            NpcProfile profile = store.Get(spouse.StringId);
-            if (profile == null) return;
-            if (!CanSendLetter(profile, today, 7)) return;
-            if (DaysSinceLastEvent(profile, today) < 5) return;
-
-            string context = $"Player's spouse. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
+            string context = $"Romantic status: {profile.Romantic.Status}. " + $"Last saw the player {DaysSinceLastEvent(profile, today)} days ago.";
 
             LetterGenerationService.QueueInitialLetter(
-                profile, spouse, LetterReason.SpouseCorrespondence, context,
-                llmServices, store, today);
-        }
+               profile, hero, LetterReason.RomanticCorrespondence, context,
+               llmServices, store, today);
 
-        // ── Helpers ───────────────────────────────────────────────────────────
+            return; // one romantic letter per daily tick
+         }
+      }
 
-        /// <summary>
-        ///   True when the NPC is currently traveling with the player — in the same
-        ///   party or a party led by the player. They would write a letter to someone
-        ///   far away, not to someone riding beside them.
-        /// </summary>
-        private static bool IsWithPlayer(Hero hero)
-        {
-            if (hero == null) return false;
-            MobileParty main = MobileParty.MainParty;
-            if (main == null) return false;
-            MobileParty heroParty = hero.PartyBelongedTo;
-            return heroParty == main || heroParty?.LeaderHero == Hero.MainHero;
-        }
+      private static void EvaluateSpouseCorrespondence(
+         BannerlordNpcMemoryStore store,
+         LlmServices llmServices,
+         int today)
+      {
+         Hero spouse = Hero.MainHero?.Spouse;
 
-        /// <summary>True when the NPC has no letter in transit and respects the cooldown.</summary>
-        private static bool CanSendLetter(NpcProfile profile, int today, int cooldownDays)
-        {
-            if (profile.SentLetters == null || profile.SentLetters.Count == 0) return true;
+         if (spouse == null || !spouse.IsAlive) return;
+         if (IsWithPlayer(spouse)) return; // spouse is travelling with the player — no letter needed
 
-            // Block if a letter is still in transit.
-            bool inTransit = profile.SentLetters.Any(l => !l.IsDelivered && l.DeliveryDay > today);
-            if (inTransit) return false;
+         NpcProfile profile = store.Get(spouse.StringId);
 
-            // Enforce cooldown from most recent letter sent.
-            int lastSent = profile.SentLetters.Max(l => l.SentOnDay);
-            return today - lastSent >= cooldownDays;
-        }
+         if (profile == null) return;
+         if (!CanSendLetter(profile, today, 7)) return;
+         if (DaysSinceLastEvent(profile, today) < 5) return;
 
-        /// <summary>Days since the last notable event in this NPC's profile (proxy for last meeting).</summary>
-        private static int DaysSinceLastEvent(NpcProfile profile, int today)
-        {
-            if (profile.Events == null || profile.Events.Count == 0) return int.MaxValue;
-            return today - profile.Events.Max(e => e.gameDay);
-        }
-    }
+         var context = $"Player's spouse. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
+
+         LetterGenerationService.QueueInitialLetter(
+            profile, spouse, LetterReason.SpouseCorrespondence, context,
+            llmServices, store, today);
+      }
+
+      // ── Helpers ───────────────────────────────────────────────────────────
+
+      /// <summary>
+      ///   True when the NPC is currently traveling with the player — in the same
+      ///   party or a party led by the player. They would write a letter to someone
+      ///   far away, not to someone riding beside them.
+      /// </summary>
+      private static bool IsWithPlayer(Hero hero)
+      {
+         if (hero == null) return false;
+         MobileParty main = MobileParty.MainParty;
+
+         if (main == null) return false;
+         MobileParty heroParty = hero.PartyBelongedTo;
+
+         return heroParty == main || heroParty?.LeaderHero == Hero.MainHero;
+      }
+
+      private static void NpcCongratulatePlayerForTournamentVictory(NpcMemoryCampaignBehavior behavior, int today, string context)
+      {
+         var queued = 0;
+         foreach (string id in behavior.Store.ListIds())
+         {
+            if (queued >= MaxLettersPerEvent) break;
+
+            NpcProfile profile = behavior.Store.Get(id);
+
+            if (profile == null) continue;
+            if (!CanSendLetter(profile, today, DefaultCooldownDays)) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+
+            if (hero is not {IsAlive: true}) continue;
+            if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
+
+            // Friendly NPCs congratulate; rivals or hostiles might challenge.
+            if (profile.ReputationWithPlayer < 10) continue;
+
+            LetterGenerationService.QueueInitialLetter(
+               profile, hero, LetterReason.TournamentVictory, context,
+               behavior.LlmServices, behavior.Store, today);
+            queued++;
+         }
+      }
+
+      private static void NpcCongratulatePlayerOnBattleVictory(NpcMemoryCampaignBehavior behavior, int today, string context)
+      {
+         var queued = 0;
+         foreach (string id in behavior.Store.ListIds())
+         {
+            if (queued >= 1) break; // cap at 1 per battle
+
+            NpcProfile profile = behavior.Store.Get(id);
+
+            if (profile == null) continue;
+            if (!CanSendLetter(profile, today, DefaultCooldownDays)) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+
+            if (hero == null || !hero.IsAlive) continue;
+            if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
+
+            // Ally of the player (same faction or high personal regard) celebrates.
+            bool sameOrAllied = hero.MapFaction != null
+                                && hero.MapFaction == Hero.MainHero?.MapFaction;
+
+            if (!sameOrAllied || profile.ReputationWithPlayer < 20) continue;
+
+            LetterGenerationService.QueueInitialLetter(
+               profile, hero, LetterReason.BattleVictory, context,
+               behavior.LlmServices, behavior.Store, today);
+            queued++;
+         }
+      }
+
+      private static IEnumerable<string> SelectLeaderName(MBReadOnlyList<MapEventParty> loserParties)
+      {
+         return loserParties.Where(p => p.Party?.LeaderHero?.IsLord == true).Select(p => p.Party.LeaderHero.Name.ToString()).Take(2);
+      }
+
+      private void OnGivenBirth(Hero mother, List<Hero> aliveChildren, int stillbornCount)
+      {
+         if (mother == null || aliveChildren == null || aliveChildren.Count == 0) return;
+
+         // Only fire if the player is the father of at least one surviving child.
+         var playerChildren = new List<Hero>();
+         foreach (Hero c in aliveChildren)
+            if (c.Father == Hero.MainHero)
+               playerChildren.Add(c);
+
+         if (playerChildren.Count == 0) return;
+
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         NpcProfile profile = behavior?.Store.Get(mother.StringId);
+
+         if (profile == null) return;
+
+         var today = (int) CampaignTime.Now.ToDays;
+         bool isLegitimate = mother == Hero.MainHero?.Spouse;
+
+         string childDesc = playerChildren.Count == 1
+            ? $"a {(playerChildren[0].IsFemale ? "daughter" : "son")} named {playerChildren[0].Name}"
+            : $"{playerChildren.Count} children";
+         var context = $"{(isLegitimate ? "Legitimate" : "Illegitimate")} birth. She has given birth to {childDesc} on day {today}.";
+
+         // Birth announcement — sent immediately.
+         LetterGenerationService.QueueInitialLetter(
+            profile, mother, LetterReason.BirthAnnouncement, context,
+            behavior.LlmServices, behavior.Store, today);
+
+         // Child support request — sent a week later; quest opens on delivery.
+         string supportContext = context + $" She is now asking the player for {ChildSupportAmount} denars to help raise the child.";
+         LetterGenerationService.QueueInitialLetter(
+            profile, mother, LetterReason.ChildSupportRequest, supportContext,
+            behavior.LlmServices, behavior.Store, today + ChildSupportDelayDays);
+
+         ModLog.Info($"[LETTER] birth letters queued: {mother.Name} → player ({childDesc}, {(isLegitimate ? "legitimate" : "illegitimate")}).");
+      }
+
+      private void OnMapEventEnded(MapEvent mapEvent)
+      {
+         if (mapEvent is not {IsPlayerMapEvent: true}) return;
+
+         bool playerAttacker = mapEvent.AttackerSide?.IsMainPartyAmongParties() == true;
+         bool playerDefender = mapEvent.DefenderSide?.IsMainPartyAmongParties() == true;
+
+         if (!playerAttacker && !playerDefender) return;
+
+         BattleSideEnum playerSide = playerAttacker
+            ? BattleSideEnum.Attacker
+            : BattleSideEnum.Defender;
+
+         if (mapEvent.WinningSide != playerSide) return;
+
+         BattleSideEnum losingSide = playerAttacker
+            ? BattleSideEnum.Defender
+            : BattleSideEnum.Attacker;
+         MBReadOnlyList<MapEventParty> loserParties = mapEvent.GetMapEventSide(losingSide)?.Parties;
+
+         if (loserParties == null) return;
+
+         // Only notable victories: at least one enemy lord was defeated.
+         bool hasDefeatedLord = loserParties.Any(p =>
+            p.Party?.LeaderHero is {IsLord: true});
+
+         if (!hasDefeatedLord) return;
+
+         // Skip bandit-only battles — nobody of note would write about clearing thieves.
+         bool allBandits = loserParties.All(p => p.Party?.MapFaction?.IsBanditFaction == true);
+
+         if (allBandits) return;
+
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (behavior == null) return;
+
+         var today = (int) CampaignTime.Now.ToDays;
+         string defeatedNames = string.Join(", ", SelectLeaderName(loserParties));
+         var context = $"Player won a battle, defeating {defeatedNames}.";
+
+         NpcCongratulatePlayerOnBattleVictory(behavior, today, context);
+      }
+
+      // ── Event handlers ────────────────────────────────────────────────────
+
+      private void OnTournamentFinished(CharacterObject winner, MBReadOnlyList<CharacterObject> participants, Town town, ItemObject prize)
+      {
+         if (winner?.HeroObject != Hero.MainHero) return;
+
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (behavior == null) return;
+
+         var today = (int) CampaignTime.Now.ToDays;
+         int arenaRank = behavior.GameStateBridge != null
+            ? Campaign.Current?.TournamentManager?.GetLeaderBoardRank(Hero.MainHero) ?? 0
+            : 0;
+
+         var context = $"Player won a tournament at {town?.Name}.";
+         if (arenaRank > 0) context += $" They are now ranked #{arenaRank} in the tournament leaderboard.";
+
+         NpcCongratulatePlayerForTournamentVictory(behavior, today, context);
+      }
+
+      #endregion
+   }
 }

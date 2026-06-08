@@ -3,6 +3,8 @@
 #region
 
 using System;
+using System.Collections.Generic;
+using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Engine.GauntletUI;
 using TaleWorlds.GauntletUI.Data;
@@ -42,10 +44,16 @@ namespace CalradiaRemembers.Chat
         {
             if (!IsOpen) return;
 
+            // Record the captive scene in the captor's memory before tearing down.
+            // No-op outside captive mode; idempotent. The async summary it may launch
+            // captures the data it needs, so it survives the teardown below.
+            ActiveViewModel?.FinalizeCaptiveSceneMemory();
+
             KillChatWindow();
             EndVanillaConversation();
             RestoreTime();
             FreeResources();
+            Services.LlmServices.ClearTestGenderOverride();
 
             ModLog.Info("Chat window closed — returned to campaign map.");
         }
@@ -82,6 +90,26 @@ namespace CalradiaRemembers.Chat
             // Point the VM at the correct hero so the relation summary resolves.
             ActiveViewModel.SetNpcHero(npcHero);
             ActiveViewModel.ActivateLetterReplyMode(letter, profile);
+        }
+
+        /// <summary>
+        ///   Opens the chat window for a captive encounter initiated by the captor NPC.
+        ///   Unlike a vanilla dialogue, this is triggered programmatically from the daily
+        ///   tick — the player has no choice but to enter. Witnesses are pre-resolved by
+        ///   <see cref="CalradiaRemembers.Letters.CaptiveEncounterService" />.
+        /// </summary>
+        public static void OpenForCaptiveEncounter(
+            Hero captorHero,
+            NpcProfile captorProfile,
+            List<WitnessEntry> witnesses,
+            bool isCollective,
+            CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation)
+        {
+            Open(captorHero?.Name?.ToString());
+            if (ActiveViewModel == null) return;
+            if (captorHero != null) ActiveViewModel.SetNpcHero(captorHero);
+            if (witnesses != null && witnesses.Count > 0) ActiveViewModel.SetWitnesses(witnesses);
+            ActiveViewModel.ActivateCaptiveEncounterMode(captorProfile, isCollective, intent);
         }
 
         public static void Open(string npcName = null)

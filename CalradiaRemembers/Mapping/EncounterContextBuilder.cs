@@ -32,22 +32,33 @@ namespace CalradiaRemembers.Mapping
             IGameStateBridge bridge,
             string playerMessage = null,
             System.Collections.Generic.IReadOnlyList<NpcMemoryService.Core.Models.WitnessEntry> witnesses = null,
-            bool privacyRequested = false) => new() {
-            PlayerStatus         = ResolvePlayerStatus(hero, profile, bridge),
-            WarStatus            = bridge.GetDiplomaticStatus(hero),
-            DaysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge),
-            Scene                = bridge.GetCurrentScene(),
-            ContextualNames      = string.IsNullOrWhiteSpace(playerMessage)
+            bool privacyRequested = false,
+            bool isWitnessExchangeTurn    = false,
+            bool isLastWitnessExchange    = false,
+            bool isCollectiveCaptiveScene = false,
+            PlayerStatusVsNpc? playerStatusOverride = null,
+            CaptiveSceneIntent captiveIntent = CaptiveSceneIntent.Interrogation,
+            bool isFinalSceneBeat = false) => new() {
+            PlayerStatus           = playerStatusOverride ?? ResolvePlayerStatus(hero, profile, bridge),
+            WarStatus              = bridge.GetDiplomaticStatus(hero),
+            DaysSinceLastMeeting   = ComputeDaysSinceLastMeeting(profile, bridge),
+            Scene                  = bridge.GetCurrentScene(),
+            ContextualNames        = string.IsNullOrWhiteSpace(playerMessage)
                 ? null
                 : ContextualNameResolver.Resolve(hero, playerMessage),
-            PlayerSpouseName     = Hero.MainHero?.Spouse?.IsAlive == true
+            PlayerSpouseName       = Hero.MainHero?.Spouse?.IsAlive == true
                 ? Hero.MainHero.Spouse.Name?.ToString()
                 : null,
-            PlayerClanTier   = Hero.MainHero?.Clan?.Tier ?? 0,
-            PlayerArenaRank  = ResolveArenaRank(),
-            PlayerArenaWins  = ResolveArenaWins(),
-            Witnesses        = witnesses,
-            PrivacyRequested = privacyRequested
+            PlayerClanTier         = Hero.MainHero?.Clan?.Tier ?? 0,
+            PlayerArenaRank        = ResolveArenaRank(),
+            PlayerArenaWins        = ResolveArenaWins(),
+            Witnesses              = witnesses,
+            PrivacyRequested       = privacyRequested,
+            IsWitnessExchangeTurn    = isWitnessExchangeTurn,
+            IsLastWitnessExchange    = isLastWitnessExchange,
+            IsCollectiveCaptiveScene = isCollectiveCaptiveScene,
+            CaptiveIntent            = captiveIntent,
+            IsFinalSceneBeat         = isFinalSceneBeat
         };
 
         #region private

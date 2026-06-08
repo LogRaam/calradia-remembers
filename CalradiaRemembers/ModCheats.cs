@@ -112,6 +112,14 @@ namespace CalradiaRemembers
                 "  cr.witnesses [name]                  Diagnose: log settlement/party presence data for an NPC (Talk-vs-Visit check)\n" +
                 "  cr.witness [witnessName]             Add a witness to the open chat session (manual seed for testing)\n" +
                 "\n" +
+                "CAPTIVE ENCOUNTER (Sprint 17 — Hardcore only)\n" +
+                "  cr.crc_scene [female|male] [solo|collective] [intent] [name]\n" +
+                "      intent: interrogation (default) | desire | domination | torture | training | reward\n" +
+                "      Example: cr.crc_scene female collective desire Alympia\n" +
+                "  cr.kinks [name]                      List the NPC's kinks and valid kink names\n" +
+                "  cr.add_kink <kink> [name]            Add a kink (apply BEFORE opening a scene)\n" +
+                "  cr.remove_kink <kink> [name]         Remove a kink from the NPC's profile\n" +
+                "\n" +
                 "PLAYER STANDING\n" +
                 "  cr.standing                          Show player clan tier and arena rank/wins\n" +
                 "\n" +
@@ -128,6 +136,156 @@ namespace CalradiaRemembers
                 "\n" +
                 "[name] is an optional name fragment (case-insensitive). If omitted, the current conversation NPC is used.";
         }
+
+        // ── Sprint 17: captive encounter testing ──────────────────────────────
+
+        /// <summary>
+        ///   cr.crc_scene [female|male] [solo|collective] [name]
+        ///   Opens a captive-encounter chat immediately, forcing PlayerStatus = Captive
+        ///   so Section B (CNC rules) lands in the prompt — without the player actually
+        ///   being a prisoner. Requires Hardcore adult level for the CNC rules to appear.
+        ///   - female|male: override the player gender for this scene (test the other path)
+        ///   - solo|collective: private scene, or a collective scene with soldier witnesses
+        ///   - name: captor name fragment (defaults to the current conversation NPC)
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("crc_scene", "cr")]
+        public static string LaunchCaptiveScene(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
+                return "LLM services not available. Set your OpenRouter API key first.";
+
+            // Parse keyword args; the remainder is the captor name fragment.
+            bool? genderOverride = null;
+            bool collective = false;
+            CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation;
+            var nameTokens = new List<string>();
+            foreach (string arg in args ?? new List<string>())
+            {
+                if (arg.Equals("female",        StringComparison.OrdinalIgnoreCase)) genderOverride = true;
+                else if (arg.Equals("male",          StringComparison.OrdinalIgnoreCase)) genderOverride = false;
+                else if (arg.Equals("collective",    StringComparison.OrdinalIgnoreCase)) collective = true;
+                else if (arg.Equals("solo",          StringComparison.OrdinalIgnoreCase)) collective = false;
+                else if (arg.Equals("desire",        StringComparison.OrdinalIgnoreCase)) intent = CaptiveSceneIntent.PersonalDesire;
+                else if (Enum.TryParse(arg, ignoreCase: true, out CaptiveSceneIntent parsedIntent)) intent = parsedIntent;
+                else nameTokens.Add(arg);
+            }
+
+            Hero captor = ResolveHero(nameTokens);
+            if (captor == null)
+                return "No captor found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile captorProfile = GetOrCreateProfile(behavior, captor);
+
+            // Apply the gender override (if any) and rebuild the PromptBuilder so it takes effect.
+            if (genderOverride.HasValue)
+            {
+                Services.LlmServices.TestPlayerGenderOverride = genderOverride;
+                behavior.LlmServices.Invalidate();
+            }
+
+            var witnesses = new List<WitnessEntry>();
+            if (collective)
+                witnesses.AddRange(new[] {
+                    new WitnessEntry {
+                        Name = "A soldier", RelationToNpc = "one of your men, present on your orders",
+                        Persona = "Imposing — silent, obedient, watching"
+                    },
+                    new WitnessEntry {
+                        Name = "Another soldier", RelationToNpc = "one of your men, present on your orders",
+                        Persona = "Impassive — expressionless, unmoved"
+                    }
+                });
+
+            string adultWarning = ModSettings.AdultContentLevel != AdultContentLevel.Hardcore
+                ? " (NOTE: adult level is not Hardcore — CNC rules will NOT appear; set it in MCM.)"
+                : "";
+
+            string genderNote = genderOverride.HasValue
+                ? $" gender forced to {(genderOverride.Value ? "female" : "male")};"
+                : "";
+
+            ChatManager.OpenForCaptiveEncounter(captor, captorProfile, witnesses, collective, intent);
+            return $"Captive scene opened with {captor.Name}.{genderNote} " +
+                   $"{(collective ? "collective" : "solo")} [{intent}].{adultWarning}";
+        }
+
+        // ── Sprint 17: kink testing ───────────────────────────────────────────
+
+        /// <summary>
+        ///   cr.add_kink &lt;kink&gt; [name]
+        ///   Adds a kink to the NPC's romantic profile so scene variety can be tested.
+        ///   Apply BEFORE opening a captive scene (cr.crc_scene re-reads the profile on open).
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("add_kink", "cr")]
+        public static string AddKink(List<string> args)
+            => MutateKink(args, add: true, "cr.add_kink <kink> [name]");
+
+        /// <summary>cr.remove_kink &lt;kink&gt; [name] — removes a kink from the NPC's profile.</summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("remove_kink", "cr")]
+        public static string RemoveKink(List<string> args)
+            => MutateKink(args, add: false, "cr.remove_kink <kink> [name]");
+
+        /// <summary>cr.kinks [name] — list the NPC's current kinks and the valid kink names.</summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("kinks", "cr")]
+        public static string ListKinks(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            string current = profile.Romantic?.Kinks == null || profile.Romantic.Kinks.Count == 0
+                ? "(none)"
+                : string.Join(", ", profile.Romantic.Kinks);
+
+            return $"{hero.Name} kinks: {current}\nValid: {ValidKinkNames()}";
+        }
+
+        private static string MutateKink(List<string> args, bool add, string usage)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            if (args == null || args.Count == 0)
+                return $"Usage: {usage}\nKinks: {ValidKinkNames()}";
+
+            if (!Enum.TryParse(args[0], ignoreCase: true, out Kink kink) || kink == Kink.None)
+                return $"Unknown kink '{args[0]}'. Valid: {ValidKinkNames()}";
+
+            var nameArgs = args.Count > 1 ? args.GetRange(1, args.Count - 1) : new List<string>();
+            Hero hero = ResolveHero(nameArgs);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            if (profile.Romantic?.Kinks == null)
+                return $"{hero.Name} has no romantic profile — cannot modify kinks.";
+
+            bool changed;
+            if (add)
+            {
+                if (profile.Romantic.Kinks.Contains(kink)) changed = false;
+                else { profile.Romantic.Kinks.Add(kink); changed = true; }
+            }
+            else
+            {
+                changed = profile.Romantic.Kinks.Remove(kink);
+            }
+
+            behavior.Store.Set(profile);
+
+            string state = profile.Romantic.Kinks.Count == 0 ? "(none)" : string.Join(", ", profile.Romantic.Kinks);
+            if (!changed)
+                return $"No change — {hero.Name} {(add ? "already has" : "does not have")} {kink}. Now: {state}.";
+            return $"{kink} {(add ? "added to" : "removed from")} {hero.Name}. Now: {state}.";
+        }
+
+        private static string ValidKinkNames()
+            => string.Join(", ", Enum.GetNames(typeof(Kink)).Where(n => n != nameof(Kink.None)));
 
         // ── Multi-NPC witnesses ───────────────────────────────────────────────
 

@@ -33,6 +33,8 @@ namespace CalradiaRemembers.Letters
             string title   = $"A letter from {letter.SenderName}";
             string content = letter.Content ?? "(The letter is blank.)";
 
+            StoryLog.WriteLetterReceived(letter.SenderName, content, (int)CampaignTime.Now.ToDays);
+
             InformationManager.ShowInquiry(new InquiryData(
                 titleText:              title,
                 text:                   content,

@@ -25,6 +25,13 @@ namespace CalradiaRemembers
             "Logs",
             "CalradiaRemembers.log");
 
+        /// <summary>
+        ///   Master logging switch from the MCM menu. Defaults to enabled when MCM has not
+        ///   yet loaded (so early-startup lines are not lost). When off, no on-screen
+        ///   messages and no file writes — the mod runs completely silent.
+        /// </summary>
+        private static bool LoggingEnabled => Settings.CrSettings.Instance?.EnableLogging ?? true;
+
         static ModLog()
         {
             // Write a header line on each game launch so the log is easy to read.
@@ -44,6 +51,7 @@ namespace CalradiaRemembers
         /// </summary>
         internal static void Error(string message)
         {
+            if (!LoggingEnabled) return;
             var line = $"[{DateTime.Now:HH:mm:ss}] [ERROR] [{Tag}] {message}";
 
             InformationManager.DisplayMessage(
@@ -58,6 +66,7 @@ namespace CalradiaRemembers
         /// </summary>
         internal static void Info(string message)
         {
+            if (!LoggingEnabled) return;
             var line = $"[{DateTime.Now:HH:mm:ss}] [{Tag}] {message}";
 
             // In-game console (top-left, ephemeral)

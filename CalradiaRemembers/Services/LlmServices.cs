@@ -6,7 +6,9 @@
 #region
 
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.LlmClient;
 using NpcMemoryService.Core.LlmClient.OpenRouter;
@@ -38,6 +40,14 @@ namespace CalradiaRemembers.Services
     {
         private const string ApiKeyEnvVar = "OPENROUTER_API_KEY";
         private const string DefaultModel = "x-ai/grok-4.3";
+
+        /// <summary>
+        ///   Test-only override for the player's gender used when building the prompt.
+        ///   Set by the cr.crc_scene console command to exercise the female/male captive
+        ///   path on a character of the other gender. Null = use the real Hero.MainHero.
+        ///   Cleared by <see cref="ClearTestGenderOverride" /> when the chat closes.
+        /// </summary>
+        public static bool? TestPlayerGenderOverride { get; set; }
 
         private HttpClient _httpClient;
         private NpcChatService _chatService;
@@ -81,6 +91,17 @@ namespace CalradiaRemembers.Services
         ///   Call after reloading narrative files at session launch.
         /// </summary>
         public void Invalidate() => _chatService = null;
+
+        /// <summary>
+        ///   Clears any test gender override and forces a PromptBuilder rebuild so the
+        ///   next conversation uses the real player gender. Called when the chat closes.
+        /// </summary>
+        public static void ClearTestGenderOverride()
+        {
+            if (TestPlayerGenderOverride == null) return;
+            TestPlayerGenderOverride = null;
+            NpcMemoryCampaignBehavior.Instance?.LlmServices?.Invalidate();
+        }
 
         public void Dispose()
         {
@@ -150,16 +171,60 @@ namespace CalradiaRemembers.Services
         ///   current mod settings and main hero. Called lazily so the campaign
         ///   is guaranteed to be loaded by this point.
         /// </summary>
+        // Game actions the LLM may emit. Defined here rather than loaded from JSON
+        // because adding a new action always requires code changes in the parser and
+        // bridge anyway — external configurability adds no practical value.
+        private static readonly IReadOnlyList<GameActionDefinition> ActionVocabulary =
+            new List<GameActionDefinition> {
+                new GameActionDefinition {
+                    Type        = "change_relation",
+                    Description = "Reflect a genuine shift in how you regard the player — this is the ONLY way your relationship with them changes. " +
+                                  "Emit only when something real passes between you, never for idle pleasantries. " +
+                                  "Set 'delta' to the magnitude your heart actually feels: +1 when the player earns sincere warmth this exchange; " +
+                                  "a larger positive is justified only by a truly significant, self-evident moment such as physical intimacy. " +
+                                  "For a wrong done to you, make 'delta' negative and scale it to the gravity — " +
+                                  "a cold rebuff (-2), a crude or unwelcome advance (-5), a pointed insult (-5), " +
+                                  "a lewd proposition made in front of others (-8), the betrayal of a real agreement (-15); " +
+                                  "if you are the player's captive and they treat you with cruelty, your regard may collapse entirely. " +
+                                  "Do NOT stay neutral when the player is disrespectful, vulgar, or presses an advance you have already refused — your regard must fall. " +
+                                  "Trust is slow to grow and quick to break. The game enforces pacing and limits, so state what you feel honestly and let it decide what lands.",
+                    Parameters  = new List<string> { "delta" }
+                },
+                new GameActionDefinition {
+                    Type        = "end_conversation",
+                    Description = "End this conversation now. Emit ONLY when you, in character, would genuinely refuse to continue: " +
+                                  "after a grave insult, a crude or unwelcome advance you will not tolerate, " +
+                                  "an advance you already refused that the player presses again, repeated disrespect, an open threat — " +
+                                  "or when the exchange has reached its natural close and there is nothing more you wish to say. " +
+                                  "When you end the conversation because the player wronged or disrespected you, " +
+                                  "you MUST also emit change_relation with a negative delta matching the offense. " +
+                                  "Do not end over a single clumsy remark or mere awkwardness; reserve it for a real breach or a true farewell.",
+                    Parameters  = new List<string>()
+                },
+                new GameActionDefinition {
+                    Type        = "give_gold",
+                    Description = "Transfer gold from you to the player (payment, reward, gift, bribe). " +
+                                  "The amount must reflect your actual willingness — do not give what you would not give.",
+                    Parameters  = new List<string> { "amount" }
+                },
+                new GameActionDefinition {
+                    Type        = "take_gold",
+                    Description = "Transfer gold from the player to you (tribute, fee, debt repaid). " +
+                                  "Only emit if the player has agreed or you have the authority to demand it.",
+                    Parameters  = new List<string> { "amount" }
+                }
+            };
+
         private NpcChatService BuildChatService()
         {
             PromptBuilder promptBuilder = new PromptBuilder
             {
                 AdultLevel                 = ModSettings.AdultContentLevel,
-                PlayerIsFemale             = Hero.MainHero?.IsFemale ?? false,
+                PlayerIsFemale             = TestPlayerGenderOverride ?? Hero.MainHero?.IsFemale ?? false,
                 WorldDescription           = NarrativeLoader.WorldDescription,
                 PlayerDescription          = NarrativeLoader.PlayerDescription,
                 BehaviorGuidelinesOverride = NarrativeLoader.BehaviorGuidelines,
-                ActionVocabulary           = ActionVocabularyLoader.Vocabulary,
+                ActionVocabulary           = ActionVocabulary,
                 // The NPC's standing is the live game relation (synced each turn),
                 // moved only through the gated change_relation action — so the LLM
                 // does not write a parallel reputation score.

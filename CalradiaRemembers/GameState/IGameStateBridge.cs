@@ -58,5 +58,16 @@ namespace CalradiaRemembers.GameState
         ///   Returns a combined outcome for the chat, or null when nothing was granted.
         /// </summary>
         ActionOutcome GrantQuestReward(Hero npcHero, NpcProfile profile, int gold, int relation);
+
+        /// <summary>
+        ///   Applies the standing penalty for the player being publicly abased before
+        ///   <paramref name="witnessCount"/> onlookers (Sprint 17 captive humiliation).
+        ///   The clan loses Renown (prestige) and Influence (political authority),
+        ///   scaled by the number of witnesses. The world is only mutated when the player
+        ///   is genuinely a prisoner — console test scenes report the figures without
+        ///   touching the save. Returns the (renownLoss, influenceLoss) magnitudes for the
+        ///   chat message; (0, 0) when there are no witnesses.
+        /// </summary>
+        (int renownLoss, int influenceLoss) ApplyPlayerPublicHumiliation(int witnessCount);
     }
 }

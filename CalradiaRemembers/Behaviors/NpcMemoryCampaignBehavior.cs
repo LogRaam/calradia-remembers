@@ -156,8 +156,9 @@ namespace CalradiaRemembers.Behaviors
             ModLog.Info("Campaign session launched.");
             CulturalTraditionsLoader.Load();
             NarrativeLoader.Load();
-            ActionVocabularyLoader.Load();
             LlmServices.Invalidate();   // rebuild PromptBuilder with fresh file content
+            StoryLog.WriteSessionHeader();
+            CaptiveEncounterService.ResetOnSessionLaunch();
             DisplayLoadedProfiles();
             UpgradeLegacyProfiles();
             RefreshRelationships();
@@ -185,6 +186,7 @@ namespace CalradiaRemembers.Behaviors
             LetterEvaluator.EvaluateDaily(Store, LlmServices, today);
             TriggerPendingReplies(today);
             SpawnPendingReplyCouriers(today);
+            CaptiveEncounterService.CheckAndTrigger(Store, LlmServices);
         }
 
         /// <summary>

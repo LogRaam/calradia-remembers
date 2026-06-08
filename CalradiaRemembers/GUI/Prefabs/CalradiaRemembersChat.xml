@@ -1,7 +1,6 @@
 <Prefab>
   <Constants>
     <Constant Name="Chat.Width"  Value="700" />
-    <Constant Name="Chat.Height" Value="880" />
     <Constant Name="Avatar.Size" Value="55" />
   </Constants>
 
@@ -9,11 +8,12 @@
 
     <Widget Id="ChatPanel"
             WidthSizePolicy="Fixed"
-            HeightSizePolicy="Fixed"
+            HeightSizePolicy="StretchToParent"
             SuggestedWidth="!Chat.Width"
-            SuggestedHeight="!Chat.Height"
             HorizontalAlignment="Right"
             VerticalAlignment="Center"
+            MarginTop="100"
+            MarginBottom="100"
             PositionXOffset="-30"
             Sprite="BlankWhiteSquare_9"
             Color="#1a1612F2">
@@ -115,10 +115,10 @@
 
         <Widget Id="MessagesArea"
                 WidthSizePolicy="StretchToParent"
-                HeightSizePolicy="Fixed"
-                SuggestedHeight="630"
+                HeightSizePolicy="StretchToParent"
                 VerticalAlignment="Top"
-                PositionYOffset="95"
+                MarginTop="98"
+                MarginBottom="165"
                 MarginLeft="15"
                 MarginRight="15">
           <Children>
@@ -243,6 +243,7 @@
                          SuggestedHeight="60"
                          HorizontalAlignment="Left"
                          VerticalAlignment="Center"
+                         IsVisible="@IsNormalInputVisible"
                          Sprite="BlankWhiteSquare_9"
                           Color="#0d0a08DD"
                           AlphaFactor="0.4">
@@ -272,6 +273,7 @@
               HorizontalAlignment="Right"
               VerticalAlignment="Center"
               MarginRight="25"
+              IsVisible="@IsNormalInputVisible"
               DoNotPassEventsToChildren="true"
               Brush="ButtonBrush1"
               UpdateChildrenStates="true"
@@ -286,6 +288,54 @@
                             Brush="Popup.Button.Text"
                             Brush.FontSize="20"
                             Text="@SendButtonText" />
+              </Children>
+            </ButtonWidget>
+
+            <ButtonWidget Id="ContinueButton"
+              WidthSizePolicy="Fixed"
+              HeightSizePolicy="Fixed"
+              SuggestedWidth="200"
+              SuggestedHeight="60"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              MarginRight="245"
+              IsVisible="@IsScenePaused"
+              DoNotPassEventsToChildren="true"
+              Brush="ButtonBrush1"
+              UpdateChildrenStates="true"
+              Command.Click="ExecuteContinue">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Brush="Popup.Button.Text"
+                            Brush.FontSize="20"
+                            Text="Continue" />
+              </Children>
+            </ButtonWidget>
+
+            <ButtonWidget Id="TrySomethingButton"
+              WidthSizePolicy="Fixed"
+              HeightSizePolicy="Fixed"
+              SuggestedWidth="230"
+              SuggestedHeight="60"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              MarginRight="5"
+              IsVisible="@IsScenePaused"
+              DoNotPassEventsToChildren="true"
+              Brush="ButtonBrush1"
+              UpdateChildrenStates="true"
+              Command.Click="ExecuteTrySomething">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Brush="Popup.Button.Text"
+                            Brush.FontSize="20"
+                            Text="Try something" />
               </Children>
             </ButtonWidget>
 

@@ -194,6 +194,10 @@ cr.quest [name]                      # seed a bandit_clear quest (issue→inject
 cr.quest_done [name]                 # force-stamp outstanding quest satisfied (test reward w/o battle)
 cr.quest_abandon [name]              # force-abandon outstanding quest (test broken-word penalty)
 cr.quests [name]                     # list NPC quests + state
+cr.crc_scene [female|male] [solo|collective] [intent] [name]   # open a captive scene (Hardcore); intent = interrogation|desire|domination|torture|training|reward
+cr.kinks [name]                      # list NPC kinks + valid kink names
+cr.add_kink <kink> [name]            # add a kink (apply BEFORE opening a scene)
+cr.remove_kink <kink> [name]         # remove a kink
 ```
 
 ---
@@ -202,7 +206,7 @@ cr.quests [name]                     # list NPC quests + state
 
 - **Language**: Gabriel writes in French; all code and files in English.
 - **Before each task**: suggest the model (Sonnet 4.6 / Opus) and wait for explicit confirmation before implementing.
-- **Scope**: no cleanup, no extra abstractions, no refactoring beyond the task.
+- **Scope**: pas de cleanup ou refactoring spontané pendant une feature. Refactoring et polish explicitement demandés sont en scope.
 - **Commits**: never commit without explicit request. When asked: both repos (mod + SDK) unless stated.
 
 ---
@@ -245,6 +249,12 @@ Visible courier party (player→NPC) + NPC reply by courier:
 - 15A (SDK `PromptBuilder.AppendWitnesses`): witnesses may react PROACTIVELY (strong opinion, known fact, persona, several turns of silence), not only when provoked; silence is also characterful.
 - 15B (mod `ChatViewModel`): the player can address a witness directly (sticky `_currentSpeakerHeroId`). Detection = participant name in a *stage direction* (`*...*`) or vocative; `AddressStopWords` filters connectors. The turn is routed to that witness's profile (full `ChatAsync`), reply shown under their portrait/colour; `ResolveAddressedSpeaker`/`SpeakerForCurrent`/`BuildContextWitnesses`. Per-call attributed transcript (`_transcript`) rebuilds each speaker's `ChatSession` from `_messages` (own lines→assistant, others→`[Name]:` user) — replaces `DialogFlow.Session` for the exchange. Indicator "▸ Speaking to X" via `WitnessesText`. Title stays the main NPC. Scope: one routed speaker/turn; NPC→NPC chaining is 15C (not built). **To verify: address Martira → re-address Alympia → she references what Martira said.**
 
+**Sprint 15C** ✅ built (2026-06-06) — NPC auto-responds to witness reactions, **looped, capped at 3** per player turn:
+- `EncounterContext.IsWitnessExchangeTurn` + `IsLastWitnessExchange` (SDK): flag the LLM call as a NPC→witness exchange; the latter marks the final allowed exchange.
+- `PromptBuilder.AppendWitnesses` (SDK): when `IsWitnessExchangeTurn`, injects "THIS TURN — A WITNESS HAS JUST SPOKEN" (react, don't default to player). When `IsLastWitnessExchange`, adds a CLOSING rule: no question to another NPC — close the beat or turn it to the player.
+- `EncounterContextBuilder.Build` (mod): `isWitnessExchangeTurn` + `isLastWitnessExchange` params.
+- `ChatViewModel` (mod): `WitnessExchangeCap = 3`; `_witnessExchangesThisRound` (reset on every player send) + `_npcWitnessExchangePending` (prevents premature input re-enable). `CollectWitnessReactions` helper (shared with main path; resolves hero ids). `RunNpcWitnessExchangeAsync` is a **loop**: each iteration fires one LLM call, displays reaction+reply, then collects fresh `[WITNESS_REACTION]`s to continue; terminates on cap, silence, or `end_conversation`. Reactions committed to transcript just before each call (no double-count). **In-game test pending.**
+
 **Sprint 16** ✅ MCM mod options (distribution):
 - `Settings/CrSettings.cs` (`AttributeGlobalSettings`, Global scope — NOT per-save): OpenRouter API Key, Model, Test Connection button, Adult Content Level dropdown (default Mature), Verbose Logging toggle.
 - `Settings/ApiKeyTester.cs`: probes `/auth/key`, popup OK/401/error; works from main menu, no tokens.
@@ -254,4 +264,25 @@ Visible courier party (player→NPC) + NPC reply by courier:
 - Known cosmetic: MCM native-options screen renders the list flipped (TaleWorlds ListPanel layout fix that MCM predates) — not our bug; fixed by an up-to-date MCM. Ordering attributes currently compensate.
 - Security: API key was leaked via committed `ConsoleRunner/Properties/launchSettings.json` (auto-disabled by OpenRouter) — scrubbed; key now env-var/MCM only.
 
-**Next**: verify 15B round-trip in-game; Nexus release polish (min MCM version on page); 15C (NPC→NPC, capped) deferred.
+**Sprint 17** ✅ Captive encounter + CNC scenes (validated in-game 2026-06-07):
+- **Section A** (SDK `PromptBuilder.AppendPlayerGenderContext`): when `PlayerIsFemale` + patriarchal faction (Vlandia, Northern/Western Empire, Aserai), the NPC applies cultural skepticism toward female authority. Gated by AdultLevel != Off.
+- **Section B** (SDK `PromptBuilder.AppendCaptivePlayerRules`): when `PlayerStatus == Captive` + Hardcore, replaces standard consent rules with CNC framing. `IsCollectiveCaptiveScene` → witnesses are active participants; else **ALONE block** ("no guards present — use existing bonds, your own hands") so the LLM stops inventing guards in solo scenes. **BE INVENTIVE** block invites varied, non-conventional, non-penetrative acts steered by the NPC's kinks.
+- **`CaptiveSceneIntent`** (SDK enum, 6): Interrogation, PersonalDesire, Domination, Torture, **Training** (one session of ongoing conditioning), **Reward** (positive register — the carrot). Each drives a distinct opening cue (`ChatViewModel.BuildCaptiveOpener`) + YOUR PURPOSE/ESCALATION block. Relation notes injected (≥15 prior interest survives / ≤-5 no goodwill / ≤-20 contempt). `EncounterContext.CaptiveIntent` + `IsFinalSceneBeat`.
+- **Captor speaks first**: `ActivateCaptiveEncounterMode` fires an NPC-led opening turn via `RunLlmExchangeAsync(opener, suppressPlayerLine:true)` — synthetic stage cue, never shown/logged as a player line.
+- **Scene continuation**: when the NPC emits `[NARRATION]` without ending its dialogue in a question, the scene pauses with **Continue / Try something** buttons (`IsScenePaused`/`IsNormalInputVisible`; `RunCaptiveSceneContinuationAsync` fires one beat per Continue; `MaxSceneContinuations=4`). SCENE ARC (build→peak→conclude), anti-looping, non-sexual peak clarified. `IsFinalSceneBeat` (cap-1) + the continuation stimulus both push "conclude now". CLOSING rule: `end_conversation` must narrate the prisoner released and returned to cell — never mid-act.
+- **Kinks**: enum grown 13→28 (`Kink.cs`): +OrgasmControl, Chastity, FreeUse, Degradation, Objectification, PetPlay, Praise, ImpactPlay, SensoryDeprivation, FearPlay, MasterSlave, Breeding, Training, CorruptionKink, Prize. `DescribeKink` descriptions; `RomanticProfileBuilder.BuildKinkPool` trait correlations (Mercy/Honor/Calculating/Valor/Generosity); `CaptiveEncounterService.SelectIntent` + probability bonuses (FreeUse +10%, MasterSlave +5%). Console: `cr.kinks`, `cr.add_kink <kink> [name]`, `cr.remove_kink`. Existing NPC profiles keep frozen kinks — new kinks appear organically only on profiles created after this build, or via `add_kink`.
+- **Public humiliation** (`IGameStateBridge.ApplyPlayerPublicHumiliation`): collective + humiliating intent (Torture/Domination/PersonalDesire/Training) → clan **Renown −2/witness (cap 12) + Influence −3/witness (cap 18)** via GainRenownAction + ChangeClanInfluenceAction. Only mutates the save when `IsPrisoner` (console test reports figures without touching it). Excludes Interrogation/Reward. Triggered in `ActivateCaptiveEncounterMode`. (Direction 2 — player aggresses an NPC → NPC loses standing — deferred: no aggressor scene exists yet.)
+- **Captive scene memory**: at scene close (`ChatManager.Close` → `ChatViewModel.FinalizeCaptiveSceneMemory`, idempotent), a `NotableEventType.Captivity` event (new SDK type, last in enum to preserve save ordinals, protected from `LlmMemoryCompressor`) is recorded **synchronously** with a base summary (verb per intent + "before my soldiers"/"in private"), then `CaptiveSceneSummarizer` (SDK, one-shot `ILlmClient.CompleteAsync`, run async via `Task.Run`) generates a first-person past-tense rich summary from the transcript and **replaces** the base (`record with { summary }`, re-matched by value against a fresh `Store.Get`). 1 event/scene; capture guaranteed even if the async summary fails. Reinjected later via `AppendHistory`.
+- **Witness label fix**: `CollectWitnessReactions` strips any parenthetical role (`StripWitnessRole`) and shows the canonical name — no more "A soldier (one of your men…)" leaking to the player.
+- **`[NARRATION]` block** (SDK `ParsedResponse.Narration` + parser + `AppendCaptivePlayerRules` teaches it): second-person explicit prose for physical action done TO the player (incl. soldiers on the captor's order) and the player's sensations — distinct from `[DIALOGUE]`. Mod `ChatViewModel.AppendNarration`: portrait-less pale-violet line, StoryLog (novel-style), transcript as `[Scene]: …`. Wired in the main path, the 15C loop, and the continuation loop.
+- **Console**: `cr.crc_scene [female|male] [solo|collective] [interrogation|desire|domination|torture|training|reward] [name]` — intent accepts the short alias or the full enum name (`Enum.TryParse`). Forces Captive status + optional gender override without a real prisoner.
+- **UI responsive**: chat panel `HeightSizePolicy=StretchToParent` + 100px top/bottom margins (was Fixed 880) so it adapts to UI Scale / aspect ratio; `MessagesArea` stretches to absorb the slack. Verified at min/max UI scale.
+- **NOT YET BUILT**: scenario bank (Twine→JSON, one-use-per-campaign via SyncData, eligibility by kinks/gender, prompt injection), image overlay ([SCENE] parser). When adding persisted campaign state, REMOVE `CaptiveEncounterService.ResetOnSessionLaunch` — SyncData(load) fires before OnSessionLaunched and would clobber loaded state.
+
+**Misc (built + validated)**:
+- **Story Log** (`StoryLog.cs` + MCM `CrSettings.StoryLogging` in Diagnostics, off by default): clean novel-style transcript to `Logs/CalradiaRemembers_story.log`. Session header, lazy per-conversation intro, player/NPC/witness lines, relation/gold prose, letters, scene narration. Player always "You". Accumulates across sessions.
+- **Enable Logging** (`CrSettings.EnableLogging`, **off by default** for Nexus): master switch in `ModLog` (`LoggingEnabled` fallback true so pre-MCM startup lines are kept).
+- **`farewell` event → input lock**: a `NotableEventType.Farewell` event locks input + "Leave" button (silent — the NPC already said goodbye).
+- **action_vocabulary refactor**: the 4 action definitions live as a `static readonly` list in `LlmServices` (deleted `ActionVocabularyLoader.cs` + `ModuleData/action_vocabulary.json`).
+
+**Next**: Nexus release (mod page description in progress; min MCM version note; gitignore launchSettings.json); then scenario bank (Twine→JSON).

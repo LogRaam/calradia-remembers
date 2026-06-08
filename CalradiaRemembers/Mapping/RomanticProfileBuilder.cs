@@ -755,12 +755,42 @@ namespace CalradiaRemembers.Mapping
                 Kink.Roleplay, Kink.PublicAffection, Kink.Voyeurism, Kink.Exhibitionism
             };
 
-            if (t.Mercy <= -1) { pool.Add(Kink.Dominance); pool.Add(Kink.Sadism); pool.Add(Kink.BondageGiving); pool.Add(Kink.PowerImbalance); }
-            if (t.Mercy >=  1) { pool.Add(Kink.Submission); pool.Add(Kink.BondageReceiving); pool.Add(Kink.Masochism); }
-            if (t.Honor <= -1) { pool.Add(Kink.PowerImbalance); pool.Add(Kink.SwitchTendencies); }
-            if (t.Calculating >= 1) { pool.Add(Kink.Dominance); pool.Add(Kink.Possessiveness); pool.Add(Kink.BondageGiving); }
-            if (t.Valor >=  1) { pool.Add(Kink.Exhibitionism); pool.Add(Kink.Masochism); }
-            if (t.Generosity <= -1) pool.Add(Kink.Possessiveness);
+            if (t.Mercy <= -1)
+            {
+                pool.Add(Kink.Dominance); pool.Add(Kink.Sadism); pool.Add(Kink.BondageGiving); pool.Add(Kink.PowerImbalance);
+                pool.Add(Kink.Degradation); pool.Add(Kink.FreeUse); pool.Add(Kink.ImpactPlay);
+                pool.Add(Kink.FearPlay); pool.Add(Kink.Objectification);
+            }
+            if (t.Mercy >= 1)
+            {
+                pool.Add(Kink.Submission); pool.Add(Kink.BondageReceiving); pool.Add(Kink.Masochism);
+                pool.Add(Kink.Praise);
+            }
+            if (t.Honor <= -1)
+            {
+                pool.Add(Kink.PowerImbalance); pool.Add(Kink.SwitchTendencies);
+                pool.Add(Kink.CorruptionKink); pool.Add(Kink.Degradation);
+            }
+            if (t.Honor >= 1)
+            {
+                pool.Add(Kink.Breeding); pool.Add(Kink.Praise);
+            }
+            if (t.Calculating >= 1)
+            {
+                pool.Add(Kink.Dominance); pool.Add(Kink.Possessiveness); pool.Add(Kink.BondageGiving);
+                pool.Add(Kink.OrgasmControl); pool.Add(Kink.Chastity); pool.Add(Kink.Objectification);
+                pool.Add(Kink.SensoryDeprivation); pool.Add(Kink.Training); pool.Add(Kink.MasterSlave); pool.Add(Kink.PetPlay);
+            }
+            if (t.Valor >= 1)
+            {
+                pool.Add(Kink.Exhibitionism); pool.Add(Kink.Masochism);
+                pool.Add(Kink.Prize);
+            }
+            if (t.Generosity <= -1)
+            {
+                pool.Add(Kink.Possessiveness);
+                pool.Add(Kink.MasterSlave); pool.Add(Kink.FreeUse); pool.Add(Kink.PetPlay);
+            }
 
             return pool;
         }
