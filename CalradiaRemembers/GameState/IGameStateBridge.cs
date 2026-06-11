@@ -22,6 +22,15 @@ namespace CalradiaRemembers.GameState
         /// <summary>The kind of scene the player is currently in (outdoor, settlement, keep, etc.).</summary>
         SceneType GetCurrentScene();
 
+        /// <summary>
+        ///   A short, plain description of what <paramref name="npc"/> is currently doing on
+        ///   the campaign map — laying siege, marching with an army toward an objective, or
+        ///   traveling to a settlement. Returns null when it cannot be read with confidence:
+        ///   feeding a guessed destination would let the prompt endorse the very confabulation
+        ///   this is meant to prevent, so uncertainty must produce null, not a best guess.
+        /// </summary>
+        string GetCurrentActivity(Hero npc);
+
         /// <summary>The current in-game day (from <c>CampaignTime.Now</c>).</summary>
         int GetCurrentGameDay();
 

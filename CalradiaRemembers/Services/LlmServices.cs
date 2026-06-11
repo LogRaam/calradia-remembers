@@ -38,8 +38,17 @@ namespace CalradiaRemembers.Services
     /// </summary>
     public sealed class LlmServices : IDisposable
     {
-        private const string ApiKeyEnvVar = "OPENROUTER_API_KEY";
-        private const string DefaultModel = "x-ai/grok-4.3";
+        // Provider ids — must match the values in CrSettings.Provider dropdown.
+        private const string ProviderOpenRouter = "OpenRouter";
+        private const string ProviderNanoGpt    = "NanoGPT";
+
+        private const string OpenRouterApiKeyEnvVar = "OPENROUTER_API_KEY";
+        private const string NanoGptApiKeyEnvVar    = "NANOGPT_API_KEY";
+
+        private const string OpenRouterBaseUrl = "https://openrouter.ai/api/v1";
+        private const string NanoGptBaseUrl    = "https://nano-gpt.com/api/v1";
+
+        private const string DefaultModel = "x-ai/grok-4.3"; // OpenRouter default
 
         /// <summary>
         ///   Test-only override for the player's gender used when building the prompt.
@@ -52,6 +61,7 @@ namespace CalradiaRemembers.Services
         private HttpClient _httpClient;
         private NpcChatService _chatService;
         private NpcMemoryService.Core.Models.AdultContentLevel _builtAdultLevel;
+        private RelationWarmth _builtWarmth;
 
         public ILlmClient LlmClient { get; private set; }
 
@@ -66,9 +76,10 @@ namespace CalradiaRemembers.Services
         public bool IsAvailable => LlmClient != null && !string.IsNullOrWhiteSpace(ResolveApiKey());
 
         /// <summary>
-        ///   Lazily-constructed chat service. The PromptBuilder inside is built on first
-        ///   access — and rebuilt whenever the adult-content level changes — so options
-        ///   edits apply without a restart.
+        ///   Lazily-constructed chat service. The PromptBuilder and action vocabulary
+        ///   inside are built on first access — and rebuilt whenever the adult-content
+        ///   level or relationship-warmth setting changes — so options edits apply
+        ///   without a restart.
         /// </summary>
         public NpcChatService ChatService
         {
@@ -76,10 +87,12 @@ namespace CalradiaRemembers.Services
             {
                 if (!IsAvailable) return null;
                 NpcMemoryService.Core.Models.AdultContentLevel current = ModSettings.AdultContentLevel;
-                if (_chatService == null || _builtAdultLevel != current)
+                RelationWarmth warmth = ModSettings.RelationWarmth;
+                if (_chatService == null || _builtAdultLevel != current || _builtWarmth != warmth)
                 {
                     _chatService     = BuildChatService();
                     _builtAdultLevel = current;
+                    _builtWarmth     = warmth;
                 }
                 return _chatService;
             }
@@ -119,19 +132,23 @@ namespace CalradiaRemembers.Services
             {
                 _httpClient = new HttpClient();
 
-                // The client reads the key live via ResolveApiKey on every request, so a key
-                // entered in the MCM menu applies immediately — no restart, no save reload.
+                // The client reads key/model/base-URL live on every request, so a provider,
+                // key or model picked in the MCM menu applies immediately — no restart, no
+                // save reload. The cache_control extension is disabled for providers that do
+                // not accept the content-array system message (e.g. NanoGPT).
                 OpenRouterConfig config = new OpenRouterConfig {
-                    ApiKeyProvider = ResolveApiKey,
-                    ModelProvider  = ResolveModel
+                    ApiKeyProvider                 = ResolveApiKey,
+                    ModelProvider                  = ResolveModel,
+                    BaseUrlProvider                = ResolveBaseUrl,
+                    UseSystemPromptCachingProvider = ResolveUseSystemPromptCaching
                 };
                 LlmClient = new OpenRouterClient(_httpClient, config);
 
                 if (string.IsNullOrWhiteSpace(ResolveApiKey()))
-                    ModLog.Info("LLM stack built, but no OpenRouter API key is set yet. " +
+                    ModLog.Info($"LLM stack built, but no {ResolveProvider()} API key is set yet. " +
                                 "Add it in Mods → Mod Options → Calradia Remembers (applies immediately).");
                 else
-                    ModLog.Info($"LLM stack initialized with model {DefaultModel}.");
+                    ModLog.Info($"LLM stack initialized — provider {ResolveProvider()}, model {ResolveModel()}.");
 
                 return IsAvailable;
             }
@@ -145,26 +162,60 @@ namespace CalradiaRemembers.Services
         #region private
 
         /// <summary>
-        ///   Resolves the OpenRouter API key. A key entered in the MCM menu wins; the
-        ///   <c>OPENROUTER_API_KEY</c> environment variable remains a fallback for
-        ///   developer setups and power users. Whitespace is treated as unset.
+        ///   The selected provider id from the MCM menu. Falls back to OpenRouter when
+        ///   MCM has not loaded. Read live so a provider change applies immediately.
         /// </summary>
-        private static string ResolveApiKey()
+        private static string ResolveProvider()
         {
-            string mcmKey = Settings.CrSettings.Instance?.ApiKey;
-            if (!string.IsNullOrWhiteSpace(mcmKey)) return mcmKey.Trim();
-            return Environment.GetEnvironmentVariable(ApiKeyEnvVar);
+            string sel = Settings.CrSettings.Instance?.Provider?.SelectedValue;
+            return sel == ProviderNanoGpt ? ProviderNanoGpt : ProviderOpenRouter;
         }
 
         /// <summary>
-        ///   Resolves the OpenRouter model id: the MCM menu value wins; falls back to the
-        ///   built-in default. Read live on every request via <c>ModelProvider</c>.
+        ///   Resolves the active provider's API key. A key entered in the MCM menu wins;
+        ///   the provider's environment variable (<c>OPENROUTER_API_KEY</c> /
+        ///   <c>NANOGPT_API_KEY</c>) remains a fallback for developer setups and power
+        ///   users. Whitespace is treated as unset.
+        /// </summary>
+        private static string ResolveApiKey()
+        {
+            Settings.CrSettings s = Settings.CrSettings.Instance;
+            bool nano = ResolveProvider() == ProviderNanoGpt;
+
+            string mcmKey = nano ? s?.NanoGptApiKey : s?.ApiKey;
+            if (!string.IsNullOrWhiteSpace(mcmKey)) return mcmKey.Trim();
+
+            return Environment.GetEnvironmentVariable(nano ? NanoGptApiKeyEnvVar : OpenRouterApiKeyEnvVar);
+        }
+
+        /// <summary>
+        ///   Resolves the active provider's model id: the MCM menu value wins. OpenRouter
+        ///   falls back to the built-in default; NanoGPT has no default (model namespaces
+        ///   differ, so a wrong id is worse than an explicit blank) and returns whatever the
+        ///   user pasted. Read live on every request via <c>ModelProvider</c>.
         /// </summary>
         private static string ResolveModel()
         {
-            string mcmModel = Settings.CrSettings.Instance?.Model;
+            Settings.CrSettings s = Settings.CrSettings.Instance;
+
+            if (ResolveProvider() == ProviderNanoGpt)
+                return s?.NanoGptModel?.Trim() ?? string.Empty;
+
+            string mcmModel = s?.Model;
             return string.IsNullOrWhiteSpace(mcmModel) ? DefaultModel : mcmModel.Trim();
         }
+
+        /// <summary>Resolves the active provider's OpenAI-compatible base URL. Read live per request.</summary>
+        private static string ResolveBaseUrl() =>
+            ResolveProvider() == ProviderNanoGpt ? NanoGptBaseUrl : OpenRouterBaseUrl;
+
+        /// <summary>
+        ///   Whether to send the cacheable content-array system message. OpenRouter honors
+        ///   the <c>cache_control</c> breakpoint; NanoGPT routes to arbitrary models and the
+        ///   array form is untested there, so we send a plain string to stay portable.
+        /// </summary>
+        private static bool ResolveUseSystemPromptCaching() =>
+            ResolveProvider() != ProviderNanoGpt;
 
         /// <summary>
         ///   Builds the chat service with a PromptBuilder configured against
@@ -173,21 +224,14 @@ namespace CalradiaRemembers.Services
         /// </summary>
         // Game actions the LLM may emit. Defined here rather than loaded from JSON
         // because adding a new action always requires code changes in the parser and
-        // bridge anyway — external configurability adds no practical value.
-        private static readonly IReadOnlyList<GameActionDefinition> ActionVocabulary =
+        // bridge anyway — external configurability adds no practical value. The
+        // change_relation wording varies with the Relationship Warmth setting so the
+        // player's chosen pacing is reflected in what the NPC is told to feel.
+        private static IReadOnlyList<GameActionDefinition> BuildActionVocabulary(RelationWarmth warmth) =>
             new List<GameActionDefinition> {
                 new GameActionDefinition {
                     Type        = "change_relation",
-                    Description = "Reflect a genuine shift in how you regard the player — this is the ONLY way your relationship with them changes. " +
-                                  "Emit only when something real passes between you, never for idle pleasantries. " +
-                                  "Set 'delta' to the magnitude your heart actually feels: +1 when the player earns sincere warmth this exchange; " +
-                                  "a larger positive is justified only by a truly significant, self-evident moment such as physical intimacy. " +
-                                  "For a wrong done to you, make 'delta' negative and scale it to the gravity — " +
-                                  "a cold rebuff (-2), a crude or unwelcome advance (-5), a pointed insult (-5), " +
-                                  "a lewd proposition made in front of others (-8), the betrayal of a real agreement (-15); " +
-                                  "if you are the player's captive and they treat you with cruelty, your regard may collapse entirely. " +
-                                  "Do NOT stay neutral when the player is disrespectful, vulgar, or presses an advance you have already refused — your regard must fall. " +
-                                  "Trust is slow to grow and quick to break. The game enforces pacing and limits, so state what you feel honestly and let it decide what lands.",
+                    Description = ChangeRelationDescription(warmth),
                     Parameters  = new List<string> { "delta" }
                 },
                 new GameActionDefinition {
@@ -215,6 +259,56 @@ namespace CalradiaRemembers.Services
                 }
             };
 
+        /// <summary>
+        ///   Assembles the change_relation instruction. The opening, the negative scale,
+        ///   and the closing are constant at every warmth level — only the guidance on
+        ///   WHEN a positive gain is warranted changes, so insults stay equally costly
+        ///   while the player's chosen warmth controls how readily goodwill is earned.
+        /// </summary>
+        private static string ChangeRelationDescription(RelationWarmth warmth)
+        {
+            const string opening =
+                "Reflect a genuine shift in how you regard the player — this is the ONLY way your relationship with them changes. ";
+
+            string positive;
+            switch (warmth)
+            {
+                case RelationWarmth.Easier:
+                    positive =
+                        "Emit +1 whenever the player genuinely pleases you this exchange — a well-turned compliment, shared humor, " +
+                        "an engaging story, real sympathy or support, or simply good company. Good company earns goodwill here: do not " +
+                        "withhold a small gain merely because no grand deed was done. A larger positive is reserved for a truly " +
+                        "significant, self-evident moment such as physical intimacy. ";
+                    break;
+
+                case RelationWarmth.VeryEasy:
+                    positive =
+                        "Emit +1 — occasionally +2 — for almost any sincerely positive exchange: pleasant talk, a kind word, a shared " +
+                        "laugh, a moment of real connection. You warm to people readily and give them the benefit of the doubt; you need " +
+                        "no grand deed to feel goodwill. Reserve larger gains for a truly significant, self-evident moment such as physical intimacy. ";
+                    break;
+
+                default: // Normal — the balanced baseline
+                    positive =
+                        "Emit only when something real passes between you, never for idle pleasantries. Set 'delta' to the magnitude " +
+                        "your heart actually feels: +1 when the player earns sincere warmth this exchange; a larger positive is justified " +
+                        "only by a truly significant, self-evident moment such as physical intimacy. Trust is slow to grow and quick to break. ";
+                    break;
+            }
+
+            const string negative =
+                "For a wrong done to you, make 'delta' negative and scale it to the gravity — " +
+                "a cold rebuff (-2), a crude or unwelcome advance (-5), a pointed insult (-5), " +
+                "a lewd proposition made in front of others (-8), the betrayal of a real agreement (-15); " +
+                "if you are the player's captive and they treat you with cruelty, your regard may collapse entirely. " +
+                "Do NOT stay neutral when the player is disrespectful, vulgar, or presses an advance you have already refused — your regard must fall. ";
+
+            const string closing =
+                "The game enforces pacing and limits, so state what you feel honestly and let it decide what lands.";
+
+            return opening + positive + negative + closing;
+        }
+
         private NpcChatService BuildChatService()
         {
             PromptBuilder promptBuilder = new PromptBuilder
@@ -224,7 +318,7 @@ namespace CalradiaRemembers.Services
                 WorldDescription           = NarrativeLoader.WorldDescription,
                 PlayerDescription          = NarrativeLoader.PlayerDescription,
                 BehaviorGuidelinesOverride = NarrativeLoader.BehaviorGuidelines,
-                ActionVocabulary           = ActionVocabulary,
+                ActionVocabulary           = BuildActionVocabulary(ModSettings.RelationWarmth),
                 // The NPC's standing is the live game relation (synced each turn),
                 // moved only through the gated change_relation action — so the LLM
                 // does not write a parallel reputation score.
@@ -235,7 +329,7 @@ namespace CalradiaRemembers.Services
             };
 
             ModLog.Info($"PromptBuilder built (AdultLevel={ModSettings.AdultContentLevel}, " +
-                        $"PlayerIsFemale={promptBuilder.PlayerIsFemale}).");
+                        $"Warmth={ModSettings.RelationWarmth}, PlayerIsFemale={promptBuilder.PlayerIsFemale}).");
 
             return new NpcChatService(
                 LlmClient,

@@ -1,0 +1,249 @@
+[size=5]Calradia Remembers[/size]
+
+[i]Give the lords and ladies of Calradia a memory.. and a voice of their own.[/i]
+
+[line]
+[size=4]Why this mod exists[/size]
+
+Calradia Remembers began as a ground-up answer to a simple wish: an LLM-driven roleplay mod whose code I fully own, understand, and can keep alive.
+
+The idea of talking freely to Bannerlord's characters isn't new.. AI Influence showed the community what was possible. But its source is obfuscated: it can't be studied, fixed, or extended by anyone but its author, and when something doesn't work as expected you're stuck waiting. I didn't want to build on a black box. So I wrote Calradia Remembers from scratch, every line my own, with a clean and documented codebase.. a mod that can be maintained, audited, and grown openly for as long as people want to play it.
+
+What came out of that is, I think, more than a clone. The heart of this mod is [b][color=#ffff00]memory[/color][/b]: your NPCs remember.
+
+..no more "0 conversation" with NPC you already had a conversation with.
+
+[line]
+[size=4]What it does[/size]
+
+Every notable NPC in Calradia keeps a private, persistent memory of you.. stored inside your save, not a side file. You don't pick lines from a menu: you [i][color=#c9daf8]type whatever you want[/color][/i], and the character answers in their own voice, shaped by who they are, what your two factions are doing, and everything that has passed between you before.
+
+Make an oath and break it, and they'll remember the betrayal months later. Earn a lord's trust through deeds, and his warmth is real. Insult a lady in front of her peers, and word gets around. Conversations leave marks.. on relations, on reputation, sometimes on your purse.. and those marks last!
+
+[line]
+[size=4]Features[/size]
+
+[b][color=#e69138]Persistent NPC memory[/color][/b]
+Each character records notable events between you.. first meetings, agreements, betrayals, intimate moments, partings.. stamped with the in-game day and carried forward in your save.  When you meet again, they speak as someone who lived through all of it. A built-in, LLM-driven memory compressor keeps long histories from bloating while protecting the moments that matter.
+
+[b][color=#e69138]Free-text conversation, in character[/color][/b]
+A clean overlay chat.. no dialogue trees. NPCs reply with the weight of their clan, their liege, and their personality. They judge you by deeds, not flattery, and they don't casually give up their secrets.
+
+[b][color=#e69138]Woven into the vanilla game[/color][/b]
+The mod plugs straight into Bannerlord's own dialogue: walk up to any lord exactly as you always do, and a "[i]We need to talk…[/i]" option sits among the normal choices. Pick it and the character greets you.. with a real vanilla facial expression that matches how they feel about you, warm, neutral, or cold.. then the chat opens to continu the conversation with a LLM. Close it and you're back in the ordinary conversation. Nothing native is removed: trade, quests, and every vanilla option are still right where you left them. The mod gives the characters a voice; it doesn't replace your game.
+
+[b][color=#e69138]Living personalities[/color][/b]
+Personalities and traits drawn from each hero, relationship awareness (friends, rivals, family, liege), and a sense of standing.. a noble of a great clan does not speak to you the way a landless adventurer does.
+
+[b][color=#e69138]Culture matters (and it's yours to shape)[/color][/b]
+Calradia's peoples don't all think alike, and the characters reflect it. A Battanian, where women fight, inherit, and lead, meets you very differently from a Vlandian or Aserai lord who expects modesty and deference, while the progressive Southern Empire under Empress Rhagaea takes female authority in stride.  A [b][color=#d5a6bd]female player character[/color][/b] runs into authentic cultural skepticism in the patriarchal factions, not blank generic politeness. All of this ships ready-made with the mod.. and, like the rest of the prompt, it's [i]yours to rewrite[/i]: the cultural rules live in `cultural_traditions.json` and `behavior_guidelines.txt` (see [i][color=#c9daf8]Make it your own[/color][/i] below), so you can soften them, sharpen them, or reshape a whole culture or create a new world however you like.
+
+[b][color=#e69138]Real consequences[/color][/b]
+What's said in conversation can change the world: relation shifts, gold given or taken, and [b][color=#b6d7a8]informal quests[/color][/b] an NPC may offer you on their own initiative.. verified by [i][color=#93c47d]actual[/color][/i] game events before any reward is paid. No reward for a story you merely tell; only for a deed genuinely done.
+
+[b][color=#e69138]Quests that actually resolve[/color][/b]
+The tasks NPCs hand you aren't throwaway flavor text.. each one is mirrored into Bannerlord's real quest journal, and it always closes cleanly. Complete it (confirmed by [color=#ffe599][i]actual[/i][/color] game events, never by the AI simply saying so), let its deadline lapse, abandon it honestly, or watch its target stop making sense.. every outcome resolves the journal entry, and a self-check on every load force-closes anything left dangling. [color=#f1c232]No ghost quests piling up in your log, and no errand that can never be finished[/color].. a common rough edge when an LLM is bolted onto the vanilla quest system, designed out from the start here.
+
+[b][color=#e69138]Multi-character scenes[/color][/b]
+Other lords and companions present during a talk can overhear, react in their own voice, and take sides. You can address a specific witness directly, or ask for a private audience.. and the NPC decides whether to grant it.
+
+[color=#e69138][b]Letters & visible couriers[/b][/color]
+Write to an NPC and hire a courier who physically crosses the campaign map to deliver the letter.. and who can be intercepted by bandits along the way. NPCs write back, and their replies arrive by courier too.
+
+[color=#e69138][b]Encyclopedia integration[/b][/color]
+What you learn about a character surfaces on their own encyclopedia page. Alongside their standing toward you, a "[b][color=#d5a6bd]Discoveries[/color][/b]" panel fills in over time: as conversations turn personal, NPCs let slip who they really are.. their temperament, their romantic nature, their preferences, and (with adult content enabled) the more intimate traits and [color=#ff00ff][b]kinks[/b][/color] they reveal. Nothing is handed to you on a plate.. you earn this portrait through trust and talk, one character at a time, and each thing learned is written into their Encyclopedia page for good.
+
+[color=#e69138][b]Story Log (optional)[/b][/color]
+Turn it on (in options) and every conversation and letter is written out as a clean, novel-style transcript.. no timestamps, no technical noise.. so you can re-read your campaign like a book.
+
+[b][color=#e69138]Romance & courtship that emerge on their own[/color][/b]
+This isn't only an adult feature. From the [color=#8e7cc3][b]Mature[/b][/color] setting up, attraction grows with trust, and an unmarried lord or lady may raise courtship, or even marriage, on their [color=#d9d2e9][i]own[/i][/color] initiative when your standing warrants it: lead a clan of real rank, or make a name in the tournament lists, and the right people start to notice. How far things go is governed by the Adult Content Level below; that they happen at all is simply Calradia's characters reacting to who you've become.
+
+[b][color=#e69138]Mature & adult content (opt-in, gated)[/color][/b]
+A single setting controls how much romantic and intimate content NPCs may express.. from [color=#dd7e6b][b]Off[/b][/color] (none) through [color=#dd7e6b][b]Mature[/b][/color] (romance, nothing explicit) to [color=#dd7e6b][b]Explicit[/b][/color] and [b][color=#dd7e6b]Hardcore[/color][/b]. Higher tiers unlock orientation and preference discovery, genuine intimacy gated by trust, and.. at Hardcore only.. captor/captive scenes for players who want darker, adult-only roleplay. All of it is [b][color=#dd7e6b]off the explicit path by default[/color][/b] and entirely your choice.
+
+[line]
+[size=4]Requirements[/size]
+
+[list]
+[*][b]Mount & Blade II: Bannerlord[/b] v1.3.x[/*]
+[*]An [b]account and API key with OpenRouter or NanoGPT[/b] — the AI runs in the cloud (see below). You only need one.[/*]
+[*]Other dependencies like Harmony, MCM, etc.[/*]
+[/list]
+
+⚠️ [b][color=#ffd966]This mod uses a paid cloud AI.[/color][/b] Conversations are generated by a large language model through [b][color=#ffd966]OpenRouter[/color][/b] or [b][color=#ffd966]NanoGPT[/color][/b], both pay-as-you-go. Costs are small per conversation, but they are not zero.. you control which model you use and therefore the price. There is no AI bundled with the mod and [b][color=#cc4125]no way around[/color][/b] needing a key (for now).
+
+[line]
+[size=4]Good to know[/size]
+
+[list]
+[*][b][color=#00ffff]Safe to add to an existing campaign[/color][/b]: Characters build their memory from the moment you first speak to them, so you don't need a fresh start.. just install and talk. As with any mod, back up your save before adding or removing it.[/*]
+[*][b][color=#00ffff]Language[/color][/b]: The mod is written and prompted in English, and characters reply in English.  But you can type you own replies in any languages.[/*]
+[*][b][color=#00ffff]Backward-compatible updates.. guaranteed[/color]:[/b] Future updates to [b][color=#ffe599]this mod[/color][/b] will always keep supporting your existing saves. I guarantee that no update of mine will ever break a current campaign or force you to restart your playthrough.. save compatibility is a top priority for the entire lifespan of the mod. [i][color=#ffe599](The one thing no modder can promise is a breaking change in [/color][b][color=#ffff00]Bannerlord itself or another mod[/color][color=#ffe599]..[/color][/b][color=#ffe599] that's outside any single mod's control, but on my side, your save is safe.)[/color][/i][/*]
+[/list]
+[line]
+[size=4]Make it your own: editable prompt files[/size]
+
+A lot of what the NPCs "know" and how they carry themselves isn't locked in the code.. it lives in [b][color=#00ff00]plain text and JSON files[/color][/b] shipped with the mod, which get injected into the prompt sent to the AI. Open them in any text editor, change what you like, and the NPCs follow your version on the next conversation. No recompiling, no special tools.
+
+You'll find them in:
+`...\Mount & Blade II Bannerlord\Modules\CalradiaRemembers\ModuleData\`
+
+[b][color=#6aa84f]player_description.txt[/color][/b]: the one most worth editing. This tells every NPC who [i][color=#00ff00]you[/color][/i] are: your appearance, reputation, bearing, marital status. It ships, so write it to match your own playthrough: your name, your look, your story.  NPCs speak to you as the person described here.
+
+[b][color=#6aa84f]world.txt[/color][/b]: the shared backdrop of Calradia (its cultures, feudal order, the rhythm of the seasons, the fact that there is no magic). Injected once for every NPC. Edit it to shift the tone or lore of the whole world your characters inhabit.
+
+[b][color=#6aa84f]behavior_guidelines.txt[/color][/b]: [color=#00ff00][i]how[/i][/color] NPCs behave: the dignity of a lord, reading the mood of a conversation, how memory and consequences weigh on them, and faction-by-faction attitudes. This is the dial for the overall "voice" of every character. Tune it to make your Calradia warmer, harsher, more formal, more blunt.. whatever you prefer.
+
+[b][color=#6aa84f]cultural_traditions.json[/color][/b]: the cultural norms of each people (Vlandian, Battanian, Aserai, Sturgian, Khuzait, Imperial… or your own factions): their views on authority, honor, courtship, and gender roles. This is what gives a Battanian and an Aserai noble genuinely different outlooks. Edit the text inside the quotes to reshape a culture.. just keep the JSON structure intact (matching `"Faction": "description"` pairs, commas between them).
+
+[quote]💡Tips: keep edits in English (the AI is prompted in English), back up the originals before you tinker, and if you touch the `.json` make sure it stays valid (a missing comma or quote will stop it loading). Your edits load whenever you start or reload a campaign.. so after editing, return to the main menu and load your save. No reinstalling or recompiling.[/quote]
+
+[i]This is the heart of making Calradia Remembers *your* roleplay rather than mine. Share your favorite prompt files with other players (mod), or build a whole different feel for the world.[/i]
+[line]
+[size=4]Fixing NPC memory (console)[/size]
+
+Occasionally the AI will produce a bad response that gets recorded into an NPC's memory, and future conversations keep building on the mistake. You can fix this directly from the Bannerlord cheat console ([b]Alt + ~[/b], must be enabled in the launcher's engine options).
+
+[b][color=#93c47d]cr.memory [name][/color][/b] — list every recorded event for an NPC with its index:
+[code]
+cr.memory Liena
+  [0] Day 12 | FirstMeeting | We met for the first time in Pen Cannoc.
+  [1] Day 45 | Other        | She forgot who she was entirely.   <- this one
+  [2] Day 46 | Other        | She spoke to me as a stranger.     <- and this one
+[/code]
+
+[b][color=#93c47d]cr.memory_set [index] [new text] [name][/color][/b] — replace the text of one event without deleting it:
+[code]
+cr.memory_set 1 She remembered our bond, speaking with warmth. Liena
+cr.memory_set 2 She recovered herself and called me by name. Liena
+[/code]
+
+[b][color=#93c47d]cr.forget [index] [name][/color][/b] — delete one bad event entirely:
+[code]cr.forget 1 Liena[/code]
+
+[b][color=#93c47d]cr.forget_all [name][/color][/b] — wipe the entire memory of an NPC for a clean slate:
+[code]cr.forget_all Liena[/code]
+
+[quote]💡 The [name] at the end is optional — if you already have a conversation open with the NPC, you can omit it. The last word of the command is tried as an NPC name; if it matches a character it is used as such, otherwise the whole text after the index is treated as the new memory and the current conversation NPC is used.[/quote]
+[line]
+[size=5]How to configure[/size]
+
+[b]CHOOSE A PROVIDER[/b]. The mod talks to two interchangeable cloud providers: OpenRouter (the default, the broadest model catalog) and NanoGPT (an alternative some players prefer for its pricing and model line-up). You only need one. Each keeps its own key and model field, and you switch between them in one click with the "LLM Provider" dropdown.. so you can set up both and flip whenever you like. The walkthrough below uses OpenRouter; the NanoGPT path right after is identical.
+
+1. SET UP OPENROUTER (ONE TIME)
+
+  1. Create a free account at openrouter.ai
+  2. Add a little credit to your account (pay-as-you-go — you only spend what you use).
+  3. Go to openrouter.ai/keys and create an API key. Copy it.
+  4. Browse openrouter.ai/models if you'd like to pick a specific model (optional).
+
+[b]HOW FAR DOES CREDIT GO[/b]? Measured on the default model (Grok 4.3): a full week of heavy testing.. 146 exchanges, much of it long, prompt-hungry captive scenes.. came to about $1. That's roughly 130+ messages per dollar, so even $5 covers hundreds of exchanges — comfortably dozens of full conversations.. and more for everyday chats. You only pay for what you use, and a lighter model stretches it further still.
+
+[quote]🔒 Your key is stored locally on your machine only. Never share your config file or a screenshot of the key field.. treat the key like a password.[/quote]
+
+
+OR.. SET UP NANOGPT INSTEAD (ONE TIME)
+
+  1. Create an account at nano-gpt.com and add a little credit (also pay-as-you-go).
+  2. Create an API key in your NanoGPT account and copy it.
+  3. Browse nano-gpt.com/models and copy the exact id of the model you want.. NanoGPT has no default in the mod, so you must paste one (model ids differ from OpenRouter's, so a name from one provider won't work on the other).
+
+[quote]🔒 The same applies: your NanoGPT key is stored locally on this machine only.. treat it like a password.[/quote]
+
+
+2. ENTER IT IN THE GAME
+
+  1. Launch Bannerlord with the mod enabled, then open Options → Mod Options → Calradia Remembers.
+  2. Set "LLM Provider" to OpenRouter or NanoGPT — whichever you set up.
+  3. Paste your key into that provider's API Key field (OpenRouter or NanoGPT).
+  4. Set that provider's Model field (OpenRouter has a default; NanoGPT needs an id you paste from its catalog).
+  5. Click that provider's "Test Connection" button.. it checks your key without starting a conversation or spending tokens.
+  6. That's it. Settings apply immediately.. no restart, no save reload. Walk up to any lord and talk.
+
+3. THE SETTINGS MENU, OPTION BY OPTION
+
+LLM Provider:
+[list]
+[*]LLM Provider.. which cloud service to send requests to: OpenRouter (default) or NanoGPT. Each provider has its own key and model field below, so switching here doesn't make you re-paste anything. Applies immediately.[/*]
+[/list]
+
+[b][color=#b6d7a8]OpenRouter[/color] [/b](used when Provider is set to OpenRouter):
+[list]
+[*]OpenRouter API Key.. your key from openrouter.ai/keys. Applies immediately.[/*]
+[*]Model.. the OpenRouter model id to use. Default: x-ai/grok-4.3. Any text model on OpenRouter works.. see "Which model should I use?" just below for picks by quality, price, and adult-content tolerance.[/*]
+[*]Test Connection.. verifies your key against OpenRouter. No tokens spent.[/*]
+[/list]
+
+[b][color=#b6d7a8]NanoGPT[/color] [/b](used when Provider is set to NanoGPT):
+[list]
+[*]NanoGPT API Key.. your key from nano-gpt.com. Applies immediately.[/*]
+[*]NanoGPT Model.. the NanoGPT model id to use (no default.. paste the exact id from nano-gpt.com/models). The model picks in "Which model should I use?" below apply by quality and permissiveness; the same families (DeepSeek and similar) are available, but use NanoGPT's own ids.[/*]
+[*]Test NanoGPT Connection.. verifies your key against NanoGPT. No tokens spent.[/*]
+[/list]
+
+  Content:
+[list]
+[*]  Adult Content Level .. how much romantic/intimate content NPCs may express:[/*]
+[/list]
+      [b][color=#d9d2e9]Off[/color][/b].. no romantic or adult content at all.
+      [b][color=#b4a7d6]Mature [/color][/b](default).. romance and attraction, nothing explicit.
+      [b][color=#c27ba0]Explicit[/color][/b].. intimate scenes, gated behind genuine trust.
+      [b][color=#a64d79]Hardcore[/color][/b].. unlocks darker adult-only roleplay, including captor/captive scenes.
+     [i] Applies on your next conversation.[/i]
+[list]
+[*]  Relationship Warmth .. how readily NPCs grow to like you through conversation. Affects only positive regard — insults and betrayals stay just as costly at every level:[/*]
+[/list]
+      [b][color=#b6d7a8]Normal[/color][/b] (default).. the level the mod was designed and balanced around. Trust is earned slowly, through deeds.
+      [b][color=#93c47d]Easier[/color][/b].. good company counts. A well-turned compliment, shared humor, an engaging story or genuine support can each earn a little goodwill, and more often.
+      [b][color=#6aa84f]Very Easy[/color][/b].. NPCs warm to you readily — most sincerely positive exchanges nudge their regard, with little throttle.
+     [i] Applies on your next conversation.[/i]
+
+  Diagnostics:
+[list]
+[*][b]Enable Logging[/b] (off by default).. master switch for all mod logging (on-screen messages and the CalradiaRemembers.log file). Leave off for normal play; turn on only to capture a bug report.[/*]
+[*][b]Verbose Logging[/b] (off).. logs the full prompt and NPC response on every exchange. Floods the log; for bug reports only. Requires Enable Logging.[/*]
+[*][b][color=#b6d7a8]Story Log[/color][/b] (off).. writes the clean, novel-style transcript described above to CalradiaRemembers_story.log in your Bannerlord Logs folder.[/*]
+[/list]
+
+[line]
+[size=4]Which model should I use?[/size]
+
+The mod works with any text model your provider offers.. you just paste its id into the Model field, and you can switch anytime in one click. Two things matter for this mod: the model must follow instructions reliably (it quietly drives memory, actions, and quests behind the scenes), and.. if you play the Explicit / Hardcore tiers.. it must be permissive, because heavily-filtered models will flat-out refuse adult scenes. The ids below are OpenRouter ids; on NanoGPT the same model families are available but use NanoGPT's own ids from nano-gpt.com/models. Prices below are a rough guide; check your provider's model page for current rates.
+
+[b]GROK 4.3[/b] — the safe default    (model id: x-ai/grok-4.3)
+Proven with everything this mod does, adult tiers included. Balanced quality, permissive, and already tested. If in doubt, stay here.
+
+[b]DEEPSEEK V3.2[/b] — ⭐ best value    (model id: deepseek/deepseek-v3.2)
+Comparable quality for a fraction of the cost (~5× cheaper input and output). Strong instruction-following, widely regarded as permissive.. the pick to get the same experience for much less.
+
+[b]DEEPSEEK V4 PRO[/b] — premium, still cheap    (model id: deepseek/deepseek-v4-pro)
+Top-tier quality, still well under Grok's price. For when you want the very best and don't mind paying a little more than V3.2.
+
+[b]WHAT IT COSTS, BY MODEL[/b]. Only Grok 4.3 is measured from real usage (the ~130 messages-per-dollar figure earlier); the others are extrapolated by price ratio, so treat them as ballpark. For the same play: DeepSeek V3.2 is about 5-6× cheaper than Grok 4.3, and DeepSeek V4 Pro about 3× cheaper. Concretely, the ~$1 week of heavy testing on Grok 4.3 would be roughly ~$0.18 on V3.2 or ~$0.38 on V4 Pro.. your exact cost still depends on conversation length and each model's own caching.
+
+[b]AVOID FOR ADULT PLAY[/b]: mainstream Claude and GPT models are superb writers but refuse Explicit / Hardcore content.. perfectly fine at Off / Mature, frustrating beyond it.
+
+[b]LAST RESORT[/b]: if a mainstream model balks at a scene you want, dedicated uncensored fine-tunes (Dolphin, Cydonia and similar) refuse almost nothing.. but they follow the mod's structured format less reliably and can drift over long scenes, so reach for them only if you have to.
+
+[i]New here? Start on the default (Grok 4.3) or DeepSeek V3.2, play a few conversations, and only tinker with models once you know what you want from them.[/i]
+
+[line]
+[size=4]Under the hood (for the curious)[/size]
+
+A few quiet pieces of engineering keep this practical to actually play with.. each one there for a reason you'll feel rather than see:
+
+[list]
+[*][b][color=#8e7cc3]Cost-aware prompting[/color][/b]: The system prompt is ordered most-stable-first so that provider-side prompt caching (Grok, GPT, Claude…) can reuse the unchanging part. The repeated context costs less every message.. your bill stays smaller than a naïve approach would make it.[/*]
+[*][b][color=#8e7cc3]Self-managing memory[/color][/b]: As a character's history grows, an LLM-driven compressor folds old, superseded events into a compact background summary.. while [b]always[/b] protecting the milestones (first meetings, betrayals, intimate moments, captivity). Your saves stay lean and your NPCs stay coherent across a campaign that runs for hundreds of in-game days.[/*]
+[*][b][color=#8e7cc3]Nothing freezes[/color][/b]: Letters, NPC replies carried by courier, and end-of-scene memory summaries are all generated in the background. The game (almost) never hangs waiting on the AI.[/*]
+[/list]
+
+[i]None of this is something you have to think about.. it just means the mod is built to last a long campaign without bloating your save or your bill.[/i]
+[line]
+[size=4]A note on the adult content[/size]
+
+The explicit and Hardcore tiers are a deliberate design choice for adult players who want that kind of roleplay, and they are [b][color=#f1c232]strictly opt-in[/color][/b].. the mod ships on Mature and never escalates on its own. The Hardcore captor/captive scenes depict non-consensual fantasy roleplay between fictional characters, for consenting adult players only. If that's not for you, leave the setting at Mature or Off and you'll never see it.
+
+[line]
+[i]Built from scratch, with care, for everyone who ever wished Calradia's characters would remember them.[/i]

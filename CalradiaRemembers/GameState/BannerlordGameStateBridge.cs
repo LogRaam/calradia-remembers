@@ -13,6 +13,7 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Encounters;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Engine;
@@ -89,6 +90,51 @@ namespace CalradiaRemembers.GameState
             return SceneType.Settlement;
 
          return SceneType.Outdoor;
+      }
+
+      public string GetCurrentActivity(Hero npc)
+      {
+         try
+         {
+            MobileParty party = npc?.PartyBelongedTo;
+            if (party == null) return null; // in a settlement / no party of their own — nothing to assert
+
+            // 1. Actively besieging — the most concrete, unambiguous signal.
+            if (party.BesiegedSettlement != null)
+               return $"laying siege to {party.BesiegedSettlement.Name}";
+
+            // 2. In an army: prefer the ARMY's strategic objective over this party's own
+            //    waypoint — a member party follows a gathering point, not the target, so
+            //    reading its own destination would itself produce the wrong place.
+            Army army = party.Army;
+            if (army != null)
+            {
+               string leader = army.LeaderParty?.LeaderHero?.Name?.ToString()
+                            ?? army.ArmyOwner?.Name?.ToString();
+
+               if (army.LeaderParty?.BesiegedSettlement != null)
+                  return $"marching with {leader}'s army, laying siege to {army.LeaderParty.BesiegedSettlement.Name}";
+
+               // AiBehaviorObject is an IMapPoint; only name it when it is a settlement we can
+               // point to — chasing a roaming party yields no place, so stay vague there.
+               Settlement objective = army.AiBehaviorObject as Settlement;
+               if (objective != null)
+                  return $"marching with {leader}'s army toward {objective.Name}";
+
+               return leader != null ? $"marching with {leader}'s army" : null;
+            }
+
+            // 3. A lone party with a set destination.
+            if (party.TargetSettlement != null)
+               return $"traveling toward {party.TargetSettlement.Name}";
+
+            return null;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"GetCurrentActivity failed for {npc?.Name}: {ex.Message}");
+            return null;
+         }
       }
 
       public DiplomaticStatus GetDiplomaticStatus(Hero npc)
@@ -323,7 +369,8 @@ namespace CalradiaRemembers.GameState
 
          bool captive = GetPlayerStatus(npcHero) == PlayerStatusVsNpc.NpcIsCaptive;
          int delta = RelationGate.Resolve(
-            proposed, context.Profile, context.EmittedEvent, CampaignTime.Now.ToHours, captive);
+            proposed, context.Profile, context.EmittedEvent, CampaignTime.Now.ToHours, captive,
+            ModSettings.RelationWarmth);
 
          if (delta == 0)
          {

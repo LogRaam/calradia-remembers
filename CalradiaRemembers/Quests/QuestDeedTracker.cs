@@ -206,8 +206,14 @@ namespace CalradiaRemembers.Quests
                   : null;
 
             case QuestType.BanditHideout:
-               return f.LosersAreBandits && f.IsHideout && SettlementMatches(quest, f)
-                  ? $"Cleared the hideout near {quest.TargetSettlement} on day {day}"
+               // A hideout battle reports the hidden lair itself as its settlement, so the
+               // nearest NAMED settlement at battle's end rarely equals the one named when
+               // the quest was issued — requiring an exact match left these quests forever
+               // unverifiable (the player clears the lair but the deed never registers, and
+               // the NPC ends up "rewarding" it ad hoc, repeatedly). Since only one quest is
+               // ever outstanding per giver, clearing any bandit hideout is accepted as the deed.
+               return f.LosersAreBandits && f.IsHideout
+                  ? $"Cleared the bandit hideout near {quest.TargetSettlement} on day {day}"
                   : null;
 
             case QuestType.AttackFaction:

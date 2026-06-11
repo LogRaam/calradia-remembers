@@ -101,8 +101,12 @@ namespace CalradiaRemembers.Quests
                                       .OfType<CalradiaRemembersQuest>()
                                       .ToList())   // snapshot — we may mutate during iteration
             {
-                if (IsStillOutstanding(q, store)) continue;
+                if (IsStillOutstanding(q, store, out string reason)) continue;
 
+                // Log WHY before closing — players have reported active quests vanishing on
+                // load; this surfaces the exact branch (dead giver, missing profile, or id
+                // drift) so a repro with logging on is diagnosable instead of guesswork.
+                ModLog.Info($"[QUEST-JOURNAL] Closing mirror '{q.StringId}' at session launch — {reason}.");
                 q.CloseAsCancelled("The task has been resolved or is no longer relevant.");
                 closed++;
             }
@@ -124,17 +128,40 @@ namespace CalradiaRemembers.Quests
                            .FirstOrDefault(q => q.StringId == targetId);
         }
 
-        private static bool IsStillOutstanding(CalradiaRemembersQuest mirror, BannerlordNpcMemoryStore store)
+        private static bool IsStillOutstanding(CalradiaRemembersQuest mirror, BannerlordNpcMemoryStore store, out string reason)
         {
             Hero giver = mirror.QuestGiver;
-            if (giver == null || !giver.IsAlive) return false;
+            if (giver == null || !giver.IsAlive)
+            {
+                reason = "quest giver is missing or no longer alive";
+                return false;
+            }
 
             NpcProfile profile = store.Get(giver.StringId);
-            if (profile == null) return false;
+            if (profile == null)
+            {
+                reason = $"no stored profile for giver {giver.Name} ({giver.StringId}) — store not loaded in time?";
+                return false;
+            }
 
-            return profile.ActiveQuests.Any(q =>
+            bool match = profile.ActiveQuests.Any(q =>
                 q.IsOutstanding &&
                 CalradiaRemembersQuest.BuildQuestId(giver, q) == mirror.StringId);
+            if (match)
+            {
+                reason = null;
+                return true;
+            }
+
+            // The mirror has no matching outstanding quest. Dump what the profile DOES hold so
+            // a repro log reveals whether it is id drift (IssuedOnDay changed) or a real state
+            // change (the quest was completed/expired) — the two have very different fixes.
+            string have = profile.ActiveQuests.Count == 0
+                ? "(none)"
+                : string.Join(" | ", profile.ActiveQuests.Select(q =>
+                    $"{CalradiaRemembersQuest.BuildQuestId(giver, q)}[{q.Status}{(q.IsOutstanding ? ",outstanding" : "")}]"));
+            reason = $"no outstanding quest matches mirror id '{mirror.StringId}'. Profile quests: {have}";
+            return false;
         }
     }
 }

@@ -62,11 +62,14 @@ namespace CalradiaRemembers.Mapping
          if (hero.Spouse is {IsAlive: true})
             parts.Add($"Spouse: {hero.Spouse.Name}");
 
+         // Parents are listed whether alive or dead, but a deceased one is marked as such —
+         // otherwise the NPC reads "Father: X" and speaks of a dead parent as living,
+         // even denying a death the player witnessed.
          if (hero.Father != null)
-            parts.Add($"Father: {hero.Father.Name}");
+            parts.Add($"Father: {FormatKin(hero.Father)}");
 
          if (hero.Mother != null)
-            parts.Add($"Mother: {hero.Mother.Name}");
+            parts.Add($"Mother: {FormatKin(hero.Mother)}");
 
          List<Hero> aliveChildren = hero.Children?.Where(c => c.IsAlive).ToList();
          if (aliveChildren is {Count: > 0})
@@ -75,6 +78,10 @@ namespace CalradiaRemembers.Mapping
          if (parts.Count > 0)
             sb.AppendLine($"Family: {string.Join("; ", parts)}.");
       }
+
+      /// <summary>Names a relative, marking the deceased as "the late …" so the NPC speaks of them accurately.</summary>
+      private static string FormatKin(Hero kin)
+         => kin.IsAlive ? kin.Name.ToString() : $"the late {kin.Name}";
 
       private static void AppendFriends(StringBuilder sb, Hero hero)
       {

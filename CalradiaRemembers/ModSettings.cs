@@ -41,6 +41,27 @@ namespace CalradiaRemembers
         }
 
         /// <summary>
+        ///   How readily NPCs grow to like the player through conversation. Read live from
+        ///   the MCM menu. Falls back to <c>Normal</c> (the balanced default) when MCM has
+        ///   not loaded. Only loosens positive regard — negatives are unaffected.
+        /// </summary>
+        public static RelationWarmth RelationWarmth
+        {
+            get
+            {
+                CrSettings s = CrSettings.Instance;
+                if (s?.RelationshipWarmth == null) return CalradiaRemembers.RelationWarmth.Normal;
+
+                switch (s.RelationshipWarmth.SelectedValue)
+                {
+                    case "Easier":    return CalradiaRemembers.RelationWarmth.Easier;
+                    case "Very Easy": return CalradiaRemembers.RelationWarmth.VeryEasy;
+                    default:          return CalradiaRemembers.RelationWarmth.Normal;
+                }
+            }
+        }
+
+        /// <summary>
         ///   When true, the full system prompt and NPC response are logged on every LLM
         ///   exchange. Read live from the MCM menu; off by default.
         /// </summary>

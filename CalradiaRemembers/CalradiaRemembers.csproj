@@ -117,18 +117,21 @@
 
   <!--
     ─── Auto-deploy to Bannerlord modules folder after build ────────────────
-    Copies ALL DLLs from the build output into the game's Modules folder.
-    This includes System.Text.Json and its transitive dependencies which are
-    required by NpcMemoryService.Core on .NET Framework 4.7.2.
-    Note: In a future phase we will switch to Newtonsoft.Json (already shipped
-    by Bannerlord) to eliminate these extra DLLs entirely.
+    Copies the build output DLLs into the game's Modules folder.
+    NpcMemoryService.Core now uses Newtonsoft.Json (shipped by Bannerlord, 13.0.1),
+    so no extra JSON assemblies are deployed. Newtonsoft itself is referenced from the
+    game with Private=false and is not copied — the old System.Text.Json facade tree
+    (which caused assembly-load failures on some players' machines) is gone.
   -->
   <Target Name="DeployToBannerlord" AfterTargets="Build">
     <MakeDir Directories="$(BannerlordBinaryDir)" Condition="!Exists('$(BannerlordBinaryDir)')" />
 
+    <!-- Deploy ONLY the mod's own assemblies. Everything else (TaleWorlds.*, Newtonsoft.Json)
+         is already provided by the game; bundling it is redundant and risks version drift.
+         No .pdb either — players don't need debug symbols. -->
     <ItemGroup>
-      <DeployFiles Include="$(TargetDir)*.dll" />
-      <DeployFiles Include="$(TargetDir)*.pdb" />
+      <DeployFiles Include="$(TargetDir)CalradiaRemembers.dll" />
+      <DeployFiles Include="$(TargetDir)NpcMemoryService.Core.dll" />
     </ItemGroup>
 
 <ItemGroup>
@@ -143,7 +146,7 @@
     <Message Text="[CalradiaRemembers] Deployed to $(BannerlordBinaryDir)" Importance="high" />
   </Target>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(TargetDir)*.dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\bin\Win64_Shipping_Client\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)..\SubModule.xml&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)GUI\Prefabs\*.xml&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\GUI\Prefabs\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)ModuleData\*.*&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\ModuleData\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)Sounds\*.*&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\Sounds\&quot; /Y /I /R /D /S" />
+    <Exec Command="xcopy &quot;$(TargetDir)CalradiaRemembers.dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\bin\Win64_Shipping_Client\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(TargetDir)NpcMemoryService.Core.dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\bin\Win64_Shipping_Client\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)..\SubModule.xml&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)GUI\Prefabs\*.xml&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\GUI\Prefabs\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)ModuleData\*.*&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\ModuleData\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)Sounds\*.*&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\Sounds\&quot; /Y /I /R /D /S" />
   </Target>
 
 </Project>

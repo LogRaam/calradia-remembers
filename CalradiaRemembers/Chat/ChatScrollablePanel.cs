@@ -40,7 +40,23 @@ namespace CalradiaRemembers.Chat
 
         protected override void OnLateUpdate(float dt)
         {
+            // A deferred close tears down this very widget — honor it at the top of the frame
+            // and stop, never from inside the drain below (which would dispose the panel while
+            // its OnLateUpdate is on the stack).
+            if (MainThreadDispatcher.ConsumeCloseRequest())
+            {
+                ChatManager.Close();
+                return;
+            }
+
             base.OnLateUpdate(dt);
+
+            // Run LLM-turn continuations on the main thread. The chat overlay pauses campaign
+            // time, so this per-frame UI tick is the only reliable main-thread pump.
+            // WARNING: every LLM reply is delivered through this drain. If this widget is ever
+            // removed from the chat prefab (or stops ticking), responses will HANG, not error —
+            // keep a pump here, or move it to another per-frame main-thread hook.
+            MainThreadDispatcher.Pump();
 
             if (_scrollToBottomFramesRemaining <= 0)
                 return;

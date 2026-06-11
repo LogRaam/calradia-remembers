@@ -29,11 +29,32 @@ namespace CalradiaRemembers.Mapping
     /// </summary>
     public static class RelationGate
     {
-        /// <summary>Minimum in-game hours between two routine positive gains.</summary>
+        /// <summary>
+        ///   Minimum in-game hours between two routine positive gains at the default
+        ///   (Normal) warmth. Easier/Very-Easy shorten this — see <see cref="CooldownHoursFor"/>.
+        /// </summary>
         public const double CooldownHours = 8.0;
 
         /// <summary>Cap for a routine "the NPC warms to you" gain.</summary>
         private const int DefaultPositiveCap = 1;
+
+        /// <summary>
+        ///   Cooldown window for the given warmth level. Only positive gains are throttled;
+        ///   Very Easy removes the throttle entirely so most pleasant exchanges can land.
+        /// </summary>
+        public static double CooldownHoursFor(RelationWarmth warmth)
+        {
+            switch (warmth)
+            {
+                case RelationWarmth.VeryEasy: return 0.0;
+                case RelationWarmth.Easier:   return 3.0;
+                default:                      return CooldownHours; // Normal
+            }
+        }
+
+        /// <summary>Routine positive cap for the given warmth level (Very Easy allows a +2 beat).</summary>
+        public static int RoutineCapFor(RelationWarmth warmth)
+            => warmth == RelationWarmth.VeryEasy ? 2 : DefaultPositiveCap;
 
         /// <summary>Cap for a self-evident significant moment (intimacy). Bypasses cooldown.</summary>
         private const int IntimacyCap = 3;
@@ -60,14 +81,16 @@ namespace CalradiaRemembers.Mapping
             NpcProfile profile,
             NotableEventType? emittedEvent,
             double currentHour,
-            bool npcIsCaptive)
+            bool npcIsCaptive,
+            RelationWarmth warmth = RelationWarmth.Normal)
         {
             if (proposed == 0 || profile == null) return 0;
 
             if (proposed > 0)
-                return ResolvePositive(proposed, profile, emittedEvent, currentHour);
+                return ResolvePositive(proposed, profile, emittedEvent, currentHour, warmth);
 
             // ── Negative: not rate-limited; depth bounded by verifiable context ──
+            // Warmth never softens negatives — insults and betrayals cost the same at every level.
             int floor = npcIsCaptive ? CaptiveFloor : ConversationalFloor;
             return proposed > floor ? proposed : floor;
         }
@@ -78,17 +101,19 @@ namespace CalradiaRemembers.Mapping
             int proposed,
             NpcProfile profile,
             NotableEventType? emittedEvent,
-            double currentHour)
+            double currentHour,
+            RelationWarmth warmth)
         {
             bool isSignificant = emittedEvent == NotableEventType.Intimacy;
 
-            // Routine gains are rate-limited; a significant moment bypasses the cooldown.
+            // Routine gains are rate-limited (window depends on warmth); a significant
+            // moment bypasses the cooldown entirely.
             if (!isSignificant
                 && profile.LastRelationGainHour.HasValue
-                && currentHour - profile.LastRelationGainHour.Value < CooldownHours)
+                && currentHour - profile.LastRelationGainHour.Value < CooldownHoursFor(warmth))
                 return 0;
 
-            int cap = isSignificant ? IntimacyCap : DefaultPositiveCap;
+            int cap = isSignificant ? IntimacyCap : RoutineCapFor(warmth);
             int granted = proposed < cap ? proposed : cap;
 
             if (granted > 0) profile.LastRelationGainHour = currentHour;

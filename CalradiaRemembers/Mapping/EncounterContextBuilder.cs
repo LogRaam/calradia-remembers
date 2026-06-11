@@ -46,9 +46,12 @@ namespace CalradiaRemembers.Mapping
             ContextualNames        = string.IsNullOrWhiteSpace(playerMessage)
                 ? null
                 : ContextualNameResolver.Resolve(hero, playerMessage),
+            NpcCurrentActivity     = bridge.GetCurrentActivity(hero),
             PlayerSpouseName       = Hero.MainHero?.Spouse?.IsAlive == true
                 ? Hero.MainHero.Spouse.Name?.ToString()
                 : null,
+            PlayerFatherName       = FormatParent(Hero.MainHero?.Father),
+            PlayerMotherName        = FormatParent(Hero.MainHero?.Mother),
             PlayerClanTier         = Hero.MainHero?.Clan?.Tier ?? 0,
             PlayerArenaRank        = ResolveArenaRank(),
             PlayerArenaWins        = ResolveArenaWins(),
@@ -62,6 +65,18 @@ namespace CalradiaRemembers.Mapping
         };
 
         #region private
+
+        /// <summary>
+        ///   Formats a parent's display name for the prompt, marking the deceased with
+        ///   "the late …" so the NPC never speaks of a dead parent as living. Null when
+        ///   the parent is unknown or unnamed.
+        /// </summary>
+        private static string FormatParent(Hero parent)
+        {
+            string name = parent?.Name?.ToString();
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            return parent.IsAlive ? name : $"the late {name}";
+        }
 
         private static int ResolveArenaRank()
         {

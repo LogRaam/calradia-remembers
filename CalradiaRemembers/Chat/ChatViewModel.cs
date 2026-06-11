@@ -1242,11 +1242,27 @@ namespace CalradiaRemembers.Chat
                 NpcChatResult result;
                 using (CancellationTokenSource cts = new CancellationTokenSource())
                 {
-                    result = await Task.Run(() =>
-                                           behavior.LlmServices.ChatService.ChatAsync(
-                                               profile, world, session, playerMessage, context, cts.Token))
-                                       .ConfigureAwait(false);
+                    // Absorb any fault into a Failure result so the SwitchToMainThread below
+                    // ALWAYS runs — otherwise a throw here would land the catch off-thread.
+                    try
+                    {
+                        result = await Task.Run(() =>
+                                               behavior.LlmServices.ChatService.ChatAsync(
+                                                   profile, world, session, playerMessage, context, cts.Token))
+                                           .ConfigureAwait(false);
+                    }
+                    catch (Exception netEx)
+                    {
+                        result = NpcChatResult.Failure(netEx.Message);
+                    }
                 }
+
+                // Resume on the main thread for ALL UI and game-state work below.
+                await MainThreadDispatcher.SwitchToMainThread();
+
+                // The chat may have closed or a new conversation replaced us while the call was
+                // in flight — a stale continuation must not mutate UI or apply game actions.
+                if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
 
                 var elapsedMs = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond - startMs;
 
@@ -1284,7 +1300,9 @@ namespace CalradiaRemembers.Chat
 
                     StoryLog.WriteLetterSent(_replyProfile.Name, playerMessage, behavior.GameStateBridge.GetCurrentGameDay());
                     ModLog.Info($"[LETTER] reply sent to {_replyProfile.Name}; NPC response queued as new letter.");
-                    ChatManager.Close();
+                    // We are inside a dispatched continuation (the pump is on the stack); defer
+                    // the close one frame so it never disposes the panel mid-drain.
+                    MainThreadDispatcher.RequestClose();
                     return;
                 }
                 // ── End letter reply intercept ─────────────────────────────────
@@ -1500,6 +1518,11 @@ namespace CalradiaRemembers.Chat
                     ModLog.Info($"  [ACTIONS] {response.Actions.Count} action(s) dispatched.");
                 if (result.Usage != null)
                     ModLog.Info($"  [TOKENS] prompt={result.Usage.PromptTokens} (cached:{result.Usage.CachedPromptTokens ?? 0}) | completion={result.Usage.CompletionTokens}");
+                // Surface a non-"stop" finish reason — "length" means the model cut the reply
+                // off (a known DeepSeek quirk); this makes truncated-message reports diagnosable.
+                if (!string.IsNullOrEmpty(result.FinishReason)
+                    && !string.Equals(result.FinishReason, "stop", StringComparison.OrdinalIgnoreCase))
+                    ModLog.Info($"  [FINISH] reason={result.FinishReason} (non-stop — reply may be truncated by the model/provider)");
             }
             catch (Exception ex)
             {
@@ -1579,11 +1602,22 @@ namespace CalradiaRemembers.Chat
                     using (System.Threading.CancellationTokenSource cts =
                         new System.Threading.CancellationTokenSource())
                     {
-                        result = await Task.Run(() =>
-                                               behavior.LlmServices.ChatService.ChatAsync(
-                                                   profile, world, session, stimulus, context, cts.Token))
-                                           .ConfigureAwait(false);
+                        try
+                        {
+                            result = await Task.Run(() =>
+                                                   behavior.LlmServices.ChatService.ChatAsync(
+                                                       profile, world, session, stimulus, context, cts.Token))
+                                               .ConfigureAwait(false);
+                        }
+                        catch (Exception netEx)
+                        {
+                            result = NpcChatResult.Failure(netEx.Message);
+                        }
                     }
+
+                    // Back to the main thread for the UI / transcript / game-state work below.
+                    await MainThreadDispatcher.SwitchToMainThread();
+                    if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
 
                     // Commit currentReactions before the NPC reply so the transcript order
                     // is: witness → NPC, matching what was displayed on screen.
@@ -1716,11 +1750,22 @@ namespace CalradiaRemembers.Chat
                 using (System.Threading.CancellationTokenSource cts =
                     new System.Threading.CancellationTokenSource())
                 {
-                    result = await Task.Run(() =>
-                                           behavior.LlmServices.ChatService.ChatAsync(
-                                               profile, world, session, stimulus, context, cts.Token))
-                                       .ConfigureAwait(false);
+                    try
+                    {
+                        result = await Task.Run(() =>
+                                               behavior.LlmServices.ChatService.ChatAsync(
+                                                   profile, world, session, stimulus, context, cts.Token))
+                                           .ConfigureAwait(false);
+                    }
+                    catch (Exception netEx)
+                    {
+                        result = NpcChatResult.Failure(netEx.Message);
+                    }
                 }
+
+                // Back to the main thread for the UI / transcript / game-state work below.
+                await MainThreadDispatcher.SwitchToMainThread();
+                if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
 
                 if (!result.IsSuccess)
                 {

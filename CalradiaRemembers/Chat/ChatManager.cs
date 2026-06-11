@@ -172,6 +172,10 @@ namespace CalradiaRemembers.Chat
 
         private static void FreeResources()
         {
+            // Drop any LLM-turn continuations still queued — they belong to the conversation
+            // we just closed and must never run against the next one.
+            MainThreadDispatcher.Clear();
+
             _activeLayer = null;
             _activeMovieId = null;
             ActiveViewModel = null;

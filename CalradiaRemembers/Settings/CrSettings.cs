@@ -1,4 +1,6 @@
 // Code written by Gabriel Mailhot, 05/06/2026.
+// Updated 09/06/2026: NanoGPT as a second OpenAI-compatible provider — Provider dropdown
+//                     plus a NanoGPT key/model/test group alongside the OpenRouter one.
 
 #region
 
@@ -28,6 +30,23 @@ namespace CalradiaRemembers.Settings
         public Dropdown<string> AdultContentLevel { get; set; } =
             new Dropdown<string>(new[] {"Off", "Mature", "Explicit", "Hardcore"}, 1); // default: Mature
 
+        [SettingPropertyDropdown("Relationship Warmth", RequireRestart = false, Order = 0,
+            HintText = "How readily NPCs grow to like you through conversation. Normal is the level the mod " +
+                       "was designed and balanced around — trust is earned slowly, by deeds. Easier lets good " +
+                       "company (compliments, humor, shared moments) earn small gains more often. Very Easy " +
+                       "makes NPCs warm up readily. Affects only positive regard — insults stay just as costly. " +
+                       "Applies on your next conversation.")]
+        [SettingPropertyGroup("Content", GroupOrder = 2)]
+        public Dropdown<string> RelationshipWarmth { get; set; } =
+            new Dropdown<string>(new[] {"Normal", "Easier", "Very Easy"}, 0); // default: Normal
+
+        [SettingPropertyDropdown("LLM Provider", RequireRestart = false, Order = 0,
+            HintText = "Which OpenAI-compatible service to send requests to. Each provider has its own " +
+                       "API key and model field below — switching does not require re-pasting. Applies immediately.")]
+        [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+        public Dropdown<string> Provider { get; set; } =
+            new Dropdown<string>(new[] {"OpenRouter", "NanoGPT"}, 0); // default: OpenRouter
+
         [SettingPropertyText("OpenRouter API Key", RequireRestart = false, Order = -1,
             HintText = "Paste your OpenRouter API key from openrouter.ai/keys. Stored locally on this machine " +
                        "only — never share your config file or a screenshot of this field. Applies immediately.")]
@@ -50,6 +69,25 @@ namespace CalradiaRemembers.Settings
             Content = "Test")]
         [SettingPropertyGroup("OpenRouter", GroupOrder = 3)]
         public Action TestConnection { get; set; } = ApiKeyTester.Run;
+
+        [SettingPropertyText("NanoGPT API Key", RequireRestart = false, Order = -1,
+            HintText = "Paste your NanoGPT API key from nano-gpt.com. Stored locally on this machine only — " +
+                       "never share your config file or a screenshot of this field. Used only when Provider " +
+                       "is set to NanoGPT. Applies immediately.")]
+        [SettingPropertyGroup("NanoGPT", GroupOrder = 4)]
+        public string NanoGptApiKey { get; set; } = "";
+
+        [SettingPropertyText("NanoGPT Model", RequireRestart = false, Order = -2,
+            HintText = "NanoGPT model id. Browse the catalog at nano-gpt.com/models and paste the exact id " +
+                       "(e.g. deepseek-ai/DeepSeek-V3). Used only when Provider is set to NanoGPT. Applies immediately.")]
+        [SettingPropertyGroup("NanoGPT", GroupOrder = 4)]
+        public string NanoGptModel { get; set; } = "";
+
+        [SettingPropertyButton("Test NanoGPT Connection", RequireRestart = false, Order = -3,
+            HintText = "Checks your NanoGPT key against nano-gpt.com without starting a conversation — no tokens spent.",
+            Content = "Test")]
+        [SettingPropertyGroup("NanoGPT", GroupOrder = 4)]
+        public Action TestNanoGptConnection { get; set; } = ApiKeyTester.RunNanoGpt;
 
         [SettingPropertyBool("Enable Logging", RequireRestart = false, Order = 0,
             HintText = "Master switch for all mod logging — both the on-screen messages and the " +
