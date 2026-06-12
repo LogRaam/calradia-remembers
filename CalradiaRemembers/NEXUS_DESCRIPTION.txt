@@ -253,4 +253,9 @@ A few quiet pieces of engineering keep this practical to actually play with.. ea
 The explicit and Hardcore tiers are a deliberate design choice for adult players who want that kind of roleplay, and they are [b][color=#f1c232]strictly opt-in[/color][/b].. the mod ships on Mature and never escalates on its own. The Hardcore captor/captive scenes depict non-consensual fantasy roleplay between fictional characters, for consenting adult players only. If that's not for you, leave the setting at Mature or Off and you'll never see it.
 
 [line]
+[size=4]Thanks[/size]
+
+A heartfelt thank-you to [b][color=#93c47d]ProudSeal[/color][/b], who volunteered to playtest the mod and put real hours into it.. probing the systems, documenting what he found, and asking exactly the right questions. A whole wave of v1.4.0 fixes and improvements (reliable conversation memory, accurate dates for the dead, the courier stranded at sea, the Relationship Pacing rename, cr.memory_add, and more) traces directly back to his feedback. This is what shapes the mod in its formative stage.. thank you!
+
+[line]
 [i]Built from scratch, with care, for everyone who ever wished Calradia's characters would remember them.[/i]
