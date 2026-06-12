@@ -151,6 +151,11 @@ namespace CalradiaRemembers.Dialogue
                 // before Sprint 8.1 / 8.2 / 8.3. Idempotent — silent for current profiles.
                 HeroProfileMapper.UpgradeIfNeeded(existing, hero);
 
+                // Relationships reflect live game state (deaths, new feuds) — rebuild at
+                // conversation open so a parent who died mid-session reads as dead now,
+                // not at the next session launch.
+                existing.Relationships = RelationshipsBuilder.Build(hero);
+
                 return existing;
             }
 
@@ -253,23 +258,32 @@ namespace CalradiaRemembers.Dialogue
 
                 if (vm != null)
                 {
-                    SeedCapturedVanillaLinesIntoChat(vm);
+                    SeedCapturedVanillaLinesIntoChat(vm, behavior);
                     // Show both scores in the header from the first frame.
                     vm.SetRelationSummary(
                         Profile.ReputationWithPlayer,
                         behavior.GameStateBridge.GetPlayerRelation(hero));
 
                     // ── Witness resolution ────────────────────────────────────
-                    // Auto-detect lords present (sync, safe — returns empty on failure).
+                    // Auto-detect heroes plausibly present (sync, safe — returns
+                    // empty on failure; same-location + social filters applied).
                     List<WitnessEntry> autoWitnesses =
                         WitnessResolver.ResolveAutoWitnesses(hero, behavior.Store);
                     if (autoWitnesses.Count > 0)
-                    {
                         vm.SetWitnesses(autoWitnesses);
-                        // Companion picker: async overlay — fail-soft, chat stays open
-                        // on any exception (handled inside ShowCompanionPickerIfNeeded).
-                        WitnessResolver.ShowCompanionPickerIfNeeded();
-                    }
+
+                    // Companions: physical presence rules. If companions followed the
+                    // player into the loaded scene (Visit), they join automatically —
+                    // no picker, no dissonance. Otherwise (Talk, or the player came
+                    // alone) the picker offers to summon up to two, or go alone.
+                    // The player can later dismiss a companion in conversation — the
+                    // witness_leaves action handles it.
+                    List<WitnessEntry> sceneCompanions = WitnessResolver.ResolveSceneCompanions();
+                    if (sceneCompanions.Count > 0)
+                        foreach (WitnessEntry companion in sceneCompanions)
+                            vm.AddWitness(companion);
+                    else
+                        WitnessResolver.ShowCompanionPickerIfNeeded(vm.AddWitness);
                     // ─────────────────────────────────────────────────────────
                 }
 
@@ -282,10 +296,10 @@ namespace CalradiaRemembers.Dialogue
             }
         }
 
-        private void SeedCapturedVanillaLinesIntoChat(ChatViewModel vm)
+        private void SeedCapturedVanillaLinesIntoChat(ChatViewModel vm, NpcMemoryCampaignBehavior behavior)
         {
             IReadOnlyList<VanillaDialogueRecorder.CapturedLine> captured
-                = NpcMemoryCampaignBehavior.Instance.DialogueRecorder.GetCapturedLines();
+                = behavior.DialogueRecorder.GetCapturedLines();
 
             ModLog.Info($"Seeding {captured.Count} vanilla lines into chat");
 
@@ -301,7 +315,7 @@ namespace CalradiaRemembers.Dialogue
                     Session.AddNpcMessage(line.Text);
                 }
 
-            NpcMemoryCampaignBehavior.Instance.DialogueRecorder.Clear();
+            behavior.DialogueRecorder.Clear();
 
             // Append the relation-gated greeting as the most recent NPC line. The
             // recorder captures it too late to be in 'captured', so we add it here.

@@ -30,15 +30,17 @@ namespace CalradiaRemembers.Settings
         public Dropdown<string> AdultContentLevel { get; set; } =
             new Dropdown<string>(new[] {"Off", "Mature", "Explicit", "Hardcore"}, 1); // default: Mature
 
-        [SettingPropertyDropdown("Relationship Warmth", RequireRestart = false, Order = 0,
-            HintText = "How readily NPCs grow to like you through conversation. Normal is the level the mod " +
-                       "was designed and balanced around — trust is earned slowly, by deeds. Easier lets good " +
-                       "company (compliments, humor, shared moments) earn small gains more often. Very Easy " +
-                       "makes NPCs warm up readily. Affects only positive regard — insults stay just as costly. " +
+        [SettingPropertyDropdown("Relationship Pacing", RequireRestart = false, Order = 0,
+            HintText = "How relationships grow through conversation — a philosophy, not a difficulty. " +
+                       "Grounded keeps the core game's feel: trust is earned slowly, mostly by deeds; " +
+                       "flattery rarely moves a lord. Warm lets good company — humor, sympathy, sincere " +
+                       "praise — earn small gains more often. Storyteller is a roleplay-first experience: " +
+                       "personal moments, narrative effort and real connection move hearts readily. " +
+                       "Affects only positive regard — insults cost the same everywhere. " +
                        "Applies on your next conversation.")]
         [SettingPropertyGroup("Content", GroupOrder = 2)]
         public Dropdown<string> RelationshipWarmth { get; set; } =
-            new Dropdown<string>(new[] {"Normal", "Easier", "Very Easy"}, 0); // default: Normal
+            new Dropdown<string>(new[] {"Grounded", "Warm", "Storyteller"}, 0); // default: Grounded (= Normal)
 
         [SettingPropertyDropdown("LLM Provider", RequireRestart = false, Order = 0,
             HintText = "Which OpenAI-compatible service to send requests to. Each provider has its own " +

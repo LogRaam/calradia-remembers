@@ -12,7 +12,6 @@ using CalradiaRemembers.Quests;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
-using CalradiaRemembers.Letters;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;

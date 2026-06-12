@@ -34,9 +34,6 @@ namespace CalradiaRemembers.Quests
         [TaleWorlds.SaveSystem.SaveableField(1)] private string _giverId;
         [TaleWorlds.SaveSystem.SaveableField(2)] private string _questKey;
 
-        // The live log entry so we can update it when the deed is done.
-        private JournalLog _progressLog;
-
         /// <summary>
         ///   Creates a new mirror for <paramref name="quest" />.
         /// </summary>
@@ -70,7 +67,6 @@ namespace CalradiaRemembers.Quests
         /// </summary>
         public void MarkDeedDone(string evidence)
         {
-            _progressLog?.UpdateCurrentProgress(1);
             AddLog(new TextObject($"Done: {evidence} — return to {QuestGiver?.Name} to collect your reward."));
         }
 

@@ -2,7 +2,7 @@
 <Module>
     <Name value="Calradia Remembers" />
     <Id value="CalradiaRemembers" />
-    <Version value="v1.0.0" />
+    <Version value="v1.4.0" />
     <SingleplayerModule value="true" />
     <MultiplayerModule value="false" />
     <DependedModules>

@@ -45,7 +45,7 @@ What's said in conversation can change the world: relation shifts, gold given or
 The tasks NPCs hand you aren't throwaway flavor text.. each one is mirrored into Bannerlord's real quest journal, and it always closes cleanly. Complete it (confirmed by [color=#ffe599][i]actual[/i][/color] game events, never by the AI simply saying so), let its deadline lapse, abandon it honestly, or watch its target stop making sense.. every outcome resolves the journal entry, and a self-check on every load force-closes anything left dangling. [color=#f1c232]No ghost quests piling up in your log, and no errand that can never be finished[/color].. a common rough edge when an LLM is bolted onto the vanilla quest system, designed out from the start here.
 
 [b][color=#e69138]Multi-character scenes[/color][/b]
-Other lords and companions present during a talk can overhear, react in their own voice, and take sides. You can address a specific witness directly, or ask for a private audience.. and the NPC decides whether to grant it.
+Other lords present in the same hall can overhear, react in their own voice, and take sides.. and who is present actually makes sense: the smith from the market square will not be attending your audience in the keep. Bring up to two of your companions to a meeting (those walking beside you in town join naturally), or go alone. Everything is handled in the conversation itself: address a specific witness directly, ask one of your companions to leave you alone with the NPC in your own words, or request a private audience.. and the NPC decides whether to clear the room.
 
 [color=#e69138][b]Letters & visible couriers[/b][/color]
 Write to an NPC and hire a courier who physically crosses the campaign map to deliver the letter.. and who can be intercepted by bandits along the way. NPCs write back, and their replies arrive by courier too.
@@ -89,7 +89,7 @@ A lot of what the NPCs "know" and how they carry themselves isn't locked in the 
 You'll find them in:
 `...\Mount & Blade II Bannerlord\Modules\CalradiaRemembers\ModuleData\`
 
-[b][color=#6aa84f]player_description.txt[/color][/b]: the one most worth editing. This tells every NPC who [i][color=#00ff00]you[/color][/i] are: your appearance, reputation, bearing, marital status. It ships, so write it to match your own playthrough: your name, your look, your story.  NPCs speak to you as the person described here.
+[b][color=#6aa84f]player_description.txt[/color][/b]: optional flavor the game cannot know on its own. Your character's [i]name[/i], [i]gender[/i], and [i]clan[/i] are already pulled from the live game.. NPCs will address you by your real in-game name from the first conversation, with the right pronouns, without any editing needed. What you add here is the color behind those facts: your bearing, how you look, your reputation before you even open your mouth. Ships empty; nothing to fix before playing. If you want NPCs to speak to you as a specific kind of person.. scarred veteran, charming adventurer, feared warrior.. write a paragraph here and they'll carry it.
 
 [b][color=#6aa84f]world.txt[/color][/b]: the shared backdrop of Calradia (its cultures, feudal order, the rhythm of the seasons, the fact that there is no magic). Injected once for every NPC. Edit it to shift the tone or lore of the whole world your characters inhabit.
 
@@ -113,6 +113,9 @@ cr.memory Liena
   [2] Day 46 | Other        | She spoke to me as a stranger.     <- and this one
 [/code]
 
+[b][color=#93c47d]cr.memory_add [days_ago] [text] [name][/color][/b] — create a memory dated in the past, to build a prior relationship with a character so not everyone starts as a stranger:
+[code]cr.memory_add 30 We fought side by side at Pendraic. Derthert[/code]
+
 [b][color=#93c47d]cr.memory_set [index] [new text] [name][/color][/b] — replace the text of one event without deleting it:
 [code]
 cr.memory_set 1 She remembered our bond, speaking with warmth. Liena
@@ -125,7 +128,11 @@ cr.memory_set 2 She recovered herself and called me by name. Liena
 [b][color=#93c47d]cr.forget_all [name][/color][/b] — wipe the entire memory of an NPC for a clean slate:
 [code]cr.forget_all Liena[/code]
 
-[quote]💡 The [name] at the end is optional — if you already have a conversation open with the NPC, you can omit it. The last word of the command is tried as an NPC name; if it matches a character it is used as such, otherwise the whole text after the index is treated as the new memory and the current conversation NPC is used.[/quote]
+[quote]💡 The [name] at the end is optional — if you already have a conversation open with the NPC, you can omit it. The last word of the command is tried as an NPC name; if it matches a character it is used as such, otherwise the whole text after the index is treated as the new memory and the current conversation NPC is used. Remember that NPC memories live inside your campaign save: edits (and everything NPCs record) persist when you [b]save the game[/b], so save after fixing.[/quote]
+[line]
+[size=4]Where the mod is at[/size]
+
+Calradia Remembers is young and moving fast. The core loop is solid, but it is not seamless yet: now and then the AI records something wrong and you will want the console commands above to fix a memory, and rough edges do surface. If you enjoy being part of a mod's formative stage — updates ship quickly and player feedback genuinely shapes the design — you will feel at home. If you would rather wait for a fully polished experience, watch this page and come back soon.
 [line]
 [size=5]How to configure[/size]
 
@@ -192,11 +199,11 @@ LLM Provider:
       [b][color=#a64d79]Hardcore[/color][/b].. unlocks darker adult-only roleplay, including captor/captive scenes.
      [i] Applies on your next conversation.[/i]
 [list]
-[*]  Relationship Warmth .. how readily NPCs grow to like you through conversation. Affects only positive regard — insults and betrayals stay just as costly at every level:[/*]
+[*]  Relationship Pacing .. how relationships grow through conversation — a philosophy of interaction, not a difficulty. Affects only positive regard — insults and betrayals stay just as costly at every level:[/*]
 [/list]
-      [b][color=#b6d7a8]Normal[/color][/b] (default).. the level the mod was designed and balanced around. Trust is earned slowly, through deeds.
-      [b][color=#93c47d]Easier[/color][/b].. good company counts. A well-turned compliment, shared humor, an engaging story or genuine support can each earn a little goodwill, and more often.
-      [b][color=#6aa84f]Very Easy[/color][/b].. NPCs warm to you readily — most sincerely positive exchanges nudge their regard, with little throttle.
+      [b][color=#b6d7a8]Grounded[/color][/b] (default).. the core game's feel, and the level the mod was balanced around. Trust is earned slowly, mostly through deeds; flattery rarely moves a lord.
+      [b][color=#93c47d]Warm[/color][/b].. good company counts. A well-turned compliment, shared humor, an engaging story or genuine support can each earn a little goodwill, and more often.
+      [b][color=#6aa84f]Storyteller[/color][/b].. a roleplay-first experience: personal moments, narrative effort and real connection move hearts readily, with little throttle.
      [i] Applies on your next conversation.[/i]
 
   Diagnostics:

@@ -81,7 +81,46 @@ namespace CalradiaRemembers.Mapping
 
       /// <summary>Names a relative, marking the deceased as "the late …" so the NPC speaks of them accurately.</summary>
       private static string FormatKin(Hero kin)
-         => kin.IsAlive ? kin.Name.ToString() : $"the late {kin.Name}";
+         => kin.IsAlive ? kin.Name.ToString() : $"the late {kin.Name}{DescribeDeath(kin)}";
+
+      /// <summary>
+      ///   How and how long ago a dead relative died — " (who fell in battle 6 days ago)".
+      ///   Without this the LLM invents both ("three winters ago" for a father who died
+      ///   last week in a siege — tester report). Empty when the game has no usable
+      ///   death record (pre-campaign deaths often carry no DeathDay).
+      /// </summary>
+      private static string DescribeDeath(Hero kin)
+      {
+         try
+         {
+            if (kin.DeathDay.ToDays <= 0) return "";
+            double daysAgo = CampaignTime.Now.ToDays - kin.DeathDay.ToDays;
+            // Negative or absurdly old (> ~100 Calradian years) means the record is
+            // not real campaign history — say nothing rather than something false.
+            if (daysAgo < 0 || daysAgo > 8400) return "";
+
+            string when = daysAgo < 1  ? "this very day"
+                        : daysAgo < 84 ? $"{(int) daysAgo} days ago"
+                                       : $"about {(int) (daysAgo / 84)} year(s) ago"; // Calradian year = 84 days
+
+            string cause;
+            switch (kin.DeathMark.ToString())
+            {
+               case "DiedInBattle": cause = "fell in battle"; break;
+               case "DiedOfOldAge": cause = "died of old age"; break;
+               case "Executed":     cause = "was executed"; break;
+               case "Murdered":     cause = "was murdered"; break;
+               case "DiedInLabor":  cause = "died in childbirth"; break;
+               default:             cause = "died"; break;
+            }
+
+            return $" (who {cause} {when})";
+         }
+         catch
+         {
+            return "";
+         }
+      }
 
       private static void AppendFriends(StringBuilder sb, Hero hero)
       {

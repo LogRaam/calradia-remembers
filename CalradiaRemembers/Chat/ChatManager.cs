@@ -44,10 +44,11 @@ namespace CalradiaRemembers.Chat
         {
             if (!IsOpen) return;
 
-            // Record the captive scene in the captor's memory before tearing down.
-            // No-op outside captive mode; idempotent. The async summary it may launch
-            // captures the data it needs, so it survives the teardown below.
+            // Record the session in the NPC's memory before tearing down. Each call is
+            // a no-op outside its own mode and idempotent. The async summary either may
+            // launch captures the data it needs, so it survives the teardown below.
             ActiveViewModel?.FinalizeCaptiveSceneMemory();
+            ActiveViewModel?.FinalizeConversationMemory();
 
             KillChatWindow();
             EndVanillaConversation();

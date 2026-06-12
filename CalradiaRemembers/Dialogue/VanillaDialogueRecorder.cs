@@ -18,11 +18,15 @@ namespace CalradiaRemembers.Dialogue
     ///   list) start with full context of what just happened.
     ///   Lifecycle:
     ///   - Subscribe() — called once at campaign start; hooks the events.
-    ///   - On ConversationBegin → clears the buffer.
-    ///   - On ConsequenceRunned → records the consumed sentence (NPC or Player).
-    ///   - On ConversationEnd  → does NOT clear the buffer; the dialog flow
-    ///   decides when to consume it.
-    ///   - GetCapturedLines() returns a snapshot.
+    ///   - On ConsequenceRunned → records the consumed sentence (NPC or Player);
+    ///   also detects the start of a NEW conversation (partner change, or the
+    ///   deferred-clear flag armed by the previous ConversationEnd) and drops
+    ///   the previous conversation's lines first. ConversationBegin is NOT
+    ///   relied upon — it does not fire reliably in this engine build.
+    ///   - On ConversationEnd  → arms the deferred clear; does NOT clear
+    ///   immediately (the dialog flow consumes the buffer while the vanilla
+    ///   conversation is still live).
+    ///   - GetCapturedLines() returns the live buffer (consume then Clear()).
     ///   - Clear() empties the buffer (called after the chat window consumes them).
     ///   Note on text resolution: ConsequenceRunned fires AFTER
     ///   UpdateCurrentSentenceText, so Campaign.Current.ConversationManager.CurrentSentenceText
@@ -33,6 +37,14 @@ namespace CalradiaRemembers.Dialogue
     {
         private readonly List<CapturedLine> _captured = new List<CapturedLine>();
         private bool _subscribed;
+
+        // New-conversation detection (see OnConsequenceRunned). We do NOT rely on
+        // ConversationBegin to clear the buffer: in this engine build it does not fire
+        // reliably per conversation, so without this the lines from prior conversations
+        // (the tavernkeeper, a previous NPC) accumulate and bleed into the next NPC's
+        // chat intro. OnConsequenceRunned is the one event we have proof fires.
+        private CharacterObject _lastCapturePartner;
+        private bool _clearBeforeNextCapture;
 
         public void Clear() => _captured.Clear();
 
@@ -93,6 +105,25 @@ namespace CalradiaRemembers.Dialogue
 
                 if (mgr == null) return;
 
+                // Start a fresh buffer whenever a NEW vanilla conversation begins. We key
+                // this off ConsequenceRunned — the one event proven to fire — rather than
+                // ConversationBegin (unreliable here). A new conversation is detected by a
+                // change of partner, or by the deferred-clear flag set on the previous
+                // ConversationEnd (covers a second conversation with the SAME partner).
+                // The clear happens at the FIRST capture of the new conversation, never on
+                // end, so the greeting-line consequence that seeds the chat (while the
+                // vanilla conversation is still live) can still read the buffer.
+                CharacterObject partner = mgr.OneToOneConversationCharacter;
+                if (_clearBeforeNextCapture || !ReferenceEquals(partner, _lastCapturePartner))
+                {
+                    if (_captured.Count > 0)
+                        ModLog.Info($"VanillaDialogueRecorder: new conversation — dropped {_captured.Count} stale line(s) from the previous one.");
+
+                    _captured.Clear();
+                    _clearBeforeNextCapture = false;
+                    _lastCapturePartner = partner;
+                }
+
                 // The rendered text — variables substituted, animation tags stripped.
                 var text = mgr.CurrentSentenceText;
 
@@ -111,15 +142,24 @@ namespace CalradiaRemembers.Dialogue
 
         private void OnConversationBegin()
         {
+            // Harmless redundancy: if ConversationBegin ever does fire, clearing here is
+            // consistent with the partner-change reset in OnConsequenceRunned. The
+            // load-bearing reset lives there because this event is unreliable.
             _captured.Clear();
+            _lastCapturePartner = null;
+            _clearBeforeNextCapture = false;
         }
 
         private void OnConversationEnd()
         {
-            // Intentionally NOT clearing — the dialog flow consumes the buffer
-            // when the player opens the chat window. If the player just walks
-            // away from a vanilla dialogue without opening the chat, the buffer
-            // remains until the next ConversationBegin overwrites it.
+            // Do NOT clear here — the dialog flow consumes the buffer (via the greeting
+            // line's consequence) while the vanilla conversation is still live, so an
+            // end-time clear would race the seed and wipe it. Instead, arm a deferred
+            // clear: the next conversation's first captured line drops these stale lines.
+            // Covers the case where the player walks away without opening the chat, and
+            // the case of a second conversation with the same partner (which the
+            // partner-change check alone would miss).
+            _clearBeforeNextCapture = true;
         }
 
         private string ResolveAuthorName(ConversationSentence sentence, ConversationManager mgr)

@@ -54,9 +54,14 @@ namespace CalradiaRemembers
 
                 switch (s.RelationshipWarmth.SelectedValue)
                 {
-                    case "Easier":    return CalradiaRemembers.RelationWarmth.Easier;
-                    case "Very Easy": return CalradiaRemembers.RelationWarmth.VeryEasy;
-                    default:          return CalradiaRemembers.RelationWarmth.Normal;
+                    // Current labels (experience-oriented — tester feedback: this is a
+                    // philosophy of interaction, not a difficulty).
+                    case "Warm":        return CalradiaRemembers.RelationWarmth.Easier;
+                    case "Storyteller": return CalradiaRemembers.RelationWarmth.VeryEasy;
+                    // Pre-rename labels — MCM may have persisted these for existing users.
+                    case "Easier":      return CalradiaRemembers.RelationWarmth.Easier;
+                    case "Very Easy":   return CalradiaRemembers.RelationWarmth.VeryEasy;
+                    default:            return CalradiaRemembers.RelationWarmth.Normal;
                 }
             }
         }

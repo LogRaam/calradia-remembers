@@ -215,6 +215,28 @@ cr.remove_kink <kink> [name]         # remove a kink
 
 > This is the only section that changes per sprint. Keep it short.
 
+**Sprint 19 — Tester feedback round 1** (2026-06-12) ⏳ built, untested in game:
+- **Fallback conversation memory** (the big one): the LLM mostly emits [EVENT] on a formal farewell — closing the window mid-exchange left NO memory (tester: "memories only click on the red text"). Now `ChatManager.Close` → `FinalizeConversationMemory()`: if Conversation mode, ≥2 completed player turns, and no [EVENT] this session → synchronous base event (`Other`) + async rich first-person transcript summary (new SDK `ConversationSummarizer`, mirrors the captive two-stage pattern).
+- **Courier sea fix**: sender (or player) at sea → courier spawns at nearest landfall (`MobileParty.IsCurrentlyAtSea`, port-preferred via `Settlement.HasPort` ×3 distance score) instead of immobile in the water.
+- **Death dating**: dead parents in RELATIONSHIPS now carry cause + recency ("the late Ingalther (who fell in battle 6 days ago)") from `DeathDay`/`DeathMark`; relationships rebuilt at conversation open (was session launch only). PromptBuilder events get recency suffixes ("- Day 91078 (Conflict, 6 days ago):") + Calradian calendar note (84-day year) + "do not invent how long ago" rule.
+- **Console**: `cr.memory` shows "(N days ago)"; new `cr.memory_add <days_ago> <text> [name]` (construct prior relationships); `cr.discover` renamed `cr.discover_test`, seeds gender-adapted + "(test seed)"-marked (tester got "She…" on Derthert and thought discovery was broken).
+- **Relationship Pacing**: MCM "Relationship Warmth Normal/Easier/Very Easy" → "Relationship Pacing Grounded/Warm/Storyteller" (tester insight: philosophy of interaction, not difficulty). Old persisted values still map. VeryEasy/Easier vocabulary now names lordly positives (pledge of support, praise of deeds, shared victory) + "when in doubt, emit the +1" (Derthert no-gain case).
+- **NEXUS_DESCRIPTION**: cr.memory_add doc, profiles-persist-on-save note, "Where the mod is at" transparency section, pacing labels.
+- **ROADMAP**: v1.1 + give_troops/give_item; v1.2 + player battlefield performance in nearby lords' profiles.
+- NOT fixed (acknowledged): stale lord intentions (conquered village — needs ownership check at description time, minor), letter reply courier still targets a player at sea.
+
+**Sprint 18 — Witness presence & companions** (2026-06-12) ⏳ built, partially validated:
+- **VanillaDialogueRecorder fix** ✅ validated: buffer cleared on partner change + deferred clear on ConversationEnd (ConversationBegin unreliable in this engine build). Log: `dropped N stale line(s)`.
+- **Witness same-location filter** ✅ validated: a witness must share the NPC's `LocationComplex` location (`lordshall`/`center`/`tavern`…; works in BOTH Talk and Visit paths — validated in-game). Unknown location = excluded.
+- **Social rules** ✅ validated: notable NPC → no hero witnesses, 50 % chance of one synthetic flavor witness (gang enforcer / apprentice / customer, no HeroStringId); lord NPC → non-notable heroes only.
+- **Companions**: physically-present companions in the loaded scene (≤ 15 m, max 2, `Mission.Current.Agents` scan — requires `TaleWorlds.DotNet` ref) auto-join, no picker; otherwise picker (max 2, "Go alone"); any hero in MainParty qualifies (incl. clan family). Prisoner → never. **Test pending** (needs a companion in party).
+- **`witness_leaves` action**: player asks THEIR companion to leave in free text → LLM emits action → mod removes witness (IsPlayerCompanion gate, tolerant name match), transcript note, 15B routing reset. Handled in main path + 15C loop. **Test pending.**
+- **Free-text privacy**: `request_privacy` now taught whenever witnesses present (not just on button click); resolution no longer gated on the button flag. Captive player: no privacy teaching, no Request Private button. **Test pending.**
+- **Prompt improvements**: PlayerName/Gender/Clan injected from live Hero (THE PLAYER section; `player_description.txt` now ships empty = optional flavor); `EnableMemoryBlock=false` in mod ([MEMORY] never consumed — saves output tokens); flirt/intimacy [EVENT] tokens gated by AdultLevel; world.txt Nords line.
+- **No-key UX**: `IsAvailable` also requires a model id (NanoGPT has no default); `DescribeUnavailability()` gives a provider-aware message in-chat.
+- **ROADMAP.md** added (v1.1 commoners → v1.2 rumor store → v1.3 schemes → v2.0 CK3-style influence).
+- **Architecture pass** (same day, behavior-neutral): `ChatViewModel` mode booleans replaced by one `ChatMode` enum + named predicates (`IsLiveConversation`, `IsCaptiveEncounter`, `AllowsPrivacyRequest`) — v1.1 commoners = add an enum value, review the predicates. Address detection extracted to `Chat/AddressedSpeakerDetector.cs` (pure, unit-testable). `WitnessResolver` decoupled from Chat (picker takes `Action<WitnessEntry>`); dedup by HeroStringId. `LlmServices.IsAvailable` derives from `DescribeUnavailability()` (single source of truth). csproj: all refs via `$(BannerlordGameBinaryDir)`/`$(BannerlordModulesDir)`, deploy targets merged into one MSBuild-native target. Dead `_progressLog` removed; SDK nullable warnings fixed. Builds: 0 warnings.
+
 **Sprint 14 + 14b** ✅ validated in-game (2026-06-03) — last completed sprint.
 
 Multi-NPC witnesses (14) + active witness reactions (14b):

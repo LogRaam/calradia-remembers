@@ -69,11 +69,36 @@ namespace CalradiaRemembers.Services
         public string ModelId => ResolveModel();
 
         /// <summary>
-        ///   Live availability: the stack is built and a non-empty API key currently
-        ///   resolves (from the MCM menu or the env var). Computed each access so a key
-        ///   entered in-game takes effect on the next turn — no restart, no save reload.
+        ///   Live availability — computed each access so a key entered in-game takes
+        ///   effect on the next turn. Defined as "nothing to complain about": the
+        ///   conditions live in <see cref="DescribeUnavailability" /> ONLY, so the
+        ///   gate and the user-facing explanation can never drift apart.
         /// </summary>
-        public bool IsAvailable => LlmClient != null && !string.IsNullOrWhiteSpace(ResolveApiKey());
+        public bool IsAvailable => DescribeUnavailability() == null;
+
+        /// <summary>
+        ///   User-facing explanation of why the LLM cannot serve a conversation right
+        ///   now — provider-aware, with the exact next step. Null when fully configured.
+        ///   Single source of truth for availability (<see cref="IsAvailable" /> derives
+        ///   from it): stack built, non-empty API key (MCM menu or env var), and a model
+        ///   id (only NanoGPT can be model-less — it has no default).
+        /// </summary>
+        public string DescribeUnavailability()
+        {
+            if (LlmClient == null)
+                return "(The AI stack failed to initialize — check CalradiaRemembers.log.)";
+
+            string provider = ResolveProvider();
+            if (string.IsNullOrWhiteSpace(ResolveApiKey()))
+                return $"(No {provider} API key is set. Open Mods → Mod Options → Calradia Remembers, " +
+                       $"paste your {provider} API key, then return here — it applies immediately, no restart needed.)";
+
+            if (string.IsNullOrWhiteSpace(ResolveModel()))
+                return "(NanoGPT is selected but no model id is set. Open Mods → Mod Options → Calradia Remembers " +
+                       "and paste a model id from nano-gpt.com/models — it applies immediately.)";
+
+            return null;
+        }
 
         /// <summary>
         ///   Lazily-constructed chat service. The PromptBuilder and action vocabulary
@@ -246,14 +271,26 @@ namespace CalradiaRemembers.Services
                     Parameters  = new List<string>()
                 },
                 new GameActionDefinition {
+                    Type        = "witness_leaves",
+                    Description = "One of the PLAYER'S OWN companions leaves the conversation. Emit ONLY when the player " +
+                                  "explicitly asks one of their companions to step away or leave the two of you alone — " +
+                                  "never on your own initiative. This applies only to witnesses marked as the player's " +
+                                  "companion; your own people do not answer to the player (a private audience is the way " +
+                                  "to clear the room). Set 'name' to the companion's name exactly as listed under " +
+                                  "WITNESSES PRESENT, and acknowledge the departure naturally in [DIALOGUE].",
+                    Parameters  = new List<string> { "name" }
+                },
+                new GameActionDefinition {
                     Type        = "give_gold",
                     Description = "Transfer gold from you to the player (payment, reward, gift, bribe). " +
+                                  "'amount' is a whole number of denars. " +
                                   "The amount must reflect your actual willingness — do not give what you would not give.",
                     Parameters  = new List<string> { "amount" }
                 },
                 new GameActionDefinition {
                     Type        = "take_gold",
                     Description = "Transfer gold from the player to you (tribute, fee, debt repaid). " +
+                                  "'amount' is a whole number of denars. " +
                                   "Only emit if the player has agreed or you have the authority to demand it.",
                     Parameters  = new List<string> { "amount" }
                 }
@@ -276,7 +313,8 @@ namespace CalradiaRemembers.Services
                 case RelationWarmth.Easier:
                     positive =
                         "Emit +1 whenever the player genuinely pleases you this exchange — a well-turned compliment, shared humor, " +
-                        "an engaging story, real sympathy or support, or simply good company. Good company earns goodwill here: do not " +
+                        "an engaging story, real sympathy or support, a pledge of loyalty or service you welcome, sincere praise of " +
+                        "your deeds or leadership, or simply good company. Good company earns goodwill here: do not " +
                         "withhold a small gain merely because no grand deed was done. A larger positive is reserved for a truly " +
                         "significant, self-evident moment such as physical intimacy. ";
                     break;
@@ -284,8 +322,10 @@ namespace CalradiaRemembers.Services
                 case RelationWarmth.VeryEasy:
                     positive =
                         "Emit +1 — occasionally +2 — for almost any sincerely positive exchange: pleasant talk, a kind word, a shared " +
-                        "laugh, a moment of real connection. You warm to people readily and give them the benefit of the doubt; you need " +
-                        "no grand deed to feel goodwill. Reserve larger gains for a truly significant, self-evident moment such as physical intimacy. ";
+                        "laugh, a pledge of support, praise of your deeds or your leadership, warm words after a shared victory, " +
+                        "a moment of real connection. You warm to people readily and give them the benefit of the doubt; you need " +
+                        "no grand deed to feel goodwill. When in doubt whether an exchange earned the +1, emit it rather than " +
+                        "withhold it. Reserve larger gains for a truly significant, self-evident moment such as physical intimacy. ";
                     break;
 
                 default: // Normal — the balanced baseline
@@ -315,6 +355,11 @@ namespace CalradiaRemembers.Services
             {
                 AdultLevel                 = ModSettings.AdultContentLevel,
                 PlayerIsFemale             = TestPlayerGenderOverride ?? Hero.MainHero?.IsFemale ?? false,
+                // Name and clan are injected from the live Hero so NPCs can address the player by
+                // their actual in-game name and reference their lineage, regardless of what the user
+                // has written (or not written) in player_description.txt.
+                PlayerName                 = Hero.MainHero?.Name?.ToString() ?? "",
+                PlayerClanName             = Hero.MainHero?.Clan?.Name?.ToString() ?? "",
                 WorldDescription           = NarrativeLoader.WorldDescription,
                 PlayerDescription          = NarrativeLoader.PlayerDescription,
                 BehaviorGuidelinesOverride = NarrativeLoader.BehaviorGuidelines,
@@ -323,6 +368,9 @@ namespace CalradiaRemembers.Services
                 // moved only through the gated change_relation action — so the LLM
                 // does not write a parallel reputation score.
                 EnableReputationBlock      = false,
+                // [MEMORY] data is never consumed by the game — omitting it saves output
+                // tokens and latency on every reply, including witness beats and captive scenes.
+                EnableMemoryBlock          = false,
                 // The mod can verify deeds (QuestDeedTracker) and pay rewards, so the
                 // NPC is allowed to offer and resolve informal quests.
                 EnableQuests               = true

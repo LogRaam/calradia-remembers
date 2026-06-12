@@ -66,7 +66,7 @@ namespace CalradiaRemembers
       protected override void OnSubModuleLoad()
       {
          base.OnSubModuleLoad();
-         Log($"{ModName} v1.0.0 loaded.");
+         Log($"{ModName} v1.4.0 loaded.");
 
          try
          {
@@ -148,9 +148,7 @@ namespace CalradiaRemembers
                return;
             }
 
-            FieldInfo field = typeof(WidgetFactory).GetField(
-               "_builtinTypes",
-               BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo field = typeof(WidgetFactory).GetField("_builtinTypes", BindingFlags.NonPublic | BindingFlags.Instance);
 
             if (field == null)
             {
@@ -197,8 +195,7 @@ namespace CalradiaRemembers
             return;
          }
 
-         if (UIResourceManager.ResourceDepot != null)
-            UIResourceManager.ResourceDepot.AddLocation(moduleRoot, "/GUI/");
+         if (UIResourceManager.ResourceDepot != null) UIResourceManager.ResourceDepot.AddLocation(moduleRoot, "/GUI/");
 
          RegisterCustomBuiltInWidgets();
 

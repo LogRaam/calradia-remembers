@@ -249,8 +249,14 @@ namespace CalradiaRemembers.Letters
             var name = new TextObject($"Courier to {recipient.Name}");
             float speed = speedOverride ?? CourierBaseSpeed;
 
+            // Same sea guard as the reply direction: a player writing from shipboard
+            // dispatches the courier from the nearest landfall, not the open water.
+            CampaignVec2 spawnPosition = player.IsCurrentlyAtSea
+               ? new CampaignVec2(NearestLandfall(player.GetPosition2D), true)
+               : player.Position;
+
             MobileParty courier = CustomPartyComponent.CreateCustomPartyWithTroopRoster(
-               player.Position,
+               spawnPosition,
                1f,
                home,
                name,
@@ -529,11 +535,39 @@ namespace CalradiaRemembers.Letters
 
       private static Vec2 GetSenderPosition(Hero sender)
       {
-         if (sender.PartyBelongedTo != null) return sender.PartyBelongedTo.GetPosition2D;
+         // A sender sailing the sea cannot hand a letter to a land courier where they
+         // stand — the courier spawns at the nearest landfall instead (tester report:
+         // courier spawned in the water and sat immobile until the player drifted by).
+         if (sender.PartyBelongedTo != null)
+            return sender.PartyBelongedTo.IsCurrentlyAtSea
+               ? NearestLandfall(sender.PartyBelongedTo.GetPosition2D)
+               : sender.PartyBelongedTo.GetPosition2D;
          if (sender.CurrentSettlement != null) return sender.CurrentSettlement.GetPosition2D;
          if (sender.StayingInSettlement != null) return sender.StayingInSettlement.GetPosition2D;
 
          return MobileParty.MainParty?.GetPosition2D ?? Vec2.Zero;
+      }
+
+      /// <summary>
+      ///   The land position where a letter sent from <paramref name="seaPos" /> comes
+      ///   ashore: the nearest port settlement (heavily preferred — that is where a
+      ///   ship's mail is put off), or simply the nearest settlement when no port exists.
+      /// </summary>
+      private static Vec2 NearestLandfall(Vec2 seaPos)
+      {
+         Settlement best = null;
+         var bestScore = float.MaxValue;
+         foreach (Settlement s in Settlement.All)
+         {
+            if (s.IsHideout) continue;
+            float score = s.GetPosition2D.Distance(seaPos);
+            if (!s.HasPort) score *= 3f; // strong port preference
+            if (score >= bestScore) continue;
+            bestScore = score;
+            best = s;
+         }
+
+         return best?.GetPosition2D ?? seaPos;
       }
 
       private static bool HasArrived(MobileParty courier, Hero recipient)

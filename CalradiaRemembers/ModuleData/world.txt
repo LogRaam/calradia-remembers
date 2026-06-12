@@ -17,3 +17,5 @@ Seasons shape life and warfare:
 - Summer: Peak military activity. Sieges, field battles, raiding. Roads are dangerous. Harvests begin in the south.
 - Autumn: Harvest and tax collection. Ceasefire negotiations grow more common. Lords return to count their gains.
 - Winter: Reduced warfare. Supply difficulties, disease outbreaks, court intrigue. Political maneuvering replaces field campaigns. Lords spend more time in their halls — and more time scheming.
+
+Beyond the great factions, other peoples hold territory at the margins. Seafaring Nord raiders are among them — respected for their ferocity at sea and in the shield-wall, and as likely to seek plunder as trade.

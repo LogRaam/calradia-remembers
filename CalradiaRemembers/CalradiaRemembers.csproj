@@ -18,9 +18,12 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 
-    <!-- Game install paths — only used by the DeployToBannerlord target below -->
+    <!-- Game install paths — single source for every game DLL reference and the
+         DeployToBannerlord target. Override BannerlordInstallDir on the command line
+         (/p:BannerlordInstallDir=...) for a non-default Steam location. -->
     <BannerlordInstallDir>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord</BannerlordInstallDir>
-    <BannerlordModuleDir>$(BannerlordInstallDir)\Modules\CalradiaRemembers</BannerlordModuleDir>
+    <BannerlordModulesDir>$(BannerlordInstallDir)\Modules</BannerlordModulesDir>
+    <BannerlordModuleDir>$(BannerlordModulesDir)\CalradiaRemembers</BannerlordModuleDir>
     <BannerlordBinaryDir>$(BannerlordModuleDir)\bin\Win64_Shipping_Client</BannerlordBinaryDir>
     <BannerlordGameBinaryDir>$(BannerlordInstallDir)\bin\Win64_Shipping_Client</BannerlordGameBinaryDir>
   </PropertyGroup>
@@ -46,38 +49,44 @@
       <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.Core.ViewModelCollection">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.Core.ViewModelCollection.dll</HintPath>
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.Core.ViewModelCollection.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.CampaignSystem.ViewModelCollection">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.CampaignSystem.ViewModelCollection.dll</HintPath>
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.CampaignSystem.ViewModelCollection.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="0Harmony">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\Bannerlord.Harmony\bin\Win64_Shipping_Client\0Harmony.dll</HintPath>
+      <HintPath>$(BannerlordModulesDir)\Bannerlord.Harmony\bin\Win64_Shipping_Client\0Harmony.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Bannerlord.UIExtenderEx">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\Bannerlord.UIExtenderEx\bin\Win64_Shipping_Client\Bannerlord.UIExtenderEx.dll</HintPath>
+      <HintPath>$(BannerlordModulesDir)\Bannerlord.UIExtenderEx\bin\Win64_Shipping_Client\Bannerlord.UIExtenderEx.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="MCMv5">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\Bannerlord.MBOptionScreen\bin\Win64_Shipping_Client\MCMv5.dll</HintPath>
+      <HintPath>$(BannerlordModulesDir)\Bannerlord.MBOptionScreen\bin\Win64_Shipping_Client\MCMv5.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.Engine.GauntletUI">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.Engine.GauntletUI.dll</HintPath>
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.Engine.GauntletUI.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.GauntletUI">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.GauntletUI.dll</HintPath>
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.GauntletUI.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.GauntletUI.Data">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.GauntletUI.Data.dll</HintPath>
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.GauntletUI.Data.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.GauntletUI.PrefabSystem">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.GauntletUI.PrefabSystem.dll</HintPath>
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.GauntletUI.PrefabSystem.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.InputSystem">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.InputSystem.dll</HintPath>
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.InputSystem.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.Library">
       <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.Library.dll</HintPath>
@@ -88,7 +97,12 @@
       <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.ModuleManager">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.ModuleManager.dll</HintPath>
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.ModuleManager.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.DotNet">
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.DotNet.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.MountAndBlade">
       <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.MountAndBlade.dll</HintPath>
@@ -111,42 +125,37 @@
       <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.ScreenSystem">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.ScreenSystem.dll</HintPath>
-    </Reference>    
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.ScreenSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <!--
-    ─── Auto-deploy to Bannerlord modules folder after build ────────────────
-    Copies the build output DLLs into the game's Modules folder.
-    NpcMemoryService.Core now uses Newtonsoft.Json (shipped by Bannerlord, 13.0.1),
-    so no extra JSON assemblies are deployed. Newtonsoft itself is referenced from the
-    game with Private=false and is not copied — the old System.Text.Json facade tree
-    (which caused assembly-load failures on some players' machines) is gone.
+    ─── Auto-deploy to the Bannerlord module after build (single target) ────
+    Deploys ONLY the mod's own assemblies plus module content (SubModule.xml,
+    GUI prefabs, ModuleData, Sounds). Everything else (TaleWorlds.*, Newtonsoft.Json)
+    is already provided by the game; bundling it is redundant and risks version
+    drift. No .pdb either — players don't need debug symbols.
+    NpcMemoryService.Core uses Newtonsoft.Json (shipped by Bannerlord, 13.0.1) —
+    the old System.Text.Json facade tree (which caused assembly-load failures on
+    some players' machines) is gone.
   -->
   <Target Name="DeployToBannerlord" AfterTargets="Build">
-    <MakeDir Directories="$(BannerlordBinaryDir)" Condition="!Exists('$(BannerlordBinaryDir)')" />
-
-    <!-- Deploy ONLY the mod's own assemblies. Everything else (TaleWorlds.*, Newtonsoft.Json)
-         is already provided by the game; bundling it is redundant and risks version drift.
-         No .pdb either — players don't need debug symbols. -->
     <ItemGroup>
-      <DeployFiles Include="$(TargetDir)CalradiaRemembers.dll" />
-      <DeployFiles Include="$(TargetDir)NpcMemoryService.Core.dll" />
+      <ModAssemblies   Include="$(TargetDir)CalradiaRemembers.dll;$(TargetDir)NpcMemoryService.Core.dll" />
+      <GuiPrefabFiles  Include="$(ProjectDir)GUI\Prefabs\*.xml" />
+      <ModuleDataFiles Include="$(ProjectDir)ModuleData\*.*" />
+      <SoundFiles      Include="$(ProjectDir)Sounds\**\*.*" />
     </ItemGroup>
 
-<ItemGroup>
-  <None Include="..\ModuleFolder\GUI\**\*.*">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    <Link>GUI\%(RecursiveDir)%(FileName)%(Extension)</Link>
-  </None>
-</ItemGroup>
+    <MakeDir Directories="$(BannerlordBinaryDir)" />
+    <Copy SourceFiles="@(ModAssemblies)"            DestinationFolder="$(BannerlordBinaryDir)"             SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(ProjectDir)..\SubModule.xml" DestinationFolder="$(BannerlordModuleDir)"           SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(GuiPrefabFiles)"           DestinationFolder="$(BannerlordModuleDir)\GUI\Prefabs" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ModuleDataFiles)"          DestinationFolder="$(BannerlordModuleDir)\ModuleData"  SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(SoundFiles)"               DestinationFolder="$(BannerlordModuleDir)\Sounds\%(RecursiveDir)" SkipUnchangedFiles="true" />
 
-    <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(BannerlordBinaryDir)" SkipUnchangedFiles="true" />
-
-    <Message Text="[CalradiaRemembers] Deployed to $(BannerlordBinaryDir)" Importance="high" />
-  </Target>
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(TargetDir)CalradiaRemembers.dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\bin\Win64_Shipping_Client\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(TargetDir)NpcMemoryService.Core.dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\bin\Win64_Shipping_Client\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)..\SubModule.xml&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)GUI\Prefabs\*.xml&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\GUI\Prefabs\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)ModuleData\*.*&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\ModuleData\&quot; /Y /I /R /D&#xD;&#xA;xcopy &quot;$(ProjectDir)Sounds\*.*&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\CalradiaRemembers\Sounds\&quot; /Y /I /R /D /S" />
+    <Message Text="[CalradiaRemembers] Deployed to $(BannerlordModuleDir)" Importance="high" />
   </Target>
 
 </Project>

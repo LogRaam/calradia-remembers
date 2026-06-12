@@ -39,7 +39,7 @@ namespace CalradiaRemembers
     ///   cr.take_gold &lt;amount&gt; [name]          — player gives the NPC gold
     ///   cr.info [name]                          — relation, cooldown state, captive status
     ///   cr.relation_reset [name]                — clear the relation-gain cooldown stamp
-    ///   cr.discover [name]                      — inject 3 test discoveries (Sprint 10.5 encyclopedia test)
+    ///   cr.discover_test [name]                 — inject 3 placeholder discoveries (Sprint 10.5 encyclopedia test)
     ///   [name] is an optional name fragment; if omitted, the current conversation NPC is used.
     /// </summary>
     public static class ModCheats
@@ -93,6 +93,7 @@ namespace CalradiaRemembers
                 "\n" +
                 "MEMORY EDITING\n" +
                 "  cr.memory [name]                     List all recorded events with their index\n" +
+                "  cr.memory_add <days_ago> <text> [name]  Create a memory dated in the past (build a prior relationship)\n" +
                 "  cr.memory_set <index> <text> [name]  Replace the text of one event (last word = name if it matches a hero)\n" +
                 "  cr.forget <index> [name]             Delete one event by index\n" +
                 "  cr.forget_all [name]                 Wipe all memory events for a fresh start\n" +
@@ -130,7 +131,7 @@ namespace CalradiaRemembers
                 "  cr.standing                          Show player clan tier and arena rank/wins\n" +
                 "\n" +
                 "DISCOVERY\n" +
-                "  cr.discover [name]                   Seed 3 test DiscoveredTraits (encyclopedia test)\n" +
+                "  cr.discover_test [name]              Seed 3 PLACEHOLDER DiscoveredTraits (UI test only — real ones come from conversation)\n" +
                 "\n" +
                 "QUESTS\n" +
                 "  cr.quest [name]                      Seed a bandit_clear quest on the NPC (journal opens)\n" +
@@ -164,8 +165,22 @@ namespace CalradiaRemembers
                 return $"{hero.Name} has no recorded memory events.";
 
             var lines = profile.Events.Select((e, i) =>
-                $"  [{i}] Day {e.gameDay} | {e.type} | {e.summary}");
+                $"  [{i}] {DescribeDay(e.gameDay)} | {e.type} | {e.summary}");
             return $"{hero.Name} memory ({profile.Events.Count} event(s)):\n" + string.Join("\n", lines);
+        }
+
+        /// <summary>
+        ///   "Day 91078 (6 days ago)" — day numbers are absolute calendar days (the
+        ///   Calradian year is 84 days), which players read as gibberish without the
+        ///   relative part (tester report: guessed '9' was the day and the rest hours).
+        /// </summary>
+        private static string DescribeDay(int gameDay)
+        {
+            int today = (int) CampaignTime.Now.ToDays;
+            if (gameDay <= 0 || gameDay > today) return $"Day {gameDay}";
+            int ago = today - gameDay;
+            string rel = ago == 0 ? "today" : ago == 1 ? "yesterday" : $"{ago} days ago";
+            return $"Day {gameDay} ({rel})";
         }
 
         /// <summary>
@@ -253,6 +268,61 @@ namespace CalradiaRemembers
             return $"{hero.Name}: event [{index}] updated.\n" +
                    $"  Before: \"{old.summary}\"\n" +
                    $"  After:  \"{newSummary}\"";
+        }
+
+        /// <summary>
+        ///   cr.memory_add &lt;days_ago&gt; &lt;text&gt; [name]
+        ///   Creates a new memory event dated &lt;days_ago&gt; days in the past, so a player
+        ///   can construct a prior relationship with a character (tester request: "not
+        ///   everyone should be a stranger"). The last token is tried as an NPC name
+        ///   fragment, same as cr.memory_set.
+        ///   Example: cr.memory_add 30 We fought side by side at Pendraic. Derthert
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("memory_add", "cr")]
+        public static string AddMemoryEvent(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+                return error;
+
+            if (args == null || args.Count < 2 || !int.TryParse(args[0], out int daysAgo) || daysAgo < 0)
+                return "Usage: cr.memory_add <days_ago> <text> [name]\n" +
+                       "       Example: cr.memory_add 30 We fought side by side at Pendraic. Derthert\n" +
+                       "       <days_ago> dates the memory in the past (0 = today).";
+
+            // Try the last token as an NPC name fragment. If it resolves, strip it.
+            Hero hero = null;
+            int summaryEnd = args.Count; // exclusive
+            if (args.Count >= 3)
+            {
+                string lastToken = args[args.Count - 1];
+                Hero candidate = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                    h != Hero.MainHero && h.Name != null
+                    && h.Name.ToString().IndexOf(lastToken, StringComparison.OrdinalIgnoreCase) >= 0);
+                if (candidate != null)
+                {
+                    hero = candidate;
+                    summaryEnd = args.Count - 1;
+                }
+            }
+
+            if (hero == null)
+                hero = Hero.OneToOneConversationHero;
+            if (hero == null)
+                return "No NPC found. Pass a name fragment as the last argument or start a conversation first.";
+
+            string summary = string.Join(" ", args.Skip(1).Take(summaryEnd - 1)).Trim();
+            if (string.IsNullOrWhiteSpace(summary))
+                return "The memory text cannot be empty.";
+
+            int gameDay = Math.Max(1, (int) CampaignTime.Now.ToDays - daysAgo);
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            profile.Events.Add(new NotableEvent(gameDay, NotableEventType.Other, summary));
+            // Keep chronology readable for both cr.memory and the prompt.
+            profile.Events.Sort((a, b) => a.gameDay.CompareTo(b.gameDay));
+            behavior.Store.Set(profile);
+
+            return $"{hero.Name}: memory added ({DescribeDay(gameDay)}) — \"{summary}\".\n" +
+                   $"{profile.Events.Count} event(s) total. Remember: profiles persist when you SAVE the game.";
         }
 
         /// <summary>
@@ -446,7 +516,14 @@ namespace CalradiaRemembers
             Hero hero = ResolveHero(args);
             if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
 
-            return WitnessResolver.DiagnoseWitnesses(hero, behavior.Store);
+            string report = WitnessResolver.DiagnoseWitnesses(hero, behavior.Store);
+
+            // Console output is screen-only — mirror the report into the log so it can
+            // be shared in bug reports / analyzed outside the game.
+            foreach (string line in report.Split('\n'))
+                ModLog.Info($"[cr.witnesses] {line.TrimEnd()}");
+
+            return report;
         }
 
         /// <summary>
@@ -688,12 +765,16 @@ namespace CalradiaRemembers
         }
 
         /// <summary>
-        ///   cr.discover [name]
-        ///   Injects 3 test discoveries into the NPC's profile so the encyclopedia
+        ///   cr.discover_test [name]
+        ///   Injects 3 PLACEHOLDER discoveries into the NPC's profile so the encyclopedia
         ///   discovery section can be validated without playing through a conversation.
+        ///   These are fixed test strings (gender-adapted), NOT real observations about
+        ///   the character — real discoveries are made in conversation. Renamed from
+        ///   cr.discover after a tester ran it on three NPCs, got identical "She…" lines
+        ///   on King Derthert, and reasonably concluded the discovery system was broken.
         ///   Safe to call repeatedly — deduplicated by key.
         /// </summary>
-        [CommandLineFunctionality.CommandLineArgumentFunction("discover", "cr")]
+        [CommandLineFunctionality.CommandLineArgumentFunction("discover_test", "cr")]
         public static string SimulateDiscover(List<string> args)
         {
             if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
@@ -705,10 +786,13 @@ namespace CalradiaRemembers
             NpcProfile profile = GetOrCreateProfile(behavior, hero);
             int added = 0;
             int day = (int)CampaignTime.Now.ToDays;
+            string subj  = hero.IsFemale ? "She" : "He";
+            string poss  = hero.IsFemale ? "her" : "his";
+            string other = hero.IsFemale ? "men" : "women";
             DiscoveredTrait[] seeds = {
-                new DiscoveredTrait { Key = "orientation",          Description = "She seems drawn to men.",                           GameDay = day },
-                new DiscoveredTrait { Key = "archetype",            Description = "She moves with the quiet confidence of someone who knows their worth.", GameDay = day },
-                new DiscoveredTrait { Key = "preference_dominant",  Description = "She prefers to lead in her relationships.",         GameDay = day }
+                new DiscoveredTrait { Key = "orientation",          Description = $"{subj} seems drawn to {other}. (test seed)",        GameDay = day },
+                new DiscoveredTrait { Key = "archetype",            Description = $"{subj} moves with the quiet confidence of someone who knows {poss} worth. (test seed)", GameDay = day },
+                new DiscoveredTrait { Key = "preference_dominant",  Description = $"{subj} prefers to lead in {poss} relationships. (test seed)", GameDay = day }
             };
 
             foreach (DiscoveredTrait seed in seeds)
@@ -719,7 +803,9 @@ namespace CalradiaRemembers
             }
 
             behavior.Store.Set(profile);
-            return $"{hero.Name}: {added} discovery/ies added ({profile.DiscoveredTraits.Count} total). Open encyclopedia to verify.";
+            return $"{hero.Name}: {added} TEST discovery/ies added ({profile.DiscoveredTraits.Count} total). " +
+                   "These are placeholders for UI testing — real discoveries happen in conversation. " +
+                   "Open encyclopedia to verify.";
         }
 
         // ── Sprint 11: informal quest testing (group "cr") ────────────────────
