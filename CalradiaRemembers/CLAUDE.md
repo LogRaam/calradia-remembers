@@ -215,6 +215,13 @@ cr.remove_kink <kink> [name]         # remove a kink
 
 > This is the only section that changes per sprint. Keep it short.
 
+**Sprint 20 — join_party action** (2026-06-12) ⏳ built, untested in game:
+- Gabriel's test: convinced a wanderer to join in chat — LLM agreed, nothing happened (broken promise). New `join_party` action closes it.
+- **Conditional teaching** (request_privacy pattern): `EncounterContext.CompanionAskingPrice` (SDK) set by `EncounterContextBuilder.ResolveCompanionAskingPrice` ONLY when truly hireable (alive, free Wanderer, `CompanionOf == null`, no party, player clan below `CompanionLimit`); PromptBuilder then renders RECRUITMENT section with vanilla asking price + 75 % negotiation floor + `type: join_party / price: N` emission format.
+- **Bridge execution** (`ExecuteJoinParty`): re-validates every guard ("the prompt is advice, the bridge is law"), clamps price to [75 %, 125 %] of `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice`, checks gold, then native `GiveGoldAction` + `AddCompanionAction` + `AddHeroToPartyAction` — identical to a vanilla tavern hire.
+- **Anti-empty-promise rule** in STAY WITHIN WHAT YOU KNOW: never AGREE to a concrete deed without a matching [ACTION] in the prompt — covers the whole class of bugs, not just hiring.
+- `cr.hire_info [name]`: shows eligibility + asking/floor/cap. Test: meet a tavern wanderer → Chatroom → negotiate → they actually join (check party screen + gold deduction).
+
 **Sprint 19 — Tester feedback round 1** (2026-06-12) ⏳ built, untested in game:
 - **Fallback conversation memory** (the big one): the LLM mostly emits [EVENT] on a formal farewell — closing the window mid-exchange left NO memory (tester: "memories only click on the red text"). Now `ChatManager.Close` → `FinalizeConversationMemory()`: if Conversation mode, ≥2 completed player turns, and no [EVENT] this session → synchronous base event (`Other`) + async rich first-person transcript summary (new SDK `ConversationSummarizer`, mirrors the captive two-stage pattern).
 - **Courier sea fix**: sender (or player) at sea → courier spawns at nearest landfall (`MobileParty.IsCurrentlyAtSea`, port-preferred via `Settlement.HasPort` ×3 distance score) instead of immobile in the water.

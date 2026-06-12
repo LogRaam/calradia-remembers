@@ -61,7 +61,8 @@ namespace CalradiaRemembers.Mapping
             IsLastWitnessExchange    = isLastWitnessExchange,
             IsCollectiveCaptiveScene = isCollectiveCaptiveScene,
             CaptiveIntent            = captiveIntent,
-            IsFinalSceneBeat         = isFinalSceneBeat
+            IsFinalSceneBeat         = isFinalSceneBeat,
+            CompanionAskingPrice     = ResolveCompanionAskingPrice(hero)
         };
 
         #region private
@@ -76,6 +77,34 @@ namespace CalradiaRemembers.Mapping
             string name = parent?.Name?.ToString();
             if (string.IsNullOrWhiteSpace(name)) return null;
             return parent.IsAlive ? name : $"the late {name}";
+        }
+
+        /// <summary>
+        ///   The vanilla hiring price when this hero is genuinely recruitable RIGHT NOW:
+        ///   a living, free wanderer not yet in anyone's service, while the player's clan
+        ///   still has a companion slot. Null otherwise — the recruitment section is then
+        ///   not taught, so the NPC never agrees to a hire the game would refuse.
+        /// </summary>
+        private static int? ResolveCompanionAskingPrice(Hero hero)
+        {
+            try
+            {
+                if (hero == null || !hero.IsAlive || hero.IsPrisoner) return null;
+                if (hero.Occupation != Occupation.Wanderer) return null;
+                if (hero.CompanionOf != null || hero.PartyBelongedTo != null) return null;
+
+                Clan clan = Clan.PlayerClan;
+                if (clan == null) return null;
+                if (clan.Companions.Count() >= clan.CompanionLimit) return null;
+
+                int price = Campaign.Current.Models.CompanionHiringPriceCalculationModel
+                                    .GetCompanionHiringPrice(hero);
+                return price > 0 ? price : (int?) null;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private static int ResolveArenaRank()

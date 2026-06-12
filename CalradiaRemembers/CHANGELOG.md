@@ -2,6 +2,22 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## Unreleased
+
+### New
+- **Recruit companions through conversation.** Convince a wanderer to join you in
+  the chat window and they actually will: the new `join_party` action moves them
+  into your party and pays them, exactly like a tavern hire. The price is the
+  vanilla asking price.. and it is negotiable: impress them and they may come down
+  (never below 75% of their price), offend them and they may demand more, or
+  refuse outright. All the usual rules hold: clan companion limit, your gold,
+  and only genuinely free wanderers can be hired.
+- NPCs will no longer *agree* to deeds the game cannot deliver (joining you,
+  handing over troops, freeing prisoners..) unless the matching action exists..
+  they deflect or refuse in character instead of making promises that break.
+- `cr.hire_info [name]` console command: shows whether an NPC is recruitable in
+  conversation and the negotiation price band.
+
 ## v1.4.0.. 2026-06-12
 
 A reliability-and-feedback release: NPCs now remember conversations far more

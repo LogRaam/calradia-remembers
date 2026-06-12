@@ -5,16 +5,42 @@ useful on its own, and each one feeds the next — the order is the architecture
 
 ---
 
-## Now — Nexus release (v1.0)
+## Now — v1.4.0 shipped (2026-06-12), validation in flight
 
-Ship the mod. The remaining gate items:
+v1.4.0 is live on Nexus (witness presence, fallback conversation memory, tester
+feedback round 1). ProudSeal's round-2 playthrough is the validation pass for
+everything that shipped untested in-game. Open items:
 
-- [ ] In-game validation: witness same-location/social filters (Keep vs town, notables, companions picker ×2)
-- [ ] In-game validation: Sprint 15A/15B (address a witness directly) and 15C (NPC↔witness exchange loop, cap 3)
-- [ ] No-key UX: "We need to talk…" must fail gracefully with a clear message, never crash
-- [ ] Confirm AdultLevel default is Mature in `CrSettings`
-- [ ] Bug #1 (battle instead of chat after reload) — deferred pending a repro log with Enable Logging ON
-- [ ] Commit both repos, publish
+- [ ] Round-2 feedback triage (companions, witness_leaves, free-text privacy,
+      fallback memory, death dating, Storyteller pacing, courier sea fix, no-key UX)
+- [ ] Bug #1 (battle instead of chat after reload) — deferred pending a repro log
+      with Enable Logging ON
+- [ ] Stale lord intentions (announces marching on an already-conquered village) —
+      check current allegiance when describing the destination
+- [ ] Reply courier toward a player at sea (spawn side is fixed; the moving target
+      is not)
+
+---
+
+## Next — Ollama as a third LLM provider (free, private, local)
+
+Plumbing is small — follow the NanoGPT pattern (`BaseUrlProvider` /
+`ModelProvider` / `UseSystemPromptCachingProvider` hooks already exist):
+
+- CrSettings: "Ollama" in the Provider dropdown + model id field + base URL field
+  (default `http://localhost:11434/v1`, editable for LAN setups).
+- LlmServices: no API key required — `DescribeUnavailability()` must swap the
+  missing-key message for missing-model and "is `ollama serve` running?".
+- Disable the `cache_control` array (like NanoGPT); lengthen the HTTP timeout —
+  local generation is slow.
+
+**The real work is expectation-setting, not code.** The mod demands strict
+structured output ([DIALOGUE]/[EVENT]/[ACTION]); small local models (7B–13B)
+will fumble it and the mod will look broken. The Nexus "Which model should I
+use?" section needs a frank Ollama note: 30B+ recommended, ~15–60 s per reply
+depending on GPU, format less reliable than cloud. The draw is real though:
+zero cost, full privacy (relevant to the adult tiers), and no refusals with
+local fine-tunes.
 
 ---
 

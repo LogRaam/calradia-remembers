@@ -130,6 +130,9 @@ namespace CalradiaRemembers
                 "PLAYER STANDING\n" +
                 "  cr.standing                          Show player clan tier and arena rank/wins\n" +
                 "\n" +
+                "RECRUITMENT\n" +
+                "  cr.hire_info [name]                  Show join_party recruitability + vanilla/floor/cap hire price\n" +
+                "\n" +
                 "DISCOVERY\n" +
                 "  cr.discover_test [name]              Seed 3 PLACEHOLDER DiscoveredTraits (UI test only — real ones come from conversation)\n" +
                 "\n" +
@@ -762,6 +765,56 @@ namespace CalradiaRemembers
 
             return $"{hero.Name}: relation={behavior.GameStateBridge.GetPlayerRelation(hero)}, " +
                    $"captive={captive}, warmth={ModSettings.RelationWarmth}, lastGain={lastGain}, cooldown={cooldown} (now {now:F1}h).";
+        }
+
+        /// <summary>
+        ///   cr.hire_info [name]
+        ///   Shows whether the NPC is recruitable through conversation (join_party) and
+        ///   the price band: vanilla asking price, negotiation floor (75 %) and cap (125 %).
+        ///   Mirrors the exact eligibility checks the prompt gating and the bridge use.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("hire_info", "cr")]
+        public static string HireInfo(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
+                return error;
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"{hero.Name}:");
+            sb.AppendLine($"  Occupation      : {hero.Occupation}  (wanderer required)");
+            sb.AppendLine($"  Alive/Prisoner  : {hero.IsAlive} / {hero.IsPrisoner}");
+            sb.AppendLine($"  CompanionOf     : {hero.CompanionOf?.Name?.ToString() ?? "(none)"}");
+            sb.AppendLine($"  PartyBelongedTo : {hero.PartyBelongedTo?.Name?.ToString() ?? "(none)"}");
+
+            Clan clan = Clan.PlayerClan;
+            int companions = clan?.Companions?.Count() ?? 0;
+            sb.AppendLine($"  Player clan     : {companions}/{clan?.CompanionLimit ?? 0} companions");
+
+            bool eligible = hero.IsAlive && !hero.IsPrisoner
+                && hero.Occupation == Occupation.Wanderer
+                && hero.CompanionOf == null && hero.PartyBelongedTo == null
+                && clan != null && companions < clan.CompanionLimit;
+
+            if (!eligible)
+                return sb.Append("  → NOT recruitable — the RECRUITMENT prompt section is not taught.").ToString();
+
+            try
+            {
+                int asking = Campaign.Current.Models.CompanionHiringPriceCalculationModel
+                                     .GetCompanionHiringPrice(hero);
+                sb.AppendLine($"  Asking price    : {asking} denars (vanilla model)");
+                sb.AppendLine($"  Negotiation band: {(int) (asking * 0.75f)} – {(int) (asking * 1.25f)} denars");
+                sb.Append("  → recruitable — RECRUITMENT section will be taught in the next conversation.");
+            }
+            catch (Exception ex)
+            {
+                sb.Append($"  Price model failed: {ex.Message}");
+            }
+
+            return sb.ToString();
         }
 
         /// <summary>

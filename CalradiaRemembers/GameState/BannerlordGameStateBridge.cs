@@ -45,6 +45,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteGiveGold(action, npcHero);
             case "take_gold":
                return ExecuteTakeGold(action, npcHero);
+            case "join_party":
+               return ExecuteJoinParty(action, npcHero);
             default:
                ModLog.Info($"[ACTION] Unknown type '{action.Type}' — ignored.");
 
@@ -297,6 +299,61 @@ namespace CalradiaRemembers.GameState
          StampProvideGoldIfOutstanding(npcHero, amount);
 
          return new ActionOutcome($"You give {npcHero.Name} {amount} denars.", false);
+      }
+
+      /// <summary>
+      ///   join_party: a recruitable wanderer agrees in conversation to take service
+      ///   with the player. The action is only taught when the game says the hire can
+      ///   succeed (see EncounterContextBuilder.ResolveCompanionAskingPrice), but every
+      ///   guard is re-checked here — the prompt is advice, the bridge is law. The agreed
+      ///   price is clamped to a band around the vanilla hiring price (floor 75 %, cap
+      ///   125 %): eloquence negotiates, it never breaks the hiring economy. Executes the
+      ///   same native actions as a vanilla tavern hire, so clan limits, party rosters
+      ///   and gold flows behave identically.
+      /// </summary>
+      private static ActionOutcome ExecuteJoinParty(GameAction action, Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            if (!npcHero.IsAlive || npcHero.IsPrisoner
+                || npcHero.Occupation != Occupation.Wanderer
+                || npcHero.CompanionOf != null || npcHero.PartyBelongedTo != null)
+               return new ActionOutcome($"({npcHero.Name} is not free to take service.)", false);
+
+            Clan clan = Clan.PlayerClan;
+            if (clan == null) return null;
+            if (clan.Companions.Count() >= clan.CompanionLimit)
+               return new ActionOutcome(
+                  $"(Your clan cannot support another companion — limit {clan.CompanionLimit}.)", false);
+
+            int asking = Campaign.Current.Models.CompanionHiringPriceCalculationModel
+                                 .GetCompanionHiringPrice(npcHero);
+            if (asking <= 0) asking = 1;
+
+            TryGetInt(action.Parameters, "price", out int proposed);
+            if (proposed <= 0) proposed = asking;
+            int price = ClampInt(proposed, (int) (asking * 0.75f), Math.Max(1, (int) (asking * 1.25f)));
+
+            if (Hero.MainHero.Gold < price)
+               return new ActionOutcome($"(You cannot afford the agreed {price} denars.)", false);
+
+            GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, price);
+            AddCompanionAction.Apply(clan, npcHero);
+            AddHeroToPartyAction.Apply(npcHero, MobileParty.MainParty);
+
+            ModLog.Info($"[ACTION] join_party: {npcHero.Name} hired for {price} denars " +
+                        $"(proposed {proposed}, vanilla asking {asking}).");
+
+            return new ActionOutcome($"{npcHero.Name} joins your party ({price} denars).", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] join_party failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
       }
 
       private static void PlaySound(string eventPath)
