@@ -41,6 +41,9 @@ Calradia's peoples don't all think alike, and the characters reflect it. A Batta
 [b][color=#e69138]Real consequences[/color][/b]
 What's said in conversation can change the world: relation shifts, gold given or taken, and [b][color=#b6d7a8]informal quests[/color][/b] an NPC may offer you on their own initiative.. verified by [i][color=#93c47d]actual[/color][/i] game events before any reward is paid. No reward for a story you merely tell; only for a deed genuinely done.
 
+[b][color=#e69138]Recruit companions through conversation[/color][/b]
+Meet a wanderer in a tavern and convince them to ride with you.. in your own words, not through a menu. The asking price is the same one the vanilla game would charge.. and it is negotiable: impress them and they may come down, lowball them and they will hold firm or walk away. They can size up your purse, fine titles do not waive the fee, and dressing the hire up as "joining my clan" will not get you out of paying.. a deal is a deal on the steppe. When you do strike one, they truly join your party, coin changes hands once, and the bargain itself becomes part of your shared history.
+
 [b][color=#e69138]Quests that actually resolve[/color][/b]
 The tasks NPCs hand you aren't throwaway flavor text.. each one is mirrored into Bannerlord's real quest journal, and it always closes cleanly. Complete it (confirmed by [color=#ffe599][i]actual[/i][/color] game events, never by the AI simply saying so), let its deadline lapse, abandon it honestly, or watch its target stop making sense.. every outcome resolves the journal entry, and a self-check on every load force-closes anything left dangling. [color=#f1c232]No ghost quests piling up in your log, and no errand that can never be finished[/color].. a common rough edge when an LLM is bolted onto the vanilla quest system, designed out from the start here.
 

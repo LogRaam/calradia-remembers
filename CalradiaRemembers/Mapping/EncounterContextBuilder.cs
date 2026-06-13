@@ -62,7 +62,10 @@ namespace CalradiaRemembers.Mapping
             IsCollectiveCaptiveScene = isCollectiveCaptiveScene,
             CaptiveIntent            = captiveIntent,
             IsFinalSceneBeat         = isFinalSceneBeat,
-            CompanionAskingPrice     = ResolveCompanionAskingPrice(hero)
+            CompanionAskingPrice     = ResolveCompanionAskingPrice(hero),
+            // Purse is shared only with a recruitable NPC (see PlayerPurseGold docs) —
+            // PromptBuilder ignores it unless CompanionAskingPrice is set anyway.
+            PlayerPurseGold          = Hero.MainHero?.Gold
         };
 
         #region private

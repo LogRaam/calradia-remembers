@@ -44,6 +44,64 @@ local fine-tunes.
 
 ---
 
+## Negotiation framework (agreed 2026-06-12)
+
+**The insight: a non-monetary negotiation is an informal quest inverted.** "Bring
+me a courser, a fine sword and exceptional armor and I may join your clan" (the
+She-Wolf case) is structurally a Sprint 11 quest — a verifiable deed (deliver
+items) whose reward is the NPC's service (join_party) instead of gold. The whole
+pipeline already exists: [QUEST] issuance in conversation, mechanical verification
+(QuestDeedTracker — words never pay, verified deeds do), reward on completion.
+The framework generalizes both axes:
+
+- **What the NPC offers**: gold (today) → join_party, give_item, a service.
+- **What the player pays**: a deed (today) → denars, items, a delivered prisoner,
+  an act of war (see below).
+
+**Proportionality is computed game-side, never trusted to the LLM.** The game
+knows the value of everything: `ItemObject.Value`, the vanilla ransom model for
+prisoners, the hiring price for a companion's service. The 75 % negotiation floor
+generalizes to a currency-agnostic VALUE floor: total value delivered ≥ floor of
+the service's value. The LLM negotiates the story; the bridge arbitrates the
+amounts (RelationGate philosophy applied to barter).
+
+**Phase 1 — green (reuses the quest machinery as-is):**
+- Deed `DeliverItems` (category + tier + count: "a warhorse, a sword of tier 5+");
+  verification = items in inventory, handed over like take_gold takes gold. Nice
+  touch: the joining wanderer can EQUIP the gear that was demanded for them.
+- Deed `DeliverPrisoner` (a named lord, or any lord of faction X) — detention is
+  verifiable; `TransferPrisonerAction` is native.
+- Reward `JoinParty` on quest completion.
+- Item transfer: chat-native first (inventory check + removal at the verifying
+  conversation — no UI needed). The vanilla barter screen (`BarterManager`) is a
+  candidate for a tactile hand-over UX later, but it adds a mismatch risk between
+  what the UI allows and what the deal specified — Phase 2 if the feel matters.
+
+**Phase 2 — deed: player-declared war.** An NPC with many enemies in a faction
+may demand the PLAYER declare war on it ("rid me of the Vlandians and I am
+yours"). This is acceptable precisely because it is the player's own act with the
+player's own consequences — they become the target of the war they started, so
+the incentive is self-balancing. Verification: WarDeclared campaign event with
+the player's faction as aggressor. (An NPC declaring war on another faction
+remains FORBIDDEN until v2.0 — that is where the player could extract outsized
+advantage at no cost.)
+
+**Phase 3 — yellow, gated: intimacy as currency.** Constraints agreed:
+- Male NPC toward a female player only, AND filtered by the NPC's traits/archetype
+  (the cynical gang leader, not the courtly lady's brother).
+- The transaction puts the player in the DOMINATED position: the NPC profits from
+  the player, knows it, and is likely to keep leveraging it — the event is
+  recorded as exploitation, and future conversations may push for more. This is a
+  persistent power dynamic, not a one-off payment.
+- Gating: AdultLevel Explicit minimum; the persistent-leverage dynamic likely
+  belongs at Hardcore (decide at implementation). Verification = the Intimacy
+  event already detected and recorded by the pipeline.
+
+**Deferred:** assassination as a deed waits for v1.3 (schemes builds the
+mechanics); NPC-initiated faction wars wait for v2.0 (dispositions).
+
+---
+
 ## v1.1 — Talk to everyone (commoners + settlement knowledge)
 
 LLM conversations with generic townsfolk and villagers (non-Hero Agents — the

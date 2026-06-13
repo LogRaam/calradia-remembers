@@ -66,7 +66,7 @@ namespace CalradiaRemembers
       protected override void OnSubModuleLoad()
       {
          base.OnSubModuleLoad();
-         Log($"{ModName} v1.4.0 loaded.");
+         Log($"{ModName} v1.5.0 loaded.");
 
          try
          {

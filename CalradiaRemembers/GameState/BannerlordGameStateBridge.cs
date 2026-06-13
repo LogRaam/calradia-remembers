@@ -283,7 +283,9 @@ namespace CalradiaRemembers.GameState
          GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, amount);
          ModLog.Info($"[ACTION] give_gold: {npcHero.Name} → player {amount} gold");
 
-         return new ActionOutcome($"{npcHero.Name} gives you {amount} denars.", true);
+         // The map bar does not refresh while campaign time is frozen under the chat
+         // overlay — showing the balance here is the player's only live confirmation.
+         return new ActionOutcome($"{npcHero.Name} gives you {amount} denars (purse: {Hero.MainHero.Gold}).", true);
       }
 
       private static ActionOutcome ExecuteTakeGold(GameAction action, Hero npcHero)
@@ -298,7 +300,7 @@ namespace CalradiaRemembers.GameState
          // If this NPC has an outstanding ProvideGold quest, any payment satisfies it.
          StampProvideGoldIfOutstanding(npcHero, amount);
 
-         return new ActionOutcome($"You give {npcHero.Name} {amount} denars.", false);
+         return new ActionOutcome($"You give {npcHero.Name} {amount} denars (purse: {Hero.MainHero.Gold}).", false);
       }
 
       /// <summary>
@@ -339,14 +341,16 @@ namespace CalradiaRemembers.GameState
             if (Hero.MainHero.Gold < price)
                return new ActionOutcome($"(You cannot afford the agreed {price} denars.)", false);
 
+            int goldBefore = Hero.MainHero.Gold;
             GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, price);
             AddCompanionAction.Apply(clan, npcHero);
             AddHeroToPartyAction.Apply(npcHero, MobileParty.MainParty);
 
             ModLog.Info($"[ACTION] join_party: {npcHero.Name} hired for {price} denars " +
-                        $"(proposed {proposed}, vanilla asking {asking}).");
+                        $"(proposed {proposed}, vanilla asking {asking}; " +
+                        $"player gold {goldBefore} → {Hero.MainHero.Gold}).");
 
-            return new ActionOutcome($"{npcHero.Name} joins your party ({price} denars).", true);
+            return new ActionOutcome($"{npcHero.Name} joins your party ({price} denars — purse: {Hero.MainHero.Gold}).", true);
          }
          catch (Exception ex)
          {

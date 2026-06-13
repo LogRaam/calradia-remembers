@@ -1446,6 +1446,13 @@ namespace CalradiaRemembers.Chat
                 // AFTER actions run (below), not before.
                 if (response.Actions != null && response.Actions.Count > 0)
                 {
+                    // Double-payment guard: when the LLM emits join_party it sometimes ALSO
+                    // emits take_gold for the same payment (the player mimed handing coins
+                    // over) — join_party already transfers the settled price, so honoring
+                    // both charges the player twice (observed in testing: 550 + 546).
+                    bool hasJoinParty = response.Actions.Any(a =>
+                        string.Equals(a.Type, "join_party", StringComparison.OrdinalIgnoreCase));
+
                     ActionContext actionContext = new ActionContext(profile, response.NewEventData?.Type);
                     foreach (GameAction action in response.Actions)
                     {
@@ -1457,6 +1464,12 @@ namespace CalradiaRemembers.Chat
                                 StringComparison.OrdinalIgnoreCase)) continue;
                         if (string.Equals(action.Type, "witness_leaves",
                                 StringComparison.OrdinalIgnoreCase)) continue;
+                        if (hasJoinParty && string.Equals(action.Type, "take_gold",
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            ModLog.Info("[ACTION] take_gold dropped — join_party in the same response already transfers the hire payment.");
+                            continue;
+                        }
                         ActionOutcome outcome =
                             behavior.GameStateBridge.ExecuteAction(action, speaker.Hero, actionContext);
                         if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);

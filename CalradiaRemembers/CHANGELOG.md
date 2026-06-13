@@ -2,7 +2,9 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## Unreleased
+## v1.5.0.. 2026-06-12
+
+Recruit companions by talking to them.. negotiation included.
 
 ### New
 - **Recruit companions through conversation.** Convince a wanderer to join you in
@@ -17,6 +19,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   they deflect or refuse in character instead of making promises that break.
 - `cr.hire_info [name]` console command: shows whether an NPC is recruitable in
   conversation and the negotiation price band.
+- Gold lines in the chat now show your purse balance ("You give Gunefer 550
+  denars (purse: 669)").. the map bar does not refresh while time is frozen
+  under the chat window, so this is your live confirmation that coin moved.
+- Double-payment guard: when an NPC joins you, any stray take_gold emitted for
+  the same payment is ignored.. you are charged the settled price exactly once.
 
 ## v1.4.0.. 2026-06-12
 
