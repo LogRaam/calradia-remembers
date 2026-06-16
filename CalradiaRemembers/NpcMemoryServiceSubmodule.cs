@@ -56,6 +56,12 @@ namespace CalradiaRemembers
 
          var campaignStarter = (CampaignGameStarter) gameStarterObject;
          campaignStarter.AddBehavior(new NpcMemoryCampaignBehavior());
+         // Marriage system Phase A.1 (family-approval engine) — REGISTERED for in-game testing
+         // of the consequence resolver via the cr.marriage_* console commands. ⚠️ MUST be
+         // re-gated (commented out) before ANY public release until Phase A.2 (the approval
+         // chat path) exists, or every vanilla marriage would be treated as un-blessed and
+         // sour the in-laws' whole clan.
+         campaignStarter.AddBehavior(new Marriage.MarriageApprovalBehavior());
          Log($"{ModName} campaign behavior registered.");
       }
 
@@ -66,7 +72,7 @@ namespace CalradiaRemembers
       protected override void OnSubModuleLoad()
       {
          base.OnSubModuleLoad();
-         Log($"{ModName} v1.5.0 loaded.");
+         Log($"{ModName} v1.6.2 loaded.");
 
          try
          {

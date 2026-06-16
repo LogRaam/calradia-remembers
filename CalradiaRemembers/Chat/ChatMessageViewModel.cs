@@ -29,7 +29,18 @@ namespace CalradiaRemembers.Chat
         public ChatMessageViewModel(Hero speakerHero, string authorName, string messageText, bool isPlayer)
         {
             _displayText = BuildDisplayText(authorName, messageText);
-            ResolvePortrait(speakerHero, authorName);
+            ResolvePortrait(speakerHero?.CharacterObject, authorName);
+            _authorColor = isPlayer ? PlayerColor : NpcColor;
+        }
+
+        /// <summary>
+        ///   Heroless-speaker variant: renders the portrait from a bare <see cref="CharacterObject" />
+        ///   (e.g. a bandit troop standing in for a synthesized brigand captor that has no real Hero).
+        /// </summary>
+        public ChatMessageViewModel(CharacterObject portraitCharacter, string authorName, string messageText, bool isPlayer)
+        {
+            _displayText = BuildDisplayText(authorName, messageText);
+            ResolvePortrait(portraitCharacter, authorName);
             _authorColor = isPlayer ? PlayerColor : NpcColor;
         }
 
@@ -40,7 +51,18 @@ namespace CalradiaRemembers.Chat
         public ChatMessageViewModel(Hero speakerHero, string authorName, string messageText, string colorHex)
         {
             _displayText = BuildDisplayText(authorName, messageText);
-            ResolvePortrait(speakerHero, authorName);
+            ResolvePortrait(speakerHero?.CharacterObject, authorName);
+            _authorColor = colorHex ?? NpcColor;
+        }
+
+        /// <summary>
+        ///   Heroless witness variant: renders the portrait from a bare <see cref="CharacterObject" />
+        ///   (a bandit troop standing in for one of the band) with an explicit witness color.
+        /// </summary>
+        public ChatMessageViewModel(CharacterObject portraitCharacter, string authorName, string messageText, string colorHex)
+        {
+            _displayText = BuildDisplayText(authorName, messageText);
+            ResolvePortrait(portraitCharacter, authorName);
             _authorColor = colorHex ?? NpcColor;
         }
 
@@ -132,20 +154,19 @@ namespace CalradiaRemembers.Chat
 
         #region private
 
-        private void ResolvePortrait(Hero speakerHero, string authorName)
+        private void ResolvePortrait(CharacterObject character, string authorName)
         {
-            if (speakerHero?.CharacterObject != null)
+            if (character != null)
             {
                 CharacterImageIdentifierVM portrait =
-                    new CharacterImageIdentifierVM(CharacterCode.CreateFrom(speakerHero.CharacterObject));
+                    new CharacterImageIdentifierVM(CharacterCode.CreateFrom(character));
                 _portraitId                  = portrait.Id ?? "";
                 _portraitTextureProviderName = portrait.TextureProviderName ?? "";
                 _portraitAdditionalArgs      = portrait.AdditionalArgs ?? "";
             }
             ModLog.Info(
                 $"Portrait for {authorName}: " +
-                $"HeroNull={speakerHero == null}, " +
-                $"CharacterObjectNull={speakerHero?.CharacterObject == null}, " +
+                $"CharacterObjectNull={character == null}, " +
                 $"IdEmpty={string.IsNullOrEmpty(_portraitId)}, " +
                 $"TextureProvider='{_portraitTextureProviderName}', " +
                 $"Args='{_portraitAdditionalArgs}'");

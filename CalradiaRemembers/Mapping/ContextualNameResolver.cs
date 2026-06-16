@@ -7,7 +7,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using CalradiaRemembers.GameState;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Settlements;
 
 #endregion
 
@@ -52,7 +54,7 @@ namespace CalradiaRemembers.Mapping
         ///   hero names are found in <paramref name="playerMessage" />, or null when none
         ///   are found. The block is labelled <c>NAMES MENTIONED IN THE PLAYER'S MESSAGE:</c>.
         /// </summary>
-        public static string Resolve(Hero npc, string playerMessage)
+        public static string Resolve(Hero npc, string playerMessage, IGameStateBridge bridge = null)
         {
             if (npc == null || string.IsNullOrWhiteSpace(playerMessage)) return null;
 
@@ -60,7 +62,7 @@ namespace CalradiaRemembers.Mapping
             if (messageTokens.Count == 0) return null;
 
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var matches = new List<(string FullName, string Relationship)>();
+            var matches = new List<(string FullName, string Relationship, string Whereabouts)>();
 
             foreach (Hero other in Hero.AllAliveHeroes)
             {
@@ -73,7 +75,7 @@ namespace CalradiaRemembers.Mapping
                 if (NameSharesTokenWithMessage(fullName, messageTokens))
                 {
                     seen.Add(other.StringId);
-                    matches.Add((fullName, Categorize(npc, other)));
+                    matches.Add((fullName, Categorize(npc, other), ResolveWhereabouts(npc, other, bridge)));
                 }
             }
 
@@ -112,7 +114,87 @@ namespace CalradiaRemembers.Mapping
             return "not personally known to you";
         }
 
-        private static string BuildHint(List<(string FullName, string Relationship)> matches)
+        // ── Whereabouts (Sprint: third-party location as plausible hearsay) ────
+        // An NPC should not omnisciently know where everyone is. We gate the knowledge by
+        // the SAME social tie the resolver already computes: a kinsman or close friend can
+        // place someone; a faction-mate knows rough military movements; a stranger or distant
+        // party does not. Phrasing is hearsay so a stale position reads as honest uncertainty
+        // rather than a lie. Live query — no persistence (that is the v1.2 rumor-store layer).
+
+        private enum KnowledgeTier
+        {
+            None,     // would not know
+            Faction,  // same faction/liege — rough military hearsay
+            Friend,   // genuine regard — recent hearsay
+            Close,    // family / clan / very close friend — confident
+            Present   // physically in the same place — certain
+        }
+
+        /// <summary>
+        ///   How plausibly <paramref name="npc" /> would know where <paramref name="other" /> is,
+        ///   from their social tie alone (Option A — close ties only).
+        /// </summary>
+        private static KnowledgeTier KnowledgeOf(Hero npc, Hero other)
+        {
+            if (npc.CurrentSettlement != null && npc.CurrentSettlement == other.CurrentSettlement)
+                return KnowledgeTier.Present;
+
+            if (npc.Spouse == other || npc.Father == other || npc.Mother == other
+                || (npc.Children != null && npc.Children.Any(c => c == other))
+                || (npc.Clan != null && npc.Clan == other.Clan))
+                return KnowledgeTier.Close;
+
+            int relation = CharacterRelationManager.GetHeroRelation(npc, other);
+            if (relation >= 30) return KnowledgeTier.Close;
+            if (relation >= FriendThreshold) return KnowledgeTier.Friend;
+
+            if (npc.MapFaction != null && npc.MapFaction == other.MapFaction)
+                return KnowledgeTier.Faction;
+
+            return KnowledgeTier.None;
+        }
+
+        /// <summary>
+        ///   A readable location for <paramref name="other" />: the settlement they are in, or
+        ///   what they are doing on the map (<see cref="IGameStateBridge.GetCurrentActivity" />,
+        ///   which itself stays null when it cannot read a place with confidence). Null when
+        ///   nothing concrete can be said.
+        /// </summary>
+        private static string LocationOf(Hero other, IGameStateBridge bridge)
+        {
+            Settlement s = other.CurrentSettlement;
+            if (s?.Name != null) return $"at {s.Name}";
+
+            string activity = bridge?.GetCurrentActivity(other);
+            return string.IsNullOrWhiteSpace(activity) ? null : activity;
+        }
+
+        /// <summary>
+        ///   The whereabouts clause the NPC could plausibly relay about <paramref name="other" />,
+        ///   framed by how they would know it, or null when they would not know at all.
+        /// </summary>
+        private static string ResolveWhereabouts(Hero npc, Hero other, IGameStateBridge bridge)
+        {
+            KnowledgeTier tier = KnowledgeOf(npc, other);
+            if (tier == KnowledgeTier.None) return null;
+
+            if (tier == KnowledgeTier.Present)
+                return $"they are here with you, at {npc.CurrentSettlement.Name}";
+
+            string place = LocationOf(other, bridge);
+            if (place == null)
+                return "you could not say where they are just now";
+
+            switch (tier)
+            {
+                case KnowledgeTier.Close:   return $"last you knew, they were {place}";
+                case KnowledgeTier.Friend:  return $"you last heard they were {place}";
+                case KnowledgeTier.Faction: return $"word among your own faction has them {place}";
+                default:                    return null;
+            }
+        }
+
+        private static string BuildHint(List<(string FullName, string Relationship, string Whereabouts)> matches)
         {
             var sb = new StringBuilder();
             sb.AppendLine("NAMES MENTIONED IN THE PLAYER'S MESSAGE:");
@@ -122,24 +204,35 @@ namespace CalradiaRemembers.Mapping
                 sb.Append(
                     $"The player appears to be referring to {matches[0].FullName}" +
                     $" — {matches[0].Relationship}.");
+                if (!string.IsNullOrEmpty(matches[0].Whereabouts))
+                    sb.Append($" Whereabouts: {matches[0].Whereabouts}.");
             }
             else
             {
                 sb.AppendLine(
                     "The following people may be relevant to what the player just said:");
-                foreach (var (name, rel) in matches)
-                    sb.AppendLine($"  - {name} — {rel}");
+                foreach (var (name, rel, where) in matches)
+                    sb.AppendLine(string.IsNullOrEmpty(where)
+                        ? $"  - {name} — {rel}"
+                        : $"  - {name} — {rel}. Whereabouts: {where}");
 
                 if (HasAmbiguousFirstName(matches))
-                    sb.Append(
+                    sb.AppendLine(
                         "If uncertain which person the player means, ask for clarification in character.");
             }
+
+            // One anti-fabrication reminder when any whereabouts is offered: it is hearsay,
+            // possibly stale, and the NPC must not invent a place they were not told.
+            if (matches.Any(m => !string.IsNullOrEmpty(m.Whereabouts)))
+                sb.Append(
+                    "\nIf the player asks where someone is, you may share the whereabouts noted above — " +
+                    "but only as hearsay (you may well be out of date), and never invent a location you were not given.");
 
             return sb.ToString().TrimEnd();
         }
 
         private static bool HasAmbiguousFirstName(
-            List<(string FullName, string Relationship)> matches)
+            List<(string FullName, string Relationship, string Whereabouts)> matches)
         {
             var firstNames = matches
                 .Select(m => m.FullName.Split(' ')[0])

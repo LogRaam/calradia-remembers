@@ -22,6 +22,7 @@ namespace CalradiaRemembers.Mapping
             NpcProfile profile = new() {
                 Id = hero.StringId,
                 Name = hero.Name?.ToString() ?? "Unknown",
+                IsFemale = hero.IsFemale,
                 Faction = hero.MapFaction?.Name?.ToString() ?? "Unaligned",
                 Clan = hero.Clan?.Name?.ToString() ?? "No clan",
                 Personality = BuildPersonality(hero),
@@ -62,6 +63,7 @@ namespace CalradiaRemembers.Mapping
         public static void RefreshPersonality(NpcProfile profile, Hero hero)
         {
             if (profile == null || hero == null) return;
+            profile.IsFemale = hero.IsFemale;
             profile.Personality = BuildPersonality(hero);
             profile.SpouseName = hero.Spouse?.IsAlive == true ? hero.Spouse.Name?.ToString() : null;
         }

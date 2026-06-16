@@ -118,7 +118,7 @@
                 HeightSizePolicy="StretchToParent"
                 VerticalAlignment="Top"
                 MarginTop="98"
-                MarginBottom="165"
+                MarginBottom="226"
                 MarginLeft="15"
                 MarginRight="15">
           <Children>
@@ -225,6 +225,33 @@
 
           </Children>
         </Widget>
+
+        <ButtonWidget Id="OfferItemButton"
+                      WidthSizePolicy="Fixed"
+                      HeightSizePolicy="Fixed"
+                      SuggestedWidth="56"
+                      SuggestedHeight="56"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Bottom"
+                      PositionXOffset="15"
+                      PositionYOffset="-165"
+                      IsVisible="@IsOfferItemVisible"
+                      DoNotPassEventsToChildren="true"
+                      UpdateChildrenStates="true"
+                      Command.Click="ExecuteOfferItem">
+          <Children>
+            <Widget Id="OfferItemIcon"
+                    WidthSizePolicy="Fixed"
+                    HeightSizePolicy="Fixed"
+                    SuggestedWidth="40"
+                    SuggestedHeight="40"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Sprite="MapBar\mapbar_icon3"
+                    Color="#c8a878FF"
+                    IsDisabled="true" />
+          </Children>
+        </ButtonWidget>
 
         <Widget Id="InputArea"
                 WidthSizePolicy="StretchToParent"
@@ -335,12 +362,36 @@
                             VerticalAlignment="Center"
                             Brush="Popup.Button.Text"
                             Brush.FontSize="20"
-                            Text="Try something" />
+                            Text="Try something else" />
               </Children>
             </ButtonWidget>
 
           </Children>
         </Widget>
+
+        <ButtonWidget Id="PleaseContinueButton"
+                      WidthSizePolicy="Fixed"
+                      HeightSizePolicy="Fixed"
+                      SuggestedWidth="230"
+                      SuggestedHeight="44"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Bottom"
+                      PositionYOffset="-75"
+                      IsVisible="@IsPleaseContinueVisible"
+                      DoNotPassEventsToChildren="true"
+                      Brush="ButtonBrush1"
+                      UpdateChildrenStates="true"
+                      Command.Click="ExecutePleaseContinue">
+          <Children>
+            <TextWidget WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Brush="Popup.Button.Text"
+                        Brush.FontSize="20"
+                        Text="Please continue" />
+          </Children>
+        </ButtonWidget>
 
         <ButtonWidget Id="CloseButton"
                       WidthSizePolicy="Fixed"

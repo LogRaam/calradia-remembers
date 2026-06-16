@@ -1,8 +1,22 @@
+using System.Collections.Generic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 
 namespace CalradiaRemembers.GameState
 {
+    /// <summary>One item the player offers to settle an item bargain: a roster item id and how many.</summary>
+    public readonly struct ItemOffer
+    {
+        public ItemOffer(string itemId, int count)
+        {
+            ItemId = itemId;
+            Count = count;
+        }
+
+        public string ItemId { get; }
+        public int Count { get; }
+    }
+
     /// <summary>
     /// Abstraction over TaleWorlds' campaign state for everything
     /// the mod needs to read from or write to the game world. All game-state
@@ -38,6 +52,32 @@ namespace CalradiaRemembers.GameState
         string GetSeasonName();
 
         /// <summary>
+        ///   The current part of the day (e.g. "morning", "afternoon", "evening, around dusk",
+        ///   "night") derived from <c>CampaignTime.Now</c>, so a scene's lighting matches vanilla.
+        /// </summary>
+        string GetTimeOfDay();
+
+        /// <summary>
+        ///   Rolls a captive's escape attempt. Returns true on success and COMMITS the outcome
+        ///   (irreversible), but defers the actual campaign freeing to <see cref="FinalizePendingEscape"/>
+        ///   at scene close so the open chat window is not disrupted. <paramref name="force"/> skips
+        ///   the chance roll (console test only).
+        /// </summary>
+        bool ResolvePlayerEscapeAttempt(bool force);
+
+        /// <summary>
+        ///   Console test hook: forces the next <see cref="ResolvePlayerEscapeAttempt"/> to succeed,
+        ///   so the full escape flow can be exercised despite the slim natural chance.
+        /// </summary>
+        void ForceNextEscapeSuccess();
+
+        /// <summary>
+        ///   Applies a committed escape (<see cref="EndCaptivityAction"/> by escape) if one is
+        ///   pending. Called once when a captive scene closes. No-op otherwise.
+        /// </summary>
+        void FinalizePendingEscape();
+
+        /// <summary>
         ///   Short summary of active inter-kingdom wars, suitable for injection
         ///   into the world state section of the system prompt.
         ///   Returns an empty string when there are no active wars.
@@ -69,6 +109,24 @@ namespace CalradiaRemembers.GameState
         ActionOutcome GrantQuestReward(Hero npcHero, NpcProfile profile, int gold, int relation);
 
         /// <summary>
+        ///   Honors a non-monetary bargain reward (<see cref="RewardGrant" />) the moment its
+        ///   deed is verified: the wanderer joins the party, a marriage is consented, and so on.
+        ///   The bridge is the law — it re-checks the grant is mechanically possible and
+        ///   declines (with a log and a soft chat line) any grant not yet supported. Returns
+        ///   the chat outcome, or null when the grant is <see cref="RewardGrant.None" />.
+        /// </summary>
+        ActionOutcome GrantConditionalReward(Hero npcHero, NpcProfile profile, InformalQuest quest);
+
+        /// <summary>
+        ///   Settles an item-barter bargain in one offer: tallies the denar value of the
+        ///   <paramref name="offered" /> goods actually held, and — only if it meets the
+        ///   quest's required value — removes them from the player's party and executes the
+        ///   bargain's reward grant. A short offer removes nothing and asks for more.
+        ///   <see cref="ActionOutcome.IsPositive" /> is true exactly when the deal closed.
+        /// </summary>
+        ActionOutcome SettleItemBargain(NpcProfile giver, Hero giverHero, InformalQuest quest, IReadOnlyList<ItemOffer> offered);
+
+        /// <summary>
         ///   Applies the standing penalty for the player being publicly abased before
         ///   <paramref name="witnessCount"/> onlookers (Sprint 17 captive humiliation).
         ///   The clan loses Renown (prestige) and Influence (political authority),
@@ -78,5 +136,21 @@ namespace CalradiaRemembers.GameState
         ///   chat message; (0, 0) when there are no witnesses.
         /// </summary>
         (int renownLoss, int influenceLoss) ApplyPlayerPublicHumiliation(int witnessCount);
+
+        /// <summary>
+        ///   Resets the captive-scene harm tracker at the start of a captive encounter, so the
+        ///   guaranteed end-of-scene toll (<see cref="ApplyForcedSceneToll"/>) can tell whether
+        ///   the captor's narration already wounded the player this scene.
+        /// </summary>
+        void BeginCaptiveSceneTracking();
+
+        /// <summary>
+        ///   Applies the guaranteed body toll for a forced sexual captive scene: if no
+        ///   harm_prisoner action wounded the player during the scene, deducts a moderate amount
+        ///   of health so an aggression is never bloodless. No-op when harm was already applied.
+        ///   Like harm_prisoner itself it always touches health (so console test scenes show the
+        ///   effect), clamped to leave the player at 1 HP. Returns the HP actually lost.
+        /// </summary>
+        int ApplyForcedSceneToll();
     }
 }

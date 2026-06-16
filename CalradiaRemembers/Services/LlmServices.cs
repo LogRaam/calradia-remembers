@@ -165,7 +165,8 @@ namespace CalradiaRemembers.Services
                     ApiKeyProvider                 = ResolveApiKey,
                     ModelProvider                  = ResolveModel,
                     BaseUrlProvider                = ResolveBaseUrl,
-                    UseSystemPromptCachingProvider = ResolveUseSystemPromptCaching
+                    UseSystemPromptCachingProvider = ResolveUseSystemPromptCaching,
+                    ReasoningProvider              = ResolveReasoning
                 };
                 LlmClient = new OpenRouterClient(_httpClient, config);
 
@@ -235,6 +236,13 @@ namespace CalradiaRemembers.Services
             ResolveProvider() == ProviderNanoGpt ? NanoGptBaseUrl : OpenRouterBaseUrl;
 
         /// <summary>
+        ///   Resolves the reasoning-effort keyword for the request. The <c>reasoning</c> parameter
+        ///   is OpenRouter-specific, so it is suppressed (null) for NanoGPT. Read live per request.
+        /// </summary>
+        private static string ResolveReasoning() =>
+            ResolveProvider() == ProviderNanoGpt ? null : ModSettings.ReasoningEffort;
+
+        /// <summary>
         ///   Whether to send the cacheable content-array system message. OpenRouter honors
         ///   the <c>cache_control</c> breakpoint; NanoGPT routes to arbitrary models and the
         ///   array form is untested there, so we send a plain string to stay portable.
@@ -261,13 +269,17 @@ namespace CalradiaRemembers.Services
                 },
                 new GameActionDefinition {
                     Type        = "end_conversation",
-                    Description = "End this conversation now. Emit ONLY when you, in character, would genuinely refuse to continue: " +
+                    Description = "End this conversation now. Emit when you, in character, would genuinely refuse to continue: " +
                                   "after a grave insult, a crude or unwelcome advance you will not tolerate, " +
                                   "an advance you already refused that the player presses again, repeated disrespect, an open threat — " +
                                   "or when the exchange has reached its natural close and there is nothing more you wish to say. " +
-                                  "When you end the conversation because the player wronged or disrespected you, " +
-                                  "you MUST also emit change_relation with a negative delta matching the offense. " +
-                                  "Do not end over a single clumsy remark or mere awkwardness; reserve it for a real breach or a true farewell.",
+                                  "CRUCIAL — your words and this action must AGREE: if your dialogue this turn dismisses the player or " +
+                                  "declares the talk over ('I have duties that demand my attention', 'I will hear no more of this today', " +
+                                  "'we are done here', a firm farewell, or sending them on their way), you MUST emit this action so the " +
+                                  "conversation actually ends. Do not say goodbye or refuse to hear more while leaving the conversation open. " +
+                                  "When you end because the player wronged or disrespected you, you MUST also emit change_relation with a " +
+                                  "negative delta matching the offense. Do not end over a single clumsy remark or mere awkwardness; reserve " +
+                                  "it for a real breach, a clear dismissal, or a true farewell.",
                     Parameters  = new List<string>()
                 },
                 new GameActionDefinition {
@@ -330,9 +342,12 @@ namespace CalradiaRemembers.Services
 
                 default: // Normal — the balanced baseline
                     positive =
-                        "Emit only when something real passes between you, never for idle pleasantries. Set 'delta' to the magnitude " +
-                        "your heart actually feels: +1 when the player earns sincere warmth this exchange; a larger positive is justified " +
-                        "only by a truly significant, self-evident moment such as physical intimacy. Trust is slow to grow and quick to break. ";
+                        "Emit when the player earns it through something real — never for idle flattery or empty promises. A +1 is right " +
+                        "when this exchange genuinely warms you: a service rendered or a promise kept, a real step forward between you " +
+                        "(courtship advancing, trust shown, respect earned through deeds), sincere support in a moment that mattered, or a " +
+                        "connection that rings true. A larger positive is reserved for a truly significant, self-evident moment — completing " +
+                        "a real task you set them, or physical intimacy. Trust is slow to grow and quick to break — but do not stay frozen at " +
+                        "neutral when the player has actually earned your regard; a genuinely earned moment should move it. ";
                     break;
             }
 

@@ -47,6 +47,7 @@ namespace CalradiaRemembers.Chat
             // Record the session in the NPC's memory before tearing down. Each call is
             // a no-op outside its own mode and idempotent. The async summary either may
             // launch captures the data it needs, so it survives the teardown below.
+            ActiveViewModel?.FinalizeStoryLog();
             ActiveViewModel?.FinalizeCaptiveSceneMemory();
             ActiveViewModel?.FinalizeConversationMemory();
 
@@ -104,13 +105,20 @@ namespace CalradiaRemembers.Chat
             NpcProfile captorProfile,
             List<WitnessEntry> witnesses,
             bool isCollective,
-            CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation)
+            CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation,
+            TaleWorlds.CampaignSystem.CharacterObject portraitCharacter = null)
         {
-            Open(captorHero?.Name?.ToString());
+            Open(captorHero?.Name?.ToString() ?? captorProfile?.Name);
             if (ActiveViewModel == null) return;
             if (captorHero != null) ActiveViewModel.SetNpcHero(captorHero);
+            else if (captorProfile != null) ActiveViewModel.SetNpcName(captorProfile.Name);
+            if (captorHero == null && portraitCharacter != null)
+                ActiveViewModel.SetNpcPortraitCharacter(portraitCharacter);
             if (witnesses != null && witnesses.Count > 0) ActiveViewModel.SetWitnesses(witnesses);
-            ActiveViewModel.ActivateCaptiveEncounterMode(captorProfile, isCollective, intent);
+
+            // A faceless brigand captor has no Hero — that absence is exactly the bandit signal.
+            bool captorIsBandit = captorHero == null;
+            ActiveViewModel.ActivateCaptiveEncounterMode(captorProfile, isCollective, intent, captorIsBandit);
         }
 
         public static void Open(string npcName = null)

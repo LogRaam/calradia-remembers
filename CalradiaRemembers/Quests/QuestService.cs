@@ -104,6 +104,31 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>
+      ///   Closes an item-barter bargain that was settled on the spot (the player handed the
+      ///   goods over via the picker and the bridge already executed the favor). Marks the
+      ///   quest done, records the memory, mirrors the journal entry as completed, and
+      ///   persists. The reward grant itself is NOT re-run here — the bridge already did it.
+      /// </summary>
+      public static void MarkBargainSettled(NpcProfile giver,
+                                            InformalQuest quest,
+                                            Hero giverHero,
+                                            int gameDay,
+                                            BannerlordNpcMemoryStore store)
+      {
+         if (giver == null || quest == null || store == null) return;
+
+         quest.SatisfiedOnDay = gameDay;
+         quest.Evidence = $"Handed over goods of the agreed value on day {gameDay}.";
+         quest.Status = QuestStatus.Completed;
+         AddEvent(giver, gameDay, NotableEventType.Collaboration,
+            $"The player settled our bargain in goods — {Describe(quest)}.");
+         QuestJournalBridge.CloseAsCompleted(quest, giverHero);
+         store.Set(giver);
+
+         ModLog.Info($"[BARGAIN] settled for {giver.Name}: {Describe(quest)} (day {gameDay}).");
+      }
+
+      /// <summary>
       ///   Daily pass over every profile: cancel quests whose war premise ended, expire
       ///   overdue ones (with a relation penalty and a remembered slight), and prune the
       ///   oldest terminated quests so the list cannot grow without bound.
@@ -215,12 +240,20 @@ namespace CalradiaRemembers.Quests
          }
 
          ActionOutcome reward = bridge?.GrantQuestReward(giverHero, giver, quest.RewardGold, quest.RewardRelation);
+
+         // Negotiation framework: a bargain whose reward is a favor (join the party, etc.)
+         // honors it now that the deed is verified. The grant outcome takes the chat line.
+         ActionOutcome grant = quest.Reward != RewardGrant.None
+            ? bridge?.GrantConditionalReward(giverHero, giver, quest)
+            : null;
+
          quest.Status = QuestStatus.Completed;
          AddEvent(giver, gameDay, NotableEventType.Collaboration, $"The player completed the task to {Describe(quest)}.");
          QuestJournalBridge.CloseAsCompleted(quest, giverHero);
          store.Set(giver);
 
-         if (reward != null) notify?.Invoke(reward.Message, true);
+         if (grant != null) notify?.Invoke(grant.Message, grant.IsPositive);
+         else if (reward != null) notify?.Invoke(reward.Message, true);
          else notify?.Invoke($"{giver.Name} thanks you for {Describe(quest)}.", true);
       }
 
@@ -243,6 +276,10 @@ namespace CalradiaRemembers.Quests
             case QuestType.RescuePrisoner: return $"free {q.TargetHeroName}";
             case QuestType.DeliverLetter: return $"carry a message to {q.TargetHeroName}";
             case QuestType.ProvideGold: return "provide financial support for your child";
+            case QuestType.DeliverItems:
+                return q.Reward == RewardGrant.JoinParty
+                    ? "bring goods in payment for their service"
+                    : $"deliver goods worth {q.RequiredItemValue} denars";
             default: return "carry out a task";
          }
       }

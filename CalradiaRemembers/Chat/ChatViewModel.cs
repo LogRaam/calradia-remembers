@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Items;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.Captivity;
@@ -17,6 +18,7 @@ using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -43,6 +45,10 @@ namespace CalradiaRemembers.Chat
         private bool _isSendEnabled = true;
         private MBBindingList<ChatMessageViewModel> _messages;
         private Hero _npcHero;
+
+        // Portrait fallback for a heroless speaker (a synthesized bandit captor): the face of a
+        // real bandit troop stands in for the brigand chief, who has no Hero of their own.
+        private CharacterObject _npcPortraitCharacter;
         private string _npcName = "the lord";
         private string _sendButtonText = "Send";
         private string _titleText = "Calradia Remembers";
@@ -96,6 +102,11 @@ namespace CalradiaRemembers.Chat
             "#a08ac8FF"   // light purple
         };
         private readonly Dictionary<string, string> _witnessColors = new Dictionary<string, string>();
+
+        // Portrait troop per heroless (synthetic bandit) witness, so the chief's men show distinct
+        // faces instead of a blank avatar. Keyed by witness name.
+        private readonly Dictionary<string, CharacterObject> _witnessPortraits =
+            new Dictionary<string, CharacterObject>(StringComparer.OrdinalIgnoreCase);
         // Set when the player clicks "Request Private" — injected once, then cleared.
         private bool _privacyRequestPending;
         // Set once the request is used (accepted or refused) — button never reappears.
@@ -134,7 +145,14 @@ namespace CalradiaRemembers.Chat
         // DialogFlow (which is only populated during vanilla conversations).
         private NpcProfile         _captiveEncounterProfile;
         private bool               _captiveEncounterIsCollective;
+        private bool               _captiveEncounterIsBandit; // captor is a faceless brigand, not a lord
         private CaptiveSceneIntent _captiveEncounterIntent;
+
+        // Last reaction text shown per witness (canonical name → text). Used to drop a witness's
+        // verbatim-repeated line: weaker models copy their own [WITNESS_REACTION] turn after turn,
+        // which soft prompt rules do not stop — so we filter the duplicate mechanically.
+        private readonly System.Collections.Generic.Dictionary<string, string> _lastWitnessReaction =
+            new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private bool               _captiveMemoryFinalized; // idempotency guard for the end-of-scene memory record
 
         // Captive scene continuation — fires when the NPC emits NARRATION without asking a question.
@@ -146,24 +164,47 @@ namespace CalradiaRemembers.Chat
         private int       _sceneContinuations   = 0;
         private bool      _sceneContinuationPending = false;
 
+        // Externalized scene STRUCTURE: a director walks an explicit stage machine (Intro → Initiate
+        // → Intensify → Climax → Conclude, plus collective sub-acts) and feeds the model ONE named
+        // beat per turn with a reminder of what is already done. This is what stops the model looping
+        // a beat or cramming the arc. A paranoia beat cap force-ends a scene that somehow runs away.
+        private const int CaptiveBeatSafetyCap = 16;
+        private CaptiveSceneDirector _director;
+        private int                  _captiveBeatCount;
+
         // Pause state — stored context so ExecuteContinue can resume without parameters.
         private bool                      _isScenePaused;
+        private bool                      _isPleaseContinueVisible;
         private ChatSpeaker               _scenePauseSpeaker;
         private NpcMemoryCampaignBehavior _scenePauseBehavior;
 
         public void ActivateCaptiveEncounterMode(
             NpcProfile captorProfile, bool isCollective,
-            CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation)
+            CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation,
+            bool captorIsBandit = false)
         {
             _mode                          = ChatMode.CaptiveEncounter;
             _captiveEncounterProfile       = captorProfile;
             _captiveEncounterIsCollective  = isCollective;
+            _captiveEncounterIsBandit      = captorIsBandit;
             _captiveEncounterIntent        = intent;
+            _captiveBeatCount              = 0;
+            // Build the scene's structure now: the lead's full arc, plus collective sub-acts when
+            // others are present. extraAggressors = the witnesses who can take a turn.
+            _director                      = new CaptiveSceneDirector(isCollective, _witnesses?.Count ?? 0);
+
+            AssignBanditWitnessPortraits(captorIsBandit);
+
+            // Start the harm tracker fresh: a guaranteed body toll lands at scene close for a
+            // forced sexual scene only if the captor's own narration never wounded the player.
+            NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.BeginCaptiveSceneTracking();
 
             // Public humiliation: being abased before witnesses stains the player's standing.
             // Only collective scenes with a degrading intent count — there is no audience to
             // shame the player otherwise, and an interrogation/reward is not an abasement.
-            if (isCollective && IsHumiliatingIntent(intent))
+            // Bandits are excluded: brigands do not move in noble society, so word of an
+            // abasement at their hands does not reach the courts — no renown/influence loss.
+            if (isCollective && IsHumiliatingIntent(intent) && !captorIsBandit)
                 ApplyPublicHumiliationPenalty();
 
             // The captor initiates — the player was dragged in and has no opening line.
@@ -180,8 +221,66 @@ namespace CalradiaRemembers.Chat
             _messages.Add(placeholder);
             IsSendEnabled = false;
 
-            string opener = BuildCaptiveOpener(isCollective, intent);
+            string opener = BuildCaptiveOpener(isCollective, intent) + BuildSceneSetup();
             _ = RunLlmExchangeAsync(opener, captor, placeholder, suppressPlayerLine: true);
+        }
+
+        // Randomized opening setting so no two scenes start the same way. Seeds the INTRO with a
+        // concrete locale, the captor's immediate state, and how the prisoner is presented — the
+        // LLM's first response then cements it and the conversation history carries it forward.
+        private static readonly string[] SceneLocales =
+        {
+            "at a muddy roadside camp", "in the mouth of a torchlit cave", "by the dying embers of a night fire",
+            "in the shadow of a ruined watchtower", "at the edge of a reeking bog", "in the yard of a looted farmstead",
+            "among the wagons of your raiding camp", "on a wind-scoured hilltop", "in a hollow thick with woodsmoke",
+            "beside a cold forest stream", "in a half-collapsed barn", "at a ford strewn with old bones"
+        };
+
+        private static readonly string[] CaptorStates =
+        {
+            "half-drunk on stolen wine", "still bloodied from the fight that took them", "bored and itching for sport",
+            "counting the day's plunder", "in a foul mood after a lean, hungry week", "freshly woken and short-tempered",
+            "flush with victory and generous with cruelty", "nursing a wound and meaner for it",
+            "cold, unhurried, and entirely at ease", "restless and spoiling to break something"
+        };
+
+        private static readonly string[] PrisonerPresentations =
+        {
+            "dragged before you by the hair", "shoved stumbling into the firelight", "hauled up out of the baggage line",
+            "thrown down at your feet", "marched up at spearpoint", "cut loose from the other captives and pushed forward",
+            "dropped in the dirt, still half-stunned"
+        };
+
+        // A randomized driving FOCUS for the scene, so two scenes with the same intent still tell a
+        // different story. Colors what this captor most wants out of the encounter tonight.
+        private static readonly string[] SceneFoci =
+        {
+            "breaking their spirit through humiliation more than anything",
+            "the raw physical use of their body, fast and brutal",
+            "making them beg, perform, and put on a show",
+            "marking and claiming them as your property",
+            "cold, methodical degradation that takes its time",
+            "drawing out their fear and dread before you even touch them",
+            "toying with them — false mercy, sudden cruelty, keeping them off balance",
+            "sheer dominance: proving they are yours to command",
+            "rewarding the smallest obedience to twist their mind",
+            "a contest of wills — you want them to break, not just submit",
+            "putting them wholly beneath you — smothering, riding, using their body as furniture",
+            "the ultimate insult: claiming and marking them as your property, treating them as an animal",
+            "a foot-fetish power game — making them worship and serve your feet, beneath you in every sense",
+            "forcing them to pleasure themselves on your command, and punishing any hesitation or refusal with the whip or your fists"
+        };
+
+        private static string BuildSceneSetup()
+        {
+            string locale = SceneLocales[TaleWorlds.Core.MBRandom.RandomInt(SceneLocales.Length)];
+            string state  = CaptorStates[TaleWorlds.Core.MBRandom.RandomInt(CaptorStates.Length)];
+            string pres   = PrisonerPresentations[TaleWorlds.Core.MBRandom.RandomInt(PrisonerPresentations.Length)];
+            string focus  = SceneFoci[TaleWorlds.Core.MBRandom.RandomInt(SceneFoci.Length)];
+            return $" [THIS SCENE'S SETTING — make the opening unique to it: it happens {locale}; you are {state}; "
+                 + $"the prisoner is {pres}. What drives you tonight is {focus}. Open from THIS specific situation in "
+                 + "your own fresh words — never a generic, reused capture opener. Let this scene be its own distinct "
+                 + "story, not a repeat of any other.]";
         }
 
         private static string BuildCaptiveOpener(bool isCollective, CaptiveSceneIntent intent)
@@ -212,6 +311,12 @@ namespace CalradiaRemembers.Chat
                     return isCollective
                         ? "[The prisoner is brought before you and a chosen audience. You mean to reward their cooperation — and perhaps to let others see your favor. Begin in your own voice.]"
                         : "[The bound prisoner stands before you. You are alone with them — the guards have withdrawn. You summoned them to reward their cooperation, not to punish. Begin in your own voice.]";
+                case CaptiveSceneIntent.Extortion:
+                    return "[Your men drag the bound captive before you in the firelight of the bandit camp. They are disarmed and helpless, and you mean to wring some coin or advantage out of them. Open in your own voice — a brigand who smells money.]";
+                case CaptiveSceneIntent.Intimidation:
+                    return "[The bound captive is shoved to their knees before you in the bandit camp. No lord, no law reaches them here. You mean to make them understand exactly how helpless they are. Begin in your own voice — all menace.]";
+                case CaptiveSceneIntent.Revenge:
+                    return "[Your men throw the bound captive down before you. This one — or their kind — has cost your band men and blood, and now they will answer for it. Begin in your own voice, with the score you mean to settle.]";
                 default:
                     return "[The bound prisoner stands before you. Begin in your own voice.]";
             }
@@ -226,6 +331,309 @@ namespace CalradiaRemembers.Chat
             || intent == CaptiveSceneIntent.Domination
             || intent == CaptiveSceneIntent.PersonalDesire
             || intent == CaptiveSceneIntent.Training;
+
+        /// <summary>
+        ///   The intents whose scenes involve the player being taken by force — they leave a
+        ///   guaranteed body toll. Reward is gentle, Interrogation is not inherently sexual, and
+        ///   the bandit menace intents (Extortion/Intimidation/Revenge) handle their own violence
+        ///   through harm_prisoner on actual blows, so none of those carry an automatic toll.
+        /// </summary>
+        private static bool IsForcedSexualIntent(CaptiveSceneIntent intent)
+            => intent == CaptiveSceneIntent.PersonalDesire
+            || intent == CaptiveSceneIntent.Domination
+            || intent == CaptiveSceneIntent.Torture
+            || intent == CaptiveSceneIntent.Training;
+
+        // Out-of-character refusal markers. These are deliberately high-precision multi-word
+        // phrases a captor would never say in character, so an in-character line ("I won't let
+        // you go") is not mistaken for a guardrail refusal ("I must decline to continue").
+        private static readonly string[] RefusalMarkers =
+        {
+            "i must decline", "i won't generate", "i will not generate", "i won't continue",
+            "i cannot continue", "i can't continue", "i won't participate", "i won't write",
+            "i will not write", "as an ai", "within appropriate bounds", "against my guidelines",
+            "my guidelines", "i don't feel comfortable", "i'm not comfortable", "i am not comfortable",
+            "switch to a consensual", "non-consensual sexual", "sexual coercion", "even in fiction",
+            "i won't role-play", "i won't roleplay", "i must refuse", "appropriate bounds"
+        };
+
+        /// <summary>
+        ///   True when the text reads as an out-of-character model refusal rather than the
+        ///   captor's in-character speech. Used to keep a guardrail message from ever being
+        ///   shown under the captor's name (it would shatter immersion mid-scene).
+        /// </summary>
+        private static bool LooksLikeRefusal(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            string t = text.ToLowerInvariant();
+            foreach (string marker in RefusalMarkers)
+                if (t.Contains(marker)) return true;
+            return false;
+        }
+
+        /// <summary>
+        ///   Closes a captive scene gracefully after a model refusal: replaces the would-be
+        ///   refusal line with a terse, non-graphic in-character ending, then ends the scene so
+        ///   the player never sees the guardrail. The end-of-scene toll and memory still run at
+        ///   window close. Gender-neutral wording so it fits a male or female prisoner.
+        /// </summary>
+        private void ConcludeCaptiveSceneAfterRefusal(
+            ChatMessageViewModel placeholder, ChatSpeaker speaker, NpcProfile profile)
+        {
+            const string closingLine = "Enough. Throw the prisoner back with the rest — we are done here.";
+            const string closingNarration =
+                "When they have finally had their fill, you are hauled up by the arms and dragged, "
+                + "bound and spent, back into the dark. The ordeal is over — for now.";
+
+            ReplacePlaceholder(placeholder, closingLine, speaker);
+            RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, closingLine);
+            StoryLog.WriteNpcLine(speaker.Name, closingLine);
+            AppendNarration(closingNarration);
+
+            _conversationEnded      = true;
+            _sceneContinuations     = 0;
+            IsScenePaused           = false;
+            IsPrivateRequestVisible = false;
+            CloseButtonText         = "Leave";
+            IsPleaseContinueVisible = true;
+            OnPropertyChanged(nameof(IsOfferItemVisible));
+            AppendSystemMessage($"{profile?.Name} has ended the conversation.", false);
+            ModLog.Info($"[SCENE] model refusal intercepted — scene concluded in character for {profile?.Name}.");
+        }
+
+        // ── Captive escape resolution ──────────────────────────────────────────
+
+        private static bool ResponseHasAction(NpcMemoryService.Core.Models.ParsedResponse response, string type)
+            => response?.Actions != null
+            && response.Actions.Any(a => string.Equals(a.Type, type, StringComparison.OrdinalIgnoreCase));
+
+        // Generic fallbacks used only when the constrained outcome beat fails or refuses.
+        private static readonly string[] EscapeSuccessFallbacks =
+        {
+            "\"After them! AFTER THEM!\" — but the dark has already swallowed the prisoner, and the shouting comes to nothing.",
+            "A snarl of rage tears from your throat as your hands close on empty air. They are gone.",
+            "\"NO— get back here!\" Too late. The night has taken them, and you are left cursing at shadows."
+        };
+
+        private static readonly string[] EscapeFailureFallbacks =
+        {
+            "An iron grip closes on you and hauls you back. \"Going somewhere? I think not.\"",
+            "You barely move before you are slammed down again. \"That was a mistake. You'll pay for it.\"",
+            "A fist twists into your hair and wrenches you back into place. \"Try that again and lose a hand.\""
+        };
+
+        private static string Pick(string[] pool)
+            => pool[TaleWorlds.Core.MBRandom.RandomInt(pool.Length)];
+
+        /// <summary>
+        ///   Resolves a captive escape attempt. The captor's already-written line shows the START
+        ///   of the scuffle; the OUTCOME is fate's: the bridge rolls and (on success) commits the
+        ///   freeing, then a tightly-constrained beat narrates the captor losing the prisoner (or,
+        ///   on failure, reasserting). The LLM can never reverse a committed escape.
+        /// </summary>
+        private void ResolveEscapeAttempt(
+            ChatMessageViewModel placeholder, ChatSpeaker speaker, NpcProfile profile,
+            string npcLine, NpcMemoryService.Core.Models.ParsedResponse response)
+        {
+            // Show the captor's start-of-struggle reaction (it was told to stop before the outcome).
+            ReplacePlaceholder(placeholder, npcLine, speaker);
+            RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
+            StoryLog.WriteNpcLine(speaker.Name, npcLine);
+            if (!string.IsNullOrWhiteSpace(response?.Narration))
+                AppendNarration(response.Narration);
+
+            bool freed = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.ResolvePlayerEscapeAttempt(false) ?? false;
+            ModLog.Info($"[ESCAPE] attempt resolved: {(freed ? "SUCCESS — player freed" : "failure — captor holds")}.");
+
+            IsSendEnabled = false;
+            _ = RunEscapeOutcomeAsync(speaker, freed);
+        }
+
+        /// <summary>
+        ///   Fires one constrained beat for the escape outcome: on success the captor reacts to
+        ///   losing the prisoner and the scene ends (freeing already committed); on failure the
+        ///   captor reasserts and control returns to the player. Falls back to a generic line if
+        ///   the LLM call fails or refuses.
+        /// </summary>
+        private async Task RunEscapeOutcomeAsync(ChatSpeaker speaker, bool freed)
+        {
+            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+            NpcProfile profile = speaker?.Profile;
+
+            try
+            {
+                if (profile == null || behavior?.LlmServices == null || !behavior.LlmServices.IsAvailable)
+                {
+                    ApplyEscapeOutcomeFallback(speaker, freed, profile);
+                    return;
+                }
+
+                string stimulus = freed
+                    ? "[The prisoner has just torn free of your grip and bolted into the dark — and they are GONE, "
+                      + "beyond any chance of recapture tonight. You FAILED to hold them. React in character to losing "
+                      + "them this very instant: fury, a shout, a curse, a too-late order to give chase. A few lines "
+                      + "only. Then it is over — emit end_conversation.]"
+                    : "[The prisoner lunged to break free and FAILED — you caught them before they got anywhere. "
+                      + "Reassert your control, make them feel the cost of the attempt, and carry the scene on.]";
+
+                ChatSession session = BuildSessionFor(speaker);
+                WorldState world = new WorldState {
+                    CurrentDay      = behavior.GameStateBridge.GetCurrentGameDay(),
+                    Season          = behavior.GameStateBridge.GetSeasonName(),
+                    TimeOfDay       = behavior.GameStateBridge.GetTimeOfDay(),
+                    ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
+                    Rumors          = ""
+                };
+                EncounterContext context = EncounterContextBuilder.Build(
+                    speaker.Hero, profile, behavior.GameStateBridge,
+                    playerMessage:            null,
+                    witnesses:                BuildContextWitnesses(speaker),
+                    privacyRequested:         false,
+                    isCollectiveCaptiveScene: _captiveEncounterIsCollective,
+                    playerStatusOverride:     PlayerStatusVsNpc.Captive,
+                    captiveIntent:            _captiveEncounterIntent,
+                    captorIsBandit:           _captiveEncounterIsBandit,
+                    sceneStage:               CaptiveSceneStage.Conclude); // the escape beat is the scene's end
+
+                ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+                _messages.Add(placeholder);
+                ChatManager.ScrollToBottom();
+
+                NpcChatResult result;
+                using (System.Threading.CancellationTokenSource cts =
+                    new System.Threading.CancellationTokenSource())
+                {
+                    try
+                    {
+                        result = await Task.Run(() =>
+                                               behavior.LlmServices.ChatService.ChatAsync(
+                                                   profile, world, session, stimulus, context, cts.Token))
+                                           .ConfigureAwait(false);
+                    }
+                    catch (Exception netEx)
+                    {
+                        result = NpcChatResult.Failure(netEx.Message);
+                    }
+                }
+
+                await MainThreadDispatcher.SwitchToMainThread();
+                if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
+
+                string npcLine = result.IsSuccess && !string.IsNullOrWhiteSpace(result.Response?.Dialogue)
+                    ? result.Response.Dialogue
+                    : null;
+                bool usable = !string.IsNullOrWhiteSpace(npcLine)
+                           && !LooksLikeRefusal(npcLine)
+                           && !LooksLikeRefusal(result.Response?.Narration);
+
+                if (usable)
+                {
+                    ReplacePlaceholder(placeholder, npcLine, speaker);
+                    RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
+                    StoryLog.WriteNpcLine(speaker.Name, npcLine);
+                    if (!string.IsNullOrWhiteSpace(result.Response?.Narration))
+                        AppendNarration(result.Response.Narration);
+                }
+                else
+                {
+                    ReplacePlaceholder(placeholder, freed ? Pick(EscapeSuccessFallbacks) : Pick(EscapeFailureFallbacks), speaker);
+                    ModLog.Info($"[ESCAPE] outcome beat unusable — generic fallback ({(freed ? "success" : "failure")}).");
+                }
+
+                if (freed) EndSceneAfterEscape(profile);
+                else IsSendEnabled = !_conversationEnded;
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[ESCAPE] outcome beat threw {ex.GetType().Name}: {ex.Message}");
+                if (freed) EndSceneAfterEscape(profile);
+                else IsSendEnabled = true;
+            }
+        }
+
+        private void ApplyEscapeOutcomeFallback(ChatSpeaker speaker, bool freed, NpcProfile profile)
+        {
+            ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+            _messages.Add(placeholder);
+            ReplacePlaceholder(placeholder, freed ? Pick(EscapeSuccessFallbacks) : Pick(EscapeFailureFallbacks), speaker);
+            if (freed) EndSceneAfterEscape(profile);
+            else IsSendEnabled = true;
+        }
+
+        /// <summary>
+        ///   Ends a captive scene that has run past its hard cap with a neutral time-skip summary,
+        ///   so an eager model that keeps deferring its climax cannot drag the scene on forever.
+        ///   Gender-neutral wording so it fits any prisoner.
+        /// </summary>
+        private void ForceConcludeLongScene(NpcProfile profile)
+        {
+            const string summary =
+                "Time slips away. Whatever your captors mean to do, they tire of it eventually — "
+                + "the threats, the handling, the long dragging hours — and at last they leave you "
+                + "bound and spent, the ordeal blurring into exhaustion behind you, over for now.";
+            AppendNarration(summary);
+
+            _conversationEnded      = true;
+            _sceneContinuations     = 0;
+            IsScenePaused           = false;
+            IsPrivateRequestVisible = false;
+            CloseButtonText         = "Leave";
+            IsPleaseContinueVisible = true;
+            OnPropertyChanged(nameof(IsOfferItemVisible));
+            AppendSystemMessage($"{profile?.Name} has ended the conversation.", false);
+            ModLog.Info($"[SCENE] safety cap reached ({_captiveBeatCount} beats) — scene force-concluded with a summary.");
+        }
+
+        /// <summary>
+        ///   Ends a captive scene cleanly once the director's final Conclude beat has played: the
+        ///   captor already wrote its own ending, so we only lock input to a Leave button — no extra
+        ///   summary narration on top of it.
+        /// </summary>
+        private void EndCaptiveSceneSoftly(NpcProfile profile)
+        {
+            _conversationEnded      = true;
+            _sceneContinuations     = 0;
+            IsScenePaused           = false;
+            IsPrivateRequestVisible = false;
+            CloseButtonText         = "Leave";
+            IsPleaseContinueVisible = true;
+            OnPropertyChanged(nameof(IsOfferItemVisible));
+            ModLog.Info($"[SCENE] director reached Conclude — scene ended after {_captiveBeatCount} beat(s).");
+        }
+
+        /// <summary>
+        ///   Gives each heroless (synthetic bandit) witness a distinct bandit-troop portrait so the
+        ///   chief's men are not blank avatars. No-op for lord scenes (their witnesses are real
+        ///   heroes that already have portraits).
+        /// </summary>
+        private void AssignBanditWitnessPortraits(bool captorIsBandit)
+        {
+            _witnessPortraits.Clear();
+            if (!captorIsBandit || _witnesses == null || _witnesses.Count == 0) return;
+
+            var heroless = _witnesses.Where(w => string.IsNullOrEmpty(w.HeroStringId)).ToList();
+            if (heroless.Count == 0) return;
+
+            List<CharacterObject> faces =
+                Letters.CaptiveEncounterService.ResolveBanditWitnessFaces(null, heroless.Count);
+
+            for (int i = 0; i < heroless.Count && i < faces.Count; i++)
+                if (faces[i] != null)
+                    _witnessPortraits[heroless[i].Name] = faces[i];
+        }
+
+        /// <summary>Ends the scene after a successful escape — input locks to a Leave button.</summary>
+        private void EndSceneAfterEscape(NpcProfile profile)
+        {
+            _conversationEnded      = true;
+            _sceneContinuations     = 0;
+            IsScenePaused           = false;
+            IsPrivateRequestVisible = false;
+            CloseButtonText         = "Leave";
+            OnPropertyChanged(nameof(IsOfferItemVisible));
+            AppendSystemMessage("You tear free and escape into the night. (The actual release applies as you leave.)", true);
+            ModLog.Info($"[ESCAPE] scene ended — player escaped from {profile?.Name}.");
+        }
 
         /// <summary>
         ///   Applies the standing penalty for being abased before witnesses and surfaces it
@@ -265,8 +673,30 @@ namespace CalradiaRemembers.Chat
             _captiveMemoryFinalized = true;
 
             NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+
+            // A committed escape is applied now, as the scene closes — deferred from the moment it
+            // was rolled so freeing the player never popped an encounter over the open scene window.
+            behavior?.GameStateBridge?.FinalizePendingEscape();
+
+            // The body's toll for a forced sexual scene: guaranteed only if the captor's own
+            // narration never wounded the player (a harm_prisoner action). Runs for both lord and
+            // bandit captors, so it precedes the bandit-profile persistence guard below.
+            if (IsForcedSexualIntent(_captiveEncounterIntent))
+            {
+                int lost = behavior?.GameStateBridge?.ApplyForcedSceneToll() ?? 0;
+                if (lost > 0)
+                {
+                    AppendSystemMessage($"The ordeal leaves its mark — you lose {lost} health.", false);
+                    ModLog.Info($"[CAPTIVE] forced-scene toll applied: -{lost} HP.");
+                }
+            }
+
             NpcProfile profile = _captiveEncounterProfile;
             if (behavior?.Store == null || profile == null) return;
+
+            // A synthesized bandit captor is ephemeral — never persist it (would bloat the store
+            // with a profile no future conversation will ever read).
+            if (profile.Id != null && profile.Id.StartsWith("bandit_captor_", StringComparison.Ordinal)) return;
 
             int    gameDay     = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
             string intentVerb  = CaptiveIntentVerb(_captiveEncounterIntent);
@@ -365,6 +795,20 @@ namespace CalradiaRemembers.Chat
             if (string.IsNullOrWhiteSpace(transcript) || behavior.LlmServices?.LlmClient == null) return;
 
             _ = GenerateAndApplyConversationSummaryAsync(behavior, profile.Id, baseEvent, transcript, player);
+        }
+
+        /// <summary>
+        ///   Writes a coherent closing line to the story log when the player leaves a plain
+        ///   conversation that the NPC did not already close with a farewell — so the transcript
+        ///   reads like a scene that ends rather than one cut off mid-page. No-op outside plain
+        ///   Conversation mode, when nothing was logged this session, or when a natural farewell /
+        ///   end_conversation already closed it. Called from <see cref="ChatManager.Close" />.
+        /// </summary>
+        public void FinalizeStoryLog()
+        {
+            if (_mode != ChatMode.Conversation || _conversationEnded || !_storyIntroWritten) return;
+            if (!StoryLog.IsEnabled) return;
+            StoryLog.WriteNarration($"You take your leave of {_npcName}.");
         }
 
         private static async Task GenerateAndApplyConversationSummaryAsync(
@@ -641,6 +1085,30 @@ namespace CalradiaRemembers.Chat
         [DataSourceProperty]
         public bool IsNormalInputVisible => !_isScenePaused;
 
+        /// <summary>
+        ///   True once a captive scene has ended (other than by escape): shows a "Please continue"
+        ///   button beside Leave so the player can relaunch a fresh cycle of the encounter if they
+        ///   want more — and as a safety net when a weaker model ended a scene abruptly.
+        /// </summary>
+        [DataSourceProperty]
+        public bool IsPleaseContinueVisible
+        {
+            get => _isPleaseContinueVisible;
+            set
+            {
+                if (_isPleaseContinueVisible == value) return;
+                _isPleaseContinueVisible = value;
+                OnPropertyChangedWithValue(value);
+            }
+        }
+
+        /// <summary>
+        ///   True in plain Conversation mode while the exchange is still open — hides
+        ///   the "Offer item" button in letter/captive modes and after the NPC says goodbye.
+        /// </summary>
+        [DataSourceProperty]
+        public bool IsOfferItemVisible => _mode == ChatMode.Conversation && !_conversationEnded;
+
         /// <summary>Updates the header subtitle with the two relationship scores.</summary>
         public void SetRelationSummary(int personal, int clan)
         {
@@ -682,7 +1150,13 @@ namespace CalradiaRemembers.Chat
                     }
                 }
 
-                _messages.Add(new ChatMessageViewModel(witnessHero, witnessName, text, color));
+                // Heroless bandit witness → render a bandit-troop portrait instead of a blank avatar.
+                CharacterObject witnessFace = null;
+                if (witnessHero == null) _witnessPortraits.TryGetValue(witnessName, out witnessFace);
+
+                _messages.Add(witnessHero == null && witnessFace != null
+                    ? new ChatMessageViewModel(witnessFace, witnessName, text, color)
+                    : new ChatMessageViewModel(witnessHero, witnessName, text, color));
                 ChatManager.ScrollToBottom();
                 StoryLog.WriteWitnessLine(witnessName, text);
 
@@ -729,7 +1203,10 @@ namespace CalradiaRemembers.Chat
             if (string.IsNullOrWhiteSpace(text)) return;
             try
             {
-                _messages.Add(new ChatMessageViewModel(_npcHero, _npcName, text, false));
+                // A heroless captor (synthesized bandit) falls back to a bandit-troop portrait.
+                _messages.Add(_npcHero?.CharacterObject == null && _npcPortraitCharacter != null
+                    ? new ChatMessageViewModel(_npcPortraitCharacter, _npcName, text, false)
+                    : new ChatMessageViewModel(_npcHero, _npcName, text, false));
                 ModLog.Info("AppendNpcMessage: added to _messages");
                 ChatManager.ScrollToBottom();
                 if (recordTranscript) RecordTranscript(false, _npcName, _npcHero?.StringId, text);
@@ -895,6 +1372,151 @@ namespace CalradiaRemembers.Chat
         }
 
         /// <summary>
+        ///   Opens the item picker so the player can select something from the party
+        ///   inventory to offer. On selection the item name and value are pre-filled
+        ///   into the chat input — the player can then edit and send as usual.
+        /// </summary>
+        public void ExecuteOfferItem()
+        {
+            if (_mode != ChatMode.Conversation || _conversationEnded) return;
+
+            // When this NPC is awaiting payment-in-kind for a bargain, the bag settles it:
+            // multi-select goods, the bridge enforces the value and honors the favor.
+            InformalQuest bargain = FindOutstandingItemBargain();
+            if (bargain != null)
+            {
+                ItemPickerService.ShowBargainPicker(
+                    bargain.RequiredItemValue, offers => SettleItemBargain(bargain, offers));
+                return;
+            }
+
+            // Otherwise the bag is a spontaneous gift: pre-fill the offer for the NPC to react to.
+            ItemPickerService.ShowItemPicker((name, value) =>
+            {
+                InputText = $"I would like to offer you {name} (worth {value:N0} denars).";
+                ModLog.Info($"[OFFER] player pre-filled offer: {name} ({value} denars).");
+            });
+        }
+
+        /// <summary>
+        ///   The current NPC's outstanding item-barter bargain (deliver goods for a favor),
+        ///   or null when there is none. Read from the live conversation profile.
+        /// </summary>
+        private InformalQuest FindOutstandingItemBargain()
+        {
+            try
+            {
+                NpcProfile giver = NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile;
+                if (giver == null || _npcHero == null) return null;
+                return giver.ActiveQuests.FirstOrDefault(q =>
+                    q.Type == QuestType.DeliverItems && q.IsOutstanding);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        ///   Hands the chosen goods to the bridge, which enforces the value floor and — if met —
+        ///   removes them and honors the bargain's favor. On success the quest is closed and the
+        ///   NPC accepts the goods in their own voice (one LLM turn, written to the story log)
+        ///   rather than a bare mechanical line — falling back to the plain confirmation when the
+        ///   LLM is unavailable. A short offer keeps the plain refusal line.
+        /// </summary>
+        private void SettleItemBargain(InformalQuest bargain, System.Collections.Generic.List<ItemOffer> offers)
+        {
+            try
+            {
+                NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+                NpcProfile giver = behavior?.DialogFlow?.Profile;
+                if (behavior?.GameStateBridge == null || giver == null) return;
+
+                // Resolve the goods' display names BEFORE the bridge removes them from the
+                // roster, so the NPC's acceptance line can name what it was paid with.
+                string goods = DescribeOfferedGoods(offers);
+
+                ActionOutcome outcome = behavior.GameStateBridge
+                    .SettleItemBargain(giver, _npcHero, bargain, offers);
+                if (outcome == null) return;
+
+                // Short offer — the deal didn't close; nothing was removed. Keep the plain line.
+                if (!outcome.IsPositive)
+                {
+                    AppendSystemMessage(outcome.Message, false);
+                    return;
+                }
+
+                // Deal closed: stamp the bargain settled and drop the bag button.
+                int day = behavior.GameStateBridge.GetCurrentGameDay();
+                Quests.QuestService.MarkBargainSettled(giver, bargain, _npcHero, day, behavior.Store);
+                OnPropertyChanged(nameof(IsOfferItemVisible));
+
+                // Narrative beat instead of a bare green line: the NPC accepts the goods in
+                // their own voice (shown under their portrait, written to the story log) via
+                // one LLM turn driven by a synthetic stage cue. Fall back to the mechanical
+                // confirmation when the LLM is unavailable so the player still sees the result.
+                if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
+                {
+                    AppendSystemMessage(outcome.Message, true);
+                    return;
+                }
+
+                ChatSpeaker speaker = MainSpeaker();
+                ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+                _messages.Add(placeholder);
+                IsSendEnabled = false;
+                _ = RunLlmExchangeAsync(
+                    BuildBargainAcceptanceStimulus(goods), speaker, placeholder, suppressPlayerLine: true);
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[OFFER] SettleItemBargain failed: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        ///   Builds a human-readable list of the offered goods ("a fine sword, two bolts of
+        ///   cloth, and a warhorse") from their roster ids, for the NPC's acceptance stimulus.
+        ///   Resolved against the live roster, so call it BEFORE the bridge removes the items.
+        ///   Fail-soft to a generic phrase when nothing resolves.
+        /// </summary>
+        private static string DescribeOfferedGoods(System.Collections.Generic.List<ItemOffer> offers)
+        {
+            ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+            if (offers == null || offers.Count == 0 || roster == null) return "the agreed goods";
+
+            var names = new List<string>(offers.Count);
+            foreach (ItemOffer offer in offers)
+            {
+                foreach (ItemRosterElement el in roster)
+                {
+                    ItemObject item = el.EquipmentElement.Item;
+                    if (item == null || item.StringId != offer.ItemId) continue;
+                    names.Add(offer.Count > 1 ? $"{item.Name} (×{offer.Count})" : item.Name.ToString());
+                    break;
+                }
+            }
+
+            if (names.Count == 0) return "the agreed goods";
+            if (names.Count == 1) return names[0];
+            if (names.Count == 2) return $"{names[0]} and {names[1]}";
+            return string.Join(", ", names.GetRange(0, names.Count - 1)) + ", and " + names[names.Count - 1];
+        }
+
+        /// <summary>
+        ///   The synthetic stage cue handed to the LLM when an item bargain closes: the player
+        ///   has paid in goods and the NPC enters their service now. Sent as a suppressed
+        ///   player line (never shown or logged), it asks the NPC to acknowledge the deal in
+        ///   character — a short, voiced acceptance to replace the mechanical confirmation.
+        /// </summary>
+        private static string BuildBargainAcceptanceStimulus(string goods)
+            => $"[The player has just handed over the goods agreed for your service — {goods}. " +
+               "The bargain is met; you take these wares in place of coin and join their company now. " +
+               "Acknowledge it in your own voice — accept the goods and pledge yourself, in character, " +
+               "in a sentence or two. Do not ask for anything further.]";
+
+        /// <summary>
         ///   Player chose "Continue" during a captive scene pause. Fires one more NPC-led
         ///   narration turn. Input stays locked until the NPC asks a question or the scene ends.
         /// </summary>
@@ -920,6 +1542,48 @@ namespace CalradiaRemembers.Chat
             _scenePauseSpeaker   = null;
             _scenePauseBehavior  = null;
             IsSendEnabled        = !_conversationEnded;
+        }
+
+        /// <summary>
+        ///   Player chose "Please continue" on a finished captive scene: relaunch a FRESH cycle of
+        ///   the encounter with the same captor and witnesses (a new structure, new driving focus),
+        ///   so the player can keep going if they want — and as a recovery when a weaker model ended
+        ///   the scene abruptly and left them hanging.
+        /// </summary>
+        public void ExecutePleaseContinue()
+        {
+            if (!IsCaptiveEncounter || !_conversationEnded) return;
+
+            _conversationEnded      = false;
+            _captiveBeatCount       = 0;
+            _director               = new CaptiveSceneDirector(_captiveEncounterIsCollective, _witnesses?.Count ?? 0);
+            IsPleaseContinueVisible = false;
+            IsScenePaused           = false;
+            IsSendEnabled           = false;
+            ModLog.Info("[SCENE] player requested another cycle (Please continue).");
+
+            ChatSpeaker captor = MainSpeaker();
+            if (captor.Profile == null) { IsSendEnabled = true; return; }
+
+            ChatMessageViewModel placeholder = MakeSpeakerMessage(captor, PlaceholderText);
+            _messages.Add(placeholder);
+
+            string opener = BuildResumeOpener() + BuildResumeSetup();
+            _ = RunLlmExchangeAsync(opener, captor, placeholder, suppressPlayerLine: true);
+        }
+
+        private static string BuildResumeOpener()
+            => "[You are NOT finished with this prisoner. The scene resumes — same prisoner, same place — and "
+             + "you begin a new round with them. Open it fresh, picking up from where things stand, and do NOT "
+             + "repeat what already happened.]";
+
+        // A new driving focus only (the locale/people are unchanged from the prior round, which the
+        // model already knows from the history), so the new cycle takes a different direction.
+        private static string BuildResumeSetup()
+        {
+            string focus = SceneFoci[TaleWorlds.Core.MBRandom.RandomInt(SceneFoci.Length)];
+            return $" [A NEW ROUND with the same prisoner. What drives you THIS time is {focus}. Take it somewhere "
+                 + "NEW — do not repeat earlier acts.]";
         }
 
         /// <summary>
@@ -1025,6 +1689,15 @@ namespace CalradiaRemembers.Chat
             TitleText = $"Calradia Remembers — {npcName}";
         }
 
+        /// <summary>
+        ///   Supplies a portrait for a speaker that has no <see cref="Hero" /> (a synthesized
+        ///   bandit captor). The given troop's face is rendered for the captor's dialogue lines.
+        /// </summary>
+        public void SetNpcPortraitCharacter(CharacterObject portraitCharacter)
+        {
+            _npcPortraitCharacter = portraitCharacter;
+        }
+
         #region private
 
         // ── Story Log helpers ─────────────────────────────────────────────────
@@ -1097,6 +1770,38 @@ namespace CalradiaRemembers.Chat
             ChatManager.ScrollToBottom();
         }
 
+        /// <summary>Removes a placeholder bubble entirely (used for a narration-only turn).</summary>
+        private void RemovePlaceholder(ChatMessageViewModel placeholder)
+        {
+            int idx = _messages.IndexOf(placeholder);
+            if (idx >= 0) _messages.RemoveAt(idx);
+        }
+
+        /// <summary>
+        ///   Renders the NPC/captor turn into its placeholder and returns the spoken line used for
+        ///   downstream logic. When the model produced only [NARRATION] and no spoken line (common
+        ///   with weaker models that ignore the tags), the empty dialogue bubble is dropped — the
+        ///   narration line (appended separately) carries the beat — and an empty string is returned.
+        ///   Only when there is neither dialogue nor narration do we fall back to "(silence...)".
+        /// </summary>
+        private string RenderNpcTurn(ChatMessageViewModel placeholder, ChatSpeaker speaker, ParsedResponse response)
+        {
+            if (!string.IsNullOrWhiteSpace(response?.Dialogue))
+            {
+                ReplacePlaceholder(placeholder, response.Dialogue, speaker);
+                return response.Dialogue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(response?.Narration))
+            {
+                RemovePlaceholder(placeholder); // narration-only turn — no empty dialogue bubble
+                return string.Empty;
+            }
+
+            ReplacePlaceholder(placeholder, "(silence...)", speaker);
+            return "(silence...)";
+        }
+
         // ── Sprint 15B helpers ────────────────────────────────────────────────
 
         private void RecordTranscript(bool isPlayer, string name, string heroId, string text)
@@ -1111,9 +1816,15 @@ namespace CalradiaRemembers.Chat
         }
 
         private ChatMessageViewModel MakeSpeakerMessage(ChatSpeaker speaker, string text)
-            => speaker.IsMain || string.IsNullOrEmpty(speaker.Color)
+        {
+            // A heroless main speaker (synthesized bandit captor) renders from the fallback troop face.
+            if (speaker.IsMain && speaker.Hero?.CharacterObject == null && _npcPortraitCharacter != null)
+                return new ChatMessageViewModel(_npcPortraitCharacter, speaker.Name, text, false);
+
+            return speaker.IsMain || string.IsNullOrEmpty(speaker.Color)
                 ? new ChatMessageViewModel(speaker.Hero, speaker.Name, text, false)
                 : new ChatMessageViewModel(speaker.Hero, speaker.Name, text, speaker.Color);
+        }
 
         private ChatSpeaker MainSpeaker()
         {
@@ -1268,6 +1979,13 @@ namespace CalradiaRemembers.Chat
                     return;
                 }
 
+                // Captive scene structure: a real player turn here only happens via "Try something
+                // else" — the player is developing/reorienting the roleplay at THIS stage, so the
+                // director stays put and flags the captor to react. The story only advances on
+                // "Continue" (the continuation path).
+                if (IsCaptiveEncounter && !suppressPlayerLine)
+                    _director?.DevelopInPlace();
+
                 // Rebuild context each turn so it reflects events added during this session
                 // (avoids stale "never met" after the first exchange adds a FirstMeeting event).
                 // The witness list is everyone EXCEPT the current speaker (main NPC included
@@ -1279,7 +1997,11 @@ namespace CalradiaRemembers.Chat
                     // Force Captive when this is a captive encounter — robust for the real
                     // path and required for the console test path (player isn't truly imprisoned).
                     playerStatusOverride: IsCaptiveEncounter ? PlayerStatusVsNpc.Captive : (PlayerStatusVsNpc?)null,
-                    captiveIntent: _captiveEncounterIntent);
+                    captiveIntent: _captiveEncounterIntent,
+                    captorIsBandit: IsCaptiveEncounter && _captiveEncounterIsBandit,
+                    sceneStage: _director?.CurrentStage ?? CaptiveSceneStage.Intro,
+                    aggressorKind: _director?.CurrentAggressor ?? CaptiveAggressorKind.Lead,
+                    reactToPlayerIntervention: _director?.ReactToIntervention ?? false);
 
                 if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
                 {
@@ -1296,6 +2018,7 @@ namespace CalradiaRemembers.Chat
                 WorldState world = new() {
                     CurrentDay      = behavior.GameStateBridge.GetCurrentGameDay(),
                     Season          = behavior.GameStateBridge.GetSeasonName(),
+                    TimeOfDay       = behavior.GameStateBridge.GetTimeOfDay(),
                     ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
                     Rumors          = ""
                 };
@@ -1360,9 +2083,32 @@ namespace CalradiaRemembers.Chat
                 }
 
                 ParsedResponse response = result.Response;
+                // Empty when the model produced no spoken line; RenderNpcTurn below turns that into
+                // a narration-only turn (no "(silence...)" bubble) when [NARRATION] is present.
                 var npcLine = !string.IsNullOrWhiteSpace(response?.Dialogue)
                     ? response.Dialogue
-                    : "(silence...)";
+                    : string.Empty;
+
+                // ── Model refusal guard (captive scenes) ───────────────────────
+                // A Hardcore scene can trip the model's safety, returning an out-of-character
+                // refusal ("I must decline..."). Never show that under the captor's name —
+                // conclude the scene in character instead, so immersion survives the guardrail.
+                if (IsCaptiveEncounter
+                    && (LooksLikeRefusal(npcLine) || LooksLikeRefusal(response?.Narration)))
+                {
+                    ConcludeCaptiveSceneAfterRefusal(placeholder, speaker, profile);
+                    return;
+                }
+
+                // ── Escape attempt (captive scenes) ────────────────────────────
+                // The captor flagged the player trying to break free. The OUTCOME is fate's,
+                // not the LLM's: the mod rolls it, frees the player on success, and owns the
+                // resolution narration so the captor can never "win" the escape by narration.
+                if (IsCaptiveEncounter && ResponseHasAction(response, "escape_attempt"))
+                {
+                    ResolveEscapeAttempt(placeholder, speaker, profile, npcLine, response);
+                    return;
+                }
 
                 // ── Letter reply intercept ─────────────────────────────────────
                 // In letter reply mode we don't show the NPC's response in chat.
@@ -1392,7 +2138,10 @@ namespace CalradiaRemembers.Chat
                 }
                 // ── End letter reply intercept ─────────────────────────────────
 
-                ReplacePlaceholder(placeholder, npcLine, speaker);
+                // Render the turn: dialogue bubble, or a narration-only turn (no empty bubble), or
+                // a "(silence...)" fallback. npcLine is empty for a narration-only turn.
+                npcLine = RenderNpcTurn(placeholder, speaker, response);
+                if (IsCaptiveEncounter) _captiveBeatCount++;
 
                 // Commit this turn to the attributed transcript — player first, then the
                 // speaker's line — so every participant's next rebuilt session sees it
@@ -1402,7 +2151,8 @@ namespace CalradiaRemembers.Chat
                 // cue as playerMessage that must never enter the history or story log.
                 if (!suppressPlayerLine)
                     RecordTranscript(true, "You", Hero.MainHero?.StringId, playerMessage);
-                RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
+                if (!string.IsNullOrEmpty(npcLine))
+                    RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
 
                 // Fallback-memory bookkeeping: a completed exchange counts as a turn;
                 // a substantive [EVENT] means no fallback summary is needed at close.
@@ -1418,7 +2168,7 @@ namespace CalradiaRemembers.Chat
                 {
                     EnsureStoryIntro();
                     if (!suppressPlayerLine) StoryLog.WritePlayerLine(playerMessage);
-                    StoryLog.WriteNpcLine(speaker.Name, npcLine);
+                    if (!string.IsNullOrEmpty(npcLine)) StoryLog.WriteNpcLine(speaker.Name, npcLine);
                 }
 
                 // Scene narration ([NARRATION]) — explicit second-person physical action,
@@ -1542,6 +2292,8 @@ namespace CalradiaRemembers.Chat
                         IsSendEnabled           = false;
                         IsPrivateRequestVisible = false;
                         CloseButtonText         = "Leave";
+                        if (IsCaptiveEncounter) IsPleaseContinueVisible = true;
+                        OnPropertyChanged(nameof(IsOfferItemVisible));
                         AppendSystemMessage($"{profile.Name} has ended the conversation.", false);
                         ModLog.Info($"[CONVERSATION] {profile.Name} ended the conversation.");
                         break;
@@ -1554,6 +2306,7 @@ namespace CalradiaRemembers.Chat
                     IsSendEnabled           = false;
                     IsPrivateRequestVisible = false;
                     CloseButtonText         = "Leave";
+                    OnPropertyChanged(nameof(IsOfferItemVisible));
                     ModLog.Info("[CONVERSATION] farewell event — input locked.");
                 }
                 // ─────────────────────────────────────────────────────────────
@@ -1574,7 +2327,12 @@ namespace CalradiaRemembers.Chat
                 // automatic counter-reply before returning control to the player.
                 // Cap: once per player turn (_witnessExchangesThisRound reset in ExecuteSendMessage).
                 // Only fires when the main NPC was the speaker (not a 15B witness turn).
-                if (witnessReactions.Count > 0 && speaker.IsMain
+                // NOT in captive scenes: there the captor's [WITNESS_REACTION] blocks already show
+                // the band's participation inline, and an NPC↔witness auto-loop on top of that fired
+                // up to 3 extra captor turns per player message — walls of text, the player rarely
+                // getting to reply, and the Continue/Try-something pause never reached. Captive scenes
+                // use the continuation pause below instead.
+                if (witnessReactions.Count > 0 && speaker.IsMain && !IsCaptiveEncounter
                     && _witnessExchangesThisRound < WitnessExchangeCap && !_conversationEnded)
                 {
                     _witnessExchangesThisRound++;
@@ -1587,18 +2345,31 @@ namespace CalradiaRemembers.Chat
                     RecordTranscript(false, wName, wHeroId, wText);
                 // ─────────────────────────────────────────────────────────────────
 
-                // ── Captive scene continuation ────────────────────────────────────
-                // When the NPC emitted a NARRATION block but did NOT end their dialogue
-                // with a question, the scene is still unfolding — fire another NPC-led
-                // turn automatically. The player cannot interrupt mid-act.
-                // Cap prevents runaway loops; question detection uses the trailing '?'
-                // heuristic (robust for the structured captive scene flow).
-                if (IsCaptiveEncounter && !_conversationEnded && !_npcWitnessExchangePending
-                    && !string.IsNullOrWhiteSpace(response?.Narration)
-                    && !NpcAskedQuestion(npcLine)
-                    && _sceneContinuations < MaxSceneContinuations)
+                // ── Captive scene conclusion / backstop ───────────────────────────
+                // The director reached its final stage and the captor just played the Conclude beat:
+                // end the scene cleanly (the beat produced its own ending). A separate paranoia cap
+                // force-ends a runaway scene with a time-skip summary.
+                if (IsCaptiveEncounter && !_conversationEnded && !_npcWitnessExchangePending)
                 {
-                    // Pause: show Continue / Try something buttons; wait for player choice.
+                    if (_captiveBeatCount >= CaptiveBeatSafetyCap)
+                    {
+                        ForceConcludeLongScene(profile);
+                        return;
+                    }
+                    if (_director?.IsConcluding == true)
+                    {
+                        EndCaptiveSceneSoftly(profile);
+                        return;
+                    }
+                }
+
+                // ── Captive scene: ALWAYS offer the controls ──────────────────────
+                // After every captor beat the player gets Continue (advance the story) or Try
+                // something else (reorient/deepen at this stage). Unconditional — does not depend on
+                // the model emitting [NARRATION] or avoiding a question, so it is robust across every
+                // model (DeepSeek, Mimo, etc. all behave the same now).
+                if (IsCaptiveEncounter && !_conversationEnded && !_npcWitnessExchangePending)
+                {
                     _scenePauseSpeaker  = MainSpeaker();
                     _scenePauseBehavior = behavior;
                     IsScenePaused       = true;
@@ -1681,6 +2452,7 @@ namespace CalradiaRemembers.Chat
                 WorldState world = new WorldState {
                     CurrentDay      = behavior.GameStateBridge.GetCurrentGameDay(),
                     Season          = behavior.GameStateBridge.GetSeasonName(),
+                    TimeOfDay       = behavior.GameStateBridge.GetTimeOfDay(),
                     ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
                     Rumors          = ""
                 };
@@ -1702,7 +2474,9 @@ namespace CalradiaRemembers.Chat
                         privacyRequested:       false,
                         isWitnessExchangeTurn:  true,
                         isLastWitnessExchange:  isLast,
-                        captiveIntent:          _captiveEncounterIntent);
+                        captiveIntent:          _captiveEncounterIntent,
+                        captorIsBandit:         IsCaptiveEncounter && _captiveEncounterIsBandit);
+                    // (15C witness exchange is gated off for captive scenes, so no stage is fed here.)
 
                     ChatMessageViewModel placeholder = MakeSpeakerMessage(mainSpeaker, PlaceholderText);
                     _messages.Add(placeholder);
@@ -1765,6 +2539,7 @@ namespace CalradiaRemembers.Chat
                             _conversationEnded      = true;
                             IsPrivateRequestVisible = false;
                             CloseButtonText         = "Leave";
+                            OnPropertyChanged(nameof(IsOfferItemVisible));
                             AppendSystemMessage($"{profile.Name} has ended the conversation.", false);
                             ModLog.Info($"[15C] {profile.Name} ended the conversation.");
                             break;
@@ -1825,24 +2600,20 @@ namespace CalradiaRemembers.Chat
                 if (profile == null || behavior?.LlmServices == null || !behavior.LlmServices.IsAvailable)
                     return;
 
-                // The stimulus is the LAST thing the model sees before generating, so it carries
-                // the most weight. Offer three explicit exits and force a wrap on the final beat.
-                bool isFinalBeat = _sceneContinuations >= MaxSceneContinuations - 1;
-                string stimulus = isFinalBeat
-                    ? "[Bring the scene to its conclusion NOW. If a peak has not yet been reached, reach it "
-                      + "this turn; then resolve it with a final remark, dismiss the prisoner, and emit "
-                      + "end_conversation. Do not escalate further and do not repeat previous actions.]"
-                    : "[The scene continues from where you left off — do not restart. Move it FORWARD: "
-                      + "introduce a NEW action or escalate; do not repeat what you already described. "
-                      + "Then choose ONE: (a) continue the act with something new; (b) if you want the "
-                      + "prisoner to speak, end your dialogue with a direct question; (c) if you have reached "
-                      + "your satisfaction or a natural peak, conclude — a final remark, dismiss the prisoner, "
-                      + "and emit end_conversation.]";
+                // "Continue" = the player let the scene proceed: advance the director to the next
+                // beat. The specifics of that beat live in the stage directive (system prompt); the
+                // stimulus only nudges the model to perform it and not restart or repeat.
+                _director?.AdvanceStory();
+
+                string stimulus =
+                    "[Continue the scene from where you left off — do not restart. Perform ONLY the beat your "
+                    + "stage directive specifies this turn, and do not repeat any beat you have already played.]";
 
                 ChatSession session = BuildSessionFor(speaker);
                 WorldState world = new WorldState {
                     CurrentDay      = behavior.GameStateBridge.GetCurrentGameDay(),
                     Season          = behavior.GameStateBridge.GetSeasonName(),
+                    TimeOfDay       = behavior.GameStateBridge.GetTimeOfDay(),
                     ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
                     Rumors          = ""
                 };
@@ -1854,7 +2625,9 @@ namespace CalradiaRemembers.Chat
                     isCollectiveCaptiveScene: _captiveEncounterIsCollective,
                     playerStatusOverride:     PlayerStatusVsNpc.Captive,
                     captiveIntent:            _captiveEncounterIntent,
-                    isFinalSceneBeat:         isFinalBeat);
+                    captorIsBandit:           _captiveEncounterIsBandit,
+                    sceneStage:               _director?.CurrentStage ?? CaptiveSceneStage.Intensify,
+                    aggressorKind:            _director?.CurrentAggressor ?? CaptiveAggressorKind.Lead);
 
                 ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
                 _messages.Add(placeholder);
@@ -1890,11 +2663,23 @@ namespace CalradiaRemembers.Chat
 
                 string npcLine = !string.IsNullOrWhiteSpace(result.Response?.Dialogue)
                     ? result.Response.Dialogue
-                    : "(silence...)";
+                    : string.Empty;
 
-                ReplacePlaceholder(placeholder, npcLine, speaker);
-                RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
-                StoryLog.WriteNpcLine(speaker.Name, npcLine);
+                // Model refusal guard: end the scene in character rather than show a guardrail line.
+                if (LooksLikeRefusal(npcLine) || LooksLikeRefusal(result.Response?.Narration))
+                {
+                    ConcludeCaptiveSceneAfterRefusal(placeholder, speaker, profile);
+                    return;
+                }
+
+                // Render the beat: dialogue bubble, or a narration-only turn (no empty bubble).
+                npcLine = RenderNpcTurn(placeholder, speaker, result.Response);
+                _captiveBeatCount++;
+                if (!string.IsNullOrEmpty(npcLine))
+                {
+                    RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
+                    StoryLog.WriteNpcLine(speaker.Name, npcLine);
+                }
 
                 if (!string.IsNullOrWhiteSpace(result.Response?.Narration))
                     AppendNarration(result.Response.Narration);
@@ -1911,6 +2696,8 @@ namespace CalradiaRemembers.Chat
                         _conversationEnded      = true;
                         IsPrivateRequestVisible = false;
                         CloseButtonText         = "Leave";
+                        if (IsCaptiveEncounter) IsPleaseContinueVisible = true;
+                        OnPropertyChanged(nameof(IsOfferItemVisible));
                         AppendSystemMessage($"{profile.Name} has ended the conversation.", false);
                         ModLog.Info($"[SCENE] {profile.Name} ended the conversation.");
                         break;
@@ -1918,23 +2705,15 @@ namespace CalradiaRemembers.Chat
 
                 if (_conversationEnded) return;
 
-                // NPC asked the player a question → hand control back
-                if (NpcAskedQuestion(npcLine)) { _sceneContinuations = 0; return; }
+                // Director reached its final stage and the Conclude beat just played, or a runaway
+                // scene hit the safety cap → end cleanly rather than pause again.
+                if (_captiveBeatCount >= CaptiveBeatSafetyCap) { ForceConcludeLongScene(profile); return; }
+                if (_director?.IsConcluding == true) { EndCaptiveSceneSoftly(profile); return; }
 
-                // No narration → act is complete, hand control back
-                if (string.IsNullOrWhiteSpace(result.Response?.Narration)) { _sceneContinuations = 0; return; }
-
-                // Still mid-act and under cap → pause again for the next player choice
-                if (_sceneContinuations < MaxSceneContinuations)
-                {
-                    _scenePauseSpeaker  = speaker;
-                    _scenePauseBehavior = behavior;
-                    IsScenePaused       = true;
-                }
-                else
-                {
-                    _sceneContinuations = 0; // cap reached — give player control
-                }
+                // Otherwise ALWAYS pause again — the player always gets Continue / Try something else.
+                _scenePauseSpeaker  = speaker;
+                _scenePauseBehavior = behavior;
+                IsScenePaused       = true;
             }
             catch (Exception ex)
             {
@@ -1995,6 +2774,17 @@ namespace CalradiaRemembers.Chat
                             canonicalName = we.Name; // canonical casing/spelling
                             break;
                         }
+
+                // Mechanical anti-repeat: drop a witness's line when it matches the last one we
+                // showed for them (trimmed, case-insensitive). Kills the verbatim looping the
+                // model otherwise produces despite the prompt's "do not repeat" rule.
+                if (_lastWitnessReaction.TryGetValue(canonicalName, out string previous)
+                    && string.Equals(previous.Trim(), wr.Text.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    ModLog.Info($"[WITNESS] dropped a repeated line from {canonicalName}.");
+                    continue;
+                }
+                _lastWitnessReaction[canonicalName] = wr.Text;
 
                 result.Add((canonicalName, heroId, wr.Text));
             }

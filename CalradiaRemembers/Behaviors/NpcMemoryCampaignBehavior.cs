@@ -82,7 +82,21 @@ namespace CalradiaRemembers.Behaviors
             // instead of waiting up to 1 game day for the daily tick.
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(
                 this, OnHourlyTickParty);
+            // Save safety: keep courier parties out of the .sav (a mod party in an odd state
+            // can corrupt the native load). Despawn before the save, respawn once it is over.
+            CampaignEvents.OnBeforeSaveEvent.AddNonSerializedListener(
+                this, OnBeforeSave);
+            CampaignEvents.OnSaveOverEvent.AddNonSerializedListener(
+                this, OnSaveOver);
         }
+
+        /// <summary>Removes all courier parties just before the world is serialized.</summary>
+        private void OnBeforeSave()
+            => Letters.CourierService.DespawnAll(Store);
+
+        /// <summary>Restores the in-flight couriers the pre-save despawn removed.</summary>
+        private void OnSaveOver(bool isSuccessful, string saveName)
+            => Letters.CourierService.RespawnInFlight(Store);
 
         /// <summary>
         ///   Fires every game hour for each party. Used to deliver courier letters within
@@ -169,6 +183,10 @@ namespace CalradiaRemembers.Behaviors
             LetterEvaluator.Subscribe();
             new TaverneLetterBehavior().Register(campaignGameStarter);
             CourierService.RebuildActiveCourierSet(Store);
+            // Couriers were kept out of the save (despawned pre-save). Don't respawn a fragile
+            // party during session launch — instead hand any orphaned in-flight letter back to
+            // its date-based delivery, so it still arrives even though the courier is gone.
+            CourierService.ClearOrphanedCouriers(Store);
             QuestJournalBridge.ReconcileOnSessionLaunch(Store);
         }
 

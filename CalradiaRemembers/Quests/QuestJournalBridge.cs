@@ -37,6 +37,14 @@ namespace CalradiaRemembers.Quests
         {
             if (quest == null || giver == null || !giver.IsAlive) return;
 
+            // Immediate in-conversation bargains (item-barter recruitment) are settled on the
+            // spot via the bag picker — a journal entry would open and close within the same
+            // conversation, spamming "new quest"/"quest complete" popups, and a declined one
+            // would linger as a phantom errand. They stay OUT of the vanilla journal; the
+            // bargain is still persisted on the giver's profile so the player can return to
+            // settle it. Deferred deeds (go away and return) DO mirror — they need the reminder.
+            if (quest.Type == QuestType.DeliverItems) return;
+
             try
             {
                 var mirror = new CalradiaRemembersQuest(quest, giver);

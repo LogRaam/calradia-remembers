@@ -7,6 +7,7 @@ using System.Linq;
 using CalradiaRemembers.GameState;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
 
 #endregion
 
@@ -38,14 +39,18 @@ namespace CalradiaRemembers.Mapping
             bool isCollectiveCaptiveScene = false,
             PlayerStatusVsNpc? playerStatusOverride = null,
             CaptiveSceneIntent captiveIntent = CaptiveSceneIntent.Interrogation,
-            bool isFinalSceneBeat = false) => new() {
+            bool isFinalSceneBeat = false,
+            bool captorIsBandit = false,
+            CaptiveSceneStage sceneStage = CaptiveSceneStage.Intro,
+            CaptiveAggressorKind aggressorKind = CaptiveAggressorKind.Lead,
+            bool reactToPlayerIntervention = false) => new() {
             PlayerStatus           = playerStatusOverride ?? ResolvePlayerStatus(hero, profile, bridge),
             WarStatus              = bridge.GetDiplomaticStatus(hero),
             DaysSinceLastMeeting   = ComputeDaysSinceLastMeeting(profile, bridge),
             Scene                  = bridge.GetCurrentScene(),
             ContextualNames        = string.IsNullOrWhiteSpace(playerMessage)
                 ? null
-                : ContextualNameResolver.Resolve(hero, playerMessage),
+                : ContextualNameResolver.Resolve(hero, playerMessage, bridge),
             NpcCurrentActivity     = bridge.GetCurrentActivity(hero),
             PlayerSpouseName       = Hero.MainHero?.Spouse?.IsAlive == true
                 ? Hero.MainHero.Spouse.Name?.ToString()
@@ -62,10 +67,17 @@ namespace CalradiaRemembers.Mapping
             IsCollectiveCaptiveScene = isCollectiveCaptiveScene,
             CaptiveIntent            = captiveIntent,
             IsFinalSceneBeat         = isFinalSceneBeat,
+            SceneStage               = sceneStage,
+            AggressorKind            = aggressorKind,
+            ReactToPlayerIntervention = reactToPlayerIntervention,
+            CaptorIsBandit           = captorIsBandit,
+            PlayerLooksWealthy       = captorIsBandit && PlayerLooksWealthy(),
+            PlayerLooksImportant     = captorIsBandit && PlayerLooksImportant(),
             CompanionAskingPrice     = ResolveCompanionAskingPrice(hero),
-            // Purse is shared only with a recruitable NPC (see PlayerPurseGold docs) —
-            // PromptBuilder ignores it unless CompanionAskingPrice is set anyway.
-            PlayerPurseGold          = Hero.MainHero?.Gold
+            MarriageProspects        = Marriage.MarriageProspectResolver.Build(hero)
+            // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
+            // coin, and naming the exact sum broke immersion. Affordability is enforced by the
+            // bridge when the hire is executed, not foreseen in the prompt.
         };
 
         #region private
@@ -89,25 +101,48 @@ namespace CalradiaRemembers.Mapping
         ///   not taught, so the NPC never agrees to a hire the game would refuse.
         /// </summary>
         private static int? ResolveCompanionAskingPrice(Hero hero)
+            => GameState.RecruitmentPricing.GetHiringPrice(hero);
+
+        /// <summary>
+        ///   True when the player's worn battle gear is valuable enough that a brigand could
+        ///   guess they are no common traveler. Sums the denar value of every equipped item
+        ///   (arms, armor, mount). The threshold sits well above a starting kit but below a
+        ///   fully end-game noble loadout, so it reads "this one has money behind them".
+        /// </summary>
+        private static bool PlayerLooksWealthy()
         {
             try
             {
-                if (hero == null || !hero.IsAlive || hero.IsPrisoner) return null;
-                if (hero.Occupation != Occupation.Wanderer) return null;
-                if (hero.CompanionOf != null || hero.PartyBelongedTo != null) return null;
+                Hero h = Hero.MainHero;
+                Equipment eq = h?.BattleEquipment;
+                if (eq == null) return false;
 
-                Clan clan = Clan.PlayerClan;
-                if (clan == null) return null;
-                if (clan.Companions.Count() >= clan.CompanionLimit) return null;
+                int value = 0;
+                for (EquipmentIndex i = EquipmentIndex.WeaponItemBeginSlot; i <= EquipmentIndex.HorseHarness; i++)
+                {
+                    ItemObject item = eq[i].Item;
+                    if (item != null) value += item.Value;
+                }
 
-                int price = Campaign.Current.Models.CompanionHiringPriceCalculationModel
-                                    .GetCompanionHiringPrice(hero);
-                return price > 0 ? price : (int?) null;
+                return value >= 8000;
             }
-            catch
+            catch { return false; }
+        }
+
+        /// <summary>
+        ///   True when the player carries real political weight (a clan of noble standing or
+        ///   notable influence), so a bandit might suspect a valuable, ransomable figure — even
+        ///   without knowing the name. Never exposes the actual identity.
+        /// </summary>
+        private static bool PlayerLooksImportant()
+        {
+            try
             {
-                return null;
+                Clan c = Hero.MainHero?.Clan;
+                if (c == null) return false;
+                return c.Tier >= 3 || c.Influence >= 150f;
             }
+            catch { return false; }
         }
 
         private static int ResolveArenaRank()

@@ -67,6 +67,20 @@ namespace CalradiaRemembers
         }
 
         /// <summary>
+        ///   The model's reasoning-effort keyword (Default/Off/Minimal/Low/Medium/High), read
+        ///   live from the MCM menu. Lowering or disabling reasoning cuts moralizing refusals on
+        ///   adult/CNC content. Falls back to <c>Low</c> (the default) when MCM has not loaded.
+        /// </summary>
+        public static string ReasoningEffort
+        {
+            get
+            {
+                string v = CrSettings.Instance?.ReasoningEffort?.SelectedValue;
+                return string.IsNullOrWhiteSpace(v) ? "Low" : v;
+            }
+        }
+
+        /// <summary>
         ///   When true, the full system prompt and NPC response are logged on every LLM
         ///   exchange. Read live from the MCM menu; off by default.
         /// </summary>

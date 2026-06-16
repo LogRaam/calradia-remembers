@@ -41,9 +41,11 @@ namespace CalradiaRemembers.Quests
             : base(
                 BuildQuestId(giver, quest),
                 giver,
-                quest.DeadlineDay.HasValue
-                    ? CampaignTime.DaysFromNow(quest.DeadlineDay.Value - (int)CampaignTime.Now.ToDays)
-                    : CampaignTime.Never,
+                // NEVER hand the engine a finite timeout: WE own deadline handling
+                // (QuestService.RunDailyMaintenance) and hide the engine countdown
+                // (IsRemainingTimeHidden). A native duration let the engine auto-FAIL the quest
+                // on its own — observed as an in-progress quest dropping to failed on RELOAD.
+                CampaignTime.Never,
                 quest.RewardGold)
         {
             _giverId  = giver.StringId;

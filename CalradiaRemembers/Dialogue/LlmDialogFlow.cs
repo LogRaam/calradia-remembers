@@ -13,6 +13,9 @@ using CalradiaRemembers.Storage;
 using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using TaleWorlds.Core;
+using TaleWorlds.Library;
 
 #endregion
 
@@ -49,9 +52,10 @@ namespace CalradiaRemembers.Dialogue
         // facial expression before the chat window opens (Sprint 10.5).
         private const string GreetingToken = "calradia_remembers_greeting";
 
-        // Clean greeting texts (no [if:...] tag). The dialogue line shows text+tag
-        // for the facial animation; this clean copy is appended to the chat window,
-        // because the recorder captures the line too late to seed it.
+        // Fixed greeting texts (no [if:...] tag). The native dialogue line shows text+tag
+        // for the facial animation — it sits hidden behind the chat overlay. The chat window
+        // itself (and the story log) gets a varied line from PickGreeting; these constants
+        // are the native default and the fail-soft fallback for each mood.
         private const string GreetWarmText = "Ah, it is good to see you. Come — what weighs on your mind?";
         private const string GreetNeutralText = "Yes? What is it you wished to discuss?";
         private const string GreetColdText = "You. State your business, and be brief about it.";
@@ -97,19 +101,19 @@ namespace CalradiaRemembers.Dialogue
                 GreetingToken, "calradia_remembers_dummy_token",
                 GreetWarmText + "[if:convo_calm_friendly]",
                 () => MoodForConversationHero() == GreetingMood.Warm,
-                () => OpenChatWithGreeting(GreetWarmText));
+                () => OpenChatWithGreeting(PickGreeting(GreetingMood.Warm)));
             starter.AddDialogLine(
                 "calradia_remembers_greet_neutral",
                 GreetingToken, "calradia_remembers_dummy_token",
                 GreetNeutralText + "[if:convo_normal]",
                 () => MoodForConversationHero() == GreetingMood.Neutral,
-                () => OpenChatWithGreeting(GreetNeutralText));
+                () => OpenChatWithGreeting(PickGreeting(GreetingMood.Neutral)));
             starter.AddDialogLine(
                 "calradia_remembers_greet_cold",
                 GreetingToken, "calradia_remembers_dummy_token",
                 GreetColdText + "[if:convo_stern]",
                 () => MoodForConversationHero() == GreetingMood.Cold,
-                () => OpenChatWithGreeting(GreetColdText));
+                () => OpenChatWithGreeting(PickGreeting(GreetingMood.Cold)));
         }
 
         #region private
@@ -138,6 +142,135 @@ namespace CalradiaRemembers.Dialogue
             if (personal >= 10) return GreetingMood.Warm;
             if (personal <= -10) return GreetingMood.Cold;
             return GreetingMood.Neutral;
+        }
+
+        /// <summary>
+        ///   Picks the greeting shown in the chat window (and recorded to the story log) for
+        ///   the given mood. The native dialogue overlay keeps its fixed line for the facial
+        ///   animation tag, but it sits hidden behind the chat overlay — so varying only this
+        ///   chat-window line removes the "always the same opener" repetition without an LLM
+        ///   call or touching the engine's synchronous greeting. The candidate set is the
+        ///   mood's base pool plus a few lines flavored by the NPC's dominant traits; one is
+        ///   chosen at random. Fully fail-soft: any error falls back to the fixed line.
+        /// </summary>
+        private string PickGreeting(GreetingMood mood)
+        {
+            try
+            {
+                var candidates = new List<string>(BaseGreetings(mood));
+                AddTraitGreetings(candidates, mood, Hero.OneToOneConversationHero);
+                return candidates.Count == 0
+                    ? DefaultGreeting(mood)
+                    : candidates[MBRandom.RandomInt(candidates.Count)];
+            }
+            catch
+            {
+                return DefaultGreeting(mood);
+            }
+        }
+
+        private static string DefaultGreeting(GreetingMood mood) => mood switch {
+            GreetingMood.Warm => GreetWarmText,
+            GreetingMood.Cold => GreetColdText,
+            _                 => GreetNeutralText
+        };
+
+        /// <summary>The relation-keyed base pool — the variety that does not depend on traits.</summary>
+        private static string[] BaseGreetings(GreetingMood mood) => mood switch {
+            GreetingMood.Warm => new[] {
+                GreetWarmText,
+                "There you are. I had hoped you would pass this way — speak freely.",
+                "Well met, my friend. Tell me what brings you.",
+                "You are a welcome sight. What would you have of me?",
+                "Good, it is you. I always have a moment for you. What is it?",
+                "It gladdens me to see your face. Sit — what shall we speak of?",
+                "You honor me with your company. Say what is on your mind.",
+                "Ha! The very person I would have wished to see. Go on, then.",
+                "Come, come — no need to stand on ceremony with me. What is it?",
+                "Always a pleasure. Tell me, what brings you to my side today?",
+                "I am glad you came. Whatever you need, you have but to ask.",
+                "Friend! Set your worries down a moment and tell me how I can help.",
+                "Ah, a familiar face in a hard season. What can I do for you?",
+                "Welcome, welcome. My door is open to you — what is it you seek?"
+            },
+            GreetingMood.Cold => new[] {
+                GreetColdText,
+                "What do you want? I have little patience to spare.",
+                "Make it quick — I did not ask for your company.",
+                "Speak, and do not waste my time.",
+                "What now? Say it and be done.",
+                "I did not expect you, and I cannot say I am pleased. What is it?",
+                "You again. Say what you came to say.",
+                "Be brief. I have better things to do than entertain you.",
+                "What could you possibly want from me? Out with it.",
+                "I will hear you, but spare me the pleasantries.",
+                "Whatever it is, say it plainly and then leave me be.",
+                "You have some nerve, coming to me. Speak, then.",
+                "I have neither time nor goodwill for you. Make this matter.",
+                "So. You dare show your face. What is it you want?"
+            },
+            _ => new[] {
+                GreetNeutralText,
+                "You have my ear. Speak.",
+                "What brings you to me?",
+                "Say your piece, then.",
+                "I am listening. What is it?",
+                "Well? What would you have of me?",
+                "Go on — I have a moment. What is it?",
+                "Speak your mind. I will hear it.",
+                "You wished to see me? Here I am.",
+                "What can I do for you?",
+                "Out with it, then. What do you need?",
+                "I am at your disposal, for the moment. What is it?",
+                "State your business and I will give you my answer.",
+                "You have my attention. Use it well."
+            }
+        };
+
+        /// <summary>
+        ///   Adds greeting variants flavored by the NPC's pronounced traits, in a register
+        ///   that fits the mood. This is the "varies by traits" axis on top of the relation
+        ///   axis — a calculating lord and a generous one open differently even at the same
+        ///   regard. Silent when the hero or their traits cannot be read.
+        /// </summary>
+        private static void AddTraitGreetings(List<string> candidates, GreetingMood mood, Hero hero)
+        {
+            if (hero == null) return;
+
+            int calculating = SafeTrait(hero, DefaultTraits.Calculating);
+            int honor       = SafeTrait(hero, DefaultTraits.Honor);
+            int mercy       = SafeTrait(hero, DefaultTraits.Mercy);
+            int valor       = SafeTrait(hero, DefaultTraits.Valor);
+            int generosity  = SafeTrait(hero, DefaultTraits.Generosity);
+
+            if (mood == GreetingMood.Cold)
+            {
+                // Harsher register — only traits that read plausibly cold.
+                if (calculating > 0) candidates.Add("You want something — everyone does. Name it, and we shall see.");
+                if (calculating > 0) candidates.Add("Whatever you want, it will cost you. Speak.");
+                if (mercy < 0)       candidates.Add("What is it? Make it worth the interruption.");
+                if (mercy < 0)       candidates.Add("Quickly — my patience is a short road, and you are testing it.");
+                if (valor > 0)       candidates.Add("Speak up. I have no use for hesitation.");
+                if (honor < 0)       candidates.Add("Hah. And what scheme brings you to me this time?");
+                return;
+            }
+
+            // Warm and Neutral share a calmer register.
+            if (calculating > 0) candidates.Add("Yes? I trust you have not come to waste either of our time. What is it?");
+            if (calculating > 0) candidates.Add("Let us be efficient about this — what is it you want?");
+            if (honor > 0)       candidates.Add("Speak plainly with me, and you will have a plain answer.");
+            if (honor > 0)       candidates.Add("I will deal with you straight, as I always have. What is it?");
+            if (generosity > 0)  candidates.Add("Come now — what is it you need? I will hear you out.");
+            if (generosity > 0)  candidates.Add("Whatever I can spare is yours to ask for. Go on.");
+            if (valor > 0)       candidates.Add("Out with it, then — I respect one who comes straight to the point.");
+            if (mercy > 0)       candidates.Add("You look as though something weighs on you. Tell me of it.");
+            if (calculating < 0) candidates.Add("Ha, no need for cleverness here — just tell me what you need.");
+        }
+
+        private static int SafeTrait(Hero hero, TraitObject trait)
+        {
+            try { return hero.GetTraitLevel(trait); }
+            catch { return 0; }
         }
 
         private NpcProfile GetOrCreateProfile(Hero hero, BannerlordNpcMemoryStore store)

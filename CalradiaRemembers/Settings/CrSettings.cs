@@ -67,10 +67,21 @@ namespace CalradiaRemembers.Settings
         public string Model { get; set; } = "x-ai/grok-4.3";
 
         [SettingPropertyButton("Test Connection", RequireRestart = false, Order = -3,
-            HintText = "Checks your API key against OpenRouter without starting a conversation — no tokens spent.",
+            HintText = "Checks your API key AND the Model id above: validates the key, then sends a one-token " +
+                       "test prompt to the model and reports any error (e.g. a misspelled model id). Costs a " +
+                       "fraction of a cent.",
             Content = "Test")]
         [SettingPropertyGroup("OpenRouter", GroupOrder = 3)]
         public Action TestConnection { get; set; } = ApiKeyTester.Run;
+
+        [SettingPropertyDropdown("Reasoning Effort", RequireRestart = false, Order = 1,
+            HintText = "How hard a reasoning model (e.g. Grok) 'thinks' before replying. Lower or Off makes Grok " +
+                       "markedly less prone to moralizing refusals on adult/CNC content. Default leaves it to the " +
+                       "model; Off disables reasoning; Minimal/Low/Medium/High set the effort. OpenRouter only. " +
+                       "Applies immediately.")]
+        [SettingPropertyGroup("OpenRouter", GroupOrder = 3)]
+        public Dropdown<string> ReasoningEffort { get; set; } =
+            new Dropdown<string>(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 3); // default: Low
 
         [SettingPropertyText("NanoGPT API Key", RequireRestart = false, Order = -1,
             HintText = "Paste your NanoGPT API key from nano-gpt.com. Stored locally on this machine only — " +

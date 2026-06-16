@@ -14,6 +14,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Engine;
@@ -47,6 +48,14 @@ namespace CalradiaRemembers.GameState
                return ExecuteTakeGold(action, npcHero);
             case "join_party":
                return ExecuteJoinParty(action, npcHero);
+            case "give_item":
+               return ExecuteGiveItem(action, npcHero);
+            case "grant_blessing":
+               return ExecuteGrantBlessing(action, npcHero);
+            case "harm_prisoner":
+               return ExecuteHarmPrisoner(action);
+            case "impregnation_risk":
+               return ExecuteImpregnationRisk(npcHero);
             default:
                ModLog.Info($"[ACTION] Unknown type '{action.Type}' — ignored.");
 
@@ -205,6 +214,20 @@ namespace CalradiaRemembers.GameState
          return "Winter";
       }
 
+      /// <inheritdoc />
+      public string GetTimeOfDay()
+      {
+         // CurrentHourInDay is 0–24. Map to a part of day so the scene's light matches vanilla.
+         float hour = CampaignTime.Now.CurrentHourInDay;
+         if (hour < 5f)  return "deep night";
+         if (hour < 8f)  return "early morning, around dawn";
+         if (hour < 12f) return "morning";
+         if (hour < 14f) return "midday";
+         if (hour < 18f) return "afternoon";
+         if (hour < 21f) return "evening, around dusk";
+         return "night";
+      }
+
       public ActionOutcome GrantQuestReward(Hero npcHero, NpcProfile profile, int gold, int relation)
       {
          if (npcHero == null || Hero.MainHero == null || profile == null) return null;
@@ -291,16 +314,165 @@ namespace CalradiaRemembers.GameState
       private static ActionOutcome ExecuteTakeGold(GameAction action, Hero npcHero)
       {
          if (!TryGetInt(action.Parameters, "amount", out int amount)) return null;
-         if (amount <= 0 || npcHero == null || Hero.MainHero == null) return null;
+         if (amount <= 0 || Hero.MainHero == null) return null;
 
-         amount = ClampInt(amount, 1, 10000);
-         GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, amount);
-         ModLog.Info($"[ACTION] take_gold: player → {npcHero.Name} {amount} gold");
+         // Never take more than the player actually carries (bandits simply empty the purse).
+         amount = Math.Min(ClampInt(amount, 1, 10000), Hero.MainHero.Gold);
+         if (amount <= 0) return null;
 
-         // If this NPC has an outstanding ProvideGold quest, any payment satisfies it.
-         StampProvideGoldIfOutstanding(npcHero, amount);
+         if (npcHero != null)
+         {
+            GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, amount);
+            StampProvideGoldIfOutstanding(npcHero, amount); // any payment satisfies a ProvideGold quest
+            ModLog.Info($"[ACTION] take_gold: player → {npcHero.Name} {amount} gold");
+            return new ActionOutcome($"You give {npcHero.Name} {amount} denars (purse: {Hero.MainHero.Gold}).", false);
+         }
 
-         return new ActionOutcome($"You give {npcHero.Name} {amount} denars (purse: {Hero.MainHero.Gold}).", false);
+         // No hero recipient (e.g. a synthesized bandit captor) — the coin is simply taken.
+         Hero.MainHero.ChangeHeroGold(-amount);
+         ModLog.Info($"[ACTION] take_gold: {amount} gold extorted (no hero recipient).");
+         return new ActionOutcome($"They take {amount} denars from you (purse: {Hero.MainHero.Gold}).", false);
+      }
+
+      /// <summary>
+      ///   harm_prisoner: a captor inflicts real physical harm on the player during a captive
+      ///   scene — a beating, a cut, a maiming, or the bruising toll of being taken by force.
+      ///   Translates the narrated violence into actual lost health so captivity carries a body
+      ///   cost. Only ever taught in the captive prompt rules (menace and spoil scenes), so a
+      ///   normal NPC never emits it. Clamped to leave the player at 1 HP — a scene wounds, it
+      ///   never kills (death from a scripted scene would be jarring and end the campaign).
+      /// </summary>
+      // A captive scene wounds but must never kill, nor whittle the player down to nothing when a
+      // weak model emits harm_prisoner every single turn. Two guards: a per-scene cap on the number
+      // of wounds that bite, and a HP floor well above death. Both reset at each scene's start.
+      private const int MinSceneHitPoints  = 15; // a scene never drives the player below this
+      private const int MaxHarmsPerScene   = 5;  // wounds beyond this are narrated but cost no HP
+      private static int _sceneHarmCount;
+
+      private static ActionOutcome ExecuteHarmPrisoner(GameAction action)
+      {
+         Hero player = Hero.MainHero;
+         if (player == null) return null;
+
+         action.Parameters.TryGetValue("severity", out string severity);
+         int damage;
+         switch ((severity ?? string.Empty).Trim().ToLowerInvariant())
+         {
+            case "severe":
+            case "grievous":
+               damage = 30;
+               break;
+            case "moderate":
+            case "heavy":
+               damage = 15;
+               break;
+            default: // light, mild, or unspecified
+               damage = 6;
+               break;
+         }
+
+         // Weak models sometimes emit harm_prisoner on every turn regardless of the fiction.
+         // Past the per-scene cap, or once the player is at the floor, the wound is fiction-only.
+         if (_sceneHarmCount >= MaxHarmsPerScene || player.HitPoints <= MinSceneHitPoints)
+         {
+            _captiveHarmApplied = true;
+            ModLog.Info($"[ACTION] harm_prisoner suppressed (cap/floor reached; severity '{severity}', HP {player.HitPoints}).");
+            return null;
+         }
+
+         int before = player.HitPoints;
+         player.HitPoints = Math.Max(MinSceneHitPoints, before - damage); // a scene wounds, never kills
+         int lost = before - player.HitPoints;
+         if (lost <= 0) return null;
+
+         _sceneHarmCount++;
+         _captiveHarmApplied = true; // the guaranteed end-of-scene toll defers to this
+         ModLog.Info($"[ACTION] harm_prisoner: player loses {lost} HP (severity '{severity}', now {player.HitPoints}, scene wound #{_sceneHarmCount}).");
+         return new ActionOutcome($"You are hurt — you lose {lost} health.", false);
+      }
+
+      /// <summary>
+      ///   impregnation_risk: the captor's narration flagged a vaginal act carried to completion.
+      ///   A female player of fertile age has a small chance to conceive. The father is the real
+      ///   captor when there is one (a lord); a faceless bandit's child is attributed to a shared
+      ///   hidden "Unknown" hero. Silent to the player — the pregnancy is discovered through normal
+      ///   game means, never announced in the chat — so this returns no chat outcome.
+      /// </summary>
+      private static ActionOutcome ExecuteImpregnationRisk(Hero captorHero)
+      {
+         CaptivePregnancyService.TryConceive(captorHero);
+         return null;
+      }
+
+      // Set when a harm_prisoner action wounds the player during the current captive scene, so
+      // ApplyForcedSceneToll knows not to double up. Reset at each scene's start.
+      private static bool _captiveHarmApplied;
+
+      /// <inheritdoc />
+      public void BeginCaptiveSceneTracking()
+      {
+         _captiveHarmApplied = false;
+         _sceneHarmCount     = 0;
+         _pendingEscape      = false;
+      }
+
+      // ── Captive escape ─────────────────────────────────────────────────────
+
+      private const float EscapeChance = 0.10f; // a slim, deterministic chance — fate, not the LLM
+      private static bool _pendingEscape;
+      private static bool _forceNextEscape; // console test hook (cr.escape_force)
+
+      /// <inheritdoc />
+      public void ForceNextEscapeSuccess() => _forceNextEscape = true;
+
+      /// <inheritdoc />
+      public bool ResolvePlayerEscapeAttempt(bool force)
+      {
+         if (_forceNextEscape) { _forceNextEscape = false; force = true; }
+         if (!force && MBRandom.RandomFloat >= EscapeChance) return false;
+
+         // Commit the outcome NOW (irreversible), but defer the actual campaign action to scene
+         // close: freeing mid-chat could pop an encounter/menu and disrupt the open scene window.
+         _pendingEscape = true;
+         ModLog.Info("[ESCAPE] attempt SUCCEEDED — freeing committed (applied at scene close).");
+         return true;
+      }
+
+      /// <inheritdoc />
+      public void FinalizePendingEscape()
+      {
+         if (!_pendingEscape) return;
+         _pendingEscape = false;
+
+         Hero player = Hero.MainHero;
+         if (player == null || !player.IsPrisoner) return;
+
+         try
+         {
+            EndCaptivityAction.ApplyByEscape(player, null, true);
+            ModLog.Info("[ESCAPE] EndCaptivityAction.ApplyByEscape applied — player is free.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ESCAPE] freeing failed: {ex.Message}");
+         }
+      }
+
+      /// <inheritdoc />
+      public int ApplyForcedSceneToll()
+      {
+         Hero player = Hero.MainHero;
+         if (player == null || _captiveHarmApplied) return 0; // the captor's violence already wounded them
+
+         const int forcedSceneDamage = 12; // the bruising cost of being taken by force
+         int before = player.HitPoints;
+         player.HitPoints = Math.Max(MinSceneHitPoints, before - forcedSceneDamage);
+         int lost = before - player.HitPoints;
+         if (lost <= 0) return 0;
+
+         _captiveHarmApplied = true;
+         ModLog.Info($"[CAPTIVE] forced-scene toll: player loses {lost} HP (now {player.HitPoints}).");
+         return lost;
       }
 
       /// <summary>
@@ -341,16 +513,8 @@ namespace CalradiaRemembers.GameState
             if (Hero.MainHero.Gold < price)
                return new ActionOutcome($"(You cannot afford the agreed {price} denars.)", false);
 
-            int goldBefore = Hero.MainHero.Gold;
-            GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, price);
-            AddCompanionAction.Apply(clan, npcHero);
-            AddHeroToPartyAction.Apply(npcHero, MobileParty.MainParty);
-
-            ModLog.Info($"[ACTION] join_party: {npcHero.Name} hired for {price} denars " +
-                        $"(proposed {proposed}, vanilla asking {asking}; " +
-                        $"player gold {goldBefore} → {Hero.MainHero.Gold}).");
-
-            return new ActionOutcome($"{npcHero.Name} joins your party ({price} denars — purse: {Hero.MainHero.Gold}).", true);
+            return DoJoin(npcHero, price,
+               $"hired for {price} denars (proposed {proposed}, vanilla asking {asking})");
          }
          catch (Exception ex)
          {
@@ -358,6 +522,238 @@ namespace CalradiaRemembers.GameState
 
             return null;
          }
+      }
+
+      /// <summary>
+      ///   Performs the actual hire — the native actions shared by the cash hire and the
+      ///   in-kind bargain. The caller owns the price logic and affordability check; this
+      ///   re-validates the NPC is genuinely recruitable (the bridge is the law) and then
+      ///   transfers any cash, adds the companion to the clan, and moves them into the party.
+      ///   A price of 0 means the payment was made some other way (goods already handed over).
+      /// </summary>
+      private static ActionOutcome DoJoin(Hero npcHero, int price, string logDetail)
+      {
+         if (!RecruitmentPricing.IsRecruitable(npcHero))
+            return new ActionOutcome($"({npcHero?.Name} is not free to take service.)", false);
+
+         Clan clan = Clan.PlayerClan;
+         int goldBefore = Hero.MainHero.Gold;
+         if (price > 0) GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, price);
+         AddCompanionAction.Apply(clan, npcHero);
+         AddHeroToPartyAction.Apply(npcHero, MobileParty.MainParty);
+
+         ModLog.Info($"[ACTION] join_party: {npcHero.Name} {logDetail}; " +
+                     $"player gold {goldBefore} → {Hero.MainHero.Gold}.");
+
+         string note = price > 0
+            ? $"{price} denars — purse: {Hero.MainHero.Gold}"
+            : "paid in goods";
+         return new ActionOutcome($"{npcHero.Name} joins your party ({note}).", true);
+      }
+
+      public ActionOutcome GrantConditionalReward(Hero npcHero, NpcProfile profile, InformalQuest quest)
+      {
+         if (quest == null || quest.Reward == RewardGrant.None || npcHero == null) return null;
+
+         try
+         {
+            switch (quest.Reward)
+            {
+               case RewardGrant.JoinParty:
+                  return DoJoin(npcHero, 0, "joined the player as the agreed reward (paid in deed)");
+
+               case RewardGrant.MarriageConsent:
+                  return GrantMarriageConsent(npcHero, quest);
+
+               // Recognized but not yet executable — declined cleanly rather than faked.
+               // The quest factory refuses to issue these, so this is a defensive backstop.
+               case RewardGrant.GiveItem:
+               case RewardGrant.GiveTroops:
+               case RewardGrant.ReleasePrisoner:
+                  ModLog.Info($"[GRANT] '{quest.Reward}' not yet supported — declined for {npcHero.Name}.");
+                  return new ActionOutcome($"({npcHero.Name} cannot honor that kind of bargain yet.)", false);
+
+               default:
+                  return null;
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[GRANT] {quest.Reward} failed for {npcHero?.Name}: {ex.GetType().Name}: {ex.Message}");
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   marriage_consent: the conditioning deed is verified done — record the family's blessing
+      ///   for the intended spouse (the consequence resolver later honors it as an alliance when the
+      ///   wedding happens). The spouse was validated at issuance; we re-resolve them by id here.
+      /// </summary>
+      private static ActionOutcome GrantMarriageConsent(Hero npcHero, InformalQuest quest)
+      {
+         if (Marriage.MarriageApprovalBehavior.Instance == null)
+            return new ActionOutcome($"({npcHero.Name} cannot formalize the betrothal just now.)", false);
+
+         Hero spouse = string.IsNullOrEmpty(quest.MarriageSpouseId)
+            ? null
+            : Hero.FindFirst(h => h.StringId == quest.MarriageSpouseId);
+         if (spouse == null)
+            return new ActionOutcome($"({npcHero.Name}: the match can no longer be honored.)", false);
+
+         int day = (int) CampaignTime.Now.ToDays;
+         Marriage.MarriageApprovalBehavior.Instance.Grant(spouse, npcHero, day);
+         ModLog.Info($"[GRANT] marriage_consent: {npcHero.Name} blesses the player's marriage to {spouse.Name} (deed done).");
+         return new ActionOutcome(
+            $"{npcHero.Name} gives their blessing — you have earned {spouse.Name}'s hand. Their house stands with you.", true);
+      }
+
+      public ActionOutcome SettleItemBargain(NpcProfile giver, Hero giverHero,
+                                             InformalQuest quest, IReadOnlyList<ItemOffer> offered)
+      {
+         try
+         {
+            if (quest == null || quest.Type != QuestType.DeliverItems) return null;
+            if (Hero.MainHero == null || offered == null || offered.Count == 0) return null;
+
+            ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+            if (roster == null) return null;
+
+            // Tally only what the player genuinely still holds; the bridge trusts the roster,
+            // not the caller's value claim.
+            var toRemove = new List<(ItemObject item, int count)>();
+            var total = 0;
+            foreach (ItemOffer offer in offered)
+            {
+               if (string.IsNullOrEmpty(offer.ItemId) || offer.Count <= 0) continue;
+               ItemObject item = FindRosterItem(roster, offer.ItemId, out int available);
+               if (item == null || available <= 0) continue;
+               int take = Math.Min(offer.Count, available);
+               total += item.Value * take;
+               toRemove.Add((item, take));
+            }
+
+            if (total < quest.RequiredItemValue)
+               return new ActionOutcome(
+                  $"({giverHero?.Name}: these goods are worth about {total} denars — I asked for " +
+                  $"{quest.RequiredItemValue}. Bring more.)", false);
+
+            // Value met: hand the goods over, then honor the favor.
+            foreach ((ItemObject item, int count) in toRemove)
+               roster.AddToCounts(item, -count);
+
+            ModLog.Info($"[BARGAIN] {giverHero?.Name}: accepted goods worth {total} denars " +
+                        $"(required {quest.RequiredItemValue}) for {quest.Reward}.");
+
+            ActionOutcome grant = GrantConditionalReward(giverHero, giver, quest);
+            return grant ?? new ActionOutcome($"{giverHero?.Name} accepts your goods.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[BARGAIN] SettleItemBargain failed: {ex.GetType().Name}: {ex.Message}");
+            return null;
+         }
+      }
+
+      /// <summary>Finds an item in the roster by its StringId, reporting how many the player holds.</summary>
+      private static ItemObject FindRosterItem(ItemRoster roster, string itemId, out int available)
+      {
+         available = 0;
+         foreach (ItemRosterElement el in roster)
+         {
+            ItemObject item = el.EquipmentElement.Item;
+            if (item == null || item.StringId != itemId || el.Amount <= 0) continue;
+            available = el.Amount;
+            return item;
+         }
+         return null;
+      }
+
+      /// <summary>
+      ///   give_item: transfers one unit of the named item from the player's party
+      ///   inventory to the NPC. The item name must match a roster entry exactly
+      ///   (case-insensitive). Quest items are always refused — this guard sits on both
+      ///   the prompt side (picker excludes them) and here, so the bridge is the law.
+      /// </summary>
+      private static ActionOutcome ExecuteGiveItem(GameAction action, Hero npcHero)
+      {
+         try
+         {
+            if (!action.Parameters.TryGetValue("item", out string itemName)
+                || string.IsNullOrWhiteSpace(itemName)) return null;
+            if (MobileParty.MainParty?.ItemRoster == null) return null;
+
+            ItemRosterElement found = FindItemInRoster(itemName);
+            if (found.EquipmentElement.Item == null)
+               return new ActionOutcome($"(You don't seem to have '{itemName}' to give.)", false);
+
+            MobileParty.MainParty.ItemRoster.AddToCounts(found.EquipmentElement, -1);
+            string actualName = found.EquipmentElement.Item.Name.ToString();
+            int value = found.EquipmentElement.Item.Value;
+
+            ModLog.Info($"[ACTION] give_item: player gave '{actualName}' (value {value}) to {npcHero?.Name}");
+            return new ActionOutcome($"You give {actualName} to {npcHero?.Name}.", false);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] give_item failed: {ex.GetType().Name}: {ex.Message}");
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   grant_blessing: the conversation NPC, as head of their clan, consents to the player
+      ///   marrying one of their unwed kin (named in the action) or themselves. The bridge is the
+      ///   law — it re-checks the NPC's authority and the match's eligibility before recording the
+      ///   family's blessing, which the marriage-consequence resolver later honors as an alliance.
+      /// </summary>
+      private static ActionOutcome ExecuteGrantBlessing(GameAction action, Hero npcHero)
+      {
+         try
+         {
+            if (Marriage.MarriageApprovalBehavior.Instance == null || npcHero == null) return null;
+            if (Hero.MainHero?.Spouse != null)
+               return new ActionOutcome("(You are already wed — the blessing cannot apply.)", false);
+
+            if (!action.Parameters.TryGetValue("hero", out string spouseName)
+                || string.IsNullOrWhiteSpace(spouseName)) return null;
+
+            Hero spouse = Marriage.MarriageProspectResolver.ResolveCandidate(npcHero, spouseName);
+            if (spouse == null)
+               return new ActionOutcome($"({npcHero.Name} names no one of their house by '{spouseName}'.)", false);
+
+            if (!Marriage.MarriageProspectResolver.HasAuthority(npcHero, spouse))
+               return new ActionOutcome($"({npcHero.Name} has no authority to bless that match.)", false);
+
+            if (!Marriage.MarriageProspectResolver.IsMarriageable(Hero.MainHero, spouse))
+               return new ActionOutcome($"({spouse.Name} is not free to be matched with you.)", false);
+
+            int day = (int) CampaignTime.Now.ToDays;
+            Marriage.MarriageApprovalBehavior.Instance.Grant(spouse, npcHero, day);
+
+            string msg = $"{npcHero.Name} blesses a match between you and {spouse.Name}. Their house will favor the union.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+            ModLog.Info($"[ACTION] grant_blessing: {npcHero.Name} consented to the player marrying {spouse.Name}.");
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] grant_blessing failed: {ex.GetType().Name}: {ex.Message}");
+            return null;
+         }
+      }
+
+      private static ItemRosterElement FindItemInRoster(string itemName)
+      {
+         if (MobileParty.MainParty?.ItemRoster == null) return default;
+         foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
+         {
+            if (el.Amount <= 0) continue;
+            ItemObject item = el.EquipmentElement.Item;
+            if (item == null) continue;
+            if (string.Equals(item.Name.ToString(), itemName, StringComparison.OrdinalIgnoreCase))
+               return el;
+         }
+         return default;
       }
 
       private static void PlaySound(string eventPath)
