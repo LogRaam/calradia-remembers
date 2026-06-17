@@ -48,7 +48,7 @@ namespace CalradiaRemembers.Services
         private const string OpenRouterBaseUrl = "https://openrouter.ai/api/v1";
         private const string NanoGptBaseUrl    = "https://nano-gpt.com/api/v1";
 
-        private const string DefaultModel = "x-ai/grok-4.3"; // OpenRouter default
+        private const string DefaultModel = "x-ai/grok-4.20"; // OpenRouter default
 
         /// <summary>
         ///   Test-only override for the player's gender used when building the prompt.

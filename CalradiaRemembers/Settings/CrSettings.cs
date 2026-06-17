@@ -61,10 +61,10 @@ namespace CalradiaRemembers.Settings
         public override string Id => "CalradiaRemembers";
 
         [SettingPropertyText("Model", RequireRestart = false, Order = -2,
-            HintText = "OpenRouter model id (e.g. x-ai/grok-4.3, anthropic/claude-sonnet-4, openai/gpt-4o). " +
+            HintText = "OpenRouter model id (e.g. x-ai/grok-4.20, anthropic/claude-sonnet-4, openai/gpt-4o). " +
                        "Browse models at openrouter.ai/models. Applies immediately.")]
         [SettingPropertyGroup("OpenRouter", GroupOrder = 3)]
-        public string Model { get; set; } = "x-ai/grok-4.3";
+        public string Model { get; set; } = "x-ai/grok-4.20";
 
         [SettingPropertyButton("Test Connection", RequireRestart = false, Order = -3,
             HintText = "Checks your API key AND the Model id above: validates the key, then sends a one-token " +

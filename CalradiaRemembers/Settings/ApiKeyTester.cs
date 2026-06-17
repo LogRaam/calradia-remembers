@@ -72,7 +72,7 @@ namespace CalradiaRemembers.Settings
             string model = CrSettings.Instance?.Model?.Trim();
             if (string.IsNullOrWhiteSpace(model))
             {
-                ShowResult("No model", "Enter an OpenRouter model id in the Model field first (e.g. x-ai/grok-4.3).");
+                ShowResult("No model", "Enter an OpenRouter model id in the Model field first (e.g. x-ai/grok-4.20).");
                 return;
             }
 

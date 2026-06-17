@@ -20,7 +20,7 @@ Post-build xcopy: `"$(TargetDir)*.dll"` → `<BannerlordInstall>\Modules\Calradi
 
 Module ID: `CalradiaRemembers`. Targets: `.NET Framework 4.7.2` (mod) / `netstandard2.0` (SDK).
 
-LLM: OpenRouter, model `x-ai/grok-4.3`. API key: env var `OPENROUTER_API_KEY`.
+LLM: OpenRouter, model `x-ai/grok-4.20`. API key: env var `OPENROUTER_API_KEY`.
 
 Bannerlord: v1.3.15, Default Public (Mar 2026).
 

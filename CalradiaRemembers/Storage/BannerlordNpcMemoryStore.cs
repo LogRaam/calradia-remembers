@@ -7,8 +7,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Storage;
 using TaleWorlds.CampaignSystem;
@@ -126,30 +124,23 @@ namespace CalradiaRemembers.Storage
 
         #region private
 
+        // The resilient bundle (round-trip guard on write, per-entry isolation on read) lives
+        // in the SDK so any single-blob store benefits; this class only adds the byte[]/IDataStore
+        // bridge and routes the SDK's diagnostics to ModLog.
+
         private void DeserializeProfiles(string json)
         {
-            // Parse the outer map leniently (as raw tokens), then materialise each profile
-            // individually so a single bad entry is skipped — not the whole memory. A
-            // malformed outer document still throws here and is caught by SyncData.
-            var root = JsonConvert.DeserializeObject<Dictionary<string, JToken>>(json);
-            if (root == null) return;
+            int dropped = 0;
+            Dictionary<string, NpcProfile> loaded = ResilientProfileBundle.Deserialize(json, (id, ex) =>
+            {
+                dropped++;
+                ModLog.Error($"[STORE] profile '{id}' failed to load and was skipped (others kept). " +
+                             $"{ex.GetType().Name}: {ex.Message}");
+            });
 
             _profiles.Clear();
-            int dropped = 0;
-            foreach (KeyValuePair<string, JToken> kvp in root)
-            {
-                try
-                {
-                    NpcProfile profile = kvp.Value.ToObject<NpcProfile>();
-                    if (profile != null) _profiles[kvp.Key] = profile;
-                }
-                catch (Exception ex)
-                {
-                    dropped++;
-                    ModLog.Error($"[STORE] profile '{kvp.Key}' failed to load and was skipped (others kept). " +
-                                 $"{ex.GetType().Name}: {ex.Message}");
-                }
-            }
+            foreach (KeyValuePair<string, NpcProfile> kvp in loaded)
+                _profiles[kvp.Key] = kvp.Value;
 
             if (dropped > 0)
                 ModLog.Info($"[STORE] {dropped} profile(s) skipped on load; {_profiles.Count} loaded.");
@@ -158,33 +149,16 @@ namespace CalradiaRemembers.Storage
         // ── Serialization ─────────────────────────────────────────────────────
 
         /// <summary>
-        ///   Serializes the profiles, but FIRST verifies each one survives a full
-        ///   serialize→deserialize round-trip. Any profile that cannot is dropped (with a
-        ///   loud log naming it) so a single un-round-trippable profile can never make the
+        ///   Serializes the profiles via the SDK's resilient bundle: every profile is proven to
+        ///   survive a serialize→deserialize round-trip first, and any that cannot is dropped
+        ///   (with a loud log naming it) so a single un-round-trippable profile can never make the
         ///   whole save unreadable — the mod's "your campaign always loads" guarantee.
-        ///   The log line is also the diagnostic: it names the offending NPC and the error.
         /// </summary>
         private string SerializeProfiles()
-        {
-            var safe = new Dictionary<string, NpcProfile>(_profiles.Count);
-            foreach (KeyValuePair<string, NpcProfile> kvp in _profiles)
-            {
-                try
-                {
-                    string one = JsonConvert.SerializeObject(kvp.Value);
-                    JsonConvert.DeserializeObject<NpcProfile>(one); // prove it reads back
-                    safe[kvp.Key] = kvp.Value;
-                }
-                catch (Exception ex)
-                {
-                    ModLog.Error($"[STORE] profile '{kvp.Key}' ({kvp.Value?.Name}) cannot be persisted — " +
-                                 $"it does not survive a round-trip, so it is left out to keep the save loadable. " +
-                                 $"{ex.GetType().Name}: {ex.Message}");
-                }
-            }
-
-            return JsonConvert.SerializeObject(safe, Formatting.None);
-        }
+            => ResilientProfileBundle.Serialize(_profiles, (id, name, ex) =>
+                ModLog.Error($"[STORE] profile '{id}' ({name}) cannot be persisted — " +
+                             $"it does not survive a round-trip, so it is left out to keep the save loadable. " +
+                             $"{ex.GetType().Name}: {ex.Message}"));
 
         #endregion
     }
