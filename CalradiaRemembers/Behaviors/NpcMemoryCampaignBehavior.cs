@@ -170,6 +170,7 @@ namespace CalradiaRemembers.Behaviors
             ModLog.Info("Campaign session launched.");
             CulturalTraditionsLoader.Load();
             NarrativeLoader.Load();
+            Jealousy.JealousyCultureLoader.Load();
             LlmServices.Invalidate();   // rebuild PromptBuilder with fresh file content
             StoryLog.WriteSessionHeader();
             CaptiveEncounterService.ResetOnSessionLaunch();

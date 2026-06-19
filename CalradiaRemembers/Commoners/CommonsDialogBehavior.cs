@@ -56,9 +56,19 @@ namespace CalradiaRemembers.Commoners
             // Must be a non-Hero agent (random townsperson, not a named lord or notable).
             if (Hero.OneToOneConversationHero != null) return false;
 
-            // Must be inside a settlement — villages, towns, or castles.
+            // Only in a CIVILIAN settlement — towns, villages, castles. This deliberately
+            // excludes hideouts (which are also Settlements): a hideout is a place you fight,
+            // not chat, and the boss "captain" is a non-Hero agent that would otherwise pass
+            // the gate and hijack the vanilla duel/charge dialogue. (A map encounter has no
+            // CurrentSettlement, so it is excluded too.)
             Settlement settlement = Hero.MainHero?.CurrentSettlement;
             if (settlement == null) return false;
+            if (!(settlement.IsTown || settlement.IsVillage || settlement.IsCastle)) return false;
+
+            // Never hijack a hostile conversation: a bandit (a captured outlaw, a gang thug)
+            // must reach their vanilla dialogue, never the idle-chat option.
+            CharacterObject partner = Campaign.Current?.ConversationManager?.OneToOneConversationCharacter;
+            if (partner != null && partner.Occupation == Occupation.Bandit) return false;
 
             // Respect the mod's availability check (API key configured, etc.).
             return NpcMemoryCampaignBehavior.Instance?.LlmServices?.IsAvailable == true;

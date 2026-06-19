@@ -62,6 +62,9 @@ namespace CalradiaRemembers
          // vanilla NPC-NPC weddings are untouched. Marrying into a house without first earning its
          // blessing chills that family — the intended love-vs-ambition mechanic.
          campaignStarter.AddBehavior(new Marriage.MarriageApprovalBehavior());
+         // Jealousy (Sprint 24): a romantic act can provoke a third party with a real stake.
+         // Knowledge-gated, probabilistic, delayed; reactions are a grudge + optional threat letter.
+         campaignStarter.AddBehavior(new Jealousy.JealousyBehavior());
          Log($"{ModName} campaign behavior registered.");
       }
 
@@ -72,7 +75,7 @@ namespace CalradiaRemembers
       protected override void OnSubModuleLoad()
       {
          base.OnSubModuleLoad();
-         Log($"{ModName} v1.7.8 loaded.");
+         Log($"{ModName} v1.8.0 loaded.");
 
          try
          {

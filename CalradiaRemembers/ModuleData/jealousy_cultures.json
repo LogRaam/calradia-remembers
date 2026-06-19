@@ -1,0 +1,49 @@
+{
+  "_comment": "Per-culture jealousy norms for Calradia Remembers. Entries live under 'cultures', keyed by culture DISPLAY NAME (same convention as cultural_traditions.json) so faction/conversion mods can add or override entries without touching code. Any culture absent from this file falls back to a strictly monogamous profile (High exclusivity, no shared partners) — the conservative default. Fields (all optional; omitted fields take the monogamous default): exclusivityOutrage = High|Medium|Low (how strongly a liaison elsewhere reads as betrayal); polygamyEliteTier = minimum clan tier 0..6 at/above which sharing partners is culturally tolerated (below it the culture behaves monogamously; use 0 for 'always tolerated', leave high/omit for monogamous); hierarchySensitivity = High|Medium|Low (how strongly senior-vs-secondary partner rank drives competition jealousy); equityExpectation = true when the offence is UNEQUAL treatment rather than rank itself; promptHint = one-sentence cultural framing injected into the jealous party's reaction.",
+
+  "cultures": {
+    "Vlandia": {
+      "exclusivityOutrage": "High",
+      "promptHint": "Your people hold marriage sacred and to one alone; a love given elsewhere is a betrayal of your honour and your house."
+    },
+
+    "Empire": {
+      "exclusivityOutrage": "High",
+      "promptHint": "By the customs of the Empire a bond is between two; to be set aside for another is a public humiliation, not a thing to be borne quietly."
+    },
+
+    "Sturgia": {
+      "exclusivityOutrage": "High",
+      "promptHint": "Your people prize loyalty above all; a partner who gives their heart elsewhere has broken faith, and that is not forgiven lightly."
+    },
+
+    "Battania": {
+      "exclusivityOutrage": "Medium",
+      "polygamyEliteTier": 4,
+      "hierarchySensitivity": "High",
+      "promptHint": "Among the highborn of your people a chief may take more than one spouse, but the first wife's standing is hers by right — and she may refuse to share her hall, or leave."
+    },
+
+    "Khuzait": {
+      "exclusivityOutrage": "Low",
+      "polygamyEliteTier": 2,
+      "hierarchySensitivity": "High",
+      "promptHint": "Among your people a powerful figure may keep several spouses; there is a senior wife whose children inherit and the others rank beneath her. Your grievance is rank and primacy, not the sharing itself."
+    },
+
+    "Aserai": {
+      "exclusivityOutrage": "Low",
+      "polygamyEliteTier": 1,
+      "hierarchySensitivity": "Medium",
+      "equityExpectation": true,
+      "promptHint": "Your customs permit several wives, but each must be treated with equal honour; the wound is in being slighted or neglected, not in being one of several."
+    },
+
+    "Nords": {
+      "exclusivityOutrage": "Low",
+      "polygamyEliteTier": 3,
+      "hierarchySensitivity": "Medium",
+      "promptHint": "Your jarls may keep several wives or concubines, yet a strong partner will not be treated as property nor set below another without cause."
+    }
+  }
+}

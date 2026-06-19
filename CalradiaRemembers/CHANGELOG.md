@@ -2,6 +2,37 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.8.0.. 2026-06-19
+
+### New
+- **Romance now has rivals.** Court, kiss, or wed one person and a third party with a real
+  stake in them may turn against you — never a random grudge, always someone with a believable
+  reason: the wronged spouse of the one you courted, your own slighted partner, a close associate
+  who hoped to marry them first, or an admirer of yours you passed over. They find out the way
+  people really do — if there were **witnesses**, word travels fast; flirting with a married lady
+  in front of others is a telegraphed risk. A few days later the consequence lands: their regard
+  for you cools, they remember the slight, and they may send a **letter** — a cold warning, a
+  wounded reproach, or an open threat ("leave her be — I mean to marry her one day").
+- **Jealousy reads the culture of the wronged party.** A partner from a strictly monogamous
+  people (Vlandia, the Empire, Sturgia) treats a love given elsewhere as a betrayal. A partner
+  from a culture that accepts several spouses among its highborn (Khuzait, Aserai, Battania,
+  the Nords) is not outraged that you took another — but the rivalry shifts to standing and
+  attention between your partners, so a great love becomes a harder one to keep. Which factions
+  hold which view lives in an editable `ModuleData/jealousy_cultures.json`, so total-conversion
+  and faction mods can define their own peoples' customs without touching the mod.
+
+### Fixed
+- **Hideout boss fights work again.** When clearing a bandit hideout, the final confrontation
+  with the boss could open the mod's "talk to a local" chat instead of the vanilla choice to
+  duel the leader alone or charge in with everyone — leaving you unable to start the fight, with
+  the AI treating the brigand as an ordinary townsperson. The "talk to the locals" option is now
+  limited to real civilian settlements (towns, villages, castles) and never offered to bandits,
+  so a hideout plays out exactly as the base game intends.
+
+### Notes
+- New console command `cr.jealousy [name]` resolves and fires a jealousy reaction on demand, for
+  testing the feature without building up a full romance first.
+
 ## v1.7.8.. 2026-06-19
 
 ### Fixed

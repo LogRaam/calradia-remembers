@@ -2227,6 +2227,25 @@ namespace CalradiaRemembers.Chat
                 var gameDay = behavior.GameStateBridge.GetCurrentGameDay();
                 ProfileMutator.Apply(profile, response, gameDay);
 
+                // Jealousy (Sprint 24): a romantic act recorded this turn may provoke a staked
+                // third party. Flirt always; intimacy only when adult content is enabled. Witnesses
+                // present mean the act is telegraphed and the word spreads quickly.
+                NpcMemoryService.Core.Models.NotableEventType? actType = response.NewEventData?.Type;
+                if (actType == NpcMemoryService.Core.Models.NotableEventType.Flirt
+                    || (actType == NpcMemoryService.Core.Models.NotableEventType.Intimacy
+                        && ModSettings.AdultContentLevel != AdultContentLevel.Off))
+                {
+                    Hero courted = Hero.FindFirst(h => h.StringId == profile.Id);
+                    if (courted != null)
+                        Jealousy.JealousyBehavior.Instance?.OnRomanticAct(
+                            courted,
+                            actType == NpcMemoryService.Core.Models.NotableEventType.Intimacy
+                                ? Jealousy.RomanticActTier.Intimacy
+                                : Jealousy.RomanticActTier.Flirt,
+                            _witnesses.Count > 0,
+                            gameDay);
+                }
+
                 // ── Execute game actions emitted by the LLM ───────────────────
                 // RelationGate may stamp profile.LastRelationGainHour, so persist
                 // AFTER actions run (below), not before.

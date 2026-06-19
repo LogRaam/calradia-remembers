@@ -157,6 +157,35 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.jealousy [name]
+      ///   Resolves and immediately fires a jealousy reaction as if the player had just made a
+      ///   romantic advance toward the named NPC (or the current conversation partner). Bypasses
+      ///   the witness/probability/cooldown gates so the resolution and consequence are testable
+      ///   without building a full romance: it prints the inferred jealous party and applies the
+      ///   grudge + grievance memory + a threatening letter.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("jealousy", "cr")]
+      public static string TriggerJealousy(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
+            return error;
+         if (Jealousy.JealousyBehavior.Instance == null)
+            return "Jealousy system is not active.";
+
+         string nameFragment = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
+         Hero courted = !string.IsNullOrWhiteSpace(nameFragment)
+            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Name != null
+                 && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
+            : Hero.OneToOneConversationHero;
+
+         if (courted == null)
+            return "Usage: cr.jealousy [name]\n" +
+                   "  Resolves and fires a jealousy reaction as if the player romanced this NPC.";
+
+         return Jealousy.JealousyBehavior.Instance.DebugForce(courted, Jealousy.RomanticActTier.Flirt);
+      }
+
+      /// <summary>
       ///   cr.witness [witnessName]
       ///   Adds a named witness to the currently open chat session. Primary test path
       ///   for the multi-NPC feature — validates prompt injection, header UI, and the
