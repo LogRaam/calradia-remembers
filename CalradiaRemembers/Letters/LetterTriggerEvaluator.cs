@@ -150,7 +150,7 @@ namespace CalradiaRemembers.Letters
                if (l.Reason != LetterReason.RomanticCorrespondence) continue;
                if (!l.IsDelivered) continue;
                if (!string.IsNullOrWhiteSpace(l.PlayerReply)) continue;
-               if (today - l.SentOnDay < 5) continue;
+               if (today - l.DeliveryDay < 5) continue;
 
                unanswered = l;
                break;
@@ -158,23 +158,35 @@ namespace CalradiaRemembers.Letters
 
             if (unanswered == null) continue;
 
-            // Only one follow-up per unanswered letter.
-            bool alreadySentFollowUp = false;
+            // Primary guard: flag on the original letter survives even when the follow-up
+            // placeholder is removed by LLM failure or session-reload orphan cleanup.
+            if (unanswered.FollowUpSent) continue;
+
+            // Legacy fallback for saves pre-dating FollowUpSent: if the follow-up letter
+            // still exists in SentLetters, backfill the flag and skip.
+            bool followUpPresent = false;
             foreach (PendingLetter l in profile.SentLetters)
             {
                if (l.Reason == LetterReason.AwaitingReply && l.SentOnDay > unanswered.SentOnDay)
                {
-                  alreadySentFollowUp = true;
+                  followUpPresent = true;
                   break;
                }
             }
 
-            if (alreadySentFollowUp) continue;
+            if (followUpPresent)
+            {
+               unanswered.FollowUpSent = true;
+               store.Set(profile);
+               continue;
+            }
 
-            int daysSince = today - unanswered.SentOnDay;
+            int daysSince = today - unanswered.DeliveryDay;
             string context = $"You wrote a letter {daysSince} days ago expressing your feelings. " +
                              $"The player has not replied. Their silence weighs on you.";
 
+            unanswered.FollowUpSent = true;
+            store.Set(profile);
             LetterGenerationService.QueueInitialLetter(
                profile, hero, LetterReason.AwaitingReply, context,
                llmServices, store, today);

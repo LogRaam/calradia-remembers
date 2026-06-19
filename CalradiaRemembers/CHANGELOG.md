@@ -2,6 +2,25 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.7.8.. 2026-06-19
+
+### Fixed
+- **Letters from the daily flow now actually arrive — and stop repeating.** A reliability
+  bug could strand letters that an NPC decided to write on their own each day (a romantic
+  note, an impatient follow-up, a word from a spouse or consort, a lord's marriage
+  proposal). The moment such a letter began generating, the same daily pass that started
+  it could mistake the half-written letter for an abandoned one and quietly discard it.
+  The letter never reached you, and because nothing recorded that it had been sent, the
+  NPC tried again the next day, and the next — an endless, undelivered loop. The worst
+  case in the wild: an NPC writing the same "you still haven't written back" letter over
+  and over, none of which arrived. Letters now survive the day they are written, reach
+  you as intended, and a follow-up is sent once and only once. (Cleanup of genuinely
+  abandoned letters from an interrupted session still happens — but now safely at load
+  time, where it can no longer collide with a letter being written.)
+- **The "you haven't replied" follow-up now waits five days from when the letter
+  *arrived*, not from when it was written.** Couriers take time on the road, so the
+  silence now starts counting from the day the letter actually reached your hands.
+
 ## v1.7.7.. 2026-06-19
 
 ### Enhanced

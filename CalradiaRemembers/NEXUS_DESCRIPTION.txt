@@ -36,7 +36,7 @@ The mod plugs straight into Bannerlord's own dialogue: walk up to any lord exact
 Personalities and traits drawn from each hero, relationship awareness (friends, rivals, family, liege), and a sense of standing.. a noble of a great clan does not speak to you the way a landless adventurer does.
 
 [b][color=#e69138]Ask about other people[/color][/b]
-Mention another character and the NPC answers from their own vantage point — friend, rival, kin, or stranger. Ask where someone is, and if it is a person they would plausibly know — a clansman, a close friend, someone of their own faction — they may tell you, as hearsay: "[i]Last I heard, she was riding toward Ocs Hall.[/i]" A distant stranger they cannot place, and no one invents a whereabouts they were never told.
+Mention another character and the NPC answers from their own vantage point.. friend, rival, kin, or stranger. Ask where someone is, and if it is a person they would plausibly know.. a clansman, a close friend, someone of their own faction.. they may tell you, as hearsay: "[i]Last I heard, she was riding toward Ocs Hall.[/i]" A distant stranger they cannot place, and no one invents a whereabouts they were never told.
 
 [b][color=#e69138]Culture matters (and it's yours to shape)[/color][/b]
 Calradia's peoples don't all think alike, and the characters reflect it. A Battanian, where women fight, inherit, and lead, meets you very differently from a Vlandian or Aserai lord who expects modesty and deference, while the progressive Southern Empire under Empress Rhagaea takes female authority in stride.  A [b][color=#d5a6bd]female player character[/color][/b] runs into authentic cultural skepticism in the patriarchal factions, not blank generic politeness. All of this ships ready-made with the mod.. and, like the rest of the prompt, it's [i]yours to rewrite[/i]: the cultural rules live in `cultural_traditions.json` and `behavior_guidelines.txt` (see [i][color=#c9daf8]Make it your own[/color][/i] below), so you can soften them, sharpen them, or reshape a whole culture or create a new world however you like.
@@ -45,7 +45,7 @@ Calradia's peoples don't all think alike, and the characters reflect it. A Batta
 What's said in conversation can change the world: relation shifts, gold given or taken, and [b][color=#b6d7a8]informal quests[/color][/b] an NPC may offer you on their own initiative.. verified by [i][color=#93c47d]actual[/color][/i] game events before any reward is paid. No reward for a story you merely tell; only for a deed genuinely done.
 
 [b][color=#e69138]Join a kingdom as a mercenary through conversation[/color][/b]
-A lord who wants reliable swords — or a player who needs a contract — can negotiate mercenary service right there in the chat window. When your clan carries no existing obligation, any lord of a kingdom can offer you a contract on behalf of their realm, and you can propose it first if the mood calls for it. When you both clearly agree, your clan enrolls immediately: no separate menu, no lord's hall required.
+A lord who wants reliable swords.. or a player who needs a contract.. can negotiate mercenary service right there in the chat window. When your clan carries no existing obligation, any lord of a kingdom can offer you a contract on behalf of their realm, and you can propose it first if the mood calls for it. When you both clearly agree, your clan enrolls immediately: no separate menu, no lord's hall required.
 
 [b][color=#e69138]Recruit companions through conversation[/color][/b]
 Meet a wanderer in a tavern and convince them to ride with you.. in your own words, not through a menu. The asking price is the same one the vanilla game would charge.. and it is negotiable: impress them and they may come down, lowball them and they will hold firm or walk away. Fine titles do not waive the fee, and dressing the hire up as "joining my clan" will not get you out of paying.. a deal is a deal on the steppe. When you do strike one, they truly join your party, coin changes hands once, and the bargain itself becomes part of your shared history.
@@ -58,7 +58,7 @@ The tasks NPCs hand you aren't throwaway flavor text.. each one is mirrored into
 Other lords present in the same hall can overhear, react in their own voice, and take sides.. and who is present actually makes sense: the smith from the market square will not be attending your audience in the keep. Bring up to two of your companions to a meeting (those walking beside you in town join naturally), or go alone. Everything is handled in the conversation itself: address a specific witness directly, ask one of your companions to leave you alone with the NPC in your own words, or request a private audience.. and the NPC decides whether to clear the room.
 
 [b][color=#e69138]Talk to the locals[/color][/b]
-Walk up to any townsperson, villager, or castle servant — anyone without a title — and ask what's going on. A short LLM conversation opens with a commoner whose name and trade come from the local culture. What they know is what the street knows: who rules the settlement, how times have been, which lords are passing through, recent deaths and captures, and the mood of the market. No memory is kept between conversations — every encounter is a fresh face. The only way coin changes hands is if they think a piece of news is worth paying for.
+Walk up to any townsperson, villager, or castle servant.. anyone without a title.. and ask what's going on. A short LLM conversation opens with a commoner whose name and trade come from the local culture. What they know is what the street knows: who rules the settlement, how times have been, which lords are passing through, recent deaths and captures, and the mood of the market. No memory is kept between conversations.. every encounter is a fresh face. The only way coin changes hands is if they think a piece of news is worth paying for.
 
 [color=#e69138][b]Letters & visible couriers[/b][/color]
 Write to an NPC and hire a courier who physically crosses the campaign map to deliver the letter.. and who can be intercepted by bandits along the way. NPCs write back, and their replies arrive by courier too.
@@ -70,17 +70,17 @@ What you learn about a character surfaces on their own encyclopedia page. Alongs
 Turn it on (in options) and every conversation and letter is written out as a clean, novel-style transcript.. no timestamps, no technical noise.. so you can re-read your campaign like a book.
 
 [b][color=#e69138]Romance & courtship that emerge on their own[/color][/b]
-This isn't only an adult feature. From the [color=#8e7cc3][b]Mature[/b][/color] setting up, attraction grows with trust, and an unmarried lord or lady may raise courtship — or propose marriage outright — on their [color=#d9d2e9][i]own[/i][/color] initiative when your standing and your shared history warrant it: lead a clan of real rank, or make a name in the tournament lists, and the right people start to notice. You can propose just as freely. How far things go is governed by the Adult Content Level below; that they happen at all is simply Calradia's characters reacting to who you've become.
+This isn't only an adult feature. From the [color=#8e7cc3][b]Mature[/b][/color] setting up, attraction grows with trust, and an unmarried lord or lady may raise courtship.. or propose marriage outright.. on their [color=#d9d2e9][i]own[/i][/color] initiative when your standing and your shared history warrant it: lead a clan of real rank, or make a name in the tournament lists, and the right people start to notice. You can propose just as freely. How far things go is governed by the Adult Content Level below; that they happen at all is simply Calradia's characters reacting to who you've become.
 
-[b][color=#e69138]Marriage — family politics, love matches, and letters of proposal[/color][/b]
+[b][color=#e69138]Marriage.. family politics, love matches, and letters of proposal[/color][/b]
 A match joins two houses, and the house gets a say. Ask the head of a family for the hand of their kin and they weigh your worth against their name.. granting their blessing freely, refusing it, or setting a single worthy deed as its price. Wed into a house [i]without[/i] that blessing and its members take the slight personally and cool toward you; earn it, and the family embraces the union.. though a dissenting cousin may still quietly resent it. Love and ambition, pulling against each other.
 
-When the bond between you and someone runs deep enough — and you have both earned it — marriage can also be proposed [i]in conversation[/i] itself: by you, by them, or by both arriving at it together. When you agree, it is real: the game's full marriage takes effect.
+When the bond between you and someone runs deep enough.. and you have both earned it.. marriage can also be proposed [i]in conversation[/i] itself: by you, by them, or by both arriving at it together. When you agree, it is real: the game's full marriage takes effect.
 
 Lords also write first. A clan head who regards you well may send a courier proposing a match with one of their eligible kin before you have ever thought to ask. The door can open from their side.
 
 [b][color=#e69138]Consort bonds[/color][/b]
-Not every deep commitment needs to be — or can be — a legal marriage. When a relationship has grown genuinely intimate, both parties can name it openly: a consort bond is a private, mutual pledge that both of you honour, even though Calradian law does not recognise it. It carries no clan merger, no inheritance claim.. but it is real, and your consort will write to you as a spouse would when you have been apart too long. This path is open even if you are already wed.
+Not every deep commitment needs to be.. or can be.. a legal marriage. When a relationship has grown genuinely intimate, both parties can name it openly: a consort bond is a private, mutual pledge that both of you honour, even though Calradian law does not recognise it. It carries no clan merger, no inheritance claim.. but it is real, and your consort will write to you as a spouse would when you have been apart too long. This path is open even if you are already wed.
 
 [b][color=#e69138]Mature & adult content (opt-in, gated)[/color][/b]
 A single setting controls how much romantic and intimate content NPCs may express.. from [color=#dd7e6b][b]Off[/b][/color] (none) through [color=#dd7e6b][b]Mature[/b][/color] (romance, nothing explicit) to [color=#dd7e6b][b]Explicit[/b][/color] and [b][color=#dd7e6b]Hardcore[/color][/b]. Higher tiers unlock orientation and preference discovery, genuine intimacy gated by trust, and.. at Hardcore only.. captor/captive scenes for players who want darker, adult-only roleplay. All of it is [b][color=#dd7e6b]off the explicit path by default[/color][/b] and entirely your choice.
@@ -90,7 +90,7 @@ A single setting controls how much romantic and intimate content NPCs may expres
 
 [list]
 [*][b]Mount & Blade II: Bannerlord[/b] v1.3.x[/*]
-[*]An [b]account and API key with OpenRouter or NanoGPT[/b] — the AI runs in the cloud (see below). You only need one.[/*]
+[*]An [b]account and API key with OpenRouter or NanoGPT[/b].. the AI runs in the cloud (see below). You only need one.[/*]
 [*]Other dependencies like Harmony, MCM, etc.[/*]
 [/list]
 
@@ -101,7 +101,7 @@ A single setting controls how much romantic and intimate content NPCs may expres
 
 [list]
 [*][b][color=#00ffff]Safe to add to an existing campaign[/color][/b]: Characters build their memory from the moment you first speak to them, so you don't need a fresh start.. just install and talk. As with any mod, back up your save before adding or removing it.[/*]
-[*][b][color=#00ffff]Language[/color][/b]: The mod is written and prompted in English. NPCs now mirror the language of your latest message — type in French and they answer in French, in German and they answer in German. Section labels and action keywords stay in English internally so the mod keeps working correctly.[/*]
+[*][b][color=#00ffff]Language[/color][/b]: The mod is written and prompted in English. NPCs now mirror the language of your latest message.. type in French and they answer in French, in German and they answer in German. Section labels and action keywords stay in English internally so the mod keeps working correctly.[/*]
 [*][b][color=#00ffff]Backward-compatible updates.. guaranteed[/color]:[/b] Future updates to [b][color=#ffe599]this mod[/color][/b] will always keep supporting your existing saves. I guarantee that no update of mine will ever break a current campaign or force you to restart your playthrough.. save compatibility is a top priority for the entire lifespan of the mod. [i][color=#ffe599](The one thing no modder can promise is a breaking change in [/color][b][color=#ffff00]Bannerlord itself or another mod[/color][color=#ffe599]..[/color][/b][color=#ffe599] that's outside any single mod's control, but on my side, your save is safe.)[/color][/i][/*]
 [/list]
 [line]
@@ -128,7 +128,7 @@ You'll find them in:
 
 Occasionally the AI will produce a bad response that gets recorded into an NPC's memory, and future conversations keep building on the mistake. You can fix this directly from the Bannerlord cheat console ([b]Alt + ~[/b], must be enabled in the launcher's engine options).
 
-[b][color=#93c47d]cr.memory [name][/color][/b] — list every recorded event for an NPC with its index:
+[b][color=#93c47d]cr.memory [name][/color][/b].. list every recorded event for an NPC with its index:
 [code]
 cr.memory Liena
   [0] Day 12 | FirstMeeting | We met for the first time in Pen Cannoc.
@@ -136,26 +136,26 @@ cr.memory Liena
   [2] Day 46 | Other        | She spoke to me as a stranger.     <- and this one
 [/code]
 
-[b][color=#93c47d]cr.memory_add [days_ago] [text] [name][/color][/b] — create a memory dated in the past, to build a prior relationship with a character so not everyone starts as a stranger:
+[b][color=#93c47d]cr.memory_add [days_ago] [text] [name][/color][/b].. create a memory dated in the past, to build a prior relationship with a character so not everyone starts as a stranger:
 [code]cr.memory_add 30 We fought side by side at Pendraic. Derthert[/code]
 
-[b][color=#93c47d]cr.memory_set [index] [new text] [name][/color][/b] — replace the text of one event without deleting it:
+[b][color=#93c47d]cr.memory_set [index] [new text] [name][/color][/b].. replace the text of one event without deleting it:
 [code]
 cr.memory_set 1 She remembered our bond, speaking with warmth. Liena
 cr.memory_set 2 She recovered herself and called me by name. Liena
 [/code]
 
-[b][color=#93c47d]cr.forget [index] [name][/color][/b] — delete one bad event entirely:
+[b][color=#93c47d]cr.forget [index] [name][/color][/b].. delete one bad event entirely:
 [code]cr.forget 1 Liena[/code]
 
-[b][color=#93c47d]cr.forget_all [name][/color][/b] — wipe the entire memory of an NPC for a clean slate:
+[b][color=#93c47d]cr.forget_all [name][/color][/b].. wipe the entire memory of an NPC for a clean slate:
 [code]cr.forget_all Liena[/code]
 
-[quote]💡 The [name] at the end is optional — if you already have a conversation open with the NPC, you can omit it. The last word of the command is tried as an NPC name; if it matches a character it is used as such, otherwise the whole text after the index is treated as the new memory and the current conversation NPC is used. Remember that NPC memories live inside your campaign save: edits (and everything NPCs record) persist when you [b]save the game[/b], so save after fixing.[/quote]
+[quote]💡 The [name] at the end is optional.. if you already have a conversation open with the NPC, you can omit it. The last word of the command is tried as an NPC name; if it matches a character it is used as such, otherwise the whole text after the index is treated as the new memory and the current conversation NPC is used. Remember that NPC memories live inside your campaign save: edits (and everything NPCs record) persist when you [b]save the game[/b], so save after fixing.[/quote]
 [line]
 [size=4]Where the mod is at[/size]
 
-Calradia Remembers is young and moving fast. The core loop is solid, but it is not seamless yet: now and then the AI records something wrong and you will want the console commands above to fix a memory, and rough edges do surface. If you enjoy being part of a mod's formative stage — updates ship quickly and player feedback genuinely shapes the design — you will feel at home. If you would rather wait for a fully polished experience, watch this page and come back soon.
+Calradia Remembers is young and moving fast. The core loop is solid, but it is not seamless yet: now and then the AI records something wrong and you will want the console commands above to fix a memory, and rough edges do surface. If you enjoy being part of a mod's formative stage.. updates ship quickly and player feedback genuinely shapes the design.. you will feel at home. If you would rather wait for a fully polished experience, watch this page and come back soon.
 [line]
 [size=5]How to configure[/size]
 
@@ -164,11 +164,11 @@ Calradia Remembers is young and moving fast. The core loop is solid, but it is n
 1. SET UP OPENROUTER (ONE TIME)
 
   1. Create a free account at openrouter.ai
-  2. Add a little credit to your account (pay-as-you-go — you only spend what you use).
+  2. Add a little credit to your account (pay-as-you-go.. you only spend what you use).
   3. Go to openrouter.ai/keys and create an API key. Copy it.
   4. Browse openrouter.ai/models if you'd like to pick a specific model (optional).
 
-[b]HOW FAR DOES CREDIT GO[/b]? Measured on the default model (Grok 4.3): a full week of heavy testing.. 146 exchanges, much of it long, prompt-hungry captive scenes.. came to about $1. That's roughly 130+ messages per dollar, so even $5 covers hundreds of exchanges — comfortably dozens of full conversations.. and more for everyday chats. You only pay for what you use, and a lighter model stretches it further still.
+[b]HOW FAR DOES CREDIT GO[/b]? Measured on the default model (Grok 4.3): a full week of heavy testing.. 146 exchanges, much of it long, prompt-hungry captive scenes.. came to about $1. That's roughly 130+ messages per dollar, so even $5 covers hundreds of exchanges.. comfortably dozens of full conversations.. and more for everyday chats. You only pay for what you use, and a lighter model stretches it further still.
 
 [quote]🔒 Your key is stored locally on your machine only. Never share your config file or a screenshot of the key field.. treat the key like a password.[/quote]
 
@@ -185,10 +185,10 @@ OR.. SET UP NANOGPT INSTEAD (ONE TIME)
 2. ENTER IT IN THE GAME
 
   1. Launch Bannerlord with the mod enabled, then open Options → Mod Options → Calradia Remembers.
-  2. Set "LLM Provider" to OpenRouter or NanoGPT — whichever you set up.
+  2. Set "LLM Provider" to OpenRouter or NanoGPT.. whichever you set up.
   3. Paste your key into that provider's API Key field (OpenRouter or NanoGPT).
   4. Set that provider's Model field (OpenRouter has a default; NanoGPT needs an id you paste from its catalog).
-  5. Click that provider's "Test Connection" button.. it checks your key — and, on OpenRouter, also tests your chosen model with a tiny one-token prompt — so a wrong key or a mistyped model id is caught before you play.
+  5. Click that provider's "Test Connection" button.. it checks your key.. and, on OpenRouter, also tests your chosen model with a tiny one-token prompt.. so a wrong key or a mistyped model id is caught before you play.
   6. That's it. Settings apply immediately.. no restart, no save reload. Walk up to any lord and talk.
 
 3. THE SETTINGS MENU, OPTION BY OPTION
@@ -223,7 +223,7 @@ LLM Provider:
       [b][color=#a64d79]Hardcore[/color][/b].. unlocks darker adult-only roleplay, including captor/captive scenes.
      [i] Applies on your next conversation.[/i]
 [list]
-[*]  Relationship Pacing .. how relationships grow through conversation — a philosophy of interaction, not a difficulty. Affects only positive regard — insults and betrayals stay just as costly at every level:[/*]
+[*]  Relationship Pacing .. how relationships grow through conversation.. a philosophy of interaction, not a difficulty. Affects only positive regard.. insults and betrayals stay just as costly at every level:[/*]
 [/list]
       [b][color=#b6d7a8]Grounded[/color][/b] (default).. the core game's feel, and the level the mod was balanced around. Trust is earned slowly, mostly through deeds; flattery rarely moves a lord.
       [b][color=#93c47d]Warm[/color][/b].. good company counts. A well-turned compliment, shared humor, an engaging story or genuine support can each earn a little goodwill, and more often.
@@ -242,13 +242,13 @@ LLM Provider:
 
 The mod works with any text model your provider offers.. you just paste its id into the Model field, and you can switch anytime in one click. Two things matter for this mod: the model must follow instructions reliably (it quietly drives memory, actions, and quests behind the scenes), and.. if you play the Explicit / Hardcore tiers.. it must be permissive, because heavily-filtered models will flat-out refuse adult scenes. The ids below are OpenRouter ids; on NanoGPT the same model families are available but use NanoGPT's own ids from nano-gpt.com/models. Prices below are a rough guide; check your provider's model page for current rates.
 
-[b]GROK 4.3[/b] — the safe default    (model id: x-ai/grok-4.3)
+[b]GROK 4.3[/b].. the safe default    (model id: x-ai/grok-4.3)
 Proven with everything this mod does, adult tiers included. Balanced quality, permissive, and already tested. If in doubt, stay here.
 
-[b]DEEPSEEK V3.2[/b] — ⭐ best value    (model id: deepseek/deepseek-v3.2)
+[b]DEEPSEEK V3.2[/b].. ⭐ best value    (model id: deepseek/deepseek-v3.2)
 Comparable quality for a fraction of the cost (~5× cheaper input and output). Strong instruction-following, widely regarded as permissive.. the pick to get the same experience for much less.
 
-[b]DEEPSEEK V4 PRO[/b] — premium, still cheap    (model id: deepseek/deepseek-v4-pro)
+[b]DEEPSEEK V4 PRO[/b].. premium, still cheap    (model id: deepseek/deepseek-v4-pro)
 Top-tier quality, still well under Grok's price. For when you want the very best and don't mind paying a little more than V3.2.
 
 [b]WHAT IT COSTS, BY MODEL[/b]. Only Grok 4.3 is measured from real usage (the ~130 messages-per-dollar figure earlier); the others are extrapolated by price ratio, so treat them as ballpark. For the same play: DeepSeek V3.2 is about 5-6× cheaper than Grok 4.3, and DeepSeek V4 Pro about 3× cheaper. Concretely, the ~$1 week of heavy testing on Grok 4.3 would be roughly ~$0.18 on V3.2 or ~$0.38 on V4 Pro.. your exact cost still depends on conversation length and each model's own caching.
@@ -281,9 +281,9 @@ The explicit and Hardcore tiers are a deliberate design choice for adult players
 
 Calradia Remembers is built on top of [b]NpcMemoryService[/b], an open SDK I designed from scratch to wire a large language model into a game so NPCs can hold real conversations and remember them across a whole campaign. The SDK is engine-agnostic (.NET Standard 2.0, no dependency on any game engine or UI toolkit), fully documented, and designed to be extended.
 
-[b]As a player you don't need to install anything extra[/b] — the SDK is bundled inside this mod and works out of the box.
+[b]As a player you don't need to install anything extra[/b].. the SDK is bundled inside this mod and works out of the box.
 
-If you are a modder and want to build on this foundation — add new conversation features, new action types, new memory behaviours, or wire the SDK into a completely different game — the SDK is available separately here:
+If you are a modder and want to build on this foundation.. add new conversation features, new action types, new memory behaviours, or wire the SDK into a completely different game.. the SDK is available separately here:
 
 [url=https://www.nexusmods.com/mountandblade2bannerlord/mods/11658]NpcMemoryService SDK on Nexus[/url]
 

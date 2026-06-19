@@ -72,7 +72,7 @@ namespace CalradiaRemembers
       protected override void OnSubModuleLoad()
       {
          base.OnSubModuleLoad();
-         Log($"{ModName} v1.7.7 loaded.");
+         Log($"{ModName} v1.7.8 loaded.");
 
          try
          {

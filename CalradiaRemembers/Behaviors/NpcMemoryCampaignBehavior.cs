@@ -190,6 +190,7 @@ namespace CalradiaRemembers.Behaviors
             // party during session launch — instead hand any orphaned in-flight letter back to
             // its date-based delivery, so it still arrives even though the courier is gone.
             CourierService.ClearOrphanedCouriers(Store);
+            RemoveOrphanedLetterPlaceholders();
             QuestJournalBridge.ReconcileOnSessionLaunch(Store);
         }
 
@@ -240,6 +241,39 @@ namespace CalradiaRemembers.Behaviors
         }
 
         /// <summary>
+        ///   Removes letter placeholders left behind when an LLM generation never finished in a
+        ///   PRIOR session (<c>Content</c> still null, <c>DispatchDay</c> still the sentinel —
+        ///   the async task died with that session). Runs only at session launch: at that point
+        ///   no generation is in flight, so an orphan-shaped placeholder is always genuinely stale.
+        ///   Running this on the daily tick instead would delete the placeholder of a letter being
+        ///   generated on that very tick (the generation adds the placeholder synchronously, then
+        ///   awaits the LLM), stranding the letter and re-triggering its sender every day.
+        /// </summary>
+        private void RemoveOrphanedLetterPlaceholders()
+        {
+            foreach (string id in Store.ListIds())
+            {
+                NpcProfile profile = Store.Get(id);
+                if (profile?.SentLetters == null) continue;
+
+                var orphans = new List<PendingLetter>();
+                foreach (PendingLetter letter in profile.SentLetters)
+                {
+                    if (string.IsNullOrWhiteSpace(letter.Content) && letter.DispatchDay == int.MaxValue && !letter.IsDelivered)
+                    {
+                        orphans.Add(letter);
+                        ModLog.Info($"[LETTER] removing orphaned placeholder from {profile.Name} (LLM never responded last session).");
+                    }
+                }
+
+                if (orphans.Count == 0) continue;
+                foreach (PendingLetter orphan in orphans)
+                    profile.SentLetters.Remove(orphan);
+                Store.Set(profile);
+            }
+        }
+
+        /// <summary>
         ///   Spawns reply couriers (NPC→player) whose <c>DispatchDay</c> has arrived.
         ///   Must run on the main thread — MobileParty creation is not thread-safe.
         /// </summary>
@@ -251,23 +285,6 @@ namespace CalradiaRemembers.Behaviors
                 if (profile?.SentLetters == null) continue;
 
                 bool changed = false;
-
-                // Collect orphaned placeholder letters: LLM never responded in the previous
-                // session, so Content is still null and DispatchDay is still the sentinel.
-                var orphans = new List<PendingLetter>();
-                foreach (PendingLetter letter in profile.SentLetters)
-                {
-                    if (string.IsNullOrWhiteSpace(letter.Content) && letter.DispatchDay == int.MaxValue)
-                    {
-                        orphans.Add(letter);
-                        ModLog.Info($"[LETTER] removing orphaned placeholder from {profile.Name} (LLM never responded).");
-                    }
-                }
-                foreach (PendingLetter orphan in orphans)
-                {
-                    profile.SentLetters.Remove(orphan);
-                    changed = true;
-                }
 
                 foreach (PendingLetter letter in profile.SentLetters)
                 {
