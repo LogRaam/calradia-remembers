@@ -1434,6 +1434,48 @@ namespace CalradiaRemembers
          return "LLM diagnostic started. Watch the combat log and the log file for results.";
       }
 
+      /// <summary>
+      ///   cr.rumor [settlement]
+      ///   Opens a transient commoner conversation in the player's current settlement
+      ///   (or the named settlement if supplied). No profile is stored; the commoner
+      ///   exists only for this chat window. Tests the v1.1 Commoners path.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("rumor", "cr")]
+      public static string Rumor(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
+            return "LLM services not available. Check OPENROUTER_API_KEY / model settings.";
+
+         Settlement settlement = null;
+
+         if (args != null && args.Count > 0)
+         {
+            string query = string.Join(" ", args).Trim();
+            settlement = TaleWorlds.CampaignSystem.Settlements.Settlement.All
+               .FirstOrDefault(s => s.Name != null
+                  && s.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
+            if (settlement == null)
+               return $"No settlement found matching '{query}'.";
+         }
+         else
+         {
+            settlement = Hero.MainHero?.CurrentSettlement;
+         }
+
+         if (settlement == null)
+            return "No settlement found. Enter a town or castle, or pass a name: cr.rumor Pravend";
+
+         var knowledge = Commoners.CommonsKnowledgeBuilder.Build(settlement);
+         var profile   = Commoners.CommonsProfileFactory.Create(settlement);
+
+         Chat.ChatManager.OpenForCommoner(profile, knowledge);
+
+         return $"Opening commoner chat in {settlement.Name} — speak to {profile.Name}.";
+      }
+
       #region private
 
       /// <summary>

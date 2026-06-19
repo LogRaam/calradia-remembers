@@ -56,11 +56,11 @@ namespace CalradiaRemembers
 
          var campaignStarter = (CampaignGameStarter) gameStarterObject;
          campaignStarter.AddBehavior(new NpcMemoryCampaignBehavior());
-         // Marriage system Phase A.1 (family-approval engine) — REGISTERED for in-game testing
-         // of the consequence resolver via the cr.marriage_* console commands. ⚠️ MUST be
-         // re-gated (commented out) before ANY public release until Phase A.2 (the approval
-         // chat path) exists, or every vanilla marriage would be treated as un-blessed and
-         // sour the in-laws' whole clan.
+         // Marriage system (family-approval engine) — SHIPPED from v1.7.0. The approval chat path
+         // (grant_blessing, Phase A.2a) now exists, and the consequence only ever lands on the
+         // PLAYER's own marriage (OnBeforeHeroesMarried bails when the player is not a spouse), so
+         // vanilla NPC-NPC weddings are untouched. Marrying into a house without first earning its
+         // blessing chills that family — the intended love-vs-ambition mechanic.
          campaignStarter.AddBehavior(new Marriage.MarriageApprovalBehavior());
          Log($"{ModName} campaign behavior registered.");
       }
@@ -72,7 +72,7 @@ namespace CalradiaRemembers
       protected override void OnSubModuleLoad()
       {
          base.OnSubModuleLoad();
-         Log($"{ModName} v1.6.2 loaded.");
+         Log($"{ModName} v1.7.7 loaded.");
 
          try
          {

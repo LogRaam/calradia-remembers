@@ -2,6 +2,144 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.7.7.. 2026-06-19
+
+### Enhanced
+- **Commoner conversations now carry live rumors.** Every time you speak to a local,
+  the mod samples what the street is actually talking about: captured lords, nobles who
+  recently fell in battle, the mood of the market, active wars. The commoner weaves these
+  into the conversation naturally — "I heard", "they say", "word came that" — rather than
+  reciting them. The rumor list refreshes once per game day per settlement and is never
+  saved to the file.
+
+## v1.7.6.. 2026-06-18
+
+### New
+- **Talk to the locals.** When you approach a random townsperson, villager, or castle
+  servant — anyone without a name and title — you can now ask "What's the news here?"
+  This opens a short LLM conversation with a procedurally generated commoner: their name,
+  trade, and manner come from the local culture. They know what street-level people know:
+  who rules the settlement, how things are going, which lords are visiting, and what wars
+  the kingdom is fighting. Nothing is saved — every encounter is transient. The only action
+  they can take is to ask for a coin in exchange for something worth knowing (take_gold).
+
+## v1.7.5.. 2026-06-18
+
+### New
+- **Join a kingdom as a mercenary through conversation.** If a lord who belongs to a
+  kingdom speaks with you while your clan is free of any obligation, they can offer you a
+  mercenary contract on their kingdom's behalf — hired swords, no oath of fealty. You can
+  also propose it yourself. When both parties clearly agree, your clan enrolls immediately.
+- **Marry someone you love.** When the bond between you and an NPC has grown deep enough,
+  they can propose marriage in conversation — and so can you. The game's full marriage
+  logic runs when you both agree: they join your household, the clans gain a formal tie.
+  A wedding without the family's prior blessing (earned through Phase A.2) will chill
+  their kin's regard for you — love over politics always has a price.
+- **Lords can propose a match by letter.** A lord who regards you well may now write to
+  propose a marriage alliance — one of their eligible kin offered to your house. You will
+  receive this letter as a courier; the door from their side is now open.
+- **Take a consort.** Not every deep bond needs to be — or can be — a legal marriage.
+  When your relationship with an NPC has become genuinely intimate, you may name it openly:
+  a consort bond is a private, mutual commitment, real to both of you even if Calradian
+  law does not recognise it. Available even if you are already wed. Consorts write to you
+  as a spouse would when you have been apart too long.
+
+## v1.7.4.. 2026-06-18
+
+### Fixed
+- **Romantic letters no longer arrive in doubles.** When an NPC decided to write and
+  the game saved or the daily tick fired before the letter finished generating, a second
+  copy of the same letter could be queued. The system now reserves a slot the instant
+  the decision is made, so no duplicate can slip through.
+- **NPCs now write back when you send them a letter.** In many cases the AI was quietly
+  deciding not to reply — reasonable in the abstract, but frustrating when you had gone
+  to the trouble of hiring a courier. The default is now the opposite: a letter by courier
+  deserves a written answer, and the AI only stays silent for genuinely exceptional reasons.
+
+### New
+- **Silence gets a follow-up.** If an NPC sent you a romantic letter and you have not
+  replied after five days, they write again — impatient, longing, or quietly wounded,
+  depending on their nature. Only one follow-up per unanswered letter, so it stays
+  dramatic rather than becoming spam.
+- **Replies to romantic letters feel like replies.** When you finally answer an NPC's
+  letter, their response now opens with the relief and warmth of someone who had been
+  anxiously waiting — not a stock greeting as if they had forgotten they wrote to you.
+
+## v1.7.3.. 2026-06-17
+
+### Fixed
+- **NPCs now reliably reply in the player's language.** The previous attempt placed
+  the language instruction early in the prompt where English-centric models ignored
+  it. The directive is now at the very end of the system prompt (where it is read
+  immediately before the reply), made explicit with per-language examples, and
+  marked as overriding everything else. Models that follow instructions should now
+  mirror the player's language consistently.
+
+## v1.7.2.. 2026-06-17
+
+### Fixed
+- **Inventory button hidden during captive encounters.** The gold-bag button was
+  visible but did nothing when clicked — a captive has nothing to offer. It is
+  now correctly hidden for the duration of the scene.
+- **Logging off by default.** In some configurations (MCM loading late, mod
+  conflicts) logging could activate silently even when the player had never
+  turned it on. The fallback is now off, matching the documented default.
+
+## v1.7.1.. 2026-06-17
+
+### Fixed
+- **Step-children no longer misattributed.** When a lord had children from a
+  previous marriage, the AI would treat them as shared with the player's
+  character. The family block now names the child's actual other parent inline
+  ("Garios (male, by the late Liena)") so the model understands the distinction.
+- **NPCs now reply in the player's language.** The model is instructed to mirror
+  the language of the player's latest message for all dialogue and narration.
+  Section labels and action keywords remain in English so the parser is
+  unaffected; only the spoken prose is translated.
+
+## v1.7.0.. 2026-06-16
+
+The largest update so far: a near-complete rebuild of captive encounters, a
+marriage-blessing mechanic, broader AI-model support, and a wave of fixes to
+how characters understand the world around them.
+
+### New
+- **Marriage now needs a family's blessing.** Win a house's approval in
+  conversation before you wed.. marry into a family without its blessing and its
+  members take the slight personally and cool toward you. The blessing is theirs
+  to give, withhold, or set a worthy deed as its price — the old tension between
+  love and ambition, made real.
+- **"Please continue" at the end of a scene.** When a captive encounter closes,
+  you can choose to carry it on for another round instead of leaving.. your call.
+- **Real escape attempts.** A captive who tries to break free now has a true
+  (if slim) chance to actually get away — and if they do, they really are freed.
+- **A captive encounter can leave consequences.** A woman may fall pregnant from
+  an encounter, the child born into your own clan.
+
+### Improved
+- **Captive encounters, rebuilt (Hardcore).** Scenes now move with a clear
+  shape — a beginning, a build, and a real ending — instead of stalling or
+  cutting off. "Continue" and "Try something else" controls are always on hand,
+  so you can let a scene unfold or step in and steer it yourself at any moment,
+  and every encounter opens and develops differently now so no two feel the
+  same. Others present act with their own personalities and agendas rather than
+  standing about as scenery.
+- **Works with far more AI models.** The mod is now much more tolerant of how
+  different models format their replies, so lighter or cheaper models no longer
+  produce stray tags or empty lines. A new "Reasoning Effort" option and a
+  one-click model test — both in the mod settings — help you dial in and verify
+  your model.
+
+### Fixed
+- **Characters know their own families.** They no longer mistake a daughter for
+  a son, invent the names of their own children, or fail to recognise their
+  in-laws.. and they now know which of their kin are brothers and sisters.
+- **They remember the recently fallen.** A rival who has just died is no longer
+  forgotten the instant they fall — a character still recognises a foe they lost
+  only days ago.
+- **Guests don't claim another lord's hall.** A character visiting another
+  lord's town no longer speaks of the hall as though it were their own holding.
+
 ## v1.6.2.. 2026-06-13
 
 A critical save-reliability fix.

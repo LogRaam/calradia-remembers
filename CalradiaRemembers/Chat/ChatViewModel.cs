@@ -55,15 +55,16 @@ namespace CalradiaRemembers.Chat
         private string _relationSummary = "";
 
         // ── Chat mode ─────────────────────────────────────────────────────────
-        // One window, four behaviors. A single mode value (instead of a trio of
-        // booleans) so adding a mode (v1.1 commoners) means extending the enum and
-        // reviewing the named predicates below — not hunting scattered flag checks.
+        // One window, five behaviors. A single mode value (instead of a trio of
+        // booleans) so adding a mode means extending the enum and reviewing the
+        // named predicates below — not hunting scattered flag checks.
         private enum ChatMode
         {
             Conversation,    // live dialogue with an NPC — witnesses, actions, story log
             LetterReply,     // replying to a received letter — send seals a new letter
             Compose,         // writing a NEW letter — no LLM call, sealed directly
-            CaptiveEncounter // captor-led scene — the player is a prisoner (Sprint 17)
+            CaptiveEncounter,// captor-led scene — the player is a prisoner (Sprint 17)
+            Commoner         // v1.1 — transient street-level chat, no memory, no witnesses
         }
 
         private ChatMode _mode = ChatMode.Conversation;
@@ -71,10 +72,11 @@ namespace CalradiaRemembers.Chat
         // A spoken exchange happening "now" — transcript and story log apply.
         // Letter modes are correspondence: nothing is said aloud, nothing witnessed.
         private bool IsLiveConversation => _mode == ChatMode.Conversation
-                                        || _mode == ChatMode.CaptiveEncounter;
+                                        || _mode == ChatMode.CaptiveEncounter
+                                        || _mode == ChatMode.Commoner;
         private bool IsCaptiveEncounter => _mode == ChatMode.CaptiveEncounter;
         // A captive does not command the room — the captor's soldiers leave only if
-        // the captor wills it. Letters have no room to clear.
+        // the captor wills it. Commoners have no room. Letters have no room to clear.
         private bool AllowsPrivacyRequest => _mode == ChatMode.Conversation;
 
         // ── Letter reply mode payload ─────────────────────────────────────────
@@ -85,6 +87,12 @@ namespace CalradiaRemembers.Chat
 
         // ── Letter compose mode payload ───────────────────────────────────────
         private NpcProfile _composeRecipientProfile;
+
+        // ── Commoner mode payload (v1.1) ──────────────────────────────────────
+        // Synthetic profile + settlement snapshot created per session; never stored.
+        private NpcProfile               _commonerProfile;
+        private NpcMemoryService.Core.Models.CommonsKnowledge _commonsKnowledge;
+        private NpcMemoryService.Core.Models.ChatSession       _commonerSession;
         // Gold charged when the letter is sealed (0 = free, e.g. console test path).
         private int _composeCourierCost;
 
@@ -184,6 +192,7 @@ namespace CalradiaRemembers.Chat
             bool captorIsBandit = false)
         {
             _mode                          = ChatMode.CaptiveEncounter;
+            OnPropertyChanged(nameof(IsOfferItemVisible));
             _captiveEncounterProfile       = captorProfile;
             _captiveEncounterIsCollective  = isCollective;
             _captiveEncounterIsBandit      = captorIsBandit;
@@ -1605,6 +1614,25 @@ namespace CalradiaRemembers.Chat
             SendButtonText  = "Seal & Send";
         }
 
+        /// <summary>
+        ///   Switches the chat window into commoner mode: a transient, street-level
+        ///   exchange with a synthetically generated NPC. No memory is saved, no
+        ///   witnesses appear, and only the take_gold action is honoured.
+        /// </summary>
+        public void ActivateCommonerMode(
+            NpcProfile profile,
+            NpcMemoryService.Core.Models.CommonsKnowledge knowledge)
+        {
+            _mode             = ChatMode.Commoner;
+            _commonerProfile  = profile;
+            _commonsKnowledge = knowledge;
+            _commonerSession  = new NpcMemoryService.Core.Models.ChatSession();
+
+            TitleText       = $"Calradia Remembers — {profile?.Name ?? "a commoner"}";
+            CloseButtonText = "Leave";
+            SendButtonText  = "Say";
+        }
+
         public void ExecuteSendMessage()
         {
             var text = (InputText ?? "").Trim();
@@ -1960,6 +1988,14 @@ namespace CalradiaRemembers.Chat
         {
             try
             {
+                // ── Commoner mode (v1.1): slim transient path, no memory ───────
+                if (_mode == ChatMode.Commoner)
+                {
+                    await RunCommonerExchangeAsync(playerMessage, placeholder);
+                    return;
+                }
+                // ─────────────────────────────────────────────────────────────────
+
                 NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
 
                 // In letter reply mode the chat was opened outside of normal dialogue:
@@ -2423,11 +2459,111 @@ namespace CalradiaRemembers.Chat
         }
 
         /// <summary>
-        ///   Sprint 15C: automatic NPC counter-reply loop for witness reactions.
-        ///   Iterates up to <see cref="WitnessExchangeCap" /> times; each iteration is
-        ///   one LLM call. The loop terminates early when witnesses fall silent.
-        ///   On the final exchange the prompt instructs the NPC to close the beat
-        ///   rather than ask the witness another question.
+        ///   v1.1 Commoners: executes one LLM turn for a transient street-level NPC.
+        ///   Uses the slim commoner prompt (no memory, no witnesses, no quests).
+        ///   Only take_gold is dispatched; nothing is saved to the profile store.
+        /// </summary>
+        private async Task RunCommonerExchangeAsync(string playerMessage, ChatMessageViewModel placeholder)
+        {
+            try
+            {
+                NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+                if (behavior?.LlmServices == null || !behavior.LlmServices.IsAvailable)
+                {
+                    ReplacePlaceholder(placeholder, behavior?.LlmServices?.DescribeUnavailability()
+                        ?? "(The AI services are not available.)", null);
+                    return;
+                }
+                if (_commonerProfile == null || _commonerSession == null)
+                {
+                    ReplacePlaceholder(placeholder, "(Seems this stranger has nothing to say...)", null);
+                    return;
+                }
+
+                ModLog.Info($"[COMMONER] player → {_commonerProfile.Name}: \"{playerMessage}\"");
+
+                NpcChatResult result;
+                using (System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource())
+                {
+                    try
+                    {
+                        result = await System.Threading.Tasks.Task.Run(() =>
+                            behavior.LlmServices.ChatService.ChatCommonerAsync(
+                                _commonerProfile, _commonsKnowledge, _commonerSession,
+                                playerMessage, cts.Token))
+                            .ConfigureAwait(false);
+                    }
+                    catch (Exception netEx)
+                    {
+                        result = NpcChatResult.Failure(netEx.Message);
+                    }
+                }
+
+                await MainThreadDispatcher.SwitchToMainThread();
+
+                if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
+
+                if (!result.IsSuccess)
+                {
+                    ReplacePlaceholder(placeholder, "(My words escape me...)", null);
+                    ModLog.Error($"[COMMONER] LLM call failed: {result.ErrorMessage}");
+                    return;
+                }
+
+                ParsedResponse response = result.Response;
+                string npcLine = !string.IsNullOrWhiteSpace(response?.Dialogue)
+                    ? response.Dialogue : "(...)";
+
+                // Build a transient speaker for portrait/name rendering.
+                ChatSpeaker commonerSpeaker = new ChatSpeaker {
+                    IsMain  = true,
+                    Hero    = null,
+                    Name    = _commonerProfile.Name,
+                    Profile = _commonerProfile
+                };
+
+                ReplacePlaceholder(placeholder, npcLine, commonerSpeaker);
+                ModLog.Info($"[COMMONER] {_commonerProfile.Name} → \"{npcLine}\"");
+
+                // Record to transcript and story log (same as NPC path).
+                RecordTranscript(true,  "You",                null,                 playerMessage);
+                RecordTranscript(false, _commonerProfile.Name, _commonerProfile.Id, npcLine);
+                StoryLog.WritePlayerLine(playerMessage);
+                StoryLog.WriteNpcLine(_commonerProfile.Name, npcLine);
+
+                // Only take_gold is honoured for commoners — nothing else persists.
+                if (response?.Actions != null)
+                {
+                    foreach (NpcMemoryService.Core.Models.GameAction action in response.Actions)
+                    {
+                        if (!string.Equals(action.Type, "take_gold", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        ActionOutcome outcome = behavior.GameStateBridge
+                            .ExecuteAction(action, null, new ActionContext(_commonerProfile, null));
+                        if (outcome != null)
+                            AppendSystemMessage(outcome.Message, outcome.IsPositive);
+
+                        if (action.Parameters.TryGetValue("amount", out string ats)
+                            && int.TryParse(ats, out int at))
+                            StoryLog.WriteGoldTransfer(_commonerProfile.Name, at, npcGives: false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (placeholder != null)
+                    ReplacePlaceholder(placeholder, "(The stranger looks away...)", null);
+                ModLog.Error($"RunCommonerExchangeAsync threw {ex.GetType().Name}: {ex.Message}");
+            }
+            finally
+            {
+                IsSendEnabled = !_conversationEnded;
+            }
+        }
+
+        /// <summary>
+        ///   Sprint 15C: automatic NPC counter-reply to witness reactions (continuation).
         ///   Reactions are displayed immediately and committed to the transcript just
         ///   before each LLM call so the session history never double-counts them.
         ///   Re-enables player input in its <c>finally</c> block.

@@ -48,6 +48,12 @@ namespace CalradiaRemembers.GameState
                return ExecuteTakeGold(action, npcHero);
             case "join_party":
                return ExecuteJoinParty(action, npcHero);
+            case "join_as_mercenary":
+               return ExecuteJoinAsMercenary(npcHero);
+            case "marry":
+               return ExecuteMarry(npcHero, context);
+            case "take_as_consort":
+               return ExecuteTakeAsConsort(npcHero, context);
             case "give_item":
                return ExecuteGiveItem(action, npcHero);
             case "grant_blessing":
@@ -473,6 +479,131 @@ namespace CalradiaRemembers.GameState
          _captiveHarmApplied = true;
          ModLog.Info($"[CAPTIVE] forced-scene toll: player loses {lost} HP (now {player.HitPoints}).");
          return lost;
+      }
+
+      /// <summary>
+      ///   join_as_mercenary: a lord has offered — and the player has agreed — to enroll
+      ///   the player's clan as paid mercenary swords under his kingdom's banner. The
+      ///   prompt only teaches this action when the game confirms the player is free of
+      ///   any existing kingdom obligation (ResolveMercenaryOfferKingdom), but every guard
+      ///   is re-checked here — the bridge is the law.
+      /// </summary>
+      private static ActionOutcome ExecuteJoinAsMercenary(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            Kingdom kingdom = npcHero.Clan?.Kingdom;
+            if (kingdom == null)
+               return new ActionOutcome($"({npcHero.Name} does not belong to a kingdom.)", false);
+
+            Clan playerClan = Clan.PlayerClan;
+            if (playerClan == null) return null;
+
+            if (playerClan.Kingdom != null)
+               return new ActionOutcome(
+                  $"(Your clan is already sworn to {playerClan.Kingdom.Name}. " +
+                  "Settle that obligation first.)", false);
+
+            // shouldStayInKingdomUntil = Now (no forced lock-in beyond the standard contract logic)
+            // awardMultiplier = 1 (standard mercenary wage)
+            ChangeKingdomAction.ApplyByJoinFactionAsMercenary(
+               playerClan, kingdom, CampaignTime.Now, awardMultiplier: 1, showNotification: true);
+
+            ModLog.Info($"[ACTION] join_as_mercenary: player clan joined {kingdom.Name} as mercenary.");
+
+            return new ActionOutcome(
+               $"Your clan takes service under {kingdom.Name}'s banner as hired swords.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] join_as_mercenary failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   marry: the NPC has proposed marriage to the player in conversation and the player
+      ///   has accepted. Guards are re-checked here (the bridge is the law) before calling
+      ///   <see cref="MarriageAction.Apply" />. The mod's internal reputation score (≥50) is
+      ///   the gating threshold, matching <see cref="EncounterContextBuilder.ResolveLoveMatchEligible" />.
+      /// </summary>
+      private static ActionOutcome ExecuteMarry(Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            Hero player = Hero.MainHero;
+            if (player == null || npcHero == null) return null;
+
+            if (player.Spouse != null)
+               return new ActionOutcome(
+                  "(You are already wed — no second marriage can be sealed in law.)", false);
+
+            if (npcHero.Clan == Clan.PlayerClan)
+               return new ActionOutcome(
+                  $"({npcHero.Name} belongs to your own clan — custom forbids it.)", false);
+
+            if (!Marriage.MarriageProspectResolver.IsMarriageable(player, npcHero))
+               return new ActionOutcome(
+                  $"({npcHero.Name} cannot be wed to you under the laws of Calradia.)", false);
+
+            int reputation = context?.Profile?.ReputationWithPlayer ?? 0;
+            if (reputation < 50)
+               return new ActionOutcome(
+                  $"({npcHero.Name} does not yet hold you dear enough to take this step.)", false);
+
+            MarriageAction.Apply(player, npcHero, true);
+            ModLog.Info($"[ACTION] marry: player wed {npcHero.Name}.");
+
+            return new ActionOutcome(
+               $"You and {npcHero.Name} are joined in marriage — bound together before Calradia.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] marry failed: {ex.GetType().Name}: {ex.Message}");
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   take_as_consort: both parties have openly named the committed bond between them.
+      ///   Unlike legal marriage, this does not call <see cref="MarriageAction.Apply"/> —
+      ///   it is purely mod-tracked. Sets <c>IsConsort = true</c> and
+      ///   <c>Status = Committed</c> on the NPC's romantic profile.
+      ///   The player may already be wed; consorts are not bound by legal exclusivity.
+      /// </summary>
+      private static ActionOutcome ExecuteTakeAsConsort(Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null || context?.Profile == null) return null;
+
+            NpcProfile profile = context.Profile;
+
+            if (profile.Romantic == null)
+               return new ActionOutcome($"({npcHero.Name} has no romantic connection to build upon.)", false);
+
+            if (profile.Romantic.Status < RomanticStatus.Intimate)
+               return new ActionOutcome($"({npcHero.Name} is not yet close enough to you for this bond.)", false);
+
+            if (profile.Romantic.IsConsort || profile.Romantic.Status == RomanticStatus.Committed)
+               return new ActionOutcome($"(You and {npcHero.Name} are already bound as consorts.)", false);
+
+            profile.Romantic.Status    = RomanticStatus.Committed;
+            profile.Romantic.IsConsort = true;
+
+            ModLog.Info($"[ACTION] take_as_consort: {npcHero.Name} is now the player's consort.");
+
+            return new ActionOutcome(
+               $"You and {npcHero.Name} are bound as consorts — a commitment not named by law, but no less real.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] take_as_consort failed: {ex.GetType().Name}: {ex.Message}");
+            return null;
+         }
       }
 
       /// <summary>

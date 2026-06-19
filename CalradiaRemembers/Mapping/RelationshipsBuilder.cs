@@ -53,14 +53,43 @@ namespace CalradiaRemembers.Mapping
 
          if (enemies.Count > 0)
             sb.AppendLine($"Enemies: {string.Join(", ", enemies.Select(h => h.Name))}.");
+
+         AppendDeadRivals(sb, hero);
+      }
+
+      /// <summary>
+      ///   Recently-dead foes the NPC would still remember — a hero is dropped from the live enemy
+      ///   scan the moment they die, so without this an NPC denies ever knowing a rival who just
+      ///   fell (tester: a lord did not recognize a recently-killed enemy). Limited to deaths within
+      ///   the last ~2 Calradian years so the list stays short and relevant.
+      /// </summary>
+      private static void AppendDeadRivals(StringBuilder sb, Hero hero)
+      {
+         double now = CampaignTime.Now.ToDays;
+
+         var deadRivals = Hero.DeadOrDisabledHeroes
+                              .Where(h => h != null && !h.IsHumanPlayerCharacter && !h.IsAlive
+                                          && h.DeathDay.ToDays > 0
+                                          && now - h.DeathDay.ToDays >= 0
+                                          && now - h.DeathDay.ToDays <= 168 // ~2 Calradian years
+                                          && CharacterRelationManager.GetHeroRelation(hero, h) <= EnemyThreshold)
+                              .OrderByDescending(h => h.DeathDay.ToDays)
+                              .Take(4)
+                              .ToList();
+
+         if (deadRivals.Count > 0)
+            sb.AppendLine($"Recent rivals now dead (you remember them): " +
+                          $"{string.Join(", ", deadRivals.Select(h => $"the late {h.Name}{DescribeDeath(h)}"))}.");
       }
 
       private static void AppendFamily(StringBuilder sb, Hero hero)
       {
          var parts = new List<string>();
 
+         // Spouse, with their own parentage so in-laws are known (tester: a wife did not realize
+         // her husband was the ruler's eldest son, and invented his family).
          if (hero.Spouse is {IsAlive: true})
-            parts.Add($"Spouse: {hero.Spouse.Name}");
+            parts.Add($"Spouse: {hero.Spouse.Name}{DescribeParentage(hero.Spouse)}");
 
          // Parents are listed whether alive or dead, but a deceased one is marked as such —
          // otherwise the NPC reads "Father: X" and speaks of a dead parent as living,
@@ -71,12 +100,63 @@ namespace CalradiaRemembers.Mapping
          if (hero.Mother != null)
             parts.Add($"Mother: {FormatKin(hero.Mother)}");
 
+         // Children, EACH with their sex named — otherwise the NPC misgenders them (tester: a
+         // mother called her daughter her "son"). Co-parent is named when not the current spouse
+         // so the LLM does not treat a step-child as a shared child (tester: a lord's son from
+         // a deceased first wife was addressed as "our child" by the player-character spouse).
          List<Hero> aliveChildren = hero.Children?.Where(c => c.IsAlive).ToList();
          if (aliveChildren is {Count: > 0})
-            parts.Add($"Children: {string.Join(", ", aliveChildren.Select(c => c.Name))}");
+            parts.Add($"Children: {string.Join(", ", aliveChildren.Select(c => DescribeChild(c, hero)))}");
+
+
+         // Siblings, named with sex, so the NPC knows their own brothers and sisters.
+         List<Hero> siblings = hero.Siblings?.Where(s => s != null).ToList();
+         if (siblings is {Count: > 0})
+            parts.Add($"Siblings: {string.Join(", ", siblings.Select(DescribeRelative))}");
 
          if (parts.Count > 0)
             sb.AppendLine($"Family: {string.Join("; ", parts)}.");
+      }
+
+      /// <summary>Names a relative with their sex (so they are never misgendered), marking the deceased.</summary>
+      private static string DescribeRelative(Hero h)
+      {
+         string sex = h.IsFemale ? "female" : "male";
+         return h.IsAlive
+            ? $"{h.Name} ({sex})"
+            : $"the late {h.Name} ({sex})";
+      }
+
+      /// <summary>
+      ///   Names a child with their sex. When the child's other parent is not the NPC's current
+      ///   spouse (e.g. a child from a deceased first wife), that parent is named inline so the
+      ///   LLM understands the child is NOT shared with the current spouse.
+      /// </summary>
+      private static string DescribeChild(Hero child, Hero npcHero)
+      {
+         string sex  = child.IsFemale ? "female" : "male";
+         Hero other  = child.Father == npcHero ? child.Mother : child.Father;
+
+         string baseName = child.IsAlive
+            ? $"{child.Name} ({sex}"
+            : $"the late {child.Name} ({sex}";
+
+         if (other == null || other == npcHero.Spouse)
+            return baseName + ")";
+
+         string coParent = other.IsAlive
+            ? other.Name.ToString()
+            : $"the late {other.Name}";
+         return $"{baseName}, by {coParent})";
+      }
+
+      /// <summary>" (son of X)" / " (daughter of X)" — a relative's parentage, for in-law awareness.</summary>
+      private static string DescribeParentage(Hero h)
+      {
+         Hero parent = h.Father ?? h.Mother;
+         if (parent == null) return "";
+         string rel = h.IsFemale ? "daughter" : "son";
+         return $" ({rel} of {parent.Name})";
       }
 
       /// <summary>Names a relative, marking the deceased as "the late …" so the NPC speaks of them accurately.</summary>

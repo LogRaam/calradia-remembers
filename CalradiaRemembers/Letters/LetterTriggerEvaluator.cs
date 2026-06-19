@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
@@ -44,7 +45,9 @@ namespace CalradiaRemembers.Letters
       public void EvaluateDaily(BannerlordNpcMemoryStore store, LlmServices llmServices, int today)
       {
          EvaluateRomanticCorrespondence(store, llmServices, today);
+         EvaluateAwaitingReplies(store, llmServices, today);
          EvaluateSpouseCorrespondence(store, llmServices, today);
+         EvaluateMarriageSolicitations(store, llmServices, today);
       }
 
       public void Subscribe()
@@ -116,27 +119,161 @@ namespace CalradiaRemembers.Letters
          }
       }
 
+      /// <summary>
+      ///   Checks for romantic letters that were delivered but never answered. When the
+      ///   player has gone silent for five days after reading an NPC's romantic letter,
+      ///   the NPC writes a single follow-up expressing their impatience or longing.
+      ///   One follow-up per unanswered letter; bypasses the normal cooldown gate.
+      /// </summary>
+      private static void EvaluateAwaitingReplies(
+         BannerlordNpcMemoryStore store,
+         LlmServices llmServices,
+         int today)
+      {
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile?.Romantic == null) continue;
+            if (profile.Romantic.Status < RomanticStatus.Courting) continue;
+            if (profile.ReputationWithPlayer < 15) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+
+            if (hero == null || !hero.IsAlive) continue;
+            if (IsWithPlayer(hero)) continue;
+
+            // Find a delivered romantic letter with no player reply after 5 days.
+            PendingLetter unanswered = null;
+            foreach (PendingLetter l in profile.SentLetters)
+            {
+               if (l.Reason != LetterReason.RomanticCorrespondence) continue;
+               if (!l.IsDelivered) continue;
+               if (!string.IsNullOrWhiteSpace(l.PlayerReply)) continue;
+               if (today - l.SentOnDay < 5) continue;
+
+               unanswered = l;
+               break;
+            }
+
+            if (unanswered == null) continue;
+
+            // Only one follow-up per unanswered letter.
+            bool alreadySentFollowUp = false;
+            foreach (PendingLetter l in profile.SentLetters)
+            {
+               if (l.Reason == LetterReason.AwaitingReply && l.SentOnDay > unanswered.SentOnDay)
+               {
+                  alreadySentFollowUp = true;
+                  break;
+               }
+            }
+
+            if (alreadySentFollowUp) continue;
+
+            int daysSince = today - unanswered.SentOnDay;
+            string context = $"You wrote a letter {daysSince} days ago expressing your feelings. " +
+                             $"The player has not replied. Their silence weighs on you.";
+
+            LetterGenerationService.QueueInitialLetter(
+               profile, hero, LetterReason.AwaitingReply, context,
+               llmServices, store, today);
+
+            ModLog.Info($"[LETTER] {profile.Name} sends awaiting-reply follow-up ({daysSince}d of silence).");
+            return; // one follow-up per daily tick
+         }
+      }
+
       private static void EvaluateSpouseCorrespondence(
          BannerlordNpcMemoryStore store,
          LlmServices llmServices,
          int today)
       {
+         // Native (legal) spouse.
          Hero spouse = Hero.MainHero?.Spouse;
+         if (spouse != null && spouse.IsAlive && !IsWithPlayer(spouse))
+         {
+            NpcProfile profile = store.Get(spouse.StringId);
+            if (profile != null && CanSendLetter(profile, today, 7) && DaysSinceLastEvent(profile, today) >= 5)
+            {
+               string ctx = $"Player's spouse. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
+               LetterGenerationService.QueueInitialLetter(
+                  profile, spouse, LetterReason.SpouseCorrespondence, ctx,
+                  llmServices, store, today);
+            }
+         }
 
-         if (spouse == null || !spouse.IsAlive) return;
-         if (IsWithPlayer(spouse)) return; // spouse is travelling with the player — no letter needed
+         // Consorts — committed partners recognised by the mod but not by the game engine.
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+            if (profile?.Romantic?.IsConsort != true) continue;
+            if (profile.Romantic.Status != RomanticStatus.Committed) continue;
 
-         NpcProfile profile = store.Get(spouse.StringId);
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+            if (hero == null || !hero.IsAlive) continue;
+            if (IsWithPlayer(hero)) continue;
+            if (!CanSendLetter(profile, today, 10)) continue;
+            if (DaysSinceLastEvent(profile, today) < 7) continue;
 
-         if (profile == null) return;
-         if (!CanSendLetter(profile, today, 7)) return;
-         if (DaysSinceLastEvent(profile, today) < 5) return;
+            string context = $"Player's consort. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
+            LetterGenerationService.QueueInitialLetter(
+               profile, hero, LetterReason.SpouseCorrespondence, context,
+               llmServices, store, today);
+            return; // one consort letter per daily tick
+         }
+      }
 
-         var context = $"Player's spouse. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
+      /// <summary>
+      ///   A clan head who regards the player well may proactively propose an alliance match
+      ///   by letter. Fires when: NPC is a lord with eligible kin, player is single, player
+      ///   has some standing (clan tier ≥ 1), personal regard ≥ 20, and no proposal was
+      ///   already sent. One solicitation per daily tick; cooldown 30 days.
+      /// </summary>
+      private static void EvaluateMarriageSolicitations(
+         BannerlordNpcMemoryStore store,
+         LlmServices llmServices,
+         int today)
+      {
+         if (Hero.MainHero?.Spouse != null) return;          // player already wed
+         if (Clan.PlayerClan?.Tier < 1) return;              // no standing
 
-         LetterGenerationService.QueueInitialLetter(
-            profile, spouse, LetterReason.SpouseCorrespondence, context,
-            llmServices, store, today);
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+            if (profile == null) continue;
+            if (profile.ReputationWithPlayer < 20) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+            if (hero == null || !hero.IsAlive || !hero.IsLord) continue;
+            if (IsWithPlayer(hero)) continue;
+
+            // Build prospects — non-empty means this NPC has authority and eligible kin.
+            string prospects = MarriageProspectResolver.Build(hero);
+            if (string.IsNullOrWhiteSpace(prospects)) continue;
+
+            if (!CanSendLetter(profile, today, 30)) continue;
+
+            // Only one marriage proposal letter ever (avoid pestering the player).
+            bool alreadySent = false;
+            foreach (PendingLetter l in profile.SentLetters)
+            {
+               if (l.Reason == LetterReason.MarriageProposal) { alreadySent = true; break; }
+            }
+
+            if (alreadySent) continue;
+
+            string context = $"You are a lord of standing and you regard the player highly. " +
+                             $"You are writing to propose a marriage alliance between your house and theirs. " +
+                             $"Eligible members of your house: {prospects}";
+
+            LetterGenerationService.QueueInitialLetter(
+               profile, hero, LetterReason.MarriageProposal, context,
+               llmServices, store, today);
+
+            ModLog.Info($"[LETTER] {profile.Name} sends marriage solicitation to player.");
+            return; // one solicitation per daily tick
+         }
       }
 
       // ── Helpers ───────────────────────────────────────────────────────────

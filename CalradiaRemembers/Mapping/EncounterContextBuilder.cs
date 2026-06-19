@@ -5,8 +5,10 @@
 using System;
 using System.Linq;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Marriage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 
 #endregion
@@ -52,6 +54,7 @@ namespace CalradiaRemembers.Mapping
                 ? null
                 : ContextualNameResolver.Resolve(hero, playerMessage, bridge),
             NpcCurrentActivity     = bridge.GetCurrentActivity(hero),
+            CurrentLocationNote    = BuildLocationNote(hero),
             PlayerSpouseName       = Hero.MainHero?.Spouse?.IsAlive == true
                 ? Hero.MainHero.Spouse.Name?.ToString()
                 : null,
@@ -74,7 +77,12 @@ namespace CalradiaRemembers.Mapping
             PlayerLooksWealthy       = captorIsBandit && PlayerLooksWealthy(),
             PlayerLooksImportant     = captorIsBandit && PlayerLooksImportant(),
             CompanionAskingPrice     = ResolveCompanionAskingPrice(hero),
-            MarriageProspects        = Marriage.MarriageProspectResolver.Build(hero)
+            MercenaryOfferKingdom    = ResolveMercenaryOfferKingdom(hero),
+            LoveMatchEligible        = ResolveLoveMatchEligible(hero, profile),
+            LoveMatchBlessed         = ResolveLoveMatchBlessed(hero),
+            ConsortEligible          = ResolveConsortEligible(hero, profile),
+            PowerBalanceNote         = ResolvePowerBalanceNote(hero),
+            MarriageProspects        = MarriageProspectResolver.Build(hero)
             // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
             // coin, and naming the exact sum broke immersion. Affordability is enforced by the
             // bridge when the hire is executed, not foreseen in the prompt.
@@ -102,6 +110,129 @@ namespace CalradiaRemembers.Mapping
         /// </summary>
         private static int? ResolveCompanionAskingPrice(Hero hero)
             => GameState.RecruitmentPricing.GetHiringPrice(hero);
+
+        /// <summary>
+        ///   Returns the NPC's kingdom name when the NPC is a lord in a kingdom AND the
+        ///   player's clan is currently free of any kingdom obligation. Null otherwise —
+        ///   the mercenary-offer section is then not taught at all.
+        /// </summary>
+        private static string ResolveMercenaryOfferKingdom(Hero hero)
+        {
+            if (hero == null || !hero.IsLord) return null;
+
+            Kingdom npcKingdom = hero.Clan?.Kingdom;
+            if (npcKingdom == null) return null;
+
+            // Player must not already be in any kingdom (vassal or mercenary).
+            if (Clan.PlayerClan?.Kingdom != null) return null;
+
+            return npcKingdom.Name?.ToString();
+        }
+
+        /// <summary>
+        ///   Computes a prose note describing the power differential between the player's
+        ///   realm and the NPC's kingdom. Returns null when the balance is roughly even
+        ///   (within a 1.5× ratio) or when neither party belongs to a kingdom.
+        ///   Only issued for lords — wanderers and notables have no kingdom standing to weigh.
+        /// </summary>
+        private static string ResolvePowerBalanceNote(Hero hero)
+        {
+            try
+            {
+                if (hero == null || !hero.IsLord || Hero.MainHero == null) return null;
+
+                Kingdom playerKingdom = Clan.PlayerClan?.Kingdom;
+                Kingdom npcKingdom    = hero.Clan?.Kingdom;
+
+                // Both must be in a kingdom for the comparison to mean anything.
+                if (playerKingdom == null && npcKingdom == null) return null;
+
+                int playerFiefs = CountKingdomFiefs(playerKingdom);
+                int npcFiefs    = CountKingdomFiefs(npcKingdom);
+
+                bool atWar = playerKingdom != null && npcKingdom != null
+                          && FactionManager.IsAtWarAgainstFaction(playerKingdom, npcKingdom);
+
+                float ratio = npcFiefs > 0
+                    ? (float) playerFiefs / npcFiefs
+                    : (playerFiefs > 0 ? 10f : 1f);
+
+                if (atWar)
+                {
+                    if (ratio >= 2f)
+                        return "Your kingdom is at war with the player's realm, and the balance of power is heavily against you — they hold far more territory. Your position is precarious.";
+                    if (ratio <= 0.5f)
+                        return "Your kingdom is at war with the player's realm, and you hold a clear advantage — your forces and territory outmatch theirs.";
+                    return "Your kingdom is at war with the player's realm. The outcome remains uncertain; neither side commands a decisive advantage.";
+                }
+
+                // At peace — only remark on a significant asymmetry (≥ 2× ratio, ≥ 3 fiefs).
+                if (ratio >= 2f && playerFiefs >= 3)
+                    return $"The player's realm is considerably more powerful than yours — they hold {playerFiefs} fiefs to your kingdom's {npcFiefs}. You are aware of this disparity.";
+                if (ratio <= 0.5f && npcFiefs >= 3)
+                    return $"Your kingdom outmatches the player's realm — {npcFiefs} fiefs to their {playerFiefs}. You hold the stronger position.";
+
+                // Clan-level: NPC holds nothing while player's clan does.
+                bool npcClanHasFiefs = hero.Clan?.Settlements != null
+                    && hero.Clan.Settlements.Any(s => s.IsTown || s.IsCastle);
+                bool playerClanHasFiefs = Clan.PlayerClan?.Settlements != null
+                    && Clan.PlayerClan.Settlements.Any(s => s.IsTown || s.IsCastle);
+                if (!npcClanHasFiefs && playerClanHasFiefs)
+                    return "Your clan currently holds no fiefs, while the player's clan does. That gap in standing is not lost on you.";
+
+                return null;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>Counts towns and castles belonging to a kingdom; returns 0 for a null kingdom.</summary>
+        private static int CountKingdomFiefs(Kingdom kingdom)
+        {
+            if (kingdom == null) return 0;
+            int count = 0;
+            foreach (Settlement s in kingdom.Settlements)
+                if (s.IsTown || s.IsCastle) count++;
+            return count;
+        }
+
+        /// <summary>
+        ///   True when the NPC themselves is a viable marriage candidate AND the personal
+        ///   relation is deep enough (≥50) to make the prospect real. The prompt then
+        ///   teaches the <c>marry</c> action; the bridge re-validates before executing.
+        /// </summary>
+        private static bool ResolveLoveMatchEligible(Hero hero, NpcProfile profile)
+        {
+            if (hero == null || Hero.MainHero == null) return false;
+            if (Hero.MainHero.Spouse != null) return false;           // player already wed
+            if (hero.Clan == Clan.PlayerClan) return false;           // can't marry own clan
+            if (!MarriageProspectResolver.IsMarriageable(Hero.MainHero, hero)) return false;
+            return (profile?.ReputationWithPlayer ?? 0) >= 50;
+        }
+
+        /// <summary>True when A.2 already granted the family's blessing for this NPC.</summary>
+        private static bool ResolveLoveMatchBlessed(Hero hero)
+        {
+            if (hero == null) return false;
+            return MarriageApprovalBehavior.Instance?.IsApproved(hero.StringId) ?? false;
+        }
+
+        /// <summary>
+        ///   True when the NPC and the player share a deep enough romantic bond
+        ///   (status ≥ Intimate, not yet Committed, reputation ≥ 60, orientation-compatible)
+        ///   that a consort bond is conceivable. Available even if the player is already wed —
+        ///   the consort path bypasses the native marriage engine entirely.
+        /// </summary>
+        private static bool ResolveConsortEligible(Hero hero, NpcProfile profile)
+        {
+            if (hero == null || Hero.MainHero == null) return false;
+            if (profile?.Romantic == null) return false;
+            if (!profile.Romantic.IsCompatibleWith(Hero.MainHero.IsFemale)) return false;
+            if (profile.Romantic.IsConsort) return false;                               // already a consort
+            RomanticStatus status = profile.Romantic.Status;
+            if (status < RomanticStatus.Intimate) return false;
+            if (status == RomanticStatus.Committed) return false;
+            return profile.ReputationWithPlayer >= 60;
+        }
 
         /// <summary>
         ///   True when the player's worn battle gear is valuable enough that a brigand could
@@ -143,6 +274,36 @@ namespace CalradiaRemembers.Mapping
                 return c.Tier >= 3 || c.Influence >= 150f;
             }
             catch { return false; }
+        }
+
+        /// <summary>
+        ///   Describes where the conversation happens and who holds it, so an NPC who is a GUEST in
+        ///   another lord's settlement does not claim the hall as their own (tester report). Null when
+        ///   the NPC is not in a settlement or ownership is unknown.
+        /// </summary>
+        private static string BuildLocationNote(Hero hero)
+        {
+            try
+            {
+                Settlement s = hero?.CurrentSettlement;
+                if (s == null) return null;
+
+                Clan ownerClan = s.OwnerClan;
+                if (ownerClan != null && hero.Clan != null && ownerClan == hero.Clan)
+                    return $"You are in {s.Name}, a holding of your own clan.";
+
+                Hero owner = ownerClan?.Leader;
+                if (owner != null && owner != hero)
+                    return $"You are in {s.Name}, which belongs to {owner.Name}"
+                         + (ownerClan?.Name != null ? $" of clan {ownerClan.Name}" : "")
+                         + ". It is NOT your holding — you are here as a guest, not its lord.";
+
+                return $"You are in {s.Name}.";
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private static int ResolveArenaRank()

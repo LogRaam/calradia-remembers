@@ -181,6 +181,100 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
 
 ## Also planned (unscheduled)
 
+- **NPC-initiated interceptions on the campaign map.**
+  A lord can move toward the player and open a CR conversation without the player
+  seeking them out. `MobileParty.Ai.SetMoveEngageParty(MainParty)` makes the party
+  give chase; when parties touch, hook the encounter to open the chat instead of the
+  vanilla dialogue. One active pursuer at a time; strict per-NPC cooldown so it never
+  becomes harassment.
+
+  Trigger conditions (in rough priority order):
+  - **Territorial patrol** — the most distinctive case: a lord of a different faction
+    intercepts the player crossing their land. Bannerlord has no real borders; a
+    suspicious vassal riding out to challenge a foreign traveler makes the world feel
+    like it has actual sovereignty. Tone: interrogation / warning ("What brings you to
+    Vlandian lands, stranger?"). Probability scales with faction hostility and the
+    player's notoriety. No attack — purely a conversation, with consequences.
+  - **Urgent personal matter** — relation threshold (love or deep grudge) crossed since
+    last meeting; the NPC can't wait for the player to come to them.
+  - **Quest follow-up** — the NPC wants to press a deadline, renegotiate terms, or
+    deliver a reward in person.
+  - **Heard something** — fed by the v1.2 rumor store: a lord who just received word of
+    a player deed (a battle won on their land, an execution, a marriage) rides out to
+    react while it is still fresh.
+
+  This pairs naturally with v1.2 (rumor store gives lords reasons to care) and v1.3
+  (a scheme participant intercepting the player to warn or threaten them).
+
+- **Recruit a lord or lady into your clan through conversation** *(AI Influence
+  veterans consistently cite this as one of the most valued features in that mod.)*
+  A lord with deep enough trust in the player and no better prospects could be
+  persuaded to leave their current clan and join the player's — becoming a clan
+  member (`ChangeKingdomAction` transfers the Hero to the player's clan), not a
+  companion slot, since lords bring troops, skills, and sometimes fiefs.
+
+  Gates:
+  - Relation ≥ high threshold (trust must be genuinely deep, not just friendly)
+  - Player clan tier ≥ lord's clan tier (a duke does not follow a landless adventurer)
+  - Lord is in a vulnerable position: landless, clan weakened or destroyed, or
+    relation very low with their current liege — no one abandons comfort lightly
+
+  Side effects to respect: the lord's original clan loses a member; that faction's
+  standing toward the player takes a hit. Both are vanilla consequences and add
+  weight to the decision.
+
+  Aligns with v2.0 (political influence, defections). The `join_clan` action follows
+  the same pattern as `join_party` — teach it, gate it game-side, execute it in the
+  bridge. The LLM negotiates the story; the bridge enforces every condition.
+
+- **Power differential context block.**
+  NPCs currently receive relation, traits, and liege/vassal status — but not the raw
+  military and political imbalance between their clan and the player's. A lord whose
+  clan holds 2 fiefs while the player's kingdom controls 18, or who lost a battle
+  against the player last week, should speak with calculated caution — not blind
+  defiance and not blind submission.
+
+  What to inject into `EncounterContext` / `EncounterContextBuilder`:
+  - Player kingdom fief count vs NPC clan fief count (rough power ratio)
+  - Whether the NPC's clan is at war with the player and losing
+  - Whether the NPC recently lost a battle to the player's forces
+  - Whether the NPC is currently a prisoner of the player's faction
+
+  What this changes in the prompt: a `POWER BALANCE` block that teaches the NPC to
+  read the room. A vassal who knows they would lose does not openly defy — they
+  comply while nursing resentment, hedge their words, choose their battles. That
+  calculated, reluctant deference is more realistic *and* more interesting than
+  either blind arrogance or yes-man submission.
+
+  This does NOT make NPCs servile. It makes them *afraid when fear is warranted* and
+  *bold when they have the leverage* — the same calculation a real person would make.
+  Relation remains the warmth axis; power differential is the fear/respect axis.
+  Both feed the same character, differently.
+
+- **Dynastic succession — memory reframing on player death.**
+  When the player character dies and an heir takes over, NPC memories are not wiped
+  but rewritten through the lens of the new relationship. Trigger:
+  `CampaignEvents.OnPlayerCharacterChanged` fires when Bannerlord hands control to
+  the heir; the mod derives the kinship (`father / mother / brother / sister / spouse`)
+  from the two Hero objects.
+
+  For each NPC profile, an LLM reframing pass (same pattern as `LlmMemoryCompressor`)
+  receives the event list + kinship label and rewrites the profile's history:
+  - **World/political events** → transformed into dynastic memory:
+    "Your father helped me at the siege of Epicrotea — I owe your house that debt."
+  - **Personal/intimate events** → dropped. The heir does not inherit their parent's
+    private history.
+  - **Active obligations** (quests, alliances, pledges) → kept with an "inherited"
+    marker so NPCs can acknowledge the open thread: "Your mother made me a promise.
+    Does her blood intend to honor it?"
+
+  The rewritten history replaces the raw event list with a compact `background` block
+  in a dynastic voice. The new player inherits reputation, grudges, alliances, and
+  debts — not memories. First meeting with a given NPC after succession resets the
+  personal relationship history from that point forward.
+
+  Console workaround until this ships: `cr.forget_all` + `cr.memory_add` per NPC.
+
 - **Scenario bank** for captive scenes: Twine→JSON, one-use-per-campaign via
   SyncData, eligibility by kinks/gender, prompt injection.
   (When adding persisted campaign state, REMOVE

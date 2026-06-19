@@ -121,6 +121,21 @@ namespace CalradiaRemembers.Chat
             ActiveViewModel.ActivateCaptiveEncounterMode(captorProfile, isCollective, intent, captorIsBandit);
         }
 
+        /// <summary>
+        ///   Opens the chat window for a transient commoner conversation.
+        ///   The synthetic profile and settlement knowledge are passed directly to
+        ///   <see cref="ChatViewModel.ActivateCommonerMode" />; nothing is loaded
+        ///   from or saved to the profile store.
+        /// </summary>
+        public static void OpenForCommoner(
+            NpcMemoryService.Core.Models.NpcProfile profile,
+            NpcMemoryService.Core.Models.CommonsKnowledge knowledge)
+        {
+            Open(profile?.Name);
+            if (ActiveViewModel == null) return;
+            ActiveViewModel.ActivateCommonerMode(profile, knowledge);
+        }
+
         public static void Open(string npcName = null)
         {
             if (IsOpen)

@@ -181,27 +181,39 @@ namespace CalradiaRemembers.Letters
       {
          if (llmServices?.ChatService == null) return;
 
+         // Add a placeholder immediately so CanSendLetter sees a letter in-transit while the
+         // LLM call is in flight, preventing duplicate letters from consecutive daily ticks.
+         var placeholder = new PendingLetter {
+            SenderId = profile.Id,
+            SenderName = profile.Name,
+            Reason = reason,
+            Content = null,
+            SentOnDay = today,
+            DispatchDay = int.MaxValue, // sentinel: never dispatched until LLM fills it in
+            DeliveryDay = today + 1,    // marks as in-transit for CanSendLetter during async window
+            IsDelivered = false
+         };
+         profile.SentLetters.Add(placeholder);
+         store.Set(profile);
+
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string message = LetterPromptBuilder.BuildInitialLetterMessage(
             profile, reason, triggerContext, playerName);
 
          string content = await CallLlmForLetterAsync(llmServices, profile, message);
 
-         if (string.IsNullOrWhiteSpace(content)) return;
+         if (string.IsNullOrWhiteSpace(content))
+         {
+            // LLM failed — remove placeholder so the next evaluation can retry.
+            profile.SentLetters.Remove(placeholder);
+            store.Set(profile);
+            return;
+         }
 
          int deliveryDays = ComputeDeliveryDays(giverHero);
-         var letter = new PendingLetter {
-            SenderId = profile.Id,
-            SenderName = profile.Name,
-            Reason = reason,
-            Content = content,
-            SentOnDay = today,
-            DispatchDay = today, // courier departs as soon as letter is written
-            DeliveryDay = today + deliveryDays, // fallback if courier not yet spawned on load
-            IsDelivered = false
-         };
-
-         profile.SentLetters.Add(letter);
+         placeholder.Content = content;
+         placeholder.DispatchDay = today;           // courier departs as soon as letter is written
+         placeholder.DeliveryDay = today + deliveryDays; // fallback if courier not yet spawned on load
          store.Set(profile);
          ModLog.Info($"[LETTER] queued from {profile.Name} ({reason}), courier dispatches day {today}.");
       }

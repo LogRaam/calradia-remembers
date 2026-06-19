@@ -26,11 +26,11 @@ namespace CalradiaRemembers
             "CalradiaRemembers.log");
 
         /// <summary>
-        ///   Master logging switch from the MCM menu. Defaults to enabled when MCM has not
-        ///   yet loaded (so early-startup lines are not lost). When off, no on-screen
-        ///   messages and no file writes — the mod runs completely silent.
+        ///   Master logging switch from the MCM menu. Defaults to disabled when MCM has not
+        ///   yet loaded, so players never see logging active without having turned it on.
+        ///   When off, no on-screen messages and no file writes — the mod runs silent.
         /// </summary>
-        private static bool LoggingEnabled => Settings.CrSettings.Instance?.EnableLogging ?? true;
+        private static bool LoggingEnabled => Settings.CrSettings.Instance?.EnableLogging ?? false;
 
         static ModLog()
         {

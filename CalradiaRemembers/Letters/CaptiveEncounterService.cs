@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
@@ -170,8 +171,26 @@ namespace CalradiaRemembers.Letters
             // ── Lord captor: a profiled, named hero (existing CNC path) ──
             NpcProfile captorProfile = store.Get(captor.StringId);
 
-            if (captorProfile?.Romantic == null
-                || !captorProfile.Romantic.IsCompatibleWith(playerIsFemale)) return;
+            // No profile yet (player never spoke to this lord) — build one now from live
+            // hero state so the scene can fire. A cruel lord abuses prisoners regardless
+            // of whether the player has previously sought them out for conversation.
+            if (captorProfile == null)
+            {
+               captorProfile = HeroProfileMapper.FromHero(captor);
+               store.Set(captorProfile);
+               ModLog.Info($"[CAPTIVE] lord encounter: created profile on-demand for {captor.Name}.");
+            }
+
+            // Romantic profile missing (profile pre-dates adult content, or was created
+            // before the player reached an adult-capable content level) — build it lazily.
+            if (captorProfile.Romantic == null)
+            {
+               captorProfile.Romantic = RomanticProfileBuilder.Build(captor, captorProfile.Trait ?? "Noble");
+               store.Set(captorProfile);
+               ModLog.Info($"[CAPTIVE] lord encounter: built Romantic profile on-demand for {captor.Name}.");
+            }
+
+            if (!captorProfile.Romantic.IsCompatibleWith(playerIsFemale)) return;
 
             if (MBRandom.RandomFloat > CalculateProbability(daysInCaptivity, captorProfile)) return;
 

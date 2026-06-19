@@ -44,6 +44,9 @@ Calradia's peoples don't all think alike, and the characters reflect it. A Batta
 [b][color=#e69138]Real consequences[/color][/b]
 What's said in conversation can change the world: relation shifts, gold given or taken, and [b][color=#b6d7a8]informal quests[/color][/b] an NPC may offer you on their own initiative.. verified by [i][color=#93c47d]actual[/color][/i] game events before any reward is paid. No reward for a story you merely tell; only for a deed genuinely done.
 
+[b][color=#e69138]Join a kingdom as a mercenary through conversation[/color][/b]
+A lord who wants reliable swords — or a player who needs a contract — can negotiate mercenary service right there in the chat window. When your clan carries no existing obligation, any lord of a kingdom can offer you a contract on behalf of their realm, and you can propose it first if the mood calls for it. When you both clearly agree, your clan enrolls immediately: no separate menu, no lord's hall required.
+
 [b][color=#e69138]Recruit companions through conversation[/color][/b]
 Meet a wanderer in a tavern and convince them to ride with you.. in your own words, not through a menu. The asking price is the same one the vanilla game would charge.. and it is negotiable: impress them and they may come down, lowball them and they will hold firm or walk away. Fine titles do not waive the fee, and dressing the hire up as "joining my clan" will not get you out of paying.. a deal is a deal on the steppe. When you do strike one, they truly join your party, coin changes hands once, and the bargain itself becomes part of your shared history.
 [i]New.. pay in goods, not just coin.[/i] Short on denars? Ask whether something else might seal the deal, and a wanderer may take payment in kind. A bag icon in the chat opens a picker of your party inventory.. whole stacks, each shown with its value.. so you can settle the hire with wares instead of money. Goods are reckoned at roughly double the coin price, and a proud or hard-headed character may refuse the barter and hold out for denars, in character. You can also simply [b]give an NPC an item[/b] from your inventory as a gift in any conversation, and watch them react to it.
@@ -53,6 +56,9 @@ The tasks NPCs hand you aren't throwaway flavor text.. each one is mirrored into
 
 [b][color=#e69138]Multi-character scenes[/color][/b]
 Other lords present in the same hall can overhear, react in their own voice, and take sides.. and who is present actually makes sense: the smith from the market square will not be attending your audience in the keep. Bring up to two of your companions to a meeting (those walking beside you in town join naturally), or go alone. Everything is handled in the conversation itself: address a specific witness directly, ask one of your companions to leave you alone with the NPC in your own words, or request a private audience.. and the NPC decides whether to clear the room.
+
+[b][color=#e69138]Talk to the locals[/color][/b]
+Walk up to any townsperson, villager, or castle servant — anyone without a title — and ask what's going on. A short LLM conversation opens with a commoner whose name and trade come from the local culture. What they know is what the street knows: who rules the settlement, how times have been, which lords are passing through, recent deaths and captures, and the mood of the market. No memory is kept between conversations — every encounter is a fresh face. The only way coin changes hands is if they think a piece of news is worth paying for.
 
 [color=#e69138][b]Letters & visible couriers[/b][/color]
 Write to an NPC and hire a courier who physically crosses the campaign map to deliver the letter.. and who can be intercepted by bandits along the way. NPCs write back, and their replies arrive by courier too.
@@ -64,7 +70,17 @@ What you learn about a character surfaces on their own encyclopedia page. Alongs
 Turn it on (in options) and every conversation and letter is written out as a clean, novel-style transcript.. no timestamps, no technical noise.. so you can re-read your campaign like a book.
 
 [b][color=#e69138]Romance & courtship that emerge on their own[/color][/b]
-This isn't only an adult feature. From the [color=#8e7cc3][b]Mature[/b][/color] setting up, attraction grows with trust, and an unmarried lord or lady may raise courtship, or even marriage, on their [color=#d9d2e9][i]own[/i][/color] initiative when your standing warrants it: lead a clan of real rank, or make a name in the tournament lists, and the right people start to notice. How far things go is governed by the Adult Content Level below; that they happen at all is simply Calradia's characters reacting to who you've become.
+This isn't only an adult feature. From the [color=#8e7cc3][b]Mature[/b][/color] setting up, attraction grows with trust, and an unmarried lord or lady may raise courtship — or propose marriage outright — on their [color=#d9d2e9][i]own[/i][/color] initiative when your standing and your shared history warrant it: lead a clan of real rank, or make a name in the tournament lists, and the right people start to notice. You can propose just as freely. How far things go is governed by the Adult Content Level below; that they happen at all is simply Calradia's characters reacting to who you've become.
+
+[b][color=#e69138]Marriage — family politics, love matches, and letters of proposal[/color][/b]
+A match joins two houses, and the house gets a say. Ask the head of a family for the hand of their kin and they weigh your worth against their name.. granting their blessing freely, refusing it, or setting a single worthy deed as its price. Wed into a house [i]without[/i] that blessing and its members take the slight personally and cool toward you; earn it, and the family embraces the union.. though a dissenting cousin may still quietly resent it. Love and ambition, pulling against each other.
+
+When the bond between you and someone runs deep enough — and you have both earned it — marriage can also be proposed [i]in conversation[/i] itself: by you, by them, or by both arriving at it together. When you agree, it is real: the game's full marriage takes effect.
+
+Lords also write first. A clan head who regards you well may send a courier proposing a match with one of their eligible kin before you have ever thought to ask. The door can open from their side.
+
+[b][color=#e69138]Consort bonds[/color][/b]
+Not every deep commitment needs to be — or can be — a legal marriage. When a relationship has grown genuinely intimate, both parties can name it openly: a consort bond is a private, mutual pledge that both of you honour, even though Calradian law does not recognise it. It carries no clan merger, no inheritance claim.. but it is real, and your consort will write to you as a spouse would when you have been apart too long. This path is open even if you are already wed.
 
 [b][color=#e69138]Mature & adult content (opt-in, gated)[/color][/b]
 A single setting controls how much romantic and intimate content NPCs may express.. from [color=#dd7e6b][b]Off[/b][/color] (none) through [color=#dd7e6b][b]Mature[/b][/color] (romance, nothing explicit) to [color=#dd7e6b][b]Explicit[/b][/color] and [b][color=#dd7e6b]Hardcore[/color][/b]. Higher tiers unlock orientation and preference discovery, genuine intimacy gated by trust, and.. at Hardcore only.. captor/captive scenes for players who want darker, adult-only roleplay. All of it is [b][color=#dd7e6b]off the explicit path by default[/color][/b] and entirely your choice.
@@ -85,7 +101,7 @@ A single setting controls how much romantic and intimate content NPCs may expres
 
 [list]
 [*][b][color=#00ffff]Safe to add to an existing campaign[/color][/b]: Characters build their memory from the moment you first speak to them, so you don't need a fresh start.. just install and talk. As with any mod, back up your save before adding or removing it.[/*]
-[*][b][color=#00ffff]Language[/color][/b]: The mod is written and prompted in English, and characters reply in English.  But you can type you own replies in any languages.[/*]
+[*][b][color=#00ffff]Language[/color][/b]: The mod is written and prompted in English. NPCs now mirror the language of your latest message — type in French and they answer in French, in German and they answer in German. Section labels and action keywords stay in English internally so the mod keeps working correctly.[/*]
 [*][b][color=#00ffff]Backward-compatible updates.. guaranteed[/color]:[/b] Future updates to [b][color=#ffe599]this mod[/color][/b] will always keep supporting your existing saves. I guarantee that no update of mine will ever break a current campaign or force you to restart your playthrough.. save compatibility is a top priority for the entire lifespan of the mod. [i][color=#ffe599](The one thing no modder can promise is a breaking change in [/color][b][color=#ffff00]Bannerlord itself or another mod[/color][color=#ffe599]..[/color][/b][color=#ffe599] that's outside any single mod's control, but on my side, your save is safe.)[/color][/i][/*]
 [/list]
 [line]
@@ -172,7 +188,7 @@ OR.. SET UP NANOGPT INSTEAD (ONE TIME)
   2. Set "LLM Provider" to OpenRouter or NanoGPT — whichever you set up.
   3. Paste your key into that provider's API Key field (OpenRouter or NanoGPT).
   4. Set that provider's Model field (OpenRouter has a default; NanoGPT needs an id you paste from its catalog).
-  5. Click that provider's "Test Connection" button.. it checks your key without starting a conversation or spending tokens.
+  5. Click that provider's "Test Connection" button.. it checks your key — and, on OpenRouter, also tests your chosen model with a tiny one-token prompt — so a wrong key or a mistyped model id is caught before you play.
   6. That's it. Settings apply immediately.. no restart, no save reload. Walk up to any lord and talk.
 
 3. THE SETTINGS MENU, OPTION BY OPTION
@@ -186,7 +202,8 @@ LLM Provider:
 [list]
 [*]OpenRouter API Key.. your key from openrouter.ai/keys. Applies immediately.[/*]
 [*]Model.. the OpenRouter model id to use. Default: x-ai/grok-4.3. Any text model on OpenRouter works.. see "Which model should I use?" just below for picks by quality, price, and adult-content tolerance.[/*]
-[*]Test Connection.. verifies your key against OpenRouter. No tokens spent.[/*]
+[*]Reasoning Effort.. how hard a reasoning model (like Grok) "thinks" before replying. Lower or Off makes such models markedly less prone to moralizing refusals on adult/Hardcore content. Default Low.. leave it there unless a model is being stubborn. OpenRouter only.[/*]
+[*]Test Connection.. validates your key [i]and[/i] your chosen model: it sends a one-token test prompt and reports any error (a mistyped model id, for instance). Costs a fraction of a cent.[/*]
 [/list]
 
 [b][color=#b6d7a8]NanoGPT[/color] [/b](used when Provider is set to NanoGPT):
@@ -257,7 +274,20 @@ A few quiet pieces of engineering keep this practical to actually play with.. ea
 [line]
 [size=4]A note on the adult content[/size]
 
-The explicit and Hardcore tiers are a deliberate design choice for adult players who want that kind of roleplay, and they are [b][color=#f1c232]strictly opt-in[/color][/b].. the mod ships on Mature and never escalates on its own. The Hardcore captor/captive scenes depict non-consensual fantasy roleplay between fictional characters, for consenting adult players only. If that's not for you, leave the setting at Mature or Off and you'll never see it.
+The explicit and Hardcore tiers are a deliberate design choice for adult players who want that kind of roleplay, and they are [b][color=#f1c232]strictly opt-in[/color][/b].. the mod ships on Mature and never escalates on its own. The Hardcore captor/captive scenes depict non-consensual fantasy roleplay between fictional characters, for consenting adult players only. These scenes are interactive and paced rather than walls of text.. they build and resolve, you can steer them in your own words or try to break free at any point, and they can carry real, lasting consequences. If that's not for you, leave the setting at Mature or Off and you'll never see it.
+
+[line]
+[size=4]For modders: the NpcMemoryService SDK[/size]
+
+Calradia Remembers is built on top of [b]NpcMemoryService[/b], an open SDK I designed from scratch to wire a large language model into a game so NPCs can hold real conversations and remember them across a whole campaign. The SDK is engine-agnostic (.NET Standard 2.0, no dependency on any game engine or UI toolkit), fully documented, and designed to be extended.
+
+[b]As a player you don't need to install anything extra[/b] — the SDK is bundled inside this mod and works out of the box.
+
+If you are a modder and want to build on this foundation — add new conversation features, new action types, new memory behaviours, or wire the SDK into a completely different game — the SDK is available separately here:
+
+[url=https://www.nexusmods.com/mountandblade2bannerlord/mods/11658]NpcMemoryService SDK on Nexus[/url]
+
+It includes full XML documentation on every public type, a runnable reference integration (ConsoleRunner) that shows the complete wiring end-to-end, and a clean architecture you can extend without touching the core. You publish the game actions you want the model to be able to request, implement the verbs yourself, and the SDK handles everything else: memory, prompting, parsing, compression, and persistence. Contributions and extensions are welcome.
 
 [line]
 [size=4]Thanks[/size]

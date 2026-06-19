@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Commoners;
 using CalradiaRemembers.Dialogue;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Letters;
@@ -175,6 +176,7 @@ namespace CalradiaRemembers.Behaviors
             DisplayLoadedProfiles();
             UpgradeLegacyProfiles();
             RefreshRelationships();
+            RumorStore.Clear();
             DialogFlow.Register(campaignGameStarter);
             ModLog.Info("Dialog flow registered.");
 
@@ -182,6 +184,7 @@ namespace CalradiaRemembers.Behaviors
             QuestTracker.Subscribe();
             LetterEvaluator.Subscribe();
             new TaverneLetterBehavior().Register(campaignGameStarter);
+            new CommonsDialogBehavior().Register(campaignGameStarter);
             CourierService.RebuildActiveCourierSet(Store);
             // Couriers were kept out of the save (despawned pre-save). Don't respawn a fragile
             // party during session launch — instead hand any orphaned in-flight letter back to
@@ -248,6 +251,24 @@ namespace CalradiaRemembers.Behaviors
                 if (profile?.SentLetters == null) continue;
 
                 bool changed = false;
+
+                // Collect orphaned placeholder letters: LLM never responded in the previous
+                // session, so Content is still null and DispatchDay is still the sentinel.
+                var orphans = new List<PendingLetter>();
+                foreach (PendingLetter letter in profile.SentLetters)
+                {
+                    if (string.IsNullOrWhiteSpace(letter.Content) && letter.DispatchDay == int.MaxValue)
+                    {
+                        orphans.Add(letter);
+                        ModLog.Info($"[LETTER] removing orphaned placeholder from {profile.Name} (LLM never responded).");
+                    }
+                }
+                foreach (PendingLetter orphan in orphans)
+                {
+                    profile.SentLetters.Remove(orphan);
+                    changed = true;
+                }
+
                 foreach (PendingLetter letter in profile.SentLetters)
                 {
                     if (letter.IsDelivered || letter.IsLost) continue;
