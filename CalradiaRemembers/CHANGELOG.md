@@ -6,17 +6,17 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ### New
 - **Romance now has rivals.** Court, kiss, or wed one person and a third party with a real
-  stake in them may turn against you — never a random grudge, always someone with a believable
+  stake in them may turn against you.. never a random grudge, always someone with a believable
   reason: the wronged spouse of the one you courted, your own slighted partner, a close associate
   who hoped to marry them first, or an admirer of yours you passed over. They find out the way
-  people really do — if there were **witnesses**, word travels fast; flirting with a married lady
+  people really do.. if there were **witnesses**, word travels fast; flirting with a married lady
   in front of others is a telegraphed risk. A few days later the consequence lands: their regard
-  for you cools, they remember the slight, and they may send a **letter** — a cold warning, a
-  wounded reproach, or an open threat ("leave her be — I mean to marry her one day").
+  for you cools, they remember the slight, and they may send a **letter**.. a cold warning, a
+  wounded reproach, or an open threat ("leave her be.. I mean to marry her one day").
 - **Jealousy reads the culture of the wronged party.** A partner from a strictly monogamous
   people (Vlandia, the Empire, Sturgia) treats a love given elsewhere as a betrayal. A partner
   from a culture that accepts several spouses among its highborn (Khuzait, Aserai, Battania,
-  the Nords) is not outraged that you took another — but the rivalry shifts to standing and
+  the Nords) is not outraged that you took another.. but the rivalry shifts to standing and
   attention between your partners, so a great love becomes a harder one to keep. Which factions
   hold which view lives in an editable `ModuleData/jealousy_cultures.json`, so total-conversion
   and faction mods can define their own peoples' customs without touching the mod.
@@ -24,29 +24,30 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ### Fixed
 - **Hideout boss fights work again.** When clearing a bandit hideout, the final confrontation
   with the boss could open the mod's "talk to a local" chat instead of the vanilla choice to
-  duel the leader alone or charge in with everyone — leaving you unable to start the fight, with
+  duel the leader alone or charge in with everyone.. leaving you unable to start the fight, with
   the AI treating the brigand as an ordinary townsperson. The "talk to the locals" option is now
   limited to real civilian settlements (towns, villages, castles) and never offered to bandits,
   so a hideout plays out exactly as the base game intends.
 
 ### Notes
 - New console command `cr.jealousy [name]` resolves and fires a jealousy reaction on demand, for
-  testing the feature without building up a full romance first.
+  testing the feature without building up a full romance first. `cr.jealousy_comp` reports your
+  current partner household and forces one rivalry-over-attention pass.
 
 ## v1.7.8.. 2026-06-19
 
 ### Fixed
-- **Letters from the daily flow now actually arrive — and stop repeating.** A reliability
+- **Letters from the daily flow now actually arrive.. and stop repeating.** A reliability
   bug could strand letters that an NPC decided to write on their own each day (a romantic
   note, an impatient follow-up, a word from a spouse or consort, a lord's marriage
   proposal). The moment such a letter began generating, the same daily pass that started
   it could mistake the half-written letter for an abandoned one and quietly discard it.
   The letter never reached you, and because nothing recorded that it had been sent, the
-  NPC tried again the next day, and the next — an endless, undelivered loop. The worst
+  NPC tried again the next day, and the next.. an endless, undelivered loop. The worst
   case in the wild: an NPC writing the same "you still haven't written back" letter over
   and over, none of which arrived. Letters now survive the day they are written, reach
   you as intended, and a follow-up is sent once and only once. (Cleanup of genuinely
-  abandoned letters from an interrupted session still happens — but now safely at load
+  abandoned letters from an interrupted session still happens.. but now safely at load
   time, where it can no longer collide with a letter being written.)
 - **The "you haven't replied" follow-up now waits five days from when the letter
   *arrived*, not from when it was written.** Couriers take time on the road, so the
@@ -58,7 +59,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 - **Commoner conversations now carry live rumors.** Every time you speak to a local,
   the mod samples what the street is actually talking about: captured lords, nobles who
   recently fell in battle, the mood of the market, active wars. The commoner weaves these
-  into the conversation naturally — "I heard", "they say", "word came that" — rather than
+  into the conversation naturally.. "I heard", "they say", "word came that".. rather than
   reciting them. The rumor list refreshes once per game day per settlement and is never
   saved to the file.
 
@@ -66,11 +67,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ### New
 - **Talk to the locals.** When you approach a random townsperson, villager, or castle
-  servant — anyone without a name and title — you can now ask "What's the news here?"
+  servant.. anyone without a name and title.. you can now ask "What's the news here?"
   This opens a short LLM conversation with a procedurally generated commoner: their name,
   trade, and manner come from the local culture. They know what street-level people know:
   who rules the settlement, how things are going, which lords are visiting, and what wars
-  the kingdom is fighting. Nothing is saved — every encounter is transient. The only action
+  the kingdom is fighting. Nothing is saved.. every encounter is transient. The only action
   they can take is to ask for a coin in exchange for something worth knowing (take_gold).
 
 ## v1.7.5.. 2026-06-18
@@ -78,17 +79,17 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ### New
 - **Join a kingdom as a mercenary through conversation.** If a lord who belongs to a
   kingdom speaks with you while your clan is free of any obligation, they can offer you a
-  mercenary contract on their kingdom's behalf — hired swords, no oath of fealty. You can
+  mercenary contract on their kingdom's behalf.. hired swords, no oath of fealty. You can
   also propose it yourself. When both parties clearly agree, your clan enrolls immediately.
 - **Marry someone you love.** When the bond between you and an NPC has grown deep enough,
-  they can propose marriage in conversation — and so can you. The game's full marriage
+  they can propose marriage in conversation.. and so can you. The game's full marriage
   logic runs when you both agree: they join your household, the clans gain a formal tie.
   A wedding without the family's prior blessing (earned through Phase A.2) will chill
-  their kin's regard for you — love over politics always has a price.
+  their kin's regard for you.. love over politics always has a price.
 - **Lords can propose a match by letter.** A lord who regards you well may now write to
-  propose a marriage alliance — one of their eligible kin offered to your house. You will
+  propose a marriage alliance.. one of their eligible kin offered to your house. You will
   receive this letter as a courier; the door from their side is now open.
-- **Take a consort.** Not every deep bond needs to be — or can be — a legal marriage.
+- **Take a consort.** Not every deep bond needs to be.. or can be.. a legal marriage.
   When your relationship with an NPC has become genuinely intimate, you may name it openly:
   a consort bond is a private, mutual commitment, real to both of you even if Calradian
   law does not recognise it. Available even if you are already wed. Consorts write to you
@@ -102,18 +103,18 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   copy of the same letter could be queued. The system now reserves a slot the instant
   the decision is made, so no duplicate can slip through.
 - **NPCs now write back when you send them a letter.** In many cases the AI was quietly
-  deciding not to reply — reasonable in the abstract, but frustrating when you had gone
+  deciding not to reply.. reasonable in the abstract, but frustrating when you had gone
   to the trouble of hiring a courier. The default is now the opposite: a letter by courier
   deserves a written answer, and the AI only stays silent for genuinely exceptional reasons.
 
 ### New
 - **Silence gets a follow-up.** If an NPC sent you a romantic letter and you have not
-  replied after five days, they write again — impatient, longing, or quietly wounded,
+  replied after five days, they write again.. impatient, longing, or quietly wounded,
   depending on their nature. Only one follow-up per unanswered letter, so it stays
   dramatic rather than becoming spam.
 - **Replies to romantic letters feel like replies.** When you finally answer an NPC's
   letter, their response now opens with the relief and warmth of someone who had been
-  anxiously waiting — not a stock greeting as if they had forgotten they wrote to you.
+  anxiously waiting.. not a stock greeting as if they had forgotten they wrote to you.
 
 ## v1.7.3.. 2026-06-17
 
@@ -129,7 +130,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ### Fixed
 - **Inventory button hidden during captive encounters.** The gold-bag button was
-  visible but did nothing when clicked — a captive has nothing to offer. It is
+  visible but did nothing when clicked.. a captive has nothing to offer. It is
   now correctly hidden for the duration of the scene.
 - **Logging off by default.** In some configurations (MCM loading late, mod
   conflicts) logging could activate silently even when the player had never
@@ -157,18 +158,18 @@ how characters understand the world around them.
 - **Marriage now needs a family's blessing.** Win a house's approval in
   conversation before you wed.. marry into a family without its blessing and its
   members take the slight personally and cool toward you. The blessing is theirs
-  to give, withhold, or set a worthy deed as its price — the old tension between
+  to give, withhold, or set a worthy deed as its price.. the old tension between
   love and ambition, made real.
 - **"Please continue" at the end of a scene.** When a captive encounter closes,
   you can choose to carry it on for another round instead of leaving.. your call.
 - **Real escape attempts.** A captive who tries to break free now has a true
-  (if slim) chance to actually get away — and if they do, they really are freed.
+  (if slim) chance to actually get away.. and if they do, they really are freed.
 - **A captive encounter can leave consequences.** A woman may fall pregnant from
   an encounter, the child born into your own clan.
 
 ### Improved
 - **Captive encounters, rebuilt (Hardcore).** Scenes now move with a clear
-  shape — a beginning, a build, and a real ending — instead of stalling or
+  shape.. a beginning, a build, and a real ending.. instead of stalling or
   cutting off. "Continue" and "Try something else" controls are always on hand,
   so you can let a scene unfold or step in and steer it yourself at any moment,
   and every encounter opens and develops differently now so no two feel the
@@ -177,7 +178,7 @@ how characters understand the world around them.
 - **Works with far more AI models.** The mod is now much more tolerant of how
   different models format their replies, so lighter or cheaper models no longer
   produce stray tags or empty lines. A new "Reasoning Effort" option and a
-  one-click model test — both in the mod settings — help you dial in and verify
+  one-click model test.. both in the mod settings.. help you dial in and verify
   your model.
 
 ### Fixed
@@ -185,7 +186,7 @@ how characters understand the world around them.
   a son, invent the names of their own children, or fail to recognise their
   in-laws.. and they now know which of their kin are brothers and sisters.
 - **They remember the recently fallen.** A rival who has just died is no longer
-  forgotten the instant they fall — a character still recognises a foe they lost
+  forgotten the instant they fall.. a character still recognises a foe they lost
   only days ago.
 - **Guests don't claim another lord's hall.** A character visiting another
   lord's town no longer speaks of the hall as though it were their own holding.
@@ -199,13 +200,13 @@ A critical save-reliability fix.
   more NPCs, the growing block of memories could exceed an internal limit in the game's
   save format and leave the file unable to load. Memories are now stored in a way that has
   no such ceiling, so a long campaign full of remembered characters saves and loads
-  reliably. Existing saves are upgraded automatically the next time you save — nothing to
+  reliably. Existing saves are upgraded automatically the next time you save.. nothing to
   do. (Layered safety net on top: any single memory that still cannot be written or read
   is skipped rather than taking the whole save down, so your campaign always loads.)
 
 ## v1.6.1.. 2026-06-13
 
-A stability release — and a small touch of life in conversation.
+A stability release.. and a small touch of life in conversation.
 
 ### Fixed
 - **Saves that refused to load.** A letter courier travelling the map at the moment
@@ -215,11 +216,11 @@ A stability release — and a small touch of life in conversation.
   delivered on schedule by its fallback. Existing campaigns are safe again.
 
 ### New
-- **NPCs can tell you where someone is — if they would plausibly know.** Ask a
+- **NPCs can tell you where someone is.. if they would plausibly know.** Ask a
   character about another person they are close to (kin, a clansman, a good friend,
   or someone in their own faction) and they may share where that person was headed,
   spoken as hearsay: "Last I heard, she was riding toward Ocs Hall." A stranger or a
-  distant rival they simply cannot place — and no one invents a whereabouts they were
+  distant rival they simply cannot place.. and no one invents a whereabouts they were
   never told.
 
 ## v1.6.0.. 2026-06-13

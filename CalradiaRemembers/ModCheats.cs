@@ -186,6 +186,23 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.jealousy_comp
+      ///   Reports the player's current partner household (native spouse + committed consorts) with
+      ///   each one's culture, sharing-tolerance and how long since they were last attended to, then
+      ///   forces one competition pass so the v1.5 ongoing-rivalry loop can be tested without waiting.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("jealousy_comp", "cr")]
+      public static string TriggerJealousyCompetition(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
+            return error;
+         if (Jealousy.JealousyBehavior.Instance == null)
+            return "Jealousy system is not active.";
+
+         return Jealousy.JealousyBehavior.Instance.DebugCompetition();
+      }
+
+      /// <summary>
       ///   cr.witness [witnessName]
       ///   Adds a named witness to the currently open chat session. Primary test path
       ///   for the multi-NPC feature — validates prompt injection, header UI, and the

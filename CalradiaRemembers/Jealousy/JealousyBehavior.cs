@@ -39,6 +39,15 @@ namespace CalradiaRemembers.Jealousy
         // Don't let the same party stew over the same courted NPC more than once per this window.
         private const int ReactionCooldownDays = 20;
 
+        // ── Competition loop (v1.5): a polygamous household whose partners are unevenly attended ──
+        private const int   NeglectThresholdDays    = 14;   // unseen this long = neglected
+        private const int   InequityGapDays         = 8;    // ...AND another partner seen this much sooner
+        private const int   CompetitionCooldownDays = 15;   // between competition reactions per partner
+        private const int   CompetitionRelationDecay = 2;   // mild cooling each reaction
+        private const float CompetitionLetterChance = 0.6f;
+        private const int   EstrangeNeglectDays      = 30;  // a high-hierarchy senior withdraws after this
+        private const int   EstrangeRelationHit      = 10;
+
         private JealousyState _state = new JealousyState();
 
         public JealousyBehavior() => Instance = this;
@@ -142,8 +151,14 @@ namespace CalradiaRemembers.Jealousy
 
         private void OnDailyTick()
         {
-            if (_state.Pending.Count == 0) return;
             int today = (int) CampaignTime.Now.ToDays;
+            FireDuePending(today);
+            EvaluateCompetition(today);
+        }
+
+        private void FireDuePending(int today)
+        {
+            if (_state.Pending.Count == 0) return;
 
             var due = _state.Pending.Where(p => today >= p.ReactDay).ToList();
             foreach (PendingJealousy pj in due)
@@ -155,6 +170,139 @@ namespace CalradiaRemembers.Jealousy
                     ModLog.Error($"[JEALOUSY] reaction failed for {pj?.PartyId}: {ex.GetType().Name}: {ex.Message}");
                 }
             }
+        }
+
+        // ── Competition loop (v1.5) ─────────────────────────────────────────────
+
+        /// <summary>
+        ///   Once the player keeps more than one partner, those from cultures that accept shared
+        ///   partners compete for attention and standing. A partner left unseen while another is
+        ///   favoured cools toward the player and may write demanding their due — and a long-
+        ///   neglected senior of a high-hierarchy culture can withdraw from the bond entirely.
+        ///   Purely a function of how the PLAYER divides their attention; no NPC<->NPC simulation.
+        /// </summary>
+        private void EvaluateCompetition(int today)
+        {
+            try
+            {
+                var behavior = NpcMemoryCampaignBehavior.Instance;
+                if (behavior?.Store == null) return;
+
+                Hero spouse = Hero.MainHero?.Spouse;
+                var partners = new List<Hero>();
+                if (spouse != null && spouse.IsAlive) partners.Add(spouse);
+                foreach (string id in behavior.Store.ListIds())
+                {
+                    NpcProfile p = behavior.Store.Get(id);
+                    if (p?.Romantic == null || !p.Romantic.IsConsort || p.Romantic.Status != RomanticStatus.Committed) continue;
+                    Hero h = Hero.FindFirst(x => x.StringId == id);
+                    if (h != null && h.IsAlive && h != spouse) partners.Add(h);
+                }
+                if (partners.Count < 2) return; // no rivalry without a household of several
+
+                // Senior = the native spouse, else the highest-regarded consort.
+                Hero senior = spouse != null && spouse.IsAlive
+                    ? spouse
+                    : partners.OrderByDescending(h => h.GetRelationWithPlayer()).FirstOrDefault();
+
+                int mostAttended = partners.Min(h => NeglectDays(h, behavior, today));
+
+                // Pick the single most-aggrieved sharing-culture partner who is neglected relative
+                // to the others, respecting the per-partner cooldown.
+                Hero worst = null;
+                int worstNeglect = -1;
+                foreach (Hero h in partners)
+                {
+                    JealousyCultureProfile c = JealousyCultureLoader.Get(h.Culture?.Name?.ToString());
+                    if (!c.ToleratesSharedPartners(h.Clan?.Tier ?? 0)) continue;      // monogamous partners don't merely "compete"
+                    int n = NeglectDays(h, behavior, today);
+                    if (n < NeglectThresholdDays) continue;                            // still being seen
+                    if (n - mostAttended < InequityGapDays) continue;                  // everyone equally (un)attended — no slight
+                    if (_state.CompetitionCooldown.TryGetValue(h.StringId, out int last) && today - last < CompetitionCooldownDays) continue;
+                    if (n > worstNeglect) { worstNeglect = n; worst = h; }
+                }
+                if (worst == null) return;
+
+                FireCompetition(worst, ReferenceEquals(worst, senior), worstNeglect, today);
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[JEALOUSY] competition pass failed: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        /// <summary>Days since this partner was last attended to — a partner riding with the player is never neglected.</summary>
+        private static int NeglectDays(Hero h, NpcMemoryCampaignBehavior behavior, int today)
+        {
+            if (IsWithPlayer(h)) return 0;
+            NpcProfile p = behavior.Store.Get(h.StringId);
+            if (p == null || p.Events.Count == 0) return NeglectThresholdDays; // present but unrecorded — don't over-punish
+            return today - p.Events.Max(e => e.gameDay);
+        }
+
+        private void FireCompetition(Hero partner, bool isSenior, int neglect, int today)
+        {
+            var behavior = NpcMemoryCampaignBehavior.Instance;
+            if (behavior?.Store == null) return;
+
+            JealousyCultureProfile culture = JealousyCultureLoader.Get(partner.Culture?.Name?.ToString());
+            NpcProfile profile = behavior.Store.Get(partner.StringId) ?? HeroProfileMapper.FromHero(partner);
+
+            _state.CompetitionCooldown[partner.StringId] = today;
+
+            // Senior recourse (the Battanian cetmuintir / a steppe senior wife): a long-neglected
+            // senior of a high-hierarchy sharing culture WITHDRAWS rather than merely sulking.
+            bool estrange = isSenior
+                            && culture.Hierarchy == JealousyHierarchy.High
+                            && neglect >= EstrangeNeglectDays
+                            && profile.Romantic != null
+                            && profile.Romantic.Status == RomanticStatus.Committed;
+
+            if (estrange)
+            {
+                profile.Romantic.Status = RomanticStatus.Estranged;
+                ChangeRelationAction.ApplyPlayerRelation(partner, -EstrangeRelationHit, affectRelatives: false, showQuickNotification: false);
+                profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy,
+                    "I am the first of this house, and you left me to wither while you doted on another. I withdraw what I gave you."));
+                behavior.Store.Set(profile);
+                ModLog.Info($"[JEALOUSY] {partner.Name} (senior, {partner.Culture?.Name}) estranges over sustained neglect ({neglect}d).");
+                QueueCompetitionLetter(profile, partner, culture, estranged: true, behavior, today);
+                return;
+            }
+
+            ChangeRelationAction.ApplyPlayerRelation(partner, -CompetitionRelationDecay, affectRelatives: false, showQuickNotification: false);
+            profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy,
+                culture.EquityExpectation
+                    ? "I am one of several, and I accept that — but I will not be treated as less. You favour another and slight me."
+                    : "You keep me beneath the one you favour and seldom turn your eyes to me. I deserve my place at your side."));
+            behavior.Store.Set(profile);
+            ModLog.Info($"[JEALOUSY] {partner.Name} ({partner.Culture?.Name}, {(culture.EquityExpectation ? "equity" : "rank")}) competes for attention (neglect {neglect}d).");
+
+            if (MBRandom.RandomFloat < CompetitionLetterChance && !IsWithPlayer(partner))
+                QueueCompetitionLetter(profile, partner, culture, estranged: false, behavior, today);
+        }
+
+        private static void QueueCompetitionLetter(
+            NpcProfile profile, Hero partner, JealousyCultureProfile culture, bool estranged,
+            NpcMemoryCampaignBehavior behavior, int today)
+        {
+            string hint = string.IsNullOrWhiteSpace(culture.PromptHint) ? "" : " " + culture.PromptHint;
+            string context = estranged
+                ? $"You are the player's senior partner, neglected too long while another was favoured.{hint} Write coldly to tell them you are withdrawing from the bond — wounded pride, not pleading; you will not be set aside in your own house."
+                : culture.EquityExpectation
+                    ? $"You are one of the player's partners. By your customs you accept sharing them, but they favour another and slight you.{hint} Write to demand to be treated with equal honour — firm, not pleading."
+                    : $"You are one of the player's partners, kept beneath the one they favour.{hint} Write to demand your due share of their attention and your rightful standing — you will not be set aside.";
+            LetterGenerationService.QueueInitialLetter(
+                profile, partner, LetterReason.JealousThreat, context, behavior.LlmServices, behavior.Store, today);
+        }
+
+        private static bool IsWithPlayer(Hero hero)
+        {
+            if (hero == null) return false;
+            MobileParty main = MobileParty.MainParty;
+            if (main == null) return false;
+            MobileParty hp = hero.PartyBelongedTo;
+            return hp == main || hp?.LeaderHero == Hero.MainHero;
         }
 
         /// <summary>
@@ -189,6 +337,44 @@ namespace CalradiaRemembers.Jealousy
 
             return $"Jealous party: {res.Party.Name} ({res.Stake}) over {courted.Name} — reaction fired " +
                    "(grudge + grievance memory + threat letter queued).";
+        }
+
+        /// <summary>
+        ///   Test hook (cr.jealousy_comp): reports the player's current partner household and forces
+        ///   one competition pass (ignoring cooldowns) so the v1.5 loop can be validated on demand.
+        /// </summary>
+        public string DebugCompetition()
+        {
+            var behavior = NpcMemoryCampaignBehavior.Instance;
+            if (behavior?.Store == null) return "No store.";
+            int today = (int) CampaignTime.Now.ToDays;
+
+            Hero spouse = Hero.MainHero?.Spouse;
+            var partners = new List<Hero>();
+            if (spouse != null && spouse.IsAlive) partners.Add(spouse);
+            foreach (string id in behavior.Store.ListIds())
+            {
+                NpcProfile p = behavior.Store.Get(id);
+                if (p?.Romantic?.IsConsort != true || p.Romantic.Status != RomanticStatus.Committed) continue;
+                Hero h = Hero.FindFirst(x => x.StringId == id);
+                if (h != null && h.IsAlive && h != spouse) partners.Add(h);
+            }
+            if (partners.Count < 2)
+                return $"Competition needs >=2 active partners (native spouse + committed consorts). Found {partners.Count}.";
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Partner household ({partners.Count}):");
+            foreach (Hero h in partners)
+            {
+                JealousyCultureProfile c = JealousyCultureLoader.Get(h.Culture?.Name?.ToString());
+                sb.AppendLine($"  {h.Name} [{h.Culture?.Name}] tolerant={c.ToleratesSharedPartners(h.Clan?.Tier ?? 0)} " +
+                              $"neglect={NeglectDays(h, behavior, today)}d");
+                _state.CompetitionCooldown.Remove(h.StringId); // clear cooldown so the forced pass can react
+            }
+
+            EvaluateCompetition(today);
+            sb.Append("Competition pass run — check the log and the partners' relation / encyclopedia for any reaction.");
+            return sb.ToString();
         }
 
         // ── Reaction ──────────────────────────────────────────────────────────
@@ -320,6 +506,9 @@ namespace CalradiaRemembers.Jealousy
 
             /// <summary>"partyId|courtedId" → last day a reaction was scheduled, enforcing the cooldown.</summary>
             public Dictionary<string, int> LastReactionDay { get; set; } = new Dictionary<string, int>();
+
+            /// <summary>partnerId → last day a competition reaction fired (v1.5 ongoing loop cooldown).</summary>
+            public Dictionary<string, int> CompetitionCooldown { get; set; } = new Dictionary<string, int>();
 
             /// <summary>Scheduled reactions waiting for word to travel (fired on the daily tick).</summary>
             public List<PendingJealousy> Pending { get; set; } = new List<PendingJealousy>();
