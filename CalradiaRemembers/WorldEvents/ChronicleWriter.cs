@@ -67,7 +67,8 @@ namespace CalradiaRemembers.WorldEvents
             }
         }
 
-        private static string DatePhrase(int day)
+        /// <summary>"In the {season} of the {Nth} year" for an in-game day (shared with the viewer).</summary>
+        public static string DatePhrase(int day)
         {
             int year   = day / DaysPerYear + 1;
             int season = day % DaysPerYear / DaysPerSeason;

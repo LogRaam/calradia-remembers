@@ -203,6 +203,21 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.chronicle_open
+      ///   Opens the illuminated in-game chronicle viewer (Phase 2). Test path for the Gauntlet
+      ///   window before the encyclopedia button is wired.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("chronicle_open", "cr")]
+      public static string OpenChronicle(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
+            return error;
+
+         Chronicle.ChronicleManager.Open();
+         return "Chronicle viewer opened.";
+      }
+
+      /// <summary>
       ///   cr.jealousy_comp
       ///   Reports the player's current partner household (native spouse + committed consorts) with
       ///   each one's culture, sharing-tolerance and how long since they were last attended to, then

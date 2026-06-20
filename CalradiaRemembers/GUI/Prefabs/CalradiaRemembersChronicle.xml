@@ -1,0 +1,198 @@
+<Prefab>
+  <Constants>
+    <Constant Name="Chronicle.Width" Value="940" />
+  </Constants>
+
+  <Window Id="CalradiaRemembersChronicleWindow" Layer="Overlay">
+
+    <Widget Id="ChroniclePanel"
+            WidthSizePolicy="Fixed"
+            HeightSizePolicy="StretchToParent"
+            SuggestedWidth="!Chronicle.Width"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            MarginTop="70"
+            MarginBottom="70"
+            Sprite="BlankWhiteSquare_9"
+            Color="#1c1812F7">
+
+      <Children>
+
+        <!-- Decorative manuscript border -->
+        <Widget Id="ChronicleFrame"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                Sprite="frame_9"
+                ExtendLeft="10" ExtendTop="10" ExtendRight="10" ExtendBottom="10"
+                AlphaFactor="0.5"
+                IsDisabled="true" />
+
+        <!-- Title -->
+        <TextWidget Id="ChronicleTitle"
+                    WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="Fixed"
+                    SuggestedHeight="48"
+                    VerticalAlignment="Top"
+                    MarginTop="22"
+                    MarginLeft="40"
+                    MarginRight="40"
+                    Brush="Default"
+                    Brush.FontSize="30"
+                    Brush.FontColor="#c8a878FF"
+                    Brush.TextHorizontalAlignment="Center"
+                    Text="@Title"
+                    IsDisabled="true" />
+
+        <Widget Id="TitleDivider"
+                WidthSizePolicy="Fixed"
+                SuggestedWidth="760"
+                HeightSizePolicy="Fixed"
+                SuggestedHeight="2"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                PositionYOffset="78"
+                Sprite="BlankWhiteSquare_9"
+                Color="#5a4a34FF"
+                IsDisabled="true" />
+
+        <!-- Empty-state line -->
+        <TextWidget Id="ChronicleEmpty"
+                    WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="Fixed"
+                    SuggestedHeight="40"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    IsVisible="@IsEmpty"
+                    Brush="Default"
+                    Brush.FontSize="22"
+                    Brush.FontColor="#9a8a78FF"
+                    Brush.TextHorizontalAlignment="Center"
+                    Text="@EmptyText"
+                    IsDisabled="true" />
+
+        <!-- Scrollable list of chronicle entries -->
+        <Widget Id="EntriesArea"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                VerticalAlignment="Top"
+                MarginTop="98"
+                MarginBottom="80"
+                MarginLeft="44"
+                MarginRight="30">
+          <Children>
+
+            <ChatScrollablePanel Id="EntriesScrollPanel"
+                                 WidthSizePolicy="StretchToParent"
+                                 HeightSizePolicy="StretchToParent"
+                                 MarginRight="28"
+                                 AutoHideScrollBars="true"
+                                 ClipRect="EntriesClipRect"
+                                 InnerPanel="EntriesClipRect\EntriesList"
+                                 VerticalScrollbar="..\EntriesScrollbar\Scrollbar">
+              <Children>
+                <Widget Id="EntriesClipRect"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        ClipContents="true">
+                  <Children>
+
+                    <NavigatableListPanel Id="EntriesList"
+                                          DataSource="{Entries}"
+                                          WidthSizePolicy="StretchToParent"
+                                          HeightSizePolicy="CoverChildren"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Top"
+                                          StackLayout.LayoutMethod="VerticalTopToBottom">
+                      <ItemTemplate>
+
+                        <ListPanel Id="EntryRow"
+                                   WidthSizePolicy="StretchToParent"
+                                   HeightSizePolicy="CoverChildren"
+                                   HorizontalAlignment="Left"
+                                   MarginTop="10"
+                                   MarginBottom="14"
+                                   MarginRight="20"
+                                   StackLayout.LayoutMethod="VerticalTopToBottom">
+                          <Children>
+
+                            <TextWidget Id="EntryDate"
+                                        WidthSizePolicy="StretchToParent"
+                                        HeightSizePolicy="Fixed"
+                                        SuggestedHeight="26"
+                                        HorizontalAlignment="Left"
+                                        Brush="Default"
+                                        Brush.FontSize="17"
+                                        Brush.FontColor="#b89050FF"
+                                        Brush.TextHorizontalAlignment="Left"
+                                        Text="@DateLine"
+                                        IsDisabled="true" />
+
+                            <RichTextWidget Id="EntryBody"
+                                            WidthSizePolicy="StretchToParent"
+                                            HeightSizePolicy="CoverChildren"
+                                            HorizontalAlignment="Left"
+                                            MarginTop="2"
+                                            Brush="Default"
+                                            Brush.FontSize="21"
+                                            Brush.FontColor="#dcccaaFF"
+                                            Brush.TextHorizontalAlignment="Left"
+                                            Text="@Body"
+                                            IsDisabled="true" />
+
+                            <Widget Id="EntryDivider"
+                                    WidthSizePolicy="StretchToParent"
+                                    HeightSizePolicy="Fixed"
+                                    SuggestedHeight="1"
+                                    MarginTop="10"
+                                    Sprite="BlankWhiteSquare_9"
+                                    Color="#3a2f2480"
+                                    IsDisabled="true" />
+
+                          </Children>
+                        </ListPanel>
+
+                      </ItemTemplate>
+                    </NavigatableListPanel>
+
+                  </Children>
+                </Widget>
+              </Children>
+            </ChatScrollablePanel>
+
+            <Standard.VerticalScrollbar Id="EntriesScrollbar"
+                                        HeightSizePolicy="StretchToParent"
+                                        HorizontalAlignment="Right"
+                                        MarginRight="0" />
+
+          </Children>
+        </Widget>
+
+        <!-- Close -->
+        <ButtonWidget Id="CloseButton"
+                      WidthSizePolicy="Fixed"
+                      HeightSizePolicy="Fixed"
+                      SuggestedWidth="230"
+                      SuggestedHeight="44"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Bottom"
+                      MarginBottom="22"
+                      DoNotPassEventsToChildren="true"
+                      Brush="ButtonBrush1"
+                      UpdateChildrenStates="true"
+                      Command.Click="ExecuteClose">
+          <Children>
+            <TextWidget WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Brush="Popup.Button.Text"
+                        Brush.FontSize="20"
+                        Text="@CloseButtonText" />
+          </Children>
+        </ButtonWidget>
+
+      </Children>
+    </Widget>
+
+  </Window>
+</Prefab>
