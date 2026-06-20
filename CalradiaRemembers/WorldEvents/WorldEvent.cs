@@ -10,6 +10,18 @@ using System.Collections.Generic;
 
 namespace CalradiaRemembers.WorldEvents
 {
+    /// <summary>
+    ///   How surely a rumour has reached an observer — derived from the awareness score (reach ×
+    ///   recency). News from near/own-faction arrives well-known; from far, as a faint, doubtful
+    ///   rumour. Consumers hedge their phrasing accordingly (distortion with distance).
+    /// </summary>
+    public enum RumorConfidence
+    {
+        Distant,    // barely reached them — uncertain, "none can vouch for it"
+        Secondhand, // reached them at one remove — "word came that…"
+        WellKnown   // near / own faction / major — common knowledge
+    }
+
     /// <summary>The kind of world happening — drives both rumor phrasing and chronicle phrasing.</summary>
     public enum WorldEventType
     {

@@ -96,6 +96,36 @@ namespace CalradiaRemembers.WorldEvents
                 .ToList();
         }
 
+        /// <summary>Known events tagged with how surely they reached a hero (distortion with distance).</summary>
+        public IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> GetKnownEventsRated(Hero observer, int today, int max)
+            => observer == null
+                ? Array.Empty<(WorldEvent, RumorConfidence)>()
+                : GetKnownRated(ObserverPosition(observer), observer.MapFaction?.StringId, today, max);
+
+        /// <summary>Known events tagged with confidence for a settlement's locals.</summary>
+        public IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> GetKnownEventsRatedAt(Settlement settlement, int today, int max)
+            => settlement == null
+                ? Array.Empty<(WorldEvent, RumorConfidence)>()
+                : GetKnownRated(settlement.GetPosition2D, settlement.MapFaction?.StringId, today, max);
+
+        private IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> GetKnownRated(Vec2? pos, string factionId, int today, int max)
+        {
+            if (_events.Count == 0) return Array.Empty<(WorldEvent, RumorConfidence)>();
+
+            return _events
+                .Select(e => (e, score: AwarenessScore(e, today, pos, factionId)))
+                .Where(t => t.score >= AwarenessThreshold)
+                .OrderByDescending(t => t.score)
+                .Take(max)
+                .Select(t => (t.e, Rate(t.score)))
+                .ToList();
+        }
+
+        private static RumorConfidence Rate(int score)
+            => score >= 90 ? RumorConfidence.WellKnown
+             : score >= 62 ? RumorConfidence.Secondhand
+             : RumorConfidence.Distant;
+
         /// <summary>The player's deeds in chronological order — the source for the chronicle.</summary>
         public IReadOnlyList<WorldEvent> GetPlayerChronicle()
             => _events.Where(e => e.InvolvesPlayer).OrderBy(e => e.Day).ToList();

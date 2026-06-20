@@ -58,16 +58,22 @@ namespace CalradiaRemembers.Commoners
 
         #region private
 
-        /// <summary>Pulls real dated happenings the locals would plausibly have heard of from the world-event store.</summary>
+        /// <summary>Pulls real dated happenings the locals would plausibly have heard of, phrased by how surely word reached them.</summary>
         private static void TryWorldEvents(List<string> pool, Settlement settlement, int today)
         {
-            IReadOnlyList<WorldEvent> events = WorldEventStore.Instance?.GetKnownEventsAt(settlement, today, 3);
-            if (events == null) return;
+            var rated = WorldEventStore.Instance?.GetKnownEventsRatedAt(settlement, today, 3);
+            if (rated == null) return;
 
-            foreach (WorldEvent e in events)
+            foreach ((WorldEvent e, RumorConfidence conf) in rated)
             {
                 if (string.IsNullOrWhiteSpace(e.Summary)) continue;
-                pool.Add($"Word came that {e.Summary.TrimEnd('.', ' ')}.");
+                string s = e.Summary.TrimEnd('.', ' ');
+                pool.Add(conf switch
+                {
+                    RumorConfidence.WellKnown  => $"{s}.",
+                    RumorConfidence.Secondhand => $"Word came that {s}.",
+                    _                          => $"There's a faint rumour, though none here can vouch for it, that {s}."
+                });
             }
         }
 

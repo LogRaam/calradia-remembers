@@ -100,14 +100,19 @@ namespace CalradiaRemembers.Mapping
         {
             try
             {
-                var events = WorldEvents.WorldEventStore.Instance?.GetKnownEvents(
+                var rated = WorldEvents.WorldEventStore.Instance?.GetKnownEventsRated(
                     hero, (int) CampaignTime.Now.ToDays, 4);
-                if (events == null || events.Count == 0) return null;
+                if (rated == null || rated.Count == 0) return null;
 
                 var lines = new System.Collections.Generic.List<string>();
-                foreach (WorldEvents.WorldEvent e in events)
-                    if (!string.IsNullOrWhiteSpace(e.Summary))
-                        lines.Add($"- {e.Summary.TrimEnd('.', ' ')}.");
+                foreach ((WorldEvents.WorldEvent e, WorldEvents.RumorConfidence conf) in rated)
+                {
+                    if (string.IsNullOrWhiteSpace(e.Summary)) continue;
+                    string tag = conf == WorldEvents.RumorConfidence.Distant ? "(a distant, unverified rumour) "
+                               : conf == WorldEvents.RumorConfidence.Secondhand ? "(heard secondhand) "
+                               : "";
+                    lines.Add($"- {tag}{e.Summary.TrimEnd('.', ' ')}.");
+                }
 
                 return lines.Count > 0 ? string.Join("\n", lines) : null;
             }

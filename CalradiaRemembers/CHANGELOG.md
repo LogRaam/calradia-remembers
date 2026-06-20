@@ -15,6 +15,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 - **Commoners share real news, not invented news.** The "talk to the locals" rumours are
   now drawn from things that actually happened in your campaign, so a townsperson's word on
   the street is genuinely current.
+- **Distant news arrives uncertain.** The further word has had to travel to reach someone,
+  the less sure they are of it — a faraway rumour comes with real doubt ("they say, though
+  none can vouch for it…") and the teller may have the details wrong, while news from their
+  own region or realm is told plainly.
 - **Insults travel.** Affront a lord steeply in front of witnesses and word of the disgrace
   gets around — it becomes a rumour others may have heard, rather than evaporating the moment
   the conversation closes.
