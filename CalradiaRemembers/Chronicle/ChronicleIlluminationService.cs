@@ -1,6 +1,8 @@
 // Code written by Gabriel Mailhot, 19/06/2026.
-// v1.2 chronicle: optional LLM "illumination" tier — rewrites the player's deeds into flowing
-// chronicler prose. On-demand (costs tokens), cached in memory; the viewer shows it when present.
+// v1.2 chronicle: drives the optional LLM "illumination" tier. The chronicle is a LIVING manuscript:
+// Extend illuminates only the deeds added since the last pass (cheap, append, with continuity);
+// RewriteAll redoes the whole thing (e.g. after editing chronicle_style.txt). State persists via
+// ChronicleBehavior; the open viewer is refreshed live when an async pass completes.
 
 #region
 
@@ -10,6 +12,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.LlmClient;
 using NpcMemoryService.Core.Services;
@@ -20,23 +23,33 @@ using TaleWorlds.Library;
 
 namespace CalradiaRemembers.Chronicle
 {
-    /// <summary>
-    ///   Runs (and caches) the optional LLM-illuminated chronicle. The free templated chronicle
-    ///   always works; this richer prose is generated on demand and shown by the viewer when ready.
-    /// </summary>
+    /// <summary>Generates and persists the illuminated chronicle, incrementally.</summary>
     public static class ChronicleIlluminationService
     {
-        private static string _illuminated;
-        private static bool _busy;
+        private static volatile bool _busy;
 
         public static bool IsBusy => _busy;
-        public static bool HasIllumination => !string.IsNullOrWhiteSpace(_illuminated);
-        public static string Illuminated => _illuminated;
+        public static bool HasIllumination => !string.IsNullOrWhiteSpace(ChronicleBehavior.Instance?.IlluminatedText);
+        public static string Illuminated => ChronicleBehavior.Instance?.IlluminatedText ?? "";
+        public static int ThroughCount => ChronicleBehavior.Instance?.IlluminatedThroughCount ?? 0;
 
-        /// <summary>Kicks off an async illumination pass. Returns a status line for the console.</summary>
-        public static string Request()
+        /// <summary>How many of the player's deeds have not yet been set into illuminated prose.</summary>
+        public static int PendingDeedCount()
+        {
+            int total = WorldEventStore.Instance?.GetPlayerChronicle()?.Count ?? 0;
+            return Math.Max(0, total - ThroughCount);
+        }
+
+        /// <summary>Illuminates only the deeds added since the last pass, appended to the manuscript.</summary>
+        public static string Extend() => Run(rewriteAll: false);
+
+        /// <summary>Redoes the whole chronicle from the first deed (use after changing the style).</summary>
+        public static string RewriteAll() => Run(rewriteAll: true);
+
+        private static string Run(bool rewriteAll)
         {
             if (_busy) return "The chronicle is already being illuminated — give it a moment.";
+            if (ChronicleBehavior.Instance == null) return "Chronicle state is not ready.";
 
             ILlmClient client = NpcMemoryCampaignBehavior.Instance?.LlmServices?.LlmClient;
             if (client == null) return "No AI is configured — set up a provider and key first.";
@@ -44,40 +57,59 @@ namespace CalradiaRemembers.Chronicle
             IReadOnlyList<WorldEvent> deeds = WorldEventStore.Instance?.GetPlayerChronicle();
             if (deeds == null || deeds.Count == 0) return "There are no deeds to illuminate yet.";
 
-            string deedText = BuildDeedText(deeds);
+            int from = rewriteAll ? 0 : Math.Min(ChronicleBehavior.Instance.IlluminatedThroughCount, deeds.Count);
+            if (!rewriteAll && from >= deeds.Count) return "The chronicle is already up to date.";
+
+            string deedText = BuildDeedText(deeds, from);
             string style = LoadStyle();
             string player = Hero.MainHero?.Name?.ToString() ?? "the player";
+            string priorTail = rewriteAll ? null : Tail(ChronicleBehavior.Instance.IlluminatedText, 600);
+            int total = deeds.Count;
 
             _busy = true;
             var illuminator = new ChronicleIlluminator(client);
             _ = Task.Run(async () =>
             {
-                try
+                string result = null;
+                try { result = await illuminator.IlluminateAsync(player, deedText, style, priorTail).ConfigureAwait(false); }
+                catch (Exception ex) { ModLog.Error($"[CHRONICLE] illumination failed: {ex.GetType().Name}: {ex.Message}"); }
+
+                // State update is a plain string/int swap — safe off the main thread, and it lands even
+                // if the viewer was closed before the call returned (persisted, shown on next open).
+                if (!string.IsNullOrWhiteSpace(result) && ChronicleBehavior.Instance != null)
                 {
-                    string result = await illuminator.IlluminateAsync(player, deedText, style).ConfigureAwait(false);
-                    if (!string.IsNullOrWhiteSpace(result)) _illuminated = result;
-                    else ModLog.Error("[CHRONICLE] illumination returned empty.");
+                    ChronicleBehavior b = ChronicleBehavior.Instance;
+                    b.IlluminatedText = rewriteAll || string.IsNullOrWhiteSpace(b.IlluminatedText)
+                        ? result.Trim()
+                        : b.IlluminatedText.TrimEnd() + "\n\n" + result.Trim();
+                    b.IlluminatedThroughCount = total;
                 }
-                catch (Exception ex)
-                {
-                    ModLog.Error($"[CHRONICLE] illumination failed: {ex.GetType().Name}: {ex.Message}");
-                }
-                finally { _busy = false; }
+                else ModLog.Error("[CHRONICLE] illumination returned empty.");
+
+                _busy = false;
+                MainThreadDispatcher.Enqueue(ChronicleManager.RefreshActive); // best-effort live refresh
             });
 
-            return "Illuminating the chronicle.. reopen it in a few seconds.";
+            return rewriteAll ? "Rewriting the whole chronicle.." : "The chronicler takes up the latest deeds..";
         }
 
-        private static string BuildDeedText(IReadOnlyList<WorldEvent> deeds)
+        private static string BuildDeedText(IReadOnlyList<WorldEvent> deeds, int from)
         {
             var sb = new StringBuilder();
-            foreach (WorldEvent e in deeds)
+            for (int i = from; i < deeds.Count; i++)
             {
+                WorldEvent e = deeds[i];
                 string line = string.IsNullOrWhiteSpace(e.ChronicleLine) ? e.Summary : e.ChronicleLine;
                 if (string.IsNullOrWhiteSpace(line)) continue;
                 sb.AppendLine($"{ChronicleWriter.DatePhrase(e.Day)}: {line}");
             }
             return sb.ToString();
+        }
+
+        private static string Tail(string text, int chars)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            return text.Length <= chars ? text : text.Substring(text.Length - chars);
         }
 
         private static string LoadStyle()

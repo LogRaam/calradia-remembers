@@ -76,7 +76,7 @@
                 HeightSizePolicy="StretchToParent"
                 VerticalAlignment="Top"
                 MarginTop="98"
-                MarginBottom="80"
+                MarginBottom="150"
                 MarginLeft="44"
                 MarginRight="30">
           <Children>
@@ -166,6 +166,55 @@
 
           </Children>
         </Widget>
+
+        <!-- Status line (illuminating…) -->
+        <TextWidget Id="ChronicleStatus"
+                    WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="24"
+                    HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="116"
+                    IsVisible="@HasStatus"
+                    Brush="Default" Brush.FontSize="15" Brush.FontColor="#b89050FF"
+                    Brush.TextHorizontalAlignment="Center" Text="@StatusText" IsDisabled="true" />
+
+        <!-- Illuminate / Toggle / Rewrite -->
+        <ListPanel Id="ChronicleButtons"
+                   WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                   HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="72"
+                   StackLayout.LayoutMethod="HorizontalLeftToRight">
+          <Children>
+            <ButtonWidget Id="IlluminateButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                          SuggestedWidth="210" SuggestedHeight="40" MarginRight="10"
+                          Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                          IsEnabled="@CanIlluminate" Command.Click="ExecuteIlluminate">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Brush="Popup.Button.Text" Brush.FontSize="16" Text="@IlluminateButtonText" />
+              </Children>
+            </ButtonWidget>
+            <ButtonWidget Id="ToggleButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                          SuggestedWidth="180" SuggestedHeight="40" MarginRight="10"
+                          IsVisible="@CanToggle"
+                          Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                          Command.Click="ExecuteToggleView">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Brush="Popup.Button.Text" Brush.FontSize="16" Text="@ToggleButtonText" />
+              </Children>
+            </ButtonWidget>
+            <ButtonWidget Id="RewriteButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                          SuggestedWidth="170" SuggestedHeight="40"
+                          IsVisible="@CanRewrite"
+                          Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                          Command.Click="ExecuteRewrite">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Brush="Popup.Button.Text" Brush.FontSize="16" Text="Rewrite all" />
+              </Children>
+            </ButtonWidget>
+          </Children>
+        </ListPanel>
 
         <!-- Close -->
         <ButtonWidget Id="CloseButton"

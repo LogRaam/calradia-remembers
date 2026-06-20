@@ -38,11 +38,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   {place}, and by sword and valour put the foe to flight." Open it any time from the **"Read
   the Chronicle"** button on your own character's Encyclopedia page: a parchment-styled
   window of your saga, dated and in order. (Also written to CalradiaRemembers_chronicle.log.)
-- **An illuminated chronicle, if you want it.** Beyond the plain dated entries, you can have
-  the AI rewrite your whole saga into flowing chronicler's prose — grand, period-voiced, and
-  shaped by an editable style file (`ModuleData/chronicle_style.txt`: a devout monk by default,
-  but write your own skald or court flatterer). It costs one AI call, so it's on-demand; reopen
-  the chronicle afterwards and it reads as a manuscript.
+- **An illuminated chronicle, if you want it.** Beyond the plain dated entries, an **Illuminate**
+  button in the chronicle window has the AI rewrite your saga into flowing chronicler's prose —
+  grand, period-voiced, and shaped by an editable style file (`ModuleData/chronicle_style.txt`:
+  a devout monk by default, but write your own skald or court flatterer). It is a *living*
+  manuscript: as your deeds mount, Illuminate sets only the newest ones to fine prose and appends
+  them, while the very latest read as the chronicler's rough notes until you do — and a toggle
+  flips between the plain record and the illuminated one. The illuminated chronicle is saved with
+  your campaign; "Rewrite all" redoes it in a fresh voice after you change the style.
 
 ### Notes
 - Console: `cr.chronicle` prints/writes the chronicle; `cr.chronicle_open` opens the in-game

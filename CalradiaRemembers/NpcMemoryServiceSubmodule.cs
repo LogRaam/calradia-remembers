@@ -68,6 +68,8 @@ namespace CalradiaRemembers
          // World-event / rumor store (v1.2): persisted log of dated happenings feeding street
          // rumors, NPC awareness, and the player's chronicle. Feeders register separately.
          campaignStarter.AddBehavior(new WorldEvents.WorldEventStore());
+         // Chronicle (v1.2): persists the LLM-illuminated chronicle prose across the campaign.
+         campaignStarter.AddBehavior(new Chronicle.ChronicleBehavior());
          Log($"{ModName} campaign behavior registered.");
       }
 

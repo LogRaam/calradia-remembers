@@ -24,6 +24,9 @@ namespace CalradiaRemembers.Chronicle
 
         public static bool IsOpen => _layer != null;
 
+        /// <summary>Rebuilds the open chronicle window from current state (e.g. after an async illumination pass).</summary>
+        public static void RefreshActive() => _vm?.RefreshFromState();
+
         public static void Open()
         {
             if (IsOpen) return;

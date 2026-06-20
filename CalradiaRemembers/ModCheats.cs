@@ -228,7 +228,17 @@ namespace CalradiaRemembers
          if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
             return error;
 
-         return Chronicle.ChronicleIlluminationService.Request();
+         return Chronicle.ChronicleIlluminationService.Extend();
+      }
+
+      /// <summary>cr.chronicle_rewrite — redo the whole illuminated chronicle (e.g. after editing the style file).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("chronicle_rewrite", "cr")]
+      public static string RewriteChronicle(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
+            return error;
+
+         return Chronicle.ChronicleIlluminationService.RewriteAll();
       }
 
       /// <summary>
