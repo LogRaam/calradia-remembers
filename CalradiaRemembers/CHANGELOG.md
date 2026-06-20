@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v1.9.0.. 2026-06-19
+## v1.9.0.. 2026-06-20
 
 ### Fixed
 - **Captive scenes no longer cut off right after they begin.** A captor could pose their opening
