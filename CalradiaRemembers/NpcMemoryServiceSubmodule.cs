@@ -65,6 +65,9 @@ namespace CalradiaRemembers
          // Jealousy (Sprint 24): a romantic act can provoke a third party with a real stake.
          // Knowledge-gated, probabilistic, delayed; reactions are a grudge + optional threat letter.
          campaignStarter.AddBehavior(new Jealousy.JealousyBehavior());
+         // World-event / rumor store (v1.2): persisted log of dated happenings feeding street
+         // rumors, NPC awareness, and the player's chronicle. Feeders register separately.
+         campaignStarter.AddBehavior(new WorldEvents.WorldEventStore());
          Log($"{ModName} campaign behavior registered.");
       }
 

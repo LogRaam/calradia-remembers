@@ -1,0 +1,75 @@
+// Code written by Gabriel Mailhot, 19/06/2026.
+// v1.2 (world-event / rumor store): a dated, persisted record of something that happened in the
+// world — the shared source for street rumors, NPC awareness, and the player's chronicle.
+
+#region
+
+using System.Collections.Generic;
+
+#endregion
+
+namespace CalradiaRemembers.WorldEvents
+{
+    /// <summary>The kind of world happening — drives both rumor phrasing and chronicle phrasing.</summary>
+    public enum WorldEventType
+    {
+        Battle,
+        SettlementCaptured,
+        Marriage,
+        Execution,
+        WarDeclared,
+        PeaceDeclared,
+
+        /// <summary>A notable personal deed of the player's (a feat of arms, a tournament win, a wedding).</summary>
+        PlayerFeat,
+
+        Other
+    }
+
+    /// <summary>
+    ///   One dated thing that happened in Calradia. Mechanically generated (zero LLM) by feeders
+    ///   listening to campaign events and mod outcomes, then consumed three ways: street rumors a
+    ///   commoner shares, "what you've heard" injected into an NPC's prompt, and the player's own
+    ///   chronicle. <see cref="InvolvesPlayer"/> events are the chronicle and are kept long-term;
+    ///   third-party events are rumor fodder and age out. Serialized as JSON inside the save.
+    /// </summary>
+    public sealed class WorldEvent
+    {
+        /// <summary>Stable unique id (assigned on record).</summary>
+        public string Id { get; set; }
+
+        public WorldEventType Type { get; set; }
+
+        /// <summary>In-game day the event occurred.</summary>
+        public int Day { get; set; }
+
+        /// <summary>StringId of the settlement it happened at/near, or null when placeless.</summary>
+        public string PlaceId { get; set; }
+
+        /// <summary>True when the player is one of the actors — marks this as chronicle material.</summary>
+        public bool InvolvesPlayer { get; set; }
+
+        /// <summary>How far the news carries (0..100): a king's execution travels far, a skirmish barely.</summary>
+        public int Magnitude { get; set; }
+
+        /// <summary>A short, ready-to-inject natural-language line ("Lord X put Lord Y to flight at Z").</summary>
+        public string Summary { get; set; }
+
+        /// <summary>
+        ///   For <see cref="InvolvesPlayer"/> events: a chronicler-voice line (no date — the writer
+        ///   prefixes it) used by the player's chronicle. Null for third-party events. Kept separate
+        ///   from <see cref="Summary"/> so the same deed reads as neutral rumor to NPCs and as epic
+        ///   chronicle to the player.
+        /// </summary>
+        public string ChronicleLine { get; set; }
+
+        /// <summary>Hero StringIds involved (winner/loser, bride/groom, executioner/executed…).</summary>
+        public List<string> ActorIds { get; set; } = new List<string>();
+
+        /// <summary>Faction (kingdom/clan) StringIds the event is relevant to, for awareness filtering.</summary>
+        public List<string> FactionIds { get; set; } = new List<string>();
+
+        /// <summary>Reserved for v1.3 schemes (active/resolved/discovered); null for a settled fact.</summary>
+        public string Status { get; set; }
+    }
+}

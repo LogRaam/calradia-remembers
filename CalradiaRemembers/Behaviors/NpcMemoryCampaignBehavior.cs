@@ -58,6 +58,10 @@ namespace CalradiaRemembers.Behaviors
         // event hooks and daily romantic/spouse correspondence checks.
         public readonly LetterTriggerEvaluator LetterEvaluator = new();
 
+        // ONE WorldEventFeeders, owned by the behavior. Records dated world happenings
+        // (battles, sieges, marriages, executions, wars) into the WorldEventStore (v1.2).
+        public readonly WorldEvents.WorldEventFeeders WorldFeeders = new();
+
         public NpcMemoryCampaignBehavior()
         {
             Instance = this;
@@ -184,6 +188,7 @@ namespace CalradiaRemembers.Behaviors
             DialogueRecorder.Subscribe();
             QuestTracker.Subscribe();
             LetterEvaluator.Subscribe();
+            WorldFeeders.Subscribe();
             new TaverneLetterBehavior().Register(campaignGameStarter);
             new CommonsDialogBehavior().Register(campaignGameStarter);
             CourierService.RebuildActiveCourierSet(Store);

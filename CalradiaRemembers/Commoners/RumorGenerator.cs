@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.WorldEvents;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 
@@ -41,6 +42,7 @@ namespace CalradiaRemembers.Commoners
 
             var pool = new List<string>();
 
+            TryWorldEvents(pool, settlement, today);
             TryCapturedLords(pool, settlement);
             TryRecentDeaths(pool, today);
             TryPlayerPresence(pool, settlement);
@@ -55,6 +57,19 @@ namespace CalradiaRemembers.Commoners
         }
 
         #region private
+
+        /// <summary>Pulls real dated happenings the locals would plausibly have heard of from the world-event store.</summary>
+        private static void TryWorldEvents(List<string> pool, Settlement settlement, int today)
+        {
+            IReadOnlyList<WorldEvent> events = WorldEventStore.Instance?.GetKnownEventsAt(settlement, today, 3);
+            if (events == null) return;
+
+            foreach (WorldEvent e in events)
+            {
+                if (string.IsNullOrWhiteSpace(e.Summary)) continue;
+                pool.Add($"Word came that {e.Summary.TrimEnd('.', ' ')}.");
+            }
+        }
 
         private static void TryCapturedLords(List<string> pool, Settlement settlement)
         {

@@ -186,6 +186,23 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.chronicle
+      ///   Renders the player's chronicle (their recorded deeds, in chronicler voice) to the console
+      ///   and writes it to CalradiaRemembers_chronicle.log. Phase-1 test path for the world-event
+      ///   store + templated chronicle before the in-game illuminated viewer exists.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("chronicle", "cr")]
+      public static string ShowChronicle(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
+            return error;
+
+         string text = WorldEvents.ChronicleWriter.Render();
+         string path = WorldEvents.ChronicleWriter.WriteToLog();
+         return path != null ? $"{text}\n\n(written to {path})" : text;
+      }
+
+      /// <summary>
       ///   cr.jealousy_comp
       ///   Reports the player's current partner household (native spouse + committed consorts) with
       ///   each one's culture, sharing-tolerance and how long since they were last attended to, then

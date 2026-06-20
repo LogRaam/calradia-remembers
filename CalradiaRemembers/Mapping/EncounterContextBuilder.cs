@@ -82,13 +82,37 @@ namespace CalradiaRemembers.Mapping
             LoveMatchBlessed         = ResolveLoveMatchBlessed(hero),
             ConsortEligible          = ResolveConsortEligible(hero, profile),
             PowerBalanceNote         = ResolvePowerBalanceNote(hero),
-            MarriageProspects        = MarriageProspectResolver.Build(hero)
+            MarriageProspects        = MarriageProspectResolver.Build(hero),
+            WorldRumorsBlock         = ResolveWorldRumors(hero)
             // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
             // coin, and naming the exact sum broke immersion. Affordability is enforced by the
             // bridge when the hire is executed, not foreseen in the prompt.
         };
 
         #region private
+
+        /// <summary>
+        ///   The recent world happenings this NPC would plausibly have heard of (faction/region/
+        ///   recency), pre-formatted as hearsay lines for the prompt. Null when nothing relevant
+        ///   has reached them, so the "WHAT YOU'VE HEARD" section is skipped entirely.
+        /// </summary>
+        private static string ResolveWorldRumors(Hero hero)
+        {
+            try
+            {
+                var events = WorldEvents.WorldEventStore.Instance?.GetKnownEvents(
+                    hero, (int) CampaignTime.Now.ToDays, 4);
+                if (events == null || events.Count == 0) return null;
+
+                var lines = new System.Collections.Generic.List<string>();
+                foreach (WorldEvents.WorldEvent e in events)
+                    if (!string.IsNullOrWhiteSpace(e.Summary))
+                        lines.Add($"- {e.Summary.TrimEnd('.', ' ')}.");
+
+                return lines.Count > 0 ? string.Join("\n", lines) : null;
+            }
+            catch { return null; }
+        }
 
         /// <summary>
         ///   Formats a parent's display name for the prompt, marking the deceased with
