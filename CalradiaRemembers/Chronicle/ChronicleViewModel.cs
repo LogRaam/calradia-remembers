@@ -76,6 +76,14 @@ namespace CalradiaRemembers.Chronicle
                 return;
             }
 
+            // If an LLM-illuminated chronicle has been generated, show that flowing prose instead
+            // of the templated per-deed lines.
+            if (ChronicleIlluminationService.HasIllumination)
+            {
+                Entries.Add(new ChronicleEntryViewModel("", ChronicleIlluminationService.Illuminated));
+                return;
+            }
+
             foreach (WorldEvent e in deeds)
             {
                 string body = string.IsNullOrWhiteSpace(e.ChronicleLine) ? e.Summary : e.ChronicleLine;

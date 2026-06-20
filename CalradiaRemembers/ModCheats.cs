@@ -218,6 +218,20 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.chronicle_illuminate
+      ///   Runs the optional LLM pass that rewrites the chronicle into flowing chronicler prose
+      ///   (style editable in ModuleData/chronicle_style.txt). Async — reopen the viewer once done.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("chronicle_illuminate", "cr")]
+      public static string IlluminateChronicle(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
+            return error;
+
+         return Chronicle.ChronicleIlluminationService.Request();
+      }
+
+      /// <summary>
       ///   cr.jealousy_comp
       ///   Reports the player's current partner household (native spouse + committed consorts) with
       ///   each one's culture, sharing-tolerance and how long since they were last attended to, then

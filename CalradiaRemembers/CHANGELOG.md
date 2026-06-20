@@ -2,6 +2,48 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.9.0.. 2026-06-19
+
+### New
+- **The world has news now, and NPCs have heard it.** Battles, sieges, conquered towns,
+  noble marriages, executions, and declarations of war are quietly recorded as they happen.
+  When you talk to a lord, they may bring up recent events they would plausibly know of —
+  what their own faction is involved in, what happened near them, what is still fresh —
+  spoken as hearsay ("word came that…"), never as omniscience. A Sturgian lord won't recite
+  yesterday's distant Aserai gossip; the news that reaches someone depends on how far it is,
+  whose realm it touches, and how recently it happened.
+- **Commoners share real news, not invented news.** The "talk to the locals" rumours are
+  now drawn from things that actually happened in your campaign, so a townsperson's word on
+  the street is genuinely current.
+- **Insults travel.** Affront a lord steeply in front of witnesses and word of the disgrace
+  gets around — it becomes a rumour others may have heard, rather than evaporating the moment
+  the conversation closes.
+- **Feuds are common knowledge.** When two lords of the same crown bear real bad blood, word
+  of their rivalry circulates as ambient gossip — so a lord may mention which of their peers
+  are at each other's throats.
+- **Even a private affair can reach the wrong ears.** A romance with no witnesses no longer
+  relies on a flat chance to draw a jealous reaction — word of it now travels through the same
+  rumour network, and a rival or wronged spouse may grow jealous if and when it reaches them,
+  depending on how near they are and whose circles the gossip runs in.
+- **Lords remember how you fought.** Win or lose a battle and the lords who stood with you —
+  or against you — record it: "fought at your side when you broke the enemy", "saw you put
+  their host to flight". They simply know you acquitted yourself well, instead of waiting for
+  you to tell them so.
+- **Your Chronicle.** Your own deeds are written into a chronicle in the voice of a medieval
+  chronicler — "In the autumn of the 6th year, the lord {you} met {foe} in open battle near
+  {place}, and by sword and valour put the foe to flight." Open it any time from the **"Read
+  the Chronicle"** button on your own character's Encyclopedia page: a parchment-styled
+  window of your saga, dated and in order. (Also written to CalradiaRemembers_chronicle.log.)
+- **An illuminated chronicle, if you want it.** Beyond the plain dated entries, you can have
+  the AI rewrite your whole saga into flowing chronicler's prose — grand, period-voiced, and
+  shaped by an editable style file (`ModuleData/chronicle_style.txt`: a devout monk by default,
+  but write your own skald or court flatterer). It costs one AI call, so it's on-demand; reopen
+  the chronicle afterwards and it reads as a manuscript.
+
+### Notes
+- Console: `cr.chronicle` prints/writes the chronicle; `cr.chronicle_open` opens the in-game
+  viewer; `cr.chronicle_illuminate` generates the AI-illuminated prose.
+
 ## v1.8.0.. 2026-06-19
 
 ### New

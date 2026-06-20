@@ -23,7 +23,13 @@ namespace CalradiaRemembers.WorldEvents
         /// <summary>A notable personal deed of the player's (a feat of arms, a tournament win, a wedding).</summary>
         PlayerFeat,
 
-        Other
+        Other,
+
+        /// <summary>A public affront (an insult/disgrace before witnesses) — gossip that spreads, then fades.</summary>
+        Affront,
+
+        /// <summary>Bad blood between two lords, inferred from their standing — ambient gossip.</summary>
+        Rivalry
     }
 
     /// <summary>

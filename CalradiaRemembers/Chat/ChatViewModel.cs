@@ -2300,6 +2300,11 @@ namespace CalradiaRemembers.Chat
                     // the header reflects the conversation's host, not a routed witness).
                     if (speaker.IsMain)
                         SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer ?? 0);
+
+                    // Conversation-outcome rumor (v1.2): a steep affront before witnesses spreads
+                    // as gossip through the world-event store instead of evaporating at close.
+                    if (speaker.IsMain && _witnesses.Count > 0)
+                        WorldEvents.ConversationEventFeeder.RecordPublicAffront(speaker.Hero, response, _witnesses.Count);
                 }
 
                 // ── Companion dismissal (witness_leaves) ──────────────────────

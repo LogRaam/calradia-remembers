@@ -28,6 +28,14 @@ namespace CalradiaRemembers.WorldEvents
     /// </summary>
     public sealed class WorldEventFeeders
     {
+        // ── Rivalry gossip (feeder #3) ────────────────────────────────────────
+        private const int RivalryThreshold       = -30; // mutual relation at/below = bitter rivals
+        private const int MaxRivalriesPerWeek     = 2;   // ambient, not a flood
+        private const int RivalryCooldownDays     = 40;  // don't re-gossip the same feud too soon
+        private const int MaxLordsPerKingdomScan  = 40;  // bound the O(n^2) intra-kingdom pass
+
+        private readonly Dictionary<string, int> _rivalryGossipDay = new Dictionary<string, int>();
+
         public void Subscribe()
         {
             CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
@@ -36,8 +44,66 @@ namespace CalradiaRemembers.WorldEvents
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnSettlementOwnerChanged);
             CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
             CampaignEvents.MakePeace.AddNonSerializedListener(this, OnMakePeace);
+            CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
             ModLog.Info("WorldEventFeeders subscribed.");
         }
+
+        /// <summary>
+        ///   Once a week, surface a couple of bitter intra-kingdom rivalries as ambient gossip —
+        ///   feuding vassals of the same crown, inferred from their native standing. At most one
+        ///   per kingdom per pass, each pairing on a cooldown so it does not repeat too soon.
+        /// </summary>
+        private void OnWeeklyTick()
+        {
+            if (Store == null) return;
+            int today = Today;
+            int emitted = 0;
+
+            foreach (Kingdom kingdom in Kingdom.All)
+            {
+                if (emitted >= MaxRivalriesPerWeek) break;
+
+                var lords = new List<Hero>();
+                foreach (Clan clan in kingdom.Clans)
+                {
+                    foreach (Hero h in clan.Heroes)
+                        if (h != null && h.IsAlive && h.IsLord && h != Hero.MainHero)
+                            lords.Add(h);
+                    if (lords.Count >= MaxLordsPerKingdomScan) break;
+                }
+
+                if (TryEmitKingdomRivalry(lords, kingdom, today)) emitted++;
+            }
+        }
+
+        private bool TryEmitKingdomRivalry(List<Hero> lords, Kingdom kingdom, int today)
+        {
+            for (int i = 0; i < lords.Count; i++)
+                for (int j = i + 1; j < lords.Count; j++)
+                {
+                    if (lords[i].GetRelation(lords[j]) > RivalryThreshold) continue;
+
+                    string key = PairKey(lords[i], lords[j]);
+                    if (_rivalryGossipDay.TryGetValue(key, out int last) && today - last < RivalryCooldownDays) continue;
+
+                    _rivalryGossipDay[key] = today;
+                    Store.Record(new WorldEvent {
+                        Type       = WorldEventType.Rivalry,
+                        Day        = today,
+                        Magnitude  = 22,
+                        Summary    = $"{lords[i].Name} and {lords[j].Name} are at bitter odds.",
+                        ActorIds   = Ids(lords[i], lords[j]),
+                        FactionIds = kingdom?.StringId != null ? new List<string> { kingdom.StringId } : new List<string>()
+                    });
+                    return true;
+                }
+            return false;
+        }
+
+        private static string PairKey(Hero a, Hero b)
+            => string.CompareOrdinal(a.StringId, b.StringId) < 0
+                ? a.StringId + "|" + b.StringId
+                : b.StringId + "|" + a.StringId;
 
         private static WorldEventStore Store => WorldEventStore.Instance;
         private static int Today => (int) CampaignTime.Now.ToDays;

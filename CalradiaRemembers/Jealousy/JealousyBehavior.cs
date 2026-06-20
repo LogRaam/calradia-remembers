@@ -16,7 +16,9 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using CalradiaRemembers.WorldEvents;
 
 #endregion
 
@@ -38,6 +40,13 @@ namespace CalradiaRemembers.Jealousy
 
         // Don't let the same party stew over the same courted NPC more than once per this window.
         private const int ReactionCooldownDays = 20;
+
+        // A witnessed act is telegraphed — high chance the jealous party hears and reacts.
+        private const float WitnessedReactionChance = 0.75f;
+
+        // An unwitnessed liaison rumour that never reaches the jealous party within this window is
+        // forgotten (the awareness watch is dropped).
+        private const int AwarenessMaxDays = 30;
 
         // ── Competition loop (v1.5): a polygamous household whose partners are unevenly attended ──
         private const int   NeglectThresholdDays    = 14;   // unseen this long = neglected
@@ -106,31 +115,35 @@ namespace CalradiaRemembers.Jealousy
                 if (_state.LastReactionDay.TryGetValue(pairKey, out int last) && today - last < ReactionCooldownDays)
                     return; // already stewing over this pairing
 
-                // Knowledge gate: witnesses spread the word quickly; without them it rarely reaches
-                // the jealous party at all (until the v1.2 rumor store gives word a real home).
-                float chance = hadWitnesses ? 0.75f : 0.20f;
-                if (MBRandom.RandomFloat > chance) return;
-
                 if (res.Stake == JealousStake.RivalSuitor)
                     _state.RivalLocks[courted.StringId] = res.Party.StringId; // keep the same rival across the arc
-
-                int delay = hadWitnesses ? 1 + MBRandom.RandomInt(3) : 4 + MBRandom.RandomInt(4);
-                bool withLetter = MBRandom.RandomFloat < LetterChance(res.Stake);
-
                 _state.LastReactionDay[pairKey] = today;
-                _state.Pending.Add(new PendingJealousy {
-                    PartyId     = res.Party.StringId,
-                    Stake       = (int) res.Stake,
-                    CourtedId   = courted.StringId,
-                    CourtedName = courted.Name?.ToString() ?? "another",
-                    OtherId     = res.Other?.StringId,
-                    Tier        = (int) tier,
-                    ReactDay    = today + delay,
-                    WithLetter  = withLetter
-                });
 
-                ModLog.Info($"[JEALOUSY] scheduled: {res.Party.Name} ({res.Stake}) over {courted.Name} " +
-                            $"in {delay}d (letter={withLetter}, witnessed={hadWitnesses}).");
+                if (hadWitnesses)
+                {
+                    // Telegraphed: word travels fast. React soon (probabilistic — not every flirt).
+                    if (MBRandom.RandomFloat > WitnessedReactionChance) return;
+                    SchedulePendingReaction(res, courted, tier, 1 + MBRandom.RandomInt(3), today);
+                    ModLog.Info($"[JEALOUSY] scheduled (witnessed): {res.Party.Name} ({res.Stake}) over {courted.Name}.");
+                }
+                else
+                {
+                    // No witnesses: the act is private. Lay down a faint liaison rumour and let it
+                    // travel — the jealous party reacts only if/when word actually reaches them
+                    // (proximity, faction, recency), not on a flat dice roll. Closes the v1 stub.
+                    string liaisonId = RecordLiaisonRumor(courted, today);
+                    _state.PendingAwareness.Add(new PendingAwareness {
+                        PartyId        = res.Party.StringId,
+                        Stake          = (int) res.Stake,
+                        CourtedId      = courted.StringId,
+                        CourtedName    = courted.Name?.ToString() ?? "another",
+                        OtherId        = res.Other?.StringId,
+                        Tier           = (int) tier,
+                        LiaisonEventId = liaisonId,
+                        CreatedDay     = today
+                    });
+                    ModLog.Info($"[JEALOUSY] {res.Party.Name} ({res.Stake}) may grow jealous over {courted.Name} — awaiting word to travel.");
+                }
             }
             catch (Exception ex)
             {
@@ -152,8 +165,96 @@ namespace CalradiaRemembers.Jealousy
         private void OnDailyTick()
         {
             int today = (int) CampaignTime.Now.ToDays;
+            EvaluateAwareness(today);   // unwitnessed rumours that have now reached the jealous party
             FireDuePending(today);
             EvaluateCompetition(today);
+        }
+
+        /// <summary>Schedules a jealousy reaction for a resolved party after a short delay.</summary>
+        private void SchedulePendingReaction(JealousResolution res, Hero courted, RomanticActTier tier, int delay, int today)
+        {
+            _state.Pending.Add(new PendingJealousy {
+                PartyId     = res.Party.StringId,
+                Stake       = (int) res.Stake,
+                CourtedId   = courted.StringId,
+                CourtedName = courted.Name?.ToString() ?? "another",
+                OtherId     = res.Other?.StringId,
+                Tier        = (int) tier,
+                ReactDay    = today + delay,
+                WithLetter  = MBRandom.RandomFloat < LetterChance(res.Stake)
+            });
+        }
+
+        /// <summary>
+        ///   Lays down a faint, private "they have grown close" rumour at the act's location and
+        ///   returns its id. Low magnitude — it reaches only those near or of the right faction, and
+        ///   ages out. Never the heroic chronicle (InvolvesPlayer false).
+        /// </summary>
+        private static string RecordLiaisonRumor(Hero courted, int today)
+        {
+            WorldEventStore store = WorldEventStore.Instance;
+            if (store == null) return null;
+
+            Hero player = Hero.MainHero;
+            Settlement place = player?.CurrentSettlement ?? courted.CurrentSettlement;
+            string id = Guid.NewGuid().ToString("N");
+
+            var factions = new List<string>();
+            if (player?.MapFaction != null) factions.Add(player.MapFaction.StringId);
+            if (courted.MapFaction != null && !factions.Contains(courted.MapFaction.StringId))
+                factions.Add(courted.MapFaction.StringId);
+
+            store.Record(new WorldEvent {
+                Id             = id,
+                Type           = WorldEventType.Other,
+                Day            = today,
+                PlaceId        = place?.StringId,
+                InvolvesPlayer = false,
+                Magnitude      = 18,
+                Summary        = $"{player?.Name?.ToString() ?? "the player"} has been keeping close company with {courted.Name}.",
+                ActorIds       = new List<string> { player?.StringId, courted.StringId }.Where(s => s != null).ToList(),
+                FactionIds     = factions
+            });
+            return id;
+        }
+
+        /// <summary>
+        ///   Walks the unwitnessed-act watch list: when the liaison rumour has by now reached the
+        ///   jealous party (proximity/faction/recency), schedule their reaction; drop watches whose
+        ///   rumour has expired or whose party/event is gone.
+        /// </summary>
+        private void EvaluateAwareness(int today)
+        {
+            if (_state.PendingAwareness.Count == 0) return;
+            WorldEventStore store = WorldEventStore.Instance;
+
+            var ready = new List<PendingAwareness>();
+            var drop = new List<PendingAwareness>();
+            foreach (PendingAwareness pa in _state.PendingAwareness)
+            {
+                if (today - pa.CreatedDay > AwarenessMaxDays) { drop.Add(pa); continue; }
+                Hero party = Hero.FindFirst(h => h.StringId == pa.PartyId);
+                WorldEvent liaison = store?.GetById(pa.LiaisonEventId);
+                if (party == null || !party.IsAlive || liaison == null) { drop.Add(pa); continue; }
+                if (store.IsAwareOf(party, liaison, today)) ready.Add(pa);
+            }
+
+            foreach (PendingAwareness pa in ready)
+            {
+                _state.PendingAwareness.Remove(pa);
+                _state.Pending.Add(new PendingJealousy {
+                    PartyId     = pa.PartyId,
+                    Stake       = pa.Stake,
+                    CourtedId   = pa.CourtedId,
+                    CourtedName = pa.CourtedName,
+                    OtherId     = pa.OtherId,
+                    Tier        = pa.Tier,
+                    ReactDay    = today + 1 + MBRandom.RandomInt(2),
+                    WithLetter  = MBRandom.RandomFloat < LetterChance((JealousStake) pa.Stake)
+                });
+                ModLog.Info($"[JEALOUSY] word of {pa.CourtedName}'s liaison with the player has reached the jealous party — it stirs.");
+            }
+            foreach (PendingAwareness pa in drop) _state.PendingAwareness.Remove(pa);
         }
 
         private void FireDuePending(int today)
@@ -512,6 +613,21 @@ namespace CalradiaRemembers.Jealousy
 
             /// <summary>Scheduled reactions waiting for word to travel (fired on the daily tick).</summary>
             public List<PendingJealousy> Pending { get; set; } = new List<PendingJealousy>();
+
+            /// <summary>Unwitnessed acts whose liaison rumour has not yet reached the jealous party (v1.2 propagation).</summary>
+            public List<PendingAwareness> PendingAwareness { get; set; } = new List<PendingAwareness>();
+        }
+
+        private sealed class PendingAwareness
+        {
+            public string PartyId { get; set; }
+            public int Stake { get; set; }
+            public string CourtedId { get; set; }
+            public string CourtedName { get; set; }
+            public string OtherId { get; set; }
+            public int Tier { get; set; }
+            public string LiaisonEventId { get; set; }
+            public int CreatedDay { get; set; }
         }
 
         private sealed class PendingJealousy

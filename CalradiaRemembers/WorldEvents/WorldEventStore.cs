@@ -37,10 +37,14 @@ namespace CalradiaRemembers.WorldEvents
         private const int MaxPlayerEvents  = 1000; // safety cap on the chronicle (a very long saga)
 
         // ── Awareness scoring (tunable) ───────────────────────────────────────
-        private const int AwarenessThreshold = 50; // total score at/above which the observer "knows" it
-        private const int RecencyMax         = 40; // freshness bonus, fading one point per day
-        private const int FactionBonus       = 25; // the event touches the observer's own faction
-        private const int GeoBonusMax        = 25; // it happened on the observer's doorstep
+        // score = reach × recency, where reach = magnitude + faction + geography. Recency is a
+        // 1→0 MULTIPLIER (not an additive bonus) so a faint rumour is NOT known everywhere merely
+        // because it is fresh — it still needs reach (a big event, the observer's own faction, or
+        // proximity). A town falling carries far; a whispered liaison only reaches those near.
+        private const int   AwarenessThreshold = 50; // score at/above which the observer "knows" it
+        private const int   RecencyWindowDays  = 40; // news fades to nothing over this many days
+        private const int   FactionBonus       = 25; // the event touches the observer's own faction
+        private const int   GeoBonusMax        = 25; // it happened on the observer's doorstep
 
         private List<WorldEvent> _events = new List<WorldEvent>();
 
@@ -96,6 +100,15 @@ namespace CalradiaRemembers.WorldEvents
         public IReadOnlyList<WorldEvent> GetPlayerChronicle()
             => _events.Where(e => e.InvolvesPlayer).OrderBy(e => e.Day).ToList();
 
+        /// <summary>The stored event with this id, or null if it never existed or has been pruned.</summary>
+        public WorldEvent GetById(string id)
+            => string.IsNullOrEmpty(id) ? null : _events.FirstOrDefault(e => e.Id == id);
+
+        /// <summary>True when <paramref name="observer"/> would by now have heard of <paramref name="e"/>.</summary>
+        public bool IsAwareOf(Hero observer, WorldEvent e, int today)
+            => observer != null && e != null
+               && AwarenessScore(e, today, ObserverPosition(observer), observer.MapFaction?.StringId) >= AwarenessThreshold;
+
         // ── Lifecycle ─────────────────────────────────────────────────────────
 
         public override void RegisterEvents()
@@ -145,10 +158,10 @@ namespace CalradiaRemembers.WorldEvents
         private int AwarenessScore(WorldEvent e, int today, Vec2? obsPos, string factionId)
         {
             int age = Math.Max(0, today - e.Day);
-            int recency = Math.Max(0, RecencyMax - age);
+            float recency = Math.Max(0f, 1f - age / (float) RecencyWindowDays);
             int faction = factionId != null && e.FactionIds != null && e.FactionIds.Contains(factionId) ? FactionBonus : 0;
-            int geo = GeoProximityBonus(obsPos, e.PlaceId);
-            return e.Magnitude + recency + faction + geo;
+            int reach = e.Magnitude + faction + GeoProximityBonus(obsPos, e.PlaceId);
+            return (int) (reach * recency);
         }
 
         /// <summary>Keeps the log bounded: fresh-ish/capped for third-party rumors, long-lived for player deeds.</summary>

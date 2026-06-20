@@ -60,6 +60,12 @@ Other lords present in the same hall can overhear, react in their own voice, and
 [b][color=#e69138]Talk to the locals[/color][/b]
 Walk up to any townsperson, villager, or castle servant.. anyone without a title.. and ask what's going on. A short LLM conversation opens with a commoner whose name and trade come from the local culture. What they know is what the street knows: who rules the settlement, how times have been, which lords are passing through, recent deaths and captures, and the mood of the market. No memory is kept between conversations.. every encounter is a fresh face. The only way coin changes hands is if they think a piece of news is worth paying for.
 
+[b][color=#e69138]A world with news.. and NPCs who've heard it[/color][/b]
+Battles, sieges, towns changing hands, noble marriages, executions, declarations of war.. all of it is quietly recorded as it happens, and reaches people the way news really travels. Talk to a lord and they may bring up recent events they would plausibly know of.. what their own realm is caught up in, what happened near them, what is still fresh.. spoken as [i]hearsay[/i], never as omniscience. A Sturgian lord will not recite yesterday's distant Aserai gossip; what reaches someone depends on distance, faction, and how recent it is. The townsfolk's street rumours are drawn from real events too. And the lords who fought beside you.. or against you.. simply remember how you acquitted yourself, instead of waiting for you to boast of it.
+
+[b][color=#e69138]Your Chronicle[/color][/b]
+Your own deeds are written into a chronicle in the voice of a medieval chronicler.. "[i]In the autumn of the sixth year, the lord {you} met {foe} in open battle near {place}, and by sword and valour put the foe to flight.[/i]" Open it any time from the [b][color=#d5a6bd]Read the Chronicle[/color][/b] button on your own character's Encyclopedia page: an illuminated, parchment-styled window of your saga, dated and in order. Your legend, written as you live it.
+
 [color=#e69138][b]Letters & visible couriers[/b][/color]
 Write to an NPC and hire a courier who physically crosses the campaign map to deliver the letter.. and who can be intercepted by bandits along the way. NPCs write back, and their replies arrive by courier too.
 
