@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using CalradiaRemembers.Logic;
 using Newtonsoft.Json;
 using TaleWorlds.Library;
 
@@ -65,6 +66,9 @@ namespace CalradiaRemembers.Jealousy
                 ? profile
                 : JealousyCultureProfile.Monogamous;
         }
+
+        /// <summary>The parsed, testable culture for <paramref name="cultureName" /> (monogamous when unknown).</summary>
+        public static JealousyCulture GetCulture(string cultureName) => Get(cultureName).ToCulture();
 
         /// <summary>Wrapper matching the on-disk shape: a doc <c>_comment</c> plus the keyed profiles.</summary>
         private sealed class JealousyCultureFile

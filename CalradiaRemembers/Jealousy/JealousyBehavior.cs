@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Letters;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
@@ -49,8 +50,7 @@ namespace CalradiaRemembers.Jealousy
         private const int AwarenessMaxDays = 30;
 
         // ── Competition loop (v1.5): a polygamous household whose partners are unevenly attended ──
-        private const int   NeglectThresholdDays    = 14;   // unseen this long = neglected
-        private const int   InequityGapDays         = 8;    // ...AND another partner seen this much sooner
+        // The neglect/inequity thresholds live in CalradiaRemembers.Logic.CompetitionSelector (tested).
         private const int   CompetitionCooldownDays = 15;   // between competition reactions per partner
         private const int   CompetitionRelationDecay = 2;   // mild cooling each reaction
         private const float CompetitionLetterChance = 0.6f;
@@ -181,7 +181,7 @@ namespace CalradiaRemembers.Jealousy
                 OtherId     = res.Other?.StringId,
                 Tier        = (int) tier,
                 ReactDay    = today + delay,
-                WithLetter  = MBRandom.RandomFloat < LetterChance(res.Stake)
+                WithLetter  = MBRandom.RandomFloat < JealousyReaction.LetterChance(res.Stake)
             });
         }
 
@@ -250,7 +250,7 @@ namespace CalradiaRemembers.Jealousy
                     OtherId     = pa.OtherId,
                     Tier        = pa.Tier,
                     ReactDay    = today + 1 + MBRandom.RandomInt(2),
-                    WithLetter  = MBRandom.RandomFloat < LetterChance((JealousStake) pa.Stake)
+                    WithLetter  = MBRandom.RandomFloat < JealousyReaction.LetterChance((JealousStake) pa.Stake)
                 });
                 ModLog.Info($"[JEALOUSY] word of {pa.CourtedName}'s liaison with the player has reached the jealous party — it stirs.");
             }
@@ -306,24 +306,29 @@ namespace CalradiaRemembers.Jealousy
                     ? spouse
                     : partners.OrderByDescending(h => h.GetRelationWithPlayer()).FirstOrDefault();
 
-                int mostAttended = partners.Min(h => NeglectDays(h, behavior, today));
-
-                // Pick the single most-aggrieved sharing-culture partner who is neglected relative
-                // to the others, respecting the per-partner cooldown.
-                Hero worst = null;
-                int worstNeglect = -1;
+                // Gather each partner's standing, then let the pure selector pick the single most-
+                // aggrieved sharing-culture partner with a real, relative slight (respecting cooldown).
+                var standings = new List<PartnerStanding>(partners.Count);
+                var byId = new Dictionary<string, Hero>(partners.Count);
                 foreach (Hero h in partners)
                 {
-                    JealousyCultureProfile c = JealousyCultureLoader.Get(h.Culture?.Name?.ToString());
-                    if (!c.ToleratesSharedPartners(h.Clan?.Tier ?? 0)) continue;      // monogamous partners don't merely "compete"
-                    int n = NeglectDays(h, behavior, today);
-                    if (n < NeglectThresholdDays) continue;                            // still being seen
-                    if (n - mostAttended < InequityGapDays) continue;                  // everyone equally (un)attended — no slight
-                    if (_state.CompetitionCooldown.TryGetValue(h.StringId, out int last) && today - last < CompetitionCooldownDays) continue;
-                    if (n > worstNeglect) { worstNeglect = n; worst = h; }
+                    JealousyCulture c = JealousyCultureLoader.GetCulture(h.Culture?.Name?.ToString());
+                    bool onCooldown = _state.CompetitionCooldown.TryGetValue(h.StringId, out int last)
+                                      && today - last < CompetitionCooldownDays;
+                    standings.Add(new PartnerStanding {
+                        PartnerId        = h.StringId,
+                        ToleratesSharing = c.ToleratesSharedPartners(h.Clan?.Tier ?? 0),
+                        NeglectDays      = NeglectDays(h, behavior, today),
+                        OnCooldown       = onCooldown
+                    });
+                    byId[h.StringId] = h;
                 }
-                if (worst == null) return;
 
+                string worstId = CompetitionSelector.SelectAggrieved(standings);
+                if (worstId == null) return;
+
+                Hero worst = byId[worstId];
+                int worstNeglect = standings.First(s => s.PartnerId == worstId).NeglectDays;
                 FireCompetition(worst, ReferenceEquals(worst, senior), worstNeglect, today);
             }
             catch (Exception ex)
@@ -337,7 +342,7 @@ namespace CalradiaRemembers.Jealousy
         {
             if (IsWithPlayer(h)) return 0;
             NpcProfile p = behavior.Store.Get(h.StringId);
-            if (p == null || p.Events.Count == 0) return NeglectThresholdDays; // present but unrecorded — don't over-punish
+            if (p == null || p.Events.Count == 0) return CompetitionSelector.NeglectThresholdDays; // present but unrecorded — don't over-punish
             return today - p.Events.Max(e => e.gameDay);
         }
 
@@ -346,7 +351,7 @@ namespace CalradiaRemembers.Jealousy
             var behavior = NpcMemoryCampaignBehavior.Instance;
             if (behavior?.Store == null) return;
 
-            JealousyCultureProfile culture = JealousyCultureLoader.Get(partner.Culture?.Name?.ToString());
+            JealousyCulture culture = JealousyCultureLoader.GetCulture(partner.Culture?.Name?.ToString());
             NpcProfile profile = behavior.Store.Get(partner.StringId) ?? HeroProfileMapper.FromHero(partner);
 
             _state.CompetitionCooldown[partner.StringId] = today;
@@ -384,7 +389,7 @@ namespace CalradiaRemembers.Jealousy
         }
 
         private static void QueueCompetitionLetter(
-            NpcProfile profile, Hero partner, JealousyCultureProfile culture, bool estranged,
+            NpcProfile profile, Hero partner, JealousyCulture culture, bool estranged,
             NpcMemoryCampaignBehavior behavior, int today)
         {
             string hint = string.IsNullOrWhiteSpace(culture.PromptHint) ? "" : " " + culture.PromptHint;
@@ -467,7 +472,7 @@ namespace CalradiaRemembers.Jealousy
             sb.AppendLine($"Partner household ({partners.Count}):");
             foreach (Hero h in partners)
             {
-                JealousyCultureProfile c = JealousyCultureLoader.Get(h.Culture?.Name?.ToString());
+                JealousyCulture c = JealousyCultureLoader.GetCulture(h.Culture?.Name?.ToString());
                 sb.AppendLine($"  {h.Name} [{h.Culture?.Name}] tolerant={c.ToleratesSharedPartners(h.Clan?.Tier ?? 0)} " +
                               $"neglect={NeglectDays(h, behavior, today)}d");
                 _state.CompetitionCooldown.Remove(h.StringId); // clear cooldown so the forced pass can react
@@ -490,18 +495,18 @@ namespace CalradiaRemembers.Jealousy
 
             var stake = (JealousStake) pj.Stake;
             var tier = (RomanticActTier) pj.Tier;
-            JealousyCultureProfile culture = JealousyCultureLoader.Get(party.Culture?.Name?.ToString());
+            JealousyCulture culture = JealousyCultureLoader.GetCulture(party.Culture?.Name?.ToString());
             bool competition = stake == JealousStake.PlayerPartner
                                && culture.ToleratesSharedPartners(party.Clan?.Tier ?? 0);
 
             NpcProfile profile = behavior.Store.Get(pj.PartyId) ?? HeroProfileMapper.FromHero(party);
 
-            int delta = -Severity(stake, tier, competition, culture);
+            int delta = -JealousyReaction.Severity(stake, tier, competition, culture);
             if (delta < 0)
                 ChangeRelationAction.ApplyPlayerRelation(party, delta, affectRelatives: false, showQuickNotification: false);
 
             profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy,
-                BuildGrievance(stake, competition, pj.CourtedName)));
+                JealousyReaction.BuildGrievance(stake, competition, pj.CourtedName)));
             behavior.Store.Set(profile);
 
             ModLog.Info($"[JEALOUSY] {party.Name} ({stake}{(competition ? "/competition" : "")}) turns on the player " +
@@ -512,86 +517,11 @@ namespace CalradiaRemembers.Jealousy
             bool withPlayer = party.PartyBelongedTo == MobileParty.MainParty;
             if (pj.WithLetter && !withPlayer)
             {
-                string context = BuildLetterContext(stake, competition, party, pj.CourtedName, culture);
+                string context = JealousyReaction.BuildLetterContext(
+                    stake, competition, party.Name?.ToString(), pj.CourtedName, culture);
                 LetterGenerationService.QueueInitialLetter(
                     profile, party, LetterReason.JealousThreat, context,
                     behavior.LlmServices, behavior.Store, today);
-            }
-        }
-
-        // ── Tuning ────────────────────────────────────────────────────────────
-
-        private static int Severity(JealousStake stake, RomanticActTier tier, bool competition, JealousyCultureProfile culture)
-        {
-            int b;
-            switch (stake)
-            {
-                case JealousStake.SpouseOfCourted:
-                    b = tier == RomanticActTier.Flirt ? 8 : tier == RomanticActTier.Intimacy ? 20 : 22;
-                    return Scale(b, culture);
-                case JealousStake.PlayerPartner:
-                    if (competition)
-                        return tier == RomanticActTier.Flirt ? 3 : tier == RomanticActTier.Intimacy ? 6 : 8;
-                    return tier == RomanticActTier.Flirt ? 10 : tier == RomanticActTier.Intimacy ? 25 : 40;
-                case JealousStake.RivalSuitor:
-                    b = tier == RomanticActTier.Flirt ? 6 : tier == RomanticActTier.Intimacy ? 15 : 18;
-                    return Scale(b, culture);
-                default: // SpurnedAdmirer
-                    b = tier == RomanticActTier.Flirt ? 5 : tier == RomanticActTier.Intimacy ? 12 : 15;
-                    return Scale(b, culture);
-            }
-        }
-
-        /// <summary>Light cultural scaling for stakes where exclusivity stance modulates intensity (never to zero).</summary>
-        private static int Scale(int baseValue, JealousyCultureProfile culture)
-        {
-            float f = culture.Outrage == JealousyOutrage.High ? 1.0f
-                    : culture.Outrage == JealousyOutrage.Medium ? 0.85f
-                    : 0.7f;
-            return Math.Max(1, (int) Math.Round(baseValue * f));
-        }
-
-        private static float LetterChance(JealousStake stake) => stake switch
-        {
-            JealousStake.RivalSuitor     => 0.80f,
-            JealousStake.SpouseOfCourted => 0.70f,
-            JealousStake.PlayerPartner   => 0.65f,
-            _                            => 0.50f
-        };
-
-        private static string BuildGrievance(JealousStake stake, bool competition, string courted) => stake switch
-        {
-            JealousStake.SpouseOfCourted => $"The player made romantic advances toward {courted}, my own spouse. I will not forget the affront.",
-            JealousStake.PlayerPartner   => competition
-                ? $"My partner has taken up with {courted} as well. I will not be made the lesser of their loves."
-                : $"My partner gave their affection to {courted} while bound to me. The betrayal cuts deep.",
-            JealousStake.RivalSuitor     => $"The player has been courting {courted}, whom I had hoped to win for myself. I mean to make them regret it.",
-            _                            => $"I offered the player my heart, and they turned instead to {courted}."
-        };
-
-        private static string BuildLetterContext(
-            JealousStake stake, bool competition, Hero party, string courted, JealousyCultureProfile culture)
-        {
-            string name = party.Name?.ToString() ?? "the writer";
-            string hint = string.IsNullOrWhiteSpace(culture.PromptHint) ? "" : " " + culture.PromptHint;
-            switch (stake)
-            {
-                case JealousStake.SpouseOfCourted:
-                    return $"You are {name}, wed to {courted}. The player has made romantic advances toward your spouse." +
-                           $"{hint} Confront or warn the player, and demand they keep away from {courted}.";
-                case JealousStake.PlayerPartner:
-                    return competition
-                        ? $"You are one of the player's partners. They have now taken up with {courted} as well. By your customs " +
-                          $"this sharing is permitted —{hint} — so your grievance is rank and attention: insist you not be set " +
-                          $"beneath {courted}, and that the player honour what is owed to you."
-                        : $"You are the player's own partner, bound to them. They have given their affection to {courted} while " +
-                          $"sworn to you.{hint} Write as the betrayed — wounded, cold, or openly threatening.";
-                case JealousStake.RivalSuitor:
-                    return $"You are {name}. You had hoped to win {courted}'s hand yourself, and now the player courts them." +
-                           $"{hint} Warn the player off — make plain that you intend to marry {courted}, and that you will not yield quietly.";
-                default:
-                    return $"You are {name}. You once felt deeply for the player, and they have turned instead to {courted}." +
-                           $"{hint} Write as the spurned — bitter, reproachful, or vengeful.";
             }
         }
 

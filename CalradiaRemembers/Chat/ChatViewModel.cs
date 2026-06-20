@@ -2246,8 +2246,8 @@ namespace CalradiaRemembers.Chat
                         Jealousy.JealousyBehavior.Instance?.OnRomanticAct(
                             courted,
                             actType == NpcMemoryService.Core.Models.NotableEventType.Intimacy
-                                ? Jealousy.RomanticActTier.Intimacy
-                                : Jealousy.RomanticActTier.Flirt,
+                                ? Logic.RomanticActTier.Intimacy
+                                : Logic.RomanticActTier.Flirt,
                             _witnesses.Count > 0,
                             gameDay);
                 }

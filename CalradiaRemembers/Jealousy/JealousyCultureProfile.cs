@@ -3,52 +3,35 @@
 
 #region
 
+using CalradiaRemembers.Logic;
 using Newtonsoft.Json;
 
 #endregion
 
 namespace CalradiaRemembers.Jealousy
 {
-    /// <summary>How strongly a romantic act elsewhere reads as a betrayal for this culture.</summary>
-    public enum JealousyOutrage
-    {
-        Low,
-        Medium,
-        High
-    }
-
-    /// <summary>How strongly senior-vs-secondary partner rank drives competition jealousy.</summary>
-    public enum JealousyHierarchy
-    {
-        Low,
-        Medium,
-        High
-    }
-
     /// <summary>
-    ///   A culture's stance on romantic exclusivity, deserialized from
-    ///   <c>jealousy_cultures.json</c>. Drives whether a staked partner reacts with
-    ///   <b>exclusivity</b> jealousy (betrayal) or <b>competition</b> jealousy (rivalry over
-    ///   rank/attention among shared partners). Every field is optional in the JSON; the
-    ///   defaults here describe a strictly monogamous culture, so any culture not listed —
-    ///   including ones added by faction mods — degrades safely to monogamous behaviour.
+    ///   The on-disk shape of a culture's stance on romantic exclusivity, deserialized from
+    ///   <c>jealousy_cultures.json</c>. Every field is optional; the defaults here describe a
+    ///   strictly monogamous culture, so any culture not listed — including ones added by faction
+    ///   mods — degrades safely to monogamous behaviour. The parsing and the tolerance rule live in
+    ///   the testable <see cref="JealousyCulture" />; call <see cref="ToCulture" /> to get it.
     /// </summary>
     public sealed class JealousyCultureProfile
     {
-        /// <summary>Raw JSON value; parsed via <see cref="Outrage" />. Defaults to monogamous.</summary>
+        /// <summary>Raw JSON value ("Low"/"Medium"/"High"); parsed in <see cref="ToCulture" />.</summary>
         [JsonProperty("exclusivityOutrage")]
         public string ExclusivityOutrage { get; set; } = "High";
 
         /// <summary>
         ///   Minimum clan tier (0..6) at/above which sharing partners is culturally tolerated.
-        ///   Below this tier the culture behaves monogamously — capturing that historical
-        ///   polygamy was concentrated among the elite. The default (99) is never reachable,
-        ///   so an unlisted culture stays monogamous at every tier.
+        ///   Below this tier the culture behaves monogamously — capturing that historical polygamy
+        ///   was concentrated among the elite. The default (99) is never reachable.
         /// </summary>
         [JsonProperty("polygamyEliteTier")]
         public int PolygamyEliteTier { get; set; } = 99;
 
-        /// <summary>Raw JSON value; parsed via <see cref="Hierarchy" />.</summary>
+        /// <summary>Raw JSON value ("Low"/"Medium"/"High"); parsed in <see cref="ToCulture" />.</summary>
         [JsonProperty("hierarchySensitivity")]
         public string HierarchySensitivity { get; set; } = "Low";
 
@@ -63,32 +46,8 @@ namespace CalradiaRemembers.Jealousy
         /// <summary>The strictly-monogamous fallback used for any culture not present in the file.</summary>
         public static JealousyCultureProfile Monogamous { get; } = new JealousyCultureProfile();
 
-        [JsonIgnore]
-        public JealousyOutrage Outrage => ParseOutrage(ExclusivityOutrage);
-
-        [JsonIgnore]
-        public JealousyHierarchy Hierarchy => ParseHierarchy(HierarchySensitivity);
-
-        /// <summary>
-        ///   True when a partner of this culture, at <paramref name="clanTier" />, tolerates the
-        ///   player taking another partner — i.e. reacts with competition jealousy rather than
-        ///   betrayal. Requires both a non-high exclusivity stance AND meeting the elite tier gate.
-        /// </summary>
-        public bool ToleratesSharedPartners(int clanTier)
-            => Outrage != JealousyOutrage.High && clanTier >= PolygamyEliteTier;
-
-        private static JealousyOutrage ParseOutrage(string s)
-        {
-            if (string.Equals(s, "Low", System.StringComparison.OrdinalIgnoreCase)) return JealousyOutrage.Low;
-            if (string.Equals(s, "Medium", System.StringComparison.OrdinalIgnoreCase)) return JealousyOutrage.Medium;
-            return JealousyOutrage.High; // default / unrecognized → monogamous
-        }
-
-        private static JealousyHierarchy ParseHierarchy(string s)
-        {
-            if (string.Equals(s, "High", System.StringComparison.OrdinalIgnoreCase)) return JealousyHierarchy.High;
-            if (string.Equals(s, "Medium", System.StringComparison.OrdinalIgnoreCase)) return JealousyHierarchy.Medium;
-            return JealousyHierarchy.Low;
-        }
+        /// <summary>Parses this DTO into the pure, testable culture value object.</summary>
+        public JealousyCulture ToCulture()
+            => JealousyCulture.FromRaw(ExclusivityOutrage, PolygamyEliteTier, HierarchySensitivity, EquityExpectation, PromptHint);
     }
 }

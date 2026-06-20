@@ -182,7 +182,7 @@ namespace CalradiaRemembers
             return "Usage: cr.jealousy [name]\n" +
                    "  Resolves and fires a jealousy reaction as if the player romanced this NPC.";
 
-         return Jealousy.JealousyBehavior.Instance.DebugForce(courted, Jealousy.RomanticActTier.Flirt);
+         return Jealousy.JealousyBehavior.Instance.DebugForce(courted, Logic.RomanticActTier.Flirt);
       }
 
       /// <summary>
