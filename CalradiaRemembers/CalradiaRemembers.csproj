@@ -144,7 +144,10 @@
     the old System.Text.Json facade tree (which caused assembly-load failures on
     some players' machines) is gone.
   -->
-  <Target Name="DeployToBannerlord" AfterTargets="Build">
+  <!-- Skip the game deploy under NCrunch (and any build with no game install): NCrunch builds the
+       project in an isolated workspace where ..\SubModule.xml and the Bannerlord paths do not exist. -->
+  <Target Name="DeployToBannerlord" AfterTargets="Build"
+          Condition="'$(NCrunch)' != '1' And Exists('$(BannerlordGameBinaryDir)')">
     <ItemGroup>
       <ModAssemblies   Include="$(TargetDir)CalradiaRemembers.dll;$(TargetDir)CalradiaRemembers.Logic.dll;$(TargetDir)NpcMemoryService.Core.dll" />
       <GuiPrefabFiles  Include="$(ProjectDir)GUI\Prefabs\*.xml" />
