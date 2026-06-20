@@ -5,6 +5,7 @@
 using System;
 using System.Linq;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Marriage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -105,11 +106,11 @@ namespace CalradiaRemembers.Mapping
                 if (rated == null || rated.Count == 0) return null;
 
                 var lines = new System.Collections.Generic.List<string>();
-                foreach ((WorldEvents.WorldEvent e, WorldEvents.RumorConfidence conf) in rated)
+                foreach ((WorldEvents.WorldEvent e, RumorConfidence conf) in rated)
                 {
                     if (string.IsNullOrWhiteSpace(e.Summary)) continue;
-                    string tag = conf == WorldEvents.RumorConfidence.Distant ? "(a distant, unverified rumour) "
-                               : conf == WorldEvents.RumorConfidence.Secondhand ? "(heard secondhand) "
+                    string tag = conf == RumorConfidence.Distant ? "(a distant, unverified rumour) "
+                               : conf == RumorConfidence.Secondhand ? "(heard secondhand) "
                                : "";
                     lines.Add($"- {tag}{e.Summary.TrimEnd('.', ' ')}.");
                 }

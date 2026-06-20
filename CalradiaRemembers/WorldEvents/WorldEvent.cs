@@ -5,23 +5,12 @@
 #region
 
 using System.Collections.Generic;
+using CalradiaRemembers.Logic;
 
 #endregion
 
 namespace CalradiaRemembers.WorldEvents
 {
-    /// <summary>
-    ///   How surely a rumour has reached an observer — derived from the awareness score (reach ×
-    ///   recency). News from near/own-faction arrives well-known; from far, as a faint, doubtful
-    ///   rumour. Consumers hedge their phrasing accordingly (distortion with distance).
-    /// </summary>
-    public enum RumorConfidence
-    {
-        Distant,    // barely reached them — uncertain, "none can vouch for it"
-        Secondhand, // reached them at one remove — "word came that…"
-        WellKnown   // near / own faction / major — common knowledge
-    }
-
     /// <summary>The kind of world happening — drives both rumor phrasing and chronicle phrasing.</summary>
     public enum WorldEventType
     {
@@ -51,7 +40,7 @@ namespace CalradiaRemembers.WorldEvents
     ///   chronicle. <see cref="InvolvesPlayer"/> events are the chronicle and are kept long-term;
     ///   third-party events are rumor fodder and age out. Serialized as JSON inside the save.
     /// </summary>
-    public sealed class WorldEvent
+    public sealed class WorldEvent : IRumorRecord
     {
         /// <summary>Stable unique id (assigned on record).</summary>
         public string Id { get; set; }

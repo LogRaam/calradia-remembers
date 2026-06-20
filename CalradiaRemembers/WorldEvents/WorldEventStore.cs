@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Logic;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -20,8 +21,10 @@ namespace CalradiaRemembers.WorldEvents
     /// <summary>
     ///   Owns the world-event log. Feeders call <see cref="Record"/> from campaign-event listeners
     ///   (zero LLM); consumers query it. Two lifetimes live here on purpose: third-party events are
-    ///   rumor fodder and are pruned aggressively (<see cref="RumorWindowDays"/> / a cap), while
-    ///   <see cref="WorldEvent.InvolvesPlayer"/> events are the chronicle and are kept long-term.
+    ///   rumor fodder and are pruned aggressively, while <see cref="WorldEvent.InvolvesPlayer"/> events
+    ///   are the chronicle and are kept long-term. The lifetime rules (<see cref="WorldEventPruner"/>)
+    ///   and the awareness model (<see cref="RumorAwareness"/>) are pure and unit-tested in
+    ///   CalradiaRemembers.Logic; this class only adds the engine glue (positions, factions, save).
     ///   Persisted as a UTF-8 byte[] (no native string-size ceiling, like the profile store) with the
     ///   same "never brick a save" degradation.
     /// </summary>
@@ -31,20 +34,10 @@ namespace CalradiaRemembers.WorldEvents
 
         private const string SaveKey = "CalradiaRemembers_WorldEvents_v1bytes";
 
-        // ── Lifetimes / bounds ────────────────────────────────────────────────
-        private const int RumorWindowDays  = 42;   // third-party events fade after ~2 seasons
-        private const int MaxRumorEvents   = 200;  // hard cap on retained third-party events
-        private const int MaxPlayerEvents  = 1000; // safety cap on the chronicle (a very long saga)
-
-        // ── Awareness scoring (tunable) ───────────────────────────────────────
-        // score = reach × recency, where reach = magnitude + faction + geography. Recency is a
-        // 1→0 MULTIPLIER (not an additive bonus) so a faint rumour is NOT known everywhere merely
-        // because it is fresh — it still needs reach (a big event, the observer's own faction, or
-        // proximity). A town falling carries far; a whispered liaison only reaches those near.
-        private const int   AwarenessThreshold = 50; // score at/above which the observer "knows" it
-        private const int   RecencyWindowDays  = 40; // news fades to nothing over this many days
-        private const int   FactionBonus       = 25; // the event touches the observer's own faction
-        private const int   GeoBonusMax        = 25; // it happened on the observer's doorstep
+        // Lifetime bounds and the awareness/confidence model live in CalradiaRemembers.Logic
+        // (WorldEventPruner, RumorAwareness) where they are pure and unit-tested. The only piece that
+        // must stay here is the geo bonus — it reads map distance, which is engine-specific.
+        private const int GeoBonusMax = 25; // proximity bonus when the event happened on the doorstep
 
         private List<WorldEvent> _events = new List<WorldEvent>();
 
@@ -62,7 +55,7 @@ namespace CalradiaRemembers.WorldEvents
             if (e.Day <= 0) e.Day = (int) CampaignTime.Now.ToDays;
 
             _events.Add(e);
-            Prune((int) CampaignTime.Now.ToDays);
+            WorldEventPruner.Prune(_events, (int) CampaignTime.Now.ToDays);
             ModLog.Info($"[WORLD] recorded {e.Type} (day {e.Day}, mag {e.Magnitude}{(e.InvolvesPlayer ? ", player" : "")}): {e.Summary}");
         }
 
@@ -89,7 +82,7 @@ namespace CalradiaRemembers.WorldEvents
 
             return _events
                 .Select(e => (e, score: AwarenessScore(e, today, pos, factionId)))
-                .Where(t => t.score >= AwarenessThreshold)
+                .Where(t => RumorAwareness.Knows(t.score))
                 .OrderByDescending(t => t.score)
                 .Take(max)
                 .Select(t => t.e)
@@ -114,17 +107,12 @@ namespace CalradiaRemembers.WorldEvents
 
             return _events
                 .Select(e => (e, score: AwarenessScore(e, today, pos, factionId)))
-                .Where(t => t.score >= AwarenessThreshold)
+                .Where(t => RumorAwareness.Knows(t.score))
                 .OrderByDescending(t => t.score)
                 .Take(max)
-                .Select(t => (t.e, Rate(t.score)))
+                .Select(t => (t.e, RumorAwareness.Rate(t.score)))
                 .ToList();
         }
-
-        private static RumorConfidence Rate(int score)
-            => score >= 90 ? RumorConfidence.WellKnown
-             : score >= 62 ? RumorConfidence.Secondhand
-             : RumorConfidence.Distant;
 
         /// <summary>The player's deeds in chronological order — the source for the chronicle.</summary>
         public IReadOnlyList<WorldEvent> GetPlayerChronicle()
@@ -137,7 +125,7 @@ namespace CalradiaRemembers.WorldEvents
         /// <summary>True when <paramref name="observer"/> would by now have heard of <paramref name="e"/>.</summary>
         public bool IsAwareOf(Hero observer, WorldEvent e, int today)
             => observer != null && e != null
-               && AwarenessScore(e, today, ObserverPosition(observer), observer.MapFaction?.StringId) >= AwarenessThreshold;
+               && RumorAwareness.Knows(AwarenessScore(e, today, ObserverPosition(observer), observer.MapFaction?.StringId));
 
         // ── Lifecycle ─────────────────────────────────────────────────────────
 
@@ -146,7 +134,7 @@ namespace CalradiaRemembers.WorldEvents
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
         }
 
-        private void OnDailyTick() => Prune((int) CampaignTime.Now.ToDays);
+        private void OnDailyTick() => WorldEventPruner.Prune(_events, (int) CampaignTime.Now.ToDays);
 
         public override void SyncData(IDataStore dataStore)
         {
@@ -185,32 +173,12 @@ namespace CalradiaRemembers.WorldEvents
 
         #region private
 
+        // Engine glue: gather the facts (faction match, geo bonus from map distance, age) and let the
+        // pure RumorAwareness model score them.
         private int AwarenessScore(WorldEvent e, int today, Vec2? obsPos, string factionId)
         {
-            int age = Math.Max(0, today - e.Day);
-            float recency = Math.Max(0f, 1f - age / (float) RecencyWindowDays);
-            int faction = factionId != null && e.FactionIds != null && e.FactionIds.Contains(factionId) ? FactionBonus : 0;
-            int reach = e.Magnitude + faction + GeoProximityBonus(obsPos, e.PlaceId);
-            return (int) (reach * recency);
-        }
-
-        /// <summary>Keeps the log bounded: fresh-ish/capped for third-party rumors, long-lived for player deeds.</summary>
-        private void Prune(int today)
-        {
-            // Drop stale third-party rumors (player deeds never age out).
-            _events.RemoveAll(e => !e.InvolvesPlayer && today - e.Day > RumorWindowDays);
-
-            // Cap third-party rumors (oldest first) so a long campaign can't bloat the save.
-            List<WorldEvent> rumors = _events.Where(e => !e.InvolvesPlayer).ToList();
-            if (rumors.Count > MaxRumorEvents)
-                foreach (WorldEvent old in rumors.OrderBy(e => e.Day).Take(rumors.Count - MaxRumorEvents))
-                    _events.Remove(old);
-
-            // Safety cap on the chronicle itself (oldest deeds first) — only an extreme saga hits this.
-            List<WorldEvent> deeds = _events.Where(e => e.InvolvesPlayer).ToList();
-            if (deeds.Count > MaxPlayerEvents)
-                foreach (WorldEvent old in deeds.OrderBy(e => e.Day).Take(deeds.Count - MaxPlayerEvents))
-                    _events.Remove(old);
+            bool factionMatches = factionId != null && e.FactionIds != null && e.FactionIds.Contains(factionId);
+            return RumorAwareness.Score(e.Magnitude, factionMatches, GeoProximityBonus(obsPos, e.PlaceId), today - e.Day);
         }
 
         private static int GeoProximityBonus(Vec2? obs, string placeId)
