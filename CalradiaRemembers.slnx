@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="../LLM Roleplay Service/NpcMemoryService.Core/NpcMemoryService.Core.csproj" />
   <Project Path="CalradiaRemembers/CalradiaRemembers.csproj" Id="b8d29312-a012-48f5-bf25-6596fca97962" />
+  <Project Path="CalradiaRemembers.Logic/CalradiaRemembers.Logic.csproj" />
+  <Project Path="CalradiaRemembers.Tests/CalradiaRemembers.Tests.csproj" />
 </Solution>

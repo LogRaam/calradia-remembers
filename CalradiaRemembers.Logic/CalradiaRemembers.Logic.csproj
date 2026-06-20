@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    CalradiaRemembers.Logic — pure, engine-AGNOSTIC mod logic (no TaleWorlds dependency).
+    Lives between the engine-coupled mod (CalradiaRemembers, net472) and the generic SDK
+    (NpcMemoryService.Core). Everything here is isolated behind interfaces so behaviour can be
+    arranged with stubs and unit-tested (CalradiaRemembers.Tests). Keeps the SDK generic and the
+    mod's pure decision logic testable.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <RootNamespace>CalradiaRemembers.Logic</RootNamespace>
+    <AssemblyName>CalradiaRemembers.Logic</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Only the SDK, for the shared captive-scene enums. No game engine. -->
+    <ProjectReference Include="..\..\LLM Roleplay Service\NpcMemoryService.Core\NpcMemoryService.Core.csproj" />
+  </ItemGroup>
+
+</Project>

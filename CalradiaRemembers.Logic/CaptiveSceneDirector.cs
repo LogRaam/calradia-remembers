@@ -1,4 +1,5 @@
-// Code written by Gabriel Mailhot, 15/06/2026.
+// Code written by Gabriel Mailhot, 15/06/2026. Moved to CalradiaRemembers.Logic 20/06/2026 with the
+// random source injected, so the dramatic pacing is engine-agnostic and unit-testable.
 // Sprint 22: captive scenes are walked as an explicit structure of "acts" (an aggressor + a stage
 //            sequence) so the LLM performs one named beat per turn and can never loop a beat. After
 //            each Climax the director decides — deterministically for queued collective aggressors,
@@ -10,11 +11,10 @@
 using System;
 using System.Collections.Generic;
 using NpcMemoryService.Core.Models;
-using TaleWorlds.Core;
 
 #endregion
 
-namespace CalradiaRemembers.Chat
+namespace CalradiaRemembers.Logic
 {
    /// <summary>
    ///   The "director" of a captive scene: a small state machine that owns the dramatic structure
@@ -28,20 +28,23 @@ namespace CalradiaRemembers.Chat
    ///       OR</item>
    ///     <item>the scene concludes.</item>
    ///   </list>
-   ///   A hard cap on total acts guarantees termination. The structure is generated on the fly, so a
-   ///   future strong player intervention could redirect it (Gabriel's Q-option 3, not built).
+   ///   A hard cap on total acts guarantees termination. Randomness is injected via
+   ///   <see cref="IRandomSource"/> so every branch can be arranged deterministically in tests.
    /// </summary>
    public sealed class CaptiveSceneDirector
    {
       private const int MaxActs = 3; // lead + up to two more — bounds total length
 
+      private readonly IRandomSource _rng;
       private readonly Queue<CaptiveAggressorKind> _pendingOthers = new Queue<CaptiveAggressorKind>();
       private CaptiveSceneStage[] _actStages;
       private int  _stageIndex;
       private int  _completedActs;
 
-      public CaptiveSceneDirector(bool collective, int extraAggressors)
+      public CaptiveSceneDirector(bool collective, int extraAggressors, IRandomSource rng)
       {
+         _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+
          // The lead's opening act — the only one that carries an Intro.
          _actStages       = new[] { CaptiveSceneStage.Intro, CaptiveSceneStage.Initiate, CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax };
          CurrentAggressor = CaptiveAggressorKind.Lead;
@@ -98,14 +101,14 @@ namespace CalradiaRemembers.Chat
          // TOGETHER: the remaining men take her at once in one fuller sub-act (lead solo, then a
          // collective scene) — only with 2+ others. SEQUENTIAL: each takes a compressed turn, and
          // may decline ("or not").
-         if (others >= 2 && MBRandom.RandomInt(100) < 50)
+         if (others >= 2 && _rng.Next(100) < 50)
          {
             _pendingOthers.Enqueue(CaptiveAggressorKind.GroupTogether);
             return;
          }
 
          for (int i = 0; i < others; i++)
-            if (MBRandom.RandomInt(100) < 70)
+            if (_rng.Next(100) < 70)
                _pendingOthers.Enqueue(CaptiveAggressorKind.AnotherSingle);
       }
 
@@ -144,7 +147,7 @@ namespace CalradiaRemembers.Chat
          }
 
          // No queued others: roll whether the lead goes again (a NEW act/position) or stops here.
-         if (MBRandom.RandomInt(100) < ContinueChance(_completedActs))
+         if (_rng.Next(100) < ContinueChance(_completedActs))
          {
             CurrentAggressor = CaptiveAggressorKind.Lead;
             _actStages = new[] { CaptiveSceneStage.Initiate, CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax };

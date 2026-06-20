@@ -4,6 +4,7 @@
 
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -53,25 +54,20 @@ namespace CalradiaRemembers.Commoners
 
         private static bool IsCommonerEligible()
         {
-            // Must be a non-Hero agent (random townsperson, not a named lord or notable).
-            if (Hero.OneToOneConversationHero != null) return false;
-
-            // Only in a CIVILIAN settlement — towns, villages, castles. This deliberately
-            // excludes hideouts (which are also Settlements): a hideout is a place you fight,
-            // not chat, and the boss "captain" is a non-Hero agent that would otherwise pass
-            // the gate and hijack the vanilla duel/charge dialogue. (A map encounter has no
-            // CurrentSettlement, so it is excluded too.)
+            // Engine adapter: gather the facts and let the pure, tested policy decide. The eligibility
+            // rule (and the occupation whitelist that excludes hideout captains, tavern keepers, etc.)
+            // lives in CommonerChatContext so it is protected by unit tests against regressions.
             Settlement settlement = Hero.MainHero?.CurrentSettlement;
-            if (settlement == null) return false;
-            if (!(settlement.IsTown || settlement.IsVillage || settlement.IsCastle)) return false;
-
-            // Never hijack a hostile conversation: a bandit (a captured outlaw, a gang thug)
-            // must reach their vanilla dialogue, never the idle-chat option.
             CharacterObject partner = Campaign.Current?.ConversationManager?.OneToOneConversationCharacter;
-            if (partner != null && partner.Occupation == Occupation.Bandit) return false;
 
-            // Respect the mod's availability check (API key configured, etc.).
-            return NpcMemoryCampaignBehavior.Instance?.LlmServices?.IsAvailable == true;
+            var context = new CommonerChatContext(
+                isHeroConversation:     Hero.OneToOneConversationHero != null,
+                isCivilianSettlement:   settlement != null && (settlement.IsTown || settlement.IsVillage || settlement.IsCastle),
+                hasConversationPartner: partner != null,
+                partnerOccupation:      partner?.Occupation.ToString(),
+                llmAvailable:           NpcMemoryCampaignBehavior.Instance?.LlmServices?.IsAvailable == true);
+
+            return context.ShouldOfferIdleChat();
         }
 
         private static void OnCommonerSelected()

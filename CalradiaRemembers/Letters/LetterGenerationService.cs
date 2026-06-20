@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
+using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Services;
@@ -105,6 +106,14 @@ namespace CalradiaRemembers.Letters
       {
          try
          {
+            // Build the prompt from a SNAPSHOT taken here on the calling thread. The off-thread
+            // ChatAsync below enumerates the profile's lists (events, letters, relationships); the
+            // main thread mutates those same lists from ticks, world-event feeders and ProfileMutator
+            // (e.g. right after a letter reply is queued). Enumerating a live list while another thread
+            // mutates it is what threw "Collection was modified" during letter reply — the snapshot is
+            // never mutated, so the race is gone.
+            NpcProfile promptProfile = CloneForPrompt(profile);
+
             var emptySession = new ChatSession();
             var world = new WorldState {
                CurrentDay = (int) CampaignTime.Now.ToDays,
@@ -118,7 +127,7 @@ namespace CalradiaRemembers.Letters
                CancellationToken token = cts.Token;
                result = await Task.Run(
                   () => llmServices.ChatService.ChatAsync(
-                     profile, world, emptySession, generationMessage,
+                     promptProfile, world, emptySession, generationMessage,
                      EncounterContext.Empty, token),
                   token).ConfigureAwait(false);
             }
@@ -135,6 +144,17 @@ namespace CalradiaRemembers.Letters
 
             return null;
          }
+      }
+
+      /// <summary>
+      ///   A deep copy of the profile for read-only prompt building, so the off-thread LLM call never
+      ///   enumerates lists the main thread is mutating. Falls back to the live profile if the clone
+      ///   fails (no worse than the previous behaviour).
+      /// </summary>
+      private static NpcProfile CloneForPrompt(NpcProfile profile)
+      {
+         try { return JsonConvert.DeserializeObject<NpcProfile>(JsonConvert.SerializeObject(profile)) ?? profile; }
+         catch { return profile; }
       }
 
       /// <summary>

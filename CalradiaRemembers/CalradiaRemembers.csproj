@@ -34,6 +34,10 @@
     <ProjectReference Include="..\..\LLM Roleplay Service\NpcMemoryService.Core\NpcMemoryService.Core.csproj">
       <Private>true</Private>
     </ProjectReference>
+    <!-- Pure, engine-agnostic mod logic (unit-tested separately). -->
+    <ProjectReference Include="..\CalradiaRemembers.Logic\CalradiaRemembers.Logic.csproj">
+      <Private>true</Private>
+    </ProjectReference>
   </ItemGroup>
 
   <!-- ─── TaleWorlds DLLs (referenced from the game install) ────────────── -->
@@ -142,7 +146,7 @@
   -->
   <Target Name="DeployToBannerlord" AfterTargets="Build">
     <ItemGroup>
-      <ModAssemblies   Include="$(TargetDir)CalradiaRemembers.dll;$(TargetDir)NpcMemoryService.Core.dll" />
+      <ModAssemblies   Include="$(TargetDir)CalradiaRemembers.dll;$(TargetDir)CalradiaRemembers.Logic.dll;$(TargetDir)NpcMemoryService.Core.dll" />
       <GuiPrefabFiles  Include="$(ProjectDir)GUI\Prefabs\*.xml" />
       <ModuleDataFiles Include="$(ProjectDir)ModuleData\*.*" />
       <SoundFiles      Include="$(ProjectDir)Sounds\**\*.*" />

@@ -11,6 +11,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Items;
 using CalradiaRemembers.Letters;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.Captivity;
 using NpcMemoryService.Core.Models;
@@ -200,7 +201,7 @@ namespace CalradiaRemembers.Chat
             _captiveBeatCount              = 0;
             // Build the scene's structure now: the lead's full arc, plus collective sub-acts when
             // others are present. extraAggressors = the witnesses who can take a turn.
-            _director                      = new CaptiveSceneDirector(isCollective, _witnesses?.Count ?? 0);
+            _director                      = new CaptiveSceneDirector(isCollective, _witnesses?.Count ?? 0, MBRandomSource.Instance);
 
             AssignBanditWitnessPortraits(captorIsBandit);
 
@@ -1565,7 +1566,7 @@ namespace CalradiaRemembers.Chat
 
             _conversationEnded      = false;
             _captiveBeatCount       = 0;
-            _director               = new CaptiveSceneDirector(_captiveEncounterIsCollective, _witnesses?.Count ?? 0);
+            _director               = new CaptiveSceneDirector(_captiveEncounterIsCollective, _witnesses?.Count ?? 0, MBRandomSource.Instance);
             IsPleaseContinueVisible = false;
             IsScenePaused           = false;
             IsSendEnabled           = false;
@@ -2167,6 +2168,11 @@ namespace CalradiaRemembers.Chat
 
                     StoryLog.WriteLetterSent(_replyProfile.Name, playerMessage, behavior.GameStateBridge.GetCurrentGameDay());
                     ModLog.Info($"[LETTER] reply sent to {_replyProfile.Name}; NPC response queued as new letter.");
+                    // Resolve the NPC's "(considering...)" placeholder to a final line first — letter
+                    // reply never shows a spoken response, so leaving the bubble mid-thought both looked
+                    // like a stalled conversation and left the message list in a transient state right as
+                    // the window tears down (a likely trigger for the Gauntlet DefragContainers crash).
+                    ReplacePlaceholder(placeholder, "(Your reply is sealed and carried away by courier.)", speaker);
                     // We are inside a dispatched continuation (the pump is on the stack); defer
                     // the close one frame so it never disposes the panel mid-drain.
                     MainThreadDispatcher.RequestClose();
@@ -2348,6 +2354,20 @@ namespace CalradiaRemembers.Chat
                     {
                         if (!string.Equals(action.Type, "end_conversation",
                                 StringComparison.OrdinalIgnoreCase)) continue;
+
+                        // A captive scene is the captor's to end only when it concludes. The model
+                        // sometimes emits end_conversation on the intro/early beats (it poses a choice
+                        // to the prisoner and treats it as a close) — honouring it cut the scene off the
+                        // instant it began ("…has ended the conversation" right after the opening).
+                        // Ignore a premature end: the scene's own Continue / Try-something pause carries
+                        // it forward, and the conclusion backstop (the director concluding, or the
+                        // beat-cap) ends it properly when the time actually comes.
+                        if (IsCaptiveEncounter && _director?.IsConcluding != true)
+                        {
+                            ModLog.Info("[CAPTIVE] ignored a premature end_conversation — the scene is not concluding yet.");
+                            continue;
+                        }
+
                         _conversationEnded      = true;
                         IsSendEnabled           = false;
                         IsPrivateRequestVisible = false;

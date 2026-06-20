@@ -4,6 +4,23 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v1.9.0.. 2026-06-19
 
+### Fixed
+- **Captive scenes no longer cut off right after they begin.** A captor could pose their opening
+  threat — "talk, or I get creative" — and then the AI would immediately *end* the conversation,
+  stranding the scene on a "has ended" line before it had really started. The captor can now only
+  end a captive scene when it genuinely concludes; an early end is ignored, and the scene carries
+  on with its normal Continue / Try-something-else controls.
+- **The tavern keeper takes letters again.** The "talk to the locals" chat had begun hijacking
+  the tavern keeper — he'd answer as a random townsperson ("a blacksmith's apprentice") and his
+  "send a letter" service was lost. Idle-chat is now offered only to genuinely anonymous
+  townsfolk and villagers, never to a functional NPC with their own dialogue (tavern keeper,
+  a captured bandit, a merchant, and so on).
+- **Replying to a letter no longer risks a crash, and no longer looks like a stalled chat.**
+  Generating an NPC's letter reply could, on a background thread, read a character's memory at the
+  same instant the game was writing to it ("Collection was modified"), and the reply window left
+  the recipient stuck "(considering…)" as it closed — which could destabilise the UI. Replies are
+  now built from a stable snapshot, and the window resolves and closes cleanly.
+
 ### New
 - **The world has news now, and NPCs have heard it.** Battles, sieges, conquered towns,
   noble marriages, executions, and declarations of war are quietly recorded as they happen.
