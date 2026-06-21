@@ -283,3 +283,23 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
 - **Image overlay** for scenes (`[SCENE]` parser).
 - **Prompt caching split**: stable system prefix + dynamic second system message,
   so the `cache_control` breakpoint survives per-turn changes (Day, encounter).
+
+- **Player-authored character data** *(tester request: AI Influence parity — hand-craft a
+  character's personality + backstory)*. Decided design (2026-06-21):
+  - An editable `ModuleData/character_overrides.json`, one entry per NPC: `hero` (name) + optional
+    `id` (StringId, disambiguates homonyms) + `traits` (Valor/Honor/Mercy/Generosity/Calculating,
+    each −2..+2) + optional `backstory` (free text).
+  - **Traits flow THROUGH the existing trait system, not around it**: the authored values REPLACE the
+    vanilla traits via `Hero.SetTraitLevel` at session launch, so the prompt's derived personality,
+    the trait-derived mod features (kinks…), AND the campaign AI all read ONE source of truth — no
+    text-vs-traits conflict. `backstory` is roleplay flavor only, injected additively, making NO
+    behaviour claim (behaviour stays driven by traits).
+  - **No per-save snapshot** (vanilla values are recoverable from the game's native data). Instead an
+    **MCM toggle "Use custom traits"** switches between the player's values and vanilla; players keep
+    file copies to version their own sets.
+  - **Auto re-derive** trait-derived features (kinks etc.) when an override applies, so an already-met
+    NPC's frozen features update — convenient for modders/testers iterating.
+  - Pure/testable: entry parse, name→`DefaultTraits` mapping, −2..+2 clamp, id/name resolution.
+    Glue (in-game): the SetTraitLevel apply, the backstory prompt injection, the loader, the MCM toggle.
+  - Console: `cr.backstory [name]` (show loaded override + effective traits), `cr.reload_lore` (reload
+    the file without relaunch).

@@ -34,5 +34,6 @@ desktop.ini
 *.log
 *.tmp
 
-# Release packages (built for Nexus upload, not source)
+# Release packages / archives (built for upload, not source)
 CalradiaRemembers-v*.zip
+*.rar
