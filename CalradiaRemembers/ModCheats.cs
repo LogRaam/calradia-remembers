@@ -484,6 +484,70 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.schemes
+      ///   Lists the feud schemes currently in motion (plotter → target, kind, state, progress).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("schemes", "cr")]
+      public static string ListSchemes(List<string> args)
+      {
+         var store = WorldEvents.SchemeStore.Instance;
+         if (store == null) return "Scheme system is not active.";
+
+         var active = store.Active;
+         if (active.Count == 0) return "No schemes are afoot.";
+
+         var sb = new System.Text.StringBuilder();
+         sb.AppendLine($"{active.Count} scheme(s) afoot:");
+         foreach (Logic.Scheme s in active)
+         {
+            string plotter = Hero.FindFirst(h => h.StringId == s.PlotterId)?.Name?.ToString() ?? s.PlotterId;
+            string target  = Hero.FindFirst(h => h.StringId == s.TargetId)?.Name?.ToString() ?? s.TargetId;
+            sb.AppendLine($"  {plotter} → {target} | {s.Kind} | {s.State} | progress {s.Progress}");
+         }
+         return sb.ToString().TrimEnd();
+      }
+
+      /// <summary>
+      ///   cr.scheme [name]
+      ///   Force-plots a scheme: the named hero (or the current conversation NPC) plots against their
+      ///   most-hated rival lord. Use cr.scheme_advance to step it, cr.schemes to watch.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("scheme", "cr")]
+      public static string ForceScheme(List<string> args)
+      {
+         var store = WorldEvents.SchemeStore.Instance;
+         if (store == null) return "Scheme system is not active.";
+
+         Hero plotter = ResolveHero(args);
+         if (plotter == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         Hero target = Hero.AllAliveHeroes
+            .Where(h => h != plotter && h != Hero.MainHero && h.IsLord)
+            .OrderBy(h => h.GetRelation(plotter))
+            .FirstOrDefault();
+         if (target == null) return $"Found no rival lord for {plotter.Name} to plot against.";
+
+         var kind = MBRandom.RandomInt(2) == 0 ? Logic.SchemeKind.Slander : Logic.SchemeKind.Sabotage;
+         return store.ForcePlot(plotter, target, kind);
+      }
+
+      /// <summary>
+      ///   cr.scheme_advance
+      ///   Advances every active scheme by one tick (no spawn) — to test the lifecycle without
+      ///   waiting for daily ticks. Watch the result with cr.schemes.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("scheme_advance", "cr")]
+      public static string AdvanceSchemes(List<string> args)
+      {
+         var store = WorldEvents.SchemeStore.Instance;
+         if (store == null) return "Scheme system is not active.";
+
+         int before = store.Active.Count;
+         store.DebugAdvance();
+         return $"Advanced schemes one tick ({before} → {store.Active.Count} still active). See cr.schemes / story log.";
+      }
+
+      /// <summary>
       ///   cr.quest_abandon [name]
       ///   Force-abandons the NPC's outstanding quest (as if the player told them they
       ///   quit), applying the broken-word penalty. Tests the abandon path without the LLM.

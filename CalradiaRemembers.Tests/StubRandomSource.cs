@@ -21,6 +21,9 @@ namespace CalradiaRemembers.Tests
         /// <summary>Every roll lands ABOVE any threshold — the "no / stop / skip" branch.</summary>
         public static StubRandomSource AlwaysHigh => new StubRandomSource(99);
 
+        /// <summary>Every roll returns exactly <paramref name="value"/> — to land in a specific band.</summary>
+        public static StubRandomSource Returning(int value) => new StubRandomSource(value);
+
         public int Next(int maxExclusive) => _value;
     }
 }
