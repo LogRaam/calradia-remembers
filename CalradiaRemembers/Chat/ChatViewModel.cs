@@ -1647,6 +1647,16 @@ namespace CalradiaRemembers.Chat
                 return;
             }
 
+            // Letter-reply mode: like compose, seal the reply and close SYNCHRONOUSLY here (in the
+            // input phase) — no inline LLM call. The NPC's answer is generated async and arrives by
+            // courier. This avoids the "(considering…)" wait, the hang when that call fails, and the
+            // GauntletUI crash from closing the overlay out of an async continuation.
+            if (_mode == ChatMode.LetterReply)
+            {
+                SealAndSendLetterReply(text);
+                return;
+            }
+
             // Sprint 15B: route this turn to whoever the player is addressing — the main
             // NPC by default, or a witness named in a stage direction / vocative (sticky).
             ChatSpeaker speaker = _mode == ChatMode.LetterReply ? MainSpeaker() : ResolveAddressedSpeaker(text);
@@ -1698,6 +1708,38 @@ namespace CalradiaRemembers.Chat
 
             StoryLog.WriteLetterSent(_composeRecipientProfile.Name, content, today);
             ModLog.Info($"[PLAYER LETTER] sealed to {_composeRecipientProfile.Name} ({deliveryDays}d delivery).");
+            InputText = "";
+            ChatManager.Close();
+        }
+
+        /// <summary>
+        ///   Seals the player's reply to a received letter and queues the NPC's answer (generated
+        ///   async, delivered later by courier), then closes synchronously — no inline LLM call. The
+        ///   window is never left mid-thought, so an LLM hiccup can't strand it, and the close runs in
+        ///   the input phase rather than an async UI-tick continuation (where it crashed GauntletUI).
+        /// </summary>
+        private void SealAndSendLetterReply(string content)
+        {
+            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+            if (behavior == null || _replyLetter == null || _replyProfile == null)
+            {
+                ChatManager.Close();
+                return;
+            }
+
+            _replyLetter.PlayerReply = content;
+            Hero giverHero = Hero.FindFirst(h => h.StringId == _replyProfile.Id);
+            int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+            LetterGenerationService.QueueReplyLetter(
+                _replyProfile, giverHero, _replyLetter,
+                behavior.LlmServices, behavior.Store, today);
+
+            MBInformationManager.AddQuickInformation(
+                new TextObject($"Your reply to {_replyProfile.Name} has been sealed and sent."));
+            StoryLog.WriteLetterSent(_replyProfile.Name, content, today);
+            ModLog.Info($"[LETTER] reply to {_replyProfile.Name} sealed; NPC response queued as a new letter.");
+
             InputText = "";
             ChatManager.Close();
         }
@@ -2147,38 +2189,8 @@ namespace CalradiaRemembers.Chat
                     return;
                 }
 
-                // ── Letter reply intercept ─────────────────────────────────────
-                // In letter reply mode we don't show the NPC's response in chat.
-                // Instead we package it as a new PendingLetter and close the window.
-                if (_mode == ChatMode.LetterReply && _replyLetter != null && _replyProfile != null)
-                {
-                    _replyLetter.PlayerReply = playerMessage;
-
-                    Hero giverHero = Hero.FindFirst(h => h.StringId == _replyProfile.Id);
-                    LetterGenerationService.QueueReplyLetter(
-                        _replyProfile, giverHero, _replyLetter,
-                        behavior.LlmServices, behavior.Store,
-                        behavior.GameStateBridge.GetCurrentGameDay());
-
-                    ProfileMutator.Apply(profile, response, behavior.GameStateBridge.GetCurrentGameDay());
-                    behavior.Store.Set(profile);
-
-                    MBInformationManager.AddQuickInformation(
-                        new TextObject($"Your reply to {_replyProfile.Name} has been sealed and sent."));
-
-                    StoryLog.WriteLetterSent(_replyProfile.Name, playerMessage, behavior.GameStateBridge.GetCurrentGameDay());
-                    ModLog.Info($"[LETTER] reply sent to {_replyProfile.Name}; NPC response queued as new letter.");
-                    // Resolve the NPC's "(considering...)" placeholder to a final line first — letter
-                    // reply never shows a spoken response, so leaving the bubble mid-thought both looked
-                    // like a stalled conversation and left the message list in a transient state right as
-                    // the window tears down (a likely trigger for the Gauntlet DefragContainers crash).
-                    ReplacePlaceholder(placeholder, "(Your reply is sealed and carried away by courier.)", speaker);
-                    // We are inside a dispatched continuation (the pump is on the stack); defer
-                    // the close one frame so it never disposes the panel mid-drain.
-                    MainThreadDispatcher.RequestClose();
-                    return;
-                }
-                // ── End letter reply intercept ─────────────────────────────────
+                // (Letter-reply mode never reaches here: it seals the reply and closes synchronously
+                // in ExecuteSendMessage — see SealAndSendLetterReply — with no inline LLM call.)
 
                 // Render the turn: dialogue bubble, or a narration-only turn (no empty bubble), or
                 // a "(silence...)" fallback. npcLine is empty for a narration-only turn.
