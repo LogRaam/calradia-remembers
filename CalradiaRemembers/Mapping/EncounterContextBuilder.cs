@@ -79,10 +79,11 @@ namespace CalradiaRemembers.Mapping
             PlayerLooksImportant     = captorIsBandit && PlayerLooksImportant(),
             CompanionAskingPrice     = ResolveCompanionAskingPrice(hero),
             MercenaryOfferKingdom    = ResolveMercenaryOfferKingdom(hero),
+            LordRecruitEligible      = ResolveLordRecruitEligible(hero),
             LoveMatchEligible        = ResolveLoveMatchEligible(hero, profile),
             LoveMatchBlessed         = ResolveLoveMatchBlessed(hero),
             ConsortEligible          = ResolveConsortEligible(hero, profile),
-            PowerBalanceNote         = ResolvePowerBalanceNote(hero),
+            PowerBalanceNote         = ResolvePowerBalanceNote(hero, profile),
             MarriageProspects        = MarriageProspectResolver.Build(hero),
             WorldRumorsBlock         = ResolveWorldRumors(hero)
             // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
@@ -160,12 +161,32 @@ namespace CalradiaRemembers.Mapping
         }
 
         /// <summary>
-        ///   Computes a prose note describing the power differential between the player's
-        ///   realm and the NPC's kingdom. Returns null when the balance is roughly even
-        ///   (within a 1.5× ratio) or when neither party belongs to a kingdom.
+        ///   True when this lord could be persuaded to defect into the player's clan — gates the
+        ///   <c>join_clan</c> teaching. Gathers live facts and delegates to the pure
+        ///   <see cref="LordRecruitment"/>; the bridge re-checks the same gate before sealing it.
+        /// </summary>
+        private static bool ResolveLordRecruitEligible(Hero hero)
+        {
+            try
+            {
+                LordRecruitmentFacts facts = GameState.LordRecruitmentFactsBuilder.Build(hero);
+                return facts != null && LordRecruitment.IsEligible(facts);
+            }
+            catch { return false; }
+        }
+
+        /// <summary>
+        ///   How many in-game days a battlefield defeat stays "fresh" enough to temper a lord's
+        ///   defiance — roughly a season's quarter. Older losses fade from the power calculus.
+        /// </summary>
+        private const int RecentDefeatWindowDays = 21;
+
+        /// <summary>
+        ///   Gathers the live power-differential facts (fief counts, war state, captivity, a recent
+        ///   defeat) and delegates the verdict to the pure <see cref="PowerBalance"/> classifier.
         ///   Only issued for lords — wanderers and notables have no kingdom standing to weigh.
         /// </summary>
-        private static string ResolvePowerBalanceNote(Hero hero)
+        private static string ResolvePowerBalanceNote(Hero hero, NpcProfile profile)
         {
             try
             {
@@ -174,45 +195,55 @@ namespace CalradiaRemembers.Mapping
                 Kingdom playerKingdom = Clan.PlayerClan?.Kingdom;
                 Kingdom npcKingdom    = hero.Clan?.Kingdom;
 
-                // Both must be in a kingdom for the comparison to mean anything.
-                if (playerKingdom == null && npcKingdom == null) return null;
-
-                int playerFiefs = CountKingdomFiefs(playerKingdom);
-                int npcFiefs    = CountKingdomFiefs(npcKingdom);
-
-                bool atWar = playerKingdom != null && npcKingdom != null
-                          && FactionManager.IsAtWarAgainstFaction(playerKingdom, npcKingdom);
-
-                float ratio = npcFiefs > 0
-                    ? (float) playerFiefs / npcFiefs
-                    : (playerFiefs > 0 ? 10f : 1f);
-
-                if (atWar)
-                {
-                    if (ratio >= 2f)
-                        return "Your kingdom is at war with the player's realm, and the balance of power is heavily against you — they hold far more territory. Your position is precarious.";
-                    if (ratio <= 0.5f)
-                        return "Your kingdom is at war with the player's realm, and you hold a clear advantage — your forces and territory outmatch theirs.";
-                    return "Your kingdom is at war with the player's realm. The outcome remains uncertain; neither side commands a decisive advantage.";
-                }
-
-                // At peace — only remark on a significant asymmetry (≥ 2× ratio, ≥ 3 fiefs).
-                if (ratio >= 2f && playerFiefs >= 3)
-                    return $"The player's realm is considerably more powerful than yours — they hold {playerFiefs} fiefs to your kingdom's {npcFiefs}. You are aware of this disparity.";
-                if (ratio <= 0.5f && npcFiefs >= 3)
-                    return $"Your kingdom outmatches the player's realm — {npcFiefs} fiefs to their {playerFiefs}. You hold the stronger position.";
-
-                // Clan-level: NPC holds nothing while player's clan does.
-                bool npcClanHasFiefs = hero.Clan?.Settlements != null
-                    && hero.Clan.Settlements.Any(s => s.IsTown || s.IsCastle);
-                bool playerClanHasFiefs = Clan.PlayerClan?.Settlements != null
-                    && Clan.PlayerClan.Settlements.Any(s => s.IsTown || s.IsCastle);
-                if (!npcClanHasFiefs && playerClanHasFiefs)
-                    return "Your clan currently holds no fiefs, while the player's clan does. That gap in standing is not lost on you.";
-
-                return null;
+                return PowerBalance.DescribeFor(new PowerBalanceFacts {
+                    NpcIsLord          = true,
+                    PlayerInKingdom    = playerKingdom != null,
+                    NpcInKingdom       = npcKingdom != null,
+                    PlayerKingdomFiefs = CountKingdomFiefs(playerKingdom),
+                    NpcKingdomFiefs    = CountKingdomFiefs(npcKingdom),
+                    AtWar              = playerKingdom != null && npcKingdom != null
+                                         && FactionManager.IsAtWarAgainstFaction(playerKingdom, npcKingdom),
+                    NpcClanHasFiefs    = hero.Clan?.Settlements != null
+                                         && hero.Clan.Settlements.Any(s => s.IsTown || s.IsCastle),
+                    PlayerClanHasFiefs = Clan.PlayerClan?.Settlements != null
+                                         && Clan.PlayerClan.Settlements.Any(s => s.IsTown || s.IsCastle),
+                    NpcIsPlayerPrisoner           = IsPlayerPrisoner(hero),
+                    NpcRecentlyLostBattleToPlayer = LostBattleToPlayerRecently(profile)
+                });
             }
             catch { return null; }
+        }
+
+        /// <summary>True when this hero is held captive by the player's own faction right now.</summary>
+        private static bool IsPlayerPrisoner(Hero hero)
+        {
+            try
+            {
+                if (hero?.IsPrisoner != true) return false;
+                IFaction captor = hero.PartyBelongedToAsPrisoner?.MapFaction;
+                return captor != null && captor == Hero.MainHero?.MapFaction;
+            }
+            catch { return false; }
+        }
+
+        /// <summary>
+        ///   True when the player's forces beat this NPC in a battle within the recency window. Read
+        ///   from the profile memory the battle feeder already stamps on a defeated enemy lord
+        ///   ("…saw you put their host to flight"), so no new persisted state is needed. Kept in sync
+        ///   with <c>WorldEventFeeders.RecordBattlePerformanceIntoProfiles</c>.
+        /// </summary>
+        private static bool LostBattleToPlayerRecently(NpcProfile profile)
+        {
+            if (profile?.Events == null || profile.Events.Count == 0) return false;
+            int today = (int) CampaignTime.Now.ToDays;
+            foreach (NotableEvent e in profile.Events)
+            {
+                if (today - e.gameDay > RecentDefeatWindowDays) continue;
+                if (!string.IsNullOrEmpty(e.summary) && e.summary.IndexOf("put their host to flight",
+                        StringComparison.OrdinalIgnoreCase) >= 0)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>Counts towns and castles belonging to a kingdom; returns 0 for a null kingdom.</summary>

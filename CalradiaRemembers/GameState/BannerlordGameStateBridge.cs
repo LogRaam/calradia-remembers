@@ -50,6 +50,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteJoinParty(action, npcHero);
             case "join_as_mercenary":
                return ExecuteJoinAsMercenary(npcHero);
+            case "join_clan":
+               return ExecuteJoinClan(npcHero);
             case "marry":
                return ExecuteMarry(npcHero, context);
             case "take_as_consort":
@@ -525,6 +527,48 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
+      ///   join_clan: a lord has agreed, in conversation, to leave their own house and join the
+      ///   player's clan — the most powerful recruitment. Only taught when the game confirms every
+      ///   gate (deep trust, the player's house outranking theirs, the lord being vulnerable — see
+      ///   <see cref="LordRecruitmentFactsBuilder"/> + <see cref="LordRecruitment"/>), but the whole
+      ///   gate is re-checked here: the prompt is advice, the bridge is law. The lord's old clan
+      ///   loses a member and its faction cools toward the player — vanilla consequences left to play out.
+      /// </summary>
+      private static ActionOutcome ExecuteJoinClan(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            Clan playerClan = Clan.PlayerClan;
+            if (playerClan == null) return null;
+
+            Logic.LordRecruitmentFacts facts = LordRecruitmentFactsBuilder.Build(npcHero);
+            if (facts == null || !Logic.LordRecruitment.IsEligible(facts))
+               return new ActionOutcome($"({npcHero.Name} will not leave their house to join yours — not yet.)", false);
+
+            Clan oldClan = npcHero.Clan;
+
+            // Pull them out of any kingdom obligation first, then move them under the player's banner.
+            if (oldClan?.Kingdom != null && oldClan.Leader == npcHero && oldClan.Kingdom != playerClan.Kingdom)
+               return new ActionOutcome(
+                  $"({npcHero.Name} leads a clan sworn to {oldClan.Kingdom.Name}; such a defection cannot be sealed in mere conversation.)", false);
+
+            npcHero.Clan = playerClan;
+
+            ModLog.Info($"[ACTION] join_clan: {npcHero.Name} left {oldClan?.Name?.ToString() ?? "their house"} to join the player's clan.");
+
+            return new ActionOutcome(
+               $"{npcHero.Name} forsakes the house of {oldClan?.Name?.ToString() ?? "their birth"} and swears to your clan.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] join_clan failed: {ex.GetType().Name}: {ex.Message}");
+            return null;
+         }
+      }
+
+      /// <summary>
       ///   marry: the NPC has proposed marriage to the player in conversation and the player
       ///   has accepted. Guards are re-checked here (the bridge is the law) before calling
       ///   <see cref="MarriageAction.Apply" />. The mod's internal reputation score (≥50) is
@@ -956,7 +1000,7 @@ namespace CalradiaRemembers.GameState
          if (npcHero == null || Hero.MainHero == null || context?.Profile == null) return null;
 
          bool captive = GetPlayerStatus(npcHero) == PlayerStatusVsNpc.NpcIsCaptive;
-         int delta = RelationGate.Resolve(
+         int delta = Logic.RelationGate.Resolve(
             proposed, context.Profile, context.EmittedEvent, CampaignTime.Now.ToHours, captive,
             ModSettings.RelationWarmth);
 

@@ -184,6 +184,9 @@ namespace CalradiaRemembers.WorldEvents
                     NpcProfile profile = behavior.Store.Get(h.StringId);
                     if (profile == null) continue; // only lords the player has actually met
 
+                    // NB: the enemy-lost phrase "put their host to flight" is also read by
+                    // EncounterContextBuilder.LostBattleToPlayerRecently to feed the POWER BALANCE
+                    // note — keep the two in sync if this wording changes.
                     string summary = ally
                         ? $"Fought at your side when you {(playerWon ? "broke the enemy" : "stood against the enemy")}{near}."
                         : $"Faced you in battle and {(playerWon ? "saw you put their host to flight" : "held the field against you")}{near}.";

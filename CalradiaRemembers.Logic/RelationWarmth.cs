@@ -1,4 +1,6 @@
 // Code written by Gabriel Mailhot, 10/06/2026.
+// Moved into CalradiaRemembers.Logic 20/06/2026 so the relation-gating policy it drives
+// (RelationGate) can be unit-tested. Namespace kept as CalradiaRemembers so no caller changes.
 
 namespace CalradiaRemembers
 {
@@ -6,7 +8,7 @@ namespace CalradiaRemembers
     ///   How readily NPCs grow to like the player through ordinary conversation.
     ///   A player-facing difficulty knob (MCM) that drives all three gating layers at
     ///   once: the change_relation action wording (when the NPC may emit a gain), the
-    ///   "deeds over words" stance, and the mechanical <see cref="Mapping.RelationGate"/>
+    ///   "deeds over words" stance, and the mechanical <see cref="Logic.RelationGate"/>
     ///   cooldown/cap. It only loosens POSITIVE gains — insults and betrayals stay exactly
     ///   as punishing at every level.
     /// </summary>

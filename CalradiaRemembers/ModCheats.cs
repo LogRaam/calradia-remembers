@@ -441,6 +441,49 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.recruit_info [name]
+      ///   Shows the lord-defection verdict for an NPC — the gathered gate facts and whether
+      ///   join_clan would be taught. Diagnostic only; mutates nothing.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("recruit_info", "cr")]
+      public static string ShowRecruitInfo(List<string> args)
+      {
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         Logic.LordRecruitmentFacts facts = GameState.LordRecruitmentFactsBuilder.Build(hero);
+         if (facts == null)
+            return $"{hero.Name} can never be a defection candidate (not a free lord of another clan).";
+
+         Logic.LordRecruitmentBlock verdict = Logic.LordRecruitment.Evaluate(facts);
+         return $"{hero.Name} — join_clan: {(verdict == Logic.LordRecruitmentBlock.None ? "ELIGIBLE" : "blocked: " + verdict)}\n" +
+                $"  relation {facts.Relation} (need >= {Logic.LordRecruitment.MinRelation}), " +
+                $"player tier {facts.PlayerClanTier} vs lord tier {facts.LordClanTier}\n" +
+                $"  vulnerable: landless={facts.LordIsLandless}, clanWeak/destroyed={facts.LordClanWeakOrDestroyed}, " +
+                $"hasLiege={facts.HasLiege} (rel {facts.RelationWithLiege}, need <= {Logic.LordRecruitment.LiegeResentmentThreshold})";
+      }
+
+      /// <summary>
+      ///   cr.recruit [name]
+      ///   Force-runs the join_clan action through the bridge (re-validates the gate, then moves the
+      ///   lord into the player's clan). Tests the defection path without the LLM.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("recruit", "cr")]
+      public static string ForceRecruit(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         var outcome = behavior.GameStateBridge.ExecuteAction(
+            new NpcMemoryService.Core.Models.GameAction { Type = "join_clan" }, hero, null);
+
+         return outcome?.Message ?? $"join_clan on {hero.Name} did nothing (see CalradiaRemembers.log).";
+      }
+
+      /// <summary>
       ///   cr.quest_abandon [name]
       ///   Force-abandons the NPC's outstanding quest (as if the player told them they
       ///   quit), applying the broken-word penalty. Tests the abandon path without the LLM.
@@ -664,7 +707,7 @@ namespace CalradiaRemembers
          double now = CampaignTime.Now.ToHours;
          bool captive = behavior.GameStateBridge.GetPlayerStatus(hero) == PlayerStatusVsNpc.NpcIsCaptive;
 
-         double cooldownHours = RelationGate.CooldownHoursFor(ModSettings.RelationWarmth);
+         double cooldownHours = Logic.RelationGate.CooldownHoursFor(ModSettings.RelationWarmth);
          string lastGain = profile.LastRelationGainHour.HasValue
             ? $"{profile.LastRelationGainHour.Value:F1}h"
             : "never";

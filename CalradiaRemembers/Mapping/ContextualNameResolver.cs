@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 
@@ -26,8 +27,6 @@ namespace CalradiaRemembers.Mapping
     public static class ContextualNameResolver
     {
         private const int MinTokenLength = 3;
-        private const int FriendThreshold = 10;
-        private const int EnemyThreshold = -10;
 
         // Common words filtered out of both hero names and player messages.
         private static readonly HashSet<string> StopWords =
@@ -96,23 +95,13 @@ namespace CalradiaRemembers.Mapping
         }
 
         private static string Categorize(Hero npc, Hero other)
-        {
-            if (npc.Spouse == other) return "your spouse";
-            if (npc.Father == other) return "your father";
-            if (npc.Mother == other) return "your mother";
-            if (npc.Children != null && npc.Children.Any(c => c == other)) return "your child";
-
-            int relation = CharacterRelationManager.GetHeroRelation(npc, other);
-
-            if (relation >= 30) return $"a very close friend ({DescribeRelation(relation)})";
-            if (relation >= FriendThreshold) return $"a friend ({DescribeRelation(relation)})";
-            if (relation <= -30) return $"a bitter enemy ({DescribeRelation(relation)})";
-            if (relation <= EnemyThreshold) return $"an enemy ({DescribeRelation(relation)})";
-            if (npc.Clan != null && npc.Clan == other.Clan) return "a member of your clan";
-            if (relation != 0) return $"an acquaintance ({DescribeRelation(relation)})";
-
-            return "not personally known to you";
-        }
+            => ThirdPartyDescriptor.Categorize(
+                CharacterRelationManager.GetHeroRelation(npc, other),
+                npc.Spouse == other,
+                npc.Father == other,
+                npc.Mother == other,
+                npc.Children != null && npc.Children.Any(c => c == other),
+                npc.Clan != null && npc.Clan == other.Clan);
 
         // ── Whereabouts (Sprint: third-party location as plausible hearsay) ────
         // An NPC should not omnisciently know where everyone is. We gate the knowledge by
@@ -121,38 +110,19 @@ namespace CalradiaRemembers.Mapping
         // party does not. Phrasing is hearsay so a stale position reads as honest uncertainty
         // rather than a lie. Live query — no persistence (that is the v1.2 rumor-store layer).
 
-        private enum KnowledgeTier
-        {
-            None,     // would not know
-            Faction,  // same faction/liege — rough military hearsay
-            Friend,   // genuine regard — recent hearsay
-            Close,    // family / clan / very close friend — confident
-            Present   // physically in the same place — certain
-        }
-
         /// <summary>
         ///   How plausibly <paramref name="npc" /> would know where <paramref name="other" /> is,
-        ///   from their social tie alone (Option A — close ties only).
+        ///   from their social tie alone (Option A — close ties only). Gathers the engine facts and
+        ///   delegates the tiering to the pure <see cref="ThirdPartyDescriptor.KnowledgeOf" />.
         /// </summary>
         private static KnowledgeTier KnowledgeOf(Hero npc, Hero other)
-        {
-            if (npc.CurrentSettlement != null && npc.CurrentSettlement == other.CurrentSettlement)
-                return KnowledgeTier.Present;
-
-            if (npc.Spouse == other || npc.Father == other || npc.Mother == other
-                || (npc.Children != null && npc.Children.Any(c => c == other))
-                || (npc.Clan != null && npc.Clan == other.Clan))
-                return KnowledgeTier.Close;
-
-            int relation = CharacterRelationManager.GetHeroRelation(npc, other);
-            if (relation >= 30) return KnowledgeTier.Close;
-            if (relation >= FriendThreshold) return KnowledgeTier.Friend;
-
-            if (npc.MapFaction != null && npc.MapFaction == other.MapFaction)
-                return KnowledgeTier.Faction;
-
-            return KnowledgeTier.None;
-        }
+            => ThirdPartyDescriptor.KnowledgeOf(
+                npc.CurrentSettlement != null && npc.CurrentSettlement == other.CurrentSettlement,
+                npc.Spouse == other || npc.Father == other || npc.Mother == other
+                    || (npc.Children != null && npc.Children.Any(c => c == other))
+                    || (npc.Clan != null && npc.Clan == other.Clan),
+                CharacterRelationManager.GetHeroRelation(npc, other),
+                npc.MapFaction != null && npc.MapFaction == other.MapFaction);
 
         /// <summary>
         ///   A readable location for <paramref name="other" />: the settlement they are in, or
@@ -176,22 +146,10 @@ namespace CalradiaRemembers.Mapping
         private static string ResolveWhereabouts(Hero npc, Hero other, IGameStateBridge bridge)
         {
             KnowledgeTier tier = KnowledgeOf(npc, other);
-            if (tier == KnowledgeTier.None) return null;
-
-            if (tier == KnowledgeTier.Present)
-                return $"they are here with you, at {npc.CurrentSettlement.Name}";
-
-            string place = LocationOf(other, bridge);
-            if (place == null)
-                return "you could not say where they are just now";
-
-            switch (tier)
-            {
-                case KnowledgeTier.Close:   return $"last you knew, they were {place}";
-                case KnowledgeTier.Friend:  return $"you last heard they were {place}";
-                case KnowledgeTier.Faction: return $"word among your own faction has them {place}";
-                default:                    return null;
-            }
+            string place = tier == KnowledgeTier.None || tier == KnowledgeTier.Present
+                ? null
+                : LocationOf(other, bridge);
+            return ThirdPartyDescriptor.WhereaboutsClause(tier, place, npc.CurrentSettlement?.Name?.ToString());
         }
 
         private static string BuildHint(List<(string FullName, string Relationship, string Whereabouts)> matches)
@@ -255,15 +213,6 @@ namespace CalradiaRemembers.Mapping
         }
 
         private static bool IsStopWord(string word) => StopWords.Contains(word);
-
-        private static string DescribeRelation(int r) => r switch
-        {
-            >=  30 => "deep trust",
-            >=  10 => "genuine regard",
-            >=  -9 => "neutral",
-            >= -29 => "quiet distrust",
-            _      => "resentment"
-        };
 
         #endregion
     }

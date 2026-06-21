@@ -1,4 +1,7 @@
 // Code written by Gabriel Mailhot, 30/05/2026. Sprint 10.
+// Moved into CalradiaRemembers.Logic 20/06/2026 (was Mapping/RelationGate.cs) and put under test:
+// this is the mod's core anti-exploit rule — a regression would let players talk their way to max
+// relation, the very failure it exists to prevent. It breaks silently, so it is protected here.
 
 #region
 
@@ -6,7 +9,7 @@ using NpcMemoryService.Core.Models;
 
 #endregion
 
-namespace CalradiaRemembers.Mapping
+namespace CalradiaRemembers.Logic
 {
     /// <summary>
     ///   Single source of truth for how a LLM-proposed relation change is allowed

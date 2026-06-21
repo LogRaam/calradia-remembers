@@ -99,7 +99,7 @@ Key design decisions:
 
 ---
 
-## RelationGate policy (Mapping/RelationGate.cs)
+## RelationGate policy (CalradiaRemembers.Logic/RelationGate.cs — pure, unit-tested)
 
 | Case | Cap | Cooldown |
 |---|---|---|
