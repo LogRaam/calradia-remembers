@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Engine.GauntletUI;
@@ -36,7 +37,11 @@ namespace CalradiaRemembers.Chat
         private static ScreenBase _hostScreen;
         private static CampaignTimeControlMode _previousTimeControlMode;
         private static bool _timeControlModeSaved;
-        private static bool _destroyPending;
+
+        // The close lifecycle (pending flag, map-vs-mission branch, destroy-once) is pure and
+        // unit-tested in CalradiaRemembers.Logic; this class only supplies the engine effects.
+        private static readonly OverlayTeardown _teardown = new OverlayTeardown();
+        private static readonly IOverlayTeardownEffects _teardownEffects = new TeardownEffects();
 
         public static ChatViewModel ActiveViewModel { get; private set; }
 
@@ -72,41 +77,13 @@ namespace CalradiaRemembers.Chat
         ///   the UI update. In a mission/menu the campaign tick does not fire, so we fall back to the
         ///   synchronous <see cref="Close"/> (the crash is map-only).
         /// </summary>
-        public static void RequestDeferredClose()
-        {
-            if (!IsOpen || _destroyPending) return;
-
-            if (Mission.Current != null) { Close(); return; } // not on the map — defer would never fire
-
-            ActiveViewModel?.FinalizeStoryLog();
-            ActiveViewModel?.FinalizeCaptiveSceneMemory();
-            ActiveViewModel?.FinalizeConversationMemory();
-            EndVanillaConversation();
-
-            // Force time to run so a per-frame CampaignEvents.TickEvent fires (it does not while the
-            // overlay has paused it). The map sits hidden behind us for the one frame until teardown.
-            if (Campaign.Current != null) Campaign.Current.TimeControlMode = CampaignTimeControlMode.StoppablePlay;
-
-            _destroyPending = true;
-            ModLog.Info("Chat overlay close requested — deferred to the next campaign tick.");
-        }
+        public static void RequestDeferredClose() => _teardown.RequestClose(_teardownEffects);
 
         /// <summary>
         ///   The deferred teardown, run from a native campaign tick (see ChatTeardownBehavior) — i.e.
         ///   OUTSIDE the UI LateUpdate, so removing our layer is safe. A no-op unless a close is pending.
         /// </summary>
-        public static void ProcessPendingDestroy()
-        {
-            if (!_destroyPending) return;
-            _destroyPending = false;
-            if (!IsOpen) return;
-
-            KillChatWindow();   // RemoveLayer — safe on this tick
-            RestoreTime();      // back to the player's original time-control mode
-            FreeResources();
-            Services.LlmServices.ClearTestGenderOverride();
-            ModLog.Info("Chat overlay destroyed (deferred, on campaign tick).");
-        }
+        public static void ProcessPendingDestroy() => _teardown.Tick(_teardownEffects);
 
         // ── Public API ────────────────────────────────────────────────────────
 
@@ -253,7 +230,7 @@ namespace CalradiaRemembers.Chat
             ActiveViewModel = null;
             _hostScreen = null;
             _timeControlModeSaved = false;
-            _destroyPending = false; // any close path clears a stale pending flag
+            _teardown.Reset(); // any close path clears a stale pending flag
         }
 
         private static void GenerateChatWindow(string npcName)
@@ -295,6 +272,41 @@ namespace CalradiaRemembers.Chat
             _activeLayer.InputRestrictions.ResetInputRestrictions();
             _activeLayer.ReleaseMovie(_activeMovieId);
             _hostScreen?.RemoveLayer(_activeLayer);
+        }
+
+        /// <summary>Maps the pure <see cref="OverlayTeardown"/> actions onto the real engine teardown.</summary>
+        private sealed class TeardownEffects : IOverlayTeardownEffects
+        {
+            public bool IsOpen => ChatManager.IsOpen;
+            public bool InMission => Mission.Current != null;
+
+            public void FinalizeSession()
+            {
+                // Data, not UI; each is idempotent and a no-op outside its own mode.
+                ActiveViewModel?.FinalizeStoryLog();
+                ActiveViewModel?.FinalizeCaptiveSceneMemory();
+                ActiveViewModel?.FinalizeConversationMemory();
+                EndVanillaConversation();
+            }
+
+            public void UnpauseForTick()
+            {
+                // Run time so a per-frame CampaignEvents.TickEvent fires (it does not while the overlay
+                // has paused it). The map sits hidden behind the overlay for the one frame until teardown.
+                if (Campaign.Current != null) Campaign.Current.TimeControlMode = CampaignTimeControlMode.StoppablePlay;
+                ModLog.Info("Chat overlay close requested — deferred to the next campaign tick.");
+            }
+
+            public void DestroyNow()
+            {
+                KillChatWindow();   // RemoveLayer — safe on a native tick, outside the UI LateUpdate
+                RestoreTime();      // back to the player's original time-control mode
+                FreeResources();
+                Services.LlmServices.ClearTestGenderOverride();
+                ModLog.Info("Chat overlay destroyed (deferred, on campaign tick).");
+            }
+
+            public void SynchronousClose() => Close();
         }
 
         private static void PauseCampaignMap()
