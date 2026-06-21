@@ -2,6 +2,57 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.10.0.. 2026-06-21
+
+A big one — a wave of new world-simulation and roleplay systems, plus two fixes from tester
+feedback. The new systems are freshly built and being refined; expect rough edges and please report
+them. (Console commands and an in-game test guide ship in CalradiaRemembers/TESTING_GUIDE.md.)
+
+### New
+- **NPCs now have a posture toward you, not just a like/dislike.** Beyond plain regard, each lord
+  carries how far they **trust** your word, how much they **respect** your worth, and how much they
+  **fear** you — and they speak in keeping with all of it at once. A beaten rival may hate you yet
+  respect and fear you; a charmer you like may still not trust your word. These shift the way the
+  game works: **a real deed moves them strongly** (a kept promise earns trust, a won siege earns
+  respect, taking a lord prisoner earns fear, a discovered treachery shatters trust), while **mere
+  talk only nudges** them a little. Fear fades over time as the threat recedes.
+- **Recruit a lord into your own clan, through conversation.** A lord who trusts you deeply, whose
+  house has fallen on hard times (landless, broken clan, or estranged from his liege), and whose
+  standing your own house has risen above, can be persuaded to forsake his banner and swear to your
+  clan — no menu, just the talk. (One of the most-requested features from AI Influence players.)
+- **Feuds become real plots.** Bitter rivals now quietly scheme against one another in the
+  background — entirely mechanical, no AI cost — and you only ever hear of it as a rumour. A plot
+  matures, may be discovered, and on success costs its target real standing. You can take a hand:
+  a plotter who trusts you may ask you to help against their rival, or you can **warn the target**
+  and give them a fighting chance. But meddling has a price — if your hand in a plot is exposed, the
+  wronged party turns on you (worst of all when you betrayed your own realm — that is treason), and
+  word of your treachery spreads, so other lords speak of you as a known schemer.
+- **Lords ride out to meet you.** A lord may now seek you out on the campaign map rather than wait
+  to be found — a hostile realm's lord challenging a notorious traveller crossing their land, or a
+  lord reacting to fresh news of your deeds. They open the conversation on that footing. They give
+  up the chase if you clearly outrun them, and won't pester you (one at a time, with a cooldown).
+- **Lords read the balance of power.** When a lord's realm is far weaker than yours, when they are at
+  war and losing, when they recently lost to you on the field, or when they are your prisoner, it
+  now colours how they speak — calculated, wary deference rather than blind defiance or empty
+  submission.
+
+### Fixed
+- **Letters arrive less often.** Unprompted letters were fine one at a time but piled up across many
+  correspondents. There is now a world-wide throttle on top of each character's own cooldown, so the
+  flow stays alive without burying you.
+- **Saved memory grows far more slowly.** Every battle, however minor, was being written into the
+  memory of every lord present, swelling the save. Now only sieges and clashes of two armies are
+  remembered — the engagements a lord would actually recall — which also keeps battle rumours to the
+  ones that matter. (This was never a save-corruption risk; it just kept the file growing.)
+
+### Notes
+- New console commands for the above (testing): cr.stance / cr.stance_set, cr.recruit / cr.recruit_info,
+  cr.scheme / cr.schemes / cr.scheme_advance / cr.scheme_assist / cr.scheme_warn, cr.intercept. See
+  CalradiaRemembers/TESTING_GUIDE.md for the full reference and what to try.
+- Known issue under investigation: replying to a letter can occasionally crash on the close of the
+  letter window (a UI-tick fault). It is not save-breaking — "attempt to continue" recovers cleanly.
+  A fix is in progress.
+
 ## v1.9.1.. 2026-06-20
 
 ### New
