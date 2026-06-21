@@ -52,6 +52,10 @@ namespace CalradiaRemembers.GameState
                return ExecuteJoinAsMercenary(npcHero);
             case "join_clan":
                return ExecuteJoinClan(npcHero);
+            case "scheme_assist":
+               return ExecuteSchemeAssist(npcHero);
+            case "scheme_heed":
+               return ExecuteSchemeHeed(npcHero);
             case "marry":
                return ExecuteMarry(npcHero, context);
             case "take_as_consort":
@@ -564,6 +568,64 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] join_clan failed: {ex.GetType().Name}: {ex.Message}");
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   scheme_assist: the NPC (a plotter) has sounded the player out and the player has agreed to
+      ///   abet their secret scheme against a rival. Only taught when the game confirms a recruitable
+      ///   plot (SchemeStore.GetRecruitableTargetName), but re-validated here: the store re-checks the
+      ///   gate, advances the plot, and the plotter warms to the player for throwing in.
+      /// </summary>
+      private static ActionOutcome ExecuteSchemeAssist(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            string result = WorldEvents.SchemeStore.Instance?.PlayerAssists(npcHero);
+            if (string.IsNullOrEmpty(result))
+               return new ActionOutcome("(There is no plot of theirs you could help with just now.)", false);
+
+            // Throwing in together warms the plotter toward the player.
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npcHero, Hero.MainHero, 3, false);
+            ModLog.Info($"[ACTION] scheme_assist: player aided {npcHero.Name}'s scheme.");
+
+            return new ActionOutcome(result, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] scheme_assist failed: {ex.GetType().Name}: {ex.Message}");
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   scheme_heed: the player has warned this NPC of a secret plot against them, and the NPC
+      ///   heeds it. Only taught when the game confirms such a plot (SchemeStore.HasSecretSchemeAgainst),
+      ///   but re-validated: the store exposes the scheme (giving the target a chance to counter it on
+      ///   later ticks) and the grateful target warms to the player.
+      /// </summary>
+      private static ActionOutcome ExecuteSchemeHeed(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            string result = WorldEvents.SchemeStore.Instance?.TargetHeeds(npcHero);
+            if (string.IsNullOrEmpty(result))
+               return new ActionOutcome("(There is no plot against them you could warn of just now.)", false);
+
+            // Gratitude for the warning warms the target toward the player.
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npcHero, Hero.MainHero, 4, false);
+            ModLog.Info($"[ACTION] scheme_heed: player warned {npcHero.Name} of a plot against them.");
+
+            return new ActionOutcome(result, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] scheme_heed failed: {ex.GetType().Name}: {ex.Message}");
             return null;
          }
       }

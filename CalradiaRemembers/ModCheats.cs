@@ -548,6 +548,42 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.scheme_assist [name]
+      ///   Force the player to abet the named plotter's secret scheme (bypasses the LLM). The plotter
+      ///   must regard you enough and the plot must be secret — set relation first with cr.relation.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("scheme_assist", "cr")]
+      public static string ForceSchemeAssist(List<string> args)
+      {
+         var store = WorldEvents.SchemeStore.Instance;
+         if (store == null) return "Scheme system is not active.";
+
+         Hero plotter = ResolveHero(args);
+         if (plotter == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         string result = store.PlayerAssists(plotter);
+         return result ?? $"{plotter.Name} has no secret plot you are eligible to abet (regard >= 20, plot still secret, you not allied with the target).";
+      }
+
+      /// <summary>
+      ///   cr.scheme_warn [name]
+      ///   Force the player to warn the named hero of a secret plot against them (bypasses the LLM):
+      ///   exposes the scheme so the target can counter it on later ticks.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("scheme_warn", "cr")]
+      public static string ForceSchemeWarn(List<string> args)
+      {
+         var store = WorldEvents.SchemeStore.Instance;
+         if (store == null) return "Scheme system is not active.";
+
+         Hero target = ResolveHero(args);
+         if (target == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         string result = store.TargetHeeds(target);
+         return result ?? $"There is no secret plot against {target.Name} to warn of.";
+      }
+
+      /// <summary>
       ///   cr.quest_abandon [name]
       ///   Force-abandons the NPC's outstanding quest (as if the player told them they
       ///   quit), applying the broken-word penalty. Tests the abandon path without the LLM.

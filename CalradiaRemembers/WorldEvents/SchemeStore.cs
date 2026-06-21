@@ -86,6 +86,91 @@ namespace CalradiaRemembers.WorldEvents
             return $"{plotter.Name} now plots {kind} against {target.Name}. Advance a day to see it move.";
         }
 
+        // ── Player as agent (v1.3 player involvement) ─────────────────────────
+
+        /// <summary>
+        ///   The name of the target this plotter could recruit the player against, or null when no
+        ///   recruitable scheme applies. Used to gate the <c>scheme_assist</c> prompt teaching.
+        /// </summary>
+        public string GetRecruitableTargetName(Hero plotter)
+            => ResolveRecruitableScheme(plotter, out Hero target) == null ? null : target.Name?.ToString();
+
+        /// <summary>
+        ///   The player throws in with the plotter's scheme: it leaps forward (pure
+        ///   <see cref="SchemeAgentPolicy.ApplyPlayerAid"/>), and if that carries it to fruition the
+        ///   standing-damage effect lands and a rumour spreads. Secret partial help stays quiet.
+        ///   Re-validates the gate (the bridge is the law); returns null when nothing applies.
+        /// </summary>
+        public string PlayerAssists(Hero plotter)
+        {
+            Scheme scheme = ResolveRecruitableScheme(plotter, out Hero target);
+            if (scheme == null) return null;
+
+            int today = (int) CampaignTime.Now.ToDays;
+            SchemeAgentPolicy.ApplyPlayerAid(scheme);
+
+            if (scheme.State == SchemeState.Succeeded)
+            {
+                ApplyStandingDamage(plotter, target);
+                RecordRumor(scheme, plotter, target, today, "succeeded", 34,
+                    $"{plotter.Name} has undone {target.Name} — and the player's hand was in it.");
+                _schemes.Remove(scheme);
+                return $"With your help, {plotter.Name}'s plot against {target.Name} comes to fruition.";
+            }
+
+            // Secret help — no public rumour yet; the plot simply gains ground.
+            ModLog.Info($"[SCHEME] player aided {plotter.Name}'s plot against {target.Name} (progress {scheme.Progress}).");
+            return $"You quietly advance {plotter.Name}'s scheme against {target.Name}.";
+        }
+
+        /// <summary>The plotter's secret, active scheme the player is eligible to abet, or null.</summary>
+        private Scheme ResolveRecruitableScheme(Hero plotter, out Hero target)
+        {
+            target = null;
+            if (plotter == null || Hero.MainHero == null) return null;
+
+            Scheme scheme = _schemes.FirstOrDefault(s => s.PlotterId == plotter.StringId && !SchemeAdvancer.IsTerminal(s.State));
+            if (scheme == null) return null;
+
+            target = FindHero(scheme.TargetId);
+            if (target == null || !target.IsAlive) return null;
+
+            int regard = plotter.GetRelation(Hero.MainHero);
+            bool allied = target.GetRelation(Hero.MainHero) >= 20
+                          || (target.MapFaction != null && target.MapFaction == Hero.MainHero.MapFaction);
+
+            return SchemeAgentPolicy.CanRecruitPlayer(scheme.State, regard, allied) ? scheme : null;
+        }
+
+        /// <summary>True when a still-secret scheme is aimed at <paramref name="target"/> — gates the scheme_heed teaching.</summary>
+        public bool HasSecretSchemeAgainst(Hero target)
+            => target != null
+               && _schemes.Any(s => s.TargetId == target.StringId && SchemeAgentPolicy.CanWarnTarget(s.State));
+
+        /// <summary>
+        ///   The player warns <paramref name="target"/> of a plot against them: the scheme is dragged
+        ///   into the light (pure <see cref="SchemeAgentPolicy.ExposeToTarget"/>) and the discovery
+        ///   spreads as a rumour. Forewarned, the target's counterplay (the daily tick's elevated
+        ///   backfire on an exposed plot) gives them a real chance. Returns null when nothing applies.
+        /// </summary>
+        public string TargetHeeds(Hero target)
+        {
+            if (target == null) return null;
+
+            Scheme scheme = _schemes.FirstOrDefault(s => s.TargetId == target.StringId && SchemeAgentPolicy.CanWarnTarget(s.State));
+            if (scheme == null) return null;
+
+            Hero plotter = FindHero(scheme.PlotterId);
+            if (plotter == null) return null;
+
+            SchemeAgentPolicy.ExposeToTarget(scheme);
+            RecordRumor(scheme, plotter, target, (int) CampaignTime.Now.ToDays, "discovered", 28,
+                $"{target.Name}, warned in time, has uncovered {plotter.Name}'s plot against them.");
+            ModLog.Info($"[SCHEME] player warned {target.Name} of {plotter.Name}'s plot — now exposed.");
+
+            return $"You warn {target.Name} of {plotter.Name}'s scheme. Forewarned, they will be far harder to undo.";
+        }
+
         // ── Advancing active schemes ──────────────────────────────────────────
 
         private void AdvanceActive(int today)

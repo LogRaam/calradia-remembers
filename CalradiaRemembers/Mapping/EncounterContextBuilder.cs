@@ -80,6 +80,8 @@ namespace CalradiaRemembers.Mapping
             CompanionAskingPrice     = ResolveCompanionAskingPrice(hero),
             MercenaryOfferKingdom    = ResolveMercenaryOfferKingdom(hero),
             LordRecruitEligible      = ResolveLordRecruitEligible(hero),
+            SchemeAgentTargetName    = ResolveSchemeAgentTarget(hero),
+            SchemeTargetsThisNpc     = ResolveSchemeTargetsThisNpc(hero),
             LoveMatchEligible        = ResolveLoveMatchEligible(hero, profile),
             LoveMatchBlessed         = ResolveLoveMatchBlessed(hero),
             ConsortEligible          = ResolveConsortEligible(hero, profile),
@@ -172,6 +174,27 @@ namespace CalradiaRemembers.Mapping
                 LordRecruitmentFacts facts = GameState.LordRecruitmentFactsBuilder.Build(hero);
                 return facts != null && LordRecruitment.IsEligible(facts);
             }
+            catch { return false; }
+        }
+
+        /// <summary>
+        ///   When this NPC is secretly plotting against a rival and could enlist the player, the
+        ///   target's name — gates the <c>scheme_assist</c> teaching. Delegates the eligibility to
+        ///   <see cref="WorldEvents.SchemeStore"/> so the prompt and the bridge agree. Null otherwise.
+        /// </summary>
+        private static string ResolveSchemeAgentTarget(Hero hero)
+        {
+            try { return WorldEvents.SchemeStore.Instance?.GetRecruitableTargetName(hero); }
+            catch { return null; }
+        }
+
+        /// <summary>
+        ///   True when a secret scheme is aimed at this NPC, so the player could warn them — gates the
+        ///   <c>scheme_heed</c> teaching. Delegates to <see cref="WorldEvents.SchemeStore"/>.
+        /// </summary>
+        private static bool ResolveSchemeTargetsThisNpc(Hero hero)
+        {
+            try { return WorldEvents.SchemeStore.Instance?.HasSecretSchemeAgainst(hero) ?? false; }
             catch { return false; }
         }
 
