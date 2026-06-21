@@ -40,12 +40,13 @@ namespace CalradiaRemembers.Chat
 
         protected override void OnLateUpdate(float dt)
         {
-            // A deferred close tears down this very widget — honor it at the top of the frame
-            // and stop, never from inside the drain below (which would dispose the panel while
-            // its OnLateUpdate is on the stack).
+            // A deferred close tears down this very widget. Hand it to ChatManager's deferred path,
+            // which (on the map) destroys the layer on a NATIVE campaign tick — OUTSIDE this UI
+            // LateUpdate — so we never remove our own layer mid-update (which NREs in GauntletUI's
+            // DefragContainers next frame: the letter-reply crash).
             if (MainThreadDispatcher.ConsumeCloseRequest())
             {
-                ChatManager.Close();
+                ChatManager.RequestDeferredClose();
                 return;
             }
 
