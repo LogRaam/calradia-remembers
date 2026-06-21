@@ -245,7 +245,11 @@ namespace CalradiaRemembers.WorldEvents
         {
             if (scheme == null || !scheme.PlayerAbetted) return;
 
-            int penalty = SchemeBacklash.AbettorPenalty(scheme.State);
+            bool sameFaction = target?.MapFaction != null && Hero.MainHero?.MapFaction != null
+                               && target.MapFaction == Hero.MainHero.MapFaction;
+            int relation = (target != null && Hero.MainHero != null) ? target.GetRelation(Hero.MainHero) : 0;
+
+            int penalty = SchemeBacklash.AbettorPenalty(scheme.State, sameFaction, relation);
             scheme.PlayerAbetted = false; // one-shot regardless of outcome
             if (penalty <= 0 || target == null || Hero.MainHero == null) return;
 
