@@ -118,6 +118,14 @@ namespace CalradiaRemembers.Tests
         }
 
         [Test]
+        public void GIVEN_almost_caught_even_past_the_timeout_WHEN_judging_THEN_the_pursuer_still_presses_on()
+        {
+            //Arrange — being right on top of the player overrides the timeout: do not give up on the cusp.
+            InterceptionPolicy.ShouldAbandonChase(pursuerSpeed: 4f, playerSpeed: 8f, distance: 3f,
+                daysPursuing: InterceptionPolicy.MaxPursuitDays + 3).Should().BeFalse();
+        }
+
+        [Test]
         public void GIVEN_the_player_only_marginally_faster_WHEN_judging_THEN_the_chase_continues()
         {
             //Arrange — 4.5/4 = 1.125, below the 1.15 outrun ratio.

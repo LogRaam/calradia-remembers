@@ -61,15 +61,16 @@ namespace CalradiaRemembers.Logic
         public const float AbandonMinDistance = 5f;
 
         /// <summary>
-        ///   Whether a lord gives up the chase: a stale pursuit (past <see cref="MaxPursuitDays"/>) is
-        ///   abandoned, and so is a hopeless one — when the player is well clear and clearly faster, a
-        ///   pursuer cannot force the meeting and stops wasting the effort. A pursuer right on top of
-        ///   the player keeps pressing regardless of speed (the encounter is about to happen).
+        ///   Whether a lord gives up the chase. A pursuer right on top of the player keeps pressing no
+        ///   matter what — the encounter is about to happen, so neither the timeout nor a speed gap
+        ///   matters. Otherwise a stale pursuit (past <see cref="MaxPursuitDays"/>) is abandoned, and
+        ///   so is a hopeless one — when the player is well clear and clearly faster, the pursuer
+        ///   cannot force the meeting and stops wasting the effort.
         /// </summary>
         public static bool ShouldAbandonChase(float pursuerSpeed, float playerSpeed, float distance, int daysPursuing)
         {
+            if (distance < AbandonMinDistance) return false; // about to connect — never give up now
             if (daysPursuing >= MaxPursuitDays) return true;
-            if (distance < AbandonMinDistance) return false;
             return pursuerSpeed > 0f && playerSpeed >= pursuerSpeed * OutrunSpeedRatio;
         }
 
