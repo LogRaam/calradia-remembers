@@ -584,6 +584,23 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.intercept [name]
+      ///   Forces the named lord (with a party on the map) to ride out and intercept the player,
+      ///   bypassing the eligibility roll — to test the pursuit without waiting for the daily tick.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("intercept", "cr")]
+      public static string ForceIntercept(List<string> args)
+      {
+         var behavior = Interception.InterceptionBehavior.Instance;
+         if (behavior == null) return "Interception system is not active.";
+
+         Hero lord = ResolveHero(args);
+         if (lord == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         return behavior.DebugForceIntercept(lord);
+      }
+
+      /// <summary>
       ///   cr.quest_abandon [name]
       ///   Force-abandons the NPC's outstanding quest (as if the player told them they
       ///   quit), applying the broken-word penalty. Tests the abandon path without the LLM.
