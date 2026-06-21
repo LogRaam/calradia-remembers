@@ -1372,6 +1372,39 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.letter_reply [name]
+      ///   Opens the letter-REPLY window directly with a synthetic received letter — the exact context
+      ///   of the close-on-reply crash, instantly (no delivery wait, no LLM). Type a reply and send:
+      ///   the window close is the test. Must be on the campaign map (where the deferred-close fix runs).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("letter_reply", "cr")]
+      public static string OpenLetterReply(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         var letter = new PendingLetter
+         {
+            SenderId    = hero.StringId,
+            SenderName  = hero.Name?.ToString(),
+            Reason      = LetterReason.RomanticCorrespondence,
+            Content     = $"I find my thoughts return to you more often than I would admit. Write back, if you would. — {hero.Name}",
+            SentOnDay   = today - 2,
+            DeliveryDay = today,
+            IsDelivered = true
+         };
+
+         ChatManager.OpenForLetterReply(profile, hero, letter);
+         return $"Opened a letter-reply window from {hero.Name}. Type a reply, send, and watch the close — that is the crash test.";
+      }
+
+      /// <summary>
       ///   cr.bargain_marriage [name]
       ///   Seeds a marriage_consent bargain on a clan head (or a parent): a deed (clear bandits
       ///   near a village) conditions the blessing for the player to marry one of their eligible

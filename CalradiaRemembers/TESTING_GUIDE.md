@@ -98,7 +98,8 @@ changes what NPCs say, and that everything survives a **save / reload**.
 ### Letters & couriers
 | Command | Does |
 |---|---|
-| `cr.letter [name]` | Queue an NPC-initiated letter to the player. |
+| `cr.letter [name]` | Queue an NPC-initiated letter to the player (arrives at the next daily tick). |
+| `cr.letter_reply [name]` | Open the letter-REPLY window directly with a synthetic received letter — the exact close-on-reply crash context, instantly. Reply, send, watch the close. |
 | `cr.compose [name]` | Preview an NPC's generated letter. |
 | `cr.courier [name]` | Spawn a visible player→NPC courier. |
 | `cr.courier_slow [name]` | Same, slowed, to watch it cross the map / be intercepted. |
