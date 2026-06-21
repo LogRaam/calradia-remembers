@@ -118,6 +118,16 @@ namespace CalradiaRemembers.WorldEvents
             try
             {
                 if (mapEvent.WinningSide == BattleSideEnum.None) return;
+
+                // Only a siege or a clash of two armies is worth recording (into world-events, the
+                // chronicle, and lords' profiles) — a field skirmish or a bandit chase is noise that
+                // would bloat the save. This also skips the per-lord profile memory + stance bumps below.
+                if (!Logic.BattleNotability.IsNotable(
+                        mapEvent.EventType == MapEvent.BattleTypes.Siege,
+                        SideHasArmy(mapEvent, BattleSideEnum.Attacker),
+                        SideHasArmy(mapEvent, BattleSideEnum.Defender)))
+                    return;
+
                 BattleSideEnum loseSide = mapEvent.WinningSide == BattleSideEnum.Attacker
                     ? BattleSideEnum.Defender
                     : BattleSideEnum.Attacker;
@@ -314,6 +324,16 @@ namespace CalradiaRemembers.WorldEvents
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
+
+        /// <summary>True when any party on this side of the battle belongs to an army.</summary>
+        private static bool SideHasArmy(MapEvent mapEvent, BattleSideEnum side)
+        {
+            var parties = mapEvent.GetMapEventSide(side)?.Parties;
+            if (parties == null) return false;
+            foreach (MapEventParty p in parties)
+                if (p.Party?.MobileParty?.Army != null) return true;
+            return false;
+        }
 
         private static Hero SideLeader(MapEvent mapEvent, BattleSideEnum side)
         {
