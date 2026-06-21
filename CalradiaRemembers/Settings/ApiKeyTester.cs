@@ -51,6 +51,12 @@ namespace CalradiaRemembers.Settings
             Probe("NanoGPT", NanoGptModelsUrl, ResolveKey(CrSettings.Instance?.NanoGptApiKey, NanoGptEnvVar),
                   "nano-gpt.com");
 
+        /// <summary>
+        ///   Tests a custom OpenAI-compatible endpoint by sending a one-token completion.
+        ///   The key is optional — blank = keyless server (LM Studio / Ollama default).
+        /// </summary>
+        public static void RunCustom() => _ = RunCustomAsync();
+
         #region private
 
         /// <summary>
@@ -214,6 +220,73 @@ namespace CalradiaRemembers.Settings
             }
 
             ShowResult(title, body);
+        }
+
+        private static async Task RunCustomAsync()
+        {
+            if (_running) return;
+
+            string url = CrSettings.Instance?.CustomEndpointUrl?.Trim();
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                ShowResult("No endpoint URL", "Paste the server URL in the Endpoint URL field first (e.g. http://localhost:1234/v1).");
+                return;
+            }
+
+            string model = CrSettings.Instance?.CustomModel?.Trim();
+            if (string.IsNullOrWhiteSpace(model))
+            {
+                ShowResult("No model", "Enter a model id in the Model field first.");
+                return;
+            }
+
+            string key = CrSettings.Instance?.CustomApiKey?.Trim(); // blank is valid — keyless server
+
+            _running = true;
+            MBInformationManager.AddQuickInformation(new TextObject("Testing custom endpoint..."));
+
+            string title, body;
+            try
+            {
+                string chatUrl = url.TrimEnd('/') + "/chat/completions";
+                (bool ok, string err) = await TestCustomChatAsync(chatUrl, key, model).ConfigureAwait(false);
+                title = ok ? "Connection OK" : "Endpoint test failed";
+                body  = ok
+                    ? $"Your endpoint responded successfully with model '{model}'. You're ready to play."
+                    : $"The endpoint at '{url}' did not respond as expected:\n\n{err}\n\n" +
+                      "Make sure the server is running, the URL includes /v1, and the model id is correct.";
+            }
+            catch (Exception ex)
+            {
+                title = "Connection error";
+                body  = $"Could not reach the endpoint: {ex.Message}";
+            }
+            finally
+            {
+                _running = false;
+            }
+
+            ShowResult(title, body);
+        }
+
+        private static async Task<(bool ok, string err)> TestCustomChatAsync(string chatUrl, string key, string model)
+        {
+            string payload = "{\"model\":\"" + JsonEscape(model)
+                           + "\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":1}";
+
+            using (var req = new HttpRequestMessage(HttpMethod.Post, chatUrl))
+            {
+                if (!string.IsNullOrWhiteSpace(key))
+                    req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+                req.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+                using (HttpResponseMessage resp = await Http.SendAsync(req).ConfigureAwait(false))
+                {
+                    string respBody = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    return resp.IsSuccessStatusCode
+                        ? (true, null)
+                        : (false, ExtractError(respBody, (int) resp.StatusCode));
+                }
+            }
         }
 
         private static string ResolveKey(string mcmValue, string envVar)

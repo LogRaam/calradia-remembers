@@ -47,7 +47,7 @@ namespace CalradiaRemembers.Settings
                        "API key and model field below — switching does not require re-pasting. Applies immediately.")]
         [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
         public Dropdown<string> Provider { get; set; } =
-            new Dropdown<string>(new[] {"OpenRouter", "NanoGPT"}, 0); // default: OpenRouter
+            new Dropdown<string>(new[] {"OpenRouter", "NanoGPT", "OpenAI-Compatible"}, 0); // default: OpenRouter
 
         [SettingPropertyText("OpenRouter API Key", RequireRestart = false, Order = -1,
             HintText = "Paste your OpenRouter API key from openrouter.ai/keys. Stored locally on this machine " +
@@ -101,6 +101,36 @@ namespace CalradiaRemembers.Settings
             Content = "Test")]
         [SettingPropertyGroup("NanoGPT", GroupOrder = 4)]
         public Action TestNanoGptConnection { get; set; } = ApiKeyTester.RunNanoGpt;
+
+        [SettingPropertyText("Endpoint URL", RequireRestart = false, Order = -1,
+            HintText = "Base URL of your local OpenAI-compatible server, including the /v1 path " +
+                       "(e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama, " +
+                       "http://localhost:8000/v1 for vLLM). The mod appends /chat/completions automatically. " +
+                       "Used only when Provider is set to OpenAI-Compatible. Applies immediately.")]
+        [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 5)]
+        public string CustomEndpointUrl { get; set; } = "";
+
+        [SettingPropertyText("API Key (optional)", RequireRestart = false, Order = -2,
+            HintText = "API key for the endpoint — leave blank for keyless local servers like LM Studio or Ollama " +
+                       "(their default config requires no authentication). Fill it in only if your server is " +
+                       "configured to require one. Applies immediately.")]
+        [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 5)]
+        public string CustomApiKey { get; set; } = "";
+
+        [SettingPropertyText("Model", RequireRestart = false, Order = -3,
+            HintText = "Model id exactly as your server expects it " +
+                       "(e.g. lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF for LM Studio, " +
+                       "llama3.1:8b for Ollama). Used only when Provider is set to OpenAI-Compatible. Applies immediately.")]
+        [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 5)]
+        public string CustomModel { get; set; } = "";
+
+        [SettingPropertyButton("Test Endpoint", RequireRestart = false, Order = -4,
+            HintText = "Sends a one-token test completion to your endpoint with the model above. " +
+                       "The server must be running — the test makes no external calls. " +
+                       "Used only when Provider is set to OpenAI-Compatible.",
+            Content = "Test")]
+        [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 5)]
+        public Action TestCustomConnection { get; set; } = ApiKeyTester.RunCustom;
 
         [SettingPropertyBool("Enable Logging", RequireRestart = false, Order = 0,
             HintText = "Master switch for all mod logging — both the on-screen messages and the " +

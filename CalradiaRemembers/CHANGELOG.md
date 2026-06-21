@@ -2,30 +2,42 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.9.1.. 2026-06-20
+
+### New
+- **Use any local AI server.** In Mod Options → Calradia Remembers → LLM Provider, set Provider
+  to **OpenAI-Compatible** and fill in three fields: the server's base URL (e.g.
+  `http://localhost:1234/v1` for LM Studio, `http://localhost:11434/v1` for Ollama), the model id
+  your server expects, and an API key if your server requires one.. leave the key blank for the
+  default keyless configuration. A **Test Endpoint** button verifies the connection before you
+  play. This lets you run any GGUF, llama.cpp, Ollama, vLLM, or TabbyAPI model locally without
+  any cloud subscription. Quality and speed will depend entirely on your local hardware and the
+  model you load.
+
 ## v1.9.0.. 2026-06-20
 
 ### Fixed
 - **Captive scenes no longer cut off right after they begin.** A captor could pose their opening
-  threat — "talk, or I get creative" — and then the AI would immediately *end* the conversation,
+  threat.. "talk, or I get creative".. and then the AI would immediately *end* the conversation,
   stranding the scene on a "has ended" line before it had really started. The captor can now only
   end a captive scene when it genuinely concludes; an early end is ignored, and the scene carries
   on with its normal Continue / Try-something-else controls.
 - **The tavern keeper takes letters again.** The "talk to the locals" chat had begun hijacking
-  the tavern keeper — he'd answer as a random townsperson ("a blacksmith's apprentice") and his
+  the tavern keeper.. he'd answer as a random townsperson ("a blacksmith's apprentice") and his
   "send a letter" service was lost. Idle-chat is now offered only to genuinely anonymous
   townsfolk and villagers, never to a functional NPC with their own dialogue (tavern keeper,
   a captured bandit, a merchant, and so on).
 - **Replying to a letter no longer risks a crash, and no longer looks like a stalled chat.**
   Generating an NPC's letter reply could, on a background thread, read a character's memory at the
   same instant the game was writing to it ("Collection was modified"), and the reply window left
-  the recipient stuck "(considering…)" as it closed — which could destabilise the UI. Replies are
+  the recipient stuck "(considering…)" as it closed.. which could destabilise the UI. Replies are
   now built from a stable snapshot, and the window resolves and closes cleanly.
 
 ### New
 - **The world has news now, and NPCs have heard it.** Battles, sieges, conquered towns,
   noble marriages, executions, and declarations of war are quietly recorded as they happen.
-  When you talk to a lord, they may bring up recent events they would plausibly know of —
-  what their own faction is involved in, what happened near them, what is still fresh —
+  When you talk to a lord, they may bring up recent events they would plausibly know of..
+  what their own faction is involved in, what happened near them, what is still fresh..
   spoken as hearsay ("word came that…"), never as omniscience. A Sturgian lord won't recite
   yesterday's distant Aserai gossip; the news that reaches someone depends on how far it is,
   whose realm it touches, and how recently it happened.
@@ -33,34 +45,34 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   now drawn from things that actually happened in your campaign, so a townsperson's word on
   the street is genuinely current.
 - **Distant news arrives uncertain.** The further word has had to travel to reach someone,
-  the less sure they are of it — a faraway rumour comes with real doubt ("they say, though
+  the less sure they are of it.. a faraway rumour comes with real doubt ("they say, though
   none can vouch for it…") and the teller may have the details wrong, while news from their
   own region or realm is told plainly.
 - **Insults travel.** Affront a lord steeply in front of witnesses and word of the disgrace
-  gets around — it becomes a rumour others may have heard, rather than evaporating the moment
+  gets around.. it becomes a rumour others may have heard, rather than evaporating the moment
   the conversation closes.
 - **Feuds are common knowledge.** When two lords of the same crown bear real bad blood, word
-  of their rivalry circulates as ambient gossip — so a lord may mention which of their peers
+  of their rivalry circulates as ambient gossip.. so a lord may mention which of their peers
   are at each other's throats.
 - **Even a private affair can reach the wrong ears.** A romance with no witnesses no longer
-  relies on a flat chance to draw a jealous reaction — word of it now travels through the same
+  relies on a flat chance to draw a jealous reaction.. word of it now travels through the same
   rumour network, and a rival or wronged spouse may grow jealous if and when it reaches them,
   depending on how near they are and whose circles the gossip runs in.
-- **Lords remember how you fought.** Win or lose a battle and the lords who stood with you —
-  or against you — record it: "fought at your side when you broke the enemy", "saw you put
+- **Lords remember how you fought.** Win or lose a battle and the lords who stood with you..
+  or against you.. record it: "fought at your side when you broke the enemy", "saw you put
   their host to flight". They simply know you acquitted yourself well, instead of waiting for
   you to tell them so.
 - **Your Chronicle.** Your own deeds are written into a chronicle in the voice of a medieval
-  chronicler — "In the autumn of the 6th year, the lord {you} met {foe} in open battle near
+  chronicler.. "In the autumn of the 6th year, the lord {you} met {foe} in open battle near
   {place}, and by sword and valour put the foe to flight." Open it any time from the **"Read
   the Chronicle"** button on your own character's Encyclopedia page: a parchment-styled
   window of your saga, dated and in order. (Also written to CalradiaRemembers_chronicle.log.)
 - **An illuminated chronicle, if you want it.** Beyond the plain dated entries, an **Illuminate**
-  button in the chronicle window has the AI rewrite your saga into flowing chronicler's prose —
+  button in the chronicle window has the AI rewrite your saga into flowing chronicler's prose..
   grand, period-voiced, and shaped by an editable style file (`ModuleData/chronicle_style.txt`:
   a devout monk by default, but write your own skald or court flatterer). It is a *living*
   manuscript: as your deeds mount, Illuminate sets only the newest ones to fine prose and appends
-  them, while the very latest read as the chronicler's rough notes until you do — and a toggle
+  them, while the very latest read as the chronicler's rough notes until you do.. and a toggle
   flips between the plain record and the illuminated one. The illuminated chronicle is saved with
   your campaign; "Rewrite all" redoes it in a fresh voice after you change the style.
 

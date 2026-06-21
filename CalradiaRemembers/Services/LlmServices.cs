@@ -41,6 +41,7 @@ namespace CalradiaRemembers.Services
         // Provider ids — must match the values in CrSettings.Provider dropdown.
         private const string ProviderOpenRouter = "OpenRouter";
         private const string ProviderNanoGpt    = "NanoGPT";
+        private const string ProviderCustom     = "OpenAI-Compatible";
 
         private const string OpenRouterApiKeyEnvVar = "OPENROUTER_API_KEY";
         private const string NanoGptApiKeyEnvVar    = "NANOGPT_API_KEY";
@@ -89,6 +90,18 @@ namespace CalradiaRemembers.Services
                 return "(The AI stack failed to initialize — check CalradiaRemembers.log.)";
 
             string provider = ResolveProvider();
+
+            if (provider == ProviderCustom)
+            {
+                if (string.IsNullOrWhiteSpace(ResolveBaseUrl()))
+                    return "(No endpoint URL is set. Open Mods → Mod Options → Calradia Remembers, " +
+                           "paste your server URL (e.g. http://localhost:1234/v1), then return here — it applies immediately.)";
+                if (string.IsNullOrWhiteSpace(ResolveModel()))
+                    return "(OpenAI-Compatible is selected but no model id is set. Open Mods → Mod Options → Calradia Remembers " +
+                           "and paste the model id your server expects — it applies immediately.)";
+                return null;
+            }
+
             if (string.IsNullOrWhiteSpace(ResolveApiKey()))
                 return $"(No {provider} API key is set. Open Mods → Mod Options → Calradia Remembers, " +
                        $"paste your {provider} API key, then return here — it applies immediately, no restart needed.)";
@@ -170,7 +183,7 @@ namespace CalradiaRemembers.Services
                 };
                 LlmClient = new OpenRouterClient(_httpClient, config);
 
-                if (string.IsNullOrWhiteSpace(ResolveApiKey()))
+                if (ResolveProvider() != ProviderCustom && string.IsNullOrWhiteSpace(ResolveApiKey()))
                     ModLog.Info($"LLM stack built, but no {ResolveProvider()} API key is set yet. " +
                                 "Add it in Mods → Mod Options → Calradia Remembers (applies immediately).");
                 else
@@ -194,7 +207,9 @@ namespace CalradiaRemembers.Services
         private static string ResolveProvider()
         {
             string sel = Settings.CrSettings.Instance?.Provider?.SelectedValue;
-            return sel == ProviderNanoGpt ? ProviderNanoGpt : ProviderOpenRouter;
+            if (sel == ProviderNanoGpt)   return ProviderNanoGpt;
+            if (sel == ProviderCustom)    return ProviderCustom;
+            return ProviderOpenRouter;
         }
 
         /// <summary>
@@ -206,8 +221,15 @@ namespace CalradiaRemembers.Services
         private static string ResolveApiKey()
         {
             Settings.CrSettings s = Settings.CrSettings.Instance;
-            bool nano = ResolveProvider() == ProviderNanoGpt;
+            string provider = ResolveProvider();
 
+            if (provider == ProviderCustom)
+            {
+                string customKey = s?.CustomApiKey?.Trim();
+                return string.IsNullOrWhiteSpace(customKey) ? string.Empty : customKey;
+            }
+
+            bool nano = provider == ProviderNanoGpt;
             string mcmKey = nano ? s?.NanoGptApiKey : s?.ApiKey;
             if (!string.IsNullOrWhiteSpace(mcmKey)) return mcmKey.Trim();
 
@@ -223,32 +245,39 @@ namespace CalradiaRemembers.Services
         private static string ResolveModel()
         {
             Settings.CrSettings s = Settings.CrSettings.Instance;
+            string provider = ResolveProvider();
 
-            if (ResolveProvider() == ProviderNanoGpt)
-                return s?.NanoGptModel?.Trim() ?? string.Empty;
+            if (provider == ProviderCustom)  return s?.CustomModel?.Trim()  ?? string.Empty;
+            if (provider == ProviderNanoGpt) return s?.NanoGptModel?.Trim() ?? string.Empty;
 
             string mcmModel = s?.Model;
             return string.IsNullOrWhiteSpace(mcmModel) ? DefaultModel : mcmModel.Trim();
         }
 
         /// <summary>Resolves the active provider's OpenAI-compatible base URL. Read live per request.</summary>
-        private static string ResolveBaseUrl() =>
-            ResolveProvider() == ProviderNanoGpt ? NanoGptBaseUrl : OpenRouterBaseUrl;
+        private static string ResolveBaseUrl()
+        {
+            string provider = ResolveProvider();
+            if (provider == ProviderNanoGpt) return NanoGptBaseUrl;
+            if (provider == ProviderCustom)  return Settings.CrSettings.Instance?.CustomEndpointUrl?.Trim() ?? "";
+            return OpenRouterBaseUrl;
+        }
 
         /// <summary>
         ///   Resolves the reasoning-effort keyword for the request. The <c>reasoning</c> parameter
         ///   is OpenRouter-specific, so it is suppressed (null) for NanoGPT. Read live per request.
         /// </summary>
+        // The reasoning parameter is OpenRouter-specific; suppress it for everything else.
         private static string ResolveReasoning() =>
-            ResolveProvider() == ProviderNanoGpt ? null : ModSettings.ReasoningEffort;
+            ResolveProvider() == ProviderOpenRouter ? ModSettings.ReasoningEffort : null;
 
         /// <summary>
         ///   Whether to send the cacheable content-array system message. OpenRouter honors
-        ///   the <c>cache_control</c> breakpoint; NanoGPT routes to arbitrary models and the
-        ///   array form is untested there, so we send a plain string to stay portable.
+        ///   the <c>cache_control</c> breakpoint; other providers route to arbitrary backends
+        ///   where the array form is untested, so we send a plain string to stay portable.
         /// </summary>
         private static bool ResolveUseSystemPromptCaching() =>
-            ResolveProvider() != ProviderNanoGpt;
+            ResolveProvider() == ProviderOpenRouter;
 
         /// <summary>
         ///   Builds the chat service with a PromptBuilder configured against
