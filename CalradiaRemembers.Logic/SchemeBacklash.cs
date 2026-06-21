@@ -26,6 +26,9 @@ namespace CalradiaRemembers.Logic
         /// <summary>What an exposed plotter's regard for the player falls by, suspecting them of the warning.</summary>
         public const int WarnedPlotterResentment = 8;
 
+        /// <summary>How much the betrayed crown (the player's own faction leader) cools on a discovered treason.</summary>
+        public const int TreasonCrownPenalty = 10;
+
         // Relation tiers, matching the rest of the mod's "a friend" / "an enemy" thresholds.
         private const int FriendThreshold = 10;
         private const int EnemyThreshold = -10;

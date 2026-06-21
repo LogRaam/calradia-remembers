@@ -114,9 +114,10 @@ namespace CalradiaRemembers.WorldEvents
             if (scheme.State == SchemeState.Succeeded)
             {
                 ApplyStandingDamage(plotter, target);
-                RecordRumor(scheme, plotter, target, today, "succeeded", 34,
-                    $"{plotter.Name} has undone {target.Name} — and the player's hand was in it.");
-                MaybeAbettorBacklash(scheme, target);
+                RecordRumor(scheme, plotter, target, today, "succeeded", 34, scheme.Kind == SchemeKind.Slander
+                    ? $"{plotter.Name} has blackened {target.Name}'s name, and it has cost them dearly."
+                    : $"{plotter.Name} has undermined {target.Name}, weakening their standing.");
+                MaybeAbettorBacklash(scheme, target); // records the player's complicity as its own rumour
                 _schemes.Remove(scheme);
                 return $"With your help, {plotter.Name}'s plot against {target.Name} comes to fruition.";
             }
@@ -253,12 +254,37 @@ namespace CalradiaRemembers.WorldEvents
             scheme.PlayerAbetted = false; // one-shot regardless of outcome
             if (penalty <= 0 || target == null || Hero.MainHero == null) return;
 
+            // 1. The wronged target turns on the player.
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(target, Hero.MainHero, -penalty, false);
-            ModLog.Info($"[SCHEME] abettor backlash: {target.Name} learns of the player's hand and turns on them (-{penalty}).");
+
+            // 2. Word of the treachery spreads as a disgrace rumour — fed to commoners and to lords'
+            //    "what you've heard", so they speak of the player as a known schemer. Reach scales with
+            //    gravity (treason carries furthest); InvolvesPlayer=false so it spreads then fades.
+            int today = (int) CampaignTime.Now.ToDays;
+            WorldEventStore.Instance?.Record(new WorldEvent {
+                Type           = WorldEventType.Affront,
+                Day            = today,
+                Magnitude      = Math.Min(60, 20 + penalty),
+                InvolvesPlayer = false,
+                Status         = "treachery",
+                Summary        = $"It is whispered that {Hero.MainHero.Name} had a secret hand in the plot that wronged {target.Name}.",
+                ActorIds       = new List<string> { Hero.MainHero.StringId, target.StringId },
+                FactionIds     = target.MapFaction != null ? new List<string> { target.MapFaction.StringId } : new List<string>()
+            });
+
+            // 3. A treason against one's OWN realm also cools the betrayed crown.
+            if (sameFaction)
+            {
+                Hero crown = Hero.MainHero.MapFaction?.Leader;
+                if (crown != null && crown != Hero.MainHero && crown != target)
+                    ChangeRelationAction.ApplyRelationChangeBetweenHeroes(crown, Hero.MainHero, -SchemeBacklash.TreasonCrownPenalty, false);
+            }
+
+            ModLog.Info($"[SCHEME] abettor backlash: {target.Name} turns on the player (-{penalty}); treachery rumour recorded{(sameFaction ? "; crown displeased" : "")}.");
             try
             {
                 MBInformationManager.AddQuickInformation(
-                    new TextObject($"{target.Name} has learned of your hand in the plot against them."));
+                    new TextObject($"Word spreads that you had a hand in the plot against {target.Name}."));
             }
             catch { /* notification is best-effort */ }
         }
