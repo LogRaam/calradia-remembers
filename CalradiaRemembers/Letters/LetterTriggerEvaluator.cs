@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
@@ -62,29 +63,16 @@ namespace CalradiaRemembers.Letters
 
       #region private
 
+      // Anti-spam cadence + last-meeting proxy now live in the pure, unit-tested
+      // CalradiaRemembers.Logic.LetterCadence; these thin wrappers keep the call sites unchanged.
+
       /// <summary>True when the NPC has no letter in transit and respects the cooldown.</summary>
       private static bool CanSendLetter(NpcProfile profile, int today, int cooldownDays)
-      {
-         if (profile.SentLetters.Count == 0) return true;
-
-         // Block if a letter is still in transit.
-         bool inTransit = profile.SentLetters.Any(l => !l.IsDelivered && l.DeliveryDay > today);
-
-         if (inTransit) return false;
-
-         // Enforce cooldown from most recent letter sent.
-         int lastSent = profile.SentLetters.Max(l => l.SentOnDay);
-
-         return today - lastSent >= cooldownDays;
-      }
+         => LetterCadence.CanSendLetter(profile, today, cooldownDays);
 
       /// <summary>Days since the last notable event in this NPC's profile (proxy for last meeting).</summary>
       private static int DaysSinceLastEvent(NpcProfile profile, int today)
-      {
-         if (profile.Events.Count == 0) return int.MaxValue;
-
-         return today - profile.Events.Max(e => e.gameDay);
-      }
+         => LetterCadence.DaysSinceLastEvent(profile, today);
 
       // ── Daily condition evaluators ─────────────────────────────────────────
 

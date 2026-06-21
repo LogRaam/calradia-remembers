@@ -18,10 +18,6 @@ namespace CalradiaRemembers.WorldEvents
     /// <summary>Records social outcomes of CR conversations into the world-event store.</summary>
     public static class ConversationEventFeeder
     {
-        // A relation drop at least this steep, in front of witnesses, counts as a public affront
-        // worth gossiping about. Routine −1 cooling never spreads.
-        private const int AffrontThreshold = -5;
-
         /// <summary>
         ///   When the player affronts an NPC steeply enough in front of witnesses, record it as a
         ///   rumor (spreads by awareness, ages out, NOT chronicle material). No-op for minor turns.
@@ -38,7 +34,7 @@ namespace CalradiaRemembers.WorldEvents
                     && int.TryParse(ds, out int d) && d < worst)
                     worst = d;
 
-            if (worst > AffrontThreshold) return; // not a real public affront
+            if (!Logic.PublicAffrontPolicy.IsAffront(worst, witnessCount)) return; // not a real public affront
 
             Hero player = Hero.MainHero;
             Settlement place = player?.CurrentSettlement ?? npc.CurrentSettlement;
@@ -51,7 +47,7 @@ namespace CalradiaRemembers.WorldEvents
                 Day            = (int) CampaignTime.Now.ToDays,
                 PlaceId        = place?.StringId,
                 InvolvesPlayer = false, // gossip that spreads and fades — not the heroic chronicle
-                Magnitude      = Math.Min(50, 25 + witnessCount * 5),
+                Magnitude      = Logic.PublicAffrontPolicy.Magnitude(witnessCount),
                 Summary        = $"{playerName} gave grave offence to {npc.Name} before others{near}.",
                 ActorIds       = new List<string> { player?.StringId, npc.StringId }.Where(s => s != null).ToList(),
                 FactionIds     = npc.MapFaction != null ? new List<string> { npc.MapFaction.StringId } : new List<string>()

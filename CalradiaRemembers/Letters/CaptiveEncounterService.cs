@@ -34,18 +34,9 @@ namespace CalradiaRemembers.Letters
    /// </summary>
    public static class CaptiveEncounterService
    {
-      // Probability constants
-      private const float BaseProbabilityPerDay = 0.10f;
+      // Timing constants (the probability + intent tuning now lives in the pure, unit-tested
+      // CalradiaRemembers.Logic.CaptiveEncounterPolicy).
       private const int CooldownDays = 2;
-      private const float KinkBonusDominance = 0.05f;
-      private const float KinkBonusFreeUse = 0.10f;
-      private const float KinkBonusMasterSlave = 0.05f;
-      private const float KinkBonusPowerImbalance = 0.10f;
-      private const float KinkBonusSadism = 0.05f;
-      private const float MaxBaseProbability = 0.50f;
-      private const float MaxTotalProbability = 0.60f;
-
-      // Timing constants
       private const int MinDaysBeforeFirstTrigger = 1;
 
       private static readonly string[] BanditEpithets = {
@@ -447,22 +438,7 @@ namespace CalradiaRemembers.Letters
       // ── Private ───────────────────────────────────────────────────────────
 
       private static float CalculateProbability(int daysInCaptivity, NpcProfile captorProfile)
-      {
-         float base_ = Math.Min(daysInCaptivity * BaseProbabilityPerDay, MaxBaseProbability);
-
-         var bonus = 0f;
-         if (captorProfile.Romantic?.Kinks != null)
-         {
-            IReadOnlyList<Kink> kinks = captorProfile.Romantic.Kinks;
-            if (kinks.Contains(Kink.PowerImbalance)) bonus += KinkBonusPowerImbalance;
-            if (kinks.Contains(Kink.Dominance)) bonus += KinkBonusDominance;
-            if (kinks.Contains(Kink.Sadism)) bonus += KinkBonusSadism;
-            if (kinks.Contains(Kink.FreeUse)) bonus += KinkBonusFreeUse;
-            if (kinks.Contains(Kink.MasterSlave)) bonus += KinkBonusMasterSlave;
-         }
-
-         return Math.Min(base_ + bonus, MaxTotalProbability);
-      }
+         => Logic.CaptiveEncounterPolicy.EncounterProbability(daysInCaptivity, captorProfile.Romantic?.Kinks);
 
       /// <summary>
       ///   Picks the bandit captor's intent. Spoil-of-war (the sexual CNC intent) is GENDER-WEIGHTED:
@@ -541,45 +517,7 @@ namespace CalradiaRemembers.Letters
       }
 
       private static CaptiveSceneIntent SelectIntent(NpcProfile captorProfile, int relation)
-      {
-         bool Has(Kink k)
-         {
-            return captorProfile.Romantic?.Kinks?.Contains(k) ?? false;
-         }
-
-
-         // Cruelty / pain kinks or strong contempt → torture
-         if (Has(Kink.Sadism) || Has(Kink.ImpactPlay) || Has(Kink.FearPlay) || relation <= -15)
-            return CaptiveSceneIntent.Torture;
-
-         // Strong positive regard + praise kink → reward (the positive register)
-         if (relation >= 20 && Has(Kink.Praise))
-            return CaptiveSceneIntent.Reward;
-
-         // Conditioning kink → an ongoing training session
-         if (Has(Kink.Training))
-            return CaptiveSceneIntent.Training;
-
-         // Positive regard, or desire/use kinks with neutral-or-better relation → personal desire
-         if (relation >= 10
-             || (Has(Kink.Dominance)
-                 || Has(Kink.FreeUse)
-                 || Has(Kink.Breeding)
-                 || Has(Kink.OrgasmControl)
-                 || Has(Kink.PetPlay))
-             && relation >= 0)
-            return CaptiveSceneIntent.PersonalDesire;
-
-         // Power / ownership kinks → domination
-         if (Has(Kink.PowerImbalance)
-             || Has(Kink.Dominance)
-             || Has(Kink.MasterSlave)
-             || Has(Kink.Objectification)
-             || Has(Kink.Degradation))
-            return CaptiveSceneIntent.Domination;
-
-         return CaptiveSceneIntent.Interrogation;
-      }
+         => Logic.CaptiveEncounterPolicy.SelectIntent(captorProfile.Romantic?.Kinks, relation);
 
       private static (List<WitnessEntry> witnesses, bool isCollective) SelectWitnesses(
          MobileParty captorParty,

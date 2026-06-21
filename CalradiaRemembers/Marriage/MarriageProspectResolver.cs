@@ -23,13 +23,6 @@ namespace CalradiaRemembers.Marriage
     /// </summary>
     public static class MarriageProspectResolver
     {
-        // Widest age difference (years) we treat as a plausible match — keeps the list to
-        // believable suitors rather than grandparent/child pairings.
-        private const float MaxAgeGap = 25f;
-
-        // Minimum marriage age (Bannerlord adults at 18).
-        private const float MinMarriageAge = 18f;
-
         /// <summary>Builds the prompt block, or null when no marriage request applies to this NPC.</summary>
         public static string Build(Hero npc)
         {
@@ -88,10 +81,9 @@ namespace CalradiaRemembers.Marriage
         public static bool IsMarriageable(Hero player, Hero candidate)
         {
             if (player == null || candidate == null) return false;
-            if (!candidate.IsAlive || candidate.Spouse != null) return false;
-            if (candidate.IsFemale == player.IsFemale) return false;
-            if (candidate.Age < MinMarriageAge) return false;
-            return Math.Abs(candidate.Age - player.Age) <= MaxAgeGap;
+            return Logic.MarriageEligibility.IsMarriageable(
+                candidate.IsAlive, candidate.Spouse != null, candidate.IsFemale,
+                player.IsFemale, candidate.Age, player.Age);
         }
 
         /// <summary>
