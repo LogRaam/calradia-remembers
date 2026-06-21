@@ -39,6 +39,15 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
+        ///   The world-wide throttle on unprompted daily correspondence: true only when enough days
+        ///   have passed since ANY NPC last wrote unprompted. Layered on top of the per-NPC cooldown,
+        ///   this bounds the CUMULATIVE flood when the player has many correspondents at once.
+        ///   <paramref name="lastGlobalLetterDay"/> is null when none has been sent yet.
+        /// </summary>
+        public static bool CanSendGlobally(int? lastGlobalLetterDay, int today, int cooldownDays)
+            => !lastGlobalLetterDay.HasValue || today - lastGlobalLetterDay.Value >= cooldownDays;
+
+        /// <summary>
         ///   Days since the NPC's most recent notable event (a proxy for "how long since they last
         ///   saw the player"). <see cref="int.MaxValue"/> when they have no recorded history, so a
         ///   "long enough since we last met" gate treats a stranger as maximally overdue.

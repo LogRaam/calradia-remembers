@@ -41,14 +41,28 @@ namespace CalradiaRemembers.Letters
       // We cap how many letters queue up from a single event.
       private const int MaxLettersPerEvent = 2;
 
+      // Cumulative anti-flood: at most ONE unprompted daily-correspondence letter per this many days
+      // across ALL NPCs, on top of each NPC's own cooldown. Stops a player with many correspondents
+      // from being buried (tester feedback). Non-persisted — a reload may let one extra through.
+      private const int GlobalLetterCooldownDays = 4;
+      private int _lastDailyLetterDay = -1;
+
       // ── Daily evaluation (called from OnDailyTick) ────────────────────────
 
       public void EvaluateDaily(BannerlordNpcMemoryStore store, LlmServices llmServices, int today)
       {
-         EvaluateRomanticCorrespondence(store, llmServices, today);
-         EvaluateAwaitingReplies(store, llmServices, today);
-         EvaluateSpouseCorrespondence(store, llmServices, today);
-         EvaluateMarriageSolicitations(store, llmServices, today);
+         if (!LetterCadence.CanSendGlobally(_lastDailyLetterDay < 0 ? (int?) null : _lastDailyLetterDay,
+                                            today, GlobalLetterCooldownDays))
+            return;
+
+         // At most one daily-correspondence letter per tick (the || short-circuits after the first
+         // that fires), and only once per global window.
+         bool queued = EvaluateRomanticCorrespondence(store, llmServices, today)
+                       || EvaluateAwaitingReplies(store, llmServices, today)
+                       || EvaluateSpouseCorrespondence(store, llmServices, today)
+                       || EvaluateMarriageSolicitations(store, llmServices, today);
+
+         if (queued) _lastDailyLetterDay = today;
       }
 
       public void Subscribe()
@@ -76,7 +90,7 @@ namespace CalradiaRemembers.Letters
 
       // ── Daily condition evaluators ─────────────────────────────────────────
 
-      private static void EvaluateRomanticCorrespondence(
+      private static bool EvaluateRomanticCorrespondence(
          BannerlordNpcMemoryStore store,
          LlmServices llmServices,
          int today)
@@ -103,8 +117,10 @@ namespace CalradiaRemembers.Letters
                profile, hero, LetterReason.RomanticCorrespondence, context,
                llmServices, store, today);
 
-            return; // one romantic letter per daily tick
+            return true; // one romantic letter per daily tick
          }
+
+         return false;
       }
 
       /// <summary>
@@ -113,7 +129,7 @@ namespace CalradiaRemembers.Letters
       ///   the NPC writes a single follow-up expressing their impatience or longing.
       ///   One follow-up per unanswered letter; bypasses the normal cooldown gate.
       /// </summary>
-      private static void EvaluateAwaitingReplies(
+      private static bool EvaluateAwaitingReplies(
          BannerlordNpcMemoryStore store,
          LlmServices llmServices,
          int today)
@@ -180,11 +196,13 @@ namespace CalradiaRemembers.Letters
                llmServices, store, today);
 
             ModLog.Info($"[LETTER] {profile.Name} sends awaiting-reply follow-up ({daysSince}d of silence).");
-            return; // one follow-up per daily tick
+            return true; // one follow-up per daily tick
          }
+
+         return false;
       }
 
-      private static void EvaluateSpouseCorrespondence(
+      private static bool EvaluateSpouseCorrespondence(
          BannerlordNpcMemoryStore store,
          LlmServices llmServices,
          int today)
@@ -200,6 +218,7 @@ namespace CalradiaRemembers.Letters
                LetterGenerationService.QueueInitialLetter(
                   profile, spouse, LetterReason.SpouseCorrespondence, ctx,
                   llmServices, store, today);
+               return true;
             }
          }
 
@@ -220,8 +239,10 @@ namespace CalradiaRemembers.Letters
             LetterGenerationService.QueueInitialLetter(
                profile, hero, LetterReason.SpouseCorrespondence, context,
                llmServices, store, today);
-            return; // one consort letter per daily tick
+            return true; // one consort letter per daily tick
          }
+
+         return false;
       }
 
       /// <summary>
@@ -230,13 +251,13 @@ namespace CalradiaRemembers.Letters
       ///   has some standing (clan tier ≥ 1), personal regard ≥ 20, and no proposal was
       ///   already sent. One solicitation per daily tick; cooldown 30 days.
       /// </summary>
-      private static void EvaluateMarriageSolicitations(
+      private static bool EvaluateMarriageSolicitations(
          BannerlordNpcMemoryStore store,
          LlmServices llmServices,
          int today)
       {
-         if (Hero.MainHero?.Spouse != null) return;          // player already wed
-         if (Clan.PlayerClan?.Tier < 1) return;              // no standing
+         if (Hero.MainHero?.Spouse != null) return false;          // player already wed
+         if (Clan.PlayerClan?.Tier < 1) return false;              // no standing
 
          foreach (string id in store.ListIds())
          {
@@ -272,8 +293,10 @@ namespace CalradiaRemembers.Letters
                llmServices, store, today);
 
             ModLog.Info($"[LETTER] {profile.Name} sends marriage solicitation to player.");
-            return; // one solicitation per daily tick
+            return true; // one solicitation per daily tick
          }
+
+         return false;
       }
 
       // ── Helpers ───────────────────────────────────────────────────────────

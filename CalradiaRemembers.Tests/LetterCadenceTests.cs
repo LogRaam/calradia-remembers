@@ -106,6 +106,27 @@ namespace CalradiaRemembers.Tests
             LetterCadence.DaysSinceLastEvent(p, today: 100).Should().Be(7);
         }
 
+        // ── Global throttle (cumulative anti-flood) ────────────────────────────
+
+        [Test]
+        public void GIVEN_no_unprompted_letter_has_ever_been_sent_WHEN_checking_globally_THEN_one_is_allowed()
+        {
+            LetterCadence.CanSendGlobally(lastGlobalLetterDay: null, today: 100, cooldownDays: 4).Should().BeTrue();
+        }
+
+        [Test]
+        public void GIVEN_one_was_sent_within_the_global_window_WHEN_checking_THEN_the_world_stays_quiet()
+        {
+            //Arrange — 2 days ago, inside a 4-day global window, even if some NPC's own cooldown is up.
+            LetterCadence.CanSendGlobally(lastGlobalLetterDay: 98, today: 100, cooldownDays: 4).Should().BeFalse();
+        }
+
+        [Test]
+        public void GIVEN_the_global_window_has_elapsed_WHEN_checking_THEN_correspondence_may_resume()
+        {
+            LetterCadence.CanSendGlobally(lastGlobalLetterDay: 96, today: 100, cooldownDays: 4).Should().BeTrue();
+        }
+
         #region private
 
         private static NpcProfile Profile()
