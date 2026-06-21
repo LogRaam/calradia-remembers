@@ -33,3 +33,6 @@ desktop.ini
 # Logs / temporary
 *.log
 *.tmp
+
+# Release packages (built for Nexus upload, not source)
+CalradiaRemembers-v*.zip
