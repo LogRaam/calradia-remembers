@@ -82,6 +82,7 @@ namespace CalradiaRemembers.Mapping
             LordRecruitEligible      = ResolveLordRecruitEligible(hero),
             SchemeAgentTargetName    = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc     = ResolveSchemeTargetsThisNpc(hero),
+            InterceptionReason       = ResolveInterceptionReason(hero),
             LoveMatchEligible        = ResolveLoveMatchEligible(hero, profile),
             LoveMatchBlessed         = ResolveLoveMatchBlessed(hero),
             ConsortEligible          = ResolveConsortEligible(hero, profile),
@@ -196,6 +197,16 @@ namespace CalradiaRemembers.Mapping
         {
             try { return WorldEvents.SchemeStore.Instance?.HasSecretSchemeAgainst(hero) ?? false; }
             catch { return false; }
+        }
+
+        /// <summary>
+        ///   When this NPC sought the player out by intercepting them on the map, a one-shot opening
+        ///   directive (consumed so it only colours the first turn). Null in an ordinary conversation.
+        /// </summary>
+        private static string ResolveInterceptionReason(Hero hero)
+        {
+            try { return Interception.InterceptionBehavior.Instance?.ConsumeInterceptionReason(hero); }
+            catch { return null; }
         }
 
         /// <summary>

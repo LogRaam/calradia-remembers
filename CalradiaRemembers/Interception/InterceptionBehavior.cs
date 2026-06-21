@@ -9,8 +9,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.WorldEvents;
+using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -39,9 +41,11 @@ namespace CalradiaRemembers.Interception
         private const int PursuitTimeoutDays = 4;        // release a chase that never connects
         private const int MaxCandidates = 12;            // bound the per-day work
         private const int RecentDeedWindowDays = 6;
-        private const float ArrivalDistance = 3f;
+
+        private const string CooldownSaveKey = "CalradiaRemembers_Intercept_v1bytes";
 
         private string _activePursuerId;
+        private InterceptionTrigger _activePursuerTrigger = InterceptionTrigger.None;
         private int _activePursuerSince = -1;
         private readonly Dictionary<string, int> _cooldown = new Dictionary<string, int>();
 
@@ -52,8 +56,70 @@ namespace CalradiaRemembers.Interception
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
         }
 
-        // Transient by design: a mid-pursuit reload simply lets the lord's AI return to its own plans.
-        public override void SyncData(IDataStore dataStore) { }
+        /// <summary>
+        ///   Persists only the per-lord cooldowns (as a UTF-8 byte[], like the other CR stores), so a
+        ///   lord cannot intercept the player again right after a reload. The active pursuit itself is
+        ///   transient by design — a mid-pursuit reload simply lets the lord's AI return to its plans.
+        /// </summary>
+        public override void SyncData(IDataStore dataStore)
+        {
+            if (dataStore.IsSaving)
+            {
+                byte[] bytes;
+                try { bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_cooldown, Formatting.None)); }
+                catch (Exception ex)
+                {
+                    ModLog.Error($"[INTERCEPT] serialize failed — persisting no cooldowns this save. {ex.GetType().Name}: {ex.Message}");
+                    bytes = Encoding.UTF8.GetBytes("{}");
+                }
+
+                try { dataStore.SyncData(CooldownSaveKey, ref bytes); }
+                catch (Exception ex) { ModLog.Error($"[INTERCEPT] byte[] save failed: {ex.GetType().Name}: {ex.Message}"); }
+            }
+            else
+            {
+                byte[] bytes = null;
+                try { dataStore.SyncData(CooldownSaveKey, ref bytes); }
+                catch { /* key absent in older saves */ }
+
+                if (bytes != null && bytes.Length > 0)
+                {
+                    try
+                    {
+                        var loaded = JsonConvert.DeserializeObject<Dictionary<string, int>>(Encoding.UTF8.GetString(bytes));
+                        _cooldown.Clear();
+                        if (loaded != null)
+                            foreach (KeyValuePair<string, int> kv in loaded) _cooldown[kv.Key] = kv.Value;
+                    }
+                    catch (Exception ex)
+                    {
+                        _cooldown.Clear();
+                        ModLog.Error($"[INTERCEPT] load failed — cooldowns dropped for this load. {ex.GetType().Name}: {ex.Message}");
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        ///   If <paramref name="npc"/> is the lord currently intercepting the player, returns a
+        ///   one-shot opening directive for the conversation (consuming it so it only colours the
+        ///   first turn) and ends the pursuit. Null otherwise. Called as the CR chat context is built.
+        /// </summary>
+        public string ConsumeInterceptionReason(Hero npc)
+        {
+            if (npc == null || _activePursuerId == null || npc.StringId != _activePursuerId) return null;
+
+            InterceptionTrigger trigger = _activePursuerTrigger;
+            _activePursuerId = null;
+            _activePursuerSince = -1;
+            _activePursuerTrigger = InterceptionTrigger.None;
+
+            return trigger == InterceptionTrigger.TerritorialPatrol
+                ? "It is YOU who sought this meeting: you rode out to challenge the player for crossing your realm's " +
+                  "lands. Open on that footing — demand their business here, wary and territorial — rather than waiting on them."
+                : "It is YOU who sought this meeting: word of the player's recent deeds reached you and you rode out to " +
+                  "see them while it was fresh. Open by raising what you heard — be it admiration, alarm, or a reckoning.";
+        }
 
         /// <summary>Forces the named lord to ride out and intercept the player (console testing).</summary>
         public string DebugForceIntercept(Hero lord)
@@ -82,17 +148,17 @@ namespace CalradiaRemembers.Interception
 
             Hero pursuer = FindHero(_activePursuerId);
             MobileParty pursuerParty = pursuer?.PartyBelongedTo;
-            MobileParty main = MobileParty.MainParty;
 
+            // NB: do NOT clear on arrival — the pursuit ends when the player actually talks to them
+            // (ConsumeInterceptionReason) so the opener survives the meeting; a timeout covers evasion.
             bool invalid = pursuer == null || !pursuer.IsAlive || pursuerParty == null;
             bool timedOut = _activePursuerSince >= 0 && today - _activePursuerSince >= PursuitTimeoutDays;
-            bool arrived = pursuerParty != null && main != null
-                           && pursuerParty.GetPosition2D.Distance(main.GetPosition2D) < ArrivalDistance;
 
-            if (invalid || timedOut || arrived)
+            if (invalid || timedOut)
             {
                 _activePursuerId = null;
                 _activePursuerSince = -1;
+                _activePursuerTrigger = InterceptionTrigger.None;
             }
         }
 
@@ -139,6 +205,7 @@ namespace CalradiaRemembers.Interception
         {
             lord.PartyBelongedTo.SetMoveEngageParty(MobileParty.MainParty, MobileParty.NavigationType.Default);
             _activePursuerId = lord.StringId;
+            _activePursuerTrigger = trigger;
             _activePursuerSince = today;
             _cooldown[lord.StringId] = today;
 
