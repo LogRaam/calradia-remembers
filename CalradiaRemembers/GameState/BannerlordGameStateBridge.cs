@@ -927,6 +927,7 @@ namespace CalradiaRemembers.GameState
             string actualName = found.EquipmentElement.Item.Name.ToString();
             int value = found.EquipmentElement.Item.Value;
 
+            Stance.StanceService.OnGiftReceived(npcHero); // a freely given gift builds a little trust
             ModLog.Info($"[ACTION] give_item: player gave '{actualName}' (value {value}) to {npcHero?.Name}");
             return new ActionOutcome($"You give {actualName} to {npcHero?.Name}.", false);
          }

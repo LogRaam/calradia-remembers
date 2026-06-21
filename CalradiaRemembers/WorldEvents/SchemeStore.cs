@@ -12,6 +12,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Stance;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -254,8 +255,9 @@ namespace CalradiaRemembers.WorldEvents
             scheme.PlayerAbetted = false; // one-shot regardless of outcome
             if (penalty <= 0 || target == null || Hero.MainHero == null) return;
 
-            // 1. The wronged target turns on the player.
+            // 1. The wronged target turns on the player — affection falls, and trust collapses.
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(target, Hero.MainHero, -penalty, false);
+            StanceService.OnTreacheryDiscovered(target);
 
             // 2. Word of the treachery spreads as a disgrace rumour — fed to commoners and to lords'
             //    "what you've heard", so they speak of the player as a known schemer. Reach scales with

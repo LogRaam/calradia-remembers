@@ -75,6 +75,9 @@ namespace CalradiaRemembers
          // Interceptions: a nearby lord may ride out to the player (hostile territorial challenge, or
          // a reaction to fresh news from the rumour store). Decision is pure; this only moves parties.
          campaignStarter.AddBehavior(new Interception.InterceptionBehavior());
+         // Stance (multi-axis posture): time-based fear decay + the prisoner-taken deed. Other deeds
+         // are applied at their own event source; the decision/tuning is pure (CalradiaRemembers.Logic).
+         campaignStarter.AddBehavior(new Stance.StanceBehavior());
          // Chronicle (v1.2): persists the LLM-illuminated chronicle prose across the campaign.
          campaignStarter.AddBehavior(new Chronicle.ChronicleBehavior());
          Log($"{ModName} campaign behavior registered.");

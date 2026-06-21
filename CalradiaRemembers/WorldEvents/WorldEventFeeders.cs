@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Stance;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -191,6 +192,14 @@ namespace CalradiaRemembers.WorldEvents
                         ? $"Fought at your side when you {(playerWon ? "broke the enemy" : "stood against the enemy")}{near}."
                         : $"Faced you in battle and {(playerWon ? "saw you put their host to flight" : "held the field against you")}{near}.";
                     profile.Events.Add(new NotableEvent(day, NotableEventType.Other, summary));
+
+                    // Stance: a victory the player won earns respect (and, from a beaten foe, fear).
+                    if (playerWon)
+                    {
+                        if (ally) StanceService.OnFoughtBesideYou(profile);
+                        else StanceService.OnDefeatedInBattle(profile);
+                    }
+
                     behavior.Store.Set(profile);
                 }
             }

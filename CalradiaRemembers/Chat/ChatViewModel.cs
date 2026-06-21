@@ -2233,6 +2233,10 @@ namespace CalradiaRemembers.Chat
                 var gameDay = behavior.GameStateBridge.GetCurrentGameDay();
                 ProfileMutator.Apply(profile, response, gameDay);
 
+                // Stance: the LLM's spoken nudges to trust/respect/fear — capped hard and rate-limited
+                // (words only colour; deeds prove). Persisted by the Store.Set below after actions run.
+                Stance.StanceService.ApplyWordShift(profile, response.StanceShift);
+
                 // Jealousy (Sprint 24): a romantic act recorded this turn may provoke a staked
                 // third party. Flirt always; intimacy only when adult content is enabled. Witnesses
                 // present mean the act is telegraphed and the word spreads quickly.

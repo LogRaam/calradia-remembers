@@ -123,6 +123,7 @@ namespace CalradiaRemembers.Quests
          AddEvent(giver, gameDay, NotableEventType.Collaboration,
             $"The player settled our bargain in goods — {Describe(quest)}.");
          QuestJournalBridge.CloseAsCompleted(quest, giverHero);
+         Stance.StanceService.OnPromiseKept(giver);
          store.Set(giver);
 
          ModLog.Info($"[BARGAIN] settled for {giver.Name}: {Describe(quest)} (day {gameDay}).");
@@ -165,6 +166,7 @@ namespace CalradiaRemembers.Quests
 
                quest.Status = QuestStatus.Expired;
                ApplyPenalty(profile);
+               Stance.StanceService.OnPromiseBroken(profile); // a lapsed deadline is a broken word too
                AddEvent(profile, gameDay, NotableEventType.Conflict,
                   $"The player let the deadline lapse on the task to {Describe(quest)} — a disappointment.");
                QuestJournalBridge.CloseAsFailed(quest, giverHero, $"You did not complete this task in time. {profile.Name} is disappointed.");
@@ -204,6 +206,7 @@ namespace CalradiaRemembers.Quests
          AddEvent(giver, gameDay, NotableEventType.Conflict,
             $"The player gave up the task to {Describe(quest)} — a broken word, however honest.");
          QuestJournalBridge.CloseAsFailed(quest, FindGiverHero(giver), "You chose not to complete this task.");
+         Stance.StanceService.OnPromiseBroken(giver); // a broken word spends trust
          store.Set(giver);
 
          ModLog.Info($"[QUEST] {giver.Name}: player abandoned '{quest.Type}' (-{AbandonPenalty} regard).");
@@ -250,6 +253,7 @@ namespace CalradiaRemembers.Quests
          quest.Status = QuestStatus.Completed;
          AddEvent(giver, gameDay, NotableEventType.Collaboration, $"The player completed the task to {Describe(quest)}.");
          QuestJournalBridge.CloseAsCompleted(quest, giverHero);
+         Stance.StanceService.OnPromiseKept(giver); // a kept promise earns trust
          store.Set(giver);
 
          if (grant != null) notify?.Invoke(grant.Message, grant.IsPositive);

@@ -83,6 +83,7 @@ namespace CalradiaRemembers.Mapping
             SchemeAgentTargetName    = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc     = ResolveSchemeTargetsThisNpc(hero),
             InterceptionReason       = ResolveInterceptionReason(hero),
+            StanceNote               = Stance.StanceService.Describe(profile),
             LoveMatchEligible        = ResolveLoveMatchEligible(hero, profile),
             LoveMatchBlessed         = ResolveLoveMatchBlessed(hero),
             ConsortEligible          = ResolveConsortEligible(hero, profile),

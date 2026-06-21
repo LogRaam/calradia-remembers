@@ -601,6 +601,55 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.stance [name]
+      ///   Shows an NPC's posture toward the player (Affection/Trust/Respect/Fear) and the prompt block.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("stance", "cr")]
+      public static string ShowStance(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile p = behavior.Store.Get(hero.StringId);
+         if (p == null) return $"{hero.Name} has no profile yet (you have never spoken).";
+
+         string block = Stance.StanceService.Describe(p) ?? "(wholly neutral)";
+         return $"{hero.Name} — Affection {p.ReputationWithPlayer}, Trust {p.StanceTrust}, Respect {p.StanceRespect}, Fear {p.StanceFear}\n{block}";
+      }
+
+      /// <summary>
+      ///   cr.stance_set &lt;trust&gt; &lt;respect&gt; &lt;fear&gt; [name]
+      ///   Sets the Trust/Respect/Fear axes directly (Affection stays on the reputation path) to test
+      ///   the posture block in conversation. Values are clamped to each axis's range.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("stance_set", "cr")]
+      public static string SetStance(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         if (args == null || args.Count < 3
+             || !int.TryParse(args[0], out int t) || !int.TryParse(args[1], out int r) || !int.TryParse(args[2], out int f))
+            return "Usage: cr.stance_set <trust> <respect> <fear> [name]";
+
+         string nameFragment = args.Count > 3 ? string.Join(" ", args.GetRange(3, args.Count - 3)).Trim() : null;
+         Hero hero = !string.IsNullOrWhiteSpace(nameFragment)
+            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Name != null
+                 && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
+            : Hero.OneToOneConversationHero;
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile p = GetOrCreateProfile(behavior, hero);
+         p.StanceTrust   = Logic.StanceGate.ClampAxis(Logic.StanceAxis.Trust, t);
+         p.StanceRespect = Logic.StanceGate.ClampAxis(Logic.StanceAxis.Respect, r);
+         p.StanceFear    = Logic.StanceGate.ClampAxis(Logic.StanceAxis.Fear, f);
+         behavior.Store.Set(p);
+
+         string block = Stance.StanceService.Describe(p) ?? "(wholly neutral)";
+         return $"{hero.Name} stance set — Trust {p.StanceTrust}, Respect {p.StanceRespect}, Fear {p.StanceFear}\n{block}";
+      }
+
+      /// <summary>
       ///   cr.quest_abandon [name]
       ///   Force-abandons the NPC's outstanding quest (as if the player told them they
       ///   quit), applying the broken-word penalty. Tests the abandon path without the LLM.
