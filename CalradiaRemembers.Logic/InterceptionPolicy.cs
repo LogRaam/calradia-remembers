@@ -51,6 +51,28 @@ namespace CalradiaRemembers.Logic
         /// <summary>A traveller of at least this notoriety (renown) is worth a hostile lord's challenge.</summary>
         public const int NotorietyThreshold = 50;
 
+        /// <summary>A chase that has run this many days without connecting is given up.</summary>
+        public const int MaxPursuitDays = 4;
+
+        /// <summary>The player must be at least this much faster than the pursuer to be deemed uncatchable.</summary>
+        public const float OutrunSpeedRatio = 1.15f;
+
+        /// <summary>Inside this distance the encounter is imminent — the pursuer keeps pressing whatever the speeds.</summary>
+        public const float AbandonMinDistance = 5f;
+
+        /// <summary>
+        ///   Whether a lord gives up the chase: a stale pursuit (past <see cref="MaxPursuitDays"/>) is
+        ///   abandoned, and so is a hopeless one — when the player is well clear and clearly faster, a
+        ///   pursuer cannot force the meeting and stops wasting the effort. A pursuer right on top of
+        ///   the player keeps pressing regardless of speed (the encounter is about to happen).
+        /// </summary>
+        public static bool ShouldAbandonChase(float pursuerSpeed, float playerSpeed, float distance, int daysPursuing)
+        {
+            if (daysPursuing >= MaxPursuitDays) return true;
+            if (distance < AbandonMinDistance) return false;
+            return pursuerSpeed > 0f && playerSpeed >= pursuerSpeed * OutrunSpeedRatio;
+        }
+
         /// <summary>The reason this lord would intercept the player now, or <see cref="InterceptionTrigger.None"/>.</summary>
         public static InterceptionTrigger Choose(InterceptionFacts f)
         {

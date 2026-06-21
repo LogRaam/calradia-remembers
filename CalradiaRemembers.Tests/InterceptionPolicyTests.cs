@@ -92,6 +92,46 @@ namespace CalradiaRemembers.Tests
             InterceptionPolicy.Choose(null).Should().Be(InterceptionTrigger.None);
         }
 
+        // ── ShouldAbandonChase ─────────────────────────────────────────────────
+
+        [Test]
+        public void GIVEN_a_chase_past_the_timeout_WHEN_judging_THEN_it_is_abandoned()
+        {
+            InterceptionPolicy.ShouldAbandonChase(pursuerSpeed: 5f, playerSpeed: 1f, distance: 10f,
+                daysPursuing: InterceptionPolicy.MaxPursuitDays).Should().BeTrue();
+        }
+
+        [Test]
+        public void GIVEN_the_player_clearly_faster_and_well_clear_WHEN_judging_THEN_the_hopeless_chase_is_given_up()
+        {
+            //Arrange — player 25% faster, well beyond the encounter range.
+            InterceptionPolicy.ShouldAbandonChase(pursuerSpeed: 4f, playerSpeed: 5f, distance: 20f, daysPursuing: 1)
+                .Should().BeTrue();
+        }
+
+        [Test]
+        public void GIVEN_the_player_faster_but_almost_caught_WHEN_judging_THEN_the_pursuer_keeps_pressing()
+        {
+            //Arrange — within AbandonMinDistance, the encounter is imminent whatever the speed.
+            InterceptionPolicy.ShouldAbandonChase(pursuerSpeed: 4f, playerSpeed: 8f, distance: 3f, daysPursuing: 1)
+                .Should().BeFalse();
+        }
+
+        [Test]
+        public void GIVEN_the_player_only_marginally_faster_WHEN_judging_THEN_the_chase_continues()
+        {
+            //Arrange — 4.5/4 = 1.125, below the 1.15 outrun ratio.
+            InterceptionPolicy.ShouldAbandonChase(pursuerSpeed: 4f, playerSpeed: 4.5f, distance: 20f, daysPursuing: 1)
+                .Should().BeFalse();
+        }
+
+        [Test]
+        public void GIVEN_the_pursuer_at_least_as_fast_as_the_player_WHEN_judging_THEN_they_press_on()
+        {
+            InterceptionPolicy.ShouldAbandonChase(pursuerSpeed: 5f, playerSpeed: 4f, distance: 30f, daysPursuing: 2)
+                .Should().BeFalse();
+        }
+
         #region private
 
         private static InterceptionFacts Facts(

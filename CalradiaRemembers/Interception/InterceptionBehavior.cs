@@ -38,7 +38,6 @@ namespace CalradiaRemembers.Interception
         private const float InterceptRange = 40f;        // a lord this close can plausibly ride out
         private const int DailyInterceptChancePercent = 25;
         private const int CooldownDays = 30;             // a given lord intercepts the player rarely
-        private const int PursuitTimeoutDays = 4;        // release a chase that never connects
         private const int MaxCandidates = 12;            // bound the per-day work
         private const int RecentDeedWindowDays = 6;
 
@@ -148,14 +147,20 @@ namespace CalradiaRemembers.Interception
 
             Hero pursuer = FindHero(_activePursuerId);
             MobileParty pursuerParty = pursuer?.PartyBelongedTo;
+            MobileParty main = MobileParty.MainParty;
 
             // NB: do NOT clear on arrival — the pursuit ends when the player actually talks to them
-            // (ConsumeInterceptionReason) so the opener survives the meeting; a timeout covers evasion.
-            bool invalid = pursuer == null || !pursuer.IsAlive || pursuerParty == null;
-            bool timedOut = _activePursuerSince >= 0 && today - _activePursuerSince >= PursuitTimeoutDays;
+            // (ConsumeInterceptionReason) so the opener survives the meeting. Otherwise the pure rule
+            // gives up a stale chase (timeout) or a hopeless one (the player is well clear and faster).
+            bool invalid = pursuer == null || !pursuer.IsAlive || pursuerParty == null || main == null;
+            bool giveUp = !invalid && InterceptionPolicy.ShouldAbandonChase(
+                pursuerParty.Speed, main.Speed,
+                pursuerParty.GetPosition2D.Distance(main.GetPosition2D),
+                today - _activePursuerSince);
 
-            if (invalid || timedOut)
+            if (invalid || giveUp)
             {
+                if (giveUp) ModLog.Info($"[INTERCEPT] {pursuer?.Name} gives up the chase.");
                 _activePursuerId = null;
                 _activePursuerSince = -1;
                 _activePursuerTrigger = InterceptionTrigger.None;
