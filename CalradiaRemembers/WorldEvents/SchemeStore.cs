@@ -18,6 +18,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.Localization;
 
 #endregion
 
@@ -107,6 +108,7 @@ namespace CalradiaRemembers.WorldEvents
             if (scheme == null) return null;
 
             int today = (int) CampaignTime.Now.ToDays;
+            scheme.PlayerAbetted = true; // the player's hand can now implicate them if it surfaces
             SchemeAgentPolicy.ApplyPlayerAid(scheme);
 
             if (scheme.State == SchemeState.Succeeded)
@@ -114,6 +116,7 @@ namespace CalradiaRemembers.WorldEvents
                 ApplyStandingDamage(plotter, target);
                 RecordRumor(scheme, plotter, target, today, "succeeded", 34,
                     $"{plotter.Name} has undone {target.Name} — and the player's hand was in it.");
+                MaybeAbettorBacklash(scheme, target);
                 _schemes.Remove(scheme);
                 return $"With your help, {plotter.Name}'s plot against {target.Name} comes to fruition.";
             }
@@ -166,9 +169,13 @@ namespace CalradiaRemembers.WorldEvents
             SchemeAgentPolicy.ExposeToTarget(scheme);
             RecordRumor(scheme, plotter, target, (int) CampaignTime.Now.ToDays, "discovered", 28,
                 $"{target.Name}, warned in time, has uncovered {plotter.Name}'s plot against them.");
-            ModLog.Info($"[SCHEME] player warned {target.Name} of {plotter.Name}'s plot — now exposed.");
 
-            return $"You warn {target.Name} of {plotter.Name}'s scheme. Forewarned, they will be far harder to undo.";
+            // The exposed plotter suspects the meddler who tipped off their quarry.
+            if (Hero.MainHero != null)
+                ChangeRelationAction.ApplyRelationChangeBetweenHeroes(plotter, Hero.MainHero, -SchemeBacklash.WarnedPlotterResentment, false);
+            ModLog.Info($"[SCHEME] player warned {target.Name} of {plotter.Name}'s plot — now exposed; {plotter.Name} resents the player.");
+
+            return $"You warn {target.Name} of {plotter.Name}'s scheme. Forewarned, they will be far harder to undo — but {plotter.Name} may suspect your hand in it.";
         }
 
         // ── Advancing active schemes ──────────────────────────────────────────
@@ -211,6 +218,7 @@ namespace CalradiaRemembers.WorldEvents
                 case SchemeState.Discovered: // it has come to light
                     RecordRumor(scheme, plotter, target, today, "discovered", 28,
                         $"{plotter.Name}'s plot against {target.Name} has come to light.");
+                    MaybeAbettorBacklash(scheme, target);
                     break;
 
                 case SchemeState.Succeeded:
@@ -218,6 +226,7 @@ namespace CalradiaRemembers.WorldEvents
                     RecordRumor(scheme, plotter, target, today, "succeeded", 34, scheme.Kind == SchemeKind.Slander
                         ? $"{plotter.Name} has blackened {target.Name}'s name, and it has cost them dearly."
                         : $"{plotter.Name} has undermined {target.Name}, weakening their standing.");
+                    MaybeAbettorBacklash(scheme, target);
                     break;
 
                 case SchemeState.Failed:
@@ -225,6 +234,29 @@ namespace CalradiaRemembers.WorldEvents
                         $"{plotter.Name}'s scheme against {target.Name} came to nothing.");
                     break;
             }
+        }
+
+        /// <summary>
+        ///   When an abetted plot's outcome surfaces the player's hand (it succeeded, or was caught),
+        ///   the wronged target turns on the player. One-shot: the flag is cleared so it cannot re-fire
+        ///   if the scheme later changes state again.
+        /// </summary>
+        private static void MaybeAbettorBacklash(Scheme scheme, Hero target)
+        {
+            if (scheme == null || !scheme.PlayerAbetted) return;
+
+            int penalty = SchemeBacklash.AbettorPenalty(scheme.State);
+            scheme.PlayerAbetted = false; // one-shot regardless of outcome
+            if (penalty <= 0 || target == null || Hero.MainHero == null) return;
+
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(target, Hero.MainHero, -penalty, false);
+            ModLog.Info($"[SCHEME] abettor backlash: {target.Name} learns of the player's hand and turns on them (-{penalty}).");
+            try
+            {
+                MBInformationManager.AddQuickInformation(
+                    new TextObject($"{target.Name} has learned of your hand in the plot against them."));
+            }
+            catch { /* notification is best-effort */ }
         }
 
         /// <summary>The v1 effect: a hit to the target clan's influence, and the feud deepens.</summary>

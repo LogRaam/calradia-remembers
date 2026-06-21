@@ -55,5 +55,8 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>How close to fruition, 0..100; at 100 the scheme succeeds.</summary>
         public int Progress { get; set; }
+
+        /// <summary>True once the player has thrown in with this plot — so its exposure can implicate them.</summary>
+        public bool PlayerAbetted { get; set; }
     }
 }
