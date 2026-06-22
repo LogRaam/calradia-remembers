@@ -6,9 +6,13 @@
 
 #region
 
+using System.Collections.Generic;
 using System.ComponentModel;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Settings;
+using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.Core;
@@ -60,6 +64,7 @@ namespace CalradiaRemembers.Lore
                     TraitObject to = Map(trait);
                     if (to != null) hero.SetTraitLevel(to, level);
                 }
+                RederiveKinks(hero); // frozen kinks on an already-met NPC follow the new personality
                 n++;
             }
             ModLog.Info($"[LORE] applied authored traits to {n} hero(es).");
@@ -82,6 +87,7 @@ namespace CalradiaRemembers.Lore
                     // ever wrote the hero's own trait store, never the template.
                     if (to != null) hero.SetTraitLevel(to, hero.CharacterObject.GetTraitLevel(to));
                 }
+                RederiveKinks(hero); // back to the kinks the vanilla traits imply
                 n++;
             }
             ModLog.Info($"[LORE] restored vanilla traits on {n} authored hero(es).");
@@ -106,6 +112,24 @@ namespace CalradiaRemembers.Lore
             if (Campaign.Current == null) return; // only meaningful inside a running campaign
             if (ModSettings.UseCustomTraits) Instance?.ApplyAll();
             else Instance?.RestoreAll();
+        }
+
+        /// <summary>
+        ///   Re-derives the kinks of an ALREADY-MET NPC (one with a stored profile) from their current
+        ///   traits, so a personality override doesn't leave kinks frozen against the old traits. A
+        ///   never-met NPC has no profile yet and derives its kinks correctly when first built — nothing
+        ///   to do here. The derivation is deterministic, so this is stable, not a reroll.
+        /// </summary>
+        private static void RederiveKinks(Hero hero)
+        {
+            var store = NpcMemoryCampaignBehavior.Instance?.Store;
+            NpcProfile profile = store?.Get(hero.StringId);
+            if (profile?.Romantic == null) return;
+
+            List<Kink> fresh = RomanticProfileBuilder.DeriveKinks(hero, profile.Romantic.ArchetypeName);
+            profile.Romantic.Kinks.Clear();          // init-only property, but the list itself is mutable
+            profile.Romantic.Kinks.AddRange(fresh);
+            store.Set(profile);
         }
 
         private static TraitObject Map(AuthoredTrait trait) => trait switch

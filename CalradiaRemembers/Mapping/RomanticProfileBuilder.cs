@@ -27,6 +27,16 @@ namespace CalradiaRemembers.Mapping
     /// </summary>
     public static class RomanticProfileBuilder
     {
+        /// <summary>
+        ///   The kinks this hero would have if their romantic profile were built fresh from their
+        ///   CURRENT traits — deterministic (seeded by StringId), so re-deriving is stable, not a reroll.
+        ///   Used when player-authored traits replace the vanilla ones on an already-met NPC, so their
+        ///   frozen kinks update to match the new personality. Reads the hero's live trait levels, so
+        ///   call it AFTER the traits have been set.
+        /// </summary>
+        public static List<Kink> DeriveKinks(Hero hero, string archetypeName)
+            => Build(hero, archetypeName).Kinks;
+
         public static RomanticProfile Build(Hero hero, string archetypeName)
         {
             int seed = hero.StringId.GetHashCode();
