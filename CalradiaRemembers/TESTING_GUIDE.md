@@ -87,6 +87,7 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.bargain_items [name]` | Seed a pay-in-goods bargain (deliver-items reward). |
 | `cr.bargain_marriage [name]` | Seed a marriage-consent bargain. |
 | `cr.deliver_prisoner [name]` | Seed a deliver-prisoner bargain targeting the first lord you hold (case a). Then offer to deliver them in conversation. |
+| `cr.declare_war_quest [name]` | Seed a declare-war bargain targeting the first faction you can still declare war on. Then declare war on it → the deed stamps done. |
 
 ### Marriage
 | Command | Does |
@@ -322,6 +323,19 @@ transfer (never the LLM's word) completes it.
 - **J4 — Issuance is grounded.** The deed only forms when the named target resolves to a real lord/
   faction (QuestFactory); a JoinParty reward only when the giver is a recruitable wanderer.
 
+### K. Declare-war deed (NEW — untested in game)
+
+**What it proves:** a lord can ask the player to declare war on a faction, and ONLY the player's own
+declaration (never being attacked) completes it.
+
+- **K1 — Player declares → done.** `cr.declare_war_quest [lord]` seeds the deed targeting a faction you
+  can still declare war on. Open the kingdom screen and declare war on that faction → the deed stamps
+  "Declared war on … " (notification), and reporting back to the lord pays the reward (1000g/+8).
+- **K2 — Attacked ≠ done.** If that faction declares war on YOU (or you go to war with a *different*
+  faction), the deed must NOT complete.
+- **K3 — Grounded issuance.** The deed only forms for a real faction you are not already at war with and
+  not your own (QuestFactory `BindDeclarableWarTarget`); already-at-war or self → refused.
+
 ---
 
 ## 3. What is already unit-tested (do NOT re-test by hand)
@@ -343,6 +357,8 @@ These are proven by `dotnet test` (275 tests); only their *wiring* (above) needs
   unset traits left vanilla, and resolution (id wins over name, an id-less homonym is refused not guessed).
 - **Prisoner-deed matching** (`PrisonerDeedTarget`): a named hero wins over a faction demand, faction
   match is case-insensitive, a targetless demand matches nothing, and "do I already hold one" (case a vs b).
+- **War-deed matching** (`WarDeedMatcher`): satisfied only when the player's faction is the aggressor
+  against the demanded faction — never when attacked, never for an unrelated war.
 
 If one of these behaves wrong *in game* despite the math being right, it points at the **wiring** — log
 it with Enable Logging on and the exact `cr.*` steps to reproduce.

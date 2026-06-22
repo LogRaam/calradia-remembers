@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -46,6 +47,7 @@ namespace CalradiaRemembers.Quests
          // HeroPrisonerReleased: that event carries no rescuer, so it cannot tell a
          // player rescue from an AI one — crediting it would break the player-link rule.
          CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
+         CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
          ModLog.Info("QuestDeedTracker subscribed to campaign events.");
       }
 
@@ -351,6 +353,25 @@ namespace CalradiaRemembers.Quests
             if (quest.Type == QuestType.CapturePrisoner
                 && string.Equals(quest.TargetHeroId, prisoner.StringId, StringComparison.Ordinal))
                Stamp(profile, quest, $"Captured {prisoner.Name} on day {day}", day);
+         });
+      }
+
+      /// <summary>
+      ///   A declare_war deed completes only when the PLAYER's own faction is the aggressor against the
+      ///   demanded faction (WarDeclared fires with faction1 = declarer). Being attacked never counts.
+      /// </summary>
+      private void OnWarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail detail)
+      {
+         IFaction player = Hero.MainHero?.MapFaction;
+         if (player == null || faction1 == null || faction2 == null) return;
+
+         int day = CurrentDay();
+         ForEachOutstandingQuest((profile, quest) =>
+         {
+            if (quest.Type == QuestType.DeclareWar
+                && WarDeedMatcher.IsSatisfied(quest.TargetFactionId, faction1.StringId, faction2.StringId, player.StringId))
+               Stamp(profile, quest,
+                  $"Declared war on {quest.TargetFactionName ?? faction2.Name?.ToString()} on day {day}", day);
          });
       }
 

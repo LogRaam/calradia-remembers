@@ -1518,6 +1518,48 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.declare_war_quest [name]
+      ///   Seeds a declare_war bargain on the given NPC, targeting the first kingdom you can still
+      ///   declare war on (not your own, not already at war). Then declare war on it (kingdom screen):
+      ///   the deed is stamped done by the WarDeclared event, and the NPC pays out when you report back.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("declare_war_quest", "cr")]
+      public static string SeedDeclareWarQuest(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         IFaction player = Hero.MainHero?.MapFaction;
+         if (player == null) return "You belong to no faction — there is nothing to declare war with.";
+
+         IFaction target = Kingdom.All?.Cast<IFaction>()
+            .FirstOrDefault(k => k != player && !FactionManager.IsAtWarAgainstFaction(player, k));
+         if (target == null) return "No eligible faction (you are at war with all of them, or there are none).";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         var quest = new InformalQuest {
+            Type              = QuestType.DeclareWar,
+            Description       = $"Declare war on {target.Name} for {hero.Name}.",
+            TargetFactionId   = target.StringId,
+            TargetFactionName = target.Name?.ToString(),
+            IssuedOnDay       = today,
+            Reward            = RewardGrant.None,
+            RewardGold        = 1000,
+            RewardRelation    = 8,
+            Status            = QuestStatus.Active
+         };
+         profile.ActiveQuests.Add(quest);
+         behavior.Store.Set(profile);
+         QuestJournalBridge.OpenMirror(quest, hero);
+
+         return $"{hero.Name} now wants you to declare war on {target.Name}. Declare it, then report back.";
+      }
+
+      /// <summary>
       ///   cr.bargain_marriage [name]
       ///   Seeds a marriage_consent bargain on a clan head (or a parent): a deed (clear bandits
       ///   near a village) conditions the blessing for the player to marry one of their eligible

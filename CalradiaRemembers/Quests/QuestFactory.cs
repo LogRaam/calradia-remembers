@@ -84,8 +84,9 @@ namespace CalradiaRemembers.Quests
                         quest.RequiredItemValue = required.Value;
                         return true;
                     }
-                    // A delivered captive is the payment in itself — no denar floor.
+                    // A delivered captive, or a war the player starts, is the payment in itself.
                     if (quest.Type == QuestType.DeliverPrisoner) return true;
+                    if (quest.Type == QuestType.DeclareWar) return true;
                     return false;
 
                 case RewardGrant.MarriageConsent:
@@ -170,6 +171,9 @@ namespace CalradiaRemembers.Quests
                         return BindFaction(quest, proposal.TargetFaction);
                     return false;
 
+                case QuestType.DeclareWar:
+                    return BindDeclarableWarTarget(quest, proposal.TargetFaction);
+
                 case QuestType.ScoutArmy:
                     // Prefer a named army leader; fall back to any army of the named faction;
                     // fall back to the giver's first enemy kingdom when neither is specified.
@@ -220,6 +224,24 @@ namespace CalradiaRemembers.Quests
             if (h == null) return false;
             quest.TargetHeroId = h.StringId;
             quest.TargetHeroName = h.Name?.ToString();
+            return true;
+        }
+
+        /// <summary>
+        ///   Binds a declare_war deed's target: a real faction that is neither the player's own nor one
+        ///   they are already at war with — there is nothing to declare otherwise, so the deed is refused.
+        /// </summary>
+        private static bool BindDeclarableWarTarget(InformalQuest quest, string name)
+        {
+            IFaction target = ResolveFaction(name);
+            if (target == null) return false;
+
+            IFaction player = Hero.MainHero?.MapFaction;
+            if (player == null || player == target) return false;
+            if (FactionManager.IsAtWarAgainstFaction(player, target)) return false; // already at war — no deed
+
+            quest.TargetFactionId = target.StringId;
+            quest.TargetFactionName = target.Name?.ToString();
             return true;
         }
 

@@ -68,14 +68,15 @@ polish: a richer DeliverItems spec (category+tier+count instead of a value floor
   candidate for a tactile hand-over UX later, but it adds a mismatch risk between
   what the UI allows and what the deal specified — Phase 2 if the feel matters.
 
-**Phase 2 — deed: player-declared war.** An NPC with many enemies in a faction
-may demand the PLAYER declare war on it ("rid me of the Vlandians and I am
-yours"). This is acceptable precisely because it is the player's own act with the
-player's own consequences — they become the target of the war they started, so
-the incentive is self-balancing. Verification: WarDeclared campaign event with
-the player's faction as aggressor. (An NPC declaring war on another faction
-remains FORBIDDEN until v2.0 — that is where the player could extract outsized
-advantage at no cost.)
+**Phase 2 — ✅ DONE (2026-06-22) — deed: player-declared war.** An NPC with many
+enemies in a faction may demand the PLAYER declare war on it ("rid me of the
+Vlandians and I am yours"). Self-balancing — the player takes on the war they
+started. Shipped: `QuestType.DeclareWar`, issued via [QUEST] (target_faction,
+refused if the player is already at war with it or it is their own), verified by
+the WarDeclared event with the player's faction as AGGRESSOR (`WarDeedMatcher`
+pure-tested; never satisfied by being attacked), reward join_party / gold+relation.
+`cr.declare_war_quest`. (An NPC declaring war on another faction remains FORBIDDEN
+until v2.0 — that is where the player could extract outsized advantage at no cost.)
 
 **Phase 3 — yellow, gated: intimacy as currency.** Constraints agreed:
 - Male NPC toward a female player only, AND filtered by the NPC's traits/archetype
