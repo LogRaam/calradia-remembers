@@ -8,7 +8,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Chat;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
@@ -21,8 +20,8 @@ namespace CalradiaRemembers.Letters
 {
     /// <summary>
     ///   Registers a courier-hire option in the Tavern Keeper's service menu. The player
-    ///   is prompted for a recipient name via <see cref="TextInquiryData" />, then the chat
-    ///   window opens in compose mode (charging <see cref="CourierHireCost" /> on send).
+    ///   is prompted for a recipient name via <see cref="TextInquiryData" />, then the parchment
+    ///   courier window opens in compose mode (charging <see cref="CourierHireCost" /> on send).
     ///   Hooked to the keeper's <c>"tavernkeeper_talk"</c> hub — the Tavern Maid serves
     ///   drinks only and is not the right vendor for this.
     /// </summary>
@@ -128,7 +127,7 @@ namespace CalradiaRemembers.Letters
             NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(id);
             if (profile == null) return;
 
-            ChatManager.OpenForCompose(profile, CourierHireCost);
+            LetterWindowManager.OpenCompose(profile, CourierHireCost);
         }
     }
 }

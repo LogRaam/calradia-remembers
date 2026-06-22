@@ -56,9 +56,6 @@ namespace CalradiaRemembers
 
          var campaignStarter = (CampaignGameStarter) gameStarterObject;
          campaignStarter.AddBehavior(new NpcMemoryCampaignBehavior());
-         // Tears the chat overlay down on a native campaign tick (outside the UI LateUpdate) so the
-         // letter-reply close no longer NREs GauntletUI's DefragContainers. Map-only; missions stay synchronous.
-         campaignStarter.AddBehavior(new Chat.ChatTeardownBehavior());
          // Marriage system (family-approval engine) — SHIPPED from v1.7.0. The approval chat path
          // (grant_blessing, Phase A.2a) now exists, and the consequence only ever lands on the
          // PLAYER's own marriage (OnBeforeHeroesMarried bails when the player is not a spouse), so

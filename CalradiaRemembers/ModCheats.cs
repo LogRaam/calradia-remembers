@@ -302,12 +302,11 @@ namespace CalradiaRemembers
       // ── Sprint 12d: player letter compose ─────────────────────────────────
 
       /// <summary>
-      ///   cr.compose [name]
-      ///   Opens the letter compose window for the given NPC. Primary test path for
-      ///   Sprint 12d — validates the compose UI and delivery pipeline without
-      ///   requiring a tavernkeeper conversation.
+      ///   cr.letter_compose [name]
+      ///   Opens the dedicated parchment courier window in COMPOSE mode for the given NPC — write a
+      ///   fresh letter and seal it, without a tavernkeeper conversation. (Was cr.compose, in chat.)
       /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("compose", "cr")]
+      [CommandLineFunctionality.CommandLineArgumentFunction("letter_compose", "cr")]
       public static string ComposeLetter(List<string> args)
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
@@ -318,9 +317,9 @@ namespace CalradiaRemembers
          if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
 
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
-         ChatManager.OpenForCompose(profile);
+         LetterWindowManager.OpenCompose(profile);
 
-         return $"Compose window opened for {hero.Name}.";
+         return $"Parchment compose window opened for {hero.Name}.";
       }
 
       // ── Multi-NPC witnesses ───────────────────────────────────────────────
@@ -1372,10 +1371,30 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.letter_read [name]
+      ///   Delivers a synthetic letter from the given NPC through the real delivery path
+      ///   (<see cref="LetterPopupManager.Show"/>): the parchment window opens in READ mode with
+      ///   Acknowledge / Reply. Use it to exercise the read layout and the in-place Reply transition.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("letter_read", "cr")]
+      public static string OpenLetterRead(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         LetterPopupManager.Show(BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay()), profile);
+         return $"Delivered a test letter from {hero.Name} to the parchment window (read mode).";
+      }
+
+      /// <summary>
       ///   cr.letter_reply [name]
-      ///   Opens the letter-REPLY window directly with a synthetic received letter — the exact context
-      ///   of the close-on-reply crash, instantly (no delivery wait, no LLM). Type a reply and send:
-      ///   the window close is the test. Must be on the campaign map (where the deferred-close fix runs).
+      ///   Opens the parchment courier window straight in REPLY mode with a synthetic received letter —
+      ///   write a reply and seal it. The send seals + queues the NPC's answer + closes synchronously
+      ///   (no inline LLM call), the pattern that ended the close-on-reply hang and crash.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("letter_reply", "cr")]
       public static string OpenLetterReply(List<string> args)
@@ -1387,22 +1406,21 @@ namespace CalradiaRemembers
          if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
 
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
-         int today = behavior.GameStateBridge.GetCurrentGameDay();
-
-         var letter = new PendingLetter
-         {
-            SenderId    = hero.StringId,
-            SenderName  = hero.Name?.ToString(),
-            Reason      = LetterReason.RomanticCorrespondence,
-            Content     = $"I find my thoughts return to you more often than I would admit. Write back, if you would. — {hero.Name}",
-            SentOnDay   = today - 2,
-            DeliveryDay = today,
-            IsDelivered = true
-         };
-
-         ChatManager.OpenForLetterReply(profile, hero, letter);
-         return $"Opened a letter-reply window from {hero.Name}. Type a reply, send, and watch the close — that is the crash test.";
+         LetterWindowManager.OpenReply(BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay()), profile, hero);
+         return $"Opened a parchment reply window from {hero.Name}. Type a reply, send, and watch it close.";
       }
+
+      /// <summary>A synthetic delivered letter for the cr.letter_* test commands.</summary>
+      private static PendingLetter BuildTestLetter(Hero hero, int today) => new()
+      {
+         SenderId    = hero.StringId,
+         SenderName  = hero.Name?.ToString(),
+         Reason      = LetterReason.RomanticCorrespondence,
+         Content     = $"I find my thoughts return to you more often than I would admit. Write back, if you would. — {hero.Name}",
+         SentOnDay   = today - 2,
+         DeliveryDay = today,
+         IsDelivered = true
+      };
 
       /// <summary>
       ///   cr.bargain_marriage [name]

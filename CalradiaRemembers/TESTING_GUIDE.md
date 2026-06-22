@@ -99,8 +99,9 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | Command | Does |
 |---|---|
 | `cr.letter [name]` | Queue an NPC-initiated letter to the player (arrives at the next daily tick). |
-| `cr.letter_reply [name]` | Open the letter-REPLY window directly with a synthetic received letter — the exact close-on-reply crash context, instantly. Reply, send, watch the close. |
-| `cr.compose [name]` | Preview an NPC's generated letter. |
+| `cr.letter_read [name]` | Deliver a synthetic letter through the real delivery path → the parchment courier window in READ mode (Acknowledge / Reply). |
+| `cr.letter_compose [name]` | Open the parchment courier window in COMPOSE mode — write a fresh letter and seal it. (Was `cr.compose`.) |
+| `cr.letter_reply [name]` | Open the parchment courier window in REPLY mode with a synthetic received letter — reply, send, watch it seal + close synchronously. |
 | `cr.courier [name]` | Spawn a visible player→NPC courier. |
 | `cr.courier_slow [name]` | Same, slowed, to watch it cross the map / be intercepted. |
 
@@ -260,11 +261,29 @@ These shipped built-but-unvalidated earlier; worth a pass:
 - 💾 **General save safety:** play a CR session with schemes/letters/couriers in flight, save, reload —
   the campaign opens and state is intact.
 
+### H. Parchment courier window (NEW — letters split out of the chat overlay, untested in game)
+
+**What it proves:** letters now live in their own parchment window, not the chat. Sealing closes the
+window **synchronously** — the fix for the old reply-then-crash / stuck-on-pause bug.
+
+- **H1 — Read.** `cr.letter_read [name]` → a parchment letter opens with **Acknowledge** and **Reply by
+  letter**. Acknowledge closes it; the game un-pauses. The same letter never pops again.
+- **H2 — Reply (the crash regression).** `cr.letter_reply [name]` (or **Reply** from H1) → write a reply →
+  **Seal & Send**. Expected: the window closes **instantly**, time un-pauses, a "reply sealed" notice
+  appears, **no "(considering…)", no hang, no crash**. The NPC's answer arrives later by courier.
+- **H3 — Compose.** `cr.letter_compose [name]` → write a fresh letter → **Seal & Send** → courier-departs
+  notice; from a tavernkeeper the 500-denar fee is charged and **Seal & Send stays disabled if you can't
+  afford it** (the message isn't lost).
+- **H4 — Real delivery.** Let an NPC-initiated letter actually arrive (`cr.letter` then wait a daily
+  tick, or play on): it should open the **parchment** window, not the old vanilla box.
+- **Look & feel:** report anything off about the parchment (colours, font, spacing, the reply box) — the
+  visuals are a first pass to refine.
+
 ---
 
 ## 3. What is already unit-tested (do NOT re-test by hand)
 
-These are proven by `dotnet test` (250 tests); only their *wiring* (above) needs in-game eyes:
+These are proven by `dotnet test` (266 tests); only their *wiring* (above) needs in-game eyes:
 
 - **RelationGate**: +1 cap, warmth cooldowns, intimacy +3 bypass, −15 / −100 floors.
 - **Stance maths**: word cap (±2) + 8h cooldown, deed cap (30), fear decay, axis clamps, and the
@@ -275,6 +294,8 @@ These are proven by `dotnet test` (250 tests); only their *wiring* (above) needs
   give-up-the-chase rule.
 - **Lord-recruitment gate**, **power-balance wording**, **marriage eligibility**, **letter cadence**,
   **captive intent/probability ladder**, **public-affront thresholds**, **third-party descriptions**.
+- **Courier-window rules** (`LetterComposerState`): which parts of the parchment show per mode, and the
+  can't-send-blank / can't-afford-the-courier guards.
 
 If one of these behaves wrong *in game* despite the math being right, it points at the **wiring** — log
 it with Enable Logging on and the exact `cr.*` steps to reproduce.

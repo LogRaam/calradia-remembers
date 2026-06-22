@@ -2,6 +2,28 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.11.0.. 2026-06-21
+
+Letters get their own home, and the letter-reply crash from v1.10.0 is fixed.
+
+### New
+- **Letters now open on their own sheet of parchment.** Reading a letter, writing a new one, or
+  replying each happens in a dedicated courier window — the correspondent's portrait at the top, the
+  words in a clean medieval hand on aged paper — instead of borrowing the conversation panel.
+  Composing a letter shows a compact window; reading and replying give the letter room to breathe.
+
+### Fixed
+- **Replying to a letter no longer crashes (the v1.10.0 known issue).** A reply is now sealed and sent
+  at once — the window closes cleanly, the game un-pauses, and the courier carries your words to be
+  answered later. No more "(considering…)" wait, no hang if the AI hiccups, and no crash on close,
+  whatever the model does.
+- **Letter text reads cleanly.** The parchment uses a crisp medieval serif instead of the heavy,
+  shadowed look it had before.
+
+### Notes
+- Letter test commands: cr.letter_read / cr.letter_compose / cr.letter_reply. See
+  CalradiaRemembers/TESTING_GUIDE.md.
+
 ## v1.10.0.. 2026-06-21
 
 A big one — a wave of new world-simulation and roleplay systems, plus two fixes from tester

@@ -1,0 +1,260 @@
+<Prefab>
+  <Constants>
+    <!-- Centered card; width is fixed, height comes from the VM per mode (compose is compact). -->
+    <Constant Name="Letter.Width" Value="470" />
+  </Constants>
+
+  <Window Id="CalradiaRemembersLetterWindow" Layer="Overlay">
+
+    <Widget Id="LetterPanel"
+            WidthSizePolicy="Fixed"
+            HeightSizePolicy="Fixed"
+            SuggestedWidth="!Letter.Width"
+            SuggestedHeight="@PanelHeight"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Sprite="BlankWhiteSquare_9"
+            Color="#E2D6B4FF">
+
+      <Children>
+
+        <!-- Opportunistic paper grain over the solid parchment (invisible if the sprite isn't resident). -->
+        <Widget Id="LetterPaperGrain"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                Sprite="paper_texture_tile"
+                Color="#C8B488FF"
+                AlphaFactor="0.30"
+                IsDisabled="true" />
+
+        <!-- Gilded edge over the parchment -->
+        <Widget Id="LetterFrame"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                Sprite="frame_9"
+                ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
+                AlphaFactor="0.65"
+                IsDisabled="true" />
+
+        <!-- Correspondent portrait (recipient when composing, sender when reading / replying) -->
+        <Widget Id="LetterPortraitFrame"
+                WidthSizePolicy="Fixed"
+                HeightSizePolicy="Fixed"
+                SuggestedWidth="250"
+                SuggestedHeight="206"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                MarginTop="22"
+                IsVisible="@ShowPortrait">
+          <Children>
+            <ImageIdentifierWidget Id="LetterPortrait"
+                                   WidthSizePolicy="Fixed"
+                                   HeightSizePolicy="Fixed"
+                                   SuggestedWidth="300"
+                                   SuggestedHeight="150"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   TextureProviderName="@PortraitTextureProviderName"
+                                   ImageId="@PortraitId"
+                                   AdditionalArgs="@PortraitAdditionalArgs"
+                                   IsBig="true"
+                                   HideWhenNull="false"
+                                   IsDisabled="true" />
+          </Children>
+        </Widget>
+
+        <!-- Small context line (From / To / Reply to …), under the portrait -->
+        <TextWidget Id="LetterHeading"
+                    WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="Fixed"
+                    SuggestedHeight="28"
+                    VerticalAlignment="Top"
+                    MarginTop="234"
+                    MarginLeft="34"
+                    MarginRight="34"
+                    Brush="CR.Letter.Heading"
+                    Brush.FontSize="19"
+                    Text="@SenderHeading"
+                    IsDisabled="true" />
+
+        <Widget Id="TitleDivider"
+                WidthSizePolicy="Fixed"
+                SuggestedWidth="340"
+                HeightSizePolicy="Fixed"
+                SuggestedHeight="2"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                PositionYOffset="268"
+                Sprite="BlankWhiteSquare_9"
+                Color="#6A5028FF"
+                AlphaFactor="0.7"
+                IsDisabled="true" />
+
+        <!-- The letter, on parchment (read / reply) -->
+        <Widget Id="ReceivedArea"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                VerticalAlignment="Top"
+                MarginTop="284"
+                MarginBottom="150"
+                MarginLeft="36"
+                MarginRight="26"
+                IsVisible="@ShowReceivedBody">
+          <Children>
+
+            <ChatScrollablePanel Id="ReceivedScrollPanel"
+                                 WidthSizePolicy="StretchToParent"
+                                 HeightSizePolicy="StretchToParent"
+                                 MarginRight="18"
+                                 AutoHideScrollBars="true"
+                                 ClipRect="ReceivedClipRect"
+                                 InnerPanel="ReceivedClipRect\ReceivedInner"
+                                 VerticalScrollbar="..\ReceivedScrollbar\Scrollbar">
+              <Children>
+                <Widget Id="ReceivedClipRect"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        ClipContents="true">
+                  <Children>
+                    <ListPanel Id="ReceivedInner"
+                               WidthSizePolicy="StretchToParent"
+                               HeightSizePolicy="CoverChildren"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               StackLayout.LayoutMethod="VerticalTopToBottom">
+                      <Children>
+                        <RichTextWidget Id="ReceivedBodyText"
+                                        WidthSizePolicy="StretchToParent"
+                                        HeightSizePolicy="CoverChildren"
+                                        HorizontalAlignment="Left"
+                                        Brush="CR.Letter.Body"
+                                        Brush.FontSize="21"
+                                        Text="@ReceivedBody"
+                                        IsDisabled="true" />
+                      </Children>
+                    </ListPanel>
+                  </Children>
+                </Widget>
+              </Children>
+            </ChatScrollablePanel>
+
+            <Standard.VerticalScrollbar Id="ReceivedScrollbar"
+                                        HeightSizePolicy="StretchToParent"
+                                        HorizontalAlignment="Right"
+                                        MarginRight="0" />
+
+          </Children>
+        </Widget>
+
+        <!-- Courier fee note (compose) -->
+        <TextWidget Id="CourierNoteWidget"
+                    WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="Fixed"
+                    SuggestedHeight="22"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    MarginBottom="166"
+                    IsVisible="@HasCourierNote"
+                    Brush="CR.Letter.Heading"
+                    Brush.FontSize="15"
+                    Text="@CourierNote"
+                    IsDisabled="true" />
+
+        <!-- Writing area (compose / reply) — a single line; the decorative frame sits clear of the ink. -->
+        <Widget Id="InputBox"
+                WidthSizePolicy="Fixed"
+                HeightSizePolicy="Fixed"
+                SuggestedWidth="386"
+                SuggestedHeight="58"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                MarginBottom="66"
+                IsVisible="@ShowInput"
+                Sprite="BlankWhiteSquare_9"
+                Color="#C8B488FF"
+                AlphaFactor="0.55">
+          <Children>
+            <Widget Id="InputBoxBorder"
+                    WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="StretchToParent"
+                    Sprite="frame_9"
+                    ExtendLeft="6" ExtendTop="6" ExtendRight="6" ExtendBottom="6"
+                    AlphaFactor="0.55"
+                    IsDisabled="true" />
+            <EditableTextWidget Id="LetterInput"
+                                WidthSizePolicy="StretchToParent"
+                                HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                MarginLeft="26"
+                                MarginRight="26"
+                                MarginTop="8"
+                                MarginBottom="8"
+                                Brush="CR.Letter.Input"
+                                Text="@InputText" />
+          </Children>
+        </Widget>
+
+        <!-- Buttons (max two at a time: Acknowledge+Reply in read, Send+Cancel otherwise) -->
+        <ListPanel Id="LetterButtons"
+                   WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                   HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="18"
+                   StackLayout.LayoutMethod="HorizontalLeftToRight">
+          <Children>
+
+            <ButtonWidget Id="AcknowledgeButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                          SuggestedWidth="180" SuggestedHeight="42" MarginRight="10"
+                          IsVisible="@ShowAcknowledge"
+                          Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                          Command.Click="ExecuteAcknowledge">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Brush="Popup.Button.Text" Brush.FontSize="16" Text="@AcknowledgeButtonText" />
+              </Children>
+            </ButtonWidget>
+
+            <ButtonWidget Id="ReplyButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                          SuggestedWidth="190" SuggestedHeight="42"
+                          IsVisible="@ShowReplyButton"
+                          Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                          Command.Click="ExecuteReply">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Brush="Popup.Button.Text" Brush.FontSize="16" Text="@ReplyButtonText" />
+              </Children>
+            </ButtonWidget>
+
+            <ButtonWidget Id="SendButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                          SuggestedWidth="180" SuggestedHeight="42" MarginRight="10"
+                          IsVisible="@ShowSend" IsEnabled="@IsSendEnabled"
+                          Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                          Command.Click="ExecuteSend">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Brush="Popup.Button.Text" Brush.FontSize="16" Text="@SendButtonText" />
+              </Children>
+            </ButtonWidget>
+
+            <ButtonWidget Id="CloseButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                          SuggestedWidth="150" SuggestedHeight="42"
+                          IsVisible="@ShowSend"
+                          Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                          Command.Click="ExecuteClose">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Brush="Popup.Button.Text" Brush.FontSize="16" Text="@CloseButtonText" />
+              </Children>
+            </ButtonWidget>
+
+          </Children>
+        </ListPanel>
+
+      </Children>
+    </Widget>
+
+  </Window>
+</Prefab>

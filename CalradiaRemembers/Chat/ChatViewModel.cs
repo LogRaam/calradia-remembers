@@ -62,40 +62,27 @@ namespace CalradiaRemembers.Chat
         private enum ChatMode
         {
             Conversation,    // live dialogue with an NPC — witnesses, actions, story log
-            LetterReply,     // replying to a received letter — send seals a new letter
-            Compose,         // writing a NEW letter — no LLM call, sealed directly
             CaptiveEncounter,// captor-led scene — the player is a prisoner (Sprint 17)
             Commoner         // v1.1 — transient street-level chat, no memory, no witnesses
         }
 
         private ChatMode _mode = ChatMode.Conversation;
 
-        // A spoken exchange happening "now" — transcript and story log apply.
-        // Letter modes are correspondence: nothing is said aloud, nothing witnessed.
+        // A spoken exchange happening "now" — transcript and story log apply. Every chat mode is now
+        // a spoken exchange (letters moved to the dedicated parchment courier window).
         private bool IsLiveConversation => _mode == ChatMode.Conversation
                                         || _mode == ChatMode.CaptiveEncounter
                                         || _mode == ChatMode.Commoner;
         private bool IsCaptiveEncounter => _mode == ChatMode.CaptiveEncounter;
         // A captive does not command the room — the captor's soldiers leave only if
-        // the captor wills it. Commoners have no room. Letters have no room to clear.
+        // the captor wills it. Commoners have no room to clear.
         private bool AllowsPrivacyRequest => _mode == ChatMode.Conversation;
-
-        // ── Letter reply mode payload ─────────────────────────────────────────
-        // The received letter being answered; after the player sends, the NPC's LLM
-        // response is queued as a new PendingLetter rather than displayed in chat.
-        private PendingLetter _replyLetter;
-        private NpcProfile _replyProfile;
-
-        // ── Letter compose mode payload ───────────────────────────────────────
-        private NpcProfile _composeRecipientProfile;
 
         // ── Commoner mode payload (v1.1) ──────────────────────────────────────
         // Synthetic profile + settlement snapshot created per session; never stored.
         private NpcProfile               _commonerProfile;
         private NpcMemoryService.Core.Models.CommonsKnowledge _commonsKnowledge;
         private NpcMemoryService.Core.Models.ChatSession       _commonerSession;
-        // Gold charged when the letter is sealed (0 = free, e.g. console test path).
-        private int _composeCourierCost;
 
         // ── Multi-NPC witnesses ───────────────────────────────────────────────
         // Mutable list — authoritative for the session; cleared on privacy-accepted.
@@ -1265,26 +1252,6 @@ namespace CalradiaRemembers.Chat
             }
         }
 
-        /// <summary>
-        ///   Switches the chat into letter-reply mode. The received letter is shown as
-        ///   the first message; when the player sends their reply the chat closes and the
-        ///   NPC's generated response becomes a new <see cref="PendingLetter" />.
-        /// </summary>
-        public void ActivateLetterReplyMode(PendingLetter letter, NpcProfile profile)
-        {
-            _mode         = ChatMode.LetterReply;
-            _replyLetter  = letter;
-            _replyProfile = profile;
-
-            TitleText       = $"Correspondence with {profile.Name}";
-            CloseButtonText = "Discard";
-            SendButtonText  = "Send reply";
-
-            // Pre-load the received letter as the opening NPC message.
-            if (!string.IsNullOrWhiteSpace(letter.Content))
-                _messages.Add(new ChatMessageViewModel(_npcHero, profile.Name, letter.Content, false));
-        }
-
         public void ExecuteClose()
         {
             OnCloseRequested?.Invoke();
@@ -1597,25 +1564,6 @@ namespace CalradiaRemembers.Chat
         }
 
         /// <summary>
-        ///   Switches the chat into compose mode: no LLM call, no NPC portrait.
-        ///   The player types a message and "Seal &amp; Send" queues it as a
-        ///   <see cref="PlayerLetter" /> with delivery delay. When <paramref name="courierCost" />
-        ///   is positive, that many denars are charged on send (insufficient gold aborts).
-        /// </summary>
-        public void ActivateComposeMode(NpcProfile recipientProfile, int courierCost = 0)
-        {
-            _mode                    = ChatMode.Compose;
-            _composeRecipientProfile = recipientProfile;
-            _composeCourierCost      = courierCost;
-
-            TitleText = courierCost > 0
-                ? $"Compose Letter to {recipientProfile.Name} — {courierCost} denars"
-                : $"Compose Letter to {recipientProfile.Name}";
-            CloseButtonText = "Cancel";
-            SendButtonText  = "Seal & Send";
-        }
-
-        /// <summary>
         ///   Switches the chat window into commoner mode: a transient, street-level
         ///   exchange with a synthetically generated NPC. No memory is saved, no
         ///   witnesses appear, and only the take_gold action is honoured.
@@ -1640,26 +1588,9 @@ namespace CalradiaRemembers.Chat
             if (string.IsNullOrEmpty(text)) return;
             if (!IsSendEnabled) return;
 
-            // Compose mode: seal the letter without any LLM call.
-            if (_mode == ChatMode.Compose)
-            {
-                SealAndSendLetter(text);
-                return;
-            }
-
-            // Letter-reply mode: like compose, seal the reply and close SYNCHRONOUSLY here (in the
-            // input phase) — no inline LLM call. The NPC's answer is generated async and arrives by
-            // courier. This avoids the "(considering…)" wait, the hang when that call fails, and the
-            // GauntletUI crash from closing the overlay out of an async continuation.
-            if (_mode == ChatMode.LetterReply)
-            {
-                SealAndSendLetterReply(text);
-                return;
-            }
-
             // Sprint 15B: route this turn to whoever the player is addressing — the main
             // NPC by default, or a witness named in a stage direction / vocative (sticky).
-            ChatSpeaker speaker = _mode == ChatMode.LetterReply ? MainSpeaker() : ResolveAddressedSpeaker(text);
+            ChatSpeaker speaker = ResolveAddressedSpeaker(text);
             RefreshWitnessUi(); // refresh the "Speaking to …" indicator
 
             // Display only — the player line is committed to the transcript after the call
@@ -1672,76 +1603,6 @@ namespace CalradiaRemembers.Chat
             _witnessExchangesThisRound = 0; // reset the 15C cap for this new player turn
             _sceneContinuations        = 0; // reset scene-continuation count for this new player turn
             _ = RunLlmExchangeAsync(text, speaker, placeholder);
-        }
-
-        private void SealAndSendLetter(string content)
-        {
-            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
-            if (behavior == null || _composeRecipientProfile == null)
-            {
-                ChatManager.Close();
-                return;
-            }
-
-            // Courier hire fee: refuse if the player cannot afford it (keep the window
-            // open so the message isn't lost), otherwise deduct before dispatching.
-            if (_composeCourierCost > 0)
-            {
-                if (Hero.MainHero.Gold < _composeCourierCost)
-                {
-                    MBInformationManager.AddQuickInformation(new TextObject(
-                        $"You cannot afford the courier ({_composeCourierCost} denars)."));
-                    return;
-                }
-                Hero.MainHero.ChangeHeroGold(-_composeCourierCost);
-                ModLog.Info($"[PLAYER LETTER] courier fee charged: {_composeCourierCost} denars.");
-            }
-
-            int today        = behavior.GameStateBridge.GetCurrentGameDay();
-            int deliveryDays = PlayerLetterService.CreateAndQueue(
-                _composeRecipientProfile, content, today, behavior.Store);
-
-            string days = deliveryDays == 1 ? "1 day" : $"{deliveryDays} days";
-            MBInformationManager.AddQuickInformation(
-                new TextObject($"Your courier departs. The letter will reach" +
-                               $" {_composeRecipientProfile.Name} in approximately {days}."));
-
-            StoryLog.WriteLetterSent(_composeRecipientProfile.Name, content, today);
-            ModLog.Info($"[PLAYER LETTER] sealed to {_composeRecipientProfile.Name} ({deliveryDays}d delivery).");
-            InputText = "";
-            ChatManager.Close();
-        }
-
-        /// <summary>
-        ///   Seals the player's reply to a received letter and queues the NPC's answer (generated
-        ///   async, delivered later by courier), then closes synchronously — no inline LLM call. The
-        ///   window is never left mid-thought, so an LLM hiccup can't strand it, and the close runs in
-        ///   the input phase rather than an async UI-tick continuation (where it crashed GauntletUI).
-        /// </summary>
-        private void SealAndSendLetterReply(string content)
-        {
-            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
-            if (behavior == null || _replyLetter == null || _replyProfile == null)
-            {
-                ChatManager.Close();
-                return;
-            }
-
-            _replyLetter.PlayerReply = content;
-            Hero giverHero = Hero.FindFirst(h => h.StringId == _replyProfile.Id);
-            int today = behavior.GameStateBridge.GetCurrentGameDay();
-
-            LetterGenerationService.QueueReplyLetter(
-                _replyProfile, giverHero, _replyLetter,
-                behavior.LlmServices, behavior.Store, today);
-
-            MBInformationManager.AddQuickInformation(
-                new TextObject($"Your reply to {_replyProfile.Name} has been sealed and sent."));
-            StoryLog.WriteLetterSent(_replyProfile.Name, content, today);
-            ModLog.Info($"[LETTER] reply to {_replyProfile.Name} sealed; NPC response queued as a new letter.");
-
-            InputText = "";
-            ChatManager.Close();
         }
 
         public void SetNpcHero(Hero npcHero)
@@ -2041,14 +1902,10 @@ namespace CalradiaRemembers.Chat
 
                 NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
 
-                // In letter reply mode the chat was opened outside of normal dialogue:
-                // use the pre-loaded reply profile and a fresh session. Otherwise route to
-                // whoever the player addressed (main NPC or a witness) and rebuild that
+                // Route to whoever the player addressed (main NPC or a witness) and rebuild that
                 // speaker's session from the attributed transcript (correct attribution).
-                NpcProfile profile = _mode == ChatMode.LetterReply ? _replyProfile : speaker.Profile;
-                ChatSession session = _mode == ChatMode.LetterReply
-                    ? new ChatSession()
-                    : BuildSessionFor(speaker);
+                NpcProfile profile = speaker.Profile;
+                ChatSession session = BuildSessionFor(speaker);
 
                 if (behavior == null || profile == null || session == null)
                 {
@@ -2189,9 +2046,6 @@ namespace CalradiaRemembers.Chat
                     return;
                 }
 
-                // (Letter-reply mode never reaches here: it seals the reply and closes synchronously
-                // in ExecuteSendMessage — see SealAndSendLetterReply — with no inline LLM call.)
-
                 // Render the turn: dialogue bubble, or a narration-only turn (no empty bubble), or
                 // a "(silence...)" fallback. npcLine is empty for a narration-only turn.
                 npcLine = RenderNpcTurn(placeholder, speaker, response);
@@ -2216,8 +2070,6 @@ namespace CalradiaRemembers.Chat
                     _eventRecordedThisSession = true;
 
                 // Story log: intro (lazy, once per conversation) + player line + NPC line.
-                // Skipped in letter modes — the player's message becomes a letter, which
-                // is logged separately in the letter-reply intercept above.
                 if (IsLiveConversation)
                 {
                     EnsureStoryIntro();

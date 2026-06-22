@@ -151,6 +151,7 @@
     <ItemGroup>
       <ModAssemblies   Include="$(TargetDir)CalradiaRemembers.dll;$(TargetDir)CalradiaRemembers.Logic.dll;$(TargetDir)NpcMemoryService.Core.dll" />
       <GuiPrefabFiles  Include="$(ProjectDir)GUI\Prefabs\*.xml" />
+      <GuiBrushFiles   Include="$(ProjectDir)GUI\Brushes\*.xml" />
       <ModuleDataFiles Include="$(ProjectDir)ModuleData\*.*" />
       <SoundFiles      Include="$(ProjectDir)Sounds\**\*.*" />
     </ItemGroup>
@@ -159,6 +160,7 @@
     <Copy SourceFiles="@(ModAssemblies)"            DestinationFolder="$(BannerlordBinaryDir)"             SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(ProjectDir)..\SubModule.xml" DestinationFolder="$(BannerlordModuleDir)"           SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(GuiPrefabFiles)"           DestinationFolder="$(BannerlordModuleDir)\GUI\Prefabs" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(GuiBrushFiles)"            DestinationFolder="$(BannerlordModuleDir)\GUI\Brushes" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(ModuleDataFiles)"          DestinationFolder="$(BannerlordModuleDir)\ModuleData"  SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(SoundFiles)"               DestinationFolder="$(BannerlordModuleDir)\Sounds\%(RecursiveDir)" SkipUnchangedFiles="true" />
 

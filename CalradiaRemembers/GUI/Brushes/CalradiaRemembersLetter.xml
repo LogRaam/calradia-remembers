@@ -1,0 +1,40 @@
+<Brushes>
+
+  <!--
+    Parchment letter TEXT brushes — Galahad (the vanilla serif) with every shadow/glow/outline OFF,
+    so dark ink reads crisp on the parchment instead of the bold, smeared look the default brush gives
+    on a light background. Mirrors Native's GameNotification.Text. (The panel fill is a plain sprite on
+    the widget — a bare Widget does not paint a brush fill, so the parchment colour lives in the prefab.)
+  -->
+
+  <!-- Letter body: dark ink, clean serif, left-aligned, no shadow/glow/outline. -->
+  <Brush Name="CR.Letter.Body" Font="Galahad" TextHorizontalAlignment="Left" TextVerticalAlignment="Top">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontColor="#2A1A0EFF" FontSize="23"
+             TextGlowRadius="0" TextBlur="0" TextShadowOffset="0"
+             TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+    </Styles>
+  </Brush>
+
+  <!-- Small centered context line above the divider (From / To / Reply to …). -->
+  <Brush Name="CR.Letter.Heading" Font="Galahad" TextHorizontalAlignment="Center">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontColor="#5A3C1CFF" FontSize="22"
+             TextGlowRadius="0" TextBlur="0" TextShadowOffset="0"
+             TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+    </Styles>
+  </Brush>
+
+  <!-- The reply/compose writing field — same crisp ink, the player's own hand. Single line, centered. -->
+  <Brush Name="CR.Letter.Input" Font="Galahad" TextHorizontalAlignment="Left" TextVerticalAlignment="Center">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontColor="#2A1A0EFF" FontSize="22"
+             TextGlowRadius="0" TextBlur="0" TextShadowOffset="0"
+             TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+    </Styles>
+  </Brush>
+
+</Brushes>

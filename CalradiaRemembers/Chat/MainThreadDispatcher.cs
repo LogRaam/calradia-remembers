@@ -26,7 +26,6 @@ namespace CalradiaRemembers.Chat
     public static class MainThreadDispatcher
     {
         private static readonly ConcurrentQueue<Action> Queue = new ConcurrentQueue<Action>();
-        private static volatile bool _closeRequested;
 
         /// <summary>Queues a continuation to run on the next main-thread drain. Thread-safe.</summary>
         public static void Enqueue(Action action)
@@ -40,26 +39,6 @@ namespace CalradiaRemembers.Chat
         ///   simply defers to the next drain).
         /// </summary>
         public static MainThreadAwaitable SwitchToMainThread() => default;
-
-        /// <summary>
-        ///   Requests the chat window close on the next frame, BEFORE the queue drains — so a
-        ///   continuation never tears down the panel whose OnLateUpdate is mid-drain. Use this
-        ///   instead of <see cref="ChatManager.Close"/> from inside a dispatched continuation.
-        /// </summary>
-        public static void RequestClose() => _closeRequested = true;
-
-        /// <summary>
-        ///   True once if a close was requested since the last call; clears the flag and drops
-        ///   all pending continuations (we are closing — none of them should still run). The
-        ///   caller (the panel's late update) performs the actual close at the top of the frame.
-        /// </summary>
-        public static bool ConsumeCloseRequest()
-        {
-            if (!_closeRequested) return false;
-            _closeRequested = false;
-            Clear();
-            return true;
-        }
 
         /// <summary>
         ///   Runs queued continuations on the main thread — bounded to the count present at

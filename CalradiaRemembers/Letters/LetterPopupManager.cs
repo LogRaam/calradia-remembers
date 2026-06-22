@@ -1,101 +1,66 @@
 // Code written by Gabriel Mailhot, 02/06/2026.
-// Sprint 12b: NPC-initiated letter correspondence — popup display.
+// Sprint 12b: NPC-initiated letter correspondence — delivery presenter.
+// 21/06/2026: letters left the chat overlay for a dedicated parchment window (LetterWindowManager).
+// This now records the "received" bookkeeping once on arrival and opens that window in read mode; the
+// reply is offered inside the window itself (no second popup, no chat overlay).
 
 #region
 
 using System.Linq;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Chat;
 using CalradiaRemembers.Quests;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.Library;
 
 #endregion
 
 namespace CalradiaRemembers.Letters
 {
     /// <summary>
-    ///   Shows a letter delivery popup to the player using the vanilla
-    ///   <see cref="InformationManager.ShowInquiry" /> system. Two buttons:
-    ///   "Acknowledge" (marks delivered, no reply) and "Reply" (opens the chat
-    ///   window in letter-reply mode so the player can compose a response).
+    ///   Presents a delivered letter to the player on the parchment courier window. Marks the letter
+    ///   received (and opens any letter-triggered quest) once on arrival, then shows it for reading;
+    ///   Acknowledge or Reply are chosen inside the window.
     /// </summary>
     public static class LetterPopupManager
     {
-        /// <summary>
-        ///   Presents the letter popup. Safe to call from the daily tick (main thread).
-        /// </summary>
+        /// <summary>Presents the letter. Safe to call from the daily/courier tick (main thread).</summary>
         public static void Show(PendingLetter letter, NpcProfile senderProfile)
         {
             if (letter == null || senderProfile == null) return;
 
-            string title   = $"A letter from {letter.SenderName}";
+            int today = (int)CampaignTime.Now.ToDays;
             string content = letter.Content ?? "(The letter is blank.)";
+            StoryLog.WriteLetterReceived(letter.SenderName, content, today);
 
-            StoryLog.WriteLetterReceived(letter.SenderName, content, (int)CampaignTime.Now.ToDays);
-
-            InformationManager.ShowInquiry(new InquiryData(
-                titleText:              title,
-                text:                   content,
-                isAffirmativeOptionShown: true,
-                isNegativeOptionShown:  true,
-                affirmativeText:        "Acknowledge",
-                negativeText:           "Reply by letter",
-                affirmativeAction:      () => OnAcknowledge(letter, senderProfile),
-                negativeAction:         () => OnReply(letter, senderProfile)
-            ), pauseGameActiveState: true);
+            MarkReceived(letter, senderProfile, today);
+            LetterWindowManager.OpenRead(letter, senderProfile);
         }
 
-        // ── Handlers ──────────────────────────────────────────────────────────
+        // ── Bookkeeping ────────────────────────────────────────────────────
 
-        private static void OnAcknowledge(PendingLetter letter, NpcProfile profile)
+        /// <summary>
+        ///   Records that the player has now seen the letter: marks it delivered, files a memory of it
+        ///   on the sender, persists, and opens any quest the letter carries. Done once on arrival so a
+        ///   letter never re-pops, whether the player then acknowledges, replies, or simply closes.
+        /// </summary>
+        private static void MarkReceived(PendingLetter letter, NpcProfile profile, int today)
         {
             letter.IsDelivered = true;
-
-            int today = (int)CampaignTime.Now.ToDays;
             profile.Events.Add(new NotableEvent(today, NotableEventType.Other,
                 $"Received a letter from {profile.Name} ({letter.Reason})."));
 
-            var behavior = NpcMemoryCampaignBehavior.Instance;
-            behavior?.Store.Set(profile);
-
-            // Open a child-support quest in the vanilla journal when this letter arrives.
-            if (letter.Reason == LetterReason.ChildSupportRequest)
-                OpenChildSupportQuest(profile, today, behavior?.Store);
-
-            ModLog.Info($"[LETTER] acknowledged from {profile.Name}.");
-        }
-
-        private static void OnReply(PendingLetter letter, NpcProfile profile)
-        {
-            letter.IsDelivered = true;
-
-            int today = (int)CampaignTime.Now.ToDays;
-            profile.Events.Add(new NotableEvent(today, NotableEventType.Other,
-                $"Received a letter from {profile.Name} ({letter.Reason}) and chose to reply."));
-
-            var behavior = NpcMemoryCampaignBehavior.Instance;
+            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
             behavior?.Store.Set(profile);
 
             if (letter.Reason == LetterReason.ChildSupportRequest)
                 OpenChildSupportQuest(profile, today, behavior?.Store);
 
-            Hero npcHero = Hero.FindFirst(h => h.StringId == profile.Id);
-            if (npcHero == null)
-            {
-                ModLog.Error($"[LETTER] OnReply: hero not found for {profile.Name}.");
-                return;
-            }
-
-            ChatManager.OpenForLetterReply(profile, npcHero, letter);
+            ModLog.Info($"[LETTER] received from {profile.Name} ({letter.Reason}).");
         }
 
         /// <summary>
-        ///   Creates a <see cref="QuestType.ProvideGold" /> quest on the mother's profile
-        ///   and opens its vanilla journal mirror. Called once when the player first reads
-        ///   the <see cref="LetterReason.ChildSupportRequest" /> letter.
-        ///   Idempotent — skips silently if an outstanding ProvideGold quest already exists.
+        ///   Creates a <see cref="QuestType.ProvideGold" /> quest on the mother's profile and opens its
+        ///   vanilla journal mirror. Idempotent — skips if an outstanding ProvideGold quest already exists.
         /// </summary>
         private static void OpenChildSupportQuest(NpcProfile profile, int today,
             Storage.BannerlordNpcMemoryStore store)

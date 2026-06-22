@@ -303,3 +303,24 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
     Glue (in-game): the SetTraitLevel apply, the backstory prompt injection, the loader, the MCM toggle.
   - Console: `cr.backstory [name]` (show loaded override + effective traits), `cr.reload_lore` (reload
     the file without relaunch).
+
+- **Custom correspondent portraits** *(letter window — wished 2026-06-21)*. Show a hand-made painted
+  portrait (the "letter from a noble lady" look) for a correspondent instead of the in-game 3D head
+  render. Tiered: a custom image when one exists for that hero, else fall back to the current
+  `CharacterImageIdentifierVM` render — so only notable NPCs need art and everyone else still works.
+  - **Already well-placed**: portrait resolution is centralized in `LetterViewModel.ResolvePortrait(Hero)`,
+    so this is a localized change — add a `UseCustomPortrait` flag + a custom-image binding, and the
+    prefab shows either a raw image widget or the existing `ImageIdentifierWidget`.
+  - **Lookup**: `Modules/CalradiaRemembers/Portraits/<heroStringId>.png`, with optional fallback tiers
+    (culture+gender defaults) and/or a `portraits.json` map. Pure/testable: the resolver (which key
+    wins, fallback order, missing-file handling).
+  - **The real fork — how a PNG reaches Gauntlet** (needs a small spike before committing):
+    - **(A) Pre-baked sprites**: ship the PNGs in the module's sprite atlas (`GUI/SpriteParts` +
+      `SpriteData.xml`), reference by sprite name. Clean and fast, but static — modders adding a
+      portrait must rebuild the atlas. (This is the first-time custom-sprite pipeline the parchment
+      work deliberately avoided.)
+    - **(B) Runtime texture load** (preferred for moddability): load the PNG from disk at open time
+      and bind it to an image widget. Drop-in folder, no atlas rebuild — but needs the right engine
+      texture-load API and lifetime handling; verify the exact call first.
+  - Distinct from the parked "generated portraits compositing over the conversation tableau" idea
+    (that one stays a separate mod); this is a bounded, CR-internal feature for the letter window.
