@@ -73,6 +73,7 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.forget <index> [name]` | Delete one bad event. |
 | `cr.forget_all [name]` | Wipe an NPC's entire memory. |
 | `cr.profile_check [name]` | Diagnostic dump of an NPC's stored profile. |
+| `cr.succession [predecessor]` | Simulate dynastic succession (you as the heir): reframes all NPC memories — drops private events, marks the rest inherited. Predecessor defaults to your parent. |
 
 ### Quests
 | Command | Does |
@@ -336,6 +337,20 @@ declaration (never being attacked) completes it.
 - **K3 — Grounded issuance.** The deed only forms for a real faction you are not already at war with and
   not your own (QuestFactory `BindDeclarableWarTarget`); already-at-war or self → refused.
 
+### L. Dynastic succession (NEW — untested in game)
+
+**What it proves:** on player death the heir inherits standing, debts, and grudges — not the predecessor's
+private history — and NPCs address the heir as the new person.
+
+- **Setup:** with an NPC you have a rich history with, ideally including a private event (`cr.memory [name]`
+  to see it; a Flirt/Intimacy/Captivity/Jealousy entry).
+- **L1 — Private history dropped.** `cr.succession` (uses your parent as predecessor) → `cr.memory [name]`
+  shows the Flirt/Intimacy/Captivity/Jealousy events are gone; the political/relational ones remain.
+- **L2 — Inherited framing.** Talk to that NPC: they should speak of the predecessor as your kin ("your
+  father once…") and treat YOU as the new person — never address you as the dead predecessor.
+- **L3 — Real death.** In actual play, when the player dies and an heir takes over
+  (`OnPlayerCharacterChanged`), the same reframing runs automatically across all NPCs.
+
 ---
 
 ## 3. What is already unit-tested (do NOT re-test by hand)
@@ -359,6 +374,8 @@ These are proven by `dotnet test` (275 tests); only their *wiring* (above) needs
   match is case-insensitive, a targetless demand matches nothing, and "do I already hold one" (case a vs b).
 - **War-deed matching** (`WarDeedMatcher`): satisfied only when the player's faction is the aggressor
   against the demanded faction — never when attacked, never for an unrelated war.
+- **Succession rules** (`SuccessionMemoryPolicy` / `SuccessionKinship`): private events (flirt, intimacy,
+  captivity, jealousy) do not cross to the heir while political/relational ones do; correct kinship word.
 
 If one of these behaves wrong *in game* despite the math being right, it points at the **wiring** — log
 it with Enable Logging on and the exact `cr.*` steps to reproduce.

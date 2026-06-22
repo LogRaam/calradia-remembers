@@ -1560,6 +1560,33 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.succession [predecessor]
+      ///   Simulates dynastic succession with the current player as the heir: reframes every stored NPC
+      ///   memory (drops the predecessor's private events, keeps the political/relational, marks it
+      ///   inherited). The predecessor defaults to your father/mother; pass a name to use a specific hero.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("succession", "cr")]
+      public static string SimulateSuccession(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero heir = Hero.MainHero;
+         if (heir == null) return "No player hero.";
+
+         Hero predecessor = (args != null && args.Count > 0)
+            ? ResolveHero(args)
+            : (heir.Father ?? heir.Mother);
+         if (predecessor == null)
+            return "No predecessor found — pass an NPC name, or play a character who has a parent.";
+         if (predecessor == heir)
+            return "The predecessor and the heir cannot be the same hero.";
+
+         int n = Dynasty.SuccessionBehavior.Instance?.Apply(predecessor, heir) ?? 0;
+         return $"Succession simulated: {n} profile(s) reframed as the heir of {predecessor.Name}. " +
+                $"Talk to an NPC — they should speak of {predecessor.Name} as your kin; private events are gone.";
+      }
+
+      /// <summary>
       ///   cr.bargain_marriage [name]
       ///   Seeds a marriage_consent bargain on a clan head (or a parent): a deed (clear bandits
       ///   near a village) conditions the blessing for the player to marry one of their eligible

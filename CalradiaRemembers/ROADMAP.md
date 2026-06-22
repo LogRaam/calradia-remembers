@@ -243,7 +243,18 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
   Relation remains the warmth axis; power differential is the fear/respect axis.
   Both feed the same character, differently.
 
-- **Dynastic succession — memory reframing on player death.**
+- **Dynastic succession — memory reframing on player death. ✅ DONE (2026-06-22).**
+  Shipped DETERMINISTICALLY rather than via an LLM pass (chosen over the per-NPC LLM
+  rewrite below: no API cost/latency spike at succession, deterministic, save-safe).
+  On `OnPlayerCharacterChangedEvent`, `Dynasty.SuccessionBehavior` reframes every stored
+  profile: drops the predecessor's private events (`SuccessionMemoryPolicy` —
+  flirt/intimacy/captivity/jealousy), keeps the political/relational, and marks the
+  history inherited (`NpcProfile.InheritedFromName` + kinship via `SuccessionKinship`).
+  `PromptBuilder.AppendInheritedNote` frames it ("the person before you is the HEIR of
+  X, their father… you inherit the standing, not the private history"). Pure rules tested;
+  `cr.succession` simulates it. OPTIONAL future polish: the per-NPC LLM rewrite for richer
+  per-event dynastic prose (the original design below). 
+
   When the player character dies and an heir takes over, NPC memories are not wiped
   but rewritten through the lens of the new relationship. Trigger:
   `CampaignEvents.OnPlayerCharacterChanged` fires when Bannerlord hands control to
