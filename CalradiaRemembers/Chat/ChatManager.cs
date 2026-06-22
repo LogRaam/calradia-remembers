@@ -6,8 +6,10 @@ using System;
 using System.Collections.Generic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.Engine.GauntletUI;
 using TaleWorlds.GauntletUI.Data;
+using TaleWorlds.MountAndBlade;
 using TaleWorlds.ScreenSystem;
 
 #endregion
@@ -53,6 +55,7 @@ namespace CalradiaRemembers.Chat
 
             KillChatWindow();
             EndVanillaConversation();
+            EndMapEncounterIfNeeded();
             RestoreTime();
             FreeResources();
             Services.LlmServices.ClearTestGenderOverride();
@@ -160,6 +163,31 @@ namespace CalradiaRemembers.Chat
         {
             if (Campaign.Current?.ConversationManager != null)
                 Campaign.Current.ConversationManager.EndConversation();
+        }
+
+        /// <summary>
+        ///   Finishes the lingering map encounter after a map conversation. Talking to a lord on the
+        ///   campaign map opens a PlayerEncounter that EndConversation alone does not close — so the
+        ///   vanilla encounter menu stays up. For a lord LEADING AN ARMY that menu is the hostile army
+        ///   menu (Attack / Send troops / Try to get away / Surrender) with NO "Leave", trapping the
+        ///   player. Finishing the encounter returns them cleanly to the map. Strictly map-only: never
+        ///   tear down a settlement encounter (the player's presence in a town) or a mission scene.
+        /// </summary>
+        private static void EndMapEncounterIfNeeded()
+        {
+            try
+            {
+                if (Mission.Current != null) return;          // inside a scene/mission — not a map talk
+                if (PlayerEncounter.Current == null) return;  // no encounter to finish
+                if (PlayerEncounter.InsideSettlement) return; // a town/castle encounter — leave it intact
+
+                PlayerEncounter.Finish(true);
+                ModLog.Info("Map encounter finished on chat close (clean return — no lingering army menu).");
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"EndMapEncounterIfNeeded failed: {ex.GetType().Name}: {ex.Message}");
+            }
         }
 
         private static void FreeResources()
