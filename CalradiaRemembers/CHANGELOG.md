@@ -2,6 +2,34 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.12.0.. 2026-06-22
+
+A wave of negotiation deeds, dynastic memory across generations, and a fix for an army-encounter trap.
+
+### New
+- **Pay for a lord's service with an enemy captive.** A lord may demand you hand over an enemy prisoner —
+  one you already hold (given over on the spot) or one you must go capture and bring back — as the price
+  of a favour, often their own service. Honoured only on a real prisoner transfer, never on a mere claim.
+- **A lord may ask you to go to war.** With cause against a faction, a lord can make their service (or
+  reward) conditional on YOU declaring war on it — "rid me of the Vlandians and I am yours." It completes
+  only when your own faction declares that war, never when you are merely attacked.
+- **Your house is remembered across generations.** When your character dies and an heir takes over, the
+  lords of Calradia do not forget — they inherit the standing, debts, and grudges of your house. They
+  speak to your heir of what their father or mother did ("your father helped me at that siege…"), while
+  the private history of the dead stays buried, and the bond with the heir begins fresh from there.
+- **Hand-authored personalities shape derived nature too.** When you set a character's traits via
+  `character_overrides.json`, their derived nature (including kinks at Hardcore) now re-derives to match —
+  even for NPCs you have already met.
+
+### Fixed
+- **No more being trapped by an army after a conversation.** Talking on the map to a lord leading an army
+  could, on closing the chat, drop you into the hostile army menu (Attack / Send troops / …) with no
+  "Leave". The conversation now returns you cleanly to the campaign map.
+
+### Notes
+- New test commands: cr.deliver_prisoner, cr.declare_war_quest, cr.succession. See
+  CalradiaRemembers/TESTING_GUIDE.md.
+
 ## v1.11.1.. 2026-06-22
 
 ### Fixed
