@@ -150,5 +150,13 @@ namespace CalradiaRemembers.Settings
                        "No timestamps or technical noise — reads like a novel.")]
         [SettingPropertyGroup("Diagnostics", GroupOrder = 1)]
         public bool StoryLogging { get; set; } = false;
+
+        [SettingPropertyBool("Use custom traits", RequireRestart = false, Order = 0,
+            HintText = "Apply the hand-authored personalities from ModuleData/character_overrides.json. " +
+                       "When on, an authored NPC's five personality traits replace their vanilla ones " +
+                       "(driving the prompt, derived features, and the campaign AI alike). Turn off to " +
+                       "restore the vanilla traits. Edits to the file load on the next campaign or via cr.reload_lore.")]
+        [SettingPropertyGroup("Character", GroupOrder = 3)]
+        public bool UseCustomTraits { get; set; } = false;
     }
 }

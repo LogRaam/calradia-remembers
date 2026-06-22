@@ -12,6 +12,8 @@ using CalradiaRemembers.Chat;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Letters;
+using CalradiaRemembers.Logic;
+using CalradiaRemembers.Lore;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Quests;
@@ -21,6 +23,7 @@ using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.TournamentGames;
 using TaleWorlds.Core;
@@ -1421,6 +1424,56 @@ namespace CalradiaRemembers
          DeliveryDay = today,
          IsDelivered = true
       };
+
+      // ── Player-authored character data ────────────────────────────────────
+
+      /// <summary>
+      ///   cr.backstory [name]
+      ///   Shows the authored override for an NPC (if any) — its backstory and the effective vs vanilla
+      ///   levels of the five personality traits — so you can confirm the file took effect.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("backstory", "cr")]
+      public static string ShowBackstory(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         CharacterOverride ov = CharacterOverrideLoader.For(hero);
+         string Fmt(TraitObject t) => $"{hero.GetTraitLevel(t):+#;-#;0} (vanilla {hero.CharacterObject.GetTraitLevel(t):+#;-#;0})";
+
+         var sb = new StringBuilder();
+         sb.AppendLine($"{hero.Name} — custom traits: {(ModSettings.UseCustomTraits ? "ON" : "OFF")}");
+         sb.AppendLine($"  Valor {Fmt(DefaultTraits.Valor)} | Honor {Fmt(DefaultTraits.Honor)} | Mercy {Fmt(DefaultTraits.Mercy)}");
+         sb.AppendLine($"  Generosity {Fmt(DefaultTraits.Generosity)} | Calculating {Fmt(DefaultTraits.Calculating)}");
+         if (ov == null)
+            sb.AppendLine("  No authored override for this NPC.");
+         else
+         {
+            sb.AppendLine($"  Override matched (id={ov.Id ?? "—"}).");
+            sb.AppendLine(ov.HasBackstory ? $"  Backstory: {ov.Backstory}" : "  Backstory: (none)");
+         }
+         return sb.ToString();
+      }
+
+      /// <summary>
+      ///   cr.reload_lore
+      ///   Reloads ModuleData/character_overrides.json and re-applies (or restores) the authored traits
+      ///   per the current "Use custom traits" toggle — no relaunch needed.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("reload_lore", "cr")]
+      public static string ReloadLore(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         CharacterLoreBehavior behavior = CharacterLoreBehavior.Instance;
+         if (behavior == null) return "Character lore behavior is not active.";
+
+         behavior.ReloadAndReapply();
+         return $"Reloaded character_overrides.json ({CharacterOverrideLoader.Set.Count} entr(ies)); " +
+                $"custom traits {(ModSettings.UseCustomTraits ? "applied" : "off (vanilla restored)")}.";
+      }
 
       /// <summary>
       ///   cr.bargain_marriage [name]

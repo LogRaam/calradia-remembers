@@ -116,6 +116,10 @@ namespace CalradiaRemembers.Chat
         // player can only read the farewell and leave.
         private bool _conversationEnded;
 
+        // StringId of the item the player picked from the bag this turn — give_item transfers exactly
+        // this, so a freely-given gift never depends on the LLM echoing the item's display name back.
+        private string _offeredItemId;
+
         // ── Fallback conversation memory ──────────────────────────────────────
         // The LLM mostly emits [EVENT] on a natural farewell; if the player closes
         // the window mid-exchange, nothing was recorded and the NPC forgets the
@@ -1368,10 +1372,13 @@ namespace CalradiaRemembers.Chat
             }
 
             // Otherwise the bag is a spontaneous gift: pre-fill the offer for the NPC to react to.
-            ItemPickerService.ShowItemPicker((name, value) =>
+            // Remember the exact item the player picked so give_item transfers THAT item by id,
+            // rather than re-matching whatever name the LLM echoes back (which fails on any rewording).
+            ItemPickerService.ShowItemPicker((itemId, name, value) =>
             {
+                _offeredItemId = itemId;
                 InputText = $"I would like to offer you {name} (worth {value:N0} denars).";
-                ModLog.Info($"[OFFER] player pre-filled offer: {name} ({value} denars).");
+                ModLog.Info($"[OFFER] player pre-filled offer: {name} ({value} denars, id={itemId}).");
             });
         }
 
@@ -1966,6 +1973,10 @@ namespace CalradiaRemembers.Chat
                 if (speaker.IsMain)
                     SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer.Value);
 
+                // Sync the player-authored backstory (flavor only) from the overrides file each turn,
+                // so it is never persisted stale and reflects edits + the MCM toggle live.
+                profile.AuthoredBackstory = Lore.CharacterOverrideLoader.BackstoryFor(speaker.Hero);
+
                 // ── Diagnostic: log the full system prompt sent to the LLM ─────
                 if (ModSettings.VerboseLogging)
                     try
@@ -2132,7 +2143,10 @@ namespace CalradiaRemembers.Chat
                     bool hasJoinParty = response.Actions.Any(a =>
                         string.Equals(a.Type, "join_party", StringComparison.OrdinalIgnoreCase));
 
-                    ActionContext actionContext = new ActionContext(profile, response.NewEventData?.Type);
+                    ActionContext actionContext = new ActionContext(profile, response.NewEventData?.Type)
+                    {
+                        OfferedItemId = _offeredItemId
+                    };
                     foreach (GameAction action in response.Actions)
                     {
                         // request_privacy, end_conversation and witness_leaves are
@@ -2361,6 +2375,10 @@ namespace CalradiaRemembers.Chat
             }
             finally
             {
+                // A bag offer is consumed by the turn it was sent with — clear it so a later, unrelated
+                // give_item never re-transfers the previously picked item.
+                _offeredItemId = null;
+
                 // Keep input locked if the NPC ended the conversation, if a 15C witness-exchange
                 // is in flight, if a scene continuation is pending, or if we are paused waiting
                 // for the player to press Continue / Try something. Each async path re-enables

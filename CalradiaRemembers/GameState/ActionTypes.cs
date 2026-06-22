@@ -23,6 +23,12 @@ namespace CalradiaRemembers.GameState
 
         public NpcProfile Profile { get; }
         public NotableEventType? EmittedEvent { get; }
+
+        /// <summary>
+        ///   StringId of the item the player picked from the bag this turn, when any. give_item transfers
+        ///   exactly this, so a bag-picked gift never depends on the LLM echoing the item's display name.
+        /// </summary>
+        public string OfferedItemId { get; set; }
     }
 
     /// <summary>

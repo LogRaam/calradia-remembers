@@ -87,6 +87,12 @@ namespace CalradiaRemembers
         public static bool VerboseLogging => CrSettings.Instance?.VerboseLogging ?? false;
 
         /// <summary>
+        ///   When true, hand-authored personalities from <c>character_overrides.json</c> replace the
+        ///   vanilla traits of the NPCs they name. Read live from the MCM menu; off by default.
+        /// </summary>
+        public static bool UseCustomTraits => CrSettings.Instance?.UseCustomTraits ?? false;
+
+        /// <summary>
         ///   Sound event path played when a negative relation change occurs.
         ///   Example: "event:/ui/notification/relation_decrease"
         /// </summary>

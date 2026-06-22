@@ -2,6 +2,22 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.11.1.. 2026-06-22
+
+### Fixed
+- **Giving an item as a gift now works.** Offering an item from the bag picker could fail with "you
+  don't seem to have it to give" — the transfer relied on the AI repeating the item's exact name back,
+  and any rewording broke the match. The item you pick is now handed over directly, whatever the
+  character says.
+
+### New
+- **Hand-author an NPC's personality.** An editable `ModuleData/character_overrides.json` lets you set
+  a character's five personality traits (−2..+2) and an optional backstory. Turn it on with the new
+  **Use custom traits** option (Mod Options → Calradia Remembers → Character). The authored traits become
+  the real source of truth — driving how they speak, their derived nature, and the campaign AI alike —
+  and turning the option off restores their vanilla traits. Off by default: your game is unchanged until
+  you opt in. (Console: cr.backstory, cr.reload_lore.)
+
 ## v1.11.0.. 2026-06-21
 
 Letters get their own home, and the letter-reply crash from v1.10.0 is fixed.

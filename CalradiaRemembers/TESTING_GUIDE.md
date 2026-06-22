@@ -105,6 +105,12 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.courier [name]` | Spawn a visible player→NPC courier. |
 | `cr.courier_slow [name]` | Same, slowed, to watch it cross the map / be intercepted. |
 
+### Player-authored characters
+| Command | Does |
+|---|---|
+| `cr.backstory [name]` | Show the authored override for an NPC (matched id, backstory) + the effective vs vanilla level of each of the five personality traits. |
+| `cr.reload_lore` | Reload `ModuleData/character_overrides.json` and re-apply (or restore) traits per the current "Use custom traits" toggle — no relaunch. |
+
 ### Witnesses
 | Command | Does |
 |---|---|
@@ -279,11 +285,30 @@ window **synchronously** — the fix for the old reply-then-crash / stuck-on-pau
 - **Look & feel:** report anything off about the parchment (colours, font, spacing, the reply box) — the
   visuals are a first pass to refine.
 
+### I. Player-authored character data (NEW — untested in game)
+
+**What it proves:** authored traits become the single source of truth (prompt, derived features, AI),
+the MCM toggle applies/restores live, and the backstory reaches the prompt.
+
+- **Setup:** edit `ModuleData/character_overrides.json` — add one entry (e.g. Derthert with `honor: -2`,
+  `calculating: 2`, a `backstory`). In Mod Options → Calradia Remembers → Character, turn **Use custom
+  traits** ON.
+- **I1 — Applied.** `cr.reload_lore` then `cr.backstory Derthert` → the effective Honor/Calculating show
+  your values (with the vanilla values in parentheses), and the backstory is listed.
+- **I2 — Persona follows.** Talk to him: his manner should reflect the authored traits + backstory, not
+  the vanilla personality.
+- **I3 — Toggle off restores.** Turn **Use custom traits** OFF (or `cr.reload_lore` with it off) →
+  `cr.backstory Derthert` shows the effective traits back at their **vanilla** values.
+- **I4 — Homonyms / bad file.** Two entries with the same `hero` and no `id` should be refused (neither
+  applied); a malformed file disables the feature without crashing (check the log).
+- **Known gap:** kinks already frozen on an *already-met* NPC are not re-derived live (a newly-met NPC
+  derives them from the authored traits correctly). Deferred — flag if it matters.
+
 ---
 
 ## 3. What is already unit-tested (do NOT re-test by hand)
 
-These are proven by `dotnet test` (266 tests); only their *wiring* (above) needs in-game eyes:
+These are proven by `dotnet test` (275 tests); only their *wiring* (above) needs in-game eyes:
 
 - **RelationGate**: +1 cap, warmth cooldowns, intimacy +3 bypass, −15 / −100 floors.
 - **Stance maths**: word cap (±2) + 8h cooldown, deed cap (30), fear decay, axis clamps, and the
@@ -296,6 +321,8 @@ These are proven by `dotnet test` (266 tests); only their *wiring* (above) needs
   **captive intent/probability ladder**, **public-affront thresholds**, **third-party descriptions**.
 - **Courier-window rules** (`LetterComposerState`): which parts of the parchment show per mode, and the
   can't-send-blank / can't-afford-the-courier guards.
+- **Authored-character rules** (`CharacterOverride` / `CharacterOverrideSet`): trait clamp to −2..+2,
+  unset traits left vanilla, and resolution (id wins over name, an id-less homonym is refused not guessed).
 
 If one of these behaves wrong *in game* despite the math being right, it points at the **wiring** — log
 it with Enable Logging on and the exact `cr.*` steps to reproduce.

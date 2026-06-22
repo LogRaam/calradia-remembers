@@ -30,7 +30,7 @@ namespace CalradiaRemembers.Items
         ///   and returns silently if the party carries no eligible items.
         ///   Quest items (Dragon Banner, etc.) are always excluded.
         /// </summary>
-        public static void ShowItemPicker(Action<string, int> onItemSelected)
+        public static void ShowItemPicker(Action<string, string, int> onItemSelected)
         {
             if (onItemSelected == null) return;
             try
@@ -221,9 +221,10 @@ namespace CalradiaRemembers.Items
 
         /// <summary>
         ///   Re-looks up the item by StringId in the current roster (roster may have
-        ///   changed since the list was built) and fires the callback. Fail-soft.
+        ///   changed since the list was built) and fires the callback with the item's
+        ///   StringId, display name, and value. Fail-soft.
         /// </summary>
-        private static void Resolve(string stringId, Action<string, int> callback)
+        private static void Resolve(string stringId, Action<string, string, int> callback)
         {
             try
             {
@@ -232,7 +233,7 @@ namespace CalradiaRemembers.Items
                 {
                     ItemObject item = el.EquipmentElement.Item;
                     if (item == null || item.StringId != stringId || el.Amount <= 0) continue;
-                    callback(item.Name.ToString(), item.Value);
+                    callback(item.StringId, item.Name.ToString(), item.Value);
                     return;
                 }
             }

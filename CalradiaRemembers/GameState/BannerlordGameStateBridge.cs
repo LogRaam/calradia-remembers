@@ -61,7 +61,7 @@ namespace CalradiaRemembers.GameState
             case "take_as_consort":
                return ExecuteTakeAsConsort(npcHero, context);
             case "give_item":
-               return ExecuteGiveItem(action, npcHero);
+               return ExecuteGiveItem(action, npcHero, context);
             case "grant_blessing":
                return ExecuteGrantBlessing(action, npcHero);
             case "harm_prisoner":
@@ -911,17 +911,27 @@ namespace CalradiaRemembers.GameState
       ///   (case-insensitive). Quest items are always refused — this guard sits on both
       ///   the prompt side (picker excludes them) and here, so the bridge is the law.
       /// </summary>
-      private static ActionOutcome ExecuteGiveItem(GameAction action, Hero npcHero)
+      private static ActionOutcome ExecuteGiveItem(GameAction action, Hero npcHero, ActionContext context)
       {
          try
          {
-            if (!action.Parameters.TryGetValue("item", out string itemName)
-                || string.IsNullOrWhiteSpace(itemName)) return null;
             if (MobileParty.MainParty?.ItemRoster == null) return null;
 
-            ItemRosterElement found = FindItemInRoster(itemName);
+            action.Parameters.TryGetValue("item", out string itemName);
+            string itemId = context?.OfferedItemId; // the exact item the player picked from the bag, if any
+            if (string.IsNullOrWhiteSpace(itemName) && string.IsNullOrWhiteSpace(itemId)) return null;
+
+            // Prefer the exact item the player picked from the bag (by id); fall back to a name match
+            // for a gift offered purely in free text. The id path is immune to the LLM rewording the name.
+            ItemRosterElement found = !string.IsNullOrWhiteSpace(itemId)
+               ? FindRosterElementById(itemId)
+               : FindItemInRoster(itemName);
+
             if (found.EquipmentElement.Item == null)
-               return new ActionOutcome($"(You don't seem to have '{itemName}' to give.)", false);
+            {
+               string label = !string.IsNullOrWhiteSpace(itemName) ? itemName : itemId;
+               return new ActionOutcome($"(You don't seem to have '{label}' to give.)", false);
+            }
 
             MobileParty.MainParty.ItemRoster.AddToCounts(found.EquipmentElement, -1);
             string actualName = found.EquipmentElement.Item.Name.ToString();
@@ -990,6 +1000,19 @@ namespace CalradiaRemembers.GameState
             if (item == null) continue;
             if (string.Equals(item.Name.ToString(), itemName, StringComparison.OrdinalIgnoreCase))
                return el;
+         }
+         return default;
+      }
+
+      /// <summary>Finds a roster element by the item's StringId (the bag-picked gift path).</summary>
+      private static ItemRosterElement FindRosterElementById(string itemId)
+      {
+         if (MobileParty.MainParty?.ItemRoster == null) return default;
+         foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
+         {
+            if (el.Amount <= 0) continue;
+            ItemObject item = el.EquipmentElement.Item;
+            if (item != null && item.StringId == itemId) return el;
          }
          return default;
       }

@@ -1,0 +1,24 @@
+// character_overrides.json — hand-authored personalities for Calradia Remembers.
+//
+// Enable in Mod Options -> Calradia Remembers -> Character -> "Use custom traits".
+// When on, each entry below REPLACES that NPC's five vanilla personality traits, so the prompt's
+// derived persona, the trait-derived features (kinks, etc.), and the campaign AI all read your values.
+// Turning the toggle off restores the vanilla traits. After editing, load your save (or run cr.reload_lore).
+//
+// Each entry:
+//   "hero"        display name to match (case-insensitive)
+//   "id"          OPTIONAL StringId, to disambiguate two NPCs with the same name
+//   "valor", "honor", "mercy", "generosity", "calculating"   each -2..+2; omit one to keep its vanilla value
+//   "backstory"   OPTIONAL free text — roleplay flavor only (color, not behaviour; conduct still follows traits)
+//
+// Example (uncomment the array below to enable it):
+// [
+//   {
+//     "hero": "Derthert",
+//     "valor": 1,
+//     "honor": -1,
+//     "calculating": 2,
+//     "backstory": "A Vlandian king who trusts ledgers more than men, and remembers every debt."
+//   }
+// ]
+[]

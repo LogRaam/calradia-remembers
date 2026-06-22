@@ -56,6 +56,9 @@ namespace CalradiaRemembers
 
          var campaignStarter = (CampaignGameStarter) gameStarterObject;
          campaignStarter.AddBehavior(new NpcMemoryCampaignBehavior());
+         // Player-authored character data: applies hand-crafted personalities (traits via SetTraitLevel,
+         // the single source of truth) from ModuleData/character_overrides.json when the MCM toggle is on.
+         campaignStarter.AddBehavior(new Lore.CharacterLoreBehavior());
          // Marriage system (family-approval engine) — SHIPPED from v1.7.0. The approval chat path
          // (grant_blessing, Phase A.2a) now exists, and the consequence only ever lands on the
          // PLAYER's own marriage (OnBeforeHeroesMarried bails when the player is not a spouse), so
