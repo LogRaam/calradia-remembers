@@ -9,6 +9,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Marriage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 
@@ -78,6 +79,7 @@ namespace CalradiaRemembers.Mapping
             PlayerLooksWealthy       = captorIsBandit && PlayerLooksWealthy(),
             PlayerLooksImportant     = captorIsBandit && PlayerLooksImportant(),
             CompanionAskingPrice     = ResolveCompanionAskingPrice(hero),
+            HeldLordPrisoners        = ResolveHeldLordPrisoners(),
             MercenaryOfferKingdom    = ResolveMercenaryOfferKingdom(hero),
             LordRecruitEligible      = ResolveLordRecruitEligible(hero),
             SchemeAgentTargetName    = ResolveSchemeAgentTarget(hero),
@@ -145,6 +147,21 @@ namespace CalradiaRemembers.Mapping
         /// </summary>
         private static int? ResolveCompanionAskingPrice(Hero hero)
             => GameState.RecruitmentPricing.GetHiringPrice(hero);
+
+        /// <summary>
+        ///   A prompt-ready list of the LORD captives the player currently holds (name + faction), or
+        ///   null when none. Notable/wanderer prisoners are excluded — a prisoner bargain is about lords.
+        /// </summary>
+        private static string ResolveHeldLordPrisoners()
+        {
+            var lines = MobileParty.MainParty?.PrisonRoster?.GetTroopRoster()
+                ?.Select(el => el.Character?.HeroObject)
+                .Where(h => h != null && h.IsLord && !h.IsHumanPlayerCharacter)
+                .Select(h => $"- {h.Name} ({h.MapFaction?.Name?.ToString() ?? h.Clan?.Name?.ToString() ?? "unknown"})")
+                .ToList();
+
+            return lines == null || lines.Count == 0 ? null : string.Join("\n", lines);
+        }
 
         /// <summary>
         ///   Returns the NPC's kingdom name when the NPC is a lord in a kingdom AND the

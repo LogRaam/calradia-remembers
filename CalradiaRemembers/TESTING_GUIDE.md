@@ -86,6 +86,7 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.journal_check` | Diagnostic of the quest journal mirror. |
 | `cr.bargain_items [name]` | Seed a pay-in-goods bargain (deliver-items reward). |
 | `cr.bargain_marriage [name]` | Seed a marriage-consent bargain. |
+| `cr.deliver_prisoner [name]` | Seed a deliver-prisoner bargain targeting the first lord you hold (case a). Then offer to deliver them in conversation. |
 
 ### Marriage
 | Command | Does |
@@ -301,8 +302,25 @@ the MCM toggle applies/restores live, and the backstory reaches the prompt.
   `cr.backstory Derthert` shows the effective traits back at their **vanilla** values.
 - **I4 — Homonyms / bad file.** Two entries with the same `hero` and no `id` should be refused (neither
   applied); a malformed file disables the feature without crashing (check the log).
-- **Known gap:** kinks already frozen on an *already-met* NPC are not re-derived live (a newly-met NPC
-  derives them from the authored traits correctly). Deferred — flag if it matters.
+- **I5 — Kinks follow (Hardcore).** With an authored NPC you have already met, `cr.kinks [name]` before
+  and after `cr.reload_lore` (toggle on) → the kinks re-derive from the authored traits (deterministic,
+  so they're stable across reloads); toggling off re-derives them back to the vanilla-trait set.
+
+### J. Deliver-a-prisoner deed (NEW — untested in game)
+
+**What it proves:** a lord can demand an enemy captive as the price of a favor, and a real prisoner
+transfer (never the LLM's word) completes it.
+
+- **J1 — Case (a), hand over now.** Capture an enemy lord (so you hold one). `cr.deliver_prisoner [lord]`
+  seeds the bargain targeting that captive. Talk to the lord and offer to deliver them → the NPC emits
+  give_prisoner → the captive leaves your **Prisoners**, is in the lord's party, and you get 500g/+5.
+- **J2 — Wrong / no captive.** With no matching captive held, agreeing should NOT transfer anyone (the
+  NPC says you don't hold the one they asked for) — nothing is faked.
+- **J3 — Case (b), capture-and-deliver (emergent).** In real play, a lord with an enemy may set a
+  deliver_prisoner bargain naming a lord you do NOT hold; it stays outstanding until you capture them,
+  then deliver as in J1. (Issued by the LLM; the prompt teaches it.)
+- **J4 — Issuance is grounded.** The deed only forms when the named target resolves to a real lord/
+  faction (QuestFactory); a JoinParty reward only when the giver is a recruitable wanderer.
 
 ---
 
@@ -323,6 +341,8 @@ These are proven by `dotnet test` (275 tests); only their *wiring* (above) needs
   can't-send-blank / can't-afford-the-courier guards.
 - **Authored-character rules** (`CharacterOverride` / `CharacterOverrideSet`): trait clamp to −2..+2,
   unset traits left vanilla, and resolution (id wins over name, an id-less homonym is refused not guessed).
+- **Prisoner-deed matching** (`PrisonerDeedTarget`): a named hero wins over a faction demand, faction
+  match is case-insensitive, a targetless demand matches nothing, and "do I already hold one" (case a vs b).
 
 If one of these behaves wrong *in game* despite the math being right, it points at the **wiring** — log
 it with Enable Logging on and the exact `cr.*` steps to reproduce.

@@ -24,6 +24,7 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.TournamentGames;
 using TaleWorlds.Core;
@@ -1473,6 +1474,47 @@ namespace CalradiaRemembers
          behavior.ReloadAndReapply();
          return $"Reloaded character_overrides.json ({CharacterOverrideLoader.Set.Count} entr(ies)); " +
                 $"custom traits {(ModSettings.UseCustomTraits ? "applied" : "off (vanilla restored)")}.";
+      }
+
+      /// <summary>
+      ///   cr.deliver_prisoner [name]
+      ///   Seeds a deliver_prisoner bargain on the given NPC targeting the first LORD you currently hold
+      ///   (case a — an immediate hand-over). Then, in conversation with that NPC, offer to deliver them:
+      ///   the NPC emits give_prisoner, the captive is transferred, and the reward (500g/+5) is paid.
+      ///   Hold a lord prisoner first. (Case b — capture-and-deliver — arises in real play.)
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("deliver_prisoner", "cr")]
+      public static string SeedDeliverPrisoner(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         Hero held = MobileParty.MainParty?.PrisonRoster?.GetTroopRoster()
+            ?.Select(el => el.Character?.HeroObject)
+            .FirstOrDefault(h => h != null && h.IsLord && !h.IsHumanPlayerCharacter);
+         if (held == null)
+            return "You hold no lord prisoner. Capture an enemy lord first, then run this to test the hand-over (case a).";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         var quest = new InformalQuest {
+            Type           = QuestType.DeliverPrisoner,
+            Description    = $"Hand {held.Name} over to {hero.Name}.",
+            TargetHeroId   = held.StringId,
+            TargetHeroName = held.Name?.ToString(),
+            IssuedOnDay    = today,
+            Reward         = RewardGrant.None,
+            RewardGold     = 500,
+            RewardRelation = 5,
+            Status         = QuestStatus.Active
+         };
+         profile.ActiveQuests.Add(quest);
+         behavior.Store.Set(profile);
+
+         return $"{hero.Name} now wants {held.Name} handed over. Talk to {hero.Name} and offer to deliver them.";
       }
 
       /// <summary>

@@ -22,25 +22,11 @@ everything that shipped untested in-game. Open items:
 
 ---
 
-## Next — Ollama as a third LLM provider (free, private, local)
+## ~~Ollama as a third LLM provider~~ — SUPERSEDED (2026-06-22)
 
-Plumbing is small — follow the NanoGPT pattern (`BaseUrlProvider` /
-`ModelProvider` / `UseSystemPromptCachingProvider` hooks already exist):
-
-- CrSettings: "Ollama" in the Provider dropdown + model id field + base URL field
-  (default `http://localhost:11434/v1`, editable for LAN setups).
-- LlmServices: no API key required — `DescribeUnavailability()` must swap the
-  missing-key message for missing-model and "is `ollama serve` running?".
-- Disable the `cache_control` array (like NanoGPT); lengthen the HTTP timeout —
-  local generation is slow.
-
-**The real work is expectation-setting, not code.** The mod demands strict
-structured output ([DIALOGUE]/[EVENT]/[ACTION]); small local models (7B–13B)
-will fumble it and the mod will look broken. The Nexus "Which model should I
-use?" section needs a frank Ollama note: 30B+ recommended, ~15–60 s per reply
-depending on GPU, format less reliable than cloud. The draw is real though:
-zero cost, full privacy (relevant to the adult tiers), and no refusals with
-local fine-tunes.
+No dedicated Ollama provider: the **OpenAI-Compatible endpoint** (shipped v1.9.x)
+already serves Ollama — point it at `http://localhost:11434/v1`, leave the key
+blank, paste the model id. Same for LM Studio / vLLM. Nothing more to build.
 
 ---
 
@@ -65,7 +51,12 @@ generalizes to a currency-agnostic VALUE floor: total value delivered ≥ floor 
 the service's value. The LLM negotiates the story; the bridge arbitrates the
 amounts (RelationGate philosophy applied to barter).
 
-**Phase 1 — green (reuses the quest machinery as-is):**
+**Phase 1 — ✅ DONE (2026-06-22).** `DeliverItems` + `JoinParty` reward shipped v1.6.x;
+`DeliverPrisoner` shipped 2026-06-22 (both cases: hand over a held captive now, or a
+capture-and-deliver task; via the give_prisoner action + `TransferPrisonerAction`,
+verified by a real transfer; `PrisonerDeedTarget` pure-tested). Still open as optional
+polish: a richer DeliverItems spec (category+tier+count instead of a value floor) and the
+"joining wanderer equips the demanded gear" touch.
 - Deed `DeliverItems` (category + tier + count: "a warhorse, a sword of tier 5+");
   verification = items in inventory, handed over like take_gold takes gold. Nice
   touch: the joining wanderer can EQUIP the gear that was demanded for them.

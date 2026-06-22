@@ -75,13 +75,18 @@ namespace CalradiaRemembers.Quests
                     return true;
 
                 case RewardGrant.JoinParty:
-                    // Service paid in kind: the giver must be a genuinely hireable wanderer, and
-                    // the goods must be worth a premium over their cash hiring price.
+                    // Service paid in kind: the giver must be a genuinely hireable wanderer.
                     int? required = GameState.RecruitmentPricing.GetInKindRequiredValue(giver);
                     if (required == null) return false;       // not recruitable — no such bargain
-                    if (quest.Type != QuestType.DeliverItems) return false; // join is item-barter only this phase
-                    quest.RequiredItemValue = required.Value;
-                    return true;
+                    if (quest.Type == QuestType.DeliverItems)
+                    {
+                        // Goods must be worth a premium over the cash hiring price.
+                        quest.RequiredItemValue = required.Value;
+                        return true;
+                    }
+                    // A delivered captive is the payment in itself — no denar floor.
+                    if (quest.Type == QuestType.DeliverPrisoner) return true;
+                    return false;
 
                 case RewardGrant.MarriageConsent:
                 {
@@ -156,6 +161,14 @@ namespace CalradiaRemembers.Quests
                     // No external target — the player hands goods to the giver in conversation.
                     // RequiredItemValue is set by ResolveReward (game-side proportionality).
                     return quest.RequiredItemValue > 0;
+
+                case QuestType.DeliverPrisoner:
+                    // A named enemy lord, or any lord of a named enemy faction — the captive to hand over.
+                    if (!string.IsNullOrWhiteSpace(proposal.TargetHero))
+                        return BindHero(quest, proposal.TargetHero, giver);
+                    if (!string.IsNullOrWhiteSpace(proposal.TargetFaction))
+                        return BindFaction(quest, proposal.TargetFaction);
+                    return false;
 
                 case QuestType.ScoutArmy:
                     // Prefer a named army leader; fall back to any army of the named faction;

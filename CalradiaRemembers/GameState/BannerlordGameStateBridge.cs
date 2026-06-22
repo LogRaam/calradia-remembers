@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
@@ -62,6 +63,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteTakeAsConsort(npcHero, context);
             case "give_item":
                return ExecuteGiveItem(action, npcHero, context);
+            case "give_prisoner":
+               return ExecuteGivePrisoner(npcHero, context);
             case "grant_blessing":
                return ExecuteGrantBlessing(action, npcHero);
             case "harm_prisoner":
@@ -1015,6 +1018,72 @@ namespace CalradiaRemembers.GameState
             if (item != null && item.StringId == itemId) return el;
          }
          return default;
+      }
+
+      /// <summary>
+      ///   give_prisoner: the player hands over the captive an outstanding deliver_prisoner bargain named.
+      ///   The deed names the target, so the bridge resolves which held prisoner satisfies it (no picker),
+      ///   transfers them to the lord, and settles the bargain — reward, favour, journal close — in one
+      ///   turn (mirrors SettleItemBargain). A spurious emission (no bargain, or the captive not held) is
+      ///   reported, never faked.
+      /// </summary>
+      private ActionOutcome ExecuteGivePrisoner(Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            NpcProfile profile = context?.Profile;
+            if (profile == null || npcHero == null) return null;
+
+            InformalQuest quest = profile.ActiveQuests?.FirstOrDefault(q =>
+               q.Type == QuestType.DeliverPrisoner && q.IsOutstanding);
+            if (quest == null) return null; // no such bargain — ignore a stray emission
+
+            var target = new PrisonerDeedTarget(quest.TargetHeroId, quest.TargetFactionId);
+
+            CharacterObject prisonerChar = null;
+            Hero prisonerHero = null;
+            TroopRoster prison = MobileParty.MainParty?.PrisonRoster;
+            if (prison != null)
+               foreach (TroopRosterElement el in prison.GetTroopRoster())
+               {
+                  Hero h = el.Character?.HeroObject;
+                  if (h != null && target.Matches(h.StringId, h.MapFaction?.StringId))
+                  {
+                     prisonerChar = el.Character;
+                     prisonerHero = h;
+                     break;
+                  }
+               }
+
+            if (prisonerChar == null)
+               return new ActionOutcome($"(You do not hold {quest.TargetHeroName ?? "the captive"} I asked for.)", false);
+
+            // Hand the captive to the lord's party; if they ride with none, take them off the player's hands.
+            PartyBase dest = npcHero.PartyBelongedTo?.Party;
+            if (dest != null) TransferPrisonerAction.Apply(prisonerChar, MobileParty.MainParty.Party, dest);
+            else MobileParty.MainParty.PrisonRoster.AddToCounts(prisonerChar, -1);
+
+            int today = (int) CampaignTime.Now.ToDays;
+            quest.SatisfiedOnDay = today;
+            quest.Status = QuestStatus.Completed;
+            quest.Evidence = $"Delivered {prisonerHero.Name} to {npcHero.Name} on day {today}.";
+
+            ActionOutcome reward = GrantQuestReward(npcHero, profile, quest.RewardGold, quest.RewardRelation);
+            ActionOutcome grant = quest.Reward != RewardGrant.None
+               ? GrantConditionalReward(npcHero, profile, quest)
+               : null;
+
+            Stance.StanceService.OnPromiseKept(profile); // a kept bargain earns trust
+            QuestJournalBridge.CloseAsCompleted(quest, npcHero);
+            ModLog.Info($"[ACTION] give_prisoner: player delivered {prisonerHero.Name} to {npcHero.Name} ({quest.Reward}).");
+
+            return grant ?? reward ?? new ActionOutcome($"{npcHero.Name} takes custody of {prisonerHero.Name}.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] give_prisoner failed: {ex.GetType().Name}: {ex.Message}");
+            return null;
+         }
       }
 
       private static void PlaySound(string eventPath)
