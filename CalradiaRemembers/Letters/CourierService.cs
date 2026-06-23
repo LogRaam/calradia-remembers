@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Storage;
+using CalradiaRemembers.Travel;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -397,48 +398,18 @@ namespace CalradiaRemembers.Letters
 
             if (player == null) return false;
 
-            TroopRoster roster = BuildEscortRoster(recipient);
             Settlement home = recipient.HomeSettlement ?? recipient.CurrentSettlement ?? Hero.MainHero?.HomeSettlement;
-
             var name = new TextObject($"Courier to {recipient.Name}");
             float speed = speedOverride ?? CourierBaseSpeed;
 
-            // Same sea guard as the reply direction: a player writing from shipboard
-            // dispatches the courier from the nearest landfall, not the open water.
-            // A respawn (post-save / post-load) overrides the source with the courier's
-            // captured position so it does not jump back to the player.
-            CampaignVec2 spawnPosition = spawnOverride.HasValue
-               ? new CampaignVec2(spawnOverride.Value, true)
-               : player.IsCurrentlyAtSea
-                  ? new CampaignVec2(NearestLandfall(player.GetPosition2D), true)
-                  : player.Position;
+            // A respawn (post-save / post-load) overrides the source with the courier's captured position so
+            // it does not jump back to the player. A player writing from shipboard dispatches the courier
+            // from the nearest landfall, not the open water.
+            Vec2 spawnPos = spawnOverride
+               ?? (player.IsCurrentlyAtSea ? TravelingParty.NearestLandfall(player.GetPosition2D) : player.GetPosition2D);
 
-            MobileParty courier = CustomPartyComponent.CreateCustomPartyWithTroopRoster(
-               spawnPosition,
-               1f,
-               home,
-               name,
-               Clan.PlayerClan,
-               roster,
-               TroopRoster.CreateDummyTroopRoster(),
-               Hero.MainHero,
-               null,
-               null,
-               speed,
-               avoidHostile);
-
+            MobileParty courier = TravelingParty.Spawn(spawnPos, home, name, speed, recipient.Culture, avoidHostile);
             if (courier == null) return false;
-
-            // Ensure a stable, identifiable StringId for the speed patch.
-            // We don't control StringId in CreateCustomParty directly, but we can
-            // check if it's already used or prefix-it if possible (most CustomParties
-            // are named 'customparty_N'). Since Bannerlord manages StringId internally,
-            // we rely on the prefix check in the patch, or we can use the Name.
-
-            // Add spare horses to ensure maximum map speed even if troops are foot-bound.
-            var sumpterHorse = Game.Current.ObjectManager.GetObject<ItemObject>("sumpter_horse");
-            if (sumpterHorse != null)
-               courier.ItemRoster.AddToCounts(sumpterHorse, CourierEscortSize + 2);
 
             DirectCourierToRecipient(courier, recipient);
             letter.CourierPartyId = courier.StringId;
@@ -473,29 +444,10 @@ namespace CalradiaRemembers.Letters
 
             Vec2 spawnPos = spawnOverride ?? GetSenderPosition(sender);
             Settlement home = sender.HomeSettlement ?? sender.CurrentSettlement ?? Hero.MainHero?.HomeSettlement;
-
-            TroopRoster roster = BuildEscortRoster(sender);
             var name = new TextObject($"Letter from {sender.Name}");
 
-            MobileParty courier = CustomPartyComponent.CreateCustomPartyWithTroopRoster(
-               new CampaignVec2(spawnPos, true),
-               1f,
-               home,
-               name,
-               Clan.PlayerClan,
-               roster,
-               TroopRoster.CreateDummyTroopRoster(),
-               Hero.MainHero,
-               null,
-               null,
-               CourierBaseSpeed,
-               true);
-
+            MobileParty courier = TravelingParty.Spawn(spawnPos, home, name, CourierBaseSpeed, sender.Culture, true);
             if (courier == null) return false;
-
-            var sumpterHorse = Game.Current.ObjectManager.GetObject<ItemObject>("sumpter_horse");
-            if (sumpterHorse != null)
-               courier.ItemRoster.AddToCounts(sumpterHorse, CourierEscortSize + 2);
 
             DirectReplyCourierToPlayer(courier, playerParty);
             letter.CourierPartyId = courier.StringId;
@@ -514,17 +466,6 @@ namespace CalradiaRemembers.Letters
       }
 
       #region private
-
-      private static TroopRoster BuildEscortRoster(Hero recipient)
-      {
-         var roster = TroopRoster.CreateDummyTroopRoster();
-         // Prefer mounted troops so the courier rides faster than foot-bound parties
-         // and can actually catch a roaming recipient; fall back to the basic recruit.
-         CharacterObject troop = FindMountedTroop(recipient.Culture) ?? FindMountedTroop(Hero.MainHero?.Culture) ?? recipient.Culture?.BasicTroop ?? Hero.MainHero?.Culture?.BasicTroop;
-         if (troop != null) roster.AddToCounts(troop, CourierEscortSize);
-
-         return roster;
-      }
 
       private static bool CheckPlayerLetterCourierArrival(MobileParty courier, BannerlordNpcMemoryStore store)
       {
@@ -609,35 +550,25 @@ namespace CalradiaRemembers.Letters
       private static void DirectCourierToRecipient(MobileParty courier, Hero recipient)
       {
          object target = ResolveCourierTarget(recipient);
-
-         // Release the AI lock before issuing the new order: if the lock is held while
-         // the party has completed its previous GoToPoint, it cannot act on the new order
-         // (SetDoNotMakeNewDecisions prevents the party from transitioning to a new goal).
-         // We re-lock immediately after so autonomous flee-from-hostiles still can't
-         // override the explicit order between daily ticks.
-         courier.Ai.SetDoNotMakeNewDecisions(false);
-
          switch (target)
          {
-            case Settlement settlement: courier.SetMoveGoToSettlement(settlement, MobileParty.NavigationType.Default, false); break;
-            // EngageParty uses the engine's built-in pursuit AI: the courier
-            // dynamically tracks the target party at its own speed without any
-            // manual position updates. No combat fires because the courier and the
-            // lord are not hostile to each other — the engage mode just means "catch up".
-            case MobileParty party: courier.SetMoveEngageParty(party, MobileParty.NavigationType.Default); break;
+            case Settlement settlement:
+               TravelingParty.DirectToSettlement(courier, settlement);
+               break;
+            // EngageParty uses the engine's built-in pursuit AI: the courier dynamically tracks the
+            // target party at its own speed without manual position updates. No combat fires because the
+            // courier and the lord are not hostile — the engage mode just means "catch up". (Letter-only:
+            // a journey always travels to a settlement, so this case lives here, not in TravelingParty.)
+            case MobileParty party:
+               courier.Ai.SetDoNotMakeNewDecisions(false);
+               courier.SetMoveEngageParty(party, MobileParty.NavigationType.Default);
+               courier.Ai.SetDoNotMakeNewDecisions(true);
+               break;
          }
-
-         courier.Ai.SetDoNotMakeNewDecisions(true);
       }
 
       private static void DirectReplyCourierToPlayer(MobileParty courier, MobileParty playerParty)
-      {
-         courier.Ai.SetDoNotMakeNewDecisions(false);
-         courier.SetMoveGoToPoint(
-            new CampaignVec2(playerParty.GetPosition2D, true),
-            MobileParty.NavigationType.Default);
-         courier.Ai.SetDoNotMakeNewDecisions(true);
-      }
+         => TravelingParty.DirectToMovingPoint(courier, playerParty.GetPosition2D);
 
       private static void Disband(MobileParty courier)
       {
@@ -645,8 +576,7 @@ namespace CalradiaRemembers.Letters
          {
             if (courier == null) return;
             ActiveCourierIds.Remove(courier.StringId);
-            if (courier.IsActive)
-               DestroyPartyAction.ApplyForDisbanding(courier, courier.CurrentSettlement);
+            TravelingParty.Destroy(courier);
          }
          catch (Exception ex)
          {
@@ -661,36 +591,6 @@ namespace CalradiaRemembers.Letters
             : MobileParty.All.FirstOrDefault(p => p.StringId == partyId);
       }
 
-      /// <summary>
-      ///   Walks a culture's basic-troop upgrade tree (breadth-first) for the first
-      ///   mounted troop, so the courier rides rather than marches. Returns null when
-      ///   the culture's tree has no cavalry.
-      /// </summary>
-      private static CharacterObject FindMountedTroop(CultureObject culture)
-      {
-         CharacterObject basic = culture?.BasicTroop;
-
-         if (basic == null) return null;
-
-         var seen = new HashSet<string>();
-         var queue = new Queue<CharacterObject>();
-         queue.Enqueue(basic);
-         while (queue.Count > 0)
-         {
-            CharacterObject c = queue.Dequeue();
-
-            if (c == null || !seen.Add(c.StringId)) continue;
-
-            if (c.IsMounted) return c;
-
-            if (c.UpgradeTargets == null) continue;
-
-            foreach (CharacterObject up in c.UpgradeTargets) queue.Enqueue(up);
-         }
-
-         return null;
-      }
-
       private static Vec2 GetSenderPosition(Hero sender)
       {
          // A sender sailing the sea cannot hand a letter to a land courier where they
@@ -698,34 +598,12 @@ namespace CalradiaRemembers.Letters
          // courier spawned in the water and sat immobile until the player drifted by).
          if (sender.PartyBelongedTo != null)
             return sender.PartyBelongedTo.IsCurrentlyAtSea
-               ? NearestLandfall(sender.PartyBelongedTo.GetPosition2D)
+               ? TravelingParty.NearestLandfall(sender.PartyBelongedTo.GetPosition2D)
                : sender.PartyBelongedTo.GetPosition2D;
          if (sender.CurrentSettlement != null) return sender.CurrentSettlement.GetPosition2D;
          if (sender.StayingInSettlement != null) return sender.StayingInSettlement.GetPosition2D;
 
          return MobileParty.MainParty?.GetPosition2D ?? Vec2.Zero;
-      }
-
-      /// <summary>
-      ///   The land position where a letter sent from <paramref name="seaPos" /> comes
-      ///   ashore: the nearest port settlement (heavily preferred — that is where a
-      ///   ship's mail is put off), or simply the nearest settlement when no port exists.
-      /// </summary>
-      private static Vec2 NearestLandfall(Vec2 seaPos)
-      {
-         Settlement best = null;
-         var bestScore = float.MaxValue;
-         foreach (Settlement s in Settlement.All)
-         {
-            if (s.IsHideout) continue;
-            float score = s.GetPosition2D.Distance(seaPos);
-            if (!s.HasPort) score *= 3f; // strong port preference
-            if (score >= bestScore) continue;
-            bestScore = score;
-            best = s;
-         }
-
-         return best?.GetPosition2D ?? seaPos;
       }
 
       private static bool HasArrived(MobileParty courier, Hero recipient)
