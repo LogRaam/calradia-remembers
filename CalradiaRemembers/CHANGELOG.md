@@ -2,6 +2,14 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.12.1.. 2026-06-22
+
+### Fixed
+- **A captor no longer mistakes your quests for their own.** While you were held prisoner, a captor —
+  especially a bandit — could see your outstanding tasks and act as the lord who had given you one,
+  torturing you for "failing" a bandit-clearing quest that was, absurdly, to defeat them. Quests are now
+  left out of a captive scene entirely, where they never belonged.
+
 ## v1.12.0.. 2026-06-22
 
 A wave of negotiation deeds, dynastic memory across generations, and a fix for an army-encounter trap.

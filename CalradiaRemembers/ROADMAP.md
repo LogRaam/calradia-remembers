@@ -287,6 +287,27 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
 - **Prompt caching split**: stable system prefix + dynamic second system message,
   so the `cache_control` breakpoint survives per-turn changes (Day, encounter).
 
+- **Talk to a prisoner — bargain for their freedom** *(wished 2026-06-22, the inverse of the
+  DeliverPrisoner deed)*. A lord held captive may, when the player speaks with them, offer a reward
+  for their release. Two cases:
+  - **(A) The player's own captive.** Talk to a lord you hold (your party / your settlement's dungeon).
+    They offer "free me and I'll …"; the player accepts and a `free_prisoner` ACTION releases them
+    (`EndCaptivityAction`) and grants the reward in one turn — the mirror of give_prisoner.
+  - **(B) Another lord's captive.** Visit a settlement holding an enemy/neutral lord and speak with
+    them; they ask to be broken out. This is a rescue DEED (like `RescuePrisoner`, but issued BY the
+    prisoner), verified EVENT-DRIVEN when they are actually freed (the player defeats their captor or
+    takes the fief) via `QuestDeedTracker`.
+  - **Reward, balanced above ransom** (else the player would just ransom them): chiefly relation +
+    **defection into the player's clan** (a freed, grateful lord joins — the AI-Influence draw), with
+    gold optional. Reuses the bargain/quest framework + the join_clan execution.
+  - **Entry point** (the only real enabler, and it is not a blocker): the mod already opens a CR chat
+    programmatically with any Hero (captive scenes do this), so "speak with a prisoner" is just a
+    settlement-menu / party option that lists the held lords and opens the chat — no vanilla
+    conversation needed. The settlement prisoner list (`settlement.Party.PrisonRoster` heroes) supplies
+    the candidates.
+  - Pure/testable: the release-bargain rules (reward floor vs ransom value; case A immediate vs case B
+    deferred) and the rescue-deed verification (the prisoner is freed AND the player caused it).
+
 - **Player-authored character data** *(tester request: AI Influence parity — hand-craft a
   character's personality + backstory)*. Decided design (2026-06-21):
   - An editable `ModuleData/character_overrides.json`, one entry per NPC: `hero` (name) + optional
