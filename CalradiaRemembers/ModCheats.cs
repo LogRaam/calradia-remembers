@@ -1587,6 +1587,28 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.capture [name]
+      ///   Takes the given lord prisoner into your party — a shortcut so you can test the prisoner
+      ///   freedom-bargain without winning a battle. Imprison them in a fief's dungeon (or keep them in
+      ///   your party) and speak with them: a captive lord may then bargain for their release.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("capture", "cr")]
+      public static string CaptureLord(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+         if (hero == Hero.MainHero) return "You cannot capture yourself.";
+         if (hero.IsPrisoner && hero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero)
+            return $"{hero.Name} is already your prisoner.";
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, hero);
+         return $"{hero.Name} is now your prisoner. Speak with them (in a fief dungeon, or test in conversation) " +
+                $"— a captive lord may bargain for their freedom.";
+      }
+
+      /// <summary>
       ///   cr.bargain_marriage [name]
       ///   Seeds a marriage_consent bargain on a clan head (or a parent): a deed (clear bandits
       ///   near a village) conditions the blessing for the player to marry one of their eligible

@@ -65,6 +65,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteGiveItem(action, npcHero, context);
             case "give_prisoner":
                return ExecuteGivePrisoner(npcHero, context);
+            case "free_prisoner":
+               return ExecuteFreePrisoner(npcHero);
             case "grant_blessing":
                return ExecuteGrantBlessing(action, npcHero);
             case "harm_prisoner":
@@ -1005,6 +1007,32 @@ namespace CalradiaRemembers.GameState
                return el;
          }
          return default;
+      }
+
+      /// <summary>
+      ///   free_prisoner: a captive lord the PLAYER holds has struck a bargain for their freedom and the
+      ///   player agreed — release them. The reward they promised (goodwill, a ransom, or service) rides
+      ///   alongside as the LLM's own change_relation / give_gold / join_clan actions. Guarded: only a
+      ///   hero the player actually holds prisoner is freed, so a stray emission can never let one escape.
+      /// </summary>
+      private static ActionOutcome ExecuteFreePrisoner(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null) return null;
+            if (!npcHero.IsPrisoner || npcHero.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero)
+               return new ActionOutcome($"({npcHero.Name} is not yours to set free.)", false);
+
+            EndCaptivityAction.ApplyByReleasedByChoice(npcHero, Hero.MainHero);
+            Stance.StanceService.OnGiftReceived(npcHero); // freedom is a gift — a little trust is earned
+            ModLog.Info($"[ACTION] free_prisoner: player released {npcHero.Name} from captivity.");
+            return new ActionOutcome($"You set {npcHero.Name} free.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] free_prisoner failed: {ex.GetType().Name}: {ex.Message}");
+            return null;
+         }
       }
 
       /// <summary>Finds a roster element by the item's StringId (the bag-picked gift path).</summary>

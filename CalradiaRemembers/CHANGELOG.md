@@ -5,8 +5,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v1.12.1.. 2026-06-22
 
 ### Fixed
-- **A captor no longer mistakes your quests for their own.** While you were held prisoner, a captor —
-  especially a bandit — could see your outstanding tasks and act as the lord who had given you one,
+- **A captor no longer mistakes your quests for their own.** While you were held prisoner, a captor..
+  especially a bandit.. could see your outstanding tasks and act as the lord who had given you one,
   torturing you for "failing" a bandit-clearing quest that was, absurdly, to defeat them. Quests are now
   left out of a captive scene entirely, where they never belonged.
 
@@ -15,18 +15,18 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 A wave of negotiation deeds, dynastic memory across generations, and a fix for an army-encounter trap.
 
 ### New
-- **Pay for a lord's service with an enemy captive.** A lord may demand you hand over an enemy prisoner —
-  one you already hold (given over on the spot) or one you must go capture and bring back — as the price
+- **Pay for a lord's service with an enemy captive.** A lord may demand you hand over an enemy prisoner..
+  one you already hold (given over on the spot) or one you must go capture and bring back.. as the price
   of a favour, often their own service. Honoured only on a real prisoner transfer, never on a mere claim.
 - **A lord may ask you to go to war.** With cause against a faction, a lord can make their service (or
-  reward) conditional on YOU declaring war on it — "rid me of the Vlandians and I am yours." It completes
+  reward) conditional on YOU declaring war on it.. "rid me of the Vlandians and I am yours." It completes
   only when your own faction declares that war, never when you are merely attacked.
 - **Your house is remembered across generations.** When your character dies and an heir takes over, the
-  lords of Calradia do not forget — they inherit the standing, debts, and grudges of your house. They
+  lords of Calradia do not forget.. they inherit the standing, debts, and grudges of your house. They
   speak to your heir of what their father or mother did ("your father helped me at that siege…"), while
   the private history of the dead stays buried, and the bond with the heir begins fresh from there.
 - **Hand-authored personalities shape derived nature too.** When you set a character's traits via
-  `character_overrides.json`, their derived nature (including kinks at Hardcore) now re-derives to match —
+  `character_overrides.json`, their derived nature (including kinks at Hardcore) now re-derives to match..
   even for NPCs you have already met.
 
 ### Fixed
@@ -42,7 +42,7 @@ A wave of negotiation deeds, dynastic memory across generations, and a fix for a
 
 ### Fixed
 - **Giving an item as a gift now works.** Offering an item from the bag picker could fail with "you
-  don't seem to have it to give" — the transfer relied on the AI repeating the item's exact name back,
+  don't seem to have it to give".. the transfer relied on the AI repeating the item's exact name back,
   and any rewording broke the match. The item you pick is now handed over directly, whatever the
   character says.
 
@@ -50,7 +50,7 @@ A wave of negotiation deeds, dynastic memory across generations, and a fix for a
 - **Hand-author an NPC's personality.** An editable `ModuleData/character_overrides.json` lets you set
   a character's five personality traits (−2..+2) and an optional backstory. Turn it on with the new
   **Use custom traits** option (Mod Options → Calradia Remembers → Character). The authored traits become
-  the real source of truth — driving how they speak, their derived nature, and the campaign AI alike —
+  the real source of truth.. driving how they speak, their derived nature, and the campaign AI alike..
   and turning the option off restores their vanilla traits. Off by default: your game is unchanged until
   you opt in. (Console: cr.backstory, cr.reload_lore.)
 
@@ -60,13 +60,13 @@ Letters get their own home, and the letter-reply crash from v1.10.0 is fixed.
 
 ### New
 - **Letters now open on their own sheet of parchment.** Reading a letter, writing a new one, or
-  replying each happens in a dedicated courier window — the correspondent's portrait at the top, the
-  words in a clean medieval hand on aged paper — instead of borrowing the conversation panel.
+  replying each happens in a dedicated courier window.. the correspondent's portrait at the top, the
+  words in a clean medieval hand on aged paper.. instead of borrowing the conversation panel.
   Composing a letter shows a compact window; reading and replying give the letter room to breathe.
 
 ### Fixed
 - **Replying to a letter no longer crashes (the v1.10.0 known issue).** A reply is now sealed and sent
-  at once — the window closes cleanly, the game un-pauses, and the courier carries your words to be
+  at once.. the window closes cleanly, the game un-pauses, and the courier carries your words to be
   answered later. No more "(considering…)" wait, no hang if the AI hiccups, and no crash on close,
   whatever the model does.
 - **Letter text reads cleanly.** The parchment uses a crisp medieval serif instead of the heavy,
@@ -78,14 +78,14 @@ Letters get their own home, and the letter-reply crash from v1.10.0 is fixed.
 
 ## v1.10.0.. 2026-06-21
 
-A big one — a wave of new world-simulation and roleplay systems, plus two fixes from tester
+A big one.. a wave of new world-simulation and roleplay systems, plus two fixes from tester
 feedback. The new systems are freshly built and being refined; expect rough edges and please report
 them. (Console commands and an in-game test guide ship in CalradiaRemembers/TESTING_GUIDE.md.)
 
 ### New
 - **NPCs now have a posture toward you, not just a like/dislike.** Beyond plain regard, each lord
   carries how far they **trust** your word, how much they **respect** your worth, and how much they
-  **fear** you — and they speak in keeping with all of it at once. A beaten rival may hate you yet
+  **fear** you.. and they speak in keeping with all of it at once. A beaten rival may hate you yet
   respect and fear you; a charmer you like may still not trust your word. These shift the way the
   game works: **a real deed moves them strongly** (a kept promise earns trust, a won siege earns
   respect, taking a lord prisoner earns fear, a discovered treachery shatters trust), while **mere
@@ -93,21 +93,21 @@ them. (Console commands and an in-game test guide ship in CalradiaRemembers/TEST
 - **Recruit a lord into your own clan, through conversation.** A lord who trusts you deeply, whose
   house has fallen on hard times (landless, broken clan, or estranged from his liege), and whose
   standing your own house has risen above, can be persuaded to forsake his banner and swear to your
-  clan — no menu, just the talk. (One of the most-requested features from AI Influence players.)
+  clan.. no menu, just the talk. (One of the most-requested features from AI Influence players.)
 - **Feuds become real plots.** Bitter rivals now quietly scheme against one another in the
-  background — entirely mechanical, no AI cost — and you only ever hear of it as a rumour. A plot
+  background.. entirely mechanical, no AI cost.. and you only ever hear of it as a rumour. A plot
   matures, may be discovered, and on success costs its target real standing. You can take a hand:
   a plotter who trusts you may ask you to help against their rival, or you can **warn the target**
-  and give them a fighting chance. But meddling has a price — if your hand in a plot is exposed, the
-  wronged party turns on you (worst of all when you betrayed your own realm — that is treason), and
+  and give them a fighting chance. But meddling has a price.. if your hand in a plot is exposed, the
+  wronged party turns on you (worst of all when you betrayed your own realm.. that is treason), and
   word of your treachery spreads, so other lords speak of you as a known schemer.
 - **Lords ride out to meet you.** A lord may now seek you out on the campaign map rather than wait
-  to be found — a hostile realm's lord challenging a notorious traveller crossing their land, or a
+  to be found.. a hostile realm's lord challenging a notorious traveller crossing their land, or a
   lord reacting to fresh news of your deeds. They open the conversation on that footing. They give
   up the chase if you clearly outrun them, and won't pester you (one at a time, with a cooldown).
 - **Lords read the balance of power.** When a lord's realm is far weaker than yours, when they are at
   war and losing, when they recently lost to you on the field, or when they are your prisoner, it
-  now colours how they speak — calculated, wary deference rather than blind defiance or empty
+  now colours how they speak.. calculated, wary deference rather than blind defiance or empty
   submission.
 
 ### Fixed
@@ -116,7 +116,7 @@ them. (Console commands and an in-game test guide ship in CalradiaRemembers/TEST
   flow stays alive without burying you.
 - **Saved memory grows far more slowly.** Every battle, however minor, was being written into the
   memory of every lord present, swelling the save. Now only sieges and clashes of two armies are
-  remembered — the engagements a lord would actually recall — which also keeps battle rumours to the
+  remembered.. the engagements a lord would actually recall.. which also keeps battle rumours to the
   ones that matter. (This was never a save-corruption risk; it just kept the file growing.)
 
 ### Notes
@@ -124,7 +124,7 @@ them. (Console commands and an in-game test guide ship in CalradiaRemembers/TEST
   cr.scheme / cr.schemes / cr.scheme_advance / cr.scheme_assist / cr.scheme_warn, cr.intercept. See
   CalradiaRemembers/TESTING_GUIDE.md for the full reference and what to try.
 - Known issue under investigation: replying to a letter can occasionally crash on the close of the
-  letter window (a UI-tick fault). It is not save-breaking — "attempt to continue" recovers cleanly.
+  letter window (a UI-tick fault). It is not save-breaking.. "attempt to continue" recovers cleanly.
   A fix is in progress.
 
 ## v1.9.1.. 2026-06-20

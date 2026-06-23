@@ -89,6 +89,7 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.bargain_marriage [name]` | Seed a marriage-consent bargain. |
 | `cr.deliver_prisoner [name]` | Seed a deliver-prisoner bargain targeting the first lord you hold (case a). Then offer to deliver them in conversation. |
 | `cr.declare_war_quest [name]` | Seed a declare-war bargain targeting the first faction you can still declare war on. Then declare war on it → the deed stamps done. |
+| `cr.capture [name]` | Take a lord prisoner (test shortcut). Then speak with your captive — they may bargain for their freedom (free_prisoner). |
 
 ### Marriage
 | Command | Does |
@@ -351,6 +352,22 @@ private history — and NPCs address the heir as the new person.
 - **L3 — Real death.** In actual play, when the player dies and an heir takes over
   (`OnPlayerCharacterChanged`), the same reframing runs automatically across all NPCs.
 
+### M. Prisoner bargains for freedom — case A (NEW — untested in game, the entry point still to confirm)
+
+**What it proves:** a lord YOU hold captive can offer a reward to be set free, and the deal really
+releases them.
+
+- **Setup:** `cr.capture [lord]` takes a lord prisoner (no battle needed).
+- **M1 — Entry point (the open question).** Speak with that captured lord — in their cell at a fief
+  dungeon, or however the game lets you. **Does "We need to talk…" appear?** If yes, the entry is free
+  (`hero_main_options`). If NOT, tell me the dialogue you DO get and I'll hook the right token.
+- **M2 — The bargain.** In the CR chat, the lord should offer to bargain for freedom (goodwill, a
+  ransom they'll pay, or — if their house is broken — to swear to your clan). A proud lord may refuse.
+- **M3 — Release.** Agree to free them → the NPC emits `free_prisoner` → they actually leave your
+  Prisoners (no longer captive), and any promised reward (relation / gold / join) applies.
+- **Guard:** `free_prisoner` only frees a lord you genuinely hold — a stray emission can't free anyone.
+- *(Case B — bargaining with a lord ANOTHER faction holds, via a rescue deed — is the next increment.)*
+
 ---
 
 ## 3. What is already unit-tested (do NOT re-test by hand)
@@ -376,6 +393,8 @@ These are proven by `dotnet test` (275 tests); only their *wiring* (above) needs
   against the demanded faction — never when attacked, never for an unrelated war.
 - **Succession rules** (`SuccessionMemoryPolicy` / `SuccessionKinship`): private events (flirt, intimacy,
   captivity, jealousy) do not cross to the heir while political/relational ones do; correct kinship word.
+- **Prisoner-release branching** (`PrisonerReleasePolicy`): only a captive lord may bargain; your own
+  captive is an immediate release, another lord's captive is a rescue deed, a non-prisoner gets nothing.
 
 If one of these behaves wrong *in game* despite the math being right, it points at the **wiring** — log
 it with Enable Logging on and the exact `cr.*` steps to reproduce.

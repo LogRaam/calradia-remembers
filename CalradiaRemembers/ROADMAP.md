@@ -288,7 +288,13 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
   so the `cache_control` breakpoint survives per-turn changes (Day, encounter).
 
 - **Talk to a prisoner — bargain for their freedom** *(wished 2026-06-22, the inverse of the
-  DeliverPrisoner deed)*. A lord held captive may, when the player speaks with them, offer a reward
+  DeliverPrisoner deed)*. **Case A BUILT 2026-06-22** (untested): `AppendPrisonerFreedomBargain` (SDK,
+  gated on `NpcIsCaptive`) teaches a captive lord to bargain; bridge `free_prisoner` action →
+  `EndCaptivityAction.ApplyByReleasedByChoice` (guarded: only a lord you truly hold), reward via the
+  LLM's own change_relation/give_gold/join_clan. `cr.capture` shortcut to get a test prisoner.
+  OPEN: confirm the natural entry point (does the CR option appear in a prisoner-cell conversation, or
+  must a token be hooked) — needs in-game check via cr.capture. Case B (rescue deed) still to build.
+  A lord held captive may, when the player speaks with them, offer a reward
   for their release. Two cases:
   - **(A) The player's own captive.** Talk to a lord you hold (your party / your settlement's dungeon).
     They offer "free me and I'll …"; the player accepts and a `free_prisoner` ACTION releases them
