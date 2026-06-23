@@ -1055,7 +1055,7 @@ namespace CalradiaRemembers.GameState
             string about = null;
             action.Parameters?.TryGetValue("about", out about);
 
-            (bool dispatched, string message) = behavior.Dispatch(npcHero, about);
+            (bool dispatched, string message) = behavior.Dispatch(npcHero, Logic.CompanionMissionType.GatherNews, about);
             ModLog.Info($"[ACTION] gather_news: {npcHero.Name} → {(dispatched ? "dispatched" : "refused")}: {message}");
             return new ActionOutcome(message, dispatched);
          }

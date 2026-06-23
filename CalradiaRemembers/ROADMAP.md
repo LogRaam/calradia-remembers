@@ -359,8 +359,14 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
   `cr.missions` / `cr.mission_return`. TESTING_GUIDE scenario P. The report is delivered as a CONVERSATION:
   on return the companion stashes a one-shot directive (SDK `EncounterContext.CompanionNewsReport` +
   `PromptBuilder.AppendCompanionNewsReport`, consumed by `ConsumeNewsReport`, persisted), and a banner nudges
-  the player to speak with them; the companion opens by reporting in their own voice. The risky errands
-  (spy/steal → loot/capture) reuse this whole skeleton next.)*
+  the player to speak with them; the companion opens by reporting in their own voice.)*
+  *(SPY + STEAL errands BUILT 2026-06-23, UNCOMMITTED, untested in game — both ride the same journey
+  skeleton (Roguery-governed, risky → the road party can be caught). Spy delivers INTEL about the target
+  town (garrison/militia/prosperity/lord whereabouts) in the homecoming conversation; Steal grants LOOT to
+  the player on reunion (pure `CompanionMissions.LootForResult`: full/40%/nothing by quality, +4 tests) and
+  tells of it. Payload secured at arrival + persisted (anti-exploit). Console: `cr.send_spy [about]` /
+  `cr.send_steal [about]`. TESTING_GUIDE P7. NEXT: conversation-dispatch for spy/steal (news has it; these
+  are console-only so far), and the Barter/Envoy errands. 337 tests.)*
   The player tasks a companion in conversation with an errand that resolves off-screen and returns
   as an in-fiction report. This is the CR answer to AI Influence's "world events" panel: instead of a
   free-floating UI feed, **world news has a source, a delay, and a risk** — the player *sends someone*,

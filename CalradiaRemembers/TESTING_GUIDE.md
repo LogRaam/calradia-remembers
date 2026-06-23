@@ -151,9 +151,11 @@ changes what NPCs say, and that everything survives a **save / reload**.
 ### Companion missions (first slice — "bring me the news")
 | Command | Does |
 |---|---|
-| `cr.send_news [companion]` | Dispatch a companion to gather news (timer-based; first companion if no name). |
+| `cr.send_news [about]` | Send your first companion to gather news (optionally scoped: `cr.send_news Sturgia`). |
+| `cr.send_spy [about]` | Send your first companion to scout a town (Roguery) — intel comes back in conversation. |
+| `cr.send_steal [about]` | Send your first companion to lift coin from a town (Roguery) — loot reaches you on return. |
 | `cr.missions` | List the errands companions are currently away on. |
-| `cr.mission_return [companion]` | Force-resolve a companion's errand now and print the report (skip the wait). |
+| `cr.mission_return` | Force-resolve the first errand now and print the report (skip the travel). |
 
 ### Discovery / misc
 | Command | Does |
@@ -436,6 +438,11 @@ skill + a roll. News has a *source* and a *delay*. The errand **persists across 
   them." Open a CR chat with that companion: they should **open by reporting back in their own voice** —
   weaving in what they learned (or "the roads were quiet", or "I was waylaid"), not reciting a list. It is
   delivered ONCE (consumed), and **persists across a save** taken between their return and your talk.
+- **P7 — Spy & steal (same skeleton, Roguery).** `cr.send_spy [about]` → on return the companion reports
+  **intel** (garrison, militia, prosperity, where the lord is) in conversation. `cr.send_steal [about]` →
+  on return your coffers gain the **loot** (full on a good roll, ~40% on a partial, nothing on a failure)
+  and they tell you of it. Both are risky errands — the road party can be caught (→ P5). Scope works too:
+  `cr.send_spy Vlandia` rides to a Vlandian town.
 
 ---
 

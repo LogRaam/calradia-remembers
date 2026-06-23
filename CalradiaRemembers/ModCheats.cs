@@ -306,7 +306,35 @@ namespace CalradiaRemembers
          if (c == null) return "No companion in your party. Recruit one first.";
 
          string about = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
-         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, about).Message;
+         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.GatherNews, about).Message;
+      }
+
+      /// <summary>cr.send_spy [about] — sends your first companion to scout a town (Roguery); intel comes back in conversation.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("send_spy", "cr")]
+      public static string SendSpy(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (Missions.CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
+
+         Hero c = FirstCompanionInParty();
+         if (c == null) return "No companion in your party. Recruit one first.";
+
+         string about = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
+         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Spy, about).Message;
+      }
+
+      /// <summary>cr.send_steal [about] — sends your first companion to lift coin from a town (Roguery); loot reaches you on return.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("send_steal", "cr")]
+      public static string SendSteal(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (Missions.CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
+
+         Hero c = FirstCompanionInParty();
+         if (c == null) return "No companion in your party. Recruit one first.";
+
+         string about = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
+         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Steal, about).Message;
       }
 
       /// <summary>cr.missions — lists the errands companions are currently away on.</summary>

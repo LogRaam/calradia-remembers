@@ -138,6 +138,7 @@ namespace CalradiaRemembers.Logic
         private const int DifficultyDurationStep = 25; // every 25 difficulty adds a day on the road
         private const int FullNewsItems         = 4;  // a clean news briefing
         private const int PartialNewsItems      = 2;  // a thinner one when the errand only half-worked
+        private const int PartialLootPercent    = 40; // a botched-but-not-failed steal brings back a fraction
 
         /// <summary>
         ///   How many days a dispatched errand takes before the companion returns: a base by errand
@@ -171,6 +172,21 @@ namespace CalradiaRemembers.Logic
                 default:                    return 0;
             }
             return available < cap ? available : cap;
+        }
+
+        /// <summary>
+        ///   The loot a STEAL errand brings back from a base haul, scaled by how it went: the full haul on
+        ///   a clean success, a fraction on a partial, nothing on a failure. Never negative.
+        /// </summary>
+        public static int LootForResult(MissionResult result, int baseAmount)
+        {
+            if (baseAmount <= 0) return 0;
+            switch (result)
+            {
+                case MissionResult.Success: return baseAmount;
+                case MissionResult.Partial: return baseAmount * PartialLootPercent / 100;
+                default:                    return 0;
+            }
         }
     }
 }

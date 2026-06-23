@@ -188,5 +188,36 @@ namespace CalradiaRemembers.Tests
          CompanionMissions.NewsItemsForResult(MissionResult.Success, available: 1).Should().Be(1);
          CompanionMissions.NewsItemsForResult(MissionResult.Success, available: 0).Should().Be(0);
       }
+
+      // ── Steal loot ─────────────────────────────────────────────────────────
+
+      [Test]
+      public void GIVEN_a_clean_steal_WHEN_scaling_loot_THEN_it_brings_the_full_haul()
+      {
+         //Arrange/Act/Assert
+         CompanionMissions.LootForResult(MissionResult.Success, baseAmount: 500).Should().Be(500);
+      }
+
+      [Test]
+      public void GIVEN_a_partial_steal_WHEN_scaling_loot_THEN_it_brings_a_fraction()
+      {
+         //Arrange/Act/Assert — 40% of the base.
+         CompanionMissions.LootForResult(MissionResult.Partial, baseAmount: 500).Should().Be(200);
+      }
+
+      [Test]
+      public void GIVEN_a_failed_steal_WHEN_scaling_loot_THEN_it_brings_nothing()
+      {
+         //Arrange/Act/Assert
+         CompanionMissions.LootForResult(MissionResult.Failure, baseAmount: 500).Should().Be(0);
+      }
+
+      [Test]
+      public void GIVEN_a_nonpositive_base_WHEN_scaling_loot_THEN_it_brings_nothing()
+      {
+         //Arrange/Act/Assert
+         CompanionMissions.LootForResult(MissionResult.Success, baseAmount: 0).Should().Be(0);
+         CompanionMissions.LootForResult(MissionResult.Success, baseAmount: -100).Should().Be(0);
+      }
    }
 }

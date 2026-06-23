@@ -83,21 +83,21 @@ namespace CalradiaRemembers.Missions
         ///   faction, culture, or town). Detaches them into their own clan party bound for the resolved
         ///   town. Returns a player-facing message; refuses (with a reason) when ineligible.
         /// </summary>
-        public (bool Dispatched, string Message) Dispatch(Hero companion, string about)
+        public (bool Dispatched, string Message) Dispatch(Hero companion, CompanionMissionType type, string about)
         {
             if (companion == null || companion == Hero.MainHero) return (false, "No companion to send.");
             if (!IsUsableCompanion(companion)) return (false, $"{companion.Name} is not a companion in your party to send.");
             if (IsAway(companion.StringId)) return (false, $"{companion.Name} is already away on an errand.");
 
-            int skill = companion.GetSkillValue(DefaultSkills.Scouting);
+            int skill = GoverningSkillValue(companion, type);
             if (!CompanionMissions.CanAttempt(skill))
-                return (false, $"{companion.Name} is too unschooled in scouting for that errand.");
+                return (false, $"{companion.Name} is too unschooled in {CompanionMissions.GoverningSkill(type).ToString().ToLowerInvariant()} for that errand.");
 
             Settlement dest = ResolveDestination(about);
-            if (dest == null) return (false, "There is no town to gather news from.");
+            if (dest == null) return (false, "There is no town to send them to.");
 
             int roll = MBRandom.RandomInt(0, 100);
-            Logic.MissionResult quality = CompanionMissions.Resolve(CompanionMissionType.GatherNews, skill, roll, NewsDifficulty).Result;
+            Logic.MissionResult quality = CompanionMissions.Resolve(type, skill, roll, NewsDifficulty).Result;
 
             MobileParty party = SpawnTravelingCompanionParty(companion, dest);
             if (party == null) return (false, $"{companion.Name} could not set out just now.");
@@ -107,7 +107,7 @@ namespace CalradiaRemembers.Missions
                 Id                      = Guid.NewGuid().ToString("N"),
                 CompanionId             = companion.StringId,
                 CompanionName           = companion.Name?.ToString() ?? "Your companion",
-                Type                    = CompanionMissionType.GatherNews,
+                Type                    = type,
                 DestinationSettlementId = dest.StringId,
                 DestinationName         = dest.Name?.ToString() ?? "a town",
                 PartyId                 = party.StringId,
@@ -117,9 +117,32 @@ namespace CalradiaRemembers.Missions
                 Quality                 = quality
             });
 
-            ModLog.Info($"[MISSION] {companion.Name} rides for {dest.Name} (quality {quality}, party {party.StringId}).");
-            string scope = string.IsNullOrWhiteSpace(about) ? "" : $" of {about.Trim()}";
-            return (true, $"{companion.Name} rides for {dest.Name} to gather word{scope}.");
+            ModLog.Info($"[MISSION] {companion.Name} rides for {dest.Name} on {type} (quality {quality}, party {party.StringId}).");
+            string scope = string.IsNullOrWhiteSpace(about) ? "" : $" ({about.Trim()})";
+            return (true, $"{companion.Name} rides for {dest.Name} on a {ErrandVerb(type)} errand{scope}.");
+        }
+
+        private static string ErrandVerb(CompanionMissionType type)
+        {
+            switch (type)
+            {
+                case CompanionMissionType.Spy:   return "scouting";
+                case CompanionMissionType.Steal: return "thieving";
+                default:                         return "news";
+            }
+        }
+
+        private static int GoverningSkillValue(Hero companion, CompanionMissionType type)
+        {
+            SkillObject skill;
+            switch (CompanionMissions.GoverningSkill(type))
+            {
+                case MissionSkill.Roguery: skill = DefaultSkills.Roguery; break;
+                case MissionSkill.Trade:   skill = DefaultSkills.Trade; break;
+                case MissionSkill.Charm:   skill = DefaultSkills.Charm; break;
+                default:                   skill = DefaultSkills.Scouting; break;
+            }
+            return companion.GetSkillValue(skill);
         }
 
         // ── Daily advance ─────────────────────────────────────────────────────
@@ -155,7 +178,7 @@ namespace CalradiaRemembers.Missions
 
                     if (ArrivedAt(party, dest))
                     {
-                        GatherNews(m, dest);
+                        PerformErrand(m, dest);
                         m.LingerUntilDay = Today + CompanionMissions.DurationDays(m.Type, m.Difficulty);
                         m.Phase = CompanionMissionPhase.Lingering;
                     }
@@ -220,6 +243,18 @@ namespace CalradiaRemembers.Missions
 
         // ── News + report ─────────────────────────────────────────────────────
 
+        /// <summary>Secures the errand's payload at the destination — news, intel, or loot — scaled by quality.</summary>
+        private void PerformErrand(CompanionMission m, Settlement dest)
+        {
+            switch (m.Type)
+            {
+                case CompanionMissionType.Spy:   GatherIntel(m, dest); break;
+                case CompanionMissionType.Steal: ComputeLoot(m, dest); break;
+                default:                         GatherNews(m, dest); break;
+            }
+            m.NewsGathered = true;
+        }
+
         private void GatherNews(CompanionMission m, Settlement town)
         {
             var rated = WorldEventStore.Instance?.GetKnownEventsRatedAt(town, Today, 4)
@@ -230,13 +265,47 @@ namespace CalradiaRemembers.Missions
                 .Select(t => t.Event?.Summary?.TrimEnd('.', ' '))
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .ToList();
-            m.NewsGathered = true;
-            ModLog.Info($"[MISSION] {m.CompanionName} gathered {m.News.Count} item(s) at {m.DestinationName} (quality {m.Quality}).");
+            ModLog.Info($"[MISSION] {m.CompanionName} gathered {m.News.Count} news item(s) at {m.DestinationName} (quality {m.Quality}).");
+        }
+
+        private void GatherIntel(CompanionMission m, Settlement dest)
+        {
+            var lines = new List<string>();
+            string faction = dest.MapFaction?.Name?.ToString() ?? "no banner";
+            string owner   = dest.OwnerClan?.Leader?.Name?.ToString() ?? dest.OwnerClan?.Name?.ToString() ?? "an unknown hand";
+            int garrison   = dest.Town?.GarrisonParty?.MemberRoster?.TotalManCount ?? 0;
+
+            lines.Add($"{dest.Name} is held by {owner} of {faction}");
+            lines.Add($"its garrison numbers about {garrison} fighting men, with militia near {(int) dest.Militia}");
+            if (dest.Town != null) lines.Add($"the town's prosperity stands around {(int) dest.Town.Prosperity}");
+            Hero lord = dest.OwnerClan?.Leader;
+            if (lord != null)
+                lines.Add($"{lord.Name} was last known {(lord.CurrentSettlement != null ? $"at {lord.CurrentSettlement.Name}" : "in the field")}");
+
+            int count = CompanionMissions.NewsItemsForResult(m.Quality, lines.Count);
+            m.News = lines.Take(count).ToList();
+            ModLog.Info($"[MISSION] {m.CompanionName} scouted {dest.Name}: {m.News.Count} item(s) (quality {m.Quality}).");
+        }
+
+        private void ComputeLoot(CompanionMission m, Settlement dest)
+        {
+            Hero companion = HeroById(m.CompanionId);
+            int baseAmount = 150 + (companion?.GetSkillValue(DefaultSkills.Roguery) ?? 0);
+            m.LootGold = CompanionMissions.LootForResult(m.Quality, baseAmount);
+            m.News = m.LootGold > 0
+                ? new List<string> { $"you lifted {m.LootGold} denars from {dest.Name}" }
+                : new List<string>();
+            ModLog.Info($"[MISSION] {m.CompanionName} stole at {dest.Name}: {m.LootGold} denars (quality {m.Quality}).");
         }
 
         private void DeliverReport(CompanionMission m, Hero companion)
         {
-            // The news is delivered as a CONVERSATION: stash a directive for the companion to voice on the
+            // A steal errand's loot reaches the player's coffers on reunion (found gold — no giver).
+            if (m.Type == CompanionMissionType.Steal && m.LootGold > 0)
+                try { GiveGoldAction.ApplyBetweenCharacters(null, Hero.MainHero, m.LootGold, true); }
+                catch (Exception ex) { ModLog.Error($"[MISSION] loot grant failed: {ex.Message}"); }
+
+            // The report is delivered as a CONVERSATION: stash a directive for the companion to voice on the
             // next talk (consumed once), and nudge the player to go speak with them. The full templated
             // text still goes to the log for diagnostics.
             if (companion != null)
@@ -249,22 +318,32 @@ namespace CalradiaRemembers.Missions
             ModLog.Info($"[MISSION] report ready for {m.CompanionName}:\n{BuildReport(m)}");
         }
 
-        /// <summary>The directive injected into the homecoming conversation — the raw news for the companion to voice.</summary>
+        /// <summary>The directive injected into the homecoming conversation — the raw payload for the companion to voice.</summary>
         private string BuildNewsContext(CompanionMission m)
         {
             string town = m.DestinationName ?? "the town";
 
             if (!m.NewsGathered)
-                return $"You were waylaid on the road to {town} and taken prisoner, winning free only lately — " +
-                       "you learned little of substance before then.";
-            if (m.News.Count == 0)
-                return $"You rode to {town} and back, but the roads and the town were quiet — you have little of substance to report.";
+                return $"You were waylaid on the road to {town} and taken prisoner, winning free only lately — your errand came to nothing.";
 
-            var sb = new StringBuilder();
-            sb.AppendLine($"You rode to {town} and gathered word there. What you learned:");
-            foreach (string s in m.News) sb.AppendLine($"- {s}.");
-            return sb.ToString().TrimEnd();
+            switch (m.Type)
+            {
+                case CompanionMissionType.Spy:
+                    return m.News.Count == 0
+                        ? $"You stole a look at {town} for the player but learned little of use."
+                        : $"You scouted {town} for the player. What you observed:\n{Bullets(m.News)}";
+                case CompanionMissionType.Steal:
+                    return m.LootGold > 0
+                        ? $"You slipped into {town} and got away with {m.LootGold} denars for the player."
+                        : $"You tried to lift something in {town}, but came away empty-handed.";
+                default:
+                    return m.News.Count == 0
+                        ? $"You rode to {town} and back, but the roads and the town were quiet — you have little of substance to report."
+                        : $"You rode to {town} and gathered word there. What you learned:\n{Bullets(m.News)}";
+            }
         }
+
+        private static string Bullets(IEnumerable<string> lines) => string.Join("\n", lines.Select(s => $"- {s}."));
 
         private string BuildReport(CompanionMission m)
         {
@@ -272,16 +351,23 @@ namespace CalradiaRemembers.Missions
             string town = m.DestinationName ?? "the town";
 
             if (!m.NewsGathered)
-                return $"{name} returns from captivity with little to tell — the errand was cut short.";
-            if (m.News.Count == 0)
-                return $"{name} returns from {town}, but the roads were quiet — little worth reporting.";
+                return $"{name} returns from captivity with nothing — the errand was cut short.";
 
-            var sb = new StringBuilder();
-            sb.AppendLine(m.Quality == Logic.MissionResult.Success
-                ? $"{name} returns from {town} with a full account of the realm's doings:"
-                : $"{name} returns from {town} with what little they gathered:");
-            foreach (string s in m.News) sb.AppendLine($"- {s}.");
-            return sb.ToString().TrimEnd();
+            switch (m.Type)
+            {
+                case CompanionMissionType.Spy:
+                    return m.News.Count == 0
+                        ? $"{name} scouted {town} but learned little."
+                        : $"{name} scouted {town}:\n{Bullets(m.News)}";
+                case CompanionMissionType.Steal:
+                    return m.LootGold > 0
+                        ? $"{name} returns from {town} with {m.LootGold} denars."
+                        : $"{name} returns from {town} empty-handed.";
+                default:
+                    return m.News.Count == 0
+                        ? $"{name} returns from {town}, but the roads were quiet — little worth reporting."
+                        : $"{name} returns from {town} with word:\n{Bullets(m.News)}";
+            }
         }
 
         // ── Capture ───────────────────────────────────────────────────────────

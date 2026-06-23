@@ -67,7 +67,10 @@ namespace CalradiaRemembers.Missions
         /// <summary>The news gathered AT ARRIVAL and persisted (a reload cannot fetch fresher word). Empty until then.</summary>
         public List<string> News { get; set; } = new List<string>();
 
-        /// <summary>True once the news has been gathered at the town (so a later capture still delivers it).</summary>
+        /// <summary>True once the errand's payload (news / intel / loot) was secured at the destination.</summary>
         public bool NewsGathered { get; set; }
+
+        /// <summary>For a STEAL errand: the denars lifted (rolled at arrival, granted on reunion). 0 otherwise.</summary>
+        public int LootGold { get; set; }
     }
 }
