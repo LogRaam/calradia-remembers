@@ -94,7 +94,8 @@ namespace CalradiaRemembers.Mapping
             PowerBalanceNote         = ResolvePowerBalanceNote(hero, profile),
             MarriageProspects        = MarriageProspectResolver.Build(hero),
             WorldRumorsBlock         = ResolveWorldRumors(hero),
-            PlayerDeedsHeard         = ResolvePlayerDeedsHeard(hero)
+            PlayerDeedsHeard         = ResolvePlayerDeedsHeard(hero),
+            CanGatherNews            = ResolveCanGatherNews(hero)
             // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
             // coin, and naming the exact sum broke immersion. Affordability is enforced by the
             // bridge when the hire is executed, not foreseen in the prompt.
@@ -196,6 +197,20 @@ namespace CalradiaRemembers.Mapping
         /// </summary>
         private static int? ResolveCompanionAskingPrice(Hero hero)
             => GameState.RecruitmentPricing.GetHiringPrice(hero);
+
+        /// <summary>
+        ///   True when the speaking hero is one of the player's own companions, in the party, free of an
+        ///   active errand, and skilled enough to be sent — so the gather_news offer is taught only when a
+        ///   dispatch would actually be accepted (the bridge re-validates every guard regardless).
+        /// </summary>
+        private static bool ResolveCanGatherNews(Hero hero)
+        {
+            if (hero == null || hero == Hero.MainHero || !hero.IsAlive) return false;
+            if (!(hero.IsPlayerCompanion || hero.Clan == Clan.PlayerClan)) return false;
+            if (hero.PartyBelongedTo != MobileParty.MainParty) return false;
+            if (Missions.CompanionMissionBehavior.Instance?.IsAway(hero.StringId) == true) return false;
+            return CompanionMissions.CanAttempt(hero.GetSkillValue(DefaultSkills.Scouting));
+        }
 
         /// <summary>True when the NPC is a captive of someone other than the player (case B: a rescue bargain).</summary>
         private static bool IsPrisonerOfAnother(Hero hero)

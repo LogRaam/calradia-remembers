@@ -305,7 +305,7 @@ namespace CalradiaRemembers
          Hero c = ResolveCompanion(args);
          if (c == null) return "No companion found. Pass a name fragment, or recruit a companion first.";
 
-         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.GatherNews);
+         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.GatherNews).Message;
       }
 
       /// <summary>cr.missions — lists the errands companions are currently away on.</summary>

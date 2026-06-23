@@ -350,9 +350,13 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
   return day a templated report is built from `WorldEventStore.GetRecentSignificant` (a new, non-awareness-
   gated "roving agent" query) and announced; persisted byte[]/JSON, save-safe. Console: `cr.send_news` /
   `cr.missions` / `cr.mission_return`. DELIBERATE MVP CUTS, flagged for the next pass: timer-only (the
-  companion is NOT physically pulled from / returned to the party), templated report (no LLM framing — the
-  seam is `BuildReport`), and console-driven dispatch (no in-conversation `gather_news` action yet). The
-  risky errands (spy/steal → capture → prisoner rescue) reuse the same skeleton next.)*
+  companion is NOT physically pulled from / returned to the party) and a templated report (no LLM framing —
+  the seam is `BuildReport`). The risky errands (spy/steal → capture → prisoner rescue) reuse the skeleton next.)*
+  *(In-conversation dispatch BUILT 2026-06-23, UNCOMMITTED, untested in game — the player can ask a companion
+  in chat to go for news: SDK `EncounterContext.CanGatherNews` + `PromptBuilder.AppendCompanionMissionOffer`
+  teach a `gather_news` action to a dispatchable own-companion; `EncounterContextBuilder.ResolveCanGatherNews`
+  gates it (own companion, in party, not away, skilled enough); bridge `ExecuteGatherNews` re-validates and
+  dispatches. The companion brings news back later, never invents it on the spot.)*
   The player tasks a companion in conversation with an errand that resolves off-screen and returns
   as an in-fiction report. This is the CR answer to AI Influence's "world events" panel: instead of a
   free-floating UI feed, **world news has a source, a delay, and a risk** — the player *sends someone*,

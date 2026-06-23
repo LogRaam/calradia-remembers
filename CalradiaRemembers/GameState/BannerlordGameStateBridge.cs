@@ -73,6 +73,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteHarmPrisoner(action);
             case "impregnation_risk":
                return ExecuteImpregnationRisk(npcHero);
+            case "gather_news":
+               return ExecuteGatherNews(npcHero);
             default:
                ModLog.Info($"[ACTION] Unknown type '{action.Type}' — ignored.");
 
@@ -1031,6 +1033,30 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] free_prisoner failed: {ex.GetType().Name}: {ex.Message}");
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   gather_news action: the player asked one of their companions to ride out and bring back word of
+      ///   the realm, and the companion agreed. Dispatches the errand (the behavior re-validates every guard
+      ///   — the prompt is advice, the bridge is law) and reports back to the player.
+      /// </summary>
+      private static ActionOutcome ExecuteGatherNews(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null) return null;
+            Missions.CompanionMissionBehavior behavior = Missions.CompanionMissionBehavior.Instance;
+            if (behavior == null) return null;
+
+            (bool dispatched, string message) = behavior.Dispatch(npcHero, Logic.CompanionMissionType.GatherNews);
+            ModLog.Info($"[ACTION] gather_news: {npcHero.Name} → {(dispatched ? "dispatched" : "refused")}: {message}");
+            return new ActionOutcome(message, dispatched);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] gather_news failed: {ex.GetType().Name}: {ex.Message}");
             return null;
          }
       }

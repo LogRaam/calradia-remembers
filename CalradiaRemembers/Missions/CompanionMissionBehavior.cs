@@ -49,6 +49,9 @@ namespace CalradiaRemembers.Missions
 
         public int ActiveCount => _active.Count;
 
+        /// <summary>True when the companion with this StringId is currently away on an errand.</summary>
+        public bool IsAway(string companionId) => HasActiveMission(companionId);
+
         // ── Dispatch ──────────────────────────────────────────────────────────
 
         /// <summary>
@@ -56,15 +59,15 @@ namespace CalradiaRemembers.Missions
         ///   when the hero is not a usable companion, is already away, or is too green in the governing
         ///   skill. MVP: only <see cref="CompanionMissionType.GatherNews"/> is wired.
         /// </summary>
-        public string Dispatch(Hero companion, CompanionMissionType type)
+        public (bool Dispatched, string Message) Dispatch(Hero companion, CompanionMissionType type)
         {
-            if (companion == null || companion == Hero.MainHero) return "No companion to send.";
-            if (!IsUsableCompanion(companion)) return $"{companion.Name} is not one of your companions to send.";
-            if (HasActiveMission(companion.StringId)) return $"{companion.Name} is already away on an errand.";
+            if (companion == null || companion == Hero.MainHero) return (false, "No companion to send.");
+            if (!IsUsableCompanion(companion)) return (false, $"{companion.Name} is not one of your companions to send.");
+            if (HasActiveMission(companion.StringId)) return (false, $"{companion.Name} is already away on an errand.");
 
             int skill = GoverningSkillValue(companion, type);
             if (!CompanionMissions.CanAttempt(skill))
-                return $"{companion.Name} is too unschooled in {CompanionMissions.GoverningSkill(type)} for that errand.";
+                return (false, $"{companion.Name} is too unschooled in {CompanionMissions.GoverningSkill(type)} for that errand.");
 
             int today    = Today;
             int duration = CompanionMissions.DurationDays(type, NewsDifficulty);
@@ -81,7 +84,7 @@ namespace CalradiaRemembers.Missions
             });
 
             ModLog.Info($"[MISSION] dispatched {companion.Name} on {type} (returns day {today + duration}).");
-            return $"{companion.Name} rides out to gather word. Expect their report in {duration} days.";
+            return (true, $"{companion.Name} rides out to gather word. Expect their report in {duration} days.");
         }
 
         // ── Resolution ────────────────────────────────────────────────────────

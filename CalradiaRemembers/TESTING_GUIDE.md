@@ -423,8 +423,12 @@ skill + a roll). The CR answer to a "world events" panel: news has a *source* an
   bad one. Or wait the in-game days and the daily tick delivers it as a banner.
 - **P3 — Persistence (💾).** Dispatch, then **save / reload** before the return day — `cr.missions` should
   still show the in-flight errand, and it still resolves on its day.
+- **P4 — Ask in conversation.** Open a CR chat with a companion and ask them, in your own words, to go
+  bring back word of the realm / the latest news. They should agree and the errand is registered (check
+  `cr.missions`) — the same as `cr.send_news`, but player-driven. They will NOT recite news on the spot;
+  they bring it back later. (Taught only to your own companions who are free to go and skilled enough.)
 - **MVP cuts (expected, not bugs):** the companion is not physically removed from the party while "away";
-  the report is templated (no LLM prose yet); dispatch is console-only (no in-conversation request yet).
+  the returned report is templated (no LLM prose yet).
 
 ---
 
