@@ -2,6 +2,22 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.13.0.. 2026-06-22
+
+The world starts to talk about [i]you[/i], and a captive can bargain for their freedom.
+
+### New
+- **They have heard of your deeds.** A lord you have never fought, but whom word has reached, may now
+  speak of what you have done.. attributed to you, as hearsay ("they say you broke our host…"), never
+  recited as a list. And it colours how they receive you: wariness or fear where the deed cut against
+  their own kin or banner, respect where it served their side. Your standing itself still moves only on
+  what a lord has truly seen or lived.. this is reputation, the world reflecting your acts back at you.
+- **Talk a prisoner into a bargain for freedom.** Speak with a captive lord and they may offer for their
+  release. If they are [b]your[/b] prisoner, you can set them free on the spot in exchange for goodwill,
+  gold, or service. If they are held by [b]someone else[/b], they can ask you to break them out.. a deed
+  paid only when you truly free them in the field, never on a promise. (The natural entry point in a
+  prison cell is still being confirmed.. report back if the option does not appear.)
+
 ## v1.12.1.. 2026-06-22
 
 ### Fixed
