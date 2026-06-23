@@ -370,8 +370,13 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
   the one journey. A pure `CompanionMissions.PayloadOf(type)` (News/Intel/Gold/Mood, +1 test) drives WHAT is
   gathered; the per-type voice stays in the behavior. Barter (Trade) returns a gold profit like Steal;
   Envoy (Charm) brings back a faction-mood read (wars, settledness) in conversation. Console: `cr.send_barter`
-  / `cr.send_envoy`. TESTING_GUIDE P8. 338 tests. NEXT: in-conversation dispatch for the four console-only
-  errands (only news is voice-dispatchable so far); optional consequences (caught-spying relation hit).)*
+  / `cr.send_envoy`. TESTING_GUIDE P8. 338 tests.)*
+  *(In-conversation dispatch GENERALIZED to all five errands 2026-06-23, UNCOMMITTED — one `gather_news`
+  action now carries an `errand` keyword (news/scout/steal/trade/envoy) + `about`; the SDK section teaches
+  the menu, the bridge `MapErrand` maps it, and the offer gate is now type-agnostic (per-errand skill checked
+  at dispatch). The player can ask a companion in chat to go do any of the five. TESTING_GUIDE P4. NEXT
+  (optional): consequences (caught-spying relation hit), then the PLANNED aggression/patrol + happiness work
+  below.)*
 
   **PLANNED — aggression & patrol errands** *(wished 2026-06-23)*. The same journey, but the companion goes
   to FIGHT, not just gather: **patrol a sector** (hold a region, engage hostiles that enter), **hunt
@@ -394,6 +399,11 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
   `CompanionHappiness` model (drivers → score → band) in CalradiaRemembers.Logic + tests FIRST; engine wiring
   reads game state and surfaces the grievance via the existing stance / letter / conversation paths. Reuses
   camp life (companions sour on each other) and missions (mission outcomes feed happiness).
+  - **Surfaced on the encyclopedia** *(Gabriel, 2026-06-23)*: a "Contentment: <band> (N)" line on the
+    companion's hero page — a sibling of the existing `EncyclopediaHeroPagePersonalRelationMixin` (which
+    already shows "Personal regard"), gated to the player's OWN companions. The at-a-glance gauge; the
+    conversation grievance stays the primary signal. ~20 lines once the score exists (reuse the mixin
+    pattern + a banded `Describe(int)`).
 
   The player tasks a companion in conversation with an errand that resolves off-screen and returns
   as an in-fiction report. This is the CR answer to AI Influence's "world events" panel: instead of a

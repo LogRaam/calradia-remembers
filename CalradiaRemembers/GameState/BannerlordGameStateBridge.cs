@@ -1055,7 +1055,11 @@ namespace CalradiaRemembers.GameState
             string about = null;
             action.Parameters?.TryGetValue("about", out about);
 
-            (bool dispatched, string message) = behavior.Dispatch(npcHero, Logic.CompanionMissionType.GatherNews, about);
+            // Which errand the player asked for (news / scout / steal / trade / envoy); defaults to news.
+            string errand = null;
+            action.Parameters?.TryGetValue("errand", out errand);
+
+            (bool dispatched, string message) = behavior.Dispatch(npcHero, MapErrand(errand), about);
             ModLog.Info($"[ACTION] gather_news: {npcHero.Name} → {(dispatched ? "dispatched" : "refused")}: {message}");
             return new ActionOutcome(message, dispatched);
          }
@@ -1063,6 +1067,21 @@ namespace CalradiaRemembers.GameState
          {
             ModLog.Error($"[ACTION] gather_news failed: {ex.GetType().Name}: {ex.Message}");
             return null;
+         }
+      }
+
+      /// <summary>Maps the LLM's 'errand' keyword to a mission type; anything unrecognized falls back to news.</summary>
+      private static Logic.CompanionMissionType MapErrand(string errand)
+      {
+         switch ((errand ?? "").Trim().ToLowerInvariant())
+         {
+            case "scout":
+            case "spy":   return Logic.CompanionMissionType.Spy;
+            case "steal": return Logic.CompanionMissionType.Steal;
+            case "trade":
+            case "barter": return Logic.CompanionMissionType.Barter;
+            case "envoy": return Logic.CompanionMissionType.Envoy;
+            default:      return Logic.CompanionMissionType.GatherNews;
          }
       }
 

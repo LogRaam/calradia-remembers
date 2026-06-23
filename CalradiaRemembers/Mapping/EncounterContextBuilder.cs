@@ -200,17 +200,16 @@ namespace CalradiaRemembers.Mapping
             => GameState.RecruitmentPricing.GetHiringPrice(hero);
 
         /// <summary>
-        ///   True when the speaking hero is one of the player's own companions, in the party, free of an
-        ///   active errand, and skilled enough to be sent — so the gather_news offer is taught only when a
-        ///   dispatch would actually be accepted (the bridge re-validates every guard regardless).
+        ///   True when the speaking hero is one of the player's own companions, in the party, and free of an
+        ///   active errand — so the errand offer is taught. The per-errand skill floor and every other guard
+        ///   are re-checked at dispatch (the prompt is advice, the bridge is law), so this stays type-agnostic.
         /// </summary>
         private static bool ResolveCanGatherNews(Hero hero)
         {
             if (hero == null || hero == Hero.MainHero || !hero.IsAlive) return false;
             if (!(hero.IsPlayerCompanion || hero.Clan == Clan.PlayerClan)) return false;
             if (hero.PartyBelongedTo != MobileParty.MainParty) return false;
-            if (Missions.CompanionMissionBehavior.Instance?.IsAway(hero.StringId) == true) return false;
-            return CompanionMissions.CanAttempt(hero.GetSkillValue(DefaultSkills.Scouting));
+            return Missions.CompanionMissionBehavior.Instance?.IsAway(hero.StringId) != true;
         }
 
         /// <summary>True when the NPC is a captive of someone other than the player (case B: a rescue bargain).</summary>

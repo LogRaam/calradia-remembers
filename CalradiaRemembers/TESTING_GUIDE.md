@@ -430,9 +430,12 @@ skill + a roll. News has a *source* and a *delay*. The errand **persists across 
   errand and the party resume; you cannot reload to re-roll or to get the news instantly.
 - **P3 — Skip the travel (test).** `cr.mission_return` force-completes the first errand now (gather +
   rejoin + report) so you needn't ride along to verify the report.
-- **P4 — Ask in conversation.** Open a CR chat with a companion and ask them, in your words, to go bring
-  back word (optionally about a faction/place). They agree, leave, and the errand registers — same as
-  `cr.send_news` but player-driven. They do NOT recite news on the spot; they bring it back.
+- **P4 — Ask in conversation (any errand).** Open a CR chat with a companion and ask them, in your words,
+  to go do one of: bring back news / scout a place / steal coin / trade for profit / sound out a faction —
+  optionally naming a faction/place. They agree, leave, and the errand registers (the LLM picks the matching
+  `errand`). Same as the `cr.send_*` commands but player-driven; they do NOT do it on the spot, they bring
+  the result back. (Offer is taught to any own-companion in your party who is not already away; the specific
+  skill is checked at dispatch.)
 - **P5 — Capture resilience.** If the errand party is beaten and the companion taken prisoner, the errand
   flips to *AwaitingReunion* (see `cr.missions`). When you **free them** (they rejoin your party — e.g. your
   rescue), they deliver whatever news they had. (Pairs with the prisoner-rescue feature.)
