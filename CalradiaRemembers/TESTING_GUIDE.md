@@ -146,6 +146,7 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.chronicle_illuminate` | Generate the AI-illuminated prose. |
 | `cr.chronicle_rewrite` | Re-illuminate from scratch (after editing the style file). |
 | `cr.rumor [settlement]` | Show the street rumours a commoner here would share. |
+| `cr.deed_heard [name]` | Seed a deed of yours that wounds this NPC's faction, then echo what they've heard of you (influence loop). |
 
 ### Discovery / misc
 | Command | Does |
@@ -379,6 +380,25 @@ only when you actually free them.
 - **N2 — Verified only on a real rescue.** The deed stays outstanding until you actually free them —
   defeat their captor in the field or storm the settlement holding them. Then it stamps done (reusing
   the existing rescue verification), and reporting back pays the reward. A promise alone never completes it.
+
+### O. Influence loop — NPCs hear of YOUR deeds (NEW — untested in game)
+
+**What it proves:** the world reflects the player's own acts back. A lord who was NOT present but whom
+word has reached references your deed, attributed to you, and it colours how they open — wary/afraid if
+it cut against their side, respectful if it served it. (Distinct from the third-party "what you've heard"
+gossip, and from the battle stance bumps, which only touch lords who were actually there.)
+
+- **Setup (no siege needed):** `cr.deed_heard [lord]` seeds a notable feat of yours that wounds that
+  lord's own faction, and prints back what they would now have heard. Pick a lord of a faction other
+  than your own for a clean "(this cut against you or your own)" tag.
+- **O1 — Attributed, not anonymous.** Open the CR chat with them: they should allude to your deed as
+  *yours* ("they say you broke our host…"), hedged as hearsay — never recite it as a list, never claim
+  to have witnessed it.
+- **O2 — Valence colours the tone.** Against their side → wariness/resentment/fear in how they greet you;
+  a lord of your OWN faction seeded the same way reads it as a boon (pride/respect). A lord too far away
+  or of an unrelated minor faction simply won't have heard (the command says so).
+- **O3 — Reputation, not a stance change.** Their persisted Trust/Respect/Fear (`cr.stance`) is NOT moved
+  by merely hearing — only real, witnessed acts move it. The deed colours the *conversation*, not the save.
 
 ---
 

@@ -338,6 +338,73 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
   - Console: `cr.backstory [name]` (show loaded override + effective traits), `cr.reload_lore` (reload
     the file without relaunch).
 
+- **Companion missions — dispatch an agent, a report comes back** *(wished 2026-06-22)*.
+  The player tasks a companion in conversation with an errand that resolves off-screen and returns
+  as an in-fiction report. This is the CR answer to AI Influence's "world events" panel: instead of a
+  free-floating UI feed, **world news has a source, a delay, and a risk** — the player *sends someone*,
+  and *someone comes back*. It also finally gives Bannerlord companions a purpose, and it reuses three
+  systems CR already owns: the courier cycle (dispatch → delay → return), the `WorldEventStore` (the
+  matter of "bring me the news"), and the verified-deed framework (success/failure decided by the game,
+  never by the LLM's word).
+
+  **One pattern, several missions** — *dispatch in conversation → time delay → return with a report*
+  (the courier cycle). The companion leaves the retinue (or a timer runs); they return via a parchment
+  letter / a debrief conversation.
+
+  | Mission | Player input | Output on return | Skill gate |
+  |---|---|---|---|
+  | **Bring me the news** | "what stirs in the realm?" | `WorldEventStore` events filtered by recency / faction / distance, told in the companion's voice | Scouting |
+  | **Spy** (a lord / fief) | target | troop strength, whereabouts, a *secret* (becomes a memory) | Roguery |
+  | **Steal & bring me the loot** | target | loot (gold / an item) — **risk of capture** | Roguery |
+  | **Go barter** | the goods | a better sale price | Trade |
+  | **Be my envoy** | faction + message | carries a statement / probes a faction's mood | Charm |
+
+  **Governing principle (= CR's DNA): deterministic outcome (a skill roll), LLM narration.** The LLM
+  colours the report; the *result* (loot, capture, intel) is computed game-side — same "quests that
+  don't break" discipline, and cheap on tokens (one framing call on return, not a background sim).
+
+  **Loop-closer:** "Steal" and "Spy" can **fail → the companion is captured**, which branches straight
+  into the prisoner-rescue system (case B above). Features feed each other.
+
+  Pairs with v1.2 (the rumor/event store supplies "the news") and the influence loop: the report
+  is also where the player hears *their own deeds* reflected back, attributed to them.
+
+- **Influence loop — NPCs hear of the PLAYER's deeds, attributed to them. ✅ DONE (2026-06-22).**
+  The cheap, high-ROI lesson taken from AI Influence's "world events": the *feeling of influence* comes
+  not from simulating a world but from reflecting the player's own acts back at them. The world-event
+  store (v1.2) already recorded player feats (`InvolvesPlayer`); the consumer was drowning them in the
+  neutral "WHAT YOU'VE HEARD" gossip. Now `EncounterContextBuilder.ResolvePlayerDeedsHeard` pulls the
+  player's known deeds into a dedicated SDK section ("WHAT IS SAID OF THE ONE BEFORE YOU"), attributed to
+  the very person the NPC addresses, each tagged with a **valence** (pure `PlayerDeedValence`:
+  Wound/Boon/Neutral, from whether the deed's `WorldEvent.AggrievedFactionIds` touches the observer's
+  faction vs. shares the player's). The feeders now record the harmed side on the three adversarial player
+  deeds (battle won → loser's faction, execution → victim's, conquest → dispossessed). It colours the
+  *conversation only* — persisted stance still moves solely on witnessed acts, so no double-count with the
+  battle stance bumps (which touch only lords who were present). `cr.deed_heard [name]` seeds + echoes it.
+  TESTING_GUIDE scenario O. Future polish: kin-level wound (not just faction); a light "kingdom rumour"
+  chronicler line.
+
+- **Camp life — companions who like or resent each other** *(wished 2026-06-22, Warband nostalgia)*.
+  Companions form opinions about *each other* (not just the player) and bring them to the player —
+  "I cannot abide riding with X" / "Y has my respect." It adds the "camp life" that made Warband's
+  companions feel alive, and it is a natural extension of the existing hero↔hero relation tracking
+  (v1.2 feeder #3) — the simulation is mechanical (native `GetRelation` between the two companions +
+  trait compatibility drives the disposition), the LLM only narrates **at the player's point of
+  contact** (a companion raises it in conversation). Same cost discipline as schemes: no background LLM.
+  - A drifting companion↔companion relation crosses a threshold → a flagged "wants to talk to you about
+    X" disposition (surfaced like an NPC-initiated approach, or on next conversation).
+  - High mutual regard between two unmarried, eligible companions → **they may ask to marry** (vanilla
+    `MarriageAction`; gated like the player-marriage system — family/clan rules already modelled). A
+    wedding between your own people is a camp event worth a letter / chronicle line.
+    - **DECIDED (2026-06-22): the couple STAYS in the player's service — the clan grows, it does not
+      disperse.** The player invested time raising these companions; they keep them, see them as a
+      couple, watch their children grow. So the marriage must NOT trigger the vanilla "leave to found a
+      household" path — keep both heroes in the player's clan (companions, or promoted clan members),
+      and let any children join the clan. The reward of the feature is a *growing household*, not a
+      bittersweet departure.
+  - Feeds the rumor/event store (a feud or a wedding among your retinue is news in its own right) and
+    pairs with jealousy (a companion love-triangle is the same machinery turned inward).
+
 - **Custom correspondent portraits** *(letter window — wished 2026-06-21)*. Show a hand-made painted
   portrait (the "letter from a noble lady" look) for a correspondent instead of the in-game 3D head
   render. Tiered: a custom image when one exists for that hero, else fall back to the current

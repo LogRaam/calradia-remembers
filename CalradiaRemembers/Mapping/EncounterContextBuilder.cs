@@ -93,7 +93,8 @@ namespace CalradiaRemembers.Mapping
             ConsortEligible          = ResolveConsortEligible(hero, profile),
             PowerBalanceNote         = ResolvePowerBalanceNote(hero, profile),
             MarriageProspects        = MarriageProspectResolver.Build(hero),
-            WorldRumorsBlock         = ResolveWorldRumors(hero)
+            WorldRumorsBlock         = ResolveWorldRumors(hero),
+            PlayerDeedsHeard         = ResolvePlayerDeedsHeard(hero)
             // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
             // coin, and naming the exact sum broke immersion. Affordability is enforced by the
             // bridge when the hire is executed, not foreseen in the prompt.
@@ -102,26 +103,72 @@ namespace CalradiaRemembers.Mapping
         #region private
 
         /// <summary>
-        ///   The recent world happenings this NPC would plausibly have heard of (faction/region/
-        ///   recency), pre-formatted as hearsay lines for the prompt. Null when nothing relevant
-        ///   has reached them, so the "WHAT YOU'VE HEARD" section is skipped entirely.
+        ///   The recent THIRD-PARTY world happenings this NPC would plausibly have heard of (faction/
+        ///   region/recency), pre-formatted as hearsay lines for the prompt. The player's OWN deeds are
+        ///   pulled out here and routed to <see cref="ResolvePlayerDeedsHeard"/> instead, so they reach
+        ///   the NPC attributed to the person before them rather than as faceless gossip. Null when
+        ///   nothing relevant has reached them, so the "WHAT YOU'VE HEARD" section is skipped entirely.
         /// </summary>
         private static string ResolveWorldRumors(Hero hero)
         {
             try
             {
                 var rated = WorldEvents.WorldEventStore.Instance?.GetKnownEventsRated(
-                    hero, (int) CampaignTime.Now.ToDays, 4);
+                    hero, (int) CampaignTime.Now.ToDays, 6);
                 if (rated == null || rated.Count == 0) return null;
 
                 var lines = new System.Collections.Generic.List<string>();
                 foreach ((WorldEvents.WorldEvent e, RumorConfidence conf) in rated)
                 {
-                    if (string.IsNullOrWhiteSpace(e.Summary)) continue;
+                    if (e.InvolvesPlayer || string.IsNullOrWhiteSpace(e.Summary)) continue; // player deeds → influence loop
                     string tag = conf == RumorConfidence.Distant ? "(a distant, unverified rumour) "
                                : conf == RumorConfidence.Secondhand ? "(heard secondhand) "
                                : "";
                     lines.Add($"- {tag}{e.Summary.TrimEnd('.', ' ')}.");
+                    if (lines.Count >= 4) break;
+                }
+
+                return lines.Count > 0 ? string.Join("\n", lines) : null;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        ///   The PLAYER's own deeds that have reached this NPC by word, attributed to the person they are
+        ///   speaking with and tagged with how each one lands on them (a wound to their side, a boon to it)
+        ///   via the pure <see cref="PlayerDeedValence"/>. The influence loop — the world reflecting the
+        ///   player's acts back. Null when none have reached them, so the section is skipped entirely.
+        /// </summary>
+        internal static string ResolvePlayerDeedsHeard(Hero hero)
+        {
+            try
+            {
+                var rated = WorldEvents.WorldEventStore.Instance?.GetKnownEventsRated(
+                    hero, (int) CampaignTime.Now.ToDays, 8);
+                if (rated == null || rated.Count == 0) return null;
+
+                string obsFactionId    = hero?.MapFaction?.StringId;
+                string playerFactionId = Hero.MainHero?.MapFaction?.StringId;
+
+                var lines = new System.Collections.Generic.List<string>();
+                foreach ((WorldEvents.WorldEvent e, RumorConfidence conf) in rated)
+                {
+                    if (!e.InvolvesPlayer || string.IsNullOrWhiteSpace(e.Summary)) continue;
+
+                    bool aggrieved = obsFactionId != null && e.AggrievedFactionIds != null
+                                     && e.AggrievedFactionIds.Contains(obsFactionId);
+                    bool sharesPlayer = obsFactionId != null && obsFactionId == playerFactionId;
+
+                    string valence;
+                    switch (PlayerDeedValence.Classify(aggrieved, sharesPlayer))
+                    {
+                        case DeedValence.Wound: valence = "(this cut against you or your own) "; break;
+                        case DeedValence.Boon:  valence = "(this served your side) "; break;
+                        default:                valence = ""; break;
+                    }
+                    string doubt = conf == RumorConfidence.Distant ? " — though none can fully vouch for it" : "";
+                    lines.Add($"- {valence}{e.Summary.TrimEnd('.', ' ')}{doubt}.");
+                    if (lines.Count >= 3) break;
                 }
 
                 return lines.Count > 0 ? string.Join("\n", lines) : null;

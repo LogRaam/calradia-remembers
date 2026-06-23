@@ -76,6 +76,16 @@ namespace CalradiaRemembers.WorldEvents
         /// <summary>Faction (kingdom/clan) StringIds the event is relevant to, for awareness filtering.</summary>
         public List<string> FactionIds { get; set; } = new List<string>();
 
+        /// <summary>
+        ///   For an adversarial deed of the PLAYER's (a battle won, an execution, a conquest): the faction
+        ///   StringIds it HARMED — the losing/dispossessed side. The influence loop reads it to colour how
+        ///   a lord who merely heard of the deed regards the player (a wound to one's own, a boon to one's
+        ///   champion). Empty for benign deeds (marriage, peace) and for third-party events. Save-safe:
+        ///   absent in pre-influence-loop saves, where it deserializes to an empty list (valence then
+        ///   degrades to faction-only).
+        /// </summary>
+        public List<string> AggrievedFactionIds { get; set; } = new List<string>();
+
         /// <summary>Reserved for v1.3 schemes (active/resolved/discovered); null for a settled fact.</summary>
         public string Status { get; set; }
     }

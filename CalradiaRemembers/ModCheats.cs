@@ -246,6 +246,51 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.deed_heard [name]
+      ///   Seeds a notable deed of the PLAYER's that WOUNDS the named (or talked-to) NPC's own faction,
+      ///   then echoes what that NPC would now have heard of you — the influence-loop test path without
+      ///   having to win a real siege. Open a conversation with them afterward to see it colour their tone.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("deed_heard", "cr")]
+      public static string SeedPlayerDeedHeard(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         WorldEvents.WorldEventStore store = WorldEvents.WorldEventStore.Instance;
+         if (store == null) return "World-event store is not active.";
+
+         string playerName  = Hero.MainHero?.Name?.ToString() ?? "the player";
+         string factionName = hero.MapFaction?.Name?.ToString() ?? "their people";
+
+         var aggrieved = hero.MapFaction?.StringId != null
+            ? new List<string> { hero.MapFaction.StringId }
+            : new List<string>();
+         var factions = new List<string>(aggrieved);
+         if (Hero.MainHero?.MapFaction?.StringId != null) factions.Add(Hero.MainHero.MapFaction.StringId);
+
+         store.Record(new WorldEvents.WorldEvent
+         {
+            Type                = WorldEvents.WorldEventType.PlayerFeat,
+            Day                 = (int) CampaignTime.Now.ToDays,
+            PlaceId             = hero.CurrentSettlement?.StringId,
+            Magnitude           = 70,
+            InvolvesPlayer      = true,
+            Summary             = $"{playerName} broke a host of {factionName} in open battle (test seed).",
+            ActorIds            = new List<string> { Hero.MainHero?.StringId }.Where(s => s != null).ToList(),
+            FactionIds          = factions,
+            AggrievedFactionIds = aggrieved
+         });
+
+         string block = EncounterContextBuilder.ResolvePlayerDeedsHeard(hero);
+         return block == null
+            ? $"Seeded a deed against {factionName}, but {hero.Name} would not (yet) have heard of it."
+            : $"Seeded. {hero.Name} has now heard of your deeds:\n{block}\n\n(Open a conversation to see it colour their tone.)";
+      }
+
+      /// <summary>
       ///   cr.jealousy_comp
       ///   Reports the player's current partner household (native spouse + committed consorts) with
       ///   each one's culture, sharing-tolerance and how long since they were last attended to, then
