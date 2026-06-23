@@ -95,7 +95,8 @@ namespace CalradiaRemembers.Mapping
             MarriageProspects        = MarriageProspectResolver.Build(hero),
             WorldRumorsBlock         = ResolveWorldRumors(hero),
             PlayerDeedsHeard         = ResolvePlayerDeedsHeard(hero),
-            CanGatherNews            = ResolveCanGatherNews(hero)
+            CanGatherNews            = ResolveCanGatherNews(hero),
+            CompanionNewsReport      = Missions.CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero)
             // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
             // coin, and naming the exact sum broke immersion. Affordability is enforced by the
             // bridge when the hire is executed, not foreseen in the prompt.

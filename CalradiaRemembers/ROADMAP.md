@@ -356,9 +356,11 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
   `HeroPrisonerTaken` → AwaitingReunion; the news is delivered when the companion is freed and rejoins you
   (pairs with prisoner rescue). In-conversation dispatch wired (SDK `CanGatherNews` +
   `AppendCompanionMissionOffer` teach `gather_news`; bridge re-validates). Console: `cr.send_news [about]` /
-  `cr.missions` / `cr.mission_return`. TESTING_GUIDE scenario P. MVP CUT (flagged): the report is a banner —
-  next increment turns it into a CR CONVERSATION in the companion's voice (seam = `DeliverReport`). The risky
-  errands (spy/steal) reuse this whole skeleton next.)*
+  `cr.missions` / `cr.mission_return`. TESTING_GUIDE scenario P. The report is delivered as a CONVERSATION:
+  on return the companion stashes a one-shot directive (SDK `EncounterContext.CompanionNewsReport` +
+  `PromptBuilder.AppendCompanionNewsReport`, consumed by `ConsumeNewsReport`, persisted), and a banner nudges
+  the player to speak with them; the companion opens by reporting in their own voice. The risky errands
+  (spy/steal → loot/capture) reuse this whole skeleton next.)*
   The player tasks a companion in conversation with an errand that resolves off-screen and returns
   as an in-fiction report. This is the CR answer to AI Influence's "world events" panel: instead of a
   free-floating UI feed, **world news has a source, a delay, and a risk** — the player *sends someone*,

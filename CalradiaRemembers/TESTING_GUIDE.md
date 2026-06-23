@@ -432,8 +432,10 @@ skill + a roll. News has a *source* and a *delay*. The errand **persists across 
 - **P5 — Capture resilience.** If the errand party is beaten and the companion taken prisoner, the errand
   flips to *AwaitingReunion* (see `cr.missions`). When you **free them** (they rejoin your party — e.g. your
   rescue), they deliver whatever news they had. (Pairs with the prisoner-rescue feature.)
-- **MVP cut (expected, not a bug):** the returned report is a banner; the next increment turns it into a
-  CR **conversation** in the companion's own voice.
+- **P6 — The report is a CONVERSATION.** On return you get a banner "X has returned — have a word with
+  them." Open a CR chat with that companion: they should **open by reporting back in their own voice** —
+  weaving in what they learned (or "the roads were quiet", or "I was waylaid"), not reciting a list. It is
+  delivered ONCE (consumed), and **persists across a save** taken between their return and your talk.
 
 ---
 

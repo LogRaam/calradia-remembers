@@ -43,7 +43,8 @@ namespace CalradiaRemembers.Missions
     {
         public static CompanionMissionBehavior Instance;
 
-        private const string SaveKey = "CalradiaRemembers_CompanionMissions_v2bytes";
+        private const string SaveKey        = "CalradiaRemembers_CompanionMissions_v2bytes";
+        private const string SaveKeyReports = "CalradiaRemembers_CompanionReports_v1bytes";
 
         // Tuning (flagged for in-game ratification).
         private const int   NewsDifficulty   = 30;  // a "bring me the news" errand's baseline difficulty
@@ -53,12 +54,27 @@ namespace CalradiaRemembers.Missions
 
         private List<CompanionMission> _active = new List<CompanionMission>();
 
+        // News a returned companion is waiting to TELL the player, keyed by companion StringId. Set on
+        // homecoming, consumed on the first conversation with them (persisted so it survives a save in between).
+        private Dictionary<string, string> _pendingReports = new Dictionary<string, string>();
+
         public CompanionMissionBehavior() => Instance = this;
 
         public int ActiveCount => _active.Count;
 
         /// <summary>True when the companion with this StringId is currently away on an errand.</summary>
         public bool IsAway(string companionId) => _active.Any(m => m.CompanionId == companionId);
+
+        /// <summary>
+        ///   The news a just-returned companion has to tell, if any — returned ONCE and then cleared, so it
+        ///   colours only the homecoming conversation. Null when this hero has no report waiting.
+        /// </summary>
+        public string ConsumeNewsReport(Hero npc)
+        {
+            if (npc == null || !_pendingReports.TryGetValue(npc.StringId, out string report)) return null;
+            _pendingReports.Remove(npc.StringId);
+            return report;
+        }
 
         // ── Dispatch ──────────────────────────────────────────────────────────
 
@@ -220,12 +236,34 @@ namespace CalradiaRemembers.Missions
 
         private void DeliverReport(CompanionMission m, Hero companion)
         {
-            string report = BuildReport(m);
-            string headline = report.Split('\n')[0];
-            MBInformationManager.AddQuickInformation(new TextObject(headline), 0, companion?.CharacterObject);
-            ModLog.Info($"[MISSION] report:\n{report}");
-            // TODO(next increment): open a CR conversation with the companion (the town's rumours injected
-            // as context) so they tell it in their own voice, instead of this banner.
+            // The news is delivered as a CONVERSATION: stash a directive for the companion to voice on the
+            // next talk (consumed once), and nudge the player to go speak with them. The full templated
+            // text still goes to the log for diagnostics.
+            if (companion != null)
+                _pendingReports[companion.StringId] = BuildNewsContext(m);
+
+            string town = m.DestinationName ?? "their errand";
+            MBInformationManager.AddQuickInformation(
+                new TextObject($"{m.CompanionName} has returned from {town} — have a word with them."),
+                0, companion?.CharacterObject);
+            ModLog.Info($"[MISSION] report ready for {m.CompanionName}:\n{BuildReport(m)}");
+        }
+
+        /// <summary>The directive injected into the homecoming conversation — the raw news for the companion to voice.</summary>
+        private string BuildNewsContext(CompanionMission m)
+        {
+            string town = m.DestinationName ?? "the town";
+
+            if (!m.NewsGathered)
+                return $"You were waylaid on the road to {town} and taken prisoner, winning free only lately — " +
+                       "you learned little of substance before then.";
+            if (m.News.Count == 0)
+                return $"You rode to {town} and back, but the roads and the town were quiet — you have little of substance to report.";
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"You rode to {town} and gathered word there. What you learned:");
+            foreach (string s in m.News) sb.AppendLine($"- {s}.");
+            return sb.ToString().TrimEnd();
         }
 
         private string BuildReport(CompanionMission m)
@@ -315,6 +353,12 @@ namespace CalradiaRemembers.Missions
 
                 try { dataStore.SyncData(SaveKey, ref bytes); }
                 catch (Exception ex) { ModLog.Error($"[MISSION] byte[] save failed: {ex.GetType().Name}: {ex.Message}"); }
+
+                byte[] reportBytes;
+                try { reportBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_pendingReports, Formatting.None)); }
+                catch { reportBytes = Encoding.UTF8.GetBytes("{}"); }
+                try { dataStore.SyncData(SaveKeyReports, ref reportBytes); }
+                catch (Exception ex) { ModLog.Error($"[MISSION] reports save failed: {ex.GetType().Name}: {ex.Message}"); }
             }
             else
             {
@@ -330,7 +374,14 @@ namespace CalradiaRemembers.Missions
                         ModLog.Error($"[MISSION] load failed — dropping in-flight errands so the campaign opens. {ex.GetType().Name}: {ex.Message}");
                     }
 
-                ModLog.Info($"[MISSION] loaded {_active.Count} in-flight errand(s) from save.");
+                byte[] reportBytes = null;
+                try { dataStore.SyncData(SaveKeyReports, ref reportBytes); }
+                catch { /* key absent in older saves */ }
+                if (reportBytes != null && reportBytes.Length > 0)
+                    try { _pendingReports = JsonConvert.DeserializeObject<Dictionary<string, string>>(Encoding.UTF8.GetString(reportBytes)) ?? new Dictionary<string, string>(); }
+                    catch { _pendingReports = new Dictionary<string, string>(); }
+
+                ModLog.Info($"[MISSION] loaded {_active.Count} in-flight errand(s), {_pendingReports.Count} pending report(s) from save.");
             }
         }
 
