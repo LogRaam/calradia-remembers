@@ -1,14 +1,16 @@
 // Code written by Gabriel Mailhot, 23/06/2026.
-// Companion missions (ROADMAP "Also planned") — engine glue for the first slice, "bring me the news":
-// dispatch a companion → a timer runs → they return with a report drawn from the world-event store. The
-// OUTCOME (success band, duration, report size) is the pure CalradiaRemembers.Logic; this only moves data
-// between the game and that logic, persists the in-flight errands, and announces the report.
+// Companion missions (ROADMAP) — engine glue for "bring me the news": the companion physically LEAVES the
+// player's party as a real clan party (vanilla-serialized → the errand survives saves with no save-scum),
+// rides to a town, lingers, and rides back, then reports. The party is a true map presence, so it can be
+// waylaid and the companion taken prisoner — in which case the news waits with them and is delivered when
+// they next rejoin you (escape / ransom / your rescue). Decision logic is pure (CalradiaRemembers.Logic).
 //
-// MVP SCOPE (deliberate, flagged for next pass with Gabriel's in-game eyes):
-//   - Timer-only: the companion is NOT physically removed from / returned to the party yet.
-//   - Templated report (no LLM framing yet) — the seam is BuildReport.
-//   - Console-driven dispatch (cr.send_news) before any in-conversation gather_news action.
-//   - Only GatherNews is wired; the resolver/duration already cover the other errands.
+// PERSISTENCE: only the logical mission is serialized here (JSON byte[]); the companion + their party are
+// native campaign objects the engine already saves. A reload restores the in-flight state exactly — the
+// quality is rolled AT DISPATCH and the news gathered AT ARRIVAL, both persisted, so neither can be re-rolled.
+//
+// MVP SEAM (next increment): the report is announced as a banner; it will become a CR CONVERSATION (the
+// companion's own voice, with the town's rumours injected) — the seam is BuildReport / DeliverReport.
 
 #region
 
@@ -17,9 +19,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Travel;
 using CalradiaRemembers.WorldEvents;
+using Helpers;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -29,19 +36,20 @@ using TaleWorlds.Localization;
 namespace CalradiaRemembers.Missions
 {
     /// <summary>
-    ///   Tracks the errands companions are away on and resolves each on its return day. Persisted as a
-    ///   UTF-8 byte[] (no native string ceiling, same "never brick a save" degradation as the world-event
-    ///   store). The decision logic is pure (<see cref="CompanionMissions"/>); this is the glue.
+    ///   Tracks the errands companions are away on and advances each daily through its travel arc. The
+    ///   companion rides as a real clan party; this owns only the logical, persisted mission state.
     /// </summary>
     public sealed class CompanionMissionBehavior : CampaignBehaviorBase
     {
         public static CompanionMissionBehavior Instance;
 
-        private const string SaveKey = "CalradiaRemembers_CompanionMissions_v1bytes";
+        private const string SaveKey = "CalradiaRemembers_CompanionMissions_v2bytes";
 
-        // Tuning (flagged for ratification — Gabriel adjusts by in-game feel).
-        private const int NewsDifficulty   = 30; // a "bring me the news" errand's baseline difficulty
-        private const int MinNewsMagnitude = 35; // skip trivial happenings from a news report
+        // Tuning (flagged for in-game ratification).
+        private const int   NewsDifficulty   = 30;  // a "bring me the news" errand's baseline difficulty
+        private const int   MinNewsMagnitude = 35;  // skip trivial happenings from a news report
+        private const int   EscortSize       = 8;   // a small escort so they are not caught the first day
+        private const float ArrivalDistance  = 2.0f; // map units counting as "arrived" at town / back at the player
 
         private List<CompanionMission> _active = new List<CompanionMission>();
 
@@ -50,120 +58,239 @@ namespace CalradiaRemembers.Missions
         public int ActiveCount => _active.Count;
 
         /// <summary>True when the companion with this StringId is currently away on an errand.</summary>
-        public bool IsAway(string companionId) => HasActiveMission(companionId);
+        public bool IsAway(string companionId) => _active.Any(m => m.CompanionId == companionId);
 
         // ── Dispatch ──────────────────────────────────────────────────────────
 
         /// <summary>
-        ///   Sends a companion on an errand, returning a player-facing message. Refuses (with a reason)
-        ///   when the hero is not a usable companion, is already away, or is too green in the governing
-        ///   skill. MVP: only <see cref="CompanionMissionType.GatherNews"/> is wired.
+        ///   Sends a companion to gather news, optionally scoped to a topic (<paramref name="about"/> — a
+        ///   faction, culture, or town). Detaches them into their own clan party bound for the resolved
+        ///   town. Returns a player-facing message; refuses (with a reason) when ineligible.
         /// </summary>
-        public (bool Dispatched, string Message) Dispatch(Hero companion, CompanionMissionType type)
+        public (bool Dispatched, string Message) Dispatch(Hero companion, string about)
         {
             if (companion == null || companion == Hero.MainHero) return (false, "No companion to send.");
-            if (!IsUsableCompanion(companion)) return (false, $"{companion.Name} is not one of your companions to send.");
-            if (HasActiveMission(companion.StringId)) return (false, $"{companion.Name} is already away on an errand.");
+            if (!IsUsableCompanion(companion)) return (false, $"{companion.Name} is not a companion in your party to send.");
+            if (IsAway(companion.StringId)) return (false, $"{companion.Name} is already away on an errand.");
 
-            int skill = GoverningSkillValue(companion, type);
+            int skill = companion.GetSkillValue(DefaultSkills.Scouting);
             if (!CompanionMissions.CanAttempt(skill))
-                return (false, $"{companion.Name} is too unschooled in {CompanionMissions.GoverningSkill(type)} for that errand.");
+                return (false, $"{companion.Name} is too unschooled in scouting for that errand.");
 
-            int today    = Today;
-            int duration = CompanionMissions.DurationDays(type, NewsDifficulty);
+            Settlement dest = ResolveDestination(about);
+            if (dest == null) return (false, "There is no town to gather news from.");
+
+            int roll = MBRandom.RandomInt(0, 100);
+            Logic.MissionResult quality = CompanionMissions.Resolve(CompanionMissionType.GatherNews, skill, roll, NewsDifficulty).Result;
+
+            MobileParty party = SpawnTravelingCompanionParty(companion, dest);
+            if (party == null) return (false, $"{companion.Name} could not set out just now.");
 
             _active.Add(new CompanionMission
             {
-                Id            = Guid.NewGuid().ToString("N"),
-                CompanionId   = companion.StringId,
-                CompanionName = companion.Name?.ToString() ?? "Your companion",
-                Type          = type,
-                DispatchDay   = today,
-                ReturnDay     = today + duration,
-                Difficulty    = NewsDifficulty
+                Id                      = Guid.NewGuid().ToString("N"),
+                CompanionId             = companion.StringId,
+                CompanionName           = companion.Name?.ToString() ?? "Your companion",
+                Type                    = CompanionMissionType.GatherNews,
+                DestinationSettlementId = dest.StringId,
+                DestinationName         = dest.Name?.ToString() ?? "a town",
+                PartyId                 = party.StringId,
+                DispatchDay             = Today,
+                Difficulty              = NewsDifficulty,
+                Phase                   = CompanionMissionPhase.Outbound,
+                Quality                 = quality
             });
 
-            ModLog.Info($"[MISSION] dispatched {companion.Name} on {type} (returns day {today + duration}).");
-            return (true, $"{companion.Name} rides out to gather word. Expect their report in {duration} days.");
+            ModLog.Info($"[MISSION] {companion.Name} rides for {dest.Name} (quality {quality}, party {party.StringId}).");
+            string scope = string.IsNullOrWhiteSpace(about) ? "" : $" of {about.Trim()}";
+            return (true, $"{companion.Name} rides for {dest.Name} to gather word{scope}.");
         }
 
-        // ── Resolution ────────────────────────────────────────────────────────
+        // ── Daily advance ─────────────────────────────────────────────────────
 
         private void OnDailyTick()
         {
             if (_active.Count == 0) return;
-            int today = Today;
+            foreach (CompanionMission m in _active.ToList())
+                if (Advance(m))
+                    _active.Remove(m);
+        }
 
-            // Resolve a copy so the announcement can mutate the list safely.
-            foreach (CompanionMission m in _active.Where(m => m.ReturnDay <= today).ToList())
+        /// <summary>Advances one mission a day. Returns true when it is finished and should be dropped.</summary>
+        private bool Advance(CompanionMission m)
+        {
+            Hero companion = HeroById(m.CompanionId);
+            if (companion == null || !companion.IsAlive)
             {
-                string report = Resolve(m, out Hero companion);
-                _active.Remove(m);
-                Announce(companion, report);
+                DestroyParty(m); // the hero is gone — clean up any stray errand party
+                return true;
+            }
+
+            switch (m.Phase)
+            {
+                case CompanionMissionPhase.Outbound:
+                {
+                    if (companion.IsPrisoner) { m.Phase = CompanionMissionPhase.AwaitingReunion; m.PartyId = null; return false; }
+                    MobileParty party = FindParty(m.PartyId);
+                    if (party == null) { m.Phase = CompanionMissionPhase.AwaitingReunion; return false; }
+
+                    Settlement dest = Settlement.Find(m.DestinationSettlementId);
+                    if (dest == null) { ReturnHome(m, party); return false; } // town vanished — just come back
+
+                    if (ArrivedAt(party, dest))
+                    {
+                        GatherNews(m, dest);
+                        m.LingerUntilDay = Today + CompanionMissions.DurationDays(m.Type, m.Difficulty);
+                        m.Phase = CompanionMissionPhase.Lingering;
+                    }
+                    else if (party.CurrentSettlement != dest)
+                    {
+                        TravelingParty.DirectToSettlement(party, dest);
+                    }
+                    return false;
+                }
+
+                case CompanionMissionPhase.Lingering:
+                {
+                    if (companion.IsPrisoner) { m.Phase = CompanionMissionPhase.AwaitingReunion; m.PartyId = null; return false; }
+                    if (Today >= m.LingerUntilDay) ReturnHome(m, FindParty(m.PartyId));
+                    return false;
+                }
+
+                case CompanionMissionPhase.Returning:
+                {
+                    if (companion.IsPrisoner) { m.Phase = CompanionMissionPhase.AwaitingReunion; m.PartyId = null; return false; }
+                    MobileParty party = FindParty(m.PartyId);
+                    if (party == null) { m.Phase = CompanionMissionPhase.AwaitingReunion; return false; }
+
+                    if (NearPlayer(party)) { Reunite(m, companion, party); return true; }
+                    TravelingParty.DirectToMovingPoint(party, MobileParty.MainParty.GetPosition2D);
+                    return false;
+                }
+
+                case CompanionMissionPhase.AwaitingReunion:
+                {
+                    // Captured. Wait until they are free AND back in the player's party (escape/ransom/rescue),
+                    // then deliver whatever news they had managed to gather.
+                    if (!companion.IsPrisoner && companion.PartyBelongedTo == MobileParty.MainParty)
+                    {
+                        DeliverReport(m, companion);
+                        return true;
+                    }
+                    return false;
+                }
+
+                default:
+                    return true;
             }
         }
 
-        /// <summary>Force-resolves a named companion's errand NOW (console test path); returns its report.</summary>
-        public string ForceResolve(Hero companion)
+        private void ReturnHome(CompanionMission m, MobileParty party)
         {
-            if (companion == null) return "No companion given.";
-            CompanionMission m = _active.FirstOrDefault(x => x.CompanionId == companion.StringId);
-            if (m == null) return $"{companion.Name} is not away on any errand.";
-
-            string report = Resolve(m, out Hero _);
-            _active.Remove(m);
-            Announce(companion, report);
-            return report;
+            m.Phase = CompanionMissionPhase.Returning;
+            if (party != null) TravelingParty.DirectToMovingPoint(party, MobileParty.MainParty.GetPosition2D);
         }
 
-        /// <summary>Rolls the errand's outcome and builds its report. Out: the resolved companion hero (may be null/dead).</summary>
-        private string Resolve(CompanionMission m, out Hero companion)
+        /// <summary>Brings the hero back into the player's party, disbands the errand party, and reports.</summary>
+        private void Reunite(CompanionMission m, Hero companion, MobileParty party)
         {
-            companion = HeroById(m.CompanionId);
-            int skill = companion != null ? GoverningSkillValue(companion, m.Type) : 0;
-            int roll  = MBRandom.RandomInt(0, 100);
+            try { AddHeroToPartyAction.Apply(companion, MobileParty.MainParty, false); }
+            catch (Exception ex) { ModLog.Error($"[MISSION] rejoin failed for {m.CompanionName}: {ex.Message}"); }
 
-            CompanionMissionOutcome outcome = CompanionMissions.Resolve(m.Type, skill, roll, m.Difficulty);
-            ModLog.Info($"[MISSION] {m.CompanionName} {m.Type} resolved: skill {skill}, roll {roll}, diff {m.Difficulty} → {outcome.Result}{(outcome.CompanionCaptured ? " (CAPTURED)" : "")}.");
-
-            return BuildReport(m, outcome);
+            TravelingParty.Destroy(party); // now leaderless — remove the escort party from the world
+            m.PartyId = null;
+            DeliverReport(m, companion);
         }
 
-        // ── Report (templated — the LLM-framing seam) ─────────────────────────
+        // ── News + report ─────────────────────────────────────────────────────
 
-        private string BuildReport(CompanionMission m, CompanionMissionOutcome outcome)
+        private void GatherNews(CompanionMission m, Settlement town)
         {
-            string name = m.CompanionName ?? "Your companion";
+            var rated = WorldEventStore.Instance?.GetKnownEventsRatedAt(town, Today, 4)
+                        ?? new List<(WorldEvent Event, RumorConfidence Confidence)>();
+            int count = CompanionMissions.NewsItemsForResult(m.Quality, rated.Count);
 
-            if (outcome.Result == Logic.MissionResult.Failure)
-                return outcome.CompanionCaptured
-                    ? $"{name} has not returned — word is they were taken on the road."
-                    : $"{name} returns empty-handed; the roads gave up nothing worth telling.";
-
-            WorldEventStore store = WorldEventStore.Instance;
-            int today = Today;
-            var found = store?.GetRecentSignificant(today, /*max*/ 4, MinNewsMagnitude) ?? new List<WorldEvent>();
-            int count = CompanionMissions.NewsItemsForResult(outcome.Result, found.Count);
-
-            if (count == 0)
-                return $"{name} returns, but Calradia has been quiet of late — little worth reporting.";
-
-            var sb = new StringBuilder();
-            sb.AppendLine(outcome.Result == Logic.MissionResult.Success
-                ? $"{name} returns with a full account of the realm's doings:"
-                : $"{name} returns with what little they could gather:");
-            foreach (WorldEvent e in found.Take(count))
-                sb.AppendLine($"- {e.Summary.TrimEnd('.', ' ')}.");
-
-            return sb.ToString().TrimEnd();
+            m.News = rated.Take(count)
+                .Select(t => t.Event?.Summary?.TrimEnd('.', ' '))
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList();
+            m.NewsGathered = true;
+            ModLog.Info($"[MISSION] {m.CompanionName} gathered {m.News.Count} item(s) at {m.DestinationName} (quality {m.Quality}).");
         }
 
-        private static void Announce(Hero companion, string report)
+        private void DeliverReport(CompanionMission m, Hero companion)
         {
-            if (string.IsNullOrWhiteSpace(report)) return;
+            string report = BuildReport(m);
             string headline = report.Split('\n')[0];
             MBInformationManager.AddQuickInformation(new TextObject(headline), 0, companion?.CharacterObject);
             ModLog.Info($"[MISSION] report:\n{report}");
+            // TODO(next increment): open a CR conversation with the companion (the town's rumours injected
+            // as context) so they tell it in their own voice, instead of this banner.
+        }
+
+        private string BuildReport(CompanionMission m)
+        {
+            string name = m.CompanionName ?? "Your companion";
+            string town = m.DestinationName ?? "the town";
+
+            if (!m.NewsGathered)
+                return $"{name} returns from captivity with little to tell — the errand was cut short.";
+            if (m.News.Count == 0)
+                return $"{name} returns from {town}, but the roads were quiet — little worth reporting.";
+
+            var sb = new StringBuilder();
+            sb.AppendLine(m.Quality == Logic.MissionResult.Success
+                ? $"{name} returns from {town} with a full account of the realm's doings:"
+                : $"{name} returns from {town} with what little they gathered:");
+            foreach (string s in m.News) sb.AppendLine($"- {s}.");
+            return sb.ToString().TrimEnd();
+        }
+
+        // ── Capture ───────────────────────────────────────────────────────────
+
+        private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner)
+        {
+            if (prisoner == null) return;
+            CompanionMission m = _active.FirstOrDefault(x => x.CompanionId == prisoner.StringId
+                                                             && x.Phase != CompanionMissionPhase.AwaitingReunion);
+            if (m == null) return;
+
+            m.Phase = CompanionMissionPhase.AwaitingReunion;
+            m.PartyId = null; // the errand party is gone with the capture
+            ModLog.Info($"[MISSION] {m.CompanionName} was taken prisoner — the news waits until they rejoin you.");
+        }
+
+        // ── Console test path ─────────────────────────────────────────────────
+
+        /// <summary>Force-completes the first active errand NOW (gather + reunite + report), skipping travel.</summary>
+        public string ForceResolveFirst()
+        {
+            CompanionMission m = _active.FirstOrDefault();
+            if (m == null) return "No companion is away on an errand.";
+
+            Hero companion = HeroById(m.CompanionId);
+            Settlement dest = Settlement.Find(m.DestinationSettlementId);
+            if (!m.NewsGathered && dest != null) GatherNews(m, dest);
+
+            MobileParty party = FindParty(m.PartyId);
+            if (party != null && companion != null) Reunite(m, companion, party);
+            else
+            {
+                if (companion != null && !companion.IsPrisoner && companion.PartyBelongedTo != MobileParty.MainParty)
+                    try { AddHeroToPartyAction.Apply(companion, MobileParty.MainParty, false); } catch { /* best effort */ }
+                DeliverReport(m, companion);
+            }
+
+            _active.Remove(m);
+            return BuildReport(m);
+        }
+
+        /// <summary>A one-line-per-errand summary of what is in flight.</summary>
+        public string DescribeActive()
+        {
+            if (_active.Count == 0) return "No companions are away on errands.";
+            return string.Join("\n", _active.Select(m =>
+                $"- {m.CompanionName}: {m.Phase} → {m.DestinationName} (quality {m.Quality}{(m.NewsGathered ? ", news in hand" : "")})."));
         }
 
         // ── Lifecycle ─────────────────────────────────────────────────────────
@@ -171,6 +298,7 @@ namespace CalradiaRemembers.Missions
         public override void RegisterEvents()
         {
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+            CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -206,42 +334,72 @@ namespace CalradiaRemembers.Missions
             }
         }
 
-        // ── Diagnostics (console) ─────────────────────────────────────────────
-
-        /// <summary>A one-line-per-errand summary of what is currently in flight.</summary>
-        public string DescribeActive()
-        {
-            if (_active.Count == 0) return "No companions are away on errands.";
-            int today = _active.Count > 0 ? Today : 0;
-            return string.Join("\n", _active.Select(m =>
-                $"- {m.CompanionName}: {m.Type}, returns day {m.ReturnDay} ({Math.Max(0, m.ReturnDay - today)} day(s) left)."));
-        }
-
         #region private
 
         private static int Today => (int) CampaignTime.Now.ToDays;
 
         private static bool IsUsableCompanion(Hero h)
-            => h != null && h.IsAlive && (h.IsPlayerCompanion || h.Clan == Clan.PlayerClan);
-
-        private bool HasActiveMission(string companionId)
-            => _active.Any(m => m.CompanionId == companionId);
+            => h != null && h.IsAlive && (h.IsPlayerCompanion || h.Clan == Clan.PlayerClan)
+               && h.PartyBelongedTo == MobileParty.MainParty;
 
         private static Hero HeroById(string id)
             => string.IsNullOrEmpty(id) ? null : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == id);
 
-        /// <summary>The companion's level in the skill that governs this errand.</summary>
-        private static int GoverningSkillValue(Hero companion, CompanionMissionType type)
+        private static MobileParty FindParty(string id)
+            => string.IsNullOrEmpty(id) ? null : MobileParty.All.FirstOrDefault(p => p.StringId == id);
+
+        private static bool ArrivedAt(MobileParty party, Settlement dest)
+            => party.CurrentSettlement == dest || party.GetPosition2D.Distance(dest.GetPosition2D) < ArrivalDistance;
+
+        private static bool NearPlayer(MobileParty party)
+            => MobileParty.MainParty != null
+               && party.GetPosition2D.Distance(MobileParty.MainParty.GetPosition2D) < ArrivalDistance;
+
+        /// <summary>
+        ///   The town a "news about X" errand rides to: the pure <see cref="NewsDestinationSelector"/>
+        ///   scores all towns (host-ordered by distance, so a tie / no-match resolves to the nearest).
+        /// </summary>
+        private static Settlement ResolveDestination(string about)
         {
-            SkillObject skill;
-            switch (CompanionMissions.GoverningSkill(type))
+            Vec2 from = MobileParty.MainParty?.GetPosition2D ?? Vec2.Zero;
+            var towns = Settlement.All.Where(s => s.IsTown)
+                .OrderBy(s => s.GetPosition2D.Distance(from))
+                .ToList();
+            if (towns.Count == 0) return null;
+
+            var candidates = towns.Select(s => new NewsDestinationCandidate(
+                s.Name?.ToString(), s.MapFaction?.Name?.ToString(), s.Culture?.Name?.ToString())).ToList();
+
+            int idx = NewsDestinationSelector.Choose(about, candidates);
+            return idx >= 0 ? towns[idx] : towns[0];
+        }
+
+        /// <summary>Detaches the companion into their own clan party (vanilla-serialized) with a small escort, bound for the town.</summary>
+        private static MobileParty SpawnTravelingCompanionParty(Hero companion, Settlement dest)
+        {
+            try
             {
-                case MissionSkill.Roguery: skill = DefaultSkills.Roguery; break;
-                case MissionSkill.Trade:   skill = DefaultSkills.Trade; break;
-                case MissionSkill.Charm:   skill = DefaultSkills.Charm; break;
-                default:                   skill = DefaultSkills.Scouting; break;
+                MobileParty party = MobilePartyHelper.CreateNewClanMobileParty(companion, Clan.PlayerClan);
+                if (party == null) return null;
+
+                CharacterObject troop = companion.Culture?.BasicTroop ?? Hero.MainHero?.Culture?.BasicTroop;
+                if (troop != null) party.MemberRoster.AddToCounts(troop, EscortSize);
+
+                TravelingParty.DirectToSettlement(party, dest);
+                return party;
             }
-            return companion.GetSkillValue(skill);
+            catch (Exception ex)
+            {
+                ModLog.Error($"[MISSION] could not spawn errand party for {companion?.Name}: {ex.GetType().Name}: {ex.Message}");
+                return null;
+            }
+        }
+
+        private static void DestroyParty(CompanionMission m)
+        {
+            MobileParty party = FindParty(m.PartyId);
+            if (party != null) TravelingParty.Destroy(party);
+            m.PartyId = null;
         }
 
         #endregion

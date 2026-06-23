@@ -409,26 +409,31 @@ gossip, and from the battle stance bumps, which only touch lords who were actual
 
 ### P. Companion missions — "bring me the news" (NEW — untested in game)
 
-**What it proves:** the dispatch → timer → report loop. A companion sent to gather news returns after a
-few days with an account of the realm's recent doings, scaled by how well the errand went (their Scouting
-skill + a roll). The CR answer to a "world events" panel: news has a *source* and a *delay*.
+**What it proves:** a companion **physically leaves your party** (as their own clan party on the map),
+rides to a town, lingers, and rides back with an account of the realm's doings — scaled by their Scouting
+skill + a roll. News has a *source* and a *delay*. The errand **persists across saves** (no save-scum) and
+**survives capture** (taken prisoner → the news waits and is delivered when they rejoin you).
 
-- **Setup:** have at least one companion in your party. World-events must exist to report (play a while,
-  or `cr.deed_heard` / let battles/sieges happen).
-- **P1 — Dispatch.** `cr.send_news [companion]` → "X rides out to gather word. Expect their report in N
-  days." `cr.missions` lists it with days left. A second `cr.send_news` on the same companion is refused
-  (already away); a too-unskilled companion is refused at the floor.
-- **P2 — The report.** `cr.mission_return [companion]` resolves it now and prints the report: a **full**
-  briefing (several events) on a good roll, a **thinner** one on a middling roll, **empty-handed** on a
-  bad one. Or wait the in-game days and the daily tick delivers it as a banner.
-- **P3 — Persistence (💾).** Dispatch, then **save / reload** before the return day — `cr.missions` should
-  still show the in-flight errand, and it still resolves on its day.
-- **P4 — Ask in conversation.** Open a CR chat with a companion and ask them, in your own words, to go
-  bring back word of the realm / the latest news. They should agree and the errand is registered (check
-  `cr.missions`) — the same as `cr.send_news`, but player-driven. They will NOT recite news on the spot;
-  they bring it back later. (Taught only to your own companions who are free to go and skilled enough.)
-- **MVP cuts (expected, not bugs):** the companion is not physically removed from the party while "away";
-  the returned report is templated (no LLM prose yet).
+- **Setup:** at least one companion in your party. World-events to report (play a while, `cr.deed_heard`,
+  or let battles/sieges happen).
+- **P1 — Dispatch (physical).** `cr.send_news` → your first companion **leaves the party** and a party
+  named for them appears on the map, riding to a town. `cr.send_news Sturgia` scopes it (they ride to a
+  **Sturgian** town); a bare command picks the nearest. `cr.missions` shows the phase/destination. A second
+  send on the same companion is refused; a too-unskilled one is refused.
+- **P2 — Watch them travel (💾).** Follow the party to the town, see it linger, then ride back to you. On
+  reaching you they **rejoin your party** and a report banner appears: a **full** briefing on a good roll,
+  a **thinner** one on a middling roll, **empty-handed** on a bad one. **Save/reload mid-journey** — the
+  errand and the party resume; you cannot reload to re-roll or to get the news instantly.
+- **P3 — Skip the travel (test).** `cr.mission_return` force-completes the first errand now (gather +
+  rejoin + report) so you needn't ride along to verify the report.
+- **P4 — Ask in conversation.** Open a CR chat with a companion and ask them, in your words, to go bring
+  back word (optionally about a faction/place). They agree, leave, and the errand registers — same as
+  `cr.send_news` but player-driven. They do NOT recite news on the spot; they bring it back.
+- **P5 — Capture resilience.** If the errand party is beaten and the companion taken prisoner, the errand
+  flips to *AwaitingReunion* (see `cr.missions`). When you **free them** (they rejoin your party — e.g. your
+  rescue), they deliver whatever news they had. (Pairs with the prisoner-rescue feature.)
+- **MVP cut (expected, not a bug):** the returned report is a banner; the next increment turns it into a
+  CR **conversation** in the companion's own voice.
 
 ---
 

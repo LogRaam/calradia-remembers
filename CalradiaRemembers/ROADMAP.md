@@ -345,18 +345,20 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
   botched risky errand, the loop-closer to prisoner rescue), with `CanAttempt` skill floor, `DurationDays`,
   and `NewsItemsForResult` report sizing. 17 tests. TUNING FLAGGED for Gabriel's ratification — skill
   divisor, the score thresholds, the attempt floor, duration, the risk set.)*
-  *(First slice "BRING ME THE NEWS" BUILT 2026-06-23, UNCOMMITTED, untested in game — `Missions/
-  CompanionMissionBehavior.cs` + `CompanionMission.cs`: dispatch a companion → a TIMER runs → on the
-  return day a templated report is built from `WorldEventStore.GetRecentSignificant` (a new, non-awareness-
-  gated "roving agent" query) and announced; persisted byte[]/JSON, save-safe. Console: `cr.send_news` /
-  `cr.missions` / `cr.mission_return`. DELIBERATE MVP CUTS, flagged for the next pass: timer-only (the
-  companion is NOT physically pulled from / returned to the party) and a templated report (no LLM framing —
-  the seam is `BuildReport`). The risky errands (spy/steal → capture → prisoner rescue) reuse the skeleton next.)*
-  *(In-conversation dispatch BUILT 2026-06-23, UNCOMMITTED, untested in game — the player can ask a companion
-  in chat to go for news: SDK `EncounterContext.CanGatherNews` + `PromptBuilder.AppendCompanionMissionOffer`
-  teach a `gather_news` action to a dispatchable own-companion; `EncounterContextBuilder.ResolveCanGatherNews`
-  gates it (own companion, in party, not away, skilled enough); bridge `ExecuteGatherNews` re-validates and
-  dispatches. The companion brings news back later, never invents it on the spot.)*
+  *("BRING ME THE NEWS" slice BUILT 2026-06-23 — a PERSISTED PHYSICAL JOURNEY (Gabriel's design),
+  UNCOMMITTED, untested in game. `Missions/CompanionMission.cs` (state-machine model) +
+  `CompanionMissionBehavior.cs`: the companion LEAVES the party as a real clan party
+  (`MobilePartyHelper.CreateNewClanMobileParty` — vanilla-serialized, visible on the map, capturable) →
+  rides to a town (from the pure `NewsDestinationSelector` on the `about` topic) → lingers (`DurationDays`) →
+  rides back to the moving player (`TravelingParty.DirectToMovingPoint`) → rejoins (`AddHeroToPartyAction`)
+  and reports. ANTI-EXPLOIT: quality rolled AT DISPATCH, news gathered AT ARRIVAL (`GetKnownEventsRatedAt`),
+  both PERSISTED (JSON byte[]) — a reload can't re-roll or fetch instant news. CAPTURE-RESILIENT:
+  `HeroPrisonerTaken` → AwaitingReunion; the news is delivered when the companion is freed and rejoins you
+  (pairs with prisoner rescue). In-conversation dispatch wired (SDK `CanGatherNews` +
+  `AppendCompanionMissionOffer` teach `gather_news`; bridge re-validates). Console: `cr.send_news [about]` /
+  `cr.missions` / `cr.mission_return`. TESTING_GUIDE scenario P. MVP CUT (flagged): the report is a banner —
+  next increment turns it into a CR CONVERSATION in the companion's voice (seam = `DeliverReport`). The risky
+  errands (spy/steal) reuse this whole skeleton next.)*
   The player tasks a companion in conversation with an errand that resolves off-screen and returns
   as an in-fiction report. This is the CR answer to AI Influence's "world events" panel: instead of a
   free-floating UI feed, **world news has a source, a delay, and a risk** — the player *sends someone*,

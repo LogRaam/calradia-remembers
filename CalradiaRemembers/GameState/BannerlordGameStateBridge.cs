@@ -74,7 +74,7 @@ namespace CalradiaRemembers.GameState
             case "impregnation_risk":
                return ExecuteImpregnationRisk(npcHero);
             case "gather_news":
-               return ExecuteGatherNews(npcHero);
+               return ExecuteGatherNews(action, npcHero);
             default:
                ModLog.Info($"[ACTION] Unknown type '{action.Type}' — ignored.");
 
@@ -1042,7 +1042,7 @@ namespace CalradiaRemembers.GameState
       ///   the realm, and the companion agreed. Dispatches the errand (the behavior re-validates every guard
       ///   — the prompt is advice, the bridge is law) and reports back to the player.
       /// </summary>
-      private static ActionOutcome ExecuteGatherNews(Hero npcHero)
+      private static ActionOutcome ExecuteGatherNews(GameAction action, Hero npcHero)
       {
          try
          {
@@ -1050,7 +1050,12 @@ namespace CalradiaRemembers.GameState
             Missions.CompanionMissionBehavior behavior = Missions.CompanionMissionBehavior.Instance;
             if (behavior == null) return null;
 
-            (bool dispatched, string message) = behavior.Dispatch(npcHero, Logic.CompanionMissionType.GatherNews);
+            // Optional topic the LLM extracted from the player's request ("news about Sturgia" → Sturgia);
+            // null means any/nearest town. The behavior resolves it to a destination.
+            string about = null;
+            action.Parameters?.TryGetValue("about", out about);
+
+            (bool dispatched, string message) = behavior.Dispatch(npcHero, about);
             ModLog.Info($"[ACTION] gather_news: {npcHero.Name} → {(dispatched ? "dispatched" : "refused")}: {message}");
             return new ActionOutcome(message, dispatched);
          }

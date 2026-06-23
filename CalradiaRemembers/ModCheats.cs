@@ -291,10 +291,10 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.send_news [companion]
-      ///   Dispatches a companion on a "bring me the news" errand (the first companion-mission slice).
-      ///   They return after a timer with a report drawn from the world-event store. Pass a name fragment
-      ///   or the first companion is used. Use cr.mission_return to resolve it now instead of waiting.
+      ///   cr.send_news [about]
+      ///   Dispatches your first available companion to gather news — physically: they leave the party as
+      ///   their own clan party and ride to a town. Optional [about] scopes the destination (a faction,
+      ///   culture, or town: "cr.send_news Sturgia"). Use cr.mission_return to skip the travel and resolve now.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("send_news", "cr")]
       public static string SendNews(List<string> args)
@@ -302,10 +302,11 @@ namespace CalradiaRemembers
          if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
          if (Missions.CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
 
-         Hero c = ResolveCompanion(args);
-         if (c == null) return "No companion found. Pass a name fragment, or recruit a companion first.";
+         Hero c = FirstCompanionInParty();
+         if (c == null) return "No companion in your party. Recruit one first.";
 
-         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.GatherNews).Message;
+         string about = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
+         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, about).Message;
       }
 
       /// <summary>cr.missions — lists the errands companions are currently away on.</summary>
@@ -317,31 +318,23 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.mission_return [companion]
-      ///   Force-resolves a companion's in-flight errand NOW and prints the report — the test path so you
-      ///   need not wait the in-game days for the timer.
+      ///   cr.mission_return
+      ///   Force-resolves the first in-flight errand NOW and prints the report — the test path so you need
+      ///   not wait the in-game days for the companion to ride there and back.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("mission_return", "cr")]
       public static string MissionReturn(List<string> args)
       {
          if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-         if (Missions.CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
-
-         Hero c = ResolveCompanion(args);
-         if (c == null) return "No companion found.";
-
-         return Missions.CompanionMissionBehavior.Instance.ForceResolve(c);
+         return Missions.CompanionMissionBehavior.Instance?.ForceResolveFirst() ?? "Companion-mission system is not active.";
       }
 
-      /// <summary>Resolves a player companion by name fragment, or the first available one.</summary>
-      private static Hero ResolveCompanion(List<string> args)
-      {
-         string frag = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
-         var companions = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && (h.IsPlayerCompanion || h.Clan == Clan.PlayerClan));
-         return !string.IsNullOrWhiteSpace(frag)
-            ? companions.FirstOrDefault(h => h.Name != null && h.Name.ToString().IndexOf(frag, StringComparison.OrdinalIgnoreCase) >= 0)
-            : companions.FirstOrDefault();
-      }
+      /// <summary>The first living companion currently in the player's party (skipping any already away).</summary>
+      private static Hero FirstCompanionInParty()
+         => Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero
+               && (h.IsPlayerCompanion || h.Clan == Clan.PlayerClan)
+               && h.PartyBelongedTo == MobileParty.MainParty
+               && Missions.CompanionMissionBehavior.Instance?.IsAway(h.StringId) != true);
 
       /// <summary>
       ///   cr.jealousy_comp
