@@ -118,6 +118,26 @@ namespace CalradiaRemembers.WorldEvents
         public IReadOnlyList<WorldEvent> GetPlayerChronicle()
             => _events.Where(e => e.InvolvesPlayer).OrderBy(e => e.Day).ToList();
 
+        /// <summary>
+        ///   Recent events worth a roving agent's report — the freshest happenings at/above a magnitude,
+        ///   regardless of who would passively know them. A companion sent to GATHER news digs past the
+        ///   player's own horizon, so this is NOT awareness-gated (unlike <see cref="GetKnownEvents"/>).
+        ///   Newest first, then biggest; bounded to <paramref name="max"/> and the recency window.
+        /// </summary>
+        public IReadOnlyList<WorldEvent> GetRecentSignificant(int today, int max, int minMagnitude)
+        {
+            if (_events.Count == 0 || max <= 0) return Array.Empty<WorldEvent>();
+
+            return _events
+                .Where(e => e.Magnitude >= minMagnitude
+                            && !string.IsNullOrWhiteSpace(e.Summary)
+                            && today - e.Day <= RumorAwareness.RecencyWindowDays)
+                .OrderByDescending(e => e.Day)
+                .ThenByDescending(e => e.Magnitude)
+                .Take(max)
+                .ToList();
+        }
+
         /// <summary>The stored event with this id, or null if it never existed or has been pruned.</summary>
         public WorldEvent GetById(string id)
             => string.IsNullOrEmpty(id) ? null : _events.FirstOrDefault(e => e.Id == id);

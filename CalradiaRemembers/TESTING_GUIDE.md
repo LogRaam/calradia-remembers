@@ -148,6 +148,13 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.rumor [settlement]` | Show the street rumours a commoner here would share. |
 | `cr.deed_heard [name]` | Seed a deed of yours that wounds this NPC's faction, then echo what they've heard of you (influence loop). |
 
+### Companion missions (first slice — "bring me the news")
+| Command | Does |
+|---|---|
+| `cr.send_news [companion]` | Dispatch a companion to gather news (timer-based; first companion if no name). |
+| `cr.missions` | List the errands companions are currently away on. |
+| `cr.mission_return [companion]` | Force-resolve a companion's errand now and print the report (skip the wait). |
+
 ### Discovery / misc
 | Command | Does |
 |---|---|
@@ -399,6 +406,25 @@ gossip, and from the battle stance bumps, which only touch lords who were actual
   or of an unrelated minor faction simply won't have heard (the command says so).
 - **O3 — Reputation, not a stance change.** Their persisted Trust/Respect/Fear (`cr.stance`) is NOT moved
   by merely hearing — only real, witnessed acts move it. The deed colours the *conversation*, not the save.
+
+### P. Companion missions — "bring me the news" (NEW — untested in game)
+
+**What it proves:** the dispatch → timer → report loop. A companion sent to gather news returns after a
+few days with an account of the realm's recent doings, scaled by how well the errand went (their Scouting
+skill + a roll). The CR answer to a "world events" panel: news has a *source* and a *delay*.
+
+- **Setup:** have at least one companion in your party. World-events must exist to report (play a while,
+  or `cr.deed_heard` / let battles/sieges happen).
+- **P1 — Dispatch.** `cr.send_news [companion]` → "X rides out to gather word. Expect their report in N
+  days." `cr.missions` lists it with days left. A second `cr.send_news` on the same companion is refused
+  (already away); a too-unskilled companion is refused at the floor.
+- **P2 — The report.** `cr.mission_return [companion]` resolves it now and prints the report: a **full**
+  briefing (several events) on a good roll, a **thinner** one on a middling roll, **empty-handed** on a
+  bad one. Or wait the in-game days and the daily tick delivers it as a banner.
+- **P3 — Persistence (💾).** Dispatch, then **save / reload** before the return day — `cr.missions` should
+  still show the in-flight errand, and it still resolves on its day.
+- **MVP cuts (expected, not bugs):** the companion is not physically removed from the party while "away";
+  the report is templated (no LLM prose yet); dispatch is console-only (no in-conversation request yet).
 
 ---
 

@@ -339,6 +339,20 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
     the file without relaunch).
 
 - **Companion missions — dispatch an agent, a report comes back** *(wished 2026-06-22)*.
+  *(Pure foundation BUILT 2026-06-22, UNCOMMITTED, tests green — `CalradiaRemembers.Logic/
+  CompanionMissions.cs`: the errand enum + governing-skill map + risk flag + the deterministic outcome
+  resolver `Resolve(type, skill, roll, difficulty)` → Success/Partial/Failure (+ CompanionCaptured on a
+  botched risky errand, the loop-closer to prisoner rescue), with `CanAttempt` skill floor, `DurationDays`,
+  and `NewsItemsForResult` report sizing. 17 tests. TUNING FLAGGED for Gabriel's ratification — skill
+  divisor, the score thresholds, the attempt floor, duration, the risk set.)*
+  *(First slice "BRING ME THE NEWS" BUILT 2026-06-23, UNCOMMITTED, untested in game — `Missions/
+  CompanionMissionBehavior.cs` + `CompanionMission.cs`: dispatch a companion → a TIMER runs → on the
+  return day a templated report is built from `WorldEventStore.GetRecentSignificant` (a new, non-awareness-
+  gated "roving agent" query) and announced; persisted byte[]/JSON, save-safe. Console: `cr.send_news` /
+  `cr.missions` / `cr.mission_return`. DELIBERATE MVP CUTS, flagged for the next pass: timer-only (the
+  companion is NOT physically pulled from / returned to the party), templated report (no LLM framing — the
+  seam is `BuildReport`), and console-driven dispatch (no in-conversation `gather_news` action yet). The
+  risky errands (spy/steal → capture → prisoner rescue) reuse the same skeleton next.)*
   The player tasks a companion in conversation with an errand that resolves off-screen and returns
   as an in-fiction report. This is the CR answer to AI Influence's "world events" panel: instead of a
   free-floating UI feed, **world news has a source, a delay, and a risk** — the player *sends someone*,

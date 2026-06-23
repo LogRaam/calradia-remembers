@@ -86,6 +86,10 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new Stance.StanceBehavior());
          // Chronicle (v1.2): persists the LLM-illuminated chronicle prose across the campaign.
          campaignStarter.AddBehavior(new Chronicle.ChronicleBehavior());
+         // Companion missions (first slice "bring me the news"): a dispatched companion returns after a
+         // timer with a report drawn from the world-event store. Decision logic is pure; this persists the
+         // in-flight errands. Registered AFTER WorldEventStore (it reads from it). Console: cr.send_news.
+         campaignStarter.AddBehavior(new Missions.CompanionMissionBehavior());
          Log($"{ModName} campaign behavior registered.");
       }
 
