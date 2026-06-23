@@ -150,8 +150,18 @@ namespace CalradiaRemembers.Quests
                 case QuestType.AttackLord:
                 case QuestType.CapturePrisoner:
                 case QuestType.ExecuteEnemy:
-                case QuestType.RescuePrisoner:
                 case QuestType.DeliverLetter:
+                    return BindHero(quest, proposal.TargetHero, giver);
+
+                case QuestType.RescuePrisoner:
+                    // Self-rescue: a captive lord asking to be broken out names no target — the target IS
+                    // the giver. Otherwise it is the usual third-party rescue (an ally asks for their kin).
+                    if (string.IsNullOrWhiteSpace(proposal.TargetHero) && giver.IsPrisoner)
+                    {
+                        quest.TargetHeroId = giver.StringId;
+                        quest.TargetHeroName = giver.Name?.ToString();
+                        return true;
+                    }
                     return BindHero(quest, proposal.TargetHero, giver);
 
                 case QuestType.ProvideGold:

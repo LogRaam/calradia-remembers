@@ -366,7 +366,19 @@ releases them.
 - **M3 — Release.** Agree to free them → the NPC emits `free_prisoner` → they actually leave your
   Prisoners (no longer captive), and any promised reward (relation / gold / join) applies.
 - **Guard:** `free_prisoner` only frees a lord you genuinely hold — a stray emission can't free anyone.
-- *(Case B — bargaining with a lord ANOTHER faction holds, via a rescue deed — is the next increment.)*
+
+### N. Prisoner bargains for freedom — case B (NEW — untested in game)
+
+**What it proves:** a lord held by ANOTHER faction can ask you to break them out (a rescue deed), paid
+only when you actually free them.
+
+- **Setup:** find a lord currently a prisoner of an enemy (common in war — check the encyclopedia), and
+  visit them (their captor's dungeon). The context flags them `NpcIsPrisonerOfAnother`.
+- **N1 — The rescue bargain.** Speak with them in the CR chat: they may offer gold + goodwill if you
+  break them out, and issue a `rescue_prisoner` deed targeting THEMSELVES (no target named).
+- **N2 — Verified only on a real rescue.** The deed stays outstanding until you actually free them —
+  defeat their captor in the field or storm the settlement holding them. Then it stamps done (reusing
+  the existing rescue verification), and reporting back pays the reward. A promise alone never completes it.
 
 ---
 

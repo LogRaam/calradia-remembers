@@ -80,6 +80,8 @@ namespace CalradiaRemembers.Mapping
             PlayerLooksImportant     = captorIsBandit && PlayerLooksImportant(),
             CompanionAskingPrice     = ResolveCompanionAskingPrice(hero),
             HeldLordPrisoners        = ResolveHeldLordPrisoners(),
+            NpcIsPrisonerOfAnother   = IsPrisonerOfAnother(hero),
+            NpcCaptorName            = IsPrisonerOfAnother(hero) ? hero.PartyBelongedToAsPrisoner?.MapFaction?.Name?.ToString() : null,
             MercenaryOfferKingdom    = ResolveMercenaryOfferKingdom(hero),
             LordRecruitEligible      = ResolveLordRecruitEligible(hero),
             SchemeAgentTargetName    = ResolveSchemeAgentTarget(hero),
@@ -147,6 +149,10 @@ namespace CalradiaRemembers.Mapping
         /// </summary>
         private static int? ResolveCompanionAskingPrice(Hero hero)
             => GameState.RecruitmentPricing.GetHiringPrice(hero);
+
+        /// <summary>True when the NPC is a captive of someone other than the player (case B: a rescue bargain).</summary>
+        private static bool IsPrisonerOfAnother(Hero hero)
+            => hero?.IsPrisoner == true && hero.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero;
 
         /// <summary>
         ///   A prompt-ready list of the LORD captives the player currently holds (name + faction), or

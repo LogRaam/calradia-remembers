@@ -293,7 +293,11 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
   `EndCaptivityAction.ApplyByReleasedByChoice` (guarded: only a lord you truly hold), reward via the
   LLM's own change_relation/give_gold/join_clan. `cr.capture` shortcut to get a test prisoner.
   OPEN: confirm the natural entry point (does the CR option appear in a prisoner-cell conversation, or
-  must a token be hooked) — needs in-game check via cr.capture. Case B (rescue deed) still to build.
+  must a token be hooked) — needs in-game check via cr.capture. **Case B BUILT 2026-06-22** (untested):
+  `NpcIsPrisonerOfAnother` context flag + `AppendPrisonerRescueBargain` (the captive offers a rescue
+  deed) + QuestFactory self-rescue (a `rescue_prisoner` with no named target → target = the giver),
+  verified by the EXISTING battle-rescue path (`FreedPrisonerHeroIds`). Both entry points share the
+  same open question (does the CR option appear in a prisoner-cell conversation).
   A lord held captive may, when the player speaks with them, offer a reward
   for their release. Two cases:
   - **(A) The player's own captive.** Talk to a lord you hold (your party / your settlement's dungeon).
