@@ -154,6 +154,8 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.send_news [about]` | Send your first companion to gather news (optionally scoped: `cr.send_news Sturgia`). |
 | `cr.send_spy [about]` | Send your first companion to scout a town (Roguery) — intel comes back in conversation. |
 | `cr.send_steal [about]` | Send your first companion to lift coin from a town (Roguery) — loot reaches you on return. |
+| `cr.send_barter [about]` | Send your first companion to trade at a town (Trade) — profit reaches you on return. |
+| `cr.send_envoy [about]` | Send your first companion as an envoy (Charm) — the faction's mood comes back in conversation. |
 | `cr.missions` | List the errands companions are currently away on. |
 | `cr.mission_return` | Force-resolve the first errand now and print the report (skip the travel). |
 
@@ -443,6 +445,10 @@ skill + a roll. News has a *source* and a *delay*. The errand **persists across 
   on return your coffers gain the **loot** (full on a good roll, ~40% on a partial, nothing on a failure)
   and they tell you of it. Both are risky errands — the road party can be caught (→ P5). Scope works too:
   `cr.send_spy Vlandia` rides to a Vlandian town.
+- **P8 — Barter & envoy.** `cr.send_barter [about]` (Trade) → a trading **profit** reaches your coffers on
+  return and they tell of it. `cr.send_envoy [about]` (Charm) → the companion brings back a read on the
+  **faction's mood** (who they war with, how settled the town is) in conversation. Same journey, payload by
+  type: news/intel = words, steal/barter = gold, envoy = mood.
 
 ---
 

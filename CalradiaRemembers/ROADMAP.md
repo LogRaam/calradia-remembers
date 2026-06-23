@@ -365,8 +365,36 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
   town (garrison/militia/prosperity/lord whereabouts) in the homecoming conversation; Steal grants LOOT to
   the player on reunion (pure `CompanionMissions.LootForResult`: full/40%/nothing by quality, +4 tests) and
   tells of it. Payload secured at arrival + persisted (anti-exploit). Console: `cr.send_spy [about]` /
-  `cr.send_steal [about]`. TESTING_GUIDE P7. NEXT: conversation-dispatch for spy/steal (news has it; these
-  are console-only so far), and the Barter/Envoy errands. 337 tests.)*
+  `cr.send_steal [about]`. TESTING_GUIDE P7.)*
+  *(BARTER + ENVOY errands BUILT 2026-06-23, UNCOMMITTED, untested in game — all five errand types now ride
+  the one journey. A pure `CompanionMissions.PayloadOf(type)` (News/Intel/Gold/Mood, +1 test) drives WHAT is
+  gathered; the per-type voice stays in the behavior. Barter (Trade) returns a gold profit like Steal;
+  Envoy (Charm) brings back a faction-mood read (wars, settledness) in conversation. Console: `cr.send_barter`
+  / `cr.send_envoy`. TESTING_GUIDE P8. 338 tests. NEXT: in-conversation dispatch for the four console-only
+  errands (only news is voice-dispatchable so far); optional consequences (caught-spying relation hit).)*
+
+  **PLANNED — aggression & patrol errands** *(wished 2026-06-23)*. The same journey, but the companion goes
+  to FIGHT, not just gather: **patrol a sector** (hold a region, engage hostiles that enter), **hunt
+  bandits** (seek and destroy bandit parties in an area), **attack** a named lord's party / **raid** a
+  village or caravan. The defining difference from the gather errands: these need a real FIGHTING FORCE, so
+  dispatch gains a troop-sourcing step — the companion either **recruits** their own (gold + time,
+  Leadership-gated) or **takes troops the player assigns** from the main party at send-off (a transfer
+  step). The OUTCOME is REAL combat, never a roll: the errand party fights through the engine; victory →
+  loot/prisoners come home with them, defeat → the companion is taken (the existing capture-resilience
+  path). Reuses the journey skeleton + capture; adds a target/sector resolver and the troop transfer. Risk
+  scales with the force given. Pairs with happiness below (sending people to die unhappily costs you).
+
+  **PLANNED — companion happiness & retention** *(wished 2026-06-23)*. Each companion carries a HAPPINESS
+  score, distinct from stance (their regard for YOU): it measures their satisfaction in your service.
+  Drivers, all deterministic and pure-testable: idle vs. employed time, errands that SUIT them (a rogue
+  relishes a steal, a warrior a fight) vs. ones that don't, successes vs. failures/captivity, pay / share
+  of loot, being kept from a loved one (ties to marriage + jealousy), and the player's treatment. It decays
+  and recovers over time. Bands: content → restless → wants to leave. At the low end the companion RAISES it
+  in conversation (a grievance), and if unaddressed they DEPART (leave the clan/party). Build order: a pure
+  `CompanionHappiness` model (drivers → score → band) in CalradiaRemembers.Logic + tests FIRST; engine wiring
+  reads game state and surfaces the grievance via the existing stance / letter / conversation paths. Reuses
+  camp life (companions sour on each other) and missions (mission outcomes feed happiness).
+
   The player tasks a companion in conversation with an errand that resolves off-screen and returns
   as an in-fiction report. This is the CR answer to AI Influence's "world events" panel: instead of a
   free-floating UI feed, **world news has a source, a delay, and a risk** — the player *sends someone*,

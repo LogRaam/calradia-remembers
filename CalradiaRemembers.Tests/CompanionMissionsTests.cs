@@ -29,6 +29,19 @@ namespace CalradiaRemembers.Tests
          CompanionMissions.GoverningSkill(CompanionMissionType.Envoy).Should().Be(MissionSkill.Charm);
       }
 
+      // ── Payload kind ───────────────────────────────────────────────────────
+
+      [Test]
+      public void GIVEN_each_errand_WHEN_asked_for_its_payload_THEN_it_maps_to_the_expected_kind()
+      {
+         //Arrange/Act/Assert
+         CompanionMissions.PayloadOf(CompanionMissionType.GatherNews).Should().Be(CompanionMissionPayload.News);
+         CompanionMissions.PayloadOf(CompanionMissionType.Spy).Should().Be(CompanionMissionPayload.Intel);
+         CompanionMissions.PayloadOf(CompanionMissionType.Steal).Should().Be(CompanionMissionPayload.Gold);
+         CompanionMissions.PayloadOf(CompanionMissionType.Barter).Should().Be(CompanionMissionPayload.Gold);
+         CompanionMissions.PayloadOf(CompanionMissionType.Envoy).Should().Be(CompanionMissionPayload.Mood);
+      }
+
       // ── Risk ───────────────────────────────────────────────────────────────
 
       [Test]

@@ -337,6 +337,34 @@ namespace CalradiaRemembers
          return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Steal, about).Message;
       }
 
+      /// <summary>cr.send_barter [about] — sends your first companion to trade at a town (Trade); profit reaches you on return.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("send_barter", "cr")]
+      public static string SendBarter(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (Missions.CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
+
+         Hero c = FirstCompanionInParty();
+         if (c == null) return "No companion in your party. Recruit one first.";
+
+         string about = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
+         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Barter, about).Message;
+      }
+
+      /// <summary>cr.send_envoy [about] — sends your first companion as an envoy to a faction's town (Charm); their mood comes back in conversation.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("send_envoy", "cr")]
+      public static string SendEnvoy(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (Missions.CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
+
+         Hero c = FirstCompanionInParty();
+         if (c == null) return "No companion in your party. Recruit one first.";
+
+         string about = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
+         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Envoy, about).Message;
+      }
+
       /// <summary>cr.missions — lists the errands companions are currently away on.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("missions", "cr")]
       public static string ListMissions(List<string> args)

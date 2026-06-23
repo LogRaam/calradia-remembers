@@ -50,6 +50,7 @@ namespace CalradiaRemembers.Missions
         private const int   NewsDifficulty   = 30;  // a "bring me the news" errand's baseline difficulty
         private const int   MinNewsMagnitude = 35;  // skip trivial happenings from a news report
         private const int   EscortSize       = 8;   // a small escort so they are not caught the first day
+        private const int   GoldBase         = 120; // base haul for a steal/barter errand, before skill + the quality scale
         private const float ArrivalDistance  = 2.0f; // map units counting as "arrived" at town / back at the player
 
         private List<CompanionMission> _active = new List<CompanionMission>();
@@ -126,9 +127,11 @@ namespace CalradiaRemembers.Missions
         {
             switch (type)
             {
-                case CompanionMissionType.Spy:   return "scouting";
-                case CompanionMissionType.Steal: return "thieving";
-                default:                         return "news";
+                case CompanionMissionType.Spy:    return "scouting";
+                case CompanionMissionType.Steal:  return "thieving";
+                case CompanionMissionType.Barter: return "trading";
+                case CompanionMissionType.Envoy:  return "envoy";
+                default:                          return "news";
             }
         }
 
@@ -243,14 +246,15 @@ namespace CalradiaRemembers.Missions
 
         // ── News + report ─────────────────────────────────────────────────────
 
-        /// <summary>Secures the errand's payload at the destination — news, intel, or loot — scaled by quality.</summary>
+        /// <summary>Secures the errand's payload at the destination — news, intel, gold, or mood — scaled by quality.</summary>
         private void PerformErrand(CompanionMission m, Settlement dest)
         {
-            switch (m.Type)
+            switch (CompanionMissions.PayloadOf(m.Type))
             {
-                case CompanionMissionType.Spy:   GatherIntel(m, dest); break;
-                case CompanionMissionType.Steal: ComputeLoot(m, dest); break;
-                default:                         GatherNews(m, dest); break;
+                case CompanionMissionPayload.Intel: GatherIntel(m, dest); break;
+                case CompanionMissionPayload.Gold:  ComputeGold(m, dest); break;
+                case CompanionMissionPayload.Mood:  GatherMood(m, dest); break;
+                default:                            GatherNews(m, dest); break;
             }
             m.NewsGathered = true;
         }
@@ -287,23 +291,43 @@ namespace CalradiaRemembers.Missions
             ModLog.Info($"[MISSION] {m.CompanionName} scouted {dest.Name}: {m.News.Count} item(s) (quality {m.Quality}).");
         }
 
-        private void ComputeLoot(CompanionMission m, Settlement dest)
+        private void ComputeGold(CompanionMission m, Settlement dest)
         {
+            // Steal is Roguery-based, Barter Trade-based — the governing skill sets the base haul either way.
             Hero companion = HeroById(m.CompanionId);
-            int baseAmount = 150 + (companion?.GetSkillValue(DefaultSkills.Roguery) ?? 0);
+            int baseAmount = GoldBase + (companion != null ? GoverningSkillValue(companion, m.Type) : 0);
             m.LootGold = CompanionMissions.LootForResult(m.Quality, baseAmount);
-            m.News = m.LootGold > 0
-                ? new List<string> { $"you lifted {m.LootGold} denars from {dest.Name}" }
-                : new List<string>();
-            ModLog.Info($"[MISSION] {m.CompanionName} stole at {dest.Name}: {m.LootGold} denars (quality {m.Quality}).");
+            ModLog.Info($"[MISSION] {m.CompanionName} {(m.Type == CompanionMissionType.Steal ? "stole" : "traded")} at {dest.Name}: {m.LootGold} denars (quality {m.Quality}).");
+        }
+
+        private void GatherMood(CompanionMission m, Settlement dest)
+        {
+            var lines = new List<string>();
+            IFaction faction = dest.MapFaction;
+            string name   = faction?.Name?.ToString() ?? "the locals";
+            string leader = faction?.Leader?.Name?.ToString();
+
+            lines.Add(leader != null ? $"{name} answers to {leader}" : $"{name} keeps its own counsel");
+
+            var enemies = Kingdom.All
+                .Where(k => faction != null && k != faction && FactionManager.IsAtWarAgainstFaction(faction, k))
+                .Select(k => k.Name?.ToString())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList();
+            lines.Add(enemies.Count > 0 ? $"they are at war with {string.Join(", ", enemies)}" : "they are at peace with their neighbours");
+            lines.Add($"the mood about {dest.Name} reads as {(dest.Town != null && dest.Town.Loyalty >= 50 ? "settled" : "restless")}");
+
+            int count = CompanionMissions.NewsItemsForResult(m.Quality, lines.Count);
+            m.News = lines.Take(count).ToList();
+            ModLog.Info($"[MISSION] {m.CompanionName} took the measure of {name}: {m.News.Count} item(s) (quality {m.Quality}).");
         }
 
         private void DeliverReport(CompanionMission m, Hero companion)
         {
-            // A steal errand's loot reaches the player's coffers on reunion (found gold — no giver).
-            if (m.Type == CompanionMissionType.Steal && m.LootGold > 0)
+            // A gold errand (steal or barter) reaches the player's coffers on reunion (no giver — found coin).
+            if (m.LootGold > 0)
                 try { GiveGoldAction.ApplyBetweenCharacters(null, Hero.MainHero, m.LootGold, true); }
-                catch (Exception ex) { ModLog.Error($"[MISSION] loot grant failed: {ex.Message}"); }
+                catch (Exception ex) { ModLog.Error($"[MISSION] gold grant failed: {ex.Message}"); }
 
             // The report is delivered as a CONVERSATION: stash a directive for the companion to voice on the
             // next talk (consumed once), and nudge the player to go speak with them. The full templated
@@ -336,6 +360,14 @@ namespace CalradiaRemembers.Missions
                     return m.LootGold > 0
                         ? $"You slipped into {town} and got away with {m.LootGold} denars for the player."
                         : $"You tried to lift something in {town}, but came away empty-handed.";
+                case CompanionMissionType.Barter:
+                    return m.LootGold > 0
+                        ? $"You traded shrewdly at {town} and turned a profit of {m.LootGold} denars for the player."
+                        : $"You haggled at {town}, but the markets gave you nothing worth bringing home.";
+                case CompanionMissionType.Envoy:
+                    return m.News.Count == 0
+                        ? $"You carried the player's word toward {town} but learned little of the mood there."
+                        : $"You went as the player's envoy to {town}. What you took of their temper:\n{Bullets(m.News)}";
                 default:
                     return m.News.Count == 0
                         ? $"You rode to {town} and back, but the roads and the town were quiet — you have little of substance to report."
@@ -360,9 +392,14 @@ namespace CalradiaRemembers.Missions
                         ? $"{name} scouted {town} but learned little."
                         : $"{name} scouted {town}:\n{Bullets(m.News)}";
                 case CompanionMissionType.Steal:
+                case CompanionMissionType.Barter:
                     return m.LootGold > 0
                         ? $"{name} returns from {town} with {m.LootGold} denars."
                         : $"{name} returns from {town} empty-handed.";
+                case CompanionMissionType.Envoy:
+                    return m.News.Count == 0
+                        ? $"{name} returns from {town} with little read on its mood."
+                        : $"{name} returns from {town} with the temper of the place:\n{Bullets(m.News)}";
                 default:
                     return m.News.Count == 0
                         ? $"{name} returns from {town}, but the roads were quiet — little worth reporting."

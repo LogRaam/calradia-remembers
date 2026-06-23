@@ -38,6 +38,22 @@ namespace CalradiaRemembers.Logic
         Charm
     }
 
+    /// <summary>The KIND of thing an errand brings back — drives how the host gathers it (flavour/voice is per-type).</summary>
+    public enum CompanionMissionPayload
+    {
+        /// <summary>World-events the destination town has heard (GatherNews).</summary>
+        News,
+
+        /// <summary>A read on a place — strength, holdings, whereabouts (Spy).</summary>
+        Intel,
+
+        /// <summary>Denars: stolen (Steal) or earned by trade (Barter).</summary>
+        Gold,
+
+        /// <summary>A read on a faction's disposition — wars, leaning (Envoy).</summary>
+        Mood
+    }
+
     /// <summary>How well a dispatched companion's errand turned out.</summary>
     public enum MissionResult
     {
@@ -105,6 +121,19 @@ namespace CalradiaRemembers.Logic
         /// <summary>True when a botched errand can get the companion captured (spy / steal).</summary>
         public static bool IsRisky(CompanionMissionType type)
             => type == CompanionMissionType.Spy || type == CompanionMissionType.Steal;
+
+        /// <summary>What an errand brings back, so the host gathers the right payload (the voice stays per-type).</summary>
+        public static CompanionMissionPayload PayloadOf(CompanionMissionType type)
+        {
+            switch (type)
+            {
+                case CompanionMissionType.Spy:    return CompanionMissionPayload.Intel;
+                case CompanionMissionType.Steal:  return CompanionMissionPayload.Gold;
+                case CompanionMissionType.Barter: return CompanionMissionPayload.Gold;
+                case CompanionMissionType.Envoy:  return CompanionMissionPayload.Mood;
+                default:                          return CompanionMissionPayload.News;
+            }
+        }
 
         /// <summary>
         ///   True when the companion is skilled enough in the governing skill to be worth sending at all.
