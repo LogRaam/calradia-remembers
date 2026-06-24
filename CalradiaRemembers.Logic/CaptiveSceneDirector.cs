@@ -1,10 +1,4 @@
-// Code written by Gabriel Mailhot, 15/06/2026. Moved to CalradiaRemembers.Logic 20/06/2026 with the
-// random source injected, so the dramatic pacing is engine-agnostic and unit-testable.
-// Sprint 22: captive scenes are walked as an explicit structure of "acts" (an aggressor + a stage
-//            sequence) so the LLM performs one named beat per turn and can never loop a beat. After
-//            each Climax the director decides — deterministically for queued collective aggressors,
-//            otherwise by a decreasing random roll — whether to run another act or conclude, so a
-//            scene can naturally have "another round" without ever looping forever.
+// Code written by Gabriel Mailhot, 20/06/2026.
 
 #region
 
@@ -22,31 +16,35 @@ namespace CalradiaRemembers.Logic
    ///   full arc Intro → Initiate → Intensify → Climax. After ANY act's Climax the director decides
    ///   the next act:
    ///   <list type="bullet">
-   ///     <item>a queued collective aggressor (another single member, or the whole remaining band at
-   ///       once) takes their turn, OR</item>
-   ///     <item>with a decreasing chance the current aggressor runs ANOTHER act (a new position),
-   ///       OR</item>
+   ///     <item>
+   ///       a queued collective aggressor (another single member, or the whole remaining band at
+   ///       once) takes their turn, OR
+   ///     </item>
+   ///     <item>
+   ///       with a decreasing chance the current aggressor runs ANOTHER act (a new position),
+   ///       OR
+   ///     </item>
    ///     <item>the scene concludes.</item>
    ///   </list>
    ///   A hard cap on total acts guarantees termination. Randomness is injected via
-   ///   <see cref="IRandomSource"/> so every branch can be arranged deterministically in tests.
+   ///   <see cref="IRandomSource" /> so every branch can be arranged deterministically in tests.
    /// </summary>
    public sealed class CaptiveSceneDirector
    {
       private const int MaxActs = 3; // lead + up to two more — bounds total length
+      private readonly Queue<CaptiveAggressorKind> _pendingOthers = new();
 
       private readonly IRandomSource _rng;
-      private readonly Queue<CaptiveAggressorKind> _pendingOthers = new Queue<CaptiveAggressorKind>();
       private CaptiveSceneStage[] _actStages;
-      private int  _stageIndex;
-      private int  _completedActs;
+      private int _completedActs;
+      private int _stageIndex;
 
       public CaptiveSceneDirector(bool collective, int extraAggressors, IRandomSource rng)
       {
          _rng = rng ?? throw new ArgumentNullException(nameof(rng));
 
          // The lead's opening act — the only one that carries an Intro.
-         _actStages       = new[] { CaptiveSceneStage.Intro, CaptiveSceneStage.Initiate, CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax };
+         _actStages = new[] {CaptiveSceneStage.Intro, CaptiveSceneStage.Initiate, CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax};
          CurrentAggressor = CaptiveAggressorKind.Lead;
 
          if (collective && extraAggressors >= 1)
@@ -55,19 +53,17 @@ namespace CalradiaRemembers.Logic
          Sync();
       }
 
-      #region public surface
+      /// <summary>Who acts this turn.</summary>
+      public CaptiveAggressorKind CurrentAggressor { get; private set; } = CaptiveAggressorKind.Lead;
 
       /// <summary>The beat to perform this turn.</summary>
       public CaptiveSceneStage CurrentStage { get; private set; } = CaptiveSceneStage.Intro;
 
-      /// <summary>Who acts this turn.</summary>
-      public CaptiveAggressorKind CurrentAggressor { get; private set; } = CaptiveAggressorKind.Lead;
+      /// <summary>True once the structure is exhausted and the scene should close.</summary>
+      public bool IsConcluding => CurrentStage == CaptiveSceneStage.Conclude;
 
       /// <summary>True when the captor should react to a just-made player intervention this beat.</summary>
       public bool ReactToIntervention { get; private set; }
-
-      /// <summary>True once the structure is exhausted and the scene should close.</summary>
-      public bool IsConcluding => CurrentStage == CaptiveSceneStage.Conclude;
 
       /// <summary>
       ///   "Continue" — the player lets the story move on. Advance to the next beat of the structure.
@@ -75,6 +71,7 @@ namespace CalradiaRemembers.Logic
       public void AdvanceStory()
       {
          ReactToIntervention = false;
+
          if (CurrentStage == CaptiveSceneStage.Conclude) return;
          Advance();
       }
@@ -90,27 +87,13 @@ namespace CalradiaRemembers.Logic
          ReactToIntervention = true;
       }
 
-      #endregion
-
       #region private
 
-      private void QueueOthers(int extraAggressors)
-      {
-         int others = Math.Min(extraAggressors, 2); // party-size already caps witnesses at 2
-
-         // TOGETHER: the remaining men take her at once in one fuller sub-act (lead solo, then a
-         // collective scene) — only with 2+ others. SEQUENTIAL: each takes a compressed turn, and
-         // may decline ("or not").
-         if (others >= 2 && _rng.Next(100) < 50)
-         {
-            _pendingOthers.Enqueue(CaptiveAggressorKind.GroupTogether);
-            return;
-         }
-
-         for (int i = 0; i < others; i++)
-            if (_rng.Next(100) < 70)
-               _pendingOthers.Enqueue(CaptiveAggressorKind.AnotherSingle);
-      }
+      // Decreasing odds of "another round" so most scenes are 1–2 acts, rarely the capped 3.
+      private static int ContinueChance(int completedActs)
+         => completedActs == 1 ? 55
+            : completedActs == 2 ? 35
+            : 0;
 
       private void Advance()
       {
@@ -118,6 +101,7 @@ namespace CalradiaRemembers.Logic
          if (_stageIndex < _actStages.Length)
          {
             Sync();
+
             return;
          }
 
@@ -131,6 +115,7 @@ namespace CalradiaRemembers.Logic
          if (_completedActs >= MaxActs)
          {
             SetConclude();
+
             return;
          }
 
@@ -139,10 +124,11 @@ namespace CalradiaRemembers.Logic
          {
             CurrentAggressor = _pendingOthers.Dequeue();
             _actStages = CurrentAggressor == CaptiveAggressorKind.GroupTogether
-               ? new[] { CaptiveSceneStage.Initiate, CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax }
-               : new[] { CaptiveSceneStage.Initiate, CaptiveSceneStage.Climax };
+               ? new[] {CaptiveSceneStage.Initiate, CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax}
+               : new[] {CaptiveSceneStage.Initiate, CaptiveSceneStage.Climax};
             _stageIndex = 0;
             Sync();
+
             return;
          }
 
@@ -150,24 +136,38 @@ namespace CalradiaRemembers.Logic
          if (_rng.Next(100) < ContinueChance(_completedActs))
          {
             CurrentAggressor = CaptiveAggressorKind.Lead;
-            _actStages = new[] { CaptiveSceneStage.Initiate, CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax };
+            _actStages = new[] {CaptiveSceneStage.Initiate, CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax};
             _stageIndex = 0;
             Sync();
+
             return;
          }
 
          SetConclude();
       }
 
-      // Decreasing odds of "another round" so most scenes are 1–2 acts, rarely the capped 3.
-      private static int ContinueChance(int completedActs)
-         => completedActs == 1 ? 55
-          : completedActs == 2 ? 35
-          : 0;
+      private void QueueOthers(int extraAggressors)
+      {
+         int others = Math.Min(extraAggressors, 2); // party-size already caps witnesses at 2
+
+         // TOGETHER: the remaining men take her at once in one fuller sub-act (lead solo, then a
+         // collective scene) — only with 2+ others. SEQUENTIAL: each takes a compressed turn, and
+         // may decline ("or not").
+         if (others >= 2 && _rng.Next(100) < 50)
+         {
+            _pendingOthers.Enqueue(CaptiveAggressorKind.GroupTogether);
+
+            return;
+         }
+
+         for (var i = 0; i < others; i++)
+            if (_rng.Next(100) < 70)
+               _pendingOthers.Enqueue(CaptiveAggressorKind.AnotherSingle);
+      }
 
       private void SetConclude()
       {
-         CurrentStage     = CaptiveSceneStage.Conclude;
+         CurrentStage = CaptiveSceneStage.Conclude;
          CurrentAggressor = CaptiveAggressorKind.Lead;
       }
 

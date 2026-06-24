@@ -37,7 +37,7 @@ namespace CalradiaRemembers.Lore
          {
             CharacterOverride ov = CharacterOverrideLoader.Set.Resolve(hero.StringId, hero.Name?.ToString());
 
-            if (ov == null || !ov.HasTraits) continue;
+            if (ov is not {HasTraits: true}) continue;
 
             foreach ((AuthoredTrait trait, int level) in ov.ClampedTraitLevels())
             {
@@ -74,7 +74,7 @@ namespace CalradiaRemembers.Lore
          {
             CharacterOverride ov = CharacterOverrideLoader.Set.Resolve(hero.StringId, hero.Name?.ToString());
 
-            if (ov == null || !ov.HasTraits) continue;
+            if (ov is not {HasTraits: true}) continue;
 
             foreach ((AuthoredTrait trait, int _) in ov.ClampedTraitLevels())
             {

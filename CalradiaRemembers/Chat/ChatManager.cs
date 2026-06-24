@@ -110,7 +110,7 @@ namespace CalradiaRemembers.Chat
          else if (captorProfile != null) ActiveViewModel.SetNpcName(captorProfile.Name);
          if (captorHero == null && portraitCharacter != null)
             ActiveViewModel.SetNpcPortraitCharacter(portraitCharacter);
-         if (witnesses != null && witnesses.Count > 0) ActiveViewModel.SetWitnesses(witnesses);
+         if (witnesses is {Count: > 0}) ActiveViewModel.SetWitnesses(witnesses);
 
          // A faceless brigand captor has no Hero — that absence is exactly the bandit signal.
          bool captorIsBandit = captorHero == null;
@@ -129,8 +129,7 @@ namespace CalradiaRemembers.Chat
       {
          Open(profile?.Name);
 
-         if (ActiveViewModel == null) return;
-         ActiveViewModel.ActivateCommonerMode(profile, knowledge);
+         ActiveViewModel?.ActivateCommonerMode(profile, knowledge);
       }
 
       /// <summary>

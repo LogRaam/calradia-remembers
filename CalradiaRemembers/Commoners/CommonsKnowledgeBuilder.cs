@@ -1,10 +1,9 @@
-// Code written by Gabriel Mailhot, 18/06/2026.
+// Code written by Gabriel Mailhot, 19/06/2026.
 
 #region
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -30,29 +29,31 @@ namespace CalradiaRemembers.Commoners
 
          try
          {
-            Kingdom kingdom   = settlement.OwnerClan?.Kingdom;
-            string  kingdomName = kingdom?.Name?.ToString();
-            string  holderName  = settlement.OwnerClan?.Leader?.Name?.ToString();
-            string  culture     = settlement.Culture?.Name?.ToString() ?? "Calradian";
+            Kingdom kingdom = settlement.OwnerClan?.Kingdom;
+            var kingdomName = kingdom?.Name?.ToString();
+            var holderName = settlement.OwnerClan?.Leader?.Name?.ToString();
+            string culture = settlement.Culture?.Name?.ToString() ?? "Calradian";
 
-            string type = settlement.IsTown    ? "town"
-                        : settlement.IsCastle  ? "castle"
-                        : "village";
+            string type = settlement.IsTown ? "town"
+               : settlement.IsCastle ? "castle"
+               : "village";
 
-            int    today       = (int) CampaignTime.Now.ToDays;
-            string rumorBlock  = RumorStore.GetOrGenerate(settlement, today);
+            var today = (int) CampaignTime.Now.ToDays;
+            string rumorBlock = RumorStore.GetOrGenerate(settlement, today);
 
             return new CommonsKnowledge {
                SettlementName = settlement.Name?.ToString(),
                SettlementType = type,
-               HolderName     = holderName,
-               KingdomName    = kingdomName,
-               Culture        = culture,
+               HolderName = holderName,
+               KingdomName = kingdomName,
+               Culture = culture,
                ProsperityMood = DescribeProsperity(settlement),
-               SecurityNote   = DescribeSecurity(settlement),
+               SecurityNote = DescribeSecurity(settlement),
                ActiveWarsNote = DescribeWars(kingdom),
-               LordsPresent   = DescribeLords(settlement),
-               RumorsBlock    = string.IsNullOrWhiteSpace(rumorBlock) ? null : rumorBlock
+               LordsPresent = DescribeLords(settlement),
+               RumorsBlock = string.IsNullOrWhiteSpace(rumorBlock)
+                  ? null
+                  : rumorBlock
             };
          }
          catch (Exception)
@@ -67,26 +68,54 @@ namespace CalradiaRemembers.Commoners
 
       #region private
 
+      private static string DescribeLords(Settlement settlement)
+      {
+         try
+         {
+            // Lords present = heroes without a party who are lords visiting this settlement,
+            // excluding the settlement's own lord.
+            Hero ownerLeader = settlement.OwnerClan?.Leader;
+            var names = new List<string>();
+
+            foreach (Hero hero in settlement.HeroesWithoutParty)
+            {
+               if (!hero.IsLord) continue;
+               if (hero == ownerLeader) continue;
+               if (hero == Hero.MainHero) continue;
+               names.Add(hero.Name?.ToString());
+
+               if (names.Count >= 4) break;
+            }
+
+            return names.Count > 0
+               ? string.Join(", ", names)
+               : null;
+         }
+         catch { return null; }
+      }
+
       private static string DescribeProsperity(Settlement settlement)
       {
          try
          {
-            float p = settlement.IsTown   ? (settlement.Town?.Prosperity ?? 0f)
-                    : settlement.IsVillage ? (settlement.Village?.Hearth  ?? 0f)
-                    : 0f;
+            float p = settlement.IsTown ? settlement.Town?.Prosperity ?? 0f
+               : settlement.IsVillage ? settlement.Village?.Hearth ?? 0f
+               : 0f;
 
             if (settlement.IsTown)
             {
                if (p >= 6000f) return "thriving";
                if (p >= 4000f) return "stable";
                if (p >= 2000f) return "struggling";
+
                return "suffering";
             }
 
             // Village: hearth is 0–1000+ range
-            if (p >= 600f)  return "thriving";
-            if (p >= 300f)  return "stable";
-            if (p >= 100f)  return "struggling";
+            if (p >= 600f) return "thriving";
+            if (p >= 300f) return "stable";
+            if (p >= 100f) return "struggling";
+
             return "suffering";
          }
          catch { return "ordinary"; }
@@ -98,12 +127,12 @@ namespace CalradiaRemembers.Commoners
          {
             if (settlement.IsUnderSiege) return "under siege";
 
-            if (settlement.IsTown)
-            {
-               float security = settlement.Town?.Security ?? 100f;
-               if (security < 25f) return "wracked by unrest and crime";
-               if (security < 50f) return "troubled by banditry on the surrounding roads";
-            }
+            if (!settlement.IsTown) return null;
+
+            float security = settlement.Town?.Security ?? 100f;
+
+            if (security < 25f) return "wracked by unrest and crime";
+            if (security < 50f) return "troubled by banditry on the surrounding roads";
 
             return null;
          }
@@ -126,30 +155,8 @@ namespace CalradiaRemembers.Commoners
 
             if (enemies.Count == 0) return null;
             if (enemies.Count == 1) return $"the kingdom is at war with {enemies[0]}";
+
             return $"the kingdom is at war with {string.Join(", ", enemies)}";
-         }
-         catch { return null; }
-      }
-
-      private static string DescribeLords(Settlement settlement)
-      {
-         try
-         {
-            // Lords present = heroes without a party who are lords visiting this settlement,
-            // excluding the settlement's own lord.
-            Hero ownerLeader = settlement.OwnerClan?.Leader;
-            var  names       = new List<string>();
-
-            foreach (Hero hero in settlement.HeroesWithoutParty)
-            {
-               if (!hero.IsLord) continue;
-               if (hero == ownerLeader) continue;
-               if (hero == Hero.MainHero) continue;
-               names.Add(hero.Name?.ToString());
-               if (names.Count >= 4) break;
-            }
-
-            return names.Count > 0 ? string.Join(", ", names) : null;
          }
          catch { return null; }
       }

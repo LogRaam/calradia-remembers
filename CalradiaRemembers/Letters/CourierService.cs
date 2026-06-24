@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 05/06/2026.
+// Code written by Gabriel Mailhot, 23/06/2026.
 
 #region
 
@@ -9,10 +9,7 @@ using CalradiaRemembers.Storage;
 using CalradiaRemembers.Travel;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
-using TaleWorlds.CampaignSystem.Party.PartyComponents;
-using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -86,6 +83,95 @@ namespace CalradiaRemembers.Letters
          if (CheckPlayerLetterCourierArrival(courier, store)) return;
 
          CheckReplyCourierArrival(courier, store);
+      }
+
+      /// <summary>
+      ///   After a load, in-flight letters carry a courier id pointing to a party that was
+      ///   never saved (despawned before the save). Rather than respawn a fragile party during
+      ///   session launch — which the engine tends to cull moments later, taking the letter
+      ///   down with it — we clear the stale id so the letter falls back to date-based delivery
+      ///   and still arrives. Letters whose courier party IS live (a legacy save made before
+      ///   couriers were kept out of the .sav) are left untouched. Couriers simply go invisible
+      ///   after a load, which is fine — the road was always uncertain.
+      /// </summary>
+      public static void ClearOrphanedCouriers(BannerlordNpcMemoryStore store)
+      {
+         if (store == null) return;
+         var cleared = 0;
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile == null) continue;
+
+            var changed = false;
+
+            foreach (PlayerLetter letter in profile.ReceivedPlayerLetters)
+               if (InFlightWithDeadCourier(letter.CourierPartyId, letter.IsDelivered, letter.IsLost))
+               {
+                  letter.CourierPartyId = null;
+                  cleared++;
+                  changed = true;
+               }
+
+            foreach (PendingLetter letter in profile.SentLetters)
+               if (InFlightWithDeadCourier(letter.CourierPartyId, letter.IsDelivered, letter.IsLost))
+               {
+                  letter.CourierPartyId = null;
+                  cleared++;
+                  changed = true;
+               }
+
+            if (changed) store.Set(profile);
+         }
+
+         DespawnPositions.Clear();
+         if (cleared > 0)
+            ModLog.Info($"[COURIER] {cleared} in-flight letter(s) reverted to date-based delivery after load.");
+      }
+
+      // ── Save safety: keep courier parties OUT of the .sav ─────────────────
+      // A mod-spawned MobileParty in an unusual state at save time (mid bandit
+      // intercept, in a MapEvent…) can corrupt the native load. Rather than risk it,
+      // we despawn every courier before the game serializes and bring them back once
+      // the save is over. The letters they carry persist in the store and are delivered
+      // by a date-based fallback regardless, so nothing is lost to the player.
+
+      /// <summary>
+      ///   Removes every active courier party from the world. Call on OnBeforeSave so a
+      ///   courier <see cref="MobileParty" /> is NEVER serialized — closing the entire class
+      ///   of "an in-flight courier breaks the save on load" failures. Captures each courier's
+      ///   position so <see cref="RespawnInFlight" /> can restore it where it stood.
+      /// </summary>
+      public static void DespawnAll(BannerlordNpcMemoryStore store)
+      {
+         DespawnPositions.Clear();
+
+         _suppressDestroyHandling = true;
+         try
+         {
+            // Snapshot ids first — Disband mutates ActiveCourierIds as it goes.
+            foreach (string partyId in ActiveCourierIds.ToList())
+            {
+               MobileParty courier = FindCourier(partyId);
+
+               if (courier == null) continue;
+               DespawnPositions[partyId] = courier.GetPosition2D;
+               Disband(courier);
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COURIER] DespawnAll failed: {ex.Message}");
+         }
+         finally
+         {
+            _suppressDestroyHandling = false;
+         }
+
+         if (DespawnPositions.Count > 0)
+            ModLog.Info($"[COURIER] despawned {DespawnPositions.Count} courier(s) before save.");
       }
 
       /// <summary>
@@ -177,48 +263,6 @@ namespace CalradiaRemembers.Letters
          ModLog.Info($"[COURIER] rebuilt active set: {ActiveCourierIds.Count} courier(s) in flight.");
       }
 
-      // ── Save safety: keep courier parties OUT of the .sav ─────────────────
-      // A mod-spawned MobileParty in an unusual state at save time (mid bandit
-      // intercept, in a MapEvent…) can corrupt the native load. Rather than risk it,
-      // we despawn every courier before the game serializes and bring them back once
-      // the save is over. The letters they carry persist in the store and are delivered
-      // by a date-based fallback regardless, so nothing is lost to the player.
-
-      /// <summary>
-      ///   Removes every active courier party from the world. Call on OnBeforeSave so a
-      ///   courier <see cref="MobileParty" /> is NEVER serialized — closing the entire class
-      ///   of "an in-flight courier breaks the save on load" failures. Captures each courier's
-      ///   position so <see cref="RespawnInFlight" /> can restore it where it stood.
-      /// </summary>
-      public static void DespawnAll(BannerlordNpcMemoryStore store)
-      {
-         DespawnPositions.Clear();
-
-         _suppressDestroyHandling = true;
-         try
-         {
-            // Snapshot ids first — Disband mutates ActiveCourierIds as it goes.
-            foreach (string partyId in ActiveCourierIds.ToList())
-            {
-               MobileParty courier = FindCourier(partyId);
-               if (courier == null) continue;
-               DespawnPositions[partyId] = courier.GetPosition2D;
-               Disband(courier);
-            }
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[COURIER] DespawnAll failed: {ex.Message}");
-         }
-         finally
-         {
-            _suppressDestroyHandling = false;
-         }
-
-         if (DespawnPositions.Count > 0)
-            ModLog.Info($"[COURIER] despawned {DespawnPositions.Count} courier(s) before save.");
-      }
-
       /// <summary>
       ///   Recreates the visible courier parties for every letter still in flight, from the
       ///   persisted store. Call on OnSaveOver (restoring couriers the pre-save despawn removed,
@@ -229,14 +273,15 @@ namespace CalradiaRemembers.Letters
       public static void RespawnInFlight(BannerlordNpcMemoryStore store)
       {
          if (store == null) return;
-         int respawned = 0;
+         var respawned = 0;
 
          foreach (string id in store.ListIds())
          {
             NpcProfile profile = store.Get(id);
+
             if (profile == null) continue;
 
-            bool changed = false;
+            var changed = false;
 
             // Player → NPC letters.
             foreach (PlayerLetter letter in profile.ReceivedPlayerLetters)
@@ -244,7 +289,10 @@ namespace CalradiaRemembers.Letters
                if (!InFlightWithDeadCourier(letter.CourierPartyId, letter.IsDelivered, letter.IsLost)) continue;
                Hero recipient = Hero.FindFirst(h => h.StringId == letter.RecipientId);
                Vec2? at = TakePosition(letter.CourierPartyId);
-               if (TrySpawnCourier(letter, recipient, spawnOverride: at)) { respawned++; changed = true; }
+
+               if (!TrySpawnCourier(letter, recipient, spawnOverride: at)) continue;
+               respawned++;
+               changed = true;
             }
 
             // NPC → player replies (the sender is the profile's hero).
@@ -253,7 +301,10 @@ namespace CalradiaRemembers.Letters
             {
                if (!InFlightWithDeadCourier(letter.CourierPartyId, letter.IsDelivered, letter.IsLost)) continue;
                Vec2? at = TakePosition(letter.CourierPartyId);
-               if (TrySpawnReplyCourier(letter, sender, at)) { respawned++; changed = true; }
+
+               if (!TrySpawnReplyCourier(letter, sender, at)) continue;
+               respawned++;
+               changed = true;
             }
 
             if (changed) store.Set(profile);
@@ -262,60 +313,6 @@ namespace CalradiaRemembers.Letters
          DespawnPositions.Clear();
          if (respawned > 0) ModLog.Info($"[COURIER] respawned {respawned} in-flight courier(s).");
       }
-
-      /// <summary>
-      ///   After a load, in-flight letters carry a courier id pointing to a party that was
-      ///   never saved (despawned before the save). Rather than respawn a fragile party during
-      ///   session launch — which the engine tends to cull moments later, taking the letter
-      ///   down with it — we clear the stale id so the letter falls back to date-based delivery
-      ///   and still arrives. Letters whose courier party IS live (a legacy save made before
-      ///   couriers were kept out of the .sav) are left untouched. Couriers simply go invisible
-      ///   after a load, which is fine — the road was always uncertain.
-      /// </summary>
-      public static void ClearOrphanedCouriers(BannerlordNpcMemoryStore store)
-      {
-         if (store == null) return;
-         int cleared = 0;
-
-         foreach (string id in store.ListIds())
-         {
-            NpcProfile profile = store.Get(id);
-            if (profile == null) continue;
-
-            bool changed = false;
-
-            foreach (PlayerLetter letter in profile.ReceivedPlayerLetters)
-               if (InFlightWithDeadCourier(letter.CourierPartyId, letter.IsDelivered, letter.IsLost))
-               {
-                  letter.CourierPartyId = null;
-                  cleared++;
-                  changed = true;
-               }
-
-            foreach (PendingLetter letter in profile.SentLetters)
-               if (InFlightWithDeadCourier(letter.CourierPartyId, letter.IsDelivered, letter.IsLost))
-               {
-                  letter.CourierPartyId = null;
-                  cleared++;
-                  changed = true;
-               }
-
-            if (changed) store.Set(profile);
-         }
-
-         DespawnPositions.Clear();
-         if (cleared > 0)
-            ModLog.Info($"[COURIER] {cleared} in-flight letter(s) reverted to date-based delivery after load.");
-      }
-
-      /// <summary>A letter still in flight whose courier party no longer exists in the world.</summary>
-      private static bool InFlightWithDeadCourier(string courierPartyId, bool delivered, bool lost)
-         => !delivered && !lost
-            && !string.IsNullOrEmpty(courierPartyId)
-            && FindCourier(courierPartyId) == null;
-
-      private static Vec2? TakePosition(string oldPartyId)
-         => oldPartyId != null && DespawnPositions.TryGetValue(oldPartyId, out Vec2 p) ? p : (Vec2?) null;
 
       // ── Daily management ──────────────────────────────────────────────────
 
@@ -405,10 +402,13 @@ namespace CalradiaRemembers.Letters
             // A respawn (post-save / post-load) overrides the source with the courier's captured position so
             // it does not jump back to the player. A player writing from shipboard dispatches the courier
             // from the nearest landfall, not the open water.
-            Vec2 spawnPos = spawnOverride
-               ?? (player.IsCurrentlyAtSea ? TravelingParty.NearestLandfall(player.GetPosition2D) : player.GetPosition2D);
+            Vec2 spawnPos = spawnOverride ??
+                            (player.IsCurrentlyAtSea
+                               ? TravelingParty.NearestLandfall(player.GetPosition2D)
+                               : player.GetPosition2D);
 
             MobileParty courier = TravelingParty.Spawn(spawnPos, home, name, speed, recipient.Culture, avoidHostile);
+
             if (courier == null) return false;
 
             DirectCourierToRecipient(courier, recipient);
@@ -447,6 +447,7 @@ namespace CalradiaRemembers.Letters
             var name = new TextObject($"Letter from {sender.Name}");
 
             MobileParty courier = TravelingParty.Spawn(spawnPos, home, name, CourierBaseSpeed, sender.Culture, true);
+
             if (courier == null) return false;
 
             DirectReplyCourierToPlayer(courier, playerParty);
@@ -554,6 +555,7 @@ namespace CalradiaRemembers.Letters
          {
             case Settlement settlement:
                TravelingParty.DirectToSettlement(courier, settlement);
+
                break;
             // EngageParty uses the engine's built-in pursuit AI: the courier dynamically tracks the
             // target party at its own speed without manual position updates. No combat fires because the
@@ -563,6 +565,7 @@ namespace CalradiaRemembers.Letters
                courier.Ai.SetDoNotMakeNewDecisions(false);
                courier.SetMoveEngageParty(party, MobileParty.NavigationType.Default);
                courier.Ai.SetDoNotMakeNewDecisions(true);
+
                break;
          }
       }
@@ -617,6 +620,10 @@ namespace CalradiaRemembers.Letters
             default: return false;
          }
       }
+
+      /// <summary>A letter still in flight whose courier party no longer exists in the world.</summary>
+      private static bool InFlightWithDeadCourier(string courierPartyId, bool delivered, bool lost)
+         => !delivered && !lost && !string.IsNullOrEmpty(courierPartyId) && FindCourier(courierPartyId) == null;
 
       /// <summary>
       ///   Terminal failure: the letter never reaches its recipient (recipient dead,
@@ -742,6 +749,11 @@ namespace CalradiaRemembers.Letters
 
          return changed;
       }
+
+      private static Vec2? TakePosition(string oldPartyId)
+         => oldPartyId != null && DespawnPositions.TryGetValue(oldPartyId, out Vec2 p)
+            ? p
+            : null;
 
       #endregion
    }

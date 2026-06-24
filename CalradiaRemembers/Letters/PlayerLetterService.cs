@@ -3,6 +3,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Missions;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -90,6 +91,16 @@ namespace CalradiaRemembers.Letters
             ModLog.Info($"[PLAYER LETTER] {recipientProfile.Name} cannot receive letters " + $"(dead/captured/absent) — marked undeliverable.");
 
             return deliveryDays;
+         }
+
+         // If the recipient is one of the player's OWN companions currently away on an errand, a letter is how
+         // the player orders them home WITHOUT riding out to meet them. Schedule the verified recall (courier
+         // delay): on a later daily tick they actually abandon the errand and rejoin the party — a real deed,
+         // not just the letter's words. The letter itself still delivers as normal flavour.
+         if (CompanionMissionBehavior.Instance?.IsAway(recipient.StringId) == true)
+         {
+            (bool sent, string msg) = CompanionMissionBehavior.Instance.OrderRecallByLetter(recipient);
+            if (sent) ModLog.Info($"[PLAYER LETTER] recall order to away companion {recipient.Name}: {msg}");
          }
 
          // Spawn a visible courier carrying this letter. On success the courier drives

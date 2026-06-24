@@ -208,8 +208,7 @@ namespace CalradiaRemembers.Tests
 
       // ── Helpers ────────────────────────────────────────────────────────────
 
-      private static CaptiveSceneDirector Solo()
-         => new CaptiveSceneDirector(false, 0, StubRandomSource.AlwaysHigh);
+      private static CaptiveSceneDirector Solo() => new(false, 0, StubRandomSource.AlwaysHigh);
 
       #endregion
    }

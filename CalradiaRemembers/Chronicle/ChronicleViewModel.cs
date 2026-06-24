@@ -1,7 +1,4 @@
 // Code written by Gabriel Mailhot, 19/06/2026.
-// v1.2 Phase 2/3: the chronicle viewer's data. Shows the plain templated deeds or the LLM-illuminated
-// manuscript (with the not-yet-illuminated recent deeds as a "rough tail"), with Illuminate / Rewrite /
-// toggle controls. Refreshed live when an async illumination pass completes.
 
 #region
 
@@ -15,168 +12,303 @@ using TaleWorlds.Library;
 
 namespace CalradiaRemembers.Chronicle
 {
-    /// <summary>View model for the chronicle window.</summary>
-    public sealed class ChronicleViewModel : ViewModel
-    {
-        private string _title = "";
-        private string _emptyText = "";
-        private string _statusText = "";
-        private bool _isEmpty;
-        private bool _isBusy;
-        private bool _canIlluminate;
-        private bool _canRewrite;
-        private bool _canToggle;
-        private string _illuminateButtonText = "Illuminate";
-        private string _toggleButtonText = "Show plain";
-        private bool _illuminatedView;
-        private MBBindingList<ChronicleEntryViewModel> _entries;
+   /// <summary>View model for the chronicle window.</summary>
+   public sealed class ChronicleViewModel : ViewModel
+   {
+      public Action OnCloseRequested;
+      private bool _canIlluminate;
+      private bool _canRewrite;
+      private bool _canToggle;
+      private string _emptyText = "";
+      private MBBindingList<ChronicleEntryViewModel> _entries;
+      private string _illuminateButtonText = "Illuminate";
+      private bool _illuminatedView;
+      private bool _isBusy;
+      private bool _isEmpty;
+      private string _statusText = "";
+      private string _title = "";
+      private string _toggleButtonText = "Show plain";
 
-        public Action OnCloseRequested;
+      public ChronicleViewModel()
+      {
+         _entries = new MBBindingList<ChronicleEntryViewModel>();
+         _illuminatedView = ChronicleIlluminationService.HasIllumination;
+         RefreshFromState();
+      }
 
-        public ChronicleViewModel()
-        {
-            _entries = new MBBindingList<ChronicleEntryViewModel>();
-            _illuminatedView = ChronicleIlluminationService.HasIllumination;
-            RefreshFromState();
-        }
+      [DataSourceProperty]
+      public bool CanIlluminate
+      {
+         get => _canIlluminate;
+         set
+         {
+            if (_canIlluminate == value) return;
+            _canIlluminate = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
-        // ── Bindings ──────────────────────────────────────────────────────────
+      [DataSourceProperty]
+      public bool CanRewrite
+      {
+         get => _canRewrite;
+         set
+         {
+            if (_canRewrite == value) return;
+            _canRewrite = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
-        [DataSourceProperty] public string Title { get => _title; set { if (_title != value) { _title = value; OnPropertyChangedWithValue(value, nameof(Title)); } } }
-        [DataSourceProperty] public string EmptyText { get => _emptyText; set { if (_emptyText != value) { _emptyText = value; OnPropertyChangedWithValue(value, nameof(EmptyText)); } } }
-        [DataSourceProperty] public string StatusText { get => _statusText; set { if (_statusText != value) { _statusText = value; OnPropertyChangedWithValue(value, nameof(StatusText)); } } }
-        [DataSourceProperty] public bool IsEmpty { get => _isEmpty; set { if (_isEmpty != value) { _isEmpty = value; OnPropertyChangedWithValue(value, nameof(IsEmpty)); } } }
-        [DataSourceProperty] public bool HasStatus { get => !string.IsNullOrEmpty(_statusText); }
-        [DataSourceProperty] public bool CanIlluminate { get => _canIlluminate; set { if (_canIlluminate != value) { _canIlluminate = value; OnPropertyChangedWithValue(value, nameof(CanIlluminate)); } } }
-        [DataSourceProperty] public bool CanRewrite { get => _canRewrite; set { if (_canRewrite != value) { _canRewrite = value; OnPropertyChangedWithValue(value, nameof(CanRewrite)); } } }
-        [DataSourceProperty] public bool CanToggle { get => _canToggle; set { if (_canToggle != value) { _canToggle = value; OnPropertyChangedWithValue(value, nameof(CanToggle)); } } }
-        [DataSourceProperty] public string IlluminateButtonText { get => _illuminateButtonText; set { if (_illuminateButtonText != value) { _illuminateButtonText = value; OnPropertyChangedWithValue(value, nameof(IlluminateButtonText)); } } }
-        [DataSourceProperty] public string ToggleButtonText { get => _toggleButtonText; set { if (_toggleButtonText != value) { _toggleButtonText = value; OnPropertyChangedWithValue(value, nameof(ToggleButtonText)); } } }
-        [DataSourceProperty] public string CloseButtonText => "Close";
+      [DataSourceProperty]
+      public bool CanToggle
+      {
+         get => _canToggle;
+         set
+         {
+            if (_canToggle == value) return;
+            _canToggle = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
-        [DataSourceProperty]
-        public MBBindingList<ChronicleEntryViewModel> Entries
-        {
-            get => _entries;
-            set { if (_entries != value) { _entries = value; OnPropertyChangedWithValue(value, nameof(Entries)); } }
-        }
+      [DataSourceProperty]
+      public string CloseButtonText => "Close";
 
-        // ── Commands ──────────────────────────────────────────────────────────
+      [DataSourceProperty]
+      public string EmptyText
+      {
+         get => _emptyText;
+         set
+         {
+            if (_emptyText == value) return;
+            _emptyText = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
-        public void ExecuteIlluminate()
-        {
-            StatusText = ChronicleIlluminationService.Extend();
-            OnPropertyChanged(nameof(HasStatus));
-            RefreshFromState();
-        }
+      [DataSourceProperty]
+      public MBBindingList<ChronicleEntryViewModel> Entries
+      {
+         get => _entries;
+         set
+         {
+            if (_entries == value) return;
+            _entries = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
-        public void ExecuteRewrite()
-        {
-            StatusText = ChronicleIlluminationService.RewriteAll();
-            OnPropertyChanged(nameof(HasStatus));
-            RefreshFromState();
-        }
+      [DataSourceProperty]
+      public bool HasStatus => !string.IsNullOrEmpty(_statusText);
 
-        public void ExecuteToggleView()
-        {
-            _illuminatedView = !_illuminatedView;
-            RefreshFromState();
-        }
+      [DataSourceProperty]
+      public string IlluminateButtonText
+      {
+         get => _illuminateButtonText;
+         set
+         {
+            if (_illuminateButtonText == value) return;
+            _illuminateButtonText = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
-        public void ExecuteClose() => OnCloseRequested?.Invoke();
+      [DataSourceProperty]
+      public bool IsEmpty
+      {
+         get => _isEmpty;
+         set
+         {
+            if (_isEmpty == value) return;
+            _isEmpty = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
-        // ── Refresh ───────────────────────────────────────────────────────────
+      [DataSourceProperty]
+      public string StatusText
+      {
+         get => _statusText;
+         set
+         {
+            if (_statusText == value) return;
+            _statusText = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
-        /// <summary>Rebuilds the window from current state — also called when an async pass completes.</summary>
-        public void RefreshFromState()
-        {
-            string player = Hero.MainHero?.Name?.ToString() ?? "the player";
-            Title = $"THE CHRONICLE OF {player.ToUpperInvariant()}";
+      // ── Bindings ──────────────────────────────────────────────────────────
 
-            _isBusy = ChronicleIlluminationService.IsBusy;
-            bool hasIllum = ChronicleIlluminationService.HasIllumination;
-            int pending = ChronicleIlluminationService.PendingDeedCount();
+      [DataSourceProperty]
+      public string Title
+      {
+         get => _title;
+         set
+         {
+            if (_title == value) return;
+            _title = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
-            if (_isBusy) StatusText = "The chronicler sets quill to vellum.. (this may take a moment)";
-            OnPropertyChanged(nameof(HasStatus));
+      [DataSourceProperty]
+      public string ToggleButtonText
+      {
+         get => _toggleButtonText;
+         set
+         {
+            if (_toggleButtonText == value) return;
+            _toggleButtonText = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
-            CanIlluminate = !_isBusy && pending > 0;
-            CanRewrite    = !_isBusy && hasIllum;
-            CanToggle     = hasIllum;
-            IlluminateButtonText = hasIllum ? "Illuminate new deeds" : "Illuminate";
-            ToggleButtonText = _illuminatedView ? "Show plain" : "Show illuminated";
+      public void ExecuteClose() => OnCloseRequested?.Invoke();
 
-            BuildEntries(hasIllum);
-        }
+      // ── Commands ──────────────────────────────────────────────────────────
 
-        private void BuildEntries(bool hasIllum)
-        {
-            Entries.Clear();
-            IsEmpty = false;
+      public void ExecuteIlluminate()
+      {
+         StatusText = ChronicleIlluminationService.Extend();
+         OnPropertyChanged(nameof(HasStatus));
+         RefreshFromState();
+      }
 
-            IReadOnlyList<WorldEvent> deeds = WorldEventStore.Instance?.GetPlayerChronicle();
-            if (deeds == null || deeds.Count == 0)
-            {
-                IsEmpty = true;
-                EmptyText = "The chronicle of your deeds is yet unwritten.";
-                return;
-            }
+      public void ExecuteRewrite()
+      {
+         StatusText = ChronicleIlluminationService.RewriteAll();
+         OnPropertyChanged(nameof(HasStatus));
+         RefreshFromState();
+      }
 
-            if (_illuminatedView && hasIllum)
-            {
-                Entries.Add(new ChronicleEntryViewModel("", ChronicleIlluminationService.Illuminated));
+      public void ExecuteToggleView()
+      {
+         _illuminatedView = !_illuminatedView;
+         RefreshFromState();
+      }
 
-                int through = ChronicleIlluminationService.ThroughCount;
-                if (through < deeds.Count)
-                {
-                    Entries.Add(new ChronicleEntryViewModel("", "— and since, not yet set to fine hand: —"));
-                    for (int i = through; i < deeds.Count; i++)
-                        Entries.Add(MakeTemplatedEntry(deeds[i]));
-                }
-                return;
-            }
+      // ── Refresh ───────────────────────────────────────────────────────────
 
-            foreach (WorldEvent e in deeds)
-                Entries.Add(MakeTemplatedEntry(e));
-        }
+      /// <summary>Rebuilds the window from current state — also called when an async pass completes.</summary>
+      public void RefreshFromState()
+      {
+         string player = Hero.MainHero?.Name?.ToString() ?? "the player";
+         Title = $"THE CHRONICLE OF {player.ToUpperInvariant()}";
 
-        private static ChronicleEntryViewModel MakeTemplatedEntry(WorldEvent e)
-        {
-            string body = string.IsNullOrWhiteSpace(e.ChronicleLine) ? e.Summary : e.ChronicleLine;
-            return new ChronicleEntryViewModel(ChronicleWriter.DatePhrase(e.Day), Capitalize(body));
-        }
+         _isBusy = ChronicleIlluminationService.IsBusy;
+         bool hasIllum = ChronicleIlluminationService.HasIllumination;
+         int pending = ChronicleIlluminationService.PendingDeedCount();
 
-        private static string Capitalize(string s)
-            => string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s.Substring(1) + (s.EndsWith(".") ? "" : ".");
-    }
+         if (_isBusy) StatusText = "The chronicler sets quill to vellum.. (this may take a moment)";
+         OnPropertyChanged(nameof(HasStatus));
 
-    /// <summary>One chronicle entry: a chronicler's date heading and the deed itself.</summary>
-    public sealed class ChronicleEntryViewModel : ViewModel
-    {
-        private string _dateLine;
-        private string _body;
+         CanIlluminate = !_isBusy && pending > 0;
+         CanRewrite = !_isBusy && hasIllum;
+         CanToggle = hasIllum;
+         IlluminateButtonText = hasIllum
+            ? "Illuminate new deeds"
+            : "Illuminate";
+         ToggleButtonText = _illuminatedView
+            ? "Show plain"
+            : "Show illuminated";
 
-        public ChronicleEntryViewModel(string dateLine, string body)
-        {
-            _dateLine = dateLine;
-            _body = body;
-        }
+         BuildEntries(hasIllum);
+      }
 
-        [DataSourceProperty]
-        public string DateLine
-        {
-            get => _dateLine;
-            set { if (_dateLine != value) { _dateLine = value; OnPropertyChangedWithValue(value, nameof(DateLine)); } }
-        }
+      #region private
 
-        [DataSourceProperty]
-        public string Body
-        {
-            get => _body;
-            set { if (_body != value) { _body = value; OnPropertyChangedWithValue(value, nameof(Body)); } }
-        }
+      private static string Capitalize(string s)
+         => string.IsNullOrEmpty(s)
+            ? s
+            : char.ToUpperInvariant(s[0]) +
+              s.Substring(1) +
+              (s.EndsWith(".")
+                 ? ""
+                 : ".");
 
-        [DataSourceProperty]
-        public bool HasDate => !string.IsNullOrEmpty(_dateLine);
-    }
+      private static ChronicleEntryViewModel MakeTemplatedEntry(WorldEvent e)
+      {
+         string body = string.IsNullOrWhiteSpace(e.ChronicleLine)
+            ? e.Summary
+            : e.ChronicleLine;
+
+         return new ChronicleEntryViewModel(ChronicleWriter.DatePhrase(e.Day), Capitalize(body));
+      }
+
+      private void BuildEntries(bool hasIllum)
+      {
+         Entries.Clear();
+         IsEmpty = false;
+
+         IReadOnlyList<WorldEvent> deeds = WorldEventStore.Instance?.GetPlayerChronicle();
+         if (deeds == null || deeds.Count == 0)
+         {
+            IsEmpty = true;
+            EmptyText = "The chronicle of your deeds is yet unwritten.";
+
+            return;
+         }
+
+         if (_illuminatedView && hasIllum)
+         {
+            Entries.Add(new ChronicleEntryViewModel("", ChronicleIlluminationService.Illuminated));
+
+            int through = ChronicleIlluminationService.ThroughCount;
+
+            if (through >= deeds.Count) return;
+
+            Entries.Add(new ChronicleEntryViewModel("", "— and since, not yet set to fine hand: —"));
+            for (int i = through; i < deeds.Count; i++)
+               Entries.Add(MakeTemplatedEntry(deeds[i]));
+
+            return;
+         }
+
+         foreach (WorldEvent e in deeds)
+            Entries.Add(MakeTemplatedEntry(e));
+      }
+
+      #endregion
+   }
+
+   /// <summary>One chronicle entry: a chronicler's date heading and the deed itself.</summary>
+   public sealed class ChronicleEntryViewModel : ViewModel
+   {
+      private string _body;
+      private string _dateLine;
+
+      public ChronicleEntryViewModel(string dateLine, string body)
+      {
+         _dateLine = dateLine;
+         _body = body;
+      }
+
+      [DataSourceProperty]
+      public string Body
+      {
+         get => _body;
+         set
+         {
+            if (_body == value) return;
+            _body = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      [DataSourceProperty]
+      public string DateLine
+      {
+         get => _dateLine;
+         set
+         {
+            if (_dateLine == value) return;
+            _dateLine = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      [DataSourceProperty]
+      public bool HasDate => !string.IsNullOrEmpty(_dateLine);
+   }
 }

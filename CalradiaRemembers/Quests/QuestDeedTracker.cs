@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 02/06/2026.
+// Code written by Gabriel Mailhot, 22/06/2026.
 
 #region
 
@@ -54,15 +54,15 @@ namespace CalradiaRemembers.Quests
       /// <summary>Flattened facts about a player-won battle, computed once per event.</summary>
       private sealed class BattleFacts
       {
-         public HashSet<string> CaravanFactionIds = new HashSet<string>();
-         public HashSet<string> DefeatedHeroIds = new HashSet<string>();
-         public HashSet<string> FreedPrisonerHeroIds = new HashSet<string>();
+         public HashSet<string> CaravanFactionIds = new();
+         public HashSet<string> DefeatedHeroIds = new();
+         public HashSet<string> FreedPrisonerHeroIds = new();
          public bool HasCaravanLoser;
          public bool IsFieldBattle;
          public bool IsHideout;
          public bool IsRaid;
          public bool IsSiege;
-         public HashSet<string> LoserFactionIds = new HashSet<string>();
+         public HashSet<string> LoserFactionIds = new();
          public bool LosersAreBandits;
          public string SettlementName;
       }
@@ -87,10 +87,7 @@ namespace CalradiaRemembers.Quests
                TroopRosterElement elem = p.MemberRoster.GetElementCopyAtIndex(i);
                total += elem.Number;
                FormationClass fc = elem.Character?.DefaultFormationClass ?? FormationClass.Infantry;
-               if (fc == FormationClass.Cavalry
-                   || fc == FormationClass.HorseArcher
-                   || fc == FormationClass.LightCavalry
-                   || fc == FormationClass.HeavyCavalry)
+               if (fc == FormationClass.Cavalry || fc == FormationClass.HorseArcher || fc == FormationClass.LightCavalry || fc == FormationClass.HeavyCavalry)
                   cavalry += elem.Number;
             }
 
@@ -268,11 +265,10 @@ namespace CalradiaRemembers.Quests
             if (!(s.IsTown || s.IsVillage || s.IsCastle)) continue;
 
             float d = s.GetPosition2D.Distance(pos);
-            if (d < bestDist)
-            {
-               bestDist = d;
-               best = s;
-            }
+
+            if (!(d < bestDist)) continue;
+            bestDist = d;
+            best = s;
          }
 
          return best;
@@ -307,8 +303,7 @@ namespace CalradiaRemembers.Quests
       }
 
       private static bool SettlementMatches(InformalQuest quest, BattleFacts f)
-         => !string.IsNullOrWhiteSpace(quest.TargetSettlement)
-            && string.Equals(quest.TargetSettlement, f.SettlementName, StringComparison.OrdinalIgnoreCase);
+         => !string.IsNullOrWhiteSpace(quest.TargetSettlement) && string.Equals(quest.TargetSettlement, f.SettlementName, StringComparison.OrdinalIgnoreCase);
 
       private static void Stamp(NpcProfile profile, InformalQuest quest, string evidence, int day)
       {
@@ -333,8 +328,7 @@ namespace CalradiaRemembers.Quests
          int day = CurrentDay();
          ForEachOutstandingQuest((profile, quest) =>
          {
-            if (quest.Type == QuestType.ExecuteEnemy
-                && string.Equals(quest.TargetHeroId, victim.StringId, StringComparison.Ordinal))
+            if (quest.Type == QuestType.ExecuteEnemy && string.Equals(quest.TargetHeroId, victim.StringId, StringComparison.Ordinal))
                Stamp(profile, quest, $"Killed {victim.Name} on day {day}", day);
          });
       }
@@ -342,36 +336,15 @@ namespace CalradiaRemembers.Quests
       private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner)
       {
          if (prisoner == null) return;
-         bool byPlayer = capturer == PartyBase.MainParty
-                         || prisoner.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+         bool byPlayer = capturer == PartyBase.MainParty || prisoner.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
 
          if (!byPlayer) return;
 
          int day = CurrentDay();
          ForEachOutstandingQuest((profile, quest) =>
          {
-            if (quest.Type == QuestType.CapturePrisoner
-                && string.Equals(quest.TargetHeroId, prisoner.StringId, StringComparison.Ordinal))
+            if (quest.Type == QuestType.CapturePrisoner && string.Equals(quest.TargetHeroId, prisoner.StringId, StringComparison.Ordinal))
                Stamp(profile, quest, $"Captured {prisoner.Name} on day {day}", day);
-         });
-      }
-
-      /// <summary>
-      ///   A declare_war deed completes only when the PLAYER's own faction is the aggressor against the
-      ///   demanded faction (WarDeclared fires with faction1 = declarer). Being attacked never counts.
-      /// </summary>
-      private void OnWarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail detail)
-      {
-         IFaction player = Hero.MainHero?.MapFaction;
-         if (player == null || faction1 == null || faction2 == null) return;
-
-         int day = CurrentDay();
-         ForEachOutstandingQuest((profile, quest) =>
-         {
-            if (quest.Type == QuestType.DeclareWar
-                && WarDeedMatcher.IsSatisfied(quest.TargetFactionId, faction1.StringId, faction2.StringId, player.StringId))
-               Stamp(profile, quest,
-                  $"Declared war on {quest.TargetFactionName ?? faction2.Name?.ToString()} on day {day}", day);
          });
       }
 
@@ -403,7 +376,7 @@ namespace CalradiaRemembers.Quests
 
       private void OnMapEventEnded(MapEvent mapEvent)
       {
-         if (mapEvent == null || !mapEvent.IsPlayerMapEvent) return;
+         if (mapEvent is not {IsPlayerMapEvent: true}) return;
 
          // Determine the player's side from the event itself — PartyBase.MainParty.Side
          // can already be detached by the time MapEventEnded fires.
@@ -431,8 +404,7 @@ namespace CalradiaRemembers.Quests
                if (p1 != null) list.Add(p1);
             }
 
-         List<PartyBase> losers = list
-                                  ?? new List<PartyBase>();
+         List<PartyBase> losers = list;
 
          var facts = new BattleFacts {
             IsHideout = mapEvent.IsHideoutBattle,
@@ -455,6 +427,25 @@ namespace CalradiaRemembers.Quests
          {
             string evidence = MatchBattle(quest, facts, day);
             if (evidence != null) Stamp(profile, quest, evidence, day);
+         });
+      }
+
+      /// <summary>
+      ///   A declare_war deed completes only when the PLAYER's own faction is the aggressor against the
+      ///   demanded faction (WarDeclared fires with faction1 = declarer). Being attacked never counts.
+      /// </summary>
+      private void OnWarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail detail)
+      {
+         IFaction player = Hero.MainHero?.MapFaction;
+
+         if (player == null || faction1 == null || faction2 == null) return;
+
+         int day = CurrentDay();
+         ForEachOutstandingQuest((profile, quest) =>
+         {
+            if (quest.Type == QuestType.DeclareWar && WarDeedMatcher.IsSatisfied(quest.TargetFactionId, faction1.StringId, faction2.StringId, player.StringId))
+               Stamp(profile, quest,
+                  $"Declared war on {quest.TargetFactionName ?? faction2.Name?.ToString()} on day {day}", day);
          });
       }
 

@@ -303,14 +303,14 @@ namespace CalradiaRemembers.Letters
          int b = (a + 1 + MBRandom.RandomInt(BanditWitnessAgendas.Length - 1)) % BanditWitnessAgendas.Length;
 
          return new List<WitnessEntry> {
-            new WitnessEntry {
+            new() {
                Name = "One of the brigands",
                HeroStringId = null,
                RelationToNpc = "one of your band, crowding in with his own appetite",
                IsPlayerCompanion = false,
                Persona = BanditWitnessAgendas[a]
             },
-            new WitnessEntry {
+            new() {
                Name = "Another brigand",
                HeroStringId = null,
                RelationToNpc = "one of your band, in the thick of it with his own designs",
@@ -401,14 +401,7 @@ namespace CalradiaRemembers.Letters
 
             string id = c.StringId?.ToLowerInvariant() ?? "";
 
-            if (id.Contains("bandit")
-                || id.Contains("brigand")
-                || id.Contains("raider")
-                || id.Contains("outlaw")
-                || id.Contains("looter")
-                || id.Contains("villager")
-                || id.Contains("townswoman")
-                || id.Contains("commoner"))
+            if (id.Contains("bandit") || id.Contains("brigand") || id.Contains("raider") || id.Contains("outlaw") || id.Contains("looter") || id.Contains("villager") || id.Contains("townswoman") || id.Contains("commoner"))
                return c;
          }
 
@@ -427,7 +420,7 @@ namespace CalradiaRemembers.Letters
             party.MapFaction?.Name?.ToString() ?? "Brigands", leaderIsFemale);
 
       private static List<WitnessEntry> BuildSoldierWitnesses()
-         => new List<WitnessEntry> {
+         => new() {
             new WitnessEntry {
                Name = "A soldier",
                HeroStringId = null,
@@ -484,10 +477,7 @@ namespace CalradiaRemembers.Letters
          var witnesses = new List<WitnessEntry>();
 
          foreach (Hero hero in Hero.AllAliveHeroes
-                                   .Where(h => h.PartyBelongedTo == captorParty
-                                               && h != captor
-                                               && !h.IsHumanPlayerCharacter
-                                               && h.IsAlive)
+                                   .Where(h => h.PartyBelongedTo == captorParty && h != captor && !h.IsHumanPlayerCharacter && h.IsAlive)
                                    .Take(2))
          {
             NpcProfile p = store.Get(hero.StringId);
@@ -512,9 +502,7 @@ namespace CalradiaRemembers.Letters
             ? 50
             : 3;
 
-         if (MBRandom.RandomInt(100) < spoilChance
-             && captor.Romantic != null
-             && captor.Romantic.IsCompatibleWith(playerIsFemale))
+         if (MBRandom.RandomInt(100) < spoilChance && captor.Romantic != null && captor.Romantic.IsCompatibleWith(playerIsFemale))
             return CaptiveSceneIntent.PersonalDesire;
 
          int roll = MBRandom.RandomInt(100);

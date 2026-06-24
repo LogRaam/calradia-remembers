@@ -17,10 +17,14 @@ namespace CalradiaRemembers.Letters
    ///   Suppresses the two vanilla events that cut a bandit captivity short before a
    ///   Calradia Remembers captive scene gets a chance to fire:
    ///   <list type="bullet">
-   ///     <item>the captor's ransom offer ("he proposes to free you in return for N gold") —
-   ///       cancelled entirely; and</item>
-   ///     <item>the spontaneous escape ("you find a chance and escape from your captors") —
-   ///       re-rolled, so it still happens but far less often.</item>
+   ///     <item>
+   ///       the captor's ransom offer ("he proposes to free you in return for N gold") —
+   ///       cancelled entirely; and
+   ///     </item>
+   ///     <item>
+   ///       the spontaneous escape ("you find a chance and escape from your captors") —
+   ///       re-rolled, so it still happens but far less often.
+   ///     </item>
    ///   </list>
    ///   The native <c>PlayerCaptivityCampaignBehavior.CheckCaptivityChange</c> tick never applies
    ///   <c>EndCaptivityAction</c> itself — it only <see cref="GameMenu.SwitchToMenu" />es to the
@@ -32,23 +36,21 @@ namespace CalradiaRemembers.Letters
    [HarmonyPatch(typeof(GameMenu), nameof(GameMenu.SwitchToMenu))]
    public static class VanillaCaptivityPatch
    {
+      // Fraction of vanilla escape rolls to cancel. Each cancelled attempt simply defers to the
+      // next captivity check, which re-rolls — escape stays possible, just rarer (~1 in 3 here).
+      private const float EscapeSuppressChance = 0.70f;
+
       // The "dragged about as a prisoner, you escape" menus (wilderness + held in a settlement).
-      private static readonly HashSet<string> EscapeMenus = new HashSet<string>(StringComparer.Ordinal)
-      {
+      private static readonly HashSet<string> EscapeMenus = new(StringComparer.Ordinal) {
          "menu_captivity_end_wilderness_escape",
          "menu_captivity_end_prison_escape"
       };
 
       // The "he proposes to free you for N gold" ransom-offer menus.
-      private static readonly HashSet<string> RansomMenus = new HashSet<string>(StringComparer.Ordinal)
-      {
+      private static readonly HashSet<string> RansomMenus = new(StringComparer.Ordinal) {
          "menu_captivity_end_propose_ransom_in_prison",
          "menu_captivity_end_propose_ransom_wilderness"
       };
-
-      // Fraction of vanilla escape rolls to cancel. Each cancelled attempt simply defers to the
-      // next captivity check, which re-rolls — escape stays possible, just rarer (~1 in 3 here).
-      private const float EscapeSuppressChance = 0.70f;
 
       /// <summary>
       ///   Returns false (skips the native switch) to cancel a ransom offer outright, or to
@@ -65,16 +67,14 @@ namespace CalradiaRemembers.Letters
          if (RansomMenus.Contains(menuId))
          {
             ModLog.Info($"[CAPTIVITY] vanilla ransom offer '{menuId}' suppressed — bandits do not bargain you free.");
+
             return false;
          }
 
-         if (MBRandom.RandomFloat < EscapeSuppressChance)
-         {
-            ModLog.Info($"[CAPTIVITY] vanilla escape '{menuId}' re-rolled away — the player stays captive.");
-            return false;
-         }
+         if (!(MBRandom.RandomFloat < EscapeSuppressChance)) return true; // the escape stands this time
+         ModLog.Info($"[CAPTIVITY] vanilla escape '{menuId}' re-rolled away — the player stays captive.");
 
-         return true; // the escape stands this time
+         return false;
       }
    }
 }

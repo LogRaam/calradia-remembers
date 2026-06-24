@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 02/06/2026.
+// Code written by Gabriel Mailhot, 21/06/2026.
 
 #region
 
@@ -38,29 +38,28 @@ namespace CalradiaRemembers.Letters
       // Minimum days between two letters from the same NPC (anti-spam).
       private const int DefaultCooldownDays = 15;
 
-      // We cap how many letters queue up from a single event.
-      private const int MaxLettersPerEvent = 2;
-
       // Cumulative anti-flood: at most ONE unprompted daily-correspondence letter per this many days
       // across ALL NPCs, on top of each NPC's own cooldown. Stops a player with many correspondents
       // from being buried (tester feedback). Non-persisted — a reload may let one extra through.
       private const int GlobalLetterCooldownDays = 4;
+
+      // We cap how many letters queue up from a single event.
+      private const int MaxLettersPerEvent = 2;
       private int _lastDailyLetterDay = -1;
 
       // ── Daily evaluation (called from OnDailyTick) ────────────────────────
 
       public void EvaluateDaily(BannerlordNpcMemoryStore store, LlmServices llmServices, int today)
       {
-         if (!LetterCadence.CanSendGlobally(_lastDailyLetterDay < 0 ? (int?) null : _lastDailyLetterDay,
-                                            today, GlobalLetterCooldownDays))
+         if (!LetterCadence.CanSendGlobally(_lastDailyLetterDay < 0
+                   ? null
+                   : _lastDailyLetterDay,
+                today, GlobalLetterCooldownDays))
             return;
 
          // At most one daily-correspondence letter per tick (the || short-circuits after the first
          // that fires), and only once per global window.
-         bool queued = EvaluateRomanticCorrespondence(store, llmServices, today)
-                       || EvaluateAwaitingReplies(store, llmServices, today)
-                       || EvaluateSpouseCorrespondence(store, llmServices, today)
-                       || EvaluateMarriageSolicitations(store, llmServices, today);
+         bool queued = EvaluateRomanticCorrespondence(store, llmServices, today) || EvaluateAwaitingReplies(store, llmServices, today) || EvaluateSpouseCorrespondence(store, llmServices, today) || EvaluateMarriageSolicitations(store, llmServices, today);
 
          if (queued) _lastDailyLetterDay = today;
       }
@@ -88,41 +87,6 @@ namespace CalradiaRemembers.Letters
       private static int DaysSinceLastEvent(NpcProfile profile, int today)
          => LetterCadence.DaysSinceLastEvent(profile, today);
 
-      // ── Daily condition evaluators ─────────────────────────────────────────
-
-      private static bool EvaluateRomanticCorrespondence(
-         BannerlordNpcMemoryStore store,
-         LlmServices llmServices,
-         int today)
-      {
-         foreach (string id in store.ListIds())
-         {
-            NpcProfile profile = store.Get(id);
-
-            if (profile?.Romantic == null) continue;
-            if (profile.Romantic.Status < RomanticStatus.Courting) continue;
-            if (profile.ReputationWithPlayer < 15) continue;
-
-            Hero hero = Hero.FindFirst(h => h.StringId == id);
-
-            if (hero == null || !hero.IsAlive) continue;
-            if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
-
-            if (!CanSendLetter(profile, today, 10)) continue;
-            if (DaysSinceLastEvent(profile, today) < 3) continue; // met recently
-
-            string context = $"Romantic status: {profile.Romantic.Status}. " + $"Last saw the player {DaysSinceLastEvent(profile, today)} days ago.";
-
-            LetterGenerationService.QueueInitialLetter(
-               profile, hero, LetterReason.RomanticCorrespondence, context,
-               llmServices, store, today);
-
-            return true; // one romantic letter per daily tick
-         }
-
-         return false;
-      }
-
       /// <summary>
       ///   Checks for romantic letters that were delivered but never answered. When the
       ///   player has gone silent for five days after reading an NPC's romantic letter,
@@ -144,7 +108,7 @@ namespace CalradiaRemembers.Letters
 
             Hero hero = Hero.FindFirst(h => h.StringId == id);
 
-            if (hero == null || !hero.IsAlive) continue;
+            if (hero is not {IsAlive: true}) continue;
             if (IsWithPlayer(hero)) continue;
 
             // Find a delivered romantic letter with no player reply after 5 days.
@@ -157,6 +121,7 @@ namespace CalradiaRemembers.Letters
                if (today - l.DeliveryDay < 5) continue;
 
                unanswered = l;
+
                break;
             }
 
@@ -168,20 +133,20 @@ namespace CalradiaRemembers.Letters
 
             // Legacy fallback for saves pre-dating FollowUpSent: if the follow-up letter
             // still exists in SentLetters, backfill the flag and skip.
-            bool followUpPresent = false;
+            var followUpPresent = false;
             foreach (PendingLetter l in profile.SentLetters)
-            {
                if (l.Reason == LetterReason.AwaitingReply && l.SentOnDay > unanswered.SentOnDay)
                {
                   followUpPresent = true;
+
                   break;
                }
-            }
 
             if (followUpPresent)
             {
                unanswered.FollowUpSent = true;
                store.Set(profile);
+
                continue;
             }
 
@@ -196,50 +161,8 @@ namespace CalradiaRemembers.Letters
                llmServices, store, today);
 
             ModLog.Info($"[LETTER] {profile.Name} sends awaiting-reply follow-up ({daysSince}d of silence).");
+
             return true; // one follow-up per daily tick
-         }
-
-         return false;
-      }
-
-      private static bool EvaluateSpouseCorrespondence(
-         BannerlordNpcMemoryStore store,
-         LlmServices llmServices,
-         int today)
-      {
-         // Native (legal) spouse.
-         Hero spouse = Hero.MainHero?.Spouse;
-         if (spouse != null && spouse.IsAlive && !IsWithPlayer(spouse))
-         {
-            NpcProfile profile = store.Get(spouse.StringId);
-            if (profile != null && CanSendLetter(profile, today, 7) && DaysSinceLastEvent(profile, today) >= 5)
-            {
-               string ctx = $"Player's spouse. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
-               LetterGenerationService.QueueInitialLetter(
-                  profile, spouse, LetterReason.SpouseCorrespondence, ctx,
-                  llmServices, store, today);
-               return true;
-            }
-         }
-
-         // Consorts — committed partners recognised by the mod but not by the game engine.
-         foreach (string id in store.ListIds())
-         {
-            NpcProfile profile = store.Get(id);
-            if (profile?.Romantic?.IsConsort != true) continue;
-            if (profile.Romantic.Status != RomanticStatus.Committed) continue;
-
-            Hero hero = Hero.FindFirst(h => h.StringId == id);
-            if (hero == null || !hero.IsAlive) continue;
-            if (IsWithPlayer(hero)) continue;
-            if (!CanSendLetter(profile, today, 10)) continue;
-            if (DaysSinceLastEvent(profile, today) < 7) continue;
-
-            string context = $"Player's consort. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
-            LetterGenerationService.QueueInitialLetter(
-               profile, hero, LetterReason.SpouseCorrespondence, context,
-               llmServices, store, today);
-            return true; // one consort letter per daily tick
          }
 
          return false;
@@ -256,31 +179,37 @@ namespace CalradiaRemembers.Letters
          LlmServices llmServices,
          int today)
       {
-         if (Hero.MainHero?.Spouse != null) return false;          // player already wed
-         if (Clan.PlayerClan?.Tier < 1) return false;              // no standing
+         if (Hero.MainHero?.Spouse != null) return false; // player already wed
+         if (Clan.PlayerClan?.Tier < 1) return false; // no standing
 
          foreach (string id in store.ListIds())
          {
             NpcProfile profile = store.Get(id);
+
             if (profile == null) continue;
             if (profile.ReputationWithPlayer < 20) continue;
 
             Hero hero = Hero.FindFirst(h => h.StringId == id);
-            if (hero == null || !hero.IsAlive || !hero.IsLord) continue;
+
+            if (hero is not {IsAlive: true} || !hero.IsLord) continue;
             if (IsWithPlayer(hero)) continue;
 
             // Build prospects — non-empty means this NPC has authority and eligible kin.
             string prospects = MarriageProspectResolver.Build(hero);
+
             if (string.IsNullOrWhiteSpace(prospects)) continue;
 
             if (!CanSendLetter(profile, today, 30)) continue;
 
             // Only one marriage proposal letter ever (avoid pestering the player).
-            bool alreadySent = false;
+            var alreadySent = false;
             foreach (PendingLetter l in profile.SentLetters)
-            {
-               if (l.Reason == LetterReason.MarriageProposal) { alreadySent = true; break; }
-            }
+               if (l.Reason == LetterReason.MarriageProposal)
+               {
+                  alreadySent = true;
+
+                  break;
+               }
 
             if (alreadySent) continue;
 
@@ -293,7 +222,90 @@ namespace CalradiaRemembers.Letters
                llmServices, store, today);
 
             ModLog.Info($"[LETTER] {profile.Name} sends marriage solicitation to player.");
+
             return true; // one solicitation per daily tick
+         }
+
+         return false;
+      }
+
+      // ── Daily condition evaluators ─────────────────────────────────────────
+
+      private static bool EvaluateRomanticCorrespondence(
+         BannerlordNpcMemoryStore store,
+         LlmServices llmServices,
+         int today)
+      {
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile?.Romantic == null) continue;
+            if (profile.Romantic.Status < RomanticStatus.Courting) continue;
+            if (profile.ReputationWithPlayer < 15) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+
+            if (hero is not {IsAlive: true}) continue;
+            if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
+
+            if (!CanSendLetter(profile, today, 10)) continue;
+            if (DaysSinceLastEvent(profile, today) < 3) continue; // met recently
+
+            string context = $"Romantic status: {profile.Romantic.Status}. " + $"Last saw the player {DaysSinceLastEvent(profile, today)} days ago.";
+
+            LetterGenerationService.QueueInitialLetter(
+               profile, hero, LetterReason.RomanticCorrespondence, context,
+               llmServices, store, today);
+
+            return true; // one romantic letter per daily tick
+         }
+
+         return false;
+      }
+
+      private static bool EvaluateSpouseCorrespondence(
+         BannerlordNpcMemoryStore store,
+         LlmServices llmServices,
+         int today)
+      {
+         // Native (legal) spouse.
+         Hero spouse = Hero.MainHero?.Spouse;
+         if (spouse is {IsAlive: true} && !IsWithPlayer(spouse))
+         {
+            NpcProfile profile = store.Get(spouse.StringId);
+            if (profile != null && CanSendLetter(profile, today, 7) && DaysSinceLastEvent(profile, today) >= 5)
+            {
+               var ctx = $"Player's spouse. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
+               LetterGenerationService.QueueInitialLetter(
+                  profile, spouse, LetterReason.SpouseCorrespondence, ctx,
+                  llmServices, store, today);
+
+               return true;
+            }
+         }
+
+         // Consorts — committed partners recognised by the mod but not by the game engine.
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile?.Romantic?.IsConsort != true) continue;
+            if (profile.Romantic.Status != RomanticStatus.Committed) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+
+            if (hero is not {IsAlive: true}) continue;
+            if (IsWithPlayer(hero)) continue;
+            if (!CanSendLetter(profile, today, 10)) continue;
+            if (DaysSinceLastEvent(profile, today) < 7) continue;
+
+            var context = $"Player's consort. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
+            LetterGenerationService.QueueInitialLetter(
+               profile, hero, LetterReason.SpouseCorrespondence, context,
+               llmServices, store, today);
+
+            return true; // one consort letter per daily tick
          }
 
          return false;
@@ -358,12 +370,11 @@ namespace CalradiaRemembers.Letters
 
             Hero hero = Hero.FindFirst(h => h.StringId == id);
 
-            if (hero == null || !hero.IsAlive) continue;
+            if (hero is not {IsAlive: true}) continue;
             if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
 
             // Ally of the player (same faction or high personal regard) celebrates.
-            bool sameOrAllied = hero.MapFaction != null
-                                && hero.MapFaction == Hero.MainHero?.MapFaction;
+            bool sameOrAllied = hero.MapFaction != null && hero.MapFaction == Hero.MainHero?.MapFaction;
 
             if (!sameOrAllied || profile.ReputationWithPlayer < 20) continue;
 

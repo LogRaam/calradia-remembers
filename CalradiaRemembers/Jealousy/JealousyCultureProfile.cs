@@ -1,5 +1,4 @@
-// Code written by Gabriel Mailhot, 19/06/2026.
-// Sprint 24 (jealousy): per-culture jealousy norm, loaded from ModuleData/jealousy_cultures.json.
+// Code written by Gabriel Mailhot, 20/06/2026.
 
 #region
 
@@ -10,44 +9,44 @@ using Newtonsoft.Json;
 
 namespace CalradiaRemembers.Jealousy
 {
-    /// <summary>
-    ///   The on-disk shape of a culture's stance on romantic exclusivity, deserialized from
-    ///   <c>jealousy_cultures.json</c>. Every field is optional; the defaults here describe a
-    ///   strictly monogamous culture, so any culture not listed — including ones added by faction
-    ///   mods — degrades safely to monogamous behaviour. The parsing and the tolerance rule live in
-    ///   the testable <see cref="JealousyCulture" />; call <see cref="ToCulture" /> to get it.
-    /// </summary>
-    public sealed class JealousyCultureProfile
-    {
-        /// <summary>Raw JSON value ("Low"/"Medium"/"High"); parsed in <see cref="ToCulture" />.</summary>
-        [JsonProperty("exclusivityOutrage")]
-        public string ExclusivityOutrage { get; set; } = "High";
+   /// <summary>
+   ///   The on-disk shape of a culture's stance on romantic exclusivity, deserialized from
+   ///   <c>jealousy_cultures.json</c>. Every field is optional; the defaults here describe a
+   ///   strictly monogamous culture, so any culture not listed — including ones added by faction
+   ///   mods — degrades safely to monogamous behaviour. The parsing and the tolerance rule live in
+   ///   the testable <see cref="JealousyCulture" />; call <see cref="ToCulture" /> to get it.
+   /// </summary>
+   public sealed class JealousyCultureProfile
+   {
+      /// <summary>The strictly-monogamous fallback used for any culture not present in the file.</summary>
+      public static JealousyCultureProfile Monogamous { get; } = new();
 
-        /// <summary>
-        ///   Minimum clan tier (0..6) at/above which sharing partners is culturally tolerated.
-        ///   Below this tier the culture behaves monogamously — capturing that historical polygamy
-        ///   was concentrated among the elite. The default (99) is never reachable.
-        /// </summary>
-        [JsonProperty("polygamyEliteTier")]
-        public int PolygamyEliteTier { get; set; } = 99;
+      /// <summary>True when the offence is UNEQUAL treatment of partners rather than rank itself (Aserai).</summary>
+      [JsonProperty("equityExpectation")]
+      public bool EquityExpectation { get; set; }
 
-        /// <summary>Raw JSON value ("Low"/"Medium"/"High"); parsed in <see cref="ToCulture" />.</summary>
-        [JsonProperty("hierarchySensitivity")]
-        public string HierarchySensitivity { get; set; } = "Low";
+      /// <summary>Raw JSON value ("Low"/"Medium"/"High"); parsed in <see cref="ToCulture" />.</summary>
+      [JsonProperty("exclusivityOutrage")]
+      public string ExclusivityOutrage { get; set; } = "High";
 
-        /// <summary>True when the offence is UNEQUAL treatment of partners rather than rank itself (Aserai).</summary>
-        [JsonProperty("equityExpectation")]
-        public bool EquityExpectation { get; set; }
+      /// <summary>Raw JSON value ("Low"/"Medium"/"High"); parsed in <see cref="ToCulture" />.</summary>
+      [JsonProperty("hierarchySensitivity")]
+      public string HierarchySensitivity { get; set; } = "Low";
 
-        /// <summary>One-sentence cultural framing injected into the jealous party's reaction prompt.</summary>
-        [JsonProperty("promptHint")]
-        public string PromptHint { get; set; } = "";
+      /// <summary>
+      ///   Minimum clan tier (0..6) at/above which sharing partners is culturally tolerated.
+      ///   Below this tier the culture behaves monogamously — capturing that historical polygamy
+      ///   was concentrated among the elite. The default (99) is never reachable.
+      /// </summary>
+      [JsonProperty("polygamyEliteTier")]
+      public int PolygamyEliteTier { get; set; } = 99;
 
-        /// <summary>The strictly-monogamous fallback used for any culture not present in the file.</summary>
-        public static JealousyCultureProfile Monogamous { get; } = new JealousyCultureProfile();
+      /// <summary>One-sentence cultural framing injected into the jealous party's reaction prompt.</summary>
+      [JsonProperty("promptHint")]
+      public string PromptHint { get; set; } = "";
 
-        /// <summary>Parses this DTO into the pure, testable culture value object.</summary>
-        public JealousyCulture ToCulture()
-            => JealousyCulture.FromRaw(ExclusivityOutrage, PolygamyEliteTier, HierarchySensitivity, EquityExpectation, PromptHint);
-    }
+      /// <summary>Parses this DTO into the pure, testable culture value object.</summary>
+      public JealousyCulture ToCulture()
+         => JealousyCulture.FromRaw(ExclusivityOutrage, PolygamyEliteTier, HierarchySensitivity, EquityExpectation, PromptHint);
+   }
 }

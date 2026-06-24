@@ -9,14 +9,14 @@ using TaleWorlds.Core;
 
 namespace CalradiaRemembers.Chat
 {
-    /// <summary>
-    ///   Engine-backed <see cref="IRandomSource"/> for the mod: the real game RNG. The pure logic in
-    ///   CalradiaRemembers.Logic depends only on the interface, so tests inject a deterministic source.
-    /// </summary>
-    public sealed class MBRandomSource : IRandomSource
-    {
-        public static readonly MBRandomSource Instance = new MBRandomSource();
+   /// <summary>
+   ///   Engine-backed <see cref="IRandomSource" /> for the mod: the real game RNG. The pure logic in
+   ///   CalradiaRemembers.Logic depends only on the interface, so tests inject a deterministic source.
+   /// </summary>
+   public sealed class MBRandomSource : IRandomSource
+   {
+      public static readonly MBRandomSource Instance = new();
 
-        public int Next(int maxExclusive) => MBRandom.RandomInt(maxExclusive);
-    }
+      public int Next(int maxExclusive) => MBRandom.RandomInt(maxExclusive);
+   }
 }
