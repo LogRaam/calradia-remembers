@@ -147,6 +147,30 @@ You'll find them in:
 
 [b][color=#6aa84f]character_overrides.json[/color][/b]: hand-author individual NPCs. Give a named character your own five personality traits (valor, honor, mercy, generosity, calculating, each -2..+2) and an optional backstory, and they become that person.. the authored traits are the real source of truth, so they shape how the character speaks, their derived nature, and even the campaign AI. Enable it with the [b]Use custom traits[/b] option (Mod Options → Calradia Remembers → Character); turn it off to restore vanilla traits. Ships empty.. nothing changes until you add an entry and opt in.
 
+[spoiler=What each trait does (and notable combinations)]
+Each trait runs [b]−2…+2[/b]. Traits set the [i]pool[/i] of a character's leanings; a few are then drawn from it, so a trait biases the [i]range[/i] of who they are rather than forcing one fixed result. The romantic / intimate effects below surface only at the higher adult tiers.
+
+[b][color=#ffe599]Valor[/color][/b] — High: bold, pursues directly, impatient with hesitation, confident. Low: cautious, slow to commit, needs safety first.
+[b][color=#ffe599]Honor[/color][/b] — High: keeps their word, strict monogamy, devoted. Low: oaths sit lightly, flexible / casual / open.
+[b][color=#ffe599]Mercy[/color][/b] — High: warm, forgiving, attentive, leans submissive / devoted. Low: cold, demanding, no sentiment, leans dominant.
+[b][color=#ffe599]Generosity[/color][/b] — High: gives time and resource freely, devoted. Low: holds back, independent, possessive.
+[b][color=#ffe599]Calculating[/color][/b] — High: deliberate, observant, slow-burn, reserved. Low: acts on feeling, in-the-moment, intense.
+
+[b]Notable combinations:[/b]
+[list]
+[*][b]Cynical exploiter[/b] (can proposition a female player at Explicit+): Honor ≤ 0 [b]and[/b] (Calculating ≥ +1 [b]or[/b] Mercy ≤ 0).
+[*][b]Cruel, domineering lord[/b]: Mercy −2, Honor −1, Calculating +2.
+[*][b]Devoted knight[/b]: Honor +2, Mercy +1, Valor +1.
+[*][b]Cold strategist[/b]: Calculating +2, Mercy −1.
+[*][b]Possessive miser[/b]: Generosity −2.
+[*][b]Reckless romantic[/b]: Valor +2, Calculating −2.
+[/list]
+
+[b]At Hardcore[/b], traits also shape the kink [i]pool[/i] — broadly: low Mercy → dominant / sadistic & control kinks; high Mercy → submissive / masochistic; high Calculating → control & conditioning; low Honor → power-imbalance / corruption; high Honor → breeding / praise; low Generosity → ownership / possessive; high Valor → exhibition / prize. Use [b][color=#93c47d]cr.kinks [name][/color][/b] in the console to see and tweak a character's actual kinks.
+
+[b]Camp life:[/b] two companions who share the same leaning on a trait bond; opposite leanings clash (Honor weighs heaviest, then Mercy and Calculating).
+[/spoiler]
+
 [quote]💡Tips: keep edits in English (the AI is prompted in English), back up the originals before you tinker, and if you touch the `.json` make sure it stays valid (a missing comma or quote will stop it loading). Your edits load whenever you start or reload a campaign.. so after editing, return to the main menu and load your save. No reinstalling or recompiling.[/quote]
 
 [i]This is the heart of making Calradia Remembers *your* roleplay rather than mine. Share your favorite prompt files with other players (mod), or build a whole different feel for the world.[/i]
