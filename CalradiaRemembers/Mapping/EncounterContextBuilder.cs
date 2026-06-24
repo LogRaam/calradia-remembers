@@ -98,7 +98,9 @@ namespace CalradiaRemembers.Mapping
             CanGatherNews            = ResolveCanGatherNews(hero),
             CompanionNewsReport      = Missions.CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
             CompanionMoodNote        = ResolveCompanionMoodNote(hero),
-            CompanionCampNote        = ResolveCompanionCampNote(hero)
+            CompanionCampNote        = ResolveCompanionCampNote(hero),
+            IntimacyBargainEligible  = IntimacyBargainEligibility.IsEligible(hero),
+            IntimacyLeverageActive   = IntimacyBargainEligibility.IsEligible(hero) && profile?.IntimacyLeverageHeld == true
             // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
             // coin, and naming the exact sum broke immersion. Affordability is enforced by the
             // bridge when the hire is executed, not foreseen in the prompt.

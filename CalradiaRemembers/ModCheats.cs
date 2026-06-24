@@ -467,6 +467,37 @@ namespace CalradiaRemembers
          return "Ran a camp-life tick. Check cr.rapport [name].";
       }
 
+      /// <summary>cr.bargain [name] — reports whether an NPC may offer the female player the intimacy-as-currency bargain (Phase 3).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bargain", "cr")]
+      public static string ShowBargain(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         bool eligible = IntimacyBargainEligibility.IsEligible(hero);
+         bool leverage = behavior.Store.Get(hero.StringId)?.IntimacyLeverageHeld == true;
+         return $"{hero.Name} — intimacy bargain eligible: {eligible} " +
+                "(needs a female player; this man unrelated, dishonourable + cynical/callous; Adult ≥ Explicit). " +
+                $"Leverage held: {leverage}.";
+      }
+
+      /// <summary>cr.bargain_leverage [name] — marks an NPC as already holding leverage, to test the escalation prompt.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bargain_leverage", "cr")]
+      public static string SetBargainLeverage(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile p = GetOrCreateProfile(behavior, hero);
+         p.IntimacyLeverageHeld = true;
+         behavior.Store.Set(p);
+         return $"{hero.Name} now holds leverage — open a chat (female player, Adult ≥ Explicit) to see them press it.";
+      }
+
       /// <summary>
       ///   cr.jealousy_comp
       ///   Reports the player's current partner household (native spouse + committed consorts) with

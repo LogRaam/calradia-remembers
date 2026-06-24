@@ -162,6 +162,8 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.happiness_set <0..100> [name]` | Set a companion's contentment (test the bands + the encyclopedia line). |
 | `cr.rapport [name]` | Show how a companion feels about each fellow companion (camp life). |
 | `cr.rapport_tick` | Run a weekly camp-life pass now (compatibility nudges + any companion weddings). |
+| `cr.bargain [name]` | Report whether an NPC may offer the intimacy-as-currency bargain (Phase 3, adult-gated). |
+| `cr.bargain_leverage [name]` | Mark an NPC as holding leverage, to test the escalation prompt. |
 
 ### Discovery / misc
 | Command | Does |
@@ -495,6 +497,21 @@ and the well-matched may wed (staying in your clan).
 - **R3 — Companion weddings.** Two warm (≥40), unmarried, opposite-gender companions may **wed** on a tick
   (`cr.rapport_tick` a few times after warming a pair). They **stay in your clan** — confirm both remain
   yours (the design: the clan grows, no one leaves to found a household).
+
+### S. Intimacy as currency — Negotiation Phase 3 (NEW — untested, adult-gated)
+
+**What it proves:** a cynical, unrelated man may, from leverage, offer the FEMALE player a favour in exchange
+for intimacy — a cold transaction, not courtship — and once it happens he holds it over her. Strictly gated.
+
+- **Setup:** female player; **Adult Content ≥ Explicit** (MCM). Find a man of low scruple (dishonourable +
+  calculating/callous) who is NOT in your clan. `cr.bargain [name]` should report **eligible: true** (it
+  reports the failing condition otherwise — male player, honourable man, kin, or tier too low → false).
+- **S1 — The proposition.** Open a CR chat and raise a need he could exploit (money trouble, safe passage,
+  a favour). He may proposition you transactionally — and **take a clear refusal** for an answer (never out
+  of nowhere, never courtship). On an honourable man / male player / below Explicit, the section is never taught.
+- **S2 — Leverage persists.** After such an intimacy (or `cr.bargain_leverage [name]` to force it),
+  `cr.bargain` shows **leverage held: true**, and a later chat has him **press the advantage**, reminding
+  you of what passed. It persists across a save.
 
 ---
 

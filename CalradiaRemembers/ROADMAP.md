@@ -78,7 +78,14 @@ pure-tested; never satisfied by being attacked), reward join_party / gold+relati
 `cr.declare_war_quest`. (An NPC declaring war on another faction remains FORBIDDEN
 until v2.0 — that is where the player could extract outsized advantage at no cost.)
 
-**Phase 3 — yellow, gated: intimacy as currency.** Constraints agreed:
+**Phase 3 — BUILT 2026-06-23 (UNCOMMITTED, untested), gated: intimacy as currency.** Pure
+`IntimacyCurrencyPolicy.IsEligible` (one-directional man→female-player, archetype-filtered, kin-excluded,
+Explicit+; 8 tests). SDK `EncounterContext.IntimacyBargainEligible`/`IntimacyLeverageActive` +
+`NpcProfile.IntimacyLeverageHeld` (persisted) + `PromptBuilder.AppendIntimacyBargain` (the cold proposition
+from leverage, a refusal respected, double-gated on Adult≥Explicit; an escalation note when leverage is held).
+Mod `IntimacyBargainEligibility` (shared read), `EncounterContextBuilder` sets the flags, `ChatViewModel`
+sets the leverage flag on an Intimacy event with the archetype. Console `cr.bargain` / `cr.bargain_leverage`;
+TESTING_GUIDE S. Constraints agreed:
 - Male NPC toward a female player only, AND filtered by the NPC's traits/archetype
   (the cynical gang leader, not the courtly lady's brother).
 - The transaction puts the player in the DOMINATED position: the NPC profits from

@@ -2131,6 +2131,15 @@ namespace CalradiaRemembers.Chat
                             gameDay);
                 }
 
+                // Negotiation Phase 3: a leveraged intimacy with the exploiter archetype — he now holds it
+                // over the female player and may press the advantage in later talks (persisted on the profile).
+                if (actType == NpcMemoryService.Core.Models.NotableEventType.Intimacy)
+                {
+                    Hero leveraged = Hero.FindFirst(h => h.StringId == profile.Id);
+                    if (leveraged != null && Mapping.IntimacyBargainEligibility.IsEligible(leveraged))
+                        profile.IntimacyLeverageHeld = true;
+                }
+
                 // ── Execute game actions emitted by the LLM ───────────────────
                 // RelationGate may stamp profile.LastRelationGainHour, so persist
                 // AFTER actions run (below), not before.
