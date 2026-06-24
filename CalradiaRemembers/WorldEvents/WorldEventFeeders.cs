@@ -162,7 +162,8 @@ namespace CalradiaRemembers.WorldEvents
                     FactionIds     = FactionIds(winLeader, loseLeader),
                     // Influence loop: a battle the player WON harms the beaten side; a loss harms no one
                     // by the player's hand, so it aggrieves nobody (the foe who won is not the player's deed).
-                    AggrievedFactionIds = playerIn && playerWon ? FactionIds(loseLeader) : new List<string>()
+                    AggrievedFactionIds = playerIn && playerWon ? FactionIds(loseLeader) : new List<string>(),
+                    AggrievedActorIds   = playerIn && playerWon ? Ids(loseLeader) : new List<string>()
                 };
                 if (playerIn)
                     e.ChronicleLine = playerWon
@@ -263,7 +264,8 @@ namespace CalradiaRemembers.WorldEvents
                     ActorIds       = Ids(victim, killer),
                     FactionIds     = FactionIds(victim, killer),
                     // Influence loop: an execution by the player wounds the victim's own faction deeply.
-                    AggrievedFactionIds = playerIn ? FactionIds(victim) : new List<string>()
+                    AggrievedFactionIds = playerIn ? FactionIds(victim) : new List<string>(),
+                    AggrievedActorIds   = playerIn ? Ids(victim) : new List<string>()
                 };
                 if (playerIn)
                     e.ChronicleLine = $"by the judgement of {PlayerName}, {victim.Name} was put to death, and men spoke of it long after";
@@ -296,7 +298,8 @@ namespace CalradiaRemembers.WorldEvents
                     ActorIds       = Ids(taker, oldOwner),
                     FactionIds     = FactionIds(taker, oldOwner),
                     // Influence loop: a conquest by the player wounds the dispossessed lord's faction.
-                    AggrievedFactionIds = playerIn ? FactionIds(oldOwner) : new List<string>()
+                    AggrievedFactionIds = playerIn ? FactionIds(oldOwner) : new List<string>(),
+                    AggrievedActorIds   = playerIn ? Ids(oldOwner) : new List<string>()
                 };
                 if (playerIn)
                     e.ChronicleLine = $"{PlayerName} laid siege to {settlement.Name} and wrested it from {oldOwner?.Name?.ToString() ?? "its lord"}, and the banners were changed upon its walls";

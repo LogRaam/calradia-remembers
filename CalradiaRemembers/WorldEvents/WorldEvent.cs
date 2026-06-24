@@ -86,6 +86,13 @@ namespace CalradiaRemembers.WorldEvents
         /// </summary>
         public List<string> AggrievedFactionIds { get; set; } = new List<string>();
 
+        /// <summary>
+        ///   For an adversarial player deed: the HERO StringIds it harmed directly (the slain, the beaten,
+        ///   the dispossessed). The influence loop reads it so a deed that struck the observer's own KIN
+        ///   wounds them even when the broad faction tag does not match. Empty otherwise; save-safe default.
+        /// </summary>
+        public List<string> AggrievedActorIds { get; set; } = new List<string>();
+
         /// <summary>Reserved for v1.3 schemes (active/resolved/discovered); null for a settled fact.</summary>
         public string Status { get; set; }
     }

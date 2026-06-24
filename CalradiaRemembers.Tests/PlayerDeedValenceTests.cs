@@ -16,10 +16,19 @@ namespace CalradiaRemembers.Tests
    public sealed class PlayerDeedValenceTests
    {
       [Test]
-      public void GIVEN_a_deed_that_struck_the_observers_own_side_WHEN_classified_THEN_it_is_a_wound()
+      public void GIVEN_a_deed_that_struck_the_observers_own_faction_WHEN_classified_THEN_it_is_a_wound()
       {
          //Arrange/Act/Assert
-         PlayerDeedValence.Classify(observerAggrieved: true, observerSharesPlayerSide: false)
+         PlayerDeedValence.Classify(observerFactionAggrieved: true, observerKinHarmed: false, observerSharesPlayerSide: false)
+            .Should().Be(DeedValence.Wound);
+      }
+
+      [Test]
+      public void GIVEN_a_deed_that_struck_the_observers_kin_but_not_their_faction_WHEN_classified_THEN_it_is_a_wound()
+      {
+         //Arrange — a kinsman under another banner was harmed; the faction tag does not match, but blood does.
+         //Act/Assert
+         PlayerDeedValence.Classify(observerFactionAggrieved: false, observerKinHarmed: true, observerSharesPlayerSide: false)
             .Should().Be(DeedValence.Wound);
       }
 
@@ -27,7 +36,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_deed_by_the_observers_own_faction_WHEN_classified_THEN_it_is_a_boon()
       {
          //Arrange/Act/Assert
-         PlayerDeedValence.Classify(observerAggrieved: false, observerSharesPlayerSide: true)
+         PlayerDeedValence.Classify(observerFactionAggrieved: false, observerKinHarmed: false, observerSharesPlayerSide: true)
             .Should().Be(DeedValence.Boon);
       }
 
@@ -35,16 +44,16 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_distant_deed_touching_neither_side_WHEN_classified_THEN_it_is_neutral()
       {
          //Arrange/Act/Assert
-         PlayerDeedValence.Classify(observerAggrieved: false, observerSharesPlayerSide: false)
+         PlayerDeedValence.Classify(observerFactionAggrieved: false, observerKinHarmed: false, observerSharesPlayerSide: false)
             .Should().Be(DeedValence.Neutral);
       }
 
       [Test]
-      public void GIVEN_a_deed_that_both_served_the_players_side_AND_aggrieved_the_observer_WHEN_classified_THEN_the_wound_wins()
+      public void GIVEN_a_deed_that_both_served_the_players_side_AND_struck_the_observers_kin_WHEN_classified_THEN_the_wound_wins()
       {
          //Arrange — a lord of the player's own kingdom whose kin the player nonetheless harmed.
          //Act/Assert — the blow is felt before the shared banner.
-         PlayerDeedValence.Classify(observerAggrieved: true, observerSharesPlayerSide: true)
+         PlayerDeedValence.Classify(observerFactionAggrieved: false, observerKinHarmed: true, observerSharesPlayerSide: true)
             .Should().Be(DeedValence.Wound);
       }
    }

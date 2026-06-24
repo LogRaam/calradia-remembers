@@ -94,6 +94,7 @@ namespace CalradiaRemembers.Mapping
             PowerBalanceNote         = ResolvePowerBalanceNote(hero, profile),
             MarriageProspects        = MarriageProspectResolver.Build(hero),
             WorldRumorsBlock         = ResolveWorldRumors(hero),
+            RealmNewsLine            = ResolveRealmNews(hero),
             PlayerDeedsHeard         = ResolvePlayerDeedsHeard(hero),
             CanGatherNews            = ResolveCanGatherNews(hero),
             CompanionNewsReport      = Missions.CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
@@ -127,6 +128,8 @@ namespace CalradiaRemembers.Mapping
                 foreach ((WorldEvents.WorldEvent e, RumorConfidence conf) in rated)
                 {
                     if (e.InvolvesPlayer || string.IsNullOrWhiteSpace(e.Summary)) continue; // player deeds → influence loop
+                    if (e.Type == WorldEvents.WorldEventType.WarDeclared
+                        || e.Type == WorldEvents.WorldEventType.PeaceDeclared) continue;     // realm-level → RealmNewsLine
                     string tag = conf == RumorConfidence.Distant ? "(a distant, unverified rumour) "
                                : conf == RumorConfidence.Secondhand ? "(heard secondhand) "
                                : "";
@@ -135,6 +138,32 @@ namespace CalradiaRemembers.Mapping
                 }
 
                 return lines.Count > 0 ? string.Join("\n", lines) : null;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        ///   The single greatest realm-level happening (a war declared, a peace struck) this NPC has heard
+        ///   of — "the talk of all the realm". Drawn from the same awareness store as the rumours, best-known
+        ///   first; null when none has reached them. Surfaced apart from the personal rumour list.
+        /// </summary>
+        private static string ResolveRealmNews(Hero hero)
+        {
+            try
+            {
+                var rated = WorldEvents.WorldEventStore.Instance?.GetKnownEventsRated(
+                    hero, (int) CampaignTime.Now.ToDays, 8);
+                if (rated == null || rated.Count == 0) return null;
+
+                foreach ((WorldEvents.WorldEvent e, RumorConfidence _) in rated)
+                {
+                    if (string.IsNullOrWhiteSpace(e.Summary)) continue;
+                    if (e.Type == WorldEvents.WorldEventType.WarDeclared
+                        || e.Type == WorldEvents.WorldEventType.PeaceDeclared)
+                        return $"- {e.Summary.TrimEnd('.', ' ')}.";
+                }
+
+                return null;
             }
             catch { return null; }
         }
@@ -155,6 +184,7 @@ namespace CalradiaRemembers.Mapping
 
                 string obsFactionId    = hero?.MapFaction?.StringId;
                 string playerFactionId = Hero.MainHero?.MapFaction?.StringId;
+                Clan   obsClan         = hero?.Clan;
 
                 var lines = new System.Collections.Generic.List<string>();
                 foreach ((WorldEvents.WorldEvent e, RumorConfidence conf) in rated)
@@ -163,10 +193,12 @@ namespace CalradiaRemembers.Mapping
 
                     bool aggrieved = obsFactionId != null && e.AggrievedFactionIds != null
                                      && e.AggrievedFactionIds.Contains(obsFactionId);
+                    bool kinHarmed = obsClan != null && e.AggrievedActorIds != null
+                                     && e.AggrievedActorIds.Any(id => IsClanmate(id, obsClan, hero));
                     bool sharesPlayer = obsFactionId != null && obsFactionId == playerFactionId;
 
                     string valence;
-                    switch (PlayerDeedValence.Classify(aggrieved, sharesPlayer))
+                    switch (PlayerDeedValence.Classify(aggrieved, kinHarmed, sharesPlayer))
                     {
                         case DeedValence.Wound: valence = "(this cut against you or your own) "; break;
                         case DeedValence.Boon:  valence = "(this served your side) "; break;
@@ -192,6 +224,14 @@ namespace CalradiaRemembers.Mapping
             string name = parent?.Name?.ToString();
             if (string.IsNullOrWhiteSpace(name)) return null;
             return parent.IsAlive ? name : $"the late {name}";
+        }
+
+        /// <summary>True when the harmed hero (by StringId) is a clansman of the observer — a kinsman struck.</summary>
+        private static bool IsClanmate(string heroId, Clan clan, Hero observer)
+        {
+            if (string.IsNullOrEmpty(heroId)) return false;
+            Hero h = Hero.FindFirst(x => x.StringId == heroId);
+            return h != null && h != observer && h.Clan == clan;
         }
 
         /// <summary>

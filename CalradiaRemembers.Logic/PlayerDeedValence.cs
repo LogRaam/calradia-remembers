@@ -28,11 +28,14 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public static class PlayerDeedValence
     {
-        /// <param name="observerAggrieved">The deed harmed the observer's own faction or kin.</param>
+        /// <param name="observerFactionAggrieved">The deed harmed the observer's own faction.</param>
+        /// <param name="observerKinHarmed">The deed struck the observer's own kin (a clansman/relative) directly.</param>
         /// <param name="observerSharesPlayerSide">The observer stands with the player's faction.</param>
-        public static DeedValence Classify(bool observerAggrieved, bool observerSharesPlayerSide)
+        public static DeedValence Classify(bool observerFactionAggrieved, bool observerKinHarmed, bool observerSharesPlayerSide)
         {
-            if (observerAggrieved) return DeedValence.Wound;       // a blow to me or mine is felt first
+            // A blow to me or mine is felt first — and a strike at one's own kin cuts even when the broad
+            // faction allegiance does not match (a kinsman married into another banner, say).
+            if (observerFactionAggrieved || observerKinHarmed) return DeedValence.Wound;
             if (observerSharesPlayerSide) return DeedValence.Boon; // our own side's champion did this
             return DeedValence.Neutral;
         }
