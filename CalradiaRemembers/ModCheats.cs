@@ -1634,6 +1634,34 @@ namespace CalradiaRemembers
             : $"Seeded. {hero.Name} has now heard of your deeds:\n{block}\n\n(Open a conversation to see it colour their tone.)";
       }
 
+      /// <summary>
+      ///   cr.realm_news
+      ///   Seeds a high-magnitude WAR between two kingdoms so the "TALK OF ALL THE REALM" line is testable —
+      ///   then speak with any NPC who would have heard of it (the influence-loop realm-news polish).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("realm_news", "cr")]
+      public static string SeedRealmNews(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         WorldEvents.WorldEventStore store = WorldEvents.WorldEventStore.Instance;
+         if (store == null) return "World-event store is not active.";
+
+         var kingdoms = Kingdom.All?.Where(k => k != null && !k.IsEliminated).Take(2).ToList();
+         if (kingdoms == null || kingdoms.Count < 2) return "Need at least two kingdoms in play.";
+
+         Kingdom a = kingdoms[0], b = kingdoms[1];
+         store.Record(new WorldEvents.WorldEvent
+         {
+            Type       = WorldEvents.WorldEventType.WarDeclared,
+            Day        = (int) CampaignTime.Now.ToDays,
+            Magnitude  = 80,
+            Summary    = $"{a.Name} declared war on {b.Name} (test seed).",
+            FactionIds = new List<string> { a.StringId, b.StringId }
+         });
+         return $"Seeded war: {a.Name} vs {b.Name}. Speak with an NPC to hear the realm's talk of it.";
+      }
+
       // ── Sprint 11: informal quest testing (group "cr") ────────────────────
 
       /// <summary>

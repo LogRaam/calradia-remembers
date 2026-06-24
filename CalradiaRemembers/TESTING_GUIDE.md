@@ -147,6 +147,7 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.chronicle_rewrite` | Re-illuminate from scratch (after editing the style file). |
 | `cr.rumor [settlement]` | Show the street rumours a commoner here would share. |
 | `cr.deed_heard [name]` | Seed a deed of yours that wounds this NPC's faction, then echo what they've heard of you (influence loop). |
+| `cr.realm_news` | Seed a war between two kingdoms; talk to an NPC to hear "the talk of all the realm". |
 
 ### Companion missions (first slice — "bring me the news")
 | Command | Does |
@@ -517,7 +518,7 @@ for intimacy — a cold transaction, not courtship — and once it happens he ho
 
 ## 3. What is already unit-tested (do NOT re-test by hand)
 
-These are proven by `dotnet test` (275 tests); only their *wiring* (above) needs in-game eyes:
+These are proven by `dotnet test` (369 tests); only their *wiring* (above) needs in-game eyes:
 
 - **RelationGate**: +1 cap, warmth cooldowns, intimacy +3 bypass, −15 / −100 floors.
 - **Stance maths**: word cap (±2) + 8h cooldown, deed cap (30), fear decay, axis clamps, and the
