@@ -427,6 +427,17 @@ namespace CalradiaRemembers
          return $"{hero.Name} contentment set to {p.Happiness} ({CompanionHappiness.Describe(p.Happiness)}).";
       }
 
+      /// <summary>cr.happiness_tick — runs a weekly happiness pass now (idle/loved-one pressure, drift, and any departures).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("happiness_tick", "cr")]
+      public static string HappinessTick(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (Missions.CompanionHappinessBehavior.Instance == null) return "Companion-happiness system is not active.";
+
+         Missions.CompanionHappinessBehavior.Instance.RunTick();
+         return "Ran a happiness tick. Check cr.happiness [name] (a season at the leave floor parts ways).";
+      }
+
       /// <summary>
       ///   cr.jealousy_comp
       ///   Reports the player's current partner household (native spouse + committed consorts) with

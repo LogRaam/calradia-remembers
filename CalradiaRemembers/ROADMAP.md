@@ -423,8 +423,15 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
     `CompanionHappinessService` (apply driver / drift / get / set); drivers fired from errand outcomes
     (success/failure/suited at return, Captured on capture, Freed on rescue); the encyclopedia "Contentment"
     line (mixin + patch + `CR_HeroContentment.xml`); console `cr.happiness` / `cr.happiness_set`.
-    TESTING_GUIDE Q. DEFERRED (next): the idle drift tick (`Drift` exists, not yet ticked), more drivers
-    (pay, kept-from-loved-one), the in-conversation GRIEVANCE, and the actual DEPARTURE below the leave floor.
+    TESTING_GUIDE Q.
+  - **Consequences BUILT 2026-06-23 (UNCOMMITTED, untested):** `CompanionHappinessBehavior` — a weekly tick
+    presses Idle + KeptFromLovedOne (spouse not with them) and eases toward baseline (`Drift`); a companion
+    held at the leave floor for a season (`LeaveGraceDays` 21) DEPARTS (`RemoveCompanionAction.ApplyByFire` +
+    a banner), the grace timers persisted. The in-conversation GRIEVANCE: SDK `EncounterContext.CompanionMoodNote`
+    + `PromptBuilder.AppendCompanionMoodNote`, built by `EncounterContextBuilder.ResolveCompanionMoodNote`
+    (restless/disgruntled/means-to-leave by band) — the companion voices it in their own words. Console
+    `cr.happiness_tick`; TESTING_GUIDE Q4/Q5. DEFERRED: more drivers (pay/share-of-loot), and letting the
+    player ADDRESS a grievance in chat (a kind word → WellTreated) to win them back.
 
   The player tasks a companion in conversation with an errand that resolves off-screen and returns
   as an in-fiction report. This is the CR answer to AI Influence's "world events" panel: instead of a

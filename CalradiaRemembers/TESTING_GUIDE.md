@@ -467,8 +467,13 @@ from relation), moved by errand outcomes, shown on their encyclopedia page.
   nudges contentment up, a **failure** down, an errand that **suits** them (high governing skill) up; being
   **captured** stings hardest, being **freed** recovers a little. Check with `cr.happiness [name]`.
 - **Q3 — The leave floor.** `cr.happiness_set 10 [name]` → `cr.happiness` reports "**WANTS TO LEAVE**".
-- **Deferred (not built yet):** the idle drift tick, the in-conversation grievance, and the actual
-  departure when unhappy — those come next.
+- **Q4 — Grievance in conversation.** Set a companion low (`cr.happiness_set 30 [name]` restless, `15`
+  disgruntled/leaving) and open a CR chat with them: they should **voice their discontent in their own
+  voice** — a coolness, a complaint, or (at the floor) that they mean to leave. Content companions say nothing.
+- **Q5 — Drift + departure.** `cr.happiness_tick` runs a weekly pass: an idle companion's contentment
+  eases down (and toward baseline). A companion kept at the leave floor for a **season** (≈21 days; tick a
+  few times after `cr.happiness_set 5`) eventually **leaves your service** (a banner + they exit the clan).
+  An employed companion (on an errand) takes no idle hit that week.
 
 ---
 

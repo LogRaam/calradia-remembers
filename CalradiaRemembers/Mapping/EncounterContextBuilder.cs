@@ -96,7 +96,8 @@ namespace CalradiaRemembers.Mapping
             WorldRumorsBlock         = ResolveWorldRumors(hero),
             PlayerDeedsHeard         = ResolvePlayerDeedsHeard(hero),
             CanGatherNews            = ResolveCanGatherNews(hero),
-            CompanionNewsReport      = Missions.CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero)
+            CompanionNewsReport      = Missions.CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
+            CompanionMoodNote        = ResolveCompanionMoodNote(hero)
             // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
             // coin, and naming the exact sum broke immersion. Affordability is enforced by the
             // bridge when the hire is executed, not foreseen in the prompt.
@@ -210,6 +211,29 @@ namespace CalradiaRemembers.Mapping
             if (!(hero.IsPlayerCompanion || hero.Clan == Clan.PlayerClan)) return false;
             if (hero.PartyBelongedTo != MobileParty.MainParty) return false;
             return Missions.CompanionMissionBehavior.Instance?.IsAway(hero.StringId) != true;
+        }
+
+        /// <summary>
+        ///   A directive for an unhappy OWN-companion to voice their discontent — scaled to the happiness
+        ///   band (restless → disgruntled → means to leave). Null for a content companion or a non-companion,
+        ///   so the section is skipped.
+        /// </summary>
+        private static string ResolveCompanionMoodNote(Hero hero)
+        {
+            if (hero == null || hero == Hero.MainHero || !hero.IsAlive) return null;
+            if (!(hero.IsPlayerCompanion || hero.Clan == Clan.PlayerClan)) return null;
+
+            int score = Missions.CompanionHappinessService.Get(hero);
+            if (score >= 50) return null; // content or better — nothing to voice
+
+            if (Logic.CompanionHappiness.WantsToLeave(score))
+                return "You are bitterly unhappy in the player's service and mean to LEAVE. You may say so plainly, " +
+                       "or give them one last chance to make it right — but your patience is at its end.";
+            if (score < 25)
+                return "You are disgruntled in the player's service and have begun to think of leaving. You may voice " +
+                       "your grievance — what has soured you, and what it would take to keep you.";
+            return "You are restless in the player's service — your patience is thinning. You may let a coolness or a " +
+                   "small complaint show, without yet threatening to leave.";
         }
 
         /// <summary>True when the NPC is a captive of someone other than the player (case B: a rescue bargain).</summary>

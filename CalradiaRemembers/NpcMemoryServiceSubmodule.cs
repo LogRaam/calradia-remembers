@@ -90,6 +90,10 @@ namespace CalradiaRemembers
          // timer with a report drawn from the world-event store. Decision logic is pure; this persists the
          // in-flight errands. Registered AFTER WorldEventStore (it reads from it). Console: cr.send_news.
          campaignStarter.AddBehavior(new Missions.CompanionMissionBehavior());
+         // Companion happiness over time: a weekly tick presses idleness / being kept from a loved one and
+         // eases toward baseline; a companion left bitterly unhappy for a season departs. The grievance is
+         // voiced in conversation. The score lives on the profile; the pure model is CalradiaRemembers.Logic.
+         campaignStarter.AddBehavior(new Missions.CompanionHappinessBehavior());
          Log($"{ModName} campaign behavior registered.");
       }
 
