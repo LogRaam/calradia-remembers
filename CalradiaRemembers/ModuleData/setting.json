@@ -1,0 +1,17 @@
+// setting.json — adapt Calradia Remembers to a total-overhaul mod (e.g. The Old Realms).
+//
+// Every field is OPTIONAL; anything you leave out keeps the Calradia default, so a stock install is
+// unchanged. After editing, load your save (or run cr.reload_lore in the console).
+//
+//   "worldName"           the world's name in prose            ("Calradia" -> "the Old World")
+//   "worldAdjective"      the world's adjective                ("Calradian" -> "Imperial")
+//   "patriarchalCultures" faction/culture name fragments whose men are skeptical of female authority
+//                         (matched case-insensitively against the NPC's faction name)
+//
+// Example for an Old-World overhaul (uncomment and edit):
+// {
+//   "worldName": "the Old World",
+//   "worldAdjective": "Old-World",
+//   "patriarchalCultures": ["Bretonnia", "Empire"]
+// }
+{}

@@ -37,14 +37,16 @@ namespace CalradiaRemembers.Lore
 
         private void OnSessionLaunched(CampaignGameStarter starter)
         {
+            SettingProfileLoader.LoadAndApply(); // world name/adjective + patriarchal cultures → PromptLore
             CharacterOverrideLoader.Load();
             SubscribeToToggle();
             if (ModSettings.UseCustomTraits) ApplyAll();
         }
 
-        /// <summary>Reloads the file and re-applies (or restores) per the current toggle. For cr.reload_lore.</summary>
+        /// <summary>Reloads the files and re-applies (or restores) per the current toggle. For cr.reload_lore.</summary>
         public void ReloadAndReapply()
         {
+            SettingProfileLoader.LoadAndApply();
             CharacterOverrideLoader.Load();
             if (ModSettings.UseCustomTraits) ApplyAll();
             else RestoreAll();

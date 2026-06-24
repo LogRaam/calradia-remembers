@@ -173,6 +173,20 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
 
 ## Also planned (unscheduled)
 
+- **Setting-agnostic / overhaul compatibility. ✅ FOUNDATION DONE (2026-06-23).** *(Player request: a
+  version compatible with The Old Realms; overhaul mods are where the audience is, and there is no dedicated
+  AI mod for ToR.)* CR already reads the game's LIVE data (heroes, factions, cultures, settlements, relations,
+  wars), so it works on top of an overhaul out of the box; most of the flavour was already player-editable in
+  `ModuleData/` (world.txt, cultural_traditions.json, character_overrides.json, jealousy_cultures.json, …).
+  This change externalizes the last hardcoded Calradia-isms into an editable `ModuleData/setting.json`:
+  `worldName` / `worldAdjective` (the ~6 "Calradia"/"Calradian" prompt mentions) + `patriarchalCultures`
+  (the female-authority note's culture list). Pure `SettingProfile` + `SettingProfileDefaults.Resolve`
+  (override-or-default, +4 tests); SDK `PromptLore` static holder (Calradia defaults so the SDK is unchanged
+  standalone); mod `SettingProfileLoader` applies the file at session launch + `cr.reload_lore`. So an
+  overhaul becomes a DATA PACK, not a fork — squarely on CR's open/moddable brand. FUTURE: more strings if any
+  surface; a shippable "ToR flavour pack" (world.txt + cultures + setting.json) as a community/first-party add-on.
+
+
 - **NPC-initiated interceptions on the campaign map.**
   A lord can move toward the player and open a CR conversation without the player
   seeking them out. `MobileParty.Ai.SetMoveEngageParty(MainParty)` makes the party
