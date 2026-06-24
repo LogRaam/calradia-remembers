@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 15/06/2026.
+// Code written by Gabriel Mailhot, 20/06/2026.
 
 #region
 
@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
@@ -65,21 +66,6 @@ namespace CalradiaRemembers.Letters
          "the Blade"
       };
 
-      private static readonly string[] BanditNamesF = {
-         "Sable",
-         "Mara",
-         "Vesha",
-         "Ryka",
-         "Brusa",
-         "Astrid",
-         "Gerda",
-         "Ingrid",
-         "Brigid",
-         "Maud",
-         "Elyn",
-         "Rowenna"
-      };
-
       // A distinctive manner per chief — gender-neutral so it fits a man or a woman. Gives each
       // synthesized captor a different voice and behaviour so scenes stop feeling formulaic.
       private static readonly string[] BanditManners = {
@@ -93,6 +79,21 @@ namespace CalradiaRemembers.Letters
          "Greedy above all, weighing everyone by what they can fetch.",
          "A hard disciplinarian who craves obedience as much as plunder.",
          "Filthy-mouthed and lewd, relishing every appetite aloud."
+      };
+
+      private static readonly string[] BanditNamesF = {
+         "Sable",
+         "Mara",
+         "Vesha",
+         "Ryka",
+         "Brusa",
+         "Astrid",
+         "Gerda",
+         "Ingrid",
+         "Brigid",
+         "Maud",
+         "Elyn",
+         "Rowenna"
       };
 
       // ── Bandit/pirate captor synthesis (no real hero exists for these parties) ──
@@ -121,6 +122,23 @@ namespace CalradiaRemembers.Letters
          "Bastian", "Draven", "Garrick", "Harlan", "Roderick",
          "Thorne", "Viktor", "Wolfram", "Godric", "Everard",
          "Fulke", "Oswin", "Percival", "Corvin", "Balthazar"
+      };
+
+      // Each of the chief's men gets a distinct AGENDA — their own want that pushes the scene, so
+      // witnesses argue, demand, grab, and create friction instead of only leering and commenting.
+      private static readonly string[] BanditWitnessAgendas = {
+         "A filthy, grinning cutthroat, impatient for his OWN turn — he keeps pushing the chief to hurry and share the prize, and grumbles the longer he is made to wait.",
+         "A greedy, calculating thug who thinks the captive is worth far more sold or ransomed WHOLE — he argues against spoiling the goods and resents every mark left on her.",
+         "A vicious sadist who eggs on every cruelty and keeps suggesting something worse — pain delights him more than pleasure, and he wants to hear her scream.",
+         "A crude joker who jeers and makes filthy jokes, narrating aloud exactly what he would do to her and mocking her struggles.",
+         "A surly rival who resents taking orders — he tests the chief's authority, reaches in without leave, and pushes his luck.",
+         "A hulking brute of few words who follows orders with relish — pinning the captive, hauling her into position, holding her still.",
+         "A young, twitchy brigand, half-eager and half-nervous, trying to prove himself to the older men and overdoing it.",
+         "A cold, watchful killer who says little but misses nothing — and moves fast to crush any move the captive makes."
+      };
+
+      private static readonly string[] GenericBanditTroopIds = {
+         "looter", "forest_bandit", "mountain_bandit", "sea_raider", "steppe_bandit", "desert_bandit"
       };
 
       // In-memory state (reset each session — acceptable for v1)
@@ -260,9 +278,7 @@ namespace CalradiaRemembers.Letters
                ? "Brigands"
                : factionName,
             Clan = "no honest house",
-            Personality = "A hardened brigand chief of the wilds — lawless, contemptuous of lords and their " +
-                          "codes, ruled by greed and the cold pleasure of holding another's life in their hands. " +
-                          "Honor is a fool's currency to them. " + manner,
+            Personality = "A hardened brigand chief of the wilds — lawless, contemptuous of lords and their " + "codes, ruled by greed and the cold pleasure of holding another's life in their hands. " + "Honor is a fool's currency to them. " + manner,
             Trait = "Ruthless toward those in their power. " + manner,
             Romantic = new RomanticProfile {
                IsFemale = isFemale,
@@ -274,19 +290,6 @@ namespace CalradiaRemembers.Letters
             }
          };
       }
-
-      // Each of the chief's men gets a distinct AGENDA — their own want that pushes the scene, so
-      // witnesses argue, demand, grab, and create friction instead of only leering and commenting.
-      private static readonly string[] BanditWitnessAgendas = {
-         "A filthy, grinning cutthroat, impatient for his OWN turn — he keeps pushing the chief to hurry and share the prize, and grumbles the longer he is made to wait.",
-         "A greedy, calculating thug who thinks the captive is worth far more sold or ransomed WHOLE — he argues against spoiling the goods and resents every mark left on her.",
-         "A vicious sadist who eggs on every cruelty and keeps suggesting something worse — pain delights him more than pleasure, and he wants to hear her scream.",
-         "A crude joker who jeers and makes filthy jokes, narrating aloud exactly what he would do to her and mocking her struggles.",
-         "A surly rival who resents taking orders — he tests the chief's authority, reaches in without leave, and pushes his luck.",
-         "A hulking brute of few words who follows orders with relish — pinning the captive, hauling her into position, holding her still.",
-         "A young, twitchy brigand, half-eager and half-nervous, trying to prove himself to the older men and overdoing it.",
-         "A cold, watchful killer who says little but misses nothing — and moves fast to crush any move the captive makes."
-      };
 
       /// <summary>
       ///   The chief's men for a collective bandit scene — each with a DISTINCT agenda so they drive
@@ -327,14 +330,15 @@ namespace CalradiaRemembers.Letters
       {
          CharacterObject best = null;
          TroopRoster roster = party?.MemberRoster;
-         if (roster != null)
-            for (var i = 0; i < roster.Count; i++)
-            {
-               CharacterObject c = roster.GetCharacterAtIndex(i);
 
-               if (c == null || c.IsHero) continue;
-               if (best == null || c.Level > best.Level) best = c;
-            }
+         if (roster == null) return MBObjectManager.Instance?.GetObject<CharacterObject>("looter");
+         for (var i = 0; i < roster.Count; i++)
+         {
+            CharacterObject c = roster.GetCharacterAtIndex(i);
+
+            if (c == null || c.IsHero) continue;
+            if (best == null || c.Level > best.Level) best = c;
+         }
 
          return best ?? MBObjectManager.Instance?.GetObject<CharacterObject>("looter");
       }
@@ -349,11 +353,13 @@ namespace CalradiaRemembers.Letters
          var faces = new List<CharacterObject>();
          var seen = new HashSet<string>();
 
+
          void TryAdd(CharacterObject c)
          {
             if (c == null || faces.Count >= count || !seen.Add(c.StringId)) return;
             faces.Add(c);
          }
+
 
          // From the real gang: every distinct non-hero troop, weakest-first so the chief's face
          // (the strongest, used elsewhere) is not duplicated when avoidable.
@@ -370,15 +376,11 @@ namespace CalradiaRemembers.Letters
          }
 
          // Last resort: pad with looters so every witness still gets a portrait.
-         CharacterObject looter = MBObjectManager.Instance?.GetObject<CharacterObject>("looter");
+         var looter = MBObjectManager.Instance?.GetObject<CharacterObject>("looter");
          while (faces.Count < count && looter != null) faces.Add(looter);
 
          return faces;
       }
-
-      private static readonly string[] GenericBanditTroopIds = {
-         "looter", "forest_bandit", "mountain_bandit", "sea_raider", "steppe_bandit", "desert_bandit"
-      };
 
       /// <summary>
       ///   Resolves a FEMALE <see cref="CharacterObject" /> to use as a female chief's portrait —
@@ -387,7 +389,8 @@ namespace CalradiaRemembers.Letters
       /// </summary>
       internal static CharacterObject ResolveFemaleBanditFace()
       {
-         var all = MBObjectManager.Instance?.GetObjectTypeList<CharacterObject>();
+         MBReadOnlyList<CharacterObject> all = MBObjectManager.Instance?.GetObjectTypeList<CharacterObject>();
+
          if (all == null) return null;
 
          CharacterObject fallback = null;
@@ -397,9 +400,15 @@ namespace CalradiaRemembers.Letters
             fallback ??= c;
 
             string id = c.StringId?.ToLowerInvariant() ?? "";
-            if (id.Contains("bandit") || id.Contains("brigand") || id.Contains("raider")
-                || id.Contains("outlaw") || id.Contains("looter") || id.Contains("villager")
-                || id.Contains("townswoman") || id.Contains("commoner"))
+
+            if (id.Contains("bandit")
+                || id.Contains("brigand")
+                || id.Contains("raider")
+                || id.Contains("outlaw")
+                || id.Contains("looter")
+                || id.Contains("villager")
+                || id.Contains("townswoman")
+                || id.Contains("commoner"))
                return c;
          }
 
@@ -438,7 +447,7 @@ namespace CalradiaRemembers.Letters
       // ── Private ───────────────────────────────────────────────────────────
 
       private static float CalculateProbability(int daysInCaptivity, NpcProfile captorProfile)
-         => Logic.CaptiveEncounterPolicy.EncounterProbability(daysInCaptivity, captorProfile.Romantic?.Kinks);
+         => CaptiveEncounterPolicy.EncounterProbability(daysInCaptivity, captorProfile.Romantic?.Kinks);
 
       /// <summary>
       ///   Picks the bandit captor's intent. Spoil-of-war (the sexual CNC intent) is GENDER-WEIGHTED:
@@ -517,7 +526,7 @@ namespace CalradiaRemembers.Letters
       }
 
       private static CaptiveSceneIntent SelectIntent(NpcProfile captorProfile, int relation)
-         => Logic.CaptiveEncounterPolicy.SelectIntent(captorProfile.Romantic?.Kinks, relation);
+         => CaptiveEncounterPolicy.SelectIntent(captorProfile.Romantic?.Kinks, relation);
 
       private static (List<WitnessEntry> witnesses, bool isCollective) SelectWitnesses(
          MobileParty captorParty,

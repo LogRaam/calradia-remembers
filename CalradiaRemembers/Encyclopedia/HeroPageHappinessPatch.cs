@@ -9,19 +9,19 @@ using Bannerlord.UIExtenderEx.Prefabs2;
 
 namespace CalradiaRemembers.Encyclopedia
 {
-    /// <summary>
-    ///   Inserts a single line into the hero encyclopedia page, after the vanilla Info block, showing a
-    ///   companion's contentment in your service. The content lives in GUI/Prefabs/CR_HeroContentment.xml
-    ///   and binds to <c>@CalradiaContentment</c> provided by
-    ///   <see cref="EncyclopediaHeroPageHappinessMixin"/>.
-    /// </summary>
-    [PrefabExtension("EncyclopediaHeroPage", "descendant::Widget[@Id='InfoContainer']")]
-    internal sealed class HeroPageHappinessPatch : PrefabExtensionInsertPatch
-    {
-        public override InsertType Type => InsertType.Append;
-        public override int Index => 0;
+   /// <summary>
+   ///   Inserts a single line into the hero encyclopedia page, after the vanilla Info block, showing a
+   ///   companion's contentment in your service. The content lives in GUI/Prefabs/CR_HeroContentment.xml
+   ///   and binds to <c>@CalradiaContentment</c> provided by
+   ///   <see cref="EncyclopediaHeroPageHappinessMixin" />.
+   /// </summary>
+   [PrefabExtension("EncyclopediaHeroPage", "descendant::Widget[@Id='InfoContainer']")]
+   internal sealed class HeroPageHappinessPatch : PrefabExtensionInsertPatch
+   {
+      [PrefabExtensionFileName(true)]
+      public string FileName => "CR_HeroContentment";
 
-        [PrefabExtensionInsertPatch.PrefabExtensionFileName(true)]
-        public string FileName => "CR_HeroContentment";
-    }
+      public override int Index => 0;
+      public override InsertType Type => InsertType.Append;
+   }
 }

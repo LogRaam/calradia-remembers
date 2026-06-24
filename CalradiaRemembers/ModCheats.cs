@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 14/06/2026.
+// Code written by Gabriel Mailhot, 23/06/2026.
 
 #region
 
@@ -9,16 +9,24 @@ using System.Text;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Chronicle;
+using CalradiaRemembers.Commoners;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.Dynasty;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Interception;
+using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Lore;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
+using CalradiaRemembers.Missions;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Services;
+using CalradiaRemembers.Stance;
 using CalradiaRemembers.Witnesses;
+using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -64,46 +72,6 @@ namespace CalradiaRemembers
       [CommandLineFunctionality.CommandLineArgumentFunction("add_kink", "cr")]
       public static string AddKink(List<string> args)
          => MutateKink(args, true, "cr.add_kink <kink> [name]");
-
-      /// <summary>
-      ///   cr.escape_force
-      ///   Makes the NEXT escape attempt in a captive scene succeed, so the full escape flow
-      ///   (constrained captor reaction → freeing on scene close) can be tested despite the 10%
-      ///   natural chance. Then, in the scene, type an escape attempt (e.g. "I lunge for the door
-      ///   and bolt") so the LLM emits escape_attempt.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("escape_force", "cr")]
-      public static string ForceEscape(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
-         behavior.GameStateBridge?.ForceNextEscapeSuccess();
-         return "Armed: your next escape attempt in a captive scene will succeed. " +
-                "Type an escape attempt in the scene to trigger it.";
-      }
-
-      /// <summary>
-      ///   cr.preg [name]
-      ///   Forces a captive conception for the female player (bypasses the 15% roll) so the
-      ///   pregnancy → delivery path can be validated without waiting on a real scene. With a
-      ///   [name], that hero is the father (a lord captor); with none, the shared hidden
-      ///   "Unknown" father is used (the bandit case). The child lands in the player's clan.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("preg", "cr")]
-      public static string ForcePregnancy(List<string> args)
-      {
-         if (!TryContext(out _, out string error)) return error;
-
-         bool named = args != null && args.Count > 0;
-         Hero father = named ? ResolveHero(args) : null;
-         if (named && father == null) return $"No hero matched \"{string.Join(" ", args)}\".";
-
-         string note = CaptivePregnancyService.TryConceive(father, force: true);
-         if (note == null)
-            return "Conception did not occur — the player must be a female of fertile age (18–45), " +
-                   "not already pregnant. Check CalradiaRemembers.log for engine details.";
-
-         return note + (father == null ? " [father: shared Unknown]" : "");
-      }
 
       /// <summary>
       ///   cr.memory_add &lt;days_ago&gt; &lt;text&gt; [name]
@@ -161,361 +129,6 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.jealousy [name]
-      ///   Resolves and immediately fires a jealousy reaction as if the player had just made a
-      ///   romantic advance toward the named NPC (or the current conversation partner). Bypasses
-      ///   the witness/probability/cooldown gates so the resolution and consequence are testable
-      ///   without building a full romance: it prints the inferred jealous party and applies the
-      ///   grudge + grievance memory + a threatening letter.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("jealousy", "cr")]
-      public static string TriggerJealousy(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
-            return error;
-         if (Jealousy.JealousyBehavior.Instance == null)
-            return "Jealousy system is not active.";
-
-         string nameFragment = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
-         Hero courted = !string.IsNullOrWhiteSpace(nameFragment)
-            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Name != null
-                 && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
-            : Hero.OneToOneConversationHero;
-
-         if (courted == null)
-            return "Usage: cr.jealousy [name]\n" +
-                   "  Resolves and fires a jealousy reaction as if the player romanced this NPC.";
-
-         return Jealousy.JealousyBehavior.Instance.DebugForce(courted, Logic.RomanticActTier.Flirt);
-      }
-
-      /// <summary>
-      ///   cr.chronicle
-      ///   Renders the player's chronicle (their recorded deeds, in chronicler voice) to the console
-      ///   and writes it to CalradiaRemembers_chronicle.log. Phase-1 test path for the world-event
-      ///   store + templated chronicle before the in-game illuminated viewer exists.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("chronicle", "cr")]
-      public static string ShowChronicle(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
-            return error;
-
-         string text = WorldEvents.ChronicleWriter.Render();
-         string path = WorldEvents.ChronicleWriter.WriteToLog();
-         return path != null ? $"{text}\n\n(written to {path})" : text;
-      }
-
-      /// <summary>
-      ///   cr.chronicle_open
-      ///   Opens the illuminated in-game chronicle viewer (Phase 2). Test path for the Gauntlet
-      ///   window before the encyclopedia button is wired.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("chronicle_open", "cr")]
-      public static string OpenChronicle(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
-            return error;
-
-         Chronicle.ChronicleManager.Open();
-         return "Chronicle viewer opened.";
-      }
-
-      /// <summary>
-      ///   cr.chronicle_illuminate
-      ///   Runs the optional LLM pass that rewrites the chronicle into flowing chronicler prose
-      ///   (style editable in ModuleData/chronicle_style.txt). Async — reopen the viewer once done.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("chronicle_illuminate", "cr")]
-      public static string IlluminateChronicle(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
-            return error;
-
-         return Chronicle.ChronicleIlluminationService.Extend();
-      }
-
-      /// <summary>cr.chronicle_rewrite — redo the whole illuminated chronicle (e.g. after editing the style file).</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("chronicle_rewrite", "cr")]
-      public static string RewriteChronicle(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
-            return error;
-
-         return Chronicle.ChronicleIlluminationService.RewriteAll();
-      }
-
-      /// <summary>
-      ///   cr.deed_heard [name]
-      ///   Seeds a notable deed of the PLAYER's that WOUNDS the named (or talked-to) NPC's own faction,
-      ///   then echoes what that NPC would now have heard of you — the influence-loop test path without
-      ///   having to win a real siege. Open a conversation with them afterward to see it colour their tone.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("deed_heard", "cr")]
-      public static string SeedPlayerDeedHeard(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         WorldEvents.WorldEventStore store = WorldEvents.WorldEventStore.Instance;
-         if (store == null) return "World-event store is not active.";
-
-         string playerName  = Hero.MainHero?.Name?.ToString() ?? "the player";
-         string factionName = hero.MapFaction?.Name?.ToString() ?? "their people";
-
-         var aggrieved = hero.MapFaction?.StringId != null
-            ? new List<string> { hero.MapFaction.StringId }
-            : new List<string>();
-         var factions = new List<string>(aggrieved);
-         if (Hero.MainHero?.MapFaction?.StringId != null) factions.Add(Hero.MainHero.MapFaction.StringId);
-
-         store.Record(new WorldEvents.WorldEvent
-         {
-            Type                = WorldEvents.WorldEventType.PlayerFeat,
-            Day                 = (int) CampaignTime.Now.ToDays,
-            PlaceId             = hero.CurrentSettlement?.StringId,
-            Magnitude           = 70,
-            InvolvesPlayer      = true,
-            Summary             = $"{playerName} broke a host of {factionName} in open battle (test seed).",
-            ActorIds            = new List<string> { Hero.MainHero?.StringId }.Where(s => s != null).ToList(),
-            FactionIds          = factions,
-            AggrievedFactionIds = aggrieved
-         });
-
-         string block = EncounterContextBuilder.ResolvePlayerDeedsHeard(hero);
-         return block == null
-            ? $"Seeded a deed against {factionName}, but {hero.Name} would not (yet) have heard of it."
-            : $"Seeded. {hero.Name} has now heard of your deeds:\n{block}\n\n(Open a conversation to see it colour their tone.)";
-      }
-
-      /// <summary>
-      ///   cr.send_news [about]
-      ///   Dispatches your first available companion to gather news — physically: they leave the party as
-      ///   their own clan party and ride to a town. Optional [about] scopes the destination (a faction,
-      ///   culture, or town: "cr.send_news Sturgia"). Use cr.mission_return to skip the travel and resolve now.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("send_news", "cr")]
-      public static string SendNews(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-         if (Missions.CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
-
-         Hero c = FirstCompanionInParty();
-         if (c == null) return "No companion in your party. Recruit one first.";
-
-         string about = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
-         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.GatherNews, about).Message;
-      }
-
-      /// <summary>cr.send_spy [about] — sends your first companion to scout a town (Roguery); intel comes back in conversation.</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("send_spy", "cr")]
-      public static string SendSpy(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-         if (Missions.CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
-
-         Hero c = FirstCompanionInParty();
-         if (c == null) return "No companion in your party. Recruit one first.";
-
-         string about = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
-         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Spy, about).Message;
-      }
-
-      /// <summary>cr.send_steal [about] — sends your first companion to lift coin from a town (Roguery); loot reaches you on return.</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("send_steal", "cr")]
-      public static string SendSteal(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-         if (Missions.CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
-
-         Hero c = FirstCompanionInParty();
-         if (c == null) return "No companion in your party. Recruit one first.";
-
-         string about = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
-         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Steal, about).Message;
-      }
-
-      /// <summary>cr.send_barter [about] — sends your first companion to trade at a town (Trade); profit reaches you on return.</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("send_barter", "cr")]
-      public static string SendBarter(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-         if (Missions.CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
-
-         Hero c = FirstCompanionInParty();
-         if (c == null) return "No companion in your party. Recruit one first.";
-
-         string about = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
-         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Barter, about).Message;
-      }
-
-      /// <summary>cr.send_envoy [about] — sends your first companion as an envoy to a faction's town (Charm); their mood comes back in conversation.</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("send_envoy", "cr")]
-      public static string SendEnvoy(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-         if (Missions.CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
-
-         Hero c = FirstCompanionInParty();
-         if (c == null) return "No companion in your party. Recruit one first.";
-
-         string about = args != null && args.Count > 0 ? string.Join(" ", args).Trim() : null;
-         return Missions.CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Envoy, about).Message;
-      }
-
-      /// <summary>cr.missions — lists the errands companions are currently away on.</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("missions", "cr")]
-      public static string ListMissions(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-         return Missions.CompanionMissionBehavior.Instance?.DescribeActive() ?? "Companion-mission system is not active.";
-      }
-
-      /// <summary>
-      ///   cr.mission_return
-      ///   Force-resolves the first in-flight errand NOW and prints the report — the test path so you need
-      ///   not wait the in-game days for the companion to ride there and back.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("mission_return", "cr")]
-      public static string MissionReturn(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-         return Missions.CompanionMissionBehavior.Instance?.ForceResolveFirst() ?? "Companion-mission system is not active.";
-      }
-
-      /// <summary>The first living companion currently in the player's party (skipping any already away).</summary>
-      private static Hero FirstCompanionInParty()
-         => Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero
-               && (h.IsPlayerCompanion || h.Clan == Clan.PlayerClan)
-               && h.PartyBelongedTo == MobileParty.MainParty
-               && Missions.CompanionMissionBehavior.Instance?.IsAway(h.StringId) != true);
-
-      /// <summary>cr.happiness [name] — shows a companion's contentment in your service (score + band).</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("happiness", "cr")]
-      public static string ShowHappiness(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         int score = Missions.CompanionHappinessService.Get(hero);
-         string leave = CompanionHappiness.WantsToLeave(score) ? " — WANTS TO LEAVE" : "";
-         return $"{hero.Name} — Contentment {score} ({CompanionHappiness.Describe(score)}); band {CompanionHappiness.Band(score)}{leave}.";
-      }
-
-      /// <summary>cr.happiness_set &lt;0..100&gt; [name] — sets a companion's contentment, to test the bands/encyclopedia line.</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("happiness_set", "cr")]
-      public static string SetHappiness(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
-         if (args == null || args.Count < 1 || !int.TryParse(args[0], out int val))
-            return "Usage: cr.happiness_set <0..100> [name]";
-
-         string frag = args.Count > 1 ? string.Join(" ", args.GetRange(1, args.Count - 1)).Trim() : null;
-         Hero hero = !string.IsNullOrWhiteSpace(frag)
-            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Name != null
-                 && h.Name.ToString().IndexOf(frag, StringComparison.OrdinalIgnoreCase) >= 0)
-            : Hero.OneToOneConversationHero;
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         NpcProfile p = GetOrCreateProfile(behavior, hero);
-         p.Happiness = CompanionHappiness.Clamp(val);
-         behavior.Store.Set(p);
-         return $"{hero.Name} contentment set to {p.Happiness} ({CompanionHappiness.Describe(p.Happiness)}).";
-      }
-
-      /// <summary>cr.happiness_tick — runs a weekly happiness pass now (idle/loved-one pressure, drift, and any departures).</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("happiness_tick", "cr")]
-      public static string HappinessTick(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-         if (Missions.CompanionHappinessBehavior.Instance == null) return "Companion-happiness system is not active.";
-
-         Missions.CompanionHappinessBehavior.Instance.RunTick();
-         return "Ran a happiness tick. Check cr.happiness [name] (a season at the leave floor parts ways).";
-      }
-
-      /// <summary>cr.rapport [name] — shows how a companion feels about their fellow companions (camp life).</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("rapport", "cr")]
-      public static string ShowRapport(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-
-         Hero hero = ResolveHero(args);
-         if (hero == null || !hero.IsPlayerCompanion) return "Pass one of your own companions' name.";
-
-         var lines = Hero.AllAliveHeroes
-            .Where(h => h != hero && h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion)
-            .Select(h => $"- {h.Name}: {hero.GetRelation(h)} ({CompanionRapport.Band(hero.GetRelation(h))})")
-            .ToList();
-         return lines.Count == 0
-            ? $"{hero.Name} has no fellow companions to feel anything about."
-            : $"{hero.Name} feels:\n{string.Join("\n", lines)}";
-      }
-
-      /// <summary>cr.rapport_tick — runs a weekly camp-life pass now (compatibility nudges + any companion weddings).</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("rapport_tick", "cr")]
-      public static string RapportTick(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-         if (Missions.CompanionRapportBehavior.Instance == null) return "Camp-life system is not active.";
-
-         Missions.CompanionRapportBehavior.Instance.RunTick();
-         return "Ran a camp-life tick. Check cr.rapport [name].";
-      }
-
-      /// <summary>cr.bargain [name] — reports whether an NPC may offer the female player the intimacy-as-currency bargain (Phase 3).</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("bargain", "cr")]
-      public static string ShowBargain(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
-
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         bool eligible = IntimacyBargainEligibility.IsEligible(hero);
-         bool leverage = behavior.Store.Get(hero.StringId)?.IntimacyLeverageHeld == true;
-         return $"{hero.Name} — intimacy bargain eligible: {eligible} " +
-                "(needs a female player; this man unrelated, dishonourable + cynical/callous; Adult ≥ Explicit). " +
-                $"Leverage held: {leverage}.";
-      }
-
-      /// <summary>cr.bargain_leverage [name] — marks an NPC as already holding leverage, to test the escalation prompt.</summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("bargain_leverage", "cr")]
-      public static string SetBargainLeverage(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
-
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         NpcProfile p = GetOrCreateProfile(behavior, hero);
-         p.IntimacyLeverageHeld = true;
-         behavior.Store.Set(p);
-         return $"{hero.Name} now holds leverage — open a chat (female player, Adult ≥ Explicit) to see them press it.";
-      }
-
-      /// <summary>
-      ///   cr.jealousy_comp
-      ///   Reports the player's current partner household (native spouse + committed consorts) with
-      ///   each one's culture, sharing-tolerance and how long since they were last attended to, then
-      ///   forces one competition pass so the v1.5 ongoing-rivalry loop can be tested without waiting.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("jealousy_comp", "cr")]
-      public static string TriggerJealousyCompetition(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
-            return error;
-         if (Jealousy.JealousyBehavior.Instance == null)
-            return "Jealousy system is not active.";
-
-         return Jealousy.JealousyBehavior.Instance.DebugCompetition();
-      }
-
-      /// <summary>
       ///   cr.witness [witnessName]
       ///   Adds a named witness to the currently open chat session. Primary test path
       ///   for the multi-NPC feature — validates prompt injection, header UI, and the
@@ -554,6 +167,47 @@ namespace CalradiaRemembers
          ChatManager.ActiveViewModel.AddWitness(entry);
 
          return $"Witness '{displayName}' ({relation}) added to chat session.";
+      }
+
+      /// <summary>
+      ///   cr.scheme_advance
+      ///   Advances every active scheme by one tick (no spawn) — to test the lifecycle without
+      ///   waiting for daily ticks. Watch the result with cr.schemes.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("scheme_advance", "cr")]
+      public static string AdvanceSchemes(List<string> args)
+      {
+         var store = SchemeStore.Instance;
+
+         if (store == null) return "Scheme system is not active.";
+
+         int before = store.Active.Count;
+         store.DebugAdvance();
+
+         return $"Advanced schemes one tick ({before} → {store.Active.Count} still active). See cr.schemes / story log.";
+      }
+
+      /// <summary>
+      ///   cr.capture [name]
+      ///   Takes the given lord prisoner into your party — a shortcut so you can test the prisoner
+      ///   freedom-bargain without winning a battle. Imprison them in a fief's dungeon (or keep them in
+      ///   your party) and speak with them: a captive lord may then bargain for their release.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("capture", "cr")]
+      public static string CaptureLord(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+         if (hero == Hero.MainHero) return "You cannot capture yourself.";
+         if (hero.IsPrisoner && hero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero)
+            return $"{hero.Name} is already your prisoner.";
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, hero);
+
+         return $"{hero.Name} is now your prisoner. Speak with them (in a fief dungeon, or test in conversation) " + $"— a captive lord may bargain for their freedom.";
       }
 
       // ── Sprint 12d: player letter compose ─────────────────────────────────
@@ -677,6 +331,41 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.escape_force
+      ///   Makes the NEXT escape attempt in a captive scene succeed, so the full escape flow
+      ///   (constrained captor reaction → freeing on scene close) can be tested despite the 10%
+      ///   natural chance. Then, in the scene, type an escape attempt (e.g. "I lunge for the door
+      ///   and bolt") so the LLM emits escape_attempt.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("escape_force", "cr")]
+      public static string ForceEscape(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         behavior.GameStateBridge?.ForceNextEscapeSuccess();
+
+         return "Armed: your next escape attempt in a captive scene will succeed. " + "Type an escape attempt in the scene to trigger it.";
+      }
+
+      /// <summary>
+      ///   cr.intercept [name]
+      ///   Forces the named lord (with a party on the map) to ride out and intercept the player,
+      ///   bypassing the eligibility roll — to test the pursuit without waiting for the daily tick.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("intercept", "cr")]
+      public static string ForceIntercept(List<string> args)
+      {
+         var behavior = InterceptionBehavior.Instance;
+
+         if (behavior == null) return "Interception system is not active.";
+
+         Hero lord = ResolveHero(args);
+
+         if (lord == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         return behavior.DebugForceIntercept(lord);
+      }
+
+      /// <summary>
       ///   cr.marry [name]
       ///   Forces a native marriage between the player and the named hero so the
       ///   consequence resolver (warm/hostile family) can be tested end to end. Pair with
@@ -697,212 +386,33 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.recruit_info [name]
-      ///   Shows the lord-defection verdict for an NPC — the gathered gate facts and whether
-      ///   join_clan would be taught. Diagnostic only; mutates nothing.
+      ///   cr.preg [name]
+      ///   Forces a captive conception for the female player (bypasses the 15% roll) so the
+      ///   pregnancy → delivery path can be validated without waiting on a real scene. With a
+      ///   [name], that hero is the father (a lord captor); with none, the shared hidden
+      ///   "Unknown" father is used (the bandit case). The child lands in the player's clan.
       /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("recruit_info", "cr")]
-      public static string ShowRecruitInfo(List<string> args)
+      [CommandLineFunctionality.CommandLineArgumentFunction("preg", "cr")]
+      public static string ForcePregnancy(List<string> args)
       {
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+         if (!TryContext(out _, out string error)) return error;
 
-         Logic.LordRecruitmentFacts facts = GameState.LordRecruitmentFactsBuilder.Build(hero);
-         if (facts == null)
-            return $"{hero.Name} can never be a defection candidate (not a free lord of another clan).";
+         bool named = args != null && args.Count > 0;
+         Hero father = named
+            ? ResolveHero(args)
+            : null;
 
-         Logic.LordRecruitmentBlock verdict = Logic.LordRecruitment.Evaluate(facts);
-         return $"{hero.Name} — join_clan: {(verdict == Logic.LordRecruitmentBlock.None ? "ELIGIBLE" : "blocked: " + verdict)}\n" +
-                $"  relation {facts.Relation} (need >= {Logic.LordRecruitment.MinRelation}), " +
-                $"player tier {facts.PlayerClanTier} vs lord tier {facts.LordClanTier}\n" +
-                $"  vulnerable: landless={facts.LordIsLandless}, clanWeak/destroyed={facts.LordClanWeakOrDestroyed}, " +
-                $"hasLiege={facts.HasLiege} (rel {facts.RelationWithLiege}, need <= {Logic.LordRecruitment.LiegeResentmentThreshold})";
-      }
+         if (named && father == null) return $"No hero matched \"{string.Join(" ", args)}\".";
 
-      /// <summary>
-      ///   cr.recruit [name]
-      ///   Force-runs the join_clan action through the bridge (re-validates the gate, then moves the
-      ///   lord into the player's clan). Tests the defection path without the LLM.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("recruit", "cr")]
-      public static string ForceRecruit(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
-            return error;
+         string note = CaptivePregnancyService.TryConceive(father, true);
 
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+         if (note == null)
+            return "Conception did not occur — the player must be a female of fertile age (18–45), " + "not already pregnant. Check CalradiaRemembers.log for engine details.";
 
-         var outcome = behavior.GameStateBridge.ExecuteAction(
-            new NpcMemoryService.Core.Models.GameAction { Type = "join_clan" }, hero, null);
-
-         return outcome?.Message ?? $"join_clan on {hero.Name} did nothing (see CalradiaRemembers.log).";
-      }
-
-      /// <summary>
-      ///   cr.schemes
-      ///   Lists the feud schemes currently in motion (plotter → target, kind, state, progress).
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("schemes", "cr")]
-      public static string ListSchemes(List<string> args)
-      {
-         var store = WorldEvents.SchemeStore.Instance;
-         if (store == null) return "Scheme system is not active.";
-
-         var active = store.Active;
-         if (active.Count == 0) return "No schemes are afoot.";
-
-         var sb = new System.Text.StringBuilder();
-         sb.AppendLine($"{active.Count} scheme(s) afoot:");
-         foreach (Logic.Scheme s in active)
-         {
-            string plotter = Hero.FindFirst(h => h.StringId == s.PlotterId)?.Name?.ToString() ?? s.PlotterId;
-            string target  = Hero.FindFirst(h => h.StringId == s.TargetId)?.Name?.ToString() ?? s.TargetId;
-            sb.AppendLine($"  {plotter} → {target} | {s.Kind} | {s.State} | progress {s.Progress}");
-         }
-         return sb.ToString().TrimEnd();
-      }
-
-      /// <summary>
-      ///   cr.scheme [name]
-      ///   Force-plots a scheme: the named hero (or the current conversation NPC) plots against their
-      ///   most-hated rival lord. Use cr.scheme_advance to step it, cr.schemes to watch.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("scheme", "cr")]
-      public static string ForceScheme(List<string> args)
-      {
-         var store = WorldEvents.SchemeStore.Instance;
-         if (store == null) return "Scheme system is not active.";
-
-         Hero plotter = ResolveHero(args);
-         if (plotter == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         Hero target = Hero.AllAliveHeroes
-            .Where(h => h != plotter && h != Hero.MainHero && h.IsLord)
-            .OrderBy(h => h.GetRelation(plotter))
-            .FirstOrDefault();
-         if (target == null) return $"Found no rival lord for {plotter.Name} to plot against.";
-
-         var kind = MBRandom.RandomInt(2) == 0 ? Logic.SchemeKind.Slander : Logic.SchemeKind.Sabotage;
-         return store.ForcePlot(plotter, target, kind);
-      }
-
-      /// <summary>
-      ///   cr.scheme_advance
-      ///   Advances every active scheme by one tick (no spawn) — to test the lifecycle without
-      ///   waiting for daily ticks. Watch the result with cr.schemes.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("scheme_advance", "cr")]
-      public static string AdvanceSchemes(List<string> args)
-      {
-         var store = WorldEvents.SchemeStore.Instance;
-         if (store == null) return "Scheme system is not active.";
-
-         int before = store.Active.Count;
-         store.DebugAdvance();
-         return $"Advanced schemes one tick ({before} → {store.Active.Count} still active). See cr.schemes / story log.";
-      }
-
-      /// <summary>
-      ///   cr.scheme_assist [name]
-      ///   Force the player to abet the named plotter's secret scheme (bypasses the LLM). The plotter
-      ///   must regard you enough and the plot must be secret — set relation first with cr.relation.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("scheme_assist", "cr")]
-      public static string ForceSchemeAssist(List<string> args)
-      {
-         var store = WorldEvents.SchemeStore.Instance;
-         if (store == null) return "Scheme system is not active.";
-
-         Hero plotter = ResolveHero(args);
-         if (plotter == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         string result = store.PlayerAssists(plotter);
-         return result ?? $"{plotter.Name} has no secret plot you are eligible to abet (regard >= 20, plot still secret, you not allied with the target).";
-      }
-
-      /// <summary>
-      ///   cr.scheme_warn [name]
-      ///   Force the player to warn the named hero of a secret plot against them (bypasses the LLM):
-      ///   exposes the scheme so the target can counter it on later ticks.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("scheme_warn", "cr")]
-      public static string ForceSchemeWarn(List<string> args)
-      {
-         var store = WorldEvents.SchemeStore.Instance;
-         if (store == null) return "Scheme system is not active.";
-
-         Hero target = ResolveHero(args);
-         if (target == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         string result = store.TargetHeeds(target);
-         return result ?? $"There is no secret plot against {target.Name} to warn of.";
-      }
-
-      /// <summary>
-      ///   cr.intercept [name]
-      ///   Forces the named lord (with a party on the map) to ride out and intercept the player,
-      ///   bypassing the eligibility roll — to test the pursuit without waiting for the daily tick.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("intercept", "cr")]
-      public static string ForceIntercept(List<string> args)
-      {
-         var behavior = Interception.InterceptionBehavior.Instance;
-         if (behavior == null) return "Interception system is not active.";
-
-         Hero lord = ResolveHero(args);
-         if (lord == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         return behavior.DebugForceIntercept(lord);
-      }
-
-      /// <summary>
-      ///   cr.stance [name]
-      ///   Shows an NPC's posture toward the player (Affection/Trust/Respect/Fear) and the prompt block.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("stance", "cr")]
-      public static string ShowStance(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
-
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         NpcProfile p = behavior.Store.Get(hero.StringId);
-         if (p == null) return $"{hero.Name} has no profile yet (you have never spoken).";
-
-         string block = Stance.StanceService.Describe(p) ?? "(wholly neutral)";
-         return $"{hero.Name} — Affection {p.ReputationWithPlayer}, Trust {p.StanceTrust}, Respect {p.StanceRespect}, Fear {p.StanceFear}\n{block}";
-      }
-
-      /// <summary>
-      ///   cr.stance_set &lt;trust&gt; &lt;respect&gt; &lt;fear&gt; [name]
-      ///   Sets the Trust/Respect/Fear axes directly (Affection stays on the reputation path) to test
-      ///   the posture block in conversation. Values are clamped to each axis's range.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("stance_set", "cr")]
-      public static string SetStance(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
-         if (args == null || args.Count < 3
-             || !int.TryParse(args[0], out int t) || !int.TryParse(args[1], out int r) || !int.TryParse(args[2], out int f))
-            return "Usage: cr.stance_set <trust> <respect> <fear> [name]";
-
-         string nameFragment = args.Count > 3 ? string.Join(" ", args.GetRange(3, args.Count - 3)).Trim() : null;
-         Hero hero = !string.IsNullOrWhiteSpace(nameFragment)
-            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Name != null
-                 && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
-            : Hero.OneToOneConversationHero;
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         NpcProfile p = GetOrCreateProfile(behavior, hero);
-         p.StanceTrust   = Logic.StanceGate.ClampAxis(Logic.StanceAxis.Trust, t);
-         p.StanceRespect = Logic.StanceGate.ClampAxis(Logic.StanceAxis.Respect, r);
-         p.StanceFear    = Logic.StanceGate.ClampAxis(Logic.StanceAxis.Fear, f);
-         behavior.Store.Set(p);
-
-         string block = Stance.StanceService.Describe(p) ?? "(wholly neutral)";
-         return $"{hero.Name} stance set — Trust {p.StanceTrust}, Respect {p.StanceRespect}, Fear {p.StanceFear}\n{block}";
+         return note
+                + (father == null
+                   ? " [father: shared Unknown]"
+                   : "");
       }
 
       /// <summary>
@@ -996,6 +506,99 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.recruit [name]
+      ///   Force-runs the join_clan action through the bridge (re-validates the gate, then moves the
+      ///   lord into the player's clan). Tests the defection path without the LLM.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("recruit", "cr")]
+      public static string ForceRecruit(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "join_clan"}, hero, null);
+
+         return outcome?.Message ?? $"join_clan on {hero.Name} did nothing (see CalradiaRemembers.log).";
+      }
+
+      /// <summary>
+      ///   cr.scheme [name]
+      ///   Force-plots a scheme: the named hero (or the current conversation NPC) plots against their
+      ///   most-hated rival lord. Use cr.scheme_advance to step it, cr.schemes to watch.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("scheme", "cr")]
+      public static string ForceScheme(List<string> args)
+      {
+         var store = SchemeStore.Instance;
+
+         if (store == null) return "Scheme system is not active.";
+
+         Hero plotter = ResolveHero(args);
+
+         if (plotter == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         Hero target = Hero.AllAliveHeroes
+                           .Where(h => h != plotter && h != Hero.MainHero && h.IsLord)
+                           .OrderBy(h => h.GetRelation(plotter))
+                           .FirstOrDefault();
+
+         if (target == null) return $"Found no rival lord for {plotter.Name} to plot against.";
+
+         SchemeKind kind = MBRandom.RandomInt(2) == 0
+            ? SchemeKind.Slander
+            : SchemeKind.Sabotage;
+
+         return store.ForcePlot(plotter, target, kind);
+      }
+
+      /// <summary>
+      ///   cr.scheme_assist [name]
+      ///   Force the player to abet the named plotter's secret scheme (bypasses the LLM). The plotter
+      ///   must regard you enough and the plot must be secret — set relation first with cr.relation.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("scheme_assist", "cr")]
+      public static string ForceSchemeAssist(List<string> args)
+      {
+         var store = SchemeStore.Instance;
+
+         if (store == null) return "Scheme system is not active.";
+
+         Hero plotter = ResolveHero(args);
+
+         if (plotter == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         string result = store.PlayerAssists(plotter);
+
+         return result ?? $"{plotter.Name} has no secret plot you are eligible to abet (regard >= 20, plot still secret, you not allied with the target).";
+      }
+
+      /// <summary>
+      ///   cr.scheme_warn [name]
+      ///   Force the player to warn the named hero of a secret plot against them (bypasses the LLM):
+      ///   exposes the scheme so the target can counter it on later ticks.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("scheme_warn", "cr")]
+      public static string ForceSchemeWarn(List<string> args)
+      {
+         var store = SchemeStore.Instance;
+
+         if (store == null) return "Scheme system is not active.";
+
+         Hero target = ResolveHero(args);
+
+         if (target == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         string result = store.TargetHeeds(target);
+
+         return result ?? $"There is no secret plot against {target.Name} to warn of.";
+      }
+
+      /// <summary>
       ///   cr.forget_all [name]
       ///   Clears the entire memory of an NPC. Use when a session has badly corrupted
       ///   the profile and a fresh start is the cleanest fix.
@@ -1054,6 +657,18 @@ namespace CalradiaRemembers
       [CommandLineFunctionality.CommandLineArgumentFunction("give_gold", "cr")]
       public static string GiveGold(List<string> args)
          => SimulateGold("give_gold", args, "cr.give_gold <amount> [name]");
+
+      /// <summary>cr.happiness_tick — runs a weekly happiness pass now (idle/loved-one pressure, drift, and any departures).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("happiness_tick", "cr")]
+      public static string HappinessTick(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (CompanionHappinessBehavior.Instance == null) return "Companion-happiness system is not active.";
+
+         CompanionHappinessBehavior.Instance.RunTick();
+
+         return "Ran a happiness tick. Check cr.happiness [name] (a season at the leave floor parts ways).";
+      }
 
       // ── Help ─────────────────────────────────────────────────────────────
 
@@ -1115,6 +730,20 @@ namespace CalradiaRemembers
          return sb.ToString();
       }
 
+      /// <summary>
+      ///   cr.chronicle_illuminate
+      ///   Runs the optional LLM pass that rewrites the chronicle into flowing chronicler prose
+      ///   (style editable in ModuleData/chronicle_style.txt). Async — reopen the viewer once done.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("chronicle_illuminate", "cr")]
+      public static string IlluminateChronicle(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
+            return error;
+
+         return ChronicleIlluminationService.Extend();
+      }
+
       [CommandLineFunctionality.CommandLineArgumentFunction("info", "cr")]
       public static string Info(List<string> args)
       {
@@ -1129,7 +758,7 @@ namespace CalradiaRemembers
          double now = CampaignTime.Now.ToHours;
          bool captive = behavior.GameStateBridge.GetPlayerStatus(hero) == PlayerStatusVsNpc.NpcIsCaptive;
 
-         double cooldownHours = Logic.RelationGate.CooldownHoursFor(ModSettings.RelationWarmth);
+         double cooldownHours = RelationGate.CooldownHoursFor(ModSettings.RelationWarmth);
          string lastGain = profile.LastRelationGainHour.HasValue
             ? $"{profile.LastRelationGainHour.Value:F1}h"
             : "never";
@@ -1164,6 +793,51 @@ namespace CalradiaRemembers
             $"  {q.StringId}  giver={q.QuestGiver?.Name}  isSpecialType={q.IsSpecialQuest}");
 
          return $"{crQuests.Count} CR quest(s) in QuestManager:\n" + string.Join("\n", lines);
+      }
+
+      /// <summary>
+      ///   cr.bandit_queen [solo|collective] [male|female]
+      ///   Opens a captive scene with a forced FEMALE bandit chief (intent = spoil / PersonalDesire),
+      ///   to test female-aggressor content (facesitting/smothering, reductive domination) without
+      ///   waiting on the rare female-gang roll. Defaults: solo, and a MALE player (the classic
+      ///   woman-dominates-a-man dynamic); pass 'female' for a woman-on-woman scene. The captor's
+      ///   portrait is left blank rather than show a male troop face on a woman. Requires Hardcore.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bandit_queen", "cr")]
+      public static string LaunchBanditQueenScene(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+         if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
+            return "LLM services not available. Set your OpenRouter API key first.";
+
+         var collective = false;
+         bool? playerGender = false; // default: male player (female-on-male)
+         foreach (string arg in args ?? new List<string>())
+            if (arg.Equals("collective", StringComparison.OrdinalIgnoreCase)) collective = true;
+            else if (arg.Equals("solo", StringComparison.OrdinalIgnoreCase)) collective = false;
+            else if (arg.Equals("female", StringComparison.OrdinalIgnoreCase)) playerGender = true;
+            else if (arg.Equals("male", StringComparison.OrdinalIgnoreCase)) playerGender = false;
+
+         LlmServices.TestPlayerGenderOverride = playerGender;
+         behavior.LlmServices.Invalidate();
+
+         List<WitnessEntry> witnesses = collective
+            ? CaptiveEncounterService.BuildBanditWitnesses()
+            : new List<WitnessEntry>();
+
+         // Force a FEMALE chief and give her a real FEMALE face (a female troop/commoner portrait),
+         // not a male troop. Falls back to a blank portrait if the game has no female character.
+         NpcProfile captor = CaptiveEncounterService.BuildBanditCaptor(
+            "bandit_queen_test", MBRandom.RandomInt(), "Brigands", true);
+         CharacterObject queenFace = CaptiveEncounterService.ResolveFemaleBanditFace();
+         ChatManager.OpenForCaptiveEncounter(null, captor, witnesses, collective, CaptiveSceneIntent.PersonalDesire, queenFace);
+
+         string warn = ModSettings.AdultContentLevel != AdultContentLevel.Hardcore
+            ? " (NOTE: set Adult Content Level to Hardcore in MCM for the CNC / female-aggressor rules.)"
+            : "";
+
+         return $"Female-chief bandit scene opened with {captor.Name} [spoil{(collective ? ", collective" : "")}, " + $"player {(playerGender == true ? "female" : "male")}].{warn}";
       }
 
       /// <summary>
@@ -1212,52 +886,6 @@ namespace CalradiaRemembers
             : "";
 
          return $"Bandit captive scene opened with {captor.Name} [{intent}{(collective ? ", collective" : "")}].{warn}";
-      }
-
-      /// <summary>
-      ///   cr.bandit_queen [solo|collective] [male|female]
-      ///   Opens a captive scene with a forced FEMALE bandit chief (intent = spoil / PersonalDesire),
-      ///   to test female-aggressor content (facesitting/smothering, reductive domination) without
-      ///   waiting on the rare female-gang roll. Defaults: solo, and a MALE player (the classic
-      ///   woman-dominates-a-man dynamic); pass 'female' for a woman-on-woman scene. The captor's
-      ///   portrait is left blank rather than show a male troop face on a woman. Requires Hardcore.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("bandit_queen", "cr")]
-      public static string LaunchBanditQueenScene(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
-            return error;
-         if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
-            return "LLM services not available. Set your OpenRouter API key first.";
-
-         var collective = false;
-         bool? playerGender = false; // default: male player (female-on-male)
-         foreach (string arg in args ?? new List<string>())
-            if (arg.Equals("collective", StringComparison.OrdinalIgnoreCase)) collective = true;
-            else if (arg.Equals("solo", StringComparison.OrdinalIgnoreCase)) collective = false;
-            else if (arg.Equals("female", StringComparison.OrdinalIgnoreCase)) playerGender = true;
-            else if (arg.Equals("male", StringComparison.OrdinalIgnoreCase)) playerGender = false;
-
-         LlmServices.TestPlayerGenderOverride = playerGender;
-         behavior.LlmServices.Invalidate();
-
-         List<WitnessEntry> witnesses = collective
-            ? CaptiveEncounterService.BuildBanditWitnesses()
-            : new List<WitnessEntry>();
-
-         // Force a FEMALE chief and give her a real FEMALE face (a female troop/commoner portrait),
-         // not a male troop. Falls back to a blank portrait if the game has no female character.
-         NpcProfile captor = CaptiveEncounterService.BuildBanditCaptor(
-            "bandit_queen_test", MBRandom.RandomInt(), "Brigands", isFemaleOverride: true);
-         CharacterObject queenFace = CaptiveEncounterService.ResolveFemaleBanditFace();
-         ChatManager.OpenForCaptiveEncounter(null, captor, witnesses, collective, CaptiveSceneIntent.PersonalDesire, queenFace);
-
-         string warn = ModSettings.AdultContentLevel != AdultContentLevel.Hardcore
-            ? " (NOTE: set Adult Content Level to Hardcore in MCM for the CNC / female-aggressor rules.)"
-            : "";
-
-         return $"Female-chief bandit scene opened with {captor.Name} [spoil{(collective ? ", collective" : "")}, " +
-                $"player {(playerGender == true ? "female" : "male")}].{warn}";
       }
 
       // ── Sprint 17: captive encounter testing ──────────────────────────────
@@ -1381,6 +1009,15 @@ namespace CalradiaRemembers
          return $"{hero.Name} memory ({profile.Events.Count} event(s)):\n" + string.Join("\n", lines);
       }
 
+      /// <summary>cr.missions — lists the errands companions are currently away on.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("missions", "cr")]
+      public static string ListMissions(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         return CompanionMissionBehavior.Instance?.DescribeActive() ?? "Companion-mission system is not active.";
+      }
+
       /// <summary>
       ///   cr.quests [name]
       ///   Lists the NPC's quests with their state.
@@ -1412,6 +1049,33 @@ namespace CalradiaRemembers
          });
 
          return $"{hero.Name} quests:\n" + string.Join("\n", lines);
+      }
+
+      /// <summary>
+      ///   cr.schemes
+      ///   Lists the feud schemes currently in motion (plotter → target, kind, state, progress).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("schemes", "cr")]
+      public static string ListSchemes(List<string> args)
+      {
+         var store = SchemeStore.Instance;
+
+         if (store == null) return "Scheme system is not active.";
+
+         IReadOnlyList<Scheme> active = store.Active;
+
+         if (active.Count == 0) return "No schemes are afoot.";
+
+         var sb = new StringBuilder();
+         sb.AppendLine($"{active.Count} scheme(s) afoot:");
+         foreach (Scheme s in active)
+         {
+            string plotter = Hero.FindFirst(h => h.StringId == s.PlotterId)?.Name?.ToString() ?? s.PlotterId;
+            string target = Hero.FindFirst(h => h.StringId == s.TargetId)?.Name?.ToString() ?? s.TargetId;
+            sb.AppendLine($"  {plotter} → {target} | {s.Kind} | {s.State} | progress {s.Progress}");
+         }
+
+         return sb.ToString().TrimEnd();
       }
 
       // ── Marriage system Phase A.1: family-approval engine testing (group "cr") ──
@@ -1477,6 +1141,19 @@ namespace CalradiaRemembers
          return $"{hero.Name} — family: {clan}; blessing: {(approved ? "GRANTED" : "none")}; " + $"spouse free: {hero.Spouse == null}; player free: {Hero.MainHero.Spouse == null}.";
       }
 
+      /// <summary>
+      ///   cr.mission_return
+      ///   Force-resolves the first in-flight errand NOW and prints the report — the test path so you need
+      ///   not wait the in-game days for the companion to ride there and back.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("mission_return", "cr")]
+      public static string MissionReturn(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         return CompanionMissionBehavior.Instance?.ForceResolveFirst() ?? "Companion-mission system is not active.";
+      }
+
       [CommandLineFunctionality.CommandLineArgumentFunction("open_chat", "campaign")]
       public static string OpenChat(List<string> args)
       {
@@ -1492,6 +1169,66 @@ namespace CalradiaRemembers
 
             return $"Failed to open chat: {ex.Message}";
          }
+      }
+
+      /// <summary>
+      ///   cr.chronicle_open
+      ///   Opens the illuminated in-game chronicle viewer (Phase 2). Test path for the Gauntlet
+      ///   window before the encyclopedia button is wired.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("chronicle_open", "cr")]
+      public static string OpenChronicle(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
+            return error;
+
+         ChronicleManager.Open();
+
+         return "Chronicle viewer opened.";
+      }
+
+      /// <summary>
+      ///   cr.letter_read [name]
+      ///   Delivers a synthetic letter from the given NPC through the real delivery path
+      ///   (<see cref="LetterPopupManager.Show" />): the parchment window opens in READ mode with
+      ///   Acknowledge / Reply. Use it to exercise the read layout and the in-place Reply transition.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("letter_read", "cr")]
+      public static string OpenLetterRead(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         LetterPopupManager.Show(BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay()), profile);
+
+         return $"Delivered a test letter from {hero.Name} to the parchment window (read mode).";
+      }
+
+      /// <summary>
+      ///   cr.letter_reply [name]
+      ///   Opens the parchment courier window straight in REPLY mode with a synthetic received letter —
+      ///   write a reply and seal it. The send seals + queues the NPC's answer + closes synchronously
+      ///   (no inline LLM call), the pattern that ended the close-on-reply hang and crash.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("letter_reply", "cr")]
+      public static string OpenLetterReply(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         LetterWindowManager.OpenReply(BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay()), profile, hero);
+
+         return $"Opened a parchment reply window from {hero.Name}. Type a reply, send, and watch it close.";
       }
 
       /// <summary>
@@ -1527,6 +1264,37 @@ namespace CalradiaRemembers
          }
       }
 
+      /// <summary>cr.rapport_tick — runs a weekly camp-life pass now (compatibility nudges + any companion weddings).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("rapport_tick", "cr")]
+      public static string RapportTick(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (CompanionRapportBehavior.Instance == null) return "Camp-life system is not active.";
+
+         CompanionRapportBehavior.Instance.RunTick();
+
+         return "Ran a camp-life tick. Check cr.rapport [name].";
+      }
+
+      /// <summary>
+      ///   cr.reload_lore
+      ///   Reloads ModuleData/character_overrides.json and re-applies (or restores) the authored traits
+      ///   per the current "Use custom traits" toggle — no relaunch needed.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("reload_lore", "cr")]
+      public static string ReloadLore(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         var behavior = CharacterLoreBehavior.Instance;
+
+         if (behavior == null) return "Character lore behavior is not active.";
+
+         behavior.ReloadAndReapply();
+
+         return $"Reloaded character_overrides.json ({CharacterOverrideLoader.Set.Count} entr(ies)); " + $"custom traits {(ModSettings.UseCustomTraits ? "applied" : "off (vanilla restored)")}.";
+      }
+
       /// <summary>cr.remove_kink &lt;kink&gt; [name] — removes a kink from the NPC's profile.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("remove_kink", "cr")]
       public static string RemoveKink(List<string> args)
@@ -1547,6 +1315,147 @@ namespace CalradiaRemembers
          behavior.Store.Set(profile);
 
          return $"{hero.Name}: relation-gain cooldown cleared. Next positive gain will land immediately.";
+      }
+
+      /// <summary>cr.chronicle_rewrite — redo the whole illuminated chronicle (e.g. after editing the style file).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("chronicle_rewrite", "cr")]
+      public static string RewriteChronicle(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
+            return error;
+
+         return ChronicleIlluminationService.RewriteAll();
+      }
+
+      /// <summary>
+      ///   cr.rumor [settlement]
+      ///   Opens a transient commoner conversation in the player's current settlement
+      ///   (or the named settlement if supplied). No profile is stored; the commoner
+      ///   exists only for this chat window. Tests the v1.1 Commoners path.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("rumor", "cr")]
+      public static string Rumor(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
+            return "LLM services not available. Check OPENROUTER_API_KEY / model settings.";
+
+         Settlement settlement = null;
+
+         if (args != null && args.Count > 0)
+         {
+            string query = string.Join(" ", args).Trim();
+            settlement = Settlement.All
+                                   .FirstOrDefault(s => s.Name != null
+                                                        && s.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
+
+            if (settlement == null)
+               return $"No settlement found matching '{query}'.";
+         }
+         else
+         {
+            settlement = Hero.MainHero?.CurrentSettlement;
+         }
+
+         if (settlement == null)
+            return "No settlement found. Enter a town or castle, or pass a name: cr.rumor Pravend";
+
+         CommonsKnowledge knowledge = CommonsKnowledgeBuilder.Build(settlement);
+         NpcProfile profile = CommonsProfileFactory.Create(settlement);
+
+         ChatManager.OpenForCommoner(profile, knowledge);
+
+         return $"Opening commoner chat in {settlement.Name} — speak to {profile.Name}.";
+      }
+
+      /// <summary>
+      ///   cr.declare_war_quest [name]
+      ///   Seeds a declare_war bargain on the given NPC, targeting the first kingdom you can still
+      ///   declare war on (not your own, not already at war). Then declare war on it (kingdom screen):
+      ///   the deed is stamped done by the WarDeclared event, and the NPC pays out when you report back.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("declare_war_quest", "cr")]
+      public static string SeedDeclareWarQuest(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         IFaction player = Hero.MainHero?.MapFaction;
+
+         if (player == null) return "You belong to no faction — there is nothing to declare war with.";
+
+         IFaction target = Kingdom.All?.Cast<IFaction>()
+                                  .FirstOrDefault(k => k != player && !FactionManager.IsAtWarAgainstFaction(player, k));
+
+         if (target == null) return "No eligible faction (you are at war with all of them, or there are none).";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         var quest = new InformalQuest {
+            Type = QuestType.DeclareWar,
+            Description = $"Declare war on {target.Name} for {hero.Name}.",
+            TargetFactionId = target.StringId,
+            TargetFactionName = target.Name?.ToString(),
+            IssuedOnDay = today,
+            Reward = RewardGrant.None,
+            RewardGold = 1000,
+            RewardRelation = 8,
+            Status = QuestStatus.Active
+         };
+         profile.ActiveQuests.Add(quest);
+         behavior.Store.Set(profile);
+         QuestJournalBridge.OpenMirror(quest, hero);
+
+         return $"{hero.Name} now wants you to declare war on {target.Name}. Declare it, then report back.";
+      }
+
+      /// <summary>
+      ///   cr.deliver_prisoner [name]
+      ///   Seeds a deliver_prisoner bargain on the given NPC targeting the first LORD you currently hold
+      ///   (case a — an immediate hand-over). Then, in conversation with that NPC, offer to deliver them:
+      ///   the NPC emits give_prisoner, the captive is transferred, and the reward (500g/+5) is paid.
+      ///   Hold a lord prisoner first. (Case b — capture-and-deliver — arises in real play.)
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("deliver_prisoner", "cr")]
+      public static string SeedDeliverPrisoner(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         Hero held = MobileParty.MainParty?.PrisonRoster?.GetTroopRoster()
+                                ?.Select(el => el.Character?.HeroObject)
+                                .FirstOrDefault(h => h != null && h.IsLord && !h.IsHumanPlayerCharacter);
+
+         if (held == null)
+            return "You hold no lord prisoner. Capture an enemy lord first, then run this to test the hand-over (case a).";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         var quest = new InformalQuest {
+            Type = QuestType.DeliverPrisoner,
+            Description = $"Hand {held.Name} over to {hero.Name}.",
+            TargetHeroId = held.StringId,
+            TargetHeroName = held.Name?.ToString(),
+            IssuedOnDay = today,
+            Reward = RewardGrant.None,
+            RewardGold = 500,
+            RewardRelation = 5,
+            Status = QuestStatus.Active
+         };
+         profile.ActiveQuests.Add(quest);
+         behavior.Store.Set(profile);
+
+         return $"{hero.Name} now wants {held.Name} handed over. Talk to {hero.Name} and offer to deliver them.";
       }
 
       /// <summary>
@@ -1628,240 +1537,6 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.letter_read [name]
-      ///   Delivers a synthetic letter from the given NPC through the real delivery path
-      ///   (<see cref="LetterPopupManager.Show"/>): the parchment window opens in READ mode with
-      ///   Acknowledge / Reply. Use it to exercise the read layout and the in-place Reply transition.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("letter_read", "cr")]
-      public static string OpenLetterRead(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
-            return error;
-
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         NpcProfile profile = GetOrCreateProfile(behavior, hero);
-         LetterPopupManager.Show(BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay()), profile);
-         return $"Delivered a test letter from {hero.Name} to the parchment window (read mode).";
-      }
-
-      /// <summary>
-      ///   cr.letter_reply [name]
-      ///   Opens the parchment courier window straight in REPLY mode with a synthetic received letter —
-      ///   write a reply and seal it. The send seals + queues the NPC's answer + closes synchronously
-      ///   (no inline LLM call), the pattern that ended the close-on-reply hang and crash.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("letter_reply", "cr")]
-      public static string OpenLetterReply(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
-            return error;
-
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         NpcProfile profile = GetOrCreateProfile(behavior, hero);
-         LetterWindowManager.OpenReply(BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay()), profile, hero);
-         return $"Opened a parchment reply window from {hero.Name}. Type a reply, send, and watch it close.";
-      }
-
-      /// <summary>A synthetic delivered letter for the cr.letter_* test commands.</summary>
-      private static PendingLetter BuildTestLetter(Hero hero, int today) => new()
-      {
-         SenderId    = hero.StringId,
-         SenderName  = hero.Name?.ToString(),
-         Reason      = LetterReason.RomanticCorrespondence,
-         Content     = $"I find my thoughts return to you more often than I would admit. Write back, if you would. — {hero.Name}",
-         SentOnDay   = today - 2,
-         DeliveryDay = today,
-         IsDelivered = true
-      };
-
-      // ── Player-authored character data ────────────────────────────────────
-
-      /// <summary>
-      ///   cr.backstory [name]
-      ///   Shows the authored override for an NPC (if any) — its backstory and the effective vs vanilla
-      ///   levels of the five personality traits — so you can confirm the file took effect.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("backstory", "cr")]
-      public static string ShowBackstory(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         CharacterOverride ov = CharacterOverrideLoader.For(hero);
-         string Fmt(TraitObject t) => $"{hero.GetTraitLevel(t):+#;-#;0} (vanilla {hero.CharacterObject.GetTraitLevel(t):+#;-#;0})";
-
-         var sb = new StringBuilder();
-         sb.AppendLine($"{hero.Name} — custom traits: {(ModSettings.UseCustomTraits ? "ON" : "OFF")}");
-         sb.AppendLine($"  Valor {Fmt(DefaultTraits.Valor)} | Honor {Fmt(DefaultTraits.Honor)} | Mercy {Fmt(DefaultTraits.Mercy)}");
-         sb.AppendLine($"  Generosity {Fmt(DefaultTraits.Generosity)} | Calculating {Fmt(DefaultTraits.Calculating)}");
-         if (ov == null)
-            sb.AppendLine("  No authored override for this NPC.");
-         else
-         {
-            sb.AppendLine($"  Override matched (id={ov.Id ?? "—"}).");
-            sb.AppendLine(ov.HasBackstory ? $"  Backstory: {ov.Backstory}" : "  Backstory: (none)");
-         }
-         return sb.ToString();
-      }
-
-      /// <summary>
-      ///   cr.reload_lore
-      ///   Reloads ModuleData/character_overrides.json and re-applies (or restores) the authored traits
-      ///   per the current "Use custom traits" toggle — no relaunch needed.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("reload_lore", "cr")]
-      public static string ReloadLore(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-
-         CharacterLoreBehavior behavior = CharacterLoreBehavior.Instance;
-         if (behavior == null) return "Character lore behavior is not active.";
-
-         behavior.ReloadAndReapply();
-         return $"Reloaded character_overrides.json ({CharacterOverrideLoader.Set.Count} entr(ies)); " +
-                $"custom traits {(ModSettings.UseCustomTraits ? "applied" : "off (vanilla restored)")}.";
-      }
-
-      /// <summary>
-      ///   cr.deliver_prisoner [name]
-      ///   Seeds a deliver_prisoner bargain on the given NPC targeting the first LORD you currently hold
-      ///   (case a — an immediate hand-over). Then, in conversation with that NPC, offer to deliver them:
-      ///   the NPC emits give_prisoner, the captive is transferred, and the reward (500g/+5) is paid.
-      ///   Hold a lord prisoner first. (Case b — capture-and-deliver — arises in real play.)
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("deliver_prisoner", "cr")]
-      public static string SeedDeliverPrisoner(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
-
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         Hero held = MobileParty.MainParty?.PrisonRoster?.GetTroopRoster()
-            ?.Select(el => el.Character?.HeroObject)
-            .FirstOrDefault(h => h != null && h.IsLord && !h.IsHumanPlayerCharacter);
-         if (held == null)
-            return "You hold no lord prisoner. Capture an enemy lord first, then run this to test the hand-over (case a).";
-
-         NpcProfile profile = GetOrCreateProfile(behavior, hero);
-         int today = behavior.GameStateBridge.GetCurrentGameDay();
-
-         var quest = new InformalQuest {
-            Type           = QuestType.DeliverPrisoner,
-            Description    = $"Hand {held.Name} over to {hero.Name}.",
-            TargetHeroId   = held.StringId,
-            TargetHeroName = held.Name?.ToString(),
-            IssuedOnDay    = today,
-            Reward         = RewardGrant.None,
-            RewardGold     = 500,
-            RewardRelation = 5,
-            Status         = QuestStatus.Active
-         };
-         profile.ActiveQuests.Add(quest);
-         behavior.Store.Set(profile);
-
-         return $"{hero.Name} now wants {held.Name} handed over. Talk to {hero.Name} and offer to deliver them.";
-      }
-
-      /// <summary>
-      ///   cr.declare_war_quest [name]
-      ///   Seeds a declare_war bargain on the given NPC, targeting the first kingdom you can still
-      ///   declare war on (not your own, not already at war). Then declare war on it (kingdom screen):
-      ///   the deed is stamped done by the WarDeclared event, and the NPC pays out when you report back.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("declare_war_quest", "cr")]
-      public static string SeedDeclareWarQuest(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
-
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         IFaction player = Hero.MainHero?.MapFaction;
-         if (player == null) return "You belong to no faction — there is nothing to declare war with.";
-
-         IFaction target = Kingdom.All?.Cast<IFaction>()
-            .FirstOrDefault(k => k != player && !FactionManager.IsAtWarAgainstFaction(player, k));
-         if (target == null) return "No eligible faction (you are at war with all of them, or there are none).";
-
-         NpcProfile profile = GetOrCreateProfile(behavior, hero);
-         int today = behavior.GameStateBridge.GetCurrentGameDay();
-
-         var quest = new InformalQuest {
-            Type              = QuestType.DeclareWar,
-            Description       = $"Declare war on {target.Name} for {hero.Name}.",
-            TargetFactionId   = target.StringId,
-            TargetFactionName = target.Name?.ToString(),
-            IssuedOnDay       = today,
-            Reward            = RewardGrant.None,
-            RewardGold        = 1000,
-            RewardRelation    = 8,
-            Status            = QuestStatus.Active
-         };
-         profile.ActiveQuests.Add(quest);
-         behavior.Store.Set(profile);
-         QuestJournalBridge.OpenMirror(quest, hero);
-
-         return $"{hero.Name} now wants you to declare war on {target.Name}. Declare it, then report back.";
-      }
-
-      /// <summary>
-      ///   cr.succession [predecessor]
-      ///   Simulates dynastic succession with the current player as the heir: reframes every stored NPC
-      ///   memory (drops the predecessor's private events, keeps the political/relational, marks it
-      ///   inherited). The predecessor defaults to your father/mother; pass a name to use a specific hero.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("succession", "cr")]
-      public static string SimulateSuccession(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-
-         Hero heir = Hero.MainHero;
-         if (heir == null) return "No player hero.";
-
-         Hero predecessor = (args != null && args.Count > 0)
-            ? ResolveHero(args)
-            : (heir.Father ?? heir.Mother);
-         if (predecessor == null)
-            return "No predecessor found — pass an NPC name, or play a character who has a parent.";
-         if (predecessor == heir)
-            return "The predecessor and the heir cannot be the same hero.";
-
-         int n = Dynasty.SuccessionBehavior.Instance?.Apply(predecessor, heir) ?? 0;
-         return $"Succession simulated: {n} profile(s) reframed as the heir of {predecessor.Name}. " +
-                $"Talk to an NPC — they should speak of {predecessor.Name} as your kin; private events are gone.";
-      }
-
-      /// <summary>
-      ///   cr.capture [name]
-      ///   Takes the given lord prisoner into your party — a shortcut so you can test the prisoner
-      ///   freedom-bargain without winning a battle. Imprison them in a fief's dungeon (or keep them in
-      ///   your party) and speak with them: a captive lord may then bargain for their release.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("capture", "cr")]
-      public static string CaptureLord(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-
-         Hero hero = ResolveHero(args);
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-         if (hero == Hero.MainHero) return "You cannot capture yourself.";
-         if (hero.IsPrisoner && hero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero)
-            return $"{hero.Name} is already your prisoner.";
-
-         TakePrisonerAction.Apply(PartyBase.MainParty, hero);
-         return $"{hero.Name} is now your prisoner. Speak with them (in a fief dungeon, or test in conversation) " +
-                $"— a captive lord may bargain for their freedom.";
-      }
-
-      /// <summary>
       ///   cr.bargain_marriage [name]
       ///   Seeds a marriage_consent bargain on a clan head (or a parent): a deed (clear bandits
       ///   near a village) conditions the blessing for the player to marry one of their eligible
@@ -1910,6 +1585,53 @@ namespace CalradiaRemembers
          QuestJournalBridge.OpenMirror(quest, hero);
 
          return $"{hero.Name}: marriage bargain seeded — clear bandits near {village} to earn the blessing for " + $"marrying {spouse.Name}. Then: cr.quest_done, cr.quest_complete, then cr.marriage_status {spouse.Name}.";
+      }
+
+      /// <summary>
+      ///   cr.deed_heard [name]
+      ///   Seeds a notable deed of the PLAYER's that WOUNDS the named (or talked-to) NPC's own faction,
+      ///   then echoes what that NPC would now have heard of you — the influence-loop test path without
+      ///   having to win a real siege. Open a conversation with them afterward to see it colour their tone.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("deed_heard", "cr")]
+      public static string SeedPlayerDeedHeard(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         var store = WorldEventStore.Instance;
+
+         if (store == null) return "World-event store is not active.";
+
+         string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
+         string factionName = hero.MapFaction?.Name?.ToString() ?? "their people";
+
+         List<string> aggrieved = hero.MapFaction?.StringId != null
+            ? new List<string> {hero.MapFaction.StringId}
+            : new List<string>();
+         var factions = new List<string>(aggrieved);
+         if (Hero.MainHero?.MapFaction?.StringId != null) factions.Add(Hero.MainHero.MapFaction.StringId);
+
+         store.Record(new WorldEvent {
+            Type = WorldEventType.PlayerFeat,
+            Day = (int) CampaignTime.Now.ToDays,
+            PlaceId = hero.CurrentSettlement?.StringId,
+            Magnitude = 70,
+            InvolvesPlayer = true,
+            Summary = $"{playerName} broke a host of {factionName} in open battle (test seed).",
+            ActorIds = new List<string> {Hero.MainHero?.StringId}.Where(s => s != null).ToList(),
+            FactionIds = factions,
+            AggrievedFactionIds = aggrieved
+         });
+
+         string block = EncounterContextBuilder.ResolvePlayerDeedsHeard(hero);
+
+         return block == null
+            ? $"Seeded a deed against {factionName}, but {hero.Name} would not (yet) have heard of it."
+            : $"Seeded. {hero.Name} has now heard of your deeds:\n{block}\n\n(Open a conversation to see it colour their tone.)";
       }
 
       // ── Sprint 11: informal quest testing (group "cr") ────────────────────
@@ -2002,6 +1724,150 @@ namespace CalradiaRemembers
          return $"{hero.Name}: seeded scout_army quest targeting {enemy.Name} ({outstanding} outstanding quest(s)).";
       }
 
+      /// <summary>cr.send_barter [about] — sends your first companion to trade at a town (Trade); profit reaches you on return.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("send_barter", "cr")]
+      public static string SendBarter(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
+
+         Hero c = FirstCompanionInParty();
+
+         if (c == null) return "No companion in your party. Recruit one first.";
+
+         string about = args != null && args.Count > 0
+            ? string.Join(" ", args).Trim()
+            : null;
+
+         return CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Barter, about).Message;
+      }
+
+      /// <summary>
+      ///   cr.send_envoy [about] — sends your first companion as an envoy to a faction's town (Charm); their mood comes
+      ///   back in conversation.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("send_envoy", "cr")]
+      public static string SendEnvoy(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
+
+         Hero c = FirstCompanionInParty();
+
+         if (c == null) return "No companion in your party. Recruit one first.";
+
+         string about = args != null && args.Count > 0
+            ? string.Join(" ", args).Trim()
+            : null;
+
+         return CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Envoy, about).Message;
+      }
+
+      /// <summary>
+      ///   cr.send_news [about]
+      ///   Dispatches your first available companion to gather news — physically: they leave the party as
+      ///   their own clan party and ride to a town. Optional [about] scopes the destination (a faction,
+      ///   culture, or town: "cr.send_news Sturgia"). Use cr.mission_return to skip the travel and resolve now.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("send_news", "cr")]
+      public static string SendNews(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
+
+         Hero c = FirstCompanionInParty();
+
+         if (c == null) return "No companion in your party. Recruit one first.";
+
+         string about = args != null && args.Count > 0
+            ? string.Join(" ", args).Trim()
+            : null;
+
+         return CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.GatherNews, about).Message;
+      }
+
+      /// <summary>cr.send_spy [about] — sends your first companion to scout a town (Roguery); intel comes back in conversation.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("send_spy", "cr")]
+      public static string SendSpy(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
+
+         Hero c = FirstCompanionInParty();
+
+         if (c == null) return "No companion in your party. Recruit one first.";
+
+         string about = args != null && args.Count > 0
+            ? string.Join(" ", args).Trim()
+            : null;
+
+         return CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Spy, about).Message;
+      }
+
+      /// <summary>
+      ///   cr.send_steal [about] — sends your first companion to lift coin from a town (Roguery); loot reaches you on
+      ///   return.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("send_steal", "cr")]
+      public static string SendSteal(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (CompanionMissionBehavior.Instance == null) return "Companion-mission system is not active.";
+
+         Hero c = FirstCompanionInParty();
+
+         if (c == null) return "No companion in your party. Recruit one first.";
+
+         string about = args != null && args.Count > 0
+            ? string.Join(" ", args).Trim()
+            : null;
+
+         return CompanionMissionBehavior.Instance.Dispatch(c, CompanionMissionType.Steal, about).Message;
+      }
+
+      /// <summary>cr.bargain_leverage [name] — marks an NPC as already holding leverage, to test the escalation prompt.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bargain_leverage", "cr")]
+      public static string SetBargainLeverage(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile p = GetOrCreateProfile(behavior, hero);
+         p.IntimacyLeverageHeld = true;
+         behavior.Store.Set(p);
+
+         return $"{hero.Name} now holds leverage — open a chat (female player, Adult ≥ Explicit) to see them press it.";
+      }
+
+      /// <summary>cr.happiness_set &lt;0..100&gt; [name] — sets a companion's contentment, to test the bands/encyclopedia line.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("happiness_set", "cr")]
+      public static string SetHappiness(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         if (args == null || args.Count < 1 || !int.TryParse(args[0], out int val))
+            return "Usage: cr.happiness_set <0..100> [name]";
+
+         string frag = args.Count > 1
+            ? string.Join(" ", args.GetRange(1, args.Count - 1)).Trim()
+            : null;
+         Hero hero = !string.IsNullOrWhiteSpace(frag)
+            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero
+                                                      && h.Name != null
+                                                      && h.Name.ToString().IndexOf(frag, StringComparison.OrdinalIgnoreCase) >= 0)
+            : Hero.OneToOneConversationHero;
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile p = GetOrCreateProfile(behavior, hero);
+         p.Happiness = CompanionHappiness.Clamp(val);
+         behavior.Store.Set(p);
+
+         return $"{hero.Name} contentment set to {p.Happiness} ({CompanionHappiness.Describe(p.Happiness)}).";
+      }
+
       /// <summary>
       ///   cr.memory_set &lt;index&gt; &lt;new text&gt; [name]
       ///   Replaces the summary of the event at the given index with new text.
@@ -2089,6 +1955,209 @@ namespace CalradiaRemembers
          ModLog.Info($"[cr.rep_set] {hero.Name}: rep {previous} → {value} (gate bypassed).");
 
          return $"{hero.Name}: ReputationWithPlayer set to {value} (was {previous}).";
+      }
+
+      /// <summary>
+      ///   cr.stance_set &lt;trust&gt; &lt;respect&gt; &lt;fear&gt; [name]
+      ///   Sets the Trust/Respect/Fear axes directly (Affection stays on the reputation path) to test
+      ///   the posture block in conversation. Values are clamped to each axis's range.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("stance_set", "cr")]
+      public static string SetStance(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         if (args == null
+             || args.Count < 3
+             || !int.TryParse(args[0], out int t)
+             || !int.TryParse(args[1], out int r)
+             || !int.TryParse(args[2], out int f))
+            return "Usage: cr.stance_set <trust> <respect> <fear> [name]";
+
+         string nameFragment = args.Count > 3
+            ? string.Join(" ", args.GetRange(3, args.Count - 3)).Trim()
+            : null;
+         Hero hero = !string.IsNullOrWhiteSpace(nameFragment)
+            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero
+                                                      && h.Name != null
+                                                      && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
+            : Hero.OneToOneConversationHero;
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile p = GetOrCreateProfile(behavior, hero);
+         p.StanceTrust = StanceGate.ClampAxis(StanceAxis.Trust, t);
+         p.StanceRespect = StanceGate.ClampAxis(StanceAxis.Respect, r);
+         p.StanceFear = StanceGate.ClampAxis(StanceAxis.Fear, f);
+         behavior.Store.Set(p);
+
+         string block = StanceService.Describe(p) ?? "(wholly neutral)";
+
+         return $"{hero.Name} stance set — Trust {p.StanceTrust}, Respect {p.StanceRespect}, Fear {p.StanceFear}\n{block}";
+      }
+
+      // ── Player-authored character data ────────────────────────────────────
+
+      /// <summary>
+      ///   cr.backstory [name]
+      ///   Shows the authored override for an NPC (if any) — its backstory and the effective vs vanilla
+      ///   levels of the five personality traits — so you can confirm the file took effect.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("backstory", "cr")]
+      public static string ShowBackstory(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         CharacterOverride ov = CharacterOverrideLoader.For(hero);
+
+
+         string Fmt(TraitObject t)
+         {
+            return $"{hero.GetTraitLevel(t):+#;-#;0} (vanilla {hero.CharacterObject.GetTraitLevel(t):+#;-#;0})";
+         }
+
+
+         var sb = new StringBuilder();
+         sb.AppendLine($"{hero.Name} — custom traits: {(ModSettings.UseCustomTraits ? "ON" : "OFF")}");
+         sb.AppendLine($"  Valor {Fmt(DefaultTraits.Valor)} | Honor {Fmt(DefaultTraits.Honor)} | Mercy {Fmt(DefaultTraits.Mercy)}");
+         sb.AppendLine($"  Generosity {Fmt(DefaultTraits.Generosity)} | Calculating {Fmt(DefaultTraits.Calculating)}");
+         if (ov == null)
+         {
+            sb.AppendLine("  No authored override for this NPC.");
+         }
+         else
+         {
+            sb.AppendLine($"  Override matched (id={ov.Id ?? "—"}).");
+            sb.AppendLine(ov.HasBackstory
+               ? $"  Backstory: {ov.Backstory}"
+               : "  Backstory: (none)");
+         }
+
+         return sb.ToString();
+      }
+
+      /// <summary>
+      ///   cr.bargain [name] — reports whether an NPC may offer the female player the intimacy-as-currency bargain (Phase
+      ///   3).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bargain", "cr")]
+      public static string ShowBargain(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         bool eligible = IntimacyBargainEligibility.IsEligible(hero);
+         bool leverage = behavior.Store.Get(hero.StringId)?.IntimacyLeverageHeld == true;
+
+         return $"{hero.Name} — intimacy bargain eligible: {eligible} " + "(needs a female player; this man unrelated, dishonourable + cynical/callous; Adult ≥ Explicit). " + $"Leverage held: {leverage}.";
+      }
+
+      /// <summary>
+      ///   cr.chronicle
+      ///   Renders the player's chronicle (their recorded deeds, in chronicler voice) to the console
+      ///   and writes it to CalradiaRemembers_chronicle.log. Phase-1 test path for the world-event
+      ///   store + templated chronicle before the in-game illuminated viewer exists.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("chronicle", "cr")]
+      public static string ShowChronicle(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
+            return error;
+
+         string text = ChronicleWriter.Render();
+         string path = ChronicleWriter.WriteToLog();
+
+         return path != null
+            ? $"{text}\n\n(written to {path})"
+            : text;
+      }
+
+      /// <summary>cr.happiness [name] — shows a companion's contentment in your service (score + band).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("happiness", "cr")]
+      public static string ShowHappiness(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         int score = CompanionHappinessService.Get(hero);
+         string leave = CompanionHappiness.WantsToLeave(score)
+            ? " — WANTS TO LEAVE"
+            : "";
+
+         return $"{hero.Name} — Contentment {score} ({CompanionHappiness.Describe(score)}); band {CompanionHappiness.Band(score)}{leave}.";
+      }
+
+      /// <summary>cr.rapport [name] — shows how a companion feels about their fellow companions (camp life).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("rapport", "cr")]
+      public static string ShowRapport(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null || !hero.IsPlayerCompanion) return "Pass one of your own companions' name.";
+
+         List<string> lines = Hero.AllAliveHeroes
+                                  .Where(h => h != hero && h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion)
+                                  .Select(h => $"- {h.Name}: {hero.GetRelation(h)} ({CompanionRapport.Band(hero.GetRelation(h))})")
+                                  .ToList();
+
+         return lines.Count == 0
+            ? $"{hero.Name} has no fellow companions to feel anything about."
+            : $"{hero.Name} feels:\n{string.Join("\n", lines)}";
+      }
+
+      /// <summary>
+      ///   cr.recruit_info [name]
+      ///   Shows the lord-defection verdict for an NPC — the gathered gate facts and whether
+      ///   join_clan would be taught. Diagnostic only; mutates nothing.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("recruit_info", "cr")]
+      public static string ShowRecruitInfo(List<string> args)
+      {
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         LordRecruitmentFacts facts = LordRecruitmentFactsBuilder.Build(hero);
+
+         if (facts == null)
+            return $"{hero.Name} can never be a defection candidate (not a free lord of another clan).";
+
+         LordRecruitmentBlock verdict = LordRecruitment.Evaluate(facts);
+
+         return $"{hero.Name} — join_clan: {(verdict == LordRecruitmentBlock.None ? "ELIGIBLE" : "blocked: " + verdict)}\n" + $"  relation {facts.Relation} (need >= {LordRecruitment.MinRelation}), " + $"player tier {facts.PlayerClanTier} vs lord tier {facts.LordClanTier}\n" + $"  vulnerable: landless={facts.LordIsLandless}, clanWeak/destroyed={facts.LordClanWeakOrDestroyed}, " + $"hasLiege={facts.HasLiege} (rel {facts.RelationWithLiege}, need <= {LordRecruitment.LiegeResentmentThreshold})";
+      }
+
+      /// <summary>
+      ///   cr.stance [name]
+      ///   Shows an NPC's posture toward the player (Affection/Trust/Respect/Fear) and the prompt block.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("stance", "cr")]
+      public static string ShowStance(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile p = behavior.Store.Get(hero.StringId);
+
+         if (p == null) return $"{hero.Name} has no profile yet (you have never spoken).";
+
+         string block = StanceService.Describe(p) ?? "(wholly neutral)";
+
+         return $"{hero.Name} — Affection {p.ReputationWithPlayer}, Trust {p.StanceTrust}, Respect {p.StanceRespect}, Fear {p.StanceFear}\n{block}";
       }
 
       // ── Sprint 12a: player standing diagnostic ────────────────────────────
@@ -2210,6 +2279,35 @@ namespace CalradiaRemembers
       public static string SimulateRelationIntimate(List<string> args)
          => SimulateRelation(args, NotableEventType.Intimacy, "cr.relation_intimate <delta> [name]");
 
+      /// <summary>
+      ///   cr.succession [predecessor]
+      ///   Simulates dynastic succession with the current player as the heir: reframes every stored NPC
+      ///   memory (drops the predecessor's private events, keeps the political/relational, marks it
+      ///   inherited). The predecessor defaults to your father/mother; pass a name to use a specific hero.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("succession", "cr")]
+      public static string SimulateSuccession(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         var heir = Hero.MainHero;
+
+         if (heir == null) return "No player hero.";
+
+         Hero predecessor = args != null && args.Count > 0
+            ? ResolveHero(args)
+            : heir.Father ?? heir.Mother;
+
+         if (predecessor == null)
+            return "No predecessor found — pass an NPC name, or play a character who has a parent.";
+         if (predecessor == heir)
+            return "The predecessor and the heir cannot be the same hero.";
+
+         int n = SuccessionBehavior.Instance?.Apply(predecessor, heir) ?? 0;
+
+         return $"Succession simulated: {n} profile(s) reframed as the heir of {predecessor.Name}. " + $"Talk to an NPC — they should speak of {predecessor.Name} as your kin; private events are gone.";
+      }
+
       [CommandLineFunctionality.CommandLineArgumentFunction("take_gold", "cr")]
       public static string TakeGold(List<string> args)
          => SimulateGold("take_gold", args, "cr.take_gold <amount> [name]");
@@ -2236,48 +2334,65 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.rumor [settlement]
-      ///   Opens a transient commoner conversation in the player's current settlement
-      ///   (or the named settlement if supplied). No profile is stored; the commoner
-      ///   exists only for this chat window. Tests the v1.1 Commoners path.
+      ///   cr.jealousy [name]
+      ///   Resolves and immediately fires a jealousy reaction as if the player had just made a
+      ///   romantic advance toward the named NPC (or the current conversation partner). Bypasses
+      ///   the witness/probability/cooldown gates so the resolution and consequence are testable
+      ///   without building a full romance: it prints the inferred jealous party and applies the
+      ///   grudge + grievance memory + a threatening letter.
       /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("rumor", "cr")]
-      public static string Rumor(List<string> args)
+      [CommandLineFunctionality.CommandLineArgumentFunction("jealousy", "cr")]
+      public static string TriggerJealousy(List<string> args)
       {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
             return error;
+         if (JealousyBehavior.Instance == null)
+            return "Jealousy system is not active.";
 
-         if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
-            return "LLM services not available. Check OPENROUTER_API_KEY / model settings.";
+         string nameFragment = args != null && args.Count > 0
+            ? string.Join(" ", args).Trim()
+            : null;
+         Hero courted = !string.IsNullOrWhiteSpace(nameFragment)
+            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero
+                                                      && h.Name != null
+                                                      && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
+            : Hero.OneToOneConversationHero;
 
-         Settlement settlement = null;
+         if (courted == null)
+            return "Usage: cr.jealousy [name]\n" + "  Resolves and fires a jealousy reaction as if the player romanced this NPC.";
 
-         if (args != null && args.Count > 0)
-         {
-            string query = string.Join(" ", args).Trim();
-            settlement = TaleWorlds.CampaignSystem.Settlements.Settlement.All
-               .FirstOrDefault(s => s.Name != null
-                  && s.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
-            if (settlement == null)
-               return $"No settlement found matching '{query}'.";
-         }
-         else
-         {
-            settlement = Hero.MainHero?.CurrentSettlement;
-         }
+         return JealousyBehavior.Instance.DebugForce(courted, RomanticActTier.Flirt);
+      }
 
-         if (settlement == null)
-            return "No settlement found. Enter a town or castle, or pass a name: cr.rumor Pravend";
+      /// <summary>
+      ///   cr.jealousy_comp
+      ///   Reports the player's current partner household (native spouse + committed consorts) with
+      ///   each one's culture, sharing-tolerance and how long since they were last attended to, then
+      ///   forces one competition pass so the v1.5 ongoing-rivalry loop can be tested without waiting.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("jealousy_comp", "cr")]
+      public static string TriggerJealousyCompetition(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error))
+            return error;
+         if (JealousyBehavior.Instance == null)
+            return "Jealousy system is not active.";
 
-         var knowledge = Commoners.CommonsKnowledgeBuilder.Build(settlement);
-         var profile   = Commoners.CommonsProfileFactory.Create(settlement);
-
-         Chat.ChatManager.OpenForCommoner(profile, knowledge);
-
-         return $"Opening commoner chat in {settlement.Name} — speak to {profile.Name}.";
+         return JealousyBehavior.Instance.DebugCompetition();
       }
 
       #region private
+
+      /// <summary>A synthetic delivered letter for the cr.letter_* test commands.</summary>
+      private static PendingLetter BuildTestLetter(Hero hero, int today) => new() {
+         SenderId = hero.StringId,
+         SenderName = hero.Name?.ToString(),
+         Reason = LetterReason.RomanticCorrespondence,
+         Content = $"I find my thoughts return to you more often than I would admit. Write back, if you would. — {hero.Name}",
+         SentOnDay = today - 2,
+         DeliveryDay = today,
+         IsDelivered = true
+      };
 
       /// <summary>
       ///   "Day 91078 (6 days ago)" — day numbers are absolute calendar days (the
@@ -2350,6 +2465,13 @@ namespace CalradiaRemembers
                                          && MarriageProspectResolver.IsMarriageable(Hero.MainHero, h)
                                          && MarriageProspectResolver.HasAuthority(npc, h));
       }
+
+      /// <summary>The first living companion currently in the player's party (skipping any already away).</summary>
+      private static Hero FirstCompanionInParty()
+         => Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero
+                                                    && (h.IsPlayerCompanion || h.Clan == Clan.PlayerClan)
+                                                    && h.PartyBelongedTo == MobileParty.MainParty
+                                                    && CompanionMissionBehavior.Instance?.IsAway(h.StringId) != true);
 
       private static NpcProfile GetOrCreateProfile(NpcMemoryCampaignBehavior behavior, Hero hero)
       {
