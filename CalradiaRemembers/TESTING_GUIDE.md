@@ -160,6 +160,8 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.mission_return` | Force-resolve the first errand now and print the report (skip the travel). |
 | `cr.happiness [name]` | Show a companion's contentment in your service (score + band). |
 | `cr.happiness_set <0..100> [name]` | Set a companion's contentment (test the bands + the encyclopedia line). |
+| `cr.rapport [name]` | Show how a companion feels about each fellow companion (camp life). |
+| `cr.rapport_tick` | Run a weekly camp-life pass now (compatibility nudges + any companion weddings). |
 
 ### Discovery / misc
 | Command | Does |
@@ -476,6 +478,23 @@ from relation), moved by errand outcomes, shown on their encyclopedia page.
   eases down (and toward baseline). A companion kept at the leave floor for a **season** (≈21 days; tick a
   few times after `cr.happiness_set 5`) eventually **leaves your service** (a banner + they exit the clan).
   An employed companion (on an errand) takes no idle hit that week.
+
+### R. Camp life — companions and each other (NEW — untested in game)
+
+**What it proves:** companions form opinions about EACH OTHER from trait compatibility, voice them to you,
+and the well-matched may wed (staying in your clan).
+
+- **Setup:** have ≥2 companions in your party with contrasting traits (an honourable one + a cruel/dishonest
+  one will feud; two of like temper will bond).
+- **R1 — Relations drift.** `cr.rapport [name]` shows their feeling toward each fellow companion. Run
+  `cr.rapport_tick` a few times: compatible pairs warm (toward Cordial/Close), clashing pairs cool (toward
+  Tense/Feud), bounded.
+- **R2 — They raise it.** Once a feeling is strong (`cr.rapport` shows ≥25 or ≤−25), open a CR chat with that
+  companion: they may **bring up their fellow companion in their own voice** — praise or a complaint — only
+  if it fits, never forced.
+- **R3 — Companion weddings.** Two warm (≥40), unmarried, opposite-gender companions may **wed** on a tick
+  (`cr.rapport_tick` a few times after warming a pair). They **stay in your clan** — confirm both remain
+  yours (the design: the clan grows, no one leaves to found a household).
 
 ---
 

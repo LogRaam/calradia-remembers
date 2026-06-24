@@ -438,6 +438,35 @@ namespace CalradiaRemembers
          return "Ran a happiness tick. Check cr.happiness [name] (a season at the leave floor parts ways).";
       }
 
+      /// <summary>cr.rapport [name] — shows how a companion feels about their fellow companions (camp life).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("rapport", "cr")]
+      public static string ShowRapport(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null || !hero.IsPlayerCompanion) return "Pass one of your own companions' name.";
+
+         var lines = Hero.AllAliveHeroes
+            .Where(h => h != hero && h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion)
+            .Select(h => $"- {h.Name}: {hero.GetRelation(h)} ({CompanionRapport.Band(hero.GetRelation(h))})")
+            .ToList();
+         return lines.Count == 0
+            ? $"{hero.Name} has no fellow companions to feel anything about."
+            : $"{hero.Name} feels:\n{string.Join("\n", lines)}";
+      }
+
+      /// <summary>cr.rapport_tick — runs a weekly camp-life pass now (compatibility nudges + any companion weddings).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("rapport_tick", "cr")]
+      public static string RapportTick(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (Missions.CompanionRapportBehavior.Instance == null) return "Camp-life system is not active.";
+
+         Missions.CompanionRapportBehavior.Instance.RunTick();
+         return "Ran a camp-life tick. Check cr.rapport [name].";
+      }
+
       /// <summary>
       ///   cr.jealousy_comp
       ///   Reports the player's current partner household (native spouse + committed consorts) with

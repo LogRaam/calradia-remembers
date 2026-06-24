@@ -97,7 +97,8 @@ namespace CalradiaRemembers.Mapping
             PlayerDeedsHeard         = ResolvePlayerDeedsHeard(hero),
             CanGatherNews            = ResolveCanGatherNews(hero),
             CompanionNewsReport      = Missions.CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
-            CompanionMoodNote        = ResolveCompanionMoodNote(hero)
+            CompanionMoodNote        = ResolveCompanionMoodNote(hero),
+            CompanionCampNote        = ResolveCompanionCampNote(hero)
             // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
             // coin, and naming the exact sum broke immersion. Affordability is enforced by the
             // bridge when the hire is executed, not foreseen in the prompt.
@@ -234,6 +235,31 @@ namespace CalradiaRemembers.Mapping
                        "your grievance — what has soured you, and what it would take to keep you.";
             return "You are restless in the player's service — your patience is thinning. You may let a coolness or a " +
                    "small complaint show, without yet threatening to leave.";
+        }
+
+        /// <summary>
+        ///   A directive for an own-companion who feels strongly (warmly or bitterly) about a FELLOW
+        ///   companion — the one they feel most strongly about. Null when no peer stirs a strong opinion,
+        ///   so the camp section is skipped.
+        /// </summary>
+        private static string ResolveCompanionCampNote(Hero hero)
+        {
+            if (hero == null || hero == Hero.MainHero || !hero.IsAlive || !hero.IsPlayerCompanion) return null;
+
+            Hero other = null;
+            int strongest = 0;
+            foreach (Hero c in Hero.AllAliveHeroes)
+            {
+                if (c == hero || c == Hero.MainHero || !c.IsAlive || !c.IsPlayerCompanion) continue;
+                int rel = hero.GetRelation(c);
+                if (System.Math.Abs(rel) > System.Math.Abs(strongest)) { strongest = rel; other = c; }
+            }
+
+            if (other == null || !Logic.CompanionRapport.WorthRaising(strongest)) return null;
+
+            return strongest > 0
+                ? $"You think highly of your fellow companion {other.Name} — you value riding at their side."
+                : $"You cannot abide your fellow companion {other.Name} — they grate on you, and you would as soon not share a camp.";
         }
 
         /// <summary>True when the NPC is a captive of someone other than the player (case B: a rescue bargain).</summary>

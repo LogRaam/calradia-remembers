@@ -498,6 +498,14 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
       bittersweet departure.
   - Feeds the rumor/event store (a feud or a wedding among your retinue is news in its own right) and
     pairs with jealousy (a companion love-triangle is the same machinery turned inward).
+  - **STATUS (2026-06-23, UNCOMMITTED, untested in game):** pure `CompanionRapport` (trait compatibility →
+    bond/clash, bands, WorthRaising, CanMarry; 9 tests, committed e4bb89d). `CompanionRapportBehavior` weekly
+    tick nudges each companion pair's native relation by compatibility (bounded ±40) and weds the warm/eligible
+    via `MarriageAction.Apply` (kept in the player's clan). The opinion is voiced in conversation
+    (`EncounterContext.CompanionCampNote` + `AppendCompanionCampNote`, built by
+    `EncounterContextBuilder.ResolveCompanionCampNote` — the companion's strongest peer feeling). Console
+    `cr.rapport` / `cr.rapport_tick`; TESTING_GUIDE R. DEFERRED: a child-of-the-couple joining the clan as a
+    chronicle/letter beat; the love-triangle tie-in with jealousy.
 
 - **Custom correspondent portraits** *(letter window — wished 2026-06-21)*. Show a hand-made painted
   portrait (the "letter from a noble lady" look) for a correspondent instead of the in-game 3D head

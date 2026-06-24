@@ -94,6 +94,10 @@ namespace CalradiaRemembers
          // eases toward baseline; a companion left bitterly unhappy for a season departs. The grievance is
          // voiced in conversation. The score lives on the profile; the pure model is CalradiaRemembers.Logic.
          campaignStarter.AddBehavior(new Missions.CompanionHappinessBehavior());
+         // Camp life: a weekly tick nudges companion↔companion relations by trait compatibility (the
+         // well-matched warm, the ill-matched feud) and weds the warm/eligible (kept in your clan). The
+         // opinion is voiced in conversation; the pure rules are in CalradiaRemembers.Logic.
+         campaignStarter.AddBehavior(new Missions.CompanionRapportBehavior());
          Log($"{ModName} campaign behavior registered.");
       }
 
