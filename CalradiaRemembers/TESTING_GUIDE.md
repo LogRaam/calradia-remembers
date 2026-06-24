@@ -470,6 +470,8 @@ from relation), moved by errand outcomes, shown on their encyclopedia page.
 - **Q4 — Grievance in conversation.** Set a companion low (`cr.happiness_set 30 [name]` restless, `15`
   disgruntled/leaving) and open a CR chat with them: they should **voice their discontent in their own
   voice** — a coolness, a complaint, or (at the floor) that they mean to leave. Content companions say nothing.
+  If you then **address it sincerely** in chat (apologise, promise better, a kindness), they may soften
+  (`reassure_companion` → a small contentment bump) — empty words should not move them.
 - **Q5 — Drift + departure.** `cr.happiness_tick` runs a weekly pass: an idle companion's contentment
   eases down (and toward baseline). A companion kept at the leave floor for a **season** (≈21 days; tick a
   few times after `cr.happiness_set 5`) eventually **leaves your service** (a banner + they exit the clan).

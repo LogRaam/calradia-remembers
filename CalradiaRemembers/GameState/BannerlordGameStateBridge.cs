@@ -75,6 +75,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteImpregnationRisk(npcHero);
             case "gather_news":
                return ExecuteGatherNews(action, npcHero);
+            case "reassure_companion":
+               return ExecuteReassureCompanion(npcHero);
             default:
                ModLog.Info($"[ACTION] Unknown type '{action.Type}' — ignored.");
 
@@ -1083,6 +1085,19 @@ namespace CalradiaRemembers.GameState
             case "envoy": return Logic.CompanionMissionType.Envoy;
             default:      return Logic.CompanionMissionType.GatherNews;
          }
+      }
+
+      /// <summary>
+      ///   reassure_companion action: the player sincerely addressed an unhappy companion's grievance, so
+      ///   they soften a little (the WellTreated happiness driver). Emitted only by a companion who was
+      ///   voicing discontent; harmless on anyone else (the driver no-ops without a profile).
+      /// </summary>
+      private static ActionOutcome ExecuteReassureCompanion(Hero npcHero)
+      {
+         if (npcHero == null) return null;
+         Missions.CompanionHappinessService.ApplyDriver(npcHero, Logic.HappinessDriver.WellTreated);
+         ModLog.Info($"[ACTION] reassure_companion: {npcHero.Name} is a little more at ease.");
+         return new ActionOutcome($"{npcHero.Name} seems a little more at ease in your service.", true);
       }
 
       /// <summary>Finds a roster element by the item's StringId (the bag-picked gift path).</summary>
