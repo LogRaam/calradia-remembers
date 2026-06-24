@@ -1834,6 +1834,26 @@ namespace CalradiaRemembers.Chat
          ChatManager.ScrollToBottom();
       }
 
+      private static bool _llmFailureHintShown;
+
+      /// <summary>
+      ///   On a failed LLM call, surface a ONE-TIME-per-session actionable hint to the player. The
+      ///   in-character "(My words escape me...)" line alone hides that this is an LLM SETUP issue (a
+      ///   failed request — bad endpoint, a model that returned nothing, or a small local model whose
+      ///   context is too short for the prompt). The exact error is in the log; this points a player who
+      ///   has not enabled logging at the likely cause without spamming them every failure.
+      /// </summary>
+      private static void NotifyLlmFailure()
+      {
+         if (_llmFailureHintShown) return;
+         _llmFailureHintShown = true;
+         InformationManager.DisplayMessage(new InformationMessage(
+            "Calradia Remembers: the AI did not respond — an LLM call failed. Check your model and endpoint; " +
+            "for a small local model, raise its context length and max output tokens. Enable Logging " +
+            "(Mod Options → Calradia Remembers) for the exact error.",
+            Colors.Red));
+      }
+
       /// <summary>
       ///   Resolves who the player is addressing this turn and updates the sticky
       ///   <see cref="_currentSpeakerHeroId" />. Detection prefers a participant named
@@ -2096,6 +2116,7 @@ namespace CalradiaRemembers.Chat
             {
                ReplacePlaceholder(placeholder, "(My words escape me...)", null);
                ModLog.Error($"[COMMONER] LLM call failed: {result.ErrorMessage}");
+               NotifyLlmFailure();
 
                return;
             }
@@ -2392,6 +2413,7 @@ namespace CalradiaRemembers.Chat
             {
                ReplacePlaceholder(placeholder, "(My words escape me...)", speaker);
                ModLog.Error($"LLM call failed in {elapsedMs} ms: {result.ErrorMessage}");
+               NotifyLlmFailure();
 
                return;
             }

@@ -83,6 +83,19 @@ in-game 3D head render. Tiered: a custom image when one exists for that hero, el
   SyncData(load) fires before OnSessionLaunched and would clobber loaded state.)
 - **Image overlay** for scenes (`[SCENE]` parser).
 
+### Lean prompt for small / local models *(wished 2026-06-23)*
+
+Players on small local models (e.g. Gemma 3n E4B via LM Studio) hit the "(My words escape me…)" fallback —
+the LLM call fails because CR's system prompt is large and their context window is short (the prompt
+overflows, or the model returns nothing usable). An actionable on-failure notice now points them at the
+cause (model / context / endpoint). The deeper fix: an optional **LEAN PROMPT mode** that trims the system
+prompt to fit a small context — keep identity, persona, the core format rules, and the current encounter;
+drop or shorten the heavy optional sections (full relationship lists, cultural traditions, the long
+behavior guidelines, instruction verbosity). Gate it on an MCM toggle ("Compact prompt for small models")
+or auto-detect from a configured context budget. The prompt-cache split already separates stable vs dynamic
+— the lean mode would shrink the stable body. Pure/testable: the section-selection policy (what stays at a
+given token budget).
+
 ### Smaller polish (deferred)
 - **Negotiation Phase 1 polish**: a richer `DeliverItems` spec (category + tier + count — "a warhorse, a
   sword of tier 5+") instead of a value floor; the joining wanderer EQUIPS the gear demanded for them.
