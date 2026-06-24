@@ -1,0 +1,17 @@
+{
+  "_comment": "Scripted-scenario pack (Calradia Remembers). Each rule is a stateless reactive rule in the keyword DSL: when its trigger fires and its guards pass, its consequences mutate the world and its message is dropped into the world-event store (told in-game by rumor/chronicle). If several rules share a trigger, one is chosen at random. Triggers: ON_DEATH, ON_MARRIAGE, ON_WAR_DECLARED, ON_PEACE (the player or context hero/faction is matched by guards). Guards (AND-combined): IF_HERO_IS:<name>, IF_PLAYER_INVOLVED, IF_PLAYER_RULES, IF_PLAYER_IS_FEMALE/MALE, IF_PLAYER_AT_WAR:<faction>. Consequences: DECLARE_WAR:A,B  MAKE_PEACE:A,B  CHANGE_RELATION:HeroRef:+N. Test from console with: cr.scenario_fire ON_DEATH Rhagaea",
+  "rules": [
+    {
+      "id": "rhagaea_death_eagles_turn",
+      "trigger": "ON_DEATH",
+      "guards": [ "IF_HERO_IS:Rhagaea" ],
+      "consequences": [
+        "DECLARE_WAR:Northern Empire,Southern Empire",
+        "DECLARE_WAR:Western Empire,Southern Empire"
+      ],
+      "message": "With the empress Rhagaea fallen, the eagles of the North and West turn upon a leaderless South.",
+      "fireOnce": true,
+      "weight": 1
+    }
+  ]
+}

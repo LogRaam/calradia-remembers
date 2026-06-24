@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 23/06/2026.
+// Code written by Gabriel Mailhot, 24/06/2026.
 
 #region
 
@@ -104,12 +104,14 @@ namespace CalradiaRemembers.Mapping
          LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
          LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
          ConsortEligible = ResolveConsortEligible(hero, profile),
+         ConceptionRisk = ResolveConceptionRisk(hero),
          PowerBalanceNote = ResolvePowerBalanceNote(hero, profile),
          MarriageProspects = MarriageProspectResolver.Build(hero),
          WorldRumorsBlock = ResolveWorldRumors(hero),
          RealmNewsLine = ResolveRealmNews(hero),
          PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
          CanGatherNews = ResolveCanGatherNews(hero),
+         CompanionOnErrand = ResolveCompanionOnErrand(hero),
          CompanionNewsReport = CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
          CompanionMoodNote = ResolveCompanionMoodNote(hero),
          CompanionCampNote = ResolveCompanionCampNote(hero),
@@ -144,12 +146,8 @@ namespace CalradiaRemembers.Mapping
             {
                if (!e.InvolvesPlayer || string.IsNullOrWhiteSpace(e.Summary)) continue;
 
-               bool aggrieved = obsFactionId != null
-                                && e.AggrievedFactionIds != null
-                                && e.AggrievedFactionIds.Contains(obsFactionId);
-               bool kinHarmed = obsClan != null
-                                && e.AggrievedActorIds != null
-                                && e.AggrievedActorIds.Any(id => IsClanmate(id, obsClan, hero));
+               bool aggrieved = obsFactionId != null && e.AggrievedFactionIds != null && e.AggrievedFactionIds.Contains(obsFactionId);
+               bool kinHarmed = obsClan != null && e.AggrievedActorIds != null && e.AggrievedActorIds.Any(id => IsClanmate(id, obsClan, hero));
                bool sharesPlayer = obsFactionId != null && obsFactionId == playerFactionId;
 
                string valence;
@@ -198,11 +196,11 @@ namespace CalradiaRemembers.Mapping
             Hero owner = ownerClan?.Leader;
 
             if (owner != null && owner != hero)
-               return $"You are in {s.Name}, which belongs to {owner.Name}"
-                      + (ownerClan?.Name != null
+               return $"You are in {s.Name}, which belongs to {owner.Name}" +
+                      (ownerClan.Name != null
                          ? $" of clan {ownerClan.Name}"
-                         : "")
-                      + ". It is NOT your holding — you are here as a guest, not its lord.";
+                         : "") +
+                      ". It is NOT your holding — you are here as a guest, not its lord.";
 
             return $"You are in {s.Name}.";
          }
@@ -291,10 +289,10 @@ namespace CalradiaRemembers.Mapping
          {
             if (today - e.gameDay > RecentDefeatWindowDays) continue;
 
-            if (!string.IsNullOrEmpty(e.summary)
-                && e.summary.IndexOf("put their host to flight",
-                   StringComparison.OrdinalIgnoreCase)
-                >= 0)
+            if (!string.IsNullOrEmpty(e.summary) &&
+                e.summary.IndexOf("put their host to flight",
+                   StringComparison.OrdinalIgnoreCase) >=
+                0)
                return true;
          }
 
@@ -407,11 +405,10 @@ namespace CalradiaRemembers.Mapping
          {
             if (c == hero || c == Hero.MainHero || !c.IsAlive || !c.IsPlayerCompanion) continue;
             int rel = hero.GetRelation(c);
-            if (Math.Abs(rel) > Math.Abs(strongest))
-            {
-               strongest = rel;
-               other = c;
-            }
+
+            if (Math.Abs(rel) <= Math.Abs(strongest)) continue;
+            strongest = rel;
+            other = c;
          }
 
          if (other == null || !CompanionRapport.WorthRaising(strongest)) return null;
@@ -444,6 +441,44 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
+      ///   True when this hero is one of the player's own companions currently AWAY on an errand — the player
+      ///   has ridden out and met them. Lets the prompt teach the recall_companion action so the player can
+      ///   order them to abandon the task and return. (Away companions are NOT in the main party, so unlike the
+      ///   dispatch gate we must not require it.)
+      /// </summary>
+      private static bool ResolveCompanionOnErrand(Hero hero)
+      {
+         if (hero == null || hero == Hero.MainHero || !hero.IsAlive) return false;
+         if (!(hero.IsPlayerCompanion || hero.Clan == Clan.PlayerClan)) return false;
+
+         return CompanionMissionBehavior.Instance?.IsAway(hero.StringId) == true;
+      }
+
+      /// <summary>
+      ///   Which party, if either, could conceive from a completed vaginal act this scene — the pure
+      ///   <see cref="ConceptionResolver" /> mapped to the prompt's <see cref="ConceptionRisk" />. Just
+      ///   sex + life + fertile age; the prompt itself only TEACHES the action inside an intimate, adult
+      ///   context, so computing it unconditionally here is harmless.
+      /// </summary>
+      private static ConceptionRisk ResolveConceptionRisk(Hero hero)
+      {
+         var player = Hero.MainHero;
+
+         if (hero == null || player == null || hero == player) return ConceptionRisk.None;
+
+         ConceptionRole role = ConceptionResolver.Resolve(
+            player.IsFemale, player.IsAlive, player.Age,
+            hero.IsFemale, hero.IsAlive, hero.Age);
+
+         switch (role)
+         {
+            case ConceptionRole.PlayerIsMother: return ConceptionRisk.PlayerCanConceive;
+            case ConceptionRole.NpcIsMother: return ConceptionRisk.NpcCanConceive;
+            default: return ConceptionRisk.None;
+         }
+      }
+
+      /// <summary>
       ///   True when the NPC and the player share a deep enough romantic bond
       ///   (status ≥ Intimate, not yet Committed, reputation ≥ 60, orientation-compatible)
       ///   that a consort bond is conceivable. Available even if the player is already wed —
@@ -471,7 +506,7 @@ namespace CalradiaRemembers.Mapping
       {
          List<string> lines = MobileParty.MainParty?.PrisonRoster?.GetTroopRoster()
                                          ?.Select(el => el.Character?.HeroObject)
-                                         .Where(h => h != null && h.IsLord && !h.IsHumanPlayerCharacter)
+                                         .Where(h => h is {IsLord: true, IsHumanPlayerCharacter: false})
                                          .Select(h => $"- {h.Name} ({h.MapFaction?.Name?.ToString() ?? h.Clan?.Name?.ToString() ?? "unknown"})")
                                          .ToList();
 
@@ -536,7 +571,7 @@ namespace CalradiaRemembers.Mapping
       /// </summary>
       private static string ResolveMercenaryOfferKingdom(Hero hero)
       {
-         if (hero == null || !hero.IsLord) return null;
+         if (hero is not {IsLord: true}) return null;
 
          Kingdom npcKingdom = hero.Clan?.Kingdom;
 
@@ -579,7 +614,7 @@ namespace CalradiaRemembers.Mapping
       {
          try
          {
-            if (hero == null || !hero.IsLord || Hero.MainHero == null) return null;
+            if (hero is not {IsLord: true} || Hero.MainHero == null) return null;
 
             Kingdom playerKingdom = Clan.PlayerClan?.Kingdom;
             Kingdom npcKingdom = hero.Clan?.Kingdom;
@@ -590,13 +625,9 @@ namespace CalradiaRemembers.Mapping
                NpcInKingdom = npcKingdom != null,
                PlayerKingdomFiefs = CountKingdomFiefs(playerKingdom),
                NpcKingdomFiefs = CountKingdomFiefs(npcKingdom),
-               AtWar = playerKingdom != null
-                       && npcKingdom != null
-                       && FactionManager.IsAtWarAgainstFaction(playerKingdom, npcKingdom),
-               NpcClanHasFiefs = hero.Clan?.Settlements != null
-                                 && hero.Clan.Settlements.Any(s => s.IsTown || s.IsCastle),
-               PlayerClanHasFiefs = Clan.PlayerClan?.Settlements != null
-                                    && Clan.PlayerClan.Settlements.Any(s => s.IsTown || s.IsCastle),
+               AtWar = playerKingdom != null && npcKingdom != null && FactionManager.IsAtWarAgainstFaction(playerKingdom, npcKingdom),
+               NpcClanHasFiefs = hero.Clan?.Settlements != null && hero.Clan.Settlements.Any(s => s.IsTown || s.IsCastle),
+               PlayerClanHasFiefs = Clan.PlayerClan?.Settlements != null && Clan.PlayerClan.Settlements.Any(s => s.IsTown || s.IsCastle),
                NpcIsPlayerPrisoner = IsPlayerPrisoner(hero),
                NpcRecentlyLostBattleToPlayer = LostBattleToPlayerRecently(profile)
             });
@@ -622,8 +653,7 @@ namespace CalradiaRemembers.Mapping
             {
                if (string.IsNullOrWhiteSpace(e.Summary)) continue;
 
-               if (e.Type == WorldEventType.WarDeclared
-                   || e.Type == WorldEventType.PeaceDeclared)
+               if (e.Type == WorldEventType.WarDeclared || e.Type == WorldEventType.PeaceDeclared)
                   return $"- {e.Summary.TrimEnd('.', ' ')}.";
             }
 
@@ -673,8 +703,7 @@ namespace CalradiaRemembers.Mapping
             foreach ((WorldEvent e, RumorConfidence conf) in rated)
             {
                if (e.InvolvesPlayer || string.IsNullOrWhiteSpace(e.Summary)) continue; // player deeds → influence loop
-               if (e.Type == WorldEventType.WarDeclared
-                   || e.Type == WorldEventType.PeaceDeclared) continue; // realm-level → RealmNewsLine
+               if (e.Type == WorldEventType.WarDeclared || e.Type == WorldEventType.PeaceDeclared) continue; // realm-level → RealmNewsLine
                string tag = conf == RumorConfidence.Distant ? "(a distant, unverified rumour) "
                   : conf == RumorConfidence.Secondhand ? "(heard secondhand) "
                   : "";

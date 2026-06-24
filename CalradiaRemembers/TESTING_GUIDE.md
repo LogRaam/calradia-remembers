@@ -135,7 +135,8 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.bandit_queen [solo|collective] [male|female]` | Open a captive scene led by a female bandit chief. |
 | `cr.kinks [name]` | List an NPC's kinks + valid kink names. |
 | `cr.add_kink <kink> [name]` / `cr.remove_kink <kink> [name]` | Add / remove a kink (apply BEFORE opening a scene). |
-| `cr.preg [name]` | Test the captive-pregnancy hook. |
+| `cr.preg [name]` | Force a conception with the female PLAYER as mother ([name] = father, else a shared hidden "Unknown" father). |
+| `cr.preg mother <name>` | Force a conception with that NPC as mother and the player as father (the bastard path) — use to verify which clan the child lands in. |
 | `cr.escape_force` | Force the captive-escape path. |
 
 ### Chronicle & world rumors
@@ -149,6 +150,14 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.deed_heard [name]` | Seed a deed of yours that wounds this NPC's faction, then echo what they've heard of you (influence loop). |
 | `cr.realm_news` | Seed a war between two kingdoms; talk to an NPC to hear "the talk of all the realm". |
 
+### Scripted scenarios (world-reaction engine)
+| Command | Does |
+|---|---|
+| `cr.scenarios` | List the loaded scenario rules (from ModuleData/scenarios/*.json) and which one-shots have fired. |
+| `cr.scenario_fire <VERB[:payload]> [heroName]` | Manually fire a trigger to test a scenario. The hero name (if any) becomes the event's primary hero; the player is always included. |
+
+**Scenario test (S1) — Rhagaea's death turns the empires:** run `cr.scenario_fire ON_DEATH Rhagaea`. The sample pack's rule (guard `IF_HERO_IS:Rhagaea`) should fire: the Northern + Western Empires declare war on the Southern Empire, and a world-event message ("the eagles turn upon a leaderless South") is recorded — talk to an NPC of those realms to hear it. `cr.scenarios` then lists `rhagaea_death_eagles_turn` as a fired one-shot. (Fires without actually killing her.)
+
 ### Companion missions (first slice — "bring me the news")
 | Command | Does |
 |---|---|
@@ -159,6 +168,8 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.send_envoy [about]` | Send your first companion as an envoy (Charm) — the faction's mood comes back in conversation. |
 | `cr.missions` | List the errands companions are currently away on. |
 | `cr.mission_return` | Force-resolve the first errand now and print the report (skip the travel). |
+| `cr.journey_recall` | Recall EVERY away companion immediately — abandon the errand, rejoin the party now (conversation/console path). |
+| `cr.recall_letter` | Send a letter-borne recall to the first away companion — they ride home on a daily tick after the courier delay. |
 | `cr.happiness [name]` | Show a companion's contentment in your service (score + band). |
 | `cr.happiness_set <0..100> [name]` | Set a companion's contentment (test the bands + the encyclopedia line). |
 | `cr.rapport [name]` | Show how a companion feels about each fellow companion (camp life). |
@@ -459,6 +470,17 @@ skill + a roll. News has a *source* and a *delay*. The errand **persists across 
   return and they tell of it. `cr.send_envoy [about]` (Charm) → the companion brings back a read on the
   **faction's mood** (who they war with, how settled the town is) in conversation. Same journey, payload by
   type: news/intel = words, steal/barter = gold, envoy = mood.
+- **P9 — Recall by conversation (A).** Send a companion out (`cr.send_news`), then ride to their party on
+  the map and open a CR chat with them. Ask them, in your words, to **abandon the errand and come back with
+  you**. They should agree AND actually return — the errand vanishes from `cr.missions` and they are back in
+  your party (check the party screen). This is the anti-AI-Influence guarantee: agreement is a *verified
+  deed*, never a "yes" that the companion then ignores forever. (If they refuse the task by choice, fine —
+  but if they agree, they MUST come home.) `cr.journey_recall` is the console safety net (recalls everyone).
+- **P10 — Recall by letter (B).** Send a companion out, then hire a tavern courier (talk to a tavernkeeper →
+  "Hire a Courier") and write to that away companion. Within a day or two they **abandon the errand and ride
+  home on their own** — watch `cr.missions` empty and the companion reappear in your party. `cr.recall_letter`
+  is the console test (schedules the recall on the first away companion; advance a couple of days). A captured
+  companion can't obey a recall yet — the order waits until they are free, then takes effect.
 
 ### Q. Companion happiness (NEW — untested in game)
 

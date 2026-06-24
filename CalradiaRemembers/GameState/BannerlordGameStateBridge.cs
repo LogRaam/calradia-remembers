@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 23/06/2026.
+// Code written by Gabriel Mailhot, 24/06/2026.
 
 #region
 
@@ -105,8 +105,8 @@ namespace CalradiaRemembers.GameState
             ChangeClanInfluenceAction.Apply(Hero.MainHero.Clan, -influenceLoss);
          }
 
-         ModLog.Info($"[HUMILIATION] witnesses={witnessCount} renown-{renownLoss} influence-{influenceLoss}"
-                     + (real
+         ModLog.Info($"[HUMILIATION] witnesses={witnessCount} renown-{renownLoss} influence-{influenceLoss}" +
+                     (real
                         ? ""
                         : " (test mode — not applied)"));
 
@@ -164,6 +164,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteGatherNews(action, npcHero);
             case "reassure_companion":
                return ExecuteReassureCompanion(npcHero);
+            case "recall_companion":
+               return ExecuteRecallCompanion(npcHero);
             default:
                ModLog.Info($"[ACTION] Unknown type '{action.Type}' — ignored.");
 
@@ -179,7 +181,7 @@ namespace CalradiaRemembers.GameState
 
          var player = Hero.MainHero;
 
-         if (player == null || !player.IsPrisoner) return;
+         if (player is not {IsPrisoner: true}) return;
 
          try
          {
@@ -234,17 +236,15 @@ namespace CalradiaRemembers.GameState
             Army army = party.Army;
             if (army != null)
             {
-               string leader = army.LeaderParty?.LeaderHero?.Name?.ToString()
-                               ?? army.ArmyOwner?.Name?.ToString();
+               string leader = army.LeaderParty?.LeaderHero?.Name?.ToString() ?? army.ArmyOwner?.Name?.ToString();
 
                if (army.LeaderParty?.BesiegedSettlement != null)
                   return $"marching with {leader}'s army, laying siege to {army.LeaderParty.BesiegedSettlement.Name}";
 
                // AiBehaviorObject is an IMapPoint; only name it when it is a settlement we can
                // point to — chasing a roaming party yields no place, so stay vague there.
-               var objective = army.AiBehaviorObject as Settlement;
 
-               if (objective != null)
+               if (army.AiBehaviorObject is Settlement objective)
                   return $"marching with {leader}'s army toward {objective.Name}";
 
                return leader != null
@@ -396,7 +396,7 @@ namespace CalradiaRemembers.GameState
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[GRANT] {quest.Reward} failed for {npcHero?.Name}: {ex.GetType().Name}: {ex.Message}");
+            ModLog.Error($"[GRANT] {quest.Reward} failed for {npcHero.Name}: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }
@@ -463,7 +463,7 @@ namespace CalradiaRemembers.GameState
       {
          try
          {
-            if (quest == null || quest.Type != QuestType.DeliverItems) return null;
+            if (quest is not {Type: QuestType.DeliverItems}) return null;
             if (Hero.MainHero == null || offered == null || offered.Count == 0) return null;
 
             ItemRoster roster = MobileParty.MainParty?.ItemRoster;
@@ -583,12 +583,10 @@ namespace CalradiaRemembers.GameState
 
             // Optional topic the LLM extracted from the player's request ("news about Sturgia" → Sturgia);
             // null means any/nearest town. The behavior resolves it to a destination.
-            string about = null;
-            action.Parameters?.TryGetValue("about", out about);
+            action.Parameters.TryGetValue("about", out string about);
 
             // Which errand the player asked for (news / scout / steal / trade / envoy); defaults to news.
-            string errand = null;
-            action.Parameters?.TryGetValue("errand", out errand);
+            action.Parameters.TryGetValue("errand", out string errand);
 
             (bool dispatched, string message) = behavior.Dispatch(npcHero, MapErrand(errand), about);
             ModLog.Info($"[ACTION] gather_news: {npcHero.Name} → {(dispatched ? "dispatched" : "refused")}: {message}");
@@ -680,8 +678,7 @@ namespace CalradiaRemembers.GameState
             if (Hero.MainHero?.Spouse != null)
                return new ActionOutcome("(You are already wed — the blessing cannot apply.)", false);
 
-            if (!action.Parameters.TryGetValue("hero", out string spouseName)
-                || string.IsNullOrWhiteSpace(spouseName)) return null;
+            if (!action.Parameters.TryGetValue("hero", out string spouseName) || string.IsNullOrWhiteSpace(spouseName)) return null;
 
             Hero spouse = MarriageProspectResolver.ResolveCandidate(npcHero, spouseName);
 
@@ -761,15 +758,34 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
-      ///   impregnation_risk: the captor's narration flagged a vaginal act carried to completion.
-      ///   A female player of fertile age has a small chance to conceive. The father is the real
-      ///   captor when there is one (a lord); a faceless bandit's child is attributed to a shared
-      ///   hidden "Unknown" hero. Silent to the player — the pregnancy is discovered through normal
-      ///   game means, never announced in the chat — so this returns no chat outcome.
+      ///   impregnation_risk: the narration flagged a vaginal act carried to completion. The fertile
+      ///   female of the pairing has a small chance to conceive — the PLAYER when she is the woman (the
+      ///   NPC is the father), or the NPC when she is (the player is the father). A same-sex pairing or
+      ///   an infertile female conceives nothing. The mother/father split is decided by the pure
+      ///   <see cref="ConceptionResolver" />; the child follows the mother's clan. Silent to the player —
+      ///   the pregnancy is discovered through normal game means — so this returns no chat outcome.
       /// </summary>
-      private static ActionOutcome ExecuteImpregnationRisk(Hero captorHero)
+      private static ActionOutcome ExecuteImpregnationRisk(Hero npcHero)
       {
-         CaptivePregnancyService.TryConceive(captorHero);
+         var player = Hero.MainHero;
+
+         if (npcHero == null || player == null) return null;
+
+         ConceptionRole role = ConceptionResolver.Resolve(
+            player.IsFemale, player.IsAlive, player.Age,
+            npcHero.IsFemale, npcHero.IsAlive, npcHero.Age);
+
+         switch (role)
+         {
+            case ConceptionRole.PlayerIsMother:
+               PregnancyService.TryConceive(player, npcHero); // mother = player, father = NPC
+
+               break;
+            case ConceptionRole.NpcIsMother:
+               PregnancyService.TryConceive(npcHero, player); // mother = NPC, father = player
+
+               break;
+         }
 
          return null;
       }
@@ -879,17 +895,13 @@ namespace CalradiaRemembers.GameState
          {
             if (npcHero == null || Hero.MainHero == null) return null;
 
-            if (!npcHero.IsAlive
-                || npcHero.IsPrisoner
-                || npcHero.Occupation != Occupation.Wanderer
-                || npcHero.CompanionOf != null
-                || npcHero.PartyBelongedTo != null)
+            if (!npcHero.IsAlive || npcHero.IsPrisoner || npcHero.Occupation != Occupation.Wanderer || npcHero.CompanionOf != null || npcHero.PartyBelongedTo != null)
                return new ActionOutcome($"({npcHero.Name} is not free to take service.)", false);
 
             var clan = Clan.PlayerClan;
 
             if (clan == null) return null;
-            if (clan.Companions.Count() >= clan.CompanionLimit)
+            if (clan.Companions.Count >= clan.CompanionLimit)
                return new ActionOutcome(
                   $"(Your clan cannot support another companion — limit {clan.CompanionLimit}.)", false);
 
@@ -973,6 +985,33 @@ namespace CalradiaRemembers.GameState
          ModLog.Info($"[ACTION] reassure_companion: {npcHero.Name} is a little more at ease.");
 
          return new ActionOutcome($"{npcHero.Name} seems a little more at ease in your service.", true);
+      }
+
+      /// <summary>
+      ///   recall_companion action: the player met an away companion and ordered them to abandon the errand and
+      ///   return; the companion agreed. We ACTUALLY bring them home (the behavior re-validates and rejoins them
+      ///   to the party) — a verified deed, so the companion can never "agree" yet keep wandering off forever.
+      /// </summary>
+      private static ActionOutcome ExecuteRecallCompanion(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null) return null;
+            var behavior = CompanionMissionBehavior.Instance;
+
+            if (behavior == null) return null;
+
+            (bool recalled, string message) = behavior.Recall(npcHero);
+            ModLog.Info($"[ACTION] recall_companion: {npcHero.Name} → {(recalled ? "returned" : "refused")}: {message}");
+
+            return new ActionOutcome(message, recalled);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] recall_companion failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
       }
 
       /// <summary>
@@ -1231,9 +1270,7 @@ namespace CalradiaRemembers.GameState
 
          NpcProfile profile = store.Get(npcHero.StringId);
 
-         if (profile == null) return;
-
-         InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q =>
+         InformalQuest quest = profile?.ActiveQuests.FirstOrDefault(q =>
             q.Type == QuestType.ProvideGold && q.IsOutstanding);
 
          if (quest == null) return;
@@ -1251,8 +1288,7 @@ namespace CalradiaRemembers.GameState
       {
          value = 0;
 
-         return parameters.TryGetValue(key, out string raw)
-                && int.TryParse(raw, out value);
+         return parameters.TryGetValue(key, out string raw) && int.TryParse(raw, out value);
       }
 
       private ActionOutcome ExecuteChangeRelation(GameAction action, Hero npcHero, ActionContext context)
@@ -1315,7 +1351,7 @@ namespace CalradiaRemembers.GameState
 
             if (profile == null || npcHero == null) return null;
 
-            InformalQuest quest = profile.ActiveQuests?.FirstOrDefault(q =>
+            InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q =>
                q.Type == QuestType.DeliverPrisoner && q.IsOutstanding);
 
             if (quest == null) return null; // no such bargain — ignore a stray emission
@@ -1329,13 +1365,12 @@ namespace CalradiaRemembers.GameState
                foreach (TroopRosterElement el in prison.GetTroopRoster())
                {
                   Hero h = el.Character?.HeroObject;
-                  if (h != null && target.Matches(h.StringId, h.MapFaction?.StringId))
-                  {
-                     prisonerChar = el.Character;
-                     prisonerHero = h;
 
-                     break;
-                  }
+                  if (h == null || !target.Matches(h.StringId, h.MapFaction?.StringId)) continue;
+                  prisonerChar = el.Character;
+                  prisonerHero = h;
+
+                  break;
                }
 
             if (prisonerChar == null)

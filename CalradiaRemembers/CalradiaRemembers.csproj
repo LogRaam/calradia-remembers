@@ -44,6 +44,12 @@
 
   <ItemGroup>
     <Reference Include="System.Net.Http" />
+    <!-- TaleWorlds.Library.Vec2 exposes System.Numerics.Vector2 in its public API, so this assembly
+         must be referenced explicitly for any file using Vec2 to compile cleanly. The game ships a copy. -->
+    <Reference Include="System.Numerics.Vectors">
+      <HintPath>$(BannerlordGameBinaryDir)\System.Numerics.Vectors.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="TaleWorlds.CampaignSystem">
       <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.CampaignSystem.dll</HintPath>
       <Private>false</Private>

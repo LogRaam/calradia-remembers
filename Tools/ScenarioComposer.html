@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<!-- Calradia Remembers — Scenario Composer.
+     A standalone authoring tool for scripted-scenario packs. Pick keywords from dropdowns to build rules in
+     the engine's DSL, then export the JSON to Modules/CalradiaRemembers/ModuleData/scenarios/ and test in
+     game with cr.scenarios / cr.scenario_fire. Self-contained: no install, no internet, no build. Open in a
+     browser. To extend the vocabulary, edit the VOCAB block below to mirror the engine. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Calradia Remembers — Scenario Composer</title>
+<style>
+  :root { --ink:#2b2118; --cream:#f4ecd8; --parch:#efe3c4; --line:#cdb88a; --accent:#7a3b2e; --muted:#6b5d44; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Georgia, "Times New Roman", serif; color:var(--ink);
+         background:#e7d9b6; padding:24px; }
+  h1 { margin:0 0 4px; font-size:26px; }
+  .sub { color:var(--muted); margin:0 0 18px; font-size:14px; }
+  .how { background:var(--parch); border:1px solid var(--line); border-radius:6px; padding:12px 16px;
+         margin-bottom:18px; font-size:13px; line-height:1.5; }
+  .how code { background:#e3d3aa; padding:1px 5px; border-radius:3px; }
+  .layout { display:flex; gap:20px; align-items:flex-start; }
+  .left { flex:1 1 60%; min-width:0; }
+  .right { flex:1 1 40%; position:sticky; top:24px; }
+  .toolbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  button { font-family:inherit; font-size:13px; cursor:pointer; border:1px solid var(--line);
+           background:var(--cream); color:var(--ink); padding:7px 12px; border-radius:5px; }
+  button:hover { background:#fff7e6; }
+  button.primary { background:var(--accent); color:#fbf3e1; border-color:#5a2b20; }
+  button.danger { color:var(--accent); }
+  .rule { background:var(--cream); border:1px solid var(--line); border-radius:8px; padding:14px 16px;
+          margin-bottom:16px; box-shadow:0 1px 0 #d8c79c; }
+  .rule h3 { margin:0 0 10px; font-size:16px; display:flex; align-items:center; gap:8px; }
+  .rule h3 .tag { font-size:11px; color:var(--muted); font-weight:normal; }
+  .row { display:flex; gap:8px; align-items:center; margin:6px 0; flex-wrap:wrap; }
+  label.fld { display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--muted); }
+  input[type=text], input[type=number], select, textarea {
+    font-family:inherit; font-size:13px; color:var(--ink); background:#fffdf6;
+    border:1px solid var(--line); border-radius:4px; padding:6px 8px; }
+  textarea { width:100%; resize:vertical; min-height:46px; }
+  .section-label { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent);
+                   margin:12px 0 4px; border-bottom:1px solid var(--line); padding-bottom:2px; }
+  .clause { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:5px 0;
+            background:var(--parch); border:1px solid var(--line); border-radius:5px; padding:6px 8px; }
+  .clause .hint { font-size:11px; color:var(--muted); flex-basis:100%; }
+  .mini { padding:3px 8px; font-size:12px; }
+  .preview { width:100%; min-height:420px; font-family:"Consolas","Courier New",monospace; font-size:12px;
+             background:#fffdf6; border:1px solid var(--line); border-radius:6px; padding:12px; }
+  .filename { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .err { color:var(--accent); font-size:12px; min-height:16px; margin:6px 0; }
+  .empty { color:var(--muted); font-style:italic; padding:18px 0; }
+  .ghost { opacity:.65; }
+</style>
+</head>
+<body>
+  <h1>Calradia Remembers — Scenario Composer</h1>
+  <p class="sub">Build scripted-scenario packs without writing JSON by hand.</p>
+
+  <div class="how">
+    <strong>How it works.</strong> A scenario is a stateless reactive rule: when its <em>trigger</em> fires and
+    its <em>guards</em> pass, its <em>consequences</em> mutate the world and its <em>message</em> is told in
+    game. If several rules share a trigger, one is chosen at random.
+    <br>1) Add rules below. 2) <strong>Download pack</strong>. 3) Drop the file into
+    <code>Modules/CalradiaRemembers/ModuleData/scenarios/</code>. 4) In game:
+    <code>cr.scenarios</code> to list them, <code>cr.scenario_fire ON_DEATH Rhagaea</code> to test one.
+  </div>
+
+  <div class="layout">
+    <div class="left">
+      <div class="toolbar">
+        <button class="primary" onclick="addRule()">+ Add rule</button>
+        <button onclick="loadExample()">Load Rhagaea example</button>
+        <label class="mini" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:5px;padding:0 8px;background:var(--cream);">
+          Import JSON <input type="file" accept=".json" onchange="importFile(event)" style="font-size:12px;">
+        </label>
+        <button class="danger" onclick="clearAll()">Clear all</button>
+      </div>
+      <div id="rules"></div>
+      <div id="emptyMsg" class="empty">No rules yet — click <strong>+ Add rule</strong> or load the example.</div>
+    </div>
+
+    <div class="right">
+      <div class="filename">
+        <label class="fld" style="flex:1;">Pack file name
+          <input type="text" id="filename" value="my_scenarios.json" oninput="render()">
+        </label>
+        <button onclick="copyJson()">Copy</button>
+        <button class="primary" onclick="downloadPack()">Download pack</button>
+      </div>
+      <div id="err" class="err"></div>
+      <textarea class="preview" id="preview" readonly></textarea>
+    </div>
+  </div>
+
+<script>
+// ── VOCABULARY (mirror the engine; extend here when the engine grows) ────────────────────────────
+const VOCAB = {
+  triggers: [
+    { key:"ON_DEATH",        desc:"A hero died. Scope to one with a guard IF_HERO_IS." },
+    { key:"ON_MARRIAGE",     desc:"Two heroes wed. Scope with IF_HERO_IS / IF_PLAYER_INVOLVED." },
+    { key:"ON_WAR_DECLARED", desc:"War was declared between two factions." },
+    { key:"ON_PEACE",        desc:"Peace was made between two factions." }
+  ],
+  guards: [
+    { key:"IF_HERO_IS",         args:[{n:"hero", ph:"e.g. Rhagaea"}],   desc:"An involved hero matches this name or id." },
+    { key:"IF_PLAYER_INVOLVED", args:[],                                desc:"The player is one of the event's heroes." },
+    { key:"IF_PLAYER_RULES",    args:[],                                desc:"The player is a kingdom ruler." },
+    { key:"IF_PLAYER_IS_FEMALE",args:[],                                desc:"The player is female." },
+    { key:"IF_PLAYER_IS_MALE",  args:[],                                desc:"The player is male." },
+    { key:"IF_PLAYER_AT_WAR",   args:[{n:"faction", ph:"e.g. Vlandia"}],desc:"The player's faction is at war with this faction." }
+  ],
+  consequences: [
+    { key:"DECLARE_WAR",     args:[{n:"faction A",ph:"e.g. Northern Empire"},{n:"faction B",ph:"e.g. Southern Empire"}], fmt:"comma",  desc:"Start a war between two factions." },
+    { key:"MAKE_PEACE",      args:[{n:"faction A",ph:"e.g. Vlandia"},{n:"faction B",ph:"e.g. Battania"}],               fmt:"comma",  desc:"End a war between two factions." },
+    { key:"CHANGE_RELATION", args:[{n:"hero",ph:"name, id, or PLAYER"},{n:"delta",ph:"e.g. +10"}],                       fmt:"reldelta",desc:"Shift the player's relation with a hero." },
+    { key:"CHANGE_INFLUENCE",args:[{n:"hero",ph:"PLAYER, or a hero (their clan)"},{n:"delta",ph:"e.g. +50"}],            fmt:"reldelta",desc:"Change a hero's clan influence (PLAYER = your clan)." },
+    { key:"INJECT_MEMORY",   args:[{n:"hero",ph:"name or id"},{n:"text",ph:"what they now remember"}],                   fmt:"targetrest",desc:"Plant a memory on an NPC so they reference it in conversation." }
+  ]
+};
+
+// ── State ───────────────────────────────────────────────────────────────────────────────────────
+// rules: [{ id, trigger, guards:[{verb,vals:[]}], consequences:[{verb,vals:[]}], message, fireOnce, weight }]
+let rules = [];
+
+function findVocab(list, key){ return list.find(v => v.key === key) || null; }
+function blankClause(list){ return { verb: list[0].key, vals: [] }; }
+
+function addRule(){
+  rules.push({ id:"new_rule_"+(rules.length+1), trigger:VOCAB.triggers[0].key,
+               guards:[], consequences:[blankClause(VOCAB.consequences)], message:"", fireOnce:true, weight:1 });
+  render();
+}
+function removeRule(i){ rules.splice(i,1); render(); }
+function clearAll(){ if(confirm("Remove all rules?")){ rules=[]; render(); } }
+
+// ── Serialization to the keyword DSL ────────────────────────────────────────────────────────────
+function fmtDelta(s){ s=(s||"").trim(); if(s===""||s==="-"||s==="+") return s; const n=Number(s); return (!isNaN(n)&&n>=0)?("+"+n):s; }
+
+function clauseToString(c, vocabList){
+  const v = findVocab(vocabList, c.verb); if(!v) return c.verb;
+  const vals = (c.vals||[]).map(x => (x||"").trim());
+  if(!v.args || v.args.length===0) return v.key;
+  if(v.fmt==="comma")     return v.key + ":" + vals.join(",");
+  if(v.fmt==="reldelta")  return v.key + ":" + (vals[0]||"") + ":" + fmtDelta(vals[1]||"");
+  if(v.fmt==="targetrest")return v.key + ":" + (vals[0]||"") + ":" + (vals[1]||"");
+  return v.key + ":" + vals.join(",");
+}
+function ruleToObject(r){
+  const o = { id:r.id, trigger:r.trigger };
+  const g = (r.guards||[]).map(c=>clauseToString(c,VOCAB.guards)).filter(s=>s);
+  const cs = (r.consequences||[]).map(c=>clauseToString(c,VOCAB.consequences)).filter(s=>s);
+  if(g.length) o.guards = g;
+  o.consequences = cs;
+  o.message = r.message||"";
+  if(r.fireOnce) o.fireOnce = true;
+  if(r.weight && r.weight!==1) o.weight = Number(r.weight);
+  return o;
+}
+function packObject(){
+  return {
+    _comment:"Built with the Calradia Remembers Scenario Composer. Drop into ModuleData/scenarios/. Test: cr.scenarios / cr.scenario_fire.",
+    rules: rules.map(ruleToObject)
+  };
+}
+function packJson(){ return JSON.stringify(packObject(), null, 2); }
+
+// ── Validation (light) ──────────────────────────────────────────────────────────────────────────
+function validate(){
+  const issues=[];
+  const ids=new Set();
+  rules.forEach((r,i)=>{
+    if(!r.id||!r.id.trim()) issues.push("Rule "+(i+1)+": missing id.");
+    else if(ids.has(r.id)) issues.push("Duplicate id '"+r.id+"'."); else ids.add(r.id);
+    (r.consequences||[]).forEach(c=>{
+      const v=findVocab(VOCAB.consequences,c.verb);
+      if(v&&v.args){ for(let k=0;k<v.args.length;k++){ if(!((c.vals||[])[k]||"").trim()) issues.push("Rule '"+(r.id||i+1)+"': "+v.key+" needs '"+v.args[k].n+"'."); } }
+    });
+    (r.guards||[]).forEach(c=>{
+      const v=findVocab(VOCAB.guards,c.verb);
+      if(v&&v.args){ for(let k=0;k<v.args.length;k++){ if(!((c.vals||[])[k]||"").trim()) issues.push("Rule '"+(r.id||i+1)+"': guard "+v.key+" needs '"+v.args[k].n+"'."); } }
+    });
+  });
+  return issues;
+}
+
+// ── Rendering ───────────────────────────────────────────────────────────────────────────────────
+function el(tag, attrs, kids){
+  const e=document.createElement(tag);
+  if(attrs) for(const k in attrs){ if(k==="class") e.className=attrs[k]; else if(k.startsWith("on")) e[k]=attrs[k]; else e.setAttribute(k,attrs[k]); }
+  (kids||[]).forEach(c=> e.appendChild(typeof c==="string"?document.createTextNode(c):c));
+  return e;
+}
+function selectFor(list, value, onchange){
+  const s=el("select",{onchange:e=>onchange(e.target.value)});
+  list.forEach(v=>{ const o=el("option",{value:v.key},[v.key]); if(v.key===value)o.selected=true; s.appendChild(o); });
+  return s;
+}
+function clauseRow(list, clause, onChange, onRemove){
+  const v=findVocab(list, clause.verb);
+  const wrap=el("div",{class:"clause"});
+  const row=el("div",{class:"row"});
+  row.appendChild(selectFor(list, clause.verb, val=>{ clause.verb=val; clause.vals=[]; onChange(); }));
+  (v&&v.args?v.args:[]).forEach((a,idx)=>{
+    const inp=el("input",{type:"text",placeholder:a.ph||a.n,value:(clause.vals||[])[idx]||""});
+    inp.style.minWidth="150px";
+    inp.oninput=e=>{ clause.vals=clause.vals||[]; clause.vals[idx]=e.target.value; onChange(); };
+    row.appendChild(inp);
+  });
+  const rm=el("button",{class:"mini danger",onclick:onRemove},["✕"]);
+  row.appendChild(rm);
+  wrap.appendChild(row);
+  if(v&&v.desc) wrap.appendChild(el("div",{class:"hint"},[v.desc]));
+  return wrap;
+}
+
+function ruleCard(r, i){
+  const card=el("div",{class:"rule"});
+  card.appendChild(el("h3",{},[ "Rule "+(i+1), el("span",{class:"tag"},["— "+r.trigger]) ]));
+
+  const top=el("div",{class:"row"});
+  const idF=el("label",{class:"fld"},["id"]); const idIn=el("input",{type:"text",value:r.id}); idIn.oninput=e=>{r.id=e.target.value; preview();}; idF.appendChild(idIn);
+  const trF=el("label",{class:"fld"},["trigger"]); trF.appendChild(selectFor(VOCAB.triggers, r.trigger, val=>{r.trigger=val; render();}));
+  const foF=el("label",{class:"fld"},["fire once"]); const foIn=el("input",{type:"checkbox"}); foIn.checked=!!r.fireOnce; foIn.onchange=e=>{r.fireOnce=e.target.checked; preview();}; foF.appendChild(foIn);
+  const wF=el("label",{class:"fld"},["weight"]); const wIn=el("input",{type:"number",min:"1",value:r.weight||1}); wIn.style.width="64px"; wIn.oninput=e=>{r.weight=Number(e.target.value)||1; preview();}; wF.appendChild(wIn);
+  top.appendChild(idF); top.appendChild(trF); top.appendChild(foF); top.appendChild(wF);
+  const trigV=findVocab(VOCAB.triggers,r.trigger);
+  card.appendChild(top);
+  if(trigV) card.appendChild(el("div",{class:"hint",style:"font-size:11px;color:var(--muted);margin:2px 0 0;"},[trigV.desc]));
+
+  // Guards
+  card.appendChild(el("div",{class:"section-label"},["Guards (all must pass — optional)"]));
+  (r.guards||[]).forEach((c,gi)=> card.appendChild(clauseRow(VOCAB.guards, c, preview, ()=>{ r.guards.splice(gi,1); render(); })));
+  card.appendChild(el("button",{class:"mini",onclick:()=>{ r.guards=r.guards||[]; r.guards.push(blankClause(VOCAB.guards)); render(); }},["+ guard"]));
+
+  // Consequences
+  card.appendChild(el("div",{class:"section-label"},["Consequences"]));
+  (r.consequences||[]).forEach((c,ci)=> card.appendChild(clauseRow(VOCAB.consequences, c, preview, ()=>{ r.consequences.splice(ci,1); render(); })));
+  card.appendChild(el("button",{class:"mini",onclick:()=>{ r.consequences=r.consequences||[]; r.consequences.push(blankClause(VOCAB.consequences)); render(); }},["+ consequence"]));
+
+  // Message
+  card.appendChild(el("div",{class:"section-label"},["World-event message (told in game)"]));
+  const msg=el("textarea",{placeholder:"e.g. With the empress fallen, the eagles turn upon a leaderless South."}); msg.value=r.message||""; msg.oninput=e=>{r.message=e.target.value; preview();};
+  card.appendChild(msg);
+
+  const foot=el("div",{class:"row",style:"justify-content:flex-end;margin-top:8px;"});
+  foot.appendChild(el("button",{class:"danger",onclick:()=>removeRule(i)},["Delete rule"]));
+  card.appendChild(foot);
+  return card;
+}
+
+function render(){
+  const host=document.getElementById("rules"); host.innerHTML="";
+  rules.forEach((r,i)=> host.appendChild(ruleCard(r,i)));
+  document.getElementById("emptyMsg").style.display = rules.length? "none":"block";
+  preview();
+}
+function preview(){
+  document.getElementById("preview").value = packJson();
+  const issues=validate();
+  document.getElementById("err").textContent = issues.length? ("⚠ "+issues.length+" issue(s): "+issues.slice(0,4).join("  ")) : "";
+}
+
+// ── Import / export ─────────────────────────────────────────────────────────────────────────────
+function stringToClause(s, list){
+  s=(s||"").trim(); if(!s) return null;
+  const colon=s.indexOf(":"); const verb=(colon<0?s:s.slice(0,colon)).trim().toUpperCase(); const payload=colon<0?"":s.slice(colon+1).trim();
+  const v=findVocab(list, verb); const c={verb: v?verb:list[0].key, vals:[]};
+  if(v&&v.args&&v.args.length){
+    if(v.fmt==="reldelta"){ const lc=payload.lastIndexOf(":"); if(lc>0){ c.vals=[payload.slice(0,lc).trim(), payload.slice(lc+1).trim()]; } else c.vals=[payload]; }
+    else if(v.fmt==="targetrest"){ const fc=payload.indexOf(":"); if(fc>0){ c.vals=[payload.slice(0,fc).trim(), payload.slice(fc+1).trim()]; } else c.vals=[payload]; }
+    else { c.vals = payload.split(",").map(x=>x.trim()); }
+  }
+  return c;
+}
+function loadPack(obj){
+  if(!obj||!Array.isArray(obj.rules)) throw new Error("not a scenario pack (missing 'rules' array)");
+  rules = obj.rules.map(o=>({
+    id:o.id||"rule", trigger:(o.trigger||"ON_DEATH").split(":")[0].trim().toUpperCase(),
+    guards:(o.guards||[]).map(s=>stringToClause(s,VOCAB.guards)).filter(Boolean),
+    consequences:(o.consequences||[]).map(s=>stringToClause(s,VOCAB.consequences)).filter(Boolean),
+    message:o.message||"", fireOnce:!!o.fireOnce, weight:o.weight||1
+  }));
+  render();
+}
+function importFile(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ loadPack(JSON.parse(rd.result)); }catch(e){ alert("Could not import: "+e.message); } ev.target.value=""; };
+  rd.readAsText(f);
+}
+function copyJson(){ navigator.clipboard.writeText(packJson()).then(()=>{}, ()=>{ const p=document.getElementById("preview"); p.select(); document.execCommand("copy"); }); }
+function downloadPack(){
+  const name=(document.getElementById("filename").value||"scenarios.json").trim();
+  const blob=new Blob([packJson()],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name.endsWith(".json")?name:name+".json"; a.click(); URL.revokeObjectURL(a.href);
+}
+function loadExample(){
+  loadPack({ rules:[{
+    id:"rhagaea_death_eagles_turn", trigger:"ON_DEATH", guards:["IF_HERO_IS:Rhagaea"],
+    consequences:["DECLARE_WAR:Northern Empire,Southern Empire","DECLARE_WAR:Western Empire,Southern Empire"],
+    message:"With the empress Rhagaea fallen, the eagles of the North and West turn upon a leaderless South.",
+    fireOnce:true, weight:1 }]});
+}
+
+// init
+render();
+</script>
+</body>
+</html>

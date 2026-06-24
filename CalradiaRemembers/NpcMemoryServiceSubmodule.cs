@@ -78,6 +78,11 @@ namespace CalradiaRemembers
          // SchemeAdvancer), the effect is standing damage, and the player only ever hears of it as a
          // rumour fed to the world-event store. Registered AFTER WorldEventStore (it records into it).
          campaignStarter.AddBehavior(new WorldEvents.SchemeStore());
+         // Scripted scenarios (the world-reaction engine): a trigger (death/marriage/war/peace) fires a
+         // rule whose consequences mutate the world and whose message is dropped into the world-event store.
+         // Pure selection lives in CalradiaRemembers.Logic; packs load from ModuleData/scenarios. Registered
+         // AFTER WorldEventStore (it records its message into it). Console: cr.scenarios / cr.scenario_fire.
+         campaignStarter.AddBehavior(new Scenarios.ScenarioBehavior());
          // Interceptions: a nearby lord may ride out to the player (hostile territorial challenge, or
          // a reaction to fresh news from the rumour store). Decision is pure; this only moves parties.
          campaignStarter.AddBehavior(new Interception.InterceptionBehavior());

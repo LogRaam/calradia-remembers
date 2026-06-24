@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 23/06/2026.
+// Code written by Gabriel Mailhot, 24/06/2026.
 
 #region
 
@@ -23,6 +23,7 @@ using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Quests;
+using CalradiaRemembers.Scenarios;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Witnesses;
@@ -97,9 +98,7 @@ namespace CalradiaRemembers
          {
             string lastToken = args[args.Count - 1];
             Hero candidate = Hero.AllAliveHeroes.FirstOrDefault(h =>
-               h != Hero.MainHero
-               && h.Name != null
-               && h.Name.ToString().IndexOf(lastToken, StringComparison.OrdinalIgnoreCase) >= 0);
+               h != Hero.MainHero && h.Name != null && h.Name.ToString().IndexOf(lastToken, StringComparison.OrdinalIgnoreCase) >= 0);
             if (candidate != null)
             {
                hero = candidate;
@@ -149,9 +148,7 @@ namespace CalradiaRemembers
             return "Usage: cr.witness [name]";
 
          Hero witnessHero = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero
-            && h.IsAlive
-            && h.Name?.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0);
+            h != Hero.MainHero && h.IsAlive && h.Name?.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0);
 
          string displayName = witnessHero?.Name?.ToString() ?? nameFragment;
          var relation = "a lord present";
@@ -331,6 +328,47 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.scenario_fire &lt;VERB[:payload]&gt; [heroName]
+      ///   Manually fires a trigger to test scenarios without waiting for the real event. An optional hero
+      ///   name becomes the event's primary hero (and their faction a context faction); the player is always
+      ///   included. E.g. cr.scenario_fire ON_DEATH Rhagaea.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("scenario_fire", "cr")]
+      public static string FireScenario(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         if (args == null || args.Count == 0) return "Usage: cr.scenario_fire <VERB[:payload]> [heroName]";
+
+         ScenarioRuntime runtime = ScenarioBehavior.Instance?.Runtime;
+
+         if (runtime == null) return "Scenario engine not ready.";
+
+         string verb = args[0];
+         List<string> nameArgs = args.Count > 1
+            ? args.GetRange(1, args.Count - 1)
+            : null;
+         Hero hero = nameArgs != null
+            ? ResolveHero(nameArgs)
+            : null;
+
+         if (nameArgs != null && hero == null) return $"No hero matched \"{string.Join(" ", nameArgs)}\".";
+
+         var heroes = new List<Hero>();
+         if (hero != null) heroes.Add(hero);
+         if (Hero.MainHero != null) heroes.Add(Hero.MainHero);
+
+         var factions = new List<IFaction>();
+         if (hero?.MapFaction != null) factions.Add(hero.MapFaction);
+
+         var ctx = new ScenarioContext(heroes, factions);
+         ScenarioRule fired = runtime.Fire(KeywordToken.Parse(verb), ctx);
+
+         return fired != null
+            ? $"Fired '{fired.Id}' on {verb}."
+            : $"No rule fired for {verb}.";
+      }
+
+      /// <summary>
       ///   cr.escape_force
       ///   Makes the NEXT escape attempt in a captive scene succeed, so the full escape flow
       ///   (constrained captor reaction → freeing on scene close) can be tested despite the 10%
@@ -386,31 +424,47 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.preg [name]
-      ///   Forces a captive conception for the female player (bypasses the 15% roll) so the
-      ///   pregnancy → delivery path can be validated without waiting on a real scene. With a
-      ///   [name], that hero is the father (a lord captor); with none, the shared hidden
-      ///   "Unknown" father is used (the bandit case). The child lands in the player's clan.
+      ///   cr.preg [name]            — the female PLAYER is the mother; [name] is the father (a lord),
+      ///   else the shared hidden "Unknown" father (the faceless-bandit case).
+      ///   cr.preg mother [name]     — that NPC is the mother and the player is the father (the bastard
+      ///   path): used to run the in-game SPIKE on which clan the child lands in.
+      ///   Forces a conception (bypasses the 15% roll) so the pregnancy → delivery path can be validated
+      ///   without waiting on a real scene.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("preg", "cr")]
       public static string ForcePregnancy(List<string> args)
       {
          if (!TryContext(out _, out string error)) return error;
 
-         bool named = args != null && args.Count > 0;
+         // cr.preg mother <name> → that NPC is the mother, the player is the father.
+         if (args is {Count: > 1} && string.Equals(args[0], "mother", StringComparison.OrdinalIgnoreCase))
+         {
+            List<string> motherArgs = args.GetRange(1, args.Count - 1);
+            Hero mother = ResolveHero(motherArgs);
+
+            if (mother == null) return $"No hero matched \"{string.Join(" ", motherArgs)}\".";
+
+            string motherNote = PregnancyService.TryConceive(mother, Hero.MainHero, true);
+
+            return motherNote ??
+                   $"Conception did not occur — {mother.Name} must be a female of fertile age (18–45), " +
+                   "not already pregnant, and past the post-birth recovery window. Check CalradiaRemembers.log.";
+         }
+
+         bool named = args is {Count: > 0};
          Hero father = named
             ? ResolveHero(args)
             : null;
 
          if (named && father == null) return $"No hero matched \"{string.Join(" ", args)}\".";
 
-         string note = CaptivePregnancyService.TryConceive(father, true);
+         string note = PregnancyService.TryConceive(father, true);
 
          if (note == null)
-            return "Conception did not occur — the player must be a female of fertile age (18–45), " + "not already pregnant. Check CalradiaRemembers.log for engine details.";
+            return "Conception did not occur — the player must be a female of fertile age (18–45), " + "not already pregnant, and past the post-birth recovery window. Check CalradiaRemembers.log.";
 
-         return note
-                + (father == null
+         return note +
+                (father == null
                    ? " [father: shared Unknown]"
                    : "");
       }
@@ -703,13 +757,7 @@ namespace CalradiaRemembers
          int companions = clan?.Companions?.Count() ?? 0;
          sb.AppendLine($"  Player clan     : {companions}/{clan?.CompanionLimit ?? 0} companions");
 
-         bool eligible = hero.IsAlive
-                         && !hero.IsPrisoner
-                         && hero.Occupation == Occupation.Wanderer
-                         && hero.CompanionOf == null
-                         && hero.PartyBelongedTo == null
-                         && clan != null
-                         && companions < clan.CompanionLimit;
+         bool eligible = hero.IsAlive && !hero.IsPrisoner && hero.Occupation == Occupation.Wanderer && hero.CompanionOf == null && hero.PartyBelongedTo == null && clan != null && companions < clan.CompanionLimit;
 
          if (!eligible)
             return sb.Append("  → NOT recruitable — the RECRUITMENT prompt section is not taught.").ToString();
@@ -796,6 +844,19 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.journey_recall
+      ///   Recalls EVERY away companion immediately — the conversation/console path (abandon the errand and
+      ///   rejoin the party now). The safety net for the AI-Influence bug: a real homecoming, never a promise.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("journey_recall", "cr")]
+      public static string JourneyRecall(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         return CompanionMissionBehavior.Instance?.RecallAll() ?? "Companion-mission system is not active.";
+      }
+
+      /// <summary>
       ///   cr.bandit_queen [solo|collective] [male|female]
       ///   Opens a captive scene with a forced FEMALE bandit chief (intent = spoil / PersonalDesire),
       ///   to test female-aggressor content (facesitting/smothering, reductive domination) without
@@ -808,7 +869,7 @@ namespace CalradiaRemembers
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
             return error;
-         if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
+         if (behavior.LlmServices is not {IsAvailable: true})
             return "LLM services not available. Set your OpenRouter API key first.";
 
          var collective = false;
@@ -852,7 +913,7 @@ namespace CalradiaRemembers
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
             return error;
-         if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
+         if (behavior.LlmServices is not {IsAvailable: true})
             return "LLM services not available. Set your OpenRouter API key first.";
 
          bool? genderOverride = null;
@@ -905,7 +966,7 @@ namespace CalradiaRemembers
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
             return error;
 
-         if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
+         if (behavior.LlmServices is not {IsAvailable: true})
             return "LLM services not available. Set your OpenRouter API key first.";
 
          // Parse keyword args; the remainder is the captor name fragment.
@@ -1049,6 +1110,25 @@ namespace CalradiaRemembers
          });
 
          return $"{hero.Name} quests:\n" + string.Join("\n", lines);
+      }
+
+      /// <summary>cr.scenarios — list the loaded scripted-scenario rules and which one-shots have fired.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("scenarios", "cr")]
+      public static string ListScenarios(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+
+         ScenarioRuntime runtime = ScenarioBehavior.Instance?.Runtime;
+
+         if (runtime == null) return "Scenario engine not ready.";
+
+         var sb = new StringBuilder();
+         sb.AppendLine($"Loaded scenario rules: {runtime.Rules.Count}");
+         foreach (ScenarioRule r in runtime.Rules)
+            sb.AppendLine($"  [{r.Id}] {r.Trigger}  guards:{r.Guards.Count} consequences:{r.Consequences.Count}{(r.FireOnce ? " (once)" : "")}");
+         sb.Append($"Fired one-shots: {(runtime.FiredRuleIds.Count == 0 ? "none" : string.Join(", ", runtime.FiredRuleIds))}");
+
+         return sb.ToString();
       }
 
       /// <summary>
@@ -1277,6 +1357,19 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.recall_letter
+      ///   Sends a letter-borne recall order to the FIRST away companion (path B): on a daily tick after the
+      ///   courier delay they abandon the errand and ride home. Use cr.missions to watch, or advance days.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("recall_letter", "cr")]
+      public static string RecallLetter(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         return CompanionMissionBehavior.Instance?.OrderRecallByLetterFirst() ?? "Companion-mission system is not active.";
+      }
+
+      /// <summary>
       ///   cr.reload_lore
       ///   Reloads ModuleData/character_overrides.json and re-applies (or restores) the authored traits
       ///   per the current "Use custom traits" toggle — no relaunch needed.
@@ -1339,17 +1432,16 @@ namespace CalradiaRemembers
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
             return error;
 
-         if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
+         if (behavior.LlmServices is not {IsAvailable: true})
             return "LLM services not available. Check OPENROUTER_API_KEY / model settings.";
 
          Settlement settlement = null;
 
-         if (args != null && args.Count > 0)
+         if (args is {Count: > 0})
          {
             string query = string.Join(" ", args).Trim();
             settlement = Settlement.All
-                                   .FirstOrDefault(s => s.Name != null
-                                                        && s.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
+                                   .FirstOrDefault(s => s.Name != null && s.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
 
             if (settlement == null)
                return $"No settlement found matching '{query}'.";
@@ -1433,7 +1525,7 @@ namespace CalradiaRemembers
 
          Hero held = MobileParty.MainParty?.PrisonRoster?.GetTroopRoster()
                                 ?.Select(el => el.Character?.HeroObject)
-                                .FirstOrDefault(h => h != null && h.IsLord && !h.IsHumanPlayerCharacter);
+                                .FirstOrDefault(h => h is {IsLord: true, IsHumanPlayerCharacter: false});
 
          if (held == null)
             return "You hold no lord prisoner. Capture an enemy lord first, then run this to test the hand-over (case a).";
@@ -1634,34 +1726,6 @@ namespace CalradiaRemembers
             : $"Seeded. {hero.Name} has now heard of your deeds:\n{block}\n\n(Open a conversation to see it colour their tone.)";
       }
 
-      /// <summary>
-      ///   cr.realm_news
-      ///   Seeds a high-magnitude WAR between two kingdoms so the "TALK OF ALL THE REALM" line is testable —
-      ///   then speak with any NPC who would have heard of it (the influence-loop realm-news polish).
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("realm_news", "cr")]
-      public static string SeedRealmNews(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
-
-         WorldEvents.WorldEventStore store = WorldEvents.WorldEventStore.Instance;
-         if (store == null) return "World-event store is not active.";
-
-         var kingdoms = Kingdom.All?.Where(k => k != null && !k.IsEliminated).Take(2).ToList();
-         if (kingdoms == null || kingdoms.Count < 2) return "Need at least two kingdoms in play.";
-
-         Kingdom a = kingdoms[0], b = kingdoms[1];
-         store.Record(new WorldEvents.WorldEvent
-         {
-            Type       = WorldEvents.WorldEventType.WarDeclared,
-            Day        = (int) CampaignTime.Now.ToDays,
-            Magnitude  = 80,
-            Summary    = $"{a.Name} declared war on {b.Name} (test seed).",
-            FactionIds = new List<string> { a.StringId, b.StringId }
-         });
-         return $"Seeded war: {a.Name} vs {b.Name}. Speak with an NPC to hear the realm's talk of it.";
-      }
-
       // ── Sprint 11: informal quest testing (group "cr") ────────────────────
 
       /// <summary>
@@ -1704,6 +1768,37 @@ namespace CalradiaRemembers
          int outstanding = profile.ActiveQuests.Count(q => q.IsOutstanding);
 
          return $"{hero.Name}: seeded bandit_clear near {village} ({outstanding} outstanding quest(s)).";
+      }
+
+      /// <summary>
+      ///   cr.realm_news
+      ///   Seeds a high-magnitude WAR between two kingdoms so the "TALK OF ALL THE REALM" line is testable —
+      ///   then speak with any NPC who would have heard of it (the influence-loop realm-news polish).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("realm_news", "cr")]
+      public static string SeedRealmNews(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         var store = WorldEventStore.Instance;
+
+         if (store == null) return "World-event store is not active.";
+
+         List<Kingdom> kingdoms = Kingdom.All?.Where(k => k is {IsEliminated: false}).Take(2).ToList();
+
+         if (kingdoms == null || kingdoms.Count < 2) return "Need at least two kingdoms in play.";
+
+         Kingdom a = kingdoms[0],
+                 b = kingdoms[1];
+         store.Record(new WorldEvent {
+            Type = WorldEventType.WarDeclared,
+            Day = (int) CampaignTime.Now.ToDays,
+            Magnitude = 80,
+            Summary = $"{a.Name} declared war on {b.Name} (test seed).",
+            FactionIds = new List<string> {a.StringId, b.StringId}
+         });
+
+         return $"Seeded war: {a.Name} vs {b.Name}. Speak with an NPC to hear the realm's talk of it.";
       }
 
       /// <summary>
@@ -1763,7 +1858,7 @@ namespace CalradiaRemembers
 
          if (c == null) return "No companion in your party. Recruit one first.";
 
-         string about = args != null && args.Count > 0
+         string about = args is {Count: > 0}
             ? string.Join(" ", args).Trim()
             : null;
 
@@ -1784,7 +1879,7 @@ namespace CalradiaRemembers
 
          if (c == null) return "No companion in your party. Recruit one first.";
 
-         string about = args != null && args.Count > 0
+         string about = args is {Count: > 0}
             ? string.Join(" ", args).Trim()
             : null;
 
@@ -1807,7 +1902,7 @@ namespace CalradiaRemembers
 
          if (c == null) return "No companion in your party. Recruit one first.";
 
-         string about = args != null && args.Count > 0
+         string about = args is {Count: > 0}
             ? string.Join(" ", args).Trim()
             : null;
 
@@ -1825,7 +1920,7 @@ namespace CalradiaRemembers
 
          if (c == null) return "No companion in your party. Recruit one first.";
 
-         string about = args != null && args.Count > 0
+         string about = args is {Count: > 0}
             ? string.Join(" ", args).Trim()
             : null;
 
@@ -1846,7 +1941,7 @@ namespace CalradiaRemembers
 
          if (c == null) return "No companion in your party. Recruit one first.";
 
-         string about = args != null && args.Count > 0
+         string about = args is {Count: > 0}
             ? string.Join(" ", args).Trim()
             : null;
 
@@ -1882,9 +1977,7 @@ namespace CalradiaRemembers
             ? string.Join(" ", args.GetRange(1, args.Count - 1)).Trim()
             : null;
          Hero hero = !string.IsNullOrWhiteSpace(frag)
-            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero
-                                                      && h.Name != null
-                                                      && h.Name.ToString().IndexOf(frag, StringComparison.OrdinalIgnoreCase) >= 0)
+            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Name != null && h.Name.ToString().IndexOf(frag, StringComparison.OrdinalIgnoreCase) >= 0)
             : Hero.OneToOneConversationHero;
 
          if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
@@ -1920,9 +2013,7 @@ namespace CalradiaRemembers
          {
             string lastToken = args[args.Count - 1];
             Hero candidate = Hero.AllAliveHeroes.FirstOrDefault(h =>
-               h != Hero.MainHero
-               && h.Name != null
-               && h.Name.ToString().IndexOf(lastToken, StringComparison.OrdinalIgnoreCase) >= 0);
+               h != Hero.MainHero && h.Name != null && h.Name.ToString().IndexOf(lastToken, StringComparison.OrdinalIgnoreCase) >= 0);
             if (candidate != null)
             {
                hero = candidate;
@@ -1994,20 +2085,14 @@ namespace CalradiaRemembers
       public static string SetStance(List<string> args)
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
-         if (args == null
-             || args.Count < 3
-             || !int.TryParse(args[0], out int t)
-             || !int.TryParse(args[1], out int r)
-             || !int.TryParse(args[2], out int f))
+         if (args == null || args.Count < 3 || !int.TryParse(args[0], out int t) || !int.TryParse(args[1], out int r) || !int.TryParse(args[2], out int f))
             return "Usage: cr.stance_set <trust> <respect> <fear> [name]";
 
          string nameFragment = args.Count > 3
             ? string.Join(" ", args.GetRange(3, args.Count - 3)).Trim()
             : null;
          Hero hero = !string.IsNullOrWhiteSpace(nameFragment)
-            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero
-                                                      && h.Name != null
-                                                      && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
+            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Name != null && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
             : Hero.OneToOneConversationHero;
 
          if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
@@ -2132,7 +2217,7 @@ namespace CalradiaRemembers
 
          Hero hero = ResolveHero(args);
 
-         if (hero == null || !hero.IsPlayerCompanion) return "Pass one of your own companions' name.";
+         if (hero is not {IsPlayerCompanion: true}) return "Pass one of your own companions' name.";
 
          List<string> lines = Hero.AllAliveHeroes
                                   .Where(h => h != hero && h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion)
@@ -2236,7 +2321,7 @@ namespace CalradiaRemembers
          string attractionNote = clanTier >= 3
             ? " [marriage interest threshold MET]"
             : " [marriage interest threshold NOT met (need tier 3+)]";
-         string arenaNote = arenaRank > 0 && arenaRank <= 10
+         string arenaNote = arenaRank is > 0 and <= 10
             ? " [affair interest threshold MET]"
             : " [affair interest threshold NOT met (need rank 1–10)]";
 
@@ -2276,20 +2361,19 @@ namespace CalradiaRemembers
             ? "men"
             : "women";
          DiscoveredTrait[] seeds = {
-            new DiscoveredTrait {Key = "orientation", Description = $"{subj} seems drawn to {other}. (test seed)", GameDay = day},
-            new DiscoveredTrait {Key = "archetype", Description = $"{subj} moves with the quiet confidence of someone who knows {poss} worth. (test seed)", GameDay = day},
-            new DiscoveredTrait {Key = "preference_dominant", Description = $"{subj} prefers to lead in {poss} relationships. (test seed)", GameDay = day}
+            new() {Key = "orientation", Description = $"{subj} seems drawn to {other}. (test seed)", GameDay = day},
+            new() {Key = "archetype", Description = $"{subj} moves with the quiet confidence of someone who knows {poss} worth. (test seed)", GameDay = day},
+            new() {Key = "preference_dominant", Description = $"{subj} prefers to lead in {poss} relationships. (test seed)", GameDay = day}
          };
 
          foreach (DiscoveredTrait seed in seeds)
          {
             bool exists = profile.DiscoveredTraits.Exists(t =>
                string.Equals(t.Key, seed.Key, StringComparison.OrdinalIgnoreCase));
-            if (!exists)
-            {
-               profile.DiscoveredTraits.Add(seed);
-               added++;
-            }
+
+            if (exists) continue;
+            profile.DiscoveredTraits.Add(seed);
+            added++;
          }
 
          behavior.Store.Set(profile);
@@ -2322,7 +2406,7 @@ namespace CalradiaRemembers
 
          if (heir == null) return "No player hero.";
 
-         Hero predecessor = args != null && args.Count > 0
+         Hero predecessor = args is {Count: > 0}
             ? ResolveHero(args)
             : heir.Father ?? heir.Mother;
 
@@ -2348,7 +2432,7 @@ namespace CalradiaRemembers
          if (behavior == null)
             return "Calradia Remembers behavior not active. Start a campaign first.";
 
-         if (behavior.LlmServices == null || !behavior.LlmServices.IsAvailable)
+         if (behavior.LlmServices is not {IsAvailable: true})
             return "LLM services not available. Check OPENROUTER_API_KEY environment variable.";
 
          _ = LlmDiagnostic.Run(behavior.LlmServices, behavior.Store, behavior.GameStateBridge)
@@ -2377,13 +2461,11 @@ namespace CalradiaRemembers
          if (JealousyBehavior.Instance == null)
             return "Jealousy system is not active.";
 
-         string nameFragment = args != null && args.Count > 0
+         string nameFragment = args is {Count: > 0}
             ? string.Join(" ", args).Trim()
             : null;
          Hero courted = !string.IsNullOrWhiteSpace(nameFragment)
-            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero
-                                                      && h.Name != null
-                                                      && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
+            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Name != null && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
             : Hero.OneToOneConversationHero;
 
          if (courted == null)
@@ -2488,18 +2570,12 @@ namespace CalradiaRemembers
          if (npc.Clan != null) pool.AddRange(npc.Clan.Heroes);
          if (npc.Children != null) pool.AddRange(npc.Children);
 
-         return pool.FirstOrDefault(h => h != null
-                                         && h.IsAlive
-                                         && MarriageProspectResolver.IsMarriageable(Hero.MainHero, h)
-                                         && MarriageProspectResolver.HasAuthority(npc, h));
+         return pool.FirstOrDefault(h => h is {IsAlive: true} && MarriageProspectResolver.IsMarriageable(Hero.MainHero, h) && MarriageProspectResolver.HasAuthority(npc, h));
       }
 
       /// <summary>The first living companion currently in the player's party (skipping any already away).</summary>
       private static Hero FirstCompanionInParty()
-         => Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero
-                                                    && (h.IsPlayerCompanion || h.Clan == Clan.PlayerClan)
-                                                    && h.PartyBelongedTo == MobileParty.MainParty
-                                                    && CompanionMissionBehavior.Instance?.IsAway(h.StringId) != true);
+         => Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && (h.IsPlayerCompanion || h.Clan == Clan.PlayerClan) && h.PartyBelongedTo == MobileParty.MainParty && CompanionMissionBehavior.Instance?.IsAway(h.StringId) != true);
 
       private static NpcProfile GetOrCreateProfile(NpcMemoryCampaignBehavior behavior, Hero hero)
       {
@@ -2578,9 +2654,7 @@ namespace CalradiaRemembers
 
          if (!string.IsNullOrEmpty(query))
             return Hero.AllAliveHeroes.FirstOrDefault(h =>
-               h != Hero.MainHero
-               && h.Name != null
-               && h.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
+               h != Hero.MainHero && h.Name != null && h.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
 
          return Hero.OneToOneConversationHero;
       }
