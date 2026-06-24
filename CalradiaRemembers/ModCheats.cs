@@ -392,6 +392,41 @@ namespace CalradiaRemembers
                && h.PartyBelongedTo == MobileParty.MainParty
                && Missions.CompanionMissionBehavior.Instance?.IsAway(h.StringId) != true);
 
+      /// <summary>cr.happiness [name] — shows a companion's contentment in your service (score + band).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("happiness", "cr")]
+      public static string ShowHappiness(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         int score = Missions.CompanionHappinessService.Get(hero);
+         string leave = CompanionHappiness.WantsToLeave(score) ? " — WANTS TO LEAVE" : "";
+         return $"{hero.Name} — Contentment {score} ({CompanionHappiness.Describe(score)}); band {CompanionHappiness.Band(score)}{leave}.";
+      }
+
+      /// <summary>cr.happiness_set &lt;0..100&gt; [name] — sets a companion's contentment, to test the bands/encyclopedia line.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("happiness_set", "cr")]
+      public static string SetHappiness(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         if (args == null || args.Count < 1 || !int.TryParse(args[0], out int val))
+            return "Usage: cr.happiness_set <0..100> [name]";
+
+         string frag = args.Count > 1 ? string.Join(" ", args.GetRange(1, args.Count - 1)).Trim() : null;
+         Hero hero = !string.IsNullOrWhiteSpace(frag)
+            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Name != null
+                 && h.Name.ToString().IndexOf(frag, StringComparison.OrdinalIgnoreCase) >= 0)
+            : Hero.OneToOneConversationHero;
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile p = GetOrCreateProfile(behavior, hero);
+         p.Happiness = CompanionHappiness.Clamp(val);
+         behavior.Store.Set(p);
+         return $"{hero.Name} contentment set to {p.Happiness} ({CompanionHappiness.Describe(p.Happiness)}).";
+      }
+
       /// <summary>
       ///   cr.jealousy_comp
       ///   Reports the player's current partner household (native spouse + committed consorts) with

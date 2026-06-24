@@ -158,6 +158,8 @@ changes what NPCs say, and that everything survives a **save / reload**.
 | `cr.send_envoy [about]` | Send your first companion as an envoy (Charm) — the faction's mood comes back in conversation. |
 | `cr.missions` | List the errands companions are currently away on. |
 | `cr.mission_return` | Force-resolve the first errand now and print the report (skip the travel). |
+| `cr.happiness [name]` | Show a companion's contentment in your service (score + band). |
+| `cr.happiness_set <0..100> [name]` | Set a companion's contentment (test the bands + the encyclopedia line). |
 
 ### Discovery / misc
 | Command | Does |
@@ -452,6 +454,21 @@ skill + a roll. News has a *source* and a *delay*. The errand **persists across 
   return and they tell of it. `cr.send_envoy [about]` (Charm) → the companion brings back a read on the
   **faction's mood** (who they war with, how settled the town is) in conversation. Same journey, payload by
   type: news/intel = words, steal/barter = gold, envoy = mood.
+
+### Q. Companion happiness (NEW — untested in game)
+
+**What it proves:** each companion carries a CONTENTMENT score (their satisfaction in your service, distinct
+from relation), moved by errand outcomes, shown on their encyclopedia page.
+
+- **Q1 — Encyclopedia line.** Open a companion's encyclopedia page → a **"Contentment: <band> (N)"** line
+  appears (a sibling of "Personal regard"), shown only for your own companions. `cr.happiness_set 20 [name]`
+  then reopen the page → it reads the lower band ("restless"/"disgruntled"). Non-companions show no line.
+- **Q2 — Errands move it.** Send a companion on an errand (scenario P) and let it resolve: a **success**
+  nudges contentment up, a **failure** down, an errand that **suits** them (high governing skill) up; being
+  **captured** stings hardest, being **freed** recovers a little. Check with `cr.happiness [name]`.
+- **Q3 — The leave floor.** `cr.happiness_set 10 [name]` → `cr.happiness` reports "**WANTS TO LEAVE**".
+- **Deferred (not built yet):** the idle drift tick, the in-conversation grievance, and the actual
+  departure when unhappy — those come next.
 
 ---
 

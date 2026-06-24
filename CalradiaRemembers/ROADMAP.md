@@ -418,6 +418,13 @@ save balance — so it ships last, on a proven foundation. Two hard rules:
     already shows "Personal regard"), gated to the player's OWN companions. The at-a-glance gauge; the
     conversation grievance stays the primary signal. ~20 lines once the score exists (reuse the mixin
     pattern + a banded `Describe(int)`).
+  - **STATUS (2026-06-23, UNCOMMITTED, untested in game):** pure model DONE (`CompanionHappiness`, 9 tests,
+    committed 068982d). Engine glue BUILT: `NpcProfile.Happiness` (persisted, baseline 60);
+    `CompanionHappinessService` (apply driver / drift / get / set); drivers fired from errand outcomes
+    (success/failure/suited at return, Captured on capture, Freed on rescue); the encyclopedia "Contentment"
+    line (mixin + patch + `CR_HeroContentment.xml`); console `cr.happiness` / `cr.happiness_set`.
+    TESTING_GUIDE Q. DEFERRED (next): the idle drift tick (`Drift` exists, not yet ticked), more drivers
+    (pay, kept-from-loved-one), the in-conversation GRIEVANCE, and the actual DEPARTURE below the leave floor.
 
   The player tasks a companion in conversation with an errand that resolves off-screen and returns
   as an in-fiction report. This is the CR answer to AI Influence's "world events" panel: instead of a

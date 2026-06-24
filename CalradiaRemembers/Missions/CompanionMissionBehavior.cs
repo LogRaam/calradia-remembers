@@ -51,6 +51,7 @@ namespace CalradiaRemembers.Missions
         private const int   MinNewsMagnitude = 35;  // skip trivial happenings from a news report
         private const int   EscortSize       = 8;   // a small escort so they are not caught the first day
         private const int   GoldBase         = 120; // base haul for a steal/barter errand, before skill + the quality scale
+        private const int   SuitedSkillThreshold = 80; // governing-skill level at/above which an errand "suits" the companion
         private const float ArrivalDistance  = 2.0f; // map units counting as "arrived" at town / back at the player
 
         private List<CompanionMission> _active = new List<CompanionMission>();
@@ -216,6 +217,7 @@ namespace CalradiaRemembers.Missions
                     // then deliver whatever news they had managed to gather.
                     if (!companion.IsPrisoner && companion.PartyBelongedTo == MobileParty.MainParty)
                     {
+                        CompanionHappinessService.ApplyDriver(companion, HappinessDriver.Freed);
                         DeliverReport(m, companion);
                         return true;
                     }
@@ -340,6 +342,22 @@ namespace CalradiaRemembers.Missions
                 new TextObject($"{m.CompanionName} has returned from {town} — have a word with them."),
                 0, companion?.CharacterObject);
             ModLog.Info($"[MISSION] report ready for {m.CompanionName}:\n{BuildReport(m)}");
+
+            ApplyMissionHappiness(m, companion);
+        }
+
+        /// <summary>How the errand's outcome moved the companion's happiness — succeeded/failed, and whether it suited them.</summary>
+        private static void ApplyMissionHappiness(CompanionMission m, Hero companion)
+        {
+            if (companion == null) return;
+
+            if (m.Quality == Logic.MissionResult.Success)
+                CompanionHappinessService.ApplyDriver(companion, HappinessDriver.ErrandSucceeded);
+            else if (m.Quality == Logic.MissionResult.Failure)
+                CompanionHappinessService.ApplyDriver(companion, HappinessDriver.ErrandFailed);
+
+            bool suited = GoverningSkillValue(companion, m.Type) >= SuitedSkillThreshold;
+            CompanionHappinessService.ApplyDriver(companion, suited ? HappinessDriver.SuitedErrand : HappinessDriver.UnsuitedErrand);
         }
 
         /// <summary>The directive injected into the homecoming conversation — the raw payload for the companion to voice.</summary>
@@ -418,6 +436,7 @@ namespace CalradiaRemembers.Missions
 
             m.Phase = CompanionMissionPhase.AwaitingReunion;
             m.PartyId = null; // the errand party is gone with the capture
+            CompanionHappinessService.ApplyDriver(prisoner, HappinessDriver.Captured);
             ModLog.Info($"[MISSION] {m.CompanionName} was taken prisoner — the news waits until they rejoin you.");
         }
 
