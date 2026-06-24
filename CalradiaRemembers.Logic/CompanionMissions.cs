@@ -1,9 +1,9 @@
 // Code written by Gabriel Mailhot, 22/06/2026.
-// Companion missions (ROADMAP "Also planned") — pure foundation, built test-first ahead of the engine
-// glue. The player dispatches a companion on an errand that resolves off-screen and returns as a report;
-// the OUTCOME is computed deterministically here (a skill roll), the NARRATION is the LLM's job. The host
+// Companion missions (ROADMAP "Also planned"): the pure foundation, built test-first ahead of the engine
+// glue. The player sends a companion on an errand that resolves off-screen and comes back as a report.
+// The OUTCOME is computed deterministically here (a skill roll); the NARRATION is the LLM's job. The host
 // supplies the companion's governing-skill level and a fresh random roll, so this stays engine-agnostic
-// and unit-tested; the courier/dispatch wiring and the LLM framing live in the mod.
+// and unit-tested. The courier/dispatch wiring and the LLM framing live in the mod.
 
 namespace CalradiaRemembers.Logic
 {
@@ -149,9 +149,9 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public static CompanionMissionOutcome Resolve(CompanionMissionType type, int governingSkillLevel, int roll, int difficulty)
         {
-            int skill = governingSkillLevel < 0 ? 0 : governingSkillLevel;
-            int r     = roll < 0 ? 0 : roll > 99 ? 99 : roll;
-            int diff  = difficulty < 0 ? 0 : difficulty > 100 ? 100 : difficulty;
+            int skill = Clamp(governingSkillLevel, 0, int.MaxValue);
+            int r     = Clamp(roll, 0, 99);
+            int diff  = Clamp(difficulty, 0, 100);
 
             int score = skill / SkillDivisor + r - diff;
 
@@ -176,7 +176,7 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public static int DurationDays(CompanionMissionType type, int difficulty)
         {
-            int diff = difficulty < 0 ? 0 : difficulty > 100 ? 100 : difficulty;
+            int diff = Clamp(difficulty, 0, 100);
             int baseDays = (type == CompanionMissionType.Envoy
                             || type == CompanionMissionType.Spy
                             || type == CompanionMissionType.Steal)
@@ -216,6 +216,14 @@ namespace CalradiaRemembers.Logic
                 case MissionResult.Partial: return baseAmount * PartialLootPercent / 100;
                 default:                    return 0;
             }
+        }
+
+        /// <summary>Clamps <paramref name="value"/> into [min, max] (if-form so it reads clean, no nested ternary).</summary>
+        private static int Clamp(int value, int min, int max)
+        {
+            if (value < min) return min;
+            if (value > max) return max;
+            return value;
         }
     }
 }

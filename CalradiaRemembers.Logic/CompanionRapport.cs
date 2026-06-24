@@ -62,11 +62,13 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>The band two companions' accumulated mutual relation falls into.</summary>
         public static RapportBand Band(int relation)
-            => relation >= 30  ? RapportBand.Close
-             : relation >= 10  ? RapportBand.Cordial
-             : relation >= -9  ? RapportBand.Neutral
-             : relation >= -29 ? RapportBand.Tense
-             :                   RapportBand.Feud;
+        {
+            if (relation >= 30) return RapportBand.Close;
+            if (relation >= 10) return RapportBand.Cordial;
+            if (relation >= -9) return RapportBand.Neutral;
+            if (relation >= -29) return RapportBand.Tense;
+            return RapportBand.Feud;
+        }
 
         /// <summary>Mutual relation magnitude at/above which the feeling is worth a companion raising with the player.</summary>
         public const int RaiseThreshold = 25;

@@ -47,8 +47,10 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>Maps an awareness score to how surely the news is held (for hedged phrasing).</summary>
         public static RumorConfidence Rate(int score)
-            => score >= WellKnownAt ? RumorConfidence.WellKnown
-             : score >= SecondhandAt ? RumorConfidence.Secondhand
-             : RumorConfidence.Distant;
+        {
+            if (score >= WellKnownAt) return RumorConfidence.WellKnown;
+            if (score >= SecondhandAt) return RumorConfidence.Secondhand;
+            return RumorConfidence.Distant;
+        }
     }
 }

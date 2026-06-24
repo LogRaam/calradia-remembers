@@ -59,7 +59,12 @@ namespace CalradiaRemembers.Logic
         /// <summary>At or below this, the companion means to leave your service.</summary>
         public const int LeaveThreshold = 15;
 
-        public static int Clamp(int score) => score < Min ? Min : score > Max ? Max : score;
+        public static int Clamp(int score)
+        {
+            if (score < Min) return Min;
+            if (score > Max) return Max;
+            return score;
+        }
 
         /// <summary>Moves a score by a raw delta, clamped to [Min, Max].</summary>
         public static int Apply(int score, int delta) => Clamp(score + delta);
@@ -79,10 +84,12 @@ namespace CalradiaRemembers.Logic
         }
 
         public static HappinessBand Band(int score)
-            => score >= DevotedAt  ? HappinessBand.Devoted
-             : score >= ContentAt  ? HappinessBand.Content
-             : score >= RestlessAt ? HappinessBand.Restless
-             :                       HappinessBand.Disgruntled;
+        {
+            if (score >= DevotedAt) return HappinessBand.Devoted;
+            if (score >= ContentAt) return HappinessBand.Content;
+            if (score >= RestlessAt) return HappinessBand.Restless;
+            return HappinessBand.Disgruntled;
+        }
 
         /// <summary>True when the companion is unhappy enough to move toward leaving your service.</summary>
         public static bool WantsToLeave(int score) => score <= LeaveThreshold;
