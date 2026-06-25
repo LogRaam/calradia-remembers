@@ -120,13 +120,13 @@ A single setting controls how much romantic and intimate content NPCs may expres
 
 [list]
 [*][b]Mount & Blade II: Bannerlord[/b] v1.3.x[/*]
-[*]An [b]LLM backend[/b].. either a cloud account with [b]OpenRouter[/b] or [b]NanoGPT[/b] (pay-as-you-go, see cost notes below), or a [b]local AI server[/b] running on your own machine (LM Studio, Ollama, vLLM — free, no subscription, no data leaving your computer). See setup below. You only need one.[/*]
+[*]An [b]LLM backend[/b].. either a cloud account with [b]OpenRouter[/b] or [b]NanoGPT[/b] (pay-as-you-go, see cost notes below), or a [b]local AI server[/b] running on your own machine (LM Studio, Ollama, vLLM.. free, no subscription, no data leaving your computer). See setup below. You only need one.[/*]
 [*]Other dependencies like Harmony, MCM, etc.[/*]
 [/list]
 
-⚠️ [b][color=#ffd966]This mod needs an LLM to work — there is no AI bundled with it.[/color][/b] You have two paths:
+⚠️ [b][color=#ffd966]This mod needs an LLM to work.. there is no AI bundled with it.[/color][/b] You have two paths:
 
-[b][color=#ffd966]Cloud (OpenRouter or NanoGPT)[/color][/b].. pay-as-you-go, easy to set up, best quality. Costs are small per conversation but not zero — you control the price through your model choice (~$1 for a heavy week of play on the default model).
+[b][color=#ffd966]Cloud (OpenRouter or NanoGPT)[/color][/b].. pay-as-you-go, easy to set up, best quality. Costs are small per conversation but not zero.. you control the price through your model choice (~$1 for a heavy week of play on the default model).
 
 [b][color=#ffd966]Local server (LM Studio, Ollama, vLLM…)[/color][/b].. free, private, no subscription, no data leaving your machine. Quality and speed depend entirely on your hardware and the model you load. Perfectly playable on a modern GPU; slower and more limited on CPU.
 
@@ -159,11 +159,11 @@ You'll find them in:
 [spoiler=What each trait does (and notable combinations)]
 Each trait runs [b]−2…+2[/b]. Traits set the [i]pool[/i] of a character's leanings; a few are then drawn from it, so a trait biases the [i]range[/i] of who they are rather than forcing one fixed result. The romantic / intimate effects below surface only at the higher adult tiers.
 
-[b][color=#ffe599]Valor[/color][/b] — High: bold, pursues directly, impatient with hesitation, confident. Low: cautious, slow to commit, needs safety first.
-[b][color=#ffe599]Honor[/color][/b] — High: keeps their word, strict monogamy, devoted. Low: oaths sit lightly, flexible / casual / open.
-[b][color=#ffe599]Mercy[/color][/b] — High: warm, forgiving, attentive, leans submissive / devoted. Low: cold, demanding, no sentiment, leans dominant.
-[b][color=#ffe599]Generosity[/color][/b] — High: gives time and resource freely, devoted. Low: holds back, independent, possessive.
-[b][color=#ffe599]Calculating[/color][/b] — High: deliberate, observant, slow-burn, reserved. Low: acts on feeling, in-the-moment, intense.
+[b][color=#ffe599]Valor[/color][/b].. High: bold, pursues directly, impatient with hesitation, confident. Low: cautious, slow to commit, needs safety first.
+[b][color=#ffe599]Honor[/color][/b].. High: keeps their word, strict monogamy, devoted. Low: oaths sit lightly, flexible / casual / open.
+[b][color=#ffe599]Mercy[/color][/b].. High: warm, forgiving, attentive, leans submissive / devoted. Low: cold, demanding, no sentiment, leans dominant.
+[b][color=#ffe599]Generosity[/color][/b].. High: gives time and resource freely, devoted. Low: holds back, independent, possessive.
+[b][color=#ffe599]Calculating[/color][/b].. High: deliberate, observant, slow-burn, reserved. Low: acts on feeling, in-the-moment, intense.
 
 [b]Notable combinations:[/b]
 [list]
@@ -175,7 +175,7 @@ Each trait runs [b]−2…+2[/b]. Traits set the [i]pool[/i] of a character's le
 [*][b]Reckless romantic[/b]: Valor +2, Calculating −2.
 [/list]
 
-[b]At Hardcore[/b], traits also shape the kink [i]pool[/i] — broadly: low Mercy → dominant / sadistic & control kinks; high Mercy → submissive / masochistic; high Calculating → control & conditioning; low Honor → power-imbalance / corruption; high Honor → breeding / praise; low Generosity → ownership / possessive; high Valor → exhibition / prize. Use [b][color=#93c47d]cr.kinks [name][/color][/b] in the console to see and tweak a character's actual kinks.
+[b]At Hardcore[/b], traits also shape the kink [i]pool[/i].. broadly: low Mercy → dominant / sadistic & control kinks; high Mercy → submissive / masochistic; high Calculating → control & conditioning; low Honor → power-imbalance / corruption; high Honor → breeding / praise; low Generosity → ownership / possessive; high Valor → exhibition / prize. Use [b][color=#93c47d]cr.kinks [name][/color][/b] in the console to see and tweak a character's actual kinks.
 
 [b]Camp life:[/b] two companions who share the same leaning on a trait bond; opposite leanings clash (Honor weighs heaviest, then Mercy and Calculating).
 [/spoiler]
@@ -219,7 +219,7 @@ Calradia Remembers is young and moving fast. The core loop is solid, but it is n
 [line]
 [size=5]How to configure[/size]
 
-[b]CHOOSE A BACKEND[/b]. The mod supports three backends: [b]OpenRouter[/b] (default, broadest cloud model catalog), [b]NanoGPT[/b] (alternative cloud provider), and [b]OpenAI-Compatible[/b] (any local server on your machine — LM Studio, Ollama, vLLM). You only need one. Each keeps its own settings, and you switch between them in one click with the "LLM Provider" dropdown.
+[b]CHOOSE A BACKEND[/b]. The mod supports three backends: [b]OpenRouter[/b] (default, broadest cloud model catalog), [b]NanoGPT[/b] (alternative cloud provider), and [b]OpenAI-Compatible[/b] (any local server on your machine.. LM Studio, Ollama, vLLM). You only need one. Each keeps its own settings, and you switch between them in one click with the "LLM Provider" dropdown.
 
 OPTION A.. SET UP OPENROUTER (CLOUD, ONE TIME)
 
@@ -248,9 +248,9 @@ If you have a capable GPU (or are patient on CPU), you can run the AI entirely o
 
 Popular options:
 
-  [*] [b]LM Studio[/b] (lmstudio.ai) — the easiest: a GUI app, a built-in model browser, and an OpenAI-compatible server you start with one click. Default address: http://localhost:1234/v1. No API key required by default.
-  [*] [b]Ollama[/b] (ollama.ai) — lightweight, runs as a background service, terminal-driven. Default address: http://localhost:11434/v1. No API key required.
-  [*] [b]vLLM / TabbyAPI[/b] — for users who want full GPU throughput and fine control over quantization and batching.
+  [*] [b]LM Studio[/b] (lmstudio.ai).. the easiest: a GUI app, a built-in model browser, and an OpenAI-compatible server you start with one click. Default address: http://localhost:1234/v1. No API key required by default.
+  [*] [b]Ollama[/b] (ollama.ai).. lightweight, runs as a background service, terminal-driven. Default address: http://localhost:11434/v1. No API key required.
+  [*] [b]vLLM / TabbyAPI[/b].. for users who want full GPU throughput and fine control over quantization and batching.
 
 [i]Hardware reality: a quantized 8B–13B model (Q4 or Q5 GGUF) runs acceptably on a consumer GPU with 8–12 GB VRAM. Expect slower generation than a cloud API, and less coherence over long contexts than Grok or DeepSeek V3. For casual conversations and everyday roleplay, a well-chosen local model is perfectly playable.[/i]
 
@@ -269,7 +269,7 @@ Popular options:
   1. Start your local server (LM Studio server panel, ollama serve, etc.) and load a model.
   2. Open Options → Mod Options → Calradia Remembers.
   3. Set `LLM Provider` to [b]OpenAI-Compatible[/b].
-  4. Paste the server URL into [b]Endpoint URL[/b] (e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama). Include the /v1 path — the mod appends /chat/completions automatically.
+  4. Paste the server URL into [b]Endpoint URL[/b] (e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama). Include the /v1 path.. the mod appends /chat/completions automatically.
   5. Paste the model id into [b]Model[/b] (LM Studio shows it in its server panel; Ollama uses the name you pulled, e.g. llama3.1:8b).
   6. Leave [b]API Key[/b] blank unless your server is configured to require one.
   7. Click [b]Test Endpoint[/b].. it sends a one-token completion to confirm the server is up and the model id is correct.
