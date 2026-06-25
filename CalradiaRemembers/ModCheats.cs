@@ -1771,6 +1771,55 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.quest_gold [amount] [name]
+      ///   Seeds an outstanding ProvideGold quest on the NPC (e.g. a spouse's request for coin to
+      ///   support their household) so the Give Gold button — and the take_gold stamping path — can be
+      ///   tested deterministically, without waiting for the LLM to issue one or a child-support letter
+      ///   to arrive. Any non-zero gold the player gives the giver satisfies it; [amount] is flavour for
+      ///   the description (default 1000).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("quest_gold", "cr")]
+      public static string SeedProvideGoldQuest(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         // Optional leading amount; the remainder (or all of it) is the name fragment.
+         int amount = 1000;
+         IEnumerable<string> nameTokens = args;
+         if (args is {Count: > 0} && int.TryParse(args[0], out int parsed) && parsed > 0)
+         {
+            amount = parsed;
+            nameTokens = args.Skip(1);
+         }
+
+         Hero hero = ResolveHero(nameTokens);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         int day = behavior.GameStateBridge.GetCurrentGameDay();
+
+         var proposal = new QuestProposal {
+            Type = QuestType.ProvideGold,
+            Description = $"{hero.Name} asks you for {amount} denars to help support their household.",
+            DeadlineDays = 30,
+            RewardRelation = 5
+         };
+         var fake = new ParsedResponse {Dialogue = "", QuestGiven = proposal};
+
+         QuestService.ApplyResponse(profile, hero, fake, day,
+            behavior.GameStateBridge, behavior.Store,
+            (text, positive) => ChatManager.ActiveViewModel?.AppendSystemMessage(text, positive));
+
+         int outstanding = profile.ActiveQuests.Count(q => q.IsOutstanding);
+
+         return $"{hero.Name}: seeded ProvideGold (~{amount} denars). Open a chat and use the Give Gold " +
+                $"button (or cr.take_gold <n> {hero.Name}) — any payment stamps it. " +
+                $"({outstanding} outstanding quest(s); verify with cr.quests {hero.Name}).";
+      }
+
+      /// <summary>
       ///   cr.realm_news
       ///   Seeds a high-magnitude WAR between two kingdoms so the "TALK OF ALL THE REALM" line is testable —
       ///   then speak with any NPC who would have heard of it (the influence-loop realm-news polish).
@@ -2489,6 +2538,65 @@ namespace CalradiaRemembers
             return "Jealousy system is not active.";
 
          return JealousyBehavior.Instance.DebugCompetition();
+      }
+
+      // ── Self-test harness (cr.testall / cr.test_*) ────────────────────────
+
+      /// <summary>
+      ///   cr.testall
+      ///   Runs all registered end-to-end self-tests and prints a [SELFTEST] summary.
+      ///   Each test exercises the real service/bridge pipeline and logs PASS/FAIL/MANUAL.
+      ///   WARNING: mutations ahead — copy your save or reload when done.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("testall", "cr")]
+      public static string RunAllSelfTests(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         return CrSelfTest.RunAll(behavior);
+      }
+
+      /// <summary>
+      ///   cr.test_providegold
+      ///   Seeds a ProvideGold quest on the first available lord, then exercises the take_gold path
+      ///   and asserts the quest is stamped satisfied. Logs [SELFTEST] providegold: PASS/FAIL.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("test_providegold", "cr")]
+      public static string TestProvideGold(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         return CrSelfTest.Run("providegold", behavior);
+      }
+
+      /// <summary>
+      ///   cr.test_scheme_warn
+      ///   Plants a Slander scheme between two lords via ForcePlot, warns the target via TargetHeeds,
+      ///   and asserts the plotter loses ≥ 20 relation with the player and the target gains ≥ 16.
+      ///   Logs [SELFTEST] scheme_warn: PASS/FAIL with the actual deltas.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("test_scheme_warn", "cr")]
+      public static string TestSchemeWarn(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         return CrSelfTest.Run("scheme_warn", behavior);
+      }
+
+      /// <summary>
+      ///   cr.test_succession
+      ///   Simulates player death: applies succession (predecessor = player, heir = first clan member
+      ///   or first lord), then asserts that private events are dropped from all profiles and the
+      ///   public/political events survive. Requires at least one profile with private events
+      ///   (open a captive scene first if needed). Logs [SELFTEST] succession: PASS/FAIL.
+      ///   WARNING: mutates ALL stored profiles — reload after testing.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("test_succession", "cr")]
+      public static string TestSuccession(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         return CrSelfTest.Run("succession", behavior);
       }
 
       #region private
