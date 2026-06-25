@@ -71,6 +71,15 @@ Battles, sieges, towns changing hands, noble marriages, executions, declarations
 
 Word of [b]disgrace[/b] travels the same way: affront a lord steeply in front of witnesses and the shame itself becomes a rumour others may have heard, rather than evaporating the moment you part. And when two lords of the same crown nurse real bad blood, word of their [b]rivalry[/b] circulates as ambient gossip.. so a lord may volunteer which of their own peers are at each other's throats.
 
+[b][color=#e69138]Court intrigue.. plots between lords[/color][/b]
+The nobility of Calradia does not only feud in the open. A lord may quietly set a [b]scheme[/b] in motion against a rival they cannot abide.. to [b][color=#d5a6bd]blacken their name[/color][/b] until their peers turn cold, or to [b][color=#d5a6bd]undermine their standing[/color][/b] and bleed away their influence. It unfolds on its own, in secret.. the plot gains ground over the weeks and either ripens into real harm to its target, or is caught and collapses before it can land.
+
+You can take a hand in it. A plotter who trusts you may sound you out in conversation and invite you to help.. and if you throw in with them, their scheme leaps forward. But complicity carries a price: should the affair ever be exposed, or succeed with your hand in it, the wronged party comes to know.. and turns on you. The betrayal cuts deeper when you moved against your own realm or a friend than against a stranger or a standing enemy.
+
+Or you can [b]betray the plotter's confidence[/b]. Seek out the lord the plot is [i]aimed at[/i] and warn them.. they hold no certain knowledge of it themselves, and act only on a credible word from you. Forewarned, they drag the conspiracy into the open and stand a real chance of undoing it. A grateful target becomes a genuine [color=#93c47d]ally[/color]; the exposed plotter, suspecting your hand, a solid [color=#cc0000]enemy[/color].. and how warmly the one regards you and how bitterly the other resents you turns on the kind of people they are.. an honourable lord feels a true debt, a cold and calculating one suspects your motive; a vindictive plotter hates you the harder, a merciful one bears it with more grace.
+
+And every plot that comes to light ripples outward as [i]rumour[/i].. the realm's intrigues become something its people hear of, and gossip about, like everything else.
+
 [b][color=#e69138]Your Chronicle[/color][/b]
 Your own deeds are written into a chronicle in the voice of a medieval chronicler.. "[i]In the autumn of the sixth year, the lord {you} met {foe} in open battle near {place}, and by sword and valour put the foe to flight.[/i]" Open it any time from the [b][color=#d5a6bd]Read the Chronicle[/color][/b] button on your own character's Encyclopedia page: a parchment-styled window of your saga, dated and in order. Your legend, written as you live it.
 
