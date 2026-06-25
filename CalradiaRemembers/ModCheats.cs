@@ -181,7 +181,7 @@ namespace CalradiaRemembers
          int before = store.Active.Count;
          store.DebugAdvance();
 
-         return $"Advanced schemes one tick ({before} → {store.Active.Count} still active). See cr.schemes / story log.";
+         return $"Advanced schemes one tick ({before} → {store.Active.Count} still active). See cr.schemes / CalradiaRemembers.log.";
       }
 
       /// <summary>
@@ -814,7 +814,7 @@ namespace CalradiaRemembers
             ? $"{Math.Max(0.0, cooldownHours - (now - profile.LastRelationGainHour.Value)):F1}h remaining"
             : "ready";
 
-         return $"{hero.Name}: relation={behavior.GameStateBridge.GetPlayerRelation(hero)}, " + $"captive={captive}, warmth={ModSettings.RelationWarmth}, lastGain={lastGain}, cooldown={cooldown} (now {now:F1}h).";
+         return $"{hero.Name}: relation={behavior.GameStateBridge.GetPlayerRelation(hero)}, " + $"captive={captive}, pacing={ModSettings.RelationWarmth}, lastGain={lastGain}, cooldown={cooldown} (now {now:F1}h).";
       }
 
       /// <summary>

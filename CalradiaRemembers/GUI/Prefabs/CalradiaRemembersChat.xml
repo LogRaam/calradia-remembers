@@ -253,6 +253,31 @@
           </Children>
         </ButtonWidget>
 
+        <ButtonWidget Id="OfferGoldButton"
+                      WidthSizePolicy="Fixed"
+                      HeightSizePolicy="Fixed"
+                      SuggestedWidth="80"
+                      SuggestedHeight="56"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Bottom"
+                      PositionXOffset="80"
+                      PositionYOffset="-165"
+                      IsVisible="@IsOfferGoldVisible"
+                      DoNotPassEventsToChildren="true"
+                      Brush="ButtonBrush1"
+                      UpdateChildrenStates="true"
+                      Command.Click="ExecuteOfferGold">
+          <Children>
+            <TextWidget WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Brush="Popup.Button.Text"
+                        Brush.FontSize="16"
+                        Text="Give Gold" />
+          </Children>
+        </ButtonWidget>
+
         <Widget Id="InputArea"
                 WidthSizePolicy="StretchToParent"
                 HeightSizePolicy="Fixed"

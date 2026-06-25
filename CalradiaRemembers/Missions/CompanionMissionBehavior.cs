@@ -34,7 +34,6 @@ namespace CalradiaRemembers.Missions
       private const int EscortSize = 8; // a small escort so they are not caught the first day
       private const int GoldBase = 120; // base haul for a steal/barter errand, before skill + the quality scale
       private const int LetterRecallDays = 2; // courier delay before a letter-borne recall order reaches the companion
-      private const int MinNewsMagnitude = 35; // skip trivial happenings from a news report
 
       // Tuning (flagged for in-game ratification).
       private const int NewsDifficulty = 30; // a "bring me the news" errand's baseline difficulty

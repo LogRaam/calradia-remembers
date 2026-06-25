@@ -47,21 +47,31 @@ namespace CalradiaRemembers.Chat
       {
          if (!IsOpen) return;
 
-         // Record the session in the NPC's memory before tearing down. Each call is
-         // a no-op outside its own mode and idempotent. The async summary either may
-         // launch captures the data it needs, so it survives the teardown below.
-         ActiveViewModel?.FinalizeStoryLog();
-         ActiveViewModel?.FinalizeCaptiveSceneMemory();
-         ActiveViewModel?.FinalizeConversationMemory();
+         // CRITICAL: FreeResources() (which nulls _activeLayer) MUST run no matter what.
+         // If any teardown step threw before it, _activeLayer would stay non-null, IsOpen
+         // would stay true forever, and every future Open() would no-op — silently killing
+         // all conversations for the rest of the session. The finally block guarantees the
+         // reset; each Finalize* is individually guarded so one failing does not skip the rest.
+         try
+         {
+            // Record the session in the NPC's memory before tearing down. Each call is
+            // a no-op outside its own mode and idempotent. The async summary either may
+            // launch captures the data it needs, so it survives the teardown below.
+            SafeStep(() => ActiveViewModel?.FinalizeStoryLog(), "FinalizeStoryLog");
+            SafeStep(() => ActiveViewModel?.FinalizeCaptiveSceneMemory(), "FinalizeCaptiveSceneMemory");
+            SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
 
-         KillChatWindow();
-         EndVanillaConversation();
-         EndMapEncounterIfNeeded();
-         RestoreTime();
-         FreeResources();
-         LlmServices.ClearTestGenderOverride();
-
-         ModLog.Info("Chat window closed — returned to campaign map.");
+            SafeStep(KillChatWindow, "KillChatWindow");
+            SafeStep(EndVanillaConversation, "EndVanillaConversation");
+            SafeStep(EndMapEncounterIfNeeded, "EndMapEncounterIfNeeded");
+            SafeStep(RestoreTime, "RestoreTime");
+         }
+         finally
+         {
+            FreeResources();
+            SafeStep(LlmServices.ClearTestGenderOverride, "ClearTestGenderOverride");
+            ModLog.Info("Chat window closed — returned to campaign map.");
+         }
       }
 
       public static void Open(string npcName = null)
@@ -82,7 +92,23 @@ namespace CalradiaRemembers.Chat
          }
 
          if (Campaign.Current != null) PauseCampaignMap();
-         GenerateChatWindow(npcName);
+
+         try
+         {
+            GenerateChatWindow(npcName);
+         }
+         catch (Exception ex)
+         {
+            // A half-built window would leave _activeLayer set and trap every future Open()
+            // behind the IsOpen guard. Tear down what little we made and reset so the next
+            // attempt has a clean slate.
+            ModLog.Error($"ChatManager.Open: GenerateChatWindow failed: {ex.GetType().Name}: {ex.Message}");
+            SafeStep(KillChatWindow, "KillChatWindow (open-failure cleanup)");
+            SafeStep(RestoreTime, "RestoreTime (open-failure cleanup)");
+            FreeResources();
+
+            return;
+         }
 
          ModLog.Info($"Chat window opened on {_hostScreen.GetType().Name} with NPC '{npcName ?? "(none)"}'.");
       }
@@ -158,6 +184,20 @@ namespace CalradiaRemembers.Chat
       }
 
       #region private
+
+      /// <summary>
+      ///   Runs a teardown/open step, swallowing and logging any exception so that one
+      ///   failing step never aborts the sequence. Keeping the window lifecycle resilient
+      ///   is what guarantees a single bad teardown does not freeze all future conversations.
+      /// </summary>
+      private static void SafeStep(Action step, string label)
+      {
+         try { step(); }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ChatManager.{label} failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
 
       /// <summary>
       ///   Finishes the lingering map encounter after a map conversation. Talking to a lord on the

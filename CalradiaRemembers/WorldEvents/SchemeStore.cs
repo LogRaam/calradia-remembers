@@ -189,12 +189,23 @@ namespace CalradiaRemembers.WorldEvents
          RecordRumor(scheme, plotter, target, (int) CampaignTime.Now.ToDays, "discovered", 28,
             $"{target.Name}, warned in time, has uncovered {plotter.Name}'s plot against them.");
 
-         // The exposed plotter suspects the meddler who tipped off their quarry.
+         // The exposed plotter suspects the meddler; the warned target is grateful. Both magnitudes scale
+         // with traits: a vindictive calculating plotter hates hardest; an honorable target feels a real debt.
          if (Hero.MainHero != null)
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(plotter, Hero.MainHero, -SchemeBacklash.WarnedPlotterResentment, false);
-         ModLog.Info($"[SCHEME] player warned {target.Name} of {plotter.Name}'s plot — now exposed; {plotter.Name} resents the player.");
+         {
+            int resentment = SchemeBacklash.WarnedPlotterResentment(
+               TraitLevel(plotter, DefaultTraits.Mercy),
+               TraitLevel(plotter, DefaultTraits.Calculating));
+            int gratitude = SchemeBacklash.WarnedTargetGratitude(
+               TraitLevel(target, DefaultTraits.Honor),
+               TraitLevel(target, DefaultTraits.Calculating));
 
-         return $"You warn {target.Name} of {plotter.Name}'s scheme. Forewarned, they will be far harder to undo — but {plotter.Name} may suspect your hand in it.";
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(plotter, Hero.MainHero, -resentment, false);
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(target, Hero.MainHero, gratitude, false);
+            ModLog.Info($"[SCHEME] player warned {target.Name} of {plotter.Name}'s plot — now exposed; {plotter.Name} resents player (-{resentment}), {target.Name} is grateful (+{gratitude}).");
+         }
+
+         return $"You warn {target.Name} of {plotter.Name}'s scheme. Grateful, {target.Name} thinks the better of you — but {plotter.Name} may suspect your hand in it.";
       }
 
       #region private
@@ -335,10 +346,13 @@ namespace CalradiaRemembers.WorldEvents
             }
 
             SchemeState before = scheme.State;
+            int progressBefore = scheme.Progress;
             SchemeAdvancer.Advance(scheme, BuildFactors(plotter, target), MBRandomSource.Instance);
 
             if (scheme.State != before)
                OnStateChanged(scheme, plotter, target, today);
+            else if (scheme.Progress != progressBefore)
+               ModLog.Info($"[SCHEME] {plotter?.Name} → {target?.Name}: progress {progressBefore} → {scheme.Progress} (still {scheme.State}).");
 
             if (SchemeAdvancer.IsTerminal(scheme.State))
                _schemes.Remove(scheme);
@@ -362,12 +376,14 @@ namespace CalradiaRemembers.WorldEvents
          switch (scheme.State)
          {
             case SchemeState.Progressing: // the plot is now afoot — a first whisper
+               ModLog.Info($"[SCHEME] {plotter.Name} → {target.Name} ({scheme.Kind}) now Progressing (progress {scheme.Progress}).");
                RecordRumor(scheme, plotter, target, today, "plotted", 18,
                   $"There is talk that {plotter.Name} is quietly moving against {target.Name}.");
 
                break;
 
             case SchemeState.Discovered: // it has come to light
+               ModLog.Info($"[SCHEME] {plotter.Name} → {target.Name} ({scheme.Kind}) Discovered (progress {scheme.Progress}).");
                RecordRumor(scheme, plotter, target, today, "discovered", 28,
                   $"{plotter.Name}'s plot against {target.Name} has come to light.");
                MaybeAbettorBacklash(scheme, target);
@@ -375,6 +391,7 @@ namespace CalradiaRemembers.WorldEvents
                break;
 
             case SchemeState.Succeeded:
+               ModLog.Info($"[SCHEME] {plotter.Name} → {target.Name} ({scheme.Kind}) Succeeded — applying standing damage.");
                ApplyStandingDamage(plotter, target);
                RecordRumor(scheme, plotter, target, today, "succeeded", 34, scheme.Kind == SchemeKind.Slander
                   ? $"{plotter.Name} has blackened {target.Name}'s name, and it has cost them dearly."
@@ -384,6 +401,7 @@ namespace CalradiaRemembers.WorldEvents
                break;
 
             case SchemeState.Failed:
+               ModLog.Info($"[SCHEME] {plotter.Name} → {target.Name} ({scheme.Kind}) Failed (progress {scheme.Progress}).");
                RecordRumor(scheme, plotter, target, today, "failed", 20,
                   $"{plotter.Name}'s scheme against {target.Name} came to nothing.");
 

@@ -69,4 +69,80 @@ namespace CalradiaRemembers.Tests
             SchemeBacklash.AbettorPenalty(SchemeState.Progressing, true, 0).Should().Be(0);
         }
     }
+
+    [TestFixture]
+    public sealed class SchemeBacklash_WarnedPlotterResentmentTests
+    {
+        [Test]
+        public void GIVEN_a_neutral_plotter_WHEN_computing_resentment_THEN_the_base_resentment_applies()
+        {
+            SchemeBacklash.WarnedPlotterResentment(mercy: 0, calculating: 0).Should().Be(30);
+        }
+
+        [Test]
+        public void GIVEN_a_merciful_plotter_WHEN_computing_resentment_THEN_they_bear_the_betrayal_with_more_grace()
+        {
+            // mercy=+2 → 30 - 6 = 24; calculating=0 has no effect.
+            SchemeBacklash.WarnedPlotterResentment(mercy: 2, calculating: 0).Should().Be(24);
+        }
+
+        [Test]
+        public void GIVEN_a_vindictive_calculating_plotter_WHEN_computing_resentment_THEN_the_hate_is_at_the_ceiling()
+        {
+            // mercy=-2, calculating=+2 → 30 + 6 + 6 = 42, clamped to 40.
+            SchemeBacklash.WarnedPlotterResentment(mercy: -2, calculating: 2).Should().Be(40);
+        }
+
+        [Test]
+        public void GIVEN_traits_that_would_underflow_WHEN_clamping_THEN_the_floor_is_twenty()
+        {
+            // mercy=+2, calculating=-2 → 30 - 6 - 6 = 18, clamped to 20.
+            SchemeBacklash.WarnedPlotterResentment(mercy: 2, calculating: -2).Should().Be(20);
+        }
+
+        [Test]
+        public void GIVEN_traits_that_would_overflow_WHEN_clamping_THEN_the_ceiling_is_forty()
+        {
+            // Any combination exceeding 40 is capped.
+            SchemeBacklash.WarnedPlotterResentment(mercy: -2, calculating: 2).Should().Be(40);
+        }
+    }
+
+    [TestFixture]
+    public sealed class SchemeBacklash_WarnedTargetGratitudeTests
+    {
+        [Test]
+        public void GIVEN_a_neutral_target_WHEN_computing_gratitude_THEN_the_base_gratitude_applies()
+        {
+            SchemeBacklash.WarnedTargetGratitude(honor: 0, calculating: 0).Should().Be(25);
+        }
+
+        [Test]
+        public void GIVEN_an_honorable_target_WHEN_computing_gratitude_THEN_they_feel_a_genuine_debt()
+        {
+            // honor=+2 → 25 + 6 = 31; calculating=0 has no effect.
+            SchemeBacklash.WarnedTargetGratitude(honor: 2, calculating: 0).Should().Be(31);
+        }
+
+        [Test]
+        public void GIVEN_a_calculating_target_WHEN_computing_gratitude_THEN_they_discount_the_motive()
+        {
+            // calculating=+2 → 25 - 4 = 21; honor=0 has no effect.
+            SchemeBacklash.WarnedTargetGratitude(honor: 0, calculating: 2).Should().Be(21);
+        }
+
+        [Test]
+        public void GIVEN_a_dishonorable_calculating_target_WHEN_computing_gratitude_THEN_the_floor_holds()
+        {
+            // honor=-2, calculating=+2 → 25 - 6 - 4 = 15, clamped to 16.
+            SchemeBacklash.WarnedTargetGratitude(honor: -2, calculating: 2).Should().Be(16);
+        }
+
+        [Test]
+        public void GIVEN_a_noble_and_generous_target_WHEN_computing_gratitude_THEN_the_ceiling_holds()
+        {
+            // honor=+2, calculating=-2 → 25 + 6 + 4 = 35, clamped to 34.
+            SchemeBacklash.WarnedTargetGratitude(honor: 2, calculating: -2).Should().Be(34);
+        }
+    }
 }

@@ -3,6 +3,12 @@
 // if an abetted plot's outcome surfaces the player's complicity, the wronged party resents them; a
 // warned plotter, exposed, suspects the meddler. Pure so these stakes stay protected by tests.
 
+#region
+
+using System;
+
+#endregion
+
 namespace CalradiaRemembers.Logic
 {
     /// <summary>
@@ -23,8 +29,21 @@ namespace CalradiaRemembers.Logic
         /// <summary>Caught moving against an existing enemy — half-expected, so it stings least.</summary>
         public const int AbettorEnemyPenalty = 6;
 
-        /// <summary>What an exposed plotter's regard for the player falls by, suspecting them of the warning.</summary>
-        public const int WarnedPlotterResentment = 8;
+        /// <summary>
+        ///   How much an exposed plotter's regard for the player falls. A vindictive, calculating lord
+        ///   takes the betrayal hardest; a merciful one bears it with more grace.
+        ///   Result clamped to [20..40] so the plotter always becomes a clear enemy.
+        /// </summary>
+        public static int WarnedPlotterResentment(int mercy, int calculating)
+            => Math.Max(20, Math.Min(40, 30 - mercy * 3 + calculating * 3));
+
+        /// <summary>
+        ///   How much a warned target's regard for the player rises. An honorable lord feels a genuine
+        ///   debt; a calculating one suspects the motive and discounts the gift.
+        ///   Result clamped to [16..34] so the target always becomes at least a cautious ally.
+        /// </summary>
+        public static int WarnedTargetGratitude(int honor, int calculating)
+            => Math.Max(16, Math.Min(34, 25 + honor * 3 - calculating * 2));
 
         /// <summary>How much the betrayed crown (the player's own faction leader) cools on a discovered treason.</summary>
         public const int TreasonCrownPenalty = 10;

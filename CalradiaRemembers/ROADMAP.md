@@ -303,6 +303,10 @@ The marriage chain (family-approval, consorts, by-letter, jealousy) is shipped. 
 - **Influence loop**: family-across-clans kin detection (today it is clan-mate only); a richer per-event
   dynastic-succession LLM rewrite (the current succession is deterministic).
 - **Dynastic succession**: the optional per-NPC LLM reframing for richer dynastic prose.
+- **Log file rotation** *(wished 2026-06-24)*: `CalradiaRemembers.log` accumulates across sessions and can
+  grow very large. The fix: truncate (or rename to `.bak`) the file **on session launch** so each play
+  session starts fresh. **The Story Log (`CalradiaRemembers_story.log`) must NOT be touched** — it is an
+  ongoing novel that grows deliberately across all sessions and belongs to the player.
 
 ---
 

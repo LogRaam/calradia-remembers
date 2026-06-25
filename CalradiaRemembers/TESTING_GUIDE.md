@@ -257,8 +257,10 @@ the standing damage. In a real game, the plotter should also *offer* this in con
 `scheme_assist` action) only when you are not allied with the target.
 
 **C3 — Warn a target.** `cr.scheme Derthert` (against rival X) → `cr.scheme_warn X` → the plot becomes
-**Discovered** and is far likelier to **fail** over the next `cr.scheme_advance` ticks. X's regard for
-you rises; Derthert's drops (he suspects the meddler).
+**Discovered** and is far likelier to **fail** over the next `cr.scheme_advance` ticks. The warned target
+X is grateful (**+12** — `cr.info X`); Derthert, suspecting the meddler, drops **−20** (`cr.info Derthert`
+should show a clearly negative relation, pushing into "distrust" territory in the LLM prompt). Note:
+`cr.info` now shows `pacing=` (the MCM relationship-pacing setting), not the NPC's emotional attitude.
 
 **C4 — Caught treachery spreads (reputation + lords' talk).** Assist a plot (C2), then let it be
 discovered/succeed. Expected: the **target turns on you** (relation + Trust drop, scaled by who they
@@ -521,6 +523,74 @@ and the well-matched may wed (staying in your clan).
   (`cr.rapport_tick` a few times after warming a pair). They **stay in your clan** — confirm both remain
   yours (the design: the clan grows, no one leaves to found a household).
 
+### T. Scripted scenarios — world-reaction engine (NEW — untested in game)
+
+**What it proves:** JSON scenario packs load at session start, fire real world-consequences (war declarations,
+relation changes, injected NPC memories) when a game event matches a rule's trigger, and one-shot rules seal
+permanently so reloading cannot re-fire them.
+
+- **T1 — Rhagaea's death triggers two wars.** `cr.scenario_fire ON_DEATH Rhagaea` → the Southern Empire's two
+  rivals should **declare war** on it immediately, and a world-event message ("the eagles turn upon a leaderless
+  South") is recorded. Confirm with `cr.rumor` (commoners repeat it) and the kingdom diplomacy screen.
+- **T2 — One-shot sealed.** After T1, `cr.scenarios` shows `rhagaea_death_eagles_turn` in the fired list.
+  `cr.scenario_fire ON_DEATH Rhagaea` again → **nothing fires** (the rule is sealed). 💾 Save/reload:
+  it stays sealed — cannot save-scum the trigger.
+- **T3 — Rhagaea marriage draws randomly.** Actually marry Rhagaea (or `cr.scenario_fire ON_MARRIAGE Rhagaea`
+  several times on different fresh saves). The four rules share the trigger — only ONE fires per campaign.
+  Across several tries you should see different outcomes (consort / two-crowns / regent / suspicious). The
+  chosen rule injects a memory into Rhagaea (`cr.memory Rhagaea`) and optionally changes relations or influence
+  depending on which rule fired.
+- **T4 — Scenario Composer app.** Open `Tools/ScenarioComposer.html` in a browser (no install). Build a custom
+  rule: pick a trigger, add a guard (`IF_HERO_IS:Aelius`), add a consequence (`CHANGE_RELATION:Aelius:+5`).
+  Click **Export JSON**, drop the `.json` into `Modules/CalradiaRemembers/ModuleData/scenarios/`, restart the
+  game, and `cr.scenarios` lists your rule. `cr.scenario_fire <trigger>` fires it; the relation change applies.
+- **T5 — Reentrancy guard.** Fire a rule that has a `DECLARE_WAR` consequence (which itself emits a
+  `WarDeclared` event). The guard inside `ScenarioRuntime` should prevent an infinite cascade — no stack
+  overflow, scenario fires once cleanly.
+
+### U. Generalized pregnancy — consensual + NPC mothers (NEW — untested in game, adult-gated)
+
+**What it proves:** conception chance now arises from ANY completed vaginal act, not only captive scenes;
+female player OR female NPC can be the mother (resolved by sex/age); the prompt teaches it at Explicit+.
+
+- **Setup:** Adult Content = **Explicit** or higher (MCM). Use `cr.preg` / `cr.preg mother` to verify without
+  waiting for a random roll.
+- **U1 — Female player conceives (player-as-mother).** Female player, male NPC, open a CR chat and conduct an
+  explicit vaginal scene. The prompt should mention **impregnation_risk** and name the NPC as father.
+  `cr.preg [npcName]` force-triggers a conception → the engine's pregnancy tracks correctly (verify by waiting
+  a Bannerlord birth cycle — ~84 days — or inspecting the hero list for a newborn in your clan).
+- **U2 — NPC mother conceives (male player).** Male player, female NPC. Same scene type. The prompt teaches
+  `impregnation_risk` from the NPC's side ("inside her"). `cr.preg mother <npcName>` force-triggers the NPC's
+  pregnancy → the child should land in the **NPC's clan** (the open clan spike — report if the child ends up
+  in your clan instead; that is the known edge case for `DeliverOffSpring` with a `MainHero` father).
+- **U3 — Same-sex pairing → no hint.** Female player + female NPC, or male player + male NPC: the
+  `impregnation_risk` block should be **absent** from the prompt (check with Story Log on). `cr.preg` still
+  works as a force override, but no in-scene hint is given.
+- **U4 — Age gate.** `cr.preg mother <anNpcOver45OrUnder18>` should be **refused** with a log note; the
+  ConceptionResolver clamps fertile window to 18–45.
+- **U5 — Unknown father (bandit).** If the player is female and the scene is a bandit captive scene (no named
+  NPC hero), `cr.preg` (no argument) → the child's father should show as the shared hidden `cr_unknown_father`
+  placeholder, not crash.
+
+### V. ProvideGold quest — Give Gold button (NEW — just built, untested)
+
+**What it proves:** the "Give Gold" button gives the player a discoverable path to satisfy a ProvideGold
+quest (e.g. a spouse's "financial support for your child" quest) — previously there was no button and the
+only path was free-typing in chat, which players couldn't find.
+
+- **Setup:** acquire a ProvideGold quest from an NPC (spouse/companion asking for financial support; or
+  `cr.quests [name]` to see if one is outstanding; the quest is issued by the LLM in conversation).
+- **V1 — Button visible.** Open a CR Conversation chat window: a **"Give Gold"** button appears to the right
+  of the bag icon, visible whenever the exchange is active (same gating as "Offer item").
+- **V2 — Amount prompt.** Click **Give Gold** → a native text-inquiry popup appears: "How many denars? (You
+  carry N.)" Enter an amount and confirm → the chat input pre-fills with "I would like to give you N denars."
+- **V3 — NPC emits take_gold.** Send the message → the NPC responds and emits `[ACTION] type: take_gold
+  amount: N` → gold is transferred (watch your purse) AND the ProvideGold quest stamps done (`cr.quests [name]`
+  shows it satisfied).
+- **V4 — Cancel is safe.** Click Give Gold → cancel the prompt → nothing happens, input unchanged.
+- **V5 — Zero / invalid input.** Enter 0 or letters → nothing pre-fills (guard in ExecuteOfferGold).
+- **V6 — Capped to carried gold.** Enter more than you carry → input pre-fills with what you actually have.
+
 ### S. Intimacy as currency — Negotiation Phase 3 (NEW — untested, adult-gated)
 
 **What it proves:** a cynical, unrelated man may, from leverage, offer the FEMALE player a favour in exchange
@@ -540,7 +610,7 @@ for intimacy — a cold transaction, not courtship — and once it happens he ho
 
 ## 3. What is already unit-tested (do NOT re-test by hand)
 
-These are proven by `dotnet test` (369 tests); only their *wiring* (above) needs in-game eyes:
+These are proven by `dotnet test` (430 tests); only their *wiring* (above) needs in-game eyes:
 
 - **RelationGate**: +1 cap, warmth cooldowns, intimacy +3 bypass, −15 / −100 floors.
 - **Stance maths**: word cap (±2) + 8h cooldown, deed cap (30), fear decay, axis clamps, and the
@@ -563,6 +633,11 @@ These are proven by `dotnet test` (369 tests); only their *wiring* (above) needs
   captivity, jealousy) do not cross to the heir while political/relational ones do; correct kinship word.
 - **Prisoner-release branching** (`PrisonerReleasePolicy`): only a captive lord may bargain; your own
   captive is an immediate release, another lord's captive is a rescue deed, a non-prisoner gets nothing.
+- **Conception resolver** (`ConceptionResolver`): fertile-mother window (18–45), same-sex → None, player-as-
+  mother vs NPC-as-mother vs None, dead participant → None.
+- **Scenario engine** (`ScenarioSelector`): trigger matching (including wildcard), eligibility filter (one-shot
+  seal + guard eval), weighted random draw; `GuardEvaluator` AND-combines, empty passes, unknown guard fails;
+  `ScenarioArgs` parses `Hero:+N` and `Hero:free text` payloads; `ScenarioRule.Parse` clamps weight ≥ 1.
 
 If one of these behaves wrong *in game* despite the math being right, it points at the **wiring** — log
 it with Enable Logging on and the exact `cr.*` steps to reproduce.

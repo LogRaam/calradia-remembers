@@ -1,34 +1,15 @@
-// Code written by Gabriel Mailhot, 23/06/2026.
+// Code written by Gabriel Mailhot, 24/06/2026.
 
 #region
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.GameState;
 using CalradiaRemembers.Items;
-using CalradiaRemembers.Jealousy;
-using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
-using CalradiaRemembers.Lore;
-using CalradiaRemembers.Mapping;
-using CalradiaRemembers.Quests;
 using CalradiaRemembers.Services;
-using CalradiaRemembers.Stance;
-using CalradiaRemembers.WorldEvents;
-using NpcMemoryService.Core.Captivity;
 using NpcMemoryService.Core.Models;
-using NpcMemoryService.Core.Prompts;
-using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Party;
-using TaleWorlds.CampaignSystem.Roster;
-using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 
@@ -47,10 +28,6 @@ namespace CalradiaRemembers.Chat
       // Captive scene continuation — fires when the NPC emits NARRATION without asking a question.
       // Between iterations the player sees "Continue / Try something" buttons (IsScenePaused).
       // Pressing Continue fires one more LLM turn; Try something restores normal text input.
-      // At the last beat (cap-1) the prompt is told to conclude and dismiss the prisoner so the
-      // scene resolves gracefully rather than looping.
-      private const int MaxSceneContinuations = 4;
-
       // ── Sprint 15B: addressing a witness directly ─────────────────────────
       // Cream color matching ChatMessageViewModel's default NPC hue, used when the
       // main NPC appears as a reacting witness (while another participant speaks).
@@ -267,6 +244,14 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       [DataSourceProperty]
       public bool IsOfferItemVisible => _mode == ChatMode.Conversation && !_conversationEnded;
+
+      /// <summary>
+      ///   True in plain Conversation mode while the exchange is still open — shows the
+      ///   "Give Gold" button so the player can offer denars (satisfies a ProvideGold quest
+      ///   when the NPC emits take_gold).
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsOfferGoldVisible => _mode == ChatMode.Conversation && !_conversationEnded;
 
       /// <summary>
       ///   True once a captive scene has ended (other than by escape): shows a "Please continue"
@@ -576,31 +561,9 @@ namespace CalradiaRemembers.Chat
          if (string.IsNullOrWhiteSpace(text)) return;
          try
          {
-            // Resolve portrait hero, color, and hero id. The reacting party may be a
-            // listed witness OR the main NPC (when another participant holds the floor).
-            Hero witnessHero = null;
-            string color = WitnessPalette[0]; // fallback
-            string heroId = null;
-
-            if (string.Equals(witnessName, _npcName, StringComparison.OrdinalIgnoreCase))
-            {
-               witnessHero = _npcHero;
-               color = NpcCreamColor;
-               heroId = _npcHero?.StringId;
-            }
-            else
-            {
-               foreach (WitnessEntry w in _witnesses)
-               {
-                  if (!string.Equals(w.Name, witnessName, StringComparison.OrdinalIgnoreCase)) continue;
-                  heroId = w.HeroStringId;
-                  if (!string.IsNullOrEmpty(w.HeroStringId))
-                     witnessHero = Hero.FindFirst(h => h.StringId == w.HeroStringId);
-                  if (_witnessColors.TryGetValue(w.Name, out string c)) color = c;
-
-                  break;
-               }
-            }
+            // Resolve the reacting party's portrait hero, colour, and id — a listed witness, or the
+            // main NPC when another participant holds the floor. See ResolveWitnessRender.
+            (Hero witnessHero, string color, string heroId) = ResolveWitnessRender(witnessName);
 
             // Heroless bandit witness → render a bandit-troop portrait instead of a blank avatar.
             CharacterObject witnessFace = null;
@@ -673,6 +636,31 @@ namespace CalradiaRemembers.Chat
             InputText = $"I would like to offer you {name} (worth {value:N0} denars).";
             ModLog.Info($"[OFFER] player pre-filled offer: {name} ({value} denars, id={itemId}).");
          });
+      }
+
+      /// <summary>
+      ///   Asks the player how many denars to offer, then pre-fills the chat input so the
+      ///   NPC can respond with take_gold — which transfers the gold and stamps any outstanding
+      ///   ProvideGold quest as satisfied (any amount counts).
+      /// </summary>
+      public void ExecuteOfferGold()
+      {
+         if (_mode != ChatMode.Conversation || _conversationEnded) return;
+
+         int carried = Hero.MainHero?.Gold ?? 0;
+         InformationManager.ShowTextInquiry(new TextInquiryData(
+            "Give Gold",
+            $"How many denars? (You carry {carried:N0}.)",
+            true, true,
+            "Offer", "Cancel",
+            amountText =>
+            {
+               if (!int.TryParse(amountText?.Trim(), out int amount) || amount <= 0) return;
+               amount = Math.Min(amount, carried);
+               InputText = $"I would like to give you {amount:N0} denars.";
+               ModLog.Info($"[OFFER GOLD] pre-filled: {amount} denars.");
+            },
+            null));
       }
 
       /// <summary>
@@ -858,7 +846,7 @@ namespace CalradiaRemembers.Chat
          // Stage 1 — synchronous base capture (guaranteed even if the async summary
          // never returns). Plain but truthful; better than the NPC forgetting.
          var baseEvent = new NotableEvent(gameDay, NotableEventType.Other,
-            $"Spoke with {player}; the conversation broke off without a formal parting.");
+            $"Spoke with {player}.");
          profile.Events.Add(baseEvent);
          behavior.Store.Set(profile);
          ModLog.Info($"[CONV MEMORY] fallback event recorded for {profile.Name} " + $"({_playerTurnsThisSession} player turn(s), no [EVENT] emitted).");
@@ -953,6 +941,5 @@ namespace CalradiaRemembers.Chat
          public string SpeakerName;
          public string Text;
       }
-
    }
 }

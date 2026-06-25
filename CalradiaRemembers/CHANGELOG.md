@@ -2,6 +2,31 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.14.0.. 2026-06-25
+
+Conversations stay open, gold can change hands with a word, and meddling in a lord's plot earns you a
+real friend.. and a real enemy.
+
+### Fixed
+- **Conversations no longer stop opening partway through a campaign.** A rare hitch while a chat was
+  closing could leave the window unable to reopen.. every later attempt would show the lord's greeting
+  but never the chat itself, for the rest of that play session. The closing sequence is now hardened so
+  the window always tears down cleanly, whatever happens. If you ever hit this, please send the log
+  ([i]Enable Logging[/i] + [i]Verbose[/i] in the mod options) so the underlying cause can be found too.
+
+### New
+- **Hand over gold with a word.** A [b]Give Gold[/b] button now sits beside the gift button in
+  conversation.. name an amount and offer it on the spot. This also makes it plain how to satisfy a
+  "bring me [i]N[/i] denars" request: the lord acknowledges the coin and marks the task done.
+- **Warning a lord of a plot now truly costs and rewards.** Tip a lord off to a scheme against them and
+  the grateful target becomes a genuine ally, while the exposed plotter turns a solid enemy.. and how far
+  each moves depends on character. An honourable lord feels a real debt; a calculating one suspects your
+  motive. A vindictive plotter hates you the harder; a merciful one bears it with more grace.
+
+### Notes
+- [i]cr.info[/i] now reports [i]pacing=[/i] (your Relationship Pacing setting) instead of the misleading
+  [i]warmth=[/i] label. See CalradiaRemembers/TESTING_GUIDE.md for the scheme test commands.
+
 ## v1.13.0.. 2026-06-22
 
 The world starts to talk about [i]you[/i], and a captive can bargain for their freedom.

@@ -43,6 +43,33 @@ namespace CalradiaRemembers.Chat
    public sealed partial class ChatViewModel
    {
       /// <summary>
+      ///   Resolves the reacting party for a witness reaction: the main NPC when the name matches it,
+      ///   otherwise the matching listed witness. Returns the portrait hero (null when heroless), the
+      ///   display colour, and the hero StringId. Extracted from AppendWitnessReaction to keep it simple.
+      /// </summary>
+      private (Hero hero, string color, string heroId) ResolveWitnessRender(string witnessName)
+      {
+         if (string.Equals(witnessName, _npcName, StringComparison.OrdinalIgnoreCase))
+            return (_npcHero, NpcCreamColor, _npcHero?.StringId);
+
+         foreach (WitnessEntry w in _witnesses)
+         {
+            if (!string.Equals(w.Name, witnessName, StringComparison.OrdinalIgnoreCase)) continue;
+
+            Hero hero = string.IsNullOrEmpty(w.HeroStringId)
+               ? null
+               : Hero.FindFirst(h => h.StringId == w.HeroStringId);
+            string color = _witnessColors.TryGetValue(w.Name, out string c)
+               ? c
+               : WitnessPalette[0];
+
+            return (hero, color, w.HeroStringId);
+         }
+
+         return (null, WitnessPalette[0], null);
+      }
+
+      /// <summary>
       ///   On a failed LLM call, surface a ONE-TIME-per-session actionable hint to the player. The
       ///   in-character "(My words escape me...)" line alone hides that this is an LLM SETUP issue (a
       ///   failed request — bad endpoint, a model that returned nothing, or a small local model whose
