@@ -1,5 +1,22 @@
 # Calradia Remembers — Roadmap
 
+## Mission
+
+**Calradia Remembers étend Mount & Blade II Bannerlord là où la simulation s'arrête : dans la mémoire et la parole des personnages.**
+
+Le mod repose sur trois engagements :
+
+**1. Respecter l'esprit de la communauté.**
+Le modding vit du partage et du respect — des créateurs envers les joueurs, des joueurs envers les créateurs, et de tous envers le jeu original. CR s'inscrit dans cette tradition : code ouvert, architecture extensible, documentation honnête sur ce qui est testé et ce qui ne l'est pas. Pas de magie noire, pas de promesses creuses.
+
+**2. Enrichir Bannerlord sans le trahir.**
+L'objectif n'est pas de créer un monde parallèle de roleplay déconnecté du jeu. Les NPCs de CR se souviennent, réagissent et parlent — mais ils restent des seigneurs de Calradia, pas des personnages de roman. Les actions qu'ils promettent arrivent dans le journal. Les relations qu'ils forgent s'inscrivent dans la carte politique. CR amplifie ce qui est déjà là ; il ne le remplace pas.
+
+**3. Un code à la hauteur de l'ambition.**
+Un mod qui dure s'appuie sur une architecture qui résiste. Logique pure isolée du moteur, seams injectés, tests qui documentent les comportements attendus — pas les détails d'implémentation. Quand Gabriel lit les tests, il lit la spec. Quand un comportement change sans le vouloir, un test le dit avant que le joueur ne le découvre.
+
+---
+
 The long-term direction of the mod. Each layer is shippable on its own; the order is the architecture.
 Full detail for shipped work lives in `CHANGELOG.md` and git history — this file tracks what is DONE at a
 glance and the OPEN work ahead.
@@ -17,8 +34,9 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ## ✅ Shipped & built
 
-Live on Nexus, or built + committed awaiting the next package. **(untested)** = built green and committed but
-its in-game wiring is not yet validated — these ride together in a future v1.14.0.
+Live on Nexus, or built + committed awaiting upload. **(untested)** = built green and committed but its
+in-game wiring is not yet validated. The bulk of the items below shipped together in **v1.14.0** (packaged +
+committed + pushed 2026-06-25; awaiting Nexus upload) — still untested in game unless validated since.
 
 **Conversation & memory core** — persistent per-NPC memory across the save; in-character free-text LLM
 dialogue woven into vanilla; relation + multi-axis **stance** (trust/respect/fear, "words nudge, deeds
@@ -57,6 +75,116 @@ parchment letter window + visible couriers; **prompt-cache split** (stable prefi
 ---
 
 ## Open — not yet built
+
+### Extension Surface — CR as the narrative-memory bus of a modlist *(wished 2026-06-25 — a new pillar)*
+
+**Why this is the point, strategically** *(Gabriel, 2026-06-25):* this SDK is the purest expression of CR's
+community pillar — and **the best possible answer to closed mods like AI Influence**. Where a black box says
+"use my features or don't," CR says "build your own, and CR will give it a memory and a voice." Openness isn't
+just an ethic here; it's the competitive moat. The mod that lets *everyone else* build on it wins the ecosystem
+the obfuscated one can never reach.
+
+**The strategic prize:** any mod that changes the world can *tell CR about it*, and CR turns that into NPC
+awareness — chronicle, rumour, hearsay, in-conversation reference — with **no new plumbing downstream**.
+CR stops needing to know about each mod in advance: other mods speak to it. This generalises the
+"world-agnostic" goal of the scenario engine from *content packs* to *live interop*.
+
+**The collaboration shape (ChatAI thread, 2026-06-25):** this is NOT about co-running CR with another LLM-chat
+mod — two chat overlays on the same NPCs would conflict. The fit is a **complementary, non-chat companion mod**
+(e.g. a "living realm" world-sim that makes lords quarrel/scheme/wager) that **feeds its outcomes into CR via
+the SDK** and lets CR be the memory + voice. Their simulation, CR's remembering. That's how a collaborator
+plugs INTO CR rather than beside it, without either mod dismantling itself.
+
+The governing principle — and the thing that keeps it from becoming a coupling disaster — is that this is **not
+"open the RAM"**. It is a narrow, one-way, **validated inbound contract**: outsiders *push facts in* through a
+single door; they never read or mutate CR's internals. The day CR refactors `NpcProfile` or the store, third
+parties don't break.
+
+**Four disciplines (load-bearing — they protect the decoupled-architecture pillar):**
+1. **Inbound, one-way.** Third parties *write* through the gateway; they don't read/mutate internals. (A public
+   read API over memory is possible later, but writing is ~90% of the value.)
+2. **A stable, versioned DTO at the boundary** = an anti-corruption layer. The public contract references
+   neither CR's internal types nor raw Bannerlord types, so internals can change freely behind it. (This is the
+   SDK's existing reason for being — here we add one stable façade on top.)
+3. **Validation at the door.** Every external fact is normalised before it enters: magnitude clamped, **summary
+   length bounded (the save-blob guard)**, hero/faction ids resolved-or-dropped, source tagged, lifetime
+   defaulted. A careless modder can neither brick a save nor inject noise into prompts.
+4. **Source tag + relevance gating.** Each entry carries its `SourceMod` (debug / filter / mute a misbehaving
+   source); CR's existing hearsay-locality logic decides *who* plausibly heard it, so NPCs don't recite
+   everything.
+
+**Volet A — external world-event ingestion (do this first; highest value, simplest).** A façade like
+`CalradiaRemembers.Feed.Record(ExternalWorldEvent)` lets a mod push a fact into the **same** World-Event /
+rumour store the Chronicle, influence loop and NPC-awareness already read. Once past the gateway, it follows
+the exact path of CR's native events — a Pravend NPC who'd plausibly have heard mentions it on his own. The DTO
+carries `Category`, `Summary`, `Day`, `Magnitude`, optional `HeroIds`/`FactionIds`, `Lifetime`
+(`Rumor` ages out vs `Deed` kept), `SourceMod`. *Worked example:* a horse-racing mod logs winners and purses
+as `Lifetime.Rumor`; CR's lords gossip about the grey mare of Lord Caladog with zero knowledge of CR's memory
+system. Pure/testable in `CalradiaRemembers.Logic`: the validator/normaliser (clamp, bound, id-resolve,
+default) and the DTO→`WorldEvent` mapping; only the public static façade + behavior registration is engine glue.
+
+**Volet B — external mission registration (later).** A mod defines **a mission for the player** and registers
+it into CR's verified-quest system, inheriting all of CR's guarantees: the **journal mirror**, NPC-facing
+framing, reward gating, deadline/abandon lifecycle, and the **self-heal-on-load** that force-closes anything
+dangling (no ghost quests from a third-party mod either). The hard part — and the line that preserves "the
+bridge is law / no empty promises" — is **verification ownership**: CR must NOT pay a reward on a foreign mod's
+unverified say-so. So the contract splits responsibility: **the external mod owns the completion signal** (it
+fires `mission.Complete()` / supplies a predicate CR polls, because only it knows when its own deed is truly
+done), while **CR owns everything else** — issuing, the journal entry, the in-conversation framing, the gated
+reward, and lifecycle hygiene. That lets a mod define an arbitrary mission (win a tournament series, smuggle a
+crate, survive a siege) without CR knowing its internals, and without weakening CR's "rewards only for real
+deeds" promise. Pure/testable: the registration record + lifecycle state machine; engine glue is the journal
+mirror + the completion-callback wiring.
+
+> NOT built (wished 2026-06-25). Sequence: A before B. Both ride the SDK's existing engine-agnostic design.
+> Linked to the scenario engine below (both are modder-extensible surfaces) and to the ChatAI-collaboration
+> thread (an autonomous NPC↔NPC layer would write its outcomes back through Volet A so the "theater" leaves
+> real marks the player later encounters — see also the four NPC↔NPC seams discussed but not yet scoped here).
+
+**Long horizon — CR as core + swappable feature modules (dogfooding the surface)** *(wished 2026-06-25)*
+
+The endgame: split CR into a **core** that owns the shared substrate (`NpcProfile`, the store, the bridge, the
+prompt builder, the World-Event store, the SDK chat pipeline) plus a set of **official feature modules**
+(`CR_Schemes`, `CR_Wedding`, …) that ride the *same public surface* a third party would use. The payoff is
+dogfooding: if CR's own marriage is "just another consumer" of the API, then a third party's marriage mod is a
+first-class citizen **by construction** — the strongest possible proof the extension surface is real, and a
+direct expression of the community pillar.
+
+**The hard truth that gates it — coupling is the identity, not an accident.** CR's features are NOT independent:
+Wedding, Schemes, Jealousy, Pregnancy, Succession read/write the *same* `NpcProfile`, feed the *same* prompt,
+share the *same* stores. That interplay (jealousy←pregnancy→succession→scheme) **is the product**. So a/b must
+be distinguished, and the interplay protected at all costs (over-splitting into mods that no longer talk = the
+worst failure):
+- **(a) Internal modularity** — clean boundaries *within one shipped mod* (a `CR.Core` owning the substrate;
+  features depend on it). Cheap, good regardless, and the **prerequisite** for everything below. CR already has
+  the base (`CalradiaRemembers.Logic` + the SDK + per-feature folders).
+- **(b) Deployment split** — separately-installable, swappable mods. The big move; do it **surgically**, only
+  where a feature is genuinely substitutable and its support contract is bounded.
+
+**Volet A + B are necessary but NOT sufficient for (b).** A detachable feature module needs a richer **Feature
+Module SDK** beyond the event/mission feed:
+1. **Contribute prompt sections** — registered, **ordered**, **token-budgeted** (the prompt has 16 ordered
+   sections; N mods writing into it needs a priority registry or it's chaos).
+2. **Contribute action vocabulary** + bridge handlers, through the conditional-teaching gate ("the bridge is law").
+3. **Read/extend shared profile state through a contract** (not raw field access — that's the coupling we're
+   trying to break).
+
+**Sequence:** (a) internal modularity → Volet A + B → **pilot the split on the LEAST-entangled feature, not the
+most.** → generalise only after the pilot holds.
+
+**`CR_Schemes` is the pilot — and possibly the only feature that ever needs externalising.** It already has its
+own store, its own daily tick, and already feeds rumours — the least entangled with the profile/prompt. Wedding
+is the *worst* starting candidate (relations + family + consorts + prompt). Extracting Schemes as a separate mod
+on the public surface becomes the **validation gate**: if it holds, the surface is proven; if it doesn't, we
+learned cheaply. The working hypothesis (Gabriel, 2026-06-25): **most features should stay in core**, and the
+deployment split is reserved for the few that genuinely earn it — Schemes may be the one.
+
+**"Bring your own marriage" has two routes — prefer the light one.** (1) *Data route* — reshape marriage via
+**scenario packs + config**, no code: CR is *already half-way* (the Rhagaea marriage is four rules in a data
+pack), and the scripter/composer keeps growing its trigger+consequence vocabulary. For most modders, "your own
+marriage" = authoring rules, not shipping an assembly. (2) *Assembly route* — replace the whole `CR_Wedding`
+module; powerful but needs the full Feature Module SDK above. The data route tends to give ~80% of the value at
+~20% of the cost; reserve the assembly route for cases that truly justify it.
 
 ### Scripted scenarios — a modder-extensible world-reaction engine *(wished 2026-06-24 — a new pillar)*
 
@@ -101,7 +229,7 @@ construction) and exports the file. Pure/testable in `CalradiaRemembers.Logic`: 
 guard evaluator, the random-pool selection, and fire-once bookkeeping; only the CampaignEvent hooks and the
 consequence executors are engine glue. Define the vocabulary first — the app is downstream sugar.
 
-> **BUILT 2026-06-24 (Opus, 412 tests green, NOT committed) — pure core + a working engine-glue slice.**
+> **BUILT 2026-06-24 (Opus, 412 tests green; committed `6b47a4d` + pushed 2026-06-25 in v1.14.0) — pure core + a working engine-glue slice.**
 > Pure (`CalradiaRemembers.Logic`, +34 tests): `KeywordToken` (VERB:payload language), `ScenarioRule` (four
 > fields + fire-once/weight + `Parse` factory), `GuardEvaluator` (AND-combined, injected resolver),
 > `ScenarioSelector` (trigger match incl. `*` wildcard, one-shot exclusion, guard filter, weighted random
@@ -226,7 +354,7 @@ for **both** a female player and a female NPC.
   outside captivity; teach the action in the consensual intimate block; extend `cr.preg` to target an NPC
   mother. Likely rename `CaptivePregnancyService` → `PregnancyService` (no longer captive-only).
 
-**BUILT 2026-06-24 (untested in game), 378 tests green, NOT committed.** Pure `ConceptionResolver`
+**BUILT 2026-06-24 (untested in game), 378 tests green; committed `6b47a4d` + pushed 2026-06-25 in v1.14.0.** Pure `ConceptionResolver`
 (Logic, mother/father-by-sex policy, +9 tests); `PregnancyService` (renamed, explicit mother); SDK
 `ConceptionRisk` + consensual-block teaching; `EncounterContextBuilder.ResolveConceptionRisk`; bridge
 resolves the role; `cr.preg mother <name>`. **ONE piece still open — the clan SPIKE**: verify in game which

@@ -13,6 +13,14 @@ What came out of that is, I think, more than a clone. The heart of this mod is [
 
 ..no more "0 conversation" with NPC you already had a conversation with.
 
+Three commitments shape every decision in this project:
+
+[b]1. Honour the modding community.[/b] Modding lives on sharing and respect.. between creators and players, and toward the original game. CR is open by design: readable code, extensible architecture, honest release notes about what is tested and what is not. No black boxes. No hollow promises.
+
+[b]2. Enrich Bannerlord, not replace it.[/b] The goal is not a parallel roleplay world disconnected from the game. NPCs in CR remember, react, and speak.. but they remain lords and ladies of Calradia, not characters in a novel. What they promise lands in the quest journal. The bonds they forge shift the political map. CR amplifies what is already there; it does not override it.
+
+[b]3. Code that deserves the ambition.[/b] A mod that lasts needs architecture that holds. Pure logic isolated from the engine, injected seams, tests that document expected behaviour.. not implementation details. When a behaviour changes unintentionally, a test catches it before a player does.
+
 [line]
 [size=4]What it does[/size]
 
