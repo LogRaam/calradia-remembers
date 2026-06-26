@@ -22,6 +22,7 @@ using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.Core;
 
 #endregion
@@ -175,8 +176,8 @@ namespace CalradiaRemembers.Bastards
                continue;
             }
 
-            // (b) the mother's active blackmail (a separate, deliberate vector).
-            EvaluateBlackmail(child, season);
+            // (b) the mother's own initiative — blackmail, longing, reproach, or a plea for support.
+            EvaluateMother(child, season);
          }
       }
 
@@ -231,17 +232,29 @@ namespace CalradiaRemembers.Bastards
          });
       }
 
-      // ── Blackmail: the mother's recurring leverage while the secret hides ──
+      // ── The mother's initiative: blackmail OR a warmer letter, by disposition ──
 
-      private void EvaluateBlackmail(Hero child, int season)
+      private void EvaluateMother(Hero child, int season)
       {
          Hero mother = child.Mother;
-         if (mother == null) return;
-         if (!BastardBlackmailPolicy.HoldsLeverage(true, mother.IsAlive, mother == Hero.MainHero?.Spouse)) return;
+         if (mother == null || !mother.IsAlive || mother == Hero.MainHero?.Spouse) return;
 
+         BastardMotherDisposition disposition = MotherDisposition(mother);
          BlackmailState bs = GetBlackmail(child.StringId);
 
-         // An unmet demand past its deadline → she carries out her threat and leaks the secret.
+         // A kinder mother never leaks the secret herself; she only writes, now and then, in her own register.
+         if (disposition != BastardMotherDisposition.Mercenary)
+         {
+            if (BastardBlackmailPolicy.CanRaiseDemand(season, bs.SilentUntil, false))
+            {
+               bs.SilentUntil = BastardBlackmailPolicy.SilenceUntil(season);
+               SendMotherNote(mother, child, disposition);
+            }
+
+            return;
+         }
+
+         // Mercenary: an unmet demand past its deadline → she carries out her threat and leaks the secret.
          if (BastardBlackmailPolicy.DemandHasLapsed(season, bs.DemandSeason))
          {
             bs.DemandSeason = -1;
@@ -260,6 +273,55 @@ namespace CalradiaRemembers.Bastards
                         $"(pay within {BastardBlackmailPolicy.DemandDeadlineSeasons} seasons).");
             SendDemandLetter(mother, child, demand);
          }
+      }
+
+      /// <summary>The mother's disposition toward the player (trait- and regard-driven; pure <see cref="BastardMotherPolicy" />).</summary>
+      public BastardMotherDisposition MotherDisposition(Hero mother)
+      {
+         int relation = mother != null && Hero.MainHero != null
+            ? mother.GetRelation(Hero.MainHero)
+            : 0;
+
+         return BastardMotherPolicy.Resolve(TraitLevel(mother, DefaultTraits.Honor), TraitLevel(mother, DefaultTraits.Calculating), relation);
+      }
+
+      private static void SendMotherNote(Hero mother, Hero child, BastardMotherDisposition disposition)
+      {
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         if (store == null || mother == null) return;
+
+         NpcProfile profile = store.Get(mother.StringId) ?? HeroProfileMapper.FromHero(mother);
+         int today = (int) CampaignTime.Now.ToDays;
+
+         profile.SentLetters.Add(new PendingLetter {
+            SenderId = mother.StringId,
+            SenderName = mother.Name?.ToString(),
+            Reason = LetterReason.BastardMotherNote,
+            Content = MotherNoteContent(child, disposition),
+            SentOnDay = today,
+            DeliveryDay = today + DemandLetterDeliveryDays,
+            IsDelivered = false
+         });
+
+         store.Set(profile);
+         ModLog.Info($"[BASTARD] {disposition} note queued: {mother.Name} → player about {child.Name}.");
+      }
+
+      private static string MotherNoteContent(Hero child, BastardMotherDisposition disposition)
+      {
+         string c = child.Name?.ToString() ?? "our child";
+
+         return disposition switch {
+            BastardMotherDisposition.Longing =>
+               $"Not a day passes that I do not think of you. {c} grows quickly and asks after a father I cannot name. " +
+               "Come to us — I would have you know your child, and I confess I would have far more than that, if you would let me.",
+            BastardMotherDisposition.Resentful =>
+               $"You have a child, {c}, and a duty you pretend not to see. I ask nothing of your heart — you have shown me its " +
+               "measure — only that you not forget the one thing of yours I am left to raise alone.",
+            _ =>
+               $"I write to tell you of {c}, who is well, and to ask what little you can spare for the child's keep. I make no " +
+               "demands and keep your name to myself; I only thought you should know."
+         };
       }
 
       /// <summary>Queues a blackmail demand letter from the mother to the player (delivered via the normal courier path).</summary>
@@ -296,6 +358,7 @@ namespace CalradiaRemembers.Bastards
       public (int settled, int goldPaid) Pay(Hero mother)
       {
          if (mother == null || Hero.MainHero == null) return (0, 0);
+         if (MotherDisposition(mother) != BastardMotherDisposition.Mercenary) return (0, 0); // a kinder mother has nothing to buy off
 
          int season = CurrentSeason;
          int settled = 0, gold = 0;
@@ -336,6 +399,7 @@ namespace CalradiaRemembers.Bastards
          string childId = _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).FirstOrDefault(id => FindHero(id)?.Mother == npc);
          if (childId == null) return 0;
          if (!BastardBlackmailPolicy.HoldsLeverage(true, npc.IsAlive, npc == Hero.MainHero.Spouse)) return 0;
+         if (MotherDisposition(npc) != BastardMotherDisposition.Mercenary) return 0; // only a scheming mother extorts
 
          return BastardBlackmailPolicy.DemandAmount(Hero.MainHero.Gold);
       }
@@ -448,6 +512,12 @@ namespace CalradiaRemembers.Bastards
          => string.IsNullOrEmpty(id)
             ? null
             : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == id);
+
+      private static int TraitLevel(Hero hero, TraitObject trait)
+      {
+         try { return hero?.GetTraitLevel(trait) ?? 0; }
+         catch { return 0; }
+      }
 
       private static byte[] ToBytes(object value)
       {

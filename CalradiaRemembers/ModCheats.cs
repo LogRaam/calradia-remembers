@@ -2790,6 +2790,32 @@ namespace CalradiaRemembers
             : $"{hero.Name} holds no bastard leverage over you (not the mother of a concealed bastard of yours).";
       }
 
+      /// <summary>
+      ///   cr.bastard_mother [name] — shows how an NPC would behave as the mother of the player's bastard,
+      ///   from her traits + regard: blackmail (mercenary), longing, resentful, or a pragmatic plea for keep.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bastard_mother", "cr")]
+      public static string CheckBastardMother(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         if (BastardBehavior.Instance == null) return "Bastard system not active.";
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         BastardMotherDisposition d = BastardBehavior.Instance.MotherDisposition(hero);
+         string note = d switch {
+            BastardMotherDisposition.Mercenary => "she would BLACKMAIL for silence",
+            BastardMotherDisposition.Longing => "she longs for you — come see the child, wishes you'd wed her",
+            BastardMotherDisposition.Resentful => "she writes coldly, feeling wronged",
+            _ => "she pragmatically asks for the child's keep"
+         };
+
+         return $"{hero.Name} — bastard-mother disposition: {d} ({note}). " +
+                $"Honor {hero.GetTraitLevel(DefaultTraits.Honor):+#;-#;0}, Calculating {hero.GetTraitLevel(DefaultTraits.Calculating):+#;-#;0}, " +
+                $"relation {hero.GetRelation(Hero.MainHero)}.";
+      }
+
       /// <summary>cr.bastard_demand [name] — force-raise a blackmail demand over the named tracked bastard (testing the pay/leak loop).</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("bastard_demand", "cr")]
       public static string RaiseBastardDemand(List<string> args)
