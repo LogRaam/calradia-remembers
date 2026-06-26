@@ -69,5 +69,52 @@ namespace CalradiaRemembers.Tests
             BastardBlackmailPolicy.DemandAmount(0).Should().Be(BastardBlackmailPolicy.MinDemand);
             BastardBlackmailPolicy.DemandAmount(-5000).Should().Be(BastardBlackmailPolicy.MinDemand);
         }
+
+        [Test]
+        public void GIVEN_a_payment_now_WHEN_setting_silence_THEN_it_lasts_the_grace_period()
+        {
+            BastardBlackmailPolicy.SilenceUntil(10)
+                .Should().Be(10 + BastardBlackmailPolicy.GraceSeasons);
+        }
+
+        [Test]
+        public void GIVEN_no_outstanding_demand_WHEN_checking_a_lapse_THEN_nothing_lapses()
+        {
+            BastardBlackmailPolicy.DemandHasLapsed(currentSeason: 12, demandSeason: -1).Should().BeFalse();
+        }
+
+        [Test]
+        public void GIVEN_an_unmet_demand_within_the_deadline_WHEN_checking_THEN_she_waits()
+        {
+            //Arrange — deadline 2 seasons: demanded at 10, only one season has passed.
+            BastardBlackmailPolicy.DemandHasLapsed(currentSeason: 11, demandSeason: 10).Should().BeFalse();
+        }
+
+        [Test]
+        public void GIVEN_an_unmet_demand_past_the_deadline_WHEN_checking_THEN_she_leaks()
+        {
+            BastardBlackmailPolicy.DemandHasLapsed(currentSeason: 12, demandSeason: 10).Should().BeTrue();
+        }
+
+        [Test]
+        public void GIVEN_an_active_demand_WHEN_checking_THEN_she_does_not_raise_another()
+        {
+            BastardBlackmailPolicy.CanRaiseDemand(currentSeason: 20, silentUntilSeason: 0, hasActiveDemand: true)
+                .Should().BeFalse();
+        }
+
+        [Test]
+        public void GIVEN_paid_silence_still_in_force_WHEN_checking_THEN_she_stays_quiet()
+        {
+            BastardBlackmailPolicy.CanRaiseDemand(currentSeason: 12, silentUntilSeason: 14, hasActiveDemand: false)
+                .Should().BeFalse();
+        }
+
+        [Test]
+        public void GIVEN_the_silence_has_expired_and_no_demand_stands_WHEN_checking_THEN_she_may_demand_again()
+        {
+            BastardBlackmailPolicy.CanRaiseDemand(currentSeason: 14, silentUntilSeason: 14, hasActiveDemand: false)
+                .Should().BeTrue();
+        }
     }
 }

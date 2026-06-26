@@ -2712,7 +2712,7 @@ namespace CalradiaRemembers
             string detail = h != null
                ? $"age {h.Age:0}, {BastardDiscoveryPolicy.DiscoveryChancePercent((int) h.Age)}%/season"
                : "—";
-            sb.AppendLine($"  {name}: {(kv.Value ? "DISCOVERED" : "hidden")} ({detail})");
+            sb.AppendLine($"  {name}: {(kv.Value ? "DISCOVERED" : "hidden")} ({detail}; blackmail: {b.BlackmailStatusOf(kv.Key)})");
          }
 
          return sb.ToString();
@@ -2788,6 +2788,39 @@ namespace CalradiaRemembers
          return demand > 0
             ? $"{hero.Name} holds a bastard secret over you — she could demand ~{demand} denars for her silence."
             : $"{hero.Name} holds no bastard leverage over you (not the mother of a concealed bastard of yours).";
+      }
+
+      /// <summary>cr.bastard_demand [name] — force-raise a blackmail demand over the named tracked bastard (testing the pay/leak loop).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bastard_demand", "cr")]
+      public static string RaiseBastardDemand(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         if (BastardBehavior.Instance == null) return "Bastard system not active.";
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass the bastard child's name fragment.";
+
+         BastardBehavior.Instance.DebugRaiseDemand(hero);
+
+         return $"Raised a blackmail demand over {hero.Name} — their mother now holds an active demand. " +
+                $"Pay via cr.bastard_pay <mother>, or run cr.bastard_season across seasons to watch her leak it if unpaid.";
+      }
+
+      /// <summary>cr.bastard_pay [name] — pay an NPC's blackmail demands for her silence (gold to her, a grace period bought).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bastard_pay", "cr")]
+      public static string PayBastardBlackmail(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         if (BastardBehavior.Instance == null) return "Bastard system not active.";
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         (int settled, int gold) = BastardBehavior.Instance.Pay(hero);
+
+         return settled > 0
+            ? $"Paid {hero.Name} {gold} denars for silence over {settled} bastard(s) — she keeps quiet, for now."
+            : $"{hero.Name} holds no bastard leverage to settle.";
       }
 
       #region private

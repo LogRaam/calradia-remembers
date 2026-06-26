@@ -27,6 +27,26 @@ namespace CalradiaRemembers.Logic
         /// <summary>A ceiling so the demand never becomes ruinous in one stroke. Tuning.</summary>
         public const int MaxDemand = 20000;
 
+        /// <summary>Seasons of silence a payment buys before she may demand again. Tuning.</summary>
+        public const int GraceSeasons = 4;
+
+        /// <summary>Seasons the player has to meet a demand before she leaks the secret. Tuning.</summary>
+        public const int DemandDeadlineSeasons = 2;
+
+        /// <summary>The season until which a payment made now buys her silence (recurring — she returns after).</summary>
+        public static int SilenceUntil(int currentSeason) => currentSeason + GraceSeasons;
+
+        /// <summary>True when an unmet demand has gone past its deadline, so she leaks the secret.</summary>
+        public static bool DemandHasLapsed(int currentSeason, int demandSeason)
+            => demandSeason >= 0 && currentSeason - demandSeason >= DemandDeadlineSeasons;
+
+        /// <summary>
+        ///   True when she may raise a fresh demand: none is outstanding and any paid silence has expired. The
+        ///   caller still checks <see cref="HoldsLeverage" /> (a hidden bastard, a living non-spouse mother).
+        /// </summary>
+        public static bool CanRaiseDemand(int currentSeason, int silentUntilSeason, bool hasActiveDemand)
+            => !hasActiveDemand && currentSeason >= silentUntilSeason;
+
         /// <summary>
         ///   The mother holds blackmail leverage only while the bastard is still CONCEALED, she is alive, and
         ///   she is not the player's own spouse (a wife shares the house, not a secret to sell).
