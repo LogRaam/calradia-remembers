@@ -2747,6 +2747,28 @@ namespace CalradiaRemembers
                 "Scandal in the world-event store (cr.chronicle / talk to a nearby NPC) and dents your standing.";
       }
 
+      /// <summary>
+      ///   cr.bastard_claim [name] — resolves a grown bastard's claim against your house using the real
+      ///   prestige gate (maternal house vs yours) and applies it: a lesser/equal maternal house presses a
+      ///   claim (hostility + scandal); a grander one follows the mother's dynasty. Tests the coming-of-age path.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bastard_claim", "cr")]
+      public static string ForceBastardClaim(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         if (BastardBehavior.Instance == null) return "Bastard system not active.";
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         BastardClaimVerdict verdict = BastardBehavior.Instance.ResolveClaimVerdict(hero);
+         BastardBehavior.Instance.DebugClaim(hero, verdict == BastardClaimVerdict.PressesClaim);
+
+         return verdict == BastardClaimVerdict.PressesClaim
+            ? $"{hero.Name} presses a claim against your house — relation drop + scandal recorded. (Verdict: {verdict}.)"
+            : $"{hero.Name} follows the mother's grander dynasty — no claim. (Verdict: {verdict}.)";
+      }
+
       #region private
 
       /// <summary>An abstract prestige score for a clan (tier-weighted + renown + a ruling-dynasty bonus).</summary>

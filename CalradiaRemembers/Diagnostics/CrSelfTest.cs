@@ -64,6 +64,7 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("pregnancy",        Severity.Heavy,        "fertile female -> TryConceive(force) -> assert pregnant",          TestPregnancy),
             new SelfTest("companion_mission",Severity.Heavy,        "dispatch a companion -> assert away -> resolve -> assert home",    TestCompanionMission),
             new SelfTest("bastard_discovery",Severity.Heavy,        "tag a bastard -> Discover -> assert flag + a Scandal world-event",  TestBastardDiscovery),
+            new SelfTest("bastard_claim",    Severity.Heavy,        "force a grown bastard's claim -> assert hostility + claim world-event", TestBastardClaim),
             new SelfTest("declare_war",      Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it",         TestDeclareWar),
             new SelfTest("scenario",         Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals",       TestScenario),
         };
@@ -529,6 +530,30 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("discovered", discovered, true);
             t.Expect("flagPersisted", BastardBehavior.Instance.IsDiscovered(subject.StringId), true);
             t.Expect("scandalRecorded", eventsAfter > eventsBefore, true);
+            return t.Line();
+        }
+
+        private static string TestBastardClaim(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("bastard_claim");
+            if (t.Abort(BastardBehavior.Instance == null, "BastardBehavior not active")) return t.Line();
+            if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+            Hero subject = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                h != Hero.MainHero && h.IsLord && h.Clan != Clan.PlayerClan);
+            if (t.Skip(subject == null, "no external lord to stand in as a claimant bastard")) return t.Line();
+
+            int relBefore = behavior.GameStateBridge.GetPlayerRelation(subject);
+            int eventsBefore = WorldEventStore.Instance.Count;
+
+            // Force the PressesClaim branch to assert the consequence wiring deterministically
+            BastardBehavior.Instance.DebugClaim(subject, pressesClaim: true);
+
+            int relAfter = behavior.GameStateBridge.GetPlayerRelation(subject);
+            int eventsAfter = WorldEventStore.Instance.Count;
+            t.Note($"subject={subject.Name}, rel {relBefore}->{relAfter}, events {eventsBefore}->{eventsAfter}");
+            t.Expect("turnedHostile", relAfter < relBefore, true);
+            t.Expect("claimRecorded", eventsAfter > eventsBefore, true);
             return t.Line();
         }
 

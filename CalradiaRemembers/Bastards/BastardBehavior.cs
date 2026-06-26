@@ -33,6 +33,8 @@ namespace CalradiaRemembers.Bastards
       private const int ScandalMagnitude = 40;     // how far the gossip carries (0..100)
       private const int ScandalRenownLoss = 5;     // the dishonour to the player's name
       private const int ScandalInfluenceLoss = 10; // the political cost at court
+      private const int ClaimHostility = 40;       // the grown bastard turns a clear enemy of the player's house
+      private const int ClaimMagnitude = 60;       // a dynastic claim travels far
 
       private const string SaveKey = "CalradiaRemembers_Bastards_v1bytes";
 
@@ -56,6 +58,7 @@ namespace CalradiaRemembers.Bastards
       {
          CampaignEvents.OnGivenBirthEvent.AddNonSerializedListener(this, OnGivenBirth);
          CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
+         CampaignEvents.HeroComesOfAgeEvent.AddNonSerializedListener(this, OnHeroComesOfAge);
          CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
       }
 
@@ -200,6 +203,79 @@ namespace CalradiaRemembers.Bastards
          });
       }
 
+      // ── Coming-of-age: the grown bastard's claim ──────────────────────────
+
+      private void OnHeroComesOfAge(Hero hero)
+      {
+         if (hero == null || !_bastards.ContainsKey(hero.StringId) || Hero.MainHero?.Clan == null) return;
+
+         // Only a player-SIRED bastard raised in an external (the mother's) house is a claimant on the player's
+         // clan. A female player's bastard is already in her own clan — a later, different nuance.
+         if (hero.Father != Hero.MainHero || hero.Clan == Hero.MainHero.Clan) return;
+
+         BastardClaimVerdict verdict = ResolveClaimVerdict(hero);
+         _bastards[hero.StringId] = true; // coming of age outs the secret regardless
+
+         if (verdict == BastardClaimVerdict.FollowsMotherDynasty)
+         {
+            ModLog.Info($"[BASTARD] {hero.Name} came of age in the grander house of {hero.Clan?.Name} — follows the mother's dynasty, no claim.");
+
+            return;
+         }
+
+         ApplyClaim(hero);
+      }
+
+      /// <summary>
+      ///   The prestige-gate verdict for a grown bastard's claim on the FATHER's (player's) clan: a child of a
+      ///   grander maternal house follows that line; an equal-or-lesser house breeds a claimant.
+      /// </summary>
+      public BastardClaimVerdict ResolveClaimVerdict(Hero bastard)
+         => BastardPrestigePolicy.Resolve(ClanPrestige(bastard?.Clan), ClanPrestige(Hero.MainHero?.Clan));
+
+      private void ApplyClaim(Hero bastard)
+      {
+         if (bastard == null) return;
+
+         if (Hero.MainHero != null)
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(bastard, Hero.MainHero, -ClaimHostility, false);
+
+         RecordClaim(bastard);
+         ModLog.Info($"[BASTARD] {bastard.Name} came of age and presses a claim against the player's house (relation -{ClaimHostility}).");
+      }
+
+      private static void RecordClaim(Hero bastard)
+      {
+         WorldEventStore store = WorldEventStore.Instance;
+         if (store == null || Hero.MainHero == null) return;
+
+         string parent = Hero.MainHero.Name?.ToString() ?? "the lord";
+         var actors = new List<string> {bastard.StringId, Hero.MainHero.StringId};
+
+         var factions = new List<string>();
+         if (Hero.MainHero.MapFaction != null) factions.Add(Hero.MainHero.MapFaction.StringId);
+         if (bastard.MapFaction != null) factions.Add(bastard.MapFaction.StringId);
+
+         store.Record(new WorldEvent {
+            Type = WorldEventType.Scandal,
+            Day = (int) CampaignTime.Now.ToDays,
+            Magnitude = ClaimMagnitude,
+            InvolvesPlayer = true,
+            ActorIds = actors,
+            FactionIds = factions,
+            Summary = $"{bastard.Name}, natural-born child of {parent}, has come of age and presses a claim against their house.",
+            ChronicleLine = $"{bastard.Name}, my own natural child, came of age and turned against my house, pressing a claim upon it"
+         });
+      }
+
+      private static int ClanPrestige(Clan clan)
+      {
+         if (clan == null) return 0;
+         bool ruling = clan.Kingdom != null && clan.Kingdom.RulingClan == clan;
+
+         return BastardPrestigePolicy.PrestigeScore(clan.Tier, (int) clan.Renown, ruling);
+      }
+
       private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
       {
          if (victim != null) _bastards.Remove(victim.StringId);
@@ -220,5 +296,18 @@ namespace CalradiaRemembers.Bastards
 
       /// <summary>Run the seasonal discovery evaluation immediately (console testing).</summary>
       public void DebugEvaluateSeason() => EvaluateSeason();
+
+      /// <summary>
+      ///   Force the coming-of-age claim path for the given verdict (console testing): track the hero, out the
+      ///   secret, and apply the claim (hostility + world-event) when it presses.
+      /// </summary>
+      public void DebugClaim(Hero bastard, bool pressesClaim)
+      {
+         if (bastard == null) return;
+
+         DebugTrack(bastard);
+         _bastards[bastard.StringId] = true;
+         if (pressesClaim) ApplyClaim(bastard);
+      }
    }
 }
