@@ -14,9 +14,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Mapping;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
+using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.Core;
@@ -45,6 +48,7 @@ namespace CalradiaRemembers.Bastards
       private const int ScandalInfluenceLoss = 10; // the political cost at court
       private const int ClaimHostility = 40;       // the grown bastard turns a clear enemy of the player's house
       private const int ClaimMagnitude = 60;       // a dynastic claim travels far
+      private const int DemandLetterDeliveryDays = 3; // courier time for a blackmail demand letter
 
       private const string SaveKey = "CalradiaRemembers_Bastards_v1bytes";
       private const string SaveKeyBlackmail = "CalradiaRemembers_BastardsBlackmail_v1bytes";
@@ -247,14 +251,42 @@ namespace CalradiaRemembers.Bastards
             return;
          }
 
-         // Otherwise she may raise a fresh demand (none outstanding, paid silence expired).
+         // Otherwise she may raise a fresh demand (none outstanding, paid silence expired) — and write to extort.
          if (BastardBlackmailPolicy.CanRaiseDemand(season, bs.SilentUntil, bs.DemandSeason >= 0))
          {
             bs.DemandSeason = season;
             int demand = BastardBlackmailPolicy.DemandAmount(Hero.MainHero?.Gold ?? 0);
             ModLog.Info($"[BASTARD] {mother.Name} raises a blackmail demand over {child.Name}: ~{demand} denars for silence " +
-                        $"(pay within {BastardBlackmailPolicy.DemandDeadlineSeasons} seasons). [letter — later increment]");
+                        $"(pay within {BastardBlackmailPolicy.DemandDeadlineSeasons} seasons).");
+            SendDemandLetter(mother, child, demand);
          }
+      }
+
+      /// <summary>Queues a blackmail demand letter from the mother to the player (delivered via the normal courier path).</summary>
+      private static void SendDemandLetter(Hero mother, Hero child, int demand)
+      {
+         if (mother == null || child == null) return;
+
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         if (store == null) return;
+
+         NpcProfile profile = store.Get(mother.StringId) ?? HeroProfileMapper.FromHero(mother);
+         int today = (int) CampaignTime.Now.ToDays;
+
+         profile.SentLetters.Add(new PendingLetter {
+            SenderId = mother.StringId,
+            SenderName = mother.Name?.ToString(),
+            Reason = LetterReason.Blackmail,
+            Content = $"You have not forgotten {child.Name}, I think — the child we made between us. The realm does not yet know whose " +
+                      $"it is, and need not, so long as you are generous. Send me {demand} denars and my tongue stays still. " +
+                      $"Disappoint me, and all of Calradia will know the truth by season's end.",
+            SentOnDay = today,
+            DeliveryDay = today + DemandLetterDeliveryDays,
+            IsDelivered = false
+         });
+
+         store.Set(profile);
+         ModLog.Info($"[BASTARD] blackmail demand letter queued: {mother.Name} → player (~{demand} denars, due day {today + DemandLetterDeliveryDays}).");
       }
 
       /// <summary>
@@ -452,12 +484,15 @@ namespace CalradiaRemembers.Bastards
       /// <summary>Run the seasonal evaluation (discovery + blackmail) immediately (console testing).</summary>
       public void DebugEvaluateSeason() => EvaluateSeason();
 
-      /// <summary>Force-raise a blackmail demand on a tracked bastard NOW (console testing, bypasses the leverage gate).</summary>
+      /// <summary>Force-raise a blackmail demand on a tracked bastard NOW + send the demand letter (console testing).</summary>
       public void DebugRaiseDemand(Hero child)
       {
          if (child == null) return;
          DebugTrack(child);
          GetBlackmail(child.StringId).DemandSeason = CurrentSeason;
+
+         if (child.Mother != null)
+            SendDemandLetter(child.Mother, child, BastardBlackmailPolicy.DemandAmount(Hero.MainHero?.Gold ?? 0));
       }
 
       /// <summary>
