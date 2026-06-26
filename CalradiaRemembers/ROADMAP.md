@@ -108,7 +108,12 @@ parties don't break.
    SDK's existing reason for being — here we add one stable façade on top.)
 3. **Validation at the door.** Every external fact is normalised before it enters: magnitude clamped, **summary
    length bounded (the save-blob guard)**, hero/faction ids resolved-or-dropped, source tagged, lifetime
-   defaulted. A careless modder can neither brick a save nor inject noise into prompts.
+   defaulted. A careless modder can neither brick a save nor inject noise into prompts. **Plus dedup by event
+   Id + a per-`SourceMod` rate/throttle** so a mod that calls `Record` in a loop (or re-emits the same event
+   every tick) can't flood the store toward the save-blob limit — modelled on the ChatAI dev's
+   `processed_world_event_ids` + per-category `last_generation_day` state (the one idea from his shared code
+   that's a genuine upgrade; his `VerifiedFacts` concept was *considered and dropped* — CR's `Summary` already
+   IS the authoritative fact injected as hearsay, so there's no recap-generation drift surface to pin).
 4. **Source tag + relevance gating.** Each entry carries its `SourceMod` (debug / filter / mute a misbehaving
    source); CR's existing hearsay-locality logic decides *who* plausibly heard it, so NPCs don't recite
    everything.
@@ -357,26 +362,60 @@ for **both** a female player and a female NPC.
 **BUILT 2026-06-24 (untested in game), 378 tests green; committed `6b47a4d` + pushed 2026-06-25 in v1.14.0.** Pure `ConceptionResolver`
 (Logic, mother/father-by-sex policy, +9 tests); `PregnancyService` (renamed, explicit mother); SDK
 `ConceptionRisk` + consensual-block teaching; `EncounterContextBuilder.ResolveConceptionRisk`; bridge
-resolves the role; `cr.preg mother <name>`. **ONE piece still open — the clan SPIKE**: verify in game which
-clan the NPC-mother child lands in (`cr.preg mother <name>`, advance to birth). If `DeliverOffSpring` routes
-it to the player's clan (MainHero father), add a guarded birth-time correction to move the child to the
-mother's clan. Until verified, do not assume it lands correctly.
+resolves the role; `cr.preg mother <name>`.
 
-### Bastards — infidelity and rival claimants *(wished 2026-06-24)*
+**CLAN SPIKE RESOLVED 2026-06-25 (decompiled `HeroCreator.DeliverOffSpring` + Dramalord, via ilspycmd).** Exact
+vanilla rule: `mother == MainHero || father == MainHero → child to the PLAYER's clan; else (both NPC) → child to
+the FATHER's clan` (culture random mother/father). So NPC-mother + player-father DOES land in the player's clan
+(confirms the spike); two married NPCs go to the father's clan (vanilla patrilineality — leave it). **`Hero.IsPregnant`
+has a PUBLIC setter** (Dramalord sets it from another assembly, no reflection) — CR never set it, which is why
+the encyclopedia pregnancy ICON is absent and may be why delivery is gated. **Plan (Path A):** keep injecting
+into the engine's `_heroPregnancies` (so vanilla `DeliverOffSpring` delivers with maternal mortality — player
+exempt, NPC mothers 1.5% — and the arbitrary father, all FREE); add the one-liner `mother.IsPregnant = true`
+(icon + delivery); and at `CampaignEvents.OnGivenBirth` set `child.Clan = mother.Clan` **for CR-tracked
+pregnancies only** (vanilla NPC births keep their patrilineality). Unified rule = **child → mother's clan,
+always** — self-handles the player-mother and legit-wife-mother cases (already in the player's clan). The
+two-phase `cr.preg_birth` console test is the verdict on whether delivery happens at all; only if it never
+delivers even with the flag do we fall back to Path B (a Dramalord-style own registry + own delivery).
 
-A child conceived outside marriage is not just a stat line — it can be a **grave event**, and CR should treat
-it as one. Two consequence threads, both natural fits for systems CR already has:
-- **Proof of infidelity** — a bastard born to a married mother (or fathered by a married player) is hard
-  evidence of betrayal, and its severity is **culture-dependent** (reuse the monogame/polygame flavour of
-  `jealousy_cultures.json`): some cultures shrug, others treat it as deep dishonour. Plugs straight into the
-  **jealousy system** — the cuckolded spouse / staked NPC earns a grudge + grievance memory.
-- **A rival claimant** — a bastard who survives to adulthood may press a **claim** (to a fief, a title, even a
-  throne) and become a **natural enemy of the clan**. This is dynastic-succession + scripted-scenarios
-  territory: a bastard's coming-of-age is a perfect **trigger** (`ON_COMING_OF_AGE:bastard`) whose
-  consequences (a claim pressed, a defection, a war declared) flow as reactive rules.
+### Bastards — a hidden birth as a grave consequence layer *(wished 2026-06-24, refined 2026-06-25)*
 
-Ties together pregnancy (the source), jealousy (the scandal), dynastic succession (the claim), and the
-scripted-scenarios engine (the trigger → consequences). Design only.
+A child conceived outside marriage is not a stat line — it is a **grave event**, and the design discipline is
+that almost nothing here is new code: it **assembles levers CR already owns**. Design only — nothing built.
+
+**The unifying frame: a bastard is a SECRET with a truth-value.** The drama is the gap between what is
+CONCEALED and what is KNOWN. Two axes drive everything: **concealed ↔ discovered**, and **real ↔ fabricated**.
+
+**Four threads, each plugged into an existing system:**
+1. **Hidden birth + discovery risk → scandal.** A bastard is a CONCEALED birth (`IsConcealed`). A discovery
+   roll/trigger fires; on exposure → a **scandal**: a World-Event/rumour + a **Renown/Influence hit** (reuse the
+   existing `ApplyPlayerPublicHumiliation` levers) + NPC gossip via the influence loop. Witnesses to the affair
+   RAISE the discovery odds (reuse the witness system + jealousy's witness-gating).
+2. **The mother (or any knower) blackmails for silence** — leverage → a demand (gold/favour) → pay OR be
+   exposed. **Mirrors the Phase-3 `IntimacyLeverageHeld` pattern** → a `BastardSecretLeverage`, run through the
+   conversation/negotiation framework. Refusing raises the discovery risk / they may leak it.
+3. **The grown bastard's claim becomes public** — `ON_COMING_OF_AGE:bastard` emits a World-Event/rumour through
+   the already-shipped channel, so the realm hears of the claim. The claim itself is **prestige-gated**: the
+   bastard presses a claim on the FATHER's clan only when the MATERNAL house is **≤** the father's; a child of a
+   grander house (e.g. the player sires one on Empress Rhagaea) follows the mother's dynasty and covets nothing
+   of the player's lesser clan. Makes the trigger characterful, not mechanical.
+4. **An NPC fabricates a FALSE bastard to smear the player** — a flavoured **`SchemeKind.Slander`** (SchemeStore
+   already has it); warn/counter like the existing schemes.
+
+**The elegant convergence:** the real-discovered bastard AND the fabricated one flow through the **same**
+scandal/rumour channel; the **truth-value decides the player's DEFENCE** — a real one can only be SUPPRESSED /
+bought-off (hence the blackmail), a fabricated one can be REFUTED (and if disproven the scheme backfires on the
+plotter, like `scheme_warn`). Dramatic irony when a false accusation lands on a player who really *does* have a
+hidden bastard.
+
+**The secret-keeper set** *(decided 2026-06-25)*: knowers of a real bastard = the mother + the affair
+**witnesses** (jealousy already tracks staked NPCs) + the grown bastard. ANY knower may blackmail or leak it,
+and **discovery risk scales with the number of knowers**. Persisted as a knower-set per bastard.
+
+Ties five systems together: **pregnancy** (the source) → **jealousy** (the scandal) → **witnesses** (who knows)
+→ **dynastic succession** (the claim) → **scripted scenarios** (the trigger → consequences engine), surfaced via
+the **world-event/rumour** channel. The clan a bastard is born into is settled by the pregnancy plan above
+(child → mother's clan, always).
 
 ### Lean prompt for small / local models *(wished 2026-06-23)*
 
