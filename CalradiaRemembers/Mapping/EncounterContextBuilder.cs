@@ -116,7 +116,9 @@ namespace CalradiaRemembers.Mapping
          CompanionMoodNote = ResolveCompanionMoodNote(hero),
          CompanionCampNote = ResolveCompanionCampNote(hero),
          IntimacyBargainEligible = IntimacyBargainEligibility.IsEligible(hero),
-         IntimacyLeverageActive = IntimacyBargainEligibility.IsEligible(hero) && profile?.IntimacyLeverageHeld == true
+         IntimacyLeverageActive = IntimacyBargainEligibility.IsEligible(hero) && profile?.IntimacyLeverageHeld == true,
+         BastardMotherTone = ResolveBastardMotherTone(hero),
+         BastardBlackmailDemand = Bastards.BastardBehavior.Instance?.BlackmailDemandOver(hero) ?? 0
          // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
          // coin, and naming the exact sum broke immersion. Affordability is enforced by the
          // bridge when the hire is executed, not foreseen in the prompt.
@@ -523,6 +525,25 @@ namespace CalradiaRemembers.Mapping
       {
          try { return InterceptionBehavior.Instance?.ConsumeInterceptionReason(hero); }
          catch { return null; }
+      }
+
+      /// <summary>
+      ///   When this NPC is the mother of a still-hidden bastard of the player's, her disposition as a tone
+      ///   string ("mercenary"/"longing"/"resentful"/"pragmatic") so the prompt can have her raise the child
+      ///   in character. Null otherwise. The conversation is one of TWO surfaces — the demand letter is the
+      ///   other — and paying is settled by the bridge, never by the NPC's word.
+      /// </summary>
+      private static string ResolveBastardMotherTone(Hero hero)
+      {
+         var bastards = Bastards.BastardBehavior.Instance;
+         if (bastards == null || hero == null || !bastards.IsBastardMotherOfHidden(hero)) return null;
+
+         return bastards.MotherDisposition(hero) switch {
+            BastardMotherDisposition.Mercenary => "mercenary",
+            BastardMotherDisposition.Longing => "longing",
+            BastardMotherDisposition.Resentful => "resentful",
+            _ => "pragmatic"
+         };
       }
 
       /// <summary>

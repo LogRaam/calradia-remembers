@@ -293,6 +293,10 @@ namespace CalradiaRemembers.Bastards
          }
       }
 
+      /// <summary>True when this NPC is the mother of a still-concealed bastard of the player's (gates the conversation teaching).</summary>
+      public bool IsBastardMotherOfHidden(Hero npc)
+         => npc != null && _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).Any(id => FindHero(id)?.Mother == npc);
+
       /// <summary>The mother's disposition toward the player (trait- and regard-driven; pure <see cref="BastardMotherPolicy" />).</summary>
       public BastardMotherDisposition MotherDisposition(Hero mother)
       {
