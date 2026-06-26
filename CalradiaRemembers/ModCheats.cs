@@ -2652,7 +2652,52 @@ namespace CalradiaRemembers
          return $"[PREG_BIRTH] ARMED — {mother.Name} conceived on day {today} (had {before} children, IsPregnant={mother.IsPregnant}). " + "Advance ~84 days WITHOUT reloading (the marker is in memory), then run cr.preg_birth again to verify delivery.";
       }
 
+      /// <summary>
+      ///   cr.bastard_check &lt;motherName&gt; &lt;fatherName&gt;
+      ///   Read-only diagnostic for the bastards prestige gate ([[project-bastards]]): maps both heroes'
+      ///   clans to a prestige score and prints whether a grown bastard would press a claim on the FATHER's
+      ///   clan or follow the MOTHER's grander dynasty, plus the discovery risk for a few knower counts.
+      ///   Mutates nothing. The last token is the father; everything before it is the mother's name.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bastard_check", "cr")]
+      public static string BastardCheck(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         if (args == null || args.Count < 2)
+            return "Usage: cr.bastard_check <motherName> <fatherName>";
+
+         Hero father = ResolveHero(new List<string> {args[args.Count - 1]});
+         Hero mother = ResolveHero(args.GetRange(0, args.Count - 1));
+
+         if (mother == null || father == null)
+            return "Need two heroes — cr.bastard_check <motherName> <fatherName>.";
+
+         int maternal = ClanPrestige(mother.Clan);
+         int paternal = ClanPrestige(father.Clan);
+         BastardClaimVerdict verdict = BastardPrestigePolicy.Resolve(maternal, paternal);
+
+         var sb = new StringBuilder();
+         sb.AppendLine($"Bastard of {mother.Name} (mother) x {father.Name} (father):");
+         sb.AppendLine($"  maternal house {mother.Clan?.Name?.ToString() ?? "—"}: prestige {maternal}");
+         sb.AppendLine($"  paternal house {father.Clan?.Name?.ToString() ?? "—"}: prestige {paternal}");
+         sb.AppendLine($"  claim verdict: {verdict} (the child is born into the MOTHER's clan regardless)");
+         sb.AppendLine($"  discovery risk by #knowers: 1={BastardDiscoveryPolicy.DiscoveryChancePercent(1)}% " +
+                       $"3={BastardDiscoveryPolicy.DiscoveryChancePercent(3)}% " +
+                       $"6={BastardDiscoveryPolicy.DiscoveryChancePercent(6)}%");
+
+         return sb.ToString();
+      }
+
       #region private
+
+      /// <summary>An abstract prestige score for a clan (tier-weighted + renown + a ruling-dynasty bonus).</summary>
+      private static int ClanPrestige(Clan clan)
+      {
+         if (clan == null) return 0;
+         bool ruling = clan.Kingdom != null && clan.Kingdom.RulingClan == clan;
+
+         return BastardPrestigePolicy.PrestigeScore(clan.Tier, (int) clan.Renown, ruling);
+      }
 
       /// <summary>A synthetic delivered letter for the cr.letter_* test commands.</summary>
       private static PendingLetter BuildTestLetter(Hero hero, int today) => new() {
