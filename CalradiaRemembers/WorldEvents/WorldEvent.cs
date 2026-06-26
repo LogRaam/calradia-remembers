@@ -28,7 +28,13 @@ namespace CalradiaRemembers.WorldEvents
       Affront,
 
       /// <summary>Bad blood between two lords, inferred from their standing — ambient gossip.</summary>
-      Rivalry
+      Rivalry,
+
+      /// <summary>
+      ///   A hidden birth come to light — a bastard scandal that dents the player's name and spreads as
+      ///   gossip. Added last to preserve the serialized ordinals of existing saves.
+      /// </summary>
+      Scandal
    }
 
    /// <summary>

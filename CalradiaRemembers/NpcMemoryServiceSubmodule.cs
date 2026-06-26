@@ -74,6 +74,10 @@ namespace CalradiaRemembers
          // Pregnancy birth: a CR-created pregnancy's child is placed in the MOTHER's clan at birth (the
          // bastard rule). Tracks CR's own conceptions only, so vanilla NPC patrilineality is untouched.
          campaignStarter.AddBehavior(new GameState.PregnancyBirthBehavior());
+         // Bastards (consequence layer): tags the player's non-marital children and, once a season, may bring
+         // a hidden one to light — a scandal recorded into the world-event store (read at runtime, so the
+         // registration order is harmless) + a hit to the player's standing. Console: cr.bastards / cr.bastard_*.
+         campaignStarter.AddBehavior(new Bastards.BastardBehavior());
          // World-event / rumor store (v1.2): persisted log of dated happenings feeding street
          // rumors, NPC awareness, and the player's chronicle. Feeders register separately.
          campaignStarter.AddBehavior(new WorldEvents.WorldEventStore());

@@ -16,40 +16,40 @@ namespace CalradiaRemembers.Tests
     public sealed class BastardDiscoveryPolicyTests
     {
         [Test]
-        public void GIVEN_no_one_knows_WHEN_rolling_THEN_the_secret_cannot_leak()
+        public void GIVEN_an_infant_WHEN_a_season_passes_THEN_the_risk_is_only_the_floor()
         {
-            BastardDiscoveryPolicy.DiscoveryChancePercent(0).Should().Be(0);
-            BastardDiscoveryPolicy.DiscoveryChancePercent(-3).Should().Be(0);
+            BastardDiscoveryPolicy.DiscoveryChancePercent(0)
+                .Should().Be(BastardDiscoveryPolicy.BaseSeasonalPercent);
         }
 
         [Test]
-        public void GIVEN_a_single_knower_WHEN_rolling_THEN_the_risk_is_the_base_leak_rate()
+        public void GIVEN_an_older_child_WHEN_a_season_passes_THEN_the_risk_has_grown_with_age()
         {
-            BastardDiscoveryPolicy.DiscoveryChancePercent(1)
-                .Should().Be(BastardDiscoveryPolicy.PerKnowerLeakPercent);
+            //Arrange — base 3 + 5 years * 2 = 13 %.
+            BastardDiscoveryPolicy.DiscoveryChancePercent(5)
+                .Should().Be(BastardDiscoveryPolicy.BaseSeasonalPercent + 5 * BastardDiscoveryPolicy.PerYearPercent);
         }
 
         [Test]
-        public void GIVEN_more_knowers_WHEN_rolling_THEN_the_risk_compounds()
+        public void GIVEN_each_added_year_WHEN_evaluating_THEN_the_risk_never_falls()
         {
-            //Arrange — 1-(0.95^n): two knowers ≈ 10 %, five ≈ 23 %.
-            BastardDiscoveryPolicy.DiscoveryChancePercent(2).Should().Be(10);
-            BastardDiscoveryPolicy.DiscoveryChancePercent(5).Should().Be(23);
+            for (int age = 1; age <= 20; age++)
+                BastardDiscoveryPolicy.DiscoveryChancePercent(age)
+                    .Should().BeGreaterThanOrEqualTo(BastardDiscoveryPolicy.DiscoveryChancePercent(age - 1));
         }
 
         [Test]
-        public void GIVEN_each_added_knower_WHEN_rolling_THEN_the_risk_never_falls()
+        public void GIVEN_a_long_kept_secret_WHEN_evaluating_THEN_the_seasonal_risk_is_capped()
         {
-            for (int n = 1; n <= 12; n++)
-                BastardDiscoveryPolicy.DiscoveryChancePercent(n)
-                    .Should().BeGreaterThanOrEqualTo(BastardDiscoveryPolicy.DiscoveryChancePercent(n - 1));
-        }
-
-        [Test]
-        public void GIVEN_a_crowd_of_knowers_WHEN_rolling_THEN_exposure_is_capped_short_of_certainty()
-        {
-            BastardDiscoveryPolicy.DiscoveryChancePercent(100)
+            BastardDiscoveryPolicy.DiscoveryChancePercent(30)
                 .Should().Be(BastardDiscoveryPolicy.MaxDiscoveryPercent);
+        }
+
+        [Test]
+        public void GIVEN_a_nonsensical_negative_age_WHEN_evaluating_THEN_it_floors_at_the_base()
+        {
+            BastardDiscoveryPolicy.DiscoveryChancePercent(-3)
+                .Should().Be(BastardDiscoveryPolicy.BaseSeasonalPercent);
         }
     }
 }

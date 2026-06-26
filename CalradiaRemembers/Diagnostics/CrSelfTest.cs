@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Dynasty;
 using CalradiaRemembers.GameState;
@@ -62,6 +63,7 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("scheme_assist",    Severity.Heavy,        "plot + regard -> PlayerAssists -> assert the plot advanced",       TestSchemeAssist),
             new SelfTest("pregnancy",        Severity.Heavy,        "fertile female -> TryConceive(force) -> assert pregnant",          TestPregnancy),
             new SelfTest("companion_mission",Severity.Heavy,        "dispatch a companion -> assert away -> resolve -> assert home",    TestCompanionMission),
+            new SelfTest("bastard_discovery",Severity.Heavy,        "tag a bastard -> Discover -> assert flag + a Scandal world-event",  TestBastardDiscovery),
             new SelfTest("declare_war",      Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it",         TestDeclareWar),
             new SelfTest("scenario",         Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals",       TestScenario),
         };
@@ -504,6 +506,29 @@ namespace CalradiaRemembers.Diagnostics
             bool home = !missions.IsAway(companion.StringId) && companion.PartyBelongedTo == MobileParty.MainParty;
             t.Note($"companion={companion.Name}");
             t.Expect("returnedHome", home, true);
+            return t.Line();
+        }
+
+        private static string TestBastardDiscovery(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("bastard_discovery");
+            if (t.Abort(BastardBehavior.Instance == null, "BastardBehavior not active")) return t.Line();
+            if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+            Hero subject = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+            if (t.Skip(subject == null, "no hero to stand in as a bastard")) return t.Line();
+
+            // Tag a stand-in bastard and force the discovery (no real birth/season needed)
+            BastardBehavior.Instance.DebugTrack(subject);
+            int eventsBefore = WorldEventStore.Instance.Count;
+
+            bool discovered = BastardBehavior.Instance.Discover(subject);
+
+            int eventsAfter = WorldEventStore.Instance.Count;
+            t.Note($"subject={subject.Name}, events {eventsBefore}->{eventsAfter}");
+            t.Expect("discovered", discovered, true);
+            t.Expect("flagPersisted", BastardBehavior.Instance.IsDiscovered(subject.StringId), true);
+            t.Expect("scandalRecorded", eventsAfter > eventsBefore, true);
             return t.Line();
         }
 

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Chronicle;
@@ -2686,6 +2687,64 @@ namespace CalradiaRemembers
                        $"6={BastardDiscoveryPolicy.DiscoveryChancePercent(6)}%");
 
          return sb.ToString();
+      }
+
+      /// <summary>
+      ///   cr.bastards — lists the player's tracked bastards: name, hidden/discovered, age, and the
+      ///   per-season discovery chance at that age. Diagnostic only.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bastards", "cr")]
+      public static string ListBastards(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+
+         BastardBehavior b = BastardBehavior.Instance;
+         if (b == null) return "Bastard system not active.";
+         if (b.Bastards.Count == 0)
+            return "No tracked bastards. (They form at a non-marital CR birth, or via cr.bastard_tag <name>.)";
+
+         var sb = new StringBuilder();
+         sb.AppendLine($"{b.Bastards.Count} tracked bastard(s):");
+         foreach (KeyValuePair<string, bool> kv in b.Bastards)
+         {
+            Hero h = Hero.AllAliveHeroes.FirstOrDefault(x => x.StringId == kv.Key);
+            string name = h?.Name?.ToString() ?? kv.Key;
+            string detail = h != null
+               ? $"age {h.Age:0}, {BastardDiscoveryPolicy.DiscoveryChancePercent((int) h.Age)}%/season"
+               : "—";
+            sb.AppendLine($"  {name}: {(kv.Value ? "DISCOVERED" : "hidden")} ({detail})");
+         }
+
+         return sb.ToString();
+      }
+
+      /// <summary>cr.bastard_tag [name] — force-tag a hero as a concealed player bastard (testing, no birth needed).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bastard_tag", "cr")]
+      public static string TagBastard(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         if (BastardBehavior.Instance == null) return "Bastard system not active.";
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         BastardBehavior.Instance.DebugTrack(hero);
+
+         return $"{hero.Name} is now tracked as a concealed bastard (age {hero.Age:0}). " +
+                "Run cr.bastard_season to roll discovery, or cr.bastards to list.";
+      }
+
+      /// <summary>cr.bastard_season — runs the seasonal discovery evaluation now (testing, skips waiting a season).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bastard_season", "cr")]
+      public static string RunBastardSeason(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         if (BastardBehavior.Instance == null) return "Bastard system not active.";
+
+         BastardBehavior.Instance.DebugEvaluateSeason();
+
+         return "Seasonal discovery evaluated. Use cr.bastards to see who was exposed; a discovery records a " +
+                "Scandal in the world-event store (cr.chronicle / talk to a nearby NPC) and dents your standing.";
       }
 
       #region private
