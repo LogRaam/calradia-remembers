@@ -281,6 +281,26 @@ namespace CalradiaRemembers.Bastards
          if (victim != null) _bastards.Remove(victim.StringId);
       }
 
+      // ── Blackmail (the mother's leverage while the secret is hidden) ──────
+
+      /// <summary>
+      ///   The gold an NPC could demand from the player for her silence right now, or 0. She holds leverage
+      ///   when she is the mother of a still-CONCEALED bastard of the player's (pure
+      ///   <see cref="BastardBlackmailPolicy" />). A query — mutates nothing.
+      /// </summary>
+      public int BlackmailDemandOver(Hero npc)
+      {
+         if (npc == null || Hero.MainHero == null) return 0;
+
+         string childId = _bastards.Keys.FirstOrDefault(id => FindHero(id)?.Mother == npc);
+         if (childId == null) return 0;
+
+         bool concealed = !_bastards[childId];
+         if (!BastardBlackmailPolicy.HoldsLeverage(concealed, npc.IsAlive, npc == Hero.MainHero.Spouse)) return 0;
+
+         return BastardBlackmailPolicy.DemandAmount(Hero.MainHero.Gold);
+      }
+
       private static Hero FindHero(string id)
          => string.IsNullOrEmpty(id)
             ? null

@@ -2769,6 +2769,27 @@ namespace CalradiaRemembers
             : $"{hero.Name} follows the mother's grander dynasty — no claim. (Verdict: {verdict}.)";
       }
 
+      /// <summary>
+      ///   cr.bastard_blackmail [name] — reports whether an NPC holds a bastard secret over the player (she is
+      ///   the mother of a still-concealed bastard of yours) and, if so, the gold she could demand for silence.
+      ///   Diagnostic only. Tag one first with cr.bastard_tag if testing without a real birth.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("bastard_blackmail", "cr")]
+      public static string CheckBastardBlackmail(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         if (BastardBehavior.Instance == null) return "Bastard system not active.";
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         int demand = BastardBehavior.Instance.BlackmailDemandOver(hero);
+
+         return demand > 0
+            ? $"{hero.Name} holds a bastard secret over you — she could demand ~{demand} denars for her silence."
+            : $"{hero.Name} holds no bastard leverage over you (not the mother of a concealed bastard of yours).";
+      }
+
       #region private
 
       /// <summary>An abstract prestige score for a clan (tier-weighted + renown + a ruling-dynasty bonus).</summary>
