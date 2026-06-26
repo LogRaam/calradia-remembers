@@ -65,6 +65,7 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("companion_mission",Severity.Heavy,        "dispatch a companion -> assert away -> resolve -> assert home",    TestCompanionMission),
             new SelfTest("bastard_discovery",Severity.Heavy,        "tag a bastard -> Discover -> assert flag + a Scandal world-event",  TestBastardDiscovery),
             new SelfTest("bastard_claim",    Severity.Heavy,        "force a grown bastard's claim -> assert hostility + claim world-event", TestBastardClaim),
+            new SelfTest("bastard_scandal_culture", Severity.Heavy, "discover a bastard -> assert the scandal magnitude is culture-scaled", TestBastardScandalCulture),
             new SelfTest("declare_war",      Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it",         TestDeclareWar),
             new SelfTest("scenario",         Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals",       TestScenario),
         };
@@ -554,6 +555,28 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"subject={subject.Name}, rel {relBefore}->{relAfter}, events {eventsBefore}->{eventsAfter}");
             t.Expect("turnedHostile", relAfter < relBefore, true);
             t.Expect("claimRecorded", eventsAfter > eventsBefore, true);
+            return t.Line();
+        }
+
+        private static string TestBastardScandalCulture(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("bastard_scandal_culture");
+            if (t.Abort(BastardBehavior.Instance == null, "BastardBehavior not active")) return t.Line();
+            if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+            Hero subject = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+            if (t.Skip(subject == null, "no hero to stand in as a bastard")) return t.Line();
+
+            BastardBehavior.Instance.DebugTrack(subject);
+            int expected = BastardBehavior.Instance.DebugScaledScandalMagnitude();
+
+            BastardBehavior.Instance.Discover(subject);
+
+            WorldEvent scandal = WorldEventStore.Instance.GetPlayerChronicle()
+                                                .LastOrDefault(e => e.Type == WorldEventType.Scandal);
+            t.Note($"subject={subject.Name}, expected magnitude {expected}");
+            t.Expect("scandalRecorded", scandal != null, true);
+            t.Expect("magnitudeCultureScaled", scandal?.Magnitude, expected);
             return t.Line();
         }
 

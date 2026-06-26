@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.WorldEvents;
@@ -194,16 +195,32 @@ namespace CalradiaRemembers.Bastards
          _blackmail.Remove(child.StringId); // once it is out, there is nothing left to extort
          RecordScandal(child);
 
+         // The dishonour cuts as deep as the player's CULTURE makes it (monogamous → grave, permissive → mild).
+         JealousyOutrage outrage = PlayerCultureOutrage();
+         int renown = BastardScandalPolicy.Scale(ScandalRenownLoss, outrage);
+         int influence = BastardScandalPolicy.Scale(ScandalInfluenceLoss, outrage);
+
          if (Hero.MainHero?.Clan != null)
          {
-            GainRenownAction.Apply(Hero.MainHero, -ScandalRenownLoss, true);
-            ChangeClanInfluenceAction.Apply(Hero.MainHero.Clan, -ScandalInfluenceLoss);
+            GainRenownAction.Apply(Hero.MainHero, -renown, true);
+            ChangeClanInfluenceAction.Apply(Hero.MainHero.Clan, -influence);
          }
 
-         ModLog.Info($"[BASTARD] discovered: {child.Name} — scandal recorded, renown-{ScandalRenownLoss} influence-{ScandalInfluenceLoss}.");
+         ModLog.Info($"[BASTARD] discovered: {child.Name} — scandal recorded ({outrage} culture), renown-{renown} influence-{influence}.");
 
          return true;
       }
+
+      /// <summary>The player culture's outrage at infidelity, which scales how grave a discovered bastard is.</summary>
+      private static JealousyOutrage PlayerCultureOutrage()
+         => JealousyCultureLoader.GetCulture(Hero.MainHero?.Culture?.Name?.ToString()).Outrage;
+
+      /// <summary>The scandal's reach (magnitude), scaled by the player culture's outrage at infidelity.</summary>
+      private static int ScaledScandalMagnitude()
+         => BastardScandalPolicy.Scale(ScandalMagnitude, PlayerCultureOutrage());
+
+      /// <summary>The culture-scaled scandal magnitude, exposed for the console self-test.</summary>
+      public int DebugScaledScandalMagnitude() => ScaledScandalMagnitude();
 
       private static void RecordScandal(Hero child)
       {
@@ -224,7 +241,7 @@ namespace CalradiaRemembers.Bastards
          store.Record(new WorldEvent {
             Type = WorldEventType.Scandal,
             Day = (int) CampaignTime.Now.ToDays,
-            Magnitude = ScandalMagnitude,
+            Magnitude = ScaledScandalMagnitude(),
             InvolvesPlayer = true,
             ActorIds = actors,
             FactionIds = factions,
