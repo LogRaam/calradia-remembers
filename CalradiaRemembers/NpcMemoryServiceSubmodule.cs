@@ -71,6 +71,9 @@ namespace CalradiaRemembers
          // Jealousy (Sprint 24): a romantic act can provoke a third party with a real stake.
          // Knowledge-gated, probabilistic, delayed; reactions are a grudge + optional threat letter.
          campaignStarter.AddBehavior(new Jealousy.JealousyBehavior());
+         // Pregnancy birth: a CR-created pregnancy's child is placed in the MOTHER's clan at birth (the
+         // bastard rule). Tracks CR's own conceptions only, so vanilla NPC patrilineality is untouched.
+         campaignStarter.AddBehavior(new GameState.PregnancyBirthBehavior());
          // World-event / rumor store (v1.2): persisted log of dated happenings feeding street
          // rumors, NPC awareness, and the player's chronicle. Feeders register separately.
          campaignStarter.AddBehavior(new WorldEvents.WorldEventStore());

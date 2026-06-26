@@ -114,6 +114,13 @@ namespace CalradiaRemembers.GameState
 
          list.Add(pregnancy);
 
+         // Set the vanilla pregnancy flag (public setter, confirmed via Dramalord) so the encyclopedia icon
+         // shows and the engine's delivery recognises her — CR's reflective add alone never set it.
+         mother.IsPregnant = true;
+
+         // Remember this is a CR conception so the child is placed in the MOTHER's clan at birth.
+         PregnancyBirthBehavior.Instance?.TrackConception(mother);
+
          return true;
       }
 
