@@ -2540,13 +2540,13 @@ namespace CalradiaRemembers
          return JealousyBehavior.Instance.DebugCompetition();
       }
 
-      // ── Self-test harness (cr.testall / cr.test_*) ────────────────────────
+      // ── Self-test harness (cr.testall / cr.test <name>) ───────────────────
 
       /// <summary>
       ///   cr.testall
-      ///   Runs all registered end-to-end self-tests and prints a [SELFTEST] summary.
+      ///   Runs every registered end-to-end self-test and prints a [SELFTEST] summary.
       ///   Each test exercises the real service/bridge pipeline and logs PASS/FAIL/MANUAL.
-      ///   WARNING: mutations ahead — copy your save or reload when done.
+      ///   WARNING: mutations ahead (incl. wars / scenario seals) — copy your save or reload when done.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("testall", "cr")]
       public static string RunAllSelfTests(List<string> args)
@@ -2557,46 +2557,99 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.test_providegold
-      ///   Seeds a ProvideGold quest on the first available lord, then exercises the take_gold path
-      ///   and asserts the quest is stamped satisfied. Logs [SELFTEST] providegold: PASS/FAIL.
+      ///   cr.test [name|list]
+      ///   Runs one self-test by name (e.g. cr.test scenario), or lists them (name + severity +
+      ///   description) with no argument or "list". Adding a new test needs NO new console command —
+      ///   it registers in CrSelfTest and is reachable here automatically.
       /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("test_providegold", "cr")]
-      public static string TestProvideGold(List<string> args)
+      [CommandLineFunctionality.CommandLineArgumentFunction("test", "cr")]
+      public static string RunSelfTest(List<string> args)
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
 
-         return CrSelfTest.Run("providegold", behavior);
+         string name = args is {Count: > 0}
+            ? args[0].Trim()
+            : null;
+
+         if (string.IsNullOrEmpty(name) || name.Equals("list", StringComparison.OrdinalIgnoreCase))
+            return CrSelfTest.List();
+
+         return CrSelfTest.Run(name, behavior);
       }
 
+      // ── Deferred delivery test (can't be synchronous — births take game-days) ──
+
+      private static string _pregBirthMotherId;
+      private static int _pregBirthArmDay = -1;
+      private static int _pregBirthChildrenBefore;
+
       /// <summary>
-      ///   cr.test_scheme_warn
-      ///   Plants a Slander scheme between two lords via ForcePlot, warns the target via TargetHeeds,
-      ///   and asserts the plotter loses ≥ 20 relation with the player and the target gains ≥ 16.
-      ///   Logs [SELFTEST] scheme_warn: PASS/FAIL with the actual deltas.
+      ///   cr.preg_birth [name|reset]
+      ///   Two-phase test that a CR-created pregnancy is actually DELIVERED by the engine (the open
+      ///   question behind pregnancy's Hero.IsPregnant=False). First call ARMS: it force-conceives a
+      ///   fertile female (named, or auto-picked) and records her child count. Advance ~84 days (fast-
+      ///   forward, NO reload — the marker is in memory), then call again to CHECK: a new child = PASS
+      ///   (the IsPregnant flag is cosmetic); 84+ days and none = FAIL (the flag blocks delivery).
+      ///   Pass "reset" to re-arm. Not part of cr.testall — a birth cannot resolve inside one command.
       /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("test_scheme_warn", "cr")]
-      public static string TestSchemeWarn(List<string> args)
+      [CommandLineFunctionality.CommandLineArgumentFunction("preg_birth", "cr")]
+      public static string PregBirthTest(List<string> args)
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
 
-         return CrSelfTest.Run("scheme_warn", behavior);
-      }
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+         bool reset = args is {Count: > 0} && args[0].Equals("reset", StringComparison.OrdinalIgnoreCase);
 
-      /// <summary>
-      ///   cr.test_succession
-      ///   Simulates player death: applies succession (predecessor = player, heir = first clan member
-      ///   or first lord), then asserts that private events are dropped from all profiles and the
-      ///   public/political events survive. Requires at least one profile with private events
-      ///   (open a captive scene first if needed). Logs [SELFTEST] succession: PASS/FAIL.
-      ///   WARNING: mutates ALL stored profiles — reload after testing.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("test_succession", "cr")]
-      public static string TestSuccession(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         // ── PHASE 2 — armed: has the pregnancy been delivered? ──
+         if (!reset && _pregBirthMotherId != null)
+         {
+            Hero mom = Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == _pregBirthMotherId);
 
-         return CrSelfTest.Run("succession", behavior);
+            if (mom == null)
+            {
+               string lost = _pregBirthMotherId;
+               _pregBirthMotherId = null;
+
+               return $"Armed mother ({lost}) not found (reloaded, or she died). Marker cleared — run cr.preg_birth to arm again.";
+            }
+
+            int childrenNow = mom.Children?.Count ?? 0;
+            int elapsed = today - _pregBirthArmDay;
+
+            if (childrenNow > _pregBirthChildrenBefore)
+            {
+               _pregBirthMotherId = null;
+
+               return $"[PREG_BIRTH] PASS — {mom.Name} delivered: {_pregBirthChildrenBefore} -> {childrenNow} children after {elapsed} days. " + "The reflective pregnancy IS delivered despite Hero.IsPregnant=False (the flag is cosmetic).";
+            }
+
+            if (elapsed < 84)
+               return $"[PREG_BIRTH] PENDING — {mom.Name}: {elapsed}/84 days elapsed, still {childrenNow} children. Advance more time (no reload), then re-run.";
+
+            return $"[PREG_BIRTH] FAIL — {mom.Name}: {elapsed} days passed and no new child ({_pregBirthChildrenBefore} -> {childrenNow}). " + "The reflectively-created pregnancy was NOT delivered — Hero.IsPregnant=False blocks the engine. PregnancyService must also set the flag.";
+         }
+
+         // ── PHASE 1 — arm: conceive on a fertile female and record the baseline ──
+         List<string> nameTokens = reset && args != null
+            ? args.GetRange(1, args.Count - 1)
+            : args ?? new List<string>();
+         Hero mother = nameTokens.Count > 0
+            ? ResolveHero(nameTokens)
+            : Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsFemale && !h.IsPregnant && h.Age >= 18f && h.Age <= 45f);
+
+         if (mother == null) return "No fertile (female, 18-45, not pregnant) NPC found. Pass a name, or none to auto-pick.";
+
+         int before = mother.Children?.Count ?? 0;
+         string note = PregnancyService.TryConceive(mother, Hero.MainHero, true);
+
+         if (note == null)
+            return $"{mother.Name}: conception did NOT take (ineligible — already pregnant, recently gave birth, or out of 18-45). Try another.";
+
+         _pregBirthMotherId = mother.StringId;
+         _pregBirthArmDay = today;
+         _pregBirthChildrenBefore = before;
+
+         return $"[PREG_BIRTH] ARMED — {mother.Name} conceived on day {today} (had {before} children, IsPregnant={mother.IsPregnant}). " + "Advance ~84 days WITHOUT reloading (the marker is in memory), then run cr.preg_birth again to verify delivery.";
       }
 
       #region private
