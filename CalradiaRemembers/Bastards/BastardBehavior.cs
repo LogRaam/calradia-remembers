@@ -29,10 +29,11 @@ using TaleWorlds.Core;
 
 namespace CalradiaRemembers.Bastards
 {
-   /// <summary>Per-bastard blackmail clock: the season a demand was raised (-1 none) and the season paid silence runs to (-1 none).</summary>
+   /// <summary>Per-bastard blackmail clock: the season a demand was raised (-1 none), the gold it asks, and the season paid silence runs to.</summary>
    internal sealed class BlackmailState
    {
       public int DemandSeason { get; set; } = -1;
+      public int DemandAmount { get; set; }
       public int SilentUntil { get; set; } = -1;
    }
 
@@ -268,10 +269,10 @@ namespace CalradiaRemembers.Bastards
          if (BastardBlackmailPolicy.CanRaiseDemand(season, bs.SilentUntil, bs.DemandSeason >= 0))
          {
             bs.DemandSeason = season;
-            int demand = BastardBlackmailPolicy.DemandAmount(Hero.MainHero?.Gold ?? 0);
-            ModLog.Info($"[BASTARD] {mother.Name} raises a blackmail demand over {child.Name}: ~{demand} denars for silence " +
+            bs.DemandAmount = BastardBlackmailPolicy.DemandAmount(Hero.MainHero?.Gold ?? 0);
+            ModLog.Info($"[BASTARD] {mother.Name} raises a blackmail demand over {child.Name}: ~{bs.DemandAmount} denars for silence " +
                         $"(pay within {BastardBlackmailPolicy.DemandDeadlineSeasons} seasons).");
-            SendDemandLetter(mother, child, demand);
+            SendDemandLetter(mother, child, bs.DemandAmount);
          }
       }
 
@@ -367,17 +368,21 @@ namespace CalradiaRemembers.Bastards
          {
             Hero child = FindHero(childId);
             if (child?.Mother != mother) continue;
-            if (!BastardBlackmailPolicy.HoldsLeverage(true, mother.IsAlive, mother == Hero.MainHero.Spouse)) continue;
 
-            int amount = BastardBlackmailPolicy.DemandAmount(Hero.MainHero.Gold);
+            BlackmailState bs = GetBlackmail(childId);
+            if (bs.DemandSeason < 0) continue; // only an active demand can be paid off
+
+            int amount = bs.DemandAmount > 0
+               ? bs.DemandAmount
+               : BastardBlackmailPolicy.DemandAmount(Hero.MainHero.Gold);
             if (Hero.MainHero.Gold >= amount)
             {
                GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, mother, amount, false);
                gold += amount;
             }
 
-            BlackmailState bs = GetBlackmail(childId);
             bs.DemandSeason = -1;
+            bs.DemandAmount = 0;
             bs.SilentUntil = BastardBlackmailPolicy.SilenceUntil(season);
             settled++;
          }
@@ -386,6 +391,38 @@ namespace CalradiaRemembers.Bastards
             ModLog.Info($"[BASTARD] player paid {mother.Name} {gold} denars for silence over {settled} bastard(s) until season {BastardBlackmailPolicy.SilenceUntil(season)}.");
 
          return (settled, gold);
+      }
+
+      /// <summary>
+      ///   When the player gives a mercenary bastard-mother at least her standing demand (e.g. via the Give Gold
+      ///   button), buy her silence for the grace period — no extra transfer, the gold already moved. Returns
+      ///   true when a demand was settled. Called from the gold-payment path so paying her IS settling the secret.
+      /// </summary>
+      public bool SettleByPayment(Hero mother, int amountPaid)
+      {
+         if (mother == null || Hero.MainHero == null || amountPaid <= 0) return false;
+         if (MotherDisposition(mother) != BastardMotherDisposition.Mercenary) return false;
+
+         int season = CurrentSeason;
+         var settled = false;
+
+         foreach (string childId in _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).ToList())
+         {
+            Hero child = FindHero(childId);
+            if (child?.Mother != mother) continue;
+
+            BlackmailState bs = GetBlackmail(childId);
+            if (bs.DemandSeason < 0 || amountPaid < bs.DemandAmount) continue;
+
+            bs.DemandSeason = -1;
+            bs.DemandAmount = 0;
+            bs.SilentUntil = BastardBlackmailPolicy.SilenceUntil(season);
+            settled = true;
+         }
+
+         if (settled) ModLog.Info($"[BASTARD] payment of {amountPaid} to {mother.Name} bought her silence.");
+
+         return settled;
       }
 
       /// <summary>
@@ -559,10 +596,12 @@ namespace CalradiaRemembers.Bastards
       {
          if (child == null) return;
          DebugTrack(child);
-         GetBlackmail(child.StringId).DemandSeason = CurrentSeason;
 
-         if (child.Mother != null)
-            SendDemandLetter(child.Mother, child, BastardBlackmailPolicy.DemandAmount(Hero.MainHero?.Gold ?? 0));
+         BlackmailState bs = GetBlackmail(child.StringId);
+         bs.DemandSeason = CurrentSeason;
+         bs.DemandAmount = BastardBlackmailPolicy.DemandAmount(Hero.MainHero?.Gold ?? 0);
+
+         if (child.Mother != null) SendDemandLetter(child.Mother, child, bs.DemandAmount);
       }
 
       /// <summary>

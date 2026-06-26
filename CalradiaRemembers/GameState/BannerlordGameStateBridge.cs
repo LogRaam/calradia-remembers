@@ -1130,9 +1130,16 @@ namespace CalradiaRemembers.GameState
          {
             GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, amount);
             StampProvideGoldIfOutstanding(npcHero, amount); // any payment satisfies a ProvideGold quest
-            ModLog.Info($"[ACTION] take_gold: player → {npcHero.Name} {amount} gold");
 
-            return new ActionOutcome($"You give {npcHero.Name} {amount} denars (purse: {Hero.MainHero.Gold}).", false);
+            // Paying a scheming bastard-mother her demand IS settling the blackmail (buys her silence).
+            bool silenced = Bastards.BastardBehavior.Instance?.SettleByPayment(npcHero, amount) == true;
+            ModLog.Info($"[ACTION] take_gold: player → {npcHero.Name} {amount} gold{(silenced ? " (bastard silence bought)" : "")}");
+
+            string tail = silenced
+               ? " Her silence is bought — for now."
+               : "";
+
+            return new ActionOutcome($"You give {npcHero.Name} {amount} denars (purse: {Hero.MainHero.Gold}).{tail}", false);
          }
 
          // No hero recipient (e.g. a synthesized bandit captor) — the coin is simply taken.
