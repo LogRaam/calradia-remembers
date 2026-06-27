@@ -20,14 +20,23 @@ namespace CalradiaRemembers
       Deed
    }
 
-   /// <summary>The outcome of feeding an event through <see cref="Feed.Record" />.</summary>
+   /// <summary>The outcome of feeding an event through <see cref="Feed" /> (record / update / retract).</summary>
    public enum FeedResult
    {
       Recorded,
       RejectedInvalid,
       RejectedDuplicate,
       RejectedThrottled,
-      RejectedNoStore
+      RejectedNoStore,
+
+      /// <summary>An existing entry with the same id was replaced (<see cref="Feed.Update" />).</summary>
+      Updated,
+
+      /// <summary>An entry was removed (<see cref="Feed.Retract" />).</summary>
+      Retracted,
+
+      /// <summary>No entry with that id was found to retract (<see cref="Feed.Retract" />).</summary>
+      NotFound
    }
 
    /// <summary>

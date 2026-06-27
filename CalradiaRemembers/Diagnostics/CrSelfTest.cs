@@ -68,6 +68,7 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("bastard_claim",    Severity.Heavy,        "force a grown bastard's claim -> assert hostility + claim world-event", TestBastardClaim),
             new SelfTest("bastard_scandal_culture", Severity.Heavy, "discover a bastard -> assert the scandal magnitude is culture-scaled", TestBastardScandalCulture),
             new SelfTest("feed_ingest",      Severity.Light,        "Feed.Record an external event -> assert stored + a re-send is deduped", TestFeedIngest),
+            new SelfTest("feed_update",      Severity.Light,        "Feed.Update upserts a fed fact by id, Feed.Retract removes it (mutable entries)", TestFeedUpdate),
             new SelfTest("mission_register", Severity.Heavy,        "MissionBoard.Register an external mission -> assert issued + dedup + Complete stamps it", TestMissionRegister),
             new SelfTest("mission_reward",   Severity.Heavy,        "MissionBoard FULL LOOP -> register -> Complete -> player reports to giver -> assert reward PAID + quest Completed", TestMissionRewardLoop),
             new SelfTest("declare_war",      Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it",         TestDeclareWar),
@@ -656,6 +657,37 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("countRose", afterFirst, before + 1);
             t.Expect("dedupRejected", second, FeedResult.RejectedDuplicate);
             t.Expect("noDoubleCount", afterSecond, afterFirst);
+            return t.Line();
+        }
+
+        private static string TestFeedUpdate(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("feed_update");
+            if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+            string id = "selftest_upd_" + Guid.NewGuid().ToString("N");
+            FeedResult rec = Feed.Record(new ExternalWorldEvent {
+                Id = id, SourceMod = "SelfTest", Summary = "[SELFTEST] a homestead stands near Pen Cannoc", Magnitude = 30
+            });
+            if (t.Abort(rec != FeedResult.Recorded, $"record failed: {rec}")) return t.Line();
+
+            // The homestead moves -> the modder corrects the standing fact by the same id.
+            FeedResult upd = Feed.Update(new ExternalWorldEvent {
+                Id = id, SourceMod = "SelfTest", Summary = "[SELFTEST] the homestead has moved to near Marunath", Magnitude = 30
+            });
+            string afterUpdate = WorldEventStore.Instance.GetById(id)?.Summary;
+
+            // The homestead is gone -> retract it; a second retract finds nothing.
+            FeedResult ret = Feed.Retract(id);
+            bool goneAfterRetract = WorldEventStore.Instance.GetById(id) == null;
+            FeedResult retAgain = Feed.Retract(id);
+
+            t.Note($"update={upd}, summary now '{Preview(afterUpdate)}', retract={ret}, retractAgain={retAgain}");
+            t.Expect("updated", upd, FeedResult.Updated);
+            t.Expect("contentReplaced", afterUpdate != null && afterUpdate.Contains("Marunath"), true);
+            t.Expect("retracted", ret, FeedResult.Retracted);
+            t.Expect("goneAfterRetract", goneAfterRetract, true);
+            t.Expect("retractMissingIsNotFound", retAgain, FeedResult.NotFound);
             return t.Line();
         }
 

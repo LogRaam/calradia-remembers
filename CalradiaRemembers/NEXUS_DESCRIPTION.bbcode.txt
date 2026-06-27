@@ -398,6 +398,8 @@ CalradiaRemembers.Feed.Record(new ExternalWorldEvent {
 
 From that moment, lords who would plausibly have heard speak of it.. as [i]hearsay[/i], hedged by distance and faction, exactly like the news CR records on its own. Your mod needs to know [i]nothing[/i] about CR's memory system, its prompts, or its save format.
 
+Facts can also [b]change[/b]. For things that aren't one-off events but standing state — a settlement that moves, a character renamed, a place that ceases to exist — [i]Feed.Update(...)[/i] replaces a previous entry by its id, and [i]Feed.Retract(id)[/i] removes one that is no longer true, so the world's gossip stays current instead of repeating something stale.
+
 It is deliberately [b]one-way and guarded[/b].. you push facts in through one door, and never read or mutate CR's internals. That door validates everything it is handed: it bounds the text, clamps the magnitude, drops heroes or factions it cannot resolve, de-duplicates by id, and rate-limits each source.. so a misbehaving feed can neither bloat a player's save nor flood the gossip. The data contract is a stable, plain-string DTO (no Bannerlord types in it), so it will not break under you as CR evolves.
 
 The result is that CR can act as the [b][color=#e69138]narrative-memory bus[/color][/b] of an entire modlist: every mod that changes the world can give that change a memory and a voice, and the lords of Calradia will talk about it. Openness as a feature.. the opposite of a mod you can only use but never build on.

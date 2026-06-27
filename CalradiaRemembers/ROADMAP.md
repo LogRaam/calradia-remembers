@@ -118,7 +118,7 @@ parties don't break.
    source); CR's existing hearsay-locality logic decides *who* plausibly heard it, so NPCs don't recite
    everything.
 
-**Volet A — external world-event ingestion (do this first; highest value, simplest). ✅ SHIPPED in v1.15.0 (Nexus 2026-06-27), validated in-game.** A façade like
+**Volet A — external world-event ingestion (do this first; highest value, simplest). ✅ SHIPPED in v1.15.0 (Nexus 2026-06-27), validated in-game. + MUTABLE ENTRIES added 2026-06-27 (`Feed.Update` upsert-by-id, `Feed.Retract` remove-by-id) closing the Homesteads modder (Bhel)'s one-way-can't-change gap — a settlement that moves, an NPC renamed, a place destroyed.** A façade like
 `CalradiaRemembers.Feed.Record(ExternalWorldEvent)` lets a mod push a fact into the **same** World-Event /
 rumour store the Chronicle, influence loop and NPC-awareness already read. Once past the gateway, it follows
 the exact path of CR's native events — a Pravend NPC who'd plausibly have heard mentions it on his own. The DTO

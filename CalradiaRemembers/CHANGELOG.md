@@ -2,6 +2,16 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.16.3.. 2026-06-27
+
+### New (for modders)
+- **The inbound feed can now correct and retract facts.** Alongside [i]Feed.Record[/i], a mod can call
+  [i]Feed.Update(...)[/i] to replace a fed entry by its id, and [i]Feed.Retract(id)[/i] to remove one that's no
+  longer true. This keeps CR's gossip current for things that change.. a settlement that moves, a character
+  renamed, a place that's destroyed.. instead of leaving a stale entry behind. (Thanks to Bhel / Homesteads for
+  the feedback that prompted it.) See the Nexus page's "[i]make Calradia Remembers your modlist's memory[/i]"
+  section.
+
 ## v1.16.2.. 2026-06-27
 
 ### Changed

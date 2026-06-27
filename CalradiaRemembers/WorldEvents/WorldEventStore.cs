@@ -51,6 +51,20 @@ namespace CalradiaRemembers.WorldEvents
             ? null
             : _events.FirstOrDefault(e => e.Id == id);
 
+      /// <summary>
+      ///   Removes every event carrying this id — used to retract or replace an externally-fed standing fact
+      ///   that is no longer true (a homestead that moved, an NPC renamed). Returns true if anything was removed.
+      /// </summary>
+      public bool Remove(string id)
+      {
+         if (string.IsNullOrEmpty(id)) return false;
+
+         int removed = _events.RemoveAll(e => e.Id == id);
+         if (removed > 0) ModLog.Info($"[WORLD] removed {removed} event(s) with id '{id}'.");
+
+         return removed > 0;
+      }
+
       // ── Queries ───────────────────────────────────────────────────────────
 
       /// <summary>

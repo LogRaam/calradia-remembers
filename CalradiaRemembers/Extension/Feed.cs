@@ -48,7 +48,63 @@ namespace CalradiaRemembers
          int today = (int) CampaignTime.Now.ToDays;
          if (!ConsumeQuota(e.SourceMod, today)) return FeedResult.RejectedThrottled;
 
-         var worldEvent = new WorldEvent {
+         WorldEvent worldEvent = Build(e, summary, today);
+         store.Record(worldEvent);
+         ModLog.Info($"[FEED] {e.SourceMod} recorded a world event (mag {worldEvent.Magnitude}, {worldEvent.ActorIds.Count} hero ref(s)): {summary}");
+
+         return FeedResult.Recorded;
+      }
+
+      /// <summary>
+      ///   Corrects a standing fact: replaces the entry carrying <see cref="ExternalWorldEvent.Id" /> with new
+      ///   content (a homestead that moved, an NPC renamed), or records it fresh if none exists yet. The id is
+      ///   REQUIRED — there is nothing to target without it. No throttle: an upsert can't grow the store
+      ///   unbounded the way repeated records could. Returns <see cref="FeedResult.Updated" /> when an existing
+      ///   entry was replaced, or <see cref="FeedResult.Recorded" /> when it was inserted fresh.
+      /// </summary>
+      public static FeedResult Update(ExternalWorldEvent e)
+      {
+         if (e == null || string.IsNullOrWhiteSpace(e.SourceMod) || string.IsNullOrEmpty(e.Id)) return FeedResult.RejectedInvalid;
+
+         string summary = ExternalEventRules.BoundSummary(e.Summary);
+         if (summary == null) return FeedResult.RejectedInvalid;
+
+         WorldEventStore store = WorldEventStore.Instance;
+         if (store == null) return FeedResult.RejectedNoStore;
+
+         bool replaced = store.Remove(e.Id); // drop the stale entry, then re-record the corrected one
+         int today = (int) CampaignTime.Now.ToDays;
+         store.Record(Build(e, summary, today));
+         ModLog.Info($"[FEED] {e.SourceMod} {(replaced ? "updated" : "recorded")} '{e.Id}': {summary}");
+
+         return replaced
+            ? FeedResult.Updated
+            : FeedResult.Recorded;
+      }
+
+      /// <summary>
+      ///   Retracts a fact that is no longer true (a homestead destroyed or converted to a settlement): removes
+      ///   the entry with this id so NPCs stop speaking of it. Returns <see cref="FeedResult.Retracted" /> when
+      ///   one was removed, or <see cref="FeedResult.NotFound" /> when nothing carried that id.
+      /// </summary>
+      public static FeedResult Retract(string id)
+      {
+         if (string.IsNullOrWhiteSpace(id)) return FeedResult.RejectedInvalid;
+
+         WorldEventStore store = WorldEventStore.Instance;
+         if (store == null) return FeedResult.RejectedNoStore;
+
+         bool removed = store.Remove(id);
+         ModLog.Info($"[FEED] retract '{id}' -> {(removed ? "removed" : "not found")}.");
+
+         return removed
+            ? FeedResult.Retracted
+            : FeedResult.NotFound;
+      }
+
+      /// <summary>Maps a validated external event to a stored world event (shared by Record and Update).</summary>
+      private static WorldEvent Build(ExternalWorldEvent e, string summary, int today)
+         => new WorldEvent {
             Id = string.IsNullOrEmpty(e.Id)
                ? null
                : e.Id,
@@ -63,12 +119,6 @@ namespace CalradiaRemembers
             FactionIds = ResolveFactions(e.FactionIds),
             InvolvesPlayer = Hero.MainHero != null && e.HeroIds != null && e.HeroIds.Contains(Hero.MainHero.StringId)
          };
-
-         store.Record(worldEvent);
-         ModLog.Info($"[FEED] {e.SourceMod} recorded a world event (mag {worldEvent.Magnitude}, {worldEvent.ActorIds.Count} hero ref(s)): {summary}");
-
-         return FeedResult.Recorded;
-      }
 
       private static bool ConsumeQuota(string source, int today)
       {
