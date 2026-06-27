@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Dynasty;
@@ -69,6 +70,7 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("feed_ingest",      Severity.Light,        "Feed.Record an external event -> assert stored + a re-send is deduped", TestFeedIngest),
             new SelfTest("declare_war",      Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it",         TestDeclareWar),
             new SelfTest("scenario",         Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals",       TestScenario),
+            new SelfTest("llm_dialogue",     Severity.Light,        "call the LLM with a question -> log the reply for a human relevance read (1 API call)", TestLlmDialogue),
         };
 
         // ── Public API (cr.testall / cr.test) ─────────────────────────────────
@@ -602,6 +604,39 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("countRose", afterFirst, before + 1);
             t.Expect("dedupRejected", second, FeedResult.RejectedDuplicate);
             t.Expect("noDoubleCount", afterSecond, afterFirst);
+            return t.Line();
+        }
+
+        private static string TestLlmDialogue(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("llm_dialogue");
+
+            var services = behavior.LlmServices;
+            if (t.Skip(services is not {IsAvailable: true}, "LLM not configured — set an API key + model, or an OpenAI-compatible endpoint")) return t.Line();
+
+            Hero npc = Hero.OneToOneConversationHero
+                    ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+            if (t.Skip(npc == null, "no NPC to converse with")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            var world = new WorldState { CurrentDay = behavior.GameStateBridge.GetCurrentGameDay() };
+            var session = new ChatSession();
+            const string question = "Greetings. Tell me plainly — what is the mood of the realm these days, and how do you regard me?";
+            var ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge);
+
+            // Synchronous wait on the real pipeline (Task.Run avoids any main-thread sync-context capture).
+            var result = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, question, ctx)).GetAwaiter().GetResult();
+            if (t.Abort(result is not {IsSuccess: true}, $"LLM call failed: {result?.ErrorMessage ?? "no result"}")) return t.Line();
+
+            string reply = result.Response?.Dialogue ?? "";
+
+            // The full Q&A goes to the log so relevance can be judged by reading it.
+            ModLog.Info($"[SELFTEST] llm_dialogue — Q to {npc.Name}: {question}");
+            ModLog.Info($"[SELFTEST] llm_dialogue — A from {npc.Name}: {reply}");
+
+            t.Note($"{npc.Name} replied {reply.Length} chars (full Q&A in the log)");
+            t.Note($"A: {(reply.Length > 200 ? reply.Substring(0, 200) + "..." : reply)}");
+            t.Expect("gotNonEmptyReply", reply.Length > 0, true);
             return t.Line();
         }
 
