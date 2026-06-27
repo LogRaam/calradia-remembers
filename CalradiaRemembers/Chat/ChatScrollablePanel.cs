@@ -21,6 +21,9 @@ namespace CalradiaRemembers.Chat
     /// </summary>
     public class ChatScrollablePanel : ScrollablePanel
     {
+        // Within this many scroll units of the bottom, the player counts as "following" the latest line.
+        private const float PinThreshold = 40f;
+
         private int _scrollToBottomFramesRemaining;
 
         public ChatScrollablePanel(UIContext context) : base(context)
@@ -33,9 +36,25 @@ namespace CalradiaRemembers.Chat
         public static ChatScrollablePanel ActiveInstance { get; private set; }
 
 
+        /// <summary>
+        ///   Follow new content to the bottom — but ONLY when the player was already at (or near) the
+        ///   bottom. If they have scrolled up to read, leave their position alone: a long, multi-reply
+        ///   answer must not keep yanking the scrollbar back down while they are still reading. The check
+        ///   reads the CURRENT MaxValue, before the new line has laid out and grown it.
+        /// </summary>
         public void RequestScrollToBottom()
         {
-            _scrollToBottomFramesRemaining = 8;
+            if (WasFollowingBottom())
+                _scrollToBottomFramesRemaining = 8;
+        }
+
+        private bool WasFollowingBottom()
+        {
+            if (VerticalScrollbar == null) return true; // nothing to fight yet
+
+            float max = VerticalScrollbar.MaxValue;
+
+            return max <= 0f || VerticalScrollbar.ValueFloat >= max - PinThreshold;
         }
 
         protected override void OnLateUpdate(float dt)
