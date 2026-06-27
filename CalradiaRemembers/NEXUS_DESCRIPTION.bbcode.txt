@@ -400,7 +400,27 @@ From that moment, lords who would plausibly have heard speak of it.. as [i]hears
 
 It is deliberately [b]one-way and guarded[/b].. you push facts in through one door, and never read or mutate CR's internals. That door validates everything it is handed: it bounds the text, clamps the magnitude, drops heroes or factions it cannot resolve, de-duplicates by id, and rate-limits each source.. so a misbehaving feed can neither bloat a player's save nor flood the gossip. The data contract is a stable, plain-string DTO (no Bannerlord types in it), so it will not break under you as CR evolves.
 
-The result is that CR can act as the [b][color=#e69138]narrative-memory bus[/color][/b] of an entire modlist: every mod that changes the world can give that change a memory and a voice, and the lords of Calradia will talk about it. Openness as a feature.. the opposite of a mod you can only use but never build on. If you would like to plug a mod into this, get in touch.. I would love to help.
+The result is that CR can act as the [b][color=#e69138]narrative-memory bus[/color][/b] of an entire modlist: every mod that changes the world can give that change a memory and a voice, and the lords of Calradia will talk about it. Openness as a feature.. the opposite of a mod you can only use but never build on.
+
+[b][color=#e69138]…and give the player a mission[/color][/b]
+The second door lets your mod set the player a [b]mission[/b], and CR runs the whole ceremony around it:
+
+[code]
+CalradiaRemembers.MissionBoard.Register(new ExternalMission {
+    Id          = "grandRaces_series_7",
+    SourceMod   = "GrandRaces",
+    GiverHeroId = "lord_caladog",          // the NPC who frames and rewards it
+    Title       = "Win the autumn racing series",
+    Description = "Take the series at Pen Cannoc and the purse is yours.",
+    RewardGold  = 5000,
+    RewardRelation = 5,
+    DeadlineDays = 30
+});
+[/code]
+
+CR issues it as a real quest: the giver brings it up in conversation in their own voice, it mirrors into the vanilla journal, and a deadline/abandon/self-heal lifecycle keeps it tidy (no ghost quests, even from a third-party mod). The crucial line is [b]who decides it's done[/b]: YOUR mod owns the completion signal — it calls [i]MissionBoard.Complete(id)[/i] when its own deed is truly finished (only it can know), and CR pays the gated reward when the player reports back to the giver. CR never pays on the AI's word, and never on yours alone — the player still has to come collect. You define an arbitrary mission (a tournament series, a smuggling run, surviving a siege) without CR knowing your internals, and without weakening its "rewards only for real deeds" promise.
+
+If you would like to plug a mod into either door, get in touch.. I would love to help.
 
 [line]
 [size=4]For modders: the NpcMemoryService SDK[/size]

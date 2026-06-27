@@ -12,7 +12,6 @@ using System.Linq;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.WorldEvents;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.ObjectSystem;
 
 #endregion
 
@@ -94,8 +93,9 @@ namespace CalradiaRemembers
          var kept = new List<string>();
          if (ids == null) return kept;
 
+         // Hero.FindFirst is the reliable lookup; MBObjectManager.GetObject<Hero> does not resolve heroes by StringId.
          foreach (string id in ids)
-            if (!string.IsNullOrEmpty(id) && MBObjectManager.Instance?.GetObject<Hero>(id) != null) kept.Add(id);
+            if (!string.IsNullOrEmpty(id) && Hero.FindFirst(h => h.StringId == id) != null) kept.Add(id);
 
          return kept;
       }

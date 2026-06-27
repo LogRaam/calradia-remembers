@@ -2,6 +2,25 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.16.0.. 2026-06-27
+
+Other mods can now hand the player a MISSION through Calradia Remembers — CR issues, frames, journals and pays
+it like any quest, while the other mod keeps ownership of when its own deed is truly done.
+
+### New
+- **Other mods can now set the player a mission.** A second inbound door alongside the v1.15.0 event feed:
+  [i]CalradiaRemembers.MissionBoard.Register(...)[/i] issues an external mod's mission as a verified quest — the
+  giver frames it in conversation, it mirrors into the journal, and the reward is gated. The mod calls
+  [i]MissionBoard.Complete(id)[/i] when ITS OWN deed is truly done (it owns that truth — CR never pays on the
+  AI's word), and the reward lands when the player reports back to the giver. This completes the Extension
+  Surface pillar: world events in v1.15.0, player missions here. See the Nexus page's
+  "[i]make Calradia Remembers your modlist's memory[/i]" section.
+
+### Fixed
+- **Externally-fed world events that named heroes now keep them.** The hero-id resolution in the v1.15.0 feed
+  API silently dropped every referenced hero (a wrong lookup); faction-tagged events were unaffected. Hero
+  references now resolve correctly.
+
 ## v1.15.0.. 2026-06-27
 
 Your past catches up with you.. a child kept secret can surface years later as scandal, a claim, or quiet

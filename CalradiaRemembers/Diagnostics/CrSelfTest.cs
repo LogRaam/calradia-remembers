@@ -68,6 +68,8 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("bastard_claim",    Severity.Heavy,        "force a grown bastard's claim -> assert hostility + claim world-event", TestBastardClaim),
             new SelfTest("bastard_scandal_culture", Severity.Heavy, "discover a bastard -> assert the scandal magnitude is culture-scaled", TestBastardScandalCulture),
             new SelfTest("feed_ingest",      Severity.Light,        "Feed.Record an external event -> assert stored + a re-send is deduped", TestFeedIngest),
+            new SelfTest("mission_register", Severity.Heavy,        "MissionBoard.Register an external mission -> assert issued + dedup + Complete stamps it", TestMissionRegister),
+            new SelfTest("mission_reward",   Severity.Heavy,        "MissionBoard FULL LOOP -> register -> Complete -> player reports to giver -> assert reward PAID + quest Completed", TestMissionRewardLoop),
             new SelfTest("declare_war",      Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it",         TestDeclareWar),
             new SelfTest("scenario",         Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals",       TestScenario),
             new SelfTest("llm_dialogue",     Severity.Light,        "LLM: a plain greeting -> log the reply (relevance judged from the log)",          TestLlmDialogue,        callsLlm: true),
@@ -654,6 +656,89 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("countRose", afterFirst, before + 1);
             t.Expect("dedupRejected", second, FeedResult.RejectedDuplicate);
             t.Expect("noDoubleCount", afterSecond, afterFirst);
+            return t.Line();
+        }
+
+        private static string TestMissionRegister(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("mission_register");
+
+            Hero giver = ConversationNpc();
+            if (t.Skip(giver == null, "no NPC to host the mission")) return t.Line();
+
+            GetOrCreate(behavior, giver); // CR needs a profile for the giver to host the quest
+            string id = "selftest_mission_" + Guid.NewGuid().ToString("N");
+            var mission = new ExternalMission {
+                Id = id, SourceMod = "SelfTest", GiverHeroId = giver.StringId,
+                Title = "Win the autumn race",
+                Description = "[SELFTEST] Take the autumn race at Pen Cannoc and the purse is yours.",
+                RewardGold = 5000, RewardRelation = 3, DeadlineDays = 30
+            };
+
+            MissionBoardResult first = MissionBoard.Register(mission);
+            if (t.Abort(first != MissionBoardResult.Registered, $"register failed: {first} (giver {giver.Name}/{giver.StringId})")) return t.Line();
+
+            InformalQuest quest = behavior.Store.Get(giver.StringId)?.ActiveQuests
+                .FirstOrDefault(q => q.Type == QuestType.External && q.ExternalId == id);
+            t.Expect("issuedOnGiver", quest != null, true);
+
+            MissionBoardResult dup = MissionBoard.Register(mission); // same id -> deduped
+            t.Expect("dedupRejected", dup, MissionBoardResult.RejectedDuplicate);
+
+            MissionBoardResult done = MissionBoard.Complete(id); // the external mod's completion signal
+            t.Expect("completeStamped", done, MissionBoardResult.Completed);
+
+            InformalQuest after = behavior.Store.Get(giver.StringId)?.ActiveQuests
+                .FirstOrDefault(q => q.ExternalId == id);
+            t.Expect("awaitingRewardAfterComplete", after != null && after.IsAwaitingReward, true);
+
+            t.Note($"giver={giver.Name}, reward {quest?.RewardGold}g/+{quest?.RewardRelation} — now report to {giver.Name} in chat to collect");
+            return t.Line();
+        }
+
+        private static string TestMissionRewardLoop(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("mission_reward");
+
+            Hero giver = ConversationNpc();
+            if (t.Skip(giver == null || Hero.MainHero == null, "no NPC to host the mission, or no player hero")) return t.Line();
+
+            GetOrCreate(behavior, giver);
+            string id = "selftest_missionreward_" + Guid.NewGuid().ToString("N");
+            const int rewardGold = 5000;
+            const int rewardRelation = 4;
+            var mission = new ExternalMission {
+                Id = id, SourceMod = "SelfTest", GiverHeroId = giver.StringId,
+                Title = "Win the autumn race",
+                Description = "[SELFTEST] Take the autumn race at Pen Cannoc and the purse is yours.",
+                RewardGold = rewardGold, RewardRelation = rewardRelation, DeadlineDays = 30
+            };
+
+            MissionBoardResult reg = MissionBoard.Register(mission);
+            if (t.Abort(reg != MissionBoardResult.Registered, $"register failed: {reg} (giver {giver.Name}/{giver.StringId})")) return t.Line();
+            MissionBoardResult sig = MissionBoard.Complete(id);
+            if (t.Abort(sig != MissionBoardResult.Completed, $"external complete signal failed: {sig}")) return t.Line();
+
+            // The player reports back: drive the SAME path the chat runs when the giver emits [QUEST_COMPLETE]
+            // on seeing the verified evidence — deterministic, no LLM, but the REAL reward pipeline.
+            NpcProfile reported = behavior.Store.Get(giver.StringId);
+            if (t.Abort(reported == null, "giver profile vanished")) return t.Line();
+
+            int goldBefore = Hero.MainHero.Gold;
+            int regardBefore = reported.ReputationWithPlayer;
+            var ack = new ParsedResponse { Dialogue = "", QuestCompleted = new QuestCompletionClaim { Type = QuestType.External } };
+            QuestService.ApplyResponse(reported, giver, ack, behavior.GameStateBridge.GetCurrentGameDay(),
+                behavior.GameStateBridge, behavior.Store, (_, __) => { });
+
+            int goldAfter = Hero.MainHero.Gold;
+            int regardAfter = reported.ReputationWithPlayer;
+            InformalQuest after = behavior.Store.Get(giver.StringId)?.ActiveQuests.FirstOrDefault(q => q.ExternalId == id);
+            int expectedRegardGain = Math.Min(100, regardBefore + rewardRelation) - regardBefore;
+
+            t.Note($"giver={giver.Name}: gold {goldBefore}->{goldAfter} (+{goldAfter - goldBefore}), regard {regardBefore}->{regardAfter}; quest {after?.Status.ToString() ?? "gone"}");
+            t.Expect("questCompleted", after != null && after.Status == QuestStatus.Completed, true);
+            t.Expect("goldPaid", goldAfter - goldBefore, rewardGold);
+            t.Expect("regardPaid", regardAfter - regardBefore, expectedRegardGain);
             return t.Line();
         }
 

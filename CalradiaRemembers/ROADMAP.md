@@ -118,7 +118,7 @@ parties don't break.
    source); CR's existing hearsay-locality logic decides *who* plausibly heard it, so NPCs don't recite
    everything.
 
-**Volet A — external world-event ingestion (do this first; highest value, simplest).** A façade like
+**Volet A — external world-event ingestion (do this first; highest value, simplest). ✅ SHIPPED in v1.15.0 (Nexus 2026-06-27), validated in-game.** A façade like
 `CalradiaRemembers.Feed.Record(ExternalWorldEvent)` lets a mod push a fact into the **same** World-Event /
 rumour store the Chronicle, influence loop and NPC-awareness already read. Once past the gateway, it follows
 the exact path of CR's native events — a Pravend NPC who'd plausibly have heard mentions it on his own. The DTO
@@ -128,7 +128,7 @@ as `Lifetime.Rumor`; CR's lords gossip about the grey mare of Lord Caladog with 
 system. Pure/testable in `CalradiaRemembers.Logic`: the validator/normaliser (clamp, bound, id-resolve,
 default) and the DTO→`WorldEvent` mapping; only the public static façade + behavior registration is engine glue.
 
-**Volet B — external mission registration (later).** A mod defines **a mission for the player** and registers
+**Volet B — external mission registration. 🔨 BUILT 2026-06-27 (Opus, untested in game, 496 tests). Public API `CalradiaRemembers.MissionBoard.Register/Complete/Abandon` + DTO `ExternalMission` (plain strings, no Bannerlord types); reward route = A (giver-required, paid when the player REPORTS to the giver in conversation). Reuses the `InformalQuest` pipeline via new `QuestType.External` + `InformalQuest.ExternalId/ExternalSourceMod` (SDK, ordinal-safe), so it inherits journal mirror + framing + gated reward + deadline/abandon/self-heal for free. Pure `ExternalMissionRules` (bound text, clamp reward to CR caps, normalize deadline; 10 tests). Verification ownership: the external mod calls `Complete(id)` (the gate) → stamps `SatisfiedOnDay`/`Evidence` → giver acknowledges + pays on report. Self-test `mission_register` (register→dedup→complete) in cr.testall. Open: a giver-less (B-fallback) variant deferred; modder-facing docs + a v1.16 Nexus section pending.** A mod defines **a mission for the player** and registers
 it into CR's verified-quest system, inheriting all of CR's guarantees: the **journal mirror**, NPC-facing
 framing, reward gating, deadline/abandon lifecycle, and the **self-heal-on-load** that force-closes anything
 dangling (no ghost quests from a third-party mod either). The hard part — and the line that preserves "the
