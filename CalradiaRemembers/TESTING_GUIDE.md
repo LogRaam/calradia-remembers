@@ -48,7 +48,7 @@ when done.**
   `cr.test full`. A reload is the only undo.
 - **Conversation smoke tests** (`cr.test chat`) make one real LLM call each, seed identical state every
   run, and log the full Q&A so you can judge relevance by reading it. Each line is stamped with the
-  active model (e.g. `[model: x-ai/grok-4.3]`) — change the model in Mod Options and re-run to compare
+  active model (e.g. `[model: x-ai/grok-4.20]`) — change the model in Mod Options and re-run to compare
   LLMs on the same questions. Coverage: plain dialogue, shared-memory recall, stance (fear/distrust),
   hearsay about a third party, a bastard-mother pressing for coin, and a fed world-event surfacing.
 - **Extension Surface**: `cr.feed_test [summary]` records an external world event through the public

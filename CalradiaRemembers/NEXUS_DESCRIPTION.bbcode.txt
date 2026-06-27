@@ -239,7 +239,7 @@ OPTION A.. SET UP OPENROUTER (CLOUD, ONE TIME)
   3. Go to openrouter.ai/keys and create an API key. Copy it.
   4. Browse openrouter.ai/models if you'd like to pick a specific model (optional).
 
-[b]HOW FAR DOES CREDIT GO[/b]? Measured on the default model (Grok 4.3): a full week of heavy testing.. 146 exchanges, much of it long, prompt-hungry captive scenes.. came to about $1. That's roughly 130+ messages per dollar, so even $5 covers hundreds of exchanges.. comfortably dozens of full conversations.. and more for everyday chats. You only pay for what you use, and a lighter model stretches it further still.
+[b]HOW FAR DOES CREDIT GO[/b]? Measured on the default model (Grok 4.20): a full week of heavy testing.. 146 exchanges, much of it long, prompt-hungry captive scenes.. came to about $1. That's roughly 130+ messages per dollar, so even $5 covers hundreds of exchanges.. comfortably dozens of full conversations.. and more for everyday chats. You only pay for what you use, and a lighter model stretches it further still.
 
 [quote]🔒 Your key is stored locally on your machine only. Never share your config file or a screenshot of the key field.. treat the key like a password.[/quote]
 
@@ -296,7 +296,7 @@ LLM Provider:
 [b][color=#b6d7a8]OpenRouter[/color] [/b](used when Provider is set to OpenRouter):
 [list]
 [*]OpenRouter API Key.. your key from openrouter.ai/keys. Applies immediately.[/*]
-[*]Model.. the OpenRouter model id to use. Default: x-ai/grok-4.3. Any text model on OpenRouter works.. see "Which model should I use?" just below for picks by quality, price, and adult-content tolerance.[/*]
+[*]Model.. the OpenRouter model id to use. Default: x-ai/grok-4.20. Any text model on OpenRouter works.. see "Which model should I use?" just below for picks by quality, price, and adult-content tolerance.[/*]
 [*]Reasoning Effort.. how hard a reasoning model (like Grok) "thinks" before replying. Lower or Off makes such models markedly less prone to moralizing refusals on adult/Hardcore content. Default Low.. leave it there unless a model is being stubborn. OpenRouter only.[/*]
 [*]Test Connection.. validates your key [i]and[/i] your chosen model: it sends a one-token test prompt and reports any error (a mistyped model id, for instance). Costs a fraction of a cent.[/*]
 [/list]
@@ -345,7 +345,7 @@ LLM Provider:
 
 The mod works with any text model your provider offers.. you just paste its id into the Model field, and you can switch anytime in one click. Two things matter for this mod: the model must follow instructions reliably (it quietly drives memory, actions, and quests behind the scenes), and.. if you play the Explicit / Hardcore tiers.. it must be permissive, because heavily-filtered models will flat-out refuse adult scenes. The ids below are OpenRouter ids; on NanoGPT the same model families are available but use NanoGPT's own ids from nano-gpt.com/models. Prices below are a rough guide; check your provider's model page for current rates.
 
-[b]GROK 4.3[/b].. the safe default    (model id: x-ai/grok-4.3)
+[b]GROK 4.20[/b].. the safe default    (model id: x-ai/grok-4.20)
 Proven with everything this mod does, adult tiers included. Balanced quality, permissive, and already tested. If in doubt, stay here.
 
 [b]DEEPSEEK V3.2[/b].. ⭐ best value    (model id: deepseek/deepseek-v3.2)
@@ -354,13 +354,13 @@ Comparable quality for a fraction of the cost (~5× cheaper input and output). S
 [b]DEEPSEEK V4 PRO[/b].. premium, still cheap    (model id: deepseek/deepseek-v4-pro)
 Top-tier quality, still well under Grok's price. For when you want the very best and don't mind paying a little more than V3.2.
 
-[b]WHAT IT COSTS, BY MODEL[/b]. Only Grok 4.3 is measured from real usage (the ~130 messages-per-dollar figure earlier); the others are extrapolated by price ratio, so treat them as ballpark. For the same play: DeepSeek V3.2 is about 5-6× cheaper than Grok 4.3, and DeepSeek V4 Pro about 3× cheaper. Concretely, the ~$1 week of heavy testing on Grok 4.3 would be roughly ~$0.18 on V3.2 or ~$0.38 on V4 Pro.. your exact cost still depends on conversation length and each model's own caching.
+[b]WHAT IT COSTS, BY MODEL[/b]. Only Grok 4.20 is measured from real usage (the ~130 messages-per-dollar figure earlier); the others are extrapolated by price ratio, so treat them as ballpark. For the same play: DeepSeek V3.2 is about 5-6× cheaper than Grok 4.20, and DeepSeek V4 Pro about 3× cheaper. Concretely, the ~$1 week of heavy testing on Grok 4.20 would be roughly ~$0.18 on V3.2 or ~$0.38 on V4 Pro.. your exact cost still depends on conversation length and each model's own caching.
 
 [b]AVOID FOR ADULT PLAY[/b]: mainstream Claude and GPT models are superb writers but refuse Explicit / Hardcore content.. perfectly fine at Off / Mature, frustrating beyond it.
 
 [b]LAST RESORT[/b]: if a mainstream model balks at a scene you want, dedicated uncensored fine-tunes (Dolphin, Cydonia and similar) refuse almost nothing.. but they follow the mod's structured format less reliably and can drift over long scenes, so reach for them only if you have to.
 
-[i]New here? Start on the default (Grok 4.3) or DeepSeek V3.2, play a few conversations, and only tinker with models once you know what you want from them.[/i]
+[i]New here? Start on the default (Grok 4.20) or DeepSeek V3.2, play a few conversations, and only tinker with models once you know what you want from them.[/i]
 
 [line]
 [size=4]Under the hood (for the curious)[/size]
