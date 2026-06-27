@@ -123,7 +123,11 @@ namespace CalradiaRemembers.Diagnostics
 
             int llm = tests.Count(t => t.CallsLlm);
             if (llm > 0)
+            {
                 sb.AppendLine($"[SELFTEST] *** includes {llm} conversation test(s) — {llm} real LLM call(s) + a brief freeze each; relevance is judged from the log ***");
+                // Stamp the model so logs can be compared across LLMs ("which one wrote better replies?").
+                sb.AppendLine($"[SELFTEST] *** LLM model: {ModelLabel(behavior)} ***");
+            }
 
             int pass = 0, fail = 0, manual = 0;
             foreach (SelfTest test in tests)
@@ -830,10 +834,17 @@ namespace CalradiaRemembers.Diagnostics
             if (result is not {IsSuccess: true}) return (false, null, result?.ErrorMessage ?? "no result");
 
             string reply = result.Response?.Dialogue ?? "";
-            ModLog.Info($"[SELFTEST] {label} — Q to {npc.Name}: {question}");
+            ModLog.Info($"[SELFTEST] {label} [model: {ModelLabel(behavior)}] — Q to {npc.Name}: {question}");
             ModLog.Info($"[SELFTEST] {label} — A from {npc.Name}: {reply}");
 
             return (true, reply, null);
+        }
+
+        /// <summary>The active LLM model id (e.g. "x-ai/grok-4.20"), so test logs can be compared across LLMs.</summary>
+        private static string ModelLabel(NpcMemoryCampaignBehavior behavior)
+        {
+            string model = behavior?.LlmServices?.ModelId;
+            return string.IsNullOrWhiteSpace(model) ? "unknown" : model;
         }
 
         // Set by RunChat ("test mode"): show the whole reply in the report instead of a 180-char preview.

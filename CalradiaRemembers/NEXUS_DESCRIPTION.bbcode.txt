@@ -120,6 +120,9 @@ Love is no longer without risk. Court, kiss, or wed someone and a third party wi
 
 And it reads the [b][color=#d9d2e9]culture[/color][/b] of the wronged party. Among strictly monogamous peoples a love given elsewhere is a betrayal; among cultures that accept several spouses.. the steppe Khuzait, the Aserai, the highborn of Battania.. no one is outraged that you took another, but now your partners compete for standing and attention, and a great love becomes a harder one to keep. Which peoples hold which view lives in an editable `jealousy_cultures.json`, so a total-conversion or faction mod can set its own customs without touching the code.
 
+[b][color=#e69138]A child kept secret.. and the years it takes to come back[/color][/b]
+Romance can leave more than memories. A liaison may quietly produce a [b][color=#d5a6bd]hidden child[/color][/b].. born out of wedlock, the realm only guessing at its father.. and that secret does not stay buried forever. Season by season there is a growing chance it surfaces.. the older the child, the likelier the day.. and when it does, a [b]scandal[/b] breaks: a blow to your renown and your clan's standing, and how hard it lands depends on the mother's [b][color=#d9d2e9]culture[/color][/b].. strict peoples take such a thing gravely, those used to several spouses barely raise an eyebrow. The mother herself reacts in [i]her own character[/i]: a warm-hearted one longs for you to come and see the child; a proud, wounded one wants only that you stop pretending it away; and a cold, scheming one turns the secret into [b][color=#cc0000]leverage[/color][/b].. a letter first, then a conversation, pressing you for coin to keep her silence. Pay her off.. the [b]Give Gold[/b] button settles it.. and you buy a season's peace before she may ask again; refuse, and she may let it slip. And when the child [b]comes of age[/b], it may press a [b]claim[/b] of its own.. a maternal house staking what it feels owed, and a bastard who can grow into a real enemy. What you start in the bedchamber echoes down the years.
+
 [b][color=#e69138]Mature & adult content (opt-in, gated)[/color][/b]
 A single setting controls how much romantic and intimate content NPCs may express.. from [color=#dd7e6b][b]Off[/b][/color] (none) through [color=#dd7e6b][b]Mature[/b][/color] (romance, nothing explicit) to [color=#dd7e6b][b]Explicit[/b][/color] and [b][color=#dd7e6b]Hardcore[/color][/b]. Higher tiers unlock orientation and preference discovery, genuine intimacy gated by trust, and.. at Hardcore only.. captor/captive scenes for players who want darker, adult-only roleplay. All of it is [b][color=#dd7e6b]off the explicit path by default[/color][/b] and entirely your choice.
 
@@ -375,6 +378,29 @@ A few quiet pieces of engineering keep this practical to actually play with.. ea
 [size=4]A note on the adult content[/size]
 
 The explicit and Hardcore tiers are a deliberate design choice for adult players who want that kind of roleplay, and they are [b][color=#f1c232]strictly opt-in[/color][/b].. the mod ships on Mature and never escalates on its own. The Hardcore captor/captive scenes depict non-consensual fantasy roleplay between fictional characters, for consenting adult players only. These scenes are interactive and paced rather than walls of text.. they build and resolve, you can steer them in your own words or try to break free at any point, and they can carry real, lasting consequences. If that's not for you, leave the setting at Mature or Off and you'll never see it.
+
+[line]
+[size=4]For modders: make Calradia Remembers your modlist's memory[/size]
+
+This is the part I am most eager to share. Calradia Remembers is not a closed box.. it exposes a small, one-way, validated [b]inbound API[/b] so that [b][color=#ffe599]any other mod can feed events into it[/color][/b], and CR turns them into something its NPCs are aware of.. a chronicle entry, a rumour, hearsay a lord brings up in conversation.. with no further wiring on your side.
+
+Write a mod that changes the world.. a horse race with winners and purses, a plague, a guild war, a festival.. and tell CR about it in a single call:
+
+[code]
+CalradiaRemembers.Feed.Record(new ExternalWorldEvent {
+    Id        = "myMod_race_42",
+    SourceMod = "GrandRaces",
+    Summary   = "Dellio of Pravend won the autumn race and a purse of 5000 denars.",
+    Magnitude = 40,
+    FactionIds = new[] { "empire" },
+});
+[/code]
+
+From that moment, lords who would plausibly have heard speak of it.. as [i]hearsay[/i], hedged by distance and faction, exactly like the news CR records on its own. Your mod needs to know [i]nothing[/i] about CR's memory system, its prompts, or its save format.
+
+It is deliberately [b]one-way and guarded[/b].. you push facts in through one door, and never read or mutate CR's internals. That door validates everything it is handed: it bounds the text, clamps the magnitude, drops heroes or factions it cannot resolve, de-duplicates by id, and rate-limits each source.. so a misbehaving feed can neither bloat a player's save nor flood the gossip. The data contract is a stable, plain-string DTO (no Bannerlord types in it), so it will not break under you as CR evolves.
+
+The result is that CR can act as the [b][color=#e69138]narrative-memory bus[/color][/b] of an entire modlist: every mod that changes the world can give that change a memory and a voice, and the lords of Calradia will talk about it. Openness as a feature.. the opposite of a mod you can only use but never build on. If you would like to plug a mod into this, get in touch.. I would love to help.
 
 [line]
 [size=4]For modders: the NpcMemoryService SDK[/size]

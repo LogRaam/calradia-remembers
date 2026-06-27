@@ -2,6 +2,48 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.15.0.. 2026-06-27
+
+Your past catches up with you.. a child kept secret can surface years later as scandal, a claim, or quiet
+blackmail. And for the first time, other mods can feed events straight into Calradia's memory.
+
+### New
+- **A child kept secret.** A romance can leave a hidden child, born out of wedlock with the realm only
+  guessing at its father.. and the secret does not stay buried. Season by season it may surface (the older
+  the child, the likelier the day), and when it does a [b]scandal[/b] breaks.. a hit to your renown and your
+  clan's standing, scaled by how harshly the mother's culture judges such things. The mother reacts in her
+  own character: a warm one longs for you to see the child, a proud one wants only that you stop pretending
+  it away, and a cold, scheming one turns the secret into [b]leverage[/b].. a demand letter, then a
+  conversation pressing you for coin to keep her silence. Pay her off (the Give Gold button settles it) for a
+  season's peace, or refuse and risk her letting it slip. And when the child comes of age it may press a
+  [b]claim[/b] of its own, a maternal house staking what it feels owed.. and a bastard who becomes a real enemy.
+- **Other mods can now feed Calradia's memory.** A new one-way, validated inbound API lets any mod report a
+  world event.. [i]CalradiaRemembers.Feed.Record(...)[/i].. and CR turns it into something its NPCs are aware
+  of (chronicle, rumour, hearsay in conversation), with no further wiring. The door validates everything it
+  is handed (bounds text, clamps magnitude, drops unknown heroes/factions, de-duplicates, rate-limits each
+  source), so CR can safely act as the narrative-memory bus of a whole modlist. See the Nexus page's
+  "[i]make Calradia Remembers your modlist's memory[/i]" section.
+
+### Fixed
+- **An NPC no longer "talks to itself."** With no one else present, a reply could invent a bystander and
+  answer them; witness reactions are now dropped when you are alone or when the AI attributes one to the
+  speaker themselves.
+- **Long replies no longer drag the scrollbar away from you.** While a lengthy, multi-part answer streamed
+  in, the view kept snapping to the bottom even if you had scrolled up to read.. it now only follows the
+  newest line when you were already at the bottom.
+- **Pregnancies the mod arranges now truly take.** A CR-conceived pregnancy is properly flagged and carried
+  to term, and the child is placed in the mother's clan.
+
+### Changed
+- **Fear reads on a lord the way it should.** When a lord genuinely fears you, it now shows in how he
+  carries himself and graduates with the dread.. from weighing his words, to yielding ground, to conceding
+  what he would never otherwise grant. A feared lord no longer mistakes the feeling for yours.
+
+### Notes
+- A console self-test harness ([i]cr.testall[/i] / [i]cr.test[/i]) now exercises the mod's systems end to
+  end (including live conversation smoke tests that stamp which LLM produced each reply, for comparing
+  models). It is a developer/regression tool; see CalradiaRemembers/TESTING_GUIDE.md.
+
 ## v1.14.0.. 2026-06-25
 
 Conversations stay open, gold can change hands with a word, and meddling in a lord's plot earns you a

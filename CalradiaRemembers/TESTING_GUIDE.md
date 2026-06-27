@@ -3,7 +3,7 @@
 Console commands + the in-game scenarios that must be checked by hand.
 
 **Scope.** The mod's pure decision logic (relation caps, scheme lifecycle, recruitment gates, the
-stance maths, power-balance wording, marriage eligibility, etc.) is already covered by 250 automated
+stance maths, power-balance wording, marriage eligibility, etc.) is already covered by 486 automated
 unit tests — **you do not need to re-test those by hand.** This guide lists only what the unit tests
 *cannot* prove: that game events actually fire the logic, that parties move, that the prompt actually
 changes what NPCs say, and that everything survives a **save / reload**.
@@ -26,6 +26,33 @@ changes what NPCs say, and that everything survives a **save / reload**.
 ---
 
 ## 1. Console command reference
+
+### Self-test harness (the fast regression sweep)
+
+One harness exercises the mod's systems end to end through the real service/bridge, asserting what
+happened and logging a `[SELFTEST]` PASS / FAIL / MANUAL line each. Adding a test is one method + one
+registry line — no new console command. **Tests mutate live campaign state: copy your save, or reload
+when done.**
+
+| Command | Does |
+|---|---|
+| `cr.testall` | Run the routine sweep: every test **except** the irreversible ones. |
+| `cr.test list` | List the registered tests (name + severity + description). |
+| `cr.test <name>` | Run one test by name (e.g. `cr.test pregnancy`, `cr.test bastard_claim`). |
+| `cr.test chat` | Run only the conversation smoke tests (real LLM calls; **full untruncated replies** in the log). |
+| `cr.test mech` | Run only the mechanical tests (no LLM call, no API cost). |
+| `cr.test full` | Run **everything**, including the irreversible tests — **throwaway save only**. |
+
+- **Irreversible tests** (`declare_war`, `scenario`) really declare a war / seal a one-shot scenario in
+  the live campaign, so they are held out of `cr.testall` and run only on explicit `cr.test <name>` or
+  `cr.test full`. A reload is the only undo.
+- **Conversation smoke tests** (`cr.test chat`) make one real LLM call each, seed identical state every
+  run, and log the full Q&A so you can judge relevance by reading it. Each line is stamped with the
+  active model (e.g. `[model: x-ai/grok-4.3]`) — change the model in Mod Options and re-run to compare
+  LLMs on the same questions. Coverage: plain dialogue, shared-memory recall, stance (fear/distrust),
+  hearsay about a third party, a bastard-mother pressing for coin, and a fed world-event surfacing.
+- **Extension Surface**: `cr.feed_test [summary]` records an external world event through the public
+  `CalradiaRemembers.Feed` API (the same path other mods use) so you can see an NPC gossip it.
 
 ### Stance (multi-axis posture)
 | Command | Does |
