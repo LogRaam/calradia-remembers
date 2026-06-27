@@ -2,6 +2,13 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.16.2.. 2026-06-27
+
+### Changed
+- **The game now pauses while you read or write a letter.** When a letter arrives (or you open the parchment
+  to compose or reply), campaign time stops.. so you can read and answer without the world running on under a
+  window you couldn't pause. Closing the parchment restores your previous game speed.
+
 ## v1.16.1.. 2026-06-27
 
 A save-stability patch.

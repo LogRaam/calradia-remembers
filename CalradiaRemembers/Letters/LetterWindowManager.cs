@@ -21,6 +21,11 @@ namespace CalradiaRemembers.Letters
       private static GauntletMovieIdentifier _movieId;
       private static LetterViewModel _vm;
 
+      // Campaign time is paused while the parchment is open (a letter pops up on arrival, and the player must be
+      // able to read/answer it without the world running on under a focused window they cannot pause). Restored
+      // on close to whatever speed they were at.
+      private static CampaignTimeControlMode _previousTimeControlMode;
+
       public static bool IsOpen => _layer != null;
 
       public static void Close()
@@ -31,6 +36,8 @@ namespace CalradiaRemembers.Letters
          _layer.InputRestrictions.ResetInputRestrictions();
          _layer.ReleaseMovie(_movieId);
          _host?.RemoveLayer(_layer);
+
+         if (Campaign.Current != null) Campaign.Current.TimeControlMode = _previousTimeControlMode;
 
          _layer = null;
          _movieId = null;
@@ -89,6 +96,14 @@ namespace CalradiaRemembers.Letters
          _host.AddLayer(_layer);
          _layer.IsFocusLayer = true;
          ScreenManager.TrySetFocus(_layer);
+
+         // Pause the campaign while the parchment holds focus, so the player can read/reply without time
+         // running on (and without being unable to pause it under the focused window).
+         if (Campaign.Current != null)
+         {
+            _previousTimeControlMode = Campaign.Current.TimeControlMode;
+            Campaign.Current.TimeControlMode = CampaignTimeControlMode.Stop;
+         }
 
          ModLog.Info($"Courier window opened on {_host.GetType().Name}.");
 
