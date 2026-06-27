@@ -66,6 +66,7 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("bastard_discovery",Severity.Heavy,        "tag a bastard -> Discover -> assert flag + a Scandal world-event",  TestBastardDiscovery),
             new SelfTest("bastard_claim",    Severity.Heavy,        "force a grown bastard's claim -> assert hostility + claim world-event", TestBastardClaim),
             new SelfTest("bastard_scandal_culture", Severity.Heavy, "discover a bastard -> assert the scandal magnitude is culture-scaled", TestBastardScandalCulture),
+            new SelfTest("feed_ingest",      Severity.Light,        "Feed.Record an external event -> assert stored + a re-send is deduped", TestFeedIngest),
             new SelfTest("declare_war",      Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it",         TestDeclareWar),
             new SelfTest("scenario",         Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals",       TestScenario),
         };
@@ -577,6 +578,30 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"subject={subject.Name}, expected magnitude {expected}");
             t.Expect("scandalRecorded", scandal != null, true);
             t.Expect("magnitudeCultureScaled", scandal?.Magnitude, expected);
+            return t.Line();
+        }
+
+        private static string TestFeedIngest(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("feed_ingest");
+            if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+            string id = "selftest_" + Guid.NewGuid().ToString("N");
+            var e = new ExternalWorldEvent {
+                Id = id, SourceMod = "SelfTest", Summary = "[SELFTEST] an external rumour reached Calradia", Magnitude = 30
+            };
+
+            int before = WorldEventStore.Instance.Count;
+            FeedResult first = Feed.Record(e);
+            int afterFirst = WorldEventStore.Instance.Count;
+            FeedResult second = Feed.Record(e); // same id -> deduped
+            int afterSecond = WorldEventStore.Instance.Count;
+
+            t.Note($"first={first}, second={second}, count {before}->{afterFirst}->{afterSecond}");
+            t.Expect("recorded", first, FeedResult.Recorded);
+            t.Expect("countRose", afterFirst, before + 1);
+            t.Expect("dedupRejected", second, FeedResult.RejectedDuplicate);
+            t.Expect("noDoubleCount", afterSecond, afterFirst);
             return t.Line();
         }
 

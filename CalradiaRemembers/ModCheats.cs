@@ -1821,6 +1821,35 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.feed_test [summary]
+      ///   Exercises the Extension Surface (Volet A): feeds a sample external world fact through
+      ///   <see cref="Feed.Record" /> — the same door a third-party mod would use — and reports the result +
+      ///   the new store size. Talk to a nearby NPC who'd plausibly have heard it.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("feed_test", "cr")]
+      public static string FeedTest(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+
+         string summary = args is {Count: > 0}
+            ? string.Join(" ", args).Trim()
+            : "The grey mare of Lord Caladog won the Pravend races; heavy purses changed hands.";
+
+         var e = new ExternalWorldEvent {
+            Id = "feedtest_" + Guid.NewGuid().ToString("N"),
+            SourceMod = "ConsoleTest",
+            Summary = summary,
+            Magnitude = 30,
+            Lifetime = ExternalEventLifetime.Rumor
+         };
+
+         FeedResult result = Feed.Record(e);
+
+         return $"Feed.Record -> {result}. World-event store now holds {WorldEventStore.Instance?.Count ?? 0} event(s). " +
+                "Speak with a nearby NPC who'd plausibly have heard it.";
+      }
+
+      /// <summary>
       ///   cr.realm_news
       ///   Seeds a high-magnitude WAR between two kingdoms so the "TALK OF ALL THE REALM" line is testable —
       ///   then speak with any NPC who would have heard of it (the influence-loop realm-news polish).

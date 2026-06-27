@@ -95,6 +95,12 @@ namespace CalradiaRemembers.WorldEvents
       /// <summary>Reserved for v1.3 schemes (active/resolved/discovered); null for a settled fact.</summary>
       public string Status { get; set; }
 
+      /// <summary>
+      ///   The id of the mod that fed this event through the Extension Surface (<see cref="Feed" />), or null
+      ///   for CR's own events. Lets a misbehaving source be debugged, filtered, or muted (discipline #4).
+      /// </summary>
+      public string SourceMod { get; set; }
+
       /// <summary>A short, ready-to-inject natural-language line ("Lord X put Lord Y to flight at Z").</summary>
       public string Summary { get; set; }
 
