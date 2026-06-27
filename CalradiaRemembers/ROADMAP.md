@@ -399,14 +399,15 @@ CONCEALED and what is KNOWN. Two axes drive everything: **concealed ↔ discover
    bastard presses a claim on the FATHER's clan only when the MATERNAL house is **≤** the father's; a child of a
    grander house (e.g. the player sires one on Empress Rhagaea) follows the mother's dynasty and covets nothing
    of the player's lesser clan. Makes the trigger characterful, not mechanical.
-4. **An NPC fabricates a FALSE bastard to smear the player** — a flavoured **`SchemeKind.Slander`** (SchemeStore
-   already has it); warn/counter like the existing schemes.
+4. ~~An NPC fabricates a FALSE bastard to smear the player~~ — **DROPPED 2026-06-26 (Gabriel): a rumour about a
+   bastard the player knows doesn't exist reads as a *bug* (a phantom child), not a deliberate accusation — the
+   line is too thin.** "An enemy smears you" is already covered by the generic **`SchemeKind.Slander`** schemes,
+   which invent no phantom data. Don't re-litigate.
 
-**The elegant convergence:** the real-discovered bastard AND the fabricated one flow through the **same**
-scandal/rumour channel; the **truth-value decides the player's DEFENCE** — a real one can only be SUPPRESSED /
-bought-off (hence the blackmail), a fabricated one can be REFUTED (and if disproven the scheme backfires on the
-plotter, like `scheme_warn`). Dramatic irony when a false accusation lands on a player who really *does* have a
-hidden bastard.
+A real bastard's defence is to SUPPRESS it — keep it hidden, buy the mother's silence (the blackmail) — because
+once it surfaces (the seasonal age-roll, an unmet blackmail, or coming of age) it is *true* and the scandal
+sticks. (A *fabricated* bastard was considered as a fourth thread and **dropped** — see thread 4 — because a
+phantom child reads as a bug, not an accusation.)
 
 **The secret-keeper set** *(decided 2026-06-25)*: knowers of a real bastard = the mother + the affair
 **witnesses** (jealousy already tracks staked NPCs) + the grown bastard. ANY knower may blackmail or leak it,

@@ -19,39 +19,46 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_warmth_across_the_range_WHEN_phrasing_affection_THEN_each_tier_reads_right()
         {
-            StanceDescriptor.AffectionPhrase(50).Should().Be("They are genuinely fond of you.");
-            StanceDescriptor.AffectionPhrase(20).Should().Be("They warm to you.");
+            StanceDescriptor.AffectionPhrase(50).Should().Be("You are genuinely fond of the player.");
+            StanceDescriptor.AffectionPhrase(20).Should().Be("You warm to the player.");
             StanceDescriptor.AffectionPhrase(0).Should().BeNull();
-            StanceDescriptor.AffectionPhrase(-20).Should().Be("They dislike you.");
-            StanceDescriptor.AffectionPhrase(-50).Should().Be("They bear you real hatred.");
+            StanceDescriptor.AffectionPhrase(-20).Should().Be("You dislike the player.");
+            StanceDescriptor.AffectionPhrase(-50).Should().Be("You bear the player real hatred.");
         }
 
         [Test]
         public void GIVEN_trust_across_the_range_WHEN_phrasing_THEN_each_tier_reads_right()
         {
-            StanceDescriptor.TrustPhrase(40).Should().Be("They trust you implicitly.");
-            StanceDescriptor.TrustPhrase(15).Should().Be("They trust your word.");
+            StanceDescriptor.TrustPhrase(40).Should().Be("You trust the player implicitly.");
+            StanceDescriptor.TrustPhrase(15).Should().Be("You trust the player's word.");
             StanceDescriptor.TrustPhrase(0).Should().BeNull();
-            StanceDescriptor.TrustPhrase(-15).Should().Be("They are wary of your word.");
-            StanceDescriptor.TrustPhrase(-40).Should().Be("They deeply distrust you.");
+            StanceDescriptor.TrustPhrase(-15).Should().Be("You are wary of the player's word.");
+            StanceDescriptor.TrustPhrase(-40).Should().Be("You deeply distrust the player.");
         }
 
         [Test]
         public void GIVEN_respect_across_the_range_WHEN_phrasing_THEN_each_tier_reads_right()
         {
-            StanceDescriptor.RespectPhrase(45).Should().Be("They hold you in high regard.");
-            StanceDescriptor.RespectPhrase(20).Should().Be("They respect your worth.");
+            StanceDescriptor.RespectPhrase(45).Should().Be("You hold the player in high regard.");
+            StanceDescriptor.RespectPhrase(20).Should().Be("You respect the player's worth.");
             StanceDescriptor.RespectPhrase(0).Should().BeNull();
-            StanceDescriptor.RespectPhrase(-20).Should().Be("They think little of you.");
-            StanceDescriptor.RespectPhrase(-45).Should().Be("They hold you in open contempt.");
+            StanceDescriptor.RespectPhrase(-20).Should().Be("You think little of the player.");
+            StanceDescriptor.RespectPhrase(-45).Should().Be("You hold the player in open contempt.");
         }
 
         [Test]
         public void GIVEN_fear_across_the_range_WHEN_phrasing_THEN_it_is_unipolar()
         {
-            StanceDescriptor.FearPhrase(70).Should().Be("They are openly afraid of you.");
-            StanceDescriptor.FearPhrase(35).Should().Be("They are wary and intimidated by you.");
-            StanceDescriptor.FearPhrase(12).Should().Be("They feel a flicker of unease around you.");
+            // Fear GRADUATES: the more afraid, the more ground given — a flicker defers on small things,
+            // true dread grants what would never otherwise be conceded.
+            StanceDescriptor.FearPhrase(85).Should().StartWith("You are gripped by fear of the player");
+            StanceDescriptor.FearPhrase(85).Should().Contain("grant what you would"); // top tier = capitulation
+            StanceDescriptor.FearPhrase(70).Should().StartWith("You are openly afraid of the player, and it shows");
+            StanceDescriptor.FearPhrase(70).Should().Contain("yield ground"); // fear is voiced as conduct, not a hidden feeling
+            StanceDescriptor.FearPhrase(70).Should().Contain("concede");
+            StanceDescriptor.FearPhrase(35).Should().StartWith("You are wary and intimidated by the player");
+            StanceDescriptor.FearPhrase(35).Should().Contain("tread");
+            StanceDescriptor.FearPhrase(12).Should().StartWith("You feel a flicker of unease around the player");
             StanceDescriptor.FearPhrase(0).Should().BeNull();
         }
 
@@ -71,7 +78,7 @@ namespace CalradiaRemembers.Tests
             string block = StanceDescriptor.Summarize(s);
 
             //Assert
-            block.Should().Be("They are genuinely fond of you.\nThey are wary of your word.");
+            block.Should().Be("You are genuinely fond of the player.\nYou are wary of the player's word.");
         }
 
         // ── Believable combinations (the point of the multi-axis system) ───────
@@ -104,7 +111,7 @@ namespace CalradiaRemembers.Tests
             //Assert
             block.Should().Contain("genuinely fond");
             block.Should().Contain("deeply distrust");
-            block.Should().Contain("respect your worth");
+            block.Should().Contain("respect the player's worth");
         }
 
         [Test]

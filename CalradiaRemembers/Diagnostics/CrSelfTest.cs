@@ -70,21 +70,63 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("feed_ingest",      Severity.Light,        "Feed.Record an external event -> assert stored + a re-send is deduped", TestFeedIngest),
             new SelfTest("declare_war",      Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it",         TestDeclareWar),
             new SelfTest("scenario",         Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals",       TestScenario),
-            new SelfTest("llm_dialogue",     Severity.Light,        "call the LLM with a question -> log the reply for a human relevance read (1 API call)", TestLlmDialogue),
+            new SelfTest("llm_dialogue",     Severity.Light,        "LLM: a plain greeting -> log the reply (relevance judged from the log)",          TestLlmDialogue,        callsLlm: true),
+            new SelfTest("chat_memory",      Severity.Light,        "LLM: seed a shared history -> ask about it -> does the reply reference it?",       TestChatMemory,         callsLlm: true),
+            new SelfTest("chat_stance",      Severity.Light,        "LLM: set a distinctive stance (fear/distrust) -> ask -> does the tone match?",    TestChatStance,         callsLlm: true),
+            new SelfTest("chat_hearsay",     Severity.Light,        "LLM: ask about another lord -> does the NPC answer from their own vantage?",       TestChatHearsay,        callsLlm: true),
+            new SelfTest("chat_bastard_mother", Severity.Light,     "LLM: force a mercenary bastard-mother context -> does she raise/extort the child?", TestChatBastardMother, callsLlm: true),
+            new SelfTest("chat_worldevent",  Severity.Light,        "LLM: Feed a fresh event -> ask for news -> does the NPC surface it?",             TestChatWorldEvent,     callsLlm: true),
         };
 
         // ── Public API (cr.testall / cr.test) ─────────────────────────────────
 
-        /// <summary>Runs all registered tests; returns a multi-line report ending with a summary line.</summary>
+        /// <summary>
+        ///   The routine sweep (cr.testall): every test EXCEPT the irreversible ones (declaring war,
+        ///   sealing a one-shot scenario). Those mutate the LIVE campaign in ways only a reload undoes —
+        ///   and, running before the conversation tests, they poison every reply that follows (an actual
+        ///   war declaration had all six NPCs harping on "your house declared war"). So they are opt-in,
+        ///   one at a time, via <c>cr.test &lt;name&gt;</c> — or <c>cr.test full</c> on a throwaway save.
+        /// </summary>
         public static string RunAll(NpcMemoryCampaignBehavior behavior)
+            => RunGroup(Tests.Where(t => t.Severity != Severity.Irreversible), behavior);
+
+        /// <summary>Runs EVERY test, including the irreversible ones (declares war / seals scenarios). Throwaway save only.</summary>
+        public static string RunEverything(NpcMemoryCampaignBehavior behavior) => RunGroup(Tests, behavior);
+
+        /// <summary>
+        ///   Runs ONLY the conversation smoke tests (each makes one real LLM call). For rapid prompt iteration.
+        ///   This is "test mode": the FULL, untruncated LLM reply is shown in the report (no preview elision),
+        ///   so the prompt's effect can be judged directly without digging through the file log.
+        /// </summary>
+        public static string RunChat(NpcMemoryCampaignBehavior behavior)
         {
+            _fullReplies = true;
+            try { return RunGroup(Tests.Where(t => t.CallsLlm), behavior); }
+            finally { _fullReplies = false; }
+        }
+
+        /// <summary>Runs ONLY the mechanical tests (no LLM call, no API cost) — the fast, free sweep.</summary>
+        public static string RunMechanical(NpcMemoryCampaignBehavior behavior)
+            => RunGroup(Tests.Where(t => !t.CallsLlm), behavior);
+
+        private static string RunGroup(IEnumerable<SelfTest> group, NpcMemoryCampaignBehavior behavior)
+        {
+            List<SelfTest> tests = group.ToList();
             var sb = new StringBuilder();
             sb.AppendLine("[SELFTEST] *** WARNING: tests mutate campaign state — reload or use a copied save ***");
-            if (Tests.Any(t => t.Severity == Severity.Irreversible))
+            if (tests.Any(t => t.Severity == Severity.Irreversible))
                 sb.AppendLine("[SELFTEST] *** includes IRREVERSIBLE tests (declare war / seal scenarios) — reload is mandatory ***");
 
+            int heldBack = Tests.Count(t => t.Severity == Severity.Irreversible) - tests.Count(t => t.Severity == Severity.Irreversible);
+            if (heldBack > 0)
+                sb.AppendLine($"[SELFTEST] *** {heldBack} IRREVERSIBLE test(s) HELD BACK (declare war / seal scenarios) — run one at a time via 'cr.test <name>', or 'cr.test full' on a throwaway save ***");
+
+            int llm = tests.Count(t => t.CallsLlm);
+            if (llm > 0)
+                sb.AppendLine($"[SELFTEST] *** includes {llm} conversation test(s) — {llm} real LLM call(s) + a brief freeze each; relevance is judged from the log ***");
+
             int pass = 0, fail = 0, manual = 0;
-            foreach (SelfTest test in Tests)
+            foreach (SelfTest test in tests)
             {
                 string line = SafeRun(test, behavior);
                 sb.AppendLine(line);
@@ -106,7 +148,11 @@ namespace CalradiaRemembers.Diagnostics
             if (test == null)
                 return $"[SELFTEST] Unknown test '{testName}'. Available: {string.Join(", ", Tests.Select(t => t.Name))}";
 
-            string result = SafeRun(test, behavior);
+            // A single conversation test is run to be read — show its full, untruncated reply.
+            _fullReplies = test.CallsLlm;
+            string result;
+            try { result = SafeRun(test, behavior); }
+            finally { _fullReplies = false; }
             ModLog.Info(result);
             return result;
         }
@@ -117,8 +163,8 @@ namespace CalradiaRemembers.Diagnostics
             var sb = new StringBuilder();
             sb.AppendLine($"[SELFTEST] {Tests.Count} registered test(s):");
             foreach (SelfTest t in Tests)
-                sb.AppendLine($"  {t.Name}  [{t.Severity}]  — {t.Description}");
-            sb.AppendLine("Run all: cr.testall   |   one: cr.test <name>");
+                sb.AppendLine($"  {t.Name}  [{t.Severity}{(t.CallsLlm ? ", LLM" : "")}]  — {t.Description}");
+            sb.AppendLine("Run all: cr.testall   |   one: cr.test <name>   |   conversations: cr.test chat   |   mechanical only: cr.test mech");
             return sb.ToString();
         }
 
@@ -607,38 +653,201 @@ namespace CalradiaRemembers.Diagnostics
             return t.Line();
         }
 
+        // ── Conversation smoke tests (each = 1 real LLM call; relevance judged from the log) ──
+
         private static string TestLlmDialogue(NpcMemoryCampaignBehavior behavior)
         {
             var t = new TestRun("llm_dialogue");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured — set an API key + model, or an OpenAI-compatible endpoint")) return t.Line();
 
-            var services = behavior.LlmServices;
-            if (t.Skip(services is not {IsAvailable: true}, "LLM not configured — set an API key + model, or an OpenAI-compatible endpoint")) return t.Line();
-
-            Hero npc = Hero.OneToOneConversationHero
-                    ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+            Hero npc = ConversationNpc();
             if (t.Skip(npc == null, "no NPC to converse with")) return t.Line();
 
             NpcProfile profile = GetOrCreate(behavior, npc);
-            var world = new WorldState { CurrentDay = behavior.GameStateBridge.GetCurrentGameDay() };
-            var session = new ChatSession();
             const string question = "Greetings. Tell me plainly — what is the mood of the realm these days, and how do you regard me?";
-            var ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge);
+            var ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, question);
 
-            // Synchronous wait on the real pipeline (Task.Run avoids any main-thread sync-context capture).
-            var result = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, question, ctx)).GetAwaiter().GetResult();
-            if (t.Abort(result is not {IsSuccess: true}, $"LLM call failed: {result?.ErrorMessage ?? "no result"}")) return t.Line();
+            var (ok, reply, err) = AskLlm(behavior, "llm_dialogue", npc, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
 
-            string reply = result.Response?.Dialogue ?? "";
-
-            // The full Q&A goes to the log so relevance can be judged by reading it.
-            ModLog.Info($"[SELFTEST] llm_dialogue — Q to {npc.Name}: {question}");
-            ModLog.Info($"[SELFTEST] llm_dialogue — A from {npc.Name}: {reply}");
-
-            t.Note($"{npc.Name} replied {reply.Length} chars (full Q&A in the log)");
-            t.Note($"A: {(reply.Length > 200 ? reply.Substring(0, 200) + "..." : reply)}");
+            t.Note($"{npc.Name} replied {reply.Length} chars | A: {Show(reply)}");
             t.Expect("gotNonEmptyReply", reply.Length > 0, true);
             return t.Line();
         }
+
+        private static string TestChatMemory(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_memory");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to converse with")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            int day = behavior.GameStateBridge.GetCurrentGameDay();
+            profile.Events.Add(new NotableEvent(day - 60, NotableEventType.Collaboration, "[SELFTEST] We fought side by side at the siege of Pravend and carried the day together."));
+            profile.Events.Add(new NotableEvent(day - 12, NotableEventType.Conflict, "[SELFTEST] We later quarrelled bitterly over the division of the spoils."));
+            behavior.Store.Set(profile);
+
+            const string question = "Do you recall our history together? Speak of what has passed between us.";
+            var ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, question);
+
+            var (ok, reply, err) = AskLlm(behavior, "chat_memory", npc, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            t.Note($"judge in log: does {npc.Name} reference Pravend + the quarrel (not invented history)? | A: {Show(reply)}");
+            t.Expect("gotNonEmptyReply", reply.Length > 0, true);
+            return t.Line();
+        }
+
+        private static string TestChatStance(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_stance");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to converse with")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            profile.StanceTrust = -40;  // distrusts the player's word
+            profile.StanceRespect = 30; // grudging respect for their prowess
+            profile.StanceFear = 70;    // and is plainly intimidated
+            behavior.Store.Set(profile);
+
+            const string question = "Look me in the eye and tell me — how do you truly regard me?";
+            var ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, question);
+
+            var (ok, reply, err) = AskLlm(behavior, "chat_stance", npc, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            t.Note($"set trust-40/respect+30/fear+70; judge in log: wary + intimidated yet not trusting? | A: {Show(reply)}");
+            t.Expect("gotNonEmptyReply", reply.Length > 0, true);
+            return t.Line();
+        }
+
+        private static string TestChatHearsay(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_hearsay");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            Hero other = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != npc && h.IsLord);
+            if (t.Skip(npc == null || other == null, "need an NPC + a third lord to ask about")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            string question = $"What do you make of {other.Name}? Tell me true.";
+            var ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, question);
+
+            var (ok, reply, err) = AskLlm(behavior, "chat_hearsay", npc, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            t.Note($"asked about {other.Name}; judge in log: answers from a vantage (friend/rival/stranger), never invents whereabouts | A: {Show(reply)}");
+            t.Expect("gotNonEmptyReply", reply.Length > 0, true);
+            return t.Line();
+        }
+
+        private static string TestChatBastardMother(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_bastard_mother");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            // Prefer an UNMARRIED woman: a strictly-monogamous wife's fidelity persona contradicts (and
+            // tends to suppress) the "you bore the player a bastard" secret, sabotaging the read.
+            Hero npc = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsFemale && h.IsLord && h.Spouse == null)
+                    ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsFemale && h.Spouse == null)
+                    ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsFemale && h.IsLord)
+                    ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsFemale);
+            if (t.Skip(npc == null, "no female NPC to play the mother")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            // Seed the shared past a real bastard-mother would carry, so the profile does not read as a
+            // stranger and contradict the secret (the bug behind her once denying they had ever met).
+            int day = behavior.GameStateBridge.GetCurrentGameDay();
+            profile.Events.Add(new NotableEvent(day - 900, NotableEventType.Intimacy, "[SELFTEST] We were lovers for a season, years ago, before duty pulled us apart."));
+            behavior.Store.Set(profile);
+
+            // Force the prompt path directly: a mercenary bastard-mother holding the secret. (Needs Adult >= Mature.)
+            var ctx = new EncounterContext { BastardMotherTone = "mercenary", BastardBlackmailDemand = 2000 };
+
+            const string question = "It has been some time. It is good to see you again.";
+            var (ok, reply, err) = AskLlm(behavior, "chat_bastard_mother", npc, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            t.Note($"{npc.Name} as a mercenary mother; judge in log: does she raise the hidden child + press for coin (Adult must be >= Mature)? | A: {Show(reply)}");
+            t.Expect("gotNonEmptyReply", reply.Length > 0, true);
+            return t.Line();
+        }
+
+        private static string TestChatWorldEvent(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_worldevent");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+            if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to converse with")) return t.Line();
+
+            // Feed a faction-relevant fact through the Extension Surface, then see if the NPC surfaces it.
+            // STABLE id (not a fresh Guid): re-running this test must dedupe, not pile up a new Pravend fire
+            // each time — otherwise the store accumulates copies and an NPC starts saying it has heard it "twice".
+            var factions = new List<string>();
+            if (npc.MapFaction != null) factions.Add(npc.MapFaction.StringId);
+            Feed.Record(new ExternalWorldEvent {
+                Id = "selftest_chatworldevent_pravend_fire",
+                SourceMod = "SelfTest",
+                Summary = "A great fire has gutted the granaries of Pravend, and bread grows dear across the land.",
+                Magnitude = 70,
+                FactionIds = factions
+            });
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            const string question = "What news of the realm? Have you heard anything of note lately?";
+            var ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, question);
+
+            var (ok, reply, err) = AskLlm(behavior, "chat_worldevent", npc, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            t.Note($"fed the Pravend granary fire; judge in log: does {npc.Name} mention it (as hearsay)? | A: {Show(reply)}");
+            t.Expect("gotNonEmptyReply", reply.Length > 0, true);
+            return t.Line();
+        }
+
+        private static Hero ConversationNpc()
+            => Hero.OneToOneConversationHero ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+
+        /// <summary>Runs one question through the real chat pipeline, logs the full Q&amp;A, and returns the reply.</summary>
+        private static (bool ok, string reply, string error) AskLlm(
+            NpcMemoryCampaignBehavior behavior, string label, Hero npc, NpcProfile profile, EncounterContext ctx, string question)
+        {
+            var services = behavior.LlmServices;
+            if (services is not {IsAvailable: true}) return (false, null, "LLM not configured");
+
+            var world = new WorldState { CurrentDay = behavior.GameStateBridge.GetCurrentGameDay() };
+            var session = new ChatSession();
+
+            // Synchronous wait on the real pipeline (Task.Run avoids any main-thread sync-context capture).
+            var result = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, question, ctx)).GetAwaiter().GetResult();
+            if (result is not {IsSuccess: true}) return (false, null, result?.ErrorMessage ?? "no result");
+
+            string reply = result.Response?.Dialogue ?? "";
+            ModLog.Info($"[SELFTEST] {label} — Q to {npc.Name}: {question}");
+            ModLog.Info($"[SELFTEST] {label} — A from {npc.Name}: {reply}");
+
+            return (true, reply, null);
+        }
+
+        // Set by RunChat ("test mode"): show the whole reply in the report instead of a 180-char preview.
+        private static bool _fullReplies;
+
+        /// <summary>The reply as shown in the report: full text in test mode (cr.test chat), else a short preview.</summary>
+        private static string Show(string s) => _fullReplies ? (s ?? "") : Preview(s);
+
+        private static string Preview(string s)
+            => string.IsNullOrEmpty(s)
+                ? ""
+                : s.Length > 180
+                    ? s.Substring(0, 180) + "..."
+                    : s;
 
         // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -672,12 +881,16 @@ namespace CalradiaRemembers.Diagnostics
             public readonly string Description;
             public readonly Func<NpcMemoryCampaignBehavior, string> Run;
 
-            public SelfTest(string name, Severity severity, string description, Func<NpcMemoryCampaignBehavior, string> run)
+            /// <summary>True when the test makes a real LLM call (a conversation smoke test) — costs an API call + a freeze.</summary>
+            public readonly bool CallsLlm;
+
+            public SelfTest(string name, Severity severity, string description, Func<NpcMemoryCampaignBehavior, string> run, bool callsLlm = false)
             {
                 Name = name;
                 Severity = severity;
                 Description = description;
                 Run = run;
+                CallsLlm = callsLlm;
             }
         }
 
