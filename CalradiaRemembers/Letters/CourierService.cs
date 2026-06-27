@@ -275,39 +275,50 @@ namespace CalradiaRemembers.Letters
          if (store == null) return;
          var respawned = 0;
 
-         foreach (string id in store.ListIds())
+         // This runs from OnSaveOver — a save-completion callback. Respawning a courier is purely cosmetic
+         // (letters fall back to date-based delivery if it fails), so NOTHING here may crash the save. The whole
+         // pass is guarded, and each hero lookup is null-safe (the hero collection can hold a transient null at
+         // save-over time, which made Hero.FindFirst's predicate throw — the reported autosave crash).
+         try
          {
-            NpcProfile profile = store.Get(id);
-
-            if (profile == null) continue;
-
-            var changed = false;
-
-            // Player → NPC letters.
-            foreach (PlayerLetter letter in profile.ReceivedPlayerLetters)
+            foreach (string id in store.ListIds())
             {
-               if (!InFlightWithDeadCourier(letter.CourierPartyId, letter.IsDelivered, letter.IsLost)) continue;
-               Hero recipient = Hero.FindFirst(h => h.StringId == letter.RecipientId);
-               Vec2? at = TakePosition(letter.CourierPartyId);
+               NpcProfile profile = store.Get(id);
 
-               if (!TrySpawnCourier(letter, recipient, spawnOverride: at)) continue;
-               respawned++;
-               changed = true;
+               if (profile == null) continue;
+
+               var changed = false;
+
+               // Player → NPC letters.
+               foreach (PlayerLetter letter in profile.ReceivedPlayerLetters)
+               {
+                  if (!InFlightWithDeadCourier(letter.CourierPartyId, letter.IsDelivered, letter.IsLost)) continue;
+                  Hero recipient = Hero.FindFirst(h => h != null && h.StringId == letter.RecipientId);
+                  Vec2? at = TakePosition(letter.CourierPartyId);
+
+                  if (!TrySpawnCourier(letter, recipient, spawnOverride: at)) continue;
+                  respawned++;
+                  changed = true;
+               }
+
+               // NPC → player replies (the sender is the profile's hero).
+               Hero sender = Hero.FindFirst(h => h != null && h.StringId == profile.Id);
+               foreach (PendingLetter letter in profile.SentLetters)
+               {
+                  if (!InFlightWithDeadCourier(letter.CourierPartyId, letter.IsDelivered, letter.IsLost)) continue;
+                  Vec2? at = TakePosition(letter.CourierPartyId);
+
+                  if (!TrySpawnReplyCourier(letter, sender, at)) continue;
+                  respawned++;
+                  changed = true;
+               }
+
+               if (changed) store.Set(profile);
             }
-
-            // NPC → player replies (the sender is the profile's hero).
-            Hero sender = Hero.FindFirst(h => h.StringId == profile.Id);
-            foreach (PendingLetter letter in profile.SentLetters)
-            {
-               if (!InFlightWithDeadCourier(letter.CourierPartyId, letter.IsDelivered, letter.IsLost)) continue;
-               Vec2? at = TakePosition(letter.CourierPartyId);
-
-               if (!TrySpawnReplyCourier(letter, sender, at)) continue;
-               respawned++;
-               changed = true;
-            }
-
-            if (changed) store.Set(profile);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COURIER] RespawnInFlight failed — couriers left to date-based delivery, save unaffected. {ex.GetType().Name}: {ex.Message}");
          }
 
          DespawnPositions.Clear();

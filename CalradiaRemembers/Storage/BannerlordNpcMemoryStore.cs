@@ -158,10 +158,18 @@ namespace CalradiaRemembers.Storage
       ///   whole save unreadable — the mod's "your campaign always loads" guarantee.
       /// </summary>
       private string SerializeProfiles()
-         => ResilientProfileBundle.Serialize(_profiles, (id, name, ex) =>
+      {
+         // Freeze the dictionary structure before serializing: an autosave can run while the main thread is
+         // landing an async LLM continuation that adds a newly-met NPC, and a dictionary mutated mid-enumeration
+         // would throw and drop the WHOLE profile blob this save. (Per-profile failures are still isolated by
+         // the resilient bundle; this guards only the outer enumeration.)
+         var snapshot = new Dictionary<string, NpcProfile>(_profiles);
+
+         return ResilientProfileBundle.Serialize(snapshot, (id, name, ex) =>
             ModLog.Error($"[STORE] profile '{id}' ({name}) cannot be persisted — " +
                          $"it does not survive a round-trip, so it is left out to keep the save loadable. " +
                          $"{ex.GetType().Name}: {ex.Message}"));
+      }
 
       #endregion
    }

@@ -2,6 +2,20 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.16.1.. 2026-06-27
+
+A save-stability patch.
+
+### Fixed
+- **Fixed a crash when saving with a letter courier in transit.** Restoring an in-flight courier after a save
+  could hit a null reference and bring the game down at save-completion.. it showed up most often on autosave or
+  save-and-exit, while a manual save a moment earlier seemed fine. The restore is now fully guarded: if a courier
+  can't be replaced, the letter simply falls back to date-based delivery and the save completes cleanly. If you
+  were getting a crash on autosave, this is very likely it.
+- **Hardened the mod's own saving against a rare data race.** World events, schemes, and NPC memory are now
+  serialized from a frozen snapshot, so an autosave landing while the game is still writing memory in the
+  background can no longer drop a block of data — or contribute to a save-time hitch.
+
 ## v1.16.0.. 2026-06-27
 
 Other mods can now hand the player a MISSION through Calradia Remembers — CR issues, frames, journals and pays

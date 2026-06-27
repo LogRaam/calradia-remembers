@@ -136,7 +136,13 @@ namespace CalradiaRemembers.WorldEvents
          if (dataStore.IsSaving)
          {
             byte[] bytes;
-            try { bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_schemes, Formatting.None)); }
+            try
+            {
+               // Serialize a frozen copy, not the live list (see WorldEventStore): an autosave racing a
+               // main-thread mutation would otherwise throw mid-serialize and drop the whole blob this save.
+               var snapshot = new List<Scheme>(_schemes);
+               bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(snapshot, Formatting.None));
+            }
             catch (Exception ex)
             {
                ModLog.Error($"[SCHEME] serialize failed — persisting nothing this save. {ex.GetType().Name}: {ex.Message}");
