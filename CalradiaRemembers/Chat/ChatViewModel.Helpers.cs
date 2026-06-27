@@ -253,6 +253,11 @@ namespace CalradiaRemembers.Chat
 
          if (response?.WitnessReactions == null) return result;
 
+         // No one is present to react — ignore any reactions the model invents. This is the
+         // "the NPC talks to themselves" bug, most visible right after a privacy request clears
+         // the room: with the witnesses gone, a smaller model may still emit witness lines.
+         if (_witnesses == null || _witnesses.Count == 0) return result;
+
          foreach (WitnessReaction wr in response.WitnessReactions)
          {
             if (string.IsNullOrWhiteSpace(wr.Text)) continue;
@@ -262,24 +267,25 @@ namespace CalradiaRemembers.Chat
             // DISPLAY — only the canonical short name, never the POV-NPC role text.
             string emitted = DialogueHeuristics.StripWitnessRole(wr.Name);
 
-            string heroId = null;
-            string canonicalName = emitted;
+            // A "reaction" attributed to the MAIN NPC is the NPC reacting to itself — drop it.
+            // Their own words are the [DIALOGUE]; they are never one of their own witnesses.
             if (string.Equals(emitted, _npcName, StringComparison.OrdinalIgnoreCase))
             {
-               heroId = _npcHero?.StringId;
-               canonicalName = _npcName;
-            }
-            else
-            {
-               foreach (WitnessEntry we in _witnesses)
-                  if (string.Equals(we.Name, emitted, StringComparison.OrdinalIgnoreCase))
-                  {
-                     heroId = we.HeroStringId;
-                     canonicalName = we.Name; // canonical casing/spelling
+               ModLog.Info($"[WITNESS] dropped a self-attributed reaction from {_npcName}.");
 
-                     break;
-                  }
+               continue;
             }
+
+            string heroId = null;
+            string canonicalName = emitted;
+            foreach (WitnessEntry we in _witnesses)
+               if (string.Equals(we.Name, emitted, StringComparison.OrdinalIgnoreCase))
+               {
+                  heroId = we.HeroStringId;
+                  canonicalName = we.Name; // canonical casing/spelling
+
+                  break;
+               }
 
             // Mechanical anti-repeat: drop a witness's line when it matches the last one we
             // showed for them (trimmed, case-insensitive). Kills the verbatim looping the
