@@ -96,6 +96,8 @@ namespace CalradiaRemembers
          // Stance (multi-axis posture): time-based fear decay + the prisoner-taken deed. Other deeds
          // are applied at their own event source; the decision/tuning is pure (CalradiaRemembers.Logic).
          campaignStarter.AddBehavior(new Stance.StanceBehavior());
+         // Stance with teeth: weekly, a hardened posture becomes an unbidden hostile/favourable letter.
+         campaignStarter.AddBehavior(new Stance.StanceConsequenceBehavior());
          // Chronicle (v1.2): persists the LLM-illuminated chronicle prose across the campaign.
          campaignStarter.AddBehavior(new Chronicle.ChronicleBehavior());
          // Companion missions (first slice "bring me the news"): a dispatched companion returns after a

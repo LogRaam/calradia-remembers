@@ -55,6 +55,18 @@ geo/faction/recency-weighted hearsay; the **Chronicle**; commoners + settlement 
 **influence loop** (NPCs speak of *your* deeds, attributed + valence-coloured: kin/faction Wound vs Boon)
 and the **"talk of the realm"** line.
 
+**Stance with teeth** *(increment 1 built 2026-06-27, untested in game)* — the earned multi-axis posture now
+ACTS, not just colours dialogue. Pure `StanceConsequencePolicy` maps a posture+traits to one warranted
+consequence (ColdShoulder → Threat → Plot → Intercept → Assassinate / WarmWelcome → Favor → Warning), with
+honour staying a lord's hand from murder/scheming and terror ruling out striking in person. **1a (conversation):**
+`EncounterContext.StanceConsequenceHint` colours how the NPC ACTS this meeting (a cold-shoulder won't deal, a
+secret killer stays falsely civil, a friend offers aid/would warn you). **1b (proactive):** `StanceConsequenceBehavior`
+weekly turns OPEN enmity/regard into an unbidden letter (Threat/Intercept → cold/challenge; Favor/Warning → warm
+overture); secret hatred (Plot/Assassinate) writes nothing. Self-tests `stance_letter` + chat `chat_stance_assassin`/
+`chat_stance_favor`. OPEN: **increment 2** = wire Plot (scheme vs player) + Intercept (reuse InterceptionBehavior) +
+Warning (warn of a real scheme); **increment 3** = the **town ambush** (Assassinate → a Warband-style alley fight
+when the player is in a settlement).
+
 **Companions (the 2026-06-23 trilogy, untested)** — **missions** (news / spy / steal / barter / envoy — a
 real physical journey: the companion leaves as a clan party, rides to a town, returns and reports in
 conversation; save-safe + capture-resilient + anti-exploit; **recall** — order an away companion to abandon

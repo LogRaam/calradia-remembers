@@ -61,6 +61,7 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("free_prisoner",    Severity.Heavy,        "capture -> free_prisoner -> assert released",                      TestFreePrisoner),
             new SelfTest("give_item",        Severity.Light,        "pick a player item -> give_item -> assert it left the inventory",   TestGiveItem),
             new SelfTest("stance_deed",      Severity.Light,        "a gift deed -> assert Trust rose and persisted",                   TestStanceDeed),
+            new SelfTest("stance_letter",    Severity.Heavy,        "hostile stance -> weekly eval -> assert a cold StanceHostility letter is queued", TestStanceLetter),
             new SelfTest("scheme_assist",    Severity.Heavy,        "plot + regard -> PlayerAssists -> assert the plot advanced",       TestSchemeAssist),
             new SelfTest("pregnancy",        Severity.Heavy,        "fertile female -> TryConceive(force) -> assert pregnant",          TestPregnancy),
             new SelfTest("companion_mission",Severity.Heavy,        "dispatch a companion -> assert away -> resolve -> assert home",    TestCompanionMission),
@@ -79,6 +80,8 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("chat_hearsay",     Severity.Light,        "LLM: ask about another lord -> does the NPC answer from their own vantage?",       TestChatHearsay,        callsLlm: true),
             new SelfTest("chat_bastard_mother", Severity.Light,     "LLM: force a mercenary bastard-mother context -> does she raise/extort the child?", TestChatBastardMother, callsLlm: true),
             new SelfTest("chat_worldevent",  Severity.Light,        "LLM: Feed a fresh event -> ask for news -> does the NPC surface it?",             TestChatWorldEvent,     callsLlm: true),
+            new SelfTest("chat_stance_assassin", Severity.Light,    "LLM: force a secret-killer stance hint -> does the NPC stay smooth and hide it?", TestChatStanceAssassin, callsLlm: true),
+            new SelfTest("chat_stance_favor",    Severity.Light,    "LLM: force a friendly stance hint -> does the NPC offer aid / warmth?",           TestChatStanceFavor,    callsLlm: true),
         };
 
         // ── Public API (cr.testall / cr.test) ─────────────────────────────────
@@ -691,6 +694,31 @@ namespace CalradiaRemembers.Diagnostics
             return t.Line();
         }
 
+        private static string TestStanceLetter(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("stance_letter");
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to take the stance")) return t.Line();
+            if (t.Skip(npc.Clan == Clan.PlayerClan, "NPC is in the player's own clan — no stance letters")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            int before = profile.SentLetters.Count(l => l.Reason == LetterReason.StanceHostility);
+            profile.ReputationWithPlayer = -50;   // real hostility (above lethal) -> an open-enmity Threat letter
+            profile.StanceLastConsequenceDay = 0; // cooldown elapsed
+            behavior.Store.Set(profile);
+
+            bool fired = StanceConsequenceBehavior.DebugEvaluate(npc);
+
+            NpcProfile after = behavior.Store.Get(npc.StringId);
+            int afterCount = after?.SentLetters.Count(l => l.Reason == LetterReason.StanceHostility) ?? 0;
+
+            t.Note($"{npc.Name}: rep -50 -> fired={fired}, StanceHostility letters {before}->{afterCount}, cooldownStamped={after?.StanceLastConsequenceDay}");
+            t.Expect("letterFired", fired, true);
+            t.Expect("hostilityLetterQueued", afterCount, before + 1);
+            return t.Line();
+        }
+
         private static string TestMissionRegister(NpcMemoryCampaignBehavior behavior)
         {
             var t = new TestRun("mission_register");
@@ -736,6 +764,12 @@ namespace CalradiaRemembers.Diagnostics
             if (t.Skip(giver == null || Hero.MainHero == null, "no NPC to host the mission, or no player hero")) return t.Line();
 
             GetOrCreate(behavior, giver);
+            // Isolation: drop any External quest a prior test (mission_register) left awaiting reward on this
+            // giver, so our report completes OUR mission, not whichever External quest matched first.
+            NpcProfile giverProfile = behavior.Store.Get(giver.StringId);
+            giverProfile?.ActiveQuests.RemoveAll(q => q.Type == QuestType.External);
+            if (giverProfile != null) behavior.Store.Set(giverProfile);
+
             string id = "selftest_missionreward_" + Guid.NewGuid().ToString("N");
             const int rewardGold = 5000;
             const int rewardRelation = 4;
@@ -929,6 +963,61 @@ namespace CalradiaRemembers.Diagnostics
             if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
 
             t.Note($"fed the Pravend granary fire; judge in log: does {npc.Name} mention it (as hearsay)? | A: {Show(reply)}");
+            t.Expect("gotNonEmptyReply", reply.Length > 0, true);
+            return t.Line();
+        }
+
+        private static string TestChatStanceAssassin(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_stance_assassin");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to converse with")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            profile.ReputationWithPlayer = -40; // coherent: a secret killer plausibly already bears the player ill will
+            behavior.Store.Set(profile);
+            // Force the secret-killer disposition (the hardest case: the bite must stay HIDDEN this meeting).
+            var ctx = new EncounterContext {
+                StanceConsequenceHint = "You want the player dead and mean to see it done — but you betray none of it here. " +
+                                        "Be smooth and false, courteous even, and never tip your hand."
+            };
+
+            const string question = "Well met. How do you fare these days, and how stand things between us?";
+            var (ok, reply, err) = AskLlm(behavior, "chat_stance_assassin", npc, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            t.Note($"{npc.Name} as a secret killer; judge in log: stays smooth/courteous and does NOT reveal murderous intent | A: {Show(reply)}");
+            t.Expect("gotNonEmptyReply", reply.Length > 0, true);
+            return t.Line();
+        }
+
+        private static string TestChatStanceFavor(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_stance_favor");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to converse with")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            // Coherent friendly profile, so the favourable hint isn't fighting a hostile history left by prior
+            // tests (a lord who would do you a favour is one who already holds you dear).
+            profile.ReputationWithPlayer = 55;
+            profile.Events.Add(new NotableEvent(behavior.GameStateBridge.GetCurrentGameDay() - 30,
+                NotableEventType.Collaboration, "[SELFTEST] We have stood together more than once, and it forged real regard."));
+            behavior.Store.Set(profile);
+            var ctx = new EncounterContext {
+                StanceConsequenceHint = "You hold the player in high regard and would gladly do them a good turn — " +
+                                        "offer help, a fair price, or an open door if the moment fits."
+            };
+
+            const string question = "It is good to see you. I find myself in need — might you have any aid to spare?";
+            var (ok, reply, err) = AskLlm(behavior, "chat_stance_favor", npc, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            t.Note($"{npc.Name} holds the player dear; judge in log: does the NPC warmly OFFER aid (not stonewall)? | A: {Show(reply)}");
             t.Expect("gotNonEmptyReply", reply.Length > 0, true);
             return t.Line();
         }

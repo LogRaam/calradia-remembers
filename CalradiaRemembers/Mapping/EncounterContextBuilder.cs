@@ -14,6 +14,7 @@ using CalradiaRemembers.Stance;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
@@ -101,6 +102,7 @@ namespace CalradiaRemembers.Mapping
          SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
          InterceptionReason = ResolveInterceptionReason(hero),
          StanceNote = StanceService.Describe(profile),
+         StanceConsequenceHint = ResolveStanceConsequenceHint(hero, profile),
          LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
          LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
          ConsortEligible = ResolveConsortEligible(hero, profile),
@@ -533,6 +535,42 @@ namespace CalradiaRemembers.Mapping
       ///   in character. Null otherwise. The conversation is one of TWO surfaces — the demand letter is the
       ///   other — and paying is settled by the bridge, never by the NPC's word.
       /// </summary>
+      /// <summary>
+      ///   How the NPC's earned posture inclines them to act this meeting — reads the live stance + their
+      ///   traits through the pure <see cref="StanceConsequencePolicy" /> and maps the verdict to a prompt
+      ///   line. "Stance with teeth", conversation side: a cold-shouldered lord won't deal, a secret killer
+      ///   stays falsely civil, a true friend would warn you. Null when nothing is warranted.
+      /// </summary>
+      private static string ResolveStanceConsequenceHint(Hero hero, NpcProfile profile)
+      {
+         if (hero == null || profile == null) return null;
+
+         StanceConsequence verdict = StanceConsequencePolicy.Resolve(
+            StanceService.ToStance(profile),
+            TraitLevel(hero, DefaultTraits.Honor),
+            TraitLevel(hero, DefaultTraits.Valor),
+            TraitLevel(hero, DefaultTraits.Mercy),
+            TraitLevel(hero, DefaultTraits.Calculating));
+
+         return verdict switch {
+            StanceConsequence.ColdShoulder => "You are cold toward the player and unwilling to strike any bargain or do them a favour; keep them at arm's length.",
+            StanceConsequence.Threat => "You hold the player in real enmity and do not hide your displeasure; you would not lift a finger to help them.",
+            StanceConsequence.Plot => "You bear the player a cold, calculating hatred. Stay outwardly civil — even courteous — and give nothing away; you mean to undo them by quieter means, not here and not openly.",
+            StanceConsequence.Intercept => "You despise the player and would gladly face them in open battle; your contempt is plain and unhidden.",
+            StanceConsequence.Assassinate => "You want the player dead and mean to see it done — but you betray none of it here. Be smooth and false, courteous even, and never tip your hand.",
+            StanceConsequence.WarmWelcome => "You are genuinely glad to see the player and meet them with real warmth.",
+            StanceConsequence.Favor => "You hold the player in high regard and would gladly do them a good turn — offer help, a fair price, or an open door if the moment fits.",
+            StanceConsequence.Warning => "You count the player a trusted friend; if you knew of anything moving against them, you would want to warn them.",
+            _ => null
+         };
+      }
+
+      private static int TraitLevel(Hero hero, TraitObject trait)
+      {
+         try { return hero?.GetTraitLevel(trait) ?? 0; }
+         catch { return 0; }
+      }
+
       private static string ResolveBastardMotherTone(Hero hero)
       {
          var bastards = Bastards.BastardBehavior.Instance;
