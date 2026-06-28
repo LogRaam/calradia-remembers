@@ -434,7 +434,12 @@ namespace CalradiaRemembers.Chat
          _messages.Add(placeholder);
          IsSendEnabled = false;
 
-         string opener = CaptiveSceneText.BuildCaptiveOpener(isCollective, intent) + CaptiveSceneText.BuildSceneSetup();
+         // The randomized scene SETUP carries sexual "foci"; a lord reckoning (and the bandit menace intents) are
+         // non-sexual confrontations, so they take only their own opener — never the sexual setup.
+         bool nonSexual = intent is CaptiveSceneIntent.Reckoning
+            or CaptiveSceneIntent.Extortion or CaptiveSceneIntent.Intimidation or CaptiveSceneIntent.Revenge;
+         string opener = CaptiveSceneText.BuildCaptiveOpener(isCollective, intent)
+                       + (nonSexual ? "" : CaptiveSceneText.BuildSceneSetup());
          _ = RunLlmExchangeAsync(opener, captor, placeholder, true);
       }
 

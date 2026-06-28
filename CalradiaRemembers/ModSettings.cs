@@ -109,6 +109,12 @@ namespace CalradiaRemembers
       public static bool UseCustomTraits => CrSettings.Instance?.UseCustomTraits ?? false;
 
       /// <summary>
+      ///   When true, the companion-contentment loop runs (restlessness, audiences, farewell-letter
+      ///   departures). When false the whole system is inert. Read live from the MCM menu; on by default.
+      /// </summary>
+      public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
+
+      /// <summary>
       ///   When true, the full system prompt and NPC response are logged on every LLM
       ///   exchange. Read live from the MCM menu; off by default.
       /// </summary>

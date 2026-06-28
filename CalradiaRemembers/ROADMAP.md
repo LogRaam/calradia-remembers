@@ -359,6 +359,12 @@ from speech. Pure-ish prompt work, **high value / low effort**. Caveat: a free N
 coercion (that is correct behaviour); the bug is the model not understanding the input at all. Pairs with the
 player-as-captor scene below for the captivity use-case. (Model choice still dominates for adult refusals.)
 
+**BUILT 2026-06-28 (untested in game).** `PromptBuilder.AppendPlayerActionNarration` (SDK) injected near the end
+(high recency, beside the language mirror) of BOTH the main NPC and commoner prompts: defines the player's
+`*…*` and plain first-person physical statements as real in-scene actions to ENGAGE with (never gibberish, never
+"what are you talking about"), with explicit examples, while keeping the NPC free to welcome/resist/refuse. Test:
+chat any NPC and type `*I take you by the wrist*` or "I put my hand on your shoulder".
+
 ### Captive-scene content
 - **Scenario bank**: a bank of authored scene setups, one-use-per-campaign via SyncData, eligibility by
   kinks/gender, prompt injection. (Originally imagined as Twine→JSON; Twine is dropped — see the scripted

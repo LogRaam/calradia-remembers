@@ -703,6 +703,24 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.ambush_audience [name]
+      ///   TEST (3.2b): open the gloating audience with the named lord (or the conversation NPC) now — the captor
+      ///   lord receives the captured player and savours it. Skips the convoy journey.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("ambush_audience", "cr")]
+      public static string ForceAmbushAudience(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero lord = ResolveHero(args);
+         if (lord == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         return Stance.AmbushCaptivityBehavior.DebugLordAudience(lord)
+            ? $"Opening {lord.Name}'s gloating audience."
+            : $"Could not open the audience (no stored profile for {lord.Name}? check the log).";
+      }
+
+      /// <summary>
       ///   cr.scheme_assist [name]
       ///   Force the player to abet the named plotter's secret scheme (bypasses the LLM). The plotter
       ///   must regard you enough and the plot must be secret — set relation first with cr.relation.
@@ -813,7 +831,8 @@ namespace CalradiaRemembers
 
          CompanionHappinessBehavior.Instance.RunTick();
 
-         return "Ran a happiness tick. Check cr.happiness [name] (a season at the leave floor parts ways).";
+         return "Ran a happiness tick. An unhappy companion (below the leave floor) asks for an audience; refuse it " +
+                "thrice and they send a farewell letter and leave when it arrives. Requires Companion contentment ON.";
       }
 
       // ── Help ─────────────────────────────────────────────────────────────

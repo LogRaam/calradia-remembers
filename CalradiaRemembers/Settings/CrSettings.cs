@@ -152,6 +152,13 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Character", GroupOrder = 3)]
       public bool UseCustomTraits { get; set; } = false;
 
+      [SettingPropertyBool("Companion contentment", RequireRestart = false, Order = 0,
+         HintText = "When ON, companions left idle slowly grow restless; an unhappy one asks for an audience, and " +
+                    "if you keep refusing it they eventually leave by farewell letter (never silently). Turn OFF " +
+                    "to disable companion contentment entirely — no restlessness, no audiences, no departures.")]
+      [SettingPropertyGroup("Companions", GroupOrder = 4)]
+      public bool CompanionContentment { get; set; } = true;
+
       [SettingPropertyBool("Verbose Logging", RequireRestart = false, Order = -1,
          HintText = "Logs the full system prompt and NPC response to the mod log on every exchange. " +
                     "Turn on only when capturing a bug report — it floods the log. Requires Enable Logging.")]

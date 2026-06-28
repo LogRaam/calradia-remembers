@@ -251,14 +251,16 @@ namespace CalradiaRemembers.Stance
          TroopRoster roster = TroopRoster.CreateDummyTroopRoster();
          roster.AddToCounts(Hero.MainHero.CharacterObject, 1);
 
-         // A coin-flip whether one companion happens to be at your side when the knives come out.
-         if (MBRandom.RandomFloat < 0.5f)
-         {
-            CharacterObject companion = MobileParty.MainParty.MemberRoster.GetTroopRoster()
-                                                   .Select(e => e.Character)
-                                                   .FirstOrDefault(c => c is {IsHero: true} && c != Hero.MainHero.CharacterObject);
-            if (companion != null) roster.AddToCounts(companion, 1);
-         }
+         // 0, 1, or 2 companions stand with you — WEIGHTED by how many are actually in your party (more
+         // companions = more likely you're accompanied, with a chance of two). Drawn from the heroes present.
+         var companions = MobileParty.MainParty.MemberRoster.GetTroopRoster()
+                                     .Select(e => e.Character)
+                                     .Where(c => c is {IsHero: true} && c != Hero.MainHero.CharacterObject)
+                                     .ToList();
+
+         int joining = AmbushPolicy.CompanionsAtPlayerSide(companions.Count, MBRandom.RandomInt(100));
+         for (var i = 0; i < joining && i < companions.Count; i++)
+            roster.AddToCounts(companions[i], 1);
 
          return roster;
       }

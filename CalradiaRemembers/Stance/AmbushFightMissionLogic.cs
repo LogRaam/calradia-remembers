@@ -1,13 +1,4 @@
 // Code written by Gabriel Mailhot, 28/06/2026.
-// "Stance with teeth", increment 3.2a — the alley-fight outcome hook. Grafted onto the town-ambush mission, this
-// watches for the player going down: when they lose, it ARMS the capture so the paymaster's men take them on the
-// open map the instant the mission ends (no chance to wander the tavern/arena first). Winning does nothing here —
-// the plot simply failed.
-//
-// It also TESTS + CORRECTS the spawn placement: in a town-centre scene (which has no alley spawn tags) the alley
-// controller drops the attackers on a default/siege tag — out beyond the walls — so the street fight LOOKS like a
-// siege. On the first tick we log each attacker's distance from the player (to confirm that) and teleport them
-// into a tight ring around the player, so the brawl happens where the player actually stands: in the street.
 
 #region
 
@@ -26,28 +17,15 @@ namespace CalradiaRemembers.Stance
    /// <summary>Arms the kidnap capture when the player is defeated in the town-ambush alley fight.</summary>
    public sealed class AmbushFightMissionLogic : MissionLogic
    {
-      private const float SpawnRingRadius = 6.5f; // how close the cutthroats end up around the player (tunable)
+      private const float SpawnRingRadius = 30.0f; // how close the cutthroats end up around the player (tunable)
 
       private readonly string _paymasterId;
       private bool _arranged; // the one-shot spawn diagnostic + reposition has run
       private bool _resolved;
 
-      public AmbushFightMissionLogic(string paymasterId) => _paymasterId = paymasterId;
-
-      public override void OnMissionTick(float dt)
+      public AmbushFightMissionLogic(string paymasterId)
       {
-         if (_arranged) return;
-
-         Agent player = Mission?.MainAgent;
-         if (player == null) return;
-
-         List<Agent> attackers = Mission.Agents
-            .Where(a => a != null && a.IsHuman && a != player && a.IsEnemyOf(player))
-            .ToList();
-         if (attackers.Count == 0) return; // wait until the rival side has spawned
-
-         _arranged = true;
-         ArrangeAttackersAroundPlayer(player, attackers);
+         _paymasterId = paymasterId;
       }
 
       public override void OnAgentRemoved(Agent affectedAgent, Agent affectorAgent, AgentState agentState, KillingBlow blow)
@@ -61,6 +39,24 @@ namespace CalradiaRemembers.Stance
          if (paymaster != null) AmbushCaptivityBehavior.Instance?.Capture(paymaster);
 
          ModLog.Info("[AMBUSH] player defeated in the alley fight — capture armed.");
+      }
+
+      public override void OnMissionTick(float dt)
+      {
+         if (_arranged) return;
+
+         Agent player = Mission?.MainAgent;
+
+         if (player == null) return;
+
+         List<Agent> attackers = Mission.Agents
+                                        .Where(a => a is {IsHuman: true} && a != player && a.IsEnemyOf(player))
+                                        .ToList();
+
+         if (attackers.Count == 0) return; // wait until the rival side has spawned
+
+         _arranged = true;
+         ArrangeAttackersAroundPlayer(player, attackers);
       }
 
       #region private

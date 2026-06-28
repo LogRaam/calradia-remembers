@@ -3,8 +3,13 @@
 #region
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Chat;
+using CalradiaRemembers.Storage;
 using CalradiaRemembers.Travel;
+using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Encounters;
@@ -26,8 +31,11 @@ namespace CalradiaRemembers.Stance
    public sealed class AmbushCaptivityBehavior : CampaignBehaviorBase
    {
       private const int CaptorEscort = 5; // a handful of cutthroats — enough to hold a beaten captive, still beatable
+      private const float ArrivalDistance = 2.5f; // a bandit band can't ENTER the lord's town, so "arrived" = this close
+      private const float ApproachRange = 6f; // when the convoy is this near the lord's seat, the lord rides out to meet it
       public static AmbushCaptivityBehavior Instance;
-      private bool _arrivedLogged; // transient: announce the convoy's arrival at the lord once
+      private bool _arrivedLogged; // transient: the meeting with the lord has happened (fires once)
+      private bool _lordNudged; // transient: we've ordered the paymaster's party to ride out to the convoy
       private string _chiefId;
 
       // The live convoy (the captor party + the paymaster + the temp bandit chief), persisted so a save
@@ -58,6 +66,17 @@ namespace CalradiaRemembers.Stance
       public bool IsCapturePending => !string.IsNullOrEmpty(_pendingCaptureLordId);
 
       /// <summary>
+      ///   True when the given party is our live ambush convoy. The random captive-encounter roll consults this
+      ///   so it never fires a scene with the throwaway bandit chief that leads the band — the ambush owns its
+      ///   own scene (the paymaster lord's audience on arrival).
+      /// </summary>
+      public bool IsAmbushCaptor(MobileParty party)
+         => party != null && !string.IsNullOrEmpty(_convoyPartyId) && party.StringId == _convoyPartyId;
+
+      /// <summary>Console/test seam: open the 3.2b gloating audience with a lord now (skips the convoy journey).</summary>
+      public static bool DebugLordAudience(Hero paymaster) => paymaster != null && TryOpenLordAudience(paymaster);
+
+      /// <summary>
       ///   ARMS the capture: the player has lost the ambush, and the paymaster's men will take them the moment
       ///   they are out on the open road. It does NOT capture on the spot (that corrupts the map navmesh) — it
       ///   springs on the next stable map tick. Returns false only if there is no valid paymaster.
@@ -81,6 +100,7 @@ namespace CalradiaRemembers.Stance
          _menuLeaveTries = 0;
          _timeLocked = false;
          _arrivedLogged = false;
+         _lordNudged = false;
          ModLog.Info($"[AMBUSH] capture armed by {paymaster.Name} — it will spring once the player is on the open map.");
 
          return true;
@@ -126,19 +146,117 @@ namespace CalradiaRemembers.Stance
          ReleaseTime(); // journey over — hand time control back to the player
       }
 
-      private void DeliverToLord(Hero paymaster, MobileParty convoy)
+      /// <summary>
+      ///   3.2b — the gloating audience. The band has brought the player to the lord's seat; the lord who paid for
+      ///   the abduction now receives the captive and savours it. We do NOT transfer custody to the town's party
+      ///   (the paymaster rarely owns the settlement, and the transfer makes the player some OTHER lord's prisoner,
+      ///   whom the captivity system then releases) — the player stays the band's captive, and after the audience
+      ///   vanilla escape eventually frees them. The lord-owned imprisonment / ransom disposition is future work.
+      /// </summary>
+      private void TheMeeting(Hero paymaster, MobileParty convoy, MobileParty lordParty)
       {
-         // The band has reached the lord's seat. We deliberately do NOT transfer the player to the town's party
-         // here: the paymaster often does NOT own the settlement (it's just their home), so the transfer makes
-         // the player some OTHER lord's prisoner and the captivity system then releases them ("escaped"). So we
-         // keep the player as the band's captive (a valid, stable state) and stop here. The real handoff — the
-         // lord receiving the player in a gloating audience — is 3.2b, which will own the disposition.
          if (_arrivedLogged) return;
          _arrivedLogged = true;
 
-         ModLog.Info($"[AMBUSH] convoy arrived at {paymaster.Name}'s seat ({convoy.CurrentSettlement?.Name?.ToString() ?? "?"}) — holding the player captive; the lord's audience (3.2b) is the handoff (not built yet).");
+         ReleaseTime(); // journey over — hand the clock back so the meeting runs at the player's pace
+
+         // If the lord came in person, transfer custody to HIS party (a real lord-imprisonment — ransom, dungeon,
+         // and all) and disband the bandits. Transferring to his OWN mobile party is what avoids the release the
+         // old settlement-garrison transfer caused. If he could not come (no party / busy), the band keeps the
+         // player and vanilla escape eventually frees them; the at-seat audience is the fallback either way.
+         bool transferred = lordParty != null && TransferToLord(paymaster, lordParty, convoy);
+         ModLog.Info($"[AMBUSH] the meeting at {paymaster.Name}'s seat — custody {(transferred ? "transferred to the lord" : "kept by the band")}.");
+
+         if (TryOpenLordAudience(paymaster)) return;
+
          InformationManager.DisplayMessage(new InformationMessage(
-            $"{paymaster.Name}'s men have brought you to {convoy.CurrentSettlement?.Name?.ToString() ?? "their lord"}. You remain their captive, awaiting {paymaster.Name}."));
+            $"{paymaster.Name} receives you. You are a captive now, at their mercy."));
+      }
+
+      /// <summary>
+      ///   The paymaster is dead, captured, or otherwise gone, so the band cuts the player loose and scatters.
+      ///   Releases captivity through the captor's "choice" (the chief), shows a flavour line, and disbands the band.
+      /// </summary>
+      private void ReleaseCaptive(MobileParty convoy, string reason)
+      {
+         _arrivedLogged = true;
+         ReleaseTime();
+
+         try
+         {
+            if (Hero.MainHero.IsPrisoner)
+            {
+               Hero releaser = Hero.FindFirst(h => h != null && h.StringId == _chiefId);
+               if (releaser != null) EndCaptivityAction.ApplyByReleasedByChoice(Hero.MainHero, releaser);
+               else EndCaptivityAction.ApplyByReleasedAfterBattle(Hero.MainHero);
+            }
+         }
+         catch (Exception ex) { ModLog.Error($"[AMBUSH] release failed: {ex.GetType().Name}: {ex.Message}"); }
+
+         InformationManager.DisplayMessage(new InformationMessage(
+            "Your captors fall to muttering among themselves. Then, with no word of why, they cut your bonds and wave " +
+            "you off the road — go, they growl, before they think better of it.", Colors.Yellow));
+
+         if (convoy is {IsActive: true}) TravelingParty.Destroy(convoy);
+         ClearConvoy();
+         ModLog.Info($"[AMBUSH] captive released — {reason}.");
+      }
+
+      /// <summary>
+      ///   Hands the player from the bandit convoy to the lord's own party (a verified re-capture), then disbands
+      ///   the band. Returns false if the transfer did not hold (then the band keeps the player and we do not
+      ///   touch the convoy).
+      /// </summary>
+      private bool TransferToLord(Hero paymaster, MobileParty lordParty, MobileParty convoy)
+      {
+         try
+         {
+            TakePrisonerAction.Apply(lordParty.Party, Hero.MainHero); // re-assign custody to the lord
+
+            bool held = Hero.MainHero.IsPrisoner && PlayerCaptivity.CaptorParty == lordParty.Party;
+            ModLog.Info($"[AMBUSH] transfer to {paymaster.Name}: held={held}, captor={PlayerCaptivity.CaptorParty?.Name?.ToString() ?? "none"}.");
+            if (!held) return false;
+
+            // The player is the lord's prisoner now, so disbanding the band cannot release them. The lord's own AI
+            // resumes (we never hard-locked it) and carries the prisoner home.
+            if (convoy is {IsActive: true}) TravelingParty.Destroy(convoy);
+            ClearConvoy();
+
+            return true;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[AMBUSH] transfer to {paymaster.Name} failed: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
+      }
+
+      /// <summary>Opens the captive encounter with the paymaster lord as captor (the reproachful gloat). False if it can't.</summary>
+      private static bool TryOpenLordAudience(Hero paymaster)
+      {
+         try
+         {
+            BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+            NpcProfile profile = store?.Get(paymaster.StringId);
+            if (profile == null)
+            {
+               ModLog.Info($"[AMBUSH] no stored profile for {paymaster.Name} — the gloating audience is skipped.");
+
+               return false;
+            }
+
+            ModLog.Info($"[AMBUSH] opening the lord's reckoning with {paymaster.Name}.");
+            ChatManager.OpenForCaptiveEncounter(paymaster, profile, new List<WitnessEntry>(), false, CaptiveSceneIntent.Reckoning);
+
+            return true;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[AMBUSH] lord audience failed: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
       }
 
       private void DoCapture(Hero paymaster)
@@ -190,12 +308,17 @@ namespace CalradiaRemembers.Stance
          ForceTimeRunning();
       }
 
-      /// <summary>Forces the campaign clock to RUN (unstoppable) and holds it there until <see cref="ReleaseTime" />.</summary>
+      /// <summary>
+      ///   Forces the campaign clock to FAST-FORWARD (unstoppable) and holds it there until
+      ///   <see cref="ReleaseTime" />. Releasing to a player-controllable mode mid-journey lets vanilla captivity
+      ///   re-pause the map, which freezes the captor convoy — so we keep it forced (the player has no control)
+      ///   but at top speed, so the trip to the paymaster is quick, until the journey ends (arrival or escape).
+      /// </summary>
       private void ForceTimeRunning()
       {
          if (_timeLocked || Campaign.Current == null) return;
 
-         Campaign.Current.TimeControlMode = CampaignTimeControlMode.UnstoppablePlay;
+         Campaign.Current.TimeControlMode = CampaignTimeControlMode.UnstoppableFastForward;
          Campaign.Current.SetTimeControlModeLock(true);
          _timeLocked = true;
       }
@@ -229,19 +352,65 @@ namespace CalradiaRemembers.Stance
                return;
             }
 
-            // The convoy is underway with the player as its prisoner and the captivity transition is past — hand
-            // time control back so the player can speed up (1/2/3) or pause the journey. The convoy keeps moving
-            // whenever time runs; we only forced the clock to get past the paused leave + capture transition.
-            ReleaseTime();
+            if (_arrivedLogged) return; // the meeting already happened — the lord (or the band) holds the player now
 
-            Settlement destination = paymaster?.HomeSettlement ?? paymaster?.CurrentSettlement;
+            // (b)/(c) the lord is dead or himself taken prisoner — there is no one to deliver to (and no one
+            // paying), so the cutthroats cut the player loose and melt away.
+            if (paymaster == null || !paymaster.IsAlive || paymaster.IsPrisoner)
+            {
+               ReleaseCaptive(convoy, paymaster == null ? "paymaster gone" : !paymaster.IsAlive ? "paymaster dead" : "paymaster captured");
 
-            if (destination == null) return;
+               return;
+            }
 
-            if (convoy.CurrentSettlement != destination)
-               TravelingParty.DirectToSettlement(convoy, destination); // still on the road — keep it pointed at the lord
-            else
-               DeliverToLord(paymaster, convoy); // arrived at the lord's seat → hand the prisoner over
+            // Head to where the lord ACTUALLY is (the town he's sitting in, else his home), not blindly to home.
+            Settlement target = paymaster.CurrentSettlement ?? paymaster.HomeSettlement;
+            if (target == null) return;
+
+            MobileParty lordParty = paymaster.PartyBelongedTo;
+            Vec2 convoyPos = convoy.GetPosition2D;
+
+            // (a) the lord is mid-battle — the band waits nearby until it's over (never meet or transfer into a
+            // battle). Hold position and try again next hour.
+            if (lordParty?.MapEvent != null)
+            {
+               convoy.SetMoveModeHold();
+
+               return;
+            }
+
+            // (d) the lord is at sea — a land band cannot meet him on the water. He is only "reachable" on land.
+            bool lordReachable = lordParty is {IsActive: true} && !lordParty.IsCurrentlyAtSea;
+            // Many paymasters (ladies, garrisoned lords) have NO field party — they sit in a town. Detect their
+            // presence by the hero's own settlement, so the at-the-gates audience still fires for them.
+            bool lordInTown = paymaster.CurrentSettlement != null && paymaster.CurrentSettlement == target;
+
+            // The map handoff (with custody transfer) fires when the lord's own party comes alongside the convoy.
+            bool lordAlongside = lordReachable && convoyPos.Distance(lordParty.GetPosition2D) <= ArrivalDistance;
+            bool convoyAtTarget = convoy.CurrentSettlement == target || convoyPos.Distance(target.GetPosition2D) <= ArrivalDistance;
+
+            ModLog.Info($"[AMBUSH] convoy tick — target={target.Name}, dist={convoyPos.Distance(target.GetPosition2D):0.0}, " +
+                        $"lordParty={(lordParty != null ? "yes" : "none")}, lordAtSea={lordParty?.IsCurrentlyAtSea}, lordInTown={lordInTown}, " +
+                        $"alongside={lordAlongside}, atTarget={convoyAtTarget}, nudged={_lordNudged}.");
+
+            if (lordAlongside) { TheMeeting(paymaster, convoy, lordParty); return; }        // map handoff + transfer
+            if (convoyAtTarget && lordInTown) { TheMeeting(paymaster, convoy, null); return; } // lord in his town — audience at the gates
+
+            // Still travelling, or waiting for the lord (at sea / abroad): keep the band pointed at the lord's
+            // town, and once near, if the lord HAS a party he rides OUT to meet them on the map (a soft escort
+            // order, once — his AI is never hard-locked, so he resumes after). If he never comes, vanilla escape frees you.
+            TravelingParty.DirectToSettlement(convoy, target);
+            if (!_lordNudged && lordReachable && !lordParty.IsMainParty
+                && convoyPos.Distance(target.GetPosition2D) <= ApproachRange)
+            {
+               _lordNudged = true;
+               try
+               {
+                  lordParty.SetMoveEscortParty(convoy, MobileParty.NavigationType.Default, false);
+                  ModLog.Info($"[AMBUSH] {paymaster.Name} rides out from {target.Name} to meet the convoy.");
+               }
+               catch (Exception ex) { ModLog.Error($"[AMBUSH] lord ride-out failed: {ex.GetType().Name}: {ex.Message}"); }
+            }
          }
          catch (Exception ex) { ModLog.Error($"[AMBUSH] convoy tick failed: {ex.GetType().Name}: {ex.Message}"); }
       }

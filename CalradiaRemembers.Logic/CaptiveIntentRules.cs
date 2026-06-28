@@ -23,6 +23,7 @@ namespace CalradiaRemembers.Logic
             CaptiveSceneIntent.Torture        => "tortured",
             CaptiveSceneIntent.Training       => "trained and conditioned",
             CaptiveSceneIntent.Reward         => "rewarded",
+            CaptiveSceneIntent.Reckoning      => "confronted as my prisoner",
             _                                 => "kept as my prisoner"
         };
 

@@ -37,6 +37,7 @@ namespace CalradiaRemembers.Chat
       private static GauntletMovieIdentifier _activeMovieId;
       private static ScreenBase _hostScreen;
       private static CampaignTimeControlMode _previousTimeControlMode;
+      private static bool _previousTimeControlModeLock;
       private static bool _timeControlModeSaved;
 
       public static ChatViewModel ActiveViewModel { get; private set; }
@@ -289,15 +290,22 @@ namespace CalradiaRemembers.Chat
       private static void PauseCampaignMap()
       {
          _previousTimeControlMode = Campaign.Current.TimeControlMode;
+         _previousTimeControlModeLock = Campaign.Current.TimeControlModeLock;
          _timeControlModeSaved = true;
+         // A LOCKED clock (e.g. the ambush convoy's forced fast-forward) ignores a mode change, so release the
+         // lock first — otherwise the conversation runs while the map keeps ticking and events pile up.
+         Campaign.Current.SetTimeControlModeLock(false);
          Campaign.Current.TimeControlMode = CampaignTimeControlMode.Stop;
-         ModLog.Info($"Campaign time paused (was {_previousTimeControlMode}).");
+         ModLog.Info($"Campaign time paused (was {_previousTimeControlMode}, lock {_previousTimeControlModeLock}).");
       }
 
       private static void RestoreTime()
       {
-         if (_timeControlModeSaved && Campaign.Current != null)
-            Campaign.Current.TimeControlMode = _previousTimeControlMode;
+         if (!_timeControlModeSaved || Campaign.Current == null) return;
+
+         // Restore both the mode and the lock, so a forced state we interrupted (the ambush convoy) resumes.
+         Campaign.Current.TimeControlMode = _previousTimeControlMode;
+         Campaign.Current.SetTimeControlModeLock(_previousTimeControlModeLock);
       }
 
       #endregion

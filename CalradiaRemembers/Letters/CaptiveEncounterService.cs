@@ -172,6 +172,11 @@ namespace CalradiaRemembers.Letters
          MobileParty captorParty = player.PartyBelongedToAsPrisoner?.MobileParty;
 
          if (captorParty == null) return;
+
+         // The ambush convoy owns its own scene (the paymaster lord's audience on arrival). Never let the random
+         // roll fire a CNC scene with the throwaway bandit chief that leads the band.
+         if (Stance.AmbushCaptivityBehavior.Instance?.IsAmbushCaptor(captorParty) == true) return;
+
          bool playerIsFemale = player.IsFemale;
 
          Hero captor = captorParty.LeaderHero;

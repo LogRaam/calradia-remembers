@@ -138,7 +138,11 @@ namespace CalradiaRemembers.Diagnostics
             int pass = 0, fail = 0, manual = 0;
             foreach (SelfTest test in tests)
             {
+                // Log each result the moment it lands, not only in the assembled report at the end — so if a
+                // later test ever hangs, the completed lines are still visible and the culprit is the next one.
+                ModLog.Info($"[SELFTEST] running '{test.Name}'…");
                 string line = SafeRun(test, behavior);
+                ModLog.Info(line);
                 sb.AppendLine(line);
                 if      (line.Contains(": PASS")) pass++;
                 else if (line.Contains(": FAIL")) fail++;
@@ -1036,7 +1040,13 @@ namespace CalradiaRemembers.Diagnostics
             var session = new ChatSession();
 
             // Synchronous wait on the real pipeline (Task.Run avoids any main-thread sync-context capture).
-            var result = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, question, ctx)).GetAwaiter().GetResult();
+            // Bounded so one slow/hung provider call (or a deadlock) can never freeze the whole sweep with no
+            // report — it reports a timeout for that test and the harness moves on to the next.
+            var llmTask = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, question, ctx));
+            if (!llmTask.Wait(TimeSpan.FromSeconds(90)))
+                return (false, null, "LLM call timed out after 90s (provider slow/hung, or a deadlock) — harness moved on");
+
+            var result = llmTask.GetAwaiter().GetResult();
             if (result is not {IsSuccess: true}) return (false, null, result?.ErrorMessage ?? "no result");
 
             string reply = result.Response?.Dialogue ?? "";

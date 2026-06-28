@@ -42,5 +42,34 @@ namespace CalradiaRemembers.Tests
             AmbushPolicy.AttackerCount(6).Should().Be(5);   // 2 + 6/2
             AmbushPolicy.AttackerCount(100).Should().Be(6); // capped — a street, not a war
         }
+
+        // ── Companions at the player's side (weighted by how many are in the party) ──
+
+        [Test]
+        public void GIVEN_no_companions_in_the_party_WHEN_drawing_THEN_the_player_stands_alone()
+        {
+            AmbushPolicy.CompanionsAtPlayerSide(0, 0).Should().Be(0);
+            AmbushPolicy.CompanionsAtPlayerSide(0, 99).Should().Be(0);
+        }
+
+        [Test]
+        public void GIVEN_a_single_companion_WHEN_drawing_THEN_at_most_one_joins_weighted()
+        {
+            AmbushPolicy.CompanionsAtPlayerSide(1, 0).Should().Be(1);   // low roll → accompanied
+            AmbushPolicy.CompanionsAtPlayerSide(1, 59).Should().Be(1);  // just inside the 60% band
+            AmbushPolicy.CompanionsAtPlayerSide(1, 60).Should().Be(0);  // outside → alone
+            AmbushPolicy.CompanionsAtPlayerSide(1, 99).Should().Be(0);
+        }
+
+        [Test]
+        public void GIVEN_two_or_more_companions_WHEN_drawing_THEN_zero_one_or_two_join_capped()
+        {
+            AmbushPolicy.CompanionsAtPlayerSide(2, 0).Should().Be(2);    // low roll → both
+            AmbushPolicy.CompanionsAtPlayerSide(2, 29).Should().Be(2);
+            AmbushPolicy.CompanionsAtPlayerSide(2, 30).Should().Be(1);   // middle band → one
+            AmbushPolicy.CompanionsAtPlayerSide(2, 79).Should().Be(1);
+            AmbushPolicy.CompanionsAtPlayerSide(2, 80).Should().Be(0);   // high roll → alone
+            AmbushPolicy.CompanionsAtPlayerSide(5, 0).Should().Be(AmbushPolicy.MaxCompanionsAtSide); // never more than the cap
+        }
     }
 }
