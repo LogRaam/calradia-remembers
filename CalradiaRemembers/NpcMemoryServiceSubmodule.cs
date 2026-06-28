@@ -98,6 +98,8 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new Stance.StanceBehavior());
          // Stance with teeth: weekly, a hardened posture becomes an unbidden hostile/favourable letter.
          campaignStarter.AddBehavior(new Stance.StanceConsequenceBehavior());
+         // Stance with teeth, increment 3: murderous intent can spring a street ambush when the player is in town.
+         campaignStarter.AddBehavior(new Stance.TownAmbushBehavior());
          // Chronicle (v1.2): persists the LLM-illuminated chronicle prose across the campaign.
          campaignStarter.AddBehavior(new Chronicle.ChronicleBehavior());
          // Companion missions (first slice "bring me the news"): a dispatched companion returns after a

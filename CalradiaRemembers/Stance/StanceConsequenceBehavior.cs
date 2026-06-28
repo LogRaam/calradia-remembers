@@ -10,6 +10,7 @@
 using System;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -69,18 +70,45 @@ namespace CalradiaRemembers.Stance
          catch (Exception ex) { ModLog.Error($"[STANCE] consequence tick failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
+      /// <summary>Debug seam for the console: arm a town ambush against the player by this lord, now.</summary>
+      public static bool DebugArm(Hero hero)
+      {
+         BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+         if (store == null || hero == null) return false;
+
+         NpcProfile profile = store.Get(hero.StringId) ?? HeroProfileMapper.FromHero(hero);
+         profile.StanceAmbushArmedDay = (int) CampaignTime.Now.ToDays;
+         store.Set(profile);
+         ModLog.Info($"[STANCE] {hero.Name} has armed an attempt on the player's life (debug).");
+
+         return true;
+      }
+
       private static bool TryWrite(BannerlordNpcMemoryStore store, NpcProfile profile, Hero hero, int today, bool ignoreCooldown)
       {
          if (!ignoreCooldown && today - profile.StanceLastConsequenceDay < LetterCooldownDays) return false;
 
-         string content = LetterFor(StanceConsequencePolicy.Resolve(
+         StanceConsequence verdict = StanceConsequencePolicy.Resolve(
             StanceService.ToStance(profile),
             TraitLevel(hero, DefaultTraits.Honor),
             TraitLevel(hero, DefaultTraits.Valor),
             TraitLevel(hero, DefaultTraits.Mercy),
-            TraitLevel(hero, DefaultTraits.Calculating)), out LetterReason reason);
+            TraitLevel(hero, DefaultTraits.Calculating));
 
-         if (content == null) return false; // nothing warranted (neutral, mild, or a secret hatred that stays silent)
+         // Murderous intent doesn't write a letter — it arms a knife in the dark (the town ambush, increment 3).
+         if (verdict == StanceConsequence.Assassinate)
+         {
+            profile.StanceAmbushArmedDay = today;
+            profile.StanceLastConsequenceDay = today;
+            store.Set(profile);
+            ModLog.Info($"[STANCE] {hero.Name} has armed an attempt on the player's life.");
+
+            return true;
+         }
+
+         string content = LetterFor(verdict, out LetterReason reason);
+
+         if (content == null) return false; // nothing warranted (neutral, mild, or a secret hatred biding its time)
 
          profile.SentLetters.Add(new PendingLetter {
             SenderId = hero.StringId,

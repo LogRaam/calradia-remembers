@@ -64,8 +64,15 @@ secret killer stays falsely civil, a friend offers aid/would warn you). **1b (pr
 weekly turns OPEN enmity/regard into an unbidden letter (Threat/Intercept → cold/challenge; Favor/Warning → warm
 overture); secret hatred (Plot/Assassinate) writes nothing. Self-tests `stance_letter` + chat `chat_stance_assassin`/
 `chat_stance_favor`. OPEN: **increment 2** = wire Plot (scheme vs player) + Intercept (reuse InterceptionBehavior) +
-Warning (warn of a real scheme); **increment 3** = the **town ambush** (Assassinate → a Warband-style alley fight
-when the player is in a settlement).
+Warning (warn of a real scheme). **increment 3 — the town ambush — BUILT + working in-game 2026-06-27**:
+Assassinate arms `NpcProfile.StanceAmbushArmedDay`; on entering a town, `TownAmbushBehavior` rolls `AmbushPolicy`
+(35%/visit, 2–6 thugs by clan tier; +4 tests) → narrated inquiry (Draw / Slip away) → real alley fight via
+`CampaignMission.OpenAlleyFightMission` (one thrown-weapon thug + 50% a companion at your side). Console `cr.ambush`.
+**OPEN — the captivity arc (Gabriel 2026-06-27), the lose branch:** 3.2a lose → captured by a bandit band that
+convoys you to the commissioning lord; 3.2b arrival → a chat audience (the lord gloats + reproaches → takes you
+prisoner); 3.2c during the convoy, a terrain-typed **rescue ambush** by your companions (success → freedom chat +
+retrieve your army; fail → "now I hold you all" chat + companions captured too); 3.2d Hardcore witness captivity
+scene when player + companions are both held. Reuses CR's captive-scene chat for the audiences.
 
 **Companions (the 2026-06-23 trilogy, untested)** — **missions** (news / spy / steal / barter / envoy — a
 real physical journey: the companion leaves as a clan party, rides to a town, returns and reports in

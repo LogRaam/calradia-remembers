@@ -612,6 +612,29 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.ambush [name]
+      ///   Arms a town ambush ("stance with teeth", increment 3) against the player by the named lord (or the
+      ///   conversation NPC). If you are already in a town it springs at once; otherwise walk into one and it may.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("ambush", "cr")]
+      public static string ForceAmbush(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero assassin = ResolveHero(args);
+         if (assassin == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         Stance.StanceConsequenceBehavior.DebugArm(assassin);
+
+         if (Settlement.CurrentSettlement is {IsTown: true})
+            return Stance.TownAmbushBehavior.DebugSpring(assassin)
+               ? $"{assassin.Name} springs an ambush on you now."
+               : $"{assassin.Name} armed an ambush, but it could not spring here (check the log).";
+
+         return $"{assassin.Name} has armed an ambush — walk into a town and it may spring.";
+      }
+
+      /// <summary>
       ///   cr.scheme_assist [name]
       ///   Force the player to abet the named plotter's secret scheme (bypasses the LLM). The plotter
       ///   must regard you enough and the plot must be secret — set relation first with cr.relation.
