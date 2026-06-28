@@ -348,6 +348,17 @@ and everyone else still works.
   needs a full encyclopedia rebuild — that is the parked "generated portraits" separate-mod territory, not
   this item.
 
+### Player action narration — interpret the player's `*…*` and first-person deeds *(wished 2026-06-28, player feedback)*
+
+A recurring roleplay frustration: a player types a physical action — `*I take her by the wrist*`, or first-person
+"I grab her arm" — and the NPC, never told to read it as narration, treats it as nonsense and pushes back ("what
+are you talking about, you crazy fool"). CR teaches the NPC to use `*asterisks*` for ITS OWN actions but never
+teaches the model to INTERPRET the *player's* narrated actions. Add a PromptBuilder block defining the player's
+`*…*` (and plain first-person physical statements) as in-world action the NPC reacts to in character — distinct
+from speech. Pure-ish prompt work, **high value / low effort**. Caveat: a free NPC may still legitimately DEFY
+coercion (that is correct behaviour); the bug is the model not understanding the input at all. Pairs with the
+player-as-captor scene below for the captivity use-case. (Model choice still dominates for adult refusals.)
+
 ### Captive-scene content
 - **Scenario bank**: a bank of authored scene setups, one-use-per-campaign via SyncData, eligibility by
   kinks/gender, prompt injection. (Originally imagined as Twine→JSON; Twine is dropped — see the scripted
@@ -355,6 +366,12 @@ and everyone else still works.
   (When adding persisted campaign state, REMOVE `CaptiveEncounterService.ResetOnSessionLaunch` — SyncData(load)
   fires before OnSessionLaunched and would clobber loaded state.)
 - **Image overlay** for scenes (`[SCENE]` parser).
+- **Player-as-captor ("tyrant") scene** *(wished 2026-06-28, player feedback)* — today the explicit captive
+  scenes frame the player as the PRISONER (`PlayerStatus == Captive` + Hardcore). Players using captivity-event
+  mods hold NPCs prisoner and want the inverse: an explicit scene where the PLAYER is the captor of an NPC they
+  have taken. The captor direction was noted "deferred — no aggressor scene exists yet" (Sprint 17). Reuse the
+  scene director + intents (Interrogation/Domination/…) with the roles swapped; standing damage lands on the NPC,
+  not the player. Now requested by more than one captivity-mod player.
 
 ### Conception from any vaginal act — consensual scenes + female NPCs *(wished 2026-06-24)*
 

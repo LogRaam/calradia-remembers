@@ -23,6 +23,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Settlements.Locations;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.MountAndBlade;
 using TaleWorlds.ObjectSystem;
 
 #endregion
@@ -48,6 +49,64 @@ namespace CalradiaRemembers.Stance
          return true;
       }
 
+      /// <summary>Console/test seam: open the alley fight for a named town WITHOUT being inside it (map context).</summary>
+      public static bool DebugSpringAt(Hero assassin, Settlement town)
+      {
+         if (assassin == null || town is not {IsTown: true}) return false;
+
+         Spring(assassin, town);
+
+         return true;
+      }
+
+      /// <summary>
+      ///   Console/test seam: spring the in-town fight forcing a specific location id as the scene (e.g. tavern,
+      ///   house_1, arena, port, center) — to hunt, in-game, which location renders a coherent enclosed brawl
+      ///   instead of OpenAlleyFightMission's siege/wall fallback. Player must be inside a town.
+      /// </summary>
+      public static bool DebugSpringScene(Hero assassin, string locationId)
+      {
+         Settlement here = Settlement.CurrentSettlement;
+         if (assassin == null || here is not {IsTown: true} || string.IsNullOrEmpty(locationId)) return false;
+
+         Spring(assassin, here, locationId);
+
+         return true;
+      }
+
+      /// <summary>True when an ambush is armed against the player, so the access model can hold a town's gates.</summary>
+      public static bool IsEntryBlocked(Settlement settlement)
+      {
+         if (settlement is not {IsTown: true}) return false;
+
+         BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+
+         return store != null && FindArmedAssassin(store) != null;
+      }
+
+      /// <summary>
+      ///   The gate menu chose to face the ambush: find the armed assassin, spend the arming, and open the
+      ///   fight from the gate context. Returns false if there is nothing armed (the menu should then release
+      ///   the player). This is the gate-flow twin of <see cref="OnSettlementEntered" />.
+      /// </summary>
+      public static bool SpringAtGate(Settlement town)
+      {
+         if (town is not {IsTown: true}) return false;
+
+         BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+         if (store == null) return false;
+
+         Hero assassin = FindArmedAssassin(store);
+         if (assassin == null) return false;
+
+         Disarm(store, assassin); // one chance per arming, gate or street alike
+         // From the exterior gate context the town-centre scene frames as a siege/wall defence. The arena is an
+         // enclosed flat ground with no walls — the likeliest scene to render a clean face-off from outside.
+         Spring(assassin, town, "arena");
+
+         return true;
+      }
+
       #region private
 
       private void OnSettlementEntered(MobileParty party, Settlement settlement, Hero hero)
@@ -64,6 +123,10 @@ namespace CalradiaRemembers.Stance
             if (!AmbushPolicy.ShouldSpring(MBRandom.RandomInt(100))) return; // the knives stay sheathed this visit
 
             Disarm(store, assassin); // it gets one chance per arming — spring or fizzle, it's spent
+
+            // NOTE: do NOT call PlayerEncounter.Finish here to "fight at the gates" — finishing the encounter
+            // mid-SettlementEntered corrupts the native map state and crashes on the next entry. The capture
+            // instead defers to a stable map tick (AmbushCaptivityBehavior), which is the approach that holds.
             Present(assassin, settlement);
          }
          catch (Exception ex) { ModLog.Error($"[AMBUSH] trigger failed: {ex.GetType().Name}: {ex.Message}"); }
@@ -106,11 +169,11 @@ namespace CalradiaRemembers.Stance
          => InformationManager.DisplayMessage(new InformationMessage(
             "You break and run, and lose them in the crowded streets — this time."));
 
-      private static void Spring(Hero assassin, Settlement settlement)
+      private static void Spring(Hero assassin, Settlement settlement, string preferLocationId = null)
       {
          try
          {
-            (Location alley, string scene, int usedLevel) = ResolveScene(settlement);
+            (Location alley, string scene, int usedLevel) = ResolveScene(settlement, preferLocationId);
             if (alley == null || string.IsNullOrEmpty(scene)) { ModLog.Error("[AMBUSH] no usable alley scene resolved (see candidates above)."); return; }
 
             TroopRoster playerSide = BuildPlayerSide();
@@ -119,7 +182,12 @@ namespace CalradiaRemembers.Stance
             ModLog.Info($"[AMBUSH] springing in {settlement.Name} (scene {scene}, lvl {usedLevel}, " +
                         $"{rivalSide.TotalManCount} attacker(s), paymaster {assassin?.Name}).");
 
-            CampaignMission.OpenAlleyFightMission(scene, usedLevel, alley, playerSide, rivalSide);
+            IMission mission = CampaignMission.OpenAlleyFightMission(scene, usedLevel, alley, playerSide, rivalSide);
+            // Log what the engine actually loaded — from the exterior gate context it can ignore our requested
+            // scene and frame the fight as a siege/sally (player on the wall). This is the next tuning lever.
+            ModLog.Info($"[AMBUSH] mission opened — requested scene '{scene}', loaded scene '{(mission as Mission)?.SceneName}'.");
+            // Watch the fight: if the player loses, arm the kidnap so the convoy takes them the moment it ends.
+            if (assassin != null) (mission as Mission)?.AddMissionBehavior(new AmbushFightMissionLogic(assassin.StringId));
          }
          catch (Exception ex)
          {
@@ -134,12 +202,12 @@ namespace CalradiaRemembers.Stance
       ///   centre, then anything with a scene. Logs every candidate so the real inventory is visible in-game
       ///   — this is the piece that needs tuning per how a given town's locations are populated.
       /// </summary>
-      private static (Location loc, string scene, int level) ResolveScene(Settlement settlement)
+      private static (Location loc, string scene, int level) ResolveScene(Settlement settlement, string preferLocationId = null)
       {
          LocationComplex lc = settlement?.LocationComplex;
          if (lc == null) return (null, null, 0);
 
-         (Location loc, string scene, int level) alley = default, center = default, any = default;
+         (Location loc, string scene, int level) preferred = default, alley = default, center = default, any = default;
 
          foreach (Location loc in lc.GetListOfLocations() ?? Enumerable.Empty<Location>())
          {
@@ -150,7 +218,11 @@ namespace CalradiaRemembers.Stance
 
                ModLog.Info($"[AMBUSH] candidate location '{loc.StringId}' lvl {l} -> {s}");
 
-               if (loc.StringId?.IndexOf("alley", StringComparison.OrdinalIgnoreCase) >= 0)
+               if (preferLocationId != null && string.Equals(loc.StringId, preferLocationId, StringComparison.OrdinalIgnoreCase))
+               {
+                  if (preferred.loc == null) preferred = (loc, s, l);
+               }
+               else if (loc.StringId?.IndexOf("alley", StringComparison.OrdinalIgnoreCase) >= 0)
                {
                   if (alley.loc == null) alley = (loc, s, l);
                }
@@ -165,11 +237,13 @@ namespace CalradiaRemembers.Stance
             }
          }
 
-         return alley.loc != null
-            ? alley
-            : center.loc != null
-               ? center
-               : any;
+         return preferred.loc != null
+            ? preferred
+            : alley.loc != null
+               ? alley
+               : center.loc != null
+                  ? center
+                  : any;
       }
 
       private static TroopRoster BuildPlayerSide()

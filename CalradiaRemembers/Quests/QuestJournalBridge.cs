@@ -156,8 +156,12 @@ namespace CalradiaRemembers.Quests
             return false;
          }
 
+         // A mirror is still live while its quest is ACTIVE — whether the deed is still outstanding OR already
+         // done and merely awaiting the report-back/reward (IsAwaitingReward). Closing the latter on reload was
+         // the bug behind "completed a task (e.g. via Give Gold), reload, journal shows it failed/cancelled" even
+         // though the CR quest state and reward were intact.
          bool match = profile.ActiveQuests.Any(q =>
-            q.IsOutstanding &&
+            (q.IsOutstanding || q.IsAwaitingReward) &&
             CalradiaRemembersQuest.BuildQuestId(giver, q) == mirror.StringId);
          if (match)
          {
@@ -172,7 +176,7 @@ namespace CalradiaRemembers.Quests
          string have = profile.ActiveQuests.Count == 0
             ? "(none)"
             : string.Join(" | ", profile.ActiveQuests.Select(q =>
-               $"{CalradiaRemembersQuest.BuildQuestId(giver, q)}[{q.Status}{(q.IsOutstanding ? ",outstanding" : "")}]"));
+               $"{CalradiaRemembersQuest.BuildQuestId(giver, q)}[{q.Status}{(q.IsOutstanding ? ",outstanding" : "")}{(q.IsAwaitingReward ? ",awaitingReward" : "")}]"));
          reason = $"no outstanding quest matches mirror id '{mirror.StringId}'. Profile quests: {have}";
 
          return false;

@@ -55,6 +55,11 @@ namespace CalradiaRemembers
          if (game.GameType is not Campaign) return;
 
          var campaignStarter = (CampaignGameStarter) gameStarterObject;
+         // The ambush fires INSIDE the town (only there does the alley fight spawn combatants in the street). The
+         // access model is registered NOT to block the ambush entry, but to bar the player re-entering a town for
+         // the brief moment a lost-ambush capture is pending on the open map — closing the "re-click the town to
+         // slip the capture" exploit. (The GateAmbushMenuBehavior gate-fight experiment stays unregistered.)
+         campaignStarter.AddModel(new Stance.AmbushSettlementAccessModel());
          campaignStarter.AddBehavior(new NpcMemoryCampaignBehavior());
          // Player-authored character data: applies hand-crafted personalities (traits via SetTraitLevel,
          // the single source of truth) from ModuleData/character_overrides.json when the MCM toggle is on.
@@ -100,6 +105,8 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new Stance.StanceConsequenceBehavior());
          // Stance with teeth, increment 3: murderous intent can spring a street ambush when the player is in town.
          campaignStarter.AddBehavior(new Stance.TownAmbushBehavior());
+         // Stance with teeth, increment 3.2a: losing the ambush -> captured and convoyed to the paymaster lord.
+         campaignStarter.AddBehavior(new Stance.AmbushCaptivityBehavior());
          // Chronicle (v1.2): persists the LLM-illuminated chronicle prose across the campaign.
          campaignStarter.AddBehavior(new Chronicle.ChronicleBehavior());
          // Companion missions (first slice "bring me the news"): a dispatched companion returns after a
