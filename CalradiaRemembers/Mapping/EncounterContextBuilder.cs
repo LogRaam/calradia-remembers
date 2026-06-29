@@ -18,6 +18,7 @@ using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 
 #endregion
 
@@ -68,6 +69,7 @@ namespace CalradiaRemembers.Mapping
          ContextualNames = string.IsNullOrWhiteSpace(playerMessage)
             ? null
             : ContextualNameResolver.Resolve(hero, playerMessage, bridge),
+         KnownWanderers = ResolveKnownWanderers(hero, playerMessage),
          NpcCurrentActivity = bridge.GetCurrentActivity(hero),
          CurrentLocationNote = BuildLocationNote(hero),
          PlayerSpouseName = Hero.MainHero?.Spouse?.IsAlive == true
@@ -642,6 +644,55 @@ namespace CalradiaRemembers.Mapping
          if (Clan.PlayerClan?.Kingdom != null) return null;
 
          return npcKingdom.Name?.ToString();
+      }
+
+      /// <summary>
+      ///   A SINGLE real wanderer the NPC could point the player to when asked where to hire a companion,
+      ///   so the NPC names an actual hireable hero and their town instead of inventing one (the "Oros"
+      ///   bug). Just ONE, drawn at random: a person would not plausibly know the comings and goings of
+      ///   every wanderer in the land. Returns that one line when any is known, an EMPTY string when the
+      ///   player asked but none are plausibly about (the prompt then sends them to the taverns), and null
+      ///   when the player did not ask at all — so the section is skipped and costs no tokens. The gate is
+      ///   the pure <see cref="RecruitIntentDetector" />. Only wanderers in the NPC's own town (certain) or
+      ///   of the NPC's own culture (heard of) are eligible; one in the NPC's own tavern is preferred.
+      /// </summary>
+      private static string ResolveKnownWanderers(Hero hero, string playerMessage)
+      {
+         try
+         {
+            if (!RecruitIntentDetector.Detect(playerMessage)) return null;
+
+            Settlement here = hero?.CurrentSettlement;
+            CultureObject npcCulture = hero?.Culture;
+
+            var local = new List<string>(); // in the NPC's own town — certain knowledge
+            var heard = new List<string>(); // of the NPC's own culture — plausible hearsay
+            foreach (Hero h in Hero.AllAliveHeroes)
+            {
+               if (h == Hero.MainHero || !h.IsAlive || !h.IsWanderer) continue;
+               if (h.CompanionOf != null) continue; // already in someone's service
+               if (h.PartyBelongedTo == MobileParty.MainParty) continue; // already with the player
+
+               Settlement s = h.CurrentSettlement;
+               if (s == null || !s.IsTown) continue; // only ones we can place (taverns are in towns)
+
+               var name = h.Name?.ToString();
+               if (string.IsNullOrWhiteSpace(name)) continue;
+
+               if (here != null && s == here)
+                  local.Add($"- {name} is here in {s.Name}, in the tavern.");
+               else if (npcCulture != null && s.Culture == npcCulture)
+                  heard.Add($"- {name} has been seen at {s.Name}.");
+               // else: too far afield for this NPC to plausibly know — skip.
+            }
+
+            // Name ONE, at random — prefer one in the NPC's own tavern (certain) over distant hearsay.
+            List<string> pool = local.Count > 0 ? local : heard;
+            if (pool.Count == 0) return string.Empty; // asked, but the NPC knows of none about
+
+            return pool[MBRandom.RandomInt(pool.Count)];
+         }
+         catch { return null; }
       }
 
       // ── Helpers ───────────────────────────────────────────────────────────

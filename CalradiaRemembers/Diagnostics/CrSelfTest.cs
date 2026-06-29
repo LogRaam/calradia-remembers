@@ -81,6 +81,7 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("chat_hearsay",     Severity.Light,        "LLM: ask about another lord -> does the NPC answer from their own vantage?",       TestChatHearsay,        callsLlm: true),
             new SelfTest("chat_bastard_mother", Severity.Light,     "LLM: force a mercenary bastard-mother context -> does she raise/extort the child?", TestChatBastardMother, callsLlm: true),
             new SelfTest("chat_worldevent",  Severity.Light,        "LLM: Feed a fresh event -> ask for news -> does the NPC surface it?",             TestChatWorldEvent,     callsLlm: true),
+            new SelfTest("chat_recruit_companion", Severity.Light,  "LLM: ask where to find a companion -> assert the gate fired + REAL wanderers gathered, judge the reply names one (never invents)", TestChatRecruitCompanion, callsLlm: true),
             new SelfTest("chat_stance_assassin", Severity.Light,    "LLM: force a secret-killer stance hint -> does the NPC stay smooth and hide it?", TestChatStanceAssassin, callsLlm: true),
             new SelfTest("chat_stance_favor",    Severity.Light,    "LLM: force a friendly stance hint -> does the NPC offer aid / warmth?",           TestChatStanceFavor,    callsLlm: true),
             new SelfTest("chat_captor_scene",    Severity.Light,    "LLM: a 3-beat player-as-captor scene (threaten -> bind -> assault) -> judge escalation + captive reactions", TestChatCaptorScene, callsLlm: true),
@@ -974,6 +975,38 @@ namespace CalradiaRemembers.Diagnostics
             if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
 
             t.Note($"fed the Pravend granary fire; judge in log: does {npc.Name} mention it (as hearsay)? | A: {Show(reply)}");
+            t.Expect("gotNonEmptyReply", reply.Length > 0, true);
+            return t.Line();
+        }
+
+        /// <summary>
+        ///   Grounded recruiting: ask where to find a companion. Asserts deterministically that the recruit-intent
+        ///   gate fired and the host gathered REAL wanderers into the context (proving the wiring end to end, no LLM
+        ///   judgment needed), then logs the reply so the grounding itself can be judged — does the NPC name an
+        ///   actual wanderer (or send the player to the taverns), never inventing a companion like the "Oros" bug?
+        /// </summary>
+        private static string TestChatRecruitCompanion(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_recruit_companion");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to converse with")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            const string question = "I am looking to take on a companion. Where might I find a good wanderer to recruit?";
+            var ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, question);
+
+            // Deterministic half (no LLM): the recruit-intent gate must fire and the host must have gathered.
+            // null = gate never fired (a wiring bug); "" = asked but none about (taverns fallback); one line = the wanderer.
+            string gathered = ctx.KnownWanderers;
+            t.Expect("gateFired", gathered != null, true);
+
+            var (ok, reply, err) = AskLlm(behavior, "chat_recruit_companion", npc, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            string picked = string.IsNullOrEmpty(gathered) ? "(none — taverns fallback)" : gathered.TrimStart('-', ' ');
+            t.Note($"gathered: {picked}; judge in log: does {npc.Name} name that ONE wanderer (or send you to the taverns), never inventing or listing several? | A: {Show(reply)}");
             t.Expect("gotNonEmptyReply", reply.Length > 0, true);
             return t.Line();
         }
