@@ -514,14 +514,46 @@ The marriage chain (family-approval, consorts, by-letter, jealousy) is shipped. 
   consequences, which dovetail with dynastic succession and jealousy.
 
 ### Smaller polish (deferred)
-- **One "give" control for items AND gold** *(wished 2026-06-28)*: instead of a separate Give Gold button, a
-  single give-items control (the bag/inventory picker) that ALSO lets the player hand over coin — one unified
-  "give" affordance rather than two buttons.
-- **Ambush bandit placement on the navmesh** *(wished 2026-06-28)*: `AmbushFightMissionLogic` teleports the
-  attackers into a flat ring around the player (radius tuned to ~30m), but some land between walls / in a spot
-  they cannot path FROM to reach the player. Need a navmesh-aware placement: snap each attacker to the nearest
-  WALKABLE point at ~20m that has a clear path to the player (reject/retry unreachable spots), so every cutthroat
-  can actually close. (Bannerlord scene navmesh query — likely `Mission.Scene` nav-face / `World.GetNavMesh*`.)
+- **One "give" control for items AND gold** *(wished 2026-06-28, BUILT 2026-06-28, validated in game)*: the
+  gift-icon button now opens a single "Give" picker with a "Gold" entry pinned atop the inventory items;
+  picking Gold prompts for a denar amount. The separate Give Gold button is retired (`IsOfferGoldVisible`
+  forced false). `ItemPickerService.ShowItemPicker(onItemSelected, onGoldSelected)`.
+- **Grounded "where do I find a companion?"** *(wished + BUILT 2026-06-28, validated in game)*: an NPC asked
+  where to recruit was inventing a fictitious wanderer (the "Oros" bug). Now, gated by the pure
+  `RecruitIntentDetector`, the host injects ONE REAL hireable wanderer and their town, drawn at random
+  (`EncounterContext.KnownWanderers`, `PromptBuilder` A WANDERER FOR HIRE section): a single name is more
+  credible than one person knowing every wanderer's comings and goings. Eligible = wanderers in the NPC's own
+  town (certain, "in the tavern", preferred) or of the NPC's culture (heard of); the prompt forbids inventing a
+  name OR claiming to know of others, and falls back to "taverns of towns" when none are known. Only injected
+  when the player actually asks (no token cost otherwise). Console self-test `cr.test chat_recruit_companion`
+  (in `cr.testall`): deterministically asserts the gate fired + a wanderer was gathered, then logs the reply to
+  judge the grounding. Pure `RecruitIntentDetector` has 5 unit tests.
+- **Ambush bandit placement on the navmesh** *(wished + BUILT 2026-06-28, untested in game)*: the old
+  `AmbushFightMissionLogic` ring was raw geometry (cos/sin at the player's Z), so thugs could land between walls
+  with no path to the player. Now each thug is placed on a point that is BOTH on the navmesh AND reachable: from
+  the player's valid `WorldPosition`, `SetVec2` slides the candidate onto the navmesh, then
+  `Scene.GetPathDistanceBetweenPositions` confirms a real path (rejecting blocked / disconnected spots and ones
+  reachable only by a long detour). A fan of angle offsets + a few radii (ideal ~20m) dodges a wall; a
+  toward-the-player navmesh fallback covers the rare total miss. `cr.ambush` to test in game.
+- **Fleeing townsfolk during the town ambush** *(wished 2026-06-28)*: atmosphere for the alley-fight ambush —
+  a few civilians who scatter the moment the knives come out, so it reads as a real event in a living town, not
+  a duel in an empty alley. Bannerlord does not do this natively for an alley fight, but it is buildable.
+  **Shape:** `Mission.SpawnAgent` a handful of unarmed `Civilian(true)` agents on a NEUTRAL non-combatant
+  `Team`, so they never count toward the win/lose condition (and our capture is keyed on the player going down,
+  not an enemy count, so they are harmless to it). On the ambush trigger (already detected in
+  `AmbushFightMissionLogic`), each flees: pick a navmesh point away from the player (reuse the new reachability
+  helper), `SetScriptedPosition` at a run + panic anim, then `FadeOut` once they reach the edge. **Gotchas to
+  spike:** scene room for spawn + flee points in a tight alley; make them `Invulnerable` / fade fast so a stray
+  blow causes no crime penalty or odd mission end; 3-5 max (perf is a non-issue). A NEW feature, not ambush
+  polish — sequence it AFTER the navmesh-placement fix ships.
+- **Configurable LLM response timeout** *(player bug 2026-06-28, BUILT)*: a player on longer messages hit
+  "LLM Call Failed in 100008ms: A Task was cancelled" — the HttpClient default 100s timeout firing when a long
+  prompt makes a slow/reasoning model think past it. Now the per-request timeout is enforced in the SDK via a
+  linked `CancellationTokenSource` (so EVERY caller is bounded), independent of the HttpClient ceiling (raised
+  to 15 min so it never pre-empts). New MCM setting "LLM Response Timeout (s)" (15-600, default 120,
+  `ModSettings.LlmResponseTimeoutSeconds` → `OpenRouterConfig.TimeoutSecondsProvider`). The opaque "A task was
+  canceled" is replaced by a clear, actionable message naming the timeout and the setting. Only a genuine caller
+  cancellation (chat closed mid-call) still propagates.
 - **Negotiation Phase 1 polish**: a richer `DeliverItems` spec (category + tier + count — "a warhorse, a
   sword of tier 5+") instead of a value floor; the joining wanderer EQUIPS the gear demanded for them.
 - **Companion happiness**: pay / share-of-loot driver; let the player ADDRESS a grievance more richly.
