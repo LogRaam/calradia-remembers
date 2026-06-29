@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.Travel;
 using NpcMemoryService.Core.Models;
@@ -33,9 +34,12 @@ namespace CalradiaRemembers.Stance
       private const int CaptorEscort = 5; // a handful of cutthroats — enough to hold a beaten captive, still beatable
       private const float ArrivalDistance = 2.5f; // a bandit band can't ENTER the lord's town, so "arrived" = this close
       private const float ApproachRange = 6f; // when the convoy is this near the lord's seat, the lord rides out to meet it
+      private const int RescueForce = 15; // troops a rescuing companion brings — enough to beat the small captor band
       public static AmbushCaptivityBehavior Instance;
       private bool _arrivedLogged; // transient: the meeting with the lord has happened (fires once)
       private bool _lordNudged; // transient: we've ordered the paymaster's party to ride out to the convoy
+      private bool _rescueMounted; // transient: the companions have already ridden to the rescue (one attempt)
+      private int _rescueRollDay = -1; // transient: the last day we rolled for a rescue (one roll per day)
       private string _chiefId;
 
       // The live convoy (the captor party + the paymaster + the temp bandit chief), persisted so a save
@@ -101,6 +105,8 @@ namespace CalradiaRemembers.Stance
          _timeLocked = false;
          _arrivedLogged = false;
          _lordNudged = false;
+         _rescueMounted = false;
+         _rescueRollDay = -1;
          ModLog.Info($"[AMBUSH] capture armed by {paymaster.Name} — it will spring once the player is on the open map.");
 
          return true;
@@ -351,6 +357,9 @@ namespace CalradiaRemembers.Stance
 
                return;
             }
+
+            // 3.2c: while convoyed, the player's free companions may ride to cut them loose (a real map battle).
+            TryRescueRoll(convoy);
 
             if (_arrivedLogged) return; // the meeting already happened — the lord (or the band) holds the player now
 
@@ -610,6 +619,77 @@ namespace CalradiaRemembers.Stance
          {
             _pendingCaptureLordId = null;
             ModLog.Error($"[AMBUSH] capture spring failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   3.2c — once per day while the player is convoyed, the free clan companions may mount a rescue: the
+      ///   chance scales with how many can ride (CompanionRescuePolicy). On success a companion-led clan party
+      ///   spawns and ENGAGES the captor convoy; vanilla resolves the battle, and beating the convoy frees the
+      ///   player (our convoy-gone cleanup then fires). One attempt per capture.
+      /// </summary>
+      private void TryRescueRoll(MobileParty convoy)
+      {
+         if (_rescueMounted) return;
+
+         var today = (int) CampaignTime.Now.ToDays;
+         if (today == _rescueRollDay) return; // one roll per day
+         _rescueRollDay = today;
+
+         List<Hero> free = FreeRescuers();
+         if (free.Count == 0) return;
+         if (!CompanionRescuePolicy.ShouldAttempt(free.Count, MBRandom.RandomInt(100))) return;
+
+         Hero leader = free[0];
+         MobileParty rescue = SpawnRescuers(leader, convoy);
+         if (rescue == null) return;
+
+         _rescueMounted = true;
+         try { rescue.SetMoveEngageParty(convoy, MobileParty.NavigationType.Default); }
+         catch (Exception ex) { ModLog.Error($"[AMBUSH] rescue engage failed: {ex.GetType().Name}: {ex.Message}"); }
+
+         InformationManager.DisplayMessage(new InformationMessage(
+            $"Word reaches you, bound in the cart: {leader.Name} has gathered your people and rides hard to cut you free.", Colors.Green));
+         ModLog.Info($"[AMBUSH] rescue mounted by {leader.Name} ({free.Count} free companion(s)) — engaging the convoy.");
+      }
+
+      /// <summary>Clan heroes who could ride to the rescue: alive, free, not the player, and not already leading a party.</summary>
+      private static List<Hero> FreeRescuers()
+         => Clan.PlayerClan == null
+            ? new List<Hero>()
+            : Clan.PlayerClan.Heroes
+                  .Where(h => h is {IsAlive: true} && !h.IsPrisoner && h != Hero.MainHero
+                           && (h.PartyBelongedTo == null || h.PartyBelongedTo.LeaderHero != h))
+                  .ToList();
+
+      private MobileParty SpawnRescuers(Hero leader, MobileParty convoy)
+      {
+         try
+         {
+            Settlement from = leader.CurrentSettlement ?? leader.HomeSettlement;
+            if (from == null) { ModLog.Info($"[AMBUSH] rescue: {leader.Name} has no seat to ride from — skipping."); return null; }
+
+            MobileParty party = LordPartyComponent.CreateLordParty(
+               "cr_ambush_rescue_" + Guid.NewGuid().ToString("N"),
+               leader,
+               new CampaignVec2(from.GetPosition2D, true),
+               1f,
+               from,
+               leader);
+            if (party == null) return null;
+
+            CharacterObject troop = Hero.MainHero.Culture?.BasicTroop ?? leader.Culture?.BasicTroop;
+            if (troop != null) party.MemberRoster.AddToCounts(troop, RescueForce);
+
+            ModLog.Info($"[AMBUSH] rescue party spawned: leader={leader.Name}, from={from.Name}, troops={party.MemberRoster.TotalManCount}.");
+
+            return party;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[AMBUSH] rescue spawn failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
          }
       }
 

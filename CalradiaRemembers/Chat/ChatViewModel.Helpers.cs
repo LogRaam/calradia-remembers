@@ -504,10 +504,10 @@ namespace CalradiaRemembers.Chat
 
       private ChatSpeaker MainSpeaker()
       {
-         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile ??
-                              (IsCaptiveEncounter
-                                 ? _captiveEncounterProfile
-                                 : null);
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile
+                           ?? (IsCaptiveEncounter ? _captiveEncounterProfile
+                              : _captorScene ? _captorSceneProfile
+                              : null);
 
          return new ChatSpeaker {
             IsMain = true,

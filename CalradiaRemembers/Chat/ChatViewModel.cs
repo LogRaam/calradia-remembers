@@ -104,6 +104,12 @@ namespace CalradiaRemembers.Chat
       private NpcProfile _captiveEncounterProfile;
       private bool _captiveMemoryFinalized; // idempotency guard for the end-of-scene memory record
 
+      // ── Player-as-captor scene (the inverse): the NPC is the player's prisoner and the player drives. A normal
+      //    live conversation (full memory + actions), flagged so the prompt frames the NPC as the captive. ──
+      private bool _captorScene;
+      private CaptiveSceneIntent _captorSceneIntent;
+      private NpcProfile _captorSceneProfile;
+
       private string _closeButtonText = "End conversation";
 
       // ── Commoner mode payload (v1.1) ──────────────────────────────────────
@@ -460,6 +466,23 @@ namespace CalradiaRemembers.Chat
          TitleText = $"Calradia Remembers — {profile?.Name ?? "a commoner"}";
          CloseButtonText = "Leave";
          SendButtonText = "Say";
+      }
+
+      /// <summary>
+      ///   Opens the chat as a PLAYER-AS-CAPTOR scene: the NPC is the player's prisoner and the player drives.
+      ///   Runs as a normal live conversation (full memory + actions), flagged so the prompt frames the NPC as the
+      ///   captive reacting to the player. The player speaks first; there is no NPC-led opener.
+      /// </summary>
+      public void ActivateCaptorSceneMode(NpcProfile prisonerProfile, CaptiveSceneIntent intent)
+      {
+         _mode = ChatMode.Conversation;
+         _captorScene = true;
+         _captorSceneProfile = prisonerProfile;
+         _captorSceneIntent = intent;
+
+         TitleText = $"Calradia Remembers — {prisonerProfile?.Name ?? "your prisoner"}";
+         CloseButtonText = "End";
+         SendButtonText = "Send";
       }
 
       /// <summary>Adds a single witness to the session. Used by the console command for testing.</summary>

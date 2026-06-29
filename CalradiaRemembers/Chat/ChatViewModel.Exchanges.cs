@@ -458,12 +458,15 @@ namespace CalradiaRemembers.Chat
                speaker.Hero, profile, behavior.GameStateBridge, playerMessage,
                BuildContextWitnesses(speaker), _privacyRequestPending,
                isCollectiveCaptiveScene: IsCaptiveEncounter && _captiveEncounterIsCollective,
-               // Force Captive when this is a captive encounter — robust for the real
-               // path and required for the console test path (player isn't truly imprisoned).
+               isCaptorScene: _captorScene,
+               // Force the captivity status: Captive when the player is the NPC's captive, NpcIsCaptive when this
+               // is a player-as-captor scene (robust for the console test path too, where it isn't truly set).
                playerStatusOverride: IsCaptiveEncounter
                   ? PlayerStatusVsNpc.Captive
-                  : null,
-               captiveIntent: _captiveEncounterIntent,
+                  : _captorScene
+                     ? PlayerStatusVsNpc.NpcIsCaptive
+                     : null,
+               captiveIntent: _captorScene ? _captorSceneIntent : _captiveEncounterIntent,
                captorIsBandit: IsCaptiveEncounter && _captiveEncounterIsBandit,
                sceneStage: _director?.CurrentStage ?? CaptiveSceneStage.Intro,
                aggressorKind: _director?.CurrentAggressor ?? CaptiveAggressorKind.Lead,

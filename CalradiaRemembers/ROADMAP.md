@@ -378,6 +378,15 @@ chat any NPC and type `*I take you by the wrist*` or "I put my hand on your shou
   have taken. The captor direction was noted "deferred — no aggressor scene exists yet" (Sprint 17). Reuse the
   scene director + intents (Interrogation/Domination/…) with the roles swapped; standing damage lands on the NPC,
   not the player. Now requested by more than one captivity-mod player.
+  **BUILT 2026-06-28 (untested in game):** a player-LED scene (NOT the NPC-driven director) — `EncounterContext.IsCaptorScene`
+  + `AppendPlayerCaptorSceneRules` frame the NPC as the player's prisoner reacting per their nature (per-intent;
+  Hardcore CNC layer; reads the player's `*…*` as the captor's deeds). Mod: `ChatViewModel.ActivateCaptorSceneMode`
+  (normal conversation path = full memory/actions, flagged), `ChatManager.OpenForCaptorScene`, console `cr.captor_scene
+  [intent] [name]`. Intents/variants validated via self-tests (cr.test chat_captor_*): proud vs craven (Trait-driven),
+  torture (breaks under the lash), CNC, male-captor/female-prisoner, and a GROUP CNC (player + companions, collective
+  branch in the prompt). **OPEN — the in-game entry point (NOT playable yet, console-only):** a "talk to your prisoner"
+  button on the party/prisoner screen to open the scene, AND a companion SELECTOR (like the captive-encounter witness
+  picker) to bring 1-2 allies into a collective scene. Plus NPC standing effects (the inverse of public humiliation).
 
 ### Conception from any vaginal act — consensual scenes + female NPCs *(wished 2026-06-24)*
 
@@ -505,6 +514,14 @@ The marriage chain (family-approval, consorts, by-letter, jealousy) is shipped. 
   consequences, which dovetail with dynastic succession and jealousy.
 
 ### Smaller polish (deferred)
+- **One "give" control for items AND gold** *(wished 2026-06-28)*: instead of a separate Give Gold button, a
+  single give-items control (the bag/inventory picker) that ALSO lets the player hand over coin — one unified
+  "give" affordance rather than two buttons.
+- **Ambush bandit placement on the navmesh** *(wished 2026-06-28)*: `AmbushFightMissionLogic` teleports the
+  attackers into a flat ring around the player (radius tuned to ~30m), but some land between walls / in a spot
+  they cannot path FROM to reach the player. Need a navmesh-aware placement: snap each attacker to the nearest
+  WALKABLE point at ~20m that has a clear path to the player (reject/retry unreachable spots), so every cutthroat
+  can actually close. (Bannerlord scene navmesh query — likely `Mission.Scene` nav-face / `World.GetNavMesh*`.)
 - **Negotiation Phase 1 polish**: a richer `DeliverItems` spec (category + tier + count — "a warhorse, a
   sword of tier 5+") instead of a value floor; the joining wanderer EQUIPS the gear demanded for them.
 - **Companion happiness**: pay / share-of-loot driver; let the player ADDRESS a grievance more richly.

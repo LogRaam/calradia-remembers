@@ -16,6 +16,7 @@ using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Scenarios;
+using CalradiaRemembers.Services;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
@@ -82,6 +83,12 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("chat_worldevent",  Severity.Light,        "LLM: Feed a fresh event -> ask for news -> does the NPC surface it?",             TestChatWorldEvent,     callsLlm: true),
             new SelfTest("chat_stance_assassin", Severity.Light,    "LLM: force a secret-killer stance hint -> does the NPC stay smooth and hide it?", TestChatStanceAssassin, callsLlm: true),
             new SelfTest("chat_stance_favor",    Severity.Light,    "LLM: force a friendly stance hint -> does the NPC offer aid / warmth?",           TestChatStanceFavor,    callsLlm: true),
+            new SelfTest("chat_captor_scene",    Severity.Light,    "LLM: a 3-beat player-as-captor scene (threaten -> bind -> assault) -> judge escalation + captive reactions", TestChatCaptorScene, callsLlm: true),
+            new SelfTest("chat_captor_break",    Severity.Light,    "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?",         TestChatCaptorBreak, callsLlm: true),
+            new SelfTest("chat_captor_torture",  Severity.Light,    "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?",      TestChatCaptorTorture, callsLlm: true),
+            new SelfTest("chat_captor_cnc",      Severity.Light,    "LLM: 3-beat sexual coercion (Hardcore) -> does the NPC play CNC reactions in character, never breaking?",   TestChatCaptorCnc,   callsLlm: true),
+            new SelfTest("chat_captor_cnc_mf",   Severity.Light,    "LLM: CNC with a MALE captor and FEMALE prisoner (gender forced) -> in-character reactions?",              TestChatCaptorCncMF, callsLlm: true),
+            new SelfTest("chat_captor_group",    Severity.Light,    "LLM: GROUP CNC — player + 2 companions vs a female prisoner -> does she react to being outnumbered?",     TestChatCaptorGroup, callsLlm: true),
         };
 
         // ── Public API (cr.testall / cr.test) ─────────────────────────────────
@@ -1026,18 +1033,238 @@ namespace CalradiaRemembers.Diagnostics
             return t.Line();
         }
 
+        /// <summary>
+        ///   Runs an N-beat player-as-captor scene through the real pipeline with ONE shared session (so the NPC
+        ///   reacts to the escalation), logging the full reply for each beat. Returns (ran, allReplied); ran=false
+        ///   on an LLM failure (the caller aborts). The caller picks the prisoner, intent, and beats.
+        /// </summary>
+        private static (bool ran, bool allReplied) RunCaptorBeats(
+            NpcMemoryCampaignBehavior behavior, string label, Hero npc, NpcProfile profile,
+            CaptiveSceneIntent intent, string[] beats,
+            IReadOnlyList<WitnessEntry> witnesses = null, bool collective = false)
+        {
+            var session = new ChatSession();
+            var allReplied = true;
+            for (var i = 0; i < beats.Length; i++)
+            {
+                var ctx = EncounterContextBuilder.Build(
+                    npc, profile, behavior.GameStateBridge, beats[i],
+                    witnesses,
+                    isCollectiveCaptiveScene: collective,
+                    isCaptorScene: true,
+                    playerStatusOverride: PlayerStatusVsNpc.NpcIsCaptive,
+                    captiveIntent: intent);
+
+                var (ok, reply, err) = AskLlm(behavior, $"{label}/{i + 1}", npc, profile, ctx, beats[i], session);
+                if (!ok) { ModLog.Error($"[SELFTEST] {label} beat {i + 1} failed: {err}"); return (false, false); }
+                allReplied &= !string.IsNullOrWhiteSpace(reply);
+            }
+
+            return (true, allReplied);
+        }
+
+        /// <summary>The first alive FEMALE lord (for a male-player / female-prisoner scene), else any female hero.</summary>
+        private static Hero FemaleNpc()
+            => Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.IsFemale)
+            ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsFemale);
+
+        /// <summary>CNC with a MALE captor and a FEMALE prisoner (player gender forced male for the scene).</summary>
+        private static string TestChatCaptorCncMF(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_captor_cnc_mf");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = FemaleNpc();
+            if (t.Skip(npc == null, "no female NPC to hold prisoner")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+
+            string[] beats = {
+                "*I trail the cold flat of my blade down from your throat, parting the laces of your bodice.* " +
+                "You are mine to enjoy tonight. Hold still.",
+                "*I pin both your wrists above your head with one hand, the other claiming you slowly while you twist against the ring.* " +
+                "Fight all you like — it only makes this sweeter.",
+                "*I force your chin up to meet my eyes.* Say you want it. Lie if you must — I will know, and I will not care."
+            };
+
+            bool? prev = LlmServices.TestPlayerGenderOverride;
+            try
+            {
+                LlmServices.TestPlayerGenderOverride = false; // a MALE captor for this scene
+                behavior.LlmServices.Invalidate();
+
+                var (ran, replied) = RunCaptorBeats(behavior, "chat_captor_cnc_mf", npc, profile, CaptiveSceneIntent.PersonalDesire, beats);
+                if (t.Abort(!ran, "LLM call failed")) return t.Line();
+
+                string note = ModSettings.AdultContentLevel >= AdultContentLevel.Hardcore ? "" : " (NOTE: not Hardcore — explicit CNC will NOT appear.)";
+                t.Note($"male captor / female prisoner ({npc.Name}); judge in log: in-character CNC reactions (resistance/shame/fear), never breaking the scene?{note}");
+                t.Expect("threeBeatsReplied", replied, true);
+                return t.Line();
+            }
+            finally
+            {
+                LlmServices.TestPlayerGenderOverride = prev;
+                behavior.LlmServices.Invalidate();
+            }
+        }
+
+        /// <summary>GROUP CNC: the player brings TWO companions who take part, against a female prisoner (collective scene).</summary>
+        private static string TestChatCaptorGroup(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_captor_group");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = FemaleNpc();
+            if (t.Skip(npc == null, "no female NPC to hold prisoner")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+
+            var witnesses = new List<WitnessEntry> {
+                new() { Name = "Gerwin", HeroStringId = null, RelationToNpc = "the player's companion, here to take part", IsPlayerCompanion = true, Persona = "A grinning brute who enjoys this work" },
+                new() { Name = "Talos", HeroStringId = null, RelationToNpc = "the player's companion, here to take part", IsPlayerCompanion = true, Persona = "Quiet, methodical, patient" }
+            };
+
+            string[] beats = {
+                "*I shove you down across the table as Gerwin and Talos close in on either side, hands already on you.* Tonight you belong to all three of us.",
+                "*Gerwin pins your arms while Talos tears at your skirts; I take my place before you.* No use struggling — there are far too many hands for that.",
+                "*I grip your jaw and turn your face to each of them in turn.* Look at them. They will each have their turn with you before the night is done. Beg, if you think it will help."
+            };
+
+            var (ran, replied) = RunCaptorBeats(behavior, "chat_captor_group", npc, profile, CaptiveSceneIntent.Domination, beats, witnesses, collective: true);
+            if (t.Abort(!ran, "LLM call failed")) return t.Line();
+
+            string note = ModSettings.AdultContentLevel >= AdultContentLevel.Hardcore ? "" : " (NOTE: not Hardcore — explicit CNC will NOT appear.)";
+            t.Note($"GROUP CNC vs {npc.Name} (player + Gerwin + Talos); judge in log: does she react to being OUTNUMBERED / passed between several, naming them?{note}");
+            t.Expect("threeBeatsReplied", replied, true);
+            return t.Line();
+        }
+
+        /// <summary>A 3-beat player-as-captor scene (threaten -> bind -> assault). The NPC reacts in character; judged from the log.</summary>
+        private static string TestChatCaptorScene(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_captor_scene");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to hold prisoner")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+
+            string[] beats = {
+                "*I crouch before you in the cell, turning a knife slowly in the torchlight.* You belong to me now. " +
+                "There is no ransom coming, no rescue. So we will do this my way.",
+                "*I haul you up by the collar and lash your wrists to the iron ring above your head, then step back to look you over.* " +
+                "Better. Now you will learn exactly what your defiance has bought you.",
+                "*I take a fistful of your hair, force your head back, and press the flat of the blade to your cheek.* " +
+                "Beg me. Let me hear how well you have learned your place."
+            };
+
+            var (ran, replied) = RunCaptorBeats(behavior, "chat_captor_scene", npc, profile, CaptiveSceneIntent.Domination, beats);
+            if (t.Abort(!ran, "LLM call failed")) return t.Line();
+
+            t.Note($"3-beat captor scene with {npc.Name} (threaten -> bind -> assault); judge in log: escalation + in-character reactions.");
+            t.Expect("threeBeatsReplied", replied, true);
+            return t.Line();
+        }
+
+        /// <summary>CONTRAST: the same scene on a CRAVEN prisoner (Trait overridden) — should crack/plead far sooner than a proud one.</summary>
+        private static string TestChatCaptorBreak(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_captor_break");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to hold prisoner")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            // Override the personality to a coward for THIS test, so we see the breaking end of the spectrum
+            // (the harness already warns to reload after a self-test run).
+            profile.Trait = "A craven, self-serving coward at heart: behind any bluster you fold quickly under real " +
+                            "fear, and will plead, flatter, weep, or betray anyone to save your own skin.";
+
+            string[] beats = {
+                "*I crouch before you in the cell, turning a knife slowly in the torchlight.* You belong to me now. " +
+                "No ransom, no rescue. We do this my way.",
+                "*I lash your wrists to the iron ring above your head and press the cold blade flat against your throat.* " +
+                "Defy me and I start taking pieces.",
+                "*I drag the edge lightly down your cheek, drawing a thin line of blood.* Beg. Now. Convince me you are worth keeping whole."
+            };
+
+            var (ran, replied) = RunCaptorBeats(behavior, "chat_captor_break", npc, profile, CaptiveSceneIntent.Domination, beats);
+            if (t.Abort(!ran, "LLM call failed")) return t.Line();
+
+            t.Note($"CRAVEN {npc.Name} (Trait overridden); judge in log: does this coward CRACK / plead / bargain quickly (contrast with the proud one)?");
+            t.Expect("threeBeatsReplied", replied, true);
+            return t.Line();
+        }
+
+        /// <summary>TORTURE: the player whips the prisoner over 3 beats — judge the suffering and whether they break/plead.</summary>
+        private static string TestChatCaptorTorture(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_captor_torture");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to hold prisoner")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+
+            string[] beats = {
+                "*I uncoil a leather whip and let it trail slowly across your bared back.* Let us see how long that proud silence lasts.",
+                "*The whip cracks across your shoulders — once, twice — opening hot welts.* Scream for me. Or shall I make it ten more?",
+                "*I press my thumb hard into a fresh, bleeding welt and lean close to your ear.* Beg me to stop, and perhaps I will. Your choice."
+            };
+
+            var (ran, replied) = RunCaptorBeats(behavior, "chat_captor_torture", npc, profile, CaptiveSceneIntent.Torture, beats);
+            if (t.Abort(!ran, "LLM call failed")) return t.Line();
+
+            t.Note($"TORTURE of {npc.Name} (the lash); judge in log: real suffering shown + does defiance erode toward pleading/breaking?");
+            t.Expect("threeBeatsReplied", replied, true);
+            return t.Line();
+        }
+
+        /// <summary>CNC (Hardcore): sexual coercion over 3 beats — judge whether the NPC plays the CNC reactions fully and never breaks the scene.</summary>
+        private static string TestChatCaptorCnc(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_captor_cnc");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to hold prisoner")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+
+            string[] beats = {
+                "*I trail the cold flat of my blade down from your throat, parting the laces of your shirt.* " +
+                "You are mine to enjoy tonight. Hold still.",
+                "*I pin both your wrists above your head with one hand, the other claiming you slowly while you twist against the ring.* " +
+                "Fight all you like — it only makes this sweeter.",
+                "*I force your chin up to meet my eyes.* Say you want it. Lie if you must — I will know, and I will not care."
+            };
+
+            var (ran, replied) = RunCaptorBeats(behavior, "chat_captor_cnc", npc, profile, CaptiveSceneIntent.PersonalDesire, beats);
+            if (t.Abort(!ran, "LLM call failed")) return t.Line();
+
+            string note = ModSettings.AdultContentLevel >= AdultContentLevel.Hardcore ? "" : " (NOTE: not Hardcore — explicit CNC will NOT appear.)";
+            t.Note($"CNC scene with {npc.Name}; judge in log: does the NPC play resistance/shame/fear/reluctant compliance in character, never breaking the scene?{note}");
+            t.Expect("threeBeatsReplied", replied, true);
+            return t.Line();
+        }
+
         private static Hero ConversationNpc()
             => Hero.OneToOneConversationHero ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
 
         /// <summary>Runs one question through the real chat pipeline, logs the full Q&amp;A, and returns the reply.</summary>
         private static (bool ok, string reply, string error) AskLlm(
-            NpcMemoryCampaignBehavior behavior, string label, Hero npc, NpcProfile profile, EncounterContext ctx, string question)
+            NpcMemoryCampaignBehavior behavior, string label, Hero npc, NpcProfile profile, EncounterContext ctx, string question,
+            ChatSession session = null)
         {
             var services = behavior.LlmServices;
             if (services is not {IsAvailable: true}) return (false, null, "LLM not configured");
 
             var world = new WorldState { CurrentDay = behavior.GameStateBridge.GetCurrentGameDay() };
-            var session = new ChatSession();
+            // A shared session (passed in) carries a multi-turn scene forward; ChatAsync appends each turn to it.
+            session ??= new ChatSession();
 
             // Synchronous wait on the real pipeline (Task.Run avoids any main-thread sync-context capture).
             // Bounded so one slow/hung provider call (or a deadlock) can never freeze the whole sweep with no

@@ -145,6 +145,24 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Opens the chat window for a PLAYER-AS-CAPTOR scene: the NPC is the player's prisoner and the player
+      ///   drives. A normal live conversation framed so the NPC reacts as the captive. The player speaks first.
+      /// </summary>
+      public static void OpenForCaptorScene(
+         Hero prisonerHero,
+         NpcProfile prisonerProfile,
+         CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation)
+      {
+         Open(prisonerHero?.Name?.ToString() ?? prisonerProfile?.Name);
+
+         if (ActiveViewModel == null) return;
+         if (prisonerHero != null) ActiveViewModel.SetNpcHero(prisonerHero);
+         else if (prisonerProfile != null) ActiveViewModel.SetNpcName(prisonerProfile.Name);
+
+         ActiveViewModel.ActivateCaptorSceneMode(prisonerProfile, intent);
+      }
+
+      /// <summary>
       ///   Opens the chat window for a transient commoner conversation.
       ///   The synthetic profile and settlement knowledge are passed directly to
       ///   <see cref="ChatViewModel.ActivateCommonerMode" />; nothing is loaded

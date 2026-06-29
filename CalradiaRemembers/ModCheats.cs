@@ -1060,6 +1060,37 @@ namespace CalradiaRemembers
          return $"Bandit captive scene opened with {captor.Name} [{intent}{(collective ? ", collective" : "")}].{warn}";
       }
 
+      /// <summary>
+      ///   cr.captor_scene [interrogation|domination|torture|...] [name]
+      ///   Opens a PLAYER-AS-CAPTOR scene: the named NPC (or the conversation NPC) is YOUR prisoner and you drive
+      ///   the scene; they react as a captive of their nature. Forces the framing for testing (the NPC need not
+      ///   truly be your prisoner). Non-Hardcore = a tense confrontation; Hardcore unlocks the explicit CNC layer.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("captor_scene", "cr")]
+      public static string ForceCaptorScene(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         if (behavior.LlmServices is not {IsAvailable: true}) return "LLM services not available. Set your OpenRouter API key first.";
+
+         var intent = CaptiveSceneIntent.Interrogation;
+         var nameTokens = new List<string>();
+         foreach (string arg in args ?? new List<string>())
+            if (Enum.TryParse(arg, true, out CaptiveSceneIntent parsed)) intent = parsed;
+            else nameTokens.Add(arg);
+
+         Hero npc = ResolveHero(nameTokens);
+         if (npc == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = behavior.Store?.Get(npc.StringId) ?? HeroProfileMapper.FromHero(npc);
+         ChatManager.OpenForCaptorScene(npc, profile, intent);
+
+         string warn = ModSettings.AdultContentLevel != AdultContentLevel.Hardcore
+            ? " (NOTE: set Adult Content Level to Hardcore in MCM for the explicit CNC layer.)"
+            : "";
+
+         return $"Captor scene opened with {npc.Name} as your prisoner (intent {intent}).{warn}";
+      }
+
       // ── Sprint 17: captive encounter testing ──────────────────────────────
 
       /// <summary>
