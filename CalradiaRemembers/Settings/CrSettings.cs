@@ -159,6 +159,13 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Companions", GroupOrder = 4)]
       public bool CompanionContentment { get; set; } = true;
 
+      [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 1,
+         HintText = "How long to wait for the AI to reply before giving up, in seconds (default 120). Raise it " +
+                    "if you run a slow local model or a reasoning model and see 'the model did not respond' on " +
+                    "longer messages; lower it if you prefer to fail fast. Applies immediately.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public int LlmTimeoutSeconds { get; set; } = 120;
+
       [SettingPropertyBool("Verbose Logging", RequireRestart = false, Order = -1,
          HintText = "Logs the full system prompt and NPC response to the mod log on every exchange. " +
                     "Turn on only when capturing a bug report — it floods the log. Requires Enable Logging.")]

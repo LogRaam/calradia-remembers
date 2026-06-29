@@ -160,7 +160,9 @@ namespace CalradiaRemembers.Services
       {
          try
          {
-            _httpClient = new HttpClient();
+            // A high ceiling so HttpClient's own 100s default never pre-empts the real, configurable
+            // per-request timeout the OpenRouterClient enforces via a linked token (ModSettings.LlmResponseTimeoutSeconds).
+            _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(15) };
 
             // The client reads key/model/base-URL live on every request, so a provider,
             // key or model picked in the MCM menu applies immediately — no restart, no
@@ -171,7 +173,8 @@ namespace CalradiaRemembers.Services
                ModelProvider = ResolveModel,
                BaseUrlProvider = ResolveBaseUrl,
                UseSystemPromptCachingProvider = ResolveUseSystemPromptCaching,
-               ReasoningProvider = ResolveReasoning
+               ReasoningProvider = ResolveReasoning,
+               TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds
             };
             LlmClient = new OpenRouterClient(_httpClient, config);
 

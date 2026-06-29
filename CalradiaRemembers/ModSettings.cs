@@ -115,6 +115,13 @@ namespace CalradiaRemembers
       public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
 
       /// <summary>
+      ///   How long (seconds) to wait for an LLM reply before timing out. Read live from the MCM
+      ///   menu; falls back to 120 when MCM has not loaded. Drives the per-request timeout so a slow
+      ///   local/reasoning model on a long prompt no longer hits the opaque 100s HttpClient default.
+      /// </summary>
+      public static int LlmResponseTimeoutSeconds => CrSettings.Instance?.LlmTimeoutSeconds ?? 120;
+
+      /// <summary>
       ///   When true, the full system prompt and NPC response are logged on every LLM
       ///   exchange. Read live from the MCM menu; off by default.
       /// </summary>
