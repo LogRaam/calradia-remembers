@@ -43,17 +43,10 @@ namespace CalradiaRemembers.Chat
    public sealed partial class ChatViewModel
    {
       /// <summary>
-      ///   Captive scene continuation loop (Sprint 17).
-      ///   Fires when the NPC emitted a NARRATION block but did not end their dialogue with a
-      ///   question — the scene is still unfolding and the player cannot interrupt.
-      ///   Each iteration sends a synthetic "continue" cue; the loop stops when the NPC asks a
-      ///   question, emits end_conversation, emits no narration, or the cap is reached.
-      /// </summary>
-      /// <summary>
-      ///   Fires ONE narration continuation turn (called by <see cref="ExecuteContinue" />).
-      ///   Uses the speaker/behavior stored at pause time. After the call, either pauses
-      ///   again (NPC still mid-act) or releases input to the player (NPC asked a question
-      ///   or the act is complete).
+      ///   Fires ONE narration continuation turn (called by <see cref="ExecuteContinue" />) when the NPC
+      ///   emitted a NARRATION block without ending on a question — the scene is still unfolding. Uses the
+      ///   speaker/behavior stored at pause time. After the call, either pauses again (NPC still mid-act) or
+      ///   releases input to the player (NPC asked a question or the act is complete).
       /// </summary>
       private async Task RunCaptiveSceneContinuationAsync()
       {

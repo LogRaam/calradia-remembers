@@ -56,6 +56,16 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 5)]
       public string CustomModel { get; set; } = "";
 
+      [SettingPropertyDropdown("Parameter Compatibility", RequireRestart = false, Order = 0,
+         HintText = "Which sampling parameters the request sends. Auto detects OpenAI reasoning models " +
+                    "(gpt-5*, o1/o3/o4*) and switches them to 'max_completion_tokens' with no temperature — " +
+                    "they reject the classic 'max_tokens'. Standard forces the classic shape (max_tokens + " +
+                    "temperature); Reasoning forces the reasoning shape. Leave on Auto unless your endpoint " +
+                    "rejects a field. Used only when Provider is set to OpenAI-Compatible. Applies immediately.")]
+      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 5)]
+      public Dropdown<string> CustomParameterCompatibility { get; set; } =
+         new(new[] {"Auto", "Standard", "Reasoning"}, 0); // default: Auto
+
       public override string DisplayName => "Calradia Remembers";
 
       [SettingPropertyBool("Enable Logging", RequireRestart = false, Order = 0,
@@ -158,6 +168,13 @@ namespace CalradiaRemembers.Settings
                     "to disable companion contentment entirely — no restlessness, no audiences, no departures.")]
       [SettingPropertyGroup("Companions", GroupOrder = 4)]
       public bool CompanionContentment { get; set; } = true;
+
+      [SettingPropertyBool("Town Ambush (experimental)", RequireRestart = false, Order = 0,
+         HintText = "When ON, a lord whose hostility has turned murderous may spring a street ambush on you as you " +
+                    "enter a town — a real fight in the town centre. This feature is still being polished, so it is " +
+                    "OFF by default; turn it on to try it. Applies immediately.")]
+      [SettingPropertyGroup("Experimental", GroupOrder = 6)]
+      public bool TownAmbushEnabled { get; set; } = false;
 
       [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 1,
          HintText = "How long to wait for the AI to reply before giving up, in seconds (default 120). Raise it " +

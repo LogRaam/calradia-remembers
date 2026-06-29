@@ -69,7 +69,7 @@ A lord's price is not always denars. One may agree to ride with you only if you 
 When your character dies and an heir takes up the banner, Calradia does not forget. The lords you dealt with [b]inherit[/b] their standing toward your house.. the debts, the alliances, the grudges.. and speak to your heir of what came before: "[i]your father helped me at the siege of Epicrotea.. I owe your house that debt[/i]," or "[i]your mother's broken word still stings[/i]." The private history of the dead stays buried with them; your heir inherits a reputation, not a diary, and the bond with each lord begins anew from there. Your dynasty carries its name forward.
 
 [b][color=#e69138]Multi-character scenes[/color][/b]
-Other lords present in the same hall can overhear, react in their own voice, and take sides.. and who is present actually makes sense: the smith from the market square will not be attending your audience in the keep. Bring up to two of your companions to a meeting (those walking beside you in town join naturally), or go alone. Everything is handled in the conversation itself: address a specific witness directly, ask one of your companions to leave you alone with the NPC in your own words, or request a private audience.. and the NPC decides whether to clear the room.
+Other lords present in the same hall can overhear, react in their own voice, and take sides.. and who is present actually makes sense: the smith from the market square will not be attending your audience in the keep. Bring up to two of your companions to a meeting (those walking beside you in town join naturally), or go alone. Everything is handled in the conversation itself: address a specific witness directly, ask one of your companions to leave you alone with the NPC in your own words, or request a private audience.. and the NPC decides whether to clear the room. And those who stood in on the talk [b]remember it[/b]: speak with one of them later, alone, and they recall that they were there and what passed between you.
 
 [b][color=#e69138]Talk to the locals[/color][/b]
 Walk up to any townsperson, villager, or castle servant.. anyone without a title.. and ask what's going on. A short LLM conversation opens with a commoner whose name and trade come from the local culture. What they know is what the street knows: who rules the settlement, how times have been, which lords are passing through, recent deaths and captures, and the mood of the market. No memory is kept between conversations.. every encounter is a fresh face. The only way coin changes hands is if they think a piece of news is worth paying for.
@@ -257,6 +257,8 @@ OPTION C.. RUN A LOCAL SERVER (FREE, PRIVATE, NO SUBSCRIPTION)
 
 If you have a capable GPU (or are patient on CPU), you can run the AI entirely on your own machine.. no cloud account, no cost per message, no data leaving your computer.
 
+[i]The OpenAI-Compatible provider also accepts any [b]hosted[/b] OpenAI-style API, not just a local server.. point the Endpoint URL at [b]https://api.openai.com/v1[/b] with your OpenAI key to use OpenAI's own models, including the newer gpt-5 and o-series reasoning models (leave Parameter Compatibility on Auto and they just work).[/i]
+
 Popular options:
 
   [*] [b]LM Studio[/b] (lmstudio.ai).. the easiest: a GUI app, a built-in model browser, and an OpenAI-compatible server you start with one click. Default address: http://localhost:1234/v1. No API key required by default.
@@ -313,6 +315,7 @@ LLM Provider:
 [*]Endpoint URL.. base URL of your local server, including /v1 (e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama). The mod appends /chat/completions automatically. Applies immediately.[/*]
 [*]API Key (optional).. leave blank for keyless servers like LM Studio or Ollama default. Fill it in only if your server is configured to require one.[/*]
 [*]Model.. the model id exactly as your server expects it. LM Studio shows it in its server panel; Ollama uses the name you pulled (e.g. llama3.1:8b). Applies immediately.[/*]
+[*]Parameter Compatibility.. which sampling parameters the request sends. [b]Auto[/b] (default) detects OpenAI reasoning models (the gpt-5 family and the o-series) and sends [i]max_completion_tokens[/i] with no temperature, which they require.. everything else keeps the classic [i]max_tokens[/i] + temperature. [b]Standard[/b] forces the classic shape; [b]Reasoning[/b] forces the reasoning shape. Leave it on Auto unless your endpoint rejects a field.[/*]
 [*]Test Endpoint.. sends a one-token completion to confirm the server is running and the model id is correct. No external calls made.[/*]
 [/list]
 
@@ -338,6 +341,11 @@ LLM Provider:
 [*][b]Enable Logging[/b] (off by default).. master switch for all mod logging (on-screen messages and the CalradiaRemembers.log file). Leave off for normal play; turn on only to capture a bug report.[/*]
 [*][b]Verbose Logging[/b] (off).. logs the full prompt and NPC response on every exchange. Floods the log; for bug reports only. Requires Enable Logging.[/*]
 [*][b][color=#b6d7a8]Story Log[/color][/b] (off).. writes the clean, novel-style transcript described above to CalradiaRemembers_story.log in your Bannerlord Logs folder.[/*]
+[/list]
+
+  Experimental:
+[list]
+[*][b]Town Ambush[/b] (off by default).. an in-progress feature where a lord whose hostility has turned murderous may spring a street ambush on you as you enter a town. It is still being polished, so it ships off and does nothing until you turn it on; the toggle will go away once the feature is finished. Turn it on only if you want to try it early.[/*]
 [/list]
 
 [line]

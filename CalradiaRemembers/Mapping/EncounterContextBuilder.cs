@@ -65,6 +65,7 @@ namespace CalradiaRemembers.Mapping
          PlayerStatus = playerStatusOverride ?? ResolvePlayerStatus(hero, profile, bridge),
          WarStatus = bridge.GetDiplomaticStatus(hero),
          DaysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge),
+         MeetingGapNote = MeetingGapDescriber.Describe(ComputeDaysSinceLastMeeting(profile, bridge)),
          Scene = bridge.GetCurrentScene(),
          ContextualNames = string.IsNullOrWhiteSpace(playerMessage)
             ? null
@@ -534,12 +535,6 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
-      ///   When this NPC is the mother of a still-hidden bastard of the player's, her disposition as a tone
-      ///   string ("mercenary"/"longing"/"resentful"/"pragmatic") so the prompt can have her raise the child
-      ///   in character. Null otherwise. The conversation is one of TWO surfaces — the demand letter is the
-      ///   other — and paying is settled by the bridge, never by the NPC's word.
-      /// </summary>
-      /// <summary>
       ///   How the NPC's earned posture inclines them to act this meeting — reads the live stance + their
       ///   traits through the pure <see cref="StanceConsequencePolicy" /> and maps the verdict to a prompt
       ///   line. "Stance with teeth", conversation side: a cold-shouldered lord won't deal, a secret killer
@@ -575,6 +570,12 @@ namespace CalradiaRemembers.Mapping
          catch { return 0; }
       }
 
+      /// <summary>
+      ///   When this NPC is the mother of a still-hidden bastard of the player's, her disposition as a tone
+      ///   string ("mercenary"/"longing"/"resentful"/"pragmatic") so the prompt can have her raise the child
+      ///   in character. Null otherwise. The conversation is one of TWO surfaces — the demand letter is the
+      ///   other — and paying is settled by the bridge, never by the NPC's word.
+      /// </summary>
       private static string ResolveBastardMotherTone(Hero hero)
       {
          var bastards = Bastards.BastardBehavior.Instance;

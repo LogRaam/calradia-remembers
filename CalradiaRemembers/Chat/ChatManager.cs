@@ -61,6 +61,7 @@ namespace CalradiaRemembers.Chat
             SafeStep(() => ActiveViewModel?.FinalizeStoryLog(), "FinalizeStoryLog");
             SafeStep(() => ActiveViewModel?.FinalizeCaptiveSceneMemory(), "FinalizeCaptiveSceneMemory");
             SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
+            SafeStep(() => ActiveViewModel?.FinalizeWitnessMemories(), "FinalizeWitnessMemories");
 
             SafeStep(KillChatWindow, "KillChatWindow");
             SafeStep(EndVanillaConversation, "EndVanillaConversation");

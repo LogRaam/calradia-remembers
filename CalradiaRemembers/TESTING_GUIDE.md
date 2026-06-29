@@ -3,8 +3,8 @@
 Console commands + the in-game scenarios that must be checked by hand.
 
 **Scope.** The mod's pure decision logic (relation caps, scheme lifecycle, recruitment gates, the
-stance maths, power-balance wording, marriage eligibility, etc.) is already covered by 486 automated
-unit tests.. **you do not need to re-test those by hand.** This guide lists only what the unit tests
+stance maths, power-balance wording, marriage eligibility, the LLM parameter-compatibility policy, the
+meeting-gap threshold, etc.) is already covered by 544 automated unit tests.. **you do not need to re-test those by hand.** This guide lists only what the unit tests
 *cannot* prove: that game events actually fire the logic, that parties move, that the prompt actually
 changes what NPCs say, and that everything survives a **save / reload**.
 
@@ -317,6 +317,14 @@ deferential), not blind defiance. (The threshold maths are unit-tested; only the
 **OpenAI-Compatible**, Endpoint URL `http://localhost:1234/v1` (or `:11434/v1`), Model id, **API Key
 blank**, **Test Endpoint** → OK. Have a conversation → it uses the local model. Confirm switching back to
 OpenRouter/NanoGPT still works.
+
+**F2.. OpenAI cloud, reasoning model (the v1.16.4 fix).** Provider = **OpenAI-Compatible**, Endpoint URL
+`https://api.openai.com/v1`, API Key = your OpenAI key, Model = a reasoning model (`gpt-5.4-mini`, `o3-mini`,
+`o4-mini`), **Parameter Compatibility = Auto**. **Test Endpoint → OK** (before the fix this returned HTTP
+400 *"max_tokens is not supported with this model"*). Have a conversation → it replies. Then set Model to a
+classic model (`gpt-4o`) and confirm **Test Endpoint** still passes (Auto must NOT switch it to the reasoning
+shape). Finally flip **Parameter Compatibility = Standard** on the reasoning model and confirm the 400 comes
+back (proves the override is wired); set it back to **Auto**.
 
 ### G. Regression checks for prior untested-in-game work
 
@@ -632,6 +640,21 @@ for intimacy.. a cold transaction, not courtship.. and once it happens he holds 
 - **S2.. Leverage persists.** After such an intimacy (or `cr.bargain_leverage [name]` to force it),
   `cr.bargain` shows **leverage held: true**, and a later chat has him **press the advantage**, reminding
   you of what passed. It persists across a save.
+
+### W. Meeting-gap chatter & witness memory (NEW v1.17.0.. untested in game)
+
+**W1.. NPCs stop harping on time apart (the GLM-5.1 report).** Talk to a companion/lord, leave, let a **few
+days** pass on the map, talk again → they should **not** open with "N days since we last spoke" (the gap is
+suppressed at/under 7 days). Then let a **long** time pass (a season+, e.g. via fast-forward) and talk → they
+may acknowledge the long absence **once, in passing**, never as the opening line. The threshold/wording is
+unit-tested (`MeetingGapDescriberTests`); this check is just that the prompt wiring reaches the model.
+
+**W2.. Witnesses remember a group conversation.** Bring a companion (or meet a lord with peers present) so a
+**witness** is in the room, and have a real exchange (≥ 2 of your messages). Close the chat. Then open a
+**one-to-one** with that witness (one you have spoken with before, so they have a profile): `cr.memory <that
+name>` should show a new **"Was present while {you} spoke with {mainNPC}..."** event, and in conversation they
+should be able to reference having been there. Synthetic/bandit witnesses (no hero) are skipped by design. Save
+/ reload and confirm the witness's memory persisted.
 
 ---
 

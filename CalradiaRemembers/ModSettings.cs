@@ -2,6 +2,7 @@
 
 #region
 
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Settings;
 using NpcMemoryService.Core.Models;
 
@@ -59,10 +60,6 @@ namespace CalradiaRemembers
 
       /// <summary>
       ///   Sound event path played when a negative relation change occurs.
-      ///   Example: "event:/ui/notification/relation_decrease"
-      /// </summary>
-      /// <summary>
-      ///   Sound event path played when a negative relation change occurs.
       ///   Vanilla fallback — replace with "event:/CR_Negative" once the custom
       ///   soundbank strings-loading issue is resolved in FMOD Studio.
       /// </summary>
@@ -115,11 +112,39 @@ namespace CalradiaRemembers
       public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
 
       /// <summary>
+      ///   When true, the town-ambush street fight may spring on entering a town (still being polished). When
+      ///   false the whole feature is inert — no organic trigger, no gate hold. Read live from the MCM menu;
+      ///   OFF by default. (The cr.ambush* console seams bypass this so the feature can still be tested.)
+      /// </summary>
+      public static bool TownAmbushEnabled => CrSettings.Instance?.TownAmbushEnabled ?? false;
+
+      /// <summary>
       ///   How long (seconds) to wait for an LLM reply before timing out. Read live from the MCM
       ///   menu; falls back to 120 when MCM has not loaded. Drives the per-request timeout so a slow
       ///   local/reasoning model on a long prompt no longer hits the opaque 100s HttpClient default.
       /// </summary>
       public static int LlmResponseTimeoutSeconds => CrSettings.Instance?.LlmTimeoutSeconds ?? 120;
+
+      /// <summary>
+      ///   How the OpenAI-Compatible endpoint shapes its sampling parameters. Read live from the MCM menu;
+      ///   falls back to <c>Auto</c> (detect reasoning models from the id) when MCM has not loaded. Lets a
+      ///   player force the classic or reasoning contract for a strict endpoint (e.g. api.openai.com on a
+      ///   gpt-5 model, which rejects the classic <c>max_tokens</c>).
+      /// </summary>
+      public static LlmCompatibilityMode CustomParameterCompatibility
+      {
+         get
+         {
+            string v = CrSettings.Instance?.CustomParameterCompatibility?.SelectedValue;
+
+            switch (v)
+            {
+               case "Standard": return LlmCompatibilityMode.Standard;
+               case "Reasoning": return LlmCompatibilityMode.Reasoning;
+               default: return LlmCompatibilityMode.Auto;
+            }
+         }
+      }
 
       /// <summary>
       ///   When true, the full system prompt and NPC response are logged on every LLM

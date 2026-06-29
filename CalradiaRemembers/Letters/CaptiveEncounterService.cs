@@ -448,11 +448,6 @@ namespace CalradiaRemembers.Letters
          => CaptiveEncounterPolicy.EncounterProbability(daysInCaptivity, captorProfile.Romantic?.Kinks);
 
       /// <summary>
-      ///   Picks the bandit captor's intent. Spoil-of-war (the sexual CNC intent) is GENDER-WEIGHTED:
-      ///   near-nil for a male prisoner, common for a female — and only when orientation-compatible.
-      ///   Otherwise a non-sexual menace intent (extortion / intimidation / revenge).
-      /// </summary>
-      /// <summary>
       ///   How many fighters the capturing band actually has — the ceiling on how many can
       ///   appear in a collective scene. Prevents a 3-bandit gang-scene when only two raiders
       ///   survived the fight (a vanilla-consistency break the tester caught).
@@ -501,6 +496,11 @@ namespace CalradiaRemembers.Letters
          return witnesses;
       }
 
+      /// <summary>
+      ///   Picks the bandit captor's intent. Spoil-of-war (the sexual CNC intent) is GENDER-WEIGHTED:
+      ///   near-nil for a male prisoner, common for a female — and only when orientation-compatible.
+      ///   Otherwise a non-sexual menace intent (extortion / intimidation / revenge).
+      /// </summary>
       private static CaptiveSceneIntent SelectBanditIntent(bool playerIsFemale, NpcProfile captor)
       {
          int spoilChance = playerIsFemale

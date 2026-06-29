@@ -365,6 +365,37 @@ player-as-captor scene below for the captivity use-case. (Model choice still dom
 "what are you talking about"), with explicit examples, while keeping the NPC free to welcome/resist/refuse. Test:
 chat any NPC and type `*I take you by the wrist*` or "I put my hand on your shoulder".
 
+### Player feedback — time-gap chatter, group-scene recall, romance override *(2026-06-29, GLM 5.1 / NanoGPT)*
+
+A player on GLM 5.1 / NanoGPT raised three things (and asked about a donation channel):
+
+- **NPCs harp on the time since the last conversation** ("Four days since we last spoke...") — map travel eats
+  days fast, so a short gap should not be remarked. **BUILT 2026-06-29 (untested in game).** Pure tested
+  `MeetingGapDescriber` (CalradiaRemembers.Logic) gates it: nothing at or under ~1 week (`RemarkThresholdDays = 7`),
+  and a longer gap is phrased on the Calradian calendar ("a season" / "a year") as plain awareness. SDK
+  `EncounterContext.MeetingGapNote` replaces the old unconditional "You last saw the player N days ago." line,
+  rendered by `PromptBuilder.AppendEncounterContext` with explicit "do not open with it / do not dwell" guidance.
+  (+6 tests.) Test: talk to a companion a few days after the last chat — they no longer lead with the count; a
+  long absence may be acknowledged once, in passing.
+
+- **A companion does not recognise they took part in a group conversation.** Real gap, not the LLM: at close,
+  only the MAIN NPC's profile was written. **BUILT 2026-06-29 (untested in game, first slice).** New
+  `ChatViewModel.FinalizeWitnessMemories` (called from `ChatManager.Close`) records a light "Was present while
+  {player} spoke with {mainNPC}..." event into each HERO witness's own profile, so a later one-to-one reflects
+  the shared scene. First slice records only witnesses the player has already met (existing profile);
+  synthetic/bandit witnesses and the main NPC are skipped. OPEN: get-or-create a profile for a stranger witness;
+  optionally a richer per-witness summary (deferred — would cost N extra LLM calls per scene).
+
+- **Romance / courtship override per character, independent of traits and culture.** TO DESIGN. Today the
+  romantic profile is DERIVED from the five traits (`RomanticProfileBuilder`), so making a character
+  "casual/open" forces a low Honor value. Proposed: an optional `romantic` block in `character_overrides.json`
+  (orientation, monogamy/openness, devoted/casual, optional kinks) that OVERRIDES the derived `RomanticProfile`
+  when present — slots into the existing player-authored-characters system (`Use custom traits`). Needs design:
+  which fields are overridable, how it interacts with re-derivation for already-met NPCs, and the JSON shape.
+
+- **Donations / feedback channel (Patreon, Ko-Fi):** Gabriel's call, out of scope for code. If opened, add a
+  donation line + a "feedback here" pointer to the Nexus page to relieve the Posts tab.
+
 ### Captive-scene content
 - **Scenario bank**: a bank of authored scene setups, one-use-per-campaign via SyncData, eligibility by
   kinks/gender, prompt injection. (Originally imagined as Twine→JSON; Twine is dropped — see the scripted

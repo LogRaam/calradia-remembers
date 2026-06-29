@@ -25,10 +25,6 @@ namespace CalradiaRemembers.Chat
       // a beat or cramming the arc. A paranoia beat cap force-ends a scene that somehow runs away.
       private const int CaptiveBeatSafetyCap = 16;
 
-      // Captive scene continuation — fires when the NPC emits NARRATION without asking a question.
-      // Between iterations the player sees "Continue / Try something" buttons (IsScenePaused).
-      // Pressing Continue fires one more LLM turn; Try something restores normal text input.
-      // ── Sprint 15B: addressing a witness directly ─────────────────────────
       // Cream color matching ChatMessageViewModel's default NPC hue, used when the
       // main NPC appears as a reacting witness (while another participant speaks).
       private const string NpcCreamColor = "#e8d8b8FF";
@@ -122,6 +118,7 @@ namespace CalradiaRemembers.Chat
       // player can only read the farewell and leave.
       private bool _conversationEnded;
       private bool _conversationMemoryFinalized; // idempotency guard
+      private bool _witnessMemoryFinalized; // idempotency guard for the per-witness "I was present" memory
 
       // The witness the player is currently addressing (sticky). Null = main NPC.
       private string _currentSpeakerHeroId;
@@ -894,6 +891,50 @@ namespace CalradiaRemembers.Chat
          if (string.IsNullOrWhiteSpace(transcript) || behavior.LlmServices?.LlmClient == null) return;
 
          _ = ConversationSummaryService.GenerateAndApplyConversationSummaryAsync(behavior, profile.Id, baseEvent, transcript, player);
+      }
+
+      /// <summary>
+      ///   Records a light "I was present" memory into each HERO witness's own profile when a group
+      ///   conversation closes, so a later one-to-one with them reflects the shared scene — the player
+      ///   reported companions not recognising they had taken part in a group conversation. Called once from
+      ///   <see cref="ChatManager.Close" />. Synthetic/bandit witnesses (no HeroStringId) and the main NPC are
+      ///   skipped (the latter is recorded by <see cref="FinalizeConversationMemory" />). First slice: only
+      ///   witnesses the player has already met (an existing profile) — a stranger witness is left for a later
+      ///   get-or-create pass. No-op outside plain Conversation mode or when the exchange had no substance
+      ///   (fewer than two completed player turns).
+      /// </summary>
+      public void FinalizeWitnessMemories()
+      {
+         if (_witnessMemoryFinalized || _mode != ChatMode.Conversation) return;
+         _witnessMemoryFinalized = true;
+
+         if (_playerTurnsThisSession < 2 || _witnesses == null || _witnesses.Count == 0) return;
+
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+         if (behavior?.Store == null) return;
+
+         int gameDay = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
+         string player = Hero.MainHero?.Name?.ToString() ?? "the player";
+         string mainNpc = _npcName;
+         string mainNpcId = _npcHero?.StringId;
+
+         var recorded = 0;
+         foreach (WitnessEntry w in _witnesses)
+         {
+            if (string.IsNullOrEmpty(w?.HeroStringId)) continue; // synthetic/bandit witness — no profile to hold a memory
+            if (w.HeroStringId == mainNpcId) continue; // the main NPC is recorded separately
+
+            NpcProfile wp = behavior.Store.Get(w.HeroStringId);
+            if (wp == null) continue; // never met one-to-one yet — first slice skips strangers
+
+            wp.Events.Add(new NotableEvent(gameDay, NotableEventType.Other,
+               $"Was present while {player} spoke with {mainNpc}, and saw what passed between them."));
+            behavior.Store.Set(wp);
+            recorded++;
+         }
+
+         if (recorded > 0)
+            ModLog.Info($"[WITNESS MEMORY] recorded a 'was present' memory for {recorded} hero witness(es) of the talk with {mainNpc}.");
       }
 
       /// <summary>

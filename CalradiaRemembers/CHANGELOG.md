@@ -2,6 +2,47 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.17.0.. 2026-06-29
+
+Those who shared a conversation now remember it, and NPCs stop harping on how long it has been since you last spoke.
+
+### New
+- **Characters who were present at a conversation now remember it.** When others stand in on a talk.. your
+  companions, a lord's peers.. each of them who is a real character now carries a memory that they were there
+  and saw what passed, so a later one-to-one with them reflects the shared scene instead of drawing a blank.
+  (First slice: characters you have already spoken with one-to-one; a complete stranger who merely stood by is
+  left for a later pass.) Thanks to the player who noticed companions not recognising a group conversation.
+
+### Changed
+- **NPCs no longer harp on how long it has been since you last spoke.** A few days between conversations is
+  nothing when you are crossing the map, yet NPCs kept opening with it ("Four days since we last spoke..."). The
+  time apart is now mentioned only after a genuinely long absence (a season or more), and even then in passing,
+  never as the opening line. Thanks to the player who flagged it.
+
+## v1.16.4.. 2026-06-29
+
+Newer OpenAI models now work when you point the mod straight at OpenAI.
+
+### Fixed
+- **Newer OpenAI models (the gpt-5 family and the o-series.. o1, o3, o4) now work through the
+  OpenAI-Compatible endpoint.** Pointed directly at OpenAI, these models reject the older [i]max_tokens[/i]
+  setting (and a custom temperature) that gpt-4o accepted.. so the connection failed with an "unsupported
+  parameter" error, both in conversation and on the [i]Test Endpoint[/i] button. CR now recognises a
+  reasoning model and sends what it expects ([i]max_completion_tokens[/i], no temperature). If you use
+  OpenRouter or NanoGPT this never touched you.. they normalise it for you. (Thanks to the player who
+  reported it.)
+
+### New
+- **A [i]Parameter Compatibility[/i] option for the OpenAI-Compatible endpoint.** [b]Auto[/b] (the default)
+  detects reasoning models for you; [b]Standard[/b] forces the classic [i]max_tokens[/i] + temperature
+  shape; [b]Reasoning[/b] forces [i]max_completion_tokens[/i] with no temperature.. for any endpoint that
+  is strict about one or the other. Leave it on Auto unless your server rejects a field.
+
+### Notes
+- A new [i]Experimental[/i] section in the mod options holds a [b]Town Ambush[/b] toggle, [b]off by
+  default[/b].. an in-progress feature still being polished. It does nothing until you turn it on, and the
+  toggle will go away once the feature is finished.
+
 ## v1.16.3.. 2026-06-27
 
 ### New (for modders)
@@ -31,18 +72,18 @@ A save-stability patch.
   were getting a crash on autosave, this is very likely it.
 - **Hardened the mod's own saving against a rare data race.** World events, schemes, and NPC memory are now
   serialized from a frozen snapshot, so an autosave landing while the game is still writing memory in the
-  background can no longer drop a block of data — or contribute to a save-time hitch.
+  background can no longer drop a block of data.. or contribute to a save-time hitch.
 
 ## v1.16.0.. 2026-06-27
 
-Other mods can now hand the player a MISSION through Calradia Remembers — CR issues, frames, journals and pays
+Other mods can now hand the player a MISSION through Calradia Remembers.. CR issues, frames, journals and pays
 it like any quest, while the other mod keeps ownership of when its own deed is truly done.
 
 ### New
 - **Other mods can now set the player a mission.** A second inbound door alongside the v1.15.0 event feed:
-  [i]CalradiaRemembers.MissionBoard.Register(...)[/i] issues an external mod's mission as a verified quest — the
+  [i]CalradiaRemembers.MissionBoard.Register(...)[/i] issues an external mod's mission as a verified quest.. the
   giver frames it in conversation, it mirrors into the journal, and the reward is gated. The mod calls
-  [i]MissionBoard.Complete(id)[/i] when ITS OWN deed is truly done (it owns that truth — CR never pays on the
+  [i]MissionBoard.Complete(id)[/i] when ITS OWN deed is truly done (it owns that truth.. CR never pays on the
   AI's word), and the reward lands when the player reports back to the giver. This completes the Extension
   Surface pillar: world events in v1.15.0, player missions here. See the Nexus page's
   "[i]make Calradia Remembers your modlist's memory[/i]" section.

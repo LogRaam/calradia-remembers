@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using CalradiaRemembers.Logic;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -292,7 +293,11 @@ namespace CalradiaRemembers.Settings
 
       private static async Task<(bool ok, string err)> TestCustomChatAsync(string chatUrl, string key, string model)
       {
-         string payload = "{\"model\":\"" + JsonEscape(model) + "\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":1}";
+         // Mirror the runtime parameter policy so the test exercises the same wire shape: an OpenAI reasoning
+         // model (gpt-5*, o1/o3/o4*) rejects "max_tokens", which is the exact 400 a player saw on this button.
+         LlmWireParameters shape = LlmParameterPolicy.Resolve(model, ModSettings.CustomParameterCompatibility);
+         string tokenKey = shape.UseMaxCompletionTokens ? "max_completion_tokens" : "max_tokens";
+         string payload = "{\"model\":\"" + JsonEscape(model) + "\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"" + tokenKey + "\":1}";
 
          using (var req = new HttpRequestMessage(HttpMethod.Post, chatUrl))
          {

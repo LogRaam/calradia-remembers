@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Settings;
 using NpcMemoryService.Core.LlmClient;
@@ -174,7 +175,8 @@ namespace CalradiaRemembers.Services
                BaseUrlProvider = ResolveBaseUrl,
                UseSystemPromptCachingProvider = ResolveUseSystemPromptCaching,
                ReasoningProvider = ResolveReasoning,
-               TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds
+               TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
+               ParameterOptionsProvider = ResolveParameterOptions
             };
             LlmClient = new OpenRouterClient(_httpClient, config);
 
@@ -350,6 +352,21 @@ namespace CalradiaRemembers.Services
          return Environment.GetEnvironmentVariable(nano
             ? NanoGptApiKeyEnvVar
             : OpenRouterApiKeyEnvVar);
+      }
+
+      /// <summary>
+      ///   Resolves the chat-completion parameter shape for the active request. The aggregators (OpenRouter,
+      ///   NanoGPT) normalize parameter names and accept temperature, so they always get the classic shape;
+      ///   only the direct OpenAI-Compatible endpoint applies the player's compatibility policy — letting a
+      ///   gpt-5/o-series model reached at api.openai.com receive 'max_completion_tokens' with no temperature.
+      /// </summary>
+      private static ChatParameterOptions ResolveParameterOptions()
+      {
+         if (ResolveProvider() != ProviderCustom) return ChatParameterOptions.Standard;
+
+         LlmWireParameters p = LlmParameterPolicy.Resolve(ResolveModel(), ModSettings.CustomParameterCompatibility);
+
+         return new ChatParameterOptions(p.UseMaxCompletionTokens, p.IncludeTemperature);
       }
 
       /// <summary>Resolves the active provider's OpenAI-compatible base URL. Read live per request.</summary>

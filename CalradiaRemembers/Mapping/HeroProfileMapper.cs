@@ -44,19 +44,6 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
-      ///   Brings an existing profile up to date with current Sprint 8.x fields
-      ///   without losing accumulated game state (Events, ReputationWithPlayer).
-      ///   Call this whenever an existing profile is loaded from the save before
-      ///   it is used to build a prompt.
-      ///   Currently fixes two cases:
-      ///   - <see cref="NpcProfile.Romantic" /> is null (profile created before Sprint 8.2).
-      ///   - <see cref="NpcProfile.Trait" /> is the generic "Thoroughly Conventional"
-      ///   fallback while the hero actually has active traits in the current
-      ///   archetype catalog (profile created before Sprint 8.1 or 8.3).
-      ///   Safe to call on every load — it is a no-op for already up-to-date profiles
-      ///   and only logs when an actual upgrade happens.
-      /// </summary>
-      /// <summary>
       ///   Rebuilds <see cref="NpcProfile.Personality" /> from live hero state and the
       ///   current <see cref="CulturalTraditionsLoader" /> cache. Call at every session
       ///   launch so cultural descriptions are always up to date (users may edit the JSON).
@@ -71,6 +58,19 @@ namespace CalradiaRemembers.Mapping
             : null;
       }
 
+      /// <summary>
+      ///   Brings an existing profile up to date with current Sprint 8.x fields
+      ///   without losing accumulated game state (Events, ReputationWithPlayer).
+      ///   Call this whenever an existing profile is loaded from the save before
+      ///   it is used to build a prompt.
+      ///   Currently fixes two cases:
+      ///   - <see cref="NpcProfile.Romantic" /> is null (profile created before Sprint 8.2).
+      ///   - <see cref="NpcProfile.Trait" /> is the generic "Thoroughly Conventional"
+      ///   fallback while the hero actually has active traits in the current
+      ///   archetype catalog (profile created before Sprint 8.1 or 8.3).
+      ///   Safe to call on every load — it is a no-op for already up-to-date profiles
+      ///   and only logs when an actual upgrade happens.
+      /// </summary>
       public static void UpgradeIfNeeded(NpcProfile profile, Hero hero)
       {
          if (profile == null || hero == null) return;
