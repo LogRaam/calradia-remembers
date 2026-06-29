@@ -5,12 +5,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Bannerlord.UIExtenderEx;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.Core;
 using TaleWorlds.Engine.GauntletUI;
 using TaleWorlds.GauntletUI.PrefabSystem;
@@ -59,7 +61,10 @@ namespace CalradiaRemembers
          // access model is registered NOT to block the ambush entry, but to bar the player re-entering a town for
          // the brief moment a lost-ambush capture is pending on the open map — closing the "re-click the town to
          // slip the capture" exploit. (The GateAmbushMenuBehavior gate-fight experiment stays unregistered.)
-         campaignStarter.AddModel(new Stance.AmbushSettlementAccessModel());
+         // It DECORATES the model already in effect (forwarding every decision to it) rather than replacing it, so
+         // another mod's location rules survive — notably War Sails' ports, which the vanilla default locks out.
+         SettlementAccessModel priorAccessModel = gameStarterObject.Models.OfType<SettlementAccessModel>().LastOrDefault();
+         campaignStarter.AddModel(new Stance.AmbushSettlementAccessModel(priorAccessModel));
          campaignStarter.AddBehavior(new NpcMemoryCampaignBehavior());
          // Player-authored character data: applies hand-crafted personalities (traits via SetTraitLevel,
          // the single source of truth) from ModuleData/character_overrides.json when the MCM toggle is on.

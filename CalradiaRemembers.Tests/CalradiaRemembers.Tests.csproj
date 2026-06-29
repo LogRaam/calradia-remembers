@@ -17,6 +17,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CalradiaRemembers.Logic\CalradiaRemembers.Logic.csproj" />
+    <!-- The SDK (NpcMemoryService.Core) is engine-agnostic; referencing it lets us unit-test its pure
+         wire-format logic (e.g. the SSE response transformer). Newtonsoft.Json comes transitively. -->
+    <ProjectReference Include="..\..\LLM Roleplay Service\NpcMemoryService.Core\NpcMemoryService.Core.csproj" />
   </ItemGroup>
 
 </Project>

@@ -2,6 +2,30 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.17.2.. 2026-06-29
+
+Endpoints that stream their replies (e.g. Chub / Mars) now work.
+
+### Fixed
+- **Replies from streaming endpoints no longer fail to parse.** Some OpenAI-compatible endpoints (Chub / Mars
+  among them) stream their answer as "data: ..." chunks even when the mod asks for a single, non-streamed
+  response, which produced [i]Failed to parse response: Unexpected character ... value: d[/i]. CR now detects a
+  streamed body and reassembles the chunks into one reply, so these endpoints work with no change on your side.
+  (Thanks to the player who reported it with the exact error.)
+
+## v1.17.1.. 2026-06-29
+
+A hotfix for a town-access conflict with War Sails (and any mod that adds its own settlement locations).
+
+### Fixed
+- **Towns no longer lock you out of ports (and other mod-added locations).** With War Sails installed and CR
+  loaded after it, every port showed "Door is locked!" and could not be entered on the town menu. CR registers
+  its own settlement-access model (for the experimental town ambush) and was doing so in a way that [b]replaced[/b]
+  the other mod's, falling back to the vanilla rules.. which do not know those added locations and lock them. CR
+  now [b]wraps[/b] the model already in effect and forwards every decision to it, so other mods' location rules
+  are preserved and only the ambush re-entry bar is added on top. (Thanks to the player who caught it on a fresh
+  campaign.)
+
 ## v1.17.0.. 2026-06-29
 
 Those who shared a conversation now remember it, and NPCs stop harping on how long it has been since you last spoke.
