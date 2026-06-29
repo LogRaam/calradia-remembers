@@ -252,12 +252,11 @@ namespace CalradiaRemembers.Chat
       public bool IsOfferItemVisible => _mode == ChatMode.Conversation && !_conversationEnded;
 
       /// <summary>
-      ///   True in plain Conversation mode while the exchange is still open — shows the
-      ///   "Give Gold" button so the player can offer denars (satisfies a ProvideGold quest
-      ///   when the NPC emits take_gold).
+      ///   Always hidden now: gold is folded into the unified "give" control (the gift button),
+      ///   so the separate "Give Gold" button is retired. Kept for the existing XML binding.
       /// </summary>
       [DataSourceProperty]
-      public bool IsOfferGoldVisible => _mode == ChatMode.Conversation && !_conversationEnded;
+      public bool IsOfferGoldVisible => false;
 
       /// <summary>
       ///   True once a captive scene has ended (other than by escape): shows a "Please continue"
@@ -655,32 +654,42 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         // Otherwise the bag is a spontaneous gift: pre-fill the offer for the NPC to react to.
+         // Otherwise the bag is a spontaneous gift: one unified control gives gold OR an item.
          // Remember the exact item the player picked so give_item transfers THAT item by id,
          // rather than re-matching whatever name the LLM echoes back (which fails on any rewording).
-         ItemPickerService.ShowItemPicker((itemId, name, value) =>
-         {
-            _offeredItemId = itemId;
-            InputText = $"I would like to offer you {name} (worth {value:N0} denars).";
-            ModLog.Info($"[OFFER] player pre-filled offer: {name} ({value} denars, id={itemId}).");
-         });
+         ItemPickerService.ShowItemPicker(
+            (itemId, name, value) =>
+            {
+               _offeredItemId = itemId;
+               InputText = $"I would like to offer you {name} (worth {value:N0} denars).";
+               ModLog.Info($"[OFFER] player pre-filled offer: {name} ({value} denars, id={itemId}).");
+            },
+            PromptGoldOffer);
       }
 
       /// <summary>
-      ///   Asks the player how many denars to offer, then pre-fills the chat input so the
-      ///   NPC can respond with take_gold — which transfers the gold and stamps any outstanding
-      ///   ProvideGold quest as satisfied (any amount counts).
+      ///   Legacy entry point kept for the old "Give Gold" binding: routes to the same gold
+      ///   prompt the unified give control now uses.
       /// </summary>
       public void ExecuteOfferGold()
       {
          if (_mode != ChatMode.Conversation || _conversationEnded) return;
+         PromptGoldOffer();
+      }
 
+      /// <summary>
+      ///   Asks the player how many denars to give, then pre-fills the chat input so the
+      ///   NPC can respond with take_gold — which transfers the gold and stamps any outstanding
+      ///   ProvideGold quest as satisfied (any amount counts).
+      /// </summary>
+      private void PromptGoldOffer()
+      {
          int carried = Hero.MainHero?.Gold ?? 0;
          InformationManager.ShowTextInquiry(new TextInquiryData(
             "Give Gold",
             $"How many denars? (You carry {carried:N0}.)",
             true, true,
-            "Offer", "Cancel",
+            "Give", "Cancel",
             amountText =>
             {
                if (!int.TryParse(amountText?.Trim(), out int amount) || amount <= 0) return;

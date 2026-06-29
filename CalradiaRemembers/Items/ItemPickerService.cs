@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using CalradiaRemembers.GameState;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
@@ -21,6 +22,9 @@ namespace CalradiaRemembers.Items
    /// </summary>
    public static class ItemPickerService
    {
+      /// <summary>Sentinel identifier for the synthetic "Gold" entry pinned atop the give picker.</summary>
+      private const string GoldIdentifier = "__cr_give_gold__";
+
       /// <summary>
       ///   Opens a MULTI-selection picker for paying a bargain in goods. Shows each item's
       ///   whole-stack value so the player can pick enough to clear <paramref name="requiredValue" />,
@@ -90,13 +94,16 @@ namespace CalradiaRemembers.Items
       }
 
       /// <summary>
-      ///   Opens the multi-selection inquiry with the player's eligible party items,
-      ///   sorted by type category then by value descending. Callback fires with
-      ///   (itemName, itemValue) when the player confirms a choice. Shows a quick notice
-      ///   and returns silently if the party carries no eligible items.
+      ///   Opens the unified "give" picker: the player's eligible party items
+      ///   (sorted by type category then value descending) plus, when
+      ///   <paramref name="onGoldSelected" /> is supplied, a "Gold" entry pinned to the top.
+      ///   Picking an item fires <paramref name="onItemSelected" /> with (stringId, name, value);
+      ///   picking Gold fires <paramref name="onGoldSelected" /> (the caller then asks for an amount).
+      ///   With gold offered, the picker still opens even when the party carries no items.
       ///   Quest items (Dragon Banner, etc.) are always excluded.
       /// </summary>
-      public static void ShowItemPicker(Action<string, string, int> onItemSelected)
+      public static void ShowItemPicker(
+         Action<string, string, int> onItemSelected, Action onGoldSelected = null)
       {
          if (onItemSelected == null) return;
          try
@@ -104,7 +111,7 @@ namespace CalradiaRemembers.Items
             if (MobileParty.MainParty?.ItemRoster == null) return;
 
             List<(ItemObject item, int amount)> eligible = BuildEligibleItems();
-            if (eligible.Count == 0)
+            if (eligible.Count == 0 && onGoldSelected == null)
             {
                MBInformationManager.AddQuickInformation(
                   new TextObject("Your party carries no items available to offer."));
@@ -115,20 +122,35 @@ namespace CalradiaRemembers.Items
             eligible.Sort(CompareItems);
             List<InquiryElement> elements = BuildInquiryElements(eligible);
 
+            // Fold gold into the same control: a "Gold" entry pinned atop the items.
+            if (onGoldSelected != null)
+            {
+               int gold = Hero.MainHero?.Gold ?? 0;
+               elements.Insert(0, new InquiryElement(
+                  GoldIdentifier, $"Gold (you carry {gold:N0} denars)", null));
+            }
+
             MBInformationManager.ShowMultiSelectionInquiry(
                new MultiSelectionInquiryData(
-                  "Offer an Item",
-                  "Select an item from your party inventory to offer:",
+                  "Give",
+                  "Choose gold or an item from your party to give:",
                   elements,
                   true, // isExitShown — Cancel = close without selecting
                   1, 1,
-                  "Offer", "Cancel",
+                  "Give", "Cancel",
                   selected =>
                   {
                      if (selected == null || selected.Count == 0) return;
                      var stringId = selected[0].Identifier as string;
 
                      if (string.IsNullOrEmpty(stringId)) return;
+                     if (stringId == GoldIdentifier)
+                     {
+                        onGoldSelected?.Invoke();
+
+                        return;
+                     }
+
                      Resolve(stringId, onItemSelected);
                   },
                   null),
