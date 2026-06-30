@@ -535,11 +535,13 @@ Build on the existing deed bridges (prisoner bargain, `join_clan`, barter); the 
 in `CalradiaRemembers.Logic` (testable), consulted by the bridge before it commits. "Words nudge, deeds prove"
 — and now the posture **bites**.
 
-### Town ambush — make it actually work *(stance increment 3; shipped OFF until it does)*
+### Town ambush — works end-to-end behind the toggle; refining *(stance increment 3; still shipped OFF)*
 
-The Assassinate stance consequence (a lord whose hatred turned murderous) is meant to spring a Warband-style
-STREET FIGHT when the player walks into a town. It is BUILT but **NOT yet confirmed working in game**, so it ships
-**OFF by default** behind the experimental MCM "Town Ambush" toggle (to be removed once it works).
+The Assassinate stance consequence (a lord whose hatred turned murderous) springs a Warband-style STREET FIGHT
+when the player walks into a town. **WORKS END-TO-END IN GAME 2026-06-29** (validated by Gabriel): the bandits
+surround and attack, a lost fight convoys the player to the paymaster for the reckoning audience, and the
+paymaster then visits the prisoner for recurring captivity scenes. It still ships **OFF by default** behind the
+experimental MCM "Town Ambush" toggle while the last refinements land (shipped in v1.17.4 in that state).
 
 History: the first build opened a roster alley fight, which the engine framed as a SIEGE with the attackers
 spawning ~300m off at the walls. Rearchitected 2026-06-29 (Warlord / War-Sails-style): drop the player into the
@@ -550,14 +552,20 @@ start a real fight from a **Harmony postfix on `Mission.AfterStart`** (the one r
 `MissionFightHandler.StartCustomFight`. Both prior crashes (PatrolAgentBehavior NRE; "Collection was modified" from
 adding a behavior mid-`AfterStart`) are resolved.
 
-OPEN — confirm in game and close the gaps:
-1. **The cutthroats actually spawn near the player and attack** — the core open question; the last in-game runs
-   showed no aggressors, and the postfix-timing fix is still unverified.
-2. **Player spawns at the town centre / market**, not at the gate (Gabriel's preference; War Sails teleports its
-   own ambush agents — likely needs a named spawn point or a teleport).
-3. **Win/lose resolves**: win → carry on; lose → the captivity arc (3.2a–d, already built) springs.
-4. Then **remove the toggle** (CrSettings + ModSettings + the two gates in `TownAmbushBehavior`).
-Console `cr.ambush`. Pairs with "Fleeing townsfolk during the town ambush" (atmosphere; sequence it after this works).
+DONE (validated): bandits spawn near the player and attack (real-time poll + `MissionFightHandler.StartCustomFight`,
+the no-aggressors fizzle now logs loudly); the gating decision is a pure tested `AmbushPolicy.DecidePlayerTownEntry`
+(the trigger path used to be silent — armed-but-disabled now logs); navmesh-aware ~20m cutthroat placement; player
+teleported to the walkable-area centroid (town centre, not the gate); captivity map fast-forwards at 3x after the
+audience (one-shot un-pause in the real-time tick); the paymaster runs the recurring captivity scenes even when
+custody stays with the band; all captive scenes use a neutral player-POV narrator.
+
+OPEN — the refinements before removing the toggle:
+1. **Custody transfer to the lord** when he sits in his town: `TakePrisonerAction` on his in-settlement party does
+   not "hold" (`held=False`), so the player stays the band's prisoner (harmless now that the paymaster visits
+   regardless, but the proper lord-imprisonment / ransom disposition is unfinished).
+2. **Fleeing townsfolk** during the street fight (atmosphere; see Smaller polish).
+3. Then **remove the toggle** (CrSettings + ModSettings + the two gates in `TownAmbushBehavior`).
+Console `cr.ambush`.
 
 ### Jealousy — the competition loop and the duel *(v1 shipped; escalation deferred)*
 

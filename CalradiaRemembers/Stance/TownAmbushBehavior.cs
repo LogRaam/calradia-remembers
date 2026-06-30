@@ -137,17 +137,30 @@ namespace CalradiaRemembers.Stance
       {
          try
          {
-            if (!ModSettings.TownAmbushEnabled) return; // experimental — gated off for release (console seams bypass)
+            // Firehose filter (kept first and silent): SettlementEntered fires for EVERY party entering EVERY
+            // settlement. Only the player walking into a town can ever spring an ambush.
             if (party != MobileParty.MainParty || settlement is not {IsTown: true}) return;
 
             BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
             if (store == null) return;
 
+            // From here we are on a player-enters-town event (infrequent), so it is cheap to scan for an armed
+            // assassin and log the decision — the gating used to be silent, which is why "no ambush ever fires"
+            // could not be diagnosed from a log. The pure AmbushPolicy.DecidePlayerTownEntry is unit-tested.
             Hero assassin = FindArmedAssassin(store);
-            if (assassin == null) return;
-            if (!AmbushPolicy.ShouldSpring(MBRandom.RandomInt(100))) return; // the knives stay sheathed this visit
+            bool armed = assassin != null;
+            int roll = MBRandom.RandomInt(100);
+            AmbushEntryOutcome outcome = AmbushPolicy.DecidePlayerTownEntry(ModSettings.TownAmbushEnabled, armed, roll);
 
-            Disarm(store, assassin); // it gets one chance per arming — spring or fizzle, it's spent
+            // Stay silent in the ordinary case (no one is gunning for the player); otherwise log WHY, so a tester
+            // (or a player who armed one via console) can see the toggle state and the roll outcome at a glance.
+            if (armed)
+               ModLog.Info($"[AMBUSH] {settlement.Name}: armed by {assassin.Name}, toggle={ModSettings.TownAmbushEnabled}, " +
+                           $"roll={roll} → {outcome}.");
+
+            if (outcome != AmbushEntryOutcome.Spring) return;
+
+            Disarm(store, assassin); // spent only when it actually springs; a miss re-rolls next visit
             Present(assassin, settlement);
          }
          catch (Exception ex) { ModLog.Error($"[AMBUSH] trigger failed: {ex.GetType().Name}: {ex.Message}"); }

@@ -173,13 +173,17 @@ namespace CalradiaRemembers.Letters
 
          if (captorParty == null) return;
 
-         // The ambush convoy owns its own scene (the paymaster lord's audience on arrival). Never let the random
-         // roll fire a CNC scene with the throwaway bandit chief that leads the band.
-         if (Stance.AmbushCaptivityBehavior.Instance?.IsAmbushCaptor(captorParty) == true) return;
+         // The ambush convoy: while still TRANSPORTING the player, no random scene (the arc plays its own arrival
+         // audience, and the band is led by a throwaway bandit chief). Once it has ARRIVED, the PAYMASTER who
+         // commissioned the abduction visits and runs the recurring scenes — even if the custody transfer to the
+         // lord did not hold — so the player is never left in a faceless captivity for days. The captor is then
+         // forced to the paymaster rather than the band's leader.
+         Hero ambushPaymaster = Stance.AmbushCaptivityBehavior.Instance?.ArrivedPaymasterFor(captorParty);
+         if (Stance.AmbushCaptivityBehavior.Instance?.IsAmbushCaptor(captorParty) == true && ambushPaymaster == null) return;
 
          bool playerIsFemale = player.IsFemale;
 
-         Hero captor = captorParty.LeaderHero;
+         Hero captor = ambushPaymaster ?? captorParty.LeaderHero;
          if (captor is {IsHumanPlayerCharacter: false})
          {
             // ── Lord captor: a profiled, named hero (existing CNC path) ──

@@ -37,6 +37,7 @@ namespace CalradiaRemembers.Stance
       private const int RescueForce = 15; // troops a rescuing companion brings — enough to beat the small captor band
       public static AmbushCaptivityBehavior Instance;
       private bool _arrivedLogged; // transient: the meeting with the lord has happened (fires once)
+      private bool _postAudienceUnpaused; // transient: we've un-paused the captivity map once after the audience
       private bool _lordNudged; // transient: we've ordered the paymaster's party to ride out to the convoy
       private bool _rescueMounted; // transient: the companions have already ridden to the rescue (one attempt)
       private int _rescueRollDay = -1; // transient: the last day we rolled for a rescue (one roll per day)
@@ -77,6 +78,22 @@ namespace CalradiaRemembers.Stance
       public bool IsAmbushCaptor(MobileParty party)
          => party != null && !string.IsNullOrEmpty(_convoyPartyId) && party.StringId == _convoyPartyId;
 
+      /// <summary>
+      ///   When <paramref name="party" /> is our ambush convoy AND it has ARRIVED at the paymaster's seat (the
+      ///   gloating audience has played), returns the PAYMASTER hero — so the recurring captive-encounter system
+      ///   can run scenes with the lord who commissioned the abduction even while the band still physically holds
+      ///   the player (a custody transfer that did not hold must not leave the prisoner facing no one for days).
+      ///   Null while still in transit, when the party is not our convoy, or the paymaster is gone.
+      /// </summary>
+      public Hero ArrivedPaymasterFor(MobileParty party)
+      {
+         if (!_arrivedLogged || !IsAmbushCaptor(party)) return null;
+
+         Hero paymaster = Hero.FindFirst(h => h != null && h.StringId == _paymasterId);
+
+         return paymaster is {IsAlive: true} ? paymaster : null;
+      }
+
       /// <summary>Console/test seam: open the 3.2b gloating audience with a lord now (skips the convoy journey).</summary>
       public static bool DebugLordAudience(Hero paymaster) => paymaster != null && TryOpenLordAudience(paymaster);
 
@@ -104,6 +121,7 @@ namespace CalradiaRemembers.Stance
          _menuLeaveTries = 0;
          _timeLocked = false;
          _arrivedLogged = false;
+         _postAudienceUnpaused = false;
          _lordNudged = false;
          _rescueMounted = false;
          _rescueRollDay = -1;
@@ -154,10 +172,11 @@ namespace CalradiaRemembers.Stance
 
       /// <summary>
       ///   3.2b — the gloating audience. The band has brought the player to the lord's seat; the lord who paid for
-      ///   the abduction now receives the captive and savours it. We do NOT transfer custody to the town's party
-      ///   (the paymaster rarely owns the settlement, and the transfer makes the player some OTHER lord's prisoner,
-      ///   whom the captivity system then releases) — the player stays the band's captive, and after the audience
-      ///   vanilla escape eventually frees them. The lord-owned imprisonment / ransom disposition is future work.
+      ///   the abduction now receives the captive and savours it. When the lord has his OWN party — alongside on
+      ///   the map, OR sitting in his town — custody transfers to it (a real lord-imprisonment: dungeon, ransom)
+      ///   and the band disbands. We never transfer to the SETTLEMENT garrison party: that made the player some
+      ///   OTHER lord's prisoner, whom the captivity system then released. A party-less paymaster keeps the
+      ///   band-captive fallback (vanilla escape eventually frees the player); the at-seat audience plays either way.
       /// </summary>
       private void TheMeeting(Hero paymaster, MobileParty convoy, MobileParty lordParty)
       {
@@ -172,6 +191,13 @@ namespace CalradiaRemembers.Stance
          // player and vanilla escape eventually frees them; the at-seat audience is the fallback either way.
          bool transferred = lordParty != null && TransferToLord(paymaster, lordParty, convoy);
          ModLog.Info($"[AMBUSH] the meeting at {paymaster.Name}'s seat — custody {(transferred ? "transferred to the lord" : "kept by the band")}.");
+
+         // The player remains a captive after the audience. Leave the map FAST-FORWARDING (3x) rather than at a
+         // standstill, so it visibly keeps running (the recurring captivity scenes need days to pass) and the
+         // player never mistakes a paused map for a frozen game. The audience chat pauses while open, then the
+         // chat manager restores THIS mode on close — so we set it before opening the audience.
+         if (Campaign.Current != null)
+            Campaign.Current.TimeControlMode = CampaignTimeControlMode.StoppableFastForward;
 
          if (TryOpenLordAudience(paymaster)) return;
 
@@ -403,7 +429,11 @@ namespace CalradiaRemembers.Stance
                         $"alongside={lordAlongside}, atTarget={convoyAtTarget}, nudged={_lordNudged}.");
 
             if (lordAlongside) { TheMeeting(paymaster, convoy, lordParty); return; }        // map handoff + transfer
-            if (convoyAtTarget && lordInTown) { TheMeeting(paymaster, convoy, null); return; } // lord in his town — audience at the gates
+            // Lord in his own town: hand the prisoner to HIS OWN party (he holds you in his dungeon). His party may
+            // be sitting inside the settlement, so it is not map-"alongside"; TransferToLord verifies the handoff
+            // held and falls back to the band if it did not. A party-less paymaster (lordParty null) keeps the
+            // band-captive fallback, and the audience plays either way.
+            if (convoyAtTarget && lordInTown) { TheMeeting(paymaster, convoy, lordParty); return; }
 
             // Still travelling, or waiting for the lord (at sea / abroad): keep the band pointed at the lord's
             // town, and once near, if the lord HAS a party he rides OUT to meet them on the map (a soft escort
@@ -553,6 +583,23 @@ namespace CalradiaRemembers.Stance
       /// <summary>Springs an armed capture, but ONLY in a stable open-map context — never mid-menu/encounter/mission.</summary>
       private void OnTick(float dt)
       {
+         // Post-audience captivity: once the reckoning is over and the player is still a captive, un-pause the map
+         // to fast-forward ONCE — but only after the audience chat has CLOSED (otherwise we would run the map
+         // during the conversation). Setting the mode before opening the audience and trusting the chat to restore
+         // it did not hold (the captive map ends up Stopped), so this is the reliable backstop. One-shot, so the
+         // player keeps full control of the clock afterwards. OnTick is real-time, so it fires even while paused.
+         if (_arrivedLogged && !_postAudienceUnpaused && !ChatManager.IsOpen
+             && Hero.MainHero is {IsPrisoner: true} && Campaign.Current != null)
+         {
+            _postAudienceUnpaused = true;
+            if (Campaign.Current.TimeControlMode == CampaignTimeControlMode.Stop)
+            {
+               Campaign.Current.SetTimeControlModeLock(false);
+               Campaign.Current.TimeControlMode = CampaignTimeControlMode.StoppableFastForward;
+               ModLog.Info("[AMBUSH] post-audience: un-paused the captivity map to 3x.");
+            }
+         }
+
          if (string.IsNullOrEmpty(_pendingCaptureLordId))
          {
             // Release the forced clock only once the WHOLE sequence is done — no pending capture AND no convoy

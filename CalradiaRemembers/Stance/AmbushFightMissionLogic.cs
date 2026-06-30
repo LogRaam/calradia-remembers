@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SandBox.Missions.MissionLogics;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Engine;
 using TaleWorlds.Library;
 using TaleWorlds.MountAndBlade;
 
@@ -24,6 +25,12 @@ namespace CalradiaRemembers.Stance
    public sealed class AmbushFightMissionLogic : MissionLogic
    {
       private const int MaxWaitTicks = 120; // ~2s grace for the cutthroats to finish spawning before we start anyway
+
+      // Placement: the cutthroats emerge ~20m off (a street ambush across the square, not a huddle in your face),
+      // each on the navmesh and reachable. We try a fan of angles and fall to nearer rings when 20m is walled off.
+      private static readonly float[] RingRadiusTries = {20f, 16f, 24f, 13f};
+      private const int RingAngleJitterTries = 6;   // angles to try around each cutthroat's ideal slot before giving up
+      private const float CombatantNavRadius = 0.4f; // person-sized clearance for the path-reachability check
 
       private readonly string _paymasterId;
       private readonly int _expectedCount;
@@ -78,8 +85,10 @@ namespace CalradiaRemembers.Stance
             return;
          }
 
-         // The cutthroats spawn scattered across the town centre (npc_common points), so close the gap before
-         // the fight: ring them around the player so the ambush is on them at once, not a hunt through the streets.
+         // Move the player into the heart of the town (they spawn at the gate), then ring the cutthroats ~20m off
+         // on the navmesh, so the ambush reads as figures closing in from across the square, not a huddle on top
+         // of the player.
+         MoveToTownCentre(Mission.MainAgent);
          PositionAround(Mission.MainAgent, ambushers);
 
          var playerSide = new List<Agent> {Mission.MainAgent};
@@ -87,18 +96,106 @@ namespace CalradiaRemembers.Stance
          ModLog.Info($"[AMBUSH] street brawl started — {ambushers.Count} cutthroat(s) vs the player.");
       }
 
-      /// <summary>Rings the cutthroats tightly around the player (the War Sails ambush teleports its agents too).</summary>
+      /// <summary>
+      ///   Teleports the player from the gate (where the town-centre mission spawns them) into the heart of the
+      ///   town: the centroid of the WALKABLE area (the average of every navmesh face centre), snapped to the
+      ///   nearest actual face centre so it is guaranteed on the navmesh and lands in the streets/square rather
+      ///   than on a wall or rooftop. Fail-soft: if the scene exposes no navmesh, the player stays where they are.
+      /// </summary>
+      private static void MoveToTownCentre(Agent player)
+      {
+         Scene scene = Mission.Current?.Scene;
+         if (player == null || scene == null) return;
+
+         int faceCount = scene.GetNavMeshFaceCount();
+         if (faceCount <= 0) { ModLog.Info("[AMBUSH] no navmesh faces — the player stays at the gate."); return; }
+
+         var centres = new List<Vec3>(faceCount);
+         Vec3 sum = Vec3.Zero;
+         for (var f = 0; f < faceCount; f++)
+         {
+            Vec3 c = Vec3.Zero;
+            scene.GetNavMeshCenterPosition(f, ref c);
+            if (!c.IsValid) continue;
+            centres.Add(c);
+            sum += c;
+         }
+
+         if (centres.Count == 0) { ModLog.Info("[AMBUSH] no valid navmesh centres — the player stays at the gate."); return; }
+
+         Vec3 average = sum * (1f / centres.Count);
+
+         // Snap the (possibly between-faces) average to the nearest real face centre.
+         Vec3 best = centres[0];
+         float bestDistSq = float.MaxValue;
+         foreach (Vec3 c in centres)
+         {
+            float d = c.AsVec2.DistanceSquared(average.AsVec2);
+            if (d < bestDistSq) { bestDistSq = d; best = c; }
+         }
+
+         try
+         {
+            float moved = player.Position.AsVec2.Distance(best.AsVec2);
+            player.TeleportToPosition(best);
+            ModLog.Info($"[AMBUSH] player moved to the town centre ({moved:0.0}m, from {centres.Count} navmesh faces).");
+         }
+         catch (Exception ex) { ModLog.Error($"[AMBUSH] centre teleport failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Rings the cutthroats ~20m around the player on the navmesh: each is placed at the first navmesh point
+      ///   that is also REACHABLE (a real path back to the player), searched over a fan of angles and falling
+      ///   radii. A cutthroat for whom no reachable ring point is found keeps its own spawn spot (fail-soft).
+      /// </summary>
       private static void PositionAround(Agent player, List<Agent> ambushers)
       {
-         const float radius = 4.5f;
-         Vec3 c = player.Position;
+         Scene scene = Mission.Current?.Scene;
+         if (scene == null || ambushers == null) return;
+
+         WorldPosition centre = player.GetWorldPosition();
+         int n = Math.Max(1, ambushers.Count);
+
          for (var i = 0; i < ambushers.Count; i++)
          {
-            var angle = (float) (2.0 * Math.PI * i / Math.Max(1, ambushers.Count));
-            var pos = new Vec3(c.x + radius * (float) Math.Cos(angle), c.y + radius * (float) Math.Sin(angle), c.z);
-            try { ambushers[i].TeleportToPosition(pos); }
-            catch { /* off-mesh teleport is fail-soft; they still fight from where they are */ }
+            double baseAngle = 2.0 * Math.PI * i / n;
+            if (!TryFindRingPoint(scene, centre, baseAngle, out Vec3 dest)) continue;
+
+            try { ambushers[i].TeleportToPosition(dest); }
+            catch { /* off-mesh teleport is fail-soft; they fight from where they are */ }
          }
+      }
+
+      /// <summary>Finds a navmesh point ~20m from the centre, reachable by a real path, near the given angle.</summary>
+      private static bool TryFindRingPoint(Scene scene, WorldPosition centre, double baseAngle, out Vec3 dest)
+      {
+         dest = default;
+         Vec2 origin = centre.AsVec2;
+
+         for (var j = 0; j < RingAngleJitterTries; j++)
+         {
+            // Spiral out from the ideal slot: 0, +22.5°, -22.5°, +45°, -45°, …
+            double angle = baseAngle + (j + 1) / 2 * (Math.PI / 8.0) * (j % 2 == 0 ? 1 : -1);
+
+            foreach (float r in RingRadiusTries)
+            {
+               var target = new Vec2(origin.x + r * (float) Math.Cos(angle), origin.y + r * (float) Math.Sin(angle));
+
+               WorldPosition candidate = centre;
+               candidate.SetVec2(target);
+               if (candidate.GetNavMesh() == UIntPtr.Zero) continue; // off the navmesh (a wall / building) — skip
+
+               WorldPosition from = centre;
+               if (!scene.GetPathDistanceBetweenPositions(ref candidate, ref from, CombatantNavRadius, out float pathDist)) continue;
+               if (pathDist > r * 2f) continue; // on the navmesh but reachable only by a long detour — skip
+
+               dest = candidate.GetGroundVec3();
+
+               return true;
+            }
+         }
+
+         return false;
       }
 
       private void OnFightEnd(bool isPlayerSideWon)

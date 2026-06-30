@@ -71,5 +71,38 @@ namespace CalradiaRemembers.Tests
             AmbushPolicy.CompanionsAtPlayerSide(2, 80).Should().Be(0);   // high roll → alone
             AmbushPolicy.CompanionsAtPlayerSide(5, 0).Should().Be(AmbushPolicy.MaxCompanionsAtSide); // never more than the cap
         }
+
+        // ── The player-town-entry gating decision (protects the trigger path) ──
+
+        [Test]
+        public void GIVEN_no_one_has_an_attempt_armed_WHEN_entering_a_town_THEN_nothing_is_decided()
+        {
+            // The ordinary case for every player: even with a winning roll, no armed assassin → no ambush.
+            AmbushPolicy.DecidePlayerTownEntry(featureEnabled: true, hasArmedAssassin: false, rollPercent: 0)
+                .Should().Be(AmbushEntryOutcome.NoArmedAssassin);
+        }
+
+        [Test]
+        public void GIVEN_an_armed_assassin_but_the_feature_is_off_WHEN_entering_a_town_THEN_it_is_disabled()
+        {
+            // The reported case: armed via console, but the experimental MCM toggle was off. Even a winning roll
+            // must NOT spring it — and the host logs "Disabled" so this is diagnosable from now on.
+            AmbushPolicy.DecidePlayerTownEntry(featureEnabled: false, hasArmedAssassin: true, rollPercent: 0)
+                .Should().Be(AmbushEntryOutcome.Disabled);
+        }
+
+        [Test]
+        public void GIVEN_armed_and_enabled_WHEN_the_roll_misses_THEN_it_fizzles_and_re_rolls_next_visit()
+        {
+            AmbushPolicy.DecidePlayerTownEntry(featureEnabled: true, hasArmedAssassin: true, rollPercent: AmbushPolicy.SpringChancePercent)
+                .Should().Be(AmbushEntryOutcome.Fizzled);
+        }
+
+        [Test]
+        public void GIVEN_armed_and_enabled_WHEN_the_roll_lands_THEN_the_ambush_springs()
+        {
+            AmbushPolicy.DecidePlayerTownEntry(featureEnabled: true, hasArmedAssassin: true, rollPercent: 0)
+                .Should().Be(AmbushEntryOutcome.Spring);
+        }
     }
 }

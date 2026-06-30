@@ -2,9 +2,25 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.17.4.. 2026-06-29
+
+### Changed
+- **Captive scenes now read as the prisoner's story.** In a captivity scene the captor speaks and acts, but no
+  longer narrates their own private thoughts (you cannot read a captor's mind), and the descriptive narration is
+  now a neutral narrator written from YOUR perspective.. second person, what you see and feel, not the captor's
+  point of view. It is your ordeal, told as yours.
+
+### Notes
+- **The experimental Town Ambush (opt-in) now plays end to end.** With the Town Ambush toggle on (Mod Options ->
+  Experimental, still OFF by default while it is polished), a lord whose hatred has turned murderous can have
+  hired blades jump you in a town: lose the street fight and his band convoys you to him for a reckoning, after
+  which he keeps visiting his prisoner. The cutthroats now close in from across the square, you start in the
+  heart of town, and the map fast-forwards through the captivity instead of sitting on pause. Still being
+  refined, so expect rough edges.. leave the toggle off if you would rather wait.
+
 ## v1.17.3.. 2026-06-29
 
-A new editable file for advanced prompt tinkerers.. and a Ko-fi page, by request.
+A new editable file for advanced prompt tinkerers.. 
 
 ### New
 - **A "last word" prompt file for advanced users.** A new editable [i]post_history_instructions.txt[/i] (in the
