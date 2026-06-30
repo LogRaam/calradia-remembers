@@ -2,6 +2,21 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.17.5.. 2026-06-29
+
+### New
+- **Inject your own world news from the console.** A new [b]cr.world_event[/b] command lets you tell the realm
+  something happened and have your NPCs gossip about it -- e.g. [i]cr.world_event A great fire gutted the Vlandian
+  docks at Sargot[/i]. Any kingdom you name in the text is auto-tagged so its people are the likeliest to have
+  heard it. It spreads as a rumour (by the same hearsay rules as real news: an NPC mentions it only if they would
+  plausibly have heard it, as hearsay, when it fits), so ask a nearby NPC about recent news to draw it out. To
+  make ONE specific NPC know a fact directly, use [b]cr.memory_add[/b] instead.
+
+### Notes
+- **A Console Commands Guide now ships with the mod** (CalradiaRemembers/CONSOLE_COMMANDS_GUIDE.md). It sorts
+  every [b]cr.[/b] command into "cheats & player tools" and "developer tests", with examples, so it is clear which
+  are for playing and which are only for testing. In game, [b]cr.help[/b] lists them all.
+
 ## v1.17.4.. 2026-06-29
 
 ### Changed
