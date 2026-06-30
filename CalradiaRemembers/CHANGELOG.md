@@ -189,7 +189,7 @@ blackmail. And for the first time, other mods can feed events straight into Calr
 ### Notes
 - A console self-test harness ([i]cr.testall[/i] / [i]cr.test[/i]) now exercises the mod's systems end to
   end (including live conversation smoke tests that stamp which LLM produced each reply, for comparing
-  models). It is a developer/regression tool; see CalradiaRemembers/TESTING_GUIDE.md.
+  models). It is a developer/regression tool; see CalradiaRemembers/CONSOLE_COMMANDS_GUIDE.md.
 
 ## v1.14.0.. 2026-06-25
 
@@ -214,7 +214,7 @@ real friend.. and a real enemy.
 
 ### Notes
 - [i]cr.info[/i] now reports [i]pacing=[/i] (your Relationship Pacing setting) instead of the misleading
-  [i]warmth=[/i] label. See CalradiaRemembers/TESTING_GUIDE.md for the scheme test commands.
+  [i]warmth=[/i] label. See CalradiaRemembers/CONSOLE_COMMANDS_GUIDE.md for the scheme test commands.
 
 ## v1.13.0.. 2026-06-22
 
@@ -266,7 +266,7 @@ A wave of negotiation deeds, dynastic memory across generations, and a fix for a
 
 ### Notes
 - New test commands: cr.deliver_prisoner, cr.declare_war_quest, cr.succession. See
-  CalradiaRemembers/TESTING_GUIDE.md.
+  CalradiaRemembers/CONSOLE_COMMANDS_GUIDE.md.
 
 ## v1.11.1.. 2026-06-22
 
@@ -304,13 +304,13 @@ Letters get their own home, and the letter-reply crash from v1.10.0 is fixed.
 
 ### Notes
 - Letter test commands: cr.letter_read / cr.letter_compose / cr.letter_reply. See
-  CalradiaRemembers/TESTING_GUIDE.md.
+  CalradiaRemembers/CONSOLE_COMMANDS_GUIDE.md.
 
 ## v1.10.0.. 2026-06-21
 
 A big one.. a wave of new world-simulation and roleplay systems, plus two fixes from tester
 feedback. The new systems are freshly built and being refined; expect rough edges and please report
-them. (Console commands and an in-game test guide ship in CalradiaRemembers/TESTING_GUIDE.md.)
+them. (Console commands and an in-game test guide ship in CalradiaRemembers/CONSOLE_COMMANDS_GUIDE.md.)
 
 ### New
 - **NPCs now have a posture toward you, not just a like/dislike.** Beyond plain regard, each lord
@@ -352,7 +352,7 @@ them. (Console commands and an in-game test guide ship in CalradiaRemembers/TEST
 ### Notes
 - New console commands for the above (testing): cr.stance / cr.stance_set, cr.recruit / cr.recruit_info,
   cr.scheme / cr.schemes / cr.scheme_advance / cr.scheme_assist / cr.scheme_warn, cr.intercept. See
-  CalradiaRemembers/TESTING_GUIDE.md for the full reference and what to try.
+  CalradiaRemembers/CONSOLE_COMMANDS_GUIDE.md for the full reference and what to try.
 - Known issue under investigation: replying to a letter can occasionally crash on the close of the
   letter window (a UI-tick fault). It is not save-breaking.. "attempt to continue" recovers cleanly.
   A fix is in progress.

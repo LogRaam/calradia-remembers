@@ -1986,8 +1986,69 @@ namespace CalradiaRemembers
 
          FeedResult result = Feed.Record(e);
 
-         return $"Feed.Record -> {result}. World-event store now holds {WorldEventStore.Instance?.Count ?? 0} event(s). " +
-                "Speak with a nearby NPC who'd plausibly have heard it.";
+         return $"Feed.Record -> {result}. The world-event store now holds {WorldEventStore.Instance?.Count ?? 0} event(s).\n" +
+                "NOTE: this is a DEVELOPER / MODDER test of CR's inbound Feed API -- the same door OTHER MODS use to push " +
+                "world events into CR. It is not a way to script your own lore in normal play.\n" +
+                "Whether an NPC mentions it follows CR's normal hearsay rules: only someone who would PLAUSIBLY have heard " +
+                "it (by distance, faction, and how recent it is) may bring it up, and only as hearsay when it fits the talk " +
+                "-- they never recite it. To draw it out, ASK a nearby NPC about recent news. A bare test rumour with no " +
+                "faction or hero tag reaches fewer people than a real, tagged event would.\n" +
+                "To make ONE specific NPC remember a fact directly (no hearsay), use cr.memory_add instead -- that writes " +
+                "straight into their memory.";
+      }
+
+      /// <summary>
+      ///   cr.world_event &lt;what happened&gt;
+      ///   A PLAYER tool (not a test): injects your own world rumour into the campaign through the same Feed door
+      ///   a third-party mod uses, so NPCs may gossip it. Any kingdom named in the text is auto-tagged so its
+      ///   people are likeliest to have heard it. Spreads by CR's hearsay rules (distance / faction / recency, as
+      ///   hearsay when it fits) -- NOT a "make everyone know it instantly" tool; for that on ONE NPC use cr.memory_add.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("world_event", "cr")]
+      public static string AddWorldEvent(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+
+         string summary = args is {Count: > 0}
+            ? string.Join(" ", args).Trim()
+            : "";
+
+         if (string.IsNullOrWhiteSpace(summary))
+            return "Usage: cr.world_event <what happened>\n" +
+                   "  e.g. cr.world_event A great fire gutted the Vlandian docks at Sargot.";
+
+         // Auto-tag any kingdom named in the text so its people are the likeliest to have heard the news.
+         var factionIds = new List<string>();
+         var taggedNames = new List<string>();
+         foreach (Kingdom k in Kingdom.All ?? Enumerable.Empty<Kingdom>())
+         {
+            string name = k?.Name?.ToString();
+            if (k == null || k.IsEliminated || string.IsNullOrWhiteSpace(name)) continue;
+            if (summary.IndexOf(name, StringComparison.OrdinalIgnoreCase) < 0) continue;
+
+            factionIds.Add(k.StringId);
+            taggedNames.Add(name);
+         }
+
+         var e = new ExternalWorldEvent {
+            Id = "playerevent_" + Guid.NewGuid().ToString("N"),
+            SourceMod = "PlayerConsole",
+            Summary = summary,
+            Magnitude = 50,
+            FactionIds = factionIds,
+            Lifetime = ExternalEventLifetime.Rumor
+         };
+
+         FeedResult result = Feed.Record(e);
+
+         string tagged = taggedNames.Count > 0
+            ? $"Tagged faction(s): {string.Join(", ", taggedNames)}. "
+            : "No kingdom named in the text, so it spreads as general realm news. ";
+
+         return $"Feed.Record -> {result}. {tagged}The world-event store now holds {WorldEventStore.Instance?.Count ?? 0} event(s).\n" +
+                "It spreads by CR's hearsay rules: an NPC who'd PLAUSIBLY have heard it (distance, faction, recency) may " +
+                "bring it up, as hearsay, when it fits the talk -- they never recite it. ASK a nearby NPC about recent news " +
+                "to draw it out. To make ONE specific NPC remember a fact directly (no hearsay), use cr.memory_add instead.";
       }
 
       /// <summary>

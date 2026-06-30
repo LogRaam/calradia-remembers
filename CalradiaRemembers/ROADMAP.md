@@ -405,6 +405,30 @@ A player on GLM 5.1 / NanoGPT raised three things (and asked about a donation ch
 - **Donations / feedback channel (Ko-fi):** DONE 2026-06-29 — Ko-fi page (ko-fi.com/lograam) created by player
   request; a centered "Support the work" section added at the top of the Nexus description.
 
+### Player-requested — wardrobe by talking, image generation, Hotscenes compat *(wished 2026-06-29, player feedback)*
+
+A player asked whether three things are realistic to even want. Feasibility read (most realistic first):
+
+- **Wardrobe by conversation (undress / "leave them in their shift") — MOST realistic; do this one.** Bannerlord's
+  Equipment API changes a hero's CIVILIAN outfit at runtime (clear/replace the Body/Cape/Head/Gloves/Leg slots). A
+  new adult-gated action verb (e.g. `change_outfit` / `undress`) emitted by the LLM and executed by the bridge
+  ("the bridge is law": re-validate, adult-gate, apply via `Equipment`) lets the player ask an NPC to strip or
+  dress down, and it actually shows on the 3D model in conversation and in captive scenes. Fits CR's action model
+  cleanly. Open questions: persistence (revert to the prior outfit after the scene?) and how far to undress
+  (Bannerlord renders a default underwear body when the slots are cleared).
+
+- **Image generation — feasible backend, the DISPLAY is the blocker.** Sending a scene/portrait prompt to an image
+  endpoint (the player's own SD, or an API) is easy HTTP. Showing a runtime-generated image in the Gauntlet
+  chat/scene window is the hard part — the same texture-load-from-disk spike already noted under "Custom hand-made
+  portraits" and the parked "generated portraits" idea. Slow and costly per image, so strictly opt-in. Sequence it
+  AFTER the portrait PNG→Gauntlet spike lands (it unlocks both). An optional add-on, not core.
+
+- **Hotscenes compat — possible but the hardest; research-gated.** Hotscenes plays animated adult scenes between
+  agents inside a MISSION; CR scenes are a chat overlay on the map, not a mission. A real bridge means opening a
+  scene with the two heroes and triggering the right Hotscenes animation at the right beat — heavy, and entirely
+  dependent on what hooks/API Hotscenes exposes (unknown; may be closed). Most honestly delivered as a SEPARATE
+  optional bridge mod once Hotscenes' surface is understood. Do not promise it; research first.
+
 ### Captive-scene content
 - **Scenario bank**: a bank of authored scene setups, one-use-per-campaign via SyncData, eligibility by
   kinks/gender, prompt injection. (Originally imagined as Twine→JSON; Twine is dropped — see the scripted

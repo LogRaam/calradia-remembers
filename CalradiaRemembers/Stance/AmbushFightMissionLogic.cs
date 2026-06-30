@@ -31,6 +31,7 @@ namespace CalradiaRemembers.Stance
       private static readonly float[] RingRadiusTries = {20f, 16f, 24f, 13f};
       private const int RingAngleJitterTries = 6;   // angles to try around each cutthroat's ideal slot before giving up
       private const float CombatantNavRadius = 0.4f; // person-sized clearance for the path-reachability check
+      private const float GroundBandZ = 3.5f;        // keep "town centre" to faces within this height of the (ground) gate spawn
 
       private readonly string _paymasterId;
       private readonly int _expectedCount;
@@ -98,9 +99,10 @@ namespace CalradiaRemembers.Stance
 
       /// <summary>
       ///   Teleports the player from the gate (where the town-centre mission spawns them) into the heart of the
-      ///   town: the centroid of the WALKABLE area (the average of every navmesh face centre), snapped to the
-      ///   nearest actual face centre so it is guaranteed on the navmesh and lands in the streets/square rather
-      ///   than on a wall or rooftop. Fail-soft: if the scene exposes no navmesh, the player stays where they are.
+      ///   town: the centroid of the GROUND-LEVEL walkable area, snapped to the nearest actual face centre so it
+      ///   is guaranteed on the navmesh and lands in the streets/square. Only faces within a small height band of
+      ///   the (ground-level) gate spawn are counted, so the walls/ramparts — walkable navmesh that otherwise
+      ///   dragged the average up onto the battlements — are excluded. Fail-soft: no navmesh, the player stays put.
       /// </summary>
       private static void MoveToTownCentre(Agent player)
       {
@@ -110,6 +112,8 @@ namespace CalradiaRemembers.Stance
          int faceCount = scene.GetNavMeshFaceCount();
          if (faceCount <= 0) { ModLog.Info("[AMBUSH] no navmesh faces — the player stays at the gate."); return; }
 
+         float groundZ = player.Position.z; // the player spawns at the gate, on the ground
+
          var centres = new List<Vec3>(faceCount);
          Vec3 sum = Vec3.Zero;
          for (var f = 0; f < faceCount; f++)
@@ -117,11 +121,12 @@ namespace CalradiaRemembers.Stance
             Vec3 c = Vec3.Zero;
             scene.GetNavMeshCenterPosition(f, ref c);
             if (!c.IsValid) continue;
+            if (Math.Abs(c.z - groundZ) > GroundBandZ) continue; // skip ramparts / elevated walkways
             centres.Add(c);
             sum += c;
          }
 
-         if (centres.Count == 0) { ModLog.Info("[AMBUSH] no valid navmesh centres — the player stays at the gate."); return; }
+         if (centres.Count == 0) { ModLog.Info("[AMBUSH] no ground-level navmesh centres — the player stays at the gate."); return; }
 
          Vec3 average = sum * (1f / centres.Count);
 
@@ -138,7 +143,7 @@ namespace CalradiaRemembers.Stance
          {
             float moved = player.Position.AsVec2.Distance(best.AsVec2);
             player.TeleportToPosition(best);
-            ModLog.Info($"[AMBUSH] player moved to the town centre ({moved:0.0}m, from {centres.Count} navmesh faces).");
+            ModLog.Info($"[AMBUSH] player moved to the town centre ({moved:0.0}m, from {centres.Count} ground-level navmesh faces).");
          }
          catch (Exception ex) { ModLog.Error($"[AMBUSH] centre teleport failed: {ex.GetType().Name}: {ex.Message}"); }
       }
