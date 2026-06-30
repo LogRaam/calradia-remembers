@@ -313,7 +313,10 @@ namespace CalradiaRemembers.Stance
       /// <summary>Captures each cutthroat agent as it spawns, for the brawl's opponent side.</summary>
       private static void OnAmbusherSpawned(IAgent agent)
       {
-         if (agent is Agent a) _ambusherAgents.Add(a);
+         if (agent is not Agent a) return;
+
+         _ambusherAgents.Add(a);
+         ModLog.Info($"[AMBUSH] cutthroat agent spawned — {_ambusherAgents.Count} captured so far (active={a.IsActive()}).");
       }
 
       private static Hero FindArmedAssassin(BannerlordNpcMemoryStore store)

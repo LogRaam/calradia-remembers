@@ -2,6 +2,22 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.17.3.. 2026-06-29
+
+A new editable file for advanced prompt tinkerers.. and a Ko-fi page, by request.
+
+### New
+- **A "last word" prompt file for advanced users.** A new editable [i]post_history_instructions.txt[/i] (in the
+  mod's ModuleData folder, ships empty) is injected at the [b]very end[/b] of the prompt, right before the model
+  replies.. the highest-recency position. If you come from SillyTavern-style setups, this is the equivalent of the
+  post-history / jailbreak field: whatever you write is sent verbatim, no wrapping from the mod, for a final tone
+  push or roleplay framing. [b]behavior_guidelines.txt[/b] remains your "main system prompt" (early, global voice);
+  this is your "last word". Loads on campaign start or [i]cr.reload_lore[/i]. See the Nexus "Make it your own"
+  section. (Thanks to the player who asked where to put RP framing pre/post history.)
+- **A Ko-fi page, by request.** Several of you asked for a way to support the work, so there is now a Ko-fi page
+  (a "Support the work" section sits at the top of the Nexus page). The mod stays fully free and complete for
+  everyone, supporter or not.. donations are hugely appreciated and never expected.
+
 ## v1.17.2.. 2026-06-29
 
 Endpoints that stream their replies (e.g. Chub / Mars) now work.

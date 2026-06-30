@@ -41,14 +41,27 @@ namespace CalradiaRemembers.Stance
          if (_started) return;
          if (Mission?.MainAgent == null) return;
 
-         List<Agent> ambushers = TownAmbushBehavior.AmbusherAgents.Where(a => a != null && a.IsActive()).ToList();
          _waitTicks++;
+         List<Agent> ambushers = TownAmbushBehavior.AmbusherAgents.Where(a => a != null && a.IsActive()).ToList();
 
-         // Start once they have all spawned, or after a short grace with at least one present.
-         bool ready = ambushers.Count >= _expectedCount && _expectedCount > 0
-                   || (_waitTicks > MaxWaitTicks && ambushers.Count > 0);
-         if (!ready) return;
+         bool allSpawned = ambushers.Count >= _expectedCount && _expectedCount > 0;
+         bool graceElapsed = _waitTicks > MaxWaitTicks;
 
+         // Keep waiting until they have all spawned, or the short grace elapses.
+         if (!allSpawned && !graceElapsed) return;
+
+         // Grace elapsed with nothing to fight: log it loudly (so the spawn-injection path can be diagnosed from
+         // the lines above) and stop polling, instead of looping silently as before — the old "no aggressors" case.
+         if (ambushers.Count == 0)
+         {
+            _started = true;
+            ModLog.Error($"[AMBUSH] no cutthroats present after {_waitTicks} ticks (expected {_expectedCount}) — the " +
+                         "ambush fizzles. Check the '[AMBUSH] spawn event' / 'injected ... cutthroat(s)' lines above.");
+
+            return;
+         }
+
+         ModLog.Info($"[AMBUSH] brawl trigger: {ambushers.Count}/{_expectedCount} cutthroat(s) active after {_waitTicks} ticks.");
          StartBrawl(ambushers);
       }
 

@@ -64,10 +64,10 @@ secret killer stays falsely civil, a friend offers aid/would warn you). **1b (pr
 weekly turns OPEN enmity/regard into an unbidden letter (Threat/Intercept → cold/challenge; Favor/Warning → warm
 overture); secret hatred (Plot/Assassinate) writes nothing. Self-tests `stance_letter` + chat `chat_stance_assassin`/
 `chat_stance_favor`. OPEN: **increment 2** = wire Plot (scheme vs player) + Intercept (reuse InterceptionBehavior) +
-Warning (warn of a real scheme). **increment 3 — the town ambush — BUILT + working in-game 2026-06-27**:
-Assassinate arms `NpcProfile.StanceAmbushArmedDay`; on entering a town, `TownAmbushBehavior` rolls `AmbushPolicy`
-(35%/visit, 2–6 thugs by clan tier; +4 tests) → narrated inquiry (Draw / Slip away) → real alley fight via
-`CampaignMission.OpenAlleyFightMission` (one thrown-weapon thug + 50% a companion at your side). Console `cr.ambush`.
+Warning (warn of a real scheme). **increment 3 — the town ambush — BUILT but NOT yet working; shipped OFF behind an
+experimental MCM toggle (see "Town ambush — make it actually work" under Open):** Assassinate arms
+`NpcProfile.StanceAmbushArmedDay`; on entering a town `TownAmbushBehavior` rolls `AmbushPolicy` (35%/visit, 2–6 thugs
+by clan tier; +4 tests) → narrated inquiry (Draw / Slip away) → a town-centre street fight. Console `cr.ambush`.
 **OPEN — the captivity arc (Gabriel 2026-06-27), the lose branch:** 3.2a lose → captured by a bandit band that
 convoys you to the commissioning lord; 3.2b arrival → a chat audience (the lord gloats + reproaches → takes you
 prisoner); 3.2c during the convoy, a terrain-typed **rescue ambush** by your companions (success → freedom chat +
@@ -365,7 +365,7 @@ player-as-captor scene below for the captivity use-case. (Model choice still dom
 "what are you talking about"), with explicit examples, while keeping the NPC free to welcome/resist/refuse. Test:
 chat any NPC and type `*I take you by the wrist*` or "I put my hand on your shoulder".
 
-### Player feedback — time-gap chatter, group-scene recall, romance override *(2026-06-29, GLM 5.1 / NanoGPT)*
+### Player feedback — time-gap chatter, group-scene recall, romance override, post-history hook *(2026-06-29)*
 
 A player on GLM 5.1 / NanoGPT raised three things (and asked about a donation channel):
 
@@ -393,8 +393,17 @@ A player on GLM 5.1 / NanoGPT raised three things (and asked about a donation ch
   when present — slots into the existing player-authored-characters system (`Use custom traits`). Needs design:
   which fields are overridable, how it interacts with re-derivation for already-met NPCs, and the JSON shape.
 
-- **Donations / feedback channel (Patreon, Ko-Fi):** Gabriel's call, out of scope for code. If opened, add a
-  donation line + a "feedback here" pointer to the Nexus page to relieve the Posts tab.
+- **A SillyTavern-style post-history / jailbreak hook.** A player asked where to put RP / censorship-bypass
+  framing "pre or post history" (SillyTavern terms). CR sent everything in the system prompt (all pre-history),
+  with no modder-editable last-word slot. **BUILT 2026-06-29.** New editable `post_history_instructions.txt`
+  (ModuleData, ships empty) injected verbatim at the VERY END of the system prompt (after the language mirror,
+  highest recency) for BOTH the NPC and commoner prompts — the analog of SillyTavern's post-history field.
+  SDK `PromptBuilder.PostHistoryInstructions` + `AppendPostHistoryInstructions`; mod `NarrativeLoader` loads the
+  file; `LlmServices` wires it; loads on campaign start / `cr.reload_lore`. +3 tests (presence + ends-with proof,
+  NPC and commoner). Documented in the Nexus "Make it your own" section (positioned next to behavior_guidelines).
+
+- **Donations / feedback channel (Ko-fi):** DONE 2026-06-29 — Ko-fi page (ko-fi.com/lograam) created by player
+  request; a centered "Support the work" section added at the top of the Nexus description.
 
 ### Captive-scene content
 - **Scenario bank**: a bank of authored scene setups, one-use-per-campaign via SyncData, eligibility by
@@ -525,6 +534,30 @@ outcomes**, not just tone:
 Build on the existing deed bridges (prisoner bargain, `join_clan`, barter); the gate is a pure threshold policy
 in `CalradiaRemembers.Logic` (testable), consulted by the bridge before it commits. "Words nudge, deeds prove"
 — and now the posture **bites**.
+
+### Town ambush — make it actually work *(stance increment 3; shipped OFF until it does)*
+
+The Assassinate stance consequence (a lord whose hatred turned murderous) is meant to spring a Warband-style
+STREET FIGHT when the player walks into a town. It is BUILT but **NOT yet confirmed working in game**, so it ships
+**OFF by default** behind the experimental MCM "Town Ambush" toggle (to be removed once it works).
+
+History: the first build opened a roster alley fight, which the engine framed as a SIEGE with the attackers
+spawning ~300m off at the walls. Rearchitected 2026-06-29 (Warlord / War-Sails-style): drop the player into the
+real town-CENTRE walkable scene (`PlayerEncounter.LocationEncounter.CreateAndOpenMissionController("center")`),
+inject the cutthroats as hostile `LocationCharacter`s at the townsfolk spawn points
+(`LocationCharactersAreReadyToSpawnEvent` + `Location.AddLocationCharacters` with `CharacterRelations.Enemy`), and
+start a real fight from a **Harmony postfix on `Mission.AfterStart`** (the one reliable "fully started" seam) via
+`MissionFightHandler.StartCustomFight`. Both prior crashes (PatrolAgentBehavior NRE; "Collection was modified" from
+adding a behavior mid-`AfterStart`) are resolved.
+
+OPEN — confirm in game and close the gaps:
+1. **The cutthroats actually spawn near the player and attack** — the core open question; the last in-game runs
+   showed no aggressors, and the postfix-timing fix is still unverified.
+2. **Player spawns at the town centre / market**, not at the gate (Gabriel's preference; War Sails teleports its
+   own ambush agents — likely needs a named spawn point or a teleport).
+3. **Win/lose resolves**: win → carry on; lose → the captivity arc (3.2a–d, already built) springs.
+4. Then **remove the toggle** (CrSettings + ModSettings + the two gates in `TownAmbushBehavior`).
+Console `cr.ambush`. Pairs with "Fleeing townsfolk during the town ambush" (atmosphere; sequence it after this works).
 
 ### Jealousy — the competition loop and the duel *(v1 shipped; escalation deferred)*
 

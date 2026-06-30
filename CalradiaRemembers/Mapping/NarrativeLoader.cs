@@ -17,18 +17,20 @@ namespace CalradiaRemembers.Mapping
     /// </summary>
     public static class NarrativeLoader
     {
-        public static string WorldDescription    { get; private set; } = "";
-        public static string PlayerDescription   { get; private set; } = "";
-        public static string BehaviorGuidelines  { get; private set; } = "";
+        public static string WorldDescription        { get; private set; } = "";
+        public static string PlayerDescription       { get; private set; } = "";
+        public static string BehaviorGuidelines      { get; private set; } = "";
+        public static string PostHistoryInstructions { get; private set; } = "";
 
         public static void Load()
         {
             string moduleData = Path.Combine(
                 BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData");
 
-            WorldDescription   = ReadFile(moduleData, "world.txt",                "world description");
-            PlayerDescription  = ReadFile(moduleData, "player_description.txt",   "player description");
-            BehaviorGuidelines = ReadFile(moduleData, "behavior_guidelines.txt",   "behavior guidelines");
+            WorldDescription        = ReadFile(moduleData, "world.txt",                     "world description");
+            PlayerDescription       = ReadFile(moduleData, "player_description.txt",        "player description");
+            BehaviorGuidelines      = ReadFile(moduleData, "behavior_guidelines.txt",       "behavior guidelines");
+            PostHistoryInstructions = ReadFile(moduleData, "post_history_instructions.txt", "post-history instructions");
         }
 
         private static string ReadFile(string folder, string filename, string label)

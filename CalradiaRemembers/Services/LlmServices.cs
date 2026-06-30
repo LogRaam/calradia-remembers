@@ -446,6 +446,7 @@ namespace CalradiaRemembers.Services
             WorldDescription = NarrativeLoader.WorldDescription,
             PlayerDescription = NarrativeLoader.PlayerDescription,
             BehaviorGuidelinesOverride = NarrativeLoader.BehaviorGuidelines,
+            PostHistoryInstructions = NarrativeLoader.PostHistoryInstructions,
             ActionVocabulary = BuildActionVocabulary(ModSettings.RelationWarmth),
             // The NPC's standing is the live game relation (synced each turn),
             // moved only through the gated change_relation action — so the LLM

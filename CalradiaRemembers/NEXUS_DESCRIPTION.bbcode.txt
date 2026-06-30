@@ -3,6 +3,15 @@
 [i]Give the lords and ladies of Calradia a memory.. and a voice of their own.[/i]
 
 [line]
+[center][size=4][color=#ffd966]Support the work[/color][/size]
+
+Many of you have asked for a way to support my work, so I’ve set up a Ko-fi page. Calradia Remembers (and the open SDK behind it) is developed and maintained entirely by me. It’s offered completely free, with frequent updates. If the mod has improved your campaigns and you’d like to chip in to help keep quality open-source mods coming, it’s hugely appreciated.. though never expected. The mod will always remain fully free and complete for everyone, supporter or not.
+
+[size=4][b][url=https://ko-fi.com/lograam]☕ Support my effort on Ko-fi[/url] ☕ [/b][/size]
+
+Thank you, truly. ❤️[/center]
+
+[line]
 [size=4]Why this mod exists[/size]
 
 Calradia Remembers began as a ground-up answer to a simple wish: an LLM-driven roleplay mod whose code I fully own, understand, and can keep alive.
@@ -163,11 +172,13 @@ You'll find them in:
 
 [b][color=#6aa84f]behavior_guidelines.txt[/color][/b]: [color=#00ff00][i]how[/i][/color] NPCs behave: the dignity of a lord, reading the mood of a conversation, how memory and consequences weigh on them, and faction-by-faction attitudes. This is the dial for the overall "voice" of every character. Tune it to make your Calradia warmer, harsher, more formal, more blunt.. whatever you prefer.
 
+[b][color=#6aa84f]post_history_instructions.txt[/color][/b]: free-form text injected at the [b]very end[/b] of the prompt, right before the model replies.. the highest-recency position, so it carries the strongest steer. If you come from SillyTavern-style setups, this is the equivalent of the [i]post-history instructions / jailbreak[/i] field. Whatever you write here is sent verbatim, with no wrapping from the mod, so it's yours to use for a final tone push, a roleplay framing, or a censorship-bypass preamble. [i]A note on placement:[/i] [b]behavior_guidelines.txt[/b] is your "main system prompt" (early, sets the global voice); [b]post_history_instructions.txt[/b] is your "last word" (read just before the reply). For getting past a model's reluctance, the last-word slot tends to land hardest.. though model choice and the [b]Reasoning Effort[/b] / [b]Adult Content Level[/b] settings still matter most. Ships empty.. nothing changes until you write something in it.
+
 [b][color=#6aa84f]cultural_traditions.json[/color][/b]: the cultural norms of each people (Vlandian, Battanian, Aserai, Sturgian, Khuzait, Imperial… or your own factions): their views on authority, honor, courtship, and gender roles. This is what gives a Battanian and an Aserai noble genuinely different outlooks. Edit the text inside the quotes to reshape a culture.. just keep the JSON structure intact (matching `"Faction": "description"` pairs, commas between them).
 
 [b][color=#6aa84f]character_overrides.json[/color][/b]: hand-author individual NPCs. Give a named character your own five personality traits (valor, honor, mercy, generosity, calculating, each -2..+2) and an optional backstory, and they become that person.. the authored traits are the real source of truth, so they shape how the character speaks, their derived nature, and even the campaign AI. Enable it with the [b]Use custom traits[/b] option (Mod Options → Calradia Remembers → Character); turn it off to restore vanilla traits. Ships empty.. nothing changes until you add an entry and opt in.
 
-[spoiler=What each trait does (and notable combinations)]
+[spoiler]
 Each trait runs [b]−2…+2[/b]. Traits set the [i]pool[/i] of a character's leanings; a few are then drawn from it, so a trait biases the [i]range[/i] of who they are rather than forcing one fixed result. The romantic / intimate effects below surface only at the higher adult tiers.
 
 [b][color=#ffe599]Valor[/color][/b].. High: bold, pursues directly, impatient with hesitation, confident. Low: cautious, slow to commit, needs safety first.
@@ -178,18 +189,17 @@ Each trait runs [b]−2…+2[/b]. Traits set the [i]pool[/i] of a character's le
 
 [b]Notable combinations:[/b]
 [list]
-[*][b]Cynical exploiter[/b] (can proposition a female player at Explicit+): Honor ≤ 0 [b]and[/b] (Calculating ≥ +1 [b]or[/b] Mercy ≤ 0).
-[*][b]Cruel, domineering lord[/b]: Mercy −2, Honor −1, Calculating +2.
-[*][b]Devoted knight[/b]: Honor +2, Mercy +1, Valor +1.
-[*][b]Cold strategist[/b]: Calculating +2, Mercy −1.
-[*][b]Possessive miser[/b]: Generosity −2.
-[*][b]Reckless romantic[/b]: Valor +2, Calculating −2.
+[*][b]Cynical exploiter[/b] (can proposition a female player at Explicit+): Honor ≤ 0 [b]and[/b] (Calculating ≥ +1 [b]or[/b] Mercy ≤ 0).[/*]
+[*][b]Cruel, domineering lord[/b]: Mercy −2, Honor −1, Calculating +2.[/*]
+[*][b]Devoted knight[/b]: Honor +2, Mercy +1, Valor +1.[/*]
+[*][b]Cold strategist[/b]: Calculating +2, Mercy −1.[/*]
+[*][b]Possessive miser[/b]: Generosity −2.[/*]
+[*][b]Reckless romantic[/b]: Valor +2, Calculating −2.[/*]
 [/list]
 
 [b]At Hardcore[/b], traits also shape the kink [i]pool[/i].. broadly: low Mercy → dominant / sadistic & control kinks; high Mercy → submissive / masochistic; high Calculating → control & conditioning; low Honor → power-imbalance / corruption; high Honor → breeding / praise; low Generosity → ownership / possessive; high Valor → exhibition / prize. Use [b][color=#93c47d]cr.kinks [name][/color][/b] in the console to see and tweak a character's actual kinks.
 
-[b]Camp life:[/b] two companions who share the same leaning on a trait bond; opposite leanings clash (Honor weighs heaviest, then Mercy and Calculating).
-[/spoiler]
+[b]Camp life:[/b] two companions who share the same leaning on a trait bond; opposite leanings clash (Honor weighs heaviest, then Mercy and Calculating).[/spoiler]
 
 [quote]💡Tips: keep edits in English (the AI is prompted in English), back up the originals before you tinker, and if you touch the `.json` make sure it stays valid (a missing comma or quote will stop it loading). Your edits load whenever you start or reload a campaign.. so after editing, return to the main menu and load your save. No reinstalling or recompiling.[/quote]
 
@@ -202,10 +212,9 @@ Occasionally the AI will produce a bad response that gets recorded into an NPC's
 [b][color=#93c47d]cr.memory [name][/color][/b].. list every recorded event for an NPC with its index:
 [code]
 cr.memory Liena
-  [0] Day 12 | FirstMeeting | We met for the first time in Pen Cannoc.
-  [1] Day 45 | Other        | She forgot who she was entirely.   <- this one
-  [2] Day 46 | Other        | She spoke to me as a stranger.     <- and this one
-[/code]
+  [0] Day 12 | FirstMeeting | We met for the first time in Pen Cannoc.
+  [1] Day 45 | Other        | She forgot who she was entirely.   <- this one
+  [2] Day 46 | Other        | She spoke to me as a stranger.     <- and this one[/code]
 
 [b][color=#93c47d]cr.memory_add [days_ago] [text] [name][/color][/b].. create a memory dated in the past, to build a prior relationship with a character so not everyone starts as a stranger:
 [code]cr.memory_add 30 We fought side by side at Pendraic. Derthert[/code]
@@ -213,8 +222,7 @@ cr.memory Liena
 [b][color=#93c47d]cr.memory_set [index] [new text] [name][/color][/b].. replace the text of one event without deleting it:
 [code]
 cr.memory_set 1 She remembered our bond, speaking with warmth. Liena
-cr.memory_set 2 She recovered herself and called me by name. Liena
-[/code]
+cr.memory_set 2 She recovered herself and called me by name. Liena[/code]
 
 [b][color=#93c47d]cr.forget [index] [name][/color][/b].. delete one bad event entirely:
 [code]cr.forget 1 Liena[/code]
@@ -261,9 +269,12 @@ If you have a capable GPU (or are patient on CPU), you can run the AI entirely o
 
 Popular options:
 
-  [*] [b]LM Studio[/b] (lmstudio.ai).. the easiest: a GUI app, a built-in model browser, and an OpenAI-compatible server you start with one click. Default address: http://localhost:1234/v1. No API key required by default.
-  [*] [b]Ollama[/b] (ollama.ai).. lightweight, runs as a background service, terminal-driven. Default address: http://localhost:11434/v1. No API key required.
-  [*] [b]vLLM / TabbyAPI[/b].. for users who want full GPU throughput and fine control over quantization and batching.
+ 
+[*][b]LM Studio[/b] (lmstudio.ai).. the easiest: a GUI app, a built-in model browser, and an OpenAI-compatible server you start with one click. Default address: http://localhost:1234/v1. No API key required by default.
+  [/*]
+[*][b]Ollama[/b] (ollama.ai).. lightweight, runs as a background service, terminal-driven. Default address: http://localhost:11434/v1. No API key required.
+  [/*]
+[*][b]vLLM / TabbyAPI[/b].. for users who want full GPU throughput and fine control over quantization and batching.
 
 [i]Hardware reality: a quantized 8B–13B model (Q4 or Q5 GGUF) runs acceptably on a consumer GPU with 8–12 GB VRAM. Expect slower generation than a cloud API, and less coherence over long contexts than Grok or DeepSeek V3. For casual conversations and everyday roleplay, a well-chosen local model is perfectly playable.[/i]
 
@@ -271,22 +282,22 @@ Popular options:
 2. ENTER IT IN THE GAME
 
 [b]Cloud (OpenRouter or NanoGPT):[/b]
-  1. Launch Bannerlord with the mod enabled, then open Options → Mod Options → Calradia Remembers.
-  2. Set `LLM Provider` to OpenRouter or NanoGPT.. whichever you set up.
-  3. Paste your key into that provider's API Key field.
-  4. Set that provider's Model field (OpenRouter has a default; NanoGPT needs an id you paste from its catalog).
-  5. Click that provider's `Test Connection` button.. it validates your key and, on OpenRouter, also tests your chosen model with a one-token prompt so a mistyped model id is caught before you play.
-  6. That's it. Settings apply immediately.. no restart, no save reload. Walk up to any lord and talk.
+  1. Launch Bannerlord with the mod enabled, then open Options → Mod Options → Calradia Remembers.
+  2. Set `LLM Provider` to OpenRouter or NanoGPT.. whichever you set up.
+  3. Paste your key into that provider's API Key field.
+  4. Set that provider's Model field (OpenRouter has a default; NanoGPT needs an id you paste from its catalog).
+  5. Click that provider's `Test Connection` button.. it validates your key and, on OpenRouter, also tests your chosen model with a one-token prompt so a mistyped model id is caught before you play.
+  6. That's it. Settings apply immediately.. no restart, no save reload. Walk up to any lord and talk.
 
 [b]Local server (OpenAI-Compatible):[/b]
-  1. Start your local server (LM Studio server panel, ollama serve, etc.) and load a model.
-  2. Open Options → Mod Options → Calradia Remembers.
-  3. Set `LLM Provider` to [b]OpenAI-Compatible[/b].
-  4. Paste the server URL into [b]Endpoint URL[/b] (e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama). Include the /v1 path.. the mod appends /chat/completions automatically.
-  5. Paste the model id into [b]Model[/b] (LM Studio shows it in its server panel; Ollama uses the name you pulled, e.g. llama3.1:8b).
-  6. Leave [b]API Key[/b] blank unless your server is configured to require one.
-  7. Click [b]Test Endpoint[/b].. it sends a one-token completion to confirm the server is up and the model id is correct.
-  8. That's it. Settings apply immediately.
+  1. Start your local server (LM Studio server panel, ollama serve, etc.) and load a model.
+  2. Open Options → Mod Options → Calradia Remembers.
+  3. Set `LLM Provider` to [b]OpenAI-Compatible[/b].
+  4. Paste the server URL into [b]Endpoint URL[/b] (e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama). Include the /v1 path.. the mod appends /chat/completions automatically.
+  5. Paste the model id into [b]Model[/b] (LM Studio shows it in its server panel; Ollama uses the name you pulled, e.g. llama3.1:8b).
+  6. Leave [b]API Key[/b] blank unless your server is configured to require one.
+  7. Click [b]Test Endpoint[/b].. it sends a one-token completion to confirm the server is up and the model id is correct.
+  8. That's it. Settings apply immediately.
 
 3. THE SETTINGS MENU, OPTION BY OPTION
 
@@ -329,12 +340,12 @@ LLM Provider:
       [b][color=#a64d79]Hardcore[/color][/b].. unlocks darker adult-only roleplay, including captor/captive scenes.
      [i] Applies on your next conversation.[/i]
 [list]
-[*]  Relationship Pacing .. how relationships grow through conversation.. a philosophy of interaction, not a difficulty. Affects only positive regard.. insults and betrayals stay just as costly at every level:[/*]
+[*]  Relationship Pacing .. how relationships grow through conversation.. a philosophy of interaction, not a difficulty. Affects only positive regard.. insults and betrayals stay just as costly at every level:[/*]
 [/list]
-      [b][color=#b6d7a8]Grounded[/color][/b] (default).. the core game's feel, and the level the mod was balanced around. Trust is earned slowly, mostly through deeds; flattery rarely moves a lord.
-      [b][color=#93c47d]Warm[/color][/b].. good company counts. A well-turned compliment, shared humor, an engaging story or genuine support can each earn a little goodwill, and more often.
-      [b][color=#6aa84f]Storyteller[/color][/b].. a roleplay-first experience: personal moments, narrative effort and real connection move hearts readily, with little throttle.
-     [i] Applies on your next conversation.[/i]
+      [b][color=#b6d7a8]Grounded[/color][/b] (default).. the core game's feel, and the level the mod was balanced around. Trust is earned slowly, mostly through deeds; flattery rarely moves a lord.
+      [b][color=#93c47d]Warm[/color][/b].. good company counts. A well-turned compliment, shared humor, an engaging story or genuine support can each earn a little goodwill, and more often.
+      [b][color=#6aa84f]Storyteller[/color][/b].. a roleplay-first experience: personal moments, narrative effort and real connection move hearts readily, with little throttle.
+    [i]Applies on your next conversation.[/i]
 
   Diagnostics:
 [list]
@@ -343,7 +354,7 @@ LLM Provider:
 [*][b][color=#b6d7a8]Story Log[/color][/b] (off).. writes the clean, novel-style transcript described above to CalradiaRemembers_story.log in your Bannerlord Logs folder.[/*]
 [/list]
 
-  Experimental:
+  Experimental:
 [list]
 [*][b]Town Ambush[/b] (off by default).. an in-progress feature where a lord whose hostility has turned murderous may spring a street ambush on you as you enter a town. It is still being polished, so it ships off and does nothing until you turn it on; the toggle will go away once the feature is finished. Turn it on only if you want to try it early.[/*]
 [/list]
@@ -396,17 +407,16 @@ Write a mod that changes the world.. a horse race with winners and purses, a pla
 
 [code]
 CalradiaRemembers.Feed.Record(new ExternalWorldEvent {
-    Id        = "myMod_race_42",
-    SourceMod = "GrandRaces",
-    Summary   = "Dellio of Pravend won the autumn race and a purse of 5000 denars.",
-    Magnitude = 40,
-    FactionIds = new[] { "empire" },
-});
-[/code]
+    Id        = "myMod_race_42",
+    SourceMod = "GrandRaces",
+    Summary   = "Dellio of Pravend won the autumn race and a purse of 5000 denars.",
+    Magnitude = 40,
+    FactionIds = new[] { "empire" },
+});[/code]
 
 From that moment, lords who would plausibly have heard speak of it.. as [i]hearsay[/i], hedged by distance and faction, exactly like the news CR records on its own. Your mod needs to know [i]nothing[/i] about CR's memory system, its prompts, or its save format.
 
-Facts can also [b]change[/b]. For things that aren't one-off events but standing state — a settlement that moves, a character renamed, a place that ceases to exist — [i]Feed.Update(...)[/i] replaces a previous entry by its id, and [i]Feed.Retract(id)[/i] removes one that is no longer true, so the world's gossip stays current instead of repeating something stale.
+Facts can also [b]change[/b]. For things that aren't one-off events but standing state.. a settlement that moves, a character renamed, a place that ceases to exist.. [i]Feed.Update(...)[/i] replaces a previous entry by its id, and [i]Feed.Retract(id)[/i] removes one that is no longer true, so the world's gossip stays current instead of repeating something stale.
 
 It is deliberately [b]one-way and guarded[/b].. you push facts in through one door, and never read or mutate CR's internals. That door validates everything it is handed: it bounds the text, clamps the magnitude, drops heroes or factions it cannot resolve, de-duplicates by id, and rate-limits each source.. so a misbehaving feed can neither bloat a player's save nor flood the gossip. The data contract is a stable, plain-string DTO (no Bannerlord types in it), so it will not break under you as CR evolves.
 
@@ -417,18 +427,17 @@ The second door lets your mod set the player a [b]mission[/b], and CR runs the w
 
 [code]
 CalradiaRemembers.MissionBoard.Register(new ExternalMission {
-    Id          = "grandRaces_series_7",
-    SourceMod   = "GrandRaces",
-    GiverHeroId = "lord_caladog",          // the NPC who frames and rewards it
-    Title       = "Win the autumn racing series",
-    Description = "Take the series at Pen Cannoc and the purse is yours.",
-    RewardGold  = 5000,
-    RewardRelation = 5,
-    DeadlineDays = 30
-});
-[/code]
+    Id          = "grandRaces_series_7",
+    SourceMod   = "GrandRaces",
+    GiverHeroId = "lord_caladog",          // the NPC who frames and rewards it
+    Title       = "Win the autumn racing series",
+    Description = "Take the series at Pen Cannoc and the purse is yours.",
+    RewardGold  = 5000,
+    RewardRelation = 5,
+    DeadlineDays = 30
+});[/code]
 
-CR issues it as a real quest: the giver brings it up in conversation in their own voice, it mirrors into the vanilla journal, and a deadline/abandon/self-heal lifecycle keeps it tidy (no ghost quests, even from a third-party mod). The crucial line is [b]who decides it's done[/b]: YOUR mod owns the completion signal — it calls [i]MissionBoard.Complete(id)[/i] when its own deed is truly finished (only it can know), and CR pays the gated reward when the player reports back to the giver. CR never pays on the AI's word, and never on yours alone — the player still has to come collect. You define an arbitrary mission (a tournament series, a smuggling run, surviving a siege) without CR knowing your internals, and without weakening its "rewards only for real deeds" promise.
+CR issues it as a real quest: the giver brings it up in conversation in their own voice, it mirrors into the vanilla journal, and a deadline/abandon/self-heal lifecycle keeps it tidy (no ghost quests, even from a third-party mod). The crucial line is [b]who decides it's done[/b]: YOUR mod owns the completion signal.. it calls [i]MissionBoard.Complete(id)[/i] when its own deed is truly finished (only it can know), and CR pays the gated reward when the player reports back to the giver. CR never pays on the AI's word, and never on yours alone.. the player still has to come collect. You define an arbitrary mission (a tournament series, a smuggling run, surviving a siege) without CR knowing your internals, and without weakening its "rewards only for real deeds" promise.
 
 If you would like to plug a mod into either door, get in touch.. I would love to help.
 
@@ -452,3 +461,5 @@ A heartfelt thank-you to [b][color=#93c47d]ProudSeal[/color][/b], who volunteere
 
 [line]
 [i]Built from scratch, with care, for everyone who ever wished Calradia's characters would remember them.[/i]
+
+[/*]
