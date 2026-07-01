@@ -2,7 +2,7 @@
 
 [i]Give the lords and ladies of Calradia a memory.. and a voice of their own.[/i]
 
-[line]
+
 [center][size=4][color=#ffd966]Support the work[/color][/size]
 
 Many of you have asked for a way to support my work, so I’ve set up a Ko-fi page. Calradia Remembers (and the open SDK behind it) is developed and maintained entirely by me. It’s offered completely free, with frequent updates. If the mod has improved your campaigns and you’d like to chip in to help keep quality open-source mods coming, it’s hugely appreciated.. though never expected. The mod will always remain fully free and complete for everyone, supporter or not.
@@ -73,6 +73,9 @@ The tasks NPCs hand you aren't throwaway flavor text.. each one is mirrored into
 
 [b][color=#e69138]Bargains beyond coin[/color][/b]
 A lord's price is not always denars. One may agree to ride with you only if you [b]hand over an enemy captive[/b].. a rival lord they want in chains: give over one you already hold, or take it as a quest to go capture them and bring them back. Another, with cause against a faction, may make their service conditional on [b]you declaring war[/b] on it.. "rid me of the Vlandians and I am yours". Both are honoured only by the [i][color=#93c47d]real deed[/color][/i].. a true prisoner handed over, a war your own faction actually declares.. never by a promise. The game prices and verifies every such bargain; the talk is yours, the arithmetic is the game's. And the bargain runs both ways.. speak with a [b]captive lord[/b] and they may plead for their freedom: set free one [i]you[/i] hold in exchange for goodwill, gold, or service, or, if another lord holds them, agree to [b]break them out[/b].. a rescue paid only when you truly free them in the field.
+
+[b][color=#e69138]Street ambushes and abduction.. when a lord wants you dead[/color][/b]
+Cross a lord badly enough.. betray them, humiliate them, put their kin to the sword.. and their hatred can turn murderous. Such a lord may quietly [b]hire blades to end you[/b], and one day, as you walk into a town, they spring a [b]street ambush[/b]: hooded figures peel from the crowd, steel drawn.. stand and fight, or try to slip away. The band is led by a real soldier of the paymaster's own culture (the tell that a [i]lord[/i], not a street gang, is behind it), and it comes in numbers to match your retinue.. a lone traveller faces a few, a full company a small warband.. while the town's own gate guards scatter from the fray. Any [b]companions[/b] at your side are dragged down and taken with you. Lose the fight and you are [b]abducted[/b]: the band convoys you across the map to the very lord who paid for it.. for a [b]reckoning[/b] face to face.. and holds you captive until ransom, escape, or a [b]rescue[/b] your own people may ride out to mount. It only ever happens if you truly earn someone's murderous hatred; make no such enemy and you will never see it.
 
 [b][color=#e69138]Your house, remembered across generations[/color][/b]
 When your character dies and an heir takes up the banner, Calradia does not forget. The lords you dealt with [b]inherit[/b] their standing toward your house.. the debts, the alliances, the grudges.. and speak to your heir of what came before: "[i]your father helped me at the siege of Epicrotea.. I owe your house that debt[/i]," or "[i]your mother's broken word still stings[/i]." The private history of the dead stays buried with them; your heir inherits a reputation, not a diary, and the bond with each lord begins anew from there. Your dynasty carries its name forward.
@@ -213,8 +216,8 @@ Occasionally the AI will produce a bad response that gets recorded into an NPC's
 [code]
 cr.memory Liena
   [0] Day 12 | FirstMeeting | We met for the first time in Pen Cannoc.
-  [1] Day 45 | Other        | She forgot who she was entirely.   <- this one
-  [2] Day 46 | Other        | She spoke to me as a stranger.     <- and this one[/code]
+  [1] Day 45 | Other        | She forgot who she was entirely.   <- this one
+  [2] Day 46 | Other        | She spoke to me as a stranger.     <- and this one[/code]
 
 [b][color=#93c47d]cr.memory_add [days_ago] [text] [name][/color][/b].. create a memory dated in the past, to build a prior relationship with a character so not everyone starts as a stranger:
 [code]cr.memory_add 30 We fought side by side at Pendraic. Derthert[/code]
@@ -360,11 +363,6 @@ LLM Provider:
 [*][b][color=#b6d7a8]Story Log[/color][/b] (off).. writes the clean, novel-style transcript described above to CalradiaRemembers_story.log in your Bannerlord Logs folder.[/*]
 [/list]
 
-  Experimental:
-[list]
-[*][b]Town Ambush[/b] (off by default).. an in-progress feature where a lord whose hostility has turned murderous may spring a street ambush on you as you enter a town. It is still being polished, so it ships off and does nothing until you turn it on; the toggle will go away once the feature is finished. Turn it on only if you want to try it early.[/*]
-[/list]
-
 [line]
 [size=4]Which model should I use?[/size]
 
@@ -415,7 +413,7 @@ Write a mod that changes the world.. a horse race with winners and purses, a pla
 CalradiaRemembers.Feed.Record(new ExternalWorldEvent {
     Id        = "myMod_race_42",
     SourceMod = "GrandRaces",
-    Summary   = "Dellio of Pravend won the autumn race and a purse of 5000 denars.",
+    Summary   = "Dellio of Pravend won the autumn race and a purse of 5000 denars.",
     Magnitude = 40,
     FactionIds = new[] { "empire" },
 });[/code]
@@ -434,9 +432,9 @@ The second door lets your mod set the player a [b]mission[/b], and CR runs the w
 [code]
 CalradiaRemembers.MissionBoard.Register(new ExternalMission {
     Id          = "grandRaces_series_7",
-    SourceMod   = "GrandRaces",
+    SourceMod   = "GrandRaces",
     GiverHeroId = "lord_caladog",          // the NPC who frames and rewards it
-    Title       = "Win the autumn racing series",
+    Title       = "Win the autumn racing series",
     Description = "Take the series at Pen Cannoc and the purse is yours.",
     RewardGold  = 5000,
     RewardRelation = 5,
@@ -467,5 +465,7 @@ A heartfelt thank-you to [b][color=#93c47d]ProudSeal[/color][/b], who volunteere
 
 [line]
 [i]Built from scratch, with care, for everyone who ever wished Calradia's characters would remember them.[/i]
+
+
 
 [/*]

@@ -54,11 +54,33 @@ namespace CalradiaRemembers.Chat
       // Randomized opening setting so no two scenes start the same way. Seeds the INTRO with a
       // concrete locale, the captor's immediate state, and how the prisoner is presented — the
       // LLM's first response then cements it and the conversation history carries it forward.
+      // These WILDERNESS locales are for a captivity on the road / in a camp (no holding settlement).
       private static readonly string[] SceneLocales = {
          "at a muddy roadside camp", "in the mouth of a torchlit cave", "by the dying embers of a night fire",
          "in the shadow of a ruined watchtower", "at the edge of a reeking bog", "in the yard of a looted farmstead",
          "among the wagons of your raiding camp", "on a wind-scoured hilltop", "in a hollow thick with woodsmoke",
          "beside a cold forest stream", "in a half-collapsed barn", "at a ford strewn with old bones"
+      };
+
+      // When the player is held in a town or castle, the scene happens INSIDE it — a cell or a private
+      // chamber of the captor's seat — not at a roadside camp. {0} is the settlement name.
+      private static readonly string[] HeldLocales = {
+         "in a cold stone cell beneath {0}", "in the torchlit dungeon of {0}",
+         "in a dank holding cell under the keep of {0}", "in a private chamber off the dungeons of {0}",
+         "in a bare, shuttered room within the walls of {0}", "in the lord's hall of {0}, the guards withdrawn to the door"
+      };
+
+      private static readonly string[] HeldPresentations = {
+         "dragged up from the cells in chains", "hauled out of the dungeon and forced to kneel",
+         "brought in under guard from the holding cell", "shoved through the door onto the cold flagstones",
+         "marched up from below at spearpoint"
+      };
+
+      // A noble captor in their own seat is not a brigand counting plunder — a settlement scene draws from these.
+      private static readonly string[] HeldCaptorStates = {
+         "cold, unhurried, and entirely at ease", "calm, composed, and utterly in control",
+         "nursing old grievances and meaner for it", "bored of the day's business and looking for diversion",
+         "quietly furious beneath a polished surface", "savoring the leisure of having you wholly in their power"
       };
 
       public static string BuildCaptiveOpener(bool isCollective, CaptiveSceneIntent intent)
@@ -102,8 +124,25 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      /// <summary>
+      ///   The user-turn nudge sent on each in-scene "Continue" beat (the stage directive in the system prompt
+      ///   carries the actual content). Pushes the model to ADVANCE, render fresh vivid description, and never
+      ///   repeat — the two faults a player reported on the Continue sequence. Shared with the quality self-test
+      ///   so the test exercises the exact runtime stimulus, never a drifting copy.
+      /// </summary>
+      public static string BuildContinuationStimulus()
+         => "[Continue the scene from where you left off — do NOT restart and do NOT recap what already happened. " +
+            "Play ONLY the beat your stage directive specifies this turn, and move the action FORWARD from the last " +
+            "thing that happened. Put fresh, vivid, specific physical detail in [NARRATION] — sensation, sound, " +
+            "movement, the captive's body and reactions — and NEVER reuse an image, phrase, gesture, or line you " +
+            "have already used this scene. If you feel yourself about to repeat a beat, escalate or change tack " +
+            "instead. One focused beat, fully realised, not a summary.]";
+
       public static string BuildResumeOpener()
-         => "[You are NOT finished with this prisoner. The scene resumes — same prisoner, same place — and " + "you begin a new round with them. Open it fresh, picking up from where things stand, and do NOT " + "repeat what already happened.]";
+         => "[You are NOT finished with this prisoner. The scene resumes — same prisoner, same place — and " +
+            "you begin a new round with them. Open it fresh, picking up from where things stand, with vivid, " +
+            "specific physical detail in [NARRATION]. Do NOT recap or repeat what already happened, and do NOT " +
+            "reuse phrases or images from the earlier rounds — this round must read as its own distinct beat.]";
 
       // A new driving focus only (the locale/people are unchanged from the prior round, which the
       // model already knows from the history), so the new cycle takes a different direction.
@@ -111,17 +150,50 @@ namespace CalradiaRemembers.Chat
       {
          string focus = SceneFoci[MBRandom.RandomInt(SceneFoci.Length)];
 
-         return $" [A NEW ROUND with the same prisoner. What drives you THIS time is {focus}. Take it somewhere " + "NEW — do not repeat earlier acts.]";
+         return $" [A NEW ROUND with the same prisoner. What drives you THIS time is {focus}. Take it somewhere " +
+                "genuinely NEW — a different act, a different angle — and render it with fresh sensory description. " +
+                "Never repeat an earlier act, image, or turn of phrase.]";
       }
 
       public static string BuildSceneSetup()
       {
-         string locale = SceneLocales[MBRandom.RandomInt(SceneLocales.Length)];
-         string state = CaptorStates[MBRandom.RandomInt(CaptorStates.Length)];
-         string pres = PrisonerPresentations[MBRandom.RandomInt(PrisonerPresentations.Length)];
+         Settlement held = ResolveHoldingSettlement();
+
+         string locale, state, pres;
+         if (held != null) // held in a town/castle: a cell or a private hall of the captor's seat, not a road camp
+         {
+            locale = string.Format(HeldLocales[MBRandom.RandomInt(HeldLocales.Length)], held.Name);
+            state = HeldCaptorStates[MBRandom.RandomInt(HeldCaptorStates.Length)];
+            pres = HeldPresentations[MBRandom.RandomInt(HeldPresentations.Length)];
+         }
+         else // on the road / in a camp
+         {
+            locale = SceneLocales[MBRandom.RandomInt(SceneLocales.Length)];
+            state = CaptorStates[MBRandom.RandomInt(CaptorStates.Length)];
+            pres = PrisonerPresentations[MBRandom.RandomInt(PrisonerPresentations.Length)];
+         }
+
          string focus = SceneFoci[MBRandom.RandomInt(SceneFoci.Length)];
 
          return $" [THIS SCENE'S SETTING — make the opening unique to it: it happens {locale}; you are {state}; " + $"the prisoner is {pres}. What drives you tonight is {focus}. Open from THIS specific situation in " + "your own fresh words — never a generic, reused capture opener. Let this scene be its own distinct " + "story, not a repeat of any other.]";
+      }
+
+      /// <summary>
+      ///   The town or castle the player is currently held in, or null when the captivity is on the road / in a
+      ///   camp. Same resolution chain as <see cref="BuildStoryLocation" /> (which already names the place right in
+      ///   the log), narrowed to a fortified seat — a village is not a prison, so it keeps the wilderness framing.
+      /// </summary>
+      private static Settlement ResolveHoldingSettlement()
+      {
+         try
+         {
+            Settlement s = MobileParty.MainParty?.CurrentSettlement
+                           ?? Hero.MainHero?.CurrentSettlement
+                           ?? Hero.MainHero?.StayingInSettlement;
+
+            return s != null && (s.IsTown || s.IsCastle) ? s : null;
+         }
+         catch { return null; }
       }
 
       public static string BuildStoryLocation()

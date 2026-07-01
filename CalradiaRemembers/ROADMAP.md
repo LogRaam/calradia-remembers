@@ -64,15 +64,35 @@ secret killer stays falsely civil, a friend offers aid/would warn you). **1b (pr
 weekly turns OPEN enmity/regard into an unbidden letter (Threat/Intercept → cold/challenge; Favor/Warning → warm
 overture); secret hatred (Plot/Assassinate) writes nothing. Self-tests `stance_letter` + chat `chat_stance_assassin`/
 `chat_stance_favor`. OPEN: **increment 2** = wire Plot (scheme vs player) + Intercept (reuse InterceptionBehavior) +
-Warning (warn of a real scheme). **increment 3 — the town ambush — BUILT but NOT yet working; shipped OFF behind an
-experimental MCM toggle (see "Town ambush — make it actually work" under Open):** Assassinate arms
-`NpcProfile.StanceAmbushArmedDay`; on entering a town `TownAmbushBehavior` rolls `AmbushPolicy` (35%/visit, 2–6 thugs
-by clan tier; +4 tests) → narrated inquiry (Draw / Slip away) → a town-centre street fight. Console `cr.ambush`.
-**OPEN — the captivity arc (Gabriel 2026-06-27), the lose branch:** 3.2a lose → captured by a bandit band that
-convoys you to the commissioning lord; 3.2b arrival → a chat audience (the lord gloats + reproaches → takes you
-prisoner); 3.2c during the convoy, a terrain-typed **rescue ambush** by your companions (success → freedom chat +
-retrieve your army; fail → "now I hold you all" chat + companions captured too); 3.2d Hardcore witness captivity
-scene when player + companions are both held. Reuses CR's captive-scene chat for the audiences.
+Warning (warn of a real scheme). **increment 3 — the town ambush — WORKS in-game, still OFF behind the experimental
+MCM toggle `TownAmbushEnabled` until polished:** Assassinate arms `NpcProfile.StanceAmbushArmedDay`; on entering a
+town `TownAmbushBehavior` rolls `AmbushPolicy` → narrated inquiry (Draw / Slip away) → a fight at the gate. Console
+`cr.ambush`. **2026-06-30 refinements (BUILT, NOT committed):** an elite chief of the paymaster's culture at the
+player's clan tier leads bandits in the Blackened "stealth" set; force scales (N+1)² with the defending side (solo 4
+/ two 9 / three 16 / four 25, no cap); companions are captured alongside the player; capture is armed even when the
+player falls first; recurring captive scenes are dungeon/fortress-framed when held in a town/castle.
+**The captivity arc (Gabriel 2026-06-27), the lose branch:** 3.2a lose → captured + convoyed to the commissioning
+lord ✅; 3.2b arrival → the lord's reckoning audience ✅; 3.2c convoy **rescue ambush** by your companions (BUILT
+2026-06-28); 3.2d **Hardcore companion-victim captivity scenes** — the captor torments/assaults a held companion
+before the player, or coerces the player to do it (revenge driver). **Phase 2 BUILT 2026-06-30 (console-testable
+`cr.companion_scene`, NOT committed); NEXT = auto-fire in CaptiveEncounterService + the revenge consequence (grief +
+stance crater + world-event).** Reuses CR's captive-scene chat.
+**In-game-test feedback round (Gabriel 2026-06-30, BUILT, NOT committed):** (a) the chat "scroll down to read more"
+hint no longer flashes up the instant a scene's opening narration runs a line long — it appears only when a
+substantial block of text sits below the fold (`MoreHintRevealMargin`). (b/c) **the captive companion is now a REAL
+participant, not a name in the prompt:** threaded as a real Hero (a witness flagged `IsCaptiveVictim`), so they get
+their own portrait, their own VOICE (cries/pleas/defiance via the existing `[WITNESS_REACTION]` channel — now also
+collected on the Continue path, which previously left them mute mid-scene), a dedicated colour, and the CORRECT
+gender in the prompt (`CaptiveVictimIsFemale` → pronoun rules; fixes the model borrowing the player's sex). The
+victim is excluded from the captor's-men / humiliation tallies (`CountAggressorWitnesses`). (d) **Continue-sequence
+quality:** the in-scene Continue stimulus + the "Please continue" resume text now push ADVANCE + fresh vivid
+description + NO verbatim reuse (the repetition/flat faults Gabriel saw). The continuation stimulus is extracted to
+`CaptiveSceneText.BuildContinuationStimulus` so the new self-tests exercise the exact runtime prompt. New LLM
+self-tests `chat_captive_continue` (opener + 4 Continue beats → asserts every beat replied + NO 6-word verbatim
+phrase reused across beats, logs description coverage for human judgement) and `chat_companion_continue` (same, plus
+asserts the companion is actually VOICED in its own `[WITNESS_REACTION]` lines + a gender-correctness judge note).
+**OPEN:** richer per-victim captivity memory at scene close (today the victim gets none — a Phase-2 revenge hook);
+the companion-scene auto-fire still console-only.
 
 **Companions (the 2026-06-23 trilogy, untested)** — **missions** (news / spy / steal / barter / envoy — a
 real physical journey: the companion leaves as a clan party, rides to a town, returns and reports in
@@ -325,6 +345,68 @@ transfer step). The OUTCOME is REAL combat, never a roll: the errand party fight
 → loot/prisoners come home, defeat → the companion is taken (the existing capture-resilience path). Reuses the
 journey skeleton + capture; adds a target/sector resolver and the troop transfer. Risk scales with the force
 given. Pairs with companion happiness (sending people to die unhappily costs you).
+
+### Companion war-weariness & honorable retirement *(wished 2026-06-30, Gabriel — design only, nothing built)*
+
+**The idea:** a companion who fights at your side for years accumulates the TOLL of war, and a spent veteran
+eventually wants out. This is a **SEPARATE axis from happiness** (`CompanionHappiness`) — and keeping them
+separate is the whole point:
+
+| | Happiness / contentment *(shipped)* | War-weariness *(this)* |
+|---|---|---|
+| Nature | mood, **reversible** (drifts back to baseline) | accumulated combat toll, **climbs** with blood spilled |
+| Cause | pay, idleness, errands, treatment | verified battle events — wounds, captures |
+| End state | **bitter** departure ("I quit") | **dignified** retirement ("I have done my part") |
+
+A veteran can be **devoted AND worn out** — folding weariness into happiness would wrongly read them as
+"disgruntled." So this is its own gauge, ending in an honorable exit, not a resentful one.
+
+**Drivers — verified deeds, never words** (the mod's core discipline): the score rises on real game events —
+**wounded in battle ≈ +1, taken prisoner ≈ +10** (tunable). **Valor / hardiness slows accrual** (a brave soul
+wears slower; a gentle one faster). NB: a capture hits BOTH axes (happiness `Captured` −12 *and* weariness +10)
+— realistic, and deliberate, not double-counting to remove.
+
+**The fief / governor gate — the strategic heart *(Gabriel's key refinement)*:** a companion who is
+**materially invested in the clan does NOT leave** — they hold a fief or **govern a settlement**
+(`Hero.GovernorOf != null`, or lead a party), and draw benefit from your campaign, so they stay. Only the
+**landless, roleless** companions are ever at risk. In play this asks the player to EXPAND and grant fiefs to
+secure their veterans — early game they are at risk (tension), late game securing them rewards success, and
+because fiefs are scarce there is always a pool at risk. This gate also **defends against a vanilla pitfall by
+construction**: a landed clan member who leaves can spawn/join a rival faction — never allowing the landed to
+leave sidesteps that entirely.
+
+**Two differentiated OUTCOMES by landedness** (so weariness always lands narratively, but never destabilizes
+the realm):
+- **Landless + worn out** → asks to leave your service: a warm farewell, out of the clan (contrast to the
+  happiness system's bitter departure). Nothing left to re-add.
+- **Landed / governor + worn out** → asks to **step back from the field** and see to their fief: stays in the
+  clan as a governor, off the battlefield. A tired veteran becomes a settled administrator.
+
+**Coherence — soft enforcement, NOT a hard lock *(decided 2026-06-30)*:** the re-enrolment hole ("vanilla lets
+the player just put the benched governor back in a party") is handled the CR way — the mod owns a persistent
+"stepped back from war" flag on `NpcProfile`; a daily tick that finds a flagged retiree back in a party **sends
+them home** ("he has seen enough war; he rides back to <town>"), and **forcing a spent veteran back repeatedly
+CONVERTS weariness into genuine unhappiness** — the warm retirement curdles into a real departure and they leave
+for good. You *can* drag them back (vanilla allows it), but you use them up. A hard Harmony button-block was
+**considered and rejected** as invasive, patch-fragile, and un-CR: the world reasserts the fiction instead of
+fighting the engine.
+
+**Architecture (matches the pillar):** a pure `WarWearinessPolicy` in `CalradiaRemembers.Logic` (thresholds,
+trait scaling, outcome-by-landedness, and any decay) — unit-tested; engine glue = campaign-event hooks for
+hero-wounded + hero-prisoner-taken (player-clan only), persistence of the score + retired flag on `NpcProfile`,
+and a conversation surface that reuses the existing happiness grievance/departure plumbing (a retirement request
+the player answers).
+
+**OPEN questions to settle before building:**
+- **Decay or monotonic?** Does weariness ease with real REST (peacetime / benched / garrisoned), or only ever
+  climb? (Leaning decay — otherwise the whole roster inevitably retires; rest-to-recover creates a manageable
+  rotation dynamic.)
+- **A player lever?** Can the player persuade a retiring companion into "one more campaign" (a bonus / relation
+  cost, with diminishing returns), or is the decision final once made?
+- **Precise definition of "invested"** for the gate: governor only, or also "leads a party" / "holds a fief" at
+  the clan sense — pick the exact checkable condition.
+- **Other wear sources?** Witnessing a fellow companion die, long unbroken campaigns, crushing defeats — richer,
+  but scope creep; note and defer.
 
 ### Custom hand-made portraits — letter window, chat window, player *(wished 2026-06-21, broadened 2026-06-24)*
 
@@ -586,9 +668,18 @@ custody stays with the band; all captive scenes use a neutral player-POV narrato
 OPEN — the refinements before removing the toggle:
 1. **Custody transfer to the lord** when he sits in his town: `TakePrisonerAction` on his in-settlement party does
    not "hold" (`held=False`), so the player stays the band's prisoner (harmless now that the paymaster visits
-   regardless, but the proper lord-imprisonment / ransom disposition is unfinished).
-2. **Fleeing townsfolk** during the street fight (atmosphere; see Smaller polish).
-3. Then **remove the toggle** (CrSettings + ModSettings + the two gates in `TownAmbushBehavior`).
+   regardless, but the proper lord-imprisonment / ransom disposition is unfinished). **Decided 2026-06-30: SHIP the
+   band-custody fallback as the intended disposition for a town-sitting lord (a hired band holds you until ransom /
+   escape) — not a blocker.**
+2. ~~**Fleeing townsfolk**~~ **MOOT + REPLACED — DONE 2026-06-30.** The brawl plays at the GATE (outside the walls),
+   so there is no townsfolk crowd — but there are a gate guard or two. `AmbushFightMissionLogic.SendBystandersFleeing`
+   now scatters them when the fight starts: any human agent in the scene who is not a combatant (guard / stray
+   civilian) is made **invulnerable** (a slain guard = a crime / odd mission end), sent **running away from the
+   player** on the navmesh (reusing the file's navmesh helpers), then **faded out** ~2.5s later. UNTESTED in game.
+3. Then **remove the toggle** — the last step, gated on Gabriel **playtesting the 2026-06-30 refinement lot in game**
+   (force scaling / elite chief / companions-captured are BUILT but UNTESTED). Removal = `CrSettings.TownAmbushEnabled`
+   + `ModSettings.TownAmbushEnabled` + the two gates in `TownAmbushBehavior` (l.118 `IsEntryBlocked`, l.165
+   `DecidePlayerTownEntry`).
 Console `cr.ambush`.
 
 ### Jealousy — the competition loop and the duel *(v1 shipped; escalation deferred)*
@@ -631,17 +722,14 @@ The marriage chain (family-approval, consorts, by-letter, jealousy) is shipped. 
   `Scene.GetPathDistanceBetweenPositions` confirms a real path (rejecting blocked / disconnected spots and ones
   reachable only by a long detour). A fan of angle offsets + a few radii (ideal ~20m) dodges a wall; a
   toward-the-player navmesh fallback covers the rare total miss. `cr.ambush` to test in game.
-- **Fleeing townsfolk during the town ambush** *(wished 2026-06-28)*: atmosphere for the alley-fight ambush —
-  a few civilians who scatter the moment the knives come out, so it reads as a real event in a living town, not
-  a duel in an empty alley. Bannerlord does not do this natively for an alley fight, but it is buildable.
-  **Shape:** `Mission.SpawnAgent` a handful of unarmed `Civilian(true)` agents on a NEUTRAL non-combatant
-  `Team`, so they never count toward the win/lose condition (and our capture is keyed on the player going down,
-  not an enemy count, so they are harmless to it). On the ambush trigger (already detected in
-  `AmbushFightMissionLogic`), each flees: pick a navmesh point away from the player (reuse the new reachability
-  helper), `SetScriptedPosition` at a run + panic anim, then `FadeOut` once they reach the edge. **Gotchas to
-  spike:** scene room for spawn + flee points in a tight alley; make them `Invulnerable` / fade fast so a stray
-  blow causes no crime penalty or odd mission end; 3-5 max (perf is a non-issue). A NEW feature, not ambush
-  polish — sequence it AFTER the navmesh-placement fix ships.
+- ~~**Fleeing townsfolk during the town ambush**~~ *(wished 2026-06-28)* — **RESHAPED + DONE 2026-06-30 (untested
+  in game).** The brawl plays at the GATE, outside the walls (the player spawns there; snapping to the walkable
+  centroid dragged them past the gatehouse), so there is no townsfolk crowd to scatter — only the gate guard or
+  two. Rather than SPAWN civilians, `AmbushFightMissionLogic.SendBystandersFleeing` makes the guards/civilians
+  ALREADY present flee: at fight-start, every human agent that is not a combatant (not the player, an ambusher, or
+  an ally) is set `Agent.MortalityState.Invulnerable` (a slain guard = a crime / odd mission end), sent running
+  away from the player via `SetScriptedPosition` onto a navmesh point + `SetWatchState(Alarmed)`, then `FadeOut`
+  ~2.5s later (`TickBystanderFlee`). No spawn, no team plumbing, no win/lose interference. `cr.ambush` to see it.
 - **Configurable LLM response timeout** *(player bug 2026-06-28, BUILT)*: a player on longer messages hit
   "LLM Call Failed in 100008ms: A Task was cancelled" — the HttpClient default 100s timeout firing when a long
   prompt makes a slow/reasoning model think past it. Now the per-request timeout is enforced in the SDK via a

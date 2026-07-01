@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.Dynasty;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
@@ -90,6 +91,8 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("chat_captor_cnc",      Severity.Light,    "LLM: 3-beat sexual coercion (Hardcore) -> does the NPC play CNC reactions in character, never breaking?",   TestChatCaptorCnc,   callsLlm: true),
             new SelfTest("chat_captor_cnc_mf",   Severity.Light,    "LLM: CNC with a MALE captor and FEMALE prisoner (gender forced) -> in-character reactions?",              TestChatCaptorCncMF, callsLlm: true),
             new SelfTest("chat_captor_group",    Severity.Light,    "LLM: GROUP CNC — player + 2 companions vs a female prisoner -> does she react to being outnumbered?",     TestChatCaptorGroup, callsLlm: true),
+            new SelfTest("chat_captive_continue", Severity.Light,   "LLM: a captive scene OPENER + several Continue beats -> assert each beat advances, is described, and never repeats (the reported Continue-quality faults)", TestChatCaptiveContinue, callsLlm: true),
+            new SelfTest("chat_companion_continue", Severity.Light, "LLM: a COMPANION-VICTIM scene OPENER + Continue beats -> assert the victim is voiced (own lines), correctly gendered, and beats don't repeat", TestChatCompanionContinue, callsLlm: true),
         };
 
         // ── Public API (cr.testall / cr.test) ─────────────────────────────────
@@ -1282,6 +1285,223 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"CNC scene with {npc.Name}; judge in log: does the NPC play resistance/shame/fear/reluctant compliance in character, never breaking the scene?{note}");
             t.Expect("threeBeatsReplied", replied, true);
             return t.Line();
+        }
+
+        /// <summary>
+        ///   QUALITY (the Continue sequence): plays a captive-scene OPENER then several in-scene "Continue" beats
+        ///   exactly as the runtime does (advancing the director, sending the shared continuation stimulus), then
+        ///   judges the two faults a player reported — verbatim repetition between beats and missing description —
+        ///   programmatically, and logs every beat for human judgement.
+        /// </summary>
+        private static string TestChatCaptiveContinue(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_captive_continue");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to play the captor")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+
+            var (ran, beats) = RunCaptiveContinueBeats(
+                behavior, "chat_captive_continue", npc, profile, CaptiveSceneIntent.Domination, continueBeats: 4);
+            if (t.Abort(!ran, "LLM call failed")) return t.Line();
+
+            JudgeContinueQuality(t, beats);
+            t.Note($"{beats.Count}-beat captive Continue sequence with {npc.Name}; judge in log: every beat ADVANCES, " +
+                   "is vividly described, and never repeats an earlier image or line.");
+            return t.Line();
+        }
+
+        /// <summary>
+        ///   QUALITY (the companion-victim scene): the same Continue sequence, but the victim is a real companion
+        ///   held alongside the player. Asserts the companion is actually VOICED (their own [WITNESS_REACTION]
+        ///   lines appear), on top of the advance/no-repeat quality checks. Gender correctness is logged for human
+        ///   judgement (the model must use the companion's gender, never the player's).
+        /// </summary>
+        private static string TestChatCompanionContinue(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_companion_continue");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            Hero npc = ConversationNpc();
+            if (t.Skip(npc == null, "no NPC to play the captor")) return t.Line();
+
+            Hero victim = Clan.PlayerClan?.Companions?.FirstOrDefault(h => h is {IsAlive: true} && h != npc)
+                       ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != npc && h.IsAlive);
+            if (t.Skip(victim == null, "no second hero to play the captive companion")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            var witnesses = new List<WitnessEntry> {
+                new() {
+                    Name = victim.Name?.ToString(),
+                    RelationToNpc = "the player's captive companion, bound and at your mercy",
+                    HeroStringId = victim.StringId,
+                    IsPlayerCompanion = true,
+                    IsCaptiveVictim = true
+                }
+            };
+
+            var (ran, beats) = RunCaptiveContinueBeats(
+                behavior, "chat_companion_continue", npc, profile, CaptiveSceneIntent.Torture, continueBeats: 4,
+                victimName: victim.Name?.ToString(), victimIsFemale: victim.IsFemale, witnesses: witnesses);
+            if (t.Abort(!ran, "LLM call failed")) return t.Line();
+
+            int voiced = beats.Count(b => b.WitnessReactions != null && b.WitnessReactions.Any(w =>
+                !string.IsNullOrWhiteSpace(w.Text) && !string.IsNullOrWhiteSpace(w.Name)
+                && w.Name.IndexOf(victim.Name?.ToString() ?? "@@", StringComparison.OrdinalIgnoreCase) >= 0));
+
+            JudgeContinueQuality(t, beats);
+            t.Expect("victimVoiced", voiced > 0, true);
+            t.Note($"companion victim {victim.Name} ({(victim.IsFemale ? "female" : "male")}) held by {npc.Name}; " +
+                   $"victim spoke in {voiced}/{beats.Count} beats; judge in log: the companion has a real voice " +
+                   "(cries/pleas/defiance) and is referred to with THEIR OWN gender, never the player's.");
+            return t.Line();
+        }
+
+        /// <summary>Records the shared Continue-quality assertions: every beat replied, and no verbatim phrase reuse.</summary>
+        private static void JudgeContinueQuality(TestRun t, List<ParsedResponse> beats)
+        {
+            bool allReplied = beats.All(b =>
+                !string.IsNullOrWhiteSpace(b?.Dialogue) || !string.IsNullOrWhiteSpace(b?.Narration));
+            var texts = beats.Select(b => $"{b?.Dialogue} {b?.Narration}").ToList();
+            int repeats = CountRepeatedBeats(texts);
+            int described = beats.Count(b => (b?.Narration?.Trim().Length ?? 0) >= 60);
+
+            t.Note($"describedBeats={described}/{beats.Count} (>=60 chars of [NARRATION])");
+            t.Expect("allBeatsReplied", allReplied, true);
+            t.Expect("noVerbatimRepeats", repeats, 0);
+        }
+
+        /// <summary>
+        ///   Plays an opener + <paramref name="continueBeats" /> Continue beats through the real pipeline against a
+        ///   shared session, driving the same <see cref="CaptiveSceneDirector" /> the runtime uses so the system
+        ///   prompt's stage progression is faithful. Returns the parsed response of each beat (opener first).
+        /// </summary>
+        private static (bool ran, List<ParsedResponse> beats) RunCaptiveContinueBeats(
+            NpcMemoryCampaignBehavior behavior, string label, Hero npc, NpcProfile profile,
+            CaptiveSceneIntent intent, int continueBeats,
+            string victimName = null, bool victimIsFemale = false, IReadOnlyList<WitnessEntry> witnesses = null)
+        {
+            var session = new ChatSession();
+            var director = new CaptiveSceneDirector(false, 0, MBRandomSource.Instance);
+            var beats = new List<ParsedResponse>();
+
+            // Beat 0 — the opener (the captor speaks first), exactly as ActivateCaptiveEncounterMode seeds it.
+            string opener = CaptiveSceneText.BuildCaptiveOpener(false, intent) + CaptiveSceneText.BuildSceneSetup();
+            if (!RunOneCaptiveBeat(behavior, $"{label}/open", npc, profile, intent, director, opener, session, beats,
+                    victimName, victimIsFemale, witnesses))
+                return (false, beats);
+
+            // Continue beats — advance the director and send the shared continuation stimulus, mirroring
+            // RunCaptiveSceneContinuationAsync. Stop early if the director concludes.
+            for (var i = 0; i < continueBeats; i++)
+            {
+                director.AdvanceStory();
+                string stimulus = CaptiveSceneText.BuildContinuationStimulus();
+                if (!RunOneCaptiveBeat(behavior, $"{label}/cont{i + 1}", npc, profile, intent, director, stimulus, session, beats,
+                        victimName, victimIsFemale, witnesses))
+                    return (false, beats);
+
+                if (director.IsConcluding) break;
+            }
+
+            return (true, beats);
+        }
+
+        /// <summary>One captive beat: builds the runtime context for the director's current stage and runs it.</summary>
+        private static bool RunOneCaptiveBeat(
+            NpcMemoryCampaignBehavior behavior, string label, Hero npc, NpcProfile profile,
+            CaptiveSceneIntent intent, CaptiveSceneDirector director, string stimulus, ChatSession session,
+            List<ParsedResponse> beats, string victimName, bool victimIsFemale, IReadOnlyList<WitnessEntry> witnesses)
+        {
+            var ctx = EncounterContextBuilder.Build(
+                npc, profile, behavior.GameStateBridge, stimulus,
+                witnesses,
+                isCollectiveCaptiveScene: false,
+                playerStatusOverride: PlayerStatusVsNpc.Captive,
+                captiveIntent: intent,
+                sceneStage: director.CurrentStage,
+                aggressorKind: director.CurrentAggressor,
+                captiveVictimName: victimName,
+                captiveVictimIsFemale: victimIsFemale);
+
+            var (ok, resp, err) = AskLlmParsed(behavior, label, npc, profile, ctx, stimulus, session);
+            if (!ok) { ModLog.Error($"[SELFTEST] {label} failed: {err}"); return false; }
+            beats.Add(resp);
+
+            return true;
+        }
+
+        /// <summary>How many beats reuse a long verbatim phrase (6+ contiguous words) from an EARLIER beat — the looping fault.</summary>
+        private static int CountRepeatedBeats(List<string> texts)
+        {
+            var norm = texts.Select(NormalizeForCompare).ToList();
+            var repeats = 0;
+            for (var i = 1; i < norm.Count; i++)
+                for (var j = 0; j < i; j++)
+                    if (SharesLongPhrase(norm[i], norm[j])) { repeats++; break; }
+
+            return repeats;
+        }
+
+        /// <summary>Lowercases and strips everything but letters/digits to spaces, so phrase comparison ignores punctuation/case.</summary>
+        private static string NormalizeForCompare(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "";
+            var sb = new StringBuilder(s.Length);
+            foreach (char c in s.ToLowerInvariant())
+                sb.Append(char.IsLetterOrDigit(c) ? c : ' ');
+
+            return sb.ToString();
+        }
+
+        /// <summary>True when the two normalized texts share any contiguous run of <paramref name="n" /> words (verbatim reuse).</summary>
+        private static bool SharesLongPhrase(string a, string b, int n = 6)
+        {
+            string[] wa = a.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+            string[] wb = b.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+            if (wa.Length < n || wb.Length < n) return false;
+
+            var grams = new HashSet<string>();
+            for (var i = 0; i + n <= wa.Length; i++)
+                grams.Add(string.Join(" ", wa, i, n));
+            for (var i = 0; i + n <= wb.Length; i++)
+                if (grams.Contains(string.Join(" ", wb, i, n))) return true;
+
+            return false;
+        }
+
+        /// <summary>Like <see cref="AskLlm" /> but returns the full parsed response (dialogue + narration + witness lines).</summary>
+        private static (bool ok, ParsedResponse resp, string error) AskLlmParsed(
+            NpcMemoryCampaignBehavior behavior, string label, Hero npc, NpcProfile profile, EncounterContext ctx, string question,
+            ChatSession session = null)
+        {
+            var services = behavior.LlmServices;
+            if (services is not {IsAvailable: true}) return (false, null, "LLM not configured");
+
+            var world = new WorldState { CurrentDay = behavior.GameStateBridge.GetCurrentGameDay() };
+            session ??= new ChatSession();
+
+            var llmTask = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, question, ctx));
+            if (!llmTask.Wait(TimeSpan.FromSeconds(90)))
+                return (false, null, "LLM call timed out after 90s (provider slow/hung, or a deadlock) — harness moved on");
+
+            var result = llmTask.GetAwaiter().GetResult();
+            if (result is not {IsSuccess: true}) return (false, null, result?.ErrorMessage ?? "no result");
+
+            ParsedResponse resp = result.Response ?? new ParsedResponse { Dialogue = "" };
+            string nar = resp.Narration ?? "";
+            string wr = resp.WitnessReactions is {Count: > 0}
+                ? string.Join(" | ", resp.WitnessReactions.Select(w => $"{w.Name}: {w.Text}"))
+                : "";
+
+            ModLog.Info($"[SELFTEST] {label} [model: {ModelLabel(behavior)}] — stimulus: {question}");
+            ModLog.Info($"[SELFTEST] {label} — {npc.Name}: {resp.Dialogue ?? ""}");
+            if (!string.IsNullOrWhiteSpace(nar)) ModLog.Info($"[SELFTEST] {label} — [NARRATION] {nar}");
+            if (!string.IsNullOrWhiteSpace(wr)) ModLog.Info($"[SELFTEST] {label} — [WITNESS] {wr}");
+
+            return (true, resp, null);
         }
 
         private static Hero ConversationNpc()

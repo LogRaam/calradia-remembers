@@ -18,6 +18,7 @@ using TaleWorlds.CampaignSystem.GameMenus;
 using TaleWorlds.CampaignSystem.GameState;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -320,12 +321,21 @@ namespace CalradiaRemembers.Stance
          Vec2 partyPos = convoy.GetPosition2D;
          ModLog.Info($"[AMBUSH] captor party spawned: id={convoy.StringId}, active={convoy.IsActive}, pos=({partyPos.x:0.0},{partyPos.y:0.0}), members={convoy.MemberRoster.TotalManCount}, leader={convoy.LeaderHero?.Name?.ToString() ?? "none"}.");
 
+         // Note who stood with the player BEFORE the capture flips the party — they are taken too (a lost fight
+         // takes your retinue), so the lord can later play them off against the player in captivity.
+         List<Hero> companions = CollectPartyCompanions();
+
          TakePrisonerAction.Apply(convoy.Party, Hero.MainHero); // also flips the player into captive state (StartCaptivity)
 
-         InformationManager.DisplayMessage(new InformationMessage(
-            "You come to, bound and disarmed in the back of a cart. The cutthroats are carrying you off to whoever paid them.", Colors.Red));
+         int takenWith = CaptureCompanions(convoy, companions);
 
-         ModLog.Info($"[AMBUSH] after capture: IsPrisoner={Hero.MainHero.IsPrisoner}, IsCaptive={PlayerCaptivity.IsCaptive}, captor={PlayerCaptivity.CaptorParty?.Name?.ToString() ?? "none"}.");
+         InformationManager.DisplayMessage(new InformationMessage(
+            takenWith > 0
+               ? "You come to, bound and disarmed in the back of a cart, your companions taken with you. The cutthroats are carrying you all off to whoever paid them."
+               : "You come to, bound and disarmed in the back of a cart. The cutthroats are carrying you off to whoever paid them.", Colors.Red));
+
+         ModLog.Info($"[AMBUSH] after capture: IsPrisoner={Hero.MainHero.IsPrisoner}, IsCaptive={PlayerCaptivity.IsCaptive}, " +
+                     $"captor={PlayerCaptivity.CaptorParty?.Name?.ToString() ?? "none"}, companionsTaken={takenWith}.");
 
          if (destination != null) TravelingParty.DirectToSettlement(convoy, destination);
          else if (paymaster.PartyBelongedTo != null) convoy.SetMoveEscortParty(paymaster.PartyBelongedTo, MobileParty.NavigationType.Default, false);
@@ -338,6 +348,43 @@ namespace CalradiaRemembers.Stance
          // Vanilla captivity can leave the map paused; keep the clock running so the captor convoy actually moves
          // toward the paymaster (and OnHourlyTick keeps re-steering it). Released when the convoy ends.
          ForceTimeRunning();
+      }
+
+      /// <summary>The player's companions standing in the party at the moment of capture (alive, not already taken).</summary>
+      private static List<Hero> CollectPartyCompanions()
+      {
+         var companions = new List<Hero>();
+         TroopRoster roster = MobileParty.MainParty?.MemberRoster;
+         if (roster == null) return companions;
+
+         foreach (TroopRosterElement e in roster.GetTroopRoster())
+         {
+            Hero h = e.Character?.HeroObject;
+            if (h != null && h != Hero.MainHero && h.IsPlayerCompanion && h.IsAlive && !h.IsPrisoner) companions.Add(h);
+         }
+
+         return companions;
+      }
+
+      /// <summary>Takes the player's companions prisoner into the same captor convoy. Returns how many were taken.</summary>
+      private static int CaptureCompanions(MobileParty convoy, List<Hero> companions)
+      {
+         if (convoy == null || companions == null || companions.Count == 0) return 0;
+
+         var taken = 0;
+         foreach (Hero h in companions)
+         {
+            try
+            {
+               TakePrisonerAction.Apply(convoy.Party, h);
+               if (h.IsPrisoner) taken++;
+            }
+            catch (Exception ex) { ModLog.Error($"[AMBUSH] failed to take companion {h.Name} prisoner: {ex.GetType().Name}: {ex.Message}"); }
+         }
+
+         ModLog.Info($"[AMBUSH] companions taken prisoner alongside the player: {taken}/{companions.Count}.");
+
+         return taken;
       }
 
       /// <summary>

@@ -1165,6 +1165,83 @@ namespace CalradiaRemembers
          return $"Captive scene opened with {captor.Name}.{genderNote} " + $"{(collective ? "collective" : "solo")} [{intent}].{adultWarning}";
       }
 
+      /// <summary>
+      ///   cr.companion_scene [torment|assault|coerce] [victim:Name] [captorName]
+      ///   Opens a COMPANION-VICTIM captive scene: the captor works on one of your companions while you are made
+      ///   to watch (torment / assault) or are forced to act (coerce). Forces PlayerStatus = Captive so the rules
+      ///   land without a real capture. Hardcore unlocks the explicit layer; otherwise it stays a tense scene.
+      ///   - victim: a companion-name fragment; defaults to the first companion of your clan, else "your companion".
+      ///   - captorName: captor name fragment (defaults to the current conversation NPC).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("companion_scene", "cr")]
+      public static string LaunchCompanionScene(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         if (behavior.LlmServices is not {IsAvailable: true})
+            return "LLM services not available. Set your OpenRouter API key first.";
+
+         CompanionSceneKind kind = CompanionSceneKind.CaptorTorments;
+         string victimFragment = null;
+         var nameTokens = new List<string>();
+         foreach (string arg in args ?? new List<string>())
+            if (arg.Equals("torment", StringComparison.OrdinalIgnoreCase)) kind = CompanionSceneKind.CaptorTorments;
+            else if (arg.Equals("assault", StringComparison.OrdinalIgnoreCase)) kind = CompanionSceneKind.SoldiersAssault;
+            else if (arg.Equals("coerce", StringComparison.OrdinalIgnoreCase)) kind = CompanionSceneKind.PlayerCoerced;
+            else if (arg.StartsWith("victim:", StringComparison.OrdinalIgnoreCase)) victimFragment = arg.Substring("victim:".Length);
+            else nameTokens.Add(arg);
+
+         Hero captor = ResolveHero(nameTokens);
+         if (captor == null)
+            return "No captor found. Pass a name fragment or start a conversation first.";
+
+         Hero victim = ResolveCompanionVictimHero(victimFragment);
+         if (victim == null)
+            return "No companion in your clan to use as the victim. Recruit one first, or pass victim:<name> matching a clan companion.";
+         NpcProfile captorProfile = GetOrCreateProfile(behavior, captor);
+
+         bool collective = CompanionScenePolicy.IsCollective(kind);
+         bool coerced = CompanionScenePolicy.IsPlayerCoerced(kind);
+         var intent = kind == CompanionSceneKind.CaptorTorments ? CaptiveSceneIntent.Torture : CaptiveSceneIntent.Domination;
+
+         var witnesses = new List<WitnessEntry>();
+         if (collective)
+            witnesses.AddRange(new[] {
+               new WitnessEntry {
+                  Name = "A soldier", RelationToNpc = "one of your men, present on your orders",
+                  Persona = "Brutal — eager to set upon the prisoner on your word"
+               },
+               new WitnessEntry {
+                  Name = "Another soldier", RelationToNpc = "one of your men, present on your orders",
+                  Persona = "Cold — does what you order without a flicker"
+               }
+            });
+
+         string adultWarning = ModSettings.AdultContentLevel != AdultContentLevel.Hardcore
+            ? " (NOTE: adult level is not Hardcore — the explicit layer will NOT appear; set it in MCM.)"
+            : "";
+
+         ChatManager.OpenForCaptiveEncounter(captor, captorProfile, witnesses, collective, intent, null, victim, coerced);
+
+         return $"Companion scene opened: {captor.Name} vs {victim.Name} [{kind}].{adultWarning}";
+      }
+
+      /// <summary>The companion Hero to use as the scene's victim: a clan companion, name-matched if given, else the first.</summary>
+      private static Hero ResolveCompanionVictimHero(string fragment)
+      {
+         List<Hero> companions = Clan.PlayerClan?.Companions?.Where(h => h is {IsAlive: true}).ToList() ?? new List<Hero>();
+
+         if (!string.IsNullOrWhiteSpace(fragment))
+         {
+            Hero match = companions.FirstOrDefault(h =>
+               h.Name?.ToString().IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0);
+            if (match != null) return match;
+         }
+
+         return companions.Count > 0 ? companions[0] : null;
+      }
+
       /// <summary>cr.kinks [name] — list the NPC's current kinks and the valid kink names.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("kinks", "cr")]
       public static string ListKinks(List<string> args)

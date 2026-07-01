@@ -112,13 +112,6 @@ namespace CalradiaRemembers
       public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
 
       /// <summary>
-      ///   When true, the town-ambush street fight may spring on entering a town (still being polished). When
-      ///   false the whole feature is inert — no organic trigger, no gate hold. Read live from the MCM menu;
-      ///   OFF by default. (The cr.ambush* console seams bypass this so the feature can still be tested.)
-      /// </summary>
-      public static bool TownAmbushEnabled => CrSettings.Instance?.TownAmbushEnabled ?? false;
-
-      /// <summary>
       ///   How long (seconds) to wait for an LLM reply before timing out. Read live from the MCM
       ///   menu; falls back to 120 when MCM has not loaded. Drives the per-request timeout so a slow
       ///   local/reasoning model on a long prompt no longer hits the opaque 100s HttpClient default.

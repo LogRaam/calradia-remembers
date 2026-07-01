@@ -111,7 +111,8 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private void ApplyPublicHumiliationPenalty()
       {
-         int witnessCount = _witnesses?.Count ?? 0;
+         // Only the captor's MEN form the shaming audience; the bound victim companion does not count.
+         int witnessCount = CountAggressorWitnesses();
 
          if (witnessCount <= 0) return;
 
@@ -154,7 +155,7 @@ namespace CalradiaRemembers.Chat
       private string BuildCaptiveBaseSummary(string intentVerb)
       {
          string player = Hero.MainHero?.Name?.ToString() ?? "the player";
-         string audience = _captiveEncounterIsCollective && (_witnesses?.Count ?? 0) > 0
+         string audience = _captiveEncounterIsCollective && CountAggressorWitnesses() > 0
             ? ", before my soldiers"
             : ", in private";
 

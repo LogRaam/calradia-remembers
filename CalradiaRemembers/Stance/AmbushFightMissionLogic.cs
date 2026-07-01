@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SandBox.Missions.MissionLogics;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
 using TaleWorlds.Engine;
 using TaleWorlds.Library;
 using TaleWorlds.MountAndBlade;
@@ -31,11 +32,19 @@ namespace CalradiaRemembers.Stance
       private static readonly float[] RingRadiusTries = {20f, 16f, 24f, 13f};
       private const int RingAngleJitterTries = 6;   // angles to try around each cutthroat's ideal slot before giving up
       private const float CombatantNavRadius = 0.4f; // person-sized clearance for the path-reachability check
-      private const float GroundBandZ = 3.5f;        // keep "town centre" to faces within this height of the (ground) gate spawn
+
+      // The gate guards (and any stray civilian) caught in the ambush scene: they scatter when the knives come
+      // out rather than wade into a pitched fight. Made invulnerable so a stray blow can't kill them (a slain
+      // townsguard would be a crime / could end the mission oddly), sent running from the player, then faded out.
+      private const float FleeFadeSeconds = 2.5f;
+      private readonly List<Agent> _fleeing = new List<Agent>();
+      private bool _fleeStarted;
+      private float _fleeElapsed;
 
       private readonly string _paymasterId;
       private readonly int _expectedCount;
       private bool _started;
+      private bool _resolved; // capture armed (or the player won) — guards against double-firing
       private int _waitTicks;
 
       public AmbushFightMissionLogic(string paymasterId, int expectedCount)
@@ -46,6 +55,8 @@ namespace CalradiaRemembers.Stance
 
       public override void OnMissionTick(float dt)
       {
+         TickBystanderFlee(dt); // fade fleeing gate guards once they've had a moment to scatter (runs post-start too)
+
          if (_started) return;
          if (Mission?.MainAgent == null) return;
 
@@ -86,66 +97,91 @@ namespace CalradiaRemembers.Stance
             return;
          }
 
-         // Move the player into the heart of the town (they spawn at the gate), then ring the cutthroats ~20m off
-         // on the navmesh, so the ambush reads as figures closing in from across the square, not a huddle on top
+         // The ambush plays out at the town gate, where the player spawns: snapping them to the navmesh "centre"
+         // dragged them outside the walls (the ground-level centroid lands beyond the gatehouse), so we keep the
+         // gate spot and ring the cutthroats ~20m off on the navmesh — figures closing in, not a huddle on top
          // of the player.
-         MoveToTownCentre(Mission.MainAgent);
          PositionAround(Mission.MainAgent, ambushers);
 
          var playerSide = new List<Agent> {Mission.MainAgent};
+         playerSide.AddRange(TownAmbushBehavior.AllyAgents.Where(a => a != null && a.IsActive()));
+
          fight.StartCustomFight(playerSide, ambushers, dropWeapons: false, isItemUseDisabled: false, OnFightEnd);
-         ModLog.Info($"[AMBUSH] street brawl started — {ambushers.Count} cutthroat(s) vs the player.");
+         ModLog.Info($"[AMBUSH] street brawl started — {ambushers.Count} attacker(s) vs the player and " +
+                     $"{playerSide.Count - 1} companion(s).");
+
+         SendBystandersFleeing(playerSide, ambushers);
       }
 
       /// <summary>
-      ///   Teleports the player from the gate (where the town-centre mission spawns them) into the heart of the
-      ///   town: the centroid of the GROUND-LEVEL walkable area, snapped to the nearest actual face centre so it
-      ///   is guaranteed on the navmesh and lands in the streets/square. Only faces within a small height band of
-      ///   the (ground-level) gate spawn are counted, so the walls/ramparts — walkable navmesh that otherwise
-      ///   dragged the average up onto the battlements — are excluded. Fail-soft: no navmesh, the player stays put.
+      ///   The knives are out: any human agent in the scene who is NOT a combatant (the gate guard or two, a
+      ///   stray civilian) scatters rather than joining the brawl. Each is made invulnerable, sent running away
+      ///   from the player on the navmesh, and faded out a couple of seconds later by <see cref="TickBystanderFlee" />.
       /// </summary>
-      private static void MoveToTownCentre(Agent player)
+      private void SendBystandersFleeing(List<Agent> playerSide, List<Agent> ambushers)
       {
-         Scene scene = Mission.Current?.Scene;
-         if (player == null || scene == null) return;
-
-         int faceCount = scene.GetNavMeshFaceCount();
-         if (faceCount <= 0) { ModLog.Info("[AMBUSH] no navmesh faces — the player stays at the gate."); return; }
-
-         float groundZ = player.Position.z; // the player spawns at the gate, on the ground
-
-         var centres = new List<Vec3>(faceCount);
-         Vec3 sum = Vec3.Zero;
-         for (var f = 0; f < faceCount; f++)
-         {
-            Vec3 c = Vec3.Zero;
-            scene.GetNavMeshCenterPosition(f, ref c);
-            if (!c.IsValid) continue;
-            if (Math.Abs(c.z - groundZ) > GroundBandZ) continue; // skip ramparts / elevated walkways
-            centres.Add(c);
-            sum += c;
-         }
-
-         if (centres.Count == 0) { ModLog.Info("[AMBUSH] no ground-level navmesh centres — the player stays at the gate."); return; }
-
-         Vec3 average = sum * (1f / centres.Count);
-
-         // Snap the (possibly between-faces) average to the nearest real face centre.
-         Vec3 best = centres[0];
-         float bestDistSq = float.MaxValue;
-         foreach (Vec3 c in centres)
-         {
-            float d = c.AsVec2.DistanceSquared(average.AsVec2);
-            if (d < bestDistSq) { bestDistSq = d; best = c; }
-         }
-
          try
          {
-            float moved = player.Position.AsVec2.Distance(best.AsVec2);
-            player.TeleportToPosition(best);
-            ModLog.Info($"[AMBUSH] player moved to the town centre ({moved:0.0}m, from {centres.Count} ground-level navmesh faces).");
+            Mission m = Mission.Current;
+            if (m?.MainAgent == null) return;
+
+            var combatants = new HashSet<Agent>();
+            foreach (Agent a in playerSide) if (a != null) combatants.Add(a);
+            foreach (Agent a in ambushers) if (a != null) combatants.Add(a);
+
+            Scene scene = m.Scene;
+            Vec2 centre = m.MainAgent.Position.AsVec2;
+
+            foreach (Agent agent in m.Agents.ToList())
+            {
+               if (agent == null || !agent.IsActive() || !agent.IsHuman || combatants.Contains(agent)) continue;
+
+               FleeOne(agent, scene, centre);
+               _fleeing.Add(agent);
+            }
+
+            _fleeStarted = true;
+            if (_fleeing.Count > 0)
+               ModLog.Info($"[AMBUSH] {_fleeing.Count} bystander(s) at the gate flee the ambush.");
          }
-         catch (Exception ex) { ModLog.Error($"[AMBUSH] centre teleport failed: {ex.GetType().Name}: {ex.Message}"); }
+         catch (Exception ex) { ModLog.Error($"[AMBUSH] bystander flee failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>Marks one bystander invulnerable and sends them running to a navmesh point away from the fight.</summary>
+      private static void FleeOne(Agent agent, Scene scene, Vec2 centre)
+      {
+         try
+         {
+            agent.SetMortalityState(Agent.MortalityState.Invulnerable); // a fleeing guard must not be cut down
+
+            Vec2 here = agent.Position.AsVec2;
+            Vec2 away = here - centre;
+            if (away.Length < 0.01f) away = new Vec2(1f, 0f);
+            away.Normalize();
+
+            WorldPosition dest = agent.GetWorldPosition();
+            dest.SetVec2(here + away * 18f); // slide the away-point onto the navmesh
+            if (scene != null && dest.GetNavMesh() != UIntPtr.Zero)
+               agent.SetScriptedPosition(ref dest, false);
+
+            agent.SetWatchState(Agent.WatchState.Alarmed); // panic posture — run, don't fight
+         }
+         catch (Exception ex) { ModLog.Error($"[AMBUSH] flee one failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>Fades the fleeing bystanders out once they've had ~2.5s to clear the scene. One-shot.</summary>
+      private void TickBystanderFlee(float dt)
+      {
+         if (!_fleeStarted || _fleeing.Count == 0) return;
+
+         _fleeElapsed += dt;
+         if (_fleeElapsed < FleeFadeSeconds) return;
+
+         foreach (Agent a in _fleeing)
+            try { if (a != null && a.IsActive()) a.FadeOut(false, false); }
+            catch (Exception ex) { ModLog.Error($"[AMBUSH] fade fleeing guard failed: {ex.GetType().Name}: {ex.Message}"); }
+
+         _fleeing.Clear();
       }
 
       /// <summary>
@@ -203,13 +239,43 @@ namespace CalradiaRemembers.Stance
          return false;
       }
 
+      /// <summary>
+      ///   The player going down ends the mission on a vanilla "knocked unconscious" flow that returns to the town
+      ///   menu BEFORE the fight handler reports a loss — so OnFightEnd never fires and the capture is never armed.
+      ///   Catch the player's removal during the brawl and arm the capture here, so a beaten player is still taken.
+      /// </summary>
+      public override void OnAgentRemoved(Agent affectedAgent, Agent affectorAgent, AgentState agentState, KillingBlow blow)
+      {
+         if (!_started || _resolved) return;
+         if (affectedAgent == null || affectedAgent != Mission?.MainAgent) return;
+
+         ArmCapture("player went down");
+      }
+
       private void OnFightEnd(bool isPlayerSideWon)
       {
          ModLog.Info($"[AMBUSH] street brawl ended — player {(isPlayerSideWon ? "won" : "LOST")}.");
-         if (isPlayerSideWon) return;
+         if (isPlayerSideWon) { _resolved = true; return; }
+
+         ArmCapture("brawl lost");
+      }
+
+      /// <summary>Arms the post-mission capture by the paymaster, exactly once per ambush (idempotent).</summary>
+      private void ArmCapture(string reason)
+      {
+         if (_resolved) return;
+         _resolved = true;
 
          Hero paymaster = Hero.FindFirst(h => h != null && h.StringId == _paymasterId);
-         if (paymaster != null) AmbushCaptivityBehavior.Instance?.Capture(paymaster);
+         if (paymaster != null)
+         {
+            AmbushCaptivityBehavior.Instance?.Capture(paymaster);
+            ModLog.Info($"[AMBUSH] capture armed ({reason}) — paymaster {paymaster.Name}.");
+         }
+         else
+         {
+            ModLog.Error($"[AMBUSH] cannot arm capture ({reason}): paymaster id '{_paymasterId}' not found.");
+         }
       }
 
       #endregion

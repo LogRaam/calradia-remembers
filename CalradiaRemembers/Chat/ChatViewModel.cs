@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Items;
 using CalradiaRemembers.Logic;
@@ -92,6 +93,9 @@ namespace CalradiaRemembers.Chat
       private CaptiveSceneIntent _captiveEncounterIntent;
       private bool _captiveEncounterIsBandit; // captor is a faceless brigand, not a lord
       private bool _captiveEncounterIsCollective;
+      private string _captiveVictimName;      // set => the scene's victim is this companion, not the player
+      private bool _captivePlayerCoerced;     // with a victim: the player is forced to act, not just watch
+      private bool _captiveVictimIsFemale;    // the victim companion's gender, so the prompt uses the right pronouns
 
       // ── Sprint 17: captive encounter mode payload ────────────────────────
       // When opened from CaptiveEncounterService, the chat runs with the captor
@@ -394,7 +398,10 @@ namespace CalradiaRemembers.Chat
          NpcProfile captorProfile,
          bool isCollective,
          CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation,
-         bool captorIsBandit = false)
+         bool captorIsBandit = false,
+         string victimCompanionName = null,
+         bool playerCoerced = false,
+         bool victimIsFemale = false)
       {
          _mode = ChatMode.CaptiveEncounter;
          OnPropertyChanged(nameof(IsOfferItemVisible));
@@ -402,10 +409,14 @@ namespace CalradiaRemembers.Chat
          _captiveEncounterIsCollective = isCollective;
          _captiveEncounterIsBandit = captorIsBandit;
          _captiveEncounterIntent = intent;
+         _captiveVictimName = string.IsNullOrWhiteSpace(victimCompanionName) ? null : victimCompanionName.Trim();
+         _captivePlayerCoerced = playerCoerced && _captiveVictimName != null;
+         _captiveVictimIsFemale = victimIsFemale && _captiveVictimName != null;
          _captiveBeatCount = 0;
          // Build the scene's structure now: the lead's full arc, plus collective sub-acts when
-         // others are present. extraAggressors = the witnesses who can take a turn.
-         _director = new CaptiveSceneDirector(isCollective, _witnesses?.Count ?? 0, MBRandomSource.Instance);
+         // others are present. extraAggressors = the witnesses who can take a turn — the captor's MEN,
+         // never the bound victim companion (CountAggressorWitnesses excludes them).
+         _director = new CaptiveSceneDirector(isCollective, CountAggressorWitnesses(), MBRandomSource.Instance);
 
          AssignBanditWitnessPortraits(captorIsBandit);
 
@@ -480,6 +491,14 @@ namespace CalradiaRemembers.Chat
          CloseButtonText = "End";
          SendButtonText = "Send";
       }
+
+      /// <summary>
+      ///   How many witnesses are the captor's MEN — the ones who can take an aggressor turn and who form the
+      ///   shaming audience. Excludes the bound victim companion: they are present and voiced, but they are the
+      ///   target, never an aggressor or part of the crowd that humiliates the player.
+      /// </summary>
+      private int CountAggressorWitnesses()
+         => _witnesses?.Count(w => w != null && !w.IsCaptiveVictim) ?? 0;
 
       /// <summary>Adds a single witness to the session. Used by the console command for testing.</summary>
       public void AddWitness(WitnessEntry entry)
@@ -709,7 +728,7 @@ namespace CalradiaRemembers.Chat
 
          _conversationEnded = false;
          _captiveBeatCount = 0;
-         _director = new CaptiveSceneDirector(_captiveEncounterIsCollective, _witnesses?.Count ?? 0, MBRandomSource.Instance);
+         _director = new CaptiveSceneDirector(_captiveEncounterIsCollective, CountAggressorWitnesses(), MBRandomSource.Instance);
          IsPleaseContinueVisible = false;
          IsScenePaused = false;
          IsSendEnabled = false;

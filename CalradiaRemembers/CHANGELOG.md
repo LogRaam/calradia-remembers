@@ -2,6 +2,36 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.18.0.. 2026-06-30
+
+The town ambush leaves "experimental" behind and becomes a full feature.. and the people you fight beside, and
+the ones held with you, feel like real people now.
+
+### Changed
+- **The Town Ambush is now a full feature, on by default.** The experimental toggle is gone. A lord whose hatred
+  has turned murderous can hire blades to jump you as you walk into a town.. lose the street fight and his band
+  convoys you to him for a reckoning, after which he keeps visiting his prisoner. It only ever happens if you make
+  an enemy that bitter, so most playthroughs will never trip it.. but when you have earned someone's murderous
+  hatred, the streets are no longer safe.
+
+### New
+- **Ambushes scale to your retinue, and your companions share your fate.** The hired band is led by an elite of
+  the paymaster's own culture (a real soldier.. the tell that a lord, not a gang, is behind it), and its numbers
+  grow with how many stand at your side: a lone traveller faces a handful, a full retinue faces a small warband.
+  Any companions with you are cut down and **taken prisoner alongside you**, not left behind.
+- **The gate guards flee.** When the knives come out at the gate, the town guards scatter rather than wade into a
+  pitched ambush.. no bystanders caught in the crossfire, no odd interference with the fight.
+- **A companion held captive with you is a real presence in the scene.** In a captivity scene where the captor
+  works on one of your companions, that companion now has their **own portrait and their own voice**.. they cry
+  out, plead, curse, or defy on their own.. and they are always referred to with **their own gender**, never
+  confused with yours. No longer a nameless figure the story only talks about.
+
+### Notes
+- **Better "Continue" beats in captive scenes.** Pressing Continue now pushes the scene to move forward with fresh
+  description and stop repeating earlier lines and images.
+- **A small chat fix:** the "scroll down to read more" hint no longer flashes up the instant a reply is a line
+  longer than the window.. it shows only when there is a real block of text below the fold.
+
 ## v1.17.5.. 2026-06-29
 
 ### New

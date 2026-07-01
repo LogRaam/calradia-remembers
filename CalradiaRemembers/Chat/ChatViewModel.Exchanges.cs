@@ -65,8 +65,7 @@ namespace CalradiaRemembers.Chat
             // stimulus only nudges the model to perform it and not restart or repeat.
             _director?.AdvanceStory();
 
-            string stimulus =
-               "[Continue the scene from where you left off — do not restart. Perform ONLY the beat your " + "stage directive specifies this turn, and do not repeat any beat you have already played.]";
+            string stimulus = CaptiveSceneText.BuildContinuationStimulus();
 
             ChatSession session = BuildSessionFor(speaker);
             var world = new WorldState {
@@ -85,7 +84,10 @@ namespace CalradiaRemembers.Chat
                captiveIntent: _captiveEncounterIntent,
                captorIsBandit: _captiveEncounterIsBandit,
                sceneStage: _director?.CurrentStage ?? CaptiveSceneStage.Intensify,
-               aggressorKind: _director?.CurrentAggressor ?? CaptiveAggressorKind.Lead);
+               aggressorKind: _director?.CurrentAggressor ?? CaptiveAggressorKind.Lead,
+               captiveVictimName: _captiveVictimName,
+               playerCoercedAgainstCompanion: _captivePlayerCoerced,
+               captiveVictimIsFemale: _captiveVictimIsFemale);
 
             ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
             _messages.Add(placeholder);
@@ -144,6 +146,18 @@ namespace CalradiaRemembers.Chat
 
             if (!string.IsNullOrWhiteSpace(result.Response?.Narration))
                AppendNarration(result.Response.Narration);
+
+            // Witness reactions during a Continue beat — chiefly the captive companion's OWN voice (a sob, a
+            // plea, a curse) under their portrait. The main per-turn path collects these; the continuation
+            // never did, so a held companion fell silent the moment the player let the scene run. Display +
+            // commit them so the victim stays a person with a voice across the whole scene.
+            List<(string name, string heroId, string text)> sceneReactions = CollectWitnessReactions(result.Response);
+            foreach (var (wn, wh, wt) in sceneReactions)
+            {
+               AppendWitnessReaction(wn, wt, false);
+               RecordTranscript(false, wn, wh, wt);
+               ModLog.Info($"  [SCENE WITNESS] {wn}: \"{wt}\"");
+            }
 
             ModLog.Info($"[SCENE:{_sceneContinuations}] {speaker.Name}: \"{npcLine}\"");
             if (result.Usage != null)
@@ -346,7 +360,10 @@ namespace CalradiaRemembers.Chat
                playerStatusOverride: PlayerStatusVsNpc.Captive,
                captiveIntent: _captiveEncounterIntent,
                captorIsBandit: _captiveEncounterIsBandit,
-               sceneStage: CaptiveSceneStage.Conclude); // the escape beat is the scene's end
+               sceneStage: CaptiveSceneStage.Conclude, // the escape beat is the scene's end
+               captiveVictimName: _captiveVictimName,
+               playerCoercedAgainstCompanion: _captivePlayerCoerced,
+               captiveVictimIsFemale: _captiveVictimIsFemale);
 
             ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
             _messages.Add(placeholder);
@@ -463,7 +480,10 @@ namespace CalradiaRemembers.Chat
                captorIsBandit: IsCaptiveEncounter && _captiveEncounterIsBandit,
                sceneStage: _director?.CurrentStage ?? CaptiveSceneStage.Intro,
                aggressorKind: _director?.CurrentAggressor ?? CaptiveAggressorKind.Lead,
-               reactToPlayerIntervention: _director?.ReactToIntervention ?? false);
+               reactToPlayerIntervention: _director?.ReactToIntervention ?? false,
+               captiveVictimName: IsCaptiveEncounter ? _captiveVictimName : null,
+               playerCoercedAgainstCompanion: IsCaptiveEncounter && _captivePlayerCoerced,
+               captiveVictimIsFemale: IsCaptiveEncounter && _captiveVictimIsFemale);
 
             if (behavior.LlmServices is not {IsAvailable: true})
             {
@@ -974,7 +994,10 @@ namespace CalradiaRemembers.Chat
                   true,
                   isLast,
                   captiveIntent: _captiveEncounterIntent,
-                  captorIsBandit: IsCaptiveEncounter && _captiveEncounterIsBandit);
+                  captorIsBandit: IsCaptiveEncounter && _captiveEncounterIsBandit,
+                  captiveVictimName: IsCaptiveEncounter ? _captiveVictimName : null,
+                  playerCoercedAgainstCompanion: IsCaptiveEncounter && _captivePlayerCoerced,
+                  captiveVictimIsFemale: IsCaptiveEncounter && _captiveVictimIsFemale);
                // (15C witness exchange is gated off for captive scenes, so no stage is fed here.)
 
                ChatMessageViewModel placeholder = MakeSpeakerMessage(mainSpeaker, PlaceholderText);

@@ -1,6 +1,6 @@
 // Code written by Gabriel Mailhot, 27/06/2026.
-// Documents when a town ambush springs (a roll inside the spring chance) and how many cutthroats a paymaster
-// fields (scales with clan tier, bounded so a street ambush never becomes a battle).
+// Documents when a town ambush springs (a roll inside the spring chance), how many companions stand with the
+// player, and the attacking force it draws (one elite chief plus ~3 cutthroats per defender, nudged by ±1).
 
 #region
 
@@ -29,47 +29,70 @@ namespace CalradiaRemembers.Tests
             AmbushPolicy.ShouldSpring(99).Should().BeFalse();
         }
 
+        // ── Companions at the player's side (every party companion stands, capped) ──
+
         [Test]
-        public void GIVEN_a_lowly_paymaster_WHEN_counting_attackers_THEN_at_least_a_pair()
+        public void GIVEN_no_companions_in_the_party_WHEN_counting_the_side_THEN_the_player_stands_alone()
         {
-            AmbushPolicy.AttackerCount(0).Should().Be(2);
-            AmbushPolicy.AttackerCount(-3).Should().Be(2);
+            AmbushPolicy.CompanionsAtSide(0).Should().Be(0);
+            AmbushPolicy.CompanionsAtSide(-3).Should().Be(0);
         }
 
         [Test]
-        public void GIVEN_a_greater_house_WHEN_counting_attackers_THEN_more_blades_but_bounded()
+        public void GIVEN_companions_in_the_party_WHEN_counting_the_side_THEN_all_stand_up_to_the_cap()
         {
-            AmbushPolicy.AttackerCount(6).Should().Be(5);   // 2 + 6/2
-            AmbushPolicy.AttackerCount(100).Should().Be(6); // capped — a street, not a war
+            AmbushPolicy.CompanionsAtSide(1).Should().Be(1);
+            AmbushPolicy.CompanionsAtSide(3).Should().Be(3);
+            AmbushPolicy.CompanionsAtSide(5).Should().Be(AmbushPolicy.MaxCompanionsAtSide); // never more than the cap (3)
         }
 
-        // ── Companions at the player's side (weighted by how many are in the party) ──
+        // ── The attacking force: one chief + ~3 cutthroats per defender, nudged by ±1 ──
 
         [Test]
-        public void GIVEN_no_companions_in_the_party_WHEN_drawing_THEN_the_player_stands_alone()
+        public void GIVEN_the_player_alone_WHEN_sizing_the_force_THEN_a_chief_and_three_cutthroats()
         {
-            AmbushPolicy.CompanionsAtPlayerSide(0, 0).Should().Be(0);
-            AmbushPolicy.CompanionsAtPlayerSide(0, 99).Should().Be(0);
-        }
-
-        [Test]
-        public void GIVEN_a_single_companion_WHEN_drawing_THEN_at_most_one_joins_weighted()
-        {
-            AmbushPolicy.CompanionsAtPlayerSide(1, 0).Should().Be(1);   // low roll → accompanied
-            AmbushPolicy.CompanionsAtPlayerSide(1, 59).Should().Be(1);  // just inside the 60% band
-            AmbushPolicy.CompanionsAtPlayerSide(1, 60).Should().Be(0);  // outside → alone
-            AmbushPolicy.CompanionsAtPlayerSide(1, 99).Should().Be(0);
+            AmbushForce force = AmbushPolicy.ComputeForce(defendersAtPlayerSide: 1, jitterRoll: 1); // jitter 0
+            force.ChiefCount.Should().Be(1);
+            force.BanditCount.Should().Be(3);   // (1+1)^2 = 4 total, minus the chief
+            force.TotalAttackers.Should().Be(4);
         }
 
         [Test]
-        public void GIVEN_two_or_more_companions_WHEN_drawing_THEN_zero_one_or_two_join_capped()
+        public void GIVEN_a_larger_retinue_WHEN_sizing_the_force_THEN_the_total_scales_with_the_square_of_the_side()
         {
-            AmbushPolicy.CompanionsAtPlayerSide(2, 0).Should().Be(2);    // low roll → both
-            AmbushPolicy.CompanionsAtPlayerSide(2, 29).Should().Be(2);
-            AmbushPolicy.CompanionsAtPlayerSide(2, 30).Should().Be(1);   // middle band → one
-            AmbushPolicy.CompanionsAtPlayerSide(2, 79).Should().Be(1);
-            AmbushPolicy.CompanionsAtPlayerSide(2, 80).Should().Be(0);   // high roll → alone
-            AmbushPolicy.CompanionsAtPlayerSide(5, 0).Should().Be(AmbushPolicy.MaxCompanionsAtSide); // never more than the cap
+            AmbushPolicy.ComputeForce(defendersAtPlayerSide: 2, jitterRoll: 1).TotalAttackers.Should().Be(9);  // (2+1)^2
+            AmbushPolicy.ComputeForce(defendersAtPlayerSide: 3, jitterRoll: 1).TotalAttackers.Should().Be(16); // (3+1)^2
+            AmbushPolicy.ComputeForce(defendersAtPlayerSide: 4, jitterRoll: 1).TotalAttackers.Should().Be(25); // (4+1)^2, no cap
+        }
+
+        [Test]
+        public void GIVEN_a_varying_roll_WHEN_sizing_the_force_THEN_the_count_is_nudged_by_one_either_way()
+        {
+            AmbushPolicy.ComputeForce(1, jitterRoll: 0).BanditCount.Should().Be(2); // -1
+            AmbushPolicy.ComputeForce(1, jitterRoll: 1).BanditCount.Should().Be(3); //  0
+            AmbushPolicy.ComputeForce(1, jitterRoll: 2).BanditCount.Should().Be(4); // +1
+        }
+
+        [Test]
+        public void GIVEN_a_non_positive_side_WHEN_sizing_the_force_THEN_it_floors_to_a_lone_defender()
+        {
+            AmbushPolicy.ComputeForce(defendersAtPlayerSide: 0, jitterRoll: 1).BanditCount.Should().Be(3);
+        }
+
+        // ── The chief's tier scales to the player's clan, bounded so it is neither a recruit nor super-human ──
+
+        [Test]
+        public void GIVEN_a_mid_clan_WHEN_sizing_the_chief_THEN_he_matches_the_player_clan_tier()
+        {
+            AmbushPolicy.EliteChiefTier(3).Should().Be(3);
+            AmbushPolicy.EliteChiefTier(5).Should().Be(5);
+        }
+
+        [Test]
+        public void GIVEN_a_fledgling_or_great_clan_WHEN_sizing_the_chief_THEN_it_clamps_to_the_band()
+        {
+            AmbushPolicy.EliteChiefTier(0).Should().Be(AmbushPolicy.MinChiefTier); // never a mere recruit
+            AmbushPolicy.EliteChiefTier(9).Should().Be(AmbushPolicy.MaxChiefTier); // never beyond the noble line
         }
 
         // ── The player-town-entry gating decision (protects the trigger path) ──

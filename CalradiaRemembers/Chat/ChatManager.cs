@@ -129,7 +129,9 @@ namespace CalradiaRemembers.Chat
          List<WitnessEntry> witnesses,
          bool isCollective,
          CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation,
-         CharacterObject portraitCharacter = null)
+         CharacterObject portraitCharacter = null,
+         Hero victimCompanionHero = null,
+         bool playerCoerced = false)
       {
          Open(captorHero?.Name?.ToString() ?? captorProfile?.Name);
 
@@ -138,11 +140,32 @@ namespace CalradiaRemembers.Chat
          else if (captorProfile != null) ActiveViewModel.SetNpcName(captorProfile.Name);
          if (captorHero == null && portraitCharacter != null)
             ActiveViewModel.SetNpcPortraitCharacter(portraitCharacter);
+
+         // The victim companion is a REAL participant, not just a name in the prompt: add them as a witness
+         // entry carrying their HeroStringId (so the chat resolves their portrait) and IsCaptiveVictim (so the
+         // host never counts them as one of the captor's men). Their voice — cries, pleas, defiance — then comes
+         // through the existing [WITNESS_REACTION] channel, under their own portrait. Their gender flows to the
+         // prompt so the model stops borrowing the player's.
+         string victimName = victimCompanionHero?.Name?.ToString();
+         bool victimIsFemale = victimCompanionHero?.IsFemale ?? false;
+         if (victimCompanionHero != null)
+         {
+            var withVictim = witnesses != null ? new List<WitnessEntry>(witnesses) : new List<WitnessEntry>();
+            withVictim.Add(new WitnessEntry {
+               Name = victimName,
+               RelationToNpc = "the player's captive companion, bound and at your mercy",
+               HeroStringId = victimCompanionHero.StringId,
+               IsPlayerCompanion = true,
+               IsCaptiveVictim = true
+            });
+            witnesses = withVictim;
+         }
+
          if (witnesses is {Count: > 0}) ActiveViewModel.SetWitnesses(witnesses);
 
          // A faceless brigand captor has no Hero — that absence is exactly the bandit signal.
          bool captorIsBandit = captorHero == null;
-         ActiveViewModel.ActivateCaptiveEncounterMode(captorProfile, isCollective, intent, captorIsBandit);
+         ActiveViewModel.ActivateCaptiveEncounterMode(captorProfile, isCollective, intent, captorIsBandit, victimName, playerCoerced, victimIsFemale);
       }
 
       /// <summary>

@@ -223,6 +223,35 @@
                                         HorizontalAlignment="Right"
                                         MarginRight="0" />
 
+            <!-- Shown by ChatScrollablePanel only while there is unread text below the fold. -->
+            <Widget Id="ScrollMoreHint"
+                    WidthSizePolicy="CoverChildren"
+                    HeightSizePolicy="CoverChildren"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    MarginBottom="4"
+                    MarginRight="32"
+                    IsVisible="false"
+                    Sprite="BlankWhiteSquare_9"
+                    Color="#0d0a08FF"
+                    AlphaFactor="0.55">
+              <Children>
+                <TextWidget WidthSizePolicy="CoverChildren"
+                            HeightSizePolicy="CoverChildren"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            MarginLeft="14"
+                            MarginRight="14"
+                            MarginTop="3"
+                            MarginBottom="3"
+                            Brush="Default"
+                            Brush.FontSize="17"
+                            Brush.FontColor="#e8d8b8FF"
+                            Brush.TextHorizontalAlignment="Center"
+                            Text="scroll down to read more..." />
+              </Children>
+            </Widget>
+
           </Children>
         </Widget>
 
@@ -405,6 +434,8 @@
                       IsVisible="@IsPleaseContinueVisible"
                       DoNotPassEventsToChildren="true"
                       Brush="ButtonBrush1"
+                      Brush.Color="#D9A441FF"
+                      Brush.AlphaFactor="1.0"
                       UpdateChildrenStates="true"
                       Command.Click="ExecutePleaseContinue">
           <Children>

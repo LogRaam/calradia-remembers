@@ -24,6 +24,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.AgentOrigins;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Settlements.Locations;
 using TaleWorlds.Core;
@@ -41,18 +42,29 @@ namespace CalradiaRemembers.Stance
       // Set the instant the player chooses to face the ambush, consumed by the spawn-event injector one beat
       // later when the town centre populates. Static: there is one player, one ambush at a time.
       private static string _pendingAssassinId;
-      private static int _pendingCount;
+      private static int _pendingCount;       // total attackers (chief + bandits), the wait-loop's expected count
+      private static int _pendingBanditCount; // the disguised cutthroats under the chief (the chief is always one)
+
+      // The player's companions who stand with them this ambush (hero ids), spawned as allies in the brawl so the
+      // 3-to-1 force ratio means something. Re-derived at BeginAmbush, consumed at injection.
+      private static readonly System.Collections.Generic.List<string> _pendingAllyIds = new System.Collections.Generic.List<string>();
 
       // The spawn-point tag chosen this injection (the most-available townsfolk tag in THIS scene), read by
-      // CreateAmbusher. Picked from the event's usable-point counts so we never spawn on a tag with no points.
+      // the character factories. Picked from the event's usable-point counts so we never spawn on a tag with no points.
       private static string _spawnTag;
 
       // The actual ambusher AGENTS as they spawn (captured via the LocationCharacter afterAgentCreated hook),
       // so the mission logic can hand them to MissionFightHandler.StartCustomFight as the opponent side.
       private static readonly System.Collections.Generic.List<Agent> _ambusherAgents = new System.Collections.Generic.List<Agent>();
 
-      /// <summary>The cutthroat agents spawned for the current ambush — the opponent side of the brawl.</summary>
+      // The companion AGENTS spawned at the player's side, captured the same way — the player's side of the brawl.
+      private static readonly System.Collections.Generic.List<Agent> _allyAgents = new System.Collections.Generic.List<Agent>();
+
+      /// <summary>The chief + cutthroat agents spawned for the current ambush — the opponent side of the brawl.</summary>
       public static System.Collections.Generic.List<Agent> AmbusherAgents => _ambusherAgents;
+
+      /// <summary>The companion agents spawned at the player's side — the ally side of the brawl.</summary>
+      public static System.Collections.Generic.List<Agent> AllyAgents => _allyAgents;
 
       public override void RegisterEvents()
       {
@@ -103,7 +115,6 @@ namespace CalradiaRemembers.Stance
       /// <summary>True when an ambush is armed against the player, so the access model can hold a town's gates.</summary>
       public static bool IsEntryBlocked(Settlement settlement)
       {
-         if (!ModSettings.TownAmbushEnabled) return false; // feature gated off — never hold a town's gates
          if (settlement is not {IsTown: true}) return false;
 
          BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
@@ -150,13 +161,14 @@ namespace CalradiaRemembers.Stance
             Hero assassin = FindArmedAssassin(store);
             bool armed = assassin != null;
             int roll = MBRandom.RandomInt(100);
-            AmbushEntryOutcome outcome = AmbushPolicy.DecidePlayerTownEntry(ModSettings.TownAmbushEnabled, armed, roll);
+            // The experimental toggle was retired in v1.18.0 — the feature ships always-on, so the gate is always
+            // enabled. The pure policy keeps its featureEnabled parameter (a tested abstraction) for clarity.
+            AmbushEntryOutcome outcome = AmbushPolicy.DecidePlayerTownEntry(featureEnabled: true, armed, roll);
 
             // Stay silent in the ordinary case (no one is gunning for the player); otherwise log WHY, so a tester
-            // (or a player who armed one via console) can see the toggle state and the roll outcome at a glance.
+            // (or a player who armed one via console) can see the roll outcome at a glance.
             if (armed)
-               ModLog.Info($"[AMBUSH] {settlement.Name}: armed by {assassin.Name}, toggle={ModSettings.TownAmbushEnabled}, " +
-                           $"roll={roll} → {outcome}.");
+               ModLog.Info($"[AMBUSH] {settlement.Name}: armed by {assassin.Name}, roll={roll} → {outcome}.");
 
             if (outcome != AmbushEntryOutcome.Spring) return;
 
@@ -189,10 +201,19 @@ namespace CalradiaRemembers.Stance
       {
          try
          {
+            // The companions standing with the player set the scale: ~3 cutthroats per defender, plus the chief.
+            System.Collections.Generic.List<Hero> allies = CompanionsAtPlayerSide();
+            AmbushForce force = AmbushPolicy.ComputeForce(1 + allies.Count, MBRandom.RandomInt(100));
+
             _pendingAssassinId = assassin?.StringId;
-            _pendingCount = AmbushPolicy.AttackerCount(assassin?.Clan?.Tier ?? 0);
-            ModLog.Info($"[AMBUSH] facing the ambush in {settlement?.Name}: opening the town centre, " +
-                        $"{_pendingCount} cutthroat(s) incoming (paymaster {assassin?.Name}).");
+            _pendingBanditCount = force.BanditCount;
+            _pendingCount = force.TotalAttackers;
+            _pendingAllyIds.Clear();
+            _pendingAllyIds.AddRange(allies.Select(h => h.StringId));
+
+            ModLog.Info($"[AMBUSH] facing the ambush in {settlement?.Name}: opening the town centre — 1 chief + " +
+                        $"{force.BanditCount} cutthroat(s) vs the player and {allies.Count} companion(s) " +
+                        $"(paymaster {assassin?.Name}).");
 
             PlayerEncounter.LocationEncounter.CreateAndOpenMissionController(
                LocationComplex.Current.GetLocationWithId("center"));
@@ -204,6 +225,8 @@ namespace CalradiaRemembers.Stance
          {
             _pendingAssassinId = null;
             _pendingCount = 0;
+            _pendingBanditCount = 0;
+            _pendingAllyIds.Clear();
             ModLog.Error($"[AMBUSH] failed to open the town centre: {ex.GetType().Name}: {ex.Message}");
             InformationManager.DisplayMessage(new InformationMessage("You fend off the attackers, and they flee into the night."));
          }
@@ -230,15 +253,37 @@ namespace CalradiaRemembers.Stance
             Location center = LocationComplex.Current?.GetLocationWithId("center");
             if (center == null) { ModLog.Error("[AMBUSH] no 'center' location to inject into."); return; }
 
-            int count = _pendingCount; // NB: pending state is consumed in AttachBrawlIfPending, not here
+            int bandits = _pendingBanditCount; // NB: pending state is consumed in AttachBrawlIfPending, not here
 
-            CultureObject culture = Settlement.CurrentSettlement?.Culture;
+            // The chief is a real soldier of the PAYMASTER's faction (the tell a lord is behind it); the disguised
+            // cutthroats and the spawn tag follow the SETTLEMENT's culture, where the scene actually is.
+            Hero paymaster = Hero.FindFirst(h => h != null && h.StringId == _pendingAssassinId);
+            CultureObject chiefCulture = paymaster?.Culture ?? Settlement.CurrentSettlement?.Culture;
+            CultureObject culture = Settlement.CurrentSettlement?.Culture ?? chiefCulture;
             if (culture == null) { ModLog.Error("[AMBUSH] no settlement culture."); return; }
 
             _spawnTag = PickSpawnTag(unusedUsablePointCount); // a tag that actually has free points in THIS scene
             _ambusherAgents.Clear();
-            center.AddLocationCharacters(CreateAmbusher, culture, LocationCharacter.CharacterRelations.Enemy, count);
-            ModLog.Info($"[AMBUSH] injected {count} hostile cutthroat(s) at tag '{_spawnTag ?? "(null)"}'.");
+            _allyAgents.Clear();
+
+            // The chief, then the disguised cutthroats — both hostile, both captured into _ambusherAgents.
+            center.AddLocationCharacters(CreateChief, chiefCulture, LocationCharacter.CharacterRelations.Enemy, 1);
+            center.AddLocationCharacters(CreateBandit, culture, LocationCharacter.CharacterRelations.Enemy, bandits);
+
+            // The player's companions, on the player's side — one spawn per id, captured into _allyAgents.
+            var alliesSpawned = 0;
+            foreach (string id in _pendingAllyIds)
+            {
+               Hero ally = Hero.FindFirst(h => h != null && h.StringId == id);
+               if (ally?.CharacterObject == null) continue;
+
+               Hero captured = ally; // capture for the closure
+               center.AddLocationCharacters((c, r) => CreateAlly(captured), culture, LocationCharacter.CharacterRelations.Neutral, 1);
+               alliesSpawned++;
+            }
+
+            ModLog.Info($"[AMBUSH] injected 1 chief ({chiefCulture?.Name}) + {bandits} cutthroat(s) + {alliesSpawned} " +
+                        $"companion ally(ies) at tag '{_spawnTag ?? "(null)"}'.");
          }
          catch (Exception ex) { ModLog.Error($"[AMBUSH] inject failed: {ex.GetType().Name}: {ex.Message}"); }
       }
@@ -259,9 +304,11 @@ namespace CalradiaRemembers.Stance
             int count = _pendingCount;
             _pendingAssassinId = null; // consume
             _pendingCount = 0;
+            _pendingBanditCount = 0;
+            _pendingAllyIds.Clear();
 
             mission?.AddMissionBehavior(new AmbushFightMissionLogic(assassinId, count));
-            ModLog.Info($"[AMBUSH] brawl driver attached after AfterStart (paymaster id {assassinId}, {count} cutthroat(s)).");
+            ModLog.Info($"[AMBUSH] brawl driver attached after AfterStart (paymaster id {assassinId}, {count} attacker(s)).");
          }
          catch (Exception ex) { ModLog.Error($"[AMBUSH] attach brawl driver failed: {ex.GetType().Name}: {ex.Message}"); }
       }
@@ -280,30 +327,152 @@ namespace CalradiaRemembers.Stance
       }
 
       /// <summary>
-      ///   Builds one hostile cutthroat as a <see cref="LocationCharacter" /> — a bandit troop, armed (NOT
-      ///   civilian equipment), spawned at a common townsfolk point. The Enemy relation puts them on the
-      ///   player's enemy team; <see cref="AddAmbusherBehaviors" /> drives them straight into the fight.
+      ///   Builds the ambush CHIEF: an elite soldier of the paymaster's faction, on foot, in his own military
+      ///   gear — the visible tell that a lord, not a gang, is behind the attempt. Enemy relation puts him on the
+      ///   player's enemy team; <see cref="AddAmbusherBehaviors" /> drives him straight into the fight.
       /// </summary>
-      private static LocationCharacter CreateAmbusher(CultureObject culture, LocationCharacter.CharacterRelations relation)
+      private static LocationCharacter CreateChief(CultureObject culture, LocationCharacter.CharacterRelations relation)
       {
-         CharacterObject troop = FindThug() ?? FindThrowingThug();
+         int targetTier = AmbushPolicy.EliteChiefTier(Clan.PlayerClan?.Tier ?? 0);
+         CharacterObject troop = ResolveEliteChief(culture, targetTier) ?? FindThug() ?? FindThrowingThug();
          Monster monster = TaleWorlds.Core.FaceGen.GetMonsterWithSuffix(troop.Race, "_settlement");
          var data = new AgentData(new SimpleAgentOrigin(troop)).Monster(monster).NoHorses(true);
 
          return new LocationCharacter(
             data,
             AddAmbusherBehaviors,
-            _spawnTag, // a tag with free points in this scene (picked from the spawn event), null = any point
+            _spawnTag,
             fixedLocation: false,
             relation,
-            null, // actionSetCode — default for the monster
-            useCivilianEquipment: false, // false = armed with their battle weapons
+            null,
+            useCivilianEquipment: false, // his soldier's panoply IS the point — keep the battle gear
             isFixedCharacter: false,
             specialItem: null,
             isHidden: false,
             isVisualTracked: false,
             overrideBodyProperties: true,
             afterAgentCreated: OnAmbusherSpawned);
+      }
+
+      /// <summary>
+      ///   Builds one disguised cutthroat: a thug troop wearing the Blackened "stealth" set (soldiers out of
+      ///   uniform on a lord's errand), keeping the troop's own weapons. If the set is missing from the game's
+      ///   items, falls back to the troop's CIVILIAN equipment (still armed, still stronger than a looter).
+      /// </summary>
+      private static LocationCharacter CreateBandit(CultureObject culture, LocationCharacter.CharacterRelations relation)
+      {
+         CharacterObject troop = FindThug() ?? FindThrowingThug();
+         Monster monster = TaleWorlds.Core.FaceGen.GetMonsterWithSuffix(troop.Race, "_settlement");
+
+         Equipment disguise = BuildDisguiseEquipment(troop);
+         var data = new AgentData(new SimpleAgentOrigin(troop)).Monster(monster).NoHorses(true);
+         if (disguise != null) data.Equipment(disguise);
+
+         return new LocationCharacter(
+            data,
+            AddAmbusherBehaviors,
+            _spawnTag,
+            fixedLocation: false,
+            relation,
+            null,
+            useCivilianEquipment: disguise == null, // fallback only: civilian clothes when the Blackened set is absent
+            isFixedCharacter: false,
+            specialItem: null,
+            isHidden: false,
+            isVisualTracked: false,
+            overrideBodyProperties: true,
+            afterAgentCreated: OnAmbusherSpawned);
+      }
+
+      /// <summary>
+      ///   Builds one of the player's companions as an ALLY in the brawl — their own hero appearance and battle
+      ///   gear, on foot, captured into <see cref="_allyAgents" /> so the fight handler puts them on the player's
+      ///   side. Spawned Neutral (not hostile); the custom fight assigns the team.
+      /// </summary>
+      private static LocationCharacter CreateAlly(Hero companion)
+      {
+         CharacterObject troop = companion.CharacterObject;
+         Monster monster = TaleWorlds.Core.FaceGen.GetMonsterWithSuffix(troop.Race, "_settlement");
+         var data = new AgentData(new SimpleAgentOrigin(troop)).Monster(monster).NoHorses(true);
+
+         return new LocationCharacter(
+            data,
+            AddAmbusherBehaviors,
+            _spawnTag,
+            fixedLocation: false,
+            LocationCharacter.CharacterRelations.Neutral,
+            null,
+            useCivilianEquipment: false,
+            isFixedCharacter: false,
+            specialItem: null,
+            isHidden: false,
+            isVisualTracked: false,
+            overrideBodyProperties: true,
+            afterAgentCreated: OnAllySpawned);
+      }
+
+      /// <summary>
+      ///   The chief's troop: the paymaster culture's noble line climbed only until it reaches the target tier
+      ///   (≈ the player's clan tier), so the chief scales to the player rather than always fielding a top-tier
+      ///   veteran. Null only if the culture has no elite line.
+      /// </summary>
+      private static CharacterObject ResolveEliteChief(CultureObject culture, int targetTier)
+      {
+         CharacterObject t = culture?.EliteBasicTroop;
+         if (t == null) return null;
+
+         for (var guard = 0; guard < 8 && t.Tier < targetTier; guard++) // climb until the target tier (guard vs cycles)
+         {
+            CharacterObject[] ups = t.UpgradeTargets;
+            if (ups == null || ups.Length == 0) break;
+            t = ups[0] ?? t;
+         }
+
+         return t;
+      }
+
+      /// <summary>
+      ///   The Blackened "stealth" set over a troop's battle weapons, or null when the set is unavailable (so the
+      ///   caller falls back to civilian equipment). Cloning the battle loadout keeps the troop's own arms.
+      /// </summary>
+      private static Equipment BuildDisguiseEquipment(CharacterObject baseTroop)
+      {
+         ItemObject body = FindItem("assassin_armor"); // "Blackened Armor" — the anchor; if it is gone, so is the set
+         if (body == null) return null;
+
+         Equipment eq = baseTroop?.FirstBattleEquipment?.Clone(false) ?? new Equipment();
+         SetSlot(eq, EquipmentIndex.Body, body);
+         SetSlot(eq, EquipmentIndex.Cape, FindItem("assassin_shoulder")); // "Blackened Cape"
+         SetSlot(eq, EquipmentIndex.Leg, FindItem("assassin_boot"));      // "Blackened Boots"
+         SetSlot(eq, EquipmentIndex.Head, FindItem("assassin_hood"));     // "Blackened Hood"
+
+         return eq;
+      }
+
+      private static void SetSlot(Equipment eq, EquipmentIndex slot, ItemObject item)
+      {
+         if (item != null) eq[slot] = new EquipmentElement(item);
+      }
+
+      private static ItemObject FindItem(string id) => MBObjectManager.Instance?.GetObject<ItemObject>(id);
+
+      /// <summary>The hero companions in the player's party who stand with them in a street ambush, capped.</summary>
+      private static System.Collections.Generic.List<Hero> CompanionsAtPlayerSide()
+      {
+         var heroes = new System.Collections.Generic.List<Hero>();
+         TroopRoster roster = MobileParty.MainParty?.MemberRoster;
+         if (roster == null) return heroes;
+
+         foreach (TroopRosterElement e in roster.GetTroopRoster())
+         {
+            Hero h = e.Character?.HeroObject;
+            if (h != null && h != Hero.MainHero && h.IsAlive && !h.IsPrisoner) heroes.Add(h);
+         }
+
+         int cap = AmbushPolicy.CompanionsAtSide(heroes.Count);
+         if (heroes.Count > cap) heroes.RemoveRange(cap, heroes.Count - cap);
+
+         return heroes;
       }
 
       /// <summary>
@@ -323,13 +492,22 @@ namespace CalradiaRemembers.Stance
          nav.AddBehaviorGroup<AlarmedBehaviorGroup>();
       }
 
-      /// <summary>Captures each cutthroat agent as it spawns, for the brawl's opponent side.</summary>
+      /// <summary>Captures each chief/cutthroat agent as it spawns, for the brawl's opponent side.</summary>
       private static void OnAmbusherSpawned(IAgent agent)
       {
          if (agent is not Agent a) return;
 
          _ambusherAgents.Add(a);
-         ModLog.Info($"[AMBUSH] cutthroat agent spawned — {_ambusherAgents.Count} captured so far (active={a.IsActive()}).");
+         ModLog.Info($"[AMBUSH] attacker agent spawned — {_ambusherAgents.Count} captured so far (active={a.IsActive()}).");
+      }
+
+      /// <summary>Captures each companion ally agent as it spawns, for the brawl's player side.</summary>
+      private static void OnAllySpawned(IAgent agent)
+      {
+         if (agent is not Agent a) return;
+
+         _allyAgents.Add(a);
+         ModLog.Info($"[AMBUSH] companion ally agent spawned — {_allyAgents.Count} captured so far (active={a.IsActive()}).");
       }
 
       private static Hero FindArmedAssassin(BannerlordNpcMemoryStore store)
