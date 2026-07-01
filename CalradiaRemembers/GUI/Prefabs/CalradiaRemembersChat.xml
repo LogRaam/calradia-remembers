@@ -6,6 +6,13 @@
 
   <Window Id="CalradiaRemembersChatWindow" Layer="Overlay">
 
+    <!-- Full-screen root so BOTH the chat panel (right) and the optional composer (left) are laid out. A Window
+         only measures a single main child, so a second sibling panel would render at zero size / not at all. -->
+    <Widget Id="ScreenRoot"
+            WidthSizePolicy="StretchToParent"
+            HeightSizePolicy="StretchToParent">
+      <Children>
+
     <Widget Id="ChatPanel"
             WidthSizePolicy="Fixed"
             HeightSizePolicy="StretchToParent"
@@ -317,14 +324,39 @@
                 MarginRight="5">
           <Children>
 
+            <!-- Opens the left REVIEW panel (a wrapped, read-only view of your message). Hidden while it is open. -->
+            <ButtonWidget Id="ComposeToggleButton"
+                          WidthSizePolicy="Fixed"
+                          HeightSizePolicy="Fixed"
+                          SuggestedWidth="40"
+                          SuggestedHeight="60"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Center"
+                          IsVisible="@IsComposeToggleVisible"
+                          DoNotPassEventsToChildren="true"
+                          Brush="ButtonBrush1"
+                          UpdateChildrenStates="true"
+                          Command.Click="ExecuteOpenCompose">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Brush="Popup.Button.Text"
+                            Brush.FontSize="24"
+                            Text="&lt;" />
+              </Children>
+            </ButtonWidget>
+
             <Widget Id="InputBox"
                          WidthSizePolicy="Fixed"
                          HeightSizePolicy="Fixed"
-                         SuggestedWidth="550"
+                         SuggestedWidth="490"
                          SuggestedHeight="60"
                          HorizontalAlignment="Left"
                          VerticalAlignment="Center"
-                         IsVisible="@IsNormalInputVisible"
+                         PositionXOffset="48"
+                         IsVisible="@IsChatInputVisible"
                          Sprite="BlankWhiteSquare_9"
                           Color="#0d0a08DD"
                           AlphaFactor="0.4">
@@ -342,6 +374,7 @@
                                     Brush.FontSize="20"
                                     Brush.FontColor="#e8d8b8FF"
                                     Brush.TextHorizontalAlignment="Left"
+                                    MaxLength="8000"
                                     Text="@InputText" />
               </Children>
             </Widget>
@@ -354,7 +387,7 @@
               HorizontalAlignment="Right"
               VerticalAlignment="Center"
               MarginRight="25"
-              IsVisible="@IsNormalInputVisible"
+              IsVisible="@IsChatInputVisible"
               DoNotPassEventsToChildren="true"
               Brush="ButtonBrush1"
               UpdateChildrenStates="true"
@@ -472,6 +505,117 @@
                         Text="@CloseButtonText" />
           </Children>
         </ButtonWidget>
+
+      </Children>
+    </Widget>
+
+    <!-- Optional REVIEW panel, opened by the "<" button beside the small input. Sits to the left of the chat and
+         shows a wrapped, read-only view of the message being typed, so a verbose player can read it all back.
+         Editing stays in the small single-line box (Bannerlord's editable text is single-line only). -->
+    <Widget Id="ComposePanel"
+            WidthSizePolicy="Fixed"
+            HeightSizePolicy="StretchToParent"
+            SuggestedWidth="560"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            MarginTop="100"
+            MarginBottom="100"
+            PositionXOffset="-750"
+            IsVisible="@IsComposeOpen"
+            Sprite="BlankWhiteSquare_9"
+            Color="#1a1612F2">
+      <Children>
+
+        <Widget Id="ComposePanelDecorativeFrame"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                Sprite="frame_9"
+                ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
+                AlphaFactor="0.4"
+                IsDisabled="true" />
+
+        <!-- Read-only WRAPPED preview of the message being typed in the small box on the right (RichTextWidget
+             auto-wraps; EditableTextWidget is single-line only, so a verbose player edits on the right and reads
+             the whole thing wrapped here). Updates live. In a scroll panel so a very long message can scroll. -->
+        <Widget Id="ComposeInputBox"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                VerticalAlignment="Top"
+                MarginTop="88"
+                MarginBottom="94"
+                MarginLeft="24"
+                MarginRight="24"
+                Sprite="BlankWhiteSquare_9"
+                Color="#0d0a08DD"
+                AlphaFactor="0.4">
+          <Children>
+            <ComposeScrollablePanel Id="ComposeScrollPanel"
+                                    WidthSizePolicy="StretchToParent"
+                                    HeightSizePolicy="StretchToParent"
+                                    MarginRight="28"
+                                    AutoHideScrollBars="true"
+                                    ClipRect="ComposeClipRect"
+                                    InnerPanel="ComposeClipRect\ComposePreview"
+                                    VerticalScrollbar="..\ComposeScrollbar\Scrollbar">
+              <Children>
+                <Widget Id="ComposeClipRect"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        ClipContents="true">
+                  <Children>
+                    <RichTextWidget Id="ComposePreview"
+                                    WidthSizePolicy="StretchToParent"
+                                    HeightSizePolicy="CoverChildren"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Top"
+                                    MarginLeft="14"
+                                    MarginRight="14"
+                                    MarginTop="10"
+                                    MarginBottom="10"
+                                    Brush="Default"
+                                    Brush.FontSize="20"
+                                    Brush.FontColor="#e8d8b8FF"
+                                    Brush.TextHorizontalAlignment="Left"
+                                    Brush.TextVerticalAlignment="Top"
+                                    Text="@InputText" />
+                  </Children>
+                </Widget>
+              </Children>
+            </ComposeScrollablePanel>
+
+            <Standard.VerticalScrollbar Id="ComposeScrollbar"
+                                        HeightSizePolicy="StretchToParent"
+                                        HorizontalAlignment="Right"
+                                        MarginRight="4" />
+          </Children>
+        </Widget>
+
+        <!-- Closes the preview panel (editing + sending stay in the chat input on the right). -->
+        <ButtonWidget Id="ComposeCloseButton"
+                      WidthSizePolicy="Fixed"
+                      HeightSizePolicy="Fixed"
+                      SuggestedWidth="440"
+                      SuggestedHeight="56"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Bottom"
+                      MarginBottom="22"
+                      DoNotPassEventsToChildren="true"
+                      Brush="ButtonBrush1"
+                      UpdateChildrenStates="true"
+                      Command.Click="ExecuteCloseCompose">
+          <Children>
+            <TextWidget WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Brush="Popup.Button.Text"
+                        Brush.FontSize="20"
+                        Text="Close Preview" />
+          </Children>
+        </ButtonWidget>
+
+      </Children>
+    </Widget>
 
       </Children>
     </Widget>

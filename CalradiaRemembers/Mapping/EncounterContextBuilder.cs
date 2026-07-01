@@ -64,7 +64,9 @@ namespace CalradiaRemembers.Mapping
          bool reactToPlayerIntervention = false,
          string captiveVictimName = null,
          bool playerCoercedAgainstCompanion = false,
-         bool captiveVictimIsFemale = false) => new() {
+         bool captiveVictimIsFemale = false,
+         CompanionAudienceReason companionAudience = CompanionAudienceReason.None,
+         bool audienceRetirementIsLanded = false) => new() {
          PlayerStatus = playerStatusOverride ?? ResolvePlayerStatus(hero, profile, bridge),
          WarStatus = bridge.GetDiplomaticStatus(hero),
          DaysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge),
@@ -94,6 +96,8 @@ namespace CalradiaRemembers.Mapping
          CaptiveVictimName = captiveVictimName,
          PlayerCoercedAgainstCompanion = playerCoercedAgainstCompanion,
          CaptiveVictimIsFemale = captiveVictimIsFemale,
+         CompanionAudience = companionAudience,
+         AudienceRetirementIsLanded = audienceRetirementIsLanded,
          IsFinalSceneBeat = isFinalSceneBeat,
          SceneStage = sceneStage,
          AggressorKind = aggressorKind,

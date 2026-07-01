@@ -97,6 +97,13 @@ namespace CalradiaRemembers.Chat
       private bool _captivePlayerCoerced;     // with a victim: the player is forced to act, not just watch
       private bool _captiveVictimIsFemale;    // the victim companion's gender, so the prompt uses the right pronouns
 
+      // Companion AUDIENCE — a normal conversation the companion themselves requested (grievance / retirement),
+      // opened programmatically from a map popup rather than the vanilla dialogue, so the profile is carried here.
+      private CompanionAudienceReason _audienceReason = CompanionAudienceReason.None;
+      private bool _audienceLanded;         // retirement audience: landed (step back) vs landless (leave)
+      private bool _retireGranted;          // the player granted the retirement this audience (executed on close)
+      private NpcProfile _audienceProfile;  // the companion's profile for this audience (MainSpeaker uses it)
+
       // ── Sprint 17: captive encounter mode payload ────────────────────────
       // When opened from CaptiveEncounterService, the chat runs with the captor
       // as main NPC. The profile and CNC context are stored here rather than via
@@ -136,6 +143,8 @@ namespace CalradiaRemembers.Chat
       private bool _eventRecordedThisSession; // any non-empty [EVENT] this session
       private bool _hasWitnesses;
       private string _inputText = "";
+      private bool _isComposeOpen;
+      private bool _awaitingOpener; // true while an NPC-led OPENER is generating (captive/audience) — hide the input
       private bool _isPleaseContinueVisible;
       private bool _isPrivateRequestVisible;
 
@@ -241,6 +250,33 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      /// <summary>True while the left review panel (a wrapped, read-only view of the message) is open.</summary>
+      [DataSourceProperty]
+      public bool IsComposeOpen
+      {
+         get => _isComposeOpen;
+         set
+         {
+            if (_isComposeOpen == value) return;
+            _isComposeOpen = value;
+            OnPropertyChangedWithValue(value);
+            OnPropertyChanged(nameof(IsComposeToggleVisible));
+         }
+      }
+
+      /// <summary>
+      ///   The chat input (small box + Send + the "&lt;" toggle) — shown only when the player may actually type:
+      ///   the normal input is available AND we are not still waiting on the NPC's opening turn (a captive scene or
+      ///   companion audience where the NPC speaks first). Hidden during "(considering…)" so it does not appear
+      ///   before the LLM has given its introduction.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsChatInputVisible => IsNormalInputVisible && !_awaitingOpener;
+
+      /// <summary>The "&lt;" open-review button shows only when the chat input is available and the panel is closed.</summary>
+      [DataSourceProperty]
+      public bool IsComposeToggleVisible => IsChatInputVisible && !_isComposeOpen;
+
       /// <summary>Inverse of <see cref="IsScenePaused" /> — drives the normal InputBox + SendButton.</summary>
       [DataSourceProperty]
       public bool IsNormalInputVisible => !_isScenePaused;
@@ -304,6 +340,8 @@ namespace CalradiaRemembers.Chat
             _isScenePaused = value;
             OnPropertyChangedWithValue(value);
             OnPropertyChanged(nameof(IsNormalInputVisible));
+            OnPropertyChanged(nameof(IsChatInputVisible));
+            OnPropertyChanged(nameof(IsComposeToggleVisible));
          }
       }
 
@@ -453,7 +491,46 @@ namespace CalradiaRemembers.Chat
             or CaptiveSceneIntent.Extortion or CaptiveSceneIntent.Intimidation or CaptiveSceneIntent.Revenge;
          string opener = CaptiveSceneText.BuildCaptiveOpener(isCollective, intent)
                        + (nonSexual ? "" : CaptiveSceneText.BuildSceneSetup());
+         MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, captor, placeholder, true);
+      }
+
+      /// <summary>
+      ///   Opens a companion AUDIENCE — a normal conversation the companion themselves requested from a map popup
+      ///   ("Let us speak of it"): a grievance, or a war-weary bid to retire. The companion speaks FIRST, voicing
+      ///   why they came; full memory and actions like any conversation. For a retirement the player can grant
+      ///   their leave (the companion emits the <c>retire</c> action, executed at close) or persuade them to stay.
+      /// </summary>
+      public void ActivateCompanionAudience(NpcProfile profile, CompanionAudienceReason reason, bool landed)
+      {
+         _mode = ChatMode.Conversation;
+         _audienceReason = reason;
+         _audienceLanded = landed;
+         _retireGranted = false;
+         _audienceProfile = profile;
+
+         ChatSpeaker speaker = MainSpeaker();
+         if (speaker.Profile == null)
+         {
+            ModLog.Error("Companion audience: no profile — cannot open the audience.");
+
+            return;
+         }
+
+         ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+         _messages.Add(placeholder);
+         IsSendEnabled = false;
+
+         // The companion opens (they asked for this word). A synthetic cue, never shown or logged as a player line.
+         string opener = reason == CompanionAudienceReason.Retirement
+            ? "[You asked the player for a private word. Open the conversation yourself: voice, in your own way, that " +
+              "the long years of war have worn you down and you wish to lay down the sword. Be respectful — the " +
+              "outcome is theirs to decide.]"
+            : "[You asked the player for a private word. Open the conversation yourself: raise what has been troubling " +
+              "you in their service, in your own voice.]";
+
+         MarkOpenerPending();
+         _ = RunLlmExchangeAsync(opener, speaker, placeholder, true);
       }
 
       /// <summary>
@@ -746,6 +823,7 @@ namespace CalradiaRemembers.Chat
          _messages.Add(placeholder);
 
          string opener = CaptiveSceneText.BuildResumeOpener() + CaptiveSceneText.BuildResumeSetup();
+         MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, captor, placeholder, true);
       }
 
@@ -786,9 +864,37 @@ namespace CalradiaRemembers.Chat
          _messages.Add(placeholder);
          IsSendEnabled = false;
          InputText = "";
+         if (_isComposeOpen) IsComposeOpen = false; // sending closes the review panel
          _witnessExchangesThisRound = 0; // reset the 15C cap for this new player turn
          _sceneContinuations = 0; // reset scene-continuation count for this new player turn
          _ = RunLlmExchangeAsync(text, speaker, placeholder);
+      }
+
+      /// <summary>The "&lt;" button: opens the left REVIEW panel — a wrapped, read-only view of what you have typed
+      ///   (editing stays in the small box; the panel just lets a verbose player read the whole message back).</summary>
+      public void ExecuteOpenCompose()
+      {
+         if (!IsNormalInputVisible || _isComposeOpen) return;
+         IsComposeOpen = true;
+      }
+
+      /// <summary>The review panel's "Close Preview" button: closes it (the text lives in the small box).</summary>
+      public void ExecuteCloseCompose()
+      {
+         if (!_isComposeOpen) return;
+         IsComposeOpen = false;
+      }
+
+      /// <summary>
+      ///   Marks that an NPC-led OPENER is now generating (a captive scene / companion audience where the NPC
+      ///   speaks first), so the chat input stays hidden until the introduction is delivered. Cleared in the
+      ///   RunLlmExchangeAsync finally when that turn completes.
+      /// </summary>
+      private void MarkOpenerPending()
+      {
+         _awaitingOpener = true;
+         OnPropertyChanged(nameof(IsChatInputVisible));
+         OnPropertyChanged(nameof(IsComposeToggleVisible));
       }
 
       /// <summary>
@@ -922,6 +1028,23 @@ namespace CalradiaRemembers.Chat
       ///   get-or-create pass. No-op outside plain Conversation mode or when the exchange had no substance
       ///   (fewer than two completed player turns).
       /// </summary>
+      /// <summary>
+      ///   Executes a granted companion retirement at chat close — deferred from the in-chat <c>retire</c> action
+      ///   so a hero is never removed mid-conversation. Idempotent; a no-op unless this audience was a retirement
+      ///   the player granted. The landless companion leaves; the landed one steps back from the field.
+      /// </summary>
+      public void FinalizeCompanionAudience()
+      {
+         if (_audienceReason != CompanionAudienceReason.Retirement || !_retireGranted) return;
+         _retireGranted = false; // one-shot
+
+         Hero h = _npcHero
+               ?? (_audienceProfile != null ? Hero.FindFirst(x => x != null && x.StringId == _audienceProfile.Id) : null);
+         if (h == null) return;
+
+         Missions.WarWearinessBehavior.Instance?.ExecuteRetirement(h, _audienceLanded);
+      }
+
       public void FinalizeWitnessMemories()
       {
          if (_witnessMemoryFinalized || _mode != ChatMode.Conversation) return;

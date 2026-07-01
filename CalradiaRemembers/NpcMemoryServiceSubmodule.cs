@@ -122,6 +122,10 @@ namespace CalradiaRemembers
          // eases toward baseline; a companion left bitterly unhappy for a season departs. The grievance is
          // voiced in conversation. The score lives on the profile; the pure model is CalradiaRemembers.Logic.
          campaignStarter.AddBehavior(new Missions.CompanionHappinessBehavior());
+         // War-weariness: wounds and captures accrue a toll on each companion (a SEPARATE axis from happiness);
+         // rest eases it; a spent veteran asks for an honorable retirement — a landless one leaves, a landed one
+         // (governor / party-leader) steps back from the field but stays in the clan. Pure model in Logic.
+         campaignStarter.AddBehavior(new Missions.WarWearinessBehavior());
          // Camp life: a weekly tick nudges companion↔companion relations by trait compatibility (the
          // well-matched warm, the ill-matched feud) and weds the warm/eligible (kept in your clan). The
          // opinion is voiced in conversation; the pure rules are in CalradiaRemembers.Logic.

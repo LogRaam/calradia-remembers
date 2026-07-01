@@ -2,6 +2,35 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.19.0.. 2026-07-01
+
+Companions who have bled for you long enough may ask to lay down the sword.. and when a companion wants a word,
+you can now truly talk it through.
+
+### New
+- **Companion war-weariness & honorable retirement.** A companion who fights at your side for years accumulates
+  the toll of war.. wounds and captures wear them down (a brave, hardened soul bears far more than a cautious
+  one, and rest slowly eases it). When one is truly spent, they ask to retire: a **landless** companion leaves
+  your service with a warm farewell; a **landed** one (a governor, or a companion leading their own party) asks
+  to **step back from the field** and tend their holdings while remaining of your clan. In play it rewards
+  expansion.. giving a veteran a fief keeps them. Drag a companion who has stepped back to war again and their
+  granted rest curdles into real resentment. Rides under the [b]Companion contentment[/b] toggle (Mod Options).
+- **A companion asking for a word now opens a real conversation.** When a companion is unhappy in your service,
+  or war-weary and wishing to retire, the pop-up gives you two roads: [b]Let us speak of it…[/b] opens an actual
+  conversation.. they voice it in their own words and you answer in yours, winning them back (or granting their
+  leave) by what you say.. or [b]I've no time for this[/b], which turns them away and sours them. The old
+  one-click "reassure" is gone; you talk it out now.
+- **A composer/review panel for long messages.** A "[b]<[/b]" button beside the chat input opens a panel on the
+  left showing your whole message [b]wrapped and scrollable[/b], so a verbose player can read the full thing back
+  before sending (Bannerlord's text box is single-line only, so this is a read-along view; you still type and
+  send in the chat box on the right). Close it with [b]Close Preview[/b].
+
+### Fixed
+- The chat **input box and Send button no longer appear before the character has given their opening line** —
+  they stay hidden through the "(considering…)" moment and show once the introduction is delivered.
+- The "**scroll down to read more…**" hint no longer flashes up when a message actually fits the window; it
+  appears only when the text genuinely overflows and you are scrolled up.
+
 ## v1.18.0.. 2026-06-30
 
 The town ambush leaves "experimental" behind and becomes a full feature.. and the people you fight beside, and

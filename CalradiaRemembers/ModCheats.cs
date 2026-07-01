@@ -835,6 +835,85 @@ namespace CalradiaRemembers
                 "thrice and they send a farewell letter and leave when it arrives. Requires Companion contentment ON.";
       }
 
+      /// <summary>cr.weariness [name] — show a companion's war-weariness, band, tolerance, and retirement standing.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("weariness", "cr")]
+      public static string Weariness(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         int score = WarWearinessService.Get(hero);
+         int valor = hero.GetTraitLevel(DefaultTraits.Valor);
+         int thr = WarWeariness.RetireThreshold(valor);
+         bool invested = hero.GovernorOf != null || hero.PartyBelongedTo?.LeaderHero == hero;
+
+         return $"{hero.Name}: weariness={score}/{WarWeariness.Max} ({WarWeariness.Band(score, valor)}), valor={valor}, " +
+                $"tolerance={thr}, wantsToRetire={WarWeariness.WantsToRetire(score, valor)}, " +
+                $"invested={invested} → {WarWeariness.Retirement(invested)}, steppedBack={WarWearinessService.HasSteppedBack(hero)}.";
+      }
+
+      /// <summary>cr.weary &lt;value&gt; [name] — set a companion's war-weariness directly (test path).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("weary", "cr")]
+      public static string SetWeariness(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (args == null || args.Count == 0 || !int.TryParse(args[0], out int value))
+            return "Usage: cr.weary <value> [name]  (0..100)";
+
+         Hero hero = ResolveHero(args.Skip(1).ToList());
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         WarWearinessService.Set(hero, value);
+
+         return $"{hero.Name}: weariness set to {WarWearinessService.Get(hero)}. Run cr.weary_tick (or wait a weekly tick) " +
+                "to see whether they ask to retire.";
+      }
+
+      /// <summary>
+      ///   cr.audience [retire|grievance] [name]
+      ///   Opens a companion AUDIENCE conversation directly (skips the popup): the companion speaks first, voicing
+      ///   a war-weary retirement (default) or a grievance. For a retirement, grant it in your own words and the
+      ///   companion emits `retire` — a landless one leaves at close, a landed one steps back from the field.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("audience", "cr")]
+      public static string OpenAudience(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         if (behavior.LlmServices is not {IsAvailable: true}) return "LLM services not available. Set your OpenRouter API key first.";
+
+         var reason = CompanionAudienceReason.Retirement;
+         var nameTokens = new List<string>();
+         foreach (string arg in args ?? new List<string>())
+            if (arg.Equals("grievance", StringComparison.OrdinalIgnoreCase)) reason = CompanionAudienceReason.Grievance;
+            else if (arg.Equals("retire", StringComparison.OrdinalIgnoreCase) || arg.Equals("retirement", StringComparison.OrdinalIgnoreCase)) reason = CompanionAudienceReason.Retirement;
+            else nameTokens.Add(arg);
+
+         Hero hero = ResolveHero(nameTokens);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         bool landed = hero.GovernorOf != null || hero.PartyBelongedTo?.LeaderHero == hero;
+         ChatManager.OpenForCompanionAudience(hero, profile, reason, landed);
+
+         return $"Opened a {reason} audience with {hero.Name} (landed={landed}). They speak first; for a retirement, " +
+                "grant it in your own words to fire `retire` (executed on close).";
+      }
+
+      /// <summary>cr.weary_tick — runs a weekly war-weariness pass now (rest, retirement requests, drag-back enforcement).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("weary_tick", "cr")]
+      public static string WearinessTick(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (WarWearinessBehavior.Instance == null) return "War-weariness system is not active.";
+
+         WarWearinessBehavior.Instance.RunTick();
+
+         return "Ran a war-weariness tick. A spent companion asks to retire — a landless one leaves your service, a " +
+                "landed one (governor / party-leader) steps back from the field. Requires Companion contentment ON.";
+      }
+
       // ── Help ─────────────────────────────────────────────────────────────
 
       /// <summary>cr.help — list all cr.* commands with a short description.</summary>

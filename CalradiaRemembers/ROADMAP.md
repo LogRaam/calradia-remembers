@@ -391,22 +391,62 @@ for good. You *can* drag them back (vanilla allows it), but you use them up. A h
 **considered and rejected** as invasive, patch-fragile, and un-CR: the world reasserts the fiction instead of
 fighting the engine.
 
-**Architecture (matches the pillar):** a pure `WarWearinessPolicy` in `CalradiaRemembers.Logic` (thresholds,
-trait scaling, outcome-by-landedness, and any decay) — unit-tested; engine glue = campaign-event hooks for
-hero-wounded + hero-prisoner-taken (player-clan only), persistence of the score + retired flag on `NpcProfile`,
-and a conversation surface that reuses the existing happiness grievance/departure plumbing (a retirement request
-the player answers).
+**Architecture (matches the pillar):** a pure policy in `CalradiaRemembers.Logic` (thresholds, trait scaling,
+outcome-by-landedness, decay) — unit-tested; engine glue = campaign-event hooks for hero-wounded +
+hero-prisoner-taken (player-clan only), persistence of the score + retired flag on `NpcProfile`, and a
+conversation surface that reuses the existing happiness grievance/departure plumbing (a retirement request the
+player answers).
 
-**OPEN questions to settle before building:**
-- **Decay or monotonic?** Does weariness ease with real REST (peacetime / benched / garrisoned), or only ever
-  climb? (Leaning decay — otherwise the whole roster inevitably retires; rest-to-recover creates a manageable
-  rotation dynamic.)
-- **A player lever?** Can the player persuade a retiring companion into "one more campaign" (a bonus / relation
-  cost, with diminishing returns), or is the decision final once made?
-- **Precise definition of "invested"** for the gate: governor only, or also "leads a party" / "holds a fief" at
-  the clan sense — pick the exact checkable condition.
-- **Other wear sources?** Witnessing a fellow companion die, long unbroken campaigns, crushing defeats — richer,
-  but scope creep; note and defer.
+**PURE CORE BUILT 2026-06-30 (Opus, +15 tests, green) — `CalradiaRemembers.Logic/WarWeariness.cs`:** the score
+(0..100) with `ApplyWound` (+1) / `ApplyCapture` (+10), `Rest(step)` recovery, a Valor-scaled `RetireThreshold`
+(clamped 16..72), `WantsToRetire`, a `WearinessBand` (Fresh → Seasoned → Weary → Spent) read RELATIVE to the
+companion's own tolerance, `Retirement(isLanded)` → `RetirementKind.StepBackToGovern` / `LeaveService`, and a
+`Describe` line for prompts/encyclopedia. **Design refinement made while building:** Valor **raises the
+retirement TOLERANCE** rather than literally slowing per-event accrual (the +1 wound has no room to scale at
+integer resolution) — same felt effect (a brave companion retires later), cleaner and fully testable. NEXT =
+the engine glue (event hooks + `NpcProfile` persistence + the retirement conversation + the soft-enforcement
+tick), still to build.
+
+**Forks resolved 2026-06-30 (Gabriel confirmed) — the v1 build:**
+- **Decay:** YES, slow recovery at real REST (`Rest`, ~2/week suggested). Not monotonic.
+- **Player lever:** NO "one more campaign" persuasion in v1 (the retirement request re-presents if ignored); a
+  fast-follow.
+- **"Invested" gate:** governor (`Hero.GovernorOf != null`) **OR** leads a party.
+- **Wear sources:** v1 = wounds (+1) + captures (+10) only; other sources (witnessing a companion die, long
+  campaigns, defeats) deferred.
+
+**AUDIENCE-AS-CONVERSATION BUILT 2026-07-01 (Opus, untested in game) — the popup now opens a real chat.** Both
+retention popups (the happiness grievance AND the war-weariness retirement) became a two-road choice: **"Let us
+speak of it…"** opens a real CR conversation the companion requested, and **"I've no time for this."** turns them
+away with a bite (a `Mistreated` happiness hit + the existing escalation/cooldown). The shared seam is
+`ChatManager.OpenForCompanionAudience(hero, profile, reason, landed)` → `ChatViewModel.ActivateCompanionAudience`
+(a normal conversation, opened programmatically from a map popup, carrying the profile in `_audienceProfile`
+since there is no vanilla `OneToOneConversationHero`; the companion speaks FIRST via an NPC-led opener). SDK:
+`CompanionAudienceReason` (None/Grievance/Retirement) + `EncounterContext.CompanionAudience` /
+`AudienceRetirementIsLanded` + `PromptBuilder.AppendCompanionAudience` — the grievance leans on the existing mood
+note + `reassure_companion`; the retirement gets its own surface teaching the **`retire`** action AND the
+persuasion framing (**this is where the deferred "one more campaign" lever now lives** — the player can talk a
+war-weary veteran into staying, in their own words). `retire` is a chat-flow control (intercepted in the VM, not
+a bridge action): it flags the grant and executes at CLOSE via `WarWearinessBehavior.ExecuteRetirement` (never
+removes a hero mid-conversation) — landless leaves, landed steps back. Console `cr.audience [retire|grievance]
+[name]` opens either surface directly. **This supersedes the "player lever: NO in v1" fork — the conversation
+naturally IS the lever.**
+
+**ENGINE GLUE BUILT 2026-06-30 (Opus, untested in game) — v1 complete + shippable:** `NpcProfile.WarWeariness`
+(int) + `SteppedBackFromWar` (bool) persist per companion (save-safe defaults). `WarWearinessService` moves the
+score to/from the profile. `WarWearinessBehavior` (registered after the happiness behavior, gated by the same
+`CompanionContentment` MCM toggle): captures via `HeroPrisonerTaken` (+10), wounds via a daily `IsWounded`
+not-wounded→wounded transition (+1, one per wound episode, covers auto-resolved battles), a weekly `Rest` (−2)
+so heavy fighting outruns recovery while light service heals. When a companion is spent, ONE retirement inquiry
+per week: **landless → warm departure** (`RemoveCompanionAction.ApplyByFire` + honorable message); **landed
+(governor / party-leader) → step-back flag + message** (stays in the clan). **Soft enforcement:** a stepped-back
+veteran found back in the MAIN party earns a `Mistreated` happiness hit each week and, after 3 weeks dragged
+back, the retirement BREAKS (flag cleared → the contentment system may then let them leave). Decline a request →
+a 14-day cooldown before it re-presents. Console: `cr.weariness [name]` (show score/band/tolerance/standing),
+`cr.weary <value> [name]` (set), `cr.weary_tick` (run a weekly pass). **DEFERRED (post-v1):** physically ejecting
+a stepped-back companion from the field on grant (v1 sets the flag + relies on the drag-back enforcement rather
+than hero-party surgery); a farewell letter for the landless retiree (v1 departs immediately); a dedicated MCM
+toggle (v1 rides `CompanionContentment`); the persuasion "one more campaign" lever; the extra wear sources.
 
 ### Custom hand-made portraits — letter window, chat window, player *(wished 2026-06-21, broadened 2026-06-24)*
 
@@ -701,6 +741,20 @@ The marriage chain (family-approval, consorts, by-letter, jealousy) is shipped. 
   consequences, which dovetail with dynastic succession and jealousy.
 
 ### Smaller polish (deferred)
+- **Chat composer — a true MULTI-LINE editing box** *(wished 2026-07-01; the "best" option, deferred)*: a player
+  asked for a bigger input for long messages. SHIPPED 2026-07-01 was **Option 2** — a "<" button beside the small
+  input opens a left panel showing a **wrapped, read-only REVIEW** of the message (a `RichTextWidget`, which wraps,
+  in a `ComposeScrollablePanel` so a long message scrolls), updated live; editing stays in the small box on the
+  right. **Definitively established that a true multi-line EDITOR is NOT achievable with native widgets:**
+  Bannerlord's `EditableTextWidget` is single-line — no multiline/wrap property on the widget or its `Brush`
+  (confirmed by reflection), it does not auto-wrap, and Enter does not insert a newline (tested in game). The
+  **Editable Encyclopedia** mod (decompiled, un-obfuscated) does NOT have an editable multi-line box either: it
+  fakes multi-line for READ-ONLY display via a `WordWrap(text, charsPerLine)` helper (inserts `\n`) rendered by a
+  `TextWidget`, and its editor is a single-line enlarged inquiry. So Option 1 needs a **custom widget from
+  scratch** (wrap layout + a caret that navigates wrapped lines + click-to-position + selection + scroll + newline
+  input) — a sizeable, fragile UI build, hard to iterate (no automated UI tests). Deferred. A cheaper middle
+  ground if ever wanted: a **Send-time `WordWrap`** that inserts soft `\n` into the single-line text so the sent
+  message (and any later re-open) reads multi-line, without a real editor.
 - **One "give" control for items AND gold** *(wished 2026-06-28, BUILT 2026-06-28, validated in game)*: the
   gift-icon button now opens a single "Give" picker with a "Gold" entry pinned atop the inventory items;
   picking Gold prompts for a denar amount. The separate Give Gold button is retired (`IsOfferGoldVisible`

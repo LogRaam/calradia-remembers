@@ -102,13 +102,15 @@ namespace CalradiaRemembers.Chat
         private void UpdateMoreHint()
         {
             Widget hint = ResolveMoreHint();
-            if (hint == null || VerticalScrollbar == null) return;
+            if (hint == null || VerticalScrollbar == null || InnerPanel == null || ClipRect == null) return;
 
-            // Show only when a meaningful amount of text sits below the current view: the unread span
-            // (MaxValue - ValueFloat) must exceed the reveal margin. This also implies the content genuinely
-            // overflows, so a near-fitting message never trips it, and following the latest line hides it.
-            float unreadBelow = VerticalScrollbar.MaxValue - VerticalScrollbar.ValueFloat;
-            bool moreBelow = unreadBelow > MoreHintRevealMargin;
+            // Show the hint ONLY when the content genuinely OVERFLOWS the viewport — measured directly from the
+            // laid-out heights (content vs the clip window), not from MaxValue, which was non-zero for a message
+            // that visibly fit and made the hint flash up at the start of a conversation. AND the player must be
+            // scrolled up (not already near the bottom), so following the latest line hides it.
+            bool contentOverflows = InnerPanel.Size.Y - ClipRect.Size.Y > MoreHintRevealMargin;
+            bool scrolledUp = VerticalScrollbar.MaxValue - VerticalScrollbar.ValueFloat > PinThreshold;
+            bool moreBelow = contentOverflows && scrolledUp;
 
             if (hint.IsVisible != moreBelow) hint.IsVisible = moreBelow;
         }

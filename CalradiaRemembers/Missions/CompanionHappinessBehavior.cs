@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using Newtonsoft.Json;
@@ -155,32 +156,46 @@ namespace CalradiaRemembers.Missions
          var title = new TextObject($"{h.Name} asks for a word");
          var body = new TextObject(
             $"{h.Name} is unhappy in your service and asks to speak with you privately, hoping to be heard before " +
-            "they decide to leave. Will you give them an audience?");
+            "they decide to leave.");
 
+         // Hear them out (opens a real conversation where you can win them back in your own words), or turn them
+         // away (a slight that sours them further and counts toward their leaving).
          InformationManager.ShowInquiry(new InquiryData(
             title.ToString(), body.ToString(),
             true, true,
-            "Hear them out", "Not now",
+            "Let us speak of it…", "I've no time for this.",
             () => GrantAudience(h),
             () => RefuseAudience(h)), true);
       }
 
       private void GrantAudience(Hero h)
       {
-         _refusals[h.StringId] = CompanionRetentionPolicy.OnAudienceGranted();
-         // Being heard mollifies them — lift their spirits clear of the leave floor. (The full persuasion
-         // CONVERSATION, where the player can win them back in their own words, is the next increment.)
-         CompanionHappinessService.ApplyDriver(h, HappinessDriver.WellTreated);
-         CompanionHappinessService.ApplyDriver(h, HappinessDriver.WellTreated);
-         MBInformationManager.AddQuickInformation(
-            new TextObject($"You hear {h.Name} out. They seem reassured, for now."), 0, h.CharacterObject);
-         ModLog.Info($"[HAPPINESS] {h.Name}'s audience granted — refusals reset, spirits lifted.");
+         _refusals[h.StringId] = CompanionRetentionPolicy.OnAudienceGranted(); // the audience is granted — reset the escalation
+
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(h.StringId);
+         if (profile == null)
+         {
+            // Fail-soft (no profile to converse with): the old direct reassurance.
+            CompanionHappinessService.ApplyDriver(h, HappinessDriver.WellTreated);
+            CompanionHappinessService.ApplyDriver(h, HappinessDriver.WellTreated);
+            MBInformationManager.AddQuickInformation(
+               new TextObject($"You hear {h.Name} out. They seem reassured, for now."), 0, h.CharacterObject);
+            ModLog.Info($"[HAPPINESS] {h.Name}'s audience granted (no profile — reassured directly).");
+
+            return;
+         }
+
+         // Open the real conversation: they voice the grievance, and you may win them back in your own words
+         // (the reassure_companion action, taught by their unhappy mood, mollifies them if you truly make it right).
+         ChatManager.OpenForCompanionAudience(h, profile, CompanionAudienceReason.Grievance, false);
+         ModLog.Info($"[HAPPINESS] {h.Name}'s grievance audience opened.");
       }
 
       private void RefuseAudience(Hero h)
       {
          int refusals = _refusals.TryGetValue(h.StringId, out int r) ? r : 0;
          _refusals[h.StringId] = CompanionRetentionPolicy.RegisterRefusal(refusals);
+         CompanionHappinessService.ApplyDriver(h, HappinessDriver.Mistreated); // turned away unheard — it sours them further
          ModLog.Info($"[HAPPINESS] {h.Name}'s audience refused ({_refusals[h.StringId]}/{CompanionRetentionPolicy.MaxAudienceRefusals}).");
       }
 

@@ -483,7 +483,9 @@ namespace CalradiaRemembers.Chat
                reactToPlayerIntervention: _director?.ReactToIntervention ?? false,
                captiveVictimName: IsCaptiveEncounter ? _captiveVictimName : null,
                playerCoercedAgainstCompanion: IsCaptiveEncounter && _captivePlayerCoerced,
-               captiveVictimIsFemale: IsCaptiveEncounter && _captiveVictimIsFemale);
+               captiveVictimIsFemale: IsCaptiveEncounter && _captiveVictimIsFemale,
+               companionAudience: _audienceReason,
+               audienceRetirementIsLanded: _audienceLanded);
 
             if (behavior.LlmServices is not {IsAvailable: true})
             {
@@ -702,6 +704,21 @@ namespace CalradiaRemembers.Chat
                          StringComparison.OrdinalIgnoreCase)) continue;
                   if (string.Equals(action.Type, "witness_leaves",
                          StringComparison.OrdinalIgnoreCase)) continue;
+                  // retire: a companion audience where the player granted their leave. Flagged now and executed
+                  // at CLOSE (never remove a hero mid-conversation), so the departure/step-back is deferred.
+                  if (string.Equals(action.Type, "retire", StringComparison.OrdinalIgnoreCase))
+                  {
+                     if (_audienceReason == CompanionAudienceReason.Retirement)
+                     {
+                        _retireGranted = true;
+                        AppendSystemMessage(
+                           _audienceLanded
+                              ? $"{profile.Name} will step back from the field, with your blessing."
+                              : $"{profile.Name} will retire from your service, with your blessing.", true);
+                     }
+
+                     continue;
+                  }
                   if (hasJoinParty &&
                       string.Equals(action.Type, "take_gold",
                          StringComparison.OrdinalIgnoreCase))
@@ -934,6 +951,15 @@ namespace CalradiaRemembers.Chat
             // A bag offer is consumed by the turn it was sent with — clear it so a later, unrelated
             // give_item never re-transfers the previously picked item.
             _offeredItemId = null;
+
+            // The NPC's opening turn (if any) is delivered now — reveal the chat input (unless the scene paused,
+            // which hides it in its own right). Notify so the InputBox/Send/"<" reappear.
+            if (_awaitingOpener)
+            {
+               _awaitingOpener = false;
+               OnPropertyChanged(nameof(IsChatInputVisible));
+               OnPropertyChanged(nameof(IsComposeToggleVisible));
+            }
 
             // Keep input locked if the NPC ended the conversation, if a 15C witness-exchange
             // is in flight, if a scene continuation is pending, or if we are paused waiting

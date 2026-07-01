@@ -60,6 +60,7 @@ namespace CalradiaRemembers.Chat
             // launch captures the data it needs, so it survives the teardown below.
             SafeStep(() => ActiveViewModel?.FinalizeStoryLog(), "FinalizeStoryLog");
             SafeStep(() => ActiveViewModel?.FinalizeCaptiveSceneMemory(), "FinalizeCaptiveSceneMemory");
+            SafeStep(() => ActiveViewModel?.FinalizeCompanionAudience(), "FinalizeCompanionAudience");
             SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
             SafeStep(() => ActiveViewModel?.FinalizeWitnessMemories(), "FinalizeWitnessMemories");
 
@@ -166,6 +167,23 @@ namespace CalradiaRemembers.Chat
          // A faceless brigand captor has no Hero — that absence is exactly the bandit signal.
          bool captorIsBandit = captorHero == null;
          ActiveViewModel.ActivateCaptiveEncounterMode(captorProfile, isCollective, intent, captorIsBandit, victimName, playerCoerced, victimIsFemale);
+      }
+
+      /// <summary>
+      ///   Opens a companion AUDIENCE the companion themselves requested from a map popup ("Let us speak of it"):
+      ///   a grievance, or a war-weary bid to retire. A normal conversation (full memory + actions) in which the
+      ///   companion speaks FIRST and voices why they came. For a retirement, granting it in the talk fires the
+      ///   companion's <c>retire</c> action; persuading them keeps them on.
+      /// </summary>
+      public static void OpenForCompanionAudience(Hero companion, NpcProfile profile, CompanionAudienceReason reason, bool landed)
+      {
+         if (companion == null || profile == null) return;
+
+         Open(companion.Name?.ToString() ?? profile.Name);
+         if (ActiveViewModel == null) return;
+
+         ActiveViewModel.SetNpcHero(companion);
+         ActiveViewModel.ActivateCompanionAudience(profile, reason, landed);
       }
 
       /// <summary>
