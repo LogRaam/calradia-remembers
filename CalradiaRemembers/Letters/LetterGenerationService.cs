@@ -29,6 +29,70 @@ namespace CalradiaRemembers.Letters
    public static class LetterGenerationService
    {
       /// <summary>
+      ///   A first-person phrase for where the letter's writer currently is, or null when it cannot be
+      ///   read with confidence (the prompt then falls back to its stale-location guard rather than have
+      ///   the model guess). Grounds the letter so an NPC on the march no longer writes as if still in the
+      ///   town where the player last met them (player-reported: a correspondent kept placing herself in a
+      ///   settlement both parties had long since left for a campaign).
+      /// </summary>
+      internal static string WhereaboutsFor(NpcProfile profile)
+      {
+         if (profile == null) return null;
+         try
+         {
+            Hero sender = Hero.FindFirst(h => h != null && h.StringId == profile.Id);
+            if (sender == null) return null;
+
+            string town = sender.CurrentSettlement?.Name?.ToString();
+            if (!string.IsNullOrWhiteSpace(town)) return $"within {town}";
+
+            MobileParty party = sender.PartyBelongedTo;
+            if (party == null) return null; // a prisoner or unattached notable: uncertain, say nothing
+
+            if (party.Army != null) return "on campaign with the army, in the field";
+
+            return "in the field, on the march with your own retinue";
+         }
+         catch
+         {
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Diagnostic (console <c>cr.letter_where</c>): generates ONE initial letter and hands the writer's
+      ///   resolved whereabouts and the letter body to <paramref name="onWritten" /> for logging, WITHOUT
+      ///   queuing a courier or mutating the profile. Used to verify a letter grounds to the writer's REAL
+      ///   location rather than a stale town planted in their memory. The callback fires on a background
+      ///   thread once the LLM returns.
+      /// </summary>
+      public static void GenerateForDiagnostic(
+         NpcProfile profile, LetterReason reason, string triggerContext,
+         LlmServices llmServices, Action<string, string> onWritten)
+      {
+         if (profile == null || llmServices?.ChatService == null)
+         {
+            onWritten?.Invoke(null, null);
+
+            return;
+         }
+
+         _ = RunDiagnosticAsync(profile, reason, triggerContext, llmServices, onWritten);
+      }
+
+      private static async Task RunDiagnosticAsync(
+         NpcProfile profile, LetterReason reason, string triggerContext,
+         LlmServices llmServices, Action<string, string> onWritten)
+      {
+         string whereabouts = WhereaboutsFor(profile);
+         string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
+         string message = LetterPromptBuilder.BuildInitialLetterMessage(profile, reason, triggerContext, playerName, whereabouts);
+
+         string content = await CallLlmForLetterAsync(llmServices, profile, message).ConfigureAwait(false);
+         onWritten?.Invoke(whereabouts, content);
+      }
+
+      /// <summary>
       ///   Fire-and-forget entry point for an NPC-initiated letter.
       ///   Generates content asynchronously, then adds the letter to
       ///   <paramref name="profile" /> and persists via <paramref name="store" />.
@@ -218,7 +282,7 @@ namespace CalradiaRemembers.Letters
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string message = LetterPromptBuilder.BuildInitialLetterMessage(
-            profile, reason, triggerContext, playerName);
+            profile, reason, triggerContext, playerName, WhereaboutsFor(profile));
 
          string content = await CallLlmForLetterAsync(llmServices, profile, message);
 
@@ -251,7 +315,7 @@ namespace CalradiaRemembers.Letters
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string message = LetterPromptBuilder.BuildPlayerLetterReplyDecisionMessage(
-            profile, playerLetter.Content ?? "", playerName);
+            profile, playerLetter.Content ?? "", playerName, WhereaboutsFor(profile));
 
          string rawDecision = await CallLlmForLetterAsync(llmServices, profile, message);
 
@@ -326,7 +390,7 @@ namespace CalradiaRemembers.Letters
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string message = LetterPromptBuilder.BuildReplyLetterMessage(
-            profile, originalLetter.PlayerReply ?? "", originalLetter.Reason, playerName);
+            profile, originalLetter.PlayerReply ?? "", originalLetter.Reason, playerName, WhereaboutsFor(profile));
 
          string content = await CallLlmForLetterAsync(llmServices, profile, message);
 

@@ -2,6 +2,25 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.20.1.. 2026-07-02
+
+Two things players told us about: an NPC who would not let go of a heavy opener, and letters that wrote from the wrong place.
+
+### Fixed
+- **NPCs no longer fixate on how you opened the conversation.** The menu line that starts a chat was being read
+  by the AI as your first, weighty statement, so it would insist you were hiding something (or that a plain
+  question "seemed important") even when you only asked about the weather. The opener is now a neutral "A word
+  with you.", and it is no longer fed to the AI as a real line: the character simply greets you and answers what
+  you actually say.
+- **Letters are written from where the sender actually is.** A correspondent who had marched off to war would
+  still pen letters as if sitting in the town where you last met. Now the letter is grounded in the writer's
+  real whereabouts (a town by name, or on campaign in the field), and a place from an old memory is treated as
+  the past ("our talk in Ortysia"), never as where they are now. When their location cannot be read, the letter
+  simply keeps its setting unstated rather than guess.
+
+### Changed
+- The "[b]<[/b]" review-panel button beside the chat input is a touch slimmer.
+
 ## v1.20.0.. 2026-07-01
 
 Bring your own models.. one voice for the road and another for the dark.. and no two captive scenes told the same way.

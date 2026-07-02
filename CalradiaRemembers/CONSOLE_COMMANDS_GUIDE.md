@@ -153,7 +153,7 @@ Each of these stages a feature so it can be checked in one step. They mutate the
 | Marriage / pregnancy / succession | `cr.marry`, `cr.marriage_approve`, `cr.marriage_revoke`, `cr.marriage_status`, `cr.preg`, `cr.preg_birth`, `cr.succession`, `cr.backstory` |
 | Bastards | `cr.bastard_check`, `cr.bastard_tag`, `cr.bastard_season`, `cr.bastard_claim`, `cr.bastard_demand`, `cr.bastard_pay` |
 | Companions (missions / camp) | `cr.send_news`, `cr.send_spy`, `cr.send_steal`, `cr.send_barter`, `cr.send_envoy`, `cr.mission_return`, `cr.journey_recall`, `cr.recall_letter`, `cr.happiness_tick`, `cr.happiness_set`, `cr.rapport_tick` |
-| Letters / couriers | `cr.letter`, `cr.letter_compose`, `cr.letter_read`, `cr.letter_reply`, `cr.courier`, `cr.courier_slow` |
+| Letters / couriers | `cr.letter`, `cr.letter_compose`, `cr.letter_read`, `cr.letter_reply`, `cr.letter_where`, `cr.courier`, `cr.courier_slow` |
 | Captivity / ambush | `cr.capture`, `cr.ambush`, `cr.ambush_lose`, `cr.ambush_gate`, `cr.ambush_scene`, `cr.ambush_audience`, `cr.escape_force` |
 | Adult scenes (Hardcore) | `cr.crc_scene`, `cr.captor_scene`, `cr.bandit_scene`, `cr.bandit_queen`, `cr.add_kink`, `cr.remove_kink` |
 | Witnesses / world events | `cr.witness`, `cr.witnesses`, `cr.deed_heard`, `cr.realm_news`, **`cr.feed_test`** |

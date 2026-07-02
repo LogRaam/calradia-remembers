@@ -12,6 +12,11 @@ Many of you have asked for a way to support my work, so I’ve set up a Ko-fi pa
 Thank you, truly. ❤️[/center]
 
 [line]
+[size=4][color=#ffd966]What's new in v1.20.1[/color][/size]
+
+Two fixes from player reports. NPCs no longer fixate on how you opened a chat: the menu line that starts a conversation was being read by the AI as your first, weighty statement, so a character would insist you were hiding something even when you only asked about the weather.. it is now a neutral opener the AI does not treat as a real line. And letters are now written from where the sender actually is: a correspondent who had marched off to war used to write as if still sitting in the town where you last met, and now the letter is grounded in their real whereabouts (a town by name, or on campaign in the field), with a place from an old memory treated as the past, never as where they are now. Also, the "[b]<[/b]" review-panel button beside the chat input is a touch slimmer.
+
+[line]
 [size=4][color=#ffd966]What's new in v1.20.0[/color][/size]
 
 [b][color=#e69138]Bring your own models, and captive scenes that vary far more[/color][/b]

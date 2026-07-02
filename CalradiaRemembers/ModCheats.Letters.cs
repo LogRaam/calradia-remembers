@@ -11,6 +11,8 @@ using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Core;
 using TaleWorlds.Library;
 
 #endregion
@@ -177,6 +179,70 @@ namespace CalradiaRemembers
          // Force immediate delivery by pre-dating it.
          // The LLM call is async; the letter appears on next daily tick once generated.
          return $"{hero.Name}: letter generation queued. It will appear at the next daily tick.";
+      }
+
+      /// <summary>
+      ///   cr.letter_where [name]
+      ///   Whereabouts grounding test (player-reported bug: a correspondent kept writing as if still in a
+      ///   town both parties had left). Plants a memory placing the last meeting in a DIFFERENT settlement
+      ///   than where the NPC currently is, then generates a letter and logs, to CalradiaRemembers.log:
+      ///   the planted (stale) location, the NPC's REAL resolved whereabouts, and the full letter body.
+      ///   The letter should ground itself to the real location (or the field), never to the planted town.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("letter_where", "cr")]
+      public static string LetterWhereaboutsTest(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         if (behavior.LlmServices is not {IsAvailable: true})
+            return "LLM services not available. Set your API key / model in Mod Options first.";
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         string realWhere = LetterGenerationService.WhereaboutsFor(profile) ?? "(uncertain, the guard will apply)";
+
+         Settlement decoy = PickDecoySettlement(hero);
+         string decoyName = decoy?.Name?.ToString() ?? "Dunglanys";
+
+         // Plant a memory that names a place the NPC is NOT at right now, exactly the stale-location trap.
+         profile.Events.Add(new NotableEvent(today - 5, NotableEventType.Other,
+            $"We last spoke together within the walls of {decoyName}, some days ago."));
+         behavior.Store.Set(profile);
+
+         ModLog.Info($"[LETTER WHERE] {hero.Name}: planted a memory of {decoyName}; real whereabouts = {realWhere}. Generating a letter...");
+
+         LetterGenerationService.GenerateForDiagnostic(
+            profile, LetterReason.RomanticCorrespondence,
+            "A test letter to check the writer's sense of place.",
+            behavior.LlmServices,
+            (fedWhereabouts, content) =>
+            {
+               ModLog.Info($"[LETTER WHERE] {hero.Name} whereabouts fed to the prompt: {fedWhereabouts ?? "(none, stale-location guard active)"}");
+               ModLog.Info($"[LETTER WHERE] planted (stale) location that must NOT be claimed as current: {decoyName}");
+               ModLog.Info($"[LETTER WHERE] letter body:\n{content ?? "(generation failed)"}");
+            });
+
+         return $"{hero.Name}: planted a memory of {decoyName}; real location = {realWhere}. " +
+                "Letter is generating (async). Watch CalradiaRemembers.log for the [LETTER WHERE] lines.";
+      }
+
+      /// <summary>A town the hero is NOT currently in, to plant as a stale-location decoy in memory.</summary>
+      private static Settlement PickDecoySettlement(Hero hero)
+      {
+         Settlement current = hero?.CurrentSettlement;
+         var towns = Settlement.All?
+                               .Where(s => s != null && s.IsTown && s != current)
+                               .ToList();
+
+         if (towns == null || towns.Count == 0) return null;
+
+         return towns[MBRandom.RandomInt(towns.Count)];
       }
 
       /// <summary>A synthetic delivered letter for the cr.letter_* test commands.</summary>

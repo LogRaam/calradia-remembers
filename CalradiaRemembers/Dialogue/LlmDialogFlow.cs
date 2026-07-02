@@ -53,6 +53,14 @@ namespace CalradiaRemembers.Dialogue
       // are the native default and the fail-soft fallback for each mood.
       private const string GreetWarmText = "Ah, it is good to see you. Come — what weighs on your mind?";
 
+      // The vanilla menu line the player clicks to open a CR conversation. Deliberately NEUTRAL:
+      // a loaded opener like "We need to talk..." was seeded into the LLM session as the player's
+      // first line, so the NPC would insist the player was hiding something (or that a mundane
+      // question "seemed important") even when they only asked about the weather. This line is now
+      // also SKIPPED when seeding the chat session (see SeedCapturedVanillaLinesIntoChat), so it
+      // never reaches the model as a substantive statement, only opens the floor.
+      private const string OpenChatOptionText = "A word with you.";
+
       // Set by the chosen greeting line just before the chat opens, consumed when
       // the chat window is seeded.
       private string _pendingGreeting;
@@ -80,7 +88,7 @@ namespace CalradiaRemembers.Dialogue
             "I bear a message for you, carried on another's behalf.",
             CanDeliverLetter,
             DeliverLetterAndOpenChat,
-            115); // above "We need to talk..."
+            115); // above the open-chat option
 
          // 1. Player opens the interaction → routes to the greeting token so the
          //    NPC can react with an expression matching the current relation.
@@ -88,7 +96,7 @@ namespace CalradiaRemembers.Dialogue
             "calradia_remembers_open_chat", // ID unique
             "hero_main_options", // input (où apparaît l'option)
             GreetingToken,
-            "We need to talk...",
+            OpenChatOptionText,
             IsHeroEligible,
             null,
             110); // priorité haute pour apparaître en haut
@@ -451,6 +459,13 @@ namespace CalradiaRemembers.Dialogue
          ModLog.Info($"Seeding {captured.Count} vanilla lines into chat");
 
          foreach (VanillaDialogueRecorder.CapturedLine line in captured)
+         {
+            // Skip the CR-opener menu line: it is a UI trigger (the player chose to start a
+            // conversation), not a statement. Feeding it to the model made the NPC treat every
+            // chat as if the player were withholding a weighty secret.
+            if (line.IsPlayer && string.Equals(line.Text?.Trim(), OpenChatOptionText, StringComparison.Ordinal))
+               continue;
+
             if (line.IsPlayer)
             {
                vm.AppendPlayerMessage(line.Text);
@@ -461,6 +476,7 @@ namespace CalradiaRemembers.Dialogue
                vm.AppendNpcMessage(line.Text);
                Session.AddNpcMessage(line.Text);
             }
+         }
 
          behavior.DialogueRecorder.Clear();
 

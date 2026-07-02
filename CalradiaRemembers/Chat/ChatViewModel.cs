@@ -367,33 +367,6 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   True when there is a real hero across the conversation to open an encyclopedia page for
-      ///   (a synthesized bandit captor or a nameless commoner has none, so the button hides).
-      /// </summary>
-      [DataSourceProperty]
-      public bool IsEncyclopediaVisible => _npcHero != null;
-
-      /// <summary>
-      ///   Opens the in-game encyclopedia on the conversation partner's page, over the chat, so a
-      ///   player can place who they are speaking of (and browse on from there) without the chat's
-      ///   modal focus locking the rest of the interface away. The chat stays open behind it.
-      /// </summary>
-      public void ExecuteOpenEncyclopedia()
-      {
-         try
-         {
-            if (_npcHero == null || Campaign.Current?.EncyclopediaManager == null) return;
-
-            Campaign.Current.EncyclopediaManager.GoToLink(_npcHero.EncyclopediaLink);
-            ModLog.Info($"[ENCYCLOPEDIA] opened on {_npcName} from the chat.");
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"ExecuteOpenEncyclopedia failed: {ex.GetType().Name}: {ex.Message}");
-         }
-      }
-
-      /// <summary>
       ///   True while the captive scene is mid-narration and the player must choose
       ///   "Continue" or "Try something". Hides the normal input area and shows the
       ///   two scene-pause buttons instead.
