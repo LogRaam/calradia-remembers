@@ -33,12 +33,25 @@ namespace CalradiaRemembers.Chat
    {
       private const string PrefabName = "CalradiaRemembersChat";
 
+      // The chat overlay's render order (very high, so it sits above the campaign map). It cannot be changed
+      // after the layer is built, so to keep a game screen opened over the chat (the encyclopedia) visible, the
+      // arbiter slides the chat's WINDOW off-screen (a VM-bound offset) instead of restacking the layer.
+      private const int ChatLayerOrder = 10000;
+
       private static GauntletLayer _activeLayer;
       private static GauntletMovieIdentifier _activeMovieId;
       private static ScreenBase _hostScreen;
       private static CampaignTimeControlMode _previousTimeControlMode;
       private static bool _previousTimeControlModeLock;
       private static bool _timeControlModeSaved;
+
+      // Continuous focus arbitration. The chat is a high-order modal focus layer, so ANY game screen that
+      // appears over it (the alt-tab pause menu, the encyclopedia, a native popup) would otherwise be starved
+      // of input while the chat holds focus. Every frame (ArbitrateFocus, pumped from the chat panel) we
+      // compare the host screen's layer count to the baseline taken when the chat opened: an extra layer means
+      // something modal is up, so the chat yields its focus + input grab; back to baseline, the chat reclaims.
+      private static int _baselineLayerCount;
+      private static bool _chatHoldsFocus;
 
       public static ChatViewModel ActiveViewModel { get; private set; }
 
@@ -220,6 +233,51 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Keeps the chat from starving any game screen that opens over it of input. The chat is a high-order
+      ///   modal focus layer; without this, the alt-tab pause menu, the encyclopedia, or a native popup would
+      ///   appear but not respond, because the chat holds an exclusive focus + input grab. Pumped every frame
+      ///   from <see cref="ChatScrollablePanel" />'s late update (the reliable per-frame main-thread hook).
+      ///   When the host screen has MORE layers than when the chat opened, something modal is up, so the chat
+      ///   yields (IsFocusLayer off, input restrictions reset); once the layers return to the baseline, the
+      ///   chat reclaims focus. Acts only on the transition, so it never fights a screen frame after frame.
+      /// </summary>
+      public static void ArbitrateFocus()
+      {
+         if (!IsOpen || _hostScreen == null) return;
+
+         try
+         {
+            int layers = _hostScreen.Layers?.Count ?? _baselineLayerCount;
+            bool somethingModalOnTop = layers > _baselineLayerCount;
+
+            if (somethingModalOnTop && _chatHoldsFocus)
+            {
+               _activeLayer.IsFocusLayer = false;
+               _activeLayer.InputRestrictions.ResetInputRestrictions();
+               // Slide the chat window off the right edge so the screen above it (the encyclopedia) is not
+               // covered by the chat's high-order rendering. The layer stays added and ticking (its panel
+               // keeps pumping LLM turns and running this arbiter), so nothing hangs; only the visual moves.
+               ActiveViewModel?.SetVisualOffscreen(true);
+               _chatHoldsFocus = false;
+               ModLog.Info("Chat overlay yielded focus and slid aside for a screen above it (pause menu / encyclopedia / popup).");
+            }
+            else if (!somethingModalOnTop && !_chatHoldsFocus)
+            {
+               _activeLayer.IsFocusLayer = true;
+               _activeLayer.InputRestrictions.SetInputRestrictions();
+               ActiveViewModel?.SetVisualOffscreen(false);
+               ScreenManager.TrySetFocus(_activeLayer);
+               _chatHoldsFocus = true;
+               ModLog.Info("Chat overlay reclaimed focus and slid back (nothing above it now).");
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ArbitrateFocus failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
       ///   Requests the chat to scroll to its newest message on the next frame.
       ///   Safe to call from any code path that just appended a message.
       /// </summary>
@@ -304,6 +362,7 @@ namespace CalradiaRemembers.Chat
          ActiveViewModel = null;
          _hostScreen = null;
          _timeControlModeSaved = false;
+         _chatHoldsFocus = false;
       }
 
       private static void GenerateChatWindow(string npcName)
@@ -321,7 +380,7 @@ namespace CalradiaRemembers.Chat
          // shouldClear=false keeps the host screen's rendering visible behind us.
          _activeLayer = new GauntletLayer(
             "CalradiaRemembers",
-            10000);
+            ChatLayerOrder);
          _activeLayer.InputRestrictions.SetInputRestrictions();
 
          _activeMovieId = _activeLayer.LoadMovie(PrefabName, ActiveViewModel);
@@ -335,6 +394,11 @@ namespace CalradiaRemembers.Chat
          _hostScreen.AddLayer(_activeLayer);
          _activeLayer.IsFocusLayer = true;
          ScreenManager.TrySetFocus(_activeLayer);
+
+         // Baseline for ArbitrateFocus: any later growth in the host screen's layer count means a game
+         // screen (pause menu, encyclopedia, popup) opened over the chat, and the chat should yield to it.
+         _baselineLayerCount = _hostScreen.Layers?.Count ?? 0;
+         _chatHoldsFocus = true;
       }
 
       private static void KillChatWindow()

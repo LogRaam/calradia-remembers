@@ -21,7 +21,7 @@
             VerticalAlignment="Center"
             MarginTop="100"
             MarginBottom="100"
-            PositionXOffset="-30"
+            PositionXOffset="@ChatVisualOffsetX"
             Sprite="BlankWhiteSquare_9"
             Color="#1a1612F2">
 
@@ -110,6 +110,37 @@
             <!-- Model mode toggle: shows which of the two configured models is active
                  (roleplay/NSFW) and flips it on click. Deliberately muted: a utility
                  control, not a story beat. Visible only when an NSFW model is set. -->
+            <!-- Opens the in-game encyclopedia on the person you are speaking with, over the chat, so you can
+                 place who they are (and browse on from there) without the modal focus locking the rest of the
+                 interface away. The chat stays open behind it and reclaims focus when the encyclopedia closes.
+                 Hidden for a faceless bandit or nameless commoner, who have no encyclopedia page. -->
+            <ButtonWidget Id="EncyclopediaButton"
+                          WidthSizePolicy="Fixed"
+                          HeightSizePolicy="Fixed"
+                          SuggestedWidth="120"
+                          SuggestedHeight="22"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Bottom"
+                          MarginBottom="6"
+                          MarginLeft="10"
+                          IsVisible="@IsEncyclopediaVisible"
+                          DoNotPassEventsToChildren="true"
+                          Brush="ButtonBrush1"
+                          UpdateChildrenStates="true"
+                          Command.Click="ExecuteOpenEncyclopedia">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Brush="Popup.Button.Text"
+                            Brush.FontSize="14"
+                            Brush.FontColor="#b8b0a0FF"
+                            Brush.TextHorizontalAlignment="Center"
+                            Text="Encyclopedia" />
+              </Children>
+            </ButtonWidget>
+
             <ButtonWidget Id="ModelModeButton"
                           WidthSizePolicy="Fixed"
                           HeightSizePolicy="Fixed"
@@ -118,7 +149,7 @@
                           HorizontalAlignment="Left"
                           VerticalAlignment="Bottom"
                           MarginBottom="6"
-                          MarginLeft="10"
+                          MarginLeft="138"
                           IsVisible="@IsModelModeToggleVisible"
                           DoNotPassEventsToChildren="true"
                           Brush="ButtonBrush1"
@@ -191,7 +222,10 @@
                                 MarginBottom="2">
                           <Children>
 
-                            <Widget Id="AvatarContainer"
+                            <!-- ButtonWidget so a RIGHT-CLICK on the portrait (Command.AlternateClick) opens that
+                                 speaker's encyclopedia page. Left-click is unbound, so it does nothing. The child
+                                 portrait/frame are IsDisabled, so the button reliably catches the click. -->
+                            <ButtonWidget Id="AvatarContainer"
                                     WidthSizePolicy="Fixed"
                                     HeightSizePolicy="Fixed"
                                     SuggestedWidth="96"
@@ -200,9 +234,7 @@
                                     VerticalAlignment="Top"
                                     MarginTop="2"
                                     IsVisible="@ShowAvatar"
-                                    Sprite="BlankWhiteSquare_9"
-                                    Color="#221d18FF"
-                                    AlphaFactor="0.0">
+                                    Command.AlternateClick="ExecuteOpenEncyclopedia">
                               <Children>
 
                                 <ImageIdentifierWidget Id="AvatarPortrait"
@@ -227,7 +259,7 @@
                                         AlphaFactor="0.25"
                                         IsDisabled="true" />
                               </Children>
-                            </Widget>
+                            </ButtonWidget>
 
                             <RichTextWidget Id="MessageText"
                                             WidthSizePolicy="StretchToParent"

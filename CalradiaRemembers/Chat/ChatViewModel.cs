@@ -160,6 +160,7 @@ namespace CalradiaRemembers.Chat
       private ChatMode _mode = ChatMode.Conversation;
       private Hero _npcHero;
       private string _npcName = "the lord";
+      private float _chatVisualOffsetX = -30f; // matches the prefab's resting ChatPanel.PositionXOffset
 
       // Portrait fallback for a heroless speaker (a synthesized bandit captor): the face of a
       // real bandit troop stands in for the brigand chief, who has no Hero of their own.
@@ -365,6 +366,61 @@ namespace CalradiaRemembers.Chat
          OnPropertyChanged(nameof(ModelModeText));
          ModLog.Info($"[MODEL] mode switched to {LlmServices.ActiveModelMode}, resolves to {LlmServices.ActiveModelId}.");
       }
+
+      /// <summary>
+      ///   True when there is a real hero across the conversation to open an encyclopedia page for
+      ///   (a synthesized bandit captor or a nameless commoner has none, so the button hides).
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsEncyclopediaVisible => _npcHero != null;
+
+      /// <summary>
+      ///   Opens the in-game encyclopedia on the conversation partner's page, over the chat, so a player can
+      ///   place who they are speaking of (and browse on from there) without the chat's modal focus locking
+      ///   the rest of the interface away (a player-requested need). The chat stays open behind it and
+      ///   <see cref="ChatManager.SuspendForExternalScreen" /> hands focus to the encyclopedia, reclaiming it
+      ///   automatically once the player closes it.
+      /// </summary>
+      public void ExecuteOpenEncyclopedia()
+      {
+         try
+         {
+            if (_npcHero == null || Campaign.Current?.EncyclopediaManager == null) return;
+
+            // No explicit focus hand-off needed: ChatManager.ArbitrateFocus (pumped every frame) sees the
+            // encyclopedia's layer appear and yields the chat's focus to it, then reclaims it on close.
+            Campaign.Current.EncyclopediaManager.GoToLink(_npcHero.EncyclopediaLink);
+            ModLog.Info($"[ENCYCLOPEDIA] opened on {_npcName} from the chat.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ExecuteOpenEncyclopedia failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Horizontal offset of the chat window (bound to ChatPanel.PositionXOffset). Normally a small negative
+      ///   margin from the right edge; <see cref="SetVisualOffscreen" /> slides it fully off-screen so a game
+      ///   screen opened over the chat (the encyclopedia) is not covered by the chat's high-order rendering.
+      /// </summary>
+      [DataSourceProperty]
+      public float ChatVisualOffsetX
+      {
+         get => _chatVisualOffsetX;
+         set
+         {
+            if (_chatVisualOffsetX == value) return;
+            _chatVisualOffsetX = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>
+      ///   Slides the chat window off the right edge (true) or back into place (false). Called by the focus
+      ///   arbiter when a game screen opens over the chat, so the chat gets out of its way without being torn
+      ///   down or hidden (the layer keeps ticking, so LLM turns and the arbiter keep running).
+      /// </summary>
+      public void SetVisualOffscreen(bool off) => ChatVisualOffsetX = off ? 800f : -30f;
 
       /// <summary>
       ///   True while the captive scene is mid-narration and the player must choose
@@ -1158,6 +1214,7 @@ namespace CalradiaRemembers.Chat
       public void SetNpcHero(Hero npcHero)
       {
          _npcHero = npcHero;
+         OnPropertyChanged(nameof(IsEncyclopediaVisible)); // may be set after the prefab loads (captive scenes)
          if (!string.IsNullOrWhiteSpace(npcHero?.Name?.ToString())) _npcName = npcHero.Name.ToString();
          TitleText = $"Calradia Remembers — {_npcName}";
          _storyIntroWritten = false;

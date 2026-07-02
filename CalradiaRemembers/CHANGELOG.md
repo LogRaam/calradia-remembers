@@ -2,6 +2,22 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.20.2.. 2026-07-02
+
+Look people up without leaving the conversation, and a fix for the chat holding the game hostage.
+
+### New
+- **Open the encyclopedia from a conversation.** [b]Right-click any portrait[/b] in the chat, the person you
+  are speaking with or anyone else present, to open their encyclopedia page. There is also an [b]Encyclopedia[/b]
+  button in the chat's title bar for the person you are talking to. The chat slides aside so you can read and
+  browse freely, then slides back when you close it. Handy for placing who a lord is talking about mid-scene.
+
+### Fixed
+- **The chat no longer blocks the game's pause menu.** If you alt-tabbed to the desktop and back, the pause menu
+  appeared but the chat kept exclusive focus, so you could not click [b]Return to the Game[/b]. The chat now
+  steps aside for any game screen that opens over it (the pause menu, the encyclopedia) and takes focus back
+  when that screen closes.
+
 ## v1.20.1.. 2026-07-02
 
 Two things players told us about: an NPC who would not let go of a heavy opener, and letters that wrote from the wrong place.

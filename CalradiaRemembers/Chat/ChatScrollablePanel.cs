@@ -78,6 +78,11 @@ namespace CalradiaRemembers.Chat
             // keep a pump here, or move it to another per-frame main-thread hook.
             MainThreadDispatcher.Pump();
 
+            // Let any game screen that opens over the chat (the alt-tab pause menu, the encyclopedia, a
+            // native popup) actually take input, and reclaim focus once it closes. This per-frame tick is
+            // the reliable place for it; it acts only on a transition, so it is cheap when nothing changes.
+            ChatManager.ArbitrateFocus();
+
             UpdateMoreHint();
 
             if (_scrollToBottomFramesRemaining <= 0)

@@ -2,6 +2,7 @@
 
 #region
 
+using System;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.Core.ViewModelCollection.ImageIdentifiers;
@@ -21,6 +22,10 @@ namespace CalradiaRemembers.Chat
         private bool _showAvatar = true;
         private string _portraitAdditionalArgs = "";
 
+        // The encyclopedia link of the hero who spoke this line, for the right-click on their portrait.
+        // Empty for a heroless speaker (a bandit troop) or a system line, whose right-click is a no-op.
+        private string _encyclopediaLink = "";
+
         // Flattened portrait properties.
         // This avoids nested Gauntlet bindings such as @Portrait.Id inside an ItemTemplate.
         private string _portraitId = "";
@@ -30,6 +35,7 @@ namespace CalradiaRemembers.Chat
         {
             _displayText = BuildDisplayText(authorName, messageText);
             ResolvePortrait(speakerHero?.CharacterObject, authorName);
+            _encyclopediaLink = speakerHero?.EncyclopediaLink ?? "";
             _authorColor = isPlayer ? PlayerColor : NpcColor;
         }
 
@@ -52,6 +58,7 @@ namespace CalradiaRemembers.Chat
         {
             _displayText = BuildDisplayText(authorName, messageText);
             ResolvePortrait(speakerHero?.CharacterObject, authorName);
+            _encyclopediaLink = speakerHero?.EncyclopediaLink ?? "";
             _authorColor = colorHex ?? NpcColor;
         }
 
@@ -149,6 +156,27 @@ namespace CalradiaRemembers.Chat
                 if (_portraitTextureProviderName == value) return;
                 _portraitTextureProviderName = value;
                 OnPropertyChangedWithValue(value);
+            }
+        }
+
+        /// <summary>
+        ///   Right-click on this speaker's portrait opens their encyclopedia page (bound via
+        ///   Command.AlternateClick on the avatar). A no-op for a heroless speaker (a bandit troop) or a
+        ///   system line, which have no page. The chat's focus arbiter yields to the encyclopedia while it
+        ///   is open and reclaims focus when it closes, so the chat stays usable underneath.
+        /// </summary>
+        public void ExecuteOpenEncyclopedia()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(_encyclopediaLink) || Campaign.Current?.EncyclopediaManager == null) return;
+
+                Campaign.Current.EncyclopediaManager.GoToLink(_encyclopediaLink);
+                ModLog.Info("[ENCYCLOPEDIA] opened from a chat portrait (right-click).");
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"ChatMessageViewModel.ExecuteOpenEncyclopedia failed: {ex.GetType().Name}: {ex.Message}");
             }
         }
 
