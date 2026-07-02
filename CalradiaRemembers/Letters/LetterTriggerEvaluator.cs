@@ -81,7 +81,15 @@ namespace CalradiaRemembers.Letters
 
       /// <summary>True when the NPC has no letter in transit and respects the cooldown.</summary>
       private static bool CanSendLetter(NpcProfile profile, int today, int cooldownDays)
-         => LetterCadence.CanSendLetter(profile, today, cooldownDays);
+      {
+         // A correspondent travelling in the player's OWN party is present, not apart: a courier letter to
+         // someone at your side is nonsensical (and reads as "you are never here" while they stand beside you).
+         // A companion away on an errand has their own party, so they still qualify. Player-reported.
+         Hero hero = Hero.FindFirst(h => h != null && h.StringId == profile.Id);
+         if (hero != null && hero.PartyBelongedTo == MobileParty.MainParty) return false;
+
+         return LetterCadence.CanSendLetter(profile, today, cooldownDays);
+      }
 
       /// <summary>Days since the last notable event in this NPC's profile (proxy for last meeting).</summary>
       private static int DaysSinceLastEvent(NpcProfile profile, int today)

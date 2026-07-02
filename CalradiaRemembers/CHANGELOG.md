@@ -2,6 +2,20 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.20.3.. 2026-07-02
+
+Two fixes from a player report about a bastard child and letters that did not fit the situation.
+
+### Fixed
+- **A mother who cares for you no longer blackmails you over a bastard.** If she holds your child out of wedlock
+  but her regard for you is warm (and, in the reported case, you had agreed to wed), she now writes with longing,
+  not extortion, whatever her scheming nature. A woman who loves you, and whose child your marriage would
+  legitimize, has no secret to sell.
+- **People in your own party no longer send you courier letters as if you were apart.** A companion travelling at
+  your side would write letters that ignored their real closeness, in one case a mother complaining you were
+  "never there for the children" while she rode in your party. Anyone in your party is present now, so they speak
+  in person rather than by courier. A companion away on an errand still writes, as they should.
+
 ## v1.20.2.. 2026-07-02
 
 Look people up without leaving the conversation, and a fix for the chat holding the game hostage.

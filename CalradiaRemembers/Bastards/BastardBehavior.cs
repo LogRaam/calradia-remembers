@@ -24,6 +24,7 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 
 #endregion
@@ -256,6 +257,12 @@ namespace CalradiaRemembers.Bastards
       {
          Hero mother = child.Mother;
          if (mother == null || !mother.IsAlive || mother == Hero.MainHero?.Spouse) return;
+
+         // A mother who is in the player's OWN party is at his side, not apart: the whole bastard thread
+         // (a secret held from a distance, "come to us", "you are never here", a blackmail by courier) makes
+         // no sense while she travels with him. A player reported exactly this, a courted, party-bound mother
+         // writing that he was never there for the children. She is present; anything owed is spoken in person.
+         if (mother.PartyBelongedTo == MobileParty.MainParty) return;
 
          BastardMotherDisposition disposition = MotherDisposition(mother);
          BlackmailState bs = GetBlackmail(child.StringId);

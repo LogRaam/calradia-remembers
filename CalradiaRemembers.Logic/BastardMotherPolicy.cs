@@ -39,13 +39,16 @@ namespace CalradiaRemembers.Logic
         public const int ColdRelation = -10;
 
         /// <summary>
-        ///   Her disposition. Traits decide first — a scheming, dishonourable woman exploits the secret
-        ///   whatever her regard — then warmth: fond → longing, cold → resentful, otherwise pragmatic.
+        ///   Her disposition. A scheming, dishonourable woman inclines toward blackmail, BUT ONLY when her
+        ///   regard is not already warm: a mother who is fond of the player (and, in the reported case, has
+        ///   his +50 regard and an agreement to wed) does not extort him whatever her cunning. So fondness is
+        ///   checked first and rules out the mercenary path; then warmth sets the register: fond → longing,
+        ///   cold → resentful, otherwise pragmatic.
         /// </summary>
         public static BastardMotherDisposition Resolve(int honor, int calculating, int relationWithPlayer)
         {
-            if (calculating - honor >= MercenaryThreshold) return BastardMotherDisposition.Mercenary;
             if (relationWithPlayer >= FondRelation) return BastardMotherDisposition.Longing;
+            if (calculating - honor >= MercenaryThreshold) return BastardMotherDisposition.Mercenary;
             if (relationWithPlayer <= ColdRelation) return BastardMotherDisposition.Resentful;
 
             return BastardMotherDisposition.Pragmatic;

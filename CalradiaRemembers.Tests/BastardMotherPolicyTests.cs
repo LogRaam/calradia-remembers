@@ -23,11 +23,12 @@ namespace CalradiaRemembers.Tests
         }
 
         [Test]
-        public void GIVEN_traits_that_scheme_WHEN_resolving_THEN_they_override_even_genuine_fondness()
+        public void GIVEN_a_calculating_woman_who_is_nonetheless_fond_WHEN_resolving_THEN_fondness_rules_out_blackmail()
         {
-            //Arrange — a calculating, dishonourable woman exploits the secret whatever her regard.
+            // A player reported a mother with +50 regard AND an agreement to wed still trying to blackmail him.
+            // A woman who loves the player does not extort him whatever her cunning: high regard longs, never schemes.
             BastardMotherPolicy.Resolve(honor: -2, calculating: 2, relationWithPlayer: 80)
-                .Should().Be(BastardMotherDisposition.Mercenary);
+                .Should().Be(BastardMotherDisposition.Longing);
         }
 
         [Test]
