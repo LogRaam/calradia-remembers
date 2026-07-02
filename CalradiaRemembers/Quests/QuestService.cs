@@ -145,6 +145,18 @@ namespace CalradiaRemembers.Quests
             if (profile == null || profile.ActiveQuests.Count == 0) continue;
 
             Hero giverHero = Hero.FindFirst(h => h.StringId == id);
+
+            // The giver is dead or gone from the world: close their open tasks now (not the player's
+            // fault, so no penalty), instead of leaving them stuck in the journal until the next reload
+            // (which is all ReconcileOnSessionLaunch did). The HeroKilledEvent path closes them the
+            // instant the giver is slain; this daily sweep is the safety net for anything it missed.
+            if (giverHero is not {IsAlive: true})
+            {
+               CancelQuestsOfDeadGiver(profile, giverHero, gameDay, store);
+
+               continue;
+            }
+
             var changed = false;
 
             foreach (InformalQuest quest in profile.ActiveQuests)
@@ -177,6 +189,36 @@ namespace CalradiaRemembers.Quests
             if (Prune(profile)) changed = true;
             if (changed) store.Set(profile);
          }
+      }
+
+      /// <summary>
+      ///   Closes every still-open quest of a giver who has died (or been removed from the world):
+      ///   both an outstanding task and one whose deed is already done but whose reward can no longer
+      ///   be collected because the giver is gone. This is never the player's fault, so there is NO
+      ///   relation penalty and no broken-word: the quests are Cancelled and their journal mirrors
+      ///   closed with a death reason. Fires mid-session (on the giver's death, and as a daily safety
+      ///   net) so a quest no longer lingers in the log until the next reload. Returns true if it
+      ///   closed anything.
+      /// </summary>
+      public static bool CancelQuestsOfDeadGiver(NpcProfile giver, Hero giverHero, int gameDay, BannerlordNpcMemoryStore store)
+      {
+         if (giver == null || store == null) return false;
+
+         var changed = false;
+         foreach (InformalQuest quest in giver.ActiveQuests)
+         {
+            if (quest.Status != QuestStatus.Active) continue; // Active covers both outstanding and awaiting-reward
+
+            quest.Status = QuestStatus.Cancelled;
+            QuestJournalBridge.CloseAsCancelled(quest, giverHero,
+               $"{giver.Name} is dead. This task can no longer be answered.");
+            changed = true;
+            ModLog.Info($"[QUEST] cancelled on giver death: {giver.Name} — {Describe(quest)} (day {gameDay}).");
+         }
+
+         if (changed) store.Set(giver);
+
+         return changed;
       }
 
       #region private

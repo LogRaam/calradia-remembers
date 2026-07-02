@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
@@ -20,9 +21,9 @@ namespace CalradiaRemembers.Mapping
     ///   <see cref="Hero"/>. Seeded by <see cref="Hero.StringId"/> so the same
     ///   NPC always rolls the same orientation, preferences, and kinks across sessions.
     ///
-    ///   Sprint 8.3 full: <see cref="GetSketches"/> first tries named archetype matching
-    ///   (StartsWith), then falls back to <see cref="BuildTraitBasedSketches"/> which
-    ///   derives meaningful romantic sketches from raw trait values. Every NPC gets
+    ///   Sprint 8.3 full: <c>GetSketches</c> first tries named archetype matching
+    ///   (StartsWith), then falls back to <see cref="CalradiaRemembers.Logic.RomanticProfilePolicy.BuildTraitBasedSketches"/>
+    ///   which derives meaningful romantic sketches from raw trait values. Every NPC gets
     ///   coherent romantic content regardless of archetype catalog coverage.
     /// </summary>
     public static class RomanticProfileBuilder
@@ -42,7 +43,9 @@ namespace CalradiaRemembers.Mapping
             int seed = hero.StringId.GetHashCode();
             Random rng = new Random(seed);
 
-            Traits traits = new()
+            // Thin Hero-to-traits adapter: the pure derivation lives in
+            // CalradiaRemembers.Logic.RomanticProfilePolicy, unit-tested there.
+            RomanticTraits traits = new()
             {
                 Calculating = ConvertLevel(hero.GetTraitLevel(DefaultTraits.Calculating)),
                 Generosity  = ConvertLevel(hero.GetTraitLevel(DefaultTraits.Generosity)),
@@ -58,10 +61,10 @@ namespace CalradiaRemembers.Mapping
                 ArchetypeName    = archetypeName,
                 RelationalSketch = relational,
                 IntimateSketch   = intimate,
-                Orientation      = DetermineOrientation(rng),
+                Orientation      = RomanticProfilePolicy.DetermineOrientation(rng),
                 IsFemale         = hero.IsFemale,
-                Preferences      = DeterminePreferences(rng, traits),
-                Kinks            = DetermineKinks(rng, traits)
+                Preferences      = RomanticProfilePolicy.DeterminePreferences(rng, traits),
+                Kinks            = RomanticProfilePolicy.DetermineKinks(rng, traits)
             };
         }
 
@@ -74,7 +77,7 @@ namespace CalradiaRemembers.Mapping
         ///   First attempts StartsWith matching against named archetypes.
         ///   Falls back to <see cref="BuildTraitBasedSketches"/> when no named match exists.
         /// </summary>
-        private static (string relational, string intimate) GetSketches(string archetypeName, Traits traits)
+        private static (string relational, string intimate) GetSketches(string archetypeName, RomanticTraits traits)
         {
             // ── Named archetype sketches (Sprint 8.3) ─────────────────────────
             if (archetypeName.StartsWith("Honourable"))
@@ -621,214 +624,10 @@ namespace CalradiaRemembers.Mapping
                 );
 
             // ── Trait-based fallback for all other archetypes ─────────────────
-            return BuildTraitBasedSketches(traits);
-        }
-
-        /// <summary>
-        ///   Derives relational and intimate sketches directly from trait values
-        ///   when no named archetype match exists. Covers all new archetypes added
-        ///   in Sprint 8.3 full coverage, and any future mod-generated combinations.
-        /// </summary>
-        private static (string relational, string intimate) BuildTraitBasedSketches(Traits t)
-        {
-            // ── Relational sketch ─────────────────────────────────────────────
-
-            var relParts = new List<string>();
-
-            // Honor axis — fidelity and reliability
-            if (t.Honor >= 1)
-                relParts.Add("Their word means something in love as in all things — a declaration from them carries weight, a commitment is kept.");
-            else if (t.Honor <= -1)
-                relParts.Add("Oaths sit lightly on them in love as in politics — the warmth may be real without the reliability being so.");
-
-            // Mercy axis — emotional texture
-            if (t.Mercy >= 1)
-                relParts.Add("There is genuine warmth in how they approach attachment — they forgive, they consider, they show up.");
-            else if (t.Mercy <= -1)
-                relParts.Add("No softness in how they love — direct, demanding, and entirely without sentiment about the harder moments.");
-
-            // Valor axis — pace and pursuit
-            if (t.Valor >= 1)
-                relParts.Add("Pursues directly and without hesitation — reticence bores them; clear interest draws an equally clear response.");
-            else if (t.Valor <= -1)
-                relParts.Add("Cautious in pursuit as in all things — approaches slowly, needs safety before risking the declaration.");
-
-            // Generosity axis — giving and attachment
-            if (t.Generosity >= 1)
-                relParts.Add("Generous in courtship and more so in commitment — gives time, attention, and resource without careful accounting.");
-            else if (t.Generosity <= -1)
-                relParts.Add("Keeps something in reserve even here — does not lavish, does not overflow, holds their offerings carefully.");
-
-            // Calculating axis — strategy vs. spontaneity
-            if (t.Calculating >= 1)
-                relParts.Add("Nothing about their approach is accidental — timing is considered, words are chosen, the architecture of the courtship is deliberate.");
-            else if (t.Calculating <= -1)
-                relParts.Add("Acts on feeling before thought, which produces both the best and most disastrous moments of their romantic life.");
-
-            string relational = string.Join(" ", relParts);
-            if (string.IsNullOrEmpty(relational))
-                relational = "Follows the expected path in love as in everything — attachment develops through familiarity and persists through habit.";
-
-            // ── Intimate sketch ───────────────────────────────────────────────
-
-            var intParts = new List<string>();
-
-            if (t.Mercy >= 1)
-                intParts.Add("Attentive and present in intimacy — the partner's experience is not an afterthought.");
-            else if (t.Mercy <= -1)
-                intParts.Add("Intensity without softness — what they bring is real and direct, without the comfort of reassurance around it.");
-
-            if (t.Valor >= 1)
-                intParts.Add("Confident and unhesitating — brings the same energy here as to any confrontation, which turns out to be considerable.");
-            else if (t.Valor <= -1)
-                intParts.Add("Careful and deliberate — needs the room to feel unhurried, which, given the space, produces something genuine.");
-
-            if (t.Calculating >= 1)
-                intParts.Add("Observant and precise — has paid attention and applies what they have learned with reliable effect.");
-            else if (t.Calculating <= -1)
-                intParts.Add("Entirely in the moment — no plan, no architecture, just presence, which is either exhilarating or disorganized depending on the partner.");
-
-            if (t.Honor >= 1)
-                intParts.Add("What they say they will do, they do — no false promises, no manufactured intensity.");
-
-            string intimate = string.Join(" ", intParts);
-            if (string.IsNullOrEmpty(intimate))
-                intimate = "Familiar and unhurried — finds comfort in the known, presence in the moment, consistency as its own intimacy.";
-
-            return (relational, intimate);
-        }
-
-        // ── Orientation ───────────────────────────────────────────────────────
-
-        private static SexualOrientation DetermineOrientation(Random rng)
-        {
-            // Homosexual, Pansexual and Asexual are kept in the enum for mod use
-            // but are not assigned in vanilla: lords marry the opposite gender by
-            // game mechanic, so pure homosexuality creates incoherent data.
-            int roll = rng.Next(100);
-            if (roll < 65) return SexualOrientation.Heterosexual;
-            if (roll < 90) return SexualOrientation.BiCurious;
-            return SexualOrientation.Bisexual;
-        }
-
-        // ── Preferences ───────────────────────────────────────────────────────
-
-        private static List<RomanticPreference> DeterminePreferences(Random rng, Traits traits)
-        {
-            HashSet<RomanticPreference> pool = BuildPreferencePool(traits);
-            int count = rng.Next(1, 3);
-            return PickDistinct(pool, count, rng);
-        }
-
-        private static HashSet<RomanticPreference> BuildPreferencePool(Traits t)
-        {
-            HashSet<RomanticPreference> pool = new() { RomanticPreference.Switch };
-
-            if (t.Honor >=  1) { pool.Add(RomanticPreference.MonogamousStrict); pool.Add(RomanticPreference.Devoted); }
-            if (t.Honor <= -1) { pool.Add(RomanticPreference.MonogamousFlexible); pool.Add(RomanticPreference.Polyamorous); pool.Add(RomanticPreference.Casual); }
-            if (t.Honor ==  0)   pool.Add(RomanticPreference.MonogamousFlexible);
-            if (t.Mercy <= -1)   pool.Add(RomanticPreference.Dominant);
-            if (t.Mercy >=  1) { pool.Add(RomanticPreference.Submissive); pool.Add(RomanticPreference.Devoted); }
-            if (t.Calculating >=  1) { pool.Add(RomanticPreference.SlowBurn); pool.Add(RomanticPreference.Reserved); }
-            if (t.Calculating <= -1)  pool.Add(RomanticPreference.Intense);
-            if (t.Valor >=  1)        pool.Add(RomanticPreference.Intense);
-            if (t.Valor <= -1)        pool.Add(RomanticPreference.Reserved);
-            if (t.Generosity >=  1)   pool.Add(RomanticPreference.Devoted);
-            if (t.Generosity <= -1) { pool.Add(RomanticPreference.Independent); pool.Add(RomanticPreference.Possessive); }
-            if (t.Mercy <= -1 && t.Calculating >= 1) pool.Add(RomanticPreference.Possessive);
-            if (t.Valor >=  1 && t.Honor <= -1)      pool.Add(RomanticPreference.Casual);
-
-            return pool;
-        }
-
-        // ── Kinks ─────────────────────────────────────────────────────────────
-
-        private static List<Kink> DetermineKinks(Random rng, Traits traits)
-        {
-            int roll = rng.Next(100);
-            int count;
-            if      (roll <  60) count = 0;
-            else if (roll <  85) count = 1;
-            else if (roll <  97) count = 2;
-            else                 count = 3;
-
-            if (count == 0) return new List<Kink>();
-
-            HashSet<Kink> pool = BuildKinkPool(traits);
-            return PickDistinctKinks(pool, count, rng);
-        }
-
-        private static HashSet<Kink> BuildKinkPool(Traits t)
-        {
-            HashSet<Kink> pool = new()
-            {
-                Kink.Roleplay, Kink.PublicAffection, Kink.Voyeurism, Kink.Exhibitionism
-            };
-
-            if (t.Mercy <= -1)
-            {
-                pool.Add(Kink.Dominance); pool.Add(Kink.Sadism); pool.Add(Kink.BondageGiving); pool.Add(Kink.PowerImbalance);
-                pool.Add(Kink.Degradation); pool.Add(Kink.FreeUse); pool.Add(Kink.ImpactPlay);
-                pool.Add(Kink.FearPlay); pool.Add(Kink.Objectification);
-            }
-            if (t.Mercy >= 1)
-            {
-                pool.Add(Kink.Submission); pool.Add(Kink.BondageReceiving); pool.Add(Kink.Masochism);
-                pool.Add(Kink.Praise);
-            }
-            if (t.Honor <= -1)
-            {
-                pool.Add(Kink.PowerImbalance); pool.Add(Kink.SwitchTendencies);
-                pool.Add(Kink.CorruptionKink); pool.Add(Kink.Degradation);
-            }
-            if (t.Honor >= 1)
-            {
-                pool.Add(Kink.Breeding); pool.Add(Kink.Praise);
-            }
-            if (t.Calculating >= 1)
-            {
-                pool.Add(Kink.Dominance); pool.Add(Kink.Possessiveness); pool.Add(Kink.BondageGiving);
-                pool.Add(Kink.OrgasmControl); pool.Add(Kink.Chastity); pool.Add(Kink.Objectification);
-                pool.Add(Kink.SensoryDeprivation); pool.Add(Kink.Training); pool.Add(Kink.MasterSlave); pool.Add(Kink.PetPlay);
-            }
-            if (t.Valor >= 1)
-            {
-                pool.Add(Kink.Exhibitionism); pool.Add(Kink.Masochism);
-                pool.Add(Kink.Prize);
-            }
-            if (t.Generosity <= -1)
-            {
-                pool.Add(Kink.Possessiveness);
-                pool.Add(Kink.MasterSlave); pool.Add(Kink.FreeUse); pool.Add(Kink.PetPlay);
-            }
-
-            return pool;
+            return RomanticProfilePolicy.BuildTraitBasedSketches(traits);
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
-
-        private static List<RomanticPreference> PickDistinct(HashSet<RomanticPreference> pool, int count, Random rng)
-        {
-            List<RomanticPreference> source = new(pool);
-            Shuffle(source, rng);
-            return source.GetRange(0, Math.Min(count, source.Count));
-        }
-
-        private static List<Kink> PickDistinctKinks(HashSet<Kink> pool, int count, Random rng)
-        {
-            List<Kink> source = new(pool);
-            Shuffle(source, rng);
-            return source.GetRange(0, Math.Min(count, source.Count));
-        }
-
-        private static void Shuffle<T>(List<T> list, Random rng)
-        {
-            for (int i = list.Count - 1; i > 0; i--)
-            {
-                int j = rng.Next(i + 1);
-                (list[i], list[j]) = (list[j], list[i]);
-            }
-        }
 
         private static int ConvertLevel(int score)
         {

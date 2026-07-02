@@ -240,13 +240,11 @@ namespace CalradiaRemembers.Letters
          // (PersonalDesire) scene — a captive woman handed to the band — than for a shakedown.
          // But never conjure more brigands than actually survived the capture: the chief is one
          // of the fighters, so extra participants are capped at (members − 1), max 2.
-         int collectiveChance = banditIntent == CaptiveSceneIntent.PersonalDesire
-            ? 55
-            : 25;
-         int extraBandits = Math.Max(0, CountBanditFighters(captorParty) - 1);
-         bool banditCollective = extraBandits >= 1 && MBRandom.RandomInt(100) < collectiveChance;
+         // (rolls live in CalradiaRemembers.Logic.CaptiveEncounterPolicy — pure, unit-tested)
+         int extraBandits = CaptiveEncounterPolicy.BanditCollectiveParticipantCap(CountBanditFighters(captorParty));
+         bool banditCollective = CaptiveEncounterPolicy.ShouldBanditSceneBeCollective(banditIntent, extraBandits, RollPercent);
          List<WitnessEntry> banditWitnesses = banditCollective
-            ? BuildBanditWitnesses().Take(Math.Min(2, extraBandits)).ToList()
+            ? BuildBanditWitnesses().Take(CaptiveEncounterPolicy.BanditWitnessCount(extraBandits)).ToList()
             : new List<WitnessEntry>();
 
          ModLog.Info($"[CAPTIVE] bandit encounter: captor={banditProfile.Name} (female={banditProfile.IsFemale}), intent={banditIntent}, collective={banditCollective}, witnesses={banditWitnesses.Count}, face={banditFace?.StringId ?? "none"}.");
@@ -501,29 +499,17 @@ namespace CalradiaRemembers.Letters
       }
 
       /// <summary>
-      ///   Picks the bandit captor's intent. Spoil-of-war (the sexual CNC intent) is GENDER-WEIGHTED:
-      ///   near-nil for a male prisoner, common for a female — and only when orientation-compatible.
-      ///   Otherwise a non-sexual menace intent (extortion / intimidation / revenge).
+      ///   Picks the bandit captor's intent (roll bands live in
+      ///   <see cref="CaptiveEncounterPolicy.SelectBanditIntent" />, pure and unit-tested).
       /// </summary>
       private static CaptiveSceneIntent SelectBanditIntent(bool playerIsFemale, NpcProfile captor)
-      {
-         int spoilChance = playerIsFemale
-            ? 50
-            : 3;
+         => CaptiveEncounterPolicy.SelectBanditIntent(playerIsFemale, captor.Romantic, RollPercent);
 
-         if (MBRandom.RandomInt(100) < spoilChance && captor.Romantic != null && captor.Romantic.IsCompatibleWith(playerIsFemale))
-            return CaptiveSceneIntent.PersonalDesire;
-
-         int roll = MBRandom.RandomInt(100);
-
-         if (roll < 45) return CaptiveSceneIntent.Extortion;
-         if (roll < 75) return CaptiveSceneIntent.Intimidation;
-
-         return CaptiveSceneIntent.Revenge;
-      }
+      /// <summary>The host's dice, handed to the pure policy as its randomness seam.</summary>
+      private static int RollPercent(int maxExclusive) => MBRandom.RandomInt(maxExclusive);
 
       private static CaptiveSceneIntent SelectIntent(NpcProfile captorProfile, int relation)
-         => CaptiveEncounterPolicy.SelectIntent(captorProfile.Romantic?.Kinks, relation);
+         => CaptiveEncounterPolicy.SelectIntent(captorProfile.Romantic?.Kinks, relation, RollPercent);
 
       private static (List<WitnessEntry> witnesses, bool isCollective) SelectWitnesses(
          MobileParty captorParty,

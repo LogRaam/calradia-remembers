@@ -1384,11 +1384,12 @@ namespace CalradiaRemembers.Diagnostics
             string victimName = null, bool victimIsFemale = false, IReadOnlyList<WitnessEntry> witnesses = null)
         {
             var session = new ChatSession();
-            var director = new CaptiveSceneDirector(false, 0, MBRandomSource.Instance);
+            var director = new CaptiveSceneDirector(false, 0, MBRandomSource.Instance, false, intent);
             var beats = new List<ParsedResponse>();
 
             // Beat 0 — the opener (the captor speaks first), exactly as ActivateCaptiveEncounterMode seeds it.
-            string opener = CaptiveSceneText.BuildCaptiveOpener(false, intent) + CaptiveSceneText.BuildSceneSetup();
+            var lastFocusIndex = -1;
+            string opener = CaptiveSceneText.BuildCaptiveOpener(false, intent) + CaptiveSceneText.BuildSceneSetup(intent, ref lastFocusIndex);
             if (!RunOneCaptiveBeat(behavior, $"{label}/open", npc, profile, intent, director, opener, session, beats,
                     victimName, victimIsFemale, witnesses))
                 return (false, beats);

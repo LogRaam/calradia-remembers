@@ -14,5 +14,13 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>True for the player's own deeds — chronicle material, kept long-term.</summary>
         bool InvolvesPlayer { get; }
+
+        /// <summary>
+        ///   True for a third-party fact fed through the Extension Surface with
+        ///   <c>ExternalEventLifetime.Deed</c>: kept long-term like a chronicle entry (under its own,
+        ///   smaller cap) instead of aging out as a rumour. False for everything else, including
+        ///   pre-existing saves, where it deserializes to its default.
+        /// </summary>
+        bool IsPersistentDeed { get; }
     }
 }

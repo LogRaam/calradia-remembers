@@ -5,7 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
+using CalradiaRemembers.GameState;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.Core;
@@ -38,7 +38,12 @@ namespace CalradiaRemembers.Marriage
       // resents the player stays cold despite a blessing — or warms despite a slight.
       private const int MaxFamilySwing = 80; // clamp on the final per-member delta
 
-      private const string SaveKey = "CalradiaRemembers_MarriageApprovals_v1";
+      // Current key: JSON state stored as a UTF-8 byte[] (JsonCampaignState), which has no size
+      // limit. LegacySaveKey is the old STRING key, kept only to migrate a save written before
+      // this behavior switched over (Bannerlord's native string serializer corrupts a save once
+      // the blob grows past roughly 65,535 characters).
+      private const string SaveKey = "CalradiaRemembers_MarriageApprovals_v2bytes";
+      private const string LegacySaveKey = "CalradiaRemembers_MarriageApprovals_v1";
       private const int UnapprovedRelationPenalty = -40;
       public static MarriageApprovalBehavior Instance;
 
@@ -90,30 +95,12 @@ namespace CalradiaRemembers.Marriage
 
       public override void SyncData(IDataStore dataStore)
       {
-         // Same save-safety contract as the profile store: never brick a save/load over
-         // our own blob — degrade to "no blessings this pass" instead.
-         string json = null;
+         // Same save-safety contract as the profile store: never brick a save/load over our own
+         // blob, degrade to "no blessings this pass" instead.
          if (dataStore.IsSaving)
-            try { json = JsonConvert.SerializeObject(_approvals, Formatting.None); }
-            catch (Exception ex)
-            {
-               ModLog.Error($"[MARRIAGE] approval serialize failed — persisting nothing this save. {ex.GetType().Name}: {ex.Message}");
-               json = "{}";
-            }
-
-         dataStore.SyncData(SaveKey, ref json);
-
-         if (dataStore.IsSaving || string.IsNullOrEmpty(json)) return;
-
-         try
-         {
-            _approvals = JsonConvert.DeserializeObject<Dictionary<string, MarriageApprovalRecord>>(json) ?? new Dictionary<string, MarriageApprovalRecord>();
-         }
-         catch (Exception ex)
-         {
-            _approvals = new Dictionary<string, MarriageApprovalRecord>();
-            ModLog.Error($"[MARRIAGE] approval load failed — blessings dropped for this load so the campaign can still open. {ex.GetType().Name}: {ex.Message}");
-         }
+            JsonCampaignState.Save(dataStore, SaveKey, _approvals);
+         else
+            _approvals = JsonCampaignState.Load(dataStore, SaveKey, LegacySaveKey, () => new Dictionary<string, MarriageApprovalRecord>());
       }
 
       #region private

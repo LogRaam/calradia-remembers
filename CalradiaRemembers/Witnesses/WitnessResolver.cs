@@ -276,16 +276,33 @@ namespace CalradiaRemembers.Witnesses
                   "Bring", "Go alone",
                   selected =>
                   {
+                     // Log the count the affirmative action actually received: a player report of a
+                     // brought companion never appearing (not in the header, not in the prompt) is
+                     // resolved here (the pick was captured) or upstream (an empty selection) by this line.
+                     int count = selected?.Count ?? 0;
+                     ModLog.Info($"[WitnessResolver] Companion picker confirmed with {count} selection(s).");
+
                      if (selected == null) return;
                      foreach (InquiryElement element in selected)
                      {
                         var id = element.Identifier as string;
 
-                        if (string.IsNullOrEmpty(id)) continue;
+                        if (string.IsNullOrEmpty(id))
+                        {
+                           ModLog.Info("[WitnessResolver] a picked element carried no hero id — skipped.");
+
+                           continue;
+                        }
+
                         Hero companion = Hero.AllAliveHeroes
                                              .FirstOrDefault(h => h.StringId == id);
 
-                        if (companion == null) continue;
+                        if (companion == null)
+                        {
+                           ModLog.Info($"[WitnessResolver] picked companion id '{id}' was not found among alive heroes — skipped.");
+
+                           continue;
+                        }
 
                         onCompanionJoins(new WitnessEntry {
                            Name = companion.Name.ToString(),

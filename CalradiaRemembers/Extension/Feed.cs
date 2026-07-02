@@ -24,8 +24,18 @@ namespace CalradiaRemembers
    /// </summary>
    public static class Feed
    {
+      /// <summary>
+      ///   The Extension Surface's capability version. Bumped only on a breaking contract change (a
+      ///   removed or renamed public member of <see cref="Feed" /> or <see cref="ExternalWorldEvent" />);
+      ///   additive members never require a bump. A reflection-based caller (a mod with no compile-time
+      ///   reference to CR) reads this before calling anything, to detect what it can safely use.
+      /// </summary>
+      public const int ApiVersion = 1;
+
       // Per-source daily send count (in-memory; resets on day change). Persistence is a later refinement —
       // dedup-by-id (against the persisted store) already stops re-recording the same fact across a reload.
+      // Guarded by _quotaLock: a third-party mod may call Record from a background thread.
+      private static readonly object _quotaLock = new object();
       private static readonly Dictionary<string, int[]> _quota = new(); // source -> [day, countThatDay]
 
       /// <summary>
@@ -117,24 +127,28 @@ namespace CalradiaRemembers
             SourceMod = e.SourceMod,
             ActorIds = ResolveHeroes(e.HeroIds),
             FactionIds = ResolveFactions(e.FactionIds),
-            InvolvesPlayer = Hero.MainHero != null && e.HeroIds != null && e.HeroIds.Contains(Hero.MainHero.StringId)
+            InvolvesPlayer = Hero.MainHero != null && e.HeroIds != null && e.HeroIds.Contains(Hero.MainHero.StringId),
+            IsPersistentDeed = e.Lifetime == ExternalEventLifetime.Deed
          };
 
       private static bool ConsumeQuota(string source, int today)
       {
-         if (!_quota.TryGetValue(source, out int[] q) || q[0] != today) q = new[] {today, 0};
-
-         if (!ExternalEventRules.WithinDailyQuota(q[1]))
+         lock (_quotaLock)
          {
+            if (!_quota.TryGetValue(source, out int[] q) || q[0] != today) q = new[] {today, 0};
+
+            if (!ExternalEventRules.WithinDailyQuota(q[1]))
+            {
+               _quota[source] = q;
+
+               return false;
+            }
+
+            q[1]++;
             _quota[source] = q;
 
-            return false;
+            return true;
          }
-
-         q[1]++;
-         _quota[source] = q;
-
-         return true;
       }
 
       /// <summary>Keeps only the ids that resolve to a real hero (alive or dead) — resolve-or-drop.</summary>

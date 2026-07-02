@@ -59,6 +59,23 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   The reasoning-effort keyword for NSFW mode, read live from the MCM menu. The default
+      ///   sentinel ("Same as roleplay") makes NSFW reuse <see cref="ReasoningEffort" />; players
+      ///   typically set it LOWER than roleplay (fewer moralizing refusals, faster scene beats).
+      /// </summary>
+      public static string NsfwReasoningEffort
+      {
+         get
+         {
+            string v = CrSettings.Instance?.NsfwReasoningEffort?.SelectedValue;
+
+            return string.IsNullOrWhiteSpace(v)
+               ? CalradiaRemembers.Logic.ModelModePolicy.SameAsRoleplay
+               : v;
+         }
+      }
+
+      /// <summary>
       ///   Sound event path played when a negative relation change occurs.
       ///   Vanilla fallback — replace with "event:/CR_Negative" once the custom
       ///   soundbank strings-loading issue is resolved in FMOD Studio.
@@ -110,6 +127,18 @@ namespace CalradiaRemembers
       ///   departures). When false the whole system is inert. Read live from the MCM menu; on by default.
       /// </summary>
       public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
+
+      /// <summary>
+      ///   When true, the system prompt is trimmed to fit a small / short-context model (the "Compact prompt for
+      ///   small models" option). Read live from the MCM menu; OFF by default (full prompt for capable models).
+      /// </summary>
+      public static bool LeanPrompt => CrSettings.Instance?.LeanPrompt ?? false;
+
+      /// <summary>
+      ///   The optional NSFW model id: used automatically in explicit scenes and via the in-chat mode button.
+      ///   Blank (the default) means the roleplay model serves everything. Read live from the MCM menu.
+      /// </summary>
+      public static string NsfwModel => CrSettings.Instance?.NsfwModel ?? "";
 
       /// <summary>
       ///   How long (seconds) to wait for an LLM reply before timing out. Read live from the MCM

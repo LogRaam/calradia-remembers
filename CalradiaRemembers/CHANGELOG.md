@@ -2,6 +2,51 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.20.0.. 2026-07-01
+
+Bring your own models.. one voice for the road and another for the dark.. and no two captive scenes told the same way.
+
+### New
+- **Two models, one for roleplay and one for the explicit.** Alongside your main model there is now an optional
+  [b]NSFW model[/b] field (Mod Options, LLM Provider). Captive and other explicit scenes switch to it
+  automatically; ordinary conversations stay on your roleplay model. A small [b]Mode: Roleplay / Mode: NSFW[/b]
+  button in the chat flips it on the fly, for a consensual scene that turns, without leaving the conversation.
+  Works with whichever provider you use. Leave the field empty and one model serves everything, exactly as before.
+- **Separate Reasoning Effort per mode.** [b]Reasoning Effort (roleplay)[/b] and [b]Reasoning Effort (NSFW)[/b]:
+  keep roleplay high for finer dialogue, drop NSFW to Low or Off for fewer moralizing refusals and faster scenes.
+  The NSFW setting defaults to "Same as roleplay", so nothing changes until you touch it.
+- **Compact prompt for small models.** A new toggle that trims the system prompt to fit a small, short-context
+  local model (roughly 4k to 8k, an LM Studio or Ollama model). Turn it on if the AI stays silent or you see
+  "(My words escape me...)".. the full prompt was overflowing your model's context. Console: [b]cr.prompt_size[/b].
+- **Captive scenes vary far more.** Three changes make the same captor stop retelling the same scene: their
+  intent is now drawn from their nature rather than fixed (so visits differ), the pool of "what drives them
+  tonight" nearly doubled and gained new registers (psychological manipulation, corruption, theatre for the
+  onlookers, a slow game of hope and denial), and the dramatic [b]structure[/b] itself now varies.. a slow
+  build-up, the classic arc, or a sudden brutal assault, chosen by who holds you. Two new beats round it out: a
+  rising tension before the act, and an aftermath after it, instead of cutting straight from the peak to the cell.
+
+### Changed
+- **Mod Options reorganized.** LLM settings come first now (the shared provider group, then one section per
+  provider: OpenRouter, NanoGPT, OpenAI-Compatible), then gameplay, then diagnostics. The model fields are shared
+  across providers.
+- **Test Connection checks every model you configured.** It now sends a one-token test to both the roleplay model
+  and, if set, the NSFW model, so a mistyped id fails on the button instead of mid-scene.
+
+### Fixed
+- **Reasoning models (MiMo, GLM and the like) no longer stall on Continue.** They could spend their whole reply
+  budget "thinking" and return nothing; the mod now retries with a larger budget, and the Continue nudge is
+  lighter so they stop over-deliberating.
+- **A quest whose giver dies now closes** instead of lingering in your journal forever. No penalty.. their death
+  is not your doing.
+- **Letters reply in the language you wrote in.** A letter penned in French no longer comes back in English.
+- **Save stability.** Two subsystems (jealousy, marriage approval) moved off a text-based save format that could
+  corrupt a long campaign's save.
+
+### ⚠️ One-time step for NanoGPT / OpenAI-Compatible users
+- The per-provider model fields were merged into one shared [b]Model (roleplay)[/b] field. If you run NanoGPT or a
+  local OpenAI-compatible server, [b]re-enter your model id once[/b] in the LLM Provider section after updating.
+  OpenRouter users are unaffected.
+
 ## v1.19.0.. 2026-07-01
 
 Companions who have bled for you long enough may ask to lay down the sword.. and when a companion wants a word,

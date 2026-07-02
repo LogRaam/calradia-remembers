@@ -12,6 +12,25 @@ Many of you have asked for a way to support my work, so I’ve set up a Ko-fi pa
 Thank you, truly. ❤️[/center]
 
 [line]
+[size=4][color=#ffd966]What's new in v1.20.0[/color][/size]
+
+[b][color=#e69138]Bring your own models, and captive scenes that vary far more[/color][/b]
+
+You can now set a second, optional [b]NSFW model[/b] alongside your main one (Mod Options → LLM Provider): captive and other explicit scenes use it automatically, ordinary talk stays on your roleplay model, and a [b]Mode: Roleplay / Mode: NSFW[/b] button in the chat lets you flip it mid-conversation.. a consensual scene that turns, without ever leaving the conversation. Any provider works. Leave the NSFW field empty and nothing changes: one model still handles everything, as before.
+
+Reasoning Effort is now split too: [b]Reasoning Effort (roleplay)[/b] and [b]Reasoning Effort (NSFW)[/b].. keep roleplay high for finer dialogue and drop NSFW to Low/Off for fewer refusals and faster scenes. NSFW defaults to "Same as roleplay", so nothing changes until you touch it.
+
+Running a small local model? A new [b]"Compact prompt for small models"[/b] toggle trims the system prompt to fit a short-context model (roughly 4k-8k, LM Studio/Ollama).. turn it on if the AI stays silent. ([b]cr.prompt_size[/b] in console.)
+
+And captive scenes themselves vary far more: the same captor no longer retells the same scene (their intent is now drawn from their nature, not fixed), the pool of "what drives them tonight" has nearly doubled with new registers (psychological manipulation, corruption, theatre for onlookers, hope-and-denial), and even the dramatic structure itself varies.. slow build-up, classic, or sudden assault.. by who holds you, with two new beats: a rising tension before the act, and an aftermath after it.
+
+Also fixed this release: reasoning models (MiMo, GLM, and similar) no longer stall on the Continue button, a quest whose giver dies now closes cleanly instead of lingering forever, letters reply in the language you wrote in, and two subsystems moved off a save format that could corrupt a long campaign's save.
+
+⚠️ [b][color=#ffd966]One-time step if you're updating from an earlier version[/color][/b]: the per-provider model fields were merged into one shared [b]Model (roleplay)[/b] field. If you use [b]NanoGPT[/b] or [b]OpenAI-Compatible[/b], you'll need to re-enter your model id once in the LLM Provider section after updating. [b]OpenRouter[/b] users are unaffected.
+
+Full setup details for the new fields are in [i]How to configure[/i] below.
+
+[line]
 [size=4]Why this mod exists[/size]
 
 Calradia Remembers began as a ground-up answer to a simple wish: an LLM-driven roleplay mod whose code I fully own, understand, and can keep alive.
@@ -250,7 +269,7 @@ Calradia Remembers is young and moving fast. The core loop is solid, but it is n
 [line]
 [size=5]How to configure[/size]
 
-[b]CHOOSE A BACKEND[/b]. The mod supports three backends: [b]OpenRouter[/b] (default, broadest cloud model catalog), [b]NanoGPT[/b] (alternative cloud provider), and [b]OpenAI-Compatible[/b] (any local server on your machine.. LM Studio, Ollama, vLLM). You only need one. Each keeps its own settings, and you switch between them in one click with the "LLM Provider" dropdown.
+[b]CHOOSE A BACKEND[/b]. The mod supports three backends: [b]OpenRouter[/b] (default, broadest cloud model catalog), [b]NanoGPT[/b] (alternative cloud provider), and [b]OpenAI-Compatible[/b] (any local server on your machine.. LM Studio, Ollama, vLLM). You only need one. Each keeps its own API key/endpoint, and you switch between them in one click with the "LLM Provider" dropdown.. the Model field itself is shared across all three, so you only set it once.
 
 OPTION A.. SET UP OPENROUTER (CLOUD, ONE TIME)
 
@@ -297,8 +316,8 @@ Popular options:
   1. Launch Bannerlord with the mod enabled, then open Options → Mod Options → Calradia Remembers.
   2. Set `LLM Provider` to OpenRouter or NanoGPT.. whichever you set up.
   3. Paste your key into that provider's API Key field.
-  4. Set that provider's Model field (OpenRouter has a default; NanoGPT needs an id you paste from its catalog).
-  5. Click that provider's `Test Connection` button.. it validates your key and, on OpenRouter, also tests your chosen model with a one-token prompt so a mistyped model id is caught before you play.
+  4. Set the shared `Model (roleplay)` field (OpenRouter has a default; NanoGPT needs an id you paste from its catalog). Optionally set `NSFW model` too if you want a different, more permissive model just for Explicit/Hardcore scenes.. leave it blank to use one model for everything. [i](Updating from an older version? See the one-time note in "What's new in v1.20.0" above.)[/i]
+  5. Click that provider's `Test Connection` button.. it validates your key and tests every model you've configured (roleplay, and NSFW if set) with a one-token prompt, so a mistyped model id is caught before you play.
   6. That's it. Settings apply immediately.. no restart, no save reload. Walk up to any lord and talk.
 
 [b]Local server (OpenAI-Compatible):[/b]
@@ -306,7 +325,7 @@ Popular options:
   2. Open Options → Mod Options → Calradia Remembers.
   3. Set `LLM Provider` to [b]OpenAI-Compatible[/b].
   4. Paste the server URL into [b]Endpoint URL[/b] (e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama). Include the /v1 path.. the mod appends /chat/completions automatically.
-  5. Paste the model id into [b]Model[/b] (LM Studio shows it in its server panel; Ollama uses the name you pulled, e.g. llama3.1:8b).
+  5. Paste the model id into the shared [b]Model (roleplay)[/b] field (LM Studio shows it in its server panel; Ollama uses the name you pulled, e.g. llama3.1:8b). Running a small short-context model? Turn on [b]Compact prompt for small models[/b] if the AI stays silent.
   6. Leave [b]API Key[/b] blank unless your server is configured to require one.
   7. Click [b]Test Endpoint[/b].. it sends a one-token completion to confirm the server is up and the model id is correct.
   8. That's it. Settings apply immediately.
@@ -315,30 +334,34 @@ Popular options:
 
 LLM Provider:
 [list]
-[*]LLM Provider.. which backend to use: OpenRouter (default), NanoGPT, or OpenAI-Compatible (any local server). Each has its own settings below, so switching here doesn't make you re-enter anything. Applies immediately.[/*]
+[*]LLM Provider.. which backend to use: OpenRouter (default), NanoGPT, or OpenAI-Compatible (any local server). Switching here doesn't make you re-enter your model. Applies immediately.[/*]
+[/list]
+
+[b][color=#b6d7a8]Model (shared across providers)[/color][/b]:
+[list]
+[*]Model (roleplay).. the model id ordinary conversation uses. Default on OpenRouter: x-ai/grok-4.20; NanoGPT and OpenAI-Compatible need an id you paste yourself. See "Which model should I use?" below for picks by quality, price, and adult-content tolerance.[/*]
+[*]NSFW model (optional).. a second, more permissive model used automatically for captive and other explicit scenes, and switchable mid-conversation with the chat's Mode button. Leave blank to use the roleplay model for everything.[/*]
+[*]Reasoning Effort (roleplay) / Reasoning Effort (NSFW).. how hard a reasoning model (like Grok) "thinks" before replying. Lower or Off makes such models markedly less prone to moralizing refusals on adult/Hardcore content. Keep roleplay high for finer dialogue; NSFW defaults to "Same as roleplay" and is worth dropping to Low/Off for fewer refusals and faster scenes. OpenRouter only.[/*]
 [/list]
 
 [b][color=#b6d7a8]OpenRouter[/color] [/b](used when Provider is set to OpenRouter):
 [list]
 [*]OpenRouter API Key.. your key from openrouter.ai/keys. Applies immediately.[/*]
-[*]Model.. the OpenRouter model id to use. Default: x-ai/grok-4.20. Any text model on OpenRouter works.. see "Which model should I use?" just below for picks by quality, price, and adult-content tolerance.[/*]
-[*]Reasoning Effort.. how hard a reasoning model (like Grok) "thinks" before replying. Lower or Off makes such models markedly less prone to moralizing refusals on adult/Hardcore content. Default Low.. leave it there unless a model is being stubborn. OpenRouter only.[/*]
-[*]Test Connection.. validates your key [i]and[/i] your chosen model: it sends a one-token test prompt and reports any error (a mistyped model id, for instance). Costs a fraction of a cent.[/*]
+[*]Test Connection.. validates your key [i]and[/i] every model you've configured (roleplay, and NSFW if set): it sends a one-token test prompt per model and reports any error (a mistyped model id, for instance). Costs a fraction of a cent.[/*]
 [/list]
 
 [b][color=#b6d7a8]NanoGPT[/color] [/b](used when Provider is set to NanoGPT):
 [list]
 [*]NanoGPT API Key.. your key from nano-gpt.com. Applies immediately.[/*]
-[*]NanoGPT Model.. the NanoGPT model id to use (no default.. paste the exact id from nano-gpt.com/models). The model picks in "Which model should I use?" below apply by quality and permissiveness; the same families (DeepSeek and similar) are available, but use NanoGPT's own ids.[/*]
-[*]Test NanoGPT Connection.. verifies your key against NanoGPT. No tokens spent.[/*]
+[*]Test NanoGPT Connection.. verifies your key and your configured model(s) against NanoGPT. Costs a fraction of a cent per model.[/*]
 [/list]
 
 [b][color=#b6d7a8]OpenAI-Compatible[/color] [/b](used when Provider is set to OpenAI-Compatible):
 [list]
 [*]Endpoint URL.. base URL of your local server, including /v1 (e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama). The mod appends /chat/completions automatically. Applies immediately.[/*]
 [*]API Key (optional).. leave blank for keyless servers like LM Studio or Ollama default. Fill it in only if your server is configured to require one.[/*]
-[*]Model.. the model id exactly as your server expects it. LM Studio shows it in its server panel; Ollama uses the name you pulled (e.g. llama3.1:8b). Applies immediately.[/*]
 [*]Parameter Compatibility.. which sampling parameters the request sends. [b]Auto[/b] (default) detects OpenAI reasoning models (the gpt-5 family and the o-series) and sends [i]max_completion_tokens[/i] with no temperature, which they require.. everything else keeps the classic [i]max_tokens[/i] + temperature. [b]Standard[/b] forces the classic shape; [b]Reasoning[/b] forces the reasoning shape. Leave it on Auto unless your endpoint rejects a field.[/*]
+[*]Compact prompt for small models.. trims the system prompt to fit a small short-context local model (roughly 4k-8k). Turn it on if the AI stays silent on a local model. Console: [i]cr.prompt_size[/i].[/*]
 [*]Test Endpoint.. sends a one-token completion to confirm the server is running and the model id is correct. No external calls made.[/*]
 [/list]
 
@@ -369,7 +392,7 @@ LLM Provider:
 [line]
 [size=4]Which model should I use?[/size]
 
-The mod works with any text model your provider offers.. you just paste its id into the Model field, and you can switch anytime in one click. Two things matter for this mod: the model must follow instructions reliably (it quietly drives memory, actions, and quests behind the scenes), and.. if you play the Explicit / Hardcore tiers.. it must be permissive, because heavily-filtered models will flat-out refuse adult scenes. The ids below are OpenRouter ids; on NanoGPT the same model families are available but use NanoGPT's own ids from nano-gpt.com/models. Prices below are a rough guide; check your provider's model page for current rates.
+The mod works with any text model your provider offers.. you just paste its id into the Model (roleplay) field, and you can switch anytime in one click. Two things matter for this mod: the model must follow instructions reliably (it quietly drives memory, actions, and quests behind the scenes), and.. if you play the Explicit / Hardcore tiers.. it must be permissive, because heavily-filtered models will flat-out refuse adult scenes. Since v1.20.0 you don't have to pick one model that does both: set a separate, more permissive [b]NSFW model[/b] for Explicit/Hardcore scenes (see "How to configure" above) and keep a stronger writer for everyday roleplay. The ids below are OpenRouter ids; on NanoGPT the same model families are available but use NanoGPT's own ids from nano-gpt.com/models. Prices below are a rough guide; check your provider's model page for current rates.
 
 [b]GROK 4.20[/b].. the safe default    (model id: x-ai/grok-4.20)
 Proven with everything this mod does, adult tiers included. Balanced quality, permissive, and already tested. If in doubt, stay here.

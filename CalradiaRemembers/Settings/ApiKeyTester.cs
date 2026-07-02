@@ -38,8 +38,9 @@ namespace CalradiaRemembers.Settings
 
       /// <summary>
       ///   Tests OpenRouter end-to-end: the key (MCM field → OPENROUTER_API_KEY env var) AND
-      ///   the configured model, via a one-token completion. A bad model id is the most common
-      ///   silent misconfiguration, so its error is surfaced verbatim.
+      ///   every configured model (roleplay, plus the NSFW model when set), via one-token
+      ///   completions. A bad model id is the most common silent misconfiguration, so its
+      ///   error is surfaced verbatim.
       /// </summary>
       public static void Run() => _ = RunOpenRouterAsync();
 
@@ -120,10 +121,10 @@ namespace CalradiaRemembers.Settings
             return;
          }
 
-         string model = CrSettings.Instance?.CustomModel?.Trim();
-         if (string.IsNullOrWhiteSpace(model))
+         string model = CrSettings.Instance?.Model?.Trim();
+         if (string.IsNullOrWhiteSpace(model) || model == Services.LlmServices.DefaultModel)
          {
-            ShowResult("No model", "Enter a model id in the Model field first.");
+            ShowResult("No model", "Enter your server's model id in the Model (roleplay) field of the LLM Provider section first.");
 
             return;
          }
@@ -138,14 +139,11 @@ namespace CalradiaRemembers.Settings
          try
          {
             string chatUrl = url.TrimEnd('/') + "/chat/completions";
-            (bool ok, string err) = await TestCustomChatAsync(chatUrl, key, model).ConfigureAwait(false);
-            title = ok
-               ? "Connection OK"
-               : "Endpoint test failed";
-            body = ok
-               ? $"Your endpoint responded successfully with model '{model}'. You're ready to play."
-               : $"The endpoint at '{url}' did not respond as expected:\n\n{err}\n\n" +
-                 "Make sure the server is running, the URL includes /v1, and the model id is correct.";
+            (title, body) = await TestConfiguredModelsAsync(
+               m => TestCustomChatAsync(chatUrl, key, m),
+               model,
+               "Your endpoint is reachable",
+               "Make sure the server is running, the URL includes /v1, and the model ids are correct.").ConfigureAwait(false);
          }
          catch (Exception ex)
          {
@@ -158,6 +156,53 @@ namespace CalradiaRemembers.Settings
          }
 
          ShowResult(title, body);
+      }
+
+      /// <summary>
+      ///   One-token-tests every configured model: the roleplay model, then the NSFW model when
+      ///   it is set and different. Two model fields are two chances at a typo, and an NSFW id
+      ///   that only fails when a scene flips the mode is the worst place to find out — so the
+      ///   Test button exercises both up front. Returns the popup title and body.
+      /// </summary>
+      private static async Task<(string title, string body)> TestConfiguredModelsAsync(
+         Func<string, Task<(bool ok, string err)>> testModel,
+         string roleplayModel,
+         string successPrefix,
+         string failureAdvice)
+      {
+         (bool rpOk, string rpErr) = await testModel(roleplayModel).ConfigureAwait(false);
+
+         string nsfwModel = CrSettings.Instance?.NsfwModel?.Trim() ?? string.Empty;
+         bool hasDistinctNsfw = nsfwModel.Length > 0 && !string.Equals(nsfwModel, roleplayModel, StringComparison.Ordinal);
+
+         if (!hasDistinctNsfw)
+         {
+            string note = nsfwModel.Length > 0
+               ? " The NSFW model is the same id, so it is covered."
+               : string.Empty;
+
+            return rpOk
+               ? ("Connection OK", $"{successPrefix} and the model '{roleplayModel}' responded.{note} You're ready to play.")
+               : ("Model test failed", $"The model '{roleplayModel}' did not work:\n\n{rpErr}\n\n{failureAdvice}");
+         }
+
+         (bool nsfwOk, string nsfwErr) = await testModel(nsfwModel).ConfigureAwait(false);
+
+         if (rpOk && nsfwOk)
+            return ("Connection OK",
+               $"{successPrefix}. Roleplay model '{roleplayModel}' responded. NSFW model '{nsfwModel}' responded. " +
+               "You're ready to play.");
+
+         var sb = new StringBuilder();
+         sb.Append(rpOk
+            ? $"Roleplay model '{roleplayModel}': OK.\n"
+            : $"Roleplay model '{roleplayModel}' FAILED:\n{rpErr}\n");
+         sb.Append(nsfwOk
+            ? $"NSFW model '{nsfwModel}': OK.\n"
+            : $"NSFW model '{nsfwModel}' FAILED:\n{nsfwErr}\n");
+         sb.Append('\n').Append(failureAdvice);
+
+         return ("Model test failed", sb.ToString());
       }
 
       /// <summary>
@@ -210,15 +255,13 @@ namespace CalradiaRemembers.Settings
                }
             }
 
-            // Stage 2 — a one-token completion confirms the model id actually works.
-            (bool ok, string err) = await TestOpenRouterModelAsync(key, model).ConfigureAwait(false);
-            title = ok
-               ? "Connection OK"
-               : "Model test failed";
-            body = ok
-               ? $"Your OpenRouter key is valid and the model '{model}' responded. You're ready to play."
-               : $"Your key is valid, but the model '{model}' did not work:\n\n{err}\n\n" +
-                 "Check the exact id at openrouter.ai/models.";
+            // Stage 2 — a one-token completion per configured model (roleplay, then NSFW when
+            // set) confirms the ids actually work before a scene depends on them.
+            (title, body) = await TestConfiguredModelsAsync(
+               m => TestOpenRouterModelAsync(key, m),
+               model,
+               "Your OpenRouter key is valid",
+               "Your key is valid; check the exact ids at openrouter.ai/models.").ConfigureAwait(false);
          }
          catch (Exception ex)
          {

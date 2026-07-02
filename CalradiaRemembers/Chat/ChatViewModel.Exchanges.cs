@@ -66,6 +66,8 @@ namespace CalradiaRemembers.Chat
             _director?.AdvanceStory();
 
             string stimulus = CaptiveSceneText.BuildContinuationStimulus();
+            ModLog.Info($"[SCENE] continuation {_sceneContinuations} → {behavior.LlmServices.ModelId} " +
+                        $"(mode {Services.LlmServices.ActiveModelMode})...");
 
             ChatSession session = BuildSessionFor(speaker);
             var world = new WorldState {
@@ -135,6 +137,17 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
+            // An empty beat (no dialogue, no narration) must fail LOUDLY: rendering it would leave
+            // the placeholder silently removed and the player staring at nothing with no log trail.
+            if (string.IsNullOrWhiteSpace(npcLine) && string.IsNullOrWhiteSpace(result.Response?.Narration))
+            {
+               ReplacePlaceholder(placeholder, "(The moment passes.)", speaker);
+               ModLog.Error($"[SCENE] continuation {_sceneContinuations}: the model returned an empty beat " +
+                            "(no dialogue, no narration).");
+
+               return;
+            }
+
             // Render the beat: dialogue bubble, or a narration-only turn (no empty bubble).
             npcLine = RenderNpcTurn(placeholder, speaker, result.Response);
             _captiveBeatCount++;
@@ -161,7 +174,8 @@ namespace CalradiaRemembers.Chat
 
             ModLog.Info($"[SCENE:{_sceneContinuations}] {speaker.Name}: \"{npcLine}\"");
             if (result.Usage != null)
-               ModLog.Info($"  [SCENE TOKENS] prompt={result.Usage.PromptTokens} | completion={result.Usage.CompletionTokens}");
+               ModLog.Info($"  [SCENE TOKENS] prompt={result.Usage.PromptTokens} (cached:{result.Usage.CachedPromptTokens ?? 0}) | completion={result.Usage.CompletionTokens}" +
+                           (result.WasRetried ? " | RETRY fired (first attempt was empty or truncated)" : ""));
 
             if (result.Response?.Actions != null)
                foreach (GameAction action in result.Response.Actions)
@@ -934,7 +948,8 @@ namespace CalradiaRemembers.Chat
             if (response.Actions is {Count: > 0})
                ModLog.Info($"  [ACTIONS] {response.Actions.Count} action(s) dispatched.");
             if (result.Usage != null)
-               ModLog.Info($"  [TOKENS] prompt={result.Usage.PromptTokens} (cached:{result.Usage.CachedPromptTokens ?? 0}) | completion={result.Usage.CompletionTokens}");
+               ModLog.Info($"  [TOKENS] prompt={result.Usage.PromptTokens} (cached:{result.Usage.CachedPromptTokens ?? 0}) | completion={result.Usage.CompletionTokens}" +
+                           (result.WasRetried ? " | RETRY fired (first attempt was empty or truncated)" : ""));
             // Surface a non-"stop" finish reason — "length" means the model cut the reply
             // off (a known DeepSeek quirk); this makes truncated-message reports diagnosable.
             if (!string.IsNullOrEmpty(result.FinishReason) && !string.Equals(result.FinishReason, "stop", StringComparison.OrdinalIgnoreCase))
@@ -1078,7 +1093,7 @@ namespace CalradiaRemembers.Chat
 
                ModLog.Info($"[15C:{_witnessExchangesThisRound}] {mainSpeaker.Name}: \"{npcReply}\"");
                if (result.Usage != null)
-                  ModLog.Info($"  [15C TOKENS] prompt={result.Usage.PromptTokens} | completion={result.Usage.CompletionTokens}");
+                  ModLog.Info($"  [15C TOKENS] prompt={result.Usage.PromptTokens} (cached:{result.Usage.CachedPromptTokens ?? 0}) | completion={result.Usage.CompletionTokens}");
 
                // End-conversation action is honored even in auto-exchange.
                if (result.Response?.Actions != null)

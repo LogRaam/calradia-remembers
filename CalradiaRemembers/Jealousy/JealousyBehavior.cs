@@ -7,11 +7,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.GameState;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.WorldEvents;
-using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -48,7 +49,12 @@ namespace CalradiaRemembers.Jealousy
       // Don't let the same party stew over the same courted NPC more than once per this window.
       private const int ReactionCooldownDays = 20;
 
-      private const string SaveKey = "CalradiaRemembers_Jealousy_v1";
+      // Current key: JSON state stored as a UTF-8 byte[] (JsonCampaignState), which has no size
+      // limit. LegacySaveKey is the old STRING key, kept only to migrate a save written before
+      // this behavior switched over (Bannerlord's native string serializer corrupts a save once
+      // the blob grows past roughly 65,535 characters).
+      private const string SaveKey = "CalradiaRemembers_Jealousy_v2bytes";
+      private const string LegacySaveKey = "CalradiaRemembers_Jealousy_v1";
 
       // A witnessed act is telegraphed — high chance the jealous party hears and reacts.
       private const float WitnessedReactionChance = 0.75f;
@@ -206,26 +212,10 @@ namespace CalradiaRemembers.Jealousy
 
       public override void SyncData(IDataStore dataStore)
       {
-         string json = null;
          if (dataStore.IsSaving)
-            try { json = JsonConvert.SerializeObject(_state, Formatting.None); }
-            catch (Exception ex)
-            {
-               ModLog.Error($"[JEALOUSY] state serialize failed — persisting nothing this save. {ex.GetType().Name}: {ex.Message}");
-               json = "{}";
-            }
-
-         dataStore.SyncData(SaveKey, ref json);
-
-         if (dataStore.IsSaving || string.IsNullOrEmpty(json)) return;
-         {
-            try { _state = JsonConvert.DeserializeObject<JealousyState>(json) ?? new JealousyState(); }
-            catch (Exception ex)
-            {
-               _state = new JealousyState();
-               ModLog.Error($"[JEALOUSY] state load failed — jealousy reset for this load so the campaign can still open. {ex.GetType().Name}: {ex.Message}");
-            }
-         }
+            JsonCampaignState.Save(dataStore, SaveKey, _state);
+         else
+            _state = JsonCampaignState.Load(dataStore, SaveKey, LegacySaveKey, () => new JealousyState());
       }
 
       // ── Persisted state ───────────────────────────────────────────────────
@@ -589,9 +579,10 @@ namespace CalradiaRemembers.Jealousy
       private void OnDailyTick()
       {
          var today = (int) CampaignTime.Now.ToDays;
-         EvaluateAwareness(today); // unwitnessed rumours that have now reached the jealous party
-         FireDuePending(today);
-         EvaluateCompetition(today);
+         // Each pass runs behind its own guard: one throwing must not skip the others this tick.
+         SafeRun.Step("JealousyBehavior.EvaluateAwareness", () => EvaluateAwareness(today)); // unwitnessed rumours that have now reached the jealous party
+         SafeRun.Step("JealousyBehavior.FireDuePending", () => FireDuePending(today));
+         SafeRun.Step("JealousyBehavior.EvaluateCompetition", () => EvaluateCompetition(today));
       }
 
       /// <summary>Schedules a jealousy reaction for a resolved party after a short delay.</summary>

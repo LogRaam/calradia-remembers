@@ -36,7 +36,7 @@ namespace CalradiaRemembers.Services
    /// </summary>
    public sealed class LlmServices : IDisposable
    {
-      private const string DefaultModel = "x-ai/grok-4.20"; // OpenRouter default
+      internal const string DefaultModel = "x-ai/grok-4.20"; // OpenRouter default
       private const string NanoGptApiKeyEnvVar = "NANOGPT_API_KEY";
       private const string NanoGptBaseUrl = "https://nano-gpt.com/api/v1";
 
@@ -98,6 +98,22 @@ namespace CalradiaRemembers.Services
 
       /// <summary>The model currently in effect — read live from the MCM menu.</summary>
       public string ModelId => ResolveModel();
+
+      /// <summary>
+      ///   Which of the two configured models requests currently resolve to (roleplay or NSFW).
+      ///   DELIBERATE LIFECYCLE: the mode is SET at conversation activation and NOT reset on chat close.
+      ///   FinalizeCaptiveSceneMemory launches an async LLM summary of the explicit transcript via Task.Run
+      ///   that executes after teardown; it must still resolve the NSFW model (a prudish roleplay model could
+      ///   refuse and lose the memory). Background calls between conversations therefore inherit the last
+      ///   mode, which is the safe direction; an ordinary conversation open sets Roleplay, so it self-corrects.
+      /// </summary>
+      public static ModelMode ActiveModelMode { get; set; } = ModelMode.Roleplay;
+
+      /// <summary>
+      ///   The model id the current mode resolves to, read live (same value every request sees via
+      ///   <c>ModelProvider</c>). Exposed for the in-chat mode button log line and the cr.model command.
+      /// </summary>
+      public static string ActiveModelId => ResolveModel();
 
       /// <summary>
       ///   Clears any test gender override and forces a PromptBuilder rebuild so the
@@ -381,24 +397,36 @@ namespace CalradiaRemembers.Services
       }
 
       /// <summary>
-      ///   Resolves the active provider's model id: the MCM menu value wins. OpenRouter
-      ///   falls back to the built-in default; NanoGPT has no default (model namespaces
-      ///   differ, so a wrong id is worse than an explicit blank) and returns whatever the
-      ///   user pasted. Read live on every request via <c>ModelProvider</c>.
+      ///   Resolves the model id: the shared "Model (roleplay)" MCM field serves every provider
+      ///   (ids are pasted in the active provider's own namespace). OpenRouter falls back to the
+      ///   built-in default; the other providers treat a blank field or the untouched OpenRouter
+      ///   default as unconfigured and resolve blank, so the provider-aware in-chat guidance fires
+      ///   instead of a cryptic API error. When <see cref="ActiveModelMode" /> is NSFW and the player
+      ///   configured an NSFW model, that model overrides the roleplay one (any provider). Read live
+      ///   on every request via <c>ModelProvider</c>, so flipping the mode mid-conversation just works.
       /// </summary>
       private static string ResolveModel()
       {
          CrSettings s = CrSettings.Instance;
          string provider = ResolveProvider();
+         string mcmModel = s?.Model?.Trim() ?? string.Empty;
 
-         if (provider == ProviderCustom) return s?.CustomModel?.Trim() ?? string.Empty;
-         if (provider == ProviderNanoGpt) return s?.NanoGptModel?.Trim() ?? string.Empty;
+         string roleplayModel;
 
-         string mcmModel = s?.Model;
+         if (provider == ProviderCustom || provider == ProviderNanoGpt)
+         {
+            // The untouched OpenRouter default means "never configured for this provider", not a
+            // choice: model namespaces differ, and a wrong id is worse than an explicit blank.
+            roleplayModel = mcmModel == DefaultModel ? string.Empty : mcmModel;
+         }
+         else
+         {
+            roleplayModel = string.IsNullOrWhiteSpace(mcmModel)
+               ? DefaultModel
+               : mcmModel;
+         }
 
-         return string.IsNullOrWhiteSpace(mcmModel)
-            ? DefaultModel
-            : mcmModel.Trim();
+         return ModelModePolicy.ResolveModelId(ActiveModelMode, roleplayModel, ModSettings.NsfwModel);
       }
 
       /// <summary>
@@ -417,12 +445,13 @@ namespace CalradiaRemembers.Services
 
       /// <summary>
       ///   Resolves the reasoning-effort keyword for the request. The <c>reasoning</c> parameter
-      ///   is OpenRouter-specific, so it is suppressed (null) for NanoGPT. Read live per request.
+      ///   is OpenRouter-specific, so it is suppressed (null) for NanoGPT. Mode-aware like the
+      ///   model id: NSFW mode can run a lower effort than roleplay (fewer moralizing refusals,
+      ///   faster scene beats) via its own MCM dropdown. Read live per request.
       /// </summary>
-      // The reasoning parameter is OpenRouter-specific; suppress it for everything else.
       private static string ResolveReasoning() =>
          ResolveProvider() == ProviderOpenRouter
-            ? ModSettings.ReasoningEffort
+            ? ModelModePolicy.ResolveReasoningEffort(ActiveModelMode, ModSettings.ReasoningEffort, ModSettings.NsfwReasoningEffort)
             : null;
 
       /// <summary>

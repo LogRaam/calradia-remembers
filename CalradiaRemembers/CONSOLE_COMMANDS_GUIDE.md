@@ -84,6 +84,12 @@ instead.
 | `cr.chronicle` | Print your chronicle (your deeds, in a chronicler's voice) to the console. | `cr.chronicle` |
 | `cr.chronicle_open` | Open the illuminated parchment Chronicle window. | `cr.chronicle_open` |
 
+### Your LLM models
+
+| Command | What it does | Example |
+|---|---|---|
+| `cr.model [toggle]` | Show the active model mode (Roleplay or NSFW), the model id it resolves to, and whether the in-chat mode button would show. Pass `toggle` to flip the mode (the same override as the button). | `cr.model toggle` |
+
 ### Your edited prompt files
 
 | Command | What it does | Example |

@@ -97,6 +97,10 @@ namespace CalradiaRemembers.Chat
       private bool _captivePlayerCoerced;     // with a victim: the player is forced to act, not just watch
       private bool _captiveVictimIsFemale;    // the victim companion's gender, so the prompt uses the right pronouns
 
+      // The scene-focus index picked last round (BuildSceneSetup/BuildResumeSetup), so
+      // SceneFocusSelector never repeats the same driving focus two rounds running. -1 = no prior round.
+      private int _lastSceneFocusIndex = -1;
+
       // Companion AUDIENCE — a normal conversation the companion themselves requested (grievance / retirement),
       // opened programmatically from a map popup rather than the vanilla dialogue, so the profile is carried here.
       private CompanionAudienceReason _audienceReason = CompanionAudienceReason.None;
@@ -200,6 +204,10 @@ namespace CalradiaRemembers.Chat
       public ChatViewModel()
       {
          _messages = new MBBindingList<ChatMessageViewModel>();
+
+         // Every chat opens on the roleplay model; the explicit-scene activators
+         // (captive encounter, player-as-captor) flip the mode to NSFW right after.
+         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(false);
       }
 
       // ── Chat mode ─────────────────────────────────────────────────────────
@@ -326,6 +334,66 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   The in-chat mode button label: which of the two configured models requests currently use.
+      ///   Clicking the button flips it (see <see cref="ExecuteToggleModelMode" />).
+      /// </summary>
+      [DataSourceProperty]
+      public string ModelModeText =>
+         LlmServices.ActiveModelMode == ModelMode.Nsfw ? "Mode: NSFW" : "Mode: Roleplay";
+
+      /// <summary>
+      ///   True when the mode button should be shown: only when an NSFW model is configured in the MCM
+      ///   menu (otherwise the toggle would change nothing) and adult content is enabled at all.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsModelModeToggleVisible =>
+         ModelModePolicy.ToggleVisible(
+            !string.IsNullOrWhiteSpace(ModSettings.NsfwModel),
+            ModSettings.AdultContentLevel != AdultContentLevel.Off);
+
+      /// <summary>
+      ///   Flips the active model mode (roleplay/NSFW): the manual override for scenes the automatic
+      ///   selection cannot see coming, e.g. a consensual conversation that escalates. The model is
+      ///   resolved live on every request, so the switch takes effect on the very next exchange.
+      /// </summary>
+      public void ExecuteToggleModelMode()
+      {
+         LlmServices.ActiveModelMode = LlmServices.ActiveModelMode == ModelMode.Nsfw
+            ? ModelMode.Roleplay
+            : ModelMode.Nsfw;
+
+         OnPropertyChanged(nameof(ModelModeText));
+         ModLog.Info($"[MODEL] mode switched to {LlmServices.ActiveModelMode}, resolves to {LlmServices.ActiveModelId}.");
+      }
+
+      /// <summary>
+      ///   True when there is a real hero across the conversation to open an encyclopedia page for
+      ///   (a synthesized bandit captor or a nameless commoner has none, so the button hides).
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsEncyclopediaVisible => _npcHero != null;
+
+      /// <summary>
+      ///   Opens the in-game encyclopedia on the conversation partner's page, over the chat, so a
+      ///   player can place who they are speaking of (and browse on from there) without the chat's
+      ///   modal focus locking the rest of the interface away. The chat stays open behind it.
+      /// </summary>
+      public void ExecuteOpenEncyclopedia()
+      {
+         try
+         {
+            if (_npcHero == null || Campaign.Current?.EncyclopediaManager == null) return;
+
+            Campaign.Current.EncyclopediaManager.GoToLink(_npcHero.EncyclopediaLink);
+            ModLog.Info($"[ENCYCLOPEDIA] opened on {_npcName} from the chat.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ExecuteOpenEncyclopedia failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
       ///   True while the captive scene is mid-narration and the player must choose
       ///   "Continue" or "Try something". Hides the normal input area and shows the
       ///   two scene-pause buttons instead.
@@ -443,6 +511,12 @@ namespace CalradiaRemembers.Chat
       {
          _mode = ChatMode.CaptiveEncounter;
          OnPropertyChanged(nameof(IsOfferItemVisible));
+
+         // A structurally-explicit scene: open on the NSFW model (falls back to the
+         // roleplay model when none is configured). The player can still flip it back.
+         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(true);
+         OnPropertyChanged(nameof(ModelModeText));
+
          _captiveEncounterProfile = captorProfile;
          _captiveEncounterIsCollective = isCollective;
          _captiveEncounterIsBandit = captorIsBandit;
@@ -454,7 +528,7 @@ namespace CalradiaRemembers.Chat
          // Build the scene's structure now: the lead's full arc, plus collective sub-acts when
          // others are present. extraAggressors = the witnesses who can take a turn — the captor's MEN,
          // never the bound victim companion (CountAggressorWitnesses excludes them).
-         _director = new CaptiveSceneDirector(isCollective, CountAggressorWitnesses(), MBRandomSource.Instance);
+         _director = new CaptiveSceneDirector(isCollective, CountAggressorWitnesses(), MBRandomSource.Instance, captorIsBandit, intent);
 
          AssignBanditWitnessPortraits(captorIsBandit);
 
@@ -489,8 +563,9 @@ namespace CalradiaRemembers.Chat
          // non-sexual confrontations, so they take only their own opener — never the sexual setup.
          bool nonSexual = intent is CaptiveSceneIntent.Reckoning
             or CaptiveSceneIntent.Extortion or CaptiveSceneIntent.Intimidation or CaptiveSceneIntent.Revenge;
+         _lastSceneFocusIndex = -1; // a fresh scene resets the avoid-repeat memory
          string opener = CaptiveSceneText.BuildCaptiveOpener(isCollective, intent)
-                       + (nonSexual ? "" : CaptiveSceneText.BuildSceneSetup());
+                       + (nonSexual ? "" : CaptiveSceneText.BuildSceneSetup(intent, ref _lastSceneFocusIndex));
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, captor, placeholder, true);
       }
@@ -560,6 +635,12 @@ namespace CalradiaRemembers.Chat
       public void ActivateCaptorSceneMode(NpcProfile prisonerProfile, CaptiveSceneIntent intent)
       {
          _mode = ChatMode.Conversation;
+
+         // A structurally-explicit scene: open on the NSFW model (falls back to the
+         // roleplay model when none is configured). The player can still flip it back.
+         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(true);
+         OnPropertyChanged(nameof(ModelModeText));
+
          _captorScene = true;
          _captorSceneProfile = prisonerProfile;
          _captorSceneIntent = intent;
@@ -805,7 +886,9 @@ namespace CalradiaRemembers.Chat
 
          _conversationEnded = false;
          _captiveBeatCount = 0;
-         _director = new CaptiveSceneDirector(_captiveEncounterIsCollective, CountAggressorWitnesses(), MBRandomSource.Instance);
+         _director = new CaptiveSceneDirector(
+            _captiveEncounterIsCollective, CountAggressorWitnesses(), MBRandomSource.Instance,
+            _captiveEncounterIsBandit, _captiveEncounterIntent);
          IsPleaseContinueVisible = false;
          IsScenePaused = false;
          IsSendEnabled = false;
@@ -822,7 +905,13 @@ namespace CalradiaRemembers.Chat
          ChatMessageViewModel placeholder = MakeSpeakerMessage(captor, PlaceholderText);
          _messages.Add(placeholder);
 
-         string opener = CaptiveSceneText.BuildResumeOpener() + CaptiveSceneText.BuildResumeSetup();
+         // Same non-sexual guard as ActivateCaptiveEncounterMode: a Reckoning/Extortion/Intimidation/
+         // Revenge scene resumed via "Please continue" must not inject a sexual scene focus (bugfix
+         // 01/07/2026, the opener path already guarded this, the resume path did not).
+         bool nonSexual = _captiveEncounterIntent is CaptiveSceneIntent.Reckoning
+            or CaptiveSceneIntent.Extortion or CaptiveSceneIntent.Intimidation or CaptiveSceneIntent.Revenge;
+         string opener = CaptiveSceneText.BuildResumeOpener()
+                       + (nonSexual ? "" : CaptiveSceneText.BuildResumeSetup(_captiveEncounterIntent, ref _lastSceneFocusIndex));
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, captor, placeholder, true);
       }

@@ -26,15 +26,25 @@ namespace CalradiaRemembers.Logic
         /// <summary>Safety cap on the chronicle itself (only an extreme saga reaches it).</summary>
         public const int MaxPlayerEvents = 1000;
 
+        /// <summary>
+        ///   Hard cap on retained externally-fed "kept" deeds (<see cref="IRumorRecord.IsPersistentDeed"/>),
+        ///   oldest dropped first. Tuning: smaller than the player's own chronicle cap, since these are
+        ///   a third party's facts, not the player's story, and an unbounded flood should not crowd out
+        ///   the player's own permanent record.
+        /// </summary>
+        public const int MaxExternalDeedEvents = 50;
+
         /// <summary>Prunes <paramref name="events"/> in place to the bounds above.</summary>
         public static void Prune<T>(List<T> events, int today) where T : IRumorRecord
         {
             if (events == null) return;
 
-            // Stale third-party rumours fade (player deeds never age out).
-            events.RemoveAll(e => !e.InvolvesPlayer && today - e.Day > RumorWindowDays);
+            // Stale third-party rumours fade; the player's own deeds and externally-fed "kept" deeds
+            // never age out by window (they still fall under their own hard caps below).
+            events.RemoveAll(e => !e.InvolvesPlayer && !e.IsPersistentDeed && today - e.Day > RumorWindowDays);
 
-            CapOldest(events, e => !e.InvolvesPlayer, MaxRumorEvents);
+            CapOldest(events, e => !e.InvolvesPlayer && !e.IsPersistentDeed, MaxRumorEvents);
+            CapOldest(events, e => !e.InvolvesPlayer && e.IsPersistentDeed, MaxExternalDeedEvents);
             CapOldest(events, e => e.InvolvesPlayer, MaxPlayerEvents);
         }
 

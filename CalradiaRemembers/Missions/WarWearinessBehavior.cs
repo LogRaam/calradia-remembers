@@ -15,6 +15,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
@@ -131,18 +132,23 @@ namespace CalradiaRemembers.Missions
 
          foreach (Hero h in Companions())
          {
-            bool wounded = h.IsWounded;
-            bool counted = _woundCounted.ContainsKey(h.StringId);
+            Hero companion = h;
+            // One companion's wound bookkeeping throwing must not skip the rest of the roster.
+            SafeRun.Step($"WarWearinessBehavior.OnDailyTick({companion.Name})", () =>
+            {
+               bool wounded = companion.IsWounded;
+               bool counted = _woundCounted.ContainsKey(companion.StringId);
 
-            if (wounded && !counted)
-            {
-               WarWearinessService.AddWound(h);
-               _woundCounted[h.StringId] = 1;
-            }
-            else if (!wounded && counted)
-            {
-               _woundCounted.Remove(h.StringId); // recovered — their next wound will count again
-            }
+               if (wounded && !counted)
+               {
+                  WarWearinessService.AddWound(companion);
+                  _woundCounted[companion.StringId] = 1;
+               }
+               else if (!wounded && counted)
+               {
+                  _woundCounted.Remove(companion.StringId); // recovered, their next wound will count again
+               }
+            });
          }
       }
 
@@ -155,21 +161,26 @@ namespace CalradiaRemembers.Missions
          Hero toAsk = null;
          foreach (Hero h in Companions())
          {
-            WarWearinessService.Rest(h, RestStep); // time and rest ease the toll; heavy fighting outruns it
-
-            // A veteran who already stepped back from the field: if the player has since marched them back to
-            // war (into the main party), their granted rest curdles into resentment, and eventually breaks.
-            if (WarWearinessService.HasSteppedBack(h))
+            Hero companion = h;
+            // One companion's weekly rest/retirement pass throwing must not skip the rest of the roster.
+            SafeRun.Step($"WarWearinessBehavior.OnWeeklyTick({companion.Name})", () =>
             {
-               EnforceStepBack(h);
+               WarWearinessService.Rest(companion, RestStep); // time and rest ease the toll; heavy fighting outruns it
 
-               continue; // a stepped-back companion is not asked to retire again
-            }
+               // A veteran who already stepped back from the field: if the player has since marched them back to
+               // war (into the main party), their granted rest curdles into resentment, and eventually breaks.
+               if (WarWearinessService.HasSteppedBack(companion))
+               {
+                  EnforceStepBack(companion);
 
-            if (toAsk == null
-                && WarWeariness.WantsToRetire(WarWearinessService.Get(h), Valor(h))
-                && !DeclinedRecently(h))
-               toAsk = h;
+                  return; // a stepped-back companion is not asked to retire again
+               }
+
+               if (toAsk == null
+                   && WarWeariness.WantsToRetire(WarWearinessService.Get(companion), Valor(companion))
+                   && !DeclinedRecently(companion))
+                  toAsk = companion;
+            });
          }
 
          if (toAsk != null && !_requestOpen) PresentRetirement(toAsk); // at most one request per week

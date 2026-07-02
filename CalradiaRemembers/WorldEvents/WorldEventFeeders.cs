@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Stance;
 using NpcMemoryService.Core.Models;
@@ -382,17 +383,22 @@ namespace CalradiaRemembers.WorldEvents
          {
             if (emitted >= MaxRivalriesPerWeek) break;
 
-            var lords = new List<Hero>();
-            foreach (Clan clan in kingdom.Clans)
+            Kingdom k = kingdom;
+            // One kingdom's scan throwing must not stop the gossip pass for the rest of the realms.
+            SafeRun.Step($"WorldEventFeeders.OnWeeklyTick({k?.Name})", () =>
             {
-               foreach (Hero h in clan.Heroes)
-                  if (h is {IsAlive: true, IsLord: true} && h != Hero.MainHero)
-                     lords.Add(h);
+               var lords = new List<Hero>();
+               foreach (Clan clan in k.Clans)
+               {
+                  foreach (Hero h in clan.Heroes)
+                     if (h is {IsAlive: true, IsLord: true} && h != Hero.MainHero)
+                        lords.Add(h);
 
-               if (lords.Count >= MaxLordsPerKingdomScan) break;
-            }
+                  if (lords.Count >= MaxLordsPerKingdomScan) break;
+               }
 
-            if (TryEmitKingdomRivalry(lords, kingdom, today)) emitted++;
+               if (TryEmitKingdomRivalry(lords, k, today)) emitted++;
+            });
          }
       }
 

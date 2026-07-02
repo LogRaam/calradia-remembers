@@ -86,6 +86,15 @@ namespace CalradiaRemembers.WorldEvents
       /// <summary>True when the player is one of the actors — marks this as chronicle material.</summary>
       public bool InvolvesPlayer { get; set; }
 
+      /// <summary>
+      ///   True for a fact fed through the Extension Surface (<see cref="Feed" />) with
+      ///   <see cref="ExternalEventLifetime.Deed" />: kept long-term under its own cap
+      ///   (<see cref="CalradiaRemembers.Logic.WorldEventPruner.MaxExternalDeedEvents" />) instead of
+      ///   aging out as a rumour. False for CR's own events and for pre-existing saves, where it
+      ///   deserializes to its default (save-safe).
+      /// </summary>
+      public bool IsPersistentDeed { get; set; }
+
       /// <summary>How far the news carries (0..100): a king's execution travels far, a skirmish barely.</summary>
       public int Magnitude { get; set; }
 

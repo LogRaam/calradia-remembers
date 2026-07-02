@@ -13,6 +13,7 @@ using CalradiaRemembers.Missions;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Prompts;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
@@ -66,11 +67,16 @@ namespace CalradiaRemembers.Mapping
          bool playerCoercedAgainstCompanion = false,
          bool captiveVictimIsFemale = false,
          CompanionAudienceReason companionAudience = CompanionAudienceReason.None,
-         bool audienceRetirementIsLanded = false) => new() {
+         bool audienceRetirementIsLanded = false)
+      {
+         int daysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge);
+         bool npcIsPrisonerOfAnother = IsPrisonerOfAnother(hero);
+
+         return new() {
          PlayerStatus = playerStatusOverride ?? ResolvePlayerStatus(hero, profile, bridge),
          WarStatus = bridge.GetDiplomaticStatus(hero),
-         DaysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge),
-         MeetingGapNote = MeetingGapDescriber.Describe(ComputeDaysSinceLastMeeting(profile, bridge)),
+         DaysSinceLastMeeting = daysSinceLastMeeting,
+         MeetingGapNote = MeetingGapDescriber.Describe(daysSinceLastMeeting),
          Scene = bridge.GetCurrentScene(),
          ContextualNames = string.IsNullOrWhiteSpace(playerMessage)
             ? null
@@ -98,6 +104,7 @@ namespace CalradiaRemembers.Mapping
          CaptiveVictimIsFemale = captiveVictimIsFemale,
          CompanionAudience = companionAudience,
          AudienceRetirementIsLanded = audienceRetirementIsLanded,
+         LeanLevel = ModSettings.LeanPrompt ? LeanPromptLevel.Lean : LeanPromptLevel.Full,
          IsFinalSceneBeat = isFinalSceneBeat,
          SceneStage = sceneStage,
          AggressorKind = aggressorKind,
@@ -107,8 +114,8 @@ namespace CalradiaRemembers.Mapping
          PlayerLooksImportant = captorIsBandit && PlayerLooksImportant(),
          CompanionAskingPrice = ResolveCompanionAskingPrice(hero),
          HeldLordPrisoners = ResolveHeldLordPrisoners(),
-         NpcIsPrisonerOfAnother = IsPrisonerOfAnother(hero),
-         NpcCaptorName = IsPrisonerOfAnother(hero)
+         NpcIsPrisonerOfAnother = npcIsPrisonerOfAnother,
+         NpcCaptorName = npcIsPrisonerOfAnother
             ? hero.PartyBelongedToAsPrisoner?.MapFaction?.Name?.ToString()
             : null,
          MercenaryOfferKingdom = ResolveMercenaryOfferKingdom(hero),
@@ -139,7 +146,8 @@ namespace CalradiaRemembers.Mapping
          // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
          // coin, and naming the exact sum broke immersion. Affordability is enforced by the
          // bridge when the hire is executed, not foreseen in the prompt.
-      };
+         };
+      }
 
       /// <summary>
       ///   The PLAYER's own deeds that have reached this NPC by word, attributed to the person they are

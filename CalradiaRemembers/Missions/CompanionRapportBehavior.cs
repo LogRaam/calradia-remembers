@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -97,8 +98,12 @@ namespace CalradiaRemembers.Missions
             {
                Hero a = companions[i],
                     b = companions[j];
-               NudgeRelation(a, b);
-               TryMarry(a, b);
+               // One pair's rapport pass throwing must not skip every other pair this week.
+               SafeRun.Step($"CompanionRapportBehavior.OnWeeklyTick({a.Name}, {b.Name})", () =>
+               {
+                  NudgeRelation(a, b);
+                  TryMarry(a, b);
+               });
             }
       }
 

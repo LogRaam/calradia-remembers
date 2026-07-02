@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Commoners;
+using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Dialogue;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Jealousy;
@@ -16,6 +17,7 @@ using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
@@ -95,6 +97,27 @@ namespace CalradiaRemembers.Behaviors
             this, OnBeforeSave);
          CampaignEvents.OnSaveOverEvent.AddNonSerializedListener(
             this, OnSaveOver);
+         // Close a giver's open quests the instant they are slain, instead of leaving them
+         // stuck in the journal until the next reload (the daily pass is the safety net).
+         CampaignEvents.HeroKilledEvent.AddNonSerializedListener(
+            this, OnHeroKilled);
+      }
+
+      /// <summary>
+      ///   When any hero dies, close the quests they had given the player: an outstanding task, or one
+      ///   already done whose reward can no longer be collected. Not the player's fault, so no penalty.
+      /// </summary>
+      private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
+      {
+         SafeRun.Step("OnHeroKilled.CancelQuestsOfDeadGiver", () =>
+         {
+            if (victim == null) return;
+
+            NpcProfile giver = Store?.Get(victim.StringId);
+            if (giver == null || giver.ActiveQuests.Count == 0) return;
+
+            QuestService.CancelQuestsOfDeadGiver(giver, victim, GameStateBridge.GetCurrentGameDay(), Store);
+         });
       }
 
       /// <summary>
@@ -144,13 +167,15 @@ namespace CalradiaRemembers.Behaviors
       private void OnDailyTick()
       {
          int today = GameStateBridge.GetCurrentGameDay();
-         QuestService.RunDailyMaintenance(Store, today);
-         LetterDeliveryService.CheckDeliveries(Store, today);
-         PlayerLetterService.CheckDeliveries(Store, today);
-         LetterEvaluator.EvaluateDaily(Store, LlmServices, today);
-         TriggerPendingReplies(today);
-         SpawnPendingReplyCouriers(today);
-         CaptiveEncounterService.CheckAndTrigger(Store, LlmServices);
+         // Each subsystem runs behind its own guard: one throwing must never starve the rest of
+         // the day's maintenance (letters, quests, couriers, captive triggers are independent).
+         SafeRun.Step("OnDailyTick.QuestService.RunDailyMaintenance", () => QuestService.RunDailyMaintenance(Store, today));
+         SafeRun.Step("OnDailyTick.LetterDeliveryService.CheckDeliveries", () => LetterDeliveryService.CheckDeliveries(Store, today));
+         SafeRun.Step("OnDailyTick.PlayerLetterService.CheckDeliveries", () => PlayerLetterService.CheckDeliveries(Store, today));
+         SafeRun.Step("OnDailyTick.LetterEvaluator.EvaluateDaily", () => LetterEvaluator.EvaluateDaily(Store, LlmServices, today));
+         SafeRun.Step("OnDailyTick.TriggerPendingReplies", () => TriggerPendingReplies(today));
+         SafeRun.Step("OnDailyTick.SpawnPendingReplyCouriers", () => SpawnPendingReplyCouriers(today));
+         SafeRun.Step("OnDailyTick.CaptiveEncounterService.CheckAndTrigger", () => CaptiveEncounterService.CheckAndTrigger(Store, LlmServices));
       }
 
       /// <summary>
@@ -181,32 +206,34 @@ namespace CalradiaRemembers.Behaviors
       private void OnSessionLaunched(CampaignGameStarter campaignGameStarter)
       {
          ModLog.Info("Campaign session launched.");
-         CulturalTraditionsLoader.Load();
-         NarrativeLoader.Load();
-         JealousyCultureLoader.Load();
-         LlmServices.Invalidate(); // rebuild PromptBuilder with fresh file content
-         StoryLog.WriteSessionHeader();
-         CaptiveEncounterService.ResetOnSessionLaunch();
-         DisplayLoadedProfiles();
-         UpgradeLegacyProfiles();
-         RefreshRelationships();
-         RumorStore.Clear();
-         DialogFlow.Register(campaignGameStarter);
+         // Each start-up step runs behind its own guard: a single loader/subscription throwing
+         // must never prevent the rest of the session from wiring itself up.
+         SafeRun.Step("OnSessionLaunched.CulturalTraditionsLoader.Load", CulturalTraditionsLoader.Load);
+         SafeRun.Step("OnSessionLaunched.NarrativeLoader.Load", NarrativeLoader.Load);
+         SafeRun.Step("OnSessionLaunched.JealousyCultureLoader.Load", JealousyCultureLoader.Load);
+         SafeRun.Step("OnSessionLaunched.LlmServices.Invalidate", LlmServices.Invalidate); // rebuild PromptBuilder with fresh file content
+         SafeRun.Step("OnSessionLaunched.StoryLog.WriteSessionHeader", StoryLog.WriteSessionHeader);
+         SafeRun.Step("OnSessionLaunched.CaptiveEncounterService.ResetOnSessionLaunch", CaptiveEncounterService.ResetOnSessionLaunch);
+         SafeRun.Step("OnSessionLaunched.DisplayLoadedProfiles", DisplayLoadedProfiles);
+         SafeRun.Step("OnSessionLaunched.UpgradeLegacyProfiles", UpgradeLegacyProfiles);
+         SafeRun.Step("OnSessionLaunched.RefreshRelationships", RefreshRelationships);
+         SafeRun.Step("OnSessionLaunched.RumorStore.Clear", RumorStore.Clear);
+         SafeRun.Step("OnSessionLaunched.DialogFlow.Register", () => DialogFlow.Register(campaignGameStarter));
          ModLog.Info("Dialog flow registered.");
 
-         DialogueRecorder.Subscribe();
-         QuestTracker.Subscribe();
-         LetterEvaluator.Subscribe();
-         WorldFeeders.Subscribe();
-         new TaverneLetterBehavior().Register(campaignGameStarter);
-         new CommonsDialogBehavior().Register(campaignGameStarter);
-         CourierService.RebuildActiveCourierSet(Store);
+         SafeRun.Step("OnSessionLaunched.DialogueRecorder.Subscribe", DialogueRecorder.Subscribe);
+         SafeRun.Step("OnSessionLaunched.QuestTracker.Subscribe", QuestTracker.Subscribe);
+         SafeRun.Step("OnSessionLaunched.LetterEvaluator.Subscribe", LetterEvaluator.Subscribe);
+         SafeRun.Step("OnSessionLaunched.WorldFeeders.Subscribe", WorldFeeders.Subscribe);
+         SafeRun.Step("OnSessionLaunched.TaverneLetterBehavior.Register", () => new TaverneLetterBehavior().Register(campaignGameStarter));
+         SafeRun.Step("OnSessionLaunched.CommonsDialogBehavior.Register", () => new CommonsDialogBehavior().Register(campaignGameStarter));
+         SafeRun.Step("OnSessionLaunched.CourierService.RebuildActiveCourierSet", () => CourierService.RebuildActiveCourierSet(Store));
          // Couriers were kept out of the save (despawned pre-save). Don't respawn a fragile
-         // party during session launch — instead hand any orphaned in-flight letter back to
+         // party during session launch: instead hand any orphaned in-flight letter back to
          // its date-based delivery, so it still arrives even though the courier is gone.
-         CourierService.ClearOrphanedCouriers(Store);
-         RemoveOrphanedLetterPlaceholders();
-         QuestJournalBridge.ReconcileOnSessionLaunch(Store);
+         SafeRun.Step("OnSessionLaunched.CourierService.ClearOrphanedCouriers", () => CourierService.ClearOrphanedCouriers(Store));
+         SafeRun.Step("OnSessionLaunched.RemoveOrphanedLetterPlaceholders", RemoveOrphanedLetterPlaceholders);
+         SafeRun.Step("OnSessionLaunched.QuestJournalBridge.ReconcileOnSessionLaunch", () => QuestJournalBridge.ReconcileOnSessionLaunch(Store));
       }
 
       /// <summary>

@@ -12,9 +12,10 @@ namespace CalradiaRemembers.Logic
 {
    /// <summary>
    ///   The "director" of a captive scene: a small state machine that owns the dramatic structure
-   ///   so the model never has to (and never loops a beat). The lead captor always opens with the
-   ///   full arc Intro → Initiate → Intensify → Climax. After ANY act's Climax the director decides
-   ///   the next act:
+   ///   so the model never has to (and never loops a beat). The lead captor opens with a named
+   ///   <see cref="SceneArc" /> drawn by <see cref="CaptiveSceneArcPolicy" /> (SlowBurn / Classic /
+   ///   Sudden) so the same captor does not run the identical pacing every time. After ANY act's
+   ///   Climax the director decides the next act:
    ///   <list type="bullet">
    ///     <item>
    ///       a queued collective aggressor (another single member, or the whole remaining band at
@@ -24,7 +25,7 @@ namespace CalradiaRemembers.Logic
    ///       with a decreasing chance the current aggressor runs ANOTHER act (a new position),
    ///       OR
    ///     </item>
-   ///     <item>the scene concludes.</item>
+   ///     <item>the scene moves to its Aftermath (a single come-down beat) and then concludes.</item>
    ///   </list>
    ///   A hard cap on total acts guarantees termination. Randomness is injected via
    ///   <see cref="IRandomSource" /> so every branch can be arranged deterministically in tests.
@@ -39,12 +40,15 @@ namespace CalradiaRemembers.Logic
       private int _completedActs;
       private int _stageIndex;
 
-      public CaptiveSceneDirector(bool collective, int extraAggressors, IRandomSource rng)
+      public CaptiveSceneDirector(bool collective, int extraAggressors, IRandomSource rng, bool captorIsBandit, CaptiveSceneIntent intent)
       {
          _rng = rng ?? throw new ArgumentNullException(nameof(rng));
 
-         // The lead's opening act — the only one that carries an Intro.
-         _actStages = new[] {CaptiveSceneStage.Intro, CaptiveSceneStage.Initiate, CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax};
+         // The lead's opening act (the only one that carries an Intro). Its shape is the named arc
+         // the policy draws for this context; only the lead's OPENING act varies, subsequent
+         // collective/repeat acts stay compressed exactly as before.
+         SceneArc arc = CaptiveSceneArcPolicy.Select(captorIsBandit, intent, _rng.Next);
+         _actStages = ArcStages(arc);
          CurrentAggressor = CaptiveAggressorKind.Lead;
 
          if (collective && extraAggressors >= 1)
@@ -73,6 +77,17 @@ namespace CalradiaRemembers.Logic
          ReactToIntervention = false;
 
          if (CurrentStage == CaptiveSceneStage.Conclude) return;
+
+         // Aftermath is a single terminal beat, walked outside the act-stage machinery: the NEXT
+         // Continue after it always lands on Conclude, the true terminal.
+         if (CurrentStage == CaptiveSceneStage.Aftermath)
+         {
+            CurrentStage = CaptiveSceneStage.Conclude;
+            CurrentAggressor = CaptiveAggressorKind.Lead;
+
+            return;
+         }
+
          Advance();
       }
 
@@ -165,9 +180,34 @@ namespace CalradiaRemembers.Logic
                _pendingOthers.Enqueue(CaptiveAggressorKind.AnotherSingle);
       }
 
+      // The lead's opening act only (the sole act that carries an Intro, and, for SlowBurn, a
+      // RisingTension build-up before the act begins). Subsequent acts always use the compressed
+      // shapes in DecideNextAct, never one of these.
+      private static CaptiveSceneStage[] ArcStages(SceneArc arc)
+      {
+         switch (arc)
+         {
+            case SceneArc.SlowBurn:
+               return new[] {
+                  CaptiveSceneStage.Intro, CaptiveSceneStage.RisingTension, CaptiveSceneStage.Initiate,
+                  CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax
+               };
+            case SceneArc.Sudden:
+               return new[] {CaptiveSceneStage.Intro, CaptiveSceneStage.Initiate, CaptiveSceneStage.Climax};
+            default: // Classic
+               return new[] {
+                  CaptiveSceneStage.Intro, CaptiveSceneStage.Initiate, CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax
+               };
+         }
+      }
+
+      // Not the true terminal: a single Aftermath come-down beat runs first (walked directly by
+      // AdvanceStory, outside the act-stage machinery), and only the FOLLOWING Continue reaches
+      // Conclude. Idempotent: DecideNextAct never fires again once Aftermath is reached, since
+      // AdvanceStory intercepts it before Advance() is called.
       private void SetConclude()
       {
-         CurrentStage = CaptiveSceneStage.Conclude;
+         CurrentStage = CaptiveSceneStage.Aftermath;
          CurrentAggressor = CaptiveAggressorKind.Lead;
       }
 

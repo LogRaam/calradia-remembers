@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Travel;
 using CalradiaRemembers.WorldEvents;
@@ -731,8 +732,15 @@ namespace CalradiaRemembers.Missions
       {
          if (_active.Count == 0) return;
          foreach (CompanionMission m in _active.ToList())
-            if (Advance(m))
-               _active.Remove(m);
+         {
+            CompanionMission mission = m;
+            // One errand's advance throwing must not stall every other companion's errand this tick.
+            SafeRun.Step($"CompanionMissionBehavior.Advance({mission.CompanionName})", () =>
+            {
+               if (Advance(mission))
+                  _active.Remove(mission);
+            });
+         }
       }
 
       // ── Capture ───────────────────────────────────────────────────────────

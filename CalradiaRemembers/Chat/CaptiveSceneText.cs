@@ -1,11 +1,15 @@
 // Code written by Gabriel Mailhot, 24/06/2026.
-// SRP extraction from ChatViewModel (Phase 2): the opener / setting TEXT a captive scene is seeded with —
+// SRP extraction from ChatViewModel (Phase 2): the opener / setting TEXT a captive scene is seeded with,
 // the per-intent opening cue, the randomized scene setup (locale, captor state, prisoner presentation,
 // driving focus), the resume cues, and the story-log location line. Pure relocation of working static code:
 // no behaviour change, no engine state held. Stays mod-side (not Logic) because it uses MBRandom / settlements.
+// Extended 01/07/2026: the scene focus pool is now split dark/positive by intent (Reward draws from the
+// positive register, everything else from the dark one) and picked through the pure avoid-repeat
+// CalradiaRemembers.Logic.SceneFocusSelector, so a captor no longer opens two rounds with the same focus.
 
 #region
 
+using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -33,7 +37,12 @@ namespace CalradiaRemembers.Chat
       };
 
       // A randomized driving FOCUS for the scene, so two scenes with the same intent still tell a
-      // different story. Colors what this captor most wants out of the encounter tonight.
+      // different story. Colors what this captor most wants out of the encounter tonight. This is the
+      // DARK register, serving every sexual intent except Reward (see PositiveSceneFoci below).
+      // Expanded 01/07/2026 from 14 to 26 entries, deliberately varied in DIRECTION (not just degree):
+      // psychological manipulation, weaponized tenderness, corruption, forced complicity, theatre for
+      // an audience, prolonged hope-and-denial, sensory play, ritual, and quieter dread alongside the
+      // original physical/dominance/degradation entries.
       private static readonly string[] SceneFoci = {
          "breaking their spirit through humiliation more than anything",
          "the raw physical use of their body, fast and brutal",
@@ -41,14 +50,39 @@ namespace CalradiaRemembers.Chat
          "marking and claiming them as your property",
          "cold, methodical degradation that takes its time",
          "drawing out their fear and dread before you even touch them",
-         "toying with them — false mercy, sudden cruelty, keeping them off balance",
+         "toying with them, false mercy, sudden cruelty, keeping them off balance",
          "sheer dominance: proving they are yours to command",
          "rewarding the smallest obedience to twist their mind",
-         "a contest of wills — you want them to break, not just submit",
-         "putting them wholly beneath you — smothering, riding, using their body as furniture",
+         "a contest of wills, you want them to break, not just submit",
+         "putting them wholly beneath you, smothering, riding, using their body as furniture",
          "the ultimate insult: claiming and marking them as your property, treating them as an animal",
-         "a foot-fetish power game — making them worship and serve your feet, beneath you in every sense",
-         "forcing them to pleasure themselves on your command, and punishing any hesitation or refusal with the whip or your fists"
+         "a foot-fetish power game, making them worship and serve your feet, beneath you in every sense",
+         "forcing them to pleasure themselves on your command, and punishing any hesitation or refusal with the whip or your fists",
+         "turning their own past words back on them, until they cannot tell truth from trap",
+         "a false, weaponized tenderness, gentle hands and softer words meant only to make the fall crueler",
+         "corrupting whatever they are proudest of, their honor, their faith, their restraint, one small surrender at a time",
+         "forcing them into a choice with no good answer, so their own decision does the breaking for you",
+         "a theatrical humiliation staged for the benefit of everyone watching, not just the two of you",
+         "a slow cat-and-mouse of hope offered and then snatched away, again and again",
+         "sensory games, blindfolds, whispers, the unknown made into a weapon",
+         "a ritual of ownership, formal and deliberate, as if branding them into a new station",
+         "picking apart their composure piece by piece until nothing dignified is left standing",
+         "using their own body against them, exhaustion, need, and shame turned into leverage",
+         "an interrogation dressed as intimacy, so they cannot tell affection from extraction",
+         "silence and stillness stretched past bearing, letting dread do the work before a hand is even raised"
+      };
+
+      // The POSITIVE register, drawn only when the intent is Reward: the carrot, not the stick.
+      // Added 01/07/2026 so a rewarding scene reads as genuinely warmer, not just a milder version
+      // of the dark pool.
+      private static readonly string[] PositiveSceneFoci = {
+         "rewarding their submission with real pleasure, given generously and without cruelty",
+         "praising them warmly and letting them rest, comfortable, in your favor",
+         "marking them, gently this time, as a favored possession rather than a captive",
+         "granting a privilege they have earned: better quarters, a kindness, a moment of ease",
+         "gentling them after the stick, all patience and low, approving words",
+         "showing them what obedience buys: comfort, attention, and your genuine regard",
+         "a slow, unhurried tenderness meant to teach them that yielding to you does not have to hurt"
       };
 
       // Randomized opening setting so no two scenes start the same way. Seeds the INTRO with a
@@ -126,17 +160,19 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>
       ///   The user-turn nudge sent on each in-scene "Continue" beat (the stage directive in the system prompt
-      ///   carries the actual content). Pushes the model to ADVANCE, render fresh vivid description, and never
-      ///   repeat — the two faults a player reported on the Continue sequence. Shared with the quality self-test
-      ///   so the test exercises the exact runtime stimulus, never a drifting copy.
+      ///   carries the actual content). Opens with a short DIEGETIC line, the scene simply waiting, because a
+      ///   wall of meta-instructions here sends reasoning models (MiMo, GLM) into budget-eating deliberation
+      ///   and they return no text at all; a player found that typing "*waiting to see what happens next*"
+      ///   avoided the very failure this used to cause. Only the two load-bearing constraints stay (advance
+      ///   without recap, never repeat); the full anti-repetition rules already live in the system prompt.
+      ///   Shared with the quality self-test so the test exercises the exact runtime stimulus, never a
+      ///   drifting copy.
       /// </summary>
       public static string BuildContinuationStimulus()
-         => "[Continue the scene from where you left off — do NOT restart and do NOT recap what already happened. " +
-            "Play ONLY the beat your stage directive specifies this turn, and move the action FORWARD from the last " +
-            "thing that happened. Put fresh, vivid, specific physical detail in [NARRATION] — sensation, sound, " +
-            "movement, the captive's body and reactions — and NEVER reuse an image, phrase, gesture, or line you " +
-            "have already used this scene. If you feel yourself about to repeat a beat, escalate or change tack " +
-            "instead. One focused beat, fully realised, not a summary.]";
+         => "*The moment stretches in silence, waiting for what comes next.* " +
+            "[Continue: play only this turn's beat, moving FORWARD from the last thing that happened. No restart, " +
+            "no recap; never reuse an image, phrase, or gesture from earlier in the scene. Fresh, specific " +
+            "physical detail in [NARRATION].]";
 
       public static string BuildResumeOpener()
          => "[You are NOT finished with this prisoner. The scene resumes — same prisoner, same place — and " +
@@ -144,18 +180,27 @@ namespace CalradiaRemembers.Chat
             "specific physical detail in [NARRATION]. Do NOT recap or repeat what already happened, and do NOT " +
             "reuse phrases or images from the earlier rounds — this round must read as its own distinct beat.]";
 
+      /// <summary>The right focus pool for this intent: the positive register for Reward, the dark register for everything else.</summary>
+      private static string[] FociPoolFor(CaptiveSceneIntent intent)
+         => intent == CaptiveSceneIntent.Reward ? PositiveSceneFoci : SceneFoci;
+
       // A new driving focus only (the locale/people are unchanged from the prior round, which the
       // model already knows from the history), so the new cycle takes a different direction.
-      public static string BuildResumeSetup()
+      // lastFocusIndex tracks the previously-chosen index (caller state, e.g. ChatViewModel) so
+      // SceneFocusSelector can avoid picking the same focus two rounds running.
+      public static string BuildResumeSetup(CaptiveSceneIntent intent, ref int lastFocusIndex)
       {
-         string focus = SceneFoci[MBRandom.RandomInt(SceneFoci.Length)];
+         string[] pool = FociPoolFor(intent);
+         int index = SceneFocusSelector.PickIndex(pool.Length, lastFocusIndex, MBRandom.RandomInt);
+         lastFocusIndex = index;
+         string focus = pool[index];
 
          return $" [A NEW ROUND with the same prisoner. What drives you THIS time is {focus}. Take it somewhere " +
-                "genuinely NEW — a different act, a different angle — and render it with fresh sensory description. " +
+                "genuinely NEW, a different act, a different angle, and render it with fresh sensory description. " +
                 "Never repeat an earlier act, image, or turn of phrase.]";
       }
 
-      public static string BuildSceneSetup()
+      public static string BuildSceneSetup(CaptiveSceneIntent intent, ref int lastFocusIndex)
       {
          Settlement held = ResolveHoldingSettlement();
 
@@ -173,9 +218,12 @@ namespace CalradiaRemembers.Chat
             pres = PrisonerPresentations[MBRandom.RandomInt(PrisonerPresentations.Length)];
          }
 
-         string focus = SceneFoci[MBRandom.RandomInt(SceneFoci.Length)];
+         string[] pool = FociPoolFor(intent);
+         int index = SceneFocusSelector.PickIndex(pool.Length, lastFocusIndex, MBRandom.RandomInt);
+         lastFocusIndex = index;
+         string focus = pool[index];
 
-         return $" [THIS SCENE'S SETTING — make the opening unique to it: it happens {locale}; you are {state}; " + $"the prisoner is {pres}. What drives you tonight is {focus}. Open from THIS specific situation in " + "your own fresh words — never a generic, reused capture opener. Let this scene be its own distinct " + "story, not a repeat of any other.]";
+         return $" [THIS SCENE'S SETTING, make the opening unique to it: it happens {locale}; you are {state}; " + $"the prisoner is {pres}. What drives you tonight is {focus}. Open from THIS specific situation in " + "your own fresh words, never a generic, reused capture opener. Let this scene be its own distinct " + "story, not a repeat of any other.]";
       }
 
       /// <summary>

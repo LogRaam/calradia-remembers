@@ -94,6 +94,61 @@ asserts the companion is actually VOICED in its own `[WITNESS_REACTION]` lines +
 **OPEN:** richer per-victim captivity memory at scene close (today the victim gets none — a Phase-2 revenge hook);
 the companion-scene auto-fire still console-only.
 
+**Captive scene replayability (Claude 2026-07-01, BUILT, NOT committed):** the same captor used to always run the
+same scene, because intent selection was a deterministic priority ladder and the per-round scene "focus" pool was
+one small, single-register list. Two fixes: (1) `CaptiveEncounterPolicy.SelectIntent` is now a WEIGHTED draw over
+the six lord/sexual intents (Interrogation/PersonalDesire/Domination/Torture/Training/Reward), pure and seeded by
+an injected `Func<int,int> rollPercent` (mirrors `SelectBanditIntent`): kinks and relation are leanings that boost
+weight, not hard gates, so a sadist LEANS toward Torture but is not locked into it. Interrogation/PersonalDesire/
+Domination/Torture always keep a floor weight above zero (no intent is ever impossible); Reward needs at least a
+lukewarm relation and Training needs the Training kink to enter the pool at all; strong contempt (relation <= -15)
+boosts Torture hard and zeroes Reward; strong warmth (relation >= 20) boosts Reward/PersonalDesire and cools
+Torture (never below the floor). (2) The scene-focus text pool (`CaptiveSceneText`) is split in two: the DARK pool
+grew from 14 to 26 varied entries (psychological manipulation, weaponized tenderness, corruption, forced
+complicity, staged humiliation, hope-and-denial, sensory play, ritual, quiet dread, alongside the original
+physical/dominance ones) serving every intent except Reward; a new 7-entry POSITIVE pool serves Reward only (real
+pleasure, praise, favored-possession framing, earned privileges, gentling). Selection goes through a new pure
+`CalradiaRemembers.Logic.SceneFocusSelector.PickIndex(poolSize, lastIndex, roll)`, which never repeats the
+immediately-previous focus (state lives in `ChatViewModel._lastSceneFocusIndex`, reset to -1 on a fresh scene).
+**Bugfix, same batch:** "Please continue" on a non-sexual scene (Reckoning/Extortion/Intimidation/Revenge) was
+unconditionally injecting the sexual scene-focus setup on resume; the opener path already guarded this, the resume
+path now mirrors the same guard. 12 new tests in `CalradiaRemembers.Tests` (weighted-draw invariants +
+`SceneFocusSelectorTests`); the `chat_captive_continue`/`chat_companion_continue` self-tests still exercise the real
+build calls and stay green. **OPEN:** in-game validation of the variety (same captor across several sessions);
+tune the weighting constants against player feedback.
+
+**Captive scene director variety (Claude 2026-07-01, BUILT, NOT committed):** the content-variety fix above
+still walked the SAME fixed dramatic structure every time (Intro, Initiate, Intensify, Climax); the director now
+varies the STRUCTURE too. `CaptiveSceneDirector`'s lead opening act is now chosen from a named `SceneArc`
+(SlowBurn: Intro/RisingTension/Initiate/Intensify/Climax; Classic: today's baseline; Sudden: Intro/Initiate/Climax,
+no build-up), drawn by a new pure `CaptiveSceneArcPolicy.Select` (weighted, same style as `SelectIntent`): a
+bandit leans Sudden, a lord after Domination or Training leans SlowBurn, PersonalDesire is balanced between
+SlowBurn and Classic, and Interrogation/Reward/Torture lean Classic; every arc keeps a floor weight so it can
+still be drawn regardless of context. Two new SDK stages close a gap testing surfaced: `RisingTension` (the
+captor circles, inspects, closes distance, builds dread through word/gaze/touch, institutionalizing the
+"play with the prey" psychological build-up that was being skipped) and `Aftermath` (a single come-down beat
+after the final Climax: the prisoner's state, parting words, any mark left, the room going cold again, before
+Conclude). The tail is now uniform across every arc: ...Climax -> Aftermath -> Conclude, `Aftermath` a normal
+beat the player advances through with Continue (`IsConcluding` still keys strictly off `Conclude`). Also added:
+a per-stage textual intensity curve 1..5 (`PromptBuilder.StageIntensity`: Intro=1, RisingTension=2, Initiate=3,
+Intensify=4, Climax=5, Aftermath=2, Conclude=1) injected as an "INTENSITY THIS BEAT" line in the stage directive,
+so the model's graphic explicitness follows the beat instead of staying flat. Register (bandit crude-thug voice
+vs. lord cold-command voice) stays a separate prompt concern keyed off `captorIsBandit`, unaffected by arc choice.
+15 new tests (`CaptiveSceneArcPolicyTests` + `CaptiveSceneDirectorTests`) plus 3 new SDK tests pinning the
+intensity curve. **OPEN:** in-game validation that RisingTension and Aftermath read well against a live model,
+and that the arc distribution feels right per captor type.
+
+**Fix: a dead quest-giver's quests now close (Claude 2026-07-01, BUILT, NOT committed, player-reported):** a quest
+whose giver died mid-campaign lingered in the journal (including the awaiting-reward case: the deed was done and
+the log said "return to X to collect", but X had died). `QuestJournalBridge.ReconcileOnSessionLaunch` already
+closed dead-giver mirrors, but only at load, so nothing fired mid-session. New `QuestService.CancelQuestsOfDeadGiver`
+closes every still-Active quest (Active covers both an outstanding task and one awaiting a reward) as Cancelled with
+a death reason, with NO relation penalty and no broken-word (a giver's death is not the player's fault). Wired twice:
+the `HeroKilledEvent` (mod `NpcMemoryCampaignBehavior.OnHeroKilled`) closes them the instant the giver is slain, and
+a daily safety-net branch in `RunDailyMaintenance` catches any that slipped through (or a giver already dead in a
+loaded save). Cancelled rather than Failed on purpose: the red-failure register would wrongly imply the player broke
+their word. **OPEN:** in-game confirmation, and a call on whether Gabriel prefers the failure register after all.
+
 **Companions (the 2026-06-23 trilogy, untested)** — **missions** (news / spy / steal / barter / envoy — a
 real physical journey: the companion leaves as a clan party, rides to a town, returns and reports in
 conversation; save-safe + capture-resilient + anti-exploit; **recall** — order an away companion to abandon
@@ -110,6 +165,128 @@ history; deterministic); marriage politics (family-approval, consorts); **jealou
 **Tech** — multi-provider LLM incl. local (OpenAI-compatible endpoint covers Ollama/LM Studio/vLLM);
 **setting-agnostic overhaul support** (`setting.json` → reskin for The Old Realms & co. as a data pack);
 parchment letter window + visible couriers; **prompt-cache split** (stable prefix cached, dynamic tail fresh).
+
+**Hardening batch (2026-07-01, built by agents, untested in game unless noted):** a session of test/infra
+fixes with no intended player-facing behavior change. The SDK test suite was silently not executing under
+`dotnet test` (missing `Microsoft.NET.Test.Sdk` + adapter package), now fixed, SDK runs 170+ tests. Parser
+hardening: the bracket-scrub is anchored (was catching stray mid-line brackets), plus full parser coverage
+for [ACTION]/[QUEST]/aliases/[WITNESS_REACTION]/[DISCOVERY], and golden-ordinal tests pin `NotableEventType`
+and `Kink` enum values against accidental reordering (a save-compat guard, since both persist by ordinal).
+`ProfileMutator` is now the single mutation path, with a reputation clamp. `SafeRun.Step` now wraps every
+campaign-tick subsystem so one throwing behavior can no longer freeze the whole tick. `JealousyBehavior` and
+`MarriageApprovalBehavior` migrated off the native-string `SyncData` (the exact pattern behind the v1.6.2
+save-corruption bug) onto the new `JsonCampaignState` helper, with legacy migration for existing saves. SDK
+prompt overhaul: the cache-split fix moves per-turn directives to the dynamic tail, one global action
+contract, a worked few-shot example, a letter-language fix, captive pacing consolidated, and a Lean-prompt-v2
+pass trimming the format machinery for small/local models.
+**This session's own slice:** `ModCheats.cs` (3496 lines, ~120 console commands) split into domain partial
+classes, command names/strings/bodies untouched (pure reorg, files now under ~600 lines each).
+`RomanticProfileBuilder`'s pure core (trait-based sketches, orientation, preference/kink pools, distinct-pick)
+was extracted to `CalradiaRemembers.Logic.RomanticProfilePolicy`, behavior-preserving (same `Random` call
+order, so existing NPCs' frozen kinks/preferences do not shift), with new Gherkin tests for the trait
+correlations, orientation bands, pool distinctness, and determinism. The bandit-captor scene rolls
+(gender-weighted spoil intent, collective-scene chance, participant cap) moved next to the lord-path
+equivalents in `CaptiveEncounterPolicy`, tested the same way. The Extension Surface now honors
+`ExternalWorldEvent.Lifetime`: a fed Deed is kept, under its own 50-entry cap, oldest dropped first (a
+tuning choice, flagged for review, kept smaller than the player's own chronicle cap so a flood can't crowd
+it out), instead of aging out as a rumour after 42 days. It also ships `Feed.ApiVersion` for reflection-based
+capability detection by third-party callers, and the per-source send-quota dictionary is now lock-guarded
+against concurrent callers.
+
+**Dual model modes, roleplay + NSFW (2026-07-01, built, untested in game):** born from a player request
+(hot-swapping models for NSFW versus story roleplay was blocked by the modal chat window). Two MCM fields:
+the existing model becomes "Model (roleplay)" and a new optional "NSFW model" (LLM Provider group, works
+with whichever provider is active, blank means the roleplay model serves everything). Structurally-explicit
+scenes (captive encounters, player-as-captor scenes, companion-victim scenes) open on the NSFW model
+automatically; ordinary conversations open on the roleplay model. A muted "Mode: Roleplay / Mode: NSFW"
+button in the chat title bar shows the active mode and flips it (a manual override, e.g. a consensual scene
+that escalates); the model is resolved live per request, so the switch applies on the very next exchange.
+The mode is deliberately NOT reset on chat close, so the async captive-scene memory summary still resolves
+the NSFW model after teardown. Pure selection rules in `CalradiaRemembers.Logic.ModelModePolicy` (Gherkin
+tested); `cr.model [toggle]` reports and flips it from the console.
+
+**MCM menu reorganized (2026-07-01, built, untested in game):** the options screen now reads in usage order:
+all LLM configuration first (the shared LLM Provider group, then one section per provider: OpenRouter, NanoGPT,
+OpenAI-Compatible), then gameplay (Content, Character, Companions), Diagnostics last. Fixed two GroupOrder
+collisions (OpenRouter/Character both 3, NanoGPT/Companions both 4) that interleaved gameplay groups into the
+LLM sections, and normalized every in-group Order to ascending (key, options, Test button last); the old negative
+orders compensated a since-fixed MCM rendering flip and half the fields no longer followed them. Verify the
+rendered order in-game once (an outdated MCM would show groups internally reversed; if so, flip the signs back).
+
+**Both model fields consolidated in the shared group (2026-07-01, built, untested in game):** "Model (roleplay)"
+joins "NSFW model" in the LLM Provider group, resolving the asymmetry where the NSFW model was provider-agnostic
+but the roleplay model lived per provider. The per-provider "NanoGPT Model" and OpenAI-Compatible "Model" fields
+are REMOVED; the shared field serves every provider (id pasted in the active provider's format, examples in the
+hint). Provider sections now hold only connection concerns: key, endpoint, Reasoning Effort / Parameter
+Compatibility, Test button. Resolution guard: for NanoGPT/Custom, a blank field or the untouched OpenRouter
+default (x-ai/grok-4.20) resolves blank, so the existing provider-aware "set your model" in-chat guidance fires
+instead of a cryptic API error. MIGRATION NOTE for the release changelog: NanoGPT and OpenAI-Compatible users
+must re-enter their model id once in the shared field (their old per-provider value is orphaned in the config
+json); OpenRouter users are untouched (same persistence key). The Test Connection / Test Endpoint buttons now
+one-token-test EVERY configured model: roleplay first, then the NSFW model when set (a misspelled NSFW id must
+fail on the Test button, not mid-scene when the mode flips); the verdict popup reports each model's status.
+
+**Reasoning models no longer fail the Continue button (2026-07-01, built, untested in game, player-reported):**
+with MiMo/GLM a scene continuation died on "[SCENE] continuation failed: Response contained no message content."
+Root cause in the SDK client: a reasoning model can spend the ENTIRE completion budget thinking, returning a
+null content with the reasoning text and finish_reason "length"; the parser turned that into a hard failure,
+which also bypassed the existing length retry (it only fired on successes). Fix: such a body now parses as an
+empty length-truncated success; CompleteAsync retries it once with a DOUBLED token budget (room for prose after
+the thinking); if both attempts come back textless the player gets an actionable error naming Reasoning Effort.
+Regression-pinned in new `OpenRouterResponseParsingTests` (SDK internals opened to the test suite via
+InternalsVisibleTo). Grok was unaffected because it honors the low Reasoning Effort default. Second prong,
+from Gabriel's own play observation (typing "*waiting to see what happens next*" avoided the failure): the
+Continue stimulus was a six-line wall of meta-instructions that reasoning models treat as a planning puzzle,
+which is what triggered the budget-eating deliberation in the first place. `BuildContinuationStimulus` now
+opens with a short diegetic line (the scene waiting) and keeps only the two load-bearing constraints (advance
+without recap, never repeat); the full anti-repetition rules already live in the system prompt. Third prong
+(first in-game retest still showed silence): the retry now covers ANY empty successful reply, not just
+length-truncated ones (reasoning models can close on reasoning alone with finish_reason "stop"), and the
+continuation path logs its start (model + mode) and fails LOUDLY on an empty beat ("(The moment passes.)" +
+error log) instead of silently rendering nothing.
+
+**Per-mode Reasoning Effort (2026-07-01, built, untested in game):** the effort follows the mode like the
+model does. The dropdown becomes "Reasoning Effort (roleplay)"; a new "Reasoning Effort (NSFW)" (OpenRouter
+group) defaults to "Same as roleplay" (existing configs unchanged) and typically goes LOWER (Low/Off: fewer
+moralizing refusals, faster scene beats) while roleplay can afford Medium/High for finer dialogue. Pure
+`ModelModePolicy.ResolveReasoningEffort` (+4 tests, 629 total); `cr.model` reports the resolved effort.
+
+**Captive pacing rebalance (2026-07-01, built, from Gabriel's play observation):** the morning pacing
+consolidation overshot: with the "COMPLETE sequence" block folded away and AppendDialogueStyle suppressed in
+scenes, the loudest surviving voice was the brevity rule ("a few sentences"), and Grok obeyed: terse one-line
+beats, action without psychology (in-game report: the scene rushed forward and lost the menace/insult/
+psychological register). Rebalanced with ONE authority intact: the brevity rule becomes "ONE BEAT PER TURN,
+FULLY REALISED" (several spoken sentences of menace/taunting + one substantial [NARRATION] paragraph; the
+enemy is REPETITION, not substance) and the stage directive header adds "a beat is a whole moment of the
+story, not a single line". In-game re-validation needed: beats should be rich again WITHOUT the old 1-2-2-2
+repetition returning. Cache measurements from the same session: cached: 64/768/7616/7616 across beats, i.e.
+the stable prefix caches from beat 3 (the split fix works on Grok); the remaining ~2.9k/turn uncached is
+history + dynamic tail (the automatic-prefix lever below). Grok's slowness = reasoning burn (3.4-4.8k
+completion tokens for one-line replies): the per-mode Reasoning Effort (NSFW) = Off/Minimal is the intended
+remedy.
+
+**Retry observability + cache visibility (2026-07-01, built):** `LlmResponse.WasRetried` flows to
+`NpcChatResult`; the [TOKENS]/[SCENE TOKENS] log lines say "RETRY fired" when the bounded second attempt
+served the reply (token counts alone cannot reveal it: OpenRouter's completion_tokens includes reasoning
+tokens, which is why Grok's beat looked like a retry when it was a single call). [SCENE TOKENS] and
+[15C TOKENS] now also print the cached-token count like the main path.
+
+### Prompt-cache: the automatic-prefix regime *(analyzed 2026-07-01, next cost lever, TO RATIFY)*
+
+Two cache regimes exist. Anthropic-style EXPLICIT caching (cache_control breakpoint) is what CR optimizes
+today, and the 2026-07-01 split fix serves it. But xAI/Grok and OpenAI use AUTOMATIC longest-common-PREFIX
+caching over the whole request (system + history): the cache_control marker is ignored, and any per-turn
+change in the system prompt's dynamic tail (scene stage directive, NAMES MENTIONED) cuts the common prefix
+there, so the WHOLE conversation history is re-billed full price every turn on Grok, the default model.
+Proposed fix (medium, SDK): move per-turn context out of the system tail into the wire-level LAST USER
+MESSAGE (SillyTavern author's-note pattern), persisted in the wire history so the prefix stays append-only.
+Each turn then bills only the new message at full rate; everything else becomes cache reads (4-10x cheaper).
+Trade-off: past turns' context blocks stay in the sent history (~200-300 tokens/turn at cached price), and
+the model receives encounter context as user-role content, a creative-core change that needs in-game
+validation. MEASURE FIRST: play a Grok captive scene and read the new (cached:N) figures in [SCENE TOKENS];
+if cached stays ~0 across beats, this is the biggest remaining cost lever. Also still open: compress the
+Full-mode 16-type quest list (~300-400 tokens), the consolidated captive-prompt rebuild (~40% shorter), and
+a second breakpoint splitting the universal header from the per-NPC block (Anthropic-style only).
 
 ---
 
@@ -333,6 +510,34 @@ rule until they get their own pack. (Replayability is the explicit goal: marryin
 play out the same twice.) A second worked example — `ON_DEATH:Rhagaea` → consequence
 `DECLARE_WAR: Northern Empire, Western Empire -> Southern Empire`, message "With the empress fallen, the
 eagles turn on a leaderless South" — then the sandbox takes over.
+
+### A personal ledger of quests the PLAYER gives out *(wished 2026-07-01, Gabriel — design only, nothing built)*
+
+**The gap:** the mod tracks two opposite directions of tasking, but only surfaces one. Quests a NPC gives the
+PLAYER get a real vanilla quest-journal mirror (via `QuestJournalBridge`). But errands the PLAYER hands OUT,
+today the companion missions (gather news / spy / steal / barter / envoy, in `CompanionMissionBehavior`), are
+recorded only in the save (the persisted `_active` list) and the console (`cr.missions`). In-game the player's
+only trace is the send-off line, the companion physically away as a party, and their report on return. Send two
+or three companions off and it is easy to forget who went where. **The idea:** a player-facing ledger of the
+tasks the player has commissioned, so "I sent someone somewhere" is legible.
+
+**Open design questions (to settle before building):**
+- **Surface.** Two candidates, both with existing precedent in the mod: (a) reuse the `QuestJournalBridge`
+  pattern for a read-only vanilla quest-journal mirror per active errand, opened on dispatch, closed on
+  return/recall (cheapest, familiar to players, but crowds the vanilla log with our own outbound tasks); or
+  (b) a dedicated CR panel, like the illuminated Chronicle viewer or the letter window (cleaner separation, more
+  UI work). Leaning (a) for a first pass, (b) if it feels cramped.
+- **Naming/framing.** Keep it clearly DISTINCT from quests-given-to-the-player: this is the player's own
+  order-book / errand ledger, not tasks owed to them.
+- **Data already exists.** Companion-mission state is already persisted, so a first version is purely a
+  presentation layer over `CompanionMissionBehavior._active` (+ closing on the return/recall paths). No new
+  gameplay, low risk.
+- **Extension to LORDS (to EVALUATE, not committed).** Gabriel floated also logging tasks given to certain
+  lords. FIRST verify what "giving a lord a task" even means in CR today: the negotiation framework has the
+  player REQUEST deeds of lords (deliver a prisoner, declare war, recruit into the clan), but those are
+  one-shot conversation outcomes, not tracked ongoing errands. So the lord case may need a tracked-commitment
+  concept to exist before it can be journaled. Evaluate whether it is a real, coherent surface or scope creep;
+  the companion ledger stands on its own regardless.
 
 ### Companion aggression & patrol errands *(wished 2026-06-23 — the last big companion piece)*
 
@@ -667,6 +872,17 @@ behavior guidelines, instruction verbosity). Gate it on an MCM toggle ("Compact 
 or auto-detect from a configured context budget. The prompt-cache split already separates stable vs dynamic
 — the lean mode would shrink the stable body. Pure/testable: the section-selection policy (what stays at a
 given token budget).
+
+**BUILT 2026-07-01 (Opus, untested in game) — the MCM-toggle version.** Pure `LeanPromptPolicy` (SDK
+`NpcMemoryService.Core.Prompts`, +5 tests in NpcMemoryServiceTests): `LeanPromptLevel` (Full / Lean),
+`PromptSection` (Relationships / WorldNarrative / CulturalBackground / AuthoredBackstory / FullBehaviorGuidelines),
+`Include(section, level)`, `MemoryEventLimit(level)` (Full = all, Lean = 6 most-recent), `UseFullBehaviorGuidelines`.
+Wiring: `EncounterContext.LeanLevel`; `PromptBuilder.BuildSystemPrompt` drops the four heavy flavour sections in
+Lean, swaps the long behaviour block for a short built-in `AppendLeanBehaviorGuidelines`, and caps memory events;
+mod `CrSettings.LeanPrompt` MCM toggle ("Compact prompt for small models", LLM Provider group) → `ModSettings.LeanPrompt`
+→ `EncounterContextBuilder`. Console `cr.prompt_size [name]` reports the prompt's char/≈token size and mode, so a
+player can toggle it and see the reduction. **DEFERRED:** the budget-based / auto-detect variant (v1 is the manual
+toggle); trimming the commoner prompt (already short); a lean variant of the captive-scene rules.
 
 ### Stance — mechanical behaviour-gating *(stance ships narrative-only; the mechanical layer wished)*
 

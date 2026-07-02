@@ -107,6 +107,66 @@
                             Text="Request Private" />
               </Children>
             </ButtonWidget>
+            <!-- Model mode toggle: shows which of the two configured models is active
+                 (roleplay/NSFW) and flips it on click. Deliberately muted: a utility
+                 control, not a story beat. Visible only when an NSFW model is set. -->
+            <!-- Opens the in-game encyclopedia on the person you are speaking with, over the chat, so you can
+                 place who they are (and browse on from there) without the modal focus locking the rest of the
+                 interface away. The chat stays open behind it. Hidden for a faceless bandit or nameless
+                 commoner, who have no encyclopedia page. -->
+            <ButtonWidget Id="EncyclopediaButton"
+                          WidthSizePolicy="Fixed"
+                          HeightSizePolicy="Fixed"
+                          SuggestedWidth="120"
+                          SuggestedHeight="22"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Bottom"
+                          MarginBottom="6"
+                          MarginLeft="10"
+                          IsVisible="@IsEncyclopediaVisible"
+                          DoNotPassEventsToChildren="true"
+                          Brush="ButtonBrush1"
+                          UpdateChildrenStates="true"
+                          Command.Click="ExecuteOpenEncyclopedia">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Brush="Popup.Button.Text"
+                            Brush.FontSize="14"
+                            Brush.FontColor="#b8b0a0FF"
+                            Brush.TextHorizontalAlignment="Center"
+                            Text="Encyclopedia" />
+              </Children>
+            </ButtonWidget>
+
+            <ButtonWidget Id="ModelModeButton"
+                          WidthSizePolicy="Fixed"
+                          HeightSizePolicy="Fixed"
+                          SuggestedWidth="130"
+                          SuggestedHeight="22"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Bottom"
+                          MarginBottom="6"
+                          MarginLeft="138"
+                          IsVisible="@IsModelModeToggleVisible"
+                          DoNotPassEventsToChildren="true"
+                          Brush="ButtonBrush1"
+                          UpdateChildrenStates="true"
+                          Command.Click="ExecuteToggleModelMode">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Brush="Popup.Button.Text"
+                            Brush.FontSize="14"
+                            Brush.FontColor="#b8b0a0FF"
+                            Brush.TextHorizontalAlignment="Center"
+                            Text="@ModelModeText" />
+              </Children>
+            </ButtonWidget>
           </Children>
         </Widget>
 
@@ -328,7 +388,7 @@
             <ButtonWidget Id="ComposeToggleButton"
                           WidthSizePolicy="Fixed"
                           HeightSizePolicy="Fixed"
-                          SuggestedWidth="40"
+                          SuggestedWidth="26"
                           SuggestedHeight="60"
                           HorizontalAlignment="Left"
                           VerticalAlignment="Center"

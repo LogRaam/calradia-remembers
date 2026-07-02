@@ -22,19 +22,6 @@ namespace CalradiaRemembers.Tests
                                .Should().BeApproximately(0.60f, 0.0001f);
       }
 
-      [Test]
-      public void GIVEN_a_conditioning_kink_WHEN_selecting_intent_THEN_it_is_training()
-      {
-         CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.Training), 0).Should().Be(CaptiveSceneIntent.Training);
-      }
-
-      [Test]
-      public void GIVEN_a_desire_kink_with_lukewarm_regard_WHEN_selecting_intent_THEN_the_kink_carries_it_to_personal_desire()
-      {
-         //Arrange — relation 5 (< 10) but a desire kink AND relation >= 0: the || / && rung fires.
-         CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.Dominance), 5)
-                               .Should().Be(CaptiveSceneIntent.PersonalDesire);
-      }
       // ── EncounterProbability ───────────────────────────────────────────────
 
       [Test]
@@ -57,36 +44,7 @@ namespace CalradiaRemembers.Tests
          CaptiveEncounterPolicy.EncounterProbability(10, Kinks()).Should().BeApproximately(0.50f, 0.0001f);
       }
 
-      // ── SelectIntent ladder ────────────────────────────────────────────────
-
-      [Test]
-      public void GIVEN_a_sadistic_captor_WHEN_selecting_intent_THEN_it_is_torture_whatever_the_regard()
-      {
-         CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.Sadism), 80)
-                               .Should().Be(CaptiveSceneIntent.Torture);
-      }
-
-      [Test]
-      public void GIVEN_an_ownership_kink_outside_the_desire_set_with_lukewarm_regard_WHEN_selecting_intent_THEN_it_is_domination()
-      {
-         //Arrange — Objectification drives Domination but is NOT in the PersonalDesire kink set,
-         //          so at relation 5 it skips the desire rung and lands on Domination.
-         CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.Objectification), 5)
-                               .Should().Be(CaptiveSceneIntent.Domination);
-      }
-
-      [Test]
-      public void GIVEN_both_a_praise_kink_and_sadism_WHEN_selecting_intent_THEN_torture_wins_by_ladder_order()
-      {
-         CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.Praise, Kink.Sadism), 30)
-                               .Should().Be(CaptiveSceneIntent.Torture);
-      }
-
-      [Test]
-      public void GIVEN_no_kinks_and_neutral_regard_WHEN_selecting_intent_THEN_it_defaults_to_interrogation()
-      {
-         CaptiveEncounterPolicy.SelectIntent(Kinks(), 0).Should().Be(CaptiveSceneIntent.Interrogation);
-      }
+      // ── SelectIntent weighted draw (rewritten 01/07/2026) ───────────────────
 
       [Test]
       public void GIVEN_null_kinks_WHEN_computing_probability_THEN_only_the_base_applies()
@@ -103,42 +61,248 @@ namespace CalradiaRemembers.Tests
       }
 
       [Test]
-      public void GIVEN_strong_contempt_and_no_kinks_WHEN_selecting_intent_THEN_it_is_torture()
+      public void GIVEN_a_sadistic_captor_and_neutral_regard_WHEN_the_roll_lands_at_the_bottom_of_the_range_THEN_it_is_still_interrogation_not_torture()
       {
-         CaptiveEncounterPolicy.SelectIntent(Kinks(), -15).Should().Be(CaptiveSceneIntent.Torture);
+         //Arrange: Interrogation always keeps a floor weight and is drawn first, so even a sadist's
+         //         captive scene is not FORCED into torture: a roll of 0 lands on the floor band.
+         CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.Sadism), 0, _ => 0)
+                               .Should().Be(CaptiveSceneIntent.Interrogation);
       }
 
       [Test]
-      public void GIVEN_the_same_desire_kink_but_negative_regard_WHEN_selecting_intent_THEN_it_falls_through_to_domination()
+      public void GIVEN_a_sadistic_captor_and_neutral_regard_WHEN_the_roll_lands_at_the_top_of_the_range_THEN_it_leans_torture()
       {
-         //Arrange — relation -5 fails the >= 0 half of the && rung, so PersonalDesire is skipped and
-         //          Dominance lands on Domination. This is the precedence the comment in the code locks.
-         CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.Dominance), -5)
-                               .Should().Be(CaptiveSceneIntent.Domination);
+         //Arrange: capture the total weight first, then draw the very top of the range. With no
+         //         Training/Reward weight (kink absent, relation neutral) the heaviest boosted band,
+         //         Torture, sits last and absorbs the top roll.
+         int total = CaptureTotal(Kinks(Kink.Sadism), 0);
+
+         CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.Sadism), 0, _ => total - 1)
+                               .Should().Be(CaptiveSceneIntent.Torture);
       }
 
       [Test]
-      public void GIVEN_warm_regard_alone_WHEN_selecting_intent_THEN_it_is_personal_desire()
+      public void GIVEN_strong_contempt_WHEN_scanning_every_possible_roll_THEN_reward_is_never_drawn()
       {
-         CaptiveEncounterPolicy.SelectIntent(Kinks(), 10).Should().Be(CaptiveSceneIntent.PersonalDesire);
+         AllOutcomes(Kinks(Kink.Praise), -15).Should().NotContain(CaptiveSceneIntent.Reward);
       }
 
       [Test]
-      public void GIVEN_warm_regard_and_a_praise_kink_WHEN_selecting_intent_THEN_it_is_reward()
+      public void GIVEN_mildly_negative_regard_WHEN_scanning_every_possible_roll_THEN_reward_is_never_drawn()
       {
-         CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.Praise), 20).Should().Be(CaptiveSceneIntent.Reward);
+         AllOutcomes(Kinks(), -1).Should().NotContain(CaptiveSceneIntent.Reward);
       }
 
       [Test]
-      public void GIVEN_warm_regard_but_no_praise_kink_WHEN_selecting_intent_THEN_it_is_not_reward()
+      public void GIVEN_warm_regard_WHEN_scanning_every_possible_roll_THEN_reward_becomes_reachable()
       {
-         //Arrange — reward needs the praise kink; without it, warmth lands on personal desire.
-         CaptiveEncounterPolicy.SelectIntent(Kinks(), 20).Should().Be(CaptiveSceneIntent.PersonalDesire);
+         AllOutcomes(Kinks(), 20).Should().Contain(CaptiveSceneIntent.Reward);
+      }
+
+      [Test]
+      public void GIVEN_no_training_kink_WHEN_scanning_every_possible_roll_THEN_training_is_never_drawn()
+      {
+         AllOutcomes(Kinks(Kink.Sadism, Kink.Praise), 30).Should().NotContain(CaptiveSceneIntent.Training);
+      }
+
+      [Test]
+      public void GIVEN_the_training_kink_WHEN_scanning_every_possible_roll_THEN_training_is_reachable()
+      {
+         AllOutcomes(Kinks(Kink.Training), 0).Should().Contain(CaptiveSceneIntent.Training);
+      }
+
+      [Test]
+      public void GIVEN_an_extreme_kink_and_regard_combination_WHEN_scanning_every_possible_roll_THEN_all_four_floor_intents_stay_reachable()
+      {
+         //Arrange: a maximally hostile draw (deep contempt, every torture/domination/desire kink
+         //         stacked) must still leave Interrogation, PersonalDesire, Domination AND Torture
+         //         all reachable: no valid intent is ever impossible for a given captor.
+         List<Kink> kinks = Kinks(Kink.Sadism, Kink.ImpactPlay, Kink.FearPlay, Kink.PowerImbalance, Kink.Dominance,
+                                   Kink.MasterSlave, Kink.Objectification, Kink.Degradation, Kink.FreeUse, Kink.Breeding,
+                                   Kink.OrgasmControl, Kink.PetPlay);
+
+         List<CaptiveSceneIntent> outcomes = AllOutcomes(kinks, -15);
+
+         outcomes.Should().Contain(CaptiveSceneIntent.Interrogation);
+         outcomes.Should().Contain(CaptiveSceneIntent.PersonalDesire);
+         outcomes.Should().Contain(CaptiveSceneIntent.Domination);
+         outcomes.Should().Contain(CaptiveSceneIntent.Torture);
+      }
+
+      [Test]
+      public void GIVEN_a_praise_kink_and_warm_regard_WHEN_computing_the_total_weight_THEN_it_is_larger_than_without_the_praise_kink()
+      {
+         //Arrange: the praise kink should sharpen (not merely allow) reward once it is reachable.
+         int withoutPraise = CaptureTotal(Kinks(), 20);
+         int withPraise = CaptureTotal(Kinks(Kink.Praise), 20);
+
+         withPraise.Should().BeGreaterThan(withoutPraise);
+      }
+
+      // ── Bandit captor rolls (added 01/07/2026) ──────────────────────────────
+
+      [Test]
+      public void GIVEN_a_female_prisoner_and_a_low_roll_WHEN_selecting_bandit_intent_THEN_it_is_personal_desire()
+      {
+         //Arrange: female spoil chance is 50, so a roll of 0 always clears it.
+         RomanticProfile romantic = new() {IsFemale = false, Orientation = SexualOrientation.Heterosexual};
+
+         CaptiveEncounterPolicy.SelectBanditIntent(true, romantic, _ => 0).Should().Be(CaptiveSceneIntent.PersonalDesire);
+      }
+
+      [Test]
+      public void GIVEN_a_male_prisoner_WHEN_selecting_bandit_intent_THEN_the_spoil_chance_is_near_nil()
+      {
+         //Arrange: male spoil chance is 3, so a roll of 3 already misses it (falls to the menace ladder).
+         RomanticProfile romantic = new() {IsFemale = false, Orientation = SexualOrientation.Bisexual};
+
+         CaptiveEncounterPolicy.SelectBanditIntent(false, romantic, _ => 3).Should().NotBe(CaptiveSceneIntent.PersonalDesire);
+      }
+
+      [Test]
+      public void GIVEN_an_incompatible_orientation_WHEN_selecting_bandit_intent_THEN_it_falls_to_the_menace_ladder()
+      {
+         //Arrange: male prisoner, roll clears the 3% spoil threshold, but a heterosexual male captor
+         //         is not compatible with a male prisoner, so the branch is skipped.
+         RomanticProfile romantic = new() {IsFemale = false, Orientation = SexualOrientation.Heterosexual};
+
+         CaptiveEncounterPolicy.SelectBanditIntent(false, romantic, _ => 0).Should().Be(CaptiveSceneIntent.Extortion);
+      }
+
+      [Test]
+      public void GIVEN_the_menace_ladder_WHEN_the_second_roll_is_under_45_THEN_it_is_extortion()
+      {
+         var calls = 0;
+         int Roll(int max)
+         {
+            calls++;
+            return calls == 1
+               ? 99 // misses the spoil chance
+               : 44; // lands in the extortion band
+         }
+
+         CaptiveEncounterPolicy.SelectBanditIntent(false, null, Roll).Should().Be(CaptiveSceneIntent.Extortion);
+      }
+
+      [Test]
+      public void GIVEN_the_menace_ladder_WHEN_the_second_roll_is_between_45_and_74_THEN_it_is_intimidation()
+      {
+         var calls = 0;
+         int Roll(int max)
+         {
+            calls++;
+            return calls == 1
+               ? 99 // misses the spoil chance
+               : 60; // lands in the intimidation band
+         }
+
+         CaptiveEncounterPolicy.SelectBanditIntent(false, null, Roll).Should().Be(CaptiveSceneIntent.Intimidation);
+      }
+
+      [Test]
+      public void GIVEN_the_menace_ladder_WHEN_the_second_roll_is_75_or_more_THEN_it_is_revenge()
+      {
+         var calls = 0;
+         int Roll(int max)
+         {
+            calls++;
+            return calls == 1
+               ? 99
+               : 90;
+         }
+
+         CaptiveEncounterPolicy.SelectBanditIntent(false, null, Roll).Should().Be(CaptiveSceneIntent.Revenge);
+      }
+
+      [Test]
+      public void GIVEN_a_personal_desire_scene_WHEN_reading_the_collective_chance_THEN_it_is_55()
+      {
+         CaptiveEncounterPolicy.BanditCollectiveChance(CaptiveSceneIntent.PersonalDesire).Should().Be(55);
+      }
+
+      [Test]
+      public void GIVEN_a_non_desire_scene_WHEN_reading_the_collective_chance_THEN_it_is_25()
+      {
+         CaptiveEncounterPolicy.BanditCollectiveChance(CaptiveSceneIntent.Extortion).Should().Be(25);
+      }
+
+      [Test]
+      public void GIVEN_a_two_fighter_band_WHEN_capping_collective_participants_THEN_one_extra_bandit_can_join()
+      {
+         CaptiveEncounterPolicy.BanditCollectiveParticipantCap(2).Should().Be(1);
+      }
+
+      [Test]
+      public void GIVEN_a_lone_fighter_WHEN_capping_collective_participants_THEN_no_extra_bandit_can_join()
+      {
+         //Arrange: the chief IS the one fighter that survived, so there is nobody left to add.
+         CaptiveEncounterPolicy.BanditCollectiveParticipantCap(1).Should().Be(0);
+      }
+
+      [Test]
+      public void GIVEN_no_extra_bandits_WHEN_deciding_whether_the_scene_is_collective_THEN_it_never_rolls_and_stays_solo()
+      {
+         //Arrange: the roll function throws if called, proving the && short-circuits.
+         CaptiveEncounterPolicy.ShouldBanditSceneBeCollective(CaptiveSceneIntent.PersonalDesire, 0, _ => throw new System.Exception("should not roll"))
+                               .Should().BeFalse();
+      }
+
+      [Test]
+      public void GIVEN_extra_bandits_and_a_roll_under_the_chance_WHEN_deciding_whether_the_scene_is_collective_THEN_it_is()
+      {
+         CaptiveEncounterPolicy.ShouldBanditSceneBeCollective(CaptiveSceneIntent.PersonalDesire, 2, _ => 0).Should().BeTrue();
+      }
+
+      [Test]
+      public void GIVEN_extra_bandits_and_a_roll_at_or_above_the_chance_WHEN_deciding_whether_the_scene_is_collective_THEN_it_is_not()
+      {
+         CaptiveEncounterPolicy.ShouldBanditSceneBeCollective(CaptiveSceneIntent.Extortion, 2, _ => 25).Should().BeFalse();
+      }
+
+      [Test]
+      public void GIVEN_three_extra_bandits_WHEN_counting_bandit_witnesses_THEN_it_is_capped_at_two()
+      {
+         CaptiveEncounterPolicy.BanditWitnessCount(3).Should().Be(2);
+      }
+
+      [Test]
+      public void GIVEN_one_extra_bandit_WHEN_counting_bandit_witnesses_THEN_only_one_is_shown()
+      {
+         CaptiveEncounterPolicy.BanditWitnessCount(1).Should().Be(1);
       }
 
       #region private
 
       private static List<Kink> Kinks(params Kink[] kinks) => new(kinks);
+
+      /// <summary>Captures the total weight SelectIntent rolled against, by returning it straight back out of the roll seam.</summary>
+      private static int CaptureTotal(List<Kink> kinks, int relation)
+      {
+         var total = 0;
+         CaptiveEncounterPolicy.SelectIntent(kinks, relation, max =>
+         {
+            total = max;
+
+            return 0;
+         });
+
+         return total;
+      }
+
+      /// <summary>Every distinct intent SelectIntent can draw for this kink/relation pair, scanned across the whole roll range.</summary>
+      private static List<CaptiveSceneIntent> AllOutcomes(List<Kink> kinks, int relation)
+      {
+         int total = CaptureTotal(kinks, relation);
+         var outcomes = new List<CaptiveSceneIntent>();
+
+         for (var roll = 0; roll < total; roll++)
+         {
+            CaptiveSceneIntent outcome = CaptiveEncounterPolicy.SelectIntent(kinks, relation, _ => roll);
+            if (!outcomes.Contains(outcome)) outcomes.Add(outcome);
+         }
+
+         return outcomes;
+      }
 
       #endregion
    }

@@ -13,6 +13,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using Newtonsoft.Json;
@@ -110,15 +111,20 @@ namespace CalradiaRemembers.Missions
 
          foreach (Hero h in Companions())
          {
-            bool away = CompanionMissionBehavior.Instance?.IsAway(h.StringId) == true;
-            if (!away) // an employed companion is not idle this week
+            Hero companion = h;
+            // One companion's weekly pass throwing must not skip the rest of the roster.
+            SafeRun.Step($"CompanionHappinessBehavior.OnWeeklyTick({companion.Name})", () =>
             {
-               CompanionHappinessService.ApplyDriver(h, HappinessDriver.Idle);
-               if (IsKeptFromLovedOne(h)) CompanionHappinessService.ApplyDriver(h, HappinessDriver.KeptFromLovedOne);
-            }
+               bool away = CompanionMissionBehavior.Instance?.IsAway(companion.StringId) == true;
+               if (!away) // an employed companion is not idle this week
+               {
+                  CompanionHappinessService.ApplyDriver(companion, HappinessDriver.Idle);
+                  if (IsKeptFromLovedOne(companion)) CompanionHappinessService.ApplyDriver(companion, HappinessDriver.KeptFromLovedOne);
+               }
 
-            CompanionHappinessService.Drift(h, DriftStep); // gentle recovery toward baseline
-            RunRetention(h);
+               CompanionHappinessService.Drift(companion, DriftStep); // gentle recovery toward baseline
+               RunRetention(companion);
+            });
          }
       }
 
@@ -242,7 +248,12 @@ namespace CalradiaRemembers.Missions
 
             _farewellDay.Remove(id);
             Hero h = Hero.FindFirst(x => x != null && x.StringId == id);
-            if (h is {IsAlive: true, IsPlayerCompanion: true}) Depart(h);
+            if (h is {IsAlive: true, IsPlayerCompanion: true})
+            {
+               Hero companion = h;
+               // One companion's departure throwing must not strand the rest of the queue.
+               SafeRun.Step($"CompanionHappinessBehavior.Depart({companion.Name})", () => Depart(companion));
+            }
          }
       }
 

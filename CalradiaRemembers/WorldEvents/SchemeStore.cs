@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Stance;
 using Newtonsoft.Json;
@@ -373,8 +374,9 @@ namespace CalradiaRemembers.WorldEvents
       private void OnDailyTick()
       {
          var today = (int) CampaignTime.Now.ToDays;
-         AdvanceActive(today);
-         TrySpawn(today);
+         // Each pass runs behind its own guard: one throwing must not skip the other this tick.
+         SafeRun.Step("SchemeStore.AdvanceActive", () => AdvanceActive(today));
+         SafeRun.Step("SchemeStore.TrySpawn", () => TrySpawn(today));
       }
 
       private void OnStateChanged(Scheme scheme, Hero plotter, Hero target, int today)
