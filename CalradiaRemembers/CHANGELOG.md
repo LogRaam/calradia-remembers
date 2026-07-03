@@ -2,6 +2,23 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.20.4.. 2026-07-02
+
+See who you sent where, and letters that better know where everyone is.
+
+### New
+- **Companion errands now show in your quest journal.** When you send a companion on an errand (news, spying,
+  stealing, bartering, an envoy), an entry appears in your journal, [b]Errand: [name][/b] with their portrait,
+  and updates as they ride out, reach the town, and head back, so you can always see who you sent where. It
+  closes when they return or you recall them. A companion away on an errand is the only one who gets an entry.
+
+### Fixed
+- **Letters are better grounded in where everyone actually is.** A settled correspondent (a spouse at her own
+  hall) now writes from her real place instead of from nowhere, so the location detail you may not have seen
+  before now shows up. And a letter no longer tells you to "come home" while you stand in the same hall, or
+  speaks as though you are somewhere you are not: the writer now knows where you are and whether you are
+  together.
+
 ## v1.20.3.. 2026-07-02
 
 Two fixes from a player report about a bastard child and letters that did not fit the situation.

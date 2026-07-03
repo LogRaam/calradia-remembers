@@ -511,15 +511,31 @@ play out the same twice.) A second worked example — `ON_DEATH:Rhagaea` → con
 `DECLARE_WAR: Northern Empire, Western Empire -> Southern Empire`, message "With the empress fallen, the
 eagles turn on a leaderless South" — then the sandbox takes over.
 
-### A personal ledger of quests the PLAYER gives out *(wished 2026-07-01, Gabriel — design only, nothing built)*
+### A personal ledger of quests the PLAYER gives out *(wished 2026-07-01, BUILT 2026-07-02, untested in game)*
 
-**The gap:** the mod tracks two opposite directions of tasking, but only surfaces one. Quests a NPC gives the
-PLAYER get a real vanilla quest-journal mirror (via `QuestJournalBridge`). But errands the PLAYER hands OUT,
-today the companion missions (gather news / spy / steal / barter / envoy, in `CompanionMissionBehavior`), are
-recorded only in the save (the persisted `_active` list) and the console (`cr.missions`). In-game the player's
-only trace is the send-off line, the companion physically away as a party, and their report on return. Send two
-or three companions off and it is easy to forget who went where. **The idea:** a player-facing ledger of the
-tasks the player has commissioned, so "I sent someone somewhere" is legible.
+**BUILT 2026-07-02**: companion errands (gather news / spy / steal / barter / envoy) now mirror into the
+vanilla quest journal, option (a) below: same pattern as `QuestJournalBridge`, applied to
+`CompanionMissionBehavior`. `CompanionErrandQuest` (a read-only `QuestBase`, no dialogs/reward, saveable
+fields = companion StringId + mission Id, type-definer id 2 under the existing base 300_000_000) is
+opened on dispatch, its log line pushed on every phase change (Outbound/Lingering/Returning/AwaitingReunion),
+and closed on homecoming (success) or recall (letter or immediate), all via the new
+`CompanionErrandJournalBridge` (the sole place that opens/updates/closes it, mirroring
+`QuestJournalBridge`'s contract exactly). Anti-stuck: `ReconcileOnSessionLaunch` closes any mirror whose
+mission Id is no longer in `CompanionMissionBehavior`'s active list, wired next to
+`QuestJournalBridge.ReconcileOnSessionLaunch` in `NpcMemoryCampaignBehavior.OnSessionLaunched`. The status-line
+wording is pure logic in `CalradiaRemembers.Logic/CompanionErrandJournalText.cs` (14 Gherkin tests). The
+LORDS extension below remains open/to-evaluate; the companion ledger stands on its own. **Not yet validated
+in-game**, next test pass: dispatch a companion, open the quest journal, watch the entry update through the
+phases, confirm it closes on return and on recall.
+
+**The gap (original problem statement):** the mod tracks two opposite directions of tasking, but only surfaced
+one. Quests a NPC gives the PLAYER get a real vanilla quest-journal mirror (via `QuestJournalBridge`). But
+errands the PLAYER hands OUT, today the companion missions (gather news / spy / steal / barter / envoy, in
+`CompanionMissionBehavior`), were recorded only in the save (the persisted `_active` list) and the console
+(`cr.missions`). In-game the player's only trace was the send-off line, the companion physically away as a
+party, and their report on return. Send two or three companions off and it was easy to forget who went where.
+**The idea:** a player-facing ledger of the tasks the player has commissioned, so "I sent someone somewhere"
+is legible.
 
 **Open design questions (to settle before building):**
 - **Surface.** Two candidates, both with existing precedent in the mod: (a) reuse the `QuestJournalBridge`

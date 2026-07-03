@@ -12,6 +12,11 @@ Many of you have asked for a way to support my work, so I’ve set up a Ko-fi pa
 Thank you, truly. ❤️[/center]
 
 [line]
+[size=4][color=#ffd966]What's new in v1.20.4[/color][/size]
+
+Companion errands now show in your quest journal. When you send a companion off (to gather news, spy, steal, barter, or carry your word as an envoy), an entry appears, [b]Errand: [name][/b] with their portrait, and updates as they ride out, reach the town, and head back, so you always know who you sent where. It closes when they return or you recall them. Also, letters are better grounded in where everyone actually is: a settled correspondent (a spouse at her own hall) now writes from her real place instead of from nowhere, and a letter no longer tells you to "come home" while you stand in the same hall, or speaks as though you are somewhere you are not, because the writer now knows where you are and whether you are together.
+
+[line]
 [size=4][color=#ffd966]What's new in v1.20.3[/color][/size]
 
 Two fixes from a player report. A mother who bore your child out of wedlock but holds you in warm regard (and, in the reported case, had agreed to wed you) no longer tries to blackmail you over it.. she writes with longing instead, whatever her scheming nature, because a woman who loves you has no secret to sell. And people in your own party no longer send you courier letters as if you were apart: a companion at your side (in one case a mother complaining you were "never there for the children" while she rode in your party) now speaks in person rather than by courier. A companion away on an errand still writes, as they should.

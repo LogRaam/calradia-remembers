@@ -11,6 +11,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Missions;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
@@ -234,6 +235,7 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.CourierService.ClearOrphanedCouriers", () => CourierService.ClearOrphanedCouriers(Store));
          SafeRun.Step("OnSessionLaunched.RemoveOrphanedLetterPlaceholders", RemoveOrphanedLetterPlaceholders);
          SafeRun.Step("OnSessionLaunched.QuestJournalBridge.ReconcileOnSessionLaunch", () => QuestJournalBridge.ReconcileOnSessionLaunch(Store));
+         SafeRun.Step("OnSessionLaunched.CompanionErrandJournalBridge.ReconcileOnSessionLaunch", CompanionErrandJournalBridge.ReconcileOnSessionLaunch);
       }
 
       /// <summary>

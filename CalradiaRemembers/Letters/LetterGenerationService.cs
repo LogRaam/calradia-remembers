@@ -41,17 +41,67 @@ namespace CalradiaRemembers.Letters
          try
          {
             Hero sender = Hero.FindFirst(h => h != null && h.StringId == profile.Id);
-            if (sender == null) return null;
 
-            string town = sender.CurrentSettlement?.Name?.ToString();
-            if (!string.IsNullOrWhiteSpace(town)) return $"within {town}";
+            return WhereaboutsForHero(sender);
+         }
+         catch
+         {
+            return null;
+         }
+      }
 
-            MobileParty party = sender.PartyBelongedTo;
-            if (party == null) return null; // a prisoner or unattached notable: uncertain, say nothing
+      /// <summary>
+      ///   A first-person phrase for where a hero currently is, or null when it cannot be read with confidence.
+      ///   Handles a hero IN a settlement (visiting or residing), one travelling with a party or army, and a
+      ///   settled notable at their own home (a lord's lady with no party, previously read as "uncertain", so
+      ///   her letters carried no place at all, which a player noticed as the location grounding "not working").
+      /// </summary>
+      private static string WhereaboutsForHero(Hero hero)
+      {
+         if (hero == null) return null;
 
-            if (party.Army != null) return "on campaign with the army, in the field";
+         var settlement = hero.CurrentSettlement ?? hero.StayingInSettlement;
+         if (settlement != null) return $"within {settlement.Name}";
 
-            return "in the field, on the march with your own retinue";
+         MobileParty party = hero.PartyBelongedTo;
+         if (party != null)
+            return party.Army != null
+               ? "on campaign with the army, in the field"
+               : "in the field, on the march with your own retinue";
+
+         // No settlement and no party: a settled notable/lady is at her own hall.
+         if (hero.HomeSettlement != null) return $"at home in {hero.HomeSettlement.Name}";
+
+         return null;
+      }
+
+      /// <summary>
+      ///   A line placing the PLAYER for the letter's writer, so a spouse or partner does not write "come home,
+      ///   you have been gone" while the player is standing in the same hall, nor speak as though the player is
+      ///   somewhere they are not. Says the player is HERE WITH the writer when they share a settlement (and
+      ///   forbids summoning them home in that case), else where the player is, else null (say nothing).
+      /// </summary>
+      private static string PlayerSituationFor(NpcProfile profile)
+      {
+         try
+         {
+            Hero player = Hero.MainHero;
+            if (player == null || profile == null) return null;
+
+            Hero sender = Hero.FindFirst(h => h != null && h.StringId == profile.Id);
+            var senderSettlement = sender?.CurrentSettlement ?? sender?.StayingInSettlement;
+            var playerSettlement = player.CurrentSettlement ?? player.StayingInSettlement;
+
+            if (senderSettlement != null && senderSettlement == playerSettlement)
+               return $"The player is HERE WITH YOU, within {playerSettlement.Name}: they are present, not away. Do " +
+                      "NOT tell them to come home, do not ask them to write to you, and do not speak as though they " +
+                      "are far off. Speak to their being at your side.";
+
+            string playerWhere = WhereaboutsForHero(player);
+            if (!string.IsNullOrWhiteSpace(playerWhere))
+               return $"The player is presently {playerWhere}, apart from you.";
+
+            return null;
          }
          catch
          {
@@ -282,7 +332,7 @@ namespace CalradiaRemembers.Letters
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string message = LetterPromptBuilder.BuildInitialLetterMessage(
-            profile, reason, triggerContext, playerName, WhereaboutsFor(profile));
+            profile, reason, triggerContext, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile));
 
          string content = await CallLlmForLetterAsync(llmServices, profile, message);
 
@@ -315,7 +365,7 @@ namespace CalradiaRemembers.Letters
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string message = LetterPromptBuilder.BuildPlayerLetterReplyDecisionMessage(
-            profile, playerLetter.Content ?? "", playerName, WhereaboutsFor(profile));
+            profile, playerLetter.Content ?? "", playerName, WhereaboutsFor(profile), PlayerSituationFor(profile));
 
          string rawDecision = await CallLlmForLetterAsync(llmServices, profile, message);
 
@@ -390,7 +440,7 @@ namespace CalradiaRemembers.Letters
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string message = LetterPromptBuilder.BuildReplyLetterMessage(
-            profile, originalLetter.PlayerReply ?? "", originalLetter.Reason, playerName, WhereaboutsFor(profile));
+            profile, originalLetter.PlayerReply ?? "", originalLetter.Reason, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile));
 
          string content = await CallLlmForLetterAsync(llmServices, profile, message);
 

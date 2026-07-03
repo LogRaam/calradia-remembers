@@ -59,6 +59,12 @@ namespace CalradiaRemembers.Missions
 
       private static int Today => (int) CampaignTime.Now.ToDays;
 
+      /// <summary>Finds an active errand by its stable Id, or null. Used by the quest-journal mirror.</summary>
+      public CompanionMission FindActive(string missionId)
+         => string.IsNullOrEmpty(missionId)
+            ? null
+            : _active.FirstOrDefault(m => m.Id == missionId);
+
       /// <summary>
       ///   The news a just-returned companion has to tell, if any — returned ONCE and then cleared, so it
       ///   colours only the homecoming conversation. Null when this hero has no report waiting.
@@ -109,7 +115,7 @@ namespace CalradiaRemembers.Missions
 
          if (party == null) return (false, $"{companion.Name} could not set out just now.");
 
-         _active.Add(new CompanionMission {
+         var mission = new CompanionMission {
             Id = Guid.NewGuid().ToString("N"),
             CompanionId = companion.StringId,
             CompanionName = companion.Name?.ToString() ?? "Your companion",
@@ -121,7 +127,9 @@ namespace CalradiaRemembers.Missions
             Difficulty = NewsDifficulty,
             Phase = CompanionMissionPhase.Outbound,
             Quality = quality
-         });
+         };
+         _active.Add(mission);
+         CompanionErrandJournalBridge.OpenMirror(mission, companion);
 
          ModLog.Info($"[MISSION] {companion.Name} rides for {dest.Name} on {type} (quality {quality}, party {party.StringId}).");
          string scope = string.IsNullOrWhiteSpace(about)
@@ -444,7 +452,7 @@ namespace CalradiaRemembers.Missions
          // order waits with them until they are free (then this fires on a later tick).
          if (m.RecallOrderDay > 0 && Today >= m.RecallOrderDay && !companion.IsPrisoner)
          {
-            BringHomeAndCleanup(m, companion);
+            BringHomeAndCleanup(m, companion, "as your letter ordered");
             MBInformationManager.AddQuickInformation(
                new TextObject($"{m.CompanionName} has abandoned the errand and rejoined you, as your letter ordered."),
                0, companion.CharacterObject);
@@ -461,6 +469,7 @@ namespace CalradiaRemembers.Missions
                {
                   m.Phase = CompanionMissionPhase.AwaitingReunion;
                   m.PartyId = null;
+                  CompanionErrandJournalBridge.UpdateMirror(m, companion);
 
                   return false;
                }
@@ -469,6 +478,7 @@ namespace CalradiaRemembers.Missions
                if (party == null)
                {
                   m.Phase = CompanionMissionPhase.AwaitingReunion;
+                  CompanionErrandJournalBridge.UpdateMirror(m, companion);
 
                   return false;
                }
@@ -477,6 +487,7 @@ namespace CalradiaRemembers.Missions
                if (dest == null)
                {
                   ReturnHome(m, party);
+                  CompanionErrandJournalBridge.UpdateMirror(m, companion);
 
                   return false;
                } // town vanished — just come back
@@ -486,6 +497,7 @@ namespace CalradiaRemembers.Missions
                   PerformErrand(m, dest);
                   m.LingerUntilDay = Today + CompanionMissions.DurationDays(m.Type, m.Difficulty);
                   m.Phase = CompanionMissionPhase.Lingering;
+                  CompanionErrandJournalBridge.UpdateMirror(m, companion);
                }
                else if (party.CurrentSettlement != dest)
                {
@@ -501,11 +513,16 @@ namespace CalradiaRemembers.Missions
                {
                   m.Phase = CompanionMissionPhase.AwaitingReunion;
                   m.PartyId = null;
+                  CompanionErrandJournalBridge.UpdateMirror(m, companion);
 
                   return false;
                }
 
-               if (Today >= m.LingerUntilDay) ReturnHome(m, FindParty(m.PartyId));
+               if (Today >= m.LingerUntilDay)
+               {
+                  ReturnHome(m, FindParty(m.PartyId));
+                  CompanionErrandJournalBridge.UpdateMirror(m, companion);
+               }
 
                return false;
             }
@@ -516,6 +533,7 @@ namespace CalradiaRemembers.Missions
                {
                   m.Phase = CompanionMissionPhase.AwaitingReunion;
                   m.PartyId = null;
+                  CompanionErrandJournalBridge.UpdateMirror(m, companion);
 
                   return false;
                }
@@ -524,6 +542,7 @@ namespace CalradiaRemembers.Missions
                if (party == null)
                {
                   m.Phase = CompanionMissionPhase.AwaitingReunion;
+                  CompanionErrandJournalBridge.UpdateMirror(m, companion);
 
                   return false;
                }
@@ -559,10 +578,12 @@ namespace CalradiaRemembers.Missions
 
       /// <summary>
       ///   Brings the companion home and tears down the errand — shared by every recall path. Rejoins the
-      ///   player's party (unless captive / already there), disbands the errand party, and clears any pending
-      ///   report so a recalled companion delivers no news. Does NOT touch <see cref="_active" /> (callers own that).
+      ///   player's party (unless captive / already there), disbands the errand party, clears any pending
+      ///   report so a recalled companion delivers no news, and closes the quest-journal mirror as recalled
+      ///   (<paramref name="reason" /> is player-facing, e.g. "as your letter ordered"; may be null for an
+      ///   immediate recall). Does NOT touch <see cref="_active" /> (callers own that).
       /// </summary>
-      private void BringHomeAndCleanup(CompanionMission m, Hero companion)
+      private void BringHomeAndCleanup(CompanionMission m, Hero companion, string reason = null)
       {
          if (companion is {IsPrisoner: false} && companion.PartyBelongedTo != MobileParty.MainParty)
             try { AddHeroToPartyAction.Apply(companion, MobileParty.MainParty, false); }
@@ -570,6 +591,7 @@ namespace CalradiaRemembers.Missions
 
          DestroyParty(m); // remove the escort party from the world (no-op if already gone, e.g. after capture)
          if (companion != null) _pendingReports.Remove(companion.StringId);
+         CompanionErrandJournalBridge.CloseMirrorRecalled(m, companion, reason);
       }
 
       /// <summary>The directive injected into the homecoming conversation — the raw payload for the companion to voice.</summary>
@@ -667,6 +689,7 @@ namespace CalradiaRemembers.Missions
          ModLog.Info($"[MISSION] report ready for {m.CompanionName}:\n{BuildReport(m)}");
 
          ApplyMissionHappiness(m, companion);
+         CompanionErrandJournalBridge.CloseMirrorReturned(m, companion);
       }
 
       private void GatherIntel(CompanionMission m, Settlement dest)
