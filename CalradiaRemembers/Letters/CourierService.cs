@@ -412,11 +412,13 @@ namespace CalradiaRemembers.Letters
 
             // A respawn (post-save / post-load) overrides the source with the courier's captured position so
             // it does not jump back to the player. A player writing from shipboard dispatches the courier
-            // from the nearest landfall, not the open water.
+            // from the nearest landfall, not the open water; one writing from inside a settlement (a tavern
+            // hire) dispatches it from the settlement's GATE, never the root, where a fresh party sits stuck
+            // inside the walls until it starves (the same fault player-reported on NPC reply couriers).
             Vec2 spawnPos = spawnOverride ??
                             (player.IsCurrentlyAtSea
                                ? TravelingParty.NearestLandfall(player.GetPosition2D)
-                               : player.GetPosition2D);
+                               : player.CurrentSettlement?.GatePosition.ToVec2() ?? player.GetPosition2D);
 
             MobileParty courier = TravelingParty.Spawn(spawnPos, home, name, speed, recipient.Culture, avoidHostile);
 
@@ -610,12 +612,21 @@ namespace CalradiaRemembers.Letters
          // A sender sailing the sea cannot hand a letter to a land courier where they
          // stand — the courier spawns at the nearest landfall instead (tester report:
          // courier spawned in the water and sat immobile until the player drifted by).
-         if (sender.PartyBelongedTo != null)
-            return sender.PartyBelongedTo.IsCurrentlyAtSea
-               ? TravelingParty.NearestLandfall(sender.PartyBelongedTo.GetPosition2D)
-               : sender.PartyBelongedTo.GetPosition2D;
-         if (sender.CurrentSettlement != null) return sender.CurrentSettlement.GetPosition2D;
-         if (sender.StayingInSettlement != null) return sender.StayingInSettlement.GetPosition2D;
+         // And a settled sender (a governor wife in her castle) must dispatch from the
+         // settlement's GATE, not its root: a party spawned at the root sits inside the
+         // walls, cannot move, and starves until the letter is reported waylaid
+         // (player-reported, with the courier visibly stuck in the castle).
+         MobileParty party = sender.PartyBelongedTo;
+         if (party != null)
+         {
+            if (party.IsCurrentlyAtSea) return TravelingParty.NearestLandfall(party.GetPosition2D);
+            if (party.CurrentSettlement != null) return party.CurrentSettlement.GatePosition.ToVec2();
+
+            return party.GetPosition2D;
+         }
+
+         if (sender.CurrentSettlement != null) return sender.CurrentSettlement.GatePosition.ToVec2();
+         if (sender.StayingInSettlement != null) return sender.StayingInSettlement.GatePosition.ToVec2();
 
          return MobileParty.MainParty?.GetPosition2D ?? Vec2.Zero;
       }

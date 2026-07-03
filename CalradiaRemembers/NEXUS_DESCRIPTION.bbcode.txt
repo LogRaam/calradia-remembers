@@ -12,6 +12,11 @@ Many of you have asked for a way to support my work, so I’ve set up a Ko-fi pa
 Thank you, truly. ❤️[/center]
 
 [line]
+[size=4][color=#ffd966]What's new in v1.20.7[/color][/size]
+
+One fix, straight from a player's bug report: couriers no longer spawn stuck inside a castle or town. A courier dispatched by someone living in a settlement (a governor wife writing from her castle) used to appear at the settlement's center, trapped inside the walls, where it starved until the letter was reported waylaid. Couriers now set out from the settlement's gate, on the road, exactly where a rider would. The same guard applies to couriers you hire in a tavern.
+
+[line]
 [size=4][color=#ffd966]What's new in v1.20.6[/color][/size]
 
 A lord's word now costs him something. After you turn a lord against a rival, you can get them to PLEDGE to move against that rival, and it is a real deed: the pledge sets a genuine political scheme in motion (they begin to plot, to slander or undermine), you can help it along, and a [b]Pledge: [lord][/b] entry tracks it in your quest journal. Follow-through deepens their bond with you and spreads word that they kept their word; a lapsed pledge craters their trust and spreads word that they promised and did nothing. Moving against a ruler is never offered this way, that is a war, and war is a leader's own decision.

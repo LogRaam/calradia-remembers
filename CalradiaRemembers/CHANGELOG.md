@@ -2,6 +2,17 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.20.7.. 2026-07-03
+
+One fix, straight from a player's bug report.
+
+### Fixed
+- **Couriers no longer spawn stuck inside a castle or town.** A courier dispatched by someone living in a
+  settlement (a governor wife writing from her castle) used to appear at the settlement's center, trapped
+  inside the walls, where it starved until the letter was reported waylaid. Couriers now set out from the
+  settlement's gate, on the road, exactly where a rider would. The same guard applies to couriers you hire
+  in a tavern.
+
 ## v1.20.6.. 2026-07-03
 
 A lord's word now costs him something, and letters know how far away you really are.
