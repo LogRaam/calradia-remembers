@@ -167,6 +167,72 @@ namespace CalradiaRemembers.Tests
          CourtActionPolicy.SelectSwayTarget(new List<CourtActionPolicy.SwayCandidate>()).Should().BeNull();
       }
 
+      [Test]
+      public void GIVEN_the_worst_regarded_candidate_is_a_faction_leader_WHEN_selecting_a_sway_target_THEN_the_ruler_is_skipped()
+      {
+         // Moving against a ruler is a war-scale act, the leader's own strategic decision, never a personal
+         // rivalry a lord settles at another's word, so a faction leader is never a sway or pledge target.
+         var candidates = new List<CourtActionPolicy.SwayCandidate> {
+            new("empress", relation: -80, isCloseKin: false, isFactionLeader: true),
+            new("rival", relation: -25, isCloseKin: false)
+         };
+
+         CourtActionPolicy.SelectSwayTarget(candidates).Should().Be("rival");
+         CourtActionPolicy.SelectPledgeTarget(candidates).Should().Be("rival");
+      }
+
+      // ── pledge_against target selection ──────────────────────────────────
+
+      [Test]
+      public void GIVEN_a_bitterly_disliked_non_kin_lord_WHEN_selecting_a_pledge_target_THEN_they_are_chosen()
+      {
+         var candidates = new List<CourtActionPolicy.SwayCandidate> {
+            new("rival", relation: -40, isCloseKin: false)
+         };
+
+         CourtActionPolicy.SelectPledgeTarget(candidates).Should().Be("rival");
+      }
+
+      [Test]
+      public void GIVEN_close_kin_held_in_the_same_enmity_WHEN_selecting_a_pledge_target_THEN_kin_is_never_chosen()
+      {
+         var candidates = new List<CourtActionPolicy.SwayCandidate> {
+            new("estrangedSibling", relation: -60, isCloseKin: true),
+            new("rival", relation: -25, isCloseKin: false)
+         };
+
+         CourtActionPolicy.SelectPledgeTarget(candidates).Should().Be("rival");
+      }
+
+      [Test]
+      public void GIVEN_no_candidate_meets_the_animosity_threshold_WHEN_selecting_a_pledge_target_THEN_none_is_chosen()
+      {
+         //Arrange — a mild dislike is not a genuine cause to move against someone.
+         var candidates = new List<CourtActionPolicy.SwayCandidate> {
+            new("acquaintance", relation: -5, isCloseKin: false),
+            new("friend", relation: 20, isCloseKin: false)
+         };
+
+         CourtActionPolicy.SelectPledgeTarget(candidates).Should().BeNull();
+      }
+
+      [Test]
+      public void GIVEN_several_eligible_rivals_WHEN_selecting_a_pledge_target_THEN_the_deepest_enmity_wins()
+      {
+         var candidates = new List<CourtActionPolicy.SwayCandidate> {
+            new("oldGrudge", relation: -25, isCloseKin: false),
+            new("bitterEnemy", relation: -70, isCloseKin: false)
+         };
+
+         CourtActionPolicy.SelectPledgeTarget(candidates).Should().Be("bitterEnemy");
+      }
+
+      [Test]
+      public void GIVEN_an_empty_pool_WHEN_selecting_a_pledge_target_THEN_none_is_chosen()
+      {
+         CourtActionPolicy.SelectPledgeTarget(new List<CourtActionPolicy.SwayCandidate>()).Should().BeNull();
+      }
+
       // ── shared cooldown math ─────────────────────────────────────────────
 
       [Test]

@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -167,6 +168,61 @@ namespace CalradiaRemembers.GameState
       /// <summary>True when this NPC could currently be swayed again about this particular target (per-pair cooldown).</summary>
       public static bool SwayCooldownElapsed(NpcProfile profile, string targetHeroId)
          => CourtActionPolicy.CooldownElapsed(LastMarkerDay(profile, SwayMarker(targetHeroId)), Today(), CourtActionPolicy.SwayCooldownDays);
+
+      // ── pledge_against (RP with teeth, increment 2) ─────────────────────
+
+      /// <summary>
+      ///   The name of a rival this lord holds genuine, standing enmity toward and could pledge, in
+      ///   conversation, to move against — gates the pledge_against teaching. Reuses the kin-safe,
+      ///   already-disliked selection pattern from <c>sway_opinion</c>'s target picking
+      ///   (<see cref="CourtActionPolicy.SelectPledgeTarget" />), scanning every other living lord. Null
+      ///   when the NPC is not eligible, already has a pledge outstanding (one at a time —
+      ///   <see cref="CommitmentBehavior.HasActive" />), or holds no one in real enough enmity.
+      /// </summary>
+      public static string ResolvePledgeRivalName(Hero npc, NpcProfile profile)
+      {
+         if (npc is not {IsLord: true, IsAlive: true} || npc.IsPrisoner || profile == null) return null;
+         if (Hero.MainHero == null) return null;
+         if (CommitmentBehavior.Instance?.HasActive(npc.StringId) == true) return null;
+
+         var candidates = new List<CourtActionPolicy.SwayCandidate>();
+         foreach (Hero other in Hero.AllAliveHeroes)
+         {
+            if (other == npc || other == Hero.MainHero || !other.IsLord) continue;
+            candidates.Add(new CourtActionPolicy.SwayCandidate(other.StringId, npc.GetRelation(other), IsCloseKin(npc, other), other.MapFaction?.Leader == other));
+         }
+
+         string targetId = CourtActionPolicy.SelectPledgeTarget(candidates);
+         if (targetId == null) return null;
+
+         Hero target = Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == targetId);
+
+         return target?.Name?.ToString();
+      }
+
+      /// <summary>
+      ///   Resolves the named rival for pledge_against by a tolerant, case-insensitive name match among
+      ///   every living lord (mirrors <see cref="ResolveSwayTarget" />), excluding the player, the NPC
+      ///   speaking, and the NPC's own close kin (a lord is never taught, nor allowed at execution, to
+      ///   pledge against their own blood). Null when no name was given or no living lord matches.
+      /// </summary>
+      public static Hero ResolvePledgeTarget(string name, Hero npc)
+      {
+         if (string.IsNullOrWhiteSpace(name) || npc == null) return null;
+
+         string query = name.Trim();
+
+         return Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h != npc && h.IsLord && !IsCloseKin(npc, h) &&
+            h.Name != null && h.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
+      }
+
+      /// <summary>True when <paramref name="candidate" /> is <paramref name="npc" />'s spouse, child, parent, or sibling.</summary>
+      public static bool IsCloseKin(Hero npc, Hero candidate)
+         => npc != null && candidate != null &&
+            (npc.Spouse == candidate || npc.Father == candidate || npc.Mother == candidate ||
+             npc.Children != null && npc.Children.Contains(candidate) ||
+             npc.Siblings != null && npc.Siblings.Contains(candidate));
 
       // ── release_prisoner ─────────────────────────────────────────────────
 

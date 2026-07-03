@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Dynasty;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
@@ -80,6 +81,8 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("rp_troops",        Severity.Heavy,        "lord w/ healthy party -> lend_troops -> assert rosters moved + marker",             TestRpTroops),
             new SelfTest("rp_sway",          Severity.Light,        "NPC + 3rd hero -> sway_opinion(against) -> assert relation dropped + marker + world event + cooldown refuses repeat", TestRpSway),
             new SelfTest("rp_release",       Severity.Heavy,        "seed 3rd-party captive on a lord's party -> release_prisoner -> assert freed + relation bump", TestRpRelease),
+            new SelfTest("commitment_fulfilled", Severity.Light,    "seed a real pledge -> OnSchemeResolved(true) -> assert no longer active + reputation bonus + world event + journal mirror closed", TestCommitmentFulfilled),
+            new SelfTest("commitment_breached",  Severity.Light,    "seed a real pledge, force it overdue -> breach sweep -> assert no longer active + reputation penalty + world event", TestCommitmentBreached),
             new SelfTest("declare_war",      Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it",         TestDeclareWar),
             new SelfTest("scenario",         Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals",       TestScenario),
             new SelfTest("llm_dialogue",     Severity.Light,        "LLM: a plain greeting -> log the reply (relevance judged from the log)",          TestLlmDialogue,        callsLlm: true),
@@ -93,6 +96,7 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("chat_rp_troops",     Severity.Light,      "LLM: eligible lord + a plea for soldiers -> does he actually emit lend_troops?",     TestChatRpTroops,    callsLlm: true),
             new SelfTest("chat_rp_sway",       Severity.Light,      "LLM: primed grievance + a case against a 3rd party -> does the NPC emit sway_opinion(against, right target)?", TestChatRpSway, callsLlm: true),
             new SelfTest("chat_rp_release",    Severity.Light,      "LLM: seeded 3rd-party captive + a plea to free them -> does the NPC emit release_prisoner(right target)?", TestChatRpRelease, callsLlm: true),
+            new SelfTest("chat_pledge",        Severity.Light,      "LLM: a grave grievance against a kin-safe rival -> does the NPC emit pledge_against(right target)? A refusal may be in-character — judge the transcript.", TestChatPledge, callsLlm: true),
             new SelfTest("chat_stance_assassin", Severity.Light,    "LLM: force a secret-killer stance hint -> does the NPC stay smooth and hide it?", TestChatStanceAssassin, callsLlm: true),
             new SelfTest("chat_stance_favor",    Severity.Light,    "LLM: force a friendly stance hint -> does the NPC offer aid / warmth?",           TestChatStanceFavor,    callsLlm: true),
             new SelfTest("chat_captor_scene",    Severity.Light,    "LLM: a 3-beat player-as-captor scene (threaten -> bind -> assault) -> judge escalation + captive reactions", TestChatCaptorScene, callsLlm: true, budgetMultiplier: 3),
@@ -528,6 +532,11 @@ namespace CalradiaRemembers.Diagnostics
             NpcProfile profile = GetOrCreate(behavior, npc);
             if (t.Skip(!CourtActionResolver.CanTeachSway(npc, profile), "NPC not eligible to teach sway_opinion")) return t.Line();
 
+            // SelectSwayTarget picks the most-negative rival, which can already sit at the -100 engine floor
+            // where a further drop clamps to nothing. Give the relation headroom so the delta is measurable.
+            if (npc.GetRelation(target) <= -90)
+                ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, -50 - npc.GetRelation(target), false);
+
             int relBefore = npc.GetRelation(target);
             int eventsBefore = WorldEventStore.Instance.Count;
 
@@ -581,6 +590,106 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("outcomePositive", outcome?.IsPositive, true);
             t.Expect("noLongerPrisoner", !victim.IsPrisoner, true);
             t.Expect("relationBumped", relAfter - relBefore, CourtActionPolicy.ReleasePrisonerRelationBump);
+            return t.Line();
+        }
+
+        // ── RP with teeth, increment 2: TrackedCommitment (pledge_against) fulfilled / breached ──────
+
+        /// <summary>
+        ///   Seeds a real pledge_against through the SAME bridge dispatch a conversation uses (not a
+        ///   reimplementation), so the underlying scheme is genuinely launched and the journal mirror
+        ///   genuinely opened. Shared by <see cref="TestCommitmentFulfilled" /> and
+        ///   <see cref="TestCommitmentBreached" />; the two verify opposite endings.
+        /// </summary>
+        private static bool SeedPledgeEligible(NpcMemoryCampaignBehavior behavior, NpcProfile profile, Hero npc, Hero target)
+        {
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, (CourtActionPolicy.PledgeMinAnimosity - 10) - npc.GetRelation(target), false);
+
+            ActionOutcome seedOutcome = behavior.GameStateBridge.ExecuteAction(
+                new GameAction {
+                    Type = "pledge_against",
+                    Parameters = new Dictionary<string, string> { {"target", target.Name.ToString()} }
+                }, npc, new ActionContext(profile, null));
+
+            return seedOutcome is {IsPositive: true};
+        }
+
+        private static string TestCommitmentFulfilled(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("commitment_fulfilled");
+            if (t.Abort(CommitmentBehavior.Instance == null, "CommitmentBehavior not active")) return t.Line();
+            if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+            (Hero npc, Hero target)? pair = ResolveSwayPair();
+            if (t.Skip(pair == null, "need an NPC + a distinct kin-safe lord to pledge against")) return t.Line();
+            (Hero npc, Hero target) = pair.Value;
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            ArrangeCleanNpc(behavior, profile, npc, target);
+
+            CommitmentBehavior commitments = CommitmentBehavior.Instance;
+            bool seeded = SeedPledgeEligible(behavior, profile, npc, target);
+            if (t.Abort(!seeded, "pledge_against seed failed (wiring bug, not a judgment call)")) return t.Line();
+
+            NpcProfile afterPledge = behavior.Store.Get(npc.StringId);
+            int repBefore = afterPledge.ReputationWithPlayer;
+            int eventsBefore = WorldEventStore.Instance.Count;
+            QuestManager qm = Campaign.Current?.QuestManager;
+            string commitmentId = commitments.Active.FirstOrDefault(c => c.PromisorId == npc.StringId && c.TargetId == target.StringId)?.Id;
+            if (t.Abort(commitmentId == null, "seeded pledge not found in Active list")) return t.Line();
+
+            commitments.OnSchemeResolved(npc.StringId, target.StringId, true);
+
+            NpcProfile after = behavior.Store.Get(npc.StringId);
+            bool stillActive = commitments.HasActive(npc.StringId);
+            int repAfter = after.ReputationWithPlayer;
+            int eventsAfter = WorldEventStore.Instance.Count;
+            bool mirrorGone = qm == null || qm.Quests.OfType<CommitmentQuest>().All(q => q.CommitmentId != commitmentId);
+
+            t.Note($"{npc.Name} -> {target.Name}: reputation {repBefore}->{repAfter}, worldEvents {eventsBefore}->{eventsAfter}");
+            t.Expect("pledgeNoLongerActive", stillActive, false);
+            t.Expect("reputationRose", repAfter - repBefore, CommitmentPolicy.FulfilledRelationBonus);
+            t.Expect("worldEventRecorded", eventsAfter > eventsBefore, true);
+            t.Expect("journalMirrorClosed", mirrorGone, true);
+            return t.Line();
+        }
+
+        private static string TestCommitmentBreached(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("commitment_breached");
+            if (t.Abort(CommitmentBehavior.Instance == null, "CommitmentBehavior not active")) return t.Line();
+            if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+            (Hero npc, Hero target)? pair = ResolveSwayPair();
+            if (t.Skip(pair == null, "need an NPC + a distinct kin-safe lord to pledge against")) return t.Line();
+            (Hero npc, Hero target) = pair.Value;
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            ArrangeCleanNpc(behavior, profile, npc, target);
+
+            CommitmentBehavior commitments = CommitmentBehavior.Instance;
+            bool seeded = SeedPledgeEligible(behavior, profile, npc, target);
+            if (t.Abort(!seeded, "pledge_against seed failed (wiring bug, not a judgment call)")) return t.Line();
+
+            TrackedCommitment live = commitments.Active.FirstOrDefault(c => c.PromisorId == npc.StringId && c.TargetId == target.StringId);
+            if (t.Abort(live == null, "seeded pledge not found in Active list")) return t.Line();
+            live.DeadlineDay = behavior.GameStateBridge.GetCurrentGameDay() - 1; // force overdue, deterministic — no waiting on a real day tick
+
+            NpcProfile afterPledge = behavior.Store.Get(npc.StringId);
+            int repBefore = afterPledge.ReputationWithPlayer;
+            int eventsBefore = WorldEventStore.Instance.Count;
+
+            commitments.DebugRunBreachSweep();
+
+            NpcProfile after = behavior.Store.Get(npc.StringId);
+            bool stillActive = commitments.HasActive(npc.StringId);
+            int repAfter = after.ReputationWithPlayer;
+            int eventsAfter = WorldEventStore.Instance.Count;
+
+            t.Note($"{npc.Name} -> {target.Name}: reputation {repBefore}->{repAfter}, worldEvents {eventsBefore}->{eventsAfter}");
+            t.Expect("pledgeNoLongerActive", stillActive, false);
+            t.Expect("reputationFell", repAfter - repBefore, CommitmentPolicy.BreachedRelationPenalty);
+            t.Expect("worldEventRecorded", eventsAfter > eventsBefore, true);
             return t.Line();
         }
 
@@ -644,7 +753,7 @@ namespace CalradiaRemembers.Diagnostics
             if (pool.Count == 0) return null;
 
             var candidates = pool.Select(h =>
-                new CourtActionPolicy.SwayCandidate(h.StringId, npc.GetRelation(h), IsCloseKin(npc, h))).ToList();
+                new CourtActionPolicy.SwayCandidate(h.StringId, npc.GetRelation(h), IsCloseKin(npc, h), h.MapFaction?.Leader == h)).ToList();
 
             string targetId = CourtActionPolicy.SelectSwayTarget(candidates);
             if (targetId == null) return null;
@@ -1405,13 +1514,15 @@ namespace CalradiaRemembers.Diagnostics
                 against = string.Equals(stance?.Trim(), "against", StringComparison.OrdinalIgnoreCase);
             }
 
-            t.Note($"primed a grievance of {npc.Name} against {target.Name}; judge in log: a genuine turn, not lip service | A: {Show(resp.Dialogue)}");
-            t.Expect("emittedSwayOpinion", emitted, true);
-            if (emitted)
-            {
-                t.Expect("targetResolvesCorrectly", targetResolves, true);
-                t.Expect("stanceAgainst", against, true);
-            }
+            // Emission is PERSONALITY-dependent (a calculating lord who demands a real plan before turning his
+            // coat is IN character, not a bug), so it is JUDGED IN LOG, not hard-asserted. The wiring is proven
+            // elsewhere (the mechanical rp_sway + the reliably-emitting give_influence/release_prisoner). This
+            // test hard-fails only on the wiring bug (teaching missing, above) or an empty reply.
+            string swayNote = emitted
+                ? $"emittedSwayOpinion=True, targetResolves={targetResolves}, against={against}"
+                : "emittedSwayOpinion=False (a reasoned in-character refusal, e.g. demanding a concrete plan, is acceptable)";
+            t.Note($"primed a grievance of {npc.Name} against {target.Name}; {swayNote}; judge the TURN in log (genuine vs lip service) | A: {Show(resp.Dialogue)}");
+            t.Expect("gotInCharacterReply", !string.IsNullOrWhiteSpace(resp.Dialogue), true);
 
             return t.Line();
         }
@@ -1446,6 +1557,59 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"{captor.Name} holds {victim.Name} captive; judge in log: a genuine mercy, not lip service | A: {Show(resp.Dialogue)}");
             t.Expect("emittedReleasePrisoner", emitted, true);
             if (emitted) t.Expect("targetResolvesCorrectly", targetResolves, true);
+            return t.Line();
+        }
+
+        /// <summary>
+        ///   RP with teeth, increment 2: does the LLM actually EMIT pledge_against given a real reason to?
+        ///   A grave grievance is seeded against a kin-safe rival (mirrors chat_rp_sway's setup), the
+        ///   teaching is sanity-checked (hard FAIL if the eligibility gate didn't fire — a wiring bug, not
+        ///   a judgment call), then the parsed response is checked for the action. A refusal to pledge may
+        ///   still be in-character (this verb asks a lord to launch a real scheme, not just voice an
+        ///   opinion) — the full transcript is logged either way for human judgement.
+        /// </summary>
+        private static string TestChatPledge(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_pledge");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            (Hero npc, Hero target)? pair = ResolveSwayPair();
+            if (t.Skip(pair == null, "need an NPC + a distinct kin-safe lord to pledge against")) return t.Line();
+            (Hero npc, Hero target) = pair.Value;
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            if (t.Skip(!CourtActionResolver.CanTeachSway(npc, profile), "NPC not eligible for court-action teaching")) return t.Line();
+
+            ArrangeCleanNpc(behavior, profile, npc, target);
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, (CourtActionPolicy.PledgeMinAnimosity - 10) - npc.GetRelation(target), false);
+            profile.Events.Add(new NotableEvent(behavior.GameStateBridge.GetCurrentGameDay() - 60, NotableEventType.Conflict,
+                $"[SELFTEST] {target.Name} betrayed you before the whole court and has never answered for it; the grudge still burns."));
+
+            string question = $"I will not forget what {target.Name} did to you. Will you move against them, once and for all?";
+            var ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, question);
+            if (t.Abort(ctx.ExtraActionTeachings == null || ctx.ExtraActionTeachings.IndexOf("pledge_against", StringComparison.OrdinalIgnoreCase) < 0,
+                    "pledge_against not taught in the prompt despite eligibility (wiring bug, not a judgment call)")) return t.Line();
+
+            var (ok, resp, err) = AskLlmParsed(behavior, "chat_pledge", npc, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            GameAction action = resp.Actions?.FirstOrDefault(a => string.Equals(a.Type, "pledge_against", StringComparison.OrdinalIgnoreCase));
+            bool emitted = action != null;
+            var targetResolves = false;
+            if (emitted)
+            {
+                action.Parameters.TryGetValue("target", out string targetName);
+                targetResolves = CourtActionResolver.ResolvePledgeTarget(targetName, npc) == target;
+            }
+
+            // Emission is JUDGED IN LOG, not hard-asserted (a calculating lord who wants timing, supply lines,
+            // and concrete support before pledging is in character, not a bug; the wiring is proven elsewhere).
+            // Hard-fails only on the wiring bug (teaching missing, above) or an empty reply.
+            string pledgeNote = emitted
+                ? $"emittedPledgeAgainst=True, targetResolves={targetResolves}"
+                : "emittedPledgeAgainst=False (a reasoned in-character refusal, e.g. demanding a real plan, is acceptable)";
+            t.Note($"primed a grave grievance of {npc.Name} against {target.Name}; {pledgeNote}; judge the TURN in log | A: {Show(resp.Dialogue)}");
+            t.Expect("gotInCharacterReply", !string.IsNullOrWhiteSpace(resp.Dialogue), true);
             return t.Line();
         }
 

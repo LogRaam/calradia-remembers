@@ -82,13 +82,48 @@ namespace CalradiaRemembers.Letters
       /// <summary>True when the NPC has no letter in transit and respects the cooldown.</summary>
       private static bool CanSendLetter(NpcProfile profile, int today, int cooldownDays)
       {
-         // A correspondent travelling in the player's OWN party is present, not apart: a courier letter to
-         // someone at your side is nonsensical (and reads as "you are never here" while they stand beside you).
-         // A companion away on an errand has their own party, so they still qualify. Player-reported.
+         // A correspondent who is PRESENT with the player, not apart, does not send a courier letter: it is
+         // nonsensical to courier someone at your side, and it reads as "you are never here" while they stand
+         // beside you. Player-reported: a governor spouse in the same castle lamented an absent father the
+         // instant the player stepped out for grain. Proximity decides this, not a stale "days since we talked".
          Hero hero = Hero.FindFirst(h => h != null && h.StringId == profile.Id);
-         if (hero != null && hero.PartyBelongedTo == MobileParty.MainParty) return false;
+         if (hero != null && IsSenderPresentWithPlayer(hero)) return false;
 
          return LetterCadence.CanSendLetter(profile, today, cooldownDays);
+      }
+
+      /// <summary>
+      ///   True when the sender is effectively at the player's side: in the player's own party, in the same
+      ///   settlement, or near enough on the map that they are together (the player has merely stepped outside
+      ///   the walls). A companion away on an errand has their own distant party, so they still write.
+      /// </summary>
+      private static bool IsSenderPresentWithPlayer(Hero sender)
+      {
+         if (sender == null) return false;
+         MobileParty main = MobileParty.MainParty;
+         if (main == null) return false;
+         if (sender.PartyBelongedTo == main) return true;
+
+         Settlement senderAt = sender.CurrentSettlement ?? sender.StayingInSettlement;
+         Settlement playerAt = Hero.MainHero?.CurrentSettlement ?? Hero.MainHero?.StayingInSettlement;
+
+         return senderAt != null && senderAt == playerAt;
+      }
+
+      /// <summary>
+      ///   A graduated distance roll for a spouse or consort absence letter: none while the player is near, a
+      ///   rising chance the farther the courier's journey would be, capped so it is never systematic (pure
+      ///   <see cref="LetterDistancePolicy" />, reusing the same travel-days a letter's delivery uses). An
+      ///   unreadable position does not lament an absence it cannot measure.
+      /// </summary>
+      private static bool PassesAbsenceDistanceRoll(Hero sender)
+      {
+         float days = LetterGenerationService.TravelDaysTo(sender);
+         if (days < 0f) return false;
+
+         int chance = LetterDistancePolicy.AbsenceLetterChancePercent(days);
+
+         return chance > 0 && MBRandom.RandomInt(100) < chance;
       }
 
       /// <summary>Days since the last notable event in this NPC's profile (proxy for last meeting).</summary>
@@ -282,7 +317,8 @@ namespace CalradiaRemembers.Letters
          if (spouse is {IsAlive: true} && !IsWithPlayer(spouse))
          {
             NpcProfile profile = store.Get(spouse.StringId);
-            if (profile != null && CanSendLetter(profile, today, 7) && DaysSinceLastEvent(profile, today) >= 5)
+            if (profile != null && CanSendLetter(profile, today, 7) && DaysSinceLastEvent(profile, today) >= 5
+                && PassesAbsenceDistanceRoll(spouse))
             {
                var ctx = $"Player's spouse. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
                LetterGenerationService.QueueInitialLetter(
@@ -307,6 +343,7 @@ namespace CalradiaRemembers.Letters
             if (IsWithPlayer(hero)) continue;
             if (!CanSendLetter(profile, today, 10)) continue;
             if (DaysSinceLastEvent(profile, today) < 7) continue;
+            if (!PassesAbsenceDistanceRoll(hero)) continue;
 
             var context = $"Player's consort. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
             LetterGenerationService.QueueInitialLetter(

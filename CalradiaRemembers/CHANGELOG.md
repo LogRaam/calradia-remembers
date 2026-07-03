@@ -2,6 +2,27 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.20.6.. 2026-07-03
+
+A lord's word now costs him something, and letters know how far away you really are.
+
+### New
+- **Pledges with teeth.** After you turn a lord against a rival, you can now get them to PLEDGE to move against
+  that rival, and it is a real deed, not talk: the pledge sets a genuine political scheme in motion (they begin
+  to plot, to slander or undermine), you can help it along, and a "Pledge: [lord]" entry tracks it in your quest
+  journal. If they follow through, their bond with you deepens and word spreads that they kept their word; if
+  they let it lapse, their trust in you craters and word spreads that they promised and did nothing. Moving
+  against a ruler is never offered this way, that is a war, and war is a leader's own decision.
+
+### Fixed
+- **No more blank letters.** A letter whose text failed to generate is no longer delivered as an empty page.
+- **A spouse in the same castle no longer laments your absence.** Whether your wife writes that you are away is
+  now a matter of real distance, measured as a courier's journey in days. She does not fret when you have merely
+  stepped outside the walls, only when you are genuinely far across the map, and even then only sometimes.
+- **Lords no longer make hollow promises.** Asked to do something the game cannot honor (kill a person, declare a
+  war, dissolve a marriage), a lord now declines or names hard conditions in character, instead of vaguely
+  agreeing ("soon, soon") while nothing ever happens.
+
 ## v1.20.5.. 2026-07-02
 
 Conversations that reach into the world, the first step of a larger effort to give what you say real weight.

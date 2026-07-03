@@ -3,6 +3,7 @@
 
 #region
 
+using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Missions;
 using TaleWorlds.SaveSystem;
 
@@ -31,6 +32,9 @@ namespace CalradiaRemembers.Quests
             // 2026-07-02: companion-errand journal mirror (ROADMAP "A personal ledger of quests the
             // PLAYER gives out"). Additive id, save-safe: do NOT touch id 1 or the base number.
             AddClassDefinition(typeof(CompanionErrandQuest), 2);
+            // 2026-07-03: RP with teeth, increment 2, Phase 2 — the pledge (TrackedCommitment) journal
+            // mirror. Additive id, save-safe: do NOT touch ids 1/2 or the base number.
+            AddClassDefinition(typeof(CommitmentQuest), 3);
         }
     }
 }

@@ -316,24 +316,52 @@ hardcoded `PromptBuilder` section per verb. The mod composes the block in `Encou
 Per-NPC (and per-NPC-and-target, for sway) cooldowns are derived by scanning the NPC's own `NpcProfile.Events`
 for a hidden marker the action itself records — no new persisted field. Console: `cr.rp_verbs [name]`.
 
-**Increment 2 — the TrackedCommitment engine.** The symmetric of `InformalQuest`: instead of the NPC setting
-the PLAYER a task, the NPC OWES the player something ("I will speak for you at the council", "send word when
-the harvest comes in", "I will not move against your ally"). Verified by real campaign events (a promise
-either comes true, silently lapses, or is caught in the act of being broken), journal-mirrored so the player
-can see what is owed to them, and a breach costs the NPC real standing: a stance drop plus gossip (the world
-hears an oath-breaker's name). Design not yet started.
+**Increment 2 — the TrackedCommitment engine. 🔨 Phase 1 (the mechanical spine) BUILT 2026-07-03 (untested in
+game), 694 mod tests / 190 SDK tests green.** The symmetric of `InformalQuest`: instead of the NPC setting the
+PLAYER a task, the NPC OWES the player something. The flagship (and, for Phase 1, only) kind is `pledge_against`:
+a lord, moved by genuine and standing enmity, vows in conversation to move against a named rival — a POLITICAL
+commitment that launches a real, existing scheme (`SchemeStore.ForcePlot`, slander or sabotage, reusing an
+already-active scheme between the pair rather than erroring) and adds the "he promised YOU" accountability
+layer schemes lacked on their own. **Never declares or causes a war** — see the dedicated future item below.
+New pure `CalradiaRemembers.Logic.TrackedCommitment` (PromisorId/TargetId/Kind/IssuedDay/DeadlineDay/State) +
+`CommitmentPolicy` (deadline = one season / 21 days, fulfilled = +6 relation/stance, breached = -12 relation +
+a Trust crater). Eligibility in `CourtActionResolver.ResolvePledgeRivalName` reuses the kin-safe,
+already-disliked target selection from `sway_opinion` (`CourtActionPolicy.SelectPledgeTarget`, new pledge-only
+animosity floor), taught in `EncounterContext.ExtraActionTeachings` alongside the increment-1 verbs. The new
+`CalradiaRemembers.Commitments.CommitmentBehavior` (byte[] SyncData, mirrors `SchemeStore`) holds every
+outstanding pledge and detects fulfillment TWO ways — `OnSchemeResolved` (called from `SchemeStore.OnStateChanged`'s
+Succeeded case and from `PlayerAssists`' success branch) when the launched scheme succeeds, or `OnMapEventEnded`
+recognizing (never causing) any real battle with the promisor's party and the target/their faction on opposite
+sides — and detects breach on a daily overdue sweep, retiring the pledge either way with a `StanceService`
+kept/broken-promise call, a `NotableEvent`, and a `WorldEventStore` rumour ("X honored/broke their pledge to move
+against Y"). One pledge in flight per lord. **Phase 2 (not built): the quest-journal mirror, `cr.*` self-tests,
+and console diagnostics** — `CommitmentBehavior.Active` and each `TrackedCommitment.Id` are the seam left for it.
 
-**Increment 3 — the coalition package.** `pledge_against` (raise a faction/army against a named rival,
-verified by the pledging NPC's actual BATTLE PARTICIPATION on the player's side) and backing the player in a
-KINGDOM DECISION (a vote, a policy, a succession). **Needs a spike first**: Bannerlord's kingdom-decision API
-must be scoped before this increment can be estimated — the coalition mechanics may or may not be reachable
-without heavy engine coupling. Do not start building before that spike lands.
+**Increment 3 — backing the player in a KINGDOM DECISION** (a vote, a policy, a succession). **Needs a spike
+first**: Bannerlord's kingdom-decision API must be scoped before this increment can be estimated — the mechanics
+may or may not be reachable without heavy engine coupling. Do not start building before that spike lands. (The
+former coalition-package pairing with `pledge_against` is superseded: that verb shipped as increment 2's
+flagship, scoped to a political scheme, never a war — see the war-declaration item below for why kingdom
+decisions and war are being kept structurally apart from the pledge system.)
 
 **Increment 4 — headliners.** The two biggest, riskiest, most narratively powerful verbs, deliberately last:
 **defection brokering** (the player persuades an NPC to broker ANOTHER lord's defection, not just their own —
 a step beyond the existing `join_clan`) and **NPC matchmaking** (the player arranges a marriage between two
 OTHER NPCs, reading and writing the same marriage-prospect machinery `MarriageProspectResolver` already
 provides). Both need real design passes; neither is scoped yet.
+
+**Future — war declaration as a leader-only strategic decision (Gabriel, 2026-07-02/03, not yet designed).**
+*"War declaration = a leader-only strategic decision, NEVER a conversation or pledge trigger. A dedicated future
+system where the FACTION LEADER evaluates the clan's world situation, interests, relative strength, open fronts,
+economy, allies, the target's vulnerability, and their own risk appetite, and declares war ONLY when it advantages
+them; a leader who LOSES a war loses credibility, so that reputational downside is part of the calculus. Needs the
+kingdom-decision / diplomacy API spike. The increment-2 pledge is POLITICAL (a scheme) only and must never declare
+war."* Extended (2026-07-03): a lord who is NOT the faction leader CANNOT declare war, but CAN try to INFLUENCE
+their leader on the question — so the war-decision system is a **council-pressure model**: vassals lobby, the
+leader decides; accumulated vassal pressure (weighted by influence) is one input to the leader's advantage/
+credibility evaluation. Natural future verb: a vassal pledges to "press my leader for war against X" (adds
+pressure to the leader's evaluation) rather than declaring war themselves — the bridge from the increment-2 pledge
+system to this future war-decision system.
 
 **Settlement sale: EVALUATED AND REJECTED (Gabriel, 2026-07-02): a fief is a lord's sovereignty and reason to
 exist, not merchandise; no amount of gold makes selling it in-character. Do not revisit.**
@@ -1015,8 +1043,22 @@ culture-flavoured). Two deferred layers:
 The marriage chain (family-approval, consorts, by-letter, jealousy) is shipped. Two genuinely-open extensions:
 - **Culture-gated true polygamy** as lore — multiple full spouses, restricted to designated cultures (not the
   current consort workaround), with the family-approval currency scaled accordingly.
-- **Divorce** — study `DivorceOfCalradia` first; the dissolution path and its standing / grudge / heir
-  consequences, which dovetail with dynastic succession and jealousy.
+- **Divorce** *(player-requested 2026-07-03; DEFERRED until after RP-with-teeth increment 2 Phase 2)* — a player
+  tried to convince an NPC to leave their spouse; the NPC "agreed" but nothing happened ("soon, soon"), the classic
+  empty-promise pattern (no verb, no executor). Design framing (Gabriel, 2026-07-03): **in the Middle Ages a
+  marriage IS an alliance, so a divorce is a loss of influence and power, effectively a casus belli / a declaration
+  of war**, and BOTH families oppose it fiercely. So this must be WEIGHTY, never "talk once and it is done": gate on
+  a genuinely unhappy marriage + a strong bond with the player + a real reason, and prefer a scheme-like PROCESS
+  over time (the spouse may resist or discover it) rather than an instant flip, which also makes the "soon" honest
+  (it takes time and the game SHOWS it progressing). Consequences must bite: a scandal world-event, the ex-spouse
+  AND their clan turning hostile, a renown/honour hit, faction-level fallout, dovetailing with dynastic succession
+  and jealousy. **Cultural exception to research**: Nordic / Sturgian (and possibly Khuzait) cultures may have
+  treated dissolution more freely, worth a per-culture flavour like the existing marriage/jealousy culture profiles.
+  **Technical crux / SPIKE first**: Bannerlord has NO native divorce (`MarriageAction` only marries, `Hero.Spouse`
+  has no public setter), so dissolution needs reflection on the marriage internals + clan-membership handling
+  (a spouse who joined the other's clan) while leaving children's parentage intact, exactly what `DivorceOfCalradia`
+  does, fragile and version-sensitive and it touches saves. Decide: build our own reflection-based logic vs a soft
+  dependency on `DivorceOfCalradia` if installed. Spike the clean-dissolution question before writing the feature.
 
 ### Smaller polish (deferred)
 - **Chat composer — a true MULTI-LINE editing box** *(wished 2026-07-01; the "best" option, deferred)*: a player

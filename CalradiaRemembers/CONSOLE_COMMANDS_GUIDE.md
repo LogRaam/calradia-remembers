@@ -146,6 +146,7 @@ Safe to peek at internal state; they change nothing.
 | `cr.happiness [name]` / `cr.rapport [name]` | Companion contentment / companion-to-companion rapport. |
 | `cr.bargain [name]` / `cr.hire_info [name]` / `cr.recruit_info [name]` | Intimacy-bargain eligibility / hire price / clan-recruit eligibility. |
 | `cr.rp_verbs [name]` | RP-with-teeth court verbs: give_influence / lend_troops / sway_opinion / release_prisoner eligibility + amounts. |
+| `cr.commitments [name]` | Outstanding pledges (TrackedCommitment): promisor, rival, deadline day, days remaining, state. No name = every pledge; a name filters to those involving that hero. |
 | `cr.kinks [name]` | An NPC's kinks + the valid kink names. |
 | `cr.profile_check [name]` / `cr.journal_check` | A profile's romantic-compatibility diagnosis / the quest journal mirror. |
 | `cr.rumor [settlement]` | The current world events a settlement's commoners would repeat. |
@@ -157,6 +158,7 @@ Each of these stages a feature so it can be checked in one step. They mutate the
 | Area | Commands |
 |---|---|
 | Relations / stance | `cr.rep_set <value>`, `cr.stance_set <trust> <respect> <fear>`, `cr.discover_test` (seed 3 discoveries) |
+| Pledges (RP with teeth) | `cr.pledge` (seed a real pledge_against, kin-safe rival forced into enmity, launches the underlying scheme) |
 | Schemes | `cr.scheme`, `cr.scheme_advance`, `cr.scheme_assist`, `cr.scheme_warn`, `cr.intercept` |
 | Quests / negotiation | `cr.quest`, `cr.quest_done`, `cr.quest_complete`, `cr.quest_abandon`, `cr.quest_gold`, `cr.quest_scout`, `cr.declare_war_quest`, `cr.deliver_prisoner`, `cr.bargain_items`, `cr.bargain_marriage`, `cr.bargain_leverage` |
 | Marriage / pregnancy / succession | `cr.marry`, `cr.marriage_approve`, `cr.marriage_revoke`, `cr.marriage_status`, `cr.preg`, `cr.preg_birth`, `cr.succession`, `cr.backstory` |

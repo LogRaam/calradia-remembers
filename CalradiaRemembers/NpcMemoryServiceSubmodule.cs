@@ -95,6 +95,12 @@ namespace CalradiaRemembers
          // SchemeAdvancer), the effect is standing damage, and the player only ever hears of it as a
          // rumour fed to the world-event store. Registered AFTER WorldEventStore (it records into it).
          campaignStarter.AddBehavior(new WorldEvents.SchemeStore());
+         // RP with teeth, increment 2 (Phase 1 spine): the TrackedCommitment engine — the symmetric of
+         // InformalQuest; an NPC's promise TO THE PLAYER (flagship: pledge_against), verified by real
+         // campaign events (a resolved scheme, or an organic battle) or breached on a lapsed deadline.
+         // Registered after SchemeStore, which notifies it on a scheme's success — load order does not
+         // strictly matter (Instance is set in each behavior's own constructor).
+         campaignStarter.AddBehavior(new Commitments.CommitmentBehavior());
          // Scripted scenarios (the world-reaction engine): a trigger (death/marriage/war/peace) fires a
          // rule whose consequences mutate the world and whose message is dropped into the world-event store.
          // Pure selection lives in CalradiaRemembers.Logic; packs load from ModuleData/scenarios. Registered

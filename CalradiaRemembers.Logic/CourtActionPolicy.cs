@@ -120,28 +120,53 @@ namespace CalradiaRemembers.Logic
             public string Id { get; }
             public int Relation { get; }
             public bool IsCloseKin { get; }
+            public bool IsFactionLeader { get; }
 
-            public SwayCandidate(string id, int relation, bool isCloseKin)
+            public SwayCandidate(string id, int relation, bool isCloseKin, bool isFactionLeader = false)
             {
                 Id = id;
                 Relation = relation;
                 IsCloseKin = isCloseKin;
+                IsFactionLeader = isFactionLeader;
             }
         }
 
         /// <summary>
         ///   Picks the most plausible sway_opinion target from a pool of living third parties: NEVER the
         ///   NPC's close kin (nobody turns against their own spouse, child, parent, or sibling on
-        ///   request), preferring whoever they already regard worst (most negative relation) among the
-        ///   rest, since an existing rift makes a turn believable. Falls back to the least-friendly
-        ///   remaining non-kin candidate when every relation is positive. Null when every candidate is
-        ///   kin (or the pool is empty).
+        ///   request), and NEVER a faction leader (moving against a ruler is a war-scale act, the leader's own
+        ///   strategic decision, not a personal rivalry a lord settles at another's word), preferring whoever
+        ///   they already regard worst (most negative relation) among the rest, since an existing rift makes a
+        ///   turn believable. Falls back to the least-friendly remaining candidate when every relation is
+        ///   positive. Null when every candidate is excluded (or the pool is empty).
         /// </summary>
         public static string SelectSwayTarget(IEnumerable<SwayCandidate> candidates)
         {
             if (candidates == null) return null;
 
-            List<SwayCandidate> eligible = candidates.Where(c => !c.IsCloseKin).ToList();
+            List<SwayCandidate> eligible = candidates.Where(c => !c.IsCloseKin && !c.IsFactionLeader).ToList();
+            if (eligible.Count == 0) return null;
+
+            return eligible.OrderBy(c => c.Relation).First().Id;
+        }
+
+        // ── pledge_against (RP with teeth, increment 2) ─────────────────────
+
+        /// <summary>Tuning: relation at/below which a lord's dislike of another counts as genuine cause to pledge against them.</summary>
+        public const int PledgeMinAnimosity = -20;
+
+        /// <summary>
+        ///   Picks the most plausible pledge_against rival from a pool of living third parties: NEVER the
+        ///   promisor's own close kin (mirrors <see cref="SelectSwayTarget" />), and only among those they
+        ///   hold genuine, standing enmity toward (relation at or below <see cref="PledgeMinAnimosity" />) —
+        ///   a pledge needs a real cause, not merely the least friendly face in an amicable pool. Prefers
+        ///   the deepest enmity when several qualify. Null when no eligible candidate exists.
+        /// </summary>
+        public static string SelectPledgeTarget(IEnumerable<SwayCandidate> candidates)
+        {
+            if (candidates == null) return null;
+
+            List<SwayCandidate> eligible = candidates.Where(c => !c.IsCloseKin && !c.IsFactionLeader && c.Relation <= PledgeMinAnimosity).ToList();
             if (eligible.Count == 0) return null;
 
             return eligible.OrderBy(c => c.Relation).First().Id;

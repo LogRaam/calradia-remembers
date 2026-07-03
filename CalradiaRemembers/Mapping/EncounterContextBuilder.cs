@@ -529,11 +529,12 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
-      ///   RP with teeth, increment 1: composes the ONE generic <see cref="EncounterContext.ExtraActionTeachings" />
-      ///   block from the four court-action eligibility resolvers in <see cref="CourtActionResolver" />. Each
-      ///   verb's own section (and its [ACTION] format) is included only when currently eligible, so the LLM is
-      ///   never taught a verb the bridge would refuse. Null when none apply right now, or while the player is
-      ///   this NPC's captive (none of these favours make sense from a dungeon).
+      ///   RP with teeth: composes the ONE generic <see cref="EncounterContext.ExtraActionTeachings" />
+      ///   block from the court-action eligibility resolvers in <see cref="CourtActionResolver" /> (the four
+      ///   increment-1 verbs, plus increment 2's <c>pledge_against</c>). Each verb's own section (and its
+      ///   [ACTION] format) is included only when currently eligible, so the LLM is never taught a verb the
+      ///   bridge would refuse. Null when none apply right now, or while the player is this NPC's captive
+      ///   (none of these favours make sense from a dungeon).
       /// </summary>
       private static string ResolveExtraActionTeachings(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus)
       {
@@ -585,6 +586,22 @@ namespace CalradiaRemembers.Mapping
             sb.AppendLine("type: sway_opinion");
             sb.AppendLine("target: the person's name, exactly as known to you");
             sb.AppendLine("stance: against OR for");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine();
+         }
+
+         string pledgeRival = CourtActionResolver.ResolvePledgeRivalName(hero, profile);
+         if (pledgeRival != null)
+         {
+            sb.AppendLine("PLEDGE_AGAINST, VOWING TO MOVE AGAINST A RIVAL WHO HAS WRONGED YOU:");
+            sb.AppendLine($"You hold real, standing enmity toward {pledgeRival} — enough that you could, in this");
+            sb.AppendLine("conversation, pledge to the player that you will move against them. This is a POLITICAL");
+            sb.AppendLine("commitment (a plot set in motion against them, not open war): only emit this when you are");
+            sb.AppendLine("genuinely resolved, never as idle talk — the player will hold you to your word.");
+            sb.AppendLine("When you have genuinely resolved to do this, and only then, emit:");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: pledge_against");
+            sb.AppendLine($"target: {pledgeRival}");
             sb.AppendLine("[/ACTION]");
             sb.AppendLine();
          }

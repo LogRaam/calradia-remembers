@@ -12,6 +12,13 @@ Many of you have asked for a way to support my work, so I’ve set up a Ko-fi pa
 Thank you, truly. ❤️[/center]
 
 [line]
+[size=4][color=#ffd966]What's new in v1.20.6[/color][/size]
+
+A lord's word now costs him something. After you turn a lord against a rival, you can get them to PLEDGE to move against that rival, and it is a real deed: the pledge sets a genuine political scheme in motion (they begin to plot, to slander or undermine), you can help it along, and a [b]Pledge: [lord][/b] entry tracks it in your quest journal. Follow-through deepens their bond with you and spreads word that they kept their word; a lapsed pledge craters their trust and spreads word that they promised and did nothing. Moving against a ruler is never offered this way, that is a war, and war is a leader's own decision.
+
+Also fixed: no more blank letters; a spouse in the same castle no longer laments your absence (whether she writes that you are away is now a matter of real distance, a courier's journey in days, so she frets only when you are genuinely far off, and even then only sometimes); and lords no longer make hollow promises, asked to do something the game cannot honor (kill a person, declare a war, dissolve a marriage) a lord now declines or names hard conditions in character instead of vaguely agreeing while nothing happens.
+
+[line]
 [size=4][color=#ffd966]What's new in v1.20.5[/color][/size]
 
 Conversations now reach into the world. You can ask a lord, in your own words, to lend you their voice at court (their influence passes to you), to spare you some soldiers for the road, to turn against a third party you both have cause to distrust, or to free a prisoner they hold at your word. Each is a real deed with real consequences, their influence, their troops, their standing with the person they turn on, a captive actually freed, granted only when it fits that lord and their character, and refused plainly when it does not. A calculating steward will still weigh what he gains before he agrees. This is the first step of a larger effort to give what you say real weight in the world. Also fixed: lords no longer mistake a plain request for a threat, so approaching a settlement's owner about a deal no longer makes him answer as though you came to conquer his home.

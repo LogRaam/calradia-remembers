@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Commoners;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Dialogue;
@@ -236,6 +237,7 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.RemoveOrphanedLetterPlaceholders", RemoveOrphanedLetterPlaceholders);
          SafeRun.Step("OnSessionLaunched.QuestJournalBridge.ReconcileOnSessionLaunch", () => QuestJournalBridge.ReconcileOnSessionLaunch(Store));
          SafeRun.Step("OnSessionLaunched.CompanionErrandJournalBridge.ReconcileOnSessionLaunch", CompanionErrandJournalBridge.ReconcileOnSessionLaunch);
+         SafeRun.Step("OnSessionLaunched.CommitmentJournalBridge.ReconcileOnSessionLaunch", CommitmentJournalBridge.ReconcileOnSessionLaunch);
       }
 
       /// <summary>

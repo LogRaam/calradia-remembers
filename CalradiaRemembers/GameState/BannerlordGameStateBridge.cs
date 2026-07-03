@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
@@ -17,6 +18,7 @@ using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
@@ -174,6 +176,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteSwayOpinion(action, npcHero, context);
             case "release_prisoner":
                return ExecuteReleasePrisoner(action, npcHero, context);
+            case "pledge_against":
+               return ExecutePledgeAgainst(action, npcHero, context);
             default:
                ModLog.Info($"[ACTION] Unknown type '{action.Type}' — ignored.");
 
@@ -1160,6 +1164,67 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] marry failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   pledge_against (RP with teeth, increment 2): a lord, moved by genuine and standing enmity, vows
+      ///   to move against a named rival. This is a POLITICAL commitment ONLY — it launches a real scheme
+      ///   (slander or sabotage) via <see cref="WorldEvents.SchemeStore" /> and records a
+      ///   <see cref="TrackedCommitment" /> the world will hold the lord to; it never declares, nor implies,
+      ///   war. Only taught when <see cref="CourtActionResolver.ResolvePledgeRivalName" /> names a genuine
+      ///   rival, but every guard is re-checked here — the prompt is advice, the bridge is law: the target
+      ///   is re-resolved by name, kin are excluded again, and a lord may hold only one pledge at a time.
+      ///   Reuses an already-active scheme between the pair rather than erroring (<c>ForcePlot</c>'s own
+      ///   guard), so a lord already secretly plotting can still be held to account for it.
+      /// </summary>
+      private static ActionOutcome ExecutePledgeAgainst(GameAction action, Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            NpcProfile profile = context?.Profile;
+
+            if (npcHero is not {IsLord: true, IsAlive: true} || npcHero.IsPrisoner) return null;
+            if (profile == null || Hero.MainHero == null) return null;
+
+            var behavior = CommitmentBehavior.Instance;
+
+            if (behavior == null) return null;
+
+            if (behavior.HasActive(npcHero.StringId))
+               return new ActionOutcome($"({npcHero.Name} already has a pledge outstanding — one vow at a time.)", false);
+
+            action.Parameters.TryGetValue("target", out string targetName);
+            Hero target = CourtActionResolver.ResolvePledgeTarget(targetName, npcHero);
+
+            if (target == null)
+               return new ActionOutcome("(No rival by that name is known to pledge against.)", false);
+
+            if (CourtActionResolver.IsCloseKin(npcHero, target))
+               return new ActionOutcome($"({npcHero.Name} will not move against their own kin.)", false);
+
+            // A calculating lord favours quiet sabotage; others reach for slander. Never a war action —
+            // the scheme is the whole of what a pledge sets in motion.
+            SchemeKind kind = npcHero.GetTraitLevel(DefaultTraits.Calculating) >= 1
+               ? SchemeKind.Sabotage
+               : SchemeKind.Slander;
+            string schemeStatus = SchemeStore.Instance?.ForcePlot(npcHero, target, kind);
+
+            var today = (int) CampaignTime.Now.ToDays;
+            behavior.Create(npcHero.StringId, target.StringId, today);
+
+            profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
+               $"Pledged to the player to move against {target.Name}."));
+
+            ModLog.Info($"[ACTION] pledge_against: {npcHero.Name} pledged to move against {target.Name} ({kind}). {schemeStatus}");
+
+            return new ActionOutcome($"{npcHero.Name} pledges to move against {target.Name}.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] pledge_against failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

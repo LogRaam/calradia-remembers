@@ -29,8 +29,12 @@ namespace CalradiaRemembers.Letters
                 if (profile?.SentLetters == null || profile.SentLetters.Count == 0) continue;
 
                 // Skip letters that have an active reply courier — the courier handles delivery.
+                // Never deliver a blank letter: an in-flight placeholder whose LLM call failed or was
+                // interrupted mid-session keeps Content null, and delivering it showed the player
+                // "(The letter is blank.)". A letter with no body is not ready, so it is not due.
                 PendingLetter due = profile.SentLetters
                     .FirstOrDefault(l => !l.IsDelivered && !l.IsLost
+                                      && !string.IsNullOrWhiteSpace(l.Content)
                                       && string.IsNullOrEmpty(l.CourierPartyId)
                                       && l.DeliveryDay <= today);
 

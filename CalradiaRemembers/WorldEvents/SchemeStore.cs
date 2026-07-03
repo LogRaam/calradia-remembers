@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Stance;
@@ -112,6 +113,9 @@ namespace CalradiaRemembers.WorldEvents
                ? $"{plotter.Name} has blackened {target.Name}'s name, and it has cost them dearly."
                : $"{plotter.Name} has undermined {target.Name}, weakening their standing.");
             MaybeAbettorBacklash(scheme, target); // records the player's complicity as its own rumour
+            // RP with teeth, increment 2: if the plotter had PLEDGED this scheme to the player, it is
+            // now fulfilled. CommitmentBehavior is defensive internally — never throws into this pipeline.
+            CommitmentBehavior.Instance?.OnSchemeResolved(scheme.PlotterId, scheme.TargetId, true);
             _schemes.Remove(scheme);
 
             return $"With your help, {plotter.Name}'s plot against {target.Name} comes to fruition.";
@@ -405,6 +409,8 @@ namespace CalradiaRemembers.WorldEvents
                   ? $"{plotter.Name} has blackened {target.Name}'s name, and it has cost them dearly."
                   : $"{plotter.Name} has undermined {target.Name}, weakening their standing.");
                MaybeAbettorBacklash(scheme, target);
+               // RP with teeth, increment 2: fulfills a matching pledge, if the plotter had made one.
+               CommitmentBehavior.Instance?.OnSchemeResolved(scheme.PlotterId, scheme.TargetId, true);
 
                break;
 

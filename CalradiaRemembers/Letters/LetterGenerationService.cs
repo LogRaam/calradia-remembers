@@ -275,33 +275,43 @@ namespace CalradiaRemembers.Letters
       ///   Delivery delay in days, based on travel distance between the NPC and the
       ///   player. Minimum 1 day, maximum 12 days.
       /// </summary>
-      private static int ComputeDeliveryDays(Hero giver)
+      /// <summary>Map distance a courier covers in one day — the single distance-to-days conversion (Tuning).</summary>
+      private const float DistancePerTravelDay = 20f;
+
+      /// <summary>
+      ///   Raw courier travel time in DAYS from <paramref name="sender" /> to the player, or -1 when a position
+      ///   cannot be read. The one place distance becomes days: <see cref="ComputeDeliveryDays" /> clamps it for
+      ///   a courier's journey, and the letter-presence gate compares it to a day-count buffer (a time-in-days
+      ///   is a far more meaningful distance measure than raw map units).
+      /// </summary>
+      internal static float TravelDaysTo(Hero sender)
       {
          try
          {
-            MobileParty giverParty = giver.PartyBelongedTo;
             MobileParty playerParty = MobileParty.MainParty;
+            if (sender == null || playerParty == null) return -1f;
 
-            if (giverParty == null && giver.CurrentSettlement != null)
-            {
-               // NPC is in a settlement — use settlement position.
-               Vec2? playerPos = playerParty?.GetPosition2D;
+            Vec2 playerPos = playerParty.GetPosition2D;
 
-               if (playerPos == null) return 3;
-               float dist = giver.CurrentSettlement.GetPosition2D.Distance(playerPos.Value);
+            MobileParty senderParty = sender.PartyBelongedTo;
+            if (senderParty != null) return senderParty.GetPosition2D.Distance(playerPos) / DistancePerTravelDay;
 
-               return Math.Max(1, Math.Min(12, (int) (dist / 20f)));
-            }
+            var at = sender.CurrentSettlement ?? sender.StayingInSettlement;
+            if (at != null) return at.GetPosition2D.Distance(playerPos) / DistancePerTravelDay;
 
-            if (giverParty == null || playerParty == null) return 3;
-            float d = giverParty.GetPosition2D.Distance(playerParty.GetPosition2D);
-
-            return Math.Max(1, Math.Min(12, (int) (d / 20f)));
+            return -1f;
          }
          catch
          {
-            return 3;
+            return -1f;
          }
+      }
+
+      private static int ComputeDeliveryDays(Hero giver)
+      {
+         float days = TravelDaysTo(giver);
+
+         return days < 0f ? 3 : Math.Max(1, Math.Min(12, (int) days));
       }
 
       private static async Task GenerateInitialAsync(
