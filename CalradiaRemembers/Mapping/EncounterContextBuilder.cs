@@ -12,6 +12,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Stance;
+using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
@@ -145,7 +146,7 @@ namespace CalradiaRemembers.Mapping
          IntimacyLeverageActive = IntimacyBargainEligibility.IsEligible(hero) && profile?.IntimacyLeverageHeld == true,
          BastardMotherTone = ResolveBastardMotherTone(hero),
          BastardBlackmailDemand = Bastards.BastardBehavior.Instance?.BlackmailDemandOver(hero) ?? 0,
-         ExtraActionTeachings = ResolveExtraActionTeachings(hero, profile, playerStatus)
+         ExtraActionTeachings = ResolveExtraActionTeachings(hero, profile, playerStatus, bridge, playerMessage)
          // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
          // coin, and naming the exact sum broke immersion. Affordability is enforced by the
          // bridge when the hire is executed, not foreseen in the prompt.
@@ -528,67 +529,35 @@ namespace CalradiaRemembers.Mapping
          return profile.ReputationWithPlayer >= 60;
       }
 
+      /// <summary>Registration order of the court verbs taught BEFORE pledge_against, in <see cref="VerbRegistry" />.</summary>
+      private static readonly string[] CourtVerbsBeforePledge = {"give_influence", "lend_troops", "sway_opinion"};
+
+      /// <summary>Registration order of the court verbs taught AFTER pledge_against, in <see cref="VerbRegistry" />.</summary>
+      private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner"};
+
       /// <summary>
       ///   RP with teeth: composes the ONE generic <see cref="EncounterContext.ExtraActionTeachings" />
       ///   block from the court-action eligibility resolvers in <see cref="CourtActionResolver" /> (the four
       ///   increment-1 verbs, plus increment 2's <c>pledge_against</c>). Each verb's own section (and its
       ///   [ACTION] format) is included only when currently eligible, so the LLM is never taught a verb the
       ///   bridge would refuse. Null when none apply right now, or while the player is this NPC's captive
-      ///   (none of these favours make sense from a dungeon).
+      ///   (none of these favours make sense from a dungeon). The four increment-1 verbs are composed via
+      ///   <see cref="VerbRegistry" /> (<see cref="IConversationVerb" />); pledge_against stays inline here
+      ///   (untouched by this spike) between the two ComposeTeachings calls, preserving its original position.
       /// </summary>
-      private static string ResolveExtraActionTeachings(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus)
+      private static string ResolveExtraActionTeachings(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus,
+         IGameStateBridge bridge, string playerMessage)
       {
          if (hero == null || profile == null) return null;
          if (playerStatus == PlayerStatusVsNpc.Captive) return null;
 
          var sb = new StringBuilder();
+         var verbCtx = new VerbContext(hero, profile, bridge, playerMessage, null);
 
-         if (CourtActionResolver.TryGiveInfluence(hero, profile, out int influenceAmount))
-         {
-            sb.AppendLine("GIVE_INFLUENCE, LENDING THE PLAYER YOUR VOICE AT COURT:");
-            sb.AppendLine("Your standing runs deep enough, and your clan's influence is ample enough, that you could");
-            sb.AppendLine("lend the player some of your own political weight at court, a word put in on their behalf");
-            sb.AppendLine("with your peers. This is not idle: it costs your own house real standing.");
-            sb.AppendLine("When you have genuinely resolved to do this in this conversation, and only then, emit:");
-            sb.AppendLine("[ACTION]");
-            sb.AppendLine("type: give_influence");
-            sb.AppendLine("[/ACTION]");
-            sb.AppendLine($"The game transfers {influenceAmount} points of influence from your clan to theirs.");
-            sb.AppendLine();
-         }
-
-         if (CourtActionResolver.TryLendTroops(hero, profile, out int troopCount))
-         {
-            sb.AppendLine("LEND_TROOPS, HANDING THE PLAYER SOME SOLDIERS FOR THE ROAD:");
-            sb.AppendLine("You lead enough of a healthy force, and think well enough of the player, that you could");
-            sb.AppendLine("part with a handful of your own rank and file to strengthen their party. You would keep");
-            sb.AppendLine("the bulk of your own men, not gut your household guard.");
-            sb.AppendLine("When you have genuinely resolved to do this in this conversation, and only then, emit:");
-            sb.AppendLine("[ACTION]");
-            sb.AppendLine("type: lend_troops");
-            sb.AppendLine("[/ACTION]");
-            sb.AppendLine($"The game moves {troopCount} of your own soldiers into their ranks.");
-            sb.AppendLine();
-         }
-
-         if (CourtActionResolver.CanTeachSway(hero, profile))
-         {
-            sb.AppendLine("SWAY_OPINION, TURNING YOUR OWN REGARD FOR SOMEONE, AT THE PLAYER'S WORD:");
-            sb.AppendLine("If the player makes a case about a THIRD PARTY, someone else you know, that genuinely");
-            sb.AppendLine("moves your own opinion of that person (a wrong laid bare, a debt of gratitude recalled,");
-            sb.AppendLine("a betrayal revealed), your regard for THAT PERSON, not the player, may shift.");
-            sb.AppendLine("Emit this ONLY when you are TRULY persuaded, in character, on the strength of the case");
-            sb.AppendLine("made, never merely to please the player or because they asked. A shallow or self-serving");
-            sb.AppendLine("argument should not move you.");
-            sb.AppendLine("If you are truly turning against them, emit the [ACTION] block this turn. Voicing");
-            sb.AppendLine("agreement, or saying you might turn, without the action, changes nothing in the world.");
-            sb.AppendLine("[ACTION]");
-            sb.AppendLine("type: sway_opinion");
-            sb.AppendLine("target: the person's name, exactly as known to you");
-            sb.AppendLine("stance: against OR for");
-            sb.AppendLine("[/ACTION]");
-            sb.AppendLine();
-         }
+         // give_influence, lend_troops, sway_opinion: migrated to the IConversationVerb contract
+         // (CalradiaRemembers.Verbs); the pledge_against block below still sits between these and
+         // release_prisoner, so the two ComposeTeachings calls keep that exact interleaving.
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, CourtVerbsBeforePledge));
 
          string pledgeRival = CourtActionResolver.ResolvePledgeRivalName(hero, profile);
          if (pledgeRival != null)
@@ -606,20 +575,8 @@ namespace CalradiaRemembers.Mapping
             sb.AppendLine();
          }
 
-         List<Hero> heldPrisoners = CourtActionResolver.HeldPrisonersOf(hero);
-         if (heldPrisoners.Count > 0)
-         {
-            sb.AppendLine("RELEASE_PRISONER, INTERCEDING FOR SOMEONE YOU HOLD CAPTIVE:");
-            sb.AppendLine("You currently hold these captives, and the player might persuade you to set one free:");
-            foreach (Hero captive in heldPrisoners)
-               sb.AppendLine($"- {captive.Name}");
-            sb.AppendLine("When you have genuinely agreed to free one of them, and only then, emit:");
-            sb.AppendLine("[ACTION]");
-            sb.AppendLine("type: release_prisoner");
-            sb.AppendLine("target: the captive's name, exactly as listed above");
-            sb.AppendLine("[/ACTION]");
-            sb.AppendLine();
-         }
+         // release_prisoner: migrated to the IConversationVerb contract as well (see above).
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, CourtVerbsAfterPledge));
 
          return sb.Length == 0 ? null : sb.ToString();
       }

@@ -431,10 +431,27 @@ crate, survive a siege) without CR knowing its internals, and without weakening 
 deeds" promise. Pure/testable: the registration record + lifecycle state machine; engine glue is the journal
 mirror + the completion-callback wiring.
 
-> NOT built (wished 2026-06-25). Sequence: A before B. Both ride the SDK's existing engine-agnostic design.
-> Linked to the scenario engine below (both are modder-extensible surfaces) and to the ChatAI-collaboration
-> thread (an autonomous NPC↔NPC layer would write its outcomes back through Volet A so the "theater" leaves
-> real marks the player later encounters — see also the four NPC↔NPC seams discussed but not yet scoped here).
+**Volet C (Actions): external mods register conversation VERBS.** External mods register conversation
+VERBS (`IConversationVerb` internally / `ExternalVerbContract` at the SDK boundary), CR teaches + routes
+them exactly like its own, validated at the door like `Feed.Record`. **Foundation (the VerbContract
+abstraction) SPIKED 2026-07-03** on the four existing "RP with teeth" court verbs (`give_influence`,
+`lend_troops`, `sway_opinion`, `release_prisoner`), no behavior change: each verb's eligibility (still
+`CourtActionResolver`/`CourtActionPolicy`, reused not duplicated), teaching text, and execution now live
+together in one `CalradiaRemembers.Verbs` class, registered on a shared `VerbRegistry`
+(`EncounterContextBuilder` composes teaching from it, `BannerlordGameStateBridge.ExecuteAction` routes to
+it by name) instead of being scattered across a resolver/builder/switch. SDK-side DTOs added
+(`NpcMemoryService.Core.Extension`: `VerbFacts`, `ActionRequest`/`ActionResult`, `ExternalVerbContract`,
+plain Funcs, no TaleWorlds dependency) plus a mod-side `ExternalVerbAdapter` proving an external contract
+can sit in the SAME registry as CR's own verbs. **NOT yet built:** the public `Actions.Register(...)` entry
+point and its `Feed.Record`-style validation pipeline (source id, quota, name-collision): that is the next
+increment. The other ~20 conversation actions stay on the old switch-based path for now (incremental
+migration later). A future **divorce** verb is a natural first INTERNAL consumer of this same contract.
+
+> NOT built (wished 2026-06-25). Sequence: A before B before C. All ride the SDK's existing engine-agnostic
+> design. Linked to the scenario engine below (all are modder-extensible surfaces) and to the ChatAI-
+> collaboration thread (an autonomous NPC↔NPC layer would write its outcomes back through Volet A so the
+> "theater" leaves real marks the player later encounters — see also the four NPC↔NPC seams discussed but
+> not yet scoped here).
 
 **Long horizon — CR as core + swappable feature modules (dogfooding the surface)** *(wished 2026-06-25)*
 
