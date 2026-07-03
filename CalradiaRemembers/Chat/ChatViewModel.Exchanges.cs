@@ -629,9 +629,15 @@ namespace CalradiaRemembers.Chat
             if (!string.IsNullOrEmpty(npcLine))
                RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
 
-            // Fallback-memory bookkeeping: a completed exchange counts as a turn;
-            // a substantive [EVENT] means no fallback summary is needed at close.
-            if (!suppressPlayerLine) _playerTurnsThisSession++;
+            // Fallback-memory bookkeeping: a completed exchange counts as a turn, and the player's text
+            // length feeds the one-substantial-turn rule (a single meaningful exchange deserves a memory;
+            // player-reported: an NPC forgot a one-turn conversation that closed their whole Lucon affair).
+            // A substantive [EVENT] means no fallback summary is needed at close.
+            if (!suppressPlayerLine)
+            {
+                _playerTurnsThisSession++;
+                _playerCharsThisSession += playerMessage?.Trim().Length ?? 0;
+            }
             if (response.NewEventData != null && !string.IsNullOrWhiteSpace(response.NewEventData.Summary))
                _eventRecordedThisSession = true;
 

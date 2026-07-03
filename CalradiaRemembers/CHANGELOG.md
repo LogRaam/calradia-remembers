@@ -2,6 +2,20 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.20.8.. 2026-07-03
+
+One fix, straight from a player's report.
+
+### Fixed
+- **A single meaningful exchange is no longer forgotten.** If you said one substantial thing to an NPC and left,
+  the conversation could leave no memory at all (the safety net that records a memory when the AI does not
+  required at least two exchanges), so the NPC greeted you two days later as if nothing had happened. Now one
+  exchange with real substance is remembered too; a drive-by greeting still leaves no clutter.
+
+> Diagnosis tip from the same report: memories live in your save file, one profile per hero, and you can inspect
+> what an NPC remembers at any time with the console command `cr.memory <name>`. And beware, Calradia sometimes
+> spawns TWO wanderers with the same name; if an NPC seems amnesiac, make sure you are not talking to the twin.
+
 ## v1.20.7.. 2026-07-03
 
 One fix, straight from a player's bug report.

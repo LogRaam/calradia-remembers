@@ -176,6 +176,9 @@ namespace CalradiaRemembers.Chat
 
       private int _playerTurnsThisSession; // completed player→NPC exchanges
 
+      // Total player text length this session — feeds the one-substantial-turn fallback-memory rule.
+      private int _playerCharsThisSession;
+
       // Set when the player clicks "Request Private" — injected once, then cleared.
       private bool _privacyRequestPending;
 
@@ -1101,8 +1104,10 @@ namespace CalradiaRemembers.Chat
       ///   <see cref="FinalizeCaptiveSceneMemory" />: a plain base event recorded
       ///   synchronously, replaced by a richer first-person transcript summary when
       ///   the async call succeeds. No-op when an [EVENT] was already recorded, the
-      ///   exchange had no substance (fewer than two completed player turns), or the
-      ///   chat is not in plain Conversation mode (letters keep their own records;
+      ///   exchange had no substance (pure <see cref="ConversationMemoryRules" />: two
+      ///   completed player turns, or ONE turn whose text carried real substance, a
+      ///   player-reported fault: a single-exchange conversation left no memory), or
+      ///   the chat is not in plain Conversation mode (letters keep their own records;
       ///   captive scenes have their own finalizer).
       /// </summary>
       public void FinalizeConversationMemory()
@@ -1110,7 +1115,8 @@ namespace CalradiaRemembers.Chat
          if (_conversationMemoryFinalized || _mode != ChatMode.Conversation) return;
          _conversationMemoryFinalized = true;
 
-         if (_eventRecordedThisSession || _playerTurnsThisSession < 2) return;
+         if (_eventRecordedThisSession) return;
+         if (!ConversationMemoryRules.DeservesFallbackMemory(_playerTurnsThisSession, _playerCharsThisSession)) return;
 
          var behavior = NpcMemoryCampaignBehavior.Instance;
          NpcProfile profile = behavior?.DialogFlow?.Profile;
