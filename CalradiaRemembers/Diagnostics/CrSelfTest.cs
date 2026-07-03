@@ -4,8 +4,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
@@ -74,6 +76,10 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("feed_update",      Severity.Light,        "Feed.Update upserts a fed fact by id, Feed.Retract removes it (mutable entries)", TestFeedUpdate),
             new SelfTest("mission_register", Severity.Heavy,        "MissionBoard.Register an external mission -> assert issued + dedup + Complete stamps it", TestMissionRegister),
             new SelfTest("mission_reward",   Severity.Heavy,        "MissionBoard FULL LOOP -> register -> Complete -> player reports to giver -> assert reward PAID + quest Completed", TestMissionRewardLoop),
+            new SelfTest("rp_influence",     Severity.Light,        "eligible lord -> give_influence -> assert clan influence moved + marker + cooldown refuses repeat", TestRpInfluence),
+            new SelfTest("rp_troops",        Severity.Heavy,        "lord w/ healthy party -> lend_troops -> assert rosters moved + marker",             TestRpTroops),
+            new SelfTest("rp_sway",          Severity.Light,        "NPC + 3rd hero -> sway_opinion(against) -> assert relation dropped + marker + world event + cooldown refuses repeat", TestRpSway),
+            new SelfTest("rp_release",       Severity.Heavy,        "seed 3rd-party captive on a lord's party -> release_prisoner -> assert freed + relation bump", TestRpRelease),
             new SelfTest("declare_war",      Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it",         TestDeclareWar),
             new SelfTest("scenario",         Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals",       TestScenario),
             new SelfTest("llm_dialogue",     Severity.Light,        "LLM: a plain greeting -> log the reply (relevance judged from the log)",          TestLlmDialogue,        callsLlm: true),
@@ -83,16 +89,20 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("chat_bastard_mother", Severity.Light,     "LLM: force a mercenary bastard-mother context -> does she raise/extort the child?", TestChatBastardMother, callsLlm: true),
             new SelfTest("chat_worldevent",  Severity.Light,        "LLM: Feed a fresh event -> ask for news -> does the NPC surface it?",             TestChatWorldEvent,     callsLlm: true),
             new SelfTest("chat_recruit_companion", Severity.Light,  "LLM: ask where to find a companion -> assert the gate fired + REAL wanderers gathered, judge the reply names one (never invents)", TestChatRecruitCompanion, callsLlm: true),
+            new SelfTest("chat_rp_influence",  Severity.Light,      "LLM: eligible lord + a court-weight ask -> does he actually emit give_influence?",   TestChatRpInfluence, callsLlm: true),
+            new SelfTest("chat_rp_troops",     Severity.Light,      "LLM: eligible lord + a plea for soldiers -> does he actually emit lend_troops?",     TestChatRpTroops,    callsLlm: true),
+            new SelfTest("chat_rp_sway",       Severity.Light,      "LLM: primed grievance + a case against a 3rd party -> does the NPC emit sway_opinion(against, right target)?", TestChatRpSway, callsLlm: true),
+            new SelfTest("chat_rp_release",    Severity.Light,      "LLM: seeded 3rd-party captive + a plea to free them -> does the NPC emit release_prisoner(right target)?", TestChatRpRelease, callsLlm: true),
             new SelfTest("chat_stance_assassin", Severity.Light,    "LLM: force a secret-killer stance hint -> does the NPC stay smooth and hide it?", TestChatStanceAssassin, callsLlm: true),
             new SelfTest("chat_stance_favor",    Severity.Light,    "LLM: force a friendly stance hint -> does the NPC offer aid / warmth?",           TestChatStanceFavor,    callsLlm: true),
-            new SelfTest("chat_captor_scene",    Severity.Light,    "LLM: a 3-beat player-as-captor scene (threaten -> bind -> assault) -> judge escalation + captive reactions", TestChatCaptorScene, callsLlm: true),
-            new SelfTest("chat_captor_break",    Severity.Light,    "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?",         TestChatCaptorBreak, callsLlm: true),
-            new SelfTest("chat_captor_torture",  Severity.Light,    "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?",      TestChatCaptorTorture, callsLlm: true),
-            new SelfTest("chat_captor_cnc",      Severity.Light,    "LLM: 3-beat sexual coercion (Hardcore) -> does the NPC play CNC reactions in character, never breaking?",   TestChatCaptorCnc,   callsLlm: true),
-            new SelfTest("chat_captor_cnc_mf",   Severity.Light,    "LLM: CNC with a MALE captor and FEMALE prisoner (gender forced) -> in-character reactions?",              TestChatCaptorCncMF, callsLlm: true),
-            new SelfTest("chat_captor_group",    Severity.Light,    "LLM: GROUP CNC — player + 2 companions vs a female prisoner -> does she react to being outnumbered?",     TestChatCaptorGroup, callsLlm: true),
-            new SelfTest("chat_captive_continue", Severity.Light,   "LLM: a captive scene OPENER + several Continue beats -> assert each beat advances, is described, and never repeats (the reported Continue-quality faults)", TestChatCaptiveContinue, callsLlm: true),
-            new SelfTest("chat_companion_continue", Severity.Light, "LLM: a COMPANION-VICTIM scene OPENER + Continue beats -> assert the victim is voiced (own lines), correctly gendered, and beats don't repeat", TestChatCompanionContinue, callsLlm: true),
+            new SelfTest("chat_captor_scene",    Severity.Light,    "LLM: a 3-beat player-as-captor scene (threaten -> bind -> assault) -> judge escalation + captive reactions", TestChatCaptorScene, callsLlm: true, budgetMultiplier: 3),
+            new SelfTest("chat_captor_break",    Severity.Light,    "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?",         TestChatCaptorBreak, callsLlm: true, budgetMultiplier: 3),
+            new SelfTest("chat_captor_torture",  Severity.Light,    "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?",      TestChatCaptorTorture, callsLlm: true, budgetMultiplier: 3),
+            new SelfTest("chat_captor_cnc",      Severity.Light,    "LLM: 3-beat sexual coercion (Hardcore) -> does the NPC play CNC reactions in character, never breaking?",   TestChatCaptorCnc,   callsLlm: true, budgetMultiplier: 3),
+            new SelfTest("chat_captor_cnc_mf",   Severity.Light,    "LLM: CNC with a MALE captor and FEMALE prisoner (gender forced) -> in-character reactions?",              TestChatCaptorCncMF, callsLlm: true, budgetMultiplier: 3),
+            new SelfTest("chat_captor_group",    Severity.Light,    "LLM: GROUP CNC — player + 2 companions vs a female prisoner -> does she react to being outnumbered?",     TestChatCaptorGroup, callsLlm: true, budgetMultiplier: 3),
+            new SelfTest("chat_captive_continue", Severity.Light,   "LLM: a captive scene OPENER + several Continue beats -> assert each beat advances, is described, and never repeats (the reported Continue-quality faults)", TestChatCaptiveContinue, callsLlm: true, budgetMultiplier: 4),
+            new SelfTest("chat_companion_continue", Severity.Light, "LLM: a COMPANION-VICTIM scene OPENER + Continue beats -> assert the victim is voiced (own lines), correctly gendered, and beats don't repeat", TestChatCompanionContinue, callsLlm: true, budgetMultiplier: 4),
         };
 
         // ── Public API (cr.testall / cr.test) ─────────────────────────────────
@@ -103,9 +113,13 @@ namespace CalradiaRemembers.Diagnostics
         ///   and, running before the conversation tests, they poison every reply that follows (an actual
         ///   war declaration had all six NPCs harping on "your house declared war"). So they are opt-in,
         ///   one at a time, via <c>cr.test &lt;name&gt;</c> — or <c>cr.test full</c> on a throwaway save.
+        ///   <paramref name="llmBudgetSeconds" /> overrides the per-LLM-test wall-clock budget (see
+        ///   <see cref="BudgetSecondsFor" />) for this run only, e.g. a slow local model needs more than
+        ///   the default cap. Mechanical (non-LLM) tests run first, so a wiring failure surfaces in seconds.
         /// </summary>
-        public static string RunAll(NpcMemoryCampaignBehavior behavior)
-            => RunGroup(Tests.Where(t => t.Severity != Severity.Irreversible), behavior);
+        public static string RunAll(NpcMemoryCampaignBehavior behavior, int? llmBudgetSeconds = null)
+            => RunGroup(Tests.Where(t => t.Severity != Severity.Irreversible), behavior,
+                mechanicalFirst: true, llmBudgetOverrideSeconds: llmBudgetSeconds);
 
         /// <summary>Runs EVERY test, including the irreversible ones (declares war / seals scenarios). Throwaway save only.</summary>
         public static string RunEverything(NpcMemoryCampaignBehavior behavior) => RunGroup(Tests, behavior);
@@ -126,9 +140,21 @@ namespace CalradiaRemembers.Diagnostics
         public static string RunMechanical(NpcMemoryCampaignBehavior behavior)
             => RunGroup(Tests.Where(t => !t.CallsLlm), behavior);
 
-        private static string RunGroup(IEnumerable<SelfTest> group, NpcMemoryCampaignBehavior behavior)
+        /// <summary>
+        ///   Runs a group of tests, each under its own wall-clock budget (see <see cref="BudgetSecondsFor" />):
+        ///   a timed-out LLM call is CANCELLED via the token threaded into the real chat pipeline (never merely
+        ///   abandoned, since an orphaned call could still land and mutate state after the sweep moved on) and
+        ///   the test reports FAIL with a clear timeout message; the sweep continues. <paramref name="mechanicalFirst" />
+        ///   reorders so the fast, free tests run before the LLM ones (cr.testall only; explicit groups and
+        ///   single-test runs keep registration order).
+        /// </summary>
+        private static string RunGroup(IEnumerable<SelfTest> group, NpcMemoryCampaignBehavior behavior,
+            bool mechanicalFirst = false, int? llmBudgetOverrideSeconds = null)
         {
             List<SelfTest> tests = group.ToList();
+            if (mechanicalFirst)
+                tests = tests.OrderBy(t => t.CallsLlm ? 1 : 0).ToList(); // stable sort: preserves order within each half
+
             var sb = new StringBuilder();
             sb.AppendLine("[SELFTEST] *** WARNING: tests mutate campaign state — reload or use a copied save ***");
             if (tests.Any(t => t.Severity == Severity.Irreversible))
@@ -141,18 +167,26 @@ namespace CalradiaRemembers.Diagnostics
             int llm = tests.Count(t => t.CallsLlm);
             if (llm > 0)
             {
+                int baseBudget = LlmBaseBudgetSeconds(llmBudgetOverrideSeconds);
                 sb.AppendLine($"[SELFTEST] *** includes {llm} conversation test(s) — {llm} real LLM call(s) + a brief freeze each; relevance is judged from the log ***");
+                sb.AppendLine($"[SELFTEST] *** per-test LLM budget: {baseBudget}s (x its call count for multi-beat tests); a timed-out call is cancelled, reported FAIL, sweep continues ***");
                 // Stamp the model so logs can be compared across LLMs ("which one wrote better replies?").
                 sb.AppendLine($"[SELFTEST] *** LLM model: {ModelLabel(behavior)} ***");
             }
 
             int pass = 0, fail = 0, manual = 0;
+            var totalStopwatch = Stopwatch.StartNew();
             foreach (SelfTest test in tests)
             {
-                // Log each result the moment it lands, not only in the assembled report at the end — so if a
-                // later test ever hangs, the completed lines are still visible and the culprit is the next one.
-                ModLog.Info($"[SELFTEST] running '{test.Name}'…");
-                string line = SafeRun(test, behavior);
+                int budgetSeconds = BudgetSecondsFor(test, llmBudgetOverrideSeconds);
+                // Log the start (with its budget) the moment it begins, not only in the assembled report at the
+                // end, so a long sweep visibly progresses instead of looking hung, and if a test somehow still
+                // runs away, the completed lines up to it are already on record.
+                ModLog.Info($"[SELFTEST] running '{test.Name}'… (budget {budgetSeconds}s)");
+                var testStopwatch = Stopwatch.StartNew();
+                string line = SafeRun(test, behavior, budgetSeconds);
+                testStopwatch.Stop();
+                line = $"{line} [{testStopwatch.Elapsed.TotalSeconds:0.0}s]";
                 ModLog.Info(line);
                 sb.AppendLine(line);
                 if      (line.Contains(": PASS")) pass++;
@@ -160,7 +194,8 @@ namespace CalradiaRemembers.Diagnostics
                 else                              manual++;
             }
 
-            sb.AppendLine($"[SELFTEST] SUMMARY: {pass} PASS, {fail} FAIL, {manual} MANUAL");
+            totalStopwatch.Stop();
+            sb.AppendLine($"[SELFTEST] SUMMARY: {pass} PASS, {fail} FAIL, {manual} MANUAL, total {totalStopwatch.Elapsed.TotalSeconds:0.0}s");
             string report = sb.ToString();
             ModLog.Info(report);
             return report;
@@ -175,12 +210,34 @@ namespace CalradiaRemembers.Diagnostics
 
             // A single conversation test is run to be read — show its full, untruncated reply.
             _fullReplies = test.CallsLlm;
+            int budgetSeconds = BudgetSecondsFor(test, null);
+            ModLog.Info($"[SELFTEST] running '{test.Name}'… (budget {budgetSeconds}s)");
+            var stopwatch = Stopwatch.StartNew();
             string result;
-            try { result = SafeRun(test, behavior); }
+            try { result = SafeRun(test, behavior, budgetSeconds); }
             finally { _fullReplies = false; }
+            stopwatch.Stop();
+            result = $"{result} [{stopwatch.Elapsed.TotalSeconds:0.0}s]";
             ModLog.Info(result);
             return result;
         }
+
+        /// <summary>Mechanical (non-LLM) tests get this flat wall-clock budget, plenty for in-memory state checks.</summary>
+        private const int MechanicalBudgetSeconds = 20;
+
+        /// <summary>The default per-LLM-call budget: the configured LLM response timeout, capped at 75s, unless a run-level override is given (bypasses the cap; a slow local model may need more).</summary>
+        private static int LlmBaseBudgetSeconds(int? overrideSeconds)
+            => overrideSeconds ?? Math.Min(ModSettings.LlmResponseTimeoutSeconds, 75);
+
+        /// <summary>
+        ///   The wall-clock budget for one test: 20s flat for a mechanical test, or the per-LLM-call budget
+        ///   times the test's <see cref="SelfTest.BudgetMultiplier" /> for a test that fires several real
+        ///   LLM calls in sequence (e.g. a multi-beat captive scene).
+        /// </summary>
+        private static int BudgetSecondsFor(SelfTest test, int? llmBudgetOverrideSeconds)
+            => test.CallsLlm
+                ? LlmBaseBudgetSeconds(llmBudgetOverrideSeconds) * test.BudgetMultiplier
+                : MechanicalBudgetSeconds;
 
         /// <summary>Lists the registered tests (name + severity + description) for cr.test list.</summary>
         public static string List()
@@ -385,6 +442,246 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"{captive.Name}");
             t.Expect("freed", !captive.IsPrisoner, true);
             return t.Line();
+        }
+
+        // ── RP with teeth, increment 1: give_influence / lend_troops / sway_opinion / release_prisoner ──
+
+        private static string TestRpInfluence(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("rp_influence");
+
+            (Hero giver, NpcProfile profile, int amount)? seed = SeedInfluenceEligible(behavior);
+            if (t.Skip(seed == null, "no live lord of another clan eligible to lend influence, even after forcing relation + clan reserve")) return t.Line();
+            (Hero giver, NpcProfile profile, int amount) = seed.Value;
+
+            float giverBefore = giver.Clan.Influence;
+            float playerBefore = Clan.PlayerClan.Influence;
+
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+                new GameAction { Type = "give_influence" }, giver, new ActionContext(profile, null));
+
+            float giverAfter = giver.Clan.Influence;
+            float playerAfter = Clan.PlayerClan.Influence;
+            NpcProfile after = behavior.Store.Get(giver.StringId);
+            bool marked = after != null && after.Events.Any(e =>
+                !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.InfluenceMarker, StringComparison.Ordinal) >= 0);
+
+            // The very same day, right after stamping the marker — the cooldown must refuse a repeat.
+            ActionOutcome again = behavior.GameStateBridge.ExecuteAction(
+                new GameAction { Type = "give_influence" }, giver, new ActionContext(after, null));
+            bool stillEligible = CourtActionResolver.TryGiveInfluence(giver, after, out _);
+
+            t.Note($"giver={giver.Name} amount={amount}, playerInfluence {playerBefore:0}->{playerAfter:0}, giverInfluence {giverBefore:0}->{giverAfter:0}");
+            t.Expect("outcomePositive", outcome?.IsPositive, true);
+            t.Expect("playerRose", playerAfter - playerBefore, (float) amount);
+            t.Expect("giverFell", giverBefore - giverAfter, (float) amount);
+            t.Expect("markerStamped", marked, true);
+            t.Expect("secondRefused", again == null || !again.IsPositive, true);
+            t.Expect("resolverNowIneligible", !stillEligible, true);
+            return t.Line();
+        }
+
+        private static string TestRpTroops(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("rp_troops");
+
+            (Hero lord, NpcProfile profile, int expected)? seed = SeedTroopsEligible(behavior);
+            if (t.Skip(seed == null, "no lord leading a healthy-enough party nearby, even after forcing relation")) return t.Line();
+            (Hero lord, NpcProfile profile, int expected) = seed.Value;
+
+            MobileParty npcParty = lord.PartyBelongedTo;
+            MobileParty playerParty = MobileParty.MainParty;
+            if (t.Abort(npcParty == null || playerParty == null, "a party vanished between eligibility check and execution")) return t.Line();
+
+            int npcBefore = npcParty.MemberRoster.TotalManCount;
+            int playerBefore = playerParty.MemberRoster.TotalManCount;
+            int playerHeroesBefore = playerParty.MemberRoster.GetTroopRoster().Count(el => el.Character.IsHero);
+
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+                new GameAction { Type = "lend_troops" }, lord, new ActionContext(profile, null));
+
+            int npcAfter = npcParty.MemberRoster.TotalManCount;
+            int playerAfter = playerParty.MemberRoster.TotalManCount;
+            int playerHeroesAfter = playerParty.MemberRoster.GetTroopRoster().Count(el => el.Character.IsHero);
+            NpcProfile after = behavior.Store.Get(lord.StringId);
+            bool marked = after != null && after.Events.Any(e =>
+                !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.TroopsMarker, StringComparison.Ordinal) >= 0);
+
+            t.Note($"lord={lord.Name} expected={expected}, npcTroops {npcBefore}->{npcAfter}, playerTroops {playerBefore}->{playerAfter}");
+            t.Expect("outcomePositive", outcome?.IsPositive, true);
+            t.Expect("playerGained", playerAfter - playerBefore, expected);
+            t.Expect("npcLost", npcBefore - npcAfter, expected);
+            t.Expect("noHeroesMoved", playerHeroesAfter, playerHeroesBefore);
+            t.Expect("markerStamped", marked, true);
+            return t.Line();
+        }
+
+        private static string TestRpSway(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("rp_sway");
+            if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+            (Hero npc, Hero target)? pair = ResolveSwayPair();
+            if (t.Skip(pair == null, "need an NPC + a distinct third lord to sway an opinion of")) return t.Line();
+            (Hero npc, Hero target) = pair.Value;
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            if (t.Skip(!CourtActionResolver.CanTeachSway(npc, profile), "NPC not eligible to teach sway_opinion")) return t.Line();
+
+            int relBefore = npc.GetRelation(target);
+            int eventsBefore = WorldEventStore.Instance.Count;
+
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+                new GameAction {
+                    Type = "sway_opinion",
+                    Parameters = new Dictionary<string, string> { {"target", target.Name.ToString()}, {"stance", "against"} }
+                }, npc, new ActionContext(profile, null));
+
+            int relAfter = npc.GetRelation(target);
+            int eventsAfter = WorldEventStore.Instance.Count;
+            NpcProfile after = behavior.Store.Get(npc.StringId);
+            bool marked = after != null && after.Events.Any(e =>
+                !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.SwayMarker(target.StringId), StringComparison.Ordinal) >= 0);
+
+            // Same pair, same day — the per-target cooldown must refuse a repeat.
+            ActionOutcome again = behavior.GameStateBridge.ExecuteAction(
+                new GameAction {
+                    Type = "sway_opinion",
+                    Parameters = new Dictionary<string, string> { {"target", target.Name.ToString()}, {"stance", "against"} }
+                }, npc, new ActionContext(after, null));
+
+            t.Note($"{npc.Name} vs {target.Name}: relation {relBefore}->{relAfter}, worldEvents {eventsBefore}->{eventsAfter}");
+            t.Expect("outcomePositive", outcome?.IsPositive, true);
+            t.Expect("relationDropped", relAfter - relBefore, CourtActionPolicy.SwayAgainstDelta);
+            t.Expect("markerStamped", marked, true);
+            t.Expect("worldEventRecorded", eventsAfter > eventsBefore, true);
+            t.Expect("repeatRefused", again == null || !again.IsPositive, true);
+            return t.Line();
+        }
+
+        private static string TestRpRelease(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("rp_release");
+
+            (Hero captor, NpcProfile profile, Hero victim)? seed = SeedReleaseEligible(behavior);
+            if (t.Skip(seed == null, "no lord's party available to hold a third-party hero captive")) return t.Line();
+            (Hero captor, NpcProfile profile, Hero victim) = seed.Value;
+
+            int relBefore = victim.GetRelation(Hero.MainHero);
+
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+                new GameAction {
+                    Type = "release_prisoner",
+                    Parameters = new Dictionary<string, string> { {"target", victim.Name.ToString()} }
+                }, captor, new ActionContext(profile, null));
+
+            int relAfter = victim.GetRelation(Hero.MainHero);
+
+            t.Note($"captor={captor.Name}, freed={victim.Name}, relation {relBefore}->{relAfter}");
+            t.Expect("outcomePositive", outcome?.IsPositive, true);
+            t.Expect("noLongerPrisoner", !victim.IsPrisoner, true);
+            t.Expect("relationBumped", relAfter - relBefore, CourtActionPolicy.ReleasePrisonerRelationBump);
+            return t.Line();
+        }
+
+        /// <summary>
+        ///   Finds a live lord of another clan and forces the two real preconditions <see cref="CourtActionResolver.TryGiveInfluence" />
+        ///   checks (personal relation, the giver clan's influence reserve) via the same real actions the executor
+        ///   itself uses, so a give_influence grant is genuinely assertable. Null when no such lord exists at all.
+        /// </summary>
+        private static (Hero giver, NpcProfile profile, int amount)? SeedInfluenceEligible(NpcMemoryCampaignBehavior behavior)
+        {
+            Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan);
+            if (giver == null) return null;
+
+            NpcProfile profile = GetOrCreate(behavior, giver);
+            int relBefore = giver.GetRelation(Hero.MainHero);
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(giver, Hero.MainHero, 60 - relBefore, false);
+            if (giver.Clan.Influence < 200f)
+                ChangeClanInfluenceAction.Apply(giver.Clan, 200f - giver.Clan.Influence);
+
+            return CourtActionResolver.TryGiveInfluence(giver, profile, out int amount)
+                ? (giver, profile, amount)
+                : null;
+        }
+
+        /// <summary>
+        ///   Finds a lord leading their own party with enough headcount to plausibly clear
+        ///   <see cref="CourtActionResolver.TryLendTroops" />, forces relation comfortably above the threshold,
+        ///   then re-checks the real gate against the live roster. Null when no such party exists nearby.
+        /// </summary>
+        private static (Hero lord, NpcProfile profile, int count)? SeedTroopsEligible(NpcMemoryCampaignBehavior behavior)
+        {
+            Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                h != Hero.MainHero && h.IsAlive && !h.IsPrisoner &&
+                h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h &&
+                h.PartyBelongedTo.MemberRoster != null && h.PartyBelongedTo.MemberRoster.TotalManCount >= 20);
+            if (lord == null) return null;
+
+            NpcProfile profile = GetOrCreate(behavior, lord);
+            int relBefore = lord.GetRelation(Hero.MainHero);
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(lord, Hero.MainHero, 100 - relBefore, false);
+
+            return CourtActionResolver.TryLendTroops(lord, profile, out int count)
+                ? (lord, profile, count)
+                : null;
+        }
+
+        /// <summary>
+        ///   The conversation NPC plus a distinct third lord to sway an opinion of, the sway_opinion pair.
+        ///   NEVER the NPC's own spouse, child, parent, or sibling ("cast aside my wife, my oaths" is a
+        ///   correct in-character refusal, not a bug) — <see cref="CourtActionPolicy.SelectSwayTarget" />
+        ///   excludes close kin and prefers a target the NPC already regards worst, so a genuine turn is
+        ///   plausible rather than asking them to betray their own family.
+        /// </summary>
+        private static (Hero npc, Hero target)? ResolveSwayPair()
+        {
+            Hero npc = ConversationNpc();
+            if (npc == null) return null;
+
+            List<Hero> pool = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && h != npc && h.IsLord).ToList();
+            if (pool.Count == 0) return null;
+
+            var candidates = pool.Select(h =>
+                new CourtActionPolicy.SwayCandidate(h.StringId, npc.GetRelation(h), IsCloseKin(npc, h))).ToList();
+
+            string targetId = CourtActionPolicy.SelectSwayTarget(candidates);
+            if (targetId == null) return null;
+
+            Hero target = pool.FirstOrDefault(h => h.StringId == targetId);
+            return target == null ? null : (npc, target);
+        }
+
+        /// <summary>True when <paramref name="candidate" /> is <paramref name="npc" />'s spouse, child, parent, or sibling.</summary>
+        private static bool IsCloseKin(Hero npc, Hero candidate)
+            => npc.Spouse == candidate
+               || npc.Father == candidate
+               || npc.Mother == candidate
+               || (npc.Children != null && npc.Children.Contains(candidate))
+               || (npc.Siblings != null && npc.Siblings.Contains(candidate));
+
+        /// <summary>
+        ///   Finds a lord (of another clan, leading their own party) and a distinct free lord to take captive
+        ///   under it, via the same <see cref="TakePrisonerAction" /> the capture tests use — the pool
+        ///   release_prisoner negotiates from. Null when no such pair exists.
+        /// </summary>
+        private static (Hero captor, NpcProfile profile, Hero victim)? SeedReleaseEligible(NpcMemoryCampaignBehavior behavior)
+        {
+            Hero captor = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan &&
+                h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h);
+            if (captor == null) return null;
+
+            Hero victim = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                h != Hero.MainHero && h != captor && h.Clan != captor.Clan && h.IsLord && !h.IsPrisoner);
+            if (victim == null) return null;
+
+            TakePrisonerAction.Apply(captor.PartyBelongedTo.Party, victim);
+            if (!CourtActionResolver.CanRelease(victim, captor)) return null;
+
+            NpcProfile profile = GetOrCreate(behavior, captor);
+            return (captor, profile, victim);
         }
 
         private static string TestDeclareWar(NpcMemoryCampaignBehavior behavior)
@@ -1014,6 +1311,144 @@ namespace CalradiaRemembers.Diagnostics
             return t.Line();
         }
 
+        // ── RP with teeth, increment 1: does the LLM actually EMIT each verb given a real reason to? ──
+
+        private static string TestChatRpInfluence(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_rp_influence");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            (Hero giver, NpcProfile profile, int amount)? seed = SeedInfluenceEligible(behavior);
+            if (t.Skip(seed == null, "no live lord of another clan eligible to lend influence in this campaign")) return t.Line();
+            (Hero giver, NpcProfile profile, int amount) = seed.Value;
+
+            const string question = "Lend me your voice at court, I need weight for the vote to come.";
+            var ctx = EncounterContextBuilder.Build(giver, profile, behavior.GameStateBridge, question);
+            if (t.Abort(ctx.ExtraActionTeachings == null || ctx.ExtraActionTeachings.IndexOf("give_influence", StringComparison.OrdinalIgnoreCase) < 0,
+                    "give_influence not taught in the prompt despite eligibility (wiring bug, not a judgment call)")) return t.Line();
+
+            var (ok, resp, err) = AskLlmParsed(behavior, "chat_rp_influence", giver, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            bool emitted = resp.Actions != null && resp.Actions.Any(a => string.Equals(a.Type, "give_influence", StringComparison.OrdinalIgnoreCase));
+            t.Note($"{giver.Name} eligible to lend {amount} influence; judge in log: an in-character grant, not a flat refusal | A: {Show(resp.Dialogue)}");
+            t.Expect("emittedGiveInfluence", emitted, true);
+            return t.Line();
+        }
+
+        private static string TestChatRpTroops(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_rp_troops");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            (Hero lord, NpcProfile profile, int expected)? seed = SeedTroopsEligible(behavior);
+            if (t.Skip(seed == null, "no lord leading a healthy-enough party nearby, even after forcing relation")) return t.Line();
+            (Hero lord, NpcProfile profile, int expected) = seed.Value;
+
+            const string question = "Spare me a few good men for the road, I ride into danger.";
+            var ctx = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, question);
+            if (t.Abort(ctx.ExtraActionTeachings == null || ctx.ExtraActionTeachings.IndexOf("lend_troops", StringComparison.OrdinalIgnoreCase) < 0,
+                    "lend_troops not taught in the prompt despite eligibility (wiring bug, not a judgment call)")) return t.Line();
+
+            var (ok, resp, err) = AskLlmParsed(behavior, "chat_rp_troops", lord, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            bool emitted = resp.Actions != null && resp.Actions.Any(a => string.Equals(a.Type, "lend_troops", StringComparison.OrdinalIgnoreCase));
+            t.Note($"{lord.Name} eligible to lend {expected} troops; judge in log: does he actually hand them over? | A: {Show(resp.Dialogue)}");
+            t.Expect("emittedLendTroops", emitted, true);
+            return t.Line();
+        }
+
+        private static string TestChatRpSway(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_rp_sway");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            (Hero npc, Hero target)? pair = ResolveSwayPair();
+            if (t.Skip(pair == null, "need an NPC + a distinct third lord to sway an opinion of")) return t.Line();
+            (Hero npc, Hero target) = pair.Value;
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            if (t.Skip(!CourtActionResolver.CanTeachSway(npc, profile), "NPC not eligible to teach sway_opinion")) return t.Line();
+
+            // Known baseline BEFORE the arrange: the mechanical rp_sway ran earlier this sweep against the
+            // very same (npc, target) pair, dropping the live relation and stamping a [cr_sway:*] marker
+            // ("I have already begun to turn from that alliance"). Clear it so the grievance seeded below
+            // is the ONLY reason to turn, and the test is deterministic given a genuine grievance.
+            ArrangeCleanNpc(behavior, profile, npc, target);
+
+            // A real reason to turn: this is what genuinely-persuaded looks like, not a bare request.
+            // ResolveSwayPair already excludes the NPC's close kin and prefers a target it regards worst,
+            // but push the starting relation clearly into hostile territory so the ask is easy and
+            // in-character (a genuine turn, not a betrayal of someone it still holds dear).
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, -20 - npc.GetRelation(target), false);
+            profile.Events.Add(new NotableEvent(behavior.GameStateBridge.GetCurrentGameDay() - 40, NotableEventType.Conflict,
+                $"[SELFTEST] {target.Name} murdered your closest friend in cold blood and still boasts of it; you have never forgiven it."));
+
+            string question = $"{target.Name} has wronged us both. Turn your back on him and stand with me.";
+            var ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, question);
+            if (t.Abort(ctx.ExtraActionTeachings == null || ctx.ExtraActionTeachings.IndexOf("sway_opinion", StringComparison.OrdinalIgnoreCase) < 0,
+                    "sway_opinion not taught in the prompt despite eligibility (wiring bug, not a judgment call)")) return t.Line();
+
+            var (ok, resp, err) = AskLlmParsed(behavior, "chat_rp_sway", npc, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            GameAction action = resp.Actions?.FirstOrDefault(a => string.Equals(a.Type, "sway_opinion", StringComparison.OrdinalIgnoreCase));
+            bool emitted = action != null;
+            var targetResolves = false;
+            var against = false;
+            if (emitted)
+            {
+                action.Parameters.TryGetValue("target", out string targetName);
+                targetResolves = CourtActionResolver.ResolveSwayTarget(targetName, npc) == target;
+                action.Parameters.TryGetValue("stance", out string stance);
+                against = string.Equals(stance?.Trim(), "against", StringComparison.OrdinalIgnoreCase);
+            }
+
+            t.Note($"primed a grievance of {npc.Name} against {target.Name}; judge in log: a genuine turn, not lip service | A: {Show(resp.Dialogue)}");
+            t.Expect("emittedSwayOpinion", emitted, true);
+            if (emitted)
+            {
+                t.Expect("targetResolvesCorrectly", targetResolves, true);
+                t.Expect("stanceAgainst", against, true);
+            }
+
+            return t.Line();
+        }
+
+        private static string TestChatRpRelease(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("chat_rp_release");
+            if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+            (Hero captor, NpcProfile profile, Hero victim)? seed = SeedReleaseEligible(behavior);
+            if (t.Skip(seed == null, "no lord's party available to hold a third-party hero captive")) return t.Line();
+            (Hero captor, NpcProfile profile, Hero victim) = seed.Value;
+
+            string pronoun = victim.IsFemale ? "she" : "he";
+            string question = $"Free {victim.Name}. Alive and grateful, {pronoun} is worth more to you than in chains.";
+            var ctx = EncounterContextBuilder.Build(captor, profile, behavior.GameStateBridge, question);
+            if (t.Abort(ctx.ExtraActionTeachings == null || ctx.ExtraActionTeachings.IndexOf("release_prisoner", StringComparison.OrdinalIgnoreCase) < 0,
+                    "release_prisoner not taught in the prompt despite eligibility (wiring bug, not a judgment call)")) return t.Line();
+
+            var (ok, resp, err) = AskLlmParsed(behavior, "chat_rp_release", captor, profile, ctx, question);
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            GameAction action = resp.Actions?.FirstOrDefault(a => string.Equals(a.Type, "release_prisoner", StringComparison.OrdinalIgnoreCase));
+            bool emitted = action != null;
+            var targetResolves = false;
+            if (emitted)
+            {
+                action.Parameters.TryGetValue("target", out string targetName);
+                targetResolves = CourtActionResolver.ResolveHeldPrisonerByName(targetName, captor) == victim;
+            }
+
+            t.Note($"{captor.Name} holds {victim.Name} captive; judge in log: a genuine mercy, not lip service | A: {Show(resp.Dialogue)}");
+            t.Expect("emittedReleasePrisoner", emitted, true);
+            if (emitted) t.Expect("targetResolvesCorrectly", targetResolves, true);
+            return t.Line();
+        }
+
         private static string TestChatStanceAssassin(NpcMemoryCampaignBehavior behavior)
         {
             var t = new TestRun("chat_stance_assassin");
@@ -1302,6 +1737,10 @@ namespace CalradiaRemembers.Diagnostics
             if (t.Skip(npc == null, "no NPC to play the captor")) return t.Line();
 
             NpcProfile profile = GetOrCreate(behavior, npc);
+            // Known baseline: earlier tests in the sweep piled a large event history onto this same NPC
+            // (the deterministic ConversationNpc pick). Clear it so the anti-recap check is a CLEAN
+            // measurement of the prompt change, not a captor with a dozen old events to re-litigate.
+            ArrangeCleanNpc(behavior, profile, npc);
 
             var (ran, beats) = RunCaptiveContinueBeats(
                 behavior, "chat_captive_continue", npc, profile, CaptiveSceneIntent.Domination, continueBeats: 4);
@@ -1332,6 +1771,9 @@ namespace CalradiaRemembers.Diagnostics
             if (t.Skip(victim == null, "no second hero to play the captive companion")) return t.Line();
 
             NpcProfile profile = GetOrCreate(behavior, npc);
+            // Same deterministic captor as chat_captive_continue: clear the piled-up history so the
+            // anti-recap quality check measures the prompt, not an NPC re-litigating old events.
+            ArrangeCleanNpc(behavior, profile, npc);
             var witnesses = new List<WitnessEntry> {
                 new() {
                     Name = victim.Name?.ToString(),
@@ -1473,6 +1915,47 @@ namespace CalradiaRemembers.Diagnostics
             return false;
         }
 
+        /// <summary>
+        ///   Runs one LLM call under the ambient <see cref="_budgetToken" />, blocking the calling thread until
+        ///   it completes or the test's budget cancels it (Task.Run avoids any main-thread sync-context capture).
+        ///   <paramref name="start" /> must thread the token it receives into the real pipeline (ChatAsync's own
+        ///   <c>ct</c> parameter) so a timed-out call is actually aborted at the HTTP layer, not merely given up
+        ///   on locally, which is what stops a slow call from completing later and mutating state after the
+        ///   sweep has moved on to the next test. Shared by <see cref="AskLlm" /> and <see cref="AskLlmParsed" />.
+        /// </summary>
+        private static bool TryRunLlmTask<T>(Func<CancellationToken, Task<T>> start, out T result, out string error)
+        {
+            CancellationToken ct = _budgetToken;
+            Task<T> task = Task.Run(() => start(ct), ct);
+            try
+            {
+                task.Wait(ct);
+            }
+            catch (OperationCanceledException)
+            {
+                result = default;
+                error = BudgetTimeoutMessage();
+                return false;
+            }
+            catch (AggregateException ex) when (ex.InnerExceptions.Count > 0 && ex.InnerExceptions.All(e => e is OperationCanceledException))
+            {
+                result = default;
+                error = BudgetTimeoutMessage();
+                return false;
+            }
+
+            result = task.GetAwaiter().GetResult();
+            error = null;
+            return true;
+        }
+
+        /// <summary>The clear "timed out after Ns (budget Ns)" message for a cancelled LLM call.</summary>
+        private static string BudgetTimeoutMessage()
+        {
+            double elapsed = _budgetStopwatch?.Elapsed.TotalSeconds ?? _budgetSeconds;
+            return $"LLM call timed out after {elapsed:0.0}s (budget {_budgetSeconds}s); cancelled in-flight, sweep continues";
+        }
+
         /// <summary>Like <see cref="AskLlm" /> but returns the full parsed response (dialogue + narration + witness lines).</summary>
         private static (bool ok, ParsedResponse resp, string error) AskLlmParsed(
             NpcMemoryCampaignBehavior behavior, string label, Hero npc, NpcProfile profile, EncounterContext ctx, string question,
@@ -1484,11 +1967,8 @@ namespace CalradiaRemembers.Diagnostics
             var world = new WorldState { CurrentDay = behavior.GameStateBridge.GetCurrentGameDay() };
             session ??= new ChatSession();
 
-            var llmTask = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, question, ctx));
-            if (!llmTask.Wait(TimeSpan.FromSeconds(90)))
-                return (false, null, "LLM call timed out after 90s (provider slow/hung, or a deadlock) — harness moved on");
-
-            var result = llmTask.GetAwaiter().GetResult();
+            if (!TryRunLlmTask(ct => services.ChatService.ChatAsync(profile, world, session, question, ctx, ct), out var result, out string timeoutError))
+                return (false, null, timeoutError);
             if (result is not {IsSuccess: true}) return (false, null, result?.ErrorMessage ?? "no result");
 
             ParsedResponse resp = result.Response ?? new ParsedResponse { Dialogue = "" };
@@ -1520,14 +2000,8 @@ namespace CalradiaRemembers.Diagnostics
             // A shared session (passed in) carries a multi-turn scene forward; ChatAsync appends each turn to it.
             session ??= new ChatSession();
 
-            // Synchronous wait on the real pipeline (Task.Run avoids any main-thread sync-context capture).
-            // Bounded so one slow/hung provider call (or a deadlock) can never freeze the whole sweep with no
-            // report — it reports a timeout for that test and the harness moves on to the next.
-            var llmTask = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, question, ctx));
-            if (!llmTask.Wait(TimeSpan.FromSeconds(90)))
-                return (false, null, "LLM call timed out after 90s (provider slow/hung, or a deadlock) — harness moved on");
-
-            var result = llmTask.GetAwaiter().GetResult();
+            if (!TryRunLlmTask(ct => services.ChatService.ChatAsync(profile, world, session, question, ctx, ct), out var result, out string timeoutError))
+                return (false, null, timeoutError);
             if (result is not {IsSuccess: true}) return (false, null, result?.ErrorMessage ?? "no result");
 
             string reply = result.Response?.Dialogue ?? "";
@@ -1557,16 +2031,66 @@ namespace CalradiaRemembers.Diagnostics
                     ? s.Substring(0, 180) + "..."
                     : s;
 
+        // ── Per-test LLM wall-clock budget ───────────────────────────────────
+        //
+        // Set by SafeRun for the duration of one test.Run(behavior) call, read by AskLlm / AskLlmParsed
+        // (the only two call sites that actually talk to the LLM). This is an ambient handoff, not a
+        // parameter, so the ~25 conversation test methods (and the beat-loop helpers they share) need no
+        // signature change: they already funnel every LLM call through those two helpers.
+
+        /// <summary>The budget token for the LLM call currently allowed to run. Cancelled when the test's wall-clock budget elapses; AskLlm/AskLlmParsed pass it straight into ChatAsync so a timed-out call is actually aborted mid-flight (never merely abandoned).</summary>
+        private static CancellationToken _budgetToken = CancellationToken.None;
+
+        /// <summary>The configured budget for the running test, in seconds, for the "timed out after Ns (budget Ns)" message.</summary>
+        private static int _budgetSeconds;
+
+        /// <summary>Wall clock since the running test's budget CTS was armed, for the "timed out after Ns" message.</summary>
+        private static Stopwatch _budgetStopwatch;
+
         // ── Helpers ───────────────────────────────────────────────────────────
 
-        private static string SafeRun(SelfTest test, NpcMemoryCampaignBehavior behavior)
+        /// <summary>
+        ///   Runs one test under a wall-clock budget. Non-LLM tests run unguarded (fast, in-memory, nothing
+        ///   to cancel). LLM tests get a <see cref="CancellationTokenSource" /> armed for <paramref name="budgetSeconds" />
+        ///   and exposed via <see cref="_budgetToken" />; AskLlm/AskLlmParsed thread it into the real chat
+        ///   pipeline so a timed-out call is cancelled at the HTTP layer, not just given up on locally, which
+        ///   is what keeps a slow call from landing and mutating state after the sweep has moved on.
+        /// </summary>
+        private static string SafeRun(SelfTest test, NpcMemoryCampaignBehavior behavior, int budgetSeconds)
         {
-            try { return test.Run(behavior); }
+            if (!test.CallsLlm)
+            {
+                try { return test.Run(behavior); }
+                catch (Exception ex)
+                {
+                    string msg = $"[SELFTEST] {test.Name}: FAIL — threw {ex.GetType().Name}: {ex.Message}";
+                    ModLog.Error(msg);
+                    return msg;
+                }
+            }
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(budgetSeconds));
+            CancellationToken previousToken = _budgetToken;
+            int previousBudget = _budgetSeconds;
+            Stopwatch previousStopwatch = _budgetStopwatch;
+            _budgetToken = cts.Token;
+            _budgetSeconds = budgetSeconds;
+            _budgetStopwatch = Stopwatch.StartNew();
+            try
+            {
+                return test.Run(behavior);
+            }
             catch (Exception ex)
             {
                 string msg = $"[SELFTEST] {test.Name}: FAIL — threw {ex.GetType().Name}: {ex.Message}";
                 ModLog.Error(msg);
                 return msg;
+            }
+            finally
+            {
+                _budgetToken = previousToken;
+                _budgetSeconds = previousBudget;
+                _budgetStopwatch = previousStopwatch;
             }
         }
 
@@ -1577,6 +2101,39 @@ namespace CalradiaRemembers.Diagnostics
             p = HeroProfileMapper.FromHero(hero);
             behavior.Store.Set(p);
             return p;
+        }
+
+        /// <summary>
+        ///   Gives one NPC a KNOWN baseline before a chat test's own Arrange step. The self-test sweep runs
+        ///   many tests against a single shared campaign, and each one mutates its NPC; without this, a later
+        ///   test inherits the earlier tests' memories, relations, and hidden cooldown markers (a real run
+        ///   showed the mechanical rp_sway suppressing chat_rp_sway, and the deterministic captor's piled-up
+        ///   history feeding the captive recap fault). Clearing <see cref="NpcProfile.Events" /> also drops
+        ///   the hidden [cr_sway:*]/[cr_influence]/[cr_troops] cooldown markers, which live inside recorded
+        ///   events. When <paramref name="target" /> is given, its relation is neutralised too (the sway pair).
+        ///   This mutates the save, already within the harness's documented "reload after the self-tests"
+        ///   contract. The test then seeds ONLY what it needs.
+        /// </summary>
+        private static void ArrangeCleanNpc(NpcMemoryCampaignBehavior behavior, NpcProfile profile, Hero npc, Hero target = null)
+        {
+            profile.Events.Clear();
+            profile.ActiveQuests.Clear();
+            profile.DiscoveredTraits.Clear();
+            profile.ReceivedPlayerLetters.Clear();
+            profile.SentLetters.Clear();
+            profile.ReputationWithPlayer = 0;
+
+            NeutralizeRelation(npc, Hero.MainHero);
+            if (target != null) NeutralizeRelation(npc, target);
+
+            behavior.Store.Set(profile);
+        }
+
+        /// <summary>Resets the engine relation between two heroes to a neutral 0, via the same path the tests use to seed it.</summary>
+        private static void NeutralizeRelation(Hero a, Hero b)
+        {
+            int rel = a.GetRelation(b);
+            if (rel != 0) ChangeRelationAction.ApplyRelationChangeBetweenHeroes(a, b, -rel, false);
         }
 
         // ── Types ─────────────────────────────────────────────────────────────
@@ -1592,13 +2149,22 @@ namespace CalradiaRemembers.Diagnostics
             /// <summary>True when the test makes a real LLM call (a conversation smoke test) — costs an API call + a freeze.</summary>
             public readonly bool CallsLlm;
 
-            public SelfTest(string name, Severity severity, string description, Func<NpcMemoryCampaignBehavior, string> run, bool callsLlm = false)
+            /// <summary>
+            ///   Multiplies the per-test LLM wall-clock budget (see <see cref="CrSelfTest.BudgetSecondsFor" />) for a
+            ///   test that fires SEVERAL real LLM calls in sequence (e.g. a multi-beat captive scene) — one call's
+            ///   worth of budget would starve the later beats. Ignored for mechanical tests. Default 1 (a single call).
+            /// </summary>
+            public readonly int BudgetMultiplier;
+
+            public SelfTest(string name, Severity severity, string description, Func<NpcMemoryCampaignBehavior, string> run,
+                bool callsLlm = false, int budgetMultiplier = 1)
             {
                 Name = name;
                 Severity = severity;
                 Description = description;
                 Run = run;
                 CallsLlm = callsLlm;
+                BudgetMultiplier = Math.Max(1, budgetMultiplier);
             }
         }
 

@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
@@ -71,9 +72,10 @@ namespace CalradiaRemembers.Mapping
       {
          int daysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge);
          bool npcIsPrisonerOfAnother = IsPrisonerOfAnother(hero);
+         PlayerStatusVsNpc playerStatus = playerStatusOverride ?? ResolvePlayerStatus(hero, profile, bridge);
 
          return new() {
-         PlayerStatus = playerStatusOverride ?? ResolvePlayerStatus(hero, profile, bridge),
+         PlayerStatus = playerStatus,
          WarStatus = bridge.GetDiplomaticStatus(hero),
          DaysSinceLastMeeting = daysSinceLastMeeting,
          MeetingGapNote = MeetingGapDescriber.Describe(daysSinceLastMeeting),
@@ -142,7 +144,8 @@ namespace CalradiaRemembers.Mapping
          IntimacyBargainEligible = IntimacyBargainEligibility.IsEligible(hero),
          IntimacyLeverageActive = IntimacyBargainEligibility.IsEligible(hero) && profile?.IntimacyLeverageHeld == true,
          BastardMotherTone = ResolveBastardMotherTone(hero),
-         BastardBlackmailDemand = Bastards.BastardBehavior.Instance?.BlackmailDemandOver(hero) ?? 0
+         BastardBlackmailDemand = Bastards.BastardBehavior.Instance?.BlackmailDemandOver(hero) ?? 0,
+         ExtraActionTeachings = ResolveExtraActionTeachings(hero, profile, playerStatus)
          // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
          // coin, and naming the exact sum broke immersion. Affordability is enforced by the
          // bridge when the hire is executed, not foreseen in the prompt.
@@ -523,6 +526,85 @@ namespace CalradiaRemembers.Mapping
          if (status == RomanticStatus.Committed) return false;
 
          return profile.ReputationWithPlayer >= 60;
+      }
+
+      /// <summary>
+      ///   RP with teeth, increment 1: composes the ONE generic <see cref="EncounterContext.ExtraActionTeachings" />
+      ///   block from the four court-action eligibility resolvers in <see cref="CourtActionResolver" />. Each
+      ///   verb's own section (and its [ACTION] format) is included only when currently eligible, so the LLM is
+      ///   never taught a verb the bridge would refuse. Null when none apply right now, or while the player is
+      ///   this NPC's captive (none of these favours make sense from a dungeon).
+      /// </summary>
+      private static string ResolveExtraActionTeachings(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus)
+      {
+         if (hero == null || profile == null) return null;
+         if (playerStatus == PlayerStatusVsNpc.Captive) return null;
+
+         var sb = new StringBuilder();
+
+         if (CourtActionResolver.TryGiveInfluence(hero, profile, out int influenceAmount))
+         {
+            sb.AppendLine("GIVE_INFLUENCE, LENDING THE PLAYER YOUR VOICE AT COURT:");
+            sb.AppendLine("Your standing runs deep enough, and your clan's influence is ample enough, that you could");
+            sb.AppendLine("lend the player some of your own political weight at court, a word put in on their behalf");
+            sb.AppendLine("with your peers. This is not idle: it costs your own house real standing.");
+            sb.AppendLine("When you have genuinely resolved to do this in this conversation, and only then, emit:");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: give_influence");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine($"The game transfers {influenceAmount} points of influence from your clan to theirs.");
+            sb.AppendLine();
+         }
+
+         if (CourtActionResolver.TryLendTroops(hero, profile, out int troopCount))
+         {
+            sb.AppendLine("LEND_TROOPS, HANDING THE PLAYER SOME SOLDIERS FOR THE ROAD:");
+            sb.AppendLine("You lead enough of a healthy force, and think well enough of the player, that you could");
+            sb.AppendLine("part with a handful of your own rank and file to strengthen their party. You would keep");
+            sb.AppendLine("the bulk of your own men, not gut your household guard.");
+            sb.AppendLine("When you have genuinely resolved to do this in this conversation, and only then, emit:");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: lend_troops");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine($"The game moves {troopCount} of your own soldiers into their ranks.");
+            sb.AppendLine();
+         }
+
+         if (CourtActionResolver.CanTeachSway(hero, profile))
+         {
+            sb.AppendLine("SWAY_OPINION, TURNING YOUR OWN REGARD FOR SOMEONE, AT THE PLAYER'S WORD:");
+            sb.AppendLine("If the player makes a case about a THIRD PARTY, someone else you know, that genuinely");
+            sb.AppendLine("moves your own opinion of that person (a wrong laid bare, a debt of gratitude recalled,");
+            sb.AppendLine("a betrayal revealed), your regard for THAT PERSON, not the player, may shift.");
+            sb.AppendLine("Emit this ONLY when you are TRULY persuaded, in character, on the strength of the case");
+            sb.AppendLine("made, never merely to please the player or because they asked. A shallow or self-serving");
+            sb.AppendLine("argument should not move you.");
+            sb.AppendLine("If you are truly turning against them, emit the [ACTION] block this turn. Voicing");
+            sb.AppendLine("agreement, or saying you might turn, without the action, changes nothing in the world.");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: sway_opinion");
+            sb.AppendLine("target: the person's name, exactly as known to you");
+            sb.AppendLine("stance: against OR for");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine();
+         }
+
+         List<Hero> heldPrisoners = CourtActionResolver.HeldPrisonersOf(hero);
+         if (heldPrisoners.Count > 0)
+         {
+            sb.AppendLine("RELEASE_PRISONER, INTERCEDING FOR SOMEONE YOU HOLD CAPTIVE:");
+            sb.AppendLine("You currently hold these captives, and the player might persuade you to set one free:");
+            foreach (Hero captive in heldPrisoners)
+               sb.AppendLine($"- {captive.Name}");
+            sb.AppendLine("When you have genuinely agreed to free one of them, and only then, emit:");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: release_prisoner");
+            sb.AppendLine("target: the captive's name, exactly as listed above");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine();
+         }
+
+         return sb.Length == 0 ? null : sb.ToString();
       }
 
       /// <summary>

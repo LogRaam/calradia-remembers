@@ -171,8 +171,8 @@ namespace CalradiaRemembers.Chat
       public static string BuildContinuationStimulus()
          => "*The moment stretches in silence, waiting for what comes next.* " +
             "[Continue: play only this turn's beat, moving FORWARD from the last thing that happened. No restart, " +
-            "no recap; never reuse an image, phrase, or gesture from earlier in the scene. Fresh, specific " +
-            "physical detail in [NARRATION].]";
+            "no recap of your history, grievances, or reasons; never reuse an image, phrase, or gesture from " +
+            "earlier in the scene. Fresh, specific physical detail in [NARRATION].]";
 
       public static string BuildResumeOpener()
          => "[You are NOT finished with this prisoner. The scene resumes — same prisoner, same place — and " +

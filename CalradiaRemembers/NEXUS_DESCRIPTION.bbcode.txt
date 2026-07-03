@@ -12,6 +12,11 @@ Many of you have asked for a way to support my work, so I’ve set up a Ko-fi pa
 Thank you, truly. ❤️[/center]
 
 [line]
+[size=4][color=#ffd966]What's new in v1.20.5[/color][/size]
+
+Conversations now reach into the world. You can ask a lord, in your own words, to lend you their voice at court (their influence passes to you), to spare you some soldiers for the road, to turn against a third party you both have cause to distrust, or to free a prisoner they hold at your word. Each is a real deed with real consequences, their influence, their troops, their standing with the person they turn on, a captive actually freed, granted only when it fits that lord and their character, and refused plainly when it does not. A calculating steward will still weigh what he gains before he agrees. This is the first step of a larger effort to give what you say real weight in the world. Also fixed: lords no longer mistake a plain request for a threat, so approaching a settlement's owner about a deal no longer makes him answer as though you came to conquer his home.
+
+[line]
 [size=4][color=#ffd966]What's new in v1.20.4[/color][/size]
 
 Companion errands now show in your quest journal. When you send a companion off (to gather news, spy, steal, barter, or carry your word as an envoy), an entry appears, [b]Errand: [name][/b] with their portrait, and updates as they ride out, reach the town, and head back, so you always know who you sent where. It closes when they return or you recall them. Also, letters are better grounded in where everyone actually is: a settled correspondent (a spouse at her own hall) now writes from her real place instead of from nowhere, and a letter no longer tells you to "come home" while you stand in the same hall, or speaks as though you are somewhere you are not, because the writer now knows where you are and whether you are together.

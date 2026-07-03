@@ -292,6 +292,52 @@ a second breakpoint splitting the universal header from the per-NPC block (Anthr
 
 ## Open — not yet built
 
+### RP with teeth, giving conversations real consequences *(ratified 2026-07-02 — a new pillar)*
+
+**Why this is a pillar.** CR's roleplay has always been rich in *voice* but thin in *stakes* outside the
+handful of headline deeds (join_clan, marriage, prisoner bargains). A player can say almost anything to an
+NPC and the world does not visibly answer back beyond `change_relation`. This pillar is the deliberate,
+ongoing effort to close that gap: every increment adds conversation verbs that carry REAL vanilla
+consequences, re-validated by the bridge ("the prompt is advice, the bridge is law"), never a hollow promise
+the engine ignores.
+
+**Increment 1 — four quick-win verbs. 🔨 BUILT 2026-07-02 (untested in game), 676 mod tests / 190 SDK tests
+green.** `give_influence` (a lord lends the player political influence, scaled by relation, capped, clan
+must afford it), `lend_troops` (a party-leading NPC hands over healthy regular soldiers, never heroes, never
+below 60% of their own strength, bounded by the player's party room), `sway_opinion` (the player's case
+genuinely moves the NPC's own regard for a named THIRD PARTY, for or against, with a per-pair cooldown and an
+ambient world-event rumour), and `release_prisoner` (the player intercedes for a THIRD-PARTY hero prisoner an
+NPC's clan holds, distinct from the existing `free_prisoner` case where the NPC is the player's OWN captive).
+Architecturally this increment introduced the **generic extension surface** every future verb rides on:
+`EncounterContext.ExtraActionTeachings` (SDK) — one host-composed, prompt-ready block rendered right after the
+core GAME ACTIONS section (skipped in Lean mode), instead of a bespoke `EncounterContext` field and a
+hardcoded `PromptBuilder` section per verb. The mod composes the block in `EncounterContextBuilder` from
+`CourtActionResolver` (engine-coupled facts) + `CourtActionPolicy` (pure amounts/caps/cooldowns, tested).
+Per-NPC (and per-NPC-and-target, for sway) cooldowns are derived by scanning the NPC's own `NpcProfile.Events`
+for a hidden marker the action itself records — no new persisted field. Console: `cr.rp_verbs [name]`.
+
+**Increment 2 — the TrackedCommitment engine.** The symmetric of `InformalQuest`: instead of the NPC setting
+the PLAYER a task, the NPC OWES the player something ("I will speak for you at the council", "send word when
+the harvest comes in", "I will not move against your ally"). Verified by real campaign events (a promise
+either comes true, silently lapses, or is caught in the act of being broken), journal-mirrored so the player
+can see what is owed to them, and a breach costs the NPC real standing: a stance drop plus gossip (the world
+hears an oath-breaker's name). Design not yet started.
+
+**Increment 3 — the coalition package.** `pledge_against` (raise a faction/army against a named rival,
+verified by the pledging NPC's actual BATTLE PARTICIPATION on the player's side) and backing the player in a
+KINGDOM DECISION (a vote, a policy, a succession). **Needs a spike first**: Bannerlord's kingdom-decision API
+must be scoped before this increment can be estimated — the coalition mechanics may or may not be reachable
+without heavy engine coupling. Do not start building before that spike lands.
+
+**Increment 4 — headliners.** The two biggest, riskiest, most narratively powerful verbs, deliberately last:
+**defection brokering** (the player persuades an NPC to broker ANOTHER lord's defection, not just their own —
+a step beyond the existing `join_clan`) and **NPC matchmaking** (the player arranges a marriage between two
+OTHER NPCs, reading and writing the same marriage-prospect machinery `MarriageProspectResolver` already
+provides). Both need real design passes; neither is scoped yet.
+
+**Settlement sale: EVALUATED AND REJECTED (Gabriel, 2026-07-02): a fief is a lord's sovereignty and reason to
+exist, not merchandise; no amount of gold makes selling it in-character. Do not revisit.**
+
 ### Extension Surface — CR as the narrative-memory bus of a modlist *(wished 2026-06-25 — a new pillar)*
 
 **Why this is the point, strategically** *(Gabriel, 2026-06-25):* this SDK is the purest expression of CR's

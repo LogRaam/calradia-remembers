@@ -20,20 +20,27 @@ namespace CalradiaRemembers
    public static partial class ModCheats
    {
       /// <summary>
-      ///   cr.testall
+      ///   cr.testall [llmBudgetSeconds]
       ///   Runs every registered end-to-end self-test EXCEPT the irreversible ones (declaring war,
       ///   sealing one-shot scenarios) and prints a [SELFTEST] summary. Each test exercises the real
-      ///   service/bridge pipeline and logs PASS/FAIL/MANUAL. The irreversible tests are held back so a
+      ///   service/bridge pipeline and logs PASS/FAIL/MANUAL under its own wall-clock budget; mechanical
+      ///   tests run first (fast, free), then the LLM ones. The irreversible tests are held back so a
       ///   routine sweep never mutates the live campaign that way (and never poisons the conversation
       ///   tests); run them explicitly via cr.test &lt;name&gt;, or cr.test full on a throwaway save.
-      ///   WARNING: even the safe sweep mutates relations/quests/clans — copy your save or reload when done.
+      ///   The optional numeric argument overrides the per-LLM-test budget in seconds for this run only
+      ///   (e.g. cr.testall 180 for a slow local model).
+      ///   WARNING: even the safe sweep mutates relations/quests/clans, copy your save or reload when done.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("testall", "cr")]
       public static string RunAllSelfTests(List<string> args)
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
 
-         return CrSelfTest.RunAll(behavior);
+         int? llmBudgetSeconds = null;
+         if (args is {Count: > 0} && int.TryParse(args[0], out int parsed) && parsed > 0)
+            llmBudgetSeconds = parsed;
+
+         return CrSelfTest.RunAll(behavior, llmBudgetSeconds);
       }
 
       /// <summary>

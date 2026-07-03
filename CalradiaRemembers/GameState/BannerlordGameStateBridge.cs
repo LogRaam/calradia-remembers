@@ -166,6 +166,14 @@ namespace CalradiaRemembers.GameState
                return ExecuteReassureCompanion(npcHero);
             case "recall_companion":
                return ExecuteRecallCompanion(npcHero);
+            case "give_influence":
+               return ExecuteGiveInfluence(npcHero, context);
+            case "lend_troops":
+               return ExecuteLendTroops(npcHero, context);
+            case "sway_opinion":
+               return ExecuteSwayOpinion(action, npcHero, context);
+            case "release_prisoner":
+               return ExecuteReleasePrisoner(action, npcHero, context);
             default:
                ModLog.Info($"[ACTION] Unknown type '{action.Type}' — ignored.");
 
@@ -562,6 +570,190 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] free_prisoner failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   give_influence (RP with teeth, increment 1): a lord lends the player some of their own
+      ///   political weight at court. Only taught when <see cref="CourtActionResolver.TryGiveInfluence" />
+      ///   confirms every gate, but re-validated here — the prompt is advice, the bridge is law. Records
+      ///   a memory-event marker (<see cref="CourtActionResolver.InfluenceMarker" />) so the per-NPC
+      ///   cooldown can be read back from the profile's own history, without a new persisted field.
+      /// </summary>
+      private static ActionOutcome ExecuteGiveInfluence(Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            NpcProfile profile = context?.Profile;
+
+            if (npcHero == null || profile == null) return null;
+            if (!CourtActionResolver.TryGiveInfluence(npcHero, profile, out int amount))
+               return new ActionOutcome($"({npcHero.Name} has no influence to spare you just now.)", false);
+
+            Clan giver = npcHero.Clan;
+            ChangeClanInfluenceAction.Apply(giver, -amount);
+            ChangeClanInfluenceAction.Apply(Clan.PlayerClan, amount);
+
+            var today = (int) CampaignTime.Now.ToDays;
+            profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
+               $"Lent the player {amount} points of influence at court. {CourtActionResolver.InfluenceMarker}"));
+
+            ModLog.Info($"[ACTION] give_influence: {npcHero.Name} lent the player {amount} influence.");
+
+            return new ActionOutcome($"{npcHero.Name} lends you {amount} influence at court.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] give_influence failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   lend_troops (RP with teeth, increment 1): an NPC leading their own party hands the player some
+      ///   soldiers for the road. Only taught when <see cref="CourtActionResolver.TryLendTroops" /> confirms
+      ///   every gate, but re-validated (and re-computed) here against the LIVE roster — the prompt is
+      ///   advice, the bridge is law. Moves the lowest-tier healthy regulars first, never a hero.
+      /// </summary>
+      private static ActionOutcome ExecuteLendTroops(Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            NpcProfile profile = context?.Profile;
+
+            if (npcHero == null || profile == null) return null;
+            if (!CourtActionResolver.TryLendTroops(npcHero, profile, out int count))
+               return new ActionOutcome($"({npcHero.Name} has no soldiers to spare you just now.)", false);
+
+            MobileParty npcParty = npcHero.PartyBelongedTo;
+            MobileParty playerParty = MobileParty.MainParty;
+
+            if (npcParty == null || playerParty == null) return null;
+
+            int moved = CourtActionResolver.MoveLowestTierTroops(npcParty, playerParty, count);
+
+            if (moved <= 0) return new ActionOutcome($"({npcHero.Name} has no soldiers to spare you just now.)", false);
+
+            var today = (int) CampaignTime.Now.ToDays;
+            profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
+               $"Lent the player {moved} soldiers for the road. {CourtActionResolver.TroopsMarker}"));
+
+            ModLog.Info($"[ACTION] lend_troops: {npcHero.Name} lent the player {moved} troops.");
+
+            return new ActionOutcome($"{npcHero.Name} lends you {moved} soldiers.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] lend_troops failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   release_prisoner (RP with teeth, increment 1): the player intercedes for a THIRD-PARTY hero
+      ///   prisoner the NPC's own clan holds (not the player's own captive — that is <c>free_prisoner</c>).
+      ///   Re-resolves the named captive against the LIVE holdings and re-checks custody before freeing
+      ///   them, so a stray or stale emission can never let one loose. The freed lord remembers who spoke
+      ///   for them: a relation bump toward the player.
+      /// </summary>
+      private static ActionOutcome ExecuteReleasePrisoner(GameAction action, Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            NpcProfile profile = context?.Profile;
+
+            if (npcHero == null || profile == null || Hero.MainHero == null) return null;
+
+            action.Parameters.TryGetValue("target", out string targetName);
+            Hero target = CourtActionResolver.ResolveHeldPrisonerByName(targetName, npcHero);
+
+            if (target == null || !CourtActionResolver.CanRelease(target, npcHero))
+               return new ActionOutcome($"({npcHero.Name} holds no such captive to free.)", false);
+
+            EndCaptivityAction.ApplyByReleasedByChoice(target, npcHero);
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(
+               target, Hero.MainHero, CourtActionPolicy.ReleasePrisonerRelationBump, false);
+
+            var today = (int) CampaignTime.Now.ToDays;
+            profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
+               $"Freed {target.Name} from captivity at the player's urging."));
+
+            ModLog.Info($"[ACTION] release_prisoner: {npcHero.Name} freed {target.Name} at the player's word.");
+
+            return new ActionOutcome($"{npcHero.Name} sets {target.Name} free, at your urging.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] release_prisoner failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   sway_opinion (RP with teeth, increment 1): the player's case, made in conversation, genuinely
+      ///   moves the NPC's own regard for a named THIRD PARTY (not the player). Taught cheaply for any
+      ///   lord/notable with a profile; the guard that it only fires on genuine persuasion lives in the
+      ///   prompt wording, since no engine fact can confirm sincerity. Re-resolves the target by tolerant
+      ///   name match and enforces a per-NPC-and-target cooldown, so the same pair cannot be re-swayed on
+      ///   every turn. Optionally drops an ambient world-event rumor (the pattern used elsewhere for
+      ///   third-party gossip) so word of the falling-out or reconciliation can spread.
+      /// </summary>
+      private static ActionOutcome ExecuteSwayOpinion(GameAction action, Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            NpcProfile profile = context?.Profile;
+
+            if (npcHero == null || profile == null) return null;
+            if (!CourtActionResolver.CanTeachSway(npcHero, profile)) return null;
+
+            action.Parameters.TryGetValue("target", out string targetName);
+            Hero target = CourtActionResolver.ResolveSwayTarget(targetName, npcHero);
+
+            if (target == null)
+               return new ActionOutcome("(No one by that name is known to sway an opinion of.)", false);
+
+            if (!CourtActionResolver.SwayCooldownElapsed(profile, target.StringId))
+               return new ActionOutcome($"({npcHero.Name}'s opinion of {target.Name} was only just moved; give it time.)", false);
+
+            action.Parameters.TryGetValue("stance", out string stanceRaw);
+            bool against = !string.Equals(stanceRaw?.Trim(), "for", StringComparison.OrdinalIgnoreCase);
+            int delta = CourtActionPolicy.SwayDelta(against);
+
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npcHero, target, delta, false);
+
+            string verb = against ? "turned against" : "warmed toward";
+            var today = (int) CampaignTime.Now.ToDays;
+            profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
+               $"At the player's word, {verb} {target.Name}. {CourtActionResolver.SwayMarker(target.StringId)}"));
+
+            // Ambient gossip: bad blood (or a reconciliation) between two lords, third-party rumor fodder
+            // — mirrors ConversationEventFeeder.RecordPublicAffront / SchemeStore's own Rivalry recordings.
+            WorldEventStore.Instance?.Record(new WorldEvent {
+               Type = WorldEventType.Rivalry,
+               Day = today,
+               PlaceId = npcHero.CurrentSettlement?.StringId,
+               InvolvesPlayer = false,
+               Magnitude = 20, // Tuning: modest reach — ambient court gossip, not a realm-shaking event
+               Summary = $"{npcHero.Name} {verb} {target.Name}, swayed by {Hero.MainHero.Name}'s word.",
+               ActorIds = new List<string> {npcHero.StringId, target.StringId},
+               FactionIds = npcHero.MapFaction != null
+                  ? new List<string> {npcHero.MapFaction.StringId}
+                  : new List<string>()
+            });
+
+            ModLog.Info($"[ACTION] sway_opinion: {npcHero.Name} {verb} {target.Name} ({delta:+#;-#;0}).");
+
+            return new ActionOutcome($"{npcHero.Name} {(against ? "turns against" : "warms toward")} {target.Name}. ({delta:+#;-#;0})", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] sway_opinion failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

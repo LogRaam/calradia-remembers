@@ -111,7 +111,7 @@ One harness drives the mod's systems end to end and reports PASS / FAIL / MANUAL
 
 | Command | What it does |
 |---|---|
-| `cr.testall` | Run the routine sweep: every self-test except the irreversible ones. |
+| `cr.testall [llmBudgetSeconds]` | Run the routine sweep: every self-test except the irreversible ones, mechanical tests first. |
 | `cr.test list` | List the registered self-tests (name + severity + description). |
 | `cr.test <name>` | Run one self-test (e.g. `cr.test pregnancy`, `cr.test bastard_claim`). |
 | `cr.test chat` | Run only the conversation smoke tests (real LLM calls; full replies shown). |
@@ -122,6 +122,14 @@ The irreversible tests (`declare_war`, `scenario`) really declare a war / seal a
 the live campaign, so they're held out of `cr.testall` and run only on explicit `cr.test <name>` or
 `cr.test full`. A reload is the only undo. The chat tests each make one real LLM call and log the full
 Q&A, stamped with the active model.. change the model and re-run to compare LLMs on the same questions.
+
+Each test runs under its own wall-clock budget: 20s for a mechanical test, and min(LLM Response Timeout,
+75)s per real LLM call for a conversation test (more for a test that fires several calls in one scene,
+e.g. `chat_captive_continue`). A test that outruns its budget has its in-flight LLM call cancelled and is
+reported FAIL with a "timed out after Ns (budget Ns)" message; the sweep continues. Every result line
+shows the test's own elapsed time, and the summary line shows the sweep's total elapsed time, so a long
+run stays visibly progressing. Pass a number to `cr.testall` to raise the per-LLM-test budget for that
+run, e.g. `cr.testall 180` for a slow local model.
 
 ### Diagnostics (read-only inspectors)
 
@@ -137,6 +145,7 @@ Safe to peek at internal state; they change nothing.
 | `cr.jealousy [name]` | The jealousy reaction an NPC would have to a romantic act. |
 | `cr.happiness [name]` / `cr.rapport [name]` | Companion contentment / companion-to-companion rapport. |
 | `cr.bargain [name]` / `cr.hire_info [name]` / `cr.recruit_info [name]` | Intimacy-bargain eligibility / hire price / clan-recruit eligibility. |
+| `cr.rp_verbs [name]` | RP-with-teeth court verbs: give_influence / lend_troops / sway_opinion / release_prisoner eligibility + amounts. |
 | `cr.kinks [name]` | An NPC's kinks + the valid kink names. |
 | `cr.profile_check [name]` / `cr.journal_check` | A profile's romantic-compatibility diagnosis / the quest journal mirror. |
 | `cr.rumor [settlement]` | The current world events a settlement's commoners would repeat. |

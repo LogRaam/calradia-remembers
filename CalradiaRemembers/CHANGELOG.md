@@ -2,6 +2,23 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.20.5.. 2026-07-02
+
+Conversations that reach into the world, the first step of a larger effort to give what you say real weight.
+
+### New
+- **Four new things you can ask a lord, and they actually happen.** In conversation you can now ask a lord to
+  lend you their voice at court (their influence passes to you), to spare you some soldiers for the road, to
+  turn against a third party you both have cause to distrust, or to free a prisoner they hold at your word.
+  Each is a real deed with real consequences (their influence, their troops, their standing with the person
+  they turn on, a captive actually freed), granted only when it makes sense for that lord and their character,
+  and refused plainly when it does not. A calculating steward will still weigh what he gains before he agrees.
+
+### Fixed
+- **Lords no longer mistake a plain request for a threat.** They now take what you actually say at face value:
+  a request, an offer, or a proposal is not an attack. Approaching a settlement's owner about a deal no longer
+  makes him answer as though you rode up to conquer his home.
+
 ## v1.20.4.. 2026-07-02
 
 See who you sent where, and letters that better know where everyone is.
