@@ -136,6 +136,37 @@ namespace CalradiaRemembers.Grudges
         }
 
         /// <summary>
+        ///   Grudges pillar (Deed gesture): routes a verified real-world favour done for
+        ///   <paramref name="beneficiary" /> (freeing them, freeing their kin, completing a quest for
+        ///   them) through <see cref="TryResolveDominant" />, returning a short clause to append to the
+        ///   caller's own outcome message when it actually moved a grudge, or an empty string otherwise.
+        ///   The single shared seam for the three verified-deed sites (free_prisoner, release_prisoner,
+        ///   quest completion), mirroring the bridge's own gift-tail helper so none of them can drift on
+        ///   the evaluate-apply-persist sequence. Independent of any Appreciation plant at the same site
+        ///   (separate ledger, same holder) — never throws, a resolution failure must never break the
+        ///   deed that already succeeded.
+        /// </summary>
+        public static string TryGrudgeDeedTail(Hero beneficiary, int today)
+        {
+            try
+            {
+                GrudgeResolutionAttemptResult result = TryResolveDominant(beneficiary, GrudgeGesture.Deed, 0, today);
+
+                if (!result.Changed) return "";
+
+                return result.Outcome == GrudgeResolutionOutcome.Resolved
+                    ? " It also mends an old grievance between you."
+                    : " It also softens an old grievance between you.";
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[GRUDGE] deed routing failed: {ex.GetType().Name}: {ex.Message}");
+
+                return "";
+            }
+        }
+
+        /// <summary>
         ///   A mended wound of the heart is a PERSONAL warming, not a clan-political one: routed to
         ///   <paramref name="holder" />'s own <see cref="NpcProfile.ReputationWithPlayer" /> via the store,
         ///   mirroring the exact fetch/apply/persist pattern <c>CommitmentBehavior.Fulfill</c> uses for its

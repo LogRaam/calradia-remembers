@@ -24,6 +24,24 @@ namespace CalradiaRemembers.Marriage
       private static MethodInfo _setRomanticStateMethod;
 
       /// <summary>
+      ///   Divorce, Phase 2b: dissolves the PLAYER's own marriage to <paramref name="spouse" /> once the
+      ///   spouse's demand is accepted. Thin wrapper over <see cref="TryDissolve" />: the player is always
+      ///   passed as the first hero, so every guard (pregnancy, captivity, still-married-to-each-other) and
+      ///   the relocation logic are the EXACT same path the NPC-NPC case uses, never a parallel
+      ///   reimplementation. "The player never relocates" falls out of the existing invariant rather than
+      ///   needing new code: <see cref="DivorceEligibilityResolver.ResolveLeavingSpouse" /> only ever
+      ///   relocates a hero who moved OUT of their own OriginClan, and the player (always
+      ///   <see cref="Clan.PlayerClan" />'s leader) never does — it is the spouse who joined the player's
+      ///   clan at marriage who "moved", so they are always the one <see cref="ResolveRestorationClan" />
+      ///   would send home. The one genuine wrinkle: a spouse who was ALREADY a clan leader in their own
+      ///   right before marrying the player is refused here exactly as <see cref="TryDissolve" /> already
+      ///   refuses any clan-leader/party-leader/governor leaving spouse — flagged for review, since that
+      ///   marriage's own clan-merge behaviour was never audited by this feature.
+      /// </summary>
+      public static bool TryDissolvePlayerMarriage(Hero spouse, out string reason)
+         => TryDissolve(Hero.MainHero, spouse, out reason);
+
+      /// <summary>
       ///   Attempts to dissolve the marriage between <paramref name="npc" /> and <paramref name="spouse" />.
       ///   Returns true on success; on failure, <paramref name="reason" /> names why (never throws into
       ///   the caller). Every guard is re-checked here, live, regardless of what the caller already knew.

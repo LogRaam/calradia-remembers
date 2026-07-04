@@ -328,9 +328,14 @@ namespace CalradiaRemembers.Quests
             ModLog.Error($"[APPRECIATION] quest-done plant failed: {ex.GetType().Name}: {ex.Message}");
          }
 
-         if (grant != null) notify?.Invoke(grant.Message, grant.IsPositive);
-         else if (reward != null) notify?.Invoke(reward.Message, true);
-         else notify?.Invoke($"{giver.Name} thanks you for {Describe(quest)}.", true);
+         // Grudges pillar (Deed gesture): completing the giver's quest is a verified real favour toward
+         // them, a channel separate from the trust bump and the appreciation plant above; never lets a
+         // resolution failure break the reward already granted.
+         string grudgeTail = GrudgeResolutionService.TryGrudgeDeedTail(giverHero, gameDay);
+
+         if (grant != null) notify?.Invoke(grant.Message + grudgeTail, grant.IsPositive);
+         else if (reward != null) notify?.Invoke(reward.Message + grudgeTail, true);
+         else notify?.Invoke($"{giver.Name} thanks you for {Describe(quest)}.{grudgeTail}", true);
       }
 
       /// <summary>One short clause describing the task, for chat lines and memory events.</summary>

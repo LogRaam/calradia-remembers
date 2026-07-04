@@ -153,6 +153,7 @@ namespace CalradiaRemembers.Mapping
             GrudgeNote = ResolveGrudgeNote(hero, profile),
             RegardShadowNote = ResolveRegardShadowNote(hero, profile),
             AppreciationNote = ResolveAppreciationNote(hero, profile),
+            SpouseDivorceDemandNote = ResolveSpouseDivorceDemandNote(hero),
             StationGuidelinesOverride = ResolveStationGuidelines(hero),
             LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
             LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
@@ -615,6 +616,50 @@ namespace CalradiaRemembers.Mapping
          if (status == RomanticStatus.Committed) return false;
 
          return profile.ReputationWithPlayer >= 60;
+      }
+
+      /// <summary>
+      ///   Divorce, Phase 2b: set when THIS NPC is the player's own spouse and currently has a pending
+      ///   divorce demand (<see cref="SpouseDivorceDemandBehavior.IsDemanding" />). Composes the full
+      ///   directive in the spouse's own voice, folding in the accept_divorce / decline_divorce [ACTION]
+      ///   teaching directly (see <see cref="EncounterContext.SpouseDivorceDemandNote" />'s own doc comment
+      ///   for why this bypasses <see cref="VerbRegistry" />/ExtraActionTeachings: a single demand naming
+      ///   exactly one NPC, not a composed set of independently-eligible verbs). Null otherwise.
+      /// </summary>
+      private static string ResolveSpouseDivorceDemandNote(Hero hero)
+      {
+         try
+         {
+            if (hero == null || Hero.MainHero == null) return null;
+            if (hero != Hero.MainHero.Spouse) return null;
+            if (SpouseDivorceDemandBehavior.Instance?.IsDemanding(hero.StringId) != true) return null;
+
+            var sb = new StringBuilder();
+            sb.AppendLine("SPOUSE_DIVORCE_DEMAND, YOU ARE PRESSING TO END THIS MARRIAGE:");
+            sb.AppendLine("You have grown truly, deeply unhappy in this marriage, and you have written to the player of");
+            sb.AppendLine("it. Now, in this very conversation, you press them plainly to consent to ending it. Speak as");
+            sb.AppendLine("someone genuinely wounded and resolved, never petty or theatrical, and let your own nature set");
+            sb.AppendLine("the register: cold resolve, quiet grief, or open reproach.");
+            sb.AppendLine("If the player CONSENTS, agrees, or otherwise accepts ending the marriage, emit:");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: accept_divorce");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine("If the player FIRMLY AND CLEARLY refuses to end it, you may instead emit:");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: decline_divorce");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine("If they deflect, stall, or you are simply unsure, emit neither action and react in character;");
+            sb.AppendLine("the matter will come up again.");
+            sb.AppendLine();
+
+            return sb.ToString();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MAPPING] ResolveSpouseDivorceDemandNote failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
       }
 
       /// <summary>

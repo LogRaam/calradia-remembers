@@ -106,7 +106,7 @@ namespace CalradiaRemembers
         }
 
         /// <summary>
-        ///   cr.grudge_resolve [amends|gift &lt;value&gt;] [name] — runs <see cref="GrudgeResolutionService.TryResolveDominant" />
+        ///   cr.grudge_resolve [amends|gift &lt;value&gt;|deed] [name] — runs <see cref="GrudgeResolutionService.TryResolveDominant" />
         ///   against the NPC's dominant resolvable live grudge with the given gesture, no LLM involved.
         ///   Reports the verdict plus the grudge's before/after magnitude, so the resolution engine can be
         ///   validated deterministically. Defaults to the Amends gesture (giftValue 0) when the gesture
@@ -135,6 +135,11 @@ namespace CalradiaRemembers
             }
             else if (nameTokens.Count > 0 && nameTokens[0].Equals("amends", System.StringComparison.OrdinalIgnoreCase))
             {
+                nameTokens.RemoveAt(0);
+            }
+            else if (nameTokens.Count > 0 && nameTokens[0].Equals("deed", System.StringComparison.OrdinalIgnoreCase))
+            {
+                gesture = GrudgeGesture.Deed;
                 nameTokens.RemoveAt(0);
             }
 

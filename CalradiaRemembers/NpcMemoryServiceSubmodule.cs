@@ -106,6 +106,13 @@ namespace CalradiaRemembers
          // end day attempts the real dissolution and, on success, records a culture-scaled scandal. Console:
          // cr.divorce_info / cr.divorce / cr.divorce_tick.
          campaignStarter.AddBehavior(new Marriage.DivorceProcessBehavior());
+         // Divorce, Phase 2b: the player's OWN spouse demands the divorce, entirely through conversation.
+         // Owns the persisted demand flag + the weekly evaluation/grace-period-refusal sweep; the
+         // accept_divorce/decline_divorce actions and the dissolution itself live in
+         // BannerlordGameStateBridge/MarriageDissolutionService. Load order does not strictly matter
+         // (Instance is set in the constructor); registered beside DivorceProcessBehavior for locality.
+         // Console: cr.spouse_divorce_demand / cr.spouse_divorce_info / cr.spouse_divorce_tick.
+         campaignStarter.AddBehavior(new Marriage.SpouseDivorceDemandBehavior());
          // Grudges (consolidation pillar): a resolvable, event-anchored grievance, coexisting with regard
          // instead of being diluted into it. Registered AFTER WorldEventStore (its one-shot backfill scans
          // the bastard-claim world events) and after Bastards/DivorceProcessBehavior (it scans their

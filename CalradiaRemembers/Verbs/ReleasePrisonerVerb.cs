@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using NpcMemoryService.Core.Models;
@@ -91,9 +92,14 @@ namespace CalradiaRemembers.Verbs
                     ModLog.Error($"[APPRECIATION] release_prisoner plant failed: {ex.GetType().Name}: {ex.Message}");
                 }
 
+                // Grudges pillar (Deed gesture): freeing them is a verified real favour toward the freed
+                // captive, a channel separate from the appreciation plant above; never lets a resolution
+                // failure break the release that already succeeded.
+                string grudgeTail = GrudgeResolutionService.TryGrudgeDeedTail(target, today);
+
                 ModLog.Info($"[ACTION] release_prisoner: {npcHero.Name} freed {target.Name} at the player's word.");
 
-                return new ActionOutcome($"{npcHero.Name} sets {target.Name} free, at your urging.", true);
+                return new ActionOutcome($"{npcHero.Name} sets {target.Name} free, at your urging.{grudgeTail}", true);
             }
             catch (Exception ex)
             {

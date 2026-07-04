@@ -109,9 +109,10 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("commitment_fulfilled", Severity.Light, "seed a real pledge -> OnSchemeResolved(true) -> assert no longer active + reputation bonus + world event + journal mirror closed", TestCommitmentFulfilled),
          new SelfTest("commitment_breached", Severity.Light, "seed a real pledge, force it overdue -> breach sweep -> assert no longer active + reputation penalty + world event", TestCommitmentBreached),
          new SelfTest("divorce_process", Severity.Heavy, "married couple -> end_marriage -> force endDay -> tick -> assert dissolved + exSpouses + no one clanless + scandal + relation hits", TestDivorceProcess),
+         new SelfTest("spouse_divorce", Severity.Heavy, "marry the player (test spouse) -> force demand -> accept_divorce -> assert dissolved + flag cleared; second test spouse -> force demand -> decline_divorce -> assert refusal grudge planted", TestSpouseDivorceDemand),
          new SelfTest("grudge_backfill", Severity.Light, "seed a synthetic Jealousy NotableEvent -> force backfill -> assert a Jealousy grudge exists -> force it again -> assert no duplicate", TestGrudgeBackfill),
          new SelfTest("grudge_tier2", Severity.Heavy, "capture+give_prisoner (real path) -> assert a DeliveredPrisoner grudge on the captive; direct severity-3 player-perpetrator CaptiveAbuse plant -> assert it exists", TestGrudgeTier2),
-         new SelfTest("grudge_resolve", Severity.Light, "plant a FailedQuest grudge -> resolve w/ its matching gesture -> assert it moved; plant an ExecutedKin (vendetta) grudge -> assert an amends is Rejected", TestGrudgeResolve),
+         new SelfTest("grudge_resolve", Severity.Light, "plant a FailedQuest grudge -> resolve w/ its matching gesture -> assert it moved; plant an ExecutedKin (vendetta) grudge -> assert an amends is Rejected; plant a DeliveredPrisoner (always Deed-kind) grudge -> resolve w/ the Deed gesture -> assert it moved", TestGrudgeResolve),
          new SelfTest("grudge_terms", Severity.Light, "plant a known grudge -> assert hint undiscovered -> grudge_terms reveal -> assert hint discovered -> reveal again -> assert nothing new", TestGrudgeTerms),
          new SelfTest("appreciation_flow", Severity.Light, "plant a kindness -> assert it lives -> plant a strong grudge on the same holder -> assert the tarnished effective magnitude drops -> force backfill twice -> assert the second pass is a no-op", TestAppreciationFlow),
          new SelfTest("declare_war", Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it", TestDeclareWar),
@@ -598,6 +599,23 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          return null;
+      }
+
+      /// <summary>
+      ///   An unmarried, adult, opposite-sex lord/lady of a clan, free to relocate into the player's clan at
+      ///   marriage (not a clan leader, does not lead their own party, does not govern a settlement) — the
+      ///   spouse_divorce self-test's own seed, mirroring cr.divorce_setup's FindTestSpouse but for the
+      ///   PLAYER's marriage rather than an NPC's. <paramref name="exclude" /> lets the test find a SECOND,
+      ///   distinct candidate for its decline scenario after the first has already been dissolved.
+      /// </summary>
+      private static Hero FindTestSpouseForPlayer(Hero exclude = null)
+      {
+         bool playerFemale = Hero.MainHero.IsFemale;
+
+         return Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != null && h != Hero.MainHero && h != exclude && h.Spouse == null && h.IsAlive && !h.IsChild
+            && h.IsLord && h.Clan != null && !h.IsClanLeader && h.IsFemale != playerFemale
+            && h.GovernorOf == null && !(h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h));
       }
 
       /// <summary>
@@ -2324,6 +2342,102 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      // ── DIVORCE, Phase 2b: the player's OWN spouse demands the divorce ────────────────────────────
+
+      /// <summary>
+      ///   Scenario A (accept): marries the player to a test spouse when unmarried (reuses the real
+      ///   marriage if the campaign already has one), force-demands, then exercises accept_divorce through
+      ///   the real bridge path — asserts the marriage dissolved, neither party left clanless, and the
+      ///   demand flag cleared. Scenario B (decline): marries the player to a SECOND test spouse (freed up
+      ///   by Scenario A's dissolution), force-demands, exercises decline_divorce — asserts the demand flag
+      ///   cleared (so it can resurface) and a GrudgeSource.Divorce grudge planted on the refused spouse.
+      ///   Best-effort: either scenario is skipped, with a note, on a barren campaign (no eligible test
+      ///   spouse to seed), without failing the other.
+      /// </summary>
+      private static string TestSpouseDivorceDemand(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("spouse_divorce");
+
+         if (t.Abort(SpouseDivorceDemandBehavior.Instance == null, "SpouseDivorceDemandBehavior not active")) return t.Line();
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+
+         var demands = SpouseDivorceDemandBehavior.Instance;
+
+         // ── Scenario A: ACCEPT ───────────────────────────────────────────────────────────────────
+         Hero spouseA = Hero.MainHero.Spouse;
+
+         if (spouseA == null)
+         {
+            spouseA = FindTestSpouseForPlayer();
+
+            if (t.Skip(spouseA == null, "no eligible test spouse found to marry the player (scenario A)")) return t.Line();
+
+            MarriageAction.Apply(Hero.MainHero, spouseA);
+
+            // The native marriage does not always take from a console context (a clan-leader player the model
+            // will not relocate, etc.). Seeding is best-effort: skip cleanly rather than mis-report the demand
+            // path as broken. The path itself is exercised in full whenever the player already has a spouse.
+            if (t.Skip(Hero.MainHero.Spouse != spouseA,
+                   "could not seed a marriage on this campaign (native MarriageAction did not take); demand path unchanged")) return t.Line();
+         }
+
+         NpcProfile profileA = GetOrCreate(behavior, spouseA);
+         ArrangeCleanNpc(behavior, profileA, spouseA);
+
+         demands.ForceDemand();
+         bool demandingBeforeAccept = demands.IsDemanding(spouseA.StringId);
+
+         if (t.Abort(!demandingBeforeAccept, "force-demand did not set the flag (scenario A)")) return t.Line();
+
+         ActionOutcome acceptOutcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "accept_divorce"}, spouseA, new ActionContext(profileA, null));
+
+         bool dissolved = Hero.MainHero.Spouse == null;
+         bool neitherClanless = Hero.MainHero.Clan != null && spouseA.Clan != null;
+         bool flagClearedAfterAccept = !demands.IsDemanding(spouseA.StringId);
+
+         t.Note($"scenario A (accept) spouse={spouseA.Name}: outcome={(acceptOutcome != null ? acceptOutcome.IsPositive.ToString() : "null")}");
+         t.Expect("acceptOutcomePositive", acceptOutcome is {IsPositive: true}, true);
+         t.Expect("dissolvedAfterAccept", dissolved, true);
+         t.Expect("neitherClanlessAfterAccept", neitherClanless, true);
+         t.Expect("demandFlagClearedAfterAccept", flagClearedAfterAccept, true);
+
+         // ── Scenario B: DECLINE — a second, distinct test spouse (the player is free again after A) ──
+         Hero spouseB = FindTestSpouseForPlayer(spouseA);
+
+         if (t.Skip(spouseB == null, "no second eligible test spouse found for the decline scenario")) return t.Line();
+
+         MarriageAction.Apply(Hero.MainHero, spouseB);
+
+         if (t.Skip(Hero.MainHero.Spouse != spouseB,
+                "could not seed the second marriage on this campaign (native MarriageAction did not take); decline path unexercised")) return t.Line();
+
+         NpcProfile profileB = GetOrCreate(behavior, spouseB);
+         ArrangeCleanNpc(behavior, profileB, spouseB);
+
+         demands.ForceDemand();
+         bool demandingBeforeDecline = demands.IsDemanding(spouseB.StringId);
+
+         if (t.Abort(!demandingBeforeDecline, "force-demand did not set the flag (scenario B)")) return t.Line();
+
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         ActionOutcome declineOutcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "decline_divorce"}, spouseB, new ActionContext(profileB, null));
+
+         bool stillMarriedAfterDecline = Hero.MainHero.Spouse == spouseB;
+         bool flagClearedAfterDecline = !demands.IsDemanding(spouseB.StringId);
+         bool refusalGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(spouseB.StringId)
+                                                   .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == today);
+
+         t.Note($"scenario B (decline) spouse={spouseB.Name}: outcome={(declineOutcome != null ? declineOutcome.IsPositive.ToString() : "null")}");
+         t.Expect("stillMarriedAfterDecline", stillMarriedAfterDecline, true);
+         t.Expect("demandFlagClearedAfterDecline", flagClearedAfterDecline, true);
+         t.Expect("refusalGrudgePlanted", refusalGrudgePlanted, true);
+
+         return t.Line();
+      }
+
       private static string TestFeedIngest(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("feed_ingest");
@@ -2538,6 +2652,36 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("vendettaNotMoved", result2.Changed, false);
          t.Expect("vendettaStillUnresolved", vendetta?.IsResolved, false);
          t.Expect("vendettaMagnitudeUntouched", vendetta?.Magnitude, vendettaMagnitudeBefore);
+
+         // ── Scenario C: the DEED gesture (the closing leg of the Grudges pillar, wired to the
+         // free_prisoner/release_prisoner/quest-completion sites) — DeliveredPrisoner is ALWAYS Deed-kind
+         // regardless of rigidity (GrudgePolicy.ResolutionKindFor), so seeding it deterministically proves
+         // TryResolveDominant(Deed) moves the right kind of grudge, without depending on the seeded lord's
+         // traits landing on a particular rigidity band the way FailedQuest would.
+         Hero npc3 = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != npc1 && h != npc2 && h.IsLord);
+
+         if (t.Skip(npc3 == null, "no third live lord to seed a DeliveredPrisoner grudge on")) return t.Line();
+
+         GrudgeBehavior.Instance.ClearGrudgesFor(npc3.StringId);
+
+         bool planted3 = GrudgeBehavior.Instance.TryPlant(npc3, Hero.MainHero, GrudgeSource.DeliveredPrisoner,
+            "[SELFTEST] The player handed them onward into someone else's custody.", GrudgeResolveTestMagnitude, true, today);
+
+         if (t.Skip(!planted3, "DeliveredPrisoner grudge refused (anti-noise guardrail or a full, stronger house)")) return t.Line();
+
+         Grudge grudge3 = GrudgeBehavior.Instance.GrudgesFor(npc3.StringId)
+                                        .LastOrDefault(g => g.Source == GrudgeSource.DeliveredPrisoner && g.EventDay == today);
+
+         if (t.Skip(grudge3 == null, "seeded DeliveredPrisoner grudge not found back")) return t.Line();
+
+         t.Expect("deedKindGrudgeIsDeed", grudge3.ResolutionKind, GrudgeResolutionKind.Deed);
+
+         int magnitudeBefore3 = grudge3.Magnitude;
+         GrudgeResolutionAttemptResult result3 = GrudgeResolutionService.TryResolveDominant(npc3, GrudgeGesture.Deed, 0, today);
+
+         t.Note($"{npc3.Name}: kind={grudge3.ResolutionKind}, gesture=Deed, outcome={result3.Outcome}, " +
+                $"magnitude {magnitudeBefore3} -> {grudge3.Magnitude}, resolved={grudge3.IsResolved}");
+         t.Expect("deedGestureMoved", result3.Changed, true);
 
          return t.Line();
       }

@@ -21,6 +21,7 @@ using CalradiaRemembers.Storage;
 using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
@@ -191,6 +192,10 @@ namespace CalradiaRemembers.GameState
                return VerbRegistry.Instance.Execute(action, new VerbContext(npcHero, context?.Profile, this, null, context));
             case "pledge_against":
                return ExecutePledgeAgainst(action, npcHero, context);
+            case "accept_divorce":
+               return ExecuteAcceptDivorce(npcHero);
+            case "decline_divorce":
+               return ExecuteDeclineDivorce(npcHero);
             default:
                ModLog.Info($"[ACTION] Unknown type '{action.Type}' — ignored.");
 
@@ -588,6 +593,10 @@ namespace CalradiaRemembers.GameState
             AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, AppreciationSource.RansomedOrFreed,
                "The player gave me back my freedom.", RansomedOrFreedMagnitude, knownToPlayer: true, today);
 
+            // Grudges pillar (Deed gesture): freeing them is a verified real favour toward npcHero, a
+            // channel separate from the trust bump and the appreciation plant above.
+            string grudgeTail = GrudgeResolutionService.TryGrudgeDeedTail(npcHero, today);
+
             // Chronicle: a third, independent channel from the trust bump and the appreciation plant above.
             try
             {
@@ -607,7 +616,7 @@ namespace CalradiaRemembers.GameState
             }
             catch (Exception ex) { ModLog.Error($"[ACTION] free_prisoner chronicle record failed: {ex.GetType().Name}: {ex.Message}"); }
 
-            return new ActionOutcome($"You set {npcHero.Name} free.", true);
+            return new ActionOutcome($"You set {npcHero.Name} free.{grudgeTail}", true);
          }
          catch (Exception ex)
          {
@@ -1032,6 +1041,115 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] marry failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Divorce, Phase 2b: accept_divorce — the player's OWN spouse has been pressing a divorce demand
+      ///   in conversation (see <see cref="Mapping.EncounterContextBuilder" />'s SpouseDivorceDemandNote),
+      ///   and the player consents in free text (no button). Dissolves the marriage via
+      ///   <see cref="MarriageDissolutionService.TryDissolvePlayerMarriage" />. Mutual consent (this was
+      ///   the spouse's own wish): the consequences are deliberately SOFT, a modest personal-regard
+      ///   settling at most, never the full repudiated-divorce grudge matrix
+      ///   <see cref="Marriage.DivorceProcessBehavior" /> applies to the NPC-NPC case.
+      /// </summary>
+      private static ActionOutcome ExecuteAcceptDivorce(Hero npcHero)
+      {
+         try
+         {
+            Hero player = Hero.MainHero;
+
+            if (player == null || npcHero == null || npcHero != player.Spouse)
+               return new ActionOutcome("(There is no marriage between you and this person to end.)", false);
+
+            var demands = SpouseDivorceDemandBehavior.Instance;
+
+            if (demands == null || !demands.IsDemanding(npcHero.StringId))
+               return new ActionOutcome($"({npcHero.Name} has not pressed you to end the marriage.)", false);
+
+            int spouseVsPlayerBefore = npcHero.GetRelation(player);
+
+            if (!MarriageDissolutionService.TryDissolvePlayerMarriage(npcHero, out string reason))
+               return new ActionOutcome($"(The marriage could not be ended: {reason}.)", false);
+
+            demands.Accept(npcHero.StringId);
+
+            var today = (int) CampaignTime.Now.ToDays;
+
+            // Mutual consent (this was THEIR wish): SET the target relation from the pre-dissolution
+            // baseline plus the same soft mutual-consent hit DivorcePolicy already uses for the NPC-NPC
+            // case, correcting for whatever hidden penalty the engine's own Hero.Spouse = null applies.
+            int target = spouseVsPlayerBefore + DivorcePolicy.MutualExSpousePlayerRelationHit;
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npcHero, player, target - npcHero.GetRelation(player), false);
+
+            NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
+
+            if (profile != null)
+            {
+               // The same small relief nudge DivorceConsequencePolicy gives a mutual-consent spouse in the
+               // NPC-NPC case, applied to the CR-internal reputation ledger, not the vanilla relation above.
+               ProfileMutator.ApplyReputationDelta(profile, DivorceConsequencePolicy.SpouseMutualReliefRelationNudge);
+               profile.Events.Add(new NotableEvent(today, NotableEventType.Agreement,
+                  "The marriage ended, by mutual agreement, at my own asking."));
+               NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
+            }
+
+            try
+            {
+               WorldEventStore.Instance?.Record(new WorldEvent {
+                  Type = WorldEventType.Other,
+                  Day = today,
+                  Magnitude = 20,
+                  InvolvesPlayer = true,
+                  ActorIds = new List<string> {player.StringId, npcHero.StringId},
+                  Summary = $"{player.Name} and {npcHero.Name} have parted ways, their marriage dissolved by mutual accord.",
+                  ChronicleLine = $"my marriage to {npcHero.Name} ended quietly, by mutual accord, and we parted without rancour"
+               });
+            }
+            catch (Exception ex) { ModLog.Error($"[ACTION] accept_divorce world-event record failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
+
+            ModLog.Info($"[ACTION] accept_divorce: player and {npcHero.Name} are no longer wed (mutual consent).");
+
+            return new ActionOutcome(
+               $"You and {npcHero.Name} part ways: the marriage is dissolved, by mutual accord.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] accept_divorce failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Divorce, Phase 2b: decline_divorce — the player has firmly and explicitly refused their
+      ///   spouse's divorce demand in this very exchange. An OPTIONAL, faster path alongside the primary
+      ///   refusal mechanism (<see cref="SpouseDivorceDemandBehavior" />'s grace-period timeout sweep): the
+      ///   LLM need not emit this for a refusal to eventually register, but a clear in-character refusal
+      ///   registers it right away instead of waiting out the grace period.
+      /// </summary>
+      private static ActionOutcome ExecuteDeclineDivorce(Hero npcHero)
+      {
+         try
+         {
+            Hero player = Hero.MainHero;
+
+            if (player == null || npcHero == null || npcHero != player.Spouse) return null;
+
+            var demands = SpouseDivorceDemandBehavior.Instance;
+
+            if (demands == null || !demands.IsDemanding(npcHero.StringId)) return null;
+
+            demands.RegisterRefusal(npcHero, (int) CampaignTime.Now.ToDays);
+            ModLog.Info($"[ACTION] decline_divorce: player refused {npcHero.Name}'s divorce demand.");
+
+            return new ActionOutcome($"{npcHero.Name} takes your refusal hard; the wound between you deepens.", false);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] decline_divorce failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

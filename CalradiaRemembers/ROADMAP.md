@@ -394,7 +394,7 @@ new MUST be supported, silently if need be. The plan, binding for increment 1:
   live-planted-only from the wiring increment on (the graceful-degradation net working as designed).
 
 **PURE FOUNDATION EXTENDED overnight 2026-07-04 (test-first .Logic, UNCOMMITTED, NO engine wiring, 960 tests):**
-RESOLUTION NOW WIRED player-side 2026-07-04 (UNCOMMITTED): make_amends conversation verb (Amends gesture, taught only when the NPC holds a KNOWN resolvable grudge) + gift routing via take_gold/give_item (Gift gesture) both flow through a shared GrudgeResolutionService.TryResolveDominant -> GrudgeResolutionPolicy.Evaluate -> Resolve (+4 relation nudge) / Softened (reduce Magnitude) / Rejected. Deed gesture still unwired (needs a verified-deed-in-holder's-favour detector, a design call). cr.grudge_resolve + grudge_resolve self-test. --- three pure policies now exist and are documented by their tests: (1) `GrudgeResolutionPolicy` (the "resolvable"
+RESOLUTION NOW WIRED player-side 2026-07-04 (UNCOMMITTED): make_amends conversation verb (Amends gesture, taught only when the NPC holds a KNOWN resolvable grudge) + gift routing via take_gold/give_item (Gift gesture) both flow through a shared GrudgeResolutionService.TryResolveDominant -> GrudgeResolutionPolicy.Evaluate -> Resolve (+4 relation nudge) / Softened (reduce Magnitude) / Rejected. Deed gesture WIRED 2026-07-04 (UNCOMMITTED): the verified-favour sites (free_prisoner, release_prisoner, quest completed for the giver) that already plant an appreciation now ALSO route a GrudgeGesture.Deed via GrudgeResolutionService.TryGrudgeDeedTail -> a real favour softens or fully mends a Deed-kind grudge. cr.grudge_resolve gained a deed keyword; grudge_resolve self-test Scenario C (DeliveredPrisoner = always Deed-kind). The reconciliation trio (Amends/Gift/Deed) is now COMPLETE. cr.grudge_resolve + grudge_resolve self-test. --- three pure policies now exist and are documented by their tests: (1) `GrudgeResolutionPolicy` (the "resolvable"
 half: a matching gesture Amends/Gift/Deed Resolves or Softens a grudge, gated by rigidity + traits; vendetta
 always Rejected; Time-kind only nudged); (2) `DivorceConsequencePolicy` (the full signed matrix: per-role
 PlantGrudge/Relief/Gratitude/None from mutual-vs-repudiated x blessed-vs-unblessed x each clan's alliance
@@ -1216,7 +1216,7 @@ culture-flavoured). Two deferred layers:
   confrontation, not just a letter. Pairs with the scripted-scenarios engine (a jealousy threshold as a
   trigger) and the love-triangle tie-in noted under Camp life.
 
-### Marriage — true polygamy and divorce *(monogamous marriage shipped; divorce Phase 1 BUILT)*
+### Marriage — true polygamy and divorce *(monogamous marriage shipped; divorce Phase 1 + Phase 2b BUILT)*
 
 The marriage chain (family-approval, consorts, by-letter, jealousy) is shipped. One genuinely-open extension,
 one BUILT:
@@ -1243,19 +1243,38 @@ one BUILT:
   the other's `ExSpouses`); clan restore for the spouse who joined the other's clan mirrors `Hero.AfterLoad()`'s own
   fixup ladder (OriginClan, else smallest same-culture clan, else any — never clanless); `Romance`'s internal
   `SetRomanticState` is cleared via cached reflection, non-fatal on failure. No dependency on `DivorceOfCalradia`
-  needed. **Phase 2 (deferred, open)**: the PLAYER'S OWN marriage, in BOTH directions (Gabriel's question 2026-07-03:
-  "est-ce qu'un NPC malheureux peut demander le divorce au joueur?"): (a) the player divorcing their own spouse,
-  and (b) the headliner, the UNHAPPY SPOUSE TAKING THE INITIATIVE and DEMANDING a divorce from the player. Every
-  trigger already exists mechanically: collapsed relation/neglect, the jealousy system's witnessed romantic
-  acts, a discovered bastard's scandal, and soon accumulated unresolved grudges as the fuse. Form: a letter
-  ("I want to end this") or an in-conversation confrontation, then the PLAYER'S CHOICE: accept (mutual-consent
-  dissolution, soft consequences, the existing pipeline reused verbatim) or refuse, and then it gets rich: the
-  grudge deepens, her family weighs in, and a determined-enough spouse may begin the estrangement DESPITE the
-  player (the same resistance process, with the player as the resisting side). NOTE: Phase 1 explicitly REFUSES
-  the case where the NPC's spouse IS the player (guard + test added 2026-07-03, because the romance waiver would
-  otherwise have opened the player's own marriage to end_marriage by accident, a path never designed for it).
-  Also: letters/journal-mirror surfacing the estrangement to the player; a `chat_divorce` LLM self-test (Phase 1
-  only has the mechanical `divorce_process` self-test, see `cr.testall`); Khuzait cultural nuance research.
+  needed. **Phase 2b (the headliner: the unhappy spouse DEMANDS) — BUILT 2026-07-04 (Sonnet, untested in game,
+  NOT committed), 1090 mod / 230 SDK tests green.** Answers Gabriel's 2026-07-03 question ("est-ce qu'un NPC
+  malheureux peut demander le divorce au joueur?"): the player's OWN spouse, if deeply unhappy, raises the demand
+  entirely through conversation, no UI button. Pure gate `SpouseDivorceDemandPolicy.ShouldDemand` (new
+  `CalradiaRemembers.Logic`): fires when the relation reads flatly miserable (≤ -20), OR a fresh wound just struck
+  (a recent jealousy grudge, or a discovered bastard-scandal world-event) even at a merely moderate relation, OR a
+  live grudge against the player already clears a magnitude bar (40) — never while either party is pregnant or a
+  prisoner, never while a demand is already pending. `SpouseDivorceDemandBehavior` (weekly tick) evaluates the
+  player's current spouse, sets a persisted flag (additive byte[] SyncData, spouseId → day the demand began) and
+  queues an unbidden `LetterReason.SpouseDivorceDemand` letter in the spouse's voice ("I can no longer bear this
+  marriage"). In conversation, a new `EncounterContext.SpouseDivorceDemandNote` (host-composed, mirroring
+  `GrudgeNote`'s field pattern rather than routing through `ExtraActionTeachings`, since it names one NPC's single
+  demand, not a set of independently-eligible verbs) teaches `accept_divorce` / `decline_divorce`. Accept dissolves
+  the marriage via a new `MarriageDissolutionService.TryDissolvePlayerMarriage` (a thin wrapper over the existing
+  `TryDissolve` — "the player never relocates" falls out of the pre-existing clan-leader invariant for free, no new
+  guard code needed) with SOFT mutual-consent consequences (a modest relation settling, no scandal-magnitude grudge
+  storm — this was the spouse's own wish). REFUSAL is registered two ways: an optional `decline_divorce` action for
+  a firm in-character refusal (fires immediately), and the PRIMARY path, a grace-period timeout (12 days) swept
+  weekly — a demand nobody ever explicitly answers is read as a refusal too, so the mechanic never depends on the
+  LLM choosing to emit a negative action. Either way: a `GrudgeSource.Divorce` grudge plants on the spouse, and the
+  flag clears so the demand can resurface fresh later. Console: `cr.spouse_divorce_demand` / `_accept` / `_decline`
+  / `_info` / `_tick`; mechanical `spouse_divorce` self-test (marries the player to a test spouse when unmarried,
+  exercises accept then a second decline scenario). **STILL OPEN**: (a) Phase 2a, the player PROACTIVELY divorcing
+  their own (possibly perfectly happy) spouse — a different, not-yet-built direction; (b) the escalation Gabriel
+  flagged as a deliberate follow-up, not built now by design: a determined-enough spouse, refused enough times,
+  BEGINS the estrangement DESPITE the player (the same resistance process as Phase 1, with the player as the
+  resisting side) rather than waiting forever on the player's consent. NOTE: Phase 1 explicitly REFUSES the case
+  where the NPC's spouse IS the player (guard + test added 2026-07-03, because the romance waiver would otherwise
+  have opened the player's own marriage to end_marriage by accident, a path never designed for it) — Phase 2b is
+  the dedicated feature for that case. Also still open: letters/journal-mirror surfacing the estrangement beyond
+  the initial demand letter; a `chat_spouse_divorce` LLM self-test (today's is mechanical only, see `cr.testall`);
+  Khuzait cultural nuance research.
 
 ### Smaller polish (deferred)
 - **Chat composer — a true MULTI-LINE editing box** *(wished 2026-07-01; the "best" option, deferred)*: a player
