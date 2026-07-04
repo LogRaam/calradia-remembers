@@ -369,6 +369,9 @@ namespace CalradiaRemembers.Marriage
       ///   Runs inside the caller's <c>SafeRun.Step</c> guard, so this itself does not need its own
       ///   top-level try/catch, but still null-guards every optional collaborator (GrudgeBehavior.Instance,
       ///   Hero.MainHero) since a divorce can complete even when one of those is unexpectedly absent.
+      ///   <paramref name="npc" /> is whoever ended the marriage (an NPC, Phase 1, or the player
+      ///   themselves, Phase 2a) — only ever used here to EXCLUDE them from the family/friends circles, so
+      ///   passing <c>Hero.MainHero</c> works exactly as well as any third-party NPC.
       /// </summary>
       private void ApplyConsequenceMatrix(Hero npc,
                                           Hero spouse,
@@ -402,6 +405,39 @@ namespace CalradiaRemembers.Marriage
          List<Hero> bestFriends = ResolveThreeBestFriends(spouse, npc, directFamily);
          foreach (Hero friend in bestFriends)
             ApplyReactionTo(consequences.FriendReaction, friend, setAsideCause, today);
+      }
+
+      /// <summary>
+      ///   Divorce, Phase 2a's shared engine: applies the SAME tiered consequence model Phase 1
+      ///   (<see cref="Resolve" />/<see cref="ApplySuccessConsequences" />) uses for the NPC-NPC case, so
+      ///   the player's own end_own_marriage action
+      ///   (<see cref="GameState.BannerlordGameStateBridge" />) never duplicates the family/friends
+      ///   resolution or the grudge planting. SETs the dissolved marriage's baseline relation between the
+      ///   set-aside <paramref name="spouse" /> and whoever ended it (<paramref name="divorcer" /> — an NPC
+      ///   for Phase 1, or the player for Phase 2a), correcting for whatever hidden penalty the engine's
+      ///   own <c>Hero.Spouse = null</c> already applied, then resolves and applies the full
+      ///   <see cref="DivorceConsequencePolicy" /> matrix on top: the spouse's own verdict, their immediate
+      ///   adult family, and their three best friends. <paramref name="spouseVsDivorcerBefore" /> and
+      ///   <paramref name="spouseVsPlayerBefore" /> are the PRE-dissolution baselines; when
+      ///   <paramref name="divorcer" /> IS the player these are the same number, and the method still does
+      ///   the right thing (a single relation channel, no separate third party to blame). Guarded so a
+      ///   partial failure here never throws into either caller.
+      /// </summary>
+      internal void ApplyDivorceConsequences(Hero divorcer,
+                                             Hero spouse,
+                                             bool mutualConsent,
+                                             int spouseVsDivorcerBefore,
+                                             int spouseVsPlayerBefore,
+                                             string setAsideCause,
+                                             int today)
+      {
+         if (divorcer == null || spouse == null) return;
+
+         int divorcerTarget = spouseVsDivorcerBefore + DivorcePolicy.ExSpouseNpcHit(mutualConsent);
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouse, divorcer, divorcerTarget - spouse.GetRelation(divorcer), false);
+
+         SafeRun.Step($"DivorceProcessBehavior.ApplyConsequenceMatrix({divorcer.StringId})",
+            () => ApplyConsequenceMatrix(divorcer, spouse, mutualConsent, spouseVsPlayerBefore, setAsideCause, today));
       }
 
       /// <summary>
@@ -439,22 +475,21 @@ namespace CalradiaRemembers.Marriage
 
          // SET the target relations from the pre-dissolution baselines (baseline + signed hit), correcting
          // for whatever the engine already applied during the act itself. This channel is independent of
-         // the grudge matrix below: it neutralizes the engine's own native penalty, the matrix is CR's own
-         // additional layer of consequence on top of that corrected baseline.
+         // the shared consequence engine below: it neutralizes the engine's own native penalty toward the
+         // PLAYER specifically (npc != player here — the player is a third party blamed for orchestrating
+         // the split, a harsher/milder hit than the npc's own, see DivorcePolicy.ExSpousePlayerHit's doc).
          if (Hero.MainHero != null)
          {
             int playerTarget = spouseVsPlayerBefore + DivorcePolicy.ExSpousePlayerHit(mutualConsent);
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouse, Hero.MainHero, playerTarget - spouse.GetRelation(Hero.MainHero), false);
          }
 
-         int npcTarget = spouseVsNpcBefore + DivorcePolicy.ExSpouseNpcHit(mutualConsent);
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouse, npc, npcTarget - spouse.GetRelation(npc), false);
-
          // Grudges pillar, first big client: the full signed per-party matrix replaces the old flat
-         // interim single-plant + clan-hit loop. Guarded so a failure here never stops the scandal
-         // world-event below it from being recorded.
-         SafeRun.Step($"DivorceProcessBehavior.ApplyConsequenceMatrix({npc.StringId})",
-            () => ApplyConsequenceMatrix(npc, spouse, mutualConsent, spouseVsPlayerBefore, setAsideCause, today));
+         // interim single-plant + clan-hit loop. Shared with Phase 2a (the player's own end_own_marriage)
+         // via ApplyDivorceConsequences, so neither path duplicates the family/friends resolution or the
+         // grudge planting. Guarded so a failure here never stops the scandal world-event below it from
+         // being recorded.
+         ApplyDivorceConsequences(npc, spouse, mutualConsent, spouseVsNpcBefore, spouseVsPlayerBefore, setAsideCause, today);
 
          WorldEventStore.Instance?.Record(new WorldEvent {
             Type = WorldEventType.Scandal,

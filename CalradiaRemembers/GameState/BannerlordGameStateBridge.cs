@@ -8,6 +8,7 @@ using System.Linq;
 using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Commitments;
+using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
@@ -196,6 +197,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteAcceptDivorce(npcHero);
             case "decline_divorce":
                return ExecuteDeclineDivorce(npcHero);
+            case "end_own_marriage":
+               return ExecuteEndOwnMarriage(npcHero);
             default:
                ModLog.Info($"[ACTION] Unknown type '{action.Type}' — ignored.");
 
@@ -1150,6 +1153,114 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] decline_divorce failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Divorce, Phase 2a: end_own_marriage — the PLAYER themselves, in free text, chooses to end their
+      ///   OWN marriage (see <see cref="Mapping.EncounterContextBuilder" />'s PlayerEndOwnMarriageNote for
+      ///   the conditional teaching, taught only when speaking to the player's own living spouse). Dissolves
+      ///   IMMEDIATELY via <see cref="MarriageDissolutionService.TryDissolvePlayerMarriage" />: no multi-day
+      ///   estrangement process, unlike the NPC-NPC Phase 1 case (the player's own resolve needs no
+      ///   resistance window). Mutual-vs-repudiated is decided live by
+      ///   <see cref="PlayerDivorceConsentPolicy.SpouseConsents" />: the spouse's own pending Phase 2b
+      ///   demand, or their relation with the player already reading unhappy by the same bar
+      ///   <see cref="DivorcePolicy.UnhappyThreshold" /> uses for the NPC-NPC case. Either way, consequences
+      ///   flow through <see cref="DivorceProcessBehavior.ApplyDivorceConsequences" />, the SAME tiered
+      ///   engine the NPC-NPC case shares — mutual consent naturally resolves to soft Relief/None verdicts,
+      ///   repudiation to the full grudge matrix (spouse + immediate family + three best friends), with no
+      ///   parallel reimplementation here.
+      /// </summary>
+      private static ActionOutcome ExecuteEndOwnMarriage(Hero npcHero)
+      {
+         try
+         {
+            Hero player = Hero.MainHero;
+
+            if (player == null || npcHero == null || npcHero != player.Spouse)
+               return new ActionOutcome("(There is no marriage between you and this person to end.)", false);
+
+            var demands = SpouseDivorceDemandBehavior.Instance;
+            bool spouseWasDemanding = demands?.IsDemanding(npcHero.StringId) == true;
+
+            int spouseVsPlayerBefore = npcHero.GetRelation(player);
+
+            bool mutualConsent = PlayerDivorceConsentPolicy.SpouseConsents(new PlayerDivorceConsentFacts {
+               SpouseHasPendingDemand = spouseWasDemanding,
+               SpouseRelationWithPlayer = spouseVsPlayerBefore
+            });
+
+            if (!MarriageDissolutionService.TryDissolvePlayerMarriage(npcHero, out string reason))
+               return new ActionOutcome($"(The marriage could not be ended: {reason}.)", false);
+
+            if (spouseWasDemanding) demands.Accept(npcHero.StringId);
+
+            var today = (int) CampaignTime.Now.ToDays;
+            const string cause = "The marriage was ended by the player's own choice.";
+
+            // The shared tiered engine (Phase 1's own consequence application, exposed for reuse): divorcer
+            // and player are the SAME hero here, so this collapses to a single relation channel rather
+            // than the NPC-NPC case's separate divorcer/player-blame split — there is no third party to
+            // blame when the player is the one who acted.
+            SafeRun.Step($"BannerlordGameStateBridge.ExecuteEndOwnMarriage.ApplyDivorceConsequences({npcHero.StringId})",
+               () => DivorceProcessBehavior.Instance?.ApplyDivorceConsequences(
+                  player, npcHero, mutualConsent, spouseVsPlayerBefore, spouseVsPlayerBefore, cause, today));
+
+            NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
+
+            if (profile != null)
+            {
+               profile.Events.Add(new NotableEvent(today,
+                  mutualConsent
+                     ? NotableEventType.Agreement
+                     : NotableEventType.Betrayal,
+                  mutualConsent
+                     ? "The marriage ended, by mutual agreement, when the player chose to end it."
+                     : "Was set aside by the player, who chose to end our marriage."));
+               NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
+            }
+
+            try
+            {
+               WorldEventStore.Instance?.Record(new WorldEvent {
+                  Type = mutualConsent
+                     ? WorldEventType.Other
+                     : WorldEventType.Scandal,
+                  Day = today,
+                  Magnitude = mutualConsent
+                     ? 20
+                     : DivorcePolicy.ScaledScandalMagnitude(npcHero.Culture?.StringId),
+                  InvolvesPlayer = true,
+                  ActorIds = new List<string> {player.StringId, npcHero.StringId},
+                  FactionIds = new List<string>(new[] {player.MapFaction?.StringId, npcHero.MapFaction?.StringId}.Where(id => !string.IsNullOrEmpty(id))),
+                  Summary = mutualConsent
+                     ? $"{player.Name} and {npcHero.Name} have parted ways, their marriage dissolved by mutual accord."
+                     : $"Word spreads that {player.Name} has set aside {npcHero.Name}, dissolving their marriage.",
+                  ChronicleLine = mutualConsent
+                     ? $"my marriage to {npcHero.Name} ended quietly, by mutual accord, and we parted without rancour"
+                     : $"at my own choosing, I set aside {npcHero.Name} and ended our marriage, to both our houses' outrage"
+               });
+            }
+            catch (Exception ex) { ModLog.Error($"[ACTION] end_own_marriage world-event record failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
+
+            ModLog.Info($"[ACTION] end_own_marriage: player and {npcHero.Name} are no longer wed" +
+                        $"{(mutualConsent ? " (mutual consent)" : " (repudiated)")}.");
+
+            // A mutual parting cues the positive (green) system line; a repudiation cues the negative (red)
+            // one, since the player has just wronged a spouse who did not want this and set a grudge storm
+            // (spouse + their family + friends) against themselves. The deed succeeded either way; the cue
+            // reflects its human weight, not its mechanical success.
+            return new ActionOutcome(
+               mutualConsent
+                  ? $"You and {npcHero.Name} part ways: the marriage is dissolved, by mutual accord."
+                  : $"You set aside {npcHero.Name}: the marriage is ended, at your own choosing.",
+               mutualConsent);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] end_own_marriage failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

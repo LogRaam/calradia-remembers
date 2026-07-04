@@ -154,6 +154,7 @@ namespace CalradiaRemembers.Mapping
             RegardShadowNote = ResolveRegardShadowNote(hero, profile),
             AppreciationNote = ResolveAppreciationNote(hero, profile),
             SpouseDivorceDemandNote = ResolveSpouseDivorceDemandNote(hero),
+            PlayerEndOwnMarriageNote = ResolvePlayerEndOwnMarriageNote(hero),
             StationGuidelinesOverride = ResolveStationGuidelines(hero),
             LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
             LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
@@ -657,6 +658,43 @@ namespace CalradiaRemembers.Mapping
          catch (Exception ex)
          {
             ModLog.Error($"[MAPPING] ResolveSpouseDivorceDemandNote failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Divorce, Phase 2a: set when THIS NPC is the player's own LIVING spouse, teaching the
+      ///   player-initiated end_own_marriage action. Coexists cleanly alongside
+      ///   <see cref="ResolveSpouseDivorceDemandNote" />'s own note when the spouse also happens to be
+      ///   demanding a divorce of their own (Phase 2b) — both notes render together and name distinct
+      ///   triggers (the spouse's demand vs the player's own free choice), so nothing here needs to gate on
+      ///   that flag. Null when this NPC is not the player's living spouse.
+      /// </summary>
+      private static string ResolvePlayerEndOwnMarriageNote(Hero hero)
+      {
+         try
+         {
+            if (hero is not {IsAlive: true} || Hero.MainHero == null) return null;
+            if (hero != Hero.MainHero.Spouse) return null;
+
+            var sb = new StringBuilder();
+            sb.AppendLine("PLAYER_END_OWN_MARRIAGE, THE PLAYER MAY CHOOSE TO END THIS MARRIAGE:");
+            sb.AppendLine("You are speaking with the player's own spouse. The player may, in their own words, express a");
+            sb.AppendLine("clear wish to end this marriage. If they state plainly and unambiguously that they want the");
+            sb.AppendLine("marriage to end now, emit:");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: end_own_marriage");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine("Do not emit this on mere venting, a passing complaint, or an abstract question about");
+            sb.AppendLine("divorce; only when the player clearly states they want to end the marriage now.");
+            sb.AppendLine();
+
+            return sb.ToString();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MAPPING] ResolvePlayerEndOwnMarriageNote failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

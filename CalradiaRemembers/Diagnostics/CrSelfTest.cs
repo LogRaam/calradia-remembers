@@ -110,6 +110,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("commitment_breached", Severity.Light, "seed a real pledge, force it overdue -> breach sweep -> assert no longer active + reputation penalty + world event", TestCommitmentBreached),
          new SelfTest("divorce_process", Severity.Heavy, "married couple -> end_marriage -> force endDay -> tick -> assert dissolved + exSpouses + no one clanless + scandal + relation hits", TestDivorceProcess),
          new SelfTest("spouse_divorce", Severity.Heavy, "marry the player (test spouse) -> force demand -> accept_divorce -> assert dissolved + flag cleared; second test spouse -> force demand -> decline_divorce -> assert refusal grudge planted", TestSpouseDivorceDemand),
+         new SelfTest("player_divorce", Severity.Heavy, "marry the player (test spouse, happy) -> end_own_marriage -> assert dissolved + a Divorce grudge on the player; second test spouse (miserable) -> end_own_marriage -> assert dissolved + NO grudge", TestPlayerDivorce),
          new SelfTest("grudge_backfill", Severity.Light, "seed a synthetic Jealousy NotableEvent -> force backfill -> assert a Jealousy grudge exists -> force it again -> assert no duplicate", TestGrudgeBackfill),
          new SelfTest("grudge_tier2", Severity.Heavy, "capture+give_prisoner (real path) -> assert a DeliveredPrisoner grudge on the captive; direct severity-3 player-perpetrator CaptiveAbuse plant -> assert it exists", TestGrudgeTier2),
          new SelfTest("grudge_resolve", Severity.Light, "plant a FailedQuest grudge -> resolve w/ its matching gesture -> assert it moved; plant an ExecutedKin (vendetta) grudge -> assert an amends is Rejected; plant a DeliveredPrisoner (always Deed-kind) grudge -> resolve w/ the Deed gesture -> assert it moved", TestGrudgeResolve),
@@ -2434,6 +2435,91 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("stillMarriedAfterDecline", stillMarriedAfterDecline, true);
          t.Expect("demandFlagClearedAfterDecline", flagClearedAfterDecline, true);
          t.Expect("refusalGrudgePlanted", refusalGrudgePlanted, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Divorce, Phase 2a: exercises end_own_marriage through the REAL bridge.ExecuteAction path against
+      ///   two scenarios sharing the tiered consequence engine with the NPC-NPC case (Phase 1) and the
+      ///   accept_divorce path (Phase 2b). Mirrors TestSpouseDivorceDemand's arrange/skip shape: marriage
+      ///   seeding is best-effort (a clan-leader player, or one already deep in another test's mutations,
+      ///   can genuinely fail to seed), so a failed seed skips cleanly rather than mis-reporting the action
+      ///   itself as broken.
+      /// </summary>
+      private static string TestPlayerDivorce(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("player_divorce");
+
+         if (t.Abort(DivorceProcessBehavior.Instance == null, "DivorceProcessBehavior not active")) return t.Line();
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+
+         // ── Scenario A: REPUDIATED — a happy (neutral) spouse, the player ends it anyway ────────────
+         Hero spouseA = Hero.MainHero.Spouse;
+
+         if (spouseA == null)
+         {
+            spouseA = FindTestSpouseForPlayer();
+
+            if (t.Skip(spouseA == null, "no eligible test spouse found to marry the player (scenario A)")) return t.Line();
+
+            MarriageAction.Apply(Hero.MainHero, spouseA);
+
+            // Seeding is best-effort: a clan-leader player the model will not relocate, etc. Skip cleanly
+            // rather than mis-report the action path as broken.
+            if (t.Skip(Hero.MainHero.Spouse != spouseA,
+                   "could not seed a marriage on this campaign (native MarriageAction did not take); end_own_marriage path unchanged")) return t.Line();
+         }
+
+         NpcProfile profileA = GetOrCreate(behavior, spouseA);
+         ArrangeCleanNpc(behavior, profileA, spouseA); // neutral relation, no pending demand — happy enough to be repudiated
+
+         int todayA = behavior.GameStateBridge.GetCurrentGameDay();
+
+         ActionOutcome repudiatedOutcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "end_own_marriage"}, spouseA, new ActionContext(profileA, null));
+
+         bool dissolvedRepudiated = Hero.MainHero.Spouse == null;
+         bool neitherClanlessRepudiated = Hero.MainHero.Clan != null && spouseA.Clan != null;
+         bool repudiatedGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(spouseA.StringId)
+                                                    .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == todayA);
+
+         t.Note($"scenario A (repudiated) spouse={spouseA.Name}: outcome={(repudiatedOutcome != null ? repudiatedOutcome.IsPositive.ToString() : "null")}");
+         // A repudiation succeeds mechanically but cues NEGATIVE (red): the player wronged an unwilling spouse.
+         t.Expect("repudiatedOutcomeCuesNegative", repudiatedOutcome is {IsPositive: false}, true);
+         t.Expect("dissolvedAfterRepudiated", dissolvedRepudiated, true);
+         t.Expect("neitherClanlessAfterRepudiated", neitherClanlessRepudiated, true);
+         t.Expect("repudiatedGrudgePlanted", repudiatedGrudgePlanted, true);
+
+         // ── Scenario B: MUTUAL — a miserable spouse, the player ends it, no grudge storm ─────────────
+         Hero spouseB = FindTestSpouseForPlayer(spouseA);
+
+         if (t.Skip(spouseB == null, "no second eligible test spouse found for the mutual scenario")) return t.Line();
+
+         MarriageAction.Apply(Hero.MainHero, spouseB);
+
+         if (t.Skip(Hero.MainHero.Spouse != spouseB,
+                "could not seed the second marriage on this campaign (native MarriageAction did not take); mutual path unexercised")) return t.Line();
+
+         NpcProfile profileB = GetOrCreate(behavior, spouseB);
+         ArrangeCleanNpc(behavior, profileB, spouseB);
+
+         int miserable = DivorcePolicy.UnhappyThreshold - 5; // comfortably unhappy, mirrors cr.divorce_setup's own seed
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouseB, Hero.MainHero, miserable - spouseB.GetRelation(Hero.MainHero), false);
+
+         int todayB = behavior.GameStateBridge.GetCurrentGameDay();
+
+         ActionOutcome mutualOutcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "end_own_marriage"}, spouseB, new ActionContext(profileB, null));
+
+         bool dissolvedMutual = Hero.MainHero.Spouse == null;
+         bool noGrudgeAfterMutual = !GrudgeBehavior.Instance.GrudgesFor(spouseB.StringId)
+                                                .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == todayB);
+
+         t.Note($"scenario B (mutual) spouse={spouseB.Name}: outcome={(mutualOutcome != null ? mutualOutcome.IsPositive.ToString() : "null")}");
+         t.Expect("mutualOutcomePositive", mutualOutcome is {IsPositive: true}, true);
+         t.Expect("dissolvedAfterMutual", dissolvedMutual, true);
+         t.Expect("noGrudgeAfterMutual", noGrudgeAfterMutual, true);
 
          return t.Line();
       }

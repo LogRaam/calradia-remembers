@@ -1265,8 +1265,23 @@ one BUILT:
   LLM choosing to emit a negative action. Either way: a `GrudgeSource.Divorce` grudge plants on the spouse, and the
   flag clears so the demand can resurface fresh later. Console: `cr.spouse_divorce_demand` / `_accept` / `_decline`
   / `_info` / `_tick`; mechanical `spouse_divorce` self-test (marries the player to a test spouse when unmarried,
-  exercises accept then a second decline scenario). **STILL OPEN**: (a) Phase 2a, the player PROACTIVELY divorcing
-  their own (possibly perfectly happy) spouse — a different, not-yet-built direction; (b) the escalation Gabriel
+  exercises accept then a second decline scenario). **Phase 2a (the player PROACTIVELY ends their own marriage) —
+  BUILT 2026-07-04 (Sonnet, untested in game, NOT committed), mod 1096 / SDK 234 green.** Also chat-driven, no
+  button: talking to their own spouse, the player states plainly they want to end it, and a new
+  `EncounterContext.PlayerEndOwnMarriageNote` (taught only when `hero == Hero.MainHero.Spouse`, coexists cleanly
+  with a simultaneous Phase-2b demand) teaches `[ACTION] end_own_marriage`. The bridge decides MUTUAL vs REPUDIATED
+  via a pure `PlayerDivorceConsentPolicy.SpouseConsents` (mutual iff the spouse had a pending 2b demand OR their
+  relation is at/below `DivorcePolicy.UnhappyThreshold` = -5 — Phase 1's exact "unhappy" bar, asked from the other
+  side), dissolves IMMEDIATELY via `TryDissolvePlayerMarriage`, and applies consequences through a REFACTORED shared
+  `DivorceProcessBehavior.ApplyDivorceConsequences(divorcer, spouse, mutualConsent, ...)` — ONE implementation now
+  serves both the Phase-1 NPC-NPC path and this player path (no duplicated family/friends resolution). Repudiated ->
+  the spouse + their immediate adult family + their 3 best friends take a `GrudgeSource.Divorce` grudge against the
+  PLAYER, spouse relation SET via the direct `ExSpouseNpcHit` (the player is the divorcer, not a third-party
+  orchestrator, so no separate `ExSpousePlayerHit`); mutual -> soft. Records a Scandal (repudiated) or Other (mutual)
+  world event + chronicle line, clears any pending 2b flag. Console `cr.end_own_marriage`; mechanical `player_divorce`
+  self-test (same best-effort seeding-skip as `spouse_divorce`). Judgment call flagged: `ActionOutcome.IsPositive` is
+  true for both tiers (the deed succeeded), so a repudiation still cues the positive sound/colour — revisit if the UI
+  should mark the wronging as negative. **STILL OPEN**: (a) the escalation Gabriel
   flagged as a deliberate follow-up, not built now by design: a determined-enough spouse, refused enough times,
   BEGINS the estrangement DESPITE the player (the same resistance process as Phase 1, with the player as the
   resisting side) rather than waiting forever on the player's consent. NOTE: Phase 1 explicitly REFUSES the case
