@@ -2,6 +2,43 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.22.0.. 2026-07-04
+
+The big one: NPCs now hold KINDNESSES as well as grudges, you can reconcile a grievance, and the chronicle
+of your life reads like a real chronicle. A pass over how NPCs feel about you tied it all together.
+
+### New: Kindnesses (Appreciations), the positive mirror of grudges
+- An NPC now remembers the specific KIND things you did for them, told as a story, separate from their raw
+  regard: a gift, gold, a freedom you gave them, a task done on their behalf. A new "Kindnesses" section sits
+  beside "Grievances" on their encyclopedia page.
+- A fresh grudge SOURS old kindness: if you wound someone, the warmth they remembered dims in proportion to
+  what you now owe them. The two histories, good and ill, are told side by side.
+
+### New: reconcile a grievance
+- You can now ask an NPC what it would take to make things right. They name their price in character, and it
+  is then written into their "Grievances" entry, so you know how to mend it. Follow through, an apology, a
+  worthy gift, or a real deed in their favour, and the grievance eases or is laid to rest. Some wounds, a
+  vendetta, cannot be mended, and they will tell you so.
+
+### New: a chronicle worth reading
+- The chronicle of your deeds now records a whole LIFE, not just battles: the births of your children, your
+  own death and the passing of your line to your heir, oaths of fealty sworn and crowns won, fiefs granted,
+  tournament prizes, lords you captured, your own captivity and escape, peace made over an old grievance,
+  and pledges kept at your word. Entries are grouped into year chapters, and the empty page now tells you
+  what will one day fill it.
+
+### Changed: how NPCs feel about you, made coherent
+- One consistent vocabulary now describes an NPC's regard everywhere (the encyclopedia and the way they
+  speak no longer disagree about what "wary" means).
+- A strong grievance now colours their tone: a deep, concealed grudge keeps them cold beneath any courtesy,
+  rather than letting warmth and resentment contradict each other.
+- Personal deeds (mending a grudge, a jealous wound, the relief of a family glad a marriage ended) now move
+  the PERSONAL regard you actually see, while public and political events move the clan standing.
+- An NPC's bearing toward you (whether they trust, respect, or fear you) is now shown in words on their
+  encyclopedia page, once you have met them.
+- Ending a marriage now wounds the set-aside spouse's immediate family and their closest friends, rather
+  than an entire clan.
+
 ## v1.21.1.. 2026-07-04
 
 A hotfix for a crash reported right after v1.21.0.

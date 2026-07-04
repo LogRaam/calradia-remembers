@@ -12,6 +12,17 @@ Many of you have asked for a way to support my work, so I’ve set up a Ko-fi pa
 Thank you, truly. ❤️[/center]
 
 [line]
+[size=4][color=#ffd966]What's new in v1.22.0[/color][/size]
+
+[b]Kindnesses, the positive mirror of grudges.[/b] An NPC now remembers the specific KIND things you did for them, told as a story and kept apart from their raw regard: a gift, gold, a freedom you granted, a task done on their behalf. A new "Kindnesses" section sits beside "Grievances" on their encyclopedia page. And a fresh grudge sours old kindness: wound someone and the warmth they remembered dims in proportion to what you now owe them, so their good and ill history with you is told side by side.
+
+[b]Reconcile a grievance.[/b] You can now ask an NPC what it would take to make things right. They name their price in character, it is written into their Grievances entry so you know how to mend it, and following through, an apology, a worthy gift, or a real deed in their favour, eases the grievance or lays it to rest. Some wounds, a vendetta, cannot be mended, and they will tell you so coldly.
+
+[b]A chronicle worth reading.[/b] Your chronicle now records a whole life, not just battles: the births of your children, your own death and the passing of your line to your heir, oaths of fealty and crowns won, fiefs granted, tournament prizes, lords you captured, your own captivity and escape, peace made over an old grievance, and pledges kept at your word. Entries fall into year chapters, and the empty page now tells you what will one day fill it.
+
+[b]How NPCs feel about you, made coherent.[/b] One consistent vocabulary now describes an NPC's regard everywhere; a deep, concealed grudge keeps them cold beneath any courtesy instead of contradicting their warmth; personal deeds (mending a grudge, a jealous wound) move the personal regard you actually see while public events move clan standing; an NPC's bearing toward you, whether they trust, respect, or fear you, is now shown in words on their encyclopedia page; and ending a marriage now wounds the set-aside spouse's immediate family and closest friends rather than a whole clan.
+
+[line]
 [size=4][color=#ffd966]What's new in v1.21.0[/color][/size]
 
 [b]Grudges, a resolvable memory of what was done.[/b] NPCs now hold event-anchored grudges, separate from their overall regard: someone can like you and still nurse a specific wound (reconcilable), while someone who dislikes you AND holds a grudge is far harder to win back. How rigid a grudge is depends on how they already regard you, and it softens with time, unless it is a vendetta or the holder forgets nothing. Grudges are born from what already mattered: jealousy, a warned or abetted plot, a task left unfinished, a marriage broken, a bastard's claim, and they colour how the NPC speaks to you. A new "Grievances" section on a hero's encyclopedia page shows the grudges you have actually LEARNED of (a concealed one stays hidden until it surfaces). Your existing saves are migrated silently: old grievances already in the save become grudges on load, nothing lost, nothing double-counted.
