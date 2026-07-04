@@ -26,9 +26,8 @@ namespace CalradiaRemembers.Marriage
         static HeroClanCompat()
         {
             if (OriginClanProperty == null)
-                ModLog.Compat("Hero.OriginClan is not present on this game build; the divorce feature will decide the " +
-                              "relocating spouse by a clan-leader heuristic instead. If TaleWorlds changed this API, the " +
-                              "mod may need updating.");
+                ModLog.Compat("the installed Bannerlord version does not support Hero.OriginClan, which this mod calls; " +
+                              "divorce falls back to a clan-leader heuristic to decide the relocating spouse.");
         }
 
         /// <summary>True when the running game build exposes <c>Hero.OriginClan</c>. When false, callers should use their documented fallback rather than treating a null clan as fact.</summary>

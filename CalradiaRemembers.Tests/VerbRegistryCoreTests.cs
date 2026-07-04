@@ -127,7 +127,7 @@ namespace CalradiaRemembers.Tests
          public string Name { get; }
          public bool IsEligible(string ctx) => throw new MissingMethodException("simulates a game API absent on this build");
          public string TeachingText(string ctx) => "SHOULD_NOT_APPEAR\n";
-         public string Execute(string action, string ctx) => null;
+         public string Execute(string action, string ctx) => null!;
       }
 
       [Test]
@@ -143,6 +143,19 @@ namespace CalradiaRemembers.Tests
          string result = registry.ComposeTeachings("ctx");
 
          result.Should().Be("BEFORE\nAFTER\n");
+      }
+
+      [Test]
+      public void GIVEN_a_faulting_verb_and_a_fault_sink_WHEN_composing_teachings_THEN_the_exception_is_reported_to_the_sink()
+      {
+         // The host routes this to an always-on compat trace, so a missing game API never degrades silently.
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new ThrowingVerb("faulty_verb"));
+         Exception? reported = null;
+
+         registry.ComposeTeachings("ctx", ex => reported = ex);
+
+         reported.Should().BeOfType<MissingMethodException>();
       }
 
       // ── Execute ──────────────────────────────────────────────────────────

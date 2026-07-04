@@ -28,7 +28,8 @@ namespace CalradiaRemembers.Logic.Verbs
         }
 
         /// <summary>Composes the teaching text of every currently-eligible registered verb, in registration order.</summary>
-        public string ComposeTeachings(TContext ctx) => ComposeTeachings(ctx, _verbs.Select(v => v.Name));
+        public string ComposeTeachings(TContext ctx, Action<Exception> onFault = null)
+            => ComposeTeachings(ctx, _verbs.Select(v => v.Name), onFault);
 
         /// <summary>
         ///   Composes the teaching text of the named verbs, in the given order, skipping any name that is
@@ -37,22 +38,26 @@ namespace CalradiaRemembers.Logic.Verbs
         ///   every conversation open, and one buggy verb must not brick the chat window (a v1.21.0 crash
         ///   where a missing game API in a verb's IsEligible closed every conversation).
         /// </summary>
-        public string ComposeTeachings(TContext ctx, IEnumerable<string> order)
+        public string ComposeTeachings(TContext ctx, IEnumerable<string> order, Action<Exception> onFault = null)
         {
             if (order == null) return null;
 
             var sb = new StringBuilder();
             foreach (string name in order)
             {
-                string text = SafeTeachingFor(FindByName(name), ctx);
+                string text = SafeTeachingFor(FindByName(name), ctx, onFault);
                 if (!string.IsNullOrEmpty(text)) sb.Append(text);
             }
 
             return sb.Length == 0 ? null : sb.ToString();
         }
 
-        /// <summary>The eligible verb's teaching text, or null when it is unregistered, ineligible, or throws.</summary>
-        private static string SafeTeachingFor(IVerb<TContext, TAction, TResult> verb, TContext ctx)
+        /// <summary>
+        ///   The eligible verb's teaching text, or null when it is unregistered, ineligible, or throws.
+        ///   A faulting verb is reported to <paramref name="onFault" /> (so the host can trace a game/mod
+        ///   API mismatch) and then skipped, never allowed to crash the conversation.
+        /// </summary>
+        private static string SafeTeachingFor(IVerb<TContext, TAction, TResult> verb, TContext ctx, Action<Exception> onFault)
         {
             if (verb == null) return null;
 
@@ -60,10 +65,12 @@ namespace CalradiaRemembers.Logic.Verbs
             {
                 return verb.IsEligible(ctx) ? verb.TeachingText(ctx) : null;
             }
-            catch
+            catch (Exception ex)
             {
                 // A verb that faults (e.g. touches a game API absent on this build) is treated as simply
                 // unavailable this turn, rather than crashing the whole conversation.
+                onFault?.Invoke(ex);
+
                 return null;
             }
         }

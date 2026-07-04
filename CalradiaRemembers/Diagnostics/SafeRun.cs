@@ -28,7 +28,9 @@ namespace CalradiaRemembers.Diagnostics
             }
             catch (Exception ex)
             {
-                ModLog.Error($"{label} failed: {ex.GetType().Name}: {ex.Message}");
+                // Route a game/mod API mismatch to the always-on compat trace; ordinary failures stay on
+                // the toggle-gated error log.
+                ModLog.Fault(label, ex);
             }
         }
     }

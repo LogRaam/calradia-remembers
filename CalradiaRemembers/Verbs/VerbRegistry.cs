@@ -2,6 +2,7 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic.Verbs;
@@ -33,11 +34,15 @@ namespace CalradiaRemembers.Verbs
         /// <summary>Adds a verb, in the order its teaching should appear when composed without an explicit order.</summary>
         public void Register(IConversationVerb verb) => _core.Register(verb);
 
+        // Routes a verb that faults while being composed (e.g. one touching a game API this build lacks) to
+        // the always-on compat trace, so a missing-API failure on the conversation path is never silent.
+        private static readonly Action<Exception> FaultSink = ex => ModLog.Fault("a conversation option", ex);
+
         /// <summary>Composes the teaching text of every currently-eligible registered verb, in registration order.</summary>
-        public string ComposeTeachings(VerbContext ctx) => _core.ComposeTeachings(ctx);
+        public string ComposeTeachings(VerbContext ctx) => _core.ComposeTeachings(ctx, FaultSink);
 
         /// <summary>Composes the teaching text of exactly the named verbs, in the given order (used where their text must interleave with other, unmigrated teaching).</summary>
-        public string ComposeTeachings(VerbContext ctx, IEnumerable<string> order) => _core.ComposeTeachings(ctx, order);
+        public string ComposeTeachings(VerbContext ctx, IEnumerable<string> order) => _core.ComposeTeachings(ctx, order, FaultSink);
 
         /// <summary>Routes the action to the verb whose Name matches <see cref="GameAction.Type" />, or null when none is registered under that name.</summary>
         public ActionOutcome Execute(GameAction action, VerbContext ctx) => action == null ? null : _core.Execute(action.Type, action, ctx);
