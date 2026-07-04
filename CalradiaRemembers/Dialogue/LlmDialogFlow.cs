@@ -76,30 +76,44 @@ namespace CalradiaRemembers.Dialogue
       public NpcProfile Profile { get; private set; }
       public ChatSession Session { get; private set; }
 
+      // The vanilla conversation hub tokens where the CR entry option must appear. `hero_main_options`
+      // is the ordinary hero-conversation hub; `alley_player_owned_start` is the hub of the player-owned
+      // alley manager conversation (a clan member you assigned to an alley), which branches straight from
+      // "start" and never passes through hero_main_options — so without this a player reported the
+      // "A word with you." option was missing when speaking with the clan member running an alley
+      // (SandBox AlleyCampaignBehavior; the alley management options share this input token).
+      private static readonly string[] EntryHubTokens =
+         {"hero_main_options", "alley_player_owned_start"};
+
       public void Register(CampaignGameStarter starter)
       {
-         // 0. Letter delivery: only shows when the player carries an outstanding
-         //    message addressed to THIS hero. Selecting it marks the errand delivered
-         //    and opens the chat so the recipient can react.
-         starter.AddPlayerLine(
-            "calradia_remembers_deliver_letter",
-            "hero_main_options",
-            "calradia_remembers_dummy_token",
-            "I bear a message for you, carried on another's behalf.",
-            CanDeliverLetter,
-            DeliverLetterAndOpenChat,
-            115); // above the open-chat option
+         for (int i = 0; i < EntryHubTokens.Length; i++)
+         {
+            string hub = EntryHubTokens[i];
 
-         // 1. Player opens the interaction → routes to the greeting token so the
-         //    NPC can react with an expression matching the current relation.
-         starter.AddPlayerLine(
-            "calradia_remembers_open_chat", // ID unique
-            "hero_main_options", // input (où apparaît l'option)
-            GreetingToken,
-            OpenChatOptionText,
-            IsHeroEligible,
-            null,
-            110); // priorité haute pour apparaître en haut
+            // 0. Letter delivery: only shows when the player carries an outstanding
+            //    message addressed to THIS hero. Selecting it marks the errand delivered
+            //    and opens the chat so the recipient can react.
+            starter.AddPlayerLine(
+               $"calradia_remembers_deliver_letter_{i}", // ID unique per hub
+               hub,
+               "calradia_remembers_dummy_token",
+               "I bear a message for you, carried on another's behalf.",
+               CanDeliverLetter,
+               DeliverLetterAndOpenChat,
+               115); // above the open-chat option
+
+            // 1. Player opens the interaction → routes to the greeting token so the
+            //    NPC can react with an expression matching the current relation.
+            starter.AddPlayerLine(
+               $"calradia_remembers_open_chat_{i}", // ID unique per hub
+               hub, // input (où apparaît l'option)
+               GreetingToken,
+               OpenChatOptionText,
+               IsHeroEligible,
+               null,
+               110); // priorité haute pour apparaître en haut
+         }
 
          // 2. NPC greeting, gated by relation. The trailing [if:convo_*] tag is a
          //    native facial-animation directive — the engine applies it to the

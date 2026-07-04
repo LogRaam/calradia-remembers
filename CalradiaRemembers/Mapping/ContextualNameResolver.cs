@@ -61,7 +61,7 @@ namespace CalradiaRemembers.Mapping
          if (messageTokens.Count == 0) return null;
 
          var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-         var matches = new List<(string FullName, string Relationship, string Whereabouts)>();
+         var matches = new List<(string FullName, string Gender, string Relationship, string Whereabouts)>();
 
          foreach (Hero other in Hero.AllAliveHeroes)
          {
@@ -74,7 +74,8 @@ namespace CalradiaRemembers.Mapping
 
             if (!NameSharesTokenWithMessage(fullName, messageTokens)) continue;
             seen.Add(other.StringId);
-            matches.Add((fullName, Categorize(npc, other), ResolveWhereabouts(npc, other, bridge)));
+            matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(other.IsFemale),
+               Categorize(npc, other), ResolveWhereabouts(npc, other, bridge)));
          }
 
          return matches.Count == 0
@@ -84,7 +85,7 @@ namespace CalradiaRemembers.Mapping
 
       #region private
 
-      private static string BuildHint(List<(string FullName, string Relationship, string Whereabouts)> matches)
+      private static string BuildHint(List<(string FullName, string Gender, string Relationship, string Whereabouts)> matches)
       {
          var sb = new StringBuilder();
          sb.AppendLine("NAMES MENTIONED IN THE PLAYER'S MESSAGE:");
@@ -93,7 +94,7 @@ namespace CalradiaRemembers.Mapping
          {
             sb.Append(
                $"The player appears to be referring to {matches[0].FullName}" +
-               $" — {matches[0].Relationship}.");
+               $", {matches[0].Gender}, {matches[0].Relationship}.");
             if (!string.IsNullOrEmpty(matches[0].Whereabouts))
                sb.Append($" Whereabouts: {matches[0].Whereabouts}.");
          }
@@ -101,15 +102,21 @@ namespace CalradiaRemembers.Mapping
          {
             sb.AppendLine(
                "The following people may be relevant to what the player just said:");
-            foreach (var (name, rel, where) in matches)
+            foreach (var (name, gender, rel, where) in matches)
                sb.AppendLine(string.IsNullOrEmpty(where)
-                  ? $"  - {name} — {rel}"
-                  : $"  - {name} — {rel}. Whereabouts: {where}");
+                  ? $"  - {name}, {gender}, {rel}"
+                  : $"  - {name}, {gender}, {rel}. Whereabouts: {where}");
 
             if (HasAmbiguousFirstName(matches))
                sb.AppendLine(
                   "If uncertain which person the player means, ask for clarification in character.");
          }
+
+         // Anti-correction reminder: the gender stated above is fact. Names in Calradia are often
+         // gender-ambiguous, and the NPC must not guess gender from a name or "correct" the player.
+         sb.Append(
+            "\nThe gender given for each person above is a fact you know. Do not infer gender from a name, " +
+            "and never correct the player about someone's gender.");
 
          // One anti-fabrication reminder when any whereabouts is offered: it is hearsay,
          // possibly stale, and the NPC must not invent a place they were not told.
@@ -144,7 +151,7 @@ namespace CalradiaRemembers.Mapping
       }
 
       private static bool HasAmbiguousFirstName(
-         List<(string FullName, string Relationship, string Whereabouts)> matches)
+         List<(string FullName, string Gender, string Relationship, string Whereabouts)> matches)
       {
          List<string> firstNames = matches
                                    .Select(m => m.FullName.Split(' ')[0])

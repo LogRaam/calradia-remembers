@@ -61,6 +61,12 @@ namespace CalradiaRemembers.Logic
             return "not personally known to you";
         }
 
+        /// <summary>
+        ///   The gender noun for a third party, so the NPC never guesses it from a gender-ambiguous name
+        ///   (a player reported an NPC "correcting" them that a woman named Redeye Gunnor was a man).
+        /// </summary>
+        public static string GenderNoun(bool isFemale) => isFemale ? "a woman" : "a man";
+
         /// <summary>The natural-language tone of a relation score, for the parenthetical in a label.</summary>
         public static string DescribeRelation(int r) => r switch
         {

@@ -624,9 +624,19 @@ namespace CalradiaRemembers.Chat
       {
          string detectedId = DetectAddressedParticipant(text);
          if (detectedId != null)
-            _currentSpeakerHeroId = detectedId == _npcHero?.StringId
+         {
+            string resolvedId = detectedId == _npcHero?.StringId
                ? null
                : detectedId;
+
+            if (resolvedId != _currentSpeakerHeroId)
+            {
+               string previousName = string.IsNullOrEmpty(_currentSpeakerHeroId) ? _npcName : SpeakerForCurrent().Name;
+               _currentSpeakerHeroId = resolvedId;
+               string newName = string.IsNullOrEmpty(resolvedId) ? _npcName : SpeakerForCurrent().Name;
+               ModLog.Info($"[ADDRESS] turn routed to {newName} (was {previousName})");
+            }
+         }
 
          return SpeakerForCurrent();
       }

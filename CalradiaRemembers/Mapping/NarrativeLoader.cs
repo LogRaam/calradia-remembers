@@ -2,6 +2,7 @@
 
 #region
 
+using System.Collections.Generic;
 using System.IO;
 using TaleWorlds.Library;
 
@@ -22,6 +23,18 @@ namespace CalradiaRemembers.Mapping
         public static string BehaviorGuidelines      { get; private set; } = "";
         public static string PostHistoryInstructions { get; private set; } = "";
 
+        private static readonly Dictionary<string, string> _stationGuidelines = new Dictionary<string, string>();
+
+        /// <summary>
+        ///   The station-specific behavior guidelines for a station key ("gangleader", "notable",
+        ///   "wanderer"), or "" when that station file is absent — the caller's fallback chain then
+        ///   applies (see StationGuidelinesPolicy).
+        /// </summary>
+        public static string StationGuidelines(string stationKey)
+            => stationKey != null && _stationGuidelines.TryGetValue(stationKey, out string text)
+                ? text
+                : "";
+
         public static void Load()
         {
             string moduleData = Path.Combine(
@@ -31,6 +44,10 @@ namespace CalradiaRemembers.Mapping
             PlayerDescription       = ReadFile(moduleData, "player_description.txt",        "player description");
             BehaviorGuidelines      = ReadFile(moduleData, "behavior_guidelines.txt",       "behavior guidelines");
             PostHistoryInstructions = ReadFile(moduleData, "post_history_instructions.txt", "post-history instructions");
+
+            _stationGuidelines.Clear();
+            foreach (string station in new[] {"gangleader", "notable", "wanderer"})
+                _stationGuidelines[station] = ReadFile(moduleData, $"behavior_guidelines_{station}.txt", $"{station} guidelines");
         }
 
         private static string ReadFile(string folder, string filename, string label)

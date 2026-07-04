@@ -159,5 +159,19 @@ namespace CalradiaRemembers.Tests
             ThirdPartyDescriptor.WhereaboutsClause(KnowledgeTier.Faction, "at Pravend", null)
                 .Should().Be("word among your own faction has them at Pravend");
         }
+
+        [Test]
+        public void GIVEN_a_woman_WHEN_naming_her_gender_THEN_it_reads_a_woman()
+        {
+            // A player reported an NPC "correcting" them that a woman named Redeye Gunnor was a man,
+            // because the gender was never stated and the name is ambiguous.
+            ThirdPartyDescriptor.GenderNoun(isFemale: true).Should().Be("a woman");
+        }
+
+        [Test]
+        public void GIVEN_a_man_WHEN_naming_his_gender_THEN_it_reads_a_man()
+        {
+            ThirdPartyDescriptor.GenderNoun(isFemale: false).Should().Be("a man");
+        }
     }
 }
