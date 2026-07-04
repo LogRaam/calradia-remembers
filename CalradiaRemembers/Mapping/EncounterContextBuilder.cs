@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 24/06/2026.
+// Code written by Gabriel Mailhot, 04/07/2026.
 
 #region
 
@@ -7,10 +7,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Appreciations;
+using CalradiaRemembers.Bastards;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
@@ -24,7 +26,7 @@ using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
-using TaleWorlds.Library;
+using TraitFacts = CalradiaRemembers.Logic.Grudges.TraitFacts;
 
 #endregion
 
@@ -42,6 +44,21 @@ namespace CalradiaRemembers.Mapping
       ///   defiance — roughly a season's quarter. Older losses fade from the power calculus.
       /// </summary>
       private const int RecentDefeatWindowDays = 21;
+
+      /// <summary>Registration order of the court verbs taught AFTER pledge_against, in <see cref="VerbRegistry" />.</summary>
+      private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner"};
+
+      /// <summary>Registration order of the court verbs taught BEFORE pledge_against, in <see cref="VerbRegistry" />.</summary>
+      private static readonly string[] CourtVerbsBeforePledge = {"give_influence", "lend_troops", "sway_opinion"};
+
+      /// <summary>DIVORCE, Phase 1: end_marriage is taught last, after every court verb above.</summary>
+      private static readonly string[] DivorceVerbs = {"end_marriage"};
+
+      /// <summary>
+      ///   Grudges pillar, resolution + discovery halves: make_amends then grudge_terms, taught last of all, after every
+      ///   verb above.
+      /// </summary>
+      private static readonly string[] GrudgeVerbs = {"make_amends", "grudge_terms"};
 
       /// <summary>
       ///   Builds an <see cref="EncounterContext" /> for the given NPC.
@@ -79,84 +96,86 @@ namespace CalradiaRemembers.Mapping
          PlayerStatusVsNpc playerStatus = playerStatusOverride ?? ResolvePlayerStatus(hero, profile, bridge);
 
          return new() {
-         PlayerStatus = playerStatus,
-         WarStatus = bridge.GetDiplomaticStatus(hero),
-         DaysSinceLastMeeting = daysSinceLastMeeting,
-         MeetingGapNote = MeetingGapDescriber.Describe(daysSinceLastMeeting),
-         Scene = bridge.GetCurrentScene(),
-         ContextualNames = string.IsNullOrWhiteSpace(playerMessage)
-            ? null
-            : ContextualNameResolver.Resolve(hero, playerMessage, bridge),
-         KnownWanderers = ResolveKnownWanderers(hero, playerMessage),
-         NpcCurrentActivity = bridge.GetCurrentActivity(hero),
-         CurrentLocationNote = BuildLocationNote(hero),
-         PlayerSpouseName = Hero.MainHero?.Spouse?.IsAlive == true
-            ? Hero.MainHero.Spouse.Name?.ToString()
-            : null,
-         PlayerFatherName = FormatParent(Hero.MainHero?.Father),
-         PlayerMotherName = FormatParent(Hero.MainHero?.Mother),
-         PlayerClanTier = Hero.MainHero?.Clan?.Tier ?? 0,
-         PlayerArenaRank = ResolveArenaRank(),
-         PlayerArenaWins = ResolveArenaWins(),
-         Witnesses = witnesses,
-         PrivacyRequested = privacyRequested,
-         IsWitnessExchangeTurn = isWitnessExchangeTurn,
-         IsLastWitnessExchange = isLastWitnessExchange,
-         IsCollectiveCaptiveScene = isCollectiveCaptiveScene,
-         IsCaptorScene = isCaptorScene,
-         CaptiveIntent = captiveIntent,
-         CaptiveVictimName = captiveVictimName,
-         PlayerCoercedAgainstCompanion = playerCoercedAgainstCompanion,
-         CaptiveVictimIsFemale = captiveVictimIsFemale,
-         CompanionAudience = companionAudience,
-         AudienceRetirementIsLanded = audienceRetirementIsLanded,
-         LeanLevel = ModSettings.LeanPrompt ? LeanPromptLevel.Lean : LeanPromptLevel.Full,
-         IsFinalSceneBeat = isFinalSceneBeat,
-         SceneStage = sceneStage,
-         AggressorKind = aggressorKind,
-         ReactToPlayerIntervention = reactToPlayerIntervention,
-         CaptorIsBandit = captorIsBandit,
-         PlayerLooksWealthy = captorIsBandit && PlayerLooksWealthy(),
-         PlayerLooksImportant = captorIsBandit && PlayerLooksImportant(),
-         CompanionAskingPrice = ResolveCompanionAskingPrice(hero),
-         HeldLordPrisoners = ResolveHeldLordPrisoners(),
-         NpcIsPrisonerOfAnother = npcIsPrisonerOfAnother,
-         NpcCaptorName = npcIsPrisonerOfAnother
-            ? hero.PartyBelongedToAsPrisoner?.MapFaction?.Name?.ToString()
-            : null,
-         MercenaryOfferKingdom = ResolveMercenaryOfferKingdom(hero),
-         LordRecruitEligible = ResolveLordRecruitEligible(hero),
-         SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
-         SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
-         InterceptionReason = ResolveInterceptionReason(hero),
-         StanceNote = StanceService.Describe(profile),
-         StanceConsequenceHint = ResolveStanceConsequenceHint(hero, profile),
-         GrudgeNote = ResolveGrudgeNote(hero, profile),
-         RegardShadowNote = ResolveRegardShadowNote(hero, profile),
-         AppreciationNote = ResolveAppreciationNote(hero, profile),
-         StationGuidelinesOverride = ResolveStationGuidelines(hero),
-         LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
-         LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
-         ConsortEligible = ResolveConsortEligible(hero, profile),
-         ConceptionRisk = ResolveConceptionRisk(hero),
-         PowerBalanceNote = ResolvePowerBalanceNote(hero, profile),
-         MarriageProspects = MarriageProspectResolver.Build(hero),
-         WorldRumorsBlock = ResolveWorldRumors(hero),
-         RealmNewsLine = ResolveRealmNews(hero),
-         PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
-         CanGatherNews = ResolveCanGatherNews(hero),
-         CompanionOnErrand = ResolveCompanionOnErrand(hero),
-         CompanionNewsReport = CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
-         CompanionMoodNote = ResolveCompanionMoodNote(hero),
-         CompanionCampNote = ResolveCompanionCampNote(hero),
-         IntimacyBargainEligible = IntimacyBargainEligibility.IsEligible(hero),
-         IntimacyLeverageActive = IntimacyBargainEligibility.IsEligible(hero) && profile?.IntimacyLeverageHeld == true,
-         BastardMotherTone = ResolveBastardMotherTone(hero),
-         BastardBlackmailDemand = Bastards.BastardBehavior.Instance?.BlackmailDemandOver(hero) ?? 0,
-         ExtraActionTeachings = ResolveExtraActionTeachings(hero, profile, playerStatus, bridge, playerMessage)
-         // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
-         // coin, and naming the exact sum broke immersion. Affordability is enforced by the
-         // bridge when the hire is executed, not foreseen in the prompt.
+            PlayerStatus = playerStatus,
+            WarStatus = bridge.GetDiplomaticStatus(hero),
+            DaysSinceLastMeeting = daysSinceLastMeeting,
+            MeetingGapNote = MeetingGapDescriber.Describe(daysSinceLastMeeting),
+            Scene = bridge.GetCurrentScene(),
+            ContextualNames = string.IsNullOrWhiteSpace(playerMessage)
+               ? null
+               : ContextualNameResolver.Resolve(hero, playerMessage, bridge),
+            KnownWanderers = ResolveKnownWanderers(hero, playerMessage),
+            NpcCurrentActivity = bridge.GetCurrentActivity(hero),
+            CurrentLocationNote = BuildLocationNote(hero),
+            PlayerSpouseName = Hero.MainHero?.Spouse?.IsAlive == true
+               ? Hero.MainHero.Spouse.Name?.ToString()
+               : null,
+            PlayerFatherName = FormatParent(Hero.MainHero?.Father),
+            PlayerMotherName = FormatParent(Hero.MainHero?.Mother),
+            PlayerClanTier = Hero.MainHero?.Clan?.Tier ?? 0,
+            PlayerArenaRank = ResolveArenaRank(),
+            PlayerArenaWins = ResolveArenaWins(),
+            Witnesses = witnesses,
+            PrivacyRequested = privacyRequested,
+            IsWitnessExchangeTurn = isWitnessExchangeTurn,
+            IsLastWitnessExchange = isLastWitnessExchange,
+            IsCollectiveCaptiveScene = isCollectiveCaptiveScene,
+            IsCaptorScene = isCaptorScene,
+            CaptiveIntent = captiveIntent,
+            CaptiveVictimName = captiveVictimName,
+            PlayerCoercedAgainstCompanion = playerCoercedAgainstCompanion,
+            CaptiveVictimIsFemale = captiveVictimIsFemale,
+            CompanionAudience = companionAudience,
+            AudienceRetirementIsLanded = audienceRetirementIsLanded,
+            LeanLevel = ModSettings.LeanPrompt
+               ? LeanPromptLevel.Lean
+               : LeanPromptLevel.Full,
+            IsFinalSceneBeat = isFinalSceneBeat,
+            SceneStage = sceneStage,
+            AggressorKind = aggressorKind,
+            ReactToPlayerIntervention = reactToPlayerIntervention,
+            CaptorIsBandit = captorIsBandit,
+            PlayerLooksWealthy = captorIsBandit && PlayerLooksWealthy(),
+            PlayerLooksImportant = captorIsBandit && PlayerLooksImportant(),
+            CompanionAskingPrice = ResolveCompanionAskingPrice(hero),
+            HeldLordPrisoners = ResolveHeldLordPrisoners(),
+            NpcIsPrisonerOfAnother = npcIsPrisonerOfAnother,
+            NpcCaptorName = npcIsPrisonerOfAnother
+               ? hero.PartyBelongedToAsPrisoner?.MapFaction?.Name?.ToString()
+               : null,
+            MercenaryOfferKingdom = ResolveMercenaryOfferKingdom(hero),
+            LordRecruitEligible = ResolveLordRecruitEligible(hero),
+            SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
+            SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
+            InterceptionReason = ResolveInterceptionReason(hero),
+            StanceNote = StanceService.Describe(profile),
+            StanceConsequenceHint = ResolveStanceConsequenceHint(hero, profile),
+            GrudgeNote = ResolveGrudgeNote(hero, profile),
+            RegardShadowNote = ResolveRegardShadowNote(hero, profile),
+            AppreciationNote = ResolveAppreciationNote(hero, profile),
+            StationGuidelinesOverride = ResolveStationGuidelines(hero),
+            LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
+            LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
+            ConsortEligible = ResolveConsortEligible(hero, profile),
+            ConceptionRisk = ResolveConceptionRisk(hero),
+            PowerBalanceNote = ResolvePowerBalanceNote(hero, profile),
+            MarriageProspects = MarriageProspectResolver.Build(hero),
+            WorldRumorsBlock = ResolveWorldRumors(hero),
+            RealmNewsLine = ResolveRealmNews(hero),
+            PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
+            CanGatherNews = ResolveCanGatherNews(hero),
+            CompanionOnErrand = ResolveCompanionOnErrand(hero),
+            CompanionNewsReport = CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
+            CompanionMoodNote = ResolveCompanionMoodNote(hero),
+            CompanionCampNote = ResolveCompanionCampNote(hero),
+            IntimacyBargainEligible = IntimacyBargainEligibility.IsEligible(hero),
+            IntimacyLeverageActive = IntimacyBargainEligibility.IsEligible(hero) && profile?.IntimacyLeverageHeld == true,
+            BastardMotherTone = ResolveBastardMotherTone(hero),
+            BastardBlackmailDemand = BastardBehavior.Instance?.BlackmailDemandOver(hero) ?? 0,
+            ExtraActionTeachings = ResolveExtraActionTeachings(hero, profile, playerStatus, bridge, playerMessage)
+            // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
+            // coin, and naming the exact sum broke immersion. Affordability is enforced by the
+            // bridge when the hire is executed, not foreseen in the prompt.
          };
       }
 
@@ -382,6 +401,48 @@ namespace CalradiaRemembers.Mapping
          catch { return false; }
       }
 
+      /// <summary>
+      ///   Appreciations pillar: every dominant LIVE appreciation this NPC feels toward the player, as one
+      ///   chronicler-voice sentence each (numberless, knownness-mirrored, mirroring
+      ///   <see cref="ResolveGrudgeNote" /> exactly), each TARNISHED by the holder's own dominant live
+      ///   grudge (the same lookup <see cref="ResolveGrudgeNote" /> uses) via
+      ///   <see cref="Logic.Appreciations.AppreciationPolicy.TarnishedMagnitude" /> before rendering — a
+      ///   fresh grievance sours a standing warmth. A line that tarnishes to zero is dropped rather than
+      ///   shown at full warmth. Null when the NPC feels no live kindness worth voicing this turn.
+      /// </summary>
+      private static string ResolveAppreciationNote(Hero hero, NpcProfile profile)
+      {
+         try
+         {
+            if (hero == null) return null;
+
+            var today = (int) CampaignTime.Now.ToDays;
+            IReadOnlyList<Appreciation> live = AppreciationBehavior.Instance?.LiveAppreciationsFor(hero, today);
+
+            if (live == null || live.Count == 0) return null;
+
+            // The same dominant-live-grudge magnitude ResolveGrudgeNote/ResolveRegardShadowNote already
+            // resolve, read independently here so Appreciations stays fully decoupled from Grudges'
+            // internal types (only the plain int crosses the boundary).
+            int activeGrudgeMagnitude = ResolveDominantLiveGrudgeMagnitude(hero);
+
+            Logic.Appreciations.TraitFacts traits = AppreciationBridge.BuildTraitFacts(hero);
+            var lines = new List<string>();
+            foreach (Appreciation appreciation in live)
+            {
+               int effective = AppreciationPolicy.EffectiveMagnitude(appreciation, today, traits);
+               int tarnished = AppreciationPolicy.TarnishedMagnitude(effective, activeGrudgeMagnitude);
+               string line = AppreciationNarrator.PromptLine(appreciation, appreciation.KnownToPlayer, tarnished);
+               if (!string.IsNullOrWhiteSpace(line)) lines.Add(line);
+            }
+
+            return lines.Count == 0
+               ? null
+               : string.Join("\n", lines);
+         }
+         catch { return null; }
+      }
+
       private static int ResolveArenaRank()
       {
          try { return Campaign.Current?.TournamentManager?.GetLeaderBoardRank(Hero.MainHero) ?? 0; }
@@ -403,6 +464,26 @@ namespace CalradiaRemembers.Mapping
             return 0;
          }
          catch { return 0; }
+      }
+
+      /// <summary>
+      ///   When this NPC is the mother of a still-hidden bastard of the player's, her disposition as a tone
+      ///   string ("mercenary"/"longing"/"resentful"/"pragmatic") so the prompt can have her raise the child
+      ///   in character. Null otherwise. The conversation is one of TWO surfaces — the demand letter is the
+      ///   other — and paying is settled by the bridge, never by the NPC's word.
+      /// </summary>
+      private static string ResolveBastardMotherTone(Hero hero)
+      {
+         var bastards = BastardBehavior.Instance;
+
+         if (bastards == null || hero == null || !bastards.IsBastardMotherOfHidden(hero)) return null;
+
+         return bastards.MotherDisposition(hero) switch {
+            BastardMotherDisposition.Mercenary => "mercenary",
+            BastardMotherDisposition.Longing => "longing",
+            BastardMotherDisposition.Resentful => "resentful",
+            _ => "pragmatic"
+         };
       }
 
       /// <summary>
@@ -536,17 +617,32 @@ namespace CalradiaRemembers.Mapping
          return profile.ReputationWithPlayer >= 60;
       }
 
-      /// <summary>Registration order of the court verbs taught BEFORE pledge_against, in <see cref="VerbRegistry" />.</summary>
-      private static readonly string[] CourtVerbsBeforePledge = {"give_influence", "lend_troops", "sway_opinion"};
+      /// <summary>
+      ///   The holder's dominant live grudge's TODAY's effective magnitude (0 when none), the exact number
+      ///   <see cref="AppreciationPolicy.TarnishedMagnitude" /> needs to sour a standing appreciation.
+      /// </summary>
+      private static int ResolveDominantLiveGrudgeMagnitude(Hero hero)
+      {
+         IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, (int) CampaignTime.Now.ToDays);
 
-      /// <summary>Registration order of the court verbs taught AFTER pledge_against, in <see cref="VerbRegistry" />.</summary>
-      private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner"};
+         if (live == null || live.Count == 0) return 0;
 
-      /// <summary>DIVORCE, Phase 1: end_marriage is taught last, after every court verb above.</summary>
-      private static readonly string[] DivorceVerbs = {"end_marriage"};
+         TraitFacts traits = GrudgeBridge.BuildTraitFacts(hero);
 
-      /// <summary>Grudges pillar, resolution + discovery halves: make_amends then grudge_terms, taught last of all, after every verb above.</summary>
-      private static readonly string[] GrudgeVerbs = {"make_amends", "grudge_terms"};
+         return GrudgePolicy.EffectiveMagnitude(live[0], (int) CampaignTime.Now.ToDays, traits);
+      }
+
+      /// <summary>
+      ///   The tone arbiter's ruling for the dominant live grudge (already resolved by the caller), from its today's
+      ///   effective magnitude, knownness, and the NPC's personal reputation with the player.
+      /// </summary>
+      private static ToneRuling ResolveDominantToneRuling(NpcProfile profile, Grudge dominant, int today, TraitFacts traits)
+      {
+         int effective = GrudgePolicy.EffectiveMagnitude(dominant, today, traits);
+         int reputation = profile?.ReputationWithPlayer ?? 0;
+
+         return GrudgeToneArbiter.Resolve(effective, dominant.KnownToPlayer, reputation);
+      }
 
       /// <summary>
       ///   RP with teeth: composes the ONE generic <see cref="EncounterContext.ExtraActionTeachings" />
@@ -558,8 +654,11 @@ namespace CalradiaRemembers.Mapping
       ///   <see cref="VerbRegistry" /> (<see cref="IConversationVerb" />); pledge_against stays inline here
       ///   (untouched by this spike) between the two ComposeTeachings calls, preserving its original position.
       /// </summary>
-      private static string ResolveExtraActionTeachings(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus,
-         IGameStateBridge bridge, string playerMessage)
+      private static string ResolveExtraActionTeachings(Hero hero,
+                                                        NpcProfile profile,
+                                                        PlayerStatusVsNpc playerStatus,
+                                                        IGameStateBridge bridge,
+                                                        string playerMessage)
       {
          if (hero == null || profile == null) return null;
          if (playerStatus == PlayerStatusVsNpc.Captive) return null;
@@ -597,92 +696,9 @@ namespace CalradiaRemembers.Mapping
          // make_amends + grudge_terms (Grudges pillar, resolution + discovery halves): taught last of all.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, GrudgeVerbs));
 
-         return sb.Length == 0 ? null : sb.ToString();
-      }
-
-      /// <summary>
-      ///   A prompt-ready list of the LORD captives the player currently holds (name + faction), or
-      ///   null when none. Notable/wanderer prisoners are excluded — a prisoner bargain is about lords.
-      /// </summary>
-      private static string ResolveHeldLordPrisoners()
-      {
-         List<string> lines = MobileParty.MainParty?.PrisonRoster?.GetTroopRoster()
-                                         ?.Select(el => el.Character?.HeroObject)
-                                         .Where(h => h is {IsLord: true, IsHumanPlayerCharacter: false})
-                                         .Select(h => $"- {h.Name} ({h.MapFaction?.Name?.ToString() ?? h.Clan?.Name?.ToString() ?? "unknown"})")
-                                         .ToList();
-
-         return lines == null || lines.Count == 0
+         return sb.Length == 0
             ? null
-            : string.Join("\n", lines);
-      }
-
-      /// <summary>
-      ///   When this NPC sought the player out by intercepting them on the map, a one-shot opening
-      ///   directive (consumed so it only colours the first turn). Null in an ordinary conversation.
-      /// </summary>
-      private static string ResolveInterceptionReason(Hero hero)
-      {
-         try { return InterceptionBehavior.Instance?.ConsumeInterceptionReason(hero); }
-         catch { return null; }
-      }
-
-      /// <summary>
-      ///   How the NPC's earned posture inclines them to act this meeting — reads the live stance + their
-      ///   traits through the pure <see cref="StanceConsequencePolicy" /> and maps the verdict to a prompt
-      ///   line. "Stance with teeth", conversation side: a cold-shouldered lord won't deal, a secret killer
-      ///   stays falsely civil, a true friend would warn you. Null when nothing is warranted.
-      /// </summary>
-      private static string ResolveStanceConsequenceHint(Hero hero, NpcProfile profile)
-      {
-         if (hero == null || profile == null) return null;
-
-         StanceConsequence verdict = StanceConsequencePolicy.Resolve(
-            StanceService.ToStance(profile),
-            TraitLevel(hero, DefaultTraits.Honor),
-            TraitLevel(hero, DefaultTraits.Valor),
-            TraitLevel(hero, DefaultTraits.Mercy),
-            TraitLevel(hero, DefaultTraits.Calculating));
-
-         return verdict switch {
-            StanceConsequence.ColdShoulder => "You are cold toward the player and unwilling to strike any bargain or do them a favour; keep them at arm's length.",
-            StanceConsequence.Threat => "You hold the player in real enmity and do not hide your displeasure; you would not lift a finger to help them.",
-            StanceConsequence.Plot => "You bear the player a cold, calculating hatred. Stay outwardly civil — even courteous — and give nothing away; you mean to undo them by quieter means, not here and not openly.",
-            StanceConsequence.Intercept => "You despise the player and would gladly face them in open battle; your contempt is plain and unhidden.",
-            StanceConsequence.Assassinate => "You want the player dead and mean to see it done — but you betray none of it here. Be smooth and false, courteous even, and never tip your hand.",
-            StanceConsequence.WarmWelcome => "You are genuinely glad to see the player and meet them with real warmth.",
-            StanceConsequence.Favor => "You hold the player in high regard and would gladly do them a good turn — offer help, a fair price, or an open door if the moment fits.",
-            StanceConsequence.Warning => "You count the player a trusted friend; if you knew of anything moving against them, you would want to warn them.",
-            _ => null
-         };
-      }
-
-      private static int TraitLevel(Hero hero, TraitObject trait)
-      {
-         try { return hero?.GetTraitLevel(trait) ?? 0; }
-         catch { return 0; }
-      }
-
-      /// <summary>
-      ///   Grudges pillar: at most the per-NPC cap of dominant LIVE grudges this NPC nurses against the
-      ///   player, each rendered as one chronicler-voice sentence via <see cref="GrudgeNarrator.PromptLine" />
-      ///   (numberless, mirroring the knownness gate — named openly when known, concealed when hidden),
-      ///   joined by newlines. Null when the NPC nurses no live grudge worth voicing this turn.
-      /// </summary>
-
-      /// <summary>
-      ///   The station-matched behavior guidelines for this speaker (gang leader, notable, wanderer),
-      ///   or null so the base lordly register applies. Fixes the player-reported "gang leader rising
-      ///   from her throne" greeting: the voice register follows the SPEAKER's station, including for
-      ///   witness-routed turns, since the context is rebuilt per speaker.
-      /// </summary>
-      private static string ResolveStationGuidelines(Hero hero)
-      {
-         if (hero == null) return null;
-
-         string key = StationGuidelinesPolicy.ResolveStationKey(hero.Occupation.ToString());
-
-         return StationGuidelinesPolicy.SelectStationText(key, NarrativeLoader.StationGuidelines);
+            : sb.ToString();
       }
 
       /// <summary>
@@ -725,112 +741,84 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
-      ///   Grudges pillar tone arbiter: a short clause the SDK's PromptBuilder places right after the
-      ///   CURRENT STANCE regard line, when the dominant live grudge's ruling is Tempered or Dominates,
-      ///   pointing the LLM at the grudge note before it even reaches it. Null when no live grudge shadows
-      ///   the regard at all.
+      ///   A prompt-ready list of the LORD captives the player currently holds (name + faction), or
+      ///   null when none. Notable/wanderer prisoners are excluded — a prisoner bargain is about lords.
       /// </summary>
-      private static string ResolveRegardShadowNote(Hero hero, NpcProfile profile)
+      private static string ResolveHeldLordPrisoners()
       {
-         try
-         {
-            if (hero == null) return null;
+         List<string> lines = MobileParty.MainParty?.PrisonRoster?.GetTroopRoster()
+                                         ?.Select(el => el.Character?.HeroObject)
+                                         .Where(h => h is {IsLord: true, IsHumanPlayerCharacter: false})
+                                         .Select(h => $"- {h.Name} ({h.MapFaction?.Name?.ToString() ?? h.Clan?.Name?.ToString() ?? "unknown"})")
+                                         .ToList();
 
-            var today = (int) CampaignTime.Now.ToDays;
-            IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today);
-
-            if (live == null || live.Count == 0) return null;
-
-            TraitFacts traits = GrudgeBridge.BuildTraitFacts(hero);
-            ToneRuling ruling = ResolveDominantToneRuling(profile, live[0], today, traits);
-
-            return ruling == ToneRuling.WarmthUnshadowed
-               ? null
-               : "(but a grievance shadows this regard; see below)";
-         }
-         catch { return null; }
-      }
-
-      /// <summary>The tone arbiter's ruling for the dominant live grudge (already resolved by the caller), from its today's effective magnitude, knownness, and the NPC's personal reputation with the player.</summary>
-      private static ToneRuling ResolveDominantToneRuling(NpcProfile profile, Grudge dominant, int today, TraitFacts traits)
-      {
-         int effective = GrudgePolicy.EffectiveMagnitude(dominant, today, traits);
-         int reputation = profile?.ReputationWithPlayer ?? 0;
-
-         return GrudgeToneArbiter.Resolve(effective, dominant.KnownToPlayer, reputation);
+         return lines == null || lines.Count == 0
+            ? null
+            : string.Join("\n", lines);
       }
 
       /// <summary>
-      ///   Appreciations pillar: every dominant LIVE appreciation this NPC feels toward the player, as one
-      ///   chronicler-voice sentence each (numberless, knownness-mirrored, mirroring
-      ///   <see cref="ResolveGrudgeNote" /> exactly), each TARNISHED by the holder's own dominant live
-      ///   grudge (the same lookup <see cref="ResolveGrudgeNote" /> uses) via
-      ///   <see cref="Logic.Appreciations.AppreciationPolicy.TarnishedMagnitude" /> before rendering — a
-      ///   fresh grievance sours a standing warmth. A line that tarnishes to zero is dropped rather than
-      ///   shown at full warmth. Null when the NPC feels no live kindness worth voicing this turn.
+      ///   When this NPC sought the player out by intercepting them on the map, a one-shot opening
+      ///   directive (consumed so it only colours the first turn). Null in an ordinary conversation.
       /// </summary>
-      private static string ResolveAppreciationNote(Hero hero, NpcProfile profile)
+      private static string ResolveInterceptionReason(Hero hero)
+      {
+         try { return InterceptionBehavior.Instance?.ConsumeInterceptionReason(hero); }
+         catch { return null; }
+      }
+
+      /// <summary>
+      ///   A SINGLE real wanderer the NPC could point the player to when asked where to hire a companion,
+      ///   so the NPC names an actual hireable hero and their town instead of inventing one (the "Oros"
+      ///   bug). Just ONE, drawn at random: a person would not plausibly know the comings and goings of
+      ///   every wanderer in the land. Returns that one line when any is known, an EMPTY string when the
+      ///   player asked but none are plausibly about (the prompt then sends them to the taverns), and null
+      ///   when the player did not ask at all — so the section is skipped and costs no tokens. The gate is
+      ///   the pure <see cref="RecruitIntentDetector" />. Only wanderers in the NPC's own town (certain) or
+      ///   of the NPC's own culture (heard of) are eligible; one in the NPC's own tavern is preferred.
+      /// </summary>
+      private static string ResolveKnownWanderers(Hero hero, string playerMessage)
       {
          try
          {
-            if (hero == null) return null;
+            if (!RecruitIntentDetector.Detect(playerMessage)) return null;
 
-            var today = (int) CampaignTime.Now.ToDays;
-            IReadOnlyList<Logic.Appreciations.Appreciation> live = Appreciations.AppreciationBehavior.Instance?.LiveAppreciationsFor(hero, today);
+            Settlement here = hero?.CurrentSettlement;
+            CultureObject npcCulture = hero?.Culture;
 
-            if (live == null || live.Count == 0) return null;
-
-            // The same dominant-live-grudge magnitude ResolveGrudgeNote/ResolveRegardShadowNote already
-            // resolve, read independently here so Appreciations stays fully decoupled from Grudges'
-            // internal types (only the plain int crosses the boundary).
-            int activeGrudgeMagnitude = ResolveDominantLiveGrudgeMagnitude(hero);
-
-            Logic.Appreciations.TraitFacts traits = Appreciations.AppreciationBridge.BuildTraitFacts(hero);
-            var lines = new List<string>();
-            foreach (Logic.Appreciations.Appreciation appreciation in live)
+            var local = new List<string>(); // in the NPC's own town — certain knowledge
+            var heard = new List<string>(); // of the NPC's own culture — plausible hearsay
+            foreach (Hero h in Hero.AllAliveHeroes)
             {
-               int effective = Logic.Appreciations.AppreciationPolicy.EffectiveMagnitude(appreciation, today, traits);
-               int tarnished = Logic.Appreciations.AppreciationPolicy.TarnishedMagnitude(effective, activeGrudgeMagnitude);
-               string line = Logic.Appreciations.AppreciationNarrator.PromptLine(appreciation, appreciation.KnownToPlayer, tarnished);
-               if (!string.IsNullOrWhiteSpace(line)) lines.Add(line);
+               if (h == Hero.MainHero || !h.IsAlive || !h.IsWanderer) continue;
+               if (h.CompanionOf != null) continue; // already in someone's service
+               if (h.PartyBelongedTo == MobileParty.MainParty) continue; // already with the player
+
+               Settlement s = h.CurrentSettlement;
+
+               if (s == null || !s.IsTown) continue; // only ones we can place (taverns are in towns)
+
+               var name = h.Name?.ToString();
+
+               if (string.IsNullOrWhiteSpace(name)) continue;
+
+               if (here != null && s == here)
+                  local.Add($"- {name} is here in {s.Name}, in the tavern.");
+               else if (npcCulture != null && s.Culture == npcCulture)
+                  heard.Add($"- {name} has been seen at {s.Name}.");
+               // else: too far afield for this NPC to plausibly know — skip.
             }
 
-            return lines.Count == 0 ? null : string.Join("\n", lines);
+            // Name ONE, at random — prefer one in the NPC's own tavern (certain) over distant hearsay.
+            List<string> pool = local.Count > 0
+               ? local
+               : heard;
+
+            if (pool.Count == 0) return string.Empty; // asked, but the NPC knows of none about
+
+            return pool[MBRandom.RandomInt(pool.Count)];
          }
          catch { return null; }
-      }
-
-      /// <summary>
-      ///   The holder's dominant live grudge's TODAY's effective magnitude (0 when none), the exact number
-      ///   <see cref="AppreciationPolicy.TarnishedMagnitude" /> needs to sour a standing appreciation.
-      /// </summary>
-      private static int ResolveDominantLiveGrudgeMagnitude(Hero hero)
-      {
-         IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, (int) CampaignTime.Now.ToDays);
-         if (live == null || live.Count == 0) return 0;
-
-         TraitFacts traits = GrudgeBridge.BuildTraitFacts(hero);
-
-         return GrudgePolicy.EffectiveMagnitude(live[0], (int) CampaignTime.Now.ToDays, traits);
-      }
-
-      /// <summary>
-      ///   When this NPC is the mother of a still-hidden bastard of the player's, her disposition as a tone
-      ///   string ("mercenary"/"longing"/"resentful"/"pragmatic") so the prompt can have her raise the child
-      ///   in character. Null otherwise. The conversation is one of TWO surfaces — the demand letter is the
-      ///   other — and paying is settled by the bridge, never by the NPC's word.
-      /// </summary>
-      private static string ResolveBastardMotherTone(Hero hero)
-      {
-         var bastards = Bastards.BastardBehavior.Instance;
-         if (bastards == null || hero == null || !bastards.IsBastardMotherOfHidden(hero)) return null;
-
-         return bastards.MotherDisposition(hero) switch {
-            BastardMotherDisposition.Mercenary => "mercenary",
-            BastardMotherDisposition.Longing => "longing",
-            BastardMotherDisposition.Resentful => "resentful",
-            _ => "pragmatic"
-         };
       }
 
       /// <summary>
@@ -889,55 +877,6 @@ namespace CalradiaRemembers.Mapping
          if (Clan.PlayerClan?.Kingdom != null) return null;
 
          return npcKingdom.Name?.ToString();
-      }
-
-      /// <summary>
-      ///   A SINGLE real wanderer the NPC could point the player to when asked where to hire a companion,
-      ///   so the NPC names an actual hireable hero and their town instead of inventing one (the "Oros"
-      ///   bug). Just ONE, drawn at random: a person would not plausibly know the comings and goings of
-      ///   every wanderer in the land. Returns that one line when any is known, an EMPTY string when the
-      ///   player asked but none are plausibly about (the prompt then sends them to the taverns), and null
-      ///   when the player did not ask at all — so the section is skipped and costs no tokens. The gate is
-      ///   the pure <see cref="RecruitIntentDetector" />. Only wanderers in the NPC's own town (certain) or
-      ///   of the NPC's own culture (heard of) are eligible; one in the NPC's own tavern is preferred.
-      /// </summary>
-      private static string ResolveKnownWanderers(Hero hero, string playerMessage)
-      {
-         try
-         {
-            if (!RecruitIntentDetector.Detect(playerMessage)) return null;
-
-            Settlement here = hero?.CurrentSettlement;
-            CultureObject npcCulture = hero?.Culture;
-
-            var local = new List<string>(); // in the NPC's own town — certain knowledge
-            var heard = new List<string>(); // of the NPC's own culture — plausible hearsay
-            foreach (Hero h in Hero.AllAliveHeroes)
-            {
-               if (h == Hero.MainHero || !h.IsAlive || !h.IsWanderer) continue;
-               if (h.CompanionOf != null) continue; // already in someone's service
-               if (h.PartyBelongedTo == MobileParty.MainParty) continue; // already with the player
-
-               Settlement s = h.CurrentSettlement;
-               if (s == null || !s.IsTown) continue; // only ones we can place (taverns are in towns)
-
-               var name = h.Name?.ToString();
-               if (string.IsNullOrWhiteSpace(name)) continue;
-
-               if (here != null && s == here)
-                  local.Add($"- {name} is here in {s.Name}, in the tavern.");
-               else if (npcCulture != null && s.Culture == npcCulture)
-                  heard.Add($"- {name} has been seen at {s.Name}.");
-               // else: too far afield for this NPC to plausibly know — skip.
-            }
-
-            // Name ONE, at random — prefer one in the NPC's own tavern (certain) over distant hearsay.
-            List<string> pool = local.Count > 0 ? local : heard;
-            if (pool.Count == 0) return string.Empty; // asked, but the NPC knows of none about
-
-            return pool[MBRandom.RandomInt(pool.Count)];
-         }
-         catch { return null; }
       }
 
       // ── Helpers ───────────────────────────────────────────────────────────
@@ -1020,6 +959,33 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
+      ///   Grudges pillar tone arbiter: a short clause the SDK's PromptBuilder places right after the
+      ///   CURRENT STANCE regard line, when the dominant live grudge's ruling is Tempered or Dominates,
+      ///   pointing the LLM at the grudge note before it even reaches it. Null when no live grudge shadows
+      ///   the regard at all.
+      /// </summary>
+      private static string ResolveRegardShadowNote(Hero hero, NpcProfile profile)
+      {
+         try
+         {
+            if (hero == null) return null;
+
+            var today = (int) CampaignTime.Now.ToDays;
+            IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today);
+
+            if (live == null || live.Count == 0) return null;
+
+            TraitFacts traits = GrudgeBridge.BuildTraitFacts(hero);
+            ToneRuling ruling = ResolveDominantToneRuling(profile, live[0], today, traits);
+
+            return ruling == ToneRuling.WarmthUnshadowed
+               ? null
+               : "(but a grievance shadows this regard; see below)";
+         }
+         catch { return null; }
+      }
+
+      /// <summary>
       ///   When this NPC is secretly plotting against a rival and could enlist the player, the
       ///   target's name — gates the <c>scheme_assist</c> teaching. Delegates the eligibility to
       ///   <see cref="WorldEvents.SchemeStore" /> so the prompt and the bridge agree. Null otherwise.
@@ -1038,6 +1004,57 @@ namespace CalradiaRemembers.Mapping
       {
          try { return SchemeStore.Instance?.HasSecretSchemeAgainst(hero) ?? false; }
          catch { return false; }
+      }
+
+      /// <summary>
+      ///   How the NPC's earned posture inclines them to act this meeting — reads the live stance + their
+      ///   traits through the pure <see cref="StanceConsequencePolicy" /> and maps the verdict to a prompt
+      ///   line. "Stance with teeth", conversation side: a cold-shouldered lord won't deal, a secret killer
+      ///   stays falsely civil, a true friend would warn you. Null when nothing is warranted.
+      /// </summary>
+      private static string ResolveStanceConsequenceHint(Hero hero, NpcProfile profile)
+      {
+         if (hero == null || profile == null) return null;
+
+         StanceConsequence verdict = StanceConsequencePolicy.Resolve(
+            StanceService.ToStance(profile),
+            TraitLevel(hero, DefaultTraits.Honor),
+            TraitLevel(hero, DefaultTraits.Valor),
+            TraitLevel(hero, DefaultTraits.Mercy),
+            TraitLevel(hero, DefaultTraits.Calculating));
+
+         return verdict switch {
+            StanceConsequence.ColdShoulder => "You are cold toward the player and unwilling to strike any bargain or do them a favour; keep them at arm's length.",
+            StanceConsequence.Threat => "You hold the player in real enmity and do not hide your displeasure; you would not lift a finger to help them.",
+            StanceConsequence.Plot => "You bear the player a cold, calculating hatred. Stay outwardly civil — even courteous — and give nothing away; you mean to undo them by quieter means, not here and not openly.",
+            StanceConsequence.Intercept => "You despise the player and would gladly face them in open battle; your contempt is plain and unhidden.",
+            StanceConsequence.Assassinate => "You want the player dead and mean to see it done — but you betray none of it here. Be smooth and false, courteous even, and never tip your hand.",
+            StanceConsequence.WarmWelcome => "You are genuinely glad to see the player and meet them with real warmth.",
+            StanceConsequence.Favor => "You hold the player in high regard and would gladly do them a good turn — offer help, a fair price, or an open door if the moment fits.",
+            StanceConsequence.Warning => "You count the player a trusted friend; if you knew of anything moving against them, you would want to warn them.",
+            _ => null
+         };
+      }
+
+      /// <summary>
+      ///   Grudges pillar: at most the per-NPC cap of dominant LIVE grudges this NPC nurses against the
+      ///   player, each rendered as one chronicler-voice sentence via <see cref="GrudgeNarrator.PromptLine" />
+      ///   (numberless, mirroring the knownness gate — named openly when known, concealed when hidden),
+      ///   joined by newlines. Null when the NPC nurses no live grudge worth voicing this turn.
+      /// </summary>
+      /// <summary>
+      ///   The station-matched behavior guidelines for this speaker (gang leader, notable, wanderer),
+      ///   or null so the base lordly register applies. Fixes the player-reported "gang leader rising
+      ///   from her throne" greeting: the voice register follows the SPEAKER's station, including for
+      ///   witness-routed turns, since the context is rebuilt per speaker.
+      /// </summary>
+      private static string ResolveStationGuidelines(Hero hero)
+      {
+         if (hero == null) return null;
+
+         string key = StationGuidelinesPolicy.ResolveStationKey(hero.Occupation.ToString());
+
+         return StationGuidelinesPolicy.SelectStationText(key, NarrativeLoader.StationGuidelines);
       }
 
       /// <summary>
@@ -1074,6 +1091,12 @@ namespace CalradiaRemembers.Mapping
                : null;
          }
          catch { return null; }
+      }
+
+      private static int TraitLevel(Hero hero, TraitObject trait)
+      {
+         try { return hero?.GetTraitLevel(trait) ?? 0; }
+         catch { return 0; }
       }
 
       #endregion

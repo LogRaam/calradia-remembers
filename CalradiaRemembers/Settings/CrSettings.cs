@@ -1,8 +1,9 @@
-// Code written by Gabriel Mailhot, 22/06/2026.
+// Code written by Gabriel Mailhot, 01/07/2026.
 
 #region
 
 using System;
+using CalradiaRemembers.Logic;
 using MCM.Abstractions.Attributes;
 using MCM.Abstractions.Attributes.v2;
 using MCM.Abstractions.Base.Global;
@@ -41,6 +42,13 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public string ApiKey { get; set; } = "";
 
+      [SettingPropertyBool("Companion contentment", RequireRestart = false, Order = 0,
+         HintText = "When ON, companions left idle slowly grow restless; an unhappy one asks for an audience, and " +
+                    "if you keep refusing it they eventually leave by farewell letter (never silently). Turn OFF " +
+                    "to disable companion contentment entirely — no restlessness, no audiences, no departures.")]
+      [SettingPropertyGroup("Companions", GroupOrder = 6)]
+      public bool CompanionContentment { get; set; } = true;
+
       [SettingPropertyText("API Key (optional)", RequireRestart = false, Order = 0,
          HintText = "API key for the endpoint — leave blank for keyless local servers like LM Studio or Ollama " +
                     "(their default config requires no authentication). Fill it in only if your server is " +
@@ -78,6 +86,23 @@ namespace CalradiaRemembers.Settings
       public override string FormatType => "json2";
       public override string Id => "CalradiaRemembers";
 
+      [SettingPropertyBool("Compact prompt for small models", RequireRestart = false, Order = 4,
+         HintText = "Trims the system prompt so it fits a SMALL / short-context model (roughly 4k-8k tokens, e.g. a " +
+                    "little local model in LM Studio / Ollama). Turn ON if the AI stays silent or you see '(My words " +
+                    "escape me…)' — the full prompt is overflowing your model's context. It drops the heavy flavour " +
+                    "sections (relationships, world lore, cultural background, long behaviour guidelines) and keeps " +
+                    "less memory, so replies are a little less richly grounded. Leave OFF for large / cloud models. " +
+                    "Applies on your next conversation.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public bool LeanPrompt { get; set; } = false;
+
+      [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 3,
+         HintText = "How long to wait for the AI to reply before giving up, in seconds (default 120). Raise it " +
+                    "if you run a slow local model or a reasoning model and see 'the model did not respond' on " +
+                    "longer messages; lower it if you prefer to fail fast. Applies immediately.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public int LlmTimeoutSeconds { get; set; } = 120;
+
       [SettingPropertyText("Model (roleplay)", RequireRestart = false, Order = 1,
          HintText = "Model id used for ordinary conversations, in the ACTIVE provider's own format: " +
                     "OpenRouter e.g. x-ai/grok-4.20 (browse openrouter.ai/models); NanoGPT e.g. " +
@@ -87,6 +112,13 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string Model { get; set; } = "x-ai/grok-4.20";
 
+      [SettingPropertyText("NanoGPT API Key", RequireRestart = false, Order = 0,
+         HintText = "Paste your NanoGPT API key from nano-gpt.com. Stored locally on this machine only — " +
+                    "never share your config file or a screenshot of this field. Used only when Provider " +
+                    "is set to NanoGPT. Applies immediately.")]
+      [SettingPropertyGroup("NanoGPT", GroupOrder = 2)]
+      public string NanoGptApiKey { get; set; } = "";
+
       [SettingPropertyText("NSFW model (optional)", RequireRestart = false, Order = 2,
          HintText = "Model id used automatically in captive and other explicit scenes, and whenever you flip " +
                     "the in-chat mode button to NSFW (for example, a consensual scene that escalates). Same " +
@@ -95,12 +127,14 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string NsfwModel { get; set; } = "";
 
-      [SettingPropertyText("NanoGPT API Key", RequireRestart = false, Order = 0,
-         HintText = "Paste your NanoGPT API key from nano-gpt.com. Stored locally on this machine only — " +
-                    "never share your config file or a screenshot of this field. Used only when Provider " +
-                    "is set to NanoGPT. Applies immediately.")]
-      [SettingPropertyGroup("NanoGPT", GroupOrder = 2)]
-      public string NanoGptApiKey { get; set; } = "";
+      [SettingPropertyDropdown("Reasoning Effort (NSFW)", RequireRestart = false, Order = 2,
+         HintText = "Reasoning effort used while the chat is in NSFW mode. Lower or Off makes reasoning models " +
+                    "markedly less prone to moralizing refusals on adult/CNC content, and speeds up scene " +
+                    "beats. 'Same as roleplay' (the default) reuses the setting above. OpenRouter only. " +
+                    "Applies immediately.")]
+      [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
+      public Dropdown<string> NsfwReasoningEffort { get; set; } =
+         new(new[] {ModelModePolicy.SameAsRoleplay, "Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Same as roleplay
 
       [SettingPropertyDropdown("LLM Provider", RequireRestart = false, Order = 0,
          HintText = "Which OpenAI-compatible service to send requests to. The model fields below are shared: " +
@@ -118,15 +152,6 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public Dropdown<string> ReasoningEffort { get; set; } =
          new(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 3); // default: Low
-
-      [SettingPropertyDropdown("Reasoning Effort (NSFW)", RequireRestart = false, Order = 2,
-         HintText = "Reasoning effort used while the chat is in NSFW mode. Lower or Off makes reasoning models " +
-                    "markedly less prone to moralizing refusals on adult/CNC content, and speeds up scene " +
-                    "beats. 'Same as roleplay' (the default) reuses the setting above. OpenRouter only. " +
-                    "Applies immediately.")]
-      [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
-      public Dropdown<string> NsfwReasoningEffort { get; set; } =
-         new(new[] {CalradiaRemembers.Logic.ModelModePolicy.SameAsRoleplay, "Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Same as roleplay
 
       [SettingPropertyDropdown("Relationship Pacing", RequireRestart = false, Order = 1,
          HintText = "How relationships grow through conversation — a philosophy, not a difficulty. " +
@@ -176,30 +201,6 @@ namespace CalradiaRemembers.Settings
                     "restore the vanilla traits. Edits to the file load on the next campaign or via cr.reload_lore.")]
       [SettingPropertyGroup("Character", GroupOrder = 5)]
       public bool UseCustomTraits { get; set; } = false;
-
-      [SettingPropertyBool("Companion contentment", RequireRestart = false, Order = 0,
-         HintText = "When ON, companions left idle slowly grow restless; an unhappy one asks for an audience, and " +
-                    "if you keep refusing it they eventually leave by farewell letter (never silently). Turn OFF " +
-                    "to disable companion contentment entirely — no restlessness, no audiences, no departures.")]
-      [SettingPropertyGroup("Companions", GroupOrder = 6)]
-      public bool CompanionContentment { get; set; } = true;
-
-      [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 3,
-         HintText = "How long to wait for the AI to reply before giving up, in seconds (default 120). Raise it " +
-                    "if you run a slow local model or a reasoning model and see 'the model did not respond' on " +
-                    "longer messages; lower it if you prefer to fail fast. Applies immediately.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
-      public int LlmTimeoutSeconds { get; set; } = 120;
-
-      [SettingPropertyBool("Compact prompt for small models", RequireRestart = false, Order = 4,
-         HintText = "Trims the system prompt so it fits a SMALL / short-context model (roughly 4k-8k tokens, e.g. a " +
-                    "little local model in LM Studio / Ollama). Turn ON if the AI stays silent or you see '(My words " +
-                    "escape me…)' — the full prompt is overflowing your model's context. It drops the heavy flavour " +
-                    "sections (relationships, world lore, cultural background, long behaviour guidelines) and keeps " +
-                    "less memory, so replies are a little less richly grounded. Leave OFF for large / cloud models. " +
-                    "Applies on your next conversation.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
-      public bool LeanPrompt { get; set; } = false;
 
       [SettingPropertyBool("Verbose Logging", RequireRestart = false, Order = 1,
          HintText = "Logs the full system prompt and NPC response to the mod log on every exchange. " +

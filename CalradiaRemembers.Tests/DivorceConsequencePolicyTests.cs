@@ -1,7 +1,4 @@
 // Code written by Gabriel Mailhot, 04/07/2026.
-// Grudges pillar, first big client: documents the FULL divorce signed-consequence matrix — who grudges,
-// who feels relief, who feels gratitude, and who is untouched, across the repudiated/mutual and
-// blessed/unblessed axes. One behaviour per test; Gabriel reads these as the design documentation.
 
 #region
 
@@ -13,231 +10,235 @@ using NUnit.Framework;
 
 namespace CalradiaRemembers.Tests
 {
-    [TestFixture]
-    public sealed class DivorceConsequencePolicyTests
-    {
-        private static DivorceFacts RepudiatedBlessedBothValued()
-            => new DivorceFacts {
-                MutualConsent = false,
-                MarriageWasBlessed = true,
-                SpouseRegardForPlayer = 0,
-                SpouseClanValuedAlliance = true,
-                DivorcerClanValuedAlliance = true
-            };
+   [TestFixture]
+   public sealed class DivorceConsequencePolicyTests
+   {
+      [Test]
+      public void GIVEN_a_blessed_valued_non_mutual_split_WHEN_asking_whether_a_clan_would_grudge_THEN_it_is_true()
+      {
+         DivorceConsequencePolicy.ClanWouldGrudge(true, true, false).Should().BeTrue();
+      }
 
-        // ── Null guard ───────────────────────────────────────────────────────
+      [Test]
+      public void GIVEN_a_mutual_blessed_divorce_both_clans_valuing_the_match_WHEN_resolving_THEN_everything_softens()
+      {
+         DivorceFacts facts = RepudiatedBlessedBothValued();
+         facts.MutualConsent = true;
 
-        [Test]
-        public void GIVEN_null_facts_WHEN_resolving_THEN_it_throws()
-        {
-            Assert.Throws<System.ArgumentNullException>(() => DivorceConsequencePolicy.Resolve(null));
-        }
+         DivorceConsequences result = DivorceConsequencePolicy.Resolve(facts);
 
-        // ── The full grid, one representative case each ─────────────────────
+         result.SpouseReaction.Kind.Should().Be(ReactionKind.Relief);
+         result.SpouseClanReaction.Kind.Should().Be(ReactionKind.Relief);
+         result.DivorcerClanReaction.Kind.Should().Be(ReactionKind.Relief);
+         result.UnblessedFamilyReaction.Kind.Should().Be(ReactionKind.None);
+      }
 
-        [Test]
-        public void GIVEN_a_repudiated_spouse_from_a_blessed_marriage_both_clans_valuing_it_WHEN_resolving_THEN_it_is_maximum_outrage()
-        {
-            DivorceConsequences result = DivorceConsequencePolicy.Resolve(RepudiatedBlessedBothValued());
+      [Test]
+      public void GIVEN_a_mutual_consent_spouse_WHEN_asking_whether_the_spouse_grudges_THEN_it_is_false()
+      {
+         DivorceFacts facts = RepudiatedBlessedBothValued();
+         facts.MutualConsent = true;
 
-            result.SpouseReaction.Kind.Should().Be(ReactionKind.PlantGrudge);
-            result.SpouseClanReaction.Kind.Should().Be(ReactionKind.PlantGrudge);
-            result.DivorcerClanReaction.Kind.Should().Be(ReactionKind.PlantGrudge);
-            result.UnblessedFamilyReaction.Kind.Should().Be(ReactionKind.None);
-        }
+         DivorceConsequencePolicy.SpouseGrudges(facts).Should().BeFalse();
+      }
 
-        [Test]
-        public void GIVEN_a_mutual_blessed_divorce_both_clans_valuing_the_match_WHEN_resolving_THEN_everything_softens()
-        {
-            DivorceFacts facts = RepudiatedBlessedBothValued();
-            facts.MutualConsent = true;
+      [Test]
+      public void GIVEN_a_mutual_divorce_from_an_unblessed_marriage_WHEN_resolving_THEN_everyone_is_relieved_or_grateful()
+      {
+         var facts = new DivorceFacts {
+            MutualConsent = true,
+            MarriageWasBlessed = false,
+            SpouseRegardForPlayer = 0,
+            SpouseClanValuedAlliance = false,
+            DivorcerClanValuedAlliance = false
+         };
 
-            DivorceConsequences result = DivorceConsequencePolicy.Resolve(facts);
+         DivorceConsequences result = DivorceConsequencePolicy.Resolve(facts);
 
-            result.SpouseReaction.Kind.Should().Be(ReactionKind.Relief);
-            result.SpouseClanReaction.Kind.Should().Be(ReactionKind.Relief);
-            result.DivorcerClanReaction.Kind.Should().Be(ReactionKind.Relief);
-            result.UnblessedFamilyReaction.Kind.Should().Be(ReactionKind.None);
-        }
+         result.SpouseReaction.Kind.Should().Be(ReactionKind.Relief);
+         result.SpouseClanReaction.Kind.Should().Be(ReactionKind.Gratitude);
+         result.DivorcerClanReaction.Kind.Should().Be(ReactionKind.Gratitude);
+         result.UnblessedFamilyReaction.Kind.Should().Be(ReactionKind.Gratitude);
 
-        [Test]
-        public void GIVEN_a_repudiated_spouse_from_an_unblessed_marriage_WHEN_resolving_THEN_the_spouse_grudges_but_the_unblessed_family_is_grateful()
-        {
-            var facts = new DivorceFacts {
-                MutualConsent = false,
-                MarriageWasBlessed = false,
-                SpouseRegardForPlayer = 0,
-                SpouseClanValuedAlliance = false,
-                DivorcerClanValuedAlliance = false
-            };
+         // Minimal blame: nobody in this grid grudges the player.
+         result.SpouseReaction.Kind.Should().NotBe(ReactionKind.PlantGrudge);
+         result.SpouseClanReaction.Kind.Should().NotBe(ReactionKind.PlantGrudge);
+         result.DivorcerClanReaction.Kind.Should().NotBe(ReactionKind.PlantGrudge);
+      }
 
-            DivorceConsequences result = DivorceConsequencePolicy.Resolve(facts);
+      [Test]
+      public void GIVEN_a_none_reaction_WHEN_inspecting_it_THEN_both_the_magnitude_and_the_relation_nudge_are_zero()
+      {
+         PartyReaction none = DivorceConsequencePolicy.Resolve(RepudiatedBlessedBothValued()).UnblessedFamilyReaction;
 
-            result.SpouseReaction.Kind.Should().Be(ReactionKind.PlantGrudge);
-            result.UnblessedFamilyReaction.Kind.Should().Be(ReactionKind.Gratitude);
-            result.SpouseClanReaction.Kind.Should().Be(ReactionKind.Gratitude);
-            result.DivorcerClanReaction.Kind.Should().Be(ReactionKind.Gratitude);
-        }
+         none.Kind.Should().Be(ReactionKind.None);
+         none.GrudgeMagnitude.Should().Be(0);
+         none.RelationNudge.Should().Be(0);
+      }
 
-        [Test]
-        public void GIVEN_a_mutual_divorce_from_an_unblessed_marriage_WHEN_resolving_THEN_everyone_is_relieved_or_grateful()
-        {
-            var facts = new DivorceFacts {
-                MutualConsent = true,
-                MarriageWasBlessed = false,
-                SpouseRegardForPlayer = 0,
-                SpouseClanValuedAlliance = false,
-                DivorcerClanValuedAlliance = false
-            };
+      [Test]
+      public void GIVEN_a_plant_grudge_reaction_WHEN_inspecting_it_THEN_the_relation_nudge_is_zero_and_the_magnitude_is_positive()
+      {
+         PartyReaction reaction = DivorceConsequencePolicy.Resolve(RepudiatedBlessedBothValued()).SpouseReaction;
 
-            DivorceConsequences result = DivorceConsequencePolicy.Resolve(facts);
+         reaction.Kind.Should().Be(ReactionKind.PlantGrudge);
+         reaction.GrudgeMagnitude.Should().BeGreaterThan(0);
+         reaction.RelationNudge.Should().Be(0);
+      }
 
-            result.SpouseReaction.Kind.Should().Be(ReactionKind.Relief);
-            result.SpouseClanReaction.Kind.Should().Be(ReactionKind.Gratitude);
-            result.DivorcerClanReaction.Kind.Should().Be(ReactionKind.Gratitude);
-            result.UnblessedFamilyReaction.Kind.Should().Be(ReactionKind.Gratitude);
+      [Test]
+      public void GIVEN_a_relief_or_gratitude_reaction_WHEN_inspecting_it_THEN_the_relation_nudge_is_positive_and_the_grudge_magnitude_is_zero()
+      {
+         DivorceFacts facts = RepudiatedBlessedBothValued();
+         facts.MutualConsent = true;
 
-            // Minimal blame: nobody in this grid grudges the player.
-            result.SpouseReaction.Kind.Should().NotBe(ReactionKind.PlantGrudge);
-            result.SpouseClanReaction.Kind.Should().NotBe(ReactionKind.PlantGrudge);
-            result.DivorcerClanReaction.Kind.Should().NotBe(ReactionKind.PlantGrudge);
-        }
+         PartyReaction relief = DivorceConsequencePolicy.Resolve(facts).SpouseReaction;
+         relief.Kind.Should().Be(ReactionKind.Relief);
+         relief.RelationNudge.Should().BeGreaterThan(0);
+         relief.GrudgeMagnitude.Should().Be(0);
 
-        // ── Spouse regard scaling the grudge magnitude ──────────────────────
+         facts.MarriageWasBlessed = false;
+         PartyReaction gratitude = DivorceConsequencePolicy.Resolve(facts).UnblessedFamilyReaction;
+         gratitude.Kind.Should().Be(ReactionKind.Gratitude);
+         gratitude.RelationNudge.Should().BeGreaterThan(0);
+         gratitude.GrudgeMagnitude.Should().Be(0);
+      }
 
-        [Test]
-        public void GIVEN_a_repudiated_spouse_who_already_disliked_the_player_WHEN_resolving_THEN_the_grudge_is_larger()
-        {
-            DivorceFacts lowRegard = RepudiatedBlessedBothValued();
-            lowRegard.SpouseRegardForPlayer = DivorceConsequencePolicy.LowRegardThreshold;
+      // ── The full grid, one representative case each ─────────────────────
 
-            DivorceFacts highRegard = RepudiatedBlessedBothValued();
-            highRegard.SpouseRegardForPlayer = DivorceConsequencePolicy.LowRegardThreshold + 1;
+      [Test]
+      public void GIVEN_a_repudiated_spouse_from_a_blessed_marriage_both_clans_valuing_it_WHEN_resolving_THEN_it_is_maximum_outrage()
+      {
+         DivorceConsequences result = DivorceConsequencePolicy.Resolve(RepudiatedBlessedBothValued());
 
-            int lowRegardMagnitude = DivorceConsequencePolicy.Resolve(lowRegard).SpouseReaction.GrudgeMagnitude;
-            int highRegardMagnitude = DivorceConsequencePolicy.Resolve(highRegard).SpouseReaction.GrudgeMagnitude;
+         result.SpouseReaction.Kind.Should().Be(ReactionKind.PlantGrudge);
+         result.SpouseClanReaction.Kind.Should().Be(ReactionKind.PlantGrudge);
+         result.DivorcerClanReaction.Kind.Should().Be(ReactionKind.PlantGrudge);
+         result.UnblessedFamilyReaction.Kind.Should().Be(ReactionKind.None);
+      }
 
-            lowRegardMagnitude.Should().Be(DivorceConsequencePolicy.SpouseGrudgeBaseMagnitude + DivorceConsequencePolicy.SpouseGrudgeLowRegardBonus);
-            highRegardMagnitude.Should().Be(DivorceConsequencePolicy.SpouseGrudgeBaseMagnitude);
-            lowRegardMagnitude.Should().BeGreaterThan(highRegardMagnitude);
-        }
+      [Test]
+      public void GIVEN_a_repudiated_spouse_from_an_unblessed_marriage_WHEN_resolving_THEN_the_spouse_grudges_but_the_unblessed_family_is_grateful()
+      {
+         var facts = new DivorceFacts {
+            MutualConsent = false,
+            MarriageWasBlessed = false,
+            SpouseRegardForPlayer = 0,
+            SpouseClanValuedAlliance = false,
+            DivorcerClanValuedAlliance = false
+         };
 
-        // ── Clan valued-alliance vs disapproving clan ───────────────────────
+         DivorceConsequences result = DivorceConsequencePolicy.Resolve(facts);
 
-        [Test]
-        public void GIVEN_one_clan_valued_the_alliance_and_another_did_not_WHEN_resolving_THEN_one_grudges_and_the_other_feels_relief()
-        {
-            DivorceFacts facts = RepudiatedBlessedBothValued();
-            facts.SpouseClanValuedAlliance = true;
-            facts.DivorcerClanValuedAlliance = false;
+         result.SpouseReaction.Kind.Should().Be(ReactionKind.PlantGrudge);
+         result.UnblessedFamilyReaction.Kind.Should().Be(ReactionKind.Gratitude);
+         result.SpouseClanReaction.Kind.Should().Be(ReactionKind.Gratitude);
+         result.DivorcerClanReaction.Kind.Should().Be(ReactionKind.Gratitude);
+      }
 
-            DivorceConsequences result = DivorceConsequencePolicy.Resolve(facts);
+      // ── Helper predicates ────────────────────────────────────────────────
 
-            result.SpouseClanReaction.Kind.Should().Be(ReactionKind.PlantGrudge);
-            result.DivorcerClanReaction.Kind.Should().Be(ReactionKind.Relief);
-        }
+      [Test]
+      public void GIVEN_a_repudiated_spouse_WHEN_asking_whether_the_spouse_grudges_THEN_it_is_true()
+      {
+         DivorceConsequencePolicy.SpouseGrudges(RepudiatedBlessedBothValued()).Should().BeTrue();
+      }
 
-        [Test]
-        public void GIVEN_an_unblessed_marriage_WHEN_resolving_THEN_the_clan_is_grateful_regardless_of_whether_it_valued_the_alliance()
-        {
-            // MarriageWasBlessed is the deciding fact for the unblessed branch; a "valued the alliance" flag
-            // that was never blessed in the first place still reads as a match the clan is glad to see end.
-            var facts = new DivorceFacts {
-                MutualConsent = false,
-                MarriageWasBlessed = false,
-                SpouseRegardForPlayer = 0,
-                SpouseClanValuedAlliance = true,
-                DivorcerClanValuedAlliance = true
-            };
+      // ── Shape guarantees per reaction kind ──────────────────────────────
 
-            DivorceConsequencePolicy.Resolve(facts).SpouseClanReaction.Kind.Should().Be(ReactionKind.Gratitude);
-        }
+      [Test]
+      public void GIVEN_a_repudiated_spouse_WHEN_resolving_THEN_the_grudge_is_known_to_the_player()
+      {
+         DivorceConsequencePolicy.Resolve(RepudiatedBlessedBothValued()).SpouseReaction.KnownToPlayer.Should().BeTrue();
+      }
 
-        // ── Shape guarantees per reaction kind ──────────────────────────────
+      // ── Spouse regard scaling the grudge magnitude ──────────────────────
 
-        [Test]
-        public void GIVEN_a_repudiated_spouse_WHEN_resolving_THEN_the_grudge_is_known_to_the_player()
-        {
-            DivorceConsequencePolicy.Resolve(RepudiatedBlessedBothValued()).SpouseReaction.KnownToPlayer.Should().BeTrue();
-        }
+      [Test]
+      public void GIVEN_a_repudiated_spouse_who_already_disliked_the_player_WHEN_resolving_THEN_the_grudge_is_larger()
+      {
+         DivorceFacts lowRegard = RepudiatedBlessedBothValued();
+         lowRegard.SpouseRegardForPlayer = DivorceConsequencePolicy.LowRegardThreshold;
 
-        [Test]
-        public void GIVEN_a_plant_grudge_reaction_WHEN_inspecting_it_THEN_the_relation_nudge_is_zero_and_the_magnitude_is_positive()
-        {
-            PartyReaction reaction = DivorceConsequencePolicy.Resolve(RepudiatedBlessedBothValued()).SpouseReaction;
+         DivorceFacts highRegard = RepudiatedBlessedBothValued();
+         highRegard.SpouseRegardForPlayer = DivorceConsequencePolicy.LowRegardThreshold + 1;
 
-            reaction.Kind.Should().Be(ReactionKind.PlantGrudge);
-            reaction.GrudgeMagnitude.Should().BeGreaterThan(0);
-            reaction.RelationNudge.Should().Be(0);
-        }
+         int lowRegardMagnitude = DivorceConsequencePolicy.Resolve(lowRegard).SpouseReaction.GrudgeMagnitude;
+         int highRegardMagnitude = DivorceConsequencePolicy.Resolve(highRegard).SpouseReaction.GrudgeMagnitude;
 
-        [Test]
-        public void GIVEN_a_relief_or_gratitude_reaction_WHEN_inspecting_it_THEN_the_relation_nudge_is_positive_and_the_grudge_magnitude_is_zero()
-        {
-            DivorceFacts facts = RepudiatedBlessedBothValued();
-            facts.MutualConsent = true;
+         lowRegardMagnitude.Should().Be(DivorceConsequencePolicy.SpouseGrudgeBaseMagnitude + DivorceConsequencePolicy.SpouseGrudgeLowRegardBonus);
+         highRegardMagnitude.Should().Be(DivorceConsequencePolicy.SpouseGrudgeBaseMagnitude);
+         lowRegardMagnitude.Should().BeGreaterThan(highRegardMagnitude);
+      }
 
-            PartyReaction relief = DivorceConsequencePolicy.Resolve(facts).SpouseReaction;
-            relief.Kind.Should().Be(ReactionKind.Relief);
-            relief.RelationNudge.Should().BeGreaterThan(0);
-            relief.GrudgeMagnitude.Should().Be(0);
+      [Test]
+      public void GIVEN_an_unblessed_marriage_WHEN_asking_whether_a_clan_would_grudge_THEN_it_is_false()
+      {
+         DivorceConsequencePolicy.ClanWouldGrudge(false, true, false).Should().BeFalse();
+      }
 
-            facts.MarriageWasBlessed = false;
-            PartyReaction gratitude = DivorceConsequencePolicy.Resolve(facts).UnblessedFamilyReaction;
-            gratitude.Kind.Should().Be(ReactionKind.Gratitude);
-            gratitude.RelationNudge.Should().BeGreaterThan(0);
-            gratitude.GrudgeMagnitude.Should().Be(0);
-        }
+      [Test]
+      public void GIVEN_an_unblessed_marriage_WHEN_resolving_THEN_the_clan_is_grateful_regardless_of_whether_it_valued_the_alliance()
+      {
+         // MarriageWasBlessed is the deciding fact for the unblessed branch; a "valued the alliance" flag
+         // that was never blessed in the first place still reads as a match the clan is glad to see end.
+         var facts = new DivorceFacts {
+            MutualConsent = false,
+            MarriageWasBlessed = false,
+            SpouseRegardForPlayer = 0,
+            SpouseClanValuedAlliance = true,
+            DivorcerClanValuedAlliance = true
+         };
 
-        [Test]
-        public void GIVEN_a_none_reaction_WHEN_inspecting_it_THEN_both_the_magnitude_and_the_relation_nudge_are_zero()
-        {
-            PartyReaction none = DivorceConsequencePolicy.Resolve(RepudiatedBlessedBothValued()).UnblessedFamilyReaction;
+         DivorceConsequencePolicy.Resolve(facts).SpouseClanReaction.Kind.Should().Be(ReactionKind.Gratitude);
+      }
 
-            none.Kind.Should().Be(ReactionKind.None);
-            none.GrudgeMagnitude.Should().Be(0);
-            none.RelationNudge.Should().Be(0);
-        }
+      [Test]
+      public void GIVEN_mutual_consent_WHEN_asking_whether_a_clan_would_grudge_THEN_it_is_softened_to_false()
+      {
+         DivorceConsequencePolicy.ClanWouldGrudge(true, true, true).Should().BeFalse();
+      }
 
-        // ── Helper predicates ────────────────────────────────────────────────
+      [Test]
+      public void GIVEN_null_facts_WHEN_asking_whether_the_spouse_grudges_THEN_it_is_false()
+      {
+         DivorceConsequencePolicy.SpouseGrudges(null).Should().BeFalse();
+      }
 
-        [Test]
-        public void GIVEN_a_repudiated_spouse_WHEN_asking_whether_the_spouse_grudges_THEN_it_is_true()
-        {
-            DivorceConsequencePolicy.SpouseGrudges(RepudiatedBlessedBothValued()).Should().BeTrue();
-        }
+      // ── Null guard ───────────────────────────────────────────────────────
 
-        [Test]
-        public void GIVEN_a_mutual_consent_spouse_WHEN_asking_whether_the_spouse_grudges_THEN_it_is_false()
-        {
-            DivorceFacts facts = RepudiatedBlessedBothValued();
-            facts.MutualConsent = true;
+      [Test]
+      public void GIVEN_null_facts_WHEN_resolving_THEN_it_throws()
+      {
+         Assert.Throws<ArgumentNullException>(() => DivorceConsequencePolicy.Resolve(null));
+      }
 
-            DivorceConsequencePolicy.SpouseGrudges(facts).Should().BeFalse();
-        }
+      // ── Clan valued-alliance vs disapproving clan ───────────────────────
 
-        [Test]
-        public void GIVEN_null_facts_WHEN_asking_whether_the_spouse_grudges_THEN_it_is_false()
-        {
-            DivorceConsequencePolicy.SpouseGrudges(null).Should().BeFalse();
-        }
+      [Test]
+      public void GIVEN_one_clan_valued_the_alliance_and_another_did_not_WHEN_resolving_THEN_one_grudges_and_the_other_feels_relief()
+      {
+         DivorceFacts facts = RepudiatedBlessedBothValued();
+         facts.SpouseClanValuedAlliance = true;
+         facts.DivorcerClanValuedAlliance = false;
 
-        [Test]
-        public void GIVEN_a_blessed_valued_non_mutual_split_WHEN_asking_whether_a_clan_would_grudge_THEN_it_is_true()
-        {
-            DivorceConsequencePolicy.ClanWouldGrudge(marriageWasBlessed: true, clanValuedAlliance: true, mutualConsent: false).Should().BeTrue();
-        }
+         DivorceConsequences result = DivorceConsequencePolicy.Resolve(facts);
 
-        [Test]
-        public void GIVEN_mutual_consent_WHEN_asking_whether_a_clan_would_grudge_THEN_it_is_softened_to_false()
-        {
-            DivorceConsequencePolicy.ClanWouldGrudge(marriageWasBlessed: true, clanValuedAlliance: true, mutualConsent: true).Should().BeFalse();
-        }
+         result.SpouseClanReaction.Kind.Should().Be(ReactionKind.PlantGrudge);
+         result.DivorcerClanReaction.Kind.Should().Be(ReactionKind.Relief);
+      }
 
-        [Test]
-        public void GIVEN_an_unblessed_marriage_WHEN_asking_whether_a_clan_would_grudge_THEN_it_is_false()
-        {
-            DivorceConsequencePolicy.ClanWouldGrudge(marriageWasBlessed: false, clanValuedAlliance: true, mutualConsent: false).Should().BeFalse();
-        }
-    }
+      #region private
+
+      private static DivorceFacts RepudiatedBlessedBothValued()
+         => new() {
+            MutualConsent = false,
+            MarriageWasBlessed = true,
+            SpouseRegardForPlayer = 0,
+            SpouseClanValuedAlliance = true,
+            DivorcerClanValuedAlliance = true
+         };
+
+      #endregion
+   }
 }

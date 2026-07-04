@@ -203,7 +203,7 @@ namespace CalradiaRemembers.Commoners
 
             pool.Add(rumor);
          }
-         catch { }
+         catch { ModLog.Error("[RUMOR] Failed to generate war rumor."); }
       }
 
       /// <summary>Pulls real dated happenings the locals would plausibly have heard of, phrased by how surely word reached them.</summary>

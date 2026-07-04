@@ -1,21 +1,14 @@
-// Code written by Gabriel Mailhot, 24/06/2026.
-// SRP/size refactoring (Phase 2): the conversation EXCHANGE engine — the large async turn loops (captive
-// continuation, commoner, escape outcome, the core LLM exchange, and the NPC<->witness exchange). Moved out
-// of ChatViewModel.cs into this PARTIAL of the same class: identical behaviour, private state still shared,
-// just split across files so each is navigable. No logic changed.
+// Code written by Gabriel Mailhot, 03/07/2026.
 
 #region
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
-using CalradiaRemembers.Items;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
@@ -25,16 +18,10 @@ using CalradiaRemembers.Quests;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.WorldEvents;
-using NpcMemoryService.Core.Captivity;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Party;
-using TaleWorlds.CampaignSystem.Roster;
-using TaleWorlds.CampaignSystem.Settlements;
-using TaleWorlds.Core;
-using TaleWorlds.Library;
 
 #endregion
 
@@ -42,6 +29,8 @@ namespace CalradiaRemembers.Chat
 {
    public sealed partial class ChatViewModel
    {
+      #region private
+
       /// <summary>
       ///   Fires ONE narration continuation turn (called by <see cref="ExecuteContinue" />) when the NPC
       ///   emitted a NARRATION block without ending on a question — the scene is still unfolding. Uses the
@@ -67,7 +56,7 @@ namespace CalradiaRemembers.Chat
 
             string stimulus = CaptiveSceneText.BuildContinuationStimulus();
             ModLog.Info($"[SCENE] continuation {_sceneContinuations} → {behavior.LlmServices.ModelId} " +
-                        $"(mode {Services.LlmServices.ActiveModelMode})...");
+                        $"(mode {LlmServices.ActiveModelMode})...");
 
             ChatSession session = BuildSessionFor(speaker);
             var world = new WorldState {
@@ -96,8 +85,7 @@ namespace CalradiaRemembers.Chat
             ChatManager.ScrollToBottom();
 
             NpcChatResult result;
-            using (var cts =
-                   new CancellationTokenSource())
+            using (var cts = new CancellationTokenSource())
             {
                try
                {
@@ -175,7 +163,9 @@ namespace CalradiaRemembers.Chat
             ModLog.Info($"[SCENE:{_sceneContinuations}] {speaker.Name}: \"{npcLine}\"");
             if (result.Usage != null)
                ModLog.Info($"  [SCENE TOKENS] prompt={result.Usage.PromptTokens} (cached:{result.Usage.CachedPromptTokens ?? 0}) | completion={result.Usage.CompletionTokens}" +
-                           (result.WasRetried ? " | RETRY fired (first attempt was empty or truncated)" : ""));
+                           (result.WasRetried
+                              ? " | RETRY fired (first attempt was empty or truncated)"
+                              : ""));
 
             if (result.Response?.Actions != null)
                foreach (GameAction action in result.Response.Actions)
@@ -490,12 +480,16 @@ namespace CalradiaRemembers.Chat
                   : _captorScene
                      ? PlayerStatusVsNpc.NpcIsCaptive
                      : null,
-               captiveIntent: _captorScene ? _captorSceneIntent : _captiveEncounterIntent,
+               captiveIntent: _captorScene
+                  ? _captorSceneIntent
+                  : _captiveEncounterIntent,
                captorIsBandit: IsCaptiveEncounter && _captiveEncounterIsBandit,
                sceneStage: _director?.CurrentStage ?? CaptiveSceneStage.Intro,
                aggressorKind: _director?.CurrentAggressor ?? CaptiveAggressorKind.Lead,
                reactToPlayerIntervention: _director?.ReactToIntervention ?? false,
-               captiveVictimName: IsCaptiveEncounter ? _captiveVictimName : null,
+               captiveVictimName: IsCaptiveEncounter
+                  ? _captiveVictimName
+                  : null,
                playerCoercedAgainstCompanion: IsCaptiveEncounter && _captivePlayerCoerced,
                captiveVictimIsFemale: IsCaptiveEncounter && _captiveVictimIsFemale,
                companionAudience: _audienceReason,
@@ -635,9 +629,10 @@ namespace CalradiaRemembers.Chat
             // A substantive [EVENT] means no fallback summary is needed at close.
             if (!suppressPlayerLine)
             {
-                _playerTurnsThisSession++;
-                _playerCharsThisSession += playerMessage?.Trim().Length ?? 0;
+               _playerTurnsThisSession++;
+               _playerCharsThisSession += playerMessage?.Trim().Length ?? 0;
             }
+
             if (response.NewEventData != null && !string.IsNullOrWhiteSpace(response.NewEventData.Summary))
                _eventRecordedThisSession = true;
 
@@ -739,6 +734,7 @@ namespace CalradiaRemembers.Chat
 
                      continue;
                   }
+
                   if (hasJoinParty &&
                       string.Equals(action.Type, "take_gold",
                          StringComparison.OrdinalIgnoreCase))
@@ -955,7 +951,9 @@ namespace CalradiaRemembers.Chat
                ModLog.Info($"  [ACTIONS] {response.Actions.Count} action(s) dispatched.");
             if (result.Usage != null)
                ModLog.Info($"  [TOKENS] prompt={result.Usage.PromptTokens} (cached:{result.Usage.CachedPromptTokens ?? 0}) | completion={result.Usage.CompletionTokens}" +
-                           (result.WasRetried ? " | RETRY fired (first attempt was empty or truncated)" : ""));
+                           (result.WasRetried
+                              ? " | RETRY fired (first attempt was empty or truncated)"
+                              : ""));
             // Surface a non-"stop" finish reason — "length" means the model cut the reply
             // off (a known DeepSeek quirk); this makes truncated-message reports diagnosable.
             if (!string.IsNullOrEmpty(result.FinishReason) && !string.Equals(result.FinishReason, "stop", StringComparison.OrdinalIgnoreCase))
@@ -1042,7 +1040,9 @@ namespace CalradiaRemembers.Chat
                   isLast,
                   captiveIntent: _captiveEncounterIntent,
                   captorIsBandit: IsCaptiveEncounter && _captiveEncounterIsBandit,
-                  captiveVictimName: IsCaptiveEncounter ? _captiveVictimName : null,
+                  captiveVictimName: IsCaptiveEncounter
+                     ? _captiveVictimName
+                     : null,
                   playerCoercedAgainstCompanion: IsCaptiveEncounter && _captivePlayerCoerced,
                   captiveVictimIsFemale: IsCaptiveEncounter && _captiveVictimIsFemale);
                // (15C witness exchange is gated off for captive scenes, so no stage is fed here.)
@@ -1052,8 +1052,7 @@ namespace CalradiaRemembers.Chat
                ChatManager.ScrollToBottom();
 
                NpcChatResult result;
-               using (var cts =
-                      new CancellationTokenSource())
+               using (var cts = new CancellationTokenSource())
                {
                   try
                   {
@@ -1148,5 +1147,7 @@ namespace CalradiaRemembers.Chat
             IsSendEnabled = !_conversationEnded;
          }
       }
+
+      #endregion
    }
 }

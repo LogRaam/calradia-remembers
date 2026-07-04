@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 22/06/2026.
+// Code written by Gabriel Mailhot, 01/07/2026.
 
 #region
 
@@ -42,21 +42,50 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   The model's reasoning-effort keyword (Default/Off/Minimal/Low/Medium/High), read
-      ///   live from the MCM menu. Lowering or disabling reasoning cuts moralizing refusals on
-      ///   adult/CNC content. Falls back to <c>Low</c> (the default) when MCM has not loaded.
+      ///   When true, the companion-contentment loop runs (restlessness, audiences, farewell-letter
+      ///   departures). When false the whole system is inert. Read live from the MCM menu; on by default.
       /// </summary>
-      public static string ReasoningEffort
+      public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
+
+      /// <summary>
+      ///   How the OpenAI-Compatible endpoint shapes its sampling parameters. Read live from the MCM menu;
+      ///   falls back to <c>Auto</c> (detect reasoning models from the id) when MCM has not loaded. Lets a
+      ///   player force the classic or reasoning contract for a strict endpoint (e.g. api.openai.com on a
+      ///   gpt-5 model, which rejects the classic <c>max_tokens</c>).
+      /// </summary>
+      public static LlmCompatibilityMode CustomParameterCompatibility
       {
          get
          {
-            string v = CrSettings.Instance?.ReasoningEffort?.SelectedValue;
+            string v = CrSettings.Instance?.CustomParameterCompatibility?.SelectedValue;
 
-            return string.IsNullOrWhiteSpace(v)
-               ? "Low"
-               : v;
+            switch (v)
+            {
+               case "Standard": return LlmCompatibilityMode.Standard;
+               case "Reasoning": return LlmCompatibilityMode.Reasoning;
+               default: return LlmCompatibilityMode.Auto;
+            }
          }
       }
+
+      /// <summary>
+      ///   When true, the system prompt is trimmed to fit a small / short-context model (the "Compact prompt for
+      ///   small models" option). Read live from the MCM menu; OFF by default (full prompt for capable models).
+      /// </summary>
+      public static bool LeanPrompt => CrSettings.Instance?.LeanPrompt ?? false;
+
+      /// <summary>
+      ///   How long (seconds) to wait for an LLM reply before timing out. Read live from the MCM
+      ///   menu; falls back to 120 when MCM has not loaded. Drives the per-request timeout so a slow
+      ///   local/reasoning model on a long prompt no longer hits the opaque 100s HttpClient default.
+      /// </summary>
+      public static int LlmResponseTimeoutSeconds => CrSettings.Instance?.LlmTimeoutSeconds ?? 120;
+
+      /// <summary>
+      ///   The optional NSFW model id: used automatically in explicit scenes and via the in-chat mode button.
+      ///   Blank (the default) means the roleplay model serves everything. Read live from the MCM menu.
+      /// </summary>
+      public static string NsfwModel => CrSettings.Instance?.NsfwModel ?? "";
 
       /// <summary>
       ///   The reasoning-effort keyword for NSFW mode, read live from the MCM menu. The default
@@ -70,7 +99,24 @@ namespace CalradiaRemembers
             string v = CrSettings.Instance?.NsfwReasoningEffort?.SelectedValue;
 
             return string.IsNullOrWhiteSpace(v)
-               ? CalradiaRemembers.Logic.ModelModePolicy.SameAsRoleplay
+               ? ModelModePolicy.SameAsRoleplay
+               : v;
+         }
+      }
+
+      /// <summary>
+      ///   The model's reasoning-effort keyword (Default/Off/Minimal/Low/Medium/High), read
+      ///   live from the MCM menu. Lowering or disabling reasoning cuts moralizing refusals on
+      ///   adult/CNC content. Falls back to <c>Low</c> (the default) when MCM has not loaded.
+      /// </summary>
+      public static string ReasoningEffort
+      {
+         get
+         {
+            string v = CrSettings.Instance?.ReasoningEffort?.SelectedValue;
+
+            return string.IsNullOrWhiteSpace(v)
+               ? "Low"
                : v;
          }
       }
@@ -121,52 +167,6 @@ namespace CalradiaRemembers
       ///   vanilla traits of the NPCs they name. Read live from the MCM menu; off by default.
       /// </summary>
       public static bool UseCustomTraits => CrSettings.Instance?.UseCustomTraits ?? false;
-
-      /// <summary>
-      ///   When true, the companion-contentment loop runs (restlessness, audiences, farewell-letter
-      ///   departures). When false the whole system is inert. Read live from the MCM menu; on by default.
-      /// </summary>
-      public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
-
-      /// <summary>
-      ///   When true, the system prompt is trimmed to fit a small / short-context model (the "Compact prompt for
-      ///   small models" option). Read live from the MCM menu; OFF by default (full prompt for capable models).
-      /// </summary>
-      public static bool LeanPrompt => CrSettings.Instance?.LeanPrompt ?? false;
-
-      /// <summary>
-      ///   The optional NSFW model id: used automatically in explicit scenes and via the in-chat mode button.
-      ///   Blank (the default) means the roleplay model serves everything. Read live from the MCM menu.
-      /// </summary>
-      public static string NsfwModel => CrSettings.Instance?.NsfwModel ?? "";
-
-      /// <summary>
-      ///   How long (seconds) to wait for an LLM reply before timing out. Read live from the MCM
-      ///   menu; falls back to 120 when MCM has not loaded. Drives the per-request timeout so a slow
-      ///   local/reasoning model on a long prompt no longer hits the opaque 100s HttpClient default.
-      /// </summary>
-      public static int LlmResponseTimeoutSeconds => CrSettings.Instance?.LlmTimeoutSeconds ?? 120;
-
-      /// <summary>
-      ///   How the OpenAI-Compatible endpoint shapes its sampling parameters. Read live from the MCM menu;
-      ///   falls back to <c>Auto</c> (detect reasoning models from the id) when MCM has not loaded. Lets a
-      ///   player force the classic or reasoning contract for a strict endpoint (e.g. api.openai.com on a
-      ///   gpt-5 model, which rejects the classic <c>max_tokens</c>).
-      /// </summary>
-      public static LlmCompatibilityMode CustomParameterCompatibility
-      {
-         get
-         {
-            string v = CrSettings.Instance?.CustomParameterCompatibility?.SelectedValue;
-
-            switch (v)
-            {
-               case "Standard": return LlmCompatibilityMode.Standard;
-               case "Reasoning": return LlmCompatibilityMode.Reasoning;
-               default: return LlmCompatibilityMode.Auto;
-            }
-         }
-      }
 
       /// <summary>
       ///   When true, the full system prompt and NPC response are logged on every LLM

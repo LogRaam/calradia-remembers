@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 24/06/2026.
+// Code written by Gabriel Mailhot, 04/07/2026.
 
 #region
 
@@ -10,10 +10,10 @@ using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Items;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Missions;
 using CalradiaRemembers.Services;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.Core;
 using TaleWorlds.Library;
 
 #endregion
@@ -90,25 +90,18 @@ namespace CalradiaRemembers.Chat
       // Portrait troop per heroless (synthetic bandit) witness, so the chief's men show distinct
       // faces instead of a blank avatar. Keyed by witness name.
       private readonly Dictionary<string, CharacterObject> _witnessPortraits = new(StringComparer.OrdinalIgnoreCase);
+      private bool _audienceLanded; // retirement audience: landed (step back) vs landless (leave)
+      private NpcProfile _audienceProfile; // the companion's profile for this audience (MainSpeaker uses it)
+
+      // Companion AUDIENCE — a normal conversation the companion themselves requested (grievance / retirement),
+      // opened programmatically from a map popup rather than the vanilla dialogue, so the profile is carried here.
+      private CompanionAudienceReason _audienceReason = CompanionAudienceReason.None;
+      private bool _awaitingOpener; // true while an NPC-led OPENER is generating (captive/audience) — hide the input
 
       private int _captiveBeatCount;
       private CaptiveSceneIntent _captiveEncounterIntent;
       private bool _captiveEncounterIsBandit; // captor is a faceless brigand, not a lord
       private bool _captiveEncounterIsCollective;
-      private string _captiveVictimName;      // set => the scene's victim is this companion, not the player
-      private bool _captivePlayerCoerced;     // with a victim: the player is forced to act, not just watch
-      private bool _captiveVictimIsFemale;    // the victim companion's gender, so the prompt uses the right pronouns
-
-      // The scene-focus index picked last round (BuildSceneSetup/BuildResumeSetup), so
-      // SceneFocusSelector never repeats the same driving focus two rounds running. -1 = no prior round.
-      private int _lastSceneFocusIndex = -1;
-
-      // Companion AUDIENCE — a normal conversation the companion themselves requested (grievance / retirement),
-      // opened programmatically from a map popup rather than the vanilla dialogue, so the profile is carried here.
-      private CompanionAudienceReason _audienceReason = CompanionAudienceReason.None;
-      private bool _audienceLanded;         // retirement audience: landed (step back) vs landless (leave)
-      private bool _retireGranted;          // the player granted the retirement this audience (executed on close)
-      private NpcProfile _audienceProfile;  // the companion's profile for this audience (MainSpeaker uses it)
 
       // ── Sprint 17: captive encounter mode payload ────────────────────────
       // When opened from CaptiveEncounterService, the chat runs with the captor
@@ -116,13 +109,17 @@ namespace CalradiaRemembers.Chat
       // DialogFlow (which is only populated during vanilla conversations).
       private NpcProfile _captiveEncounterProfile;
       private bool _captiveMemoryFinalized; // idempotency guard for the end-of-scene memory record
+      private bool _captivePlayerCoerced; // with a victim: the player is forced to act, not just watch
+      private bool _captiveVictimIsFemale; // the victim companion's gender, so the prompt uses the right pronouns
+      private string _captiveVictimName; // set => the scene's victim is this companion, not the player
 
       // ── Player-as-captor scene (the inverse): the NPC is the player's prisoner and the player drives. A normal
       //    live conversation (full memory + actions), flagged so the prompt frames the NPC as the captive. ──
       private bool _captorScene;
       private CaptiveSceneIntent _captorSceneIntent;
-      private NpcProfile _captorSceneProfile;
       private bool _captorSceneMemoryFinalized; // idempotency guard for the Grudges pillar's CaptiveAbuse plant
+      private NpcProfile _captorSceneProfile;
+      private float _chatVisualOffsetX = -30f; // matches the prefab's resting ChatPanel.PositionXOffset
 
       private string _closeButtonText = "End conversation";
 
@@ -136,7 +133,6 @@ namespace CalradiaRemembers.Chat
       // player can only read the farewell and leave.
       private bool _conversationEnded;
       private bool _conversationMemoryFinalized; // idempotency guard
-      private bool _witnessMemoryFinalized; // idempotency guard for the per-witness "I was present" memory
 
       // The witness the player is currently addressing (sticky). Null = main NPC.
       private string _currentSpeakerHeroId;
@@ -151,19 +147,21 @@ namespace CalradiaRemembers.Chat
       private bool _hasWitnesses;
       private string _inputText = "";
       private bool _isComposeOpen;
-      private bool _awaitingOpener; // true while an NPC-led OPENER is generating (captive/audience) — hide the input
       private bool _isPleaseContinueVisible;
       private bool _isPrivateRequestVisible;
 
       // Pause state — stored context so ExecuteContinue can resume without parameters.
       private bool _isScenePaused;
       private bool _isSendEnabled = true;
+
+      // The scene-focus index picked last round (BuildSceneSetup/BuildResumeSetup), so
+      // SceneFocusSelector never repeats the same driving focus two rounds running. -1 = no prior round.
+      private int _lastSceneFocusIndex = -1;
       private MBBindingList<ChatMessageViewModel> _messages;
 
       private ChatMode _mode = ChatMode.Conversation;
       private Hero _npcHero;
       private string _npcName = "the lord";
-      private float _chatVisualOffsetX = -30f; // matches the prefab's resting ChatPanel.PositionXOffset
 
       // Portrait fallback for a heroless speaker (a synthesized bandit captor): the face of a
       // real bandit troop stands in for the brigand chief, who has no Hero of their own.
@@ -177,10 +175,10 @@ namespace CalradiaRemembers.Chat
       // this, so a freely-given gift never depends on the LLM echoing the item's display name back.
       private string _offeredItemId;
 
-      private int _playerTurnsThisSession; // completed player→NPC exchanges
-
       // Total player text length this session — feeds the one-substantial-turn fallback-memory rule.
       private int _playerCharsThisSession;
+
+      private int _playerTurnsThisSession; // completed player→NPC exchanges
 
       // Set when the player clicks "Request Private" — injected once, then cleared.
       private bool _privacyRequestPending;
@@ -188,6 +186,7 @@ namespace CalradiaRemembers.Chat
       // Set once the request is used (accepted or refused) — button never reappears.
       private bool _privacyRequestUsed;
       private string _relationSummary = "";
+      private bool _retireGranted; // the player granted the retirement this audience (executed on close)
       private bool _sceneContinuationPending;
       private int _sceneContinuations;
       private NpcMemoryCampaignBehavior _scenePauseBehavior;
@@ -207,6 +206,7 @@ namespace CalradiaRemembers.Chat
 
       // How many auto-exchanges have fired this player turn. Reset on every send.
       private int _witnessExchangesThisRound;
+      private bool _witnessMemoryFinalized; // idempotency guard for the per-witness "I was present" memory
 
       public ChatViewModel()
       {
@@ -226,6 +226,23 @@ namespace CalradiaRemembers.Chat
          Conversation, // live dialogue with an NPC — witnesses, actions, story log
          CaptiveEncounter, // captor-led scene — the player is a prisoner (Sprint 17)
          Commoner // v1.1 — transient street-level chat, no memory, no witnesses
+      }
+
+      /// <summary>
+      ///   Horizontal offset of the chat window (bound to ChatPanel.PositionXOffset). Normally a small negative
+      ///   margin from the right edge; <see cref="SetVisualOffscreen" /> slides it fully off-screen so a game
+      ///   screen opened over the chat (the encyclopedia) is not covered by the chat's high-order rendering.
+      /// </summary>
+      [DataSourceProperty]
+      public float ChatVisualOffsetX
+      {
+         get => _chatVisualOffsetX;
+         set
+         {
+            if (_chatVisualOffsetX == value) return;
+            _chatVisualOffsetX = value;
+            OnPropertyChangedWithValue(value);
+         }
       }
 
       [DataSourceProperty]
@@ -265,6 +282,15 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      /// <summary>
+      ///   The chat input (small box + Send + the "&lt;" toggle) — shown only when the player may actually type:
+      ///   the normal input is available AND we are not still waiting on the NPC's opening turn (a captive scene or
+      ///   companion audience where the NPC speaks first). Hidden during "(considering…)" so it does not appear
+      ///   before the LLM has given its introduction.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsChatInputVisible => IsNormalInputVisible && !_awaitingOpener;
+
       /// <summary>True while the left review panel (a wrapped, read-only view of the message) is open.</summary>
       [DataSourceProperty]
       public bool IsComposeOpen
@@ -279,29 +305,30 @@ namespace CalradiaRemembers.Chat
          }
       }
 
-      /// <summary>
-      ///   The chat input (small box + Send + the "&lt;" toggle) — shown only when the player may actually type:
-      ///   the normal input is available AND we are not still waiting on the NPC's opening turn (a captive scene or
-      ///   companion audience where the NPC speaks first). Hidden during "(considering…)" so it does not appear
-      ///   before the LLM has given its introduction.
-      /// </summary>
-      [DataSourceProperty]
-      public bool IsChatInputVisible => IsNormalInputVisible && !_awaitingOpener;
-
       /// <summary>The "&lt;" open-review button shows only when the chat input is available and the panel is closed.</summary>
       [DataSourceProperty]
       public bool IsComposeToggleVisible => IsChatInputVisible && !_isComposeOpen;
 
+      /// <summary>
+      ///   True when there is a real hero across the conversation to open an encyclopedia page for
+      ///   (a synthesized bandit captor or a nameless commoner has none, so the button hides).
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsEncyclopediaVisible => _npcHero != null;
+
+      /// <summary>
+      ///   True when the mode button should be shown: only when an NSFW model is configured in the MCM
+      ///   menu (otherwise the toggle would change nothing) and adult content is enabled at all.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsModelModeToggleVisible =>
+         ModelModePolicy.ToggleVisible(
+            !string.IsNullOrWhiteSpace(ModSettings.NsfwModel),
+            ModSettings.AdultContentLevel != AdultContentLevel.Off);
+
       /// <summary>Inverse of <see cref="IsScenePaused" /> — drives the normal InputBox + SendButton.</summary>
       [DataSourceProperty]
       public bool IsNormalInputVisible => !_isScenePaused;
-
-      /// <summary>
-      ///   True in plain Conversation mode while the exchange is still open — hides
-      ///   the "Offer item" button in letter/captive modes and after the NPC says goodbye.
-      /// </summary>
-      [DataSourceProperty]
-      public bool IsOfferItemVisible => _mode == ChatMode.Conversation && !_conversationEnded;
 
       /// <summary>
       ///   Always hidden now: gold is folded into the unified "give" control (the gift button),
@@ -309,6 +336,13 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       [DataSourceProperty]
       public bool IsOfferGoldVisible => false;
+
+      /// <summary>
+      ///   True in plain Conversation mode while the exchange is still open — hides
+      ///   the "Offer item" button in letter/captive modes and after the NPC says goodbye.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsOfferItemVisible => _mode == ChatMode.Conversation && !_conversationEnded;
 
       /// <summary>
       ///   True once a captive scene has ended (other than by escape): shows a "Please continue"
@@ -339,94 +373,6 @@ namespace CalradiaRemembers.Chat
             OnPropertyChangedWithValue(value);
          }
       }
-
-      /// <summary>
-      ///   The in-chat mode button label: which of the two configured models requests currently use.
-      ///   Clicking the button flips it (see <see cref="ExecuteToggleModelMode" />).
-      /// </summary>
-      [DataSourceProperty]
-      public string ModelModeText =>
-         LlmServices.ActiveModelMode == ModelMode.Nsfw ? "Mode: NSFW" : "Mode: Roleplay";
-
-      /// <summary>
-      ///   True when the mode button should be shown: only when an NSFW model is configured in the MCM
-      ///   menu (otherwise the toggle would change nothing) and adult content is enabled at all.
-      /// </summary>
-      [DataSourceProperty]
-      public bool IsModelModeToggleVisible =>
-         ModelModePolicy.ToggleVisible(
-            !string.IsNullOrWhiteSpace(ModSettings.NsfwModel),
-            ModSettings.AdultContentLevel != AdultContentLevel.Off);
-
-      /// <summary>
-      ///   Flips the active model mode (roleplay/NSFW): the manual override for scenes the automatic
-      ///   selection cannot see coming, e.g. a consensual conversation that escalates. The model is
-      ///   resolved live on every request, so the switch takes effect on the very next exchange.
-      /// </summary>
-      public void ExecuteToggleModelMode()
-      {
-         LlmServices.ActiveModelMode = LlmServices.ActiveModelMode == ModelMode.Nsfw
-            ? ModelMode.Roleplay
-            : ModelMode.Nsfw;
-
-         OnPropertyChanged(nameof(ModelModeText));
-         ModLog.Info($"[MODEL] mode switched to {LlmServices.ActiveModelMode}, resolves to {LlmServices.ActiveModelId}.");
-      }
-
-      /// <summary>
-      ///   True when there is a real hero across the conversation to open an encyclopedia page for
-      ///   (a synthesized bandit captor or a nameless commoner has none, so the button hides).
-      /// </summary>
-      [DataSourceProperty]
-      public bool IsEncyclopediaVisible => _npcHero != null;
-
-      /// <summary>
-      ///   Opens the in-game encyclopedia on the conversation partner's page, over the chat, so a player can
-      ///   place who they are speaking of (and browse on from there) without the chat's modal focus locking
-      ///   the rest of the interface away (a player-requested need). The chat stays open behind it and
-      ///   <see cref="ChatManager.SuspendForExternalScreen" /> hands focus to the encyclopedia, reclaiming it
-      ///   automatically once the player closes it.
-      /// </summary>
-      public void ExecuteOpenEncyclopedia()
-      {
-         try
-         {
-            if (_npcHero == null || Campaign.Current?.EncyclopediaManager == null) return;
-
-            // No explicit focus hand-off needed: ChatManager.ArbitrateFocus (pumped every frame) sees the
-            // encyclopedia's layer appear and yields the chat's focus to it, then reclaims it on close.
-            Campaign.Current.EncyclopediaManager.GoToLink(_npcHero.EncyclopediaLink);
-            ModLog.Info($"[ENCYCLOPEDIA] opened on {_npcName} from the chat.");
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"ExecuteOpenEncyclopedia failed: {ex.GetType().Name}: {ex.Message}");
-         }
-      }
-
-      /// <summary>
-      ///   Horizontal offset of the chat window (bound to ChatPanel.PositionXOffset). Normally a small negative
-      ///   margin from the right edge; <see cref="SetVisualOffscreen" /> slides it fully off-screen so a game
-      ///   screen opened over the chat (the encyclopedia) is not covered by the chat's high-order rendering.
-      /// </summary>
-      [DataSourceProperty]
-      public float ChatVisualOffsetX
-      {
-         get => _chatVisualOffsetX;
-         set
-         {
-            if (_chatVisualOffsetX == value) return;
-            _chatVisualOffsetX = value;
-            OnPropertyChangedWithValue(value);
-         }
-      }
-
-      /// <summary>
-      ///   Slides the chat window off the right edge (true) or back into place (false). Called by the focus
-      ///   arbiter when a game screen opens over the chat, so the chat gets out of its way without being torn
-      ///   down or hidden (the layer keeps ticking, so LLM turns and the arbiter keep running).
-      /// </summary>
-      public void SetVisualOffscreen(bool off) => ChatVisualOffsetX = off ? 800f : -30f;
 
       /// <summary>
       ///   True while the captive scene is mid-narration and the player must choose
@@ -471,6 +417,16 @@ namespace CalradiaRemembers.Chat
             OnPropertyChangedWithValue(value);
          }
       }
+
+      /// <summary>
+      ///   The in-chat mode button label: which of the two configured models requests currently use.
+      ///   Clicking the button flips it (see <see cref="ExecuteToggleModelMode" />).
+      /// </summary>
+      [DataSourceProperty]
+      public string ModelModeText =>
+         LlmServices.ActiveModelMode == ModelMode.Nsfw
+            ? "Mode: NSFW"
+            : "Mode: Roleplay";
 
       public Action OnCloseRequested { get; set; }
 
@@ -556,7 +512,9 @@ namespace CalradiaRemembers.Chat
          _captiveEncounterIsCollective = isCollective;
          _captiveEncounterIsBandit = captorIsBandit;
          _captiveEncounterIntent = intent;
-         _captiveVictimName = string.IsNullOrWhiteSpace(victimCompanionName) ? null : victimCompanionName.Trim();
+         _captiveVictimName = string.IsNullOrWhiteSpace(victimCompanionName)
+            ? null
+            : victimCompanionName.Trim();
          _captivePlayerCoerced = playerCoerced && _captiveVictimName != null;
          _captiveVictimIsFemale = victimIsFemale && _captiveVictimName != null;
          _captiveBeatCount = 0;
@@ -597,12 +555,58 @@ namespace CalradiaRemembers.Chat
          // The randomized scene SETUP carries sexual "foci"; a lord reckoning (and the bandit menace intents) are
          // non-sexual confrontations, so they take only their own opener — never the sexual setup.
          bool nonSexual = intent is CaptiveSceneIntent.Reckoning
-            or CaptiveSceneIntent.Extortion or CaptiveSceneIntent.Intimidation or CaptiveSceneIntent.Revenge;
+            or CaptiveSceneIntent.Extortion
+            or CaptiveSceneIntent.Intimidation
+            or CaptiveSceneIntent.Revenge;
          _lastSceneFocusIndex = -1; // a fresh scene resets the avoid-repeat memory
-         string opener = CaptiveSceneText.BuildCaptiveOpener(isCollective, intent)
-                       + (nonSexual ? "" : CaptiveSceneText.BuildSceneSetup(intent, ref _lastSceneFocusIndex));
+         string opener = CaptiveSceneText.BuildCaptiveOpener(isCollective, intent) +
+                         (nonSexual
+                            ? ""
+                            : CaptiveSceneText.BuildSceneSetup(intent, ref _lastSceneFocusIndex));
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, captor, placeholder, true);
+      }
+
+      /// <summary>
+      ///   Opens the chat as a PLAYER-AS-CAPTOR scene: the NPC is the player's prisoner and the player drives.
+      ///   Runs as a normal live conversation (full memory + actions), flagged so the prompt frames the NPC as the
+      ///   captive reacting to the player. The player speaks first; there is no NPC-led opener.
+      /// </summary>
+      public void ActivateCaptorSceneMode(NpcProfile prisonerProfile, CaptiveSceneIntent intent)
+      {
+         _mode = ChatMode.Conversation;
+
+         // A structurally-explicit scene: open on the NSFW model (falls back to the
+         // roleplay model when none is configured). The player can still flip it back.
+         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(true);
+         OnPropertyChanged(nameof(ModelModeText));
+
+         _captorScene = true;
+         _captorSceneProfile = prisonerProfile;
+         _captorSceneIntent = intent;
+
+         TitleText = $"Calradia Remembers — {prisonerProfile?.Name ?? "your prisoner"}";
+         CloseButtonText = "End";
+         SendButtonText = "Send";
+      }
+
+      /// <summary>
+      ///   Switches the chat window into commoner mode: a transient, street-level
+      ///   exchange with a synthetically generated NPC. No memory is saved, no
+      ///   witnesses appear, and only the take_gold action is honoured.
+      /// </summary>
+      public void ActivateCommonerMode(
+         NpcProfile profile,
+         CommonsKnowledge knowledge)
+      {
+         _mode = ChatMode.Commoner;
+         _commonerProfile = profile;
+         _commonsKnowledge = knowledge;
+         _commonerSession = new ChatSession();
+
+         TitleText = $"Calradia Remembers — {profile?.Name ?? "a commoner"}";
+         CloseButtonText = "Leave";
+         SendButtonText = "Say";
       }
 
       /// <summary>
@@ -642,56 +646,6 @@ namespace CalradiaRemembers.Chat
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, speaker, placeholder, true);
       }
-
-      /// <summary>
-      ///   Switches the chat window into commoner mode: a transient, street-level
-      ///   exchange with a synthetically generated NPC. No memory is saved, no
-      ///   witnesses appear, and only the take_gold action is honoured.
-      /// </summary>
-      public void ActivateCommonerMode(
-         NpcProfile profile,
-         CommonsKnowledge knowledge)
-      {
-         _mode = ChatMode.Commoner;
-         _commonerProfile = profile;
-         _commonsKnowledge = knowledge;
-         _commonerSession = new ChatSession();
-
-         TitleText = $"Calradia Remembers — {profile?.Name ?? "a commoner"}";
-         CloseButtonText = "Leave";
-         SendButtonText = "Say";
-      }
-
-      /// <summary>
-      ///   Opens the chat as a PLAYER-AS-CAPTOR scene: the NPC is the player's prisoner and the player drives.
-      ///   Runs as a normal live conversation (full memory + actions), flagged so the prompt frames the NPC as the
-      ///   captive reacting to the player. The player speaks first; there is no NPC-led opener.
-      /// </summary>
-      public void ActivateCaptorSceneMode(NpcProfile prisonerProfile, CaptiveSceneIntent intent)
-      {
-         _mode = ChatMode.Conversation;
-
-         // A structurally-explicit scene: open on the NSFW model (falls back to the
-         // roleplay model when none is configured). The player can still flip it back.
-         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(true);
-         OnPropertyChanged(nameof(ModelModeText));
-
-         _captorScene = true;
-         _captorSceneProfile = prisonerProfile;
-         _captorSceneIntent = intent;
-
-         TitleText = $"Calradia Remembers — {prisonerProfile?.Name ?? "your prisoner"}";
-         CloseButtonText = "End";
-         SendButtonText = "Send";
-      }
-
-      /// <summary>
-      ///   How many witnesses are the captor's MEN — the ones who can take an aggressor turn and who form the
-      ///   shaming audience. Excludes the bound victim companion: they are present and voiced, but they are the
-      ///   target, never an aggressor or part of the crowd that humiliates the player.
-      /// </summary>
-      private int CountAggressorWitnesses()
-         => _witnesses?.Count(w => w != null && !w.IsCaptiveVictim) ?? 0;
 
       /// <summary>Adds a single witness to the session. Used by the console command for testing.</summary>
       public void AddWitness(WitnessEntry entry)
@@ -829,6 +783,13 @@ namespace CalradiaRemembers.Chat
          OnCloseRequested?.Invoke();
       }
 
+      /// <summary>The review panel's "Close Preview" button: closes it (the text lives in the small box).</summary>
+      public void ExecuteCloseCompose()
+      {
+         if (!_isComposeOpen) return;
+         IsComposeOpen = false;
+      }
+
       /// <summary>
       ///   Player chose "Continue" during a captive scene pause. Fires one more NPC-led
       ///   narration turn. Input stays locked until the NPC asks a question or the scene ends.
@@ -841,6 +802,16 @@ namespace CalradiaRemembers.Chat
          _sceneContinuationPending = true;
          IsSendEnabled = false;
          _ = RunCaptiveSceneContinuationAsync();
+      }
+
+      /// <summary>
+      ///   Legacy entry point kept for the old "Give Gold" binding: routes to the same gold
+      ///   prompt the unified give control now uses.
+      /// </summary>
+      public void ExecuteOfferGold()
+      {
+         if (_mode != ChatMode.Conversation || _conversationEnded) return;
+         PromptGoldOffer();
       }
 
       /// <summary>
@@ -877,36 +848,37 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Legacy entry point kept for the old "Give Gold" binding: routes to the same gold
-      ///   prompt the unified give control now uses.
+      ///   The "&lt;" button: opens the left REVIEW panel — a wrapped, read-only view of what you have typed
+      ///   (editing stays in the small box; the panel just lets a verbose player read the whole message back).
       /// </summary>
-      public void ExecuteOfferGold()
+      public void ExecuteOpenCompose()
       {
-         if (_mode != ChatMode.Conversation || _conversationEnded) return;
-         PromptGoldOffer();
+         if (!IsNormalInputVisible || _isComposeOpen) return;
+         IsComposeOpen = true;
       }
 
       /// <summary>
-      ///   Asks the player how many denars to give, then pre-fills the chat input so the
-      ///   NPC can respond with take_gold — which transfers the gold and stamps any outstanding
-      ///   ProvideGold quest as satisfied (any amount counts).
+      ///   Opens the in-game encyclopedia on the conversation partner's page, over the chat, so a player can
+      ///   place who they are speaking of (and browse on from there) without the chat's modal focus locking
+      ///   the rest of the interface away (a player-requested need). The chat stays open behind it and
+      ///   <see cref="ChatManager.SuspendForExternalScreen" /> hands focus to the encyclopedia, reclaiming it
+      ///   automatically once the player closes it.
       /// </summary>
-      private void PromptGoldOffer()
+      public void ExecuteOpenEncyclopedia()
       {
-         int carried = Hero.MainHero?.Gold ?? 0;
-         InformationManager.ShowTextInquiry(new TextInquiryData(
-            "Give Gold",
-            $"How many denars? (You carry {carried:N0}.)",
-            true, true,
-            "Give", "Cancel",
-            amountText =>
-            {
-               if (!int.TryParse(amountText?.Trim(), out int amount) || amount <= 0) return;
-               amount = Math.Min(amount, carried);
-               InputText = $"I would like to give you {amount:N0} denars.";
-               ModLog.Info($"[OFFER GOLD] pre-filled: {amount} denars.");
-            },
-            null));
+         try
+         {
+            if (_npcHero == null || Campaign.Current?.EncyclopediaManager == null) return;
+
+            // No explicit focus hand-off needed: ChatManager.ArbitrateFocus (pumped every frame) sees the
+            // encyclopedia's layer appear and yields the chat's focus to it, then reclaims it on close.
+            Campaign.Current.EncyclopediaManager.GoToLink(_npcHero.EncyclopediaLink);
+            ModLog.Info($"[ENCYCLOPEDIA] opened on {_npcName} from the chat.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ExecuteOpenEncyclopedia failed: {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       /// <summary>
@@ -944,9 +916,13 @@ namespace CalradiaRemembers.Chat
          // Revenge scene resumed via "Please continue" must not inject a sexual scene focus (bugfix
          // 01/07/2026, the opener path already guarded this, the resume path did not).
          bool nonSexual = _captiveEncounterIntent is CaptiveSceneIntent.Reckoning
-            or CaptiveSceneIntent.Extortion or CaptiveSceneIntent.Intimidation or CaptiveSceneIntent.Revenge;
-         string opener = CaptiveSceneText.BuildResumeOpener()
-                       + (nonSexual ? "" : CaptiveSceneText.BuildResumeSetup(_captiveEncounterIntent, ref _lastSceneFocusIndex));
+            or CaptiveSceneIntent.Extortion
+            or CaptiveSceneIntent.Intimidation
+            or CaptiveSceneIntent.Revenge;
+         string opener = CaptiveSceneText.BuildResumeOpener() +
+                         (nonSexual
+                            ? ""
+                            : CaptiveSceneText.BuildResumeSetup(_captiveEncounterIntent, ref _lastSceneFocusIndex));
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, captor, placeholder, true);
       }
@@ -994,31 +970,19 @@ namespace CalradiaRemembers.Chat
          _ = RunLlmExchangeAsync(text, speaker, placeholder);
       }
 
-      /// <summary>The "&lt;" button: opens the left REVIEW panel — a wrapped, read-only view of what you have typed
-      ///   (editing stays in the small box; the panel just lets a verbose player read the whole message back).</summary>
-      public void ExecuteOpenCompose()
-      {
-         if (!IsNormalInputVisible || _isComposeOpen) return;
-         IsComposeOpen = true;
-      }
-
-      /// <summary>The review panel's "Close Preview" button: closes it (the text lives in the small box).</summary>
-      public void ExecuteCloseCompose()
-      {
-         if (!_isComposeOpen) return;
-         IsComposeOpen = false;
-      }
-
       /// <summary>
-      ///   Marks that an NPC-led OPENER is now generating (a captive scene / companion audience where the NPC
-      ///   speaks first), so the chat input stays hidden until the introduction is delivered. Cleared in the
-      ///   RunLlmExchangeAsync finally when that turn completes.
+      ///   Flips the active model mode (roleplay/NSFW): the manual override for scenes the automatic
+      ///   selection cannot see coming, e.g. a consensual conversation that escalates. The model is
+      ///   resolved live on every request, so the switch takes effect on the very next exchange.
       /// </summary>
-      private void MarkOpenerPending()
+      public void ExecuteToggleModelMode()
       {
-         _awaitingOpener = true;
-         OnPropertyChanged(nameof(IsChatInputVisible));
-         OnPropertyChanged(nameof(IsComposeToggleVisible));
+         LlmServices.ActiveModelMode = LlmServices.ActiveModelMode == ModelMode.Nsfw
+            ? ModelMode.Roleplay
+            : ModelMode.Nsfw;
+
+         OnPropertyChanged(nameof(ModelModeText));
+         ModLog.Info($"[MODEL] mode switched to {LlmServices.ActiveModelMode}, resolves to {LlmServices.ActiveModelId}.");
       }
 
       /// <summary>
@@ -1102,44 +1066,6 @@ namespace CalradiaRemembers.Chat
          _ = ConversationSummaryService.GenerateAndApplyCaptiveSummaryAsync(behavior, profile.Id, baseEvent, transcript, intentVerb, playerIsFemale);
       }
 
-      // ── Grudges pillar, Tier 2: CaptiveAbuse (the two live plant sites) ────
-
-      /// <summary>
-      ///   Grudges pillar (Tier 2, CaptiveAbuse): the companion-victim revenge driver. Fires once per
-      ///   scene, only when this encounter targeted a held companion (<see cref="_captiveVictimName" />,
-      ///   set by <see cref="ActivateCaptiveEncounterMode" />). The victim's real Hero is resolved from
-      ///   the witness entry <see cref="ChatManager.OpenForCaptiveEncounter" /> adds for them
-      ///   (<see cref="WitnessEntry.IsCaptiveVictim" />, carrying their <see cref="WitnessEntry.HeroStringId" />)
-      ///   — the only place their Hero identity survives the scene, since the view model itself only
-      ///   threads their NAME through. <see cref="CaptiveAbuseFacts.PlayerWasThePerpetrator" /> mirrors
-      ///   <see cref="_captivePlayerCoerced" />: true only when the captor forced the PLAYER to act
-      ///   (<see cref="CompanionSceneKind.PlayerCoerced" />); otherwise the captor did it themselves, but
-      ///   the companion still nurses a grudge at the scene's severity for the player having let it
-      ///   happen unpunished. Called from <see cref="FinalizeCaptiveSceneMemory" /> — independent of that
-      ///   method's own captor-memory writes below it, so an ephemeral bandit captor never suppresses it.
-      /// </summary>
-      private void PlantCompanionAbuseGrudgeIfNeeded()
-      {
-         if (_captiveVictimName == null || Hero.MainHero == null) return;
-
-         string victimId = _witnesses.FirstOrDefault(w => w != null && w.IsCaptiveVictim)?.HeroStringId;
-         Hero victim = string.IsNullOrEmpty(victimId) ? null : Hero.FindFirst(h => h != null && h.StringId == victimId);
-         if (victim == null) return;
-
-         int severity = CaptiveIntentRules.CaptiveAbuseSeverity(_captiveEncounterIntent);
-         var facts = new CaptiveAbuseFacts {Severity = severity, PlayerWasThePerpetrator = _captivePlayerCoerced};
-         GrudgeProposal proposal = Tier2GrudgeRules.CaptiveAbuseGrudge(facts);
-         if (!proposal.Forms) return;
-
-         int today = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
-         string cause = _captivePlayerCoerced
-            ? "The player was forced to hurt me with their own hands while I was helpless."
-            : "The player let me be broken before them and did nothing to stop it.";
-
-         GrudgeBehavior.Instance?.TryPlant(victim, Hero.MainHero, GrudgeSource.CaptiveAbuse, cause,
-            proposal.Magnitude, proposal.KnownToPlayer, today);
-      }
-
       /// <summary>
       ///   Grudges pillar (Tier 2, CaptiveAbuse): the reference site for the "player as captor" path
       ///   (<see cref="ActivateCaptorSceneMode" />). Called once when the scene closes, from
@@ -1161,10 +1087,14 @@ namespace CalradiaRemembers.Chat
          int severity = CaptiveIntentRules.CaptiveAbuseSeverity(_captorSceneIntent);
          var facts = new CaptiveAbuseFacts {Severity = severity, PlayerWasThePerpetrator = true};
          GrudgeProposal proposal = Tier2GrudgeRules.CaptiveAbuseGrudge(facts);
+
          if (!proposal.Forms) return;
 
-         Hero prisoner = _npcHero
-            ?? (_captorSceneProfile != null ? Hero.FindFirst(h => h != null && h.StringId == _captorSceneProfile.Id) : null);
+         Hero prisoner = _npcHero ??
+                         (_captorSceneProfile != null
+                            ? Hero.FindFirst(h => h != null && h.StringId == _captorSceneProfile.Id)
+                            : null);
+
          if (prisoner == null) return;
 
          int today = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
@@ -1172,6 +1102,36 @@ namespace CalradiaRemembers.Chat
 
          GrudgeBehavior.Instance?.TryPlant(prisoner, Hero.MainHero, GrudgeSource.CaptiveAbuse, cause,
             proposal.Magnitude, proposal.KnownToPlayer, today);
+      }
+
+      /// <summary>
+      ///   Records a light "I was present" memory into each HERO witness's own profile when a group
+      ///   conversation closes, so a later one-to-one with them reflects the shared scene — the player
+      ///   reported companions not recognising they had taken part in a group conversation. Called once from
+      ///   <see cref="ChatManager.Close" />. Synthetic/bandit witnesses (no HeroStringId) and the main NPC are
+      ///   skipped (the latter is recorded by <see cref="FinalizeConversationMemory" />). First slice: only
+      ///   witnesses the player has already met (an existing profile) — a stranger witness is left for a later
+      ///   get-or-create pass. No-op outside plain Conversation mode or when the exchange had no substance
+      ///   (fewer than two completed player turns).
+      /// </summary>
+      /// <summary>
+      ///   Executes a granted companion retirement at chat close — deferred from the in-chat <c>retire</c> action
+      ///   so a hero is never removed mid-conversation. Idempotent; a no-op unless this audience was a retirement
+      ///   the player granted. The landless companion leaves; the landed one steps back from the field.
+      /// </summary>
+      public void FinalizeCompanionAudience()
+      {
+         if (_audienceReason != CompanionAudienceReason.Retirement || !_retireGranted) return;
+         _retireGranted = false; // one-shot
+
+         Hero h = _npcHero ??
+                  (_audienceProfile != null
+                     ? Hero.FindFirst(x => x != null && x.StringId == _audienceProfile.Id)
+                     : null);
+
+         if (h == null) return;
+
+         WarWearinessBehavior.Instance?.ExecuteRetirement(h, _audienceLanded);
       }
 
       // ── Fallback conversation memory (tester report: memories only "clicked"
@@ -1223,30 +1183,17 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Records a light "I was present" memory into each HERO witness's own profile when a group
-      ///   conversation closes, so a later one-to-one with them reflects the shared scene — the player
-      ///   reported companions not recognising they had taken part in a group conversation. Called once from
-      ///   <see cref="ChatManager.Close" />. Synthetic/bandit witnesses (no HeroStringId) and the main NPC are
-      ///   skipped (the latter is recorded by <see cref="FinalizeConversationMemory" />). First slice: only
-      ///   witnesses the player has already met (an existing profile) — a stranger witness is left for a later
-      ///   get-or-create pass. No-op outside plain Conversation mode or when the exchange had no substance
-      ///   (fewer than two completed player turns).
+      ///   Writes a coherent closing line to the story log when the player leaves a plain
+      ///   conversation that the NPC did not already close with a farewell — so the transcript
+      ///   reads like a scene that ends rather than one cut off mid-page. No-op outside plain
+      ///   Conversation mode, when nothing was logged this session, or when a natural farewell /
+      ///   end_conversation already closed it. Called from <see cref="ChatManager.Close" />.
       /// </summary>
-      /// <summary>
-      ///   Executes a granted companion retirement at chat close — deferred from the in-chat <c>retire</c> action
-      ///   so a hero is never removed mid-conversation. Idempotent; a no-op unless this audience was a retirement
-      ///   the player granted. The landless companion leaves; the landed one steps back from the field.
-      /// </summary>
-      public void FinalizeCompanionAudience()
+      public void FinalizeStoryLog()
       {
-         if (_audienceReason != CompanionAudienceReason.Retirement || !_retireGranted) return;
-         _retireGranted = false; // one-shot
-
-         Hero h = _npcHero
-               ?? (_audienceProfile != null ? Hero.FindFirst(x => x != null && x.StringId == _audienceProfile.Id) : null);
-         if (h == null) return;
-
-         Missions.WarWearinessBehavior.Instance?.ExecuteRetirement(h, _audienceLanded);
+         if (_mode != ChatMode.Conversation || _conversationEnded || !_storyIntroWritten) return;
+         if (!StoryLog.IsEnabled) return;
+         StoryLog.WriteNarration($"You take your leave of {_npcName}.");
       }
 
       public void FinalizeWitnessMemories()
@@ -1257,6 +1204,7 @@ namespace CalradiaRemembers.Chat
          if (_playerTurnsThisSession < 2 || _witnesses == null || _witnesses.Count == 0) return;
 
          var behavior = NpcMemoryCampaignBehavior.Instance;
+
          if (behavior?.Store == null) return;
 
          int gameDay = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
@@ -1271,6 +1219,7 @@ namespace CalradiaRemembers.Chat
             if (w.HeroStringId == mainNpcId) continue; // the main NPC is recorded separately
 
             NpcProfile wp = behavior.Store.Get(w.HeroStringId);
+
             if (wp == null) continue; // never met one-to-one yet — first slice skips strangers
 
             wp.Events.Add(new NotableEvent(gameDay, NotableEventType.Other,
@@ -1281,20 +1230,6 @@ namespace CalradiaRemembers.Chat
 
          if (recorded > 0)
             ModLog.Info($"[WITNESS MEMORY] recorded a 'was present' memory for {recorded} hero witness(es) of the talk with {mainNpc}.");
-      }
-
-      /// <summary>
-      ///   Writes a coherent closing line to the story log when the player leaves a plain
-      ///   conversation that the NPC did not already close with a farewell — so the transcript
-      ///   reads like a scene that ends rather than one cut off mid-page. No-op outside plain
-      ///   Conversation mode, when nothing was logged this session, or when a natural farewell /
-      ///   end_conversation already closed it. Called from <see cref="ChatManager.Close" />.
-      /// </summary>
-      public void FinalizeStoryLog()
-      {
-         if (_mode != ChatMode.Conversation || _conversationEnded || !_storyIntroWritten) return;
-         if (!StoryLog.IsEnabled) return;
-         StoryLog.WriteNarration($"You take your leave of {_npcName}.");
       }
 
       public void SetNpcHero(Hero npcHero)
@@ -1328,6 +1263,15 @@ namespace CalradiaRemembers.Chat
       {
          RelationSummary = $"Clan {clan:+#;-#;0}   ·   Personal {personal:+#;-#;0}";
       }
+
+      /// <summary>
+      ///   Slides the chat window off the right edge (true) or back into place (false). Called by the focus
+      ///   arbiter when a game screen opens over the chat, so the chat gets out of its way without being torn
+      ///   down or hidden (the layer keeps ticking, so LLM turns and the arbiter keep running).
+      /// </summary>
+      public void SetVisualOffscreen(bool off) => ChatVisualOffsetX = off
+         ? 800f
+         : -30f;
 
       /// <summary>Replaces the full witness list (called by WitnessResolver at session open).</summary>
       public void SetWitnesses(List<WitnessEntry> witnesses)
@@ -1366,5 +1310,94 @@ namespace CalradiaRemembers.Chat
          public string SpeakerName;
          public string Text;
       }
+
+      #region private
+
+      /// <summary>
+      ///   How many witnesses are the captor's MEN — the ones who can take an aggressor turn and who form the
+      ///   shaming audience. Excludes the bound victim companion: they are present and voiced, but they are the
+      ///   target, never an aggressor or part of the crowd that humiliates the player.
+      /// </summary>
+      private int CountAggressorWitnesses()
+         => _witnesses?.Count(w => w != null && !w.IsCaptiveVictim) ?? 0;
+
+      /// <summary>
+      ///   Marks that an NPC-led OPENER is now generating (a captive scene / companion audience where the NPC
+      ///   speaks first), so the chat input stays hidden until the introduction is delivered. Cleared in the
+      ///   RunLlmExchangeAsync finally when that turn completes.
+      /// </summary>
+      private void MarkOpenerPending()
+      {
+         _awaitingOpener = true;
+         OnPropertyChanged(nameof(IsChatInputVisible));
+         OnPropertyChanged(nameof(IsComposeToggleVisible));
+      }
+
+      // ── Grudges pillar, Tier 2: CaptiveAbuse (the two live plant sites) ────
+
+      /// <summary>
+      ///   Grudges pillar (Tier 2, CaptiveAbuse): the companion-victim revenge driver. Fires once per
+      ///   scene, only when this encounter targeted a held companion (<see cref="_captiveVictimName" />,
+      ///   set by <see cref="ActivateCaptiveEncounterMode" />). The victim's real Hero is resolved from
+      ///   the witness entry <see cref="ChatManager.OpenForCaptiveEncounter" /> adds for them
+      ///   (<see cref="WitnessEntry.IsCaptiveVictim" />, carrying their <see cref="WitnessEntry.HeroStringId" />)
+      ///   — the only place their Hero identity survives the scene, since the view model itself only
+      ///   threads their NAME through. <see cref="CaptiveAbuseFacts.PlayerWasThePerpetrator" /> mirrors
+      ///   <see cref="_captivePlayerCoerced" />: true only when the captor forced the PLAYER to act
+      ///   (<see cref="CompanionSceneKind.PlayerCoerced" />); otherwise the captor did it themselves, but
+      ///   the companion still nurses a grudge at the scene's severity for the player having let it
+      ///   happen unpunished. Called from <see cref="FinalizeCaptiveSceneMemory" /> — independent of that
+      ///   method's own captor-memory writes below it, so an ephemeral bandit captor never suppresses it.
+      /// </summary>
+      private void PlantCompanionAbuseGrudgeIfNeeded()
+      {
+         if (_captiveVictimName == null || Hero.MainHero == null) return;
+
+         string victimId = _witnesses.FirstOrDefault(w => w != null && w.IsCaptiveVictim)?.HeroStringId;
+         Hero victim = string.IsNullOrEmpty(victimId)
+            ? null
+            : Hero.FindFirst(h => h != null && h.StringId == victimId);
+
+         if (victim == null) return;
+
+         int severity = CaptiveIntentRules.CaptiveAbuseSeverity(_captiveEncounterIntent);
+         var facts = new CaptiveAbuseFacts {Severity = severity, PlayerWasThePerpetrator = _captivePlayerCoerced};
+         GrudgeProposal proposal = Tier2GrudgeRules.CaptiveAbuseGrudge(facts);
+
+         if (!proposal.Forms) return;
+
+         int today = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
+         string cause = _captivePlayerCoerced
+            ? "The player was forced to hurt me with their own hands while I was helpless."
+            : "The player let me be broken before them and did nothing to stop it.";
+
+         GrudgeBehavior.Instance?.TryPlant(victim, Hero.MainHero, GrudgeSource.CaptiveAbuse, cause,
+            proposal.Magnitude, proposal.KnownToPlayer, today);
+      }
+
+      /// <summary>
+      ///   Asks the player how many denars to give, then pre-fills the chat input so the
+      ///   NPC can respond with take_gold — which transfers the gold and stamps any outstanding
+      ///   ProvideGold quest as satisfied (any amount counts).
+      /// </summary>
+      private void PromptGoldOffer()
+      {
+         int carried = Hero.MainHero?.Gold ?? 0;
+         InformationManager.ShowTextInquiry(new TextInquiryData(
+            "Give Gold",
+            $"How many denars? (You carry {carried:N0}.)",
+            true, true,
+            "Give", "Cancel",
+            amountText =>
+            {
+               if (!int.TryParse(amountText?.Trim(), out int amount) || amount <= 0) return;
+               amount = Math.Min(amount, carried);
+               InputText = $"I would like to give you {amount:N0} denars.";
+               ModLog.Info($"[OFFER GOLD] pre-filled: {amount} denars.");
+            },
+            null));
+      }
+
+      #endregion
    }
 }

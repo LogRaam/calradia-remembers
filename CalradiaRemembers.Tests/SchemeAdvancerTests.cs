@@ -60,7 +60,7 @@ namespace CalradiaRemembers.Tests
          Scheme s = Scheme(SchemeState.Progressing, 30);
 
          //Act — momentum 18 (boldness 50 + animosity 50).
-         SchemeAdvancer.Advance(s, Factors(0, 50, 50, 0), StubRandomSource.AlwaysHigh);
+         SchemeAdvancer.Advance(s, Factors(0, 50, 50), StubRandomSource.AlwaysHigh);
 
          //Assert
          s.State.Should().Be(SchemeState.Progressing);
@@ -87,7 +87,7 @@ namespace CalradiaRemembers.Tests
          Scheme s = Scheme(SchemeState.Progressing, 90);
 
          //Act
-         SchemeAdvancer.Advance(s, Factors(0, 50, 50, 0), StubRandomSource.AlwaysHigh);
+         SchemeAdvancer.Advance(s, Factors(0, 50, 50), StubRandomSource.AlwaysHigh);
 
          //Assert
          s.State.Should().Be(SchemeState.Succeeded);

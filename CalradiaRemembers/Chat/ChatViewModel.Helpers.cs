@@ -1,8 +1,4 @@
-// Code written by Gabriel Mailhot, 24/06/2026.
-// SRP/size refactoring (Phase 2): the private helper methods of ChatViewModel — witness routing, transcript
-// + session building, captive/escape scene handling, and small UI helpers. Moved into this PARTIAL of the
-// same class so the main ChatViewModel.cs holds the public ViewModel surface (state, properties, commands).
-// Identical behaviour, shared private state; no logic changed.
+// Code written by Gabriel Mailhot, 03/07/2026.
 
 #region
 
@@ -10,29 +6,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
-using CalradiaRemembers.Items;
-using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
-using CalradiaRemembers.Lore;
-using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Quests;
-using CalradiaRemembers.Services;
-using CalradiaRemembers.Stance;
-using CalradiaRemembers.WorldEvents;
-using NpcMemoryService.Core.Captivity;
 using NpcMemoryService.Core.Models;
-using NpcMemoryService.Core.Prompts;
-using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Party;
-using TaleWorlds.CampaignSystem.Roster;
-using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 
@@ -42,32 +22,7 @@ namespace CalradiaRemembers.Chat
 {
    public sealed partial class ChatViewModel
    {
-      /// <summary>
-      ///   Resolves the reacting party for a witness reaction: the main NPC when the name matches it,
-      ///   otherwise the matching listed witness. Returns the portrait hero (null when heroless), the
-      ///   display colour, and the hero StringId. Extracted from AppendWitnessReaction to keep it simple.
-      /// </summary>
-      private (Hero hero, string color, string heroId) ResolveWitnessRender(string witnessName)
-      {
-         if (string.Equals(witnessName, _npcName, StringComparison.OrdinalIgnoreCase))
-            return (_npcHero, NpcCreamColor, _npcHero?.StringId);
-
-         foreach (WitnessEntry w in _witnesses)
-         {
-            if (!string.Equals(w.Name, witnessName, StringComparison.OrdinalIgnoreCase)) continue;
-
-            Hero hero = string.IsNullOrEmpty(w.HeroStringId)
-               ? null
-               : Hero.FindFirst(h => h.StringId == w.HeroStringId);
-            string color = _witnessColors.TryGetValue(w.Name, out string c)
-               ? c
-               : WitnessPalette[0];
-
-            return (hero, color, w.HeroStringId);
-         }
-
-         return (null, WitnessPalette[0], null);
-      }
+      #region private
 
       /// <summary>
       ///   On a failed LLM call, surface a ONE-TIME-per-session actionable hint to the player. The
@@ -506,11 +461,11 @@ namespace CalradiaRemembers.Chat
       private ChatSpeaker MainSpeaker()
       {
          NpcProfile profile = _audienceReason != CompanionAudienceReason.None
-                           ? _audienceProfile
-                           : NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile
-                              ?? (IsCaptiveEncounter ? _captiveEncounterProfile
-                                 : _captorScene ? _captorSceneProfile
-                                 : null);
+            ? _audienceProfile
+            : NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile ??
+              (IsCaptiveEncounter ? _captiveEncounterProfile
+                 : _captorScene ? _captorSceneProfile
+                 : null);
 
          return new ChatSpeaker {
             IsMain = true,
@@ -623,20 +578,21 @@ namespace CalradiaRemembers.Chat
       private ChatSpeaker ResolveAddressedSpeaker(string text)
       {
          string detectedId = DetectAddressedParticipant(text);
-         if (detectedId != null)
-         {
-            string resolvedId = detectedId == _npcHero?.StringId
-               ? null
-               : detectedId;
 
-            if (resolvedId != _currentSpeakerHeroId)
-            {
-               string previousName = string.IsNullOrEmpty(_currentSpeakerHeroId) ? _npcName : SpeakerForCurrent().Name;
-               _currentSpeakerHeroId = resolvedId;
-               string newName = string.IsNullOrEmpty(resolvedId) ? _npcName : SpeakerForCurrent().Name;
-               ModLog.Info($"[ADDRESS] turn routed to {newName} (was {previousName})");
-            }
-         }
+         if (detectedId == null) return SpeakerForCurrent();
+         string resolvedId = detectedId == _npcHero?.StringId
+            ? null
+            : detectedId;
+
+         if (resolvedId == _currentSpeakerHeroId) return SpeakerForCurrent();
+         string previousName = string.IsNullOrEmpty(_currentSpeakerHeroId)
+            ? _npcName
+            : SpeakerForCurrent().Name;
+         _currentSpeakerHeroId = resolvedId;
+         string newName = string.IsNullOrEmpty(resolvedId)
+            ? _npcName
+            : SpeakerForCurrent().Name;
+         ModLog.Info($"[ADDRESS] turn routed to {newName} (was {previousName})");
 
          return SpeakerForCurrent();
       }
@@ -666,6 +622,33 @@ namespace CalradiaRemembers.Chat
 
          IsSendEnabled = false;
          _ = RunEscapeOutcomeAsync(speaker, freed);
+      }
+
+      /// <summary>
+      ///   Resolves the reacting party for a witness reaction: the main NPC when the name matches it,
+      ///   otherwise the matching listed witness. Returns the portrait hero (null when heroless), the
+      ///   display colour, and the hero StringId. Extracted from AppendWitnessReaction to keep it simple.
+      /// </summary>
+      private (Hero hero, string color, string heroId) ResolveWitnessRender(string witnessName)
+      {
+         if (string.Equals(witnessName, _npcName, StringComparison.OrdinalIgnoreCase))
+            return (_npcHero, NpcCreamColor, _npcHero?.StringId);
+
+         foreach (WitnessEntry w in _witnesses)
+         {
+            if (!string.Equals(w.Name, witnessName, StringComparison.OrdinalIgnoreCase)) continue;
+
+            Hero hero = string.IsNullOrEmpty(w.HeroStringId)
+               ? null
+               : Hero.FindFirst(h => h.StringId == w.HeroStringId);
+            string color = _witnessColors.TryGetValue(w.Name, out string c)
+               ? c
+               : WitnessPalette[0];
+
+            return (hero, color, w.HeroStringId);
+         }
+
+         return (null, WitnessPalette[0], null);
       }
 
 
@@ -760,5 +743,7 @@ namespace CalradiaRemembers.Chat
             Color = color ?? WitnessPalette[0]
          };
       }
+
+      #endregion
    }
 }

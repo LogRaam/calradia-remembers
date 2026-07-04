@@ -1,9 +1,4 @@
-// Code written by Gabriel Mailhot, 27/06/2026.
-// Extension Surface, Volet A — the ingestion FACADE. The single, one-way door a third-party mod writes facts
-// through. Validation lives at the door (pure scalars in CalradiaRemembers.Logic.ExternalEventRules; id
-// resolution + dedup + per-source throttle here, against live game state), and the accepted fact is recorded
-// into the SAME WorldEventStore CR's own Chronicle, rumours and NPC awareness already read — no new plumbing
-// downstream. CR becomes the narrative-memory bus of a modlist.
+// Code written by Gabriel Mailhot, 01/07/2026.
 
 #region
 
@@ -32,11 +27,12 @@ namespace CalradiaRemembers
       /// </summary>
       public const int ApiVersion = 1;
 
+      private static readonly Dictionary<string, int[]> _quota = new(); // source -> [day, countThatDay]
+
       // Per-source daily send count (in-memory; resets on day change). Persistence is a later refinement —
       // dedup-by-id (against the persisted store) already stops re-recording the same fact across a reload.
       // Guarded by _quotaLock: a third-party mod may call Record from a background thread.
-      private static readonly object _quotaLock = new object();
-      private static readonly Dictionary<string, int[]> _quota = new(); // source -> [day, countThatDay]
+      private static readonly object _quotaLock = new();
 
       /// <summary>
       ///   Validates a fed event at the door and records it into the world-event store. Returns why it was
@@ -47,15 +43,18 @@ namespace CalradiaRemembers
          if (e == null || string.IsNullOrWhiteSpace(e.SourceMod)) return FeedResult.RejectedInvalid;
 
          string summary = ExternalEventRules.BoundSummary(e.Summary);
+
          if (summary == null) return FeedResult.RejectedInvalid;
 
-         WorldEventStore store = WorldEventStore.Instance;
+         var store = WorldEventStore.Instance;
+
          if (store == null) return FeedResult.RejectedNoStore;
 
          // Dedup on the source's stable id (survives reload — the store is persisted).
          if (!string.IsNullOrEmpty(e.Id) && store.GetById(e.Id) != null) return FeedResult.RejectedDuplicate;
 
-         int today = (int) CampaignTime.Now.ToDays;
+         var today = (int) CampaignTime.Now.ToDays;
+
          if (!ConsumeQuota(e.SourceMod, today)) return FeedResult.RejectedThrottled;
 
          WorldEvent worldEvent = Build(e, summary, today);
@@ -63,6 +62,27 @@ namespace CalradiaRemembers
          ModLog.Info($"[FEED] {e.SourceMod} recorded a world event (mag {worldEvent.Magnitude}, {worldEvent.ActorIds.Count} hero ref(s)): {summary}");
 
          return FeedResult.Recorded;
+      }
+
+      /// <summary>
+      ///   Retracts a fact that is no longer true (a homestead destroyed or converted to a settlement): removes
+      ///   the entry with this id so NPCs stop speaking of it. Returns <see cref="FeedResult.Retracted" /> when
+      ///   one was removed, or <see cref="FeedResult.NotFound" /> when nothing carried that id.
+      /// </summary>
+      public static FeedResult Retract(string id)
+      {
+         if (string.IsNullOrWhiteSpace(id)) return FeedResult.RejectedInvalid;
+
+         var store = WorldEventStore.Instance;
+
+         if (store == null) return FeedResult.RejectedNoStore;
+
+         bool removed = store.Remove(id);
+         ModLog.Info($"[FEED] retract '{id}' -> {(removed ? "removed" : "not found")}.");
+
+         return removed
+            ? FeedResult.Retracted
+            : FeedResult.NotFound;
       }
 
       /// <summary>
@@ -77,13 +97,15 @@ namespace CalradiaRemembers
          if (e == null || string.IsNullOrWhiteSpace(e.SourceMod) || string.IsNullOrEmpty(e.Id)) return FeedResult.RejectedInvalid;
 
          string summary = ExternalEventRules.BoundSummary(e.Summary);
+
          if (summary == null) return FeedResult.RejectedInvalid;
 
-         WorldEventStore store = WorldEventStore.Instance;
+         var store = WorldEventStore.Instance;
+
          if (store == null) return FeedResult.RejectedNoStore;
 
          bool replaced = store.Remove(e.Id); // drop the stale entry, then re-record the corrected one
-         int today = (int) CampaignTime.Now.ToDays;
+         var today = (int) CampaignTime.Now.ToDays;
          store.Record(Build(e, summary, today));
          ModLog.Info($"[FEED] {e.SourceMod} {(replaced ? "updated" : "recorded")} '{e.Id}': {summary}");
 
@@ -92,29 +114,11 @@ namespace CalradiaRemembers
             : FeedResult.Recorded;
       }
 
-      /// <summary>
-      ///   Retracts a fact that is no longer true (a homestead destroyed or converted to a settlement): removes
-      ///   the entry with this id so NPCs stop speaking of it. Returns <see cref="FeedResult.Retracted" /> when
-      ///   one was removed, or <see cref="FeedResult.NotFound" /> when nothing carried that id.
-      /// </summary>
-      public static FeedResult Retract(string id)
-      {
-         if (string.IsNullOrWhiteSpace(id)) return FeedResult.RejectedInvalid;
-
-         WorldEventStore store = WorldEventStore.Instance;
-         if (store == null) return FeedResult.RejectedNoStore;
-
-         bool removed = store.Remove(id);
-         ModLog.Info($"[FEED] retract '{id}' -> {(removed ? "removed" : "not found")}.");
-
-         return removed
-            ? FeedResult.Retracted
-            : FeedResult.NotFound;
-      }
+      #region private
 
       /// <summary>Maps a validated external event to a stored world event (shared by Record and Update).</summary>
       private static WorldEvent Build(ExternalWorldEvent e, string summary, int today)
-         => new WorldEvent {
+         => new() {
             Id = string.IsNullOrEmpty(e.Id)
                ? null
                : e.Id,
@@ -151,31 +155,35 @@ namespace CalradiaRemembers
          }
       }
 
-      /// <summary>Keeps only the ids that resolve to a real hero (alive or dead) — resolve-or-drop.</summary>
-      private static List<string> ResolveHeroes(IEnumerable<string> ids)
-      {
-         var kept = new List<string>();
-         if (ids == null) return kept;
-
-         // Hero.FindFirst is the reliable lookup; MBObjectManager.GetObject<Hero> does not resolve heroes by StringId.
-         foreach (string id in ids)
-            if (!string.IsNullOrEmpty(id) && Hero.FindFirst(h => h.StringId == id) != null) kept.Add(id);
-
-         return kept;
-      }
-
       /// <summary>Keeps only the ids that resolve to a real kingdom or clan — resolve-or-drop.</summary>
       private static List<string> ResolveFactions(IEnumerable<string> ids)
       {
          var kept = new List<string>();
+
          if (ids == null) return kept;
 
          foreach (string id in ids)
-            if (!string.IsNullOrEmpty(id)
-             && (Kingdom.All?.Any(k => k.StringId == id) == true || Clan.All?.Any(c => c.StringId == id) == true))
+            if (!string.IsNullOrEmpty(id) && (Kingdom.All?.Any(k => k.StringId == id) == true || Clan.All?.Any(c => c.StringId == id) == true))
                kept.Add(id);
 
          return kept;
       }
+
+      /// <summary>Keeps only the ids that resolve to a real hero (alive or dead) — resolve-or-drop.</summary>
+      private static List<string> ResolveHeroes(IEnumerable<string> ids)
+      {
+         var kept = new List<string>();
+
+         if (ids == null) return kept;
+
+         // Hero.FindFirst is the reliable lookup; MBObjectManager.GetObject<Hero> does not resolve heroes by StringId.
+         foreach (string id in ids)
+            if (!string.IsNullOrEmpty(id) && Hero.FindFirst(h => h.StringId == id) != null)
+               kept.Add(id);
+
+         return kept;
+      }
+
+      #endregion
    }
 }

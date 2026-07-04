@@ -1,12 +1,4 @@
-// Code written by Gabriel Mailhot, 26/06/2026.
-// Bastards consequence layer. State kept is minimal: which children are the player's bastards (id → discovered,
-// one-way) and, per bastard, the mother's recurring-blackmail clock (demand season / paid-silence season). Age
-// is read live. Threads: (1) each SEASON, an age-keyed discovery roll may bring a hidden one to light — a
-// scandal into the world-event store + a standing hit; (2) the same season, the still-leveraged mother may
-// raise a blackmail demand (unmet past its deadline → she leaks it; paid → silence for a grace period, then she
-// returns); (3) at coming of age, a player-sired bastard of a lesser maternal house presses a claim. See the
-// ROADMAP "Bastards" pillar. Player-facing surfaces for blackmail (demand letter, conversation pressing) are
-// later increments; the mechanical spine + console commands are here.
+// Code written by Gabriel Mailhot, 02/07/2026.
 
 #region
 
@@ -18,6 +10,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
@@ -31,11 +24,14 @@ using TaleWorlds.Core;
 
 namespace CalradiaRemembers.Bastards
 {
-   /// <summary>Per-bastard blackmail clock: the season a demand was raised (-1 none), the gold it asks, and the season paid silence runs to.</summary>
+   /// <summary>
+   ///   Per-bastard blackmail clock: the season a demand was raised (-1 none), the gold it asks, and the season paid
+   ///   silence runs to.
+   /// </summary>
    internal sealed class BlackmailState
    {
-      public int DemandSeason { get; set; } = -1;
       public int DemandAmount { get; set; }
+      public int DemandSeason { get; set; } = -1;
       public int SilentUntil { get; set; } = -1;
    }
 
@@ -46,16 +42,18 @@ namespace CalradiaRemembers.Bastards
    /// </summary>
    public sealed class BastardBehavior : CampaignBehaviorBase
    {
-      // Tuning (flagged for in-game ratification).
-      private const int ScandalMagnitude = 40;     // how far the gossip carries (0..100)
-      private const int ScandalRenownLoss = 5;     // the dishonour to the player's name
-      private const int ScandalInfluenceLoss = 10; // the political cost at court
-      private const int ClaimHostility = 40;       // the grown bastard turns a clear enemy of the player's house
-      private const int ClaimMagnitude = 60;       // a dynastic claim travels far
+      private const int ClaimHostility = 40; // the grown bastard turns a clear enemy of the player's house
+      private const int ClaimMagnitude = 60; // a dynastic claim travels far
       private const int DemandLetterDeliveryDays = 3; // courier time for a blackmail demand letter
 
       private const string SaveKey = "CalradiaRemembers_Bastards_v1bytes";
       private const string SaveKeyBlackmail = "CalradiaRemembers_BastardsBlackmail_v1bytes";
+
+      private const int ScandalInfluenceLoss = 10; // the political cost at court
+
+      // Tuning (flagged for in-game ratification).
+      private const int ScandalMagnitude = 40; // how far the gossip carries (0..100)
+      private const int ScandalRenownLoss = 5; // the dishonour to the player's name
 
       public static BastardBehavior Instance;
 
@@ -66,122 +64,81 @@ namespace CalradiaRemembers.Bastards
       private Dictionary<string, BlackmailState> _blackmail = new();
       private int _lastEvaluatedSeason = -1;
 
-      public BastardBehavior() => Instance = this;
+      public BastardBehavior()
+      {
+         Instance = this;
+      }
 
       /// <summary>The tracked bastards (child id → discovered) — for the cr.bastards diagnostic.</summary>
       public IReadOnlyDictionary<string, bool> Bastards => _bastards;
 
       private static int CurrentSeason => (int) CampaignTime.Now.ToSeasons;
 
-      public bool IsTracked(string childId) => childId != null && _bastards.ContainsKey(childId);
-
-      public bool IsDiscovered(string childId)
-         => childId != null && _bastards.TryGetValue(childId, out bool discovered) && discovered;
-
-      public override void RegisterEvents()
+      /// <summary>
+      ///   The gold an NPC could demand for her silence right now, or 0 — she is the mother of a still-concealed
+      ///   bastard of the player's and holds leverage (pure <see cref="BastardBlackmailPolicy" />). A query.
+      /// </summary>
+      public int BlackmailDemandOver(Hero npc)
       {
-         CampaignEvents.OnGivenBirthEvent.AddNonSerializedListener(this, OnGivenBirth);
-         CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
-         CampaignEvents.HeroComesOfAgeEvent.AddNonSerializedListener(this, OnHeroComesOfAge);
-         CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
+         if (npc == null || Hero.MainHero == null) return 0;
+
+         string childId = _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).FirstOrDefault(id => FindHero(id)?.Mother == npc);
+
+         if (childId == null) return 0;
+         if (!BastardBlackmailPolicy.HoldsLeverage(true, npc.IsAlive, npc == Hero.MainHero.Spouse)) return 0;
+         if (MotherDisposition(npc) != BastardMotherDisposition.Mercenary) return 0; // only a scheming mother extorts
+
+         return BastardBlackmailPolicy.DemandAmount(Hero.MainHero.Gold);
       }
 
-      public override void SyncData(IDataStore dataStore)
+      /// <summary>A short blackmail-state label for the cr.bastards diagnostic.</summary>
+      public string BlackmailStatusOf(string childId)
       {
-         if (dataStore.IsSaving)
-         {
-            byte[] a = ToBytes(_bastards);
-            byte[] b = ToBytes(_blackmail);
-            try { dataStore.SyncData(SaveKey, ref a); }
-            catch (Exception ex) { ModLog.Error($"[BASTARD] save failed: {ex.GetType().Name}: {ex.Message}"); }
-            try { dataStore.SyncData(SaveKeyBlackmail, ref b); }
-            catch (Exception ex) { ModLog.Error($"[BASTARD] blackmail save failed: {ex.GetType().Name}: {ex.Message}"); }
-         }
-         else
-         {
-            byte[] a = null, b = null;
-            try { dataStore.SyncData(SaveKey, ref a); }
-            catch
-            {
-               /* key absent in older saves */
-            }
+         if (childId == null || !_blackmail.TryGetValue(childId, out BlackmailState s)) return "no demand";
+         if (s.DemandSeason >= 0) return $"DEMAND@S{s.DemandSeason}";
+         if (s.SilentUntil > CurrentSeason) return $"paid-silence→S{s.SilentUntil}";
 
-            try { dataStore.SyncData(SaveKeyBlackmail, ref b); }
-            catch
-            {
-               /* key absent in older saves */
-            }
-
-            _bastards = FromBytes<Dictionary<string, bool>>(a);
-            _blackmail = FromBytes<Dictionary<string, BlackmailState>>(b);
-         }
+         return "no demand";
       }
 
-      // ── Birth: tag the player's non-marital children ──────────────────────
-
-      private void OnGivenBirth(Hero mother, List<Hero> aliveChildren, int stillbornCount)
+      /// <summary>
+      ///   Force the coming-of-age claim path for the given verdict (console testing): track the hero, out the
+      ///   secret, and apply the claim (hostility + world-event) when it presses.
+      /// </summary>
+      public void DebugClaim(Hero bastard, bool pressesClaim)
       {
-         if (aliveChildren == null || Hero.MainHero == null) return;
+         if (bastard == null) return;
 
-         foreach (Hero child in aliveChildren)
-         {
-            if (child == null || !IsPlayersBastard(child) || _bastards.ContainsKey(child.StringId)) continue;
-
-            _bastards[child.StringId] = false; // concealed
-            ModLog.Info($"[BASTARD] a hidden child is born: {child.Name} (parents {child.Mother?.Name}/{child.Father?.Name}).");
-         }
+         DebugTrack(bastard);
+         _bastards[bastard.StringId] = true;
+         if (pressesClaim) ApplyClaim(bastard);
       }
 
-      /// <summary>A player-parented child whose OTHER parent is not the player's spouse — born outside the marriage.</summary>
-      private static bool IsPlayersBastard(Hero child)
+      /// <summary>Run the seasonal evaluation (discovery + blackmail) immediately (console testing).</summary>
+      public void DebugEvaluateSeason() => EvaluateSeason();
+
+      /// <summary>Force-raise a blackmail demand on a tracked bastard NOW + send the demand letter (console testing).</summary>
+      public void DebugRaiseDemand(Hero child)
       {
-         Hero player = Hero.MainHero;
-         bool playerIsParent = child.Father == player || child.Mother == player;
-         if (!playerIsParent) return false;
+         if (child == null) return;
+         DebugTrack(child);
 
-         Hero otherParent = child.Father == player
-            ? child.Mother
-            : child.Father;
+         BlackmailState bs = GetBlackmail(child.StringId);
+         bs.DemandSeason = CurrentSeason;
+         bs.DemandAmount = BastardBlackmailPolicy.DemandAmount(Hero.MainHero?.Gold ?? 0);
 
-         return otherParent != null && otherParent != player.Spouse;
+         if (child.Mother != null) SendDemandLetter(child.Mother, child, bs.DemandAmount);
       }
 
-      // ── Seasonal evaluation: discovery, then the mother's blackmail ────────
+      /// <summary>The culture-scaled scandal magnitude, exposed for the console self-test.</summary>
+      public int DebugScaledScandalMagnitude() => ScaledScandalMagnitude();
 
-      private void OnWeeklyTick()
+      // ── Debug seams (console tests / diagnostics) ─────────────────────────
+
+      /// <summary>Force-tag a hero as a concealed player bastard (console testing, no real birth needed).</summary>
+      public void DebugTrack(Hero child)
       {
-         int season = CurrentSeason;
-         if (season <= _lastEvaluatedSeason) return;
-
-         _lastEvaluatedSeason = season;
-         EvaluateSeason();
-      }
-
-      private void EvaluateSeason()
-      {
-         if (_bastards.Count == 0) return;
-
-         int season = CurrentSeason;
-
-         // Snapshot the concealed ids first — Discover mutates the dictionary.
-         List<string> concealed = _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).ToList();
-
-         foreach (string id in concealed)
-         {
-            Hero child = FindHero(id);
-            if (child is not {IsAlive: true}) continue;
-
-            // (a) the ambient, age-keyed risk the secret simply surfaces.
-            if (MBRandom.RandomInt(100) < BastardDiscoveryPolicy.DiscoveryChancePercent((int) child.Age))
-            {
-               Discover(child);
-
-               continue;
-            }
-
-            // (b) the mother's own initiative — blackmail, longing, reproach, or a plea for support.
-            EvaluateMother(child, season);
-         }
+         if (child != null && !_bastards.ContainsKey(child.StringId)) _bastards[child.StringId] = false;
       }
 
       /// <summary>
@@ -212,20 +169,252 @@ namespace CalradiaRemembers.Bastards
          return true;
       }
 
+      /// <summary>
+      ///   True when this NPC is the mother of a still-concealed bastard of the player's (gates the conversation
+      ///   teaching).
+      /// </summary>
+      public bool IsBastardMotherOfHidden(Hero npc)
+         => npc != null && _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).Any(id => FindHero(id)?.Mother == npc);
+
+      public bool IsDiscovered(string childId)
+         => childId != null && _bastards.TryGetValue(childId, out bool discovered) && discovered;
+
+      public bool IsTracked(string childId) => childId != null && _bastards.ContainsKey(childId);
+
+      /// <summary>
+      ///   The mother's disposition toward the player (trait- and regard-driven; pure <see cref="BastardMotherPolicy" />
+      ///   ).
+      /// </summary>
+      public BastardMotherDisposition MotherDisposition(Hero mother)
+      {
+         int relation = mother != null && Hero.MainHero != null
+            ? mother.GetRelation(Hero.MainHero)
+            : 0;
+
+         return BastardMotherPolicy.Resolve(TraitLevel(mother, DefaultTraits.Honor), TraitLevel(mother, DefaultTraits.Calculating), relation);
+      }
+
+      /// <summary>
+      ///   The player meets the demands an NPC holds over them: pays each (gold to her) and buys a season of
+      ///   silence (she returns when it lapses). Returns how many demands were settled and the total paid.
+      /// </summary>
+      public (int settled, int goldPaid) Pay(Hero mother)
+      {
+         if (mother == null || Hero.MainHero == null) return (0, 0);
+         if (MotherDisposition(mother) != BastardMotherDisposition.Mercenary) return (0, 0); // a kinder mother has nothing to buy off
+
+         int season = CurrentSeason;
+         int settled = 0,
+             gold = 0;
+
+         foreach (string childId in _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).ToList())
+         {
+            Hero child = FindHero(childId);
+
+            if (child?.Mother != mother) continue;
+
+            BlackmailState bs = GetBlackmail(childId);
+
+            if (bs.DemandSeason < 0) continue; // only an active demand can be paid off
+
+            int amount = bs.DemandAmount > 0
+               ? bs.DemandAmount
+               : BastardBlackmailPolicy.DemandAmount(Hero.MainHero.Gold);
+            if (Hero.MainHero.Gold >= amount)
+            {
+               GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, mother, amount);
+               gold += amount;
+            }
+
+            bs.DemandSeason = -1;
+            bs.DemandAmount = 0;
+            bs.SilentUntil = BastardBlackmailPolicy.SilenceUntil(season);
+            settled++;
+         }
+
+         if (settled > 0)
+            ModLog.Info($"[BASTARD] player paid {mother.Name} {gold} denars for silence over {settled} bastard(s) until season {BastardBlackmailPolicy.SilenceUntil(season)}.");
+
+         return (settled, gold);
+      }
+
+      public override void RegisterEvents()
+      {
+         CampaignEvents.OnGivenBirthEvent.AddNonSerializedListener(this, OnGivenBirth);
+         CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
+         CampaignEvents.HeroComesOfAgeEvent.AddNonSerializedListener(this, OnHeroComesOfAge);
+         CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
+      }
+
+      /// <summary>
+      ///   The prestige-gate verdict for a grown bastard's claim on the FATHER's (player's) clan: a child of a
+      ///   grander maternal house follows that line; an equal-or-lesser house breeds a claimant.
+      /// </summary>
+      public BastardClaimVerdict ResolveClaimVerdict(Hero bastard)
+         => BastardPrestigePolicy.Resolve(ClanPrestige(bastard?.Clan), ClanPrestige(Hero.MainHero?.Clan));
+
+      /// <summary>
+      ///   When the player gives a mercenary bastard-mother at least her standing demand (e.g. via the Give Gold
+      ///   button), buy her silence for the grace period — no extra transfer, the gold already moved. Returns
+      ///   true when a demand was settled. Called from the gold-payment path so paying her IS settling the secret.
+      /// </summary>
+      public bool SettleByPayment(Hero mother, int amountPaid)
+      {
+         if (mother == null || Hero.MainHero == null || amountPaid <= 0) return false;
+         if (MotherDisposition(mother) != BastardMotherDisposition.Mercenary) return false;
+
+         int season = CurrentSeason;
+         var settled = false;
+
+         foreach (string childId in _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).ToList())
+         {
+            Hero child = FindHero(childId);
+
+            if (child?.Mother != mother) continue;
+
+            BlackmailState bs = GetBlackmail(childId);
+
+            if (bs.DemandSeason < 0 || amountPaid < bs.DemandAmount) continue;
+
+            bs.DemandSeason = -1;
+            bs.DemandAmount = 0;
+            bs.SilentUntil = BastardBlackmailPolicy.SilenceUntil(season);
+            settled = true;
+         }
+
+         if (settled) ModLog.Info($"[BASTARD] payment of {amountPaid} to {mother.Name} bought her silence.");
+
+         return settled;
+      }
+
+      public override void SyncData(IDataStore dataStore)
+      {
+         if (dataStore.IsSaving)
+         {
+            byte[] a = ToBytes(_bastards);
+            byte[] b = ToBytes(_blackmail);
+            try { dataStore.SyncData(SaveKey, ref a); }
+            catch (Exception ex) { ModLog.Error($"[BASTARD] save failed: {ex.GetType().Name}: {ex.Message}"); }
+
+            try { dataStore.SyncData(SaveKeyBlackmail, ref b); }
+            catch (Exception ex) { ModLog.Error($"[BASTARD] blackmail save failed: {ex.GetType().Name}: {ex.Message}"); }
+         }
+         else
+         {
+            byte[] a = null,
+                   b = null;
+            try { dataStore.SyncData(SaveKey, ref a); }
+            catch
+            {
+               /* key absent in older saves */
+            }
+
+            try { dataStore.SyncData(SaveKeyBlackmail, ref b); }
+            catch
+            {
+               /* key absent in older saves */
+            }
+
+            _bastards = FromBytes<Dictionary<string, bool>>(a);
+            _blackmail = FromBytes<Dictionary<string, BlackmailState>>(b);
+         }
+      }
+
+      #region private
+
+      private static int ClanPrestige(Clan clan)
+      {
+         if (clan == null) return 0;
+         bool ruling = clan.Kingdom != null && clan.Kingdom.RulingClan == clan;
+
+         return BastardPrestigePolicy.PrestigeScore(clan.Tier, (int) clan.Renown, ruling);
+      }
+
+      // ── Helpers ───────────────────────────────────────────────────────────
+
+      private static Hero FindHero(string id)
+         => string.IsNullOrEmpty(id)
+            ? null
+            : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == id);
+
+      private static T FromBytes<T>(byte[] bytes) where T : new()
+      {
+         if (bytes is not {Length: > 0}) return new T();
+
+         try { return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(bytes)) ?? new T(); }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[BASTARD] load failed — dropped for this load. {ex.GetType().Name}: {ex.Message}");
+
+            return new T();
+         }
+      }
+
+      /// <summary>A player-parented child whose OTHER parent is not the player's spouse — born outside the marriage.</summary>
+      private static bool IsPlayersBastard(Hero child)
+      {
+         var player = Hero.MainHero;
+         bool playerIsParent = child.Father == player || child.Mother == player;
+
+         if (!playerIsParent) return false;
+
+         Hero otherParent = child.Father == player
+            ? child.Mother
+            : child.Father;
+
+         return otherParent != null && otherParent != player.Spouse;
+      }
+
+      private static string MotherNoteContent(Hero child, BastardMotherDisposition disposition)
+      {
+         string c = child.Name?.ToString() ?? "our child";
+
+         return disposition switch {
+            BastardMotherDisposition.Longing =>
+               $"Not a day passes that I do not think of you. {c} grows quickly and asks after a father I cannot name. " +
+               "Come to us — I would have you know your child, and I confess I would have far more than that, if you would let me.",
+            BastardMotherDisposition.Resentful =>
+               $"You have a child, {c}, and a duty you pretend not to see. I ask nothing of your heart — you have shown me its " +
+               "measure — only that you not forget the one thing of yours I am left to raise alone.",
+            _ =>
+               $"I write to tell you of {c}, who is well, and to ask what little you can spare for the child's keep. I make no " +
+               "demands and keep your name to myself; I only thought you should know."
+         };
+      }
+
       /// <summary>The player culture's outrage at infidelity, which scales how grave a discovered bastard is.</summary>
       private static JealousyOutrage PlayerCultureOutrage()
          => JealousyCultureLoader.GetCulture(Hero.MainHero?.Culture?.Name?.ToString()).Outrage;
 
-      /// <summary>The scandal's reach (magnitude), scaled by the player culture's outrage at infidelity.</summary>
-      private static int ScaledScandalMagnitude()
-         => BastardScandalPolicy.Scale(ScandalMagnitude, PlayerCultureOutrage());
+      private static void RecordClaim(Hero bastard)
+      {
+         var store = WorldEventStore.Instance;
 
-      /// <summary>The culture-scaled scandal magnitude, exposed for the console self-test.</summary>
-      public int DebugScaledScandalMagnitude() => ScaledScandalMagnitude();
+         if (store == null || Hero.MainHero == null) return;
+
+         string parent = Hero.MainHero.Name?.ToString() ?? "the lord";
+         var actors = new List<string> {bastard.StringId, Hero.MainHero.StringId};
+
+         var factions = new List<string>();
+         if (Hero.MainHero.MapFaction != null) factions.Add(Hero.MainHero.MapFaction.StringId);
+         if (bastard.MapFaction != null) factions.Add(bastard.MapFaction.StringId);
+
+         store.Record(new WorldEvent {
+            Type = WorldEventType.Scandal,
+            Day = (int) CampaignTime.Now.ToDays,
+            Magnitude = ClaimMagnitude,
+            InvolvesPlayer = true,
+            ActorIds = actors,
+            FactionIds = factions,
+            Summary = $"{bastard.Name}, natural-born child of {parent}, has come of age and presses a claim against their house.",
+            ChronicleLine = $"{bastard.Name}, my own natural child, came of age and turned against my house, pressing a claim upon it"
+         });
+      }
 
       private static void RecordScandal(Hero child)
       {
-         WorldEventStore store = WorldEventStore.Instance;
+         var store = WorldEventStore.Instance;
+
          if (store == null) return;
 
          string motherName = child.Mother?.Name?.ToString() ?? "an unknown woman";
@@ -251,118 +440,21 @@ namespace CalradiaRemembers.Bastards
          });
       }
 
-      // ── The mother's initiative: blackmail OR a warmer letter, by disposition ──
-
-      private void EvaluateMother(Hero child, int season)
-      {
-         Hero mother = child.Mother;
-         if (mother == null || !mother.IsAlive || mother == Hero.MainHero?.Spouse) return;
-
-         // A mother who is in the player's OWN party is at his side, not apart: the whole bastard thread
-         // (a secret held from a distance, "come to us", "you are never here", a blackmail by courier) makes
-         // no sense while she travels with him. A player reported exactly this, a courted, party-bound mother
-         // writing that he was never there for the children. She is present; anything owed is spoken in person.
-         if (mother.PartyBelongedTo == MobileParty.MainParty) return;
-
-         BastardMotherDisposition disposition = MotherDisposition(mother);
-         BlackmailState bs = GetBlackmail(child.StringId);
-
-         // A kinder mother never leaks the secret herself; she only writes, now and then, in her own register.
-         if (disposition != BastardMotherDisposition.Mercenary)
-         {
-            if (BastardBlackmailPolicy.CanRaiseDemand(season, bs.SilentUntil, false))
-            {
-               bs.SilentUntil = BastardBlackmailPolicy.SilenceUntil(season);
-               SendMotherNote(mother, child, disposition);
-            }
-
-            return;
-         }
-
-         // Mercenary: an unmet demand past its deadline → she carries out her threat and leaks the secret.
-         if (BastardBlackmailPolicy.DemandHasLapsed(season, bs.DemandSeason))
-         {
-            bs.DemandSeason = -1;
-            ModLog.Info($"[BASTARD] {mother.Name}'s blackmail over {child.Name} went unmet — she leaks the secret.");
-            Discover(child);
-
-            return;
-         }
-
-         // Otherwise she may raise a fresh demand (none outstanding, paid silence expired) — and write to extort.
-         if (BastardBlackmailPolicy.CanRaiseDemand(season, bs.SilentUntil, bs.DemandSeason >= 0))
-         {
-            bs.DemandSeason = season;
-            bs.DemandAmount = BastardBlackmailPolicy.DemandAmount(Hero.MainHero?.Gold ?? 0);
-            ModLog.Info($"[BASTARD] {mother.Name} raises a blackmail demand over {child.Name}: ~{bs.DemandAmount} denars for silence " +
-                        $"(pay within {BastardBlackmailPolicy.DemandDeadlineSeasons} seasons).");
-            SendDemandLetter(mother, child, bs.DemandAmount);
-         }
-      }
-
-      /// <summary>True when this NPC is the mother of a still-concealed bastard of the player's (gates the conversation teaching).</summary>
-      public bool IsBastardMotherOfHidden(Hero npc)
-         => npc != null && _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).Any(id => FindHero(id)?.Mother == npc);
-
-      /// <summary>The mother's disposition toward the player (trait- and regard-driven; pure <see cref="BastardMotherPolicy" />).</summary>
-      public BastardMotherDisposition MotherDisposition(Hero mother)
-      {
-         int relation = mother != null && Hero.MainHero != null
-            ? mother.GetRelation(Hero.MainHero)
-            : 0;
-
-         return BastardMotherPolicy.Resolve(TraitLevel(mother, DefaultTraits.Honor), TraitLevel(mother, DefaultTraits.Calculating), relation);
-      }
-
-      private static void SendMotherNote(Hero mother, Hero child, BastardMotherDisposition disposition)
-      {
-         var store = NpcMemoryCampaignBehavior.Instance?.Store;
-         if (store == null || mother == null) return;
-
-         NpcProfile profile = store.Get(mother.StringId) ?? HeroProfileMapper.FromHero(mother);
-         int today = (int) CampaignTime.Now.ToDays;
-
-         profile.SentLetters.Add(new PendingLetter {
-            SenderId = mother.StringId,
-            SenderName = mother.Name?.ToString(),
-            Reason = LetterReason.BastardMotherNote,
-            Content = MotherNoteContent(child, disposition),
-            SentOnDay = today,
-            DeliveryDay = today + DemandLetterDeliveryDays,
-            IsDelivered = false
-         });
-
-         store.Set(profile);
-         ModLog.Info($"[BASTARD] {disposition} note queued: {mother.Name} → player about {child.Name}.");
-      }
-
-      private static string MotherNoteContent(Hero child, BastardMotherDisposition disposition)
-      {
-         string c = child.Name?.ToString() ?? "our child";
-
-         return disposition switch {
-            BastardMotherDisposition.Longing =>
-               $"Not a day passes that I do not think of you. {c} grows quickly and asks after a father I cannot name. " +
-               "Come to us — I would have you know your child, and I confess I would have far more than that, if you would let me.",
-            BastardMotherDisposition.Resentful =>
-               $"You have a child, {c}, and a duty you pretend not to see. I ask nothing of your heart — you have shown me its " +
-               "measure — only that you not forget the one thing of yours I am left to raise alone.",
-            _ =>
-               $"I write to tell you of {c}, who is well, and to ask what little you can spare for the child's keep. I make no " +
-               "demands and keep your name to myself; I only thought you should know."
-         };
-      }
+      /// <summary>The scandal's reach (magnitude), scaled by the player culture's outrage at infidelity.</summary>
+      private static int ScaledScandalMagnitude()
+         => BastardScandalPolicy.Scale(ScandalMagnitude, PlayerCultureOutrage());
 
       /// <summary>Queues a blackmail demand letter from the mother to the player (delivered via the normal courier path).</summary>
       private static void SendDemandLetter(Hero mother, Hero child, int demand)
       {
          if (mother == null || child == null) return;
 
-         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+
          if (store == null) return;
 
          NpcProfile profile = store.Get(mother.StringId) ?? HeroProfileMapper.FromHero(mother);
-         int today = (int) CampaignTime.Now.ToDays;
+         var today = (int) CampaignTime.Now.ToDays;
 
          profile.SentLetters.Add(new PendingLetter {
             SenderId = mother.StringId,
@@ -380,114 +472,156 @@ namespace CalradiaRemembers.Bastards
          ModLog.Info($"[BASTARD] blackmail demand letter queued: {mother.Name} → player (~{demand} denars, due day {today + DemandLetterDeliveryDays}).");
       }
 
-      /// <summary>
-      ///   The player meets the demands an NPC holds over them: pays each (gold to her) and buys a season of
-      ///   silence (she returns when it lapses). Returns how many demands were settled and the total paid.
-      /// </summary>
-      public (int settled, int goldPaid) Pay(Hero mother)
+      private static void SendMotherNote(Hero mother, Hero child, BastardMotherDisposition disposition)
       {
-         if (mother == null || Hero.MainHero == null) return (0, 0);
-         if (MotherDisposition(mother) != BastardMotherDisposition.Mercenary) return (0, 0); // a kinder mother has nothing to buy off
+         BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+
+         if (store == null || mother == null) return;
+
+         NpcProfile profile = store.Get(mother.StringId) ?? HeroProfileMapper.FromHero(mother);
+         var today = (int) CampaignTime.Now.ToDays;
+
+         profile.SentLetters.Add(new PendingLetter {
+            SenderId = mother.StringId,
+            SenderName = mother.Name?.ToString(),
+            Reason = LetterReason.BastardMotherNote,
+            Content = MotherNoteContent(child, disposition),
+            SentOnDay = today,
+            DeliveryDay = today + DemandLetterDeliveryDays,
+            IsDelivered = false
+         });
+
+         store.Set(profile);
+         ModLog.Info($"[BASTARD] {disposition} note queued: {mother.Name} → player about {child.Name}.");
+      }
+
+      private static byte[] ToBytes(object value)
+      {
+         try { return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(value, Formatting.None)); }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[BASTARD] serialize failed — persisting empty. {ex.GetType().Name}: {ex.Message}");
+
+            return Encoding.UTF8.GetBytes("{}");
+         }
+      }
+
+      private static int TraitLevel(Hero hero, TraitObject trait)
+      {
+         try { return hero?.GetTraitLevel(trait) ?? 0; }
+         catch { return 0; }
+      }
+
+      private void ApplyClaim(Hero bastard)
+      {
+         if (bastard == null) return;
+
+         if (Hero.MainHero != null)
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(bastard, Hero.MainHero, -ClaimHostility, false);
+
+         RecordClaim(bastard);
+         ModLog.Info($"[BASTARD] {bastard.Name} came of age and presses a claim against the player's house (relation -{ClaimHostility}).");
+      }
+
+      // ── The mother's initiative: blackmail OR a warmer letter, by disposition ──
+
+      private void EvaluateMother(Hero child, int season)
+      {
+         Hero mother = child.Mother;
+
+         if (mother is not {IsAlive: true} || mother == Hero.MainHero?.Spouse) return;
+
+         // A mother who is in the player's OWN party is at his side, not apart: the whole bastard thread
+         // (a secret held from a distance, "come to us", "you are never here", a blackmail by courier) makes
+         // no sense while she travels with him. A player reported exactly this, a courted, party-bound mother
+         // writing that he was never there for the children. She is present; anything owed is spoken in person.
+         if (mother.PartyBelongedTo == MobileParty.MainParty) return;
+
+         BastardMotherDisposition disposition = MotherDisposition(mother);
+         BlackmailState bs = GetBlackmail(child.StringId);
+
+         // A kinder mother never leaks the secret herself; she only writes, now and then, in her own register.
+         if (disposition != BastardMotherDisposition.Mercenary)
+         {
+            if (!BastardBlackmailPolicy.CanRaiseDemand(season, bs.SilentUntil, false)) return;
+
+            bs.SilentUntil = BastardBlackmailPolicy.SilenceUntil(season);
+            SendMotherNote(mother, child, disposition);
+
+            return;
+         }
+
+         // Mercenary: an unmet demand past its deadline → she carries out her threat and leaks the secret.
+         if (BastardBlackmailPolicy.DemandHasLapsed(season, bs.DemandSeason))
+         {
+            bs.DemandSeason = -1;
+            ModLog.Info($"[BASTARD] {mother.Name}'s blackmail over {child.Name} went unmet — she leaks the secret.");
+            Discover(child);
+
+            return;
+         }
+
+         // Otherwise she may raise a fresh demand (none outstanding, paid silence expired) — and write to extort.
+         if (!BastardBlackmailPolicy.CanRaiseDemand(season, bs.SilentUntil, bs.DemandSeason >= 0)) return;
+
+         bs.DemandSeason = season;
+         bs.DemandAmount = BastardBlackmailPolicy.DemandAmount(Hero.MainHero?.Gold ?? 0);
+         ModLog.Info($"[BASTARD] {mother.Name} raises a blackmail demand over {child.Name}: ~{bs.DemandAmount} denars for silence " +
+                     $"(pay within {BastardBlackmailPolicy.DemandDeadlineSeasons} seasons).");
+         SendDemandLetter(mother, child, bs.DemandAmount);
+      }
+
+      private void EvaluateSeason()
+      {
+         if (_bastards.Count == 0) return;
 
          int season = CurrentSeason;
-         int settled = 0, gold = 0;
 
-         foreach (string childId in _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).ToList())
+         // Snapshot the concealed ids first — Discover mutates the dictionary.
+         List<string> concealed = _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).ToList();
+
+         foreach (string id in concealed)
          {
-            Hero child = FindHero(childId);
-            if (child?.Mother != mother) continue;
+            Hero child = FindHero(id);
 
-            BlackmailState bs = GetBlackmail(childId);
-            if (bs.DemandSeason < 0) continue; // only an active demand can be paid off
+            if (child is not {IsAlive: true}) continue;
 
-            int amount = bs.DemandAmount > 0
-               ? bs.DemandAmount
-               : BastardBlackmailPolicy.DemandAmount(Hero.MainHero.Gold);
-            if (Hero.MainHero.Gold >= amount)
+            // (a) the ambient, age-keyed risk the secret simply surfaces.
+            if (MBRandom.RandomInt(100) < BastardDiscoveryPolicy.DiscoveryChancePercent((int) child.Age))
             {
-               GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, mother, amount, false);
-               gold += amount;
+               Discover(child);
+
+               continue;
             }
 
-            bs.DemandSeason = -1;
-            bs.DemandAmount = 0;
-            bs.SilentUntil = BastardBlackmailPolicy.SilenceUntil(season);
-            settled++;
+            // (b) the mother's own initiative — blackmail, longing, reproach, or a plea for support.
+            EvaluateMother(child, season);
          }
-
-         if (settled > 0)
-            ModLog.Info($"[BASTARD] player paid {mother.Name} {gold} denars for silence over {settled} bastard(s) until season {BastardBlackmailPolicy.SilenceUntil(season)}.");
-
-         return (settled, gold);
-      }
-
-      /// <summary>
-      ///   When the player gives a mercenary bastard-mother at least her standing demand (e.g. via the Give Gold
-      ///   button), buy her silence for the grace period — no extra transfer, the gold already moved. Returns
-      ///   true when a demand was settled. Called from the gold-payment path so paying her IS settling the secret.
-      /// </summary>
-      public bool SettleByPayment(Hero mother, int amountPaid)
-      {
-         if (mother == null || Hero.MainHero == null || amountPaid <= 0) return false;
-         if (MotherDisposition(mother) != BastardMotherDisposition.Mercenary) return false;
-
-         int season = CurrentSeason;
-         var settled = false;
-
-         foreach (string childId in _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).ToList())
-         {
-            Hero child = FindHero(childId);
-            if (child?.Mother != mother) continue;
-
-            BlackmailState bs = GetBlackmail(childId);
-            if (bs.DemandSeason < 0 || amountPaid < bs.DemandAmount) continue;
-
-            bs.DemandSeason = -1;
-            bs.DemandAmount = 0;
-            bs.SilentUntil = BastardBlackmailPolicy.SilenceUntil(season);
-            settled = true;
-         }
-
-         if (settled) ModLog.Info($"[BASTARD] payment of {amountPaid} to {mother.Name} bought her silence.");
-
-         return settled;
-      }
-
-      /// <summary>
-      ///   The gold an NPC could demand for her silence right now, or 0 — she is the mother of a still-concealed
-      ///   bastard of the player's and holds leverage (pure <see cref="BastardBlackmailPolicy" />). A query.
-      /// </summary>
-      public int BlackmailDemandOver(Hero npc)
-      {
-         if (npc == null || Hero.MainHero == null) return 0;
-
-         string childId = _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).FirstOrDefault(id => FindHero(id)?.Mother == npc);
-         if (childId == null) return 0;
-         if (!BastardBlackmailPolicy.HoldsLeverage(true, npc.IsAlive, npc == Hero.MainHero.Spouse)) return 0;
-         if (MotherDisposition(npc) != BastardMotherDisposition.Mercenary) return 0; // only a scheming mother extorts
-
-         return BastardBlackmailPolicy.DemandAmount(Hero.MainHero.Gold);
-      }
-
-      /// <summary>A short blackmail-state label for the cr.bastards diagnostic.</summary>
-      public string BlackmailStatusOf(string childId)
-      {
-         if (childId == null || !_blackmail.TryGetValue(childId, out BlackmailState s)) return "no demand";
-         if (s.DemandSeason >= 0) return $"DEMAND@S{s.DemandSeason}";
-         if (s.SilentUntil > CurrentSeason) return $"paid-silence→S{s.SilentUntil}";
-
-         return "no demand";
       }
 
       private BlackmailState GetBlackmail(string childId)
       {
-         if (!_blackmail.TryGetValue(childId, out BlackmailState s))
-         {
-            s = new BlackmailState();
-            _blackmail[childId] = s;
-         }
+         if (_blackmail.TryGetValue(childId, out BlackmailState s)) return s;
+
+         s = new BlackmailState();
+         _blackmail[childId] = s;
 
          return s;
+      }
+
+      // ── Birth: tag the player's non-marital children ──────────────────────
+
+      private void OnGivenBirth(Hero mother, List<Hero> aliveChildren, int stillbornCount)
+      {
+         if (aliveChildren == null || Hero.MainHero == null) return;
+
+         foreach (Hero child in aliveChildren)
+         {
+            if (child == null || !IsPlayersBastard(child) || _bastards.ContainsKey(child.StringId)) continue;
+
+            _bastards[child.StringId] = false; // concealed
+            ModLog.Info($"[BASTARD] a hidden child is born: {child.Name} (parents {child.Mother?.Name}/{child.Father?.Name}).");
+         }
       }
 
       // ── Coming-of-age: the grown bastard's claim ──────────────────────────
@@ -514,56 +648,6 @@ namespace CalradiaRemembers.Bastards
          ApplyClaim(hero);
       }
 
-      /// <summary>
-      ///   The prestige-gate verdict for a grown bastard's claim on the FATHER's (player's) clan: a child of a
-      ///   grander maternal house follows that line; an equal-or-lesser house breeds a claimant.
-      /// </summary>
-      public BastardClaimVerdict ResolveClaimVerdict(Hero bastard)
-         => BastardPrestigePolicy.Resolve(ClanPrestige(bastard?.Clan), ClanPrestige(Hero.MainHero?.Clan));
-
-      private void ApplyClaim(Hero bastard)
-      {
-         if (bastard == null) return;
-
-         if (Hero.MainHero != null)
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(bastard, Hero.MainHero, -ClaimHostility, false);
-
-         RecordClaim(bastard);
-         ModLog.Info($"[BASTARD] {bastard.Name} came of age and presses a claim against the player's house (relation -{ClaimHostility}).");
-      }
-
-      private static void RecordClaim(Hero bastard)
-      {
-         WorldEventStore store = WorldEventStore.Instance;
-         if (store == null || Hero.MainHero == null) return;
-
-         string parent = Hero.MainHero.Name?.ToString() ?? "the lord";
-         var actors = new List<string> {bastard.StringId, Hero.MainHero.StringId};
-
-         var factions = new List<string>();
-         if (Hero.MainHero.MapFaction != null) factions.Add(Hero.MainHero.MapFaction.StringId);
-         if (bastard.MapFaction != null) factions.Add(bastard.MapFaction.StringId);
-
-         store.Record(new WorldEvent {
-            Type = WorldEventType.Scandal,
-            Day = (int) CampaignTime.Now.ToDays,
-            Magnitude = ClaimMagnitude,
-            InvolvesPlayer = true,
-            ActorIds = actors,
-            FactionIds = factions,
-            Summary = $"{bastard.Name}, natural-born child of {parent}, has come of age and presses a claim against their house.",
-            ChronicleLine = $"{bastard.Name}, my own natural child, came of age and turned against my house, pressing a claim upon it"
-         });
-      }
-
-      private static int ClanPrestige(Clan clan)
-      {
-         if (clan == null) return 0;
-         bool ruling = clan.Kingdom != null && clan.Kingdom.RulingClan == clan;
-
-         return BastardPrestigePolicy.PrestigeScore(clan.Tier, (int) clan.Renown, ruling);
-      }
-
       private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
       {
          if (victim == null) return;
@@ -571,78 +655,18 @@ namespace CalradiaRemembers.Bastards
          _blackmail.Remove(victim.StringId);
       }
 
-      // ── Helpers ───────────────────────────────────────────────────────────
+      // ── Seasonal evaluation: discovery, then the mother's blackmail ────────
 
-      private static Hero FindHero(string id)
-         => string.IsNullOrEmpty(id)
-            ? null
-            : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == id);
-
-      private static int TraitLevel(Hero hero, TraitObject trait)
+      private void OnWeeklyTick()
       {
-         try { return hero?.GetTraitLevel(trait) ?? 0; }
-         catch { return 0; }
+         int season = CurrentSeason;
+
+         if (season <= _lastEvaluatedSeason) return;
+
+         _lastEvaluatedSeason = season;
+         EvaluateSeason();
       }
 
-      private static byte[] ToBytes(object value)
-      {
-         try { return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(value, Formatting.None)); }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[BASTARD] serialize failed — persisting empty. {ex.GetType().Name}: {ex.Message}");
-
-            return Encoding.UTF8.GetBytes("{}");
-         }
-      }
-
-      private static T FromBytes<T>(byte[] bytes) where T : new()
-      {
-         if (bytes is not {Length: > 0}) return new T();
-
-         try { return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(bytes)) ?? new T(); }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[BASTARD] load failed — dropped for this load. {ex.GetType().Name}: {ex.Message}");
-
-            return new T();
-         }
-      }
-
-      // ── Debug seams (console tests / diagnostics) ─────────────────────────
-
-      /// <summary>Force-tag a hero as a concealed player bastard (console testing, no real birth needed).</summary>
-      public void DebugTrack(Hero child)
-      {
-         if (child != null && !_bastards.ContainsKey(child.StringId)) _bastards[child.StringId] = false;
-      }
-
-      /// <summary>Run the seasonal evaluation (discovery + blackmail) immediately (console testing).</summary>
-      public void DebugEvaluateSeason() => EvaluateSeason();
-
-      /// <summary>Force-raise a blackmail demand on a tracked bastard NOW + send the demand letter (console testing).</summary>
-      public void DebugRaiseDemand(Hero child)
-      {
-         if (child == null) return;
-         DebugTrack(child);
-
-         BlackmailState bs = GetBlackmail(child.StringId);
-         bs.DemandSeason = CurrentSeason;
-         bs.DemandAmount = BastardBlackmailPolicy.DemandAmount(Hero.MainHero?.Gold ?? 0);
-
-         if (child.Mother != null) SendDemandLetter(child.Mother, child, bs.DemandAmount);
-      }
-
-      /// <summary>
-      ///   Force the coming-of-age claim path for the given verdict (console testing): track the hero, out the
-      ///   secret, and apply the claim (hostility + world-event) when it presses.
-      /// </summary>
-      public void DebugClaim(Hero bastard, bool pressesClaim)
-      {
-         if (bastard == null) return;
-
-         DebugTrack(bastard);
-         _bastards[bastard.StringId] = true;
-         if (pressesClaim) ApplyClaim(bastard);
-      }
+      #endregion
    }
 }

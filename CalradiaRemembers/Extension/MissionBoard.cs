@@ -1,9 +1,4 @@
 // Code written by Gabriel Mailhot, 27/06/2026.
-// Extension Surface, Volet B — the mission-registration FACADE. The one-way door a third-party mod registers a
-// player MISSION through. Validation lives at the door (pure scalars/text in CalradiaRemembers.Logic.
-// ExternalMissionRules; giver resolution + dedup here, against live game state), and the accepted mission becomes
-// a real InformalQuest on the giver — inheriting CR's journal mirror, in-conversation framing, gated reward, and
-// deadline/abandon/self-heal lifecycle. The EXTERNAL mod owns the completion signal (Complete); CR owns the rest.
 
 #region
 
@@ -29,68 +24,24 @@ namespace CalradiaRemembers
    public static class MissionBoard
    {
       /// <summary>
-      ///   Validates a mission at the door and issues it as a verified quest on the giver. Returns why it was
-      ///   rejected, or <see cref="MissionBoardResult.Registered" /> on success. Mutates nothing the caller owns.
+      ///   The external mod withdraws a mission whose premise is gone. CR cancels it with no player penalty
+      ///   (the mod, not the player, called it off) and closes the journal entry. Returns
+      ///   <see cref="MissionBoardResult.Abandoned" />, or <see cref="MissionBoardResult.NotFound" />.
       /// </summary>
-      public static MissionBoardResult Register(ExternalMission m)
-      {
-         if (m == null || !ExternalMissionRules.HasRequiredIdentity(m.Id, m.SourceMod)) return MissionBoardResult.RejectedInvalid;
-
-         string title = ExternalMissionRules.BoundTitle(m.Title);
-         string description = ExternalMissionRules.BoundDescription(m.Description) ?? title;
-         if (description == null) return MissionBoardResult.RejectedInvalid; // a mission with neither title nor body says nothing
-
-         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
-         BannerlordNpcMemoryStore store = behavior?.Store;
-         if (store == null) return MissionBoardResult.RejectedNoStore;
-
-         // Resolve via Hero.FindFirst — the lookup the rest of the mod uses; MBObjectManager.GetObject<Hero>
-         // does not reliably resolve heroes by StringId.
-         Hero giver = string.IsNullOrWhiteSpace(m.GiverHeroId)
-            ? null
-            : Hero.FindFirst(h => h.StringId == m.GiverHeroId);
-         if (giver == null) return MissionBoardResult.RejectedUnknownGiver;
-
-         // CR must already have a profile for the giver (the player has met them) — that profile hosts the quest.
-         NpcProfile giverProfile = store.Get(giver.StringId);
-         if (giverProfile == null) return MissionBoardResult.RejectedUnknownGiver;
-
-         // Dedup on the mission id: a still-live registration with this id blocks a second one.
-         if (giverProfile.ActiveQuests.Any(q => q.Type == QuestType.External
-                                             && q.Status == QuestStatus.Active
-                                             && string.Equals(q.ExternalId, m.Id, StringComparison.Ordinal)))
-            return MissionBoardResult.RejectedDuplicate;
-
-         int today = CurrentDay(behavior);
-         int? deadlineDays = ExternalMissionRules.NormalizeDeadlineDays(m.DeadlineDays);
-
-         var quest = new InformalQuest
+      public static MissionBoardResult Abandon(string missionId)
+         => Resolve(missionId, (store, profile, giver, quest, today) =>
          {
-            Type = QuestType.External,
-            Description = description,
-            RewardGold = ExternalMissionRules.ClampRewardGold(m.RewardGold),
-            RewardRelation = ExternalMissionRules.ClampRewardRelation(m.RewardRelation),
-            IssuedOnDay = today,
-            DeadlineDay = deadlineDays.HasValue
-               ? today + deadlineDays.Value
-               : (int?) null,
-            ExternalId = m.Id,
-            ExternalSourceMod = m.SourceMod,
-            Status = QuestStatus.Active
-         };
+            if (quest.Status != QuestStatus.Active) return MissionBoardResult.NotFound;
 
-         giverProfile.ActiveQuests.Add(quest);
-         giverProfile.Events.Add(new NotableEvent(today, NotableEventType.Agreement, $"Set the player a task: {description}"));
-         store.Set(giverProfile);
+            quest.Status = QuestStatus.Cancelled;
+            profile.Events.Add(new NotableEvent(today, NotableEventType.Other, "Set aside a task — circumstances changed."));
+            QuestJournalBridge.CloseAsCancelled(quest, giver, "This task is no longer needed.");
+            store.Set(profile);
 
-         // Open a vanilla quest journal mirror — StartQuest() fires its own native notification.
-         QuestJournalBridge.OpenMirror(quest, giver);
+            ModLog.Info($"[MISSION] '{missionId}' abandoned by its source mod.");
 
-         ModLog.Info($"[MISSION] {m.SourceMod} registered '{m.Id}' on {giver.Name}: {description} " +
-                     $"(reward {quest.RewardGold}g/+{quest.RewardRelation}, deadline {quest.DeadlineDay?.ToString() ?? "none"}).");
-
-         return MissionBoardResult.Registered;
-      }
+            return MissionBoardResult.Abandoned;
+         });
 
       /// <summary>
       ///   The external mod's completion signal: the deed is truly done. CR stamps the mission satisfied (the
@@ -113,24 +64,69 @@ namespace CalradiaRemembers
          });
 
       /// <summary>
-      ///   The external mod withdraws a mission whose premise is gone. CR cancels it with no player penalty
-      ///   (the mod, not the player, called it off) and closes the journal entry. Returns
-      ///   <see cref="MissionBoardResult.Abandoned" />, or <see cref="MissionBoardResult.NotFound" />.
+      ///   Validates a mission at the door and issues it as a verified quest on the giver. Returns why it was
+      ///   rejected, or <see cref="MissionBoardResult.Registered" /> on success. Mutates nothing the caller owns.
       /// </summary>
-      public static MissionBoardResult Abandon(string missionId)
-         => Resolve(missionId, (store, profile, giver, quest, today) =>
-         {
-            if (quest.Status != QuestStatus.Active) return MissionBoardResult.NotFound;
+      public static MissionBoardResult Register(ExternalMission m)
+      {
+         if (m == null || !ExternalMissionRules.HasRequiredIdentity(m.Id, m.SourceMod)) return MissionBoardResult.RejectedInvalid;
 
-            quest.Status = QuestStatus.Cancelled;
-            profile.Events.Add(new NotableEvent(today, NotableEventType.Other, "Set aside a task — circumstances changed."));
-            QuestJournalBridge.CloseAsCancelled(quest, giver, "This task is no longer needed.");
-            store.Set(profile);
+         string title = ExternalMissionRules.BoundTitle(m.Title);
+         string description = ExternalMissionRules.BoundDescription(m.Description) ?? title;
 
-            ModLog.Info($"[MISSION] '{missionId}' abandoned by its source mod.");
+         if (description == null) return MissionBoardResult.RejectedInvalid; // a mission with neither title nor body says nothing
 
-            return MissionBoardResult.Abandoned;
-         });
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+         BannerlordNpcMemoryStore store = behavior?.Store;
+
+         if (store == null) return MissionBoardResult.RejectedNoStore;
+
+         // Resolve via Hero.FindFirst — the lookup the rest of the mod uses; MBObjectManager.GetObject<Hero>
+         // does not reliably resolve heroes by StringId.
+         Hero giver = string.IsNullOrWhiteSpace(m.GiverHeroId)
+            ? null
+            : Hero.FindFirst(h => h.StringId == m.GiverHeroId);
+
+         if (giver == null) return MissionBoardResult.RejectedUnknownGiver;
+
+         // CR must already have a profile for the giver (the player has met them) — that profile hosts the quest.
+         NpcProfile giverProfile = store.Get(giver.StringId);
+
+         if (giverProfile == null) return MissionBoardResult.RejectedUnknownGiver;
+
+         // Dedup on the mission id: a still-live registration with this id blocks a second one.
+         if (giverProfile.ActiveQuests.Any(q => q.Type == QuestType.External && q.Status == QuestStatus.Active && string.Equals(q.ExternalId, m.Id, StringComparison.Ordinal)))
+            return MissionBoardResult.RejectedDuplicate;
+
+         int today = CurrentDay(behavior);
+         int? deadlineDays = ExternalMissionRules.NormalizeDeadlineDays(m.DeadlineDays);
+
+         var quest = new InformalQuest {
+            Type = QuestType.External,
+            Description = description,
+            RewardGold = ExternalMissionRules.ClampRewardGold(m.RewardGold),
+            RewardRelation = ExternalMissionRules.ClampRewardRelation(m.RewardRelation),
+            IssuedOnDay = today,
+            DeadlineDay = deadlineDays.HasValue
+               ? today + deadlineDays.Value
+               : null,
+            ExternalId = m.Id,
+            ExternalSourceMod = m.SourceMod,
+            Status = QuestStatus.Active
+         };
+
+         giverProfile.ActiveQuests.Add(quest);
+         giverProfile.Events.Add(new NotableEvent(today, NotableEventType.Agreement, $"Set the player a task: {description}"));
+         store.Set(giverProfile);
+
+         // Open a vanilla quest journal mirror — StartQuest() fires its own native notification.
+         QuestJournalBridge.OpenMirror(quest, giver);
+
+         ModLog.Info($"[MISSION] {m.SourceMod} registered '{m.Id}' on {giver.Name}: {description} " +
+                     $"(reward {quest.RewardGold}g/+{quest.RewardRelation}, deadline {quest.DeadlineDay?.ToString() ?? "none"}).");
+
+         return MissionBoardResult.Registered;
+      }
 
       #region private
 
@@ -139,12 +135,13 @@ namespace CalradiaRemembers
 
       /// <summary>Finds the external quest carrying <paramref name="missionId" /> across every profile, then runs the action.</summary>
       private static MissionBoardResult Resolve(string missionId,
-         Func<BannerlordNpcMemoryStore, NpcProfile, Hero, InformalQuest, int, MissionBoardResult> action)
+                                                Func<BannerlordNpcMemoryStore, NpcProfile, Hero, InformalQuest, int, MissionBoardResult> action)
       {
          if (string.IsNullOrWhiteSpace(missionId)) return MissionBoardResult.NotFound;
 
-         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         var behavior = NpcMemoryCampaignBehavior.Instance;
          BannerlordNpcMemoryStore store = behavior?.Store;
+
          if (store == null) return MissionBoardResult.RejectedNoStore;
 
          foreach (string id in store.ListIds())
