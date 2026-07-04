@@ -153,9 +153,9 @@ namespace CalradiaRemembers.Stance
          {
             // Spiral out from the ideal slot: 0, +22.5°, -22.5°, +45°, -45°, …
             double angle = baseAngle +
-                           (j + 1) /
+                           (j + 1.0f) /
                            2 *
-                           (Math.PI / 8.0) *
+                           (Math.PI / 8.0f) *
                            (j % 2 == 0
                               ? 1
                               : -1);

@@ -1,8 +1,7 @@
-// Code written by Gabriel Mailhot, 13/06/2026.
+// Code written by Gabriel Mailhot, 01/07/2026.
 
 #region
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.GameState;
@@ -32,6 +31,7 @@ namespace CalradiaRemembers.Marriage
       // a blessing was earned) sets the SIGN; each member then leans by their own standing
       // with the player, so a dissenting kinsman can resist or even invert the family tide.
       private const int ApprovedRelationBonus = 40;
+      private const string LegacySaveKey = "CalradiaRemembers_MarriageApprovals_v1";
 
       // Per-member lean: a member's existing relation with the player tilts their reaction
       // (relation / 2 added to the base). A beloved kinsman rejoices harder; one who already
@@ -43,7 +43,6 @@ namespace CalradiaRemembers.Marriage
       // this behavior switched over (Bannerlord's native string serializer corrupts a save once
       // the blob grows past roughly 65,535 characters).
       private const string SaveKey = "CalradiaRemembers_MarriageApprovals_v2bytes";
-      private const string LegacySaveKey = "CalradiaRemembers_MarriageApprovals_v1";
       private const int UnapprovedRelationPenalty = -40;
       public static MarriageApprovalBehavior Instance;
 

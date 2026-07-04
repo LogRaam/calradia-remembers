@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 23/06/2026.
+// Code written by Gabriel Mailhot, 02/07/2026.
 
 #region
 
@@ -58,12 +58,6 @@ namespace CalradiaRemembers.Missions
       public int ActiveCount => _active.Count;
 
       private static int Today => (int) CampaignTime.Now.ToDays;
-
-      /// <summary>Finds an active errand by its stable Id, or null. Used by the quest-journal mirror.</summary>
-      public CompanionMission FindActive(string missionId)
-         => string.IsNullOrEmpty(missionId)
-            ? null
-            : _active.FirstOrDefault(m => m.Id == missionId);
 
       /// <summary>
       ///   The news a just-returned companion has to tell, if any — returned ONCE and then cleared, so it
@@ -138,6 +132,12 @@ namespace CalradiaRemembers.Missions
 
          return (true, $"{companion.Name} rides for {dest.Name} on a {ErrandVerb(type)} errand{scope}.");
       }
+
+      /// <summary>Finds an active errand by its stable Id, or null. Used by the quest-journal mirror.</summary>
+      public CompanionMission FindActive(string missionId)
+         => string.IsNullOrEmpty(missionId)
+            ? null
+            : _active.FirstOrDefault(m => m.Id == missionId);
 
       // ── Console test path ─────────────────────────────────────────────────
 
@@ -518,11 +518,10 @@ namespace CalradiaRemembers.Missions
                   return false;
                }
 
-               if (Today >= m.LingerUntilDay)
-               {
-                  ReturnHome(m, FindParty(m.PartyId));
-                  CompanionErrandJournalBridge.UpdateMirror(m, companion);
-               }
+               if (Today < m.LingerUntilDay) return false;
+
+               ReturnHome(m, FindParty(m.PartyId));
+               CompanionErrandJournalBridge.UpdateMirror(m, companion);
 
                return false;
             }

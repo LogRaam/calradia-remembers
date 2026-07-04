@@ -1,11 +1,4 @@
-// Code written by Gabriel Mailhot, 30/06/2026.
-// Companion war-weariness & honorable retirement — the engine glue. Wounds (a daily IsWounded transition) and
-// captures (HeroPrisonerTaken) accrue the toll; a weekly rest eases it. When a companion is spent (past their
-// Valor-scaled tolerance) they ASK to retire: a LANDLESS one leaves your service warmly; a LANDED one (a
-// governor or party-leader) steps back from the FIELD to tend their fief but stays in the clan. Drag a
-// stepped-back veteran back to war and their retirement curdles into real unhappiness (the contentment system
-// then takes over). The bands/tolls/tolerance are the pure WarWeariness model; everything here is glue. Gated by
-// the same "Companion contentment" MCM toggle as the happiness/retention loop.
+// Code written by Gabriel Mailhot, 01/07/2026.
 
 #region
 
@@ -34,20 +27,21 @@ namespace CalradiaRemembers.Missions
    /// <summary>Accrues war-weariness from real battle events and runs the honorable-retirement loop for a spent companion.</summary>
    public sealed class WarWearinessBehavior : CampaignBehaviorBase
    {
-      // Tuning (flagged — Gabriel adjusts by feel).
-      private const int RestStep = WarWeariness.RestStepPerWeek; // weekly recovery
-      private const int RetireDeclineCooldownDays = 14;          // after a decline, wait before asking again
-      private const int ForcedBackToBreak = 3;                   // weeks dragged back to war before the retirement breaks
-
       private const string DeclinedSaveKey = "CalradiaRemembers_WearinessDeclined_v1";
       private const string ForcedBackSaveKey = "CalradiaRemembers_WearinessForcedBack_v1";
+
+      private const int ForcedBackToBreak = 3; // weeks dragged back to war before the retirement breaks
+
+      // Tuning (flagged — Gabriel adjusts by feel).
+      private const int RestStep = WarWeariness.RestStepPerWeek; // weekly recovery
+      private const int RetireDeclineCooldownDays = 14; // after a decline, wait before asking again
       private const string WoundCountedSaveKey = "CalradiaRemembers_WearinessWounded_v1";
       public static WarWearinessBehavior Instance;
 
       private Dictionary<string, int> _declinedUntil = new(); // companion id → day we may ask again
-      private Dictionary<string, int> _forcedBack = new();    // stepped-back id → weeks dragged back to war so far
-      private Dictionary<string, int> _woundCounted = new();  // companion id → 1 while their current wound is counted
-      private bool _requestOpen;                              // an inquiry is on screen; don't stack another
+      private Dictionary<string, int> _forcedBack = new(); // stepped-back id → weeks dragged back to war so far
+      private bool _requestOpen; // an inquiry is on screen; don't stack another
+      private Dictionary<string, int> _woundCounted = new(); // companion id → 1 while their current wound is counted
 
       public WarWearinessBehavior()
       {
@@ -55,6 +49,31 @@ namespace CalradiaRemembers.Missions
       }
 
       private static int Today => (int) CampaignTime.Now.ToDays;
+
+      /// <summary>
+      ///   Carries out a granted retirement (called from the audience conversation's <c>retire</c> action at close,
+      ///   or as a fail-soft when the chat can't open). A LANDED companion steps back from the field but stays in
+      ///   the clan; a landless one leaves your service. Re-validates nothing beyond a live hero — the grant is the
+      ///   player's decision, already made.
+      /// </summary>
+      public void ExecuteRetirement(Hero h, bool landed)
+      {
+         if (h is not {IsAlive: true}) return;
+
+         if (landed)
+         {
+            WarWearinessService.SetSteppedBack(h, true);
+            _forcedBack.Remove(h.StringId);
+            MBInformationManager.AddQuickInformation(
+               new TextObject($"{h.Name} lays down the sword to tend their own. They remain of your clan, but you will not march them to war again."),
+               0, h.CharacterObject);
+            ModLog.Info($"[WEARINESS] {h.Name} stepped back from the field (landed retirement).");
+         }
+         else
+         {
+            Depart(h);
+         }
+      }
 
       public override void RegisterEvents()
       {
@@ -74,6 +93,13 @@ namespace CalradiaRemembers.Missions
       }
 
       #region private
+
+      private static IEnumerable<Hero> Companions()
+         => Hero.AllAliveHeroes.Where(h => h != null && h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner);
+
+      /// <summary>A companion is INVESTED (never leaves) when they govern a settlement or lead a party of their own.</summary>
+      private static bool IsInvested(Hero h)
+         => h.GovernorOf != null || h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h;
 
       private static void SyncDict(IDataStore dataStore, string key, ref Dictionary<string, int> dict)
       {
@@ -101,27 +127,57 @@ namespace CalradiaRemembers.Missions
          }
       }
 
-      private static IEnumerable<Hero> Companions()
-         => Hero.AllAliveHeroes.Where(h => h != null && h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner);
-
       private static int Valor(Hero h)
       {
          try { return h.GetTraitLevel(DefaultTraits.Valor); }
          catch { return 0; }
       }
 
-      /// <summary>A companion is INVESTED (never leaves) when they govern a settlement or lead a party of their own.</summary>
-      private static bool IsInvested(Hero h)
-         => h.GovernorOf != null || (h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h);
+      private bool DeclinedRecently(Hero h)
+         => _declinedUntil.TryGetValue(h.StringId, out int until) && Today < until;
 
-      // ── Captures ─────────────────────────────────────────────────────────
-
-      private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner)
+      private void Depart(Hero h)
       {
-         if (!ModSettings.CompanionContentment) return;
-         if (prisoner == null || prisoner == Hero.MainHero || !prisoner.IsPlayerCompanion) return;
+         try
+         {
+            RemoveCompanionAction.ApplyByFire(Clan.PlayerClan, h);
+            MBInformationManager.AddQuickInformation(
+               new TextObject($"{h.Name} has laid down the sword and retired from your service, honorably. May the roads treat them kindly."),
+               0, h.CharacterObject);
+            ModLog.Info($"[WEARINESS] {h.Name} retired from your service (landless, honorable).");
+         }
+         catch (Exception ex) { ModLog.Error($"[WEARINESS] retirement departure failed for {h.Name}: {ex.Message}"); }
+      }
 
-         WarWearinessService.AddCapture(prisoner); // being taken prisoner is the heaviest single toll
+      private void EnforceStepBack(Hero h)
+      {
+         // Only the PLAYER's marching host counts as "dragged back to war"; a governor sitting in their town or a
+         // companion leading their own party is exactly what stepping back allows.
+         bool draggedToWar = h.PartyBelongedTo == MobileParty.MainParty;
+         if (!draggedToWar)
+         {
+            _forcedBack.Remove(h.StringId);
+
+            return;
+         }
+
+         int n = (_forcedBack.TryGetValue(h.StringId, out int c)
+                    ? c
+                    : 0) +
+                 1;
+         _forcedBack[h.StringId] = n;
+
+         // They resent being marched to war after you granted them their rest.
+         CompanionHappinessService.ApplyDriver(h, HappinessDriver.Mistreated);
+         MBInformationManager.AddQuickInformation(
+            new TextObject($"{h.Name} chafes at being marched back to war after you granted them their rest."), 0, h.CharacterObject);
+
+         if (n < ForcedBackToBreak) return;
+         WarWearinessService.SetSteppedBack(h, false); // the honorable retirement is over — now just an unhappy soldier
+         _forcedBack.Remove(h.StringId);
+         MBInformationManager.AddQuickInformation(
+            new TextObject($"{h.Name}'s patience is spent. The retirement you granted them means nothing now."), 0, h.CharacterObject);
+         ModLog.Info($"[WEARINESS] {h.Name}'s step-back broke after being dragged back to war {n} time(s).");
       }
 
       // ── Wounds (a not-wounded → wounded transition, once per wound episode) ─
@@ -152,6 +208,43 @@ namespace CalradiaRemembers.Missions
          }
       }
 
+      private void OnDismiss(Hero h)
+      {
+         _requestOpen = false;
+         _declinedUntil[h.StringId] = Today + RetireDeclineCooldownDays;
+         // Turning a faithful, war-weary veteran away without a hearing stings.
+         CompanionHappinessService.ApplyDriver(h, HappinessDriver.Mistreated);
+         MBInformationManager.AddQuickInformation(
+            new TextObject($"You have no time for {h.Name}. They turn away, the weariness of war still on them — and the slight of being unheard now with it."),
+            0, h.CharacterObject);
+      }
+
+      // ── Captures ─────────────────────────────────────────────────────────
+
+      private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner)
+      {
+         if (!ModSettings.CompanionContentment) return;
+         if (prisoner == null || prisoner == Hero.MainHero || !prisoner.IsPlayerCompanion) return;
+
+         WarWearinessService.AddCapture(prisoner); // being taken prisoner is the heaviest single toll
+      }
+
+      private void OnTalk(Hero h, bool landed)
+      {
+         _requestOpen = false;
+
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(h.StringId);
+         if (profile == null)
+         {
+            ModLog.Info($"[WEARINESS] {h.Name} has no profile — cannot open the retirement audience; granting directly.");
+            ExecuteRetirement(h, landed); // fail-soft: honor the request without the conversation
+
+            return;
+         }
+
+         ChatManager.OpenForCompanionAudience(h, profile, CompanionAudienceReason.Retirement, landed);
+      }
+
       // ── Weekly rest, retirement request, and the drag-back enforcement ────
 
       private void OnWeeklyTick()
@@ -176,42 +269,12 @@ namespace CalradiaRemembers.Missions
                   return; // a stepped-back companion is not asked to retire again
                }
 
-               if (toAsk == null
-                   && WarWeariness.WantsToRetire(WarWearinessService.Get(companion), Valor(companion))
-                   && !DeclinedRecently(companion))
+               if (toAsk == null && WarWeariness.WantsToRetire(WarWearinessService.Get(companion), Valor(companion)) && !DeclinedRecently(companion))
                   toAsk = companion;
             });
          }
 
          if (toAsk != null && !_requestOpen) PresentRetirement(toAsk); // at most one request per week
-      }
-
-      private bool DeclinedRecently(Hero h)
-         => _declinedUntil.TryGetValue(h.StringId, out int until) && Today < until;
-
-      private void EnforceStepBack(Hero h)
-      {
-         // Only the PLAYER's marching host counts as "dragged back to war"; a governor sitting in their town or a
-         // companion leading their own party is exactly what stepping back allows.
-         bool draggedToWar = h.PartyBelongedTo == MobileParty.MainParty;
-         if (!draggedToWar) { _forcedBack.Remove(h.StringId); return; }
-
-         int n = (_forcedBack.TryGetValue(h.StringId, out int c) ? c : 0) + 1;
-         _forcedBack[h.StringId] = n;
-
-         // They resent being marched to war after you granted them their rest.
-         CompanionHappinessService.ApplyDriver(h, HappinessDriver.Mistreated);
-         MBInformationManager.AddQuickInformation(
-            new TextObject($"{h.Name} chafes at being marched back to war after you granted them their rest."), 0, h.CharacterObject);
-
-         if (n >= ForcedBackToBreak)
-         {
-            WarWearinessService.SetSteppedBack(h, false); // the honorable retirement is over — now just an unhappy soldier
-            _forcedBack.Remove(h.StringId);
-            MBInformationManager.AddQuickInformation(
-               new TextObject($"{h.Name}'s patience is spent. The retirement you granted them means nothing now."), 0, h.CharacterObject);
-            ModLog.Info($"[WEARINESS] {h.Name}'s step-back broke after being dragged back to war {n} time(s).");
-         }
       }
 
       private void PresentRetirement(Hero h)
@@ -234,71 +297,6 @@ namespace CalradiaRemembers.Missions
             "Let us speak of it…", "I've no time for this.",
             () => OnTalk(h, landed),
             () => OnDismiss(h)), true);
-      }
-
-      private void OnTalk(Hero h, bool landed)
-      {
-         _requestOpen = false;
-
-         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(h.StringId);
-         if (profile == null)
-         {
-            ModLog.Info($"[WEARINESS] {h.Name} has no profile — cannot open the retirement audience; granting directly.");
-            ExecuteRetirement(h, landed); // fail-soft: honor the request without the conversation
-
-            return;
-         }
-
-         ChatManager.OpenForCompanionAudience(h, profile, CompanionAudienceReason.Retirement, landed);
-      }
-
-      private void OnDismiss(Hero h)
-      {
-         _requestOpen = false;
-         _declinedUntil[h.StringId] = Today + RetireDeclineCooldownDays;
-         // Turning a faithful, war-weary veteran away without a hearing stings.
-         CompanionHappinessService.ApplyDriver(h, HappinessDriver.Mistreated);
-         MBInformationManager.AddQuickInformation(
-            new TextObject($"You have no time for {h.Name}. They turn away, the weariness of war still on them — and the slight of being unheard now with it."),
-            0, h.CharacterObject);
-      }
-
-      /// <summary>
-      ///   Carries out a granted retirement (called from the audience conversation's <c>retire</c> action at close,
-      ///   or as a fail-soft when the chat can't open). A LANDED companion steps back from the field but stays in
-      ///   the clan; a landless one leaves your service. Re-validates nothing beyond a live hero — the grant is the
-      ///   player's decision, already made.
-      /// </summary>
-      public void ExecuteRetirement(Hero h, bool landed)
-      {
-         if (h is not {IsAlive: true}) return;
-
-         if (landed)
-         {
-            WarWearinessService.SetSteppedBack(h, true);
-            _forcedBack.Remove(h.StringId);
-            MBInformationManager.AddQuickInformation(
-               new TextObject($"{h.Name} lays down the sword to tend their own. They remain of your clan, but you will not march them to war again."),
-               0, h.CharacterObject);
-            ModLog.Info($"[WEARINESS] {h.Name} stepped back from the field (landed retirement).");
-         }
-         else
-         {
-            Depart(h);
-         }
-      }
-
-      private void Depart(Hero h)
-      {
-         try
-         {
-            RemoveCompanionAction.ApplyByFire(Clan.PlayerClan, h);
-            MBInformationManager.AddQuickInformation(
-               new TextObject($"{h.Name} has laid down the sword and retired from your service, honorably. May the roads treat them kindly."),
-               0, h.CharacterObject);
-            ModLog.Info($"[WEARINESS] {h.Name} retired from your service (landless, honorable).");
-         }
-         catch (Exception ex) { ModLog.Error($"[WEARINESS] retirement departure failed for {h.Name}: {ex.Message}"); }
       }
 
       #endregion

@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 21/06/2026.
+// Code written by Gabriel Mailhot, 03/07/2026.
 
 #region
 
@@ -41,14 +41,14 @@ namespace CalradiaRemembers.WorldEvents
       private const int RivalryThreshold = -30; // mutual relation at/below = bitter rivals (matches the gossip feeder)
 
       private const string SaveKey = "CalradiaRemembers_Schemes_v1bytes";
-
-      private const int SuccessInfluenceHit = 15; // standing damage the target's clan takes on success
-      private const int SuccessRelationHit = 5; // and the feud deepens a little more
+      private const int SchemeAbettedGrudgeMagnitude = 55;
 
       // Grudges pillar (Tier 1, unrecoverable from a save — live-planted only): the plotter conceals their
       // own grudge over being exposed; the wronged target's grudge, once the player's hand comes out, is public.
       private const int SchemeWarnedGrudgeMagnitude = 45;
-      private const int SchemeAbettedGrudgeMagnitude = 55;
+
+      private const int SuccessInfluenceHit = 15; // standing damage the target's clan takes on success
+      private const int SuccessRelationHit = 5; // and the feud deepens a little more
       public static SchemeStore Instance;
       private readonly Dictionary<string, int> _pairCooldown = new(); // non-persisted; reload is rare
 
@@ -209,25 +209,20 @@ namespace CalradiaRemembers.WorldEvents
 
          // The exposed plotter suspects the meddler; the warned target is grateful. Both magnitudes scale
          // with traits: a vindictive calculating plotter hates hardest; an honorable target feels a real debt.
-         if (Hero.MainHero != null)
-         {
-            int resentment = SchemeBacklash.WarnedPlotterResentment(
-               TraitLevel(plotter, DefaultTraits.Mercy),
-               TraitLevel(plotter, DefaultTraits.Calculating));
-            int gratitude = SchemeBacklash.WarnedTargetGratitude(
-               TraitLevel(target, DefaultTraits.Honor),
-               TraitLevel(target, DefaultTraits.Calculating));
+         if (Hero.MainHero == null) return $"You warn {target.Name} of {plotter.Name}'s scheme. Grateful, {target.Name} thinks the better of you — but {plotter.Name} may suspect your hand in it.";
 
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(plotter, Hero.MainHero, -resentment, false);
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(target, Hero.MainHero, gratitude, false);
-            ModLog.Info($"[SCHEME] player warned {target.Name} of {plotter.Name}'s plot — now exposed; {plotter.Name} resents player (-{resentment}), {target.Name} is grateful (+{gratitude}).");
+         int resentment = SchemeBacklash.WarnedPlotterResentment(TraitLevel(plotter, DefaultTraits.Mercy), TraitLevel(plotter, DefaultTraits.Calculating));
+         int gratitude = SchemeBacklash.WarnedTargetGratitude(TraitLevel(target, DefaultTraits.Honor), TraitLevel(target, DefaultTraits.Calculating));
 
-            // Grudges pillar: the PLOTTER grudges the player for exposing their design — but conceals it
-            // (the plotter stays outwardly smooth), on top of the relation hit already applied above.
-            GrudgeBehavior.Instance?.TryPlant(plotter, Hero.MainHero, GrudgeSource.SchemeWarned,
-               $"The player warned {target.Name} of my design against them.", SchemeWarnedGrudgeMagnitude,
-               knownToPlayer: false, (int) CampaignTime.Now.ToDays);
-         }
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(plotter, Hero.MainHero, -resentment, false);
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(target, Hero.MainHero, gratitude, false);
+         ModLog.Info($"[SCHEME] player warned {target.Name} of {plotter.Name}'s plot — now exposed; {plotter.Name} resents player (-{resentment}), {target.Name} is grateful (+{gratitude}).");
+
+         // Grudges pillar: the PLOTTER grudges the player for exposing their design — but conceals it
+         // (the plotter stays outwardly smooth), on top of the relation hit already applied above.
+         GrudgeBehavior.Instance?.TryPlant(plotter, Hero.MainHero, GrudgeSource.SchemeWarned,
+            $"The player warned {target.Name} of my design against them.", SchemeWarnedGrudgeMagnitude,
+            false, (int) CampaignTime.Now.ToDays);
 
          return $"You warn {target.Name} of {plotter.Name}'s scheme. Grateful, {target.Name} thinks the better of you — but {plotter.Name} may suspect your hand in it.";
       }
@@ -291,7 +286,7 @@ namespace CalradiaRemembers.WorldEvents
          // Grudges pillar: the wronged target's grudge — public, once their own rumour spreads it below.
          GrudgeBehavior.Instance?.TryPlant(target, Hero.MainHero, GrudgeSource.SchemeAbetted,
             "It came out that the player had a secret hand in the plot against me.", SchemeAbettedGrudgeMagnitude,
-            knownToPlayer: true, (int) CampaignTime.Now.ToDays);
+            true, (int) CampaignTime.Now.ToDays);
 
          // 2. Word of the treachery spreads as a disgrace rumour — fed to commoners and to lords'
          //    "what you've heard", so they speak of the player as a known schemer. Reach scales with
