@@ -73,6 +73,7 @@ namespace CalradiaRemembers.Chat
             // launch captures the data it needs, so it survives the teardown below.
             SafeStep(() => ActiveViewModel?.FinalizeStoryLog(), "FinalizeStoryLog");
             SafeStep(() => ActiveViewModel?.FinalizeCaptiveSceneMemory(), "FinalizeCaptiveSceneMemory");
+            SafeStep(() => ActiveViewModel?.FinalizeCaptorSceneMemory(), "FinalizeCaptorSceneMemory");
             SafeStep(() => ActiveViewModel?.FinalizeCompanionAudience(), "FinalizeCompanionAudience");
             SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
             SafeStep(() => ActiveViewModel?.FinalizeWitnessMemories(), "FinalizeWitnessMemories");

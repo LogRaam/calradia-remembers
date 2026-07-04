@@ -15,7 +15,8 @@ namespace CalradiaRemembers.Verbs
     ///   The one shared registry of every <see cref="IConversationVerb" />: composes eligible verbs'
     ///   teaching text (consumed by EncounterContextBuilder), and routes an incoming [ACTION] to its verb
     ///   (consumed by BannerlordGameStateBridge.ExecuteAction). Seeded with the four "RP with teeth" court
-    ///   verbs. A future verb (e.g. divorce), internal or one injected by another mod through
+    ///   verbs plus <see cref="EndMarriageVerb" /> (the first verb DESIGNED for this contract, not merely
+    ///   migrated onto it). A future verb, internal or one injected by another mod through
     ///   <see cref="ExternalVerbAdapter" />, registers here without touching either call site.
     /// </summary>
     public sealed class VerbRegistry
@@ -48,6 +49,7 @@ namespace CalradiaRemembers.Verbs
             registry.Register(new LendTroopsVerb());
             registry.Register(new SwayOpinionVerb());
             registry.Register(new ReleasePrisonerVerb());
+            registry.Register(new EndMarriageVerb());
 
             return registry;
         }

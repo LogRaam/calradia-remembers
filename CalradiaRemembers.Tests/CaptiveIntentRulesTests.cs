@@ -54,5 +54,47 @@ namespace CalradiaRemembers.Tests
             CaptiveIntentRules.IsHumiliating(CaptiveSceneIntent.Torture).Should().BeTrue();
             CaptiveIntentRules.IsHumiliating(CaptiveSceneIntent.Domination).Should().BeTrue();
         }
+
+        // ── CaptiveAbuseSeverity (Grudges pillar, Tier 2) ──────────────────────
+
+        [Test]
+        public void GIVEN_reward_WHEN_mapped_to_a_grudge_severity_THEN_it_is_benign_zero()
+        {
+            CaptiveIntentRules.CaptiveAbuseSeverity(CaptiveSceneIntent.Reward).Should().Be(0);
+        }
+
+        [Test]
+        public void GIVEN_interrogation_WHEN_mapped_to_a_grudge_severity_THEN_it_is_mild_one()
+        {
+            CaptiveIntentRules.CaptiveAbuseSeverity(CaptiveSceneIntent.Interrogation).Should().Be(1);
+        }
+
+        [Test]
+        public void GIVEN_domination_training_or_personal_desire_WHEN_mapped_to_a_grudge_severity_THEN_they_are_moderate_two()
+        {
+            CaptiveIntentRules.CaptiveAbuseSeverity(CaptiveSceneIntent.Domination).Should().Be(2);
+            CaptiveIntentRules.CaptiveAbuseSeverity(CaptiveSceneIntent.Training).Should().Be(2);
+
+            // PersonalDesire is folded to the moderate case, not the grievous one: no consent/coercion
+            // flag exists yet on a captive scene to tell a genuinely consensual encounter from a forced one.
+            CaptiveIntentRules.CaptiveAbuseSeverity(CaptiveSceneIntent.PersonalDesire).Should().Be(2);
+        }
+
+        [Test]
+        public void GIVEN_torture_WHEN_mapped_to_a_grudge_severity_THEN_it_is_grievous_three()
+        {
+            CaptiveIntentRules.CaptiveAbuseSeverity(CaptiveSceneIntent.Torture).Should().Be(3);
+        }
+
+        [Test]
+        public void GIVEN_a_bandit_menace_intent_WHEN_mapped_to_a_grudge_severity_THEN_it_falls_back_to_zero()
+        {
+            // These only ever describe the PLAYER's own captivity, never an NPC/companion victim, so
+            // there is no grudge holder for them in the current architecture.
+            CaptiveIntentRules.CaptiveAbuseSeverity(CaptiveSceneIntent.Extortion).Should().Be(0);
+            CaptiveIntentRules.CaptiveAbuseSeverity(CaptiveSceneIntent.Intimidation).Should().Be(0);
+            CaptiveIntentRules.CaptiveAbuseSeverity(CaptiveSceneIntent.Revenge).Should().Be(0);
+            CaptiveIntentRules.CaptiveAbuseSeverity(CaptiveSceneIntent.Reckoning).Should().Be(0);
+        }
     }
 }

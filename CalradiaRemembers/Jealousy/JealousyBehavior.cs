@@ -9,8 +9,10 @@ using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
@@ -287,12 +289,17 @@ namespace CalradiaRemembers.Jealousy
          if (delta < 0)
             ChangeRelationAction.ApplyPlayerRelation(party, delta, false, false);
 
-         profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy,
-            JealousyReaction.BuildGrievance(stake, competition, pj.CourtedName)));
+         string grievance = JealousyReaction.BuildGrievance(stake, competition, pj.CourtedName);
+         profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy, grievance));
          behavior.Store.Set(profile);
 
          ModLog.Info($"[JEALOUSY] {party.Name} ({stake}{(competition ? "/competition" : "")}) turns on the player " +
                      $"over {pj.CourtedName} (relation {delta}).");
+
+         // Grudges pillar: the reference tier-1 source. Adds RESOLVABILITY on top of the relation hit
+         // already applied above — never a second penalty (the relation delta is untouched).
+         GrudgeBehavior.Instance?.TryPlant(party, Hero.MainHero, GrudgeSource.Jealousy, grievance,
+            GrudgeBackfillRules.JealousyMagnitude, knownToPlayer: true, today);
 
          // A threatening/confronting letter — unless they ride with the player, in which case
          // they would say it to the player's face rather than send a courier.

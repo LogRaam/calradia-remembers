@@ -238,6 +238,10 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.QuestJournalBridge.ReconcileOnSessionLaunch", () => QuestJournalBridge.ReconcileOnSessionLaunch(Store));
          SafeRun.Step("OnSessionLaunched.CompanionErrandJournalBridge.ReconcileOnSessionLaunch", CompanionErrandJournalBridge.ReconcileOnSessionLaunch);
          SafeRun.Step("OnSessionLaunched.CommitmentJournalBridge.ReconcileOnSessionLaunch", CommitmentJournalBridge.ReconcileOnSessionLaunch);
+         // Grudges: the one-shot, idempotent backfill (safe to run on every launch — a versioned no-op
+         // once already migrated). Runs last, after every store it scans (Store, WorldEventStore, the
+         // Bastards/Divorce markers) is guaranteed loaded.
+         SafeRun.Step("OnSessionLaunched.GrudgeBehavior.RunBackfillIfNeeded", () => Grudges.GrudgeBehavior.Instance?.RunBackfillIfNeeded(Store));
       }
 
       /// <summary>

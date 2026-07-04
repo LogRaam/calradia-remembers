@@ -6,8 +6,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Items;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Services;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -120,6 +122,7 @@ namespace CalradiaRemembers.Chat
       private bool _captorScene;
       private CaptiveSceneIntent _captorSceneIntent;
       private NpcProfile _captorSceneProfile;
+      private bool _captorSceneMemoryFinalized; // idempotency guard for the Grudges pillar's CaptiveAbuse plant
 
       private string _closeButtonText = "End conversation";
 
@@ -1067,6 +1070,11 @@ namespace CalradiaRemembers.Chat
             }
          }
 
+         // Grudges pillar (Tier 2, CaptiveAbuse — the companion revenge driver): independent of the
+         // captor's OWN memory below (skipped outright for an ephemeral bandit captor), since the
+         // grudge holder here is the tormented COMPANION, never the captor.
+         PlantCompanionAbuseGrudgeIfNeeded();
+
          NpcProfile profile = _captiveEncounterProfile;
 
          if (behavior?.Store == null || profile == null) return;
@@ -1092,6 +1100,78 @@ namespace CalradiaRemembers.Chat
 
          bool playerIsFemale = LlmServices.TestPlayerGenderOverride ?? Hero.MainHero?.IsFemale ?? false;
          _ = ConversationSummaryService.GenerateAndApplyCaptiveSummaryAsync(behavior, profile.Id, baseEvent, transcript, intentVerb, playerIsFemale);
+      }
+
+      // ── Grudges pillar, Tier 2: CaptiveAbuse (the two live plant sites) ────
+
+      /// <summary>
+      ///   Grudges pillar (Tier 2, CaptiveAbuse): the companion-victim revenge driver. Fires once per
+      ///   scene, only when this encounter targeted a held companion (<see cref="_captiveVictimName" />,
+      ///   set by <see cref="ActivateCaptiveEncounterMode" />). The victim's real Hero is resolved from
+      ///   the witness entry <see cref="ChatManager.OpenForCaptiveEncounter" /> adds for them
+      ///   (<see cref="WitnessEntry.IsCaptiveVictim" />, carrying their <see cref="WitnessEntry.HeroStringId" />)
+      ///   — the only place their Hero identity survives the scene, since the view model itself only
+      ///   threads their NAME through. <see cref="CaptiveAbuseFacts.PlayerWasThePerpetrator" /> mirrors
+      ///   <see cref="_captivePlayerCoerced" />: true only when the captor forced the PLAYER to act
+      ///   (<see cref="CompanionSceneKind.PlayerCoerced" />); otherwise the captor did it themselves, but
+      ///   the companion still nurses a grudge at the scene's severity for the player having let it
+      ///   happen unpunished. Called from <see cref="FinalizeCaptiveSceneMemory" /> — independent of that
+      ///   method's own captor-memory writes below it, so an ephemeral bandit captor never suppresses it.
+      /// </summary>
+      private void PlantCompanionAbuseGrudgeIfNeeded()
+      {
+         if (_captiveVictimName == null || Hero.MainHero == null) return;
+
+         string victimId = _witnesses.FirstOrDefault(w => w != null && w.IsCaptiveVictim)?.HeroStringId;
+         Hero victim = string.IsNullOrEmpty(victimId) ? null : Hero.FindFirst(h => h != null && h.StringId == victimId);
+         if (victim == null) return;
+
+         int severity = CaptiveIntentRules.CaptiveAbuseSeverity(_captiveEncounterIntent);
+         var facts = new CaptiveAbuseFacts {Severity = severity, PlayerWasThePerpetrator = _captivePlayerCoerced};
+         GrudgeProposal proposal = Tier2GrudgeRules.CaptiveAbuseGrudge(facts);
+         if (!proposal.Forms) return;
+
+         int today = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
+         string cause = _captivePlayerCoerced
+            ? "The player was forced to hurt me with their own hands while I was helpless."
+            : "The player let me be broken before them and did nothing to stop it.";
+
+         GrudgeBehavior.Instance?.TryPlant(victim, Hero.MainHero, GrudgeSource.CaptiveAbuse, cause,
+            proposal.Magnitude, proposal.KnownToPlayer, today);
+      }
+
+      /// <summary>
+      ///   Grudges pillar (Tier 2, CaptiveAbuse): the reference site for the "player as captor" path
+      ///   (<see cref="ActivateCaptorSceneMode" />). Called once when the scene closes, from
+      ///   <see cref="ChatManager.Close" />. No-op outside that mode, and no-op when the scene's intent
+      ///   maps to Severity 0 (Reward never grudges — rewarding your own prisoner earns no resentment).
+      ///   Unlike <see cref="FinalizeCaptiveSceneMemory" />, a captor scene keeps no dedicated Captivity
+      ///   memory of its own today — it runs as a plain Conversation, closed by
+      ///   <see cref="FinalizeConversationMemory" />'s generic "Spoke with" fallback — so this method
+      ///   exists purely to plant the grudge, independent of whichever memory write eventually lands
+      ///   there.
+      /// </summary>
+      public void FinalizeCaptorSceneMemory()
+      {
+         if (_captorSceneMemoryFinalized || !_captorScene) return;
+         _captorSceneMemoryFinalized = true;
+
+         if (Hero.MainHero == null) return;
+
+         int severity = CaptiveIntentRules.CaptiveAbuseSeverity(_captorSceneIntent);
+         var facts = new CaptiveAbuseFacts {Severity = severity, PlayerWasThePerpetrator = true};
+         GrudgeProposal proposal = Tier2GrudgeRules.CaptiveAbuseGrudge(facts);
+         if (!proposal.Forms) return;
+
+         Hero prisoner = _npcHero
+            ?? (_captorSceneProfile != null ? Hero.FindFirst(h => h != null && h.StringId == _captorSceneProfile.Id) : null);
+         if (prisoner == null) return;
+
+         int today = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
+         const string cause = "The player made me suffer while I was helpless, their prisoner to torment.";
+
+         GrudgeBehavior.Instance?.TryPlant(prisoner, Hero.MainHero, GrudgeSource.CaptiveAbuse, cause,
+            proposal.Magnitude, proposal.KnownToPlayer, today);
       }
 
       // ── Fallback conversation memory (tester report: memories only "clicked"

@@ -172,7 +172,9 @@ namespace CalradiaRemembers.Chat
          => "*The moment stretches in silence, waiting for what comes next.* " +
             "[Continue: play only this turn's beat, moving FORWARD from the last thing that happened. No restart, " +
             "no recap of your history, grievances, or reasons; never reuse an image, phrase, or gesture from " +
-            "earlier in the scene. Fresh, specific physical detail in [NARRATION].]";
+            "earlier in the scene. Respect what is already established: if the prisoner is already bound, " +
+            "kneeling, or stripped, do not stage it again, build onward from that state. Fresh, specific " +
+            "physical detail in [NARRATION].]";
 
       public static string BuildResumeOpener()
          => "[You are NOT finished with this prisoner. The scene resumes — same prisoner, same place — and " +
@@ -223,7 +225,7 @@ namespace CalradiaRemembers.Chat
          lastFocusIndex = index;
          string focus = pool[index];
 
-         return $" [THIS SCENE'S SETTING, make the opening unique to it: it happens {locale}; you are {state}; " + $"the prisoner is {pres}. What drives you tonight is {focus}. Open from THIS specific situation in " + "your own fresh words, never a generic, reused capture opener. Let this scene be its own distinct " + "story, not a repeat of any other.]";
+         return $" [THIS SCENE'S SETTING, make the opening unique to it: it happens {locale}; you are {state}; " + $"the prisoner is {pres}. What drives you tonight is {focus}. Open from THIS specific situation in " + "your own fresh words, never a generic, reused capture opener. Ground the opening in a [NARRATION] " + "block of vivid, specific physical detail. Let this scene be its own distinct " + "story, not a repeat of any other.]";
       }
 
       /// <summary>

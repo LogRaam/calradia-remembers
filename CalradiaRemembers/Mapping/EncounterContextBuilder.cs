@@ -7,8 +7,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Stance;
@@ -128,6 +130,8 @@ namespace CalradiaRemembers.Mapping
          InterceptionReason = ResolveInterceptionReason(hero),
          StanceNote = StanceService.Describe(profile),
          StanceConsequenceHint = ResolveStanceConsequenceHint(hero, profile),
+         GrudgeNote = ResolveGrudgeNote(hero),
+         StationGuidelinesOverride = ResolveStationGuidelines(hero),
          LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
          LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
          ConsortEligible = ResolveConsortEligible(hero, profile),
@@ -535,6 +539,9 @@ namespace CalradiaRemembers.Mapping
       /// <summary>Registration order of the court verbs taught AFTER pledge_against, in <see cref="VerbRegistry" />.</summary>
       private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner"};
 
+      /// <summary>DIVORCE, Phase 1: end_marriage is taught last, after every court verb above.</summary>
+      private static readonly string[] DivorceVerbs = {"end_marriage"};
+
       /// <summary>
       ///   RP with teeth: composes the ONE generic <see cref="EncounterContext.ExtraActionTeachings" />
       ///   block from the court-action eligibility resolvers in <see cref="CourtActionResolver" /> (the four
@@ -577,6 +584,9 @@ namespace CalradiaRemembers.Mapping
 
          // release_prisoner: migrated to the IConversationVerb contract as well (see above).
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, CourtVerbsAfterPledge));
+
+         // end_marriage (DIVORCE, Phase 1): the first verb designed for the contract from the start.
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, DivorceVerbs));
 
          return sb.Length == 0 ? null : sb.ToString();
       }
@@ -642,6 +652,55 @@ namespace CalradiaRemembers.Mapping
       {
          try { return hero?.GetTraitLevel(trait) ?? 0; }
          catch { return 0; }
+      }
+
+      /// <summary>
+      ///   Grudges pillar: at most the per-NPC cap of dominant LIVE grudges this NPC nurses against the
+      ///   player, each rendered as one chronicler-voice sentence via <see cref="GrudgeNarrator.PromptLine" />
+      ///   (numberless, mirroring the knownness gate — named openly when known, concealed when hidden),
+      ///   joined by newlines. Null when the NPC nurses no live grudge worth voicing this turn.
+      /// </summary>
+
+      /// <summary>
+      ///   The station-matched behavior guidelines for this speaker (gang leader, notable, wanderer),
+      ///   or null so the base lordly register applies. Fixes the player-reported "gang leader rising
+      ///   from her throne" greeting: the voice register follows the SPEAKER's station, including for
+      ///   witness-routed turns, since the context is rebuilt per speaker.
+      /// </summary>
+      private static string ResolveStationGuidelines(Hero hero)
+      {
+         if (hero == null) return null;
+
+         string key = StationGuidelinesPolicy.ResolveStationKey(hero.Occupation.ToString());
+
+         return StationGuidelinesPolicy.SelectStationText(key, NarrativeLoader.StationGuidelines);
+      }
+
+      private static string ResolveGrudgeNote(Hero hero)
+      {
+         try
+         {
+            if (hero == null) return null;
+
+            var today = (int) CampaignTime.Now.ToDays;
+            IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today);
+
+            if (live == null || live.Count == 0) return null;
+
+            TraitFacts traits = GrudgeBridge.BuildTraitFacts(hero);
+            var lines = new List<string>();
+            foreach (Grudge grudge in live)
+            {
+               int effective = GrudgePolicy.EffectiveMagnitude(grudge, today, traits);
+               string line = GrudgeNarrator.PromptLine(grudge, grudge.KnownToPlayer, effective);
+               if (!string.IsNullOrWhiteSpace(line)) lines.Add(line);
+            }
+
+            return lines.Count == 0
+               ? null
+               : string.Join("\n", lines);
+         }
+         catch { return null; }
       }
 
       /// <summary>

@@ -47,5 +47,27 @@ namespace CalradiaRemembers.Logic
             || intent == CaptiveSceneIntent.Domination
             || intent == CaptiveSceneIntent.PersonalDesire
             || intent == CaptiveSceneIntent.Training;
+
+        /// <summary>
+        ///   Maps this scene's intent onto the Grudges pillar's Tier 2 CaptiveAbuse rule
+        ///   (<c>CalradiaRemembers.Logic.Grudges.Tier2GrudgeRules.CaptiveAbuseGrudge</c>) 0..3 severity scale:
+        ///   Reward is benign (0, no grudge forms), Interrogation is mild (1), Domination/Training are
+        ///   moderate (2), Torture is grievous (3). PersonalDesire is folded into the moderate case (2)
+        ///   rather than assumed grievous (3): no scene-level consent/coercion flag exists yet to tell a
+        ///   genuinely consensual PersonalDesire scene from a forced one (a documented gap — see the
+        ///   Tier 2 engine-wiring report). The non-sexual bandit/lord intents (Extortion, Intimidation,
+        ///   Revenge, Reckoning) only ever describe the PLAYER'S OWN captivity in the current architecture,
+        ///   never an NPC or held-companion victim, and fall back to 0 (no grudge holder exists for them).
+        /// </summary>
+        public static int CaptiveAbuseSeverity(CaptiveSceneIntent intent) => intent switch
+        {
+            CaptiveSceneIntent.Reward         => 0,
+            CaptiveSceneIntent.Interrogation  => 1,
+            CaptiveSceneIntent.Domination     => 2,
+            CaptiveSceneIntent.Training       => 2,
+            CaptiveSceneIntent.PersonalDesire => 2,
+            CaptiveSceneIntent.Torture        => 3,
+            _                                 => 0
+        };
     }
 }

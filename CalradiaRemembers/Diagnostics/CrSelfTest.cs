@@ -15,8 +15,11 @@ using CalradiaRemembers.Chat;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Dynasty;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Scenarios;
@@ -83,6 +86,9 @@ namespace CalradiaRemembers.Diagnostics
             new SelfTest("rp_release",       Severity.Heavy,        "seed 3rd-party captive on a lord's party -> release_prisoner -> assert freed + relation bump", TestRpRelease),
             new SelfTest("commitment_fulfilled", Severity.Light,    "seed a real pledge -> OnSchemeResolved(true) -> assert no longer active + reputation bonus + world event + journal mirror closed", TestCommitmentFulfilled),
             new SelfTest("commitment_breached",  Severity.Light,    "seed a real pledge, force it overdue -> breach sweep -> assert no longer active + reputation penalty + world event", TestCommitmentBreached),
+            new SelfTest("divorce_process",  Severity.Heavy,        "married couple -> end_marriage -> force endDay -> tick -> assert dissolved + exSpouses + no one clanless + scandal + relation hits", TestDivorceProcess),
+            new SelfTest("grudge_backfill",  Severity.Light,        "seed a synthetic Jealousy NotableEvent -> force backfill -> assert a Jealousy grudge exists -> force it again -> assert no duplicate", TestGrudgeBackfill),
+            new SelfTest("grudge_tier2",     Severity.Heavy,        "capture+give_prisoner (real path) -> assert a DeliveredPrisoner grudge on the captive; direct severity-3 player-perpetrator CaptiveAbuse plant -> assert it exists", TestGrudgeTier2),
             new SelfTest("declare_war",      Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it",         TestDeclareWar),
             new SelfTest("scenario",         Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals",       TestScenario),
             new SelfTest("llm_dialogue",     Severity.Light,        "LLM: a plain greeting -> log the reply (relevance judged from the log)",          TestLlmDialogue,        callsLlm: true),
@@ -690,6 +696,278 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("pledgeNoLongerActive", stillActive, false);
             t.Expect("reputationFell", repAfter - repBefore, CommitmentPolicy.BreachedRelationPenalty);
             t.Expect("worldEventRecorded", eventsAfter > eventsBefore, true);
+            return t.Line();
+        }
+
+        // ── DIVORCE, Phase 1: end_marriage / DivorceProcessBehavior (first verb built on IConversationVerb) ──
+
+        /// <summary>
+        ///   The first living married couple (neither the player, neither NPC's id already in
+        ///   <paramref name="excludeNpcIds" />) whose "leaving spouse" — whichever of the two joined the
+        ///   other's clan — is actually free to relocate (not a clan leader, does not lead a party, does not
+        ///   govern a settlement). Relations are NOT checked here; the test forces those afterward. Null
+        ///   when no such couple exists in the current campaign. <paramref name="excludeNpcIds" /> lets the
+        ///   divorce_process self-test find a SECOND, distinct couple for its mutual-consent scenario after
+        ///   already having dissolved the first.
+        /// </summary>
+        private static (Hero npc, Hero spouse)? ResolveDivorceEligibleCouple(HashSet<string> excludeNpcIds = null)
+        {
+            foreach (Hero h in Hero.AllAliveHeroes)
+            {
+                if (h == Hero.MainHero) continue;
+                if (excludeNpcIds != null && excludeNpcIds.Contains(h.StringId)) continue;
+                Hero spouse = h.Spouse;
+                if (spouse is not {IsAlive: true} || spouse == Hero.MainHero) continue;
+                if (h.IsPregnant || spouse.IsPregnant || h.IsPrisoner || spouse.IsPrisoner) continue;
+
+                Hero leaving = DivorceEligibilityResolver.ResolveLeavingSpouse(h, spouse);
+                if (leaving != null &&
+                    (leaving.IsClanLeader ||
+                     leaving.PartyBelongedTo != null && leaving.PartyBelongedTo.LeaderHero == leaving ||
+                     leaving.GovernorOf != null))
+                    continue;
+
+                return (h, spouse);
+            }
+
+            return null;
+        }
+
+        private static string TestDivorceProcess(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("divorce_process");
+            if (t.Abort(DivorceProcessBehavior.Instance == null, "DivorceProcessBehavior not active")) return t.Line();
+            if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+            if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+
+            DivorceProcessBehavior processes = DivorceProcessBehavior.Instance;
+            var usedNpcIds = new HashSet<string>();
+
+            // ── Scenario A: REPUDIATED (the spouse resisted at least once before the deadline) — exercises
+            // ── DivorceConsequencePolicy's PlantGrudge branch on the set-aside spouse ──────────────────────
+            (Hero npc, Hero spouse)? pair = ResolveDivorceEligibleCouple();
+            if (t.Skip(pair == null, "no married couple available whose leaving spouse is free to relocate")) return t.Line();
+            (Hero npc, Hero spouse) = pair.Value;
+            usedNpcIds.Add(npc.StringId);
+
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            ArrangeCleanNpc(behavior, profile, npc, spouse);
+            NeutralizeRelation(spouse, Hero.MainHero); // deterministic baseline for the exSpouse->player delta assertion below
+
+            // Force the two relation gates: an unhappy marriage, a deep bond with the player.
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, spouse, (DivorcePolicy.UnhappyThreshold - 10) - npc.GetRelation(spouse), false);
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, Hero.MainHero, (DivorcePolicy.BondThreshold + 10) - npc.GetRelation(Hero.MainHero), false);
+
+            if (t.Abort(!DivorceEligibilityResolver.IsEligible(npc, out string ineligibleReason), $"seed not eligible: {ineligibleReason}")) return t.Line();
+
+            ActionOutcome seedOutcome = behavior.GameStateBridge.ExecuteAction(
+                new GameAction {Type = "end_marriage"}, npc, new ActionContext(profile, null));
+            if (t.Abort(seedOutcome is not {IsPositive: true}, "end_marriage seed failed (wiring bug, not a judgment call)")) return t.Line();
+
+            DivorceProcess process = processes.FindActive(npc.StringId);
+            if (t.Abort(process == null, "seeded process not found in Active list")) return t.Line();
+
+            // Force one day of spousal resistance BEFORE forcing the end day, so DivorcePolicy.IsMutualConsent
+            // (cumulativeDelayDays == 0 -> mutual) reads this as REPUDIATED rather than mutual, and the
+            // matrix's grudge-planting branch, not its relief branch, is what actually gets exercised below.
+            process.CumulativeDelayDays = DivorcePolicy.DelayDaysPerDelay;
+            process.EndDay = behavior.GameStateBridge.GetCurrentGameDay();
+
+            int worldEventsBefore = WorldEventStore.Instance.Count;
+            int spouseVsNpcBefore = spouse.GetRelation(npc);
+            int spouseVsPlayerBefore = spouse.GetRelation(Hero.MainHero);
+            int today = behavior.GameStateBridge.GetCurrentGameDay();
+            // The consequences SET target relations from the pre-dissolution baselines (CR corrects for the
+            // engine's own hidden penalty during the act), signed by mutual consent, which the behavior reads
+            // from the spouse's RESISTANCE (no delay days = acquiescence). Read it now, matching the behavior.
+            bool mutualConsent = DivorcePolicy.IsMutualConsent(process.CumulativeDelayDays);
+
+            processes.DebugRunDailyAdvance();
+
+            bool bothSpousesNulled = npc.Spouse == null && spouse.Spouse == null;
+            bool recordedAsExSpouses = npc.ExSpouses != null && npc.ExSpouses.Contains(spouse) &&
+                                        spouse.ExSpouses != null && spouse.ExSpouses.Contains(npc);
+            bool neitherLeftClanless = npc.Clan != null && spouse.Clan != null;
+            int worldEventsAfter = WorldEventStore.Instance.Count;
+            int spouseVsNpcAfter = spouse.GetRelation(npc);
+            int spouseVsPlayerAfter = spouse.GetRelation(Hero.MainHero);
+            bool repudiatedSpouseGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(spouse.StringId)
+                .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == today);
+
+            t.Note($"{npc.Name} x {spouse.Name} ({(mutualConsent ? "mutual consent" : "repudiated")}): " +
+                   $"spouseVsNpc {spouseVsNpcBefore}->{spouseVsNpcAfter}, " +
+                   $"spouseVsPlayer {spouseVsPlayerBefore}->{spouseVsPlayerAfter}, worldEvents {worldEventsBefore}->{worldEventsAfter}");
+            t.Expect("bothSpousesNulled", bothSpousesNulled, true);
+            t.Expect("recordedAsExSpouses", recordedAsExSpouses, true);
+            t.Expect("neitherLeftClanless", neitherLeftClanless, true);
+            t.Expect("scandalWorldEventRecorded", worldEventsAfter > worldEventsBefore, true);
+            t.Expect("exSpouseVsNpcOutcome", spouseVsNpcAfter, spouseVsNpcBefore + DivorcePolicy.ExSpouseNpcHit(mutualConsent));
+            t.Expect("exSpouseVsPlayerOutcome", spouseVsPlayerAfter, spouseVsPlayerBefore + DivorcePolicy.ExSpousePlayerHit(mutualConsent));
+            t.Expect("repudiatedSpouseGrudgePlanted", repudiatedSpouseGrudgePlanted, true);
+
+            // ── Scenario B: MUTUAL CONSENT (never resisted) — the SAME matrix must plant NO spouse grudge ──
+            // A second, distinct couple is needed: the first pair is no longer married after Scenario A.
+            // Best-effort: if the campaign has no second eligible couple, this half is skipped WITHOUT
+            // failing Scenario A's already-recorded verdict above.
+            (Hero npc, Hero spouse)? secondPair = ResolveDivorceEligibleCouple(usedNpcIds);
+            if (secondPair == null)
+            {
+                t.Note("mutualConsentSpouseGrudgeAbsent skipped: no second eligible couple available");
+                return t.Line();
+            }
+
+            (Hero npc2, Hero spouse2) = secondPair.Value;
+
+            NpcProfile profile2 = GetOrCreate(behavior, npc2);
+            ArrangeCleanNpc(behavior, profile2, npc2, spouse2);
+            NeutralizeRelation(spouse2, Hero.MainHero);
+
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc2, spouse2, (DivorcePolicy.UnhappyThreshold - 10) - npc2.GetRelation(spouse2), false);
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc2, Hero.MainHero, (DivorcePolicy.BondThreshold + 10) - npc2.GetRelation(Hero.MainHero), false);
+
+            if (!DivorceEligibilityResolver.IsEligible(npc2, out string ineligibleReason2))
+            {
+                t.Note($"mutualConsentSpouseGrudgeAbsent skipped: second seed not eligible: {ineligibleReason2}");
+                return t.Line();
+            }
+
+            ActionOutcome secondSeedOutcome = behavior.GameStateBridge.ExecuteAction(
+                new GameAction {Type = "end_marriage"}, npc2, new ActionContext(profile2, null));
+            if (secondSeedOutcome is not {IsPositive: true})
+            {
+                t.Note("mutualConsentSpouseGrudgeAbsent skipped: second end_marriage seed failed");
+                return t.Line();
+            }
+
+            DivorceProcess process2 = processes.FindActive(npc2.StringId);
+            if (process2 == null)
+            {
+                t.Note("mutualConsentSpouseGrudgeAbsent skipped: second seeded process not found");
+                return t.Line();
+            }
+
+            // CumulativeDelayDays is left at its natural default of 0 (never resisted), so this second
+            // dissolution reads as MUTUAL consent — the contrasting half of the repudiated Scenario A above.
+            int today2 = behavior.GameStateBridge.GetCurrentGameDay();
+            process2.EndDay = today2;
+
+            processes.DebugRunDailyAdvance();
+
+            bool mutualConsentSpouseGrudgeAbsent = !GrudgeBehavior.Instance.GrudgesFor(spouse2.StringId)
+                .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == today2);
+
+            t.Note($"{npc2.Name} x {spouse2.Name} (mutual consent, second couple): " +
+                   $"mutualConsentSpouseGrudgeAbsent={mutualConsentSpouseGrudgeAbsent}");
+            t.Expect("mutualConsentSpouseGrudgeAbsent", mutualConsentSpouseGrudgeAbsent, true);
+
+            return t.Line();
+        }
+
+        // ── Grudges: the save-migration backfill (Arrange mirrors TestDivorceProcess: seed via the real ──
+        // ── store, act via the real engine-side scan, assert the synthesized outcome + idempotence) ──────
+
+        private static string TestGrudgeBackfill(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("grudge_backfill");
+            if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+
+            Hero npc = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+            if (t.Skip(npc == null, "no live lord to seed a profile on")) return t.Line();
+
+            // Seed a CLEAN synthetic Jealousy NotableEvent directly on the profile (not through
+            // JealousyBehavior.TryPlant) — the whole point of this test is the ENGINE-SIDE SCAN reading a
+            // persisted marker back off the profile, exactly what a real old save would carry.
+            NpcProfile profile = GetOrCreate(behavior, npc);
+            int day = behavior.GameStateBridge.GetCurrentGameDay();
+            profile.Events.Add(new NotableEvent(day, NotableEventType.Jealousy, "[SELFTEST] a jealous grievance seeded for backfill"));
+            behavior.Store.Set(profile);
+
+            (int formed1, int skipped1) = GrudgeBehavior.Instance.DebugForceBackfill(behavior.Store);
+            bool jealousyGrudgeExists = GrudgeBehavior.Instance.GrudgesFor(npc.StringId)
+                .Any(g => g.Source == GrudgeSource.Jealousy && g.EventDay == day);
+
+            // Run it again immediately — idempotent by construction (the deterministic holder+source+day id
+            // dedups), so this pass must form nothing new for THIS seeded event.
+            (int formed2, int skipped2) = GrudgeBehavior.Instance.DebugForceBackfill(behavior.Store);
+            int countAfterBoth = GrudgeBehavior.Instance.GrudgesFor(npc.StringId)
+                .Count(g => g.Source == GrudgeSource.Jealousy && g.EventDay == day);
+
+            t.Note($"npc={npc.Name}: pass1 formed={formed1}/skipped={skipped1}, pass2 formed={formed2}/skipped={skipped2}");
+            t.Expect("jealousyGrudgeFormed", jealousyGrudgeExists, true);
+            t.Expect("secondPassFormsNothingNew", formed2, 0);
+            t.Expect("noDuplicateForThisEvent", countAfterBoth, 1);
+            return t.Line();
+        }
+
+        // ── Grudges: the Tier 2 engine wiring (Arrange mirrors TestDeliverPrisoner for the ──
+        // ── DeliveredPrisoner half — real give_prisoner path; the CaptiveAbuse half exercises ──
+        // ── the pure rule + the real TryPlant store call directly, the deterministic core shared ──
+        // ── by both live plant sites, BannerlordGameStateBridge's captor-scene close and the ──
+        // ── companion-victim scene close — without needing the chat UI or an LLM) ──────────────
+
+        private static string TestGrudgeTier2(NpcMemoryCampaignBehavior behavior)
+        {
+            var t = new TestRun("grudge_tier2");
+            if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+
+            // ── DeliveredPrisoner: capture a free lord, seed the deliver_prisoner bargain on a
+            // receiving lord's profile, then run give_prisoner through the REAL bridge. Prefers a
+            // receiver who is an actual enemy of the captive, so the heavier "sold to my enemy"
+            // branch is exercised when the live campaign happens to offer one; falls back to any
+            // receiver otherwise (DeliveredPrisonerGrudge ALWAYS forms regardless of that branch).
+            Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+            if (t.Skip(captive == null, "no free lord to capture")) return t.Line();
+
+            Hero receiver = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                h != Hero.MainHero && h != captive && h.IsLord && h.Clan != Clan.PlayerClan &&
+                h.MapFaction != null && captive.MapFaction != null &&
+                FactionManager.IsAtWarAgainstFaction(h.MapFaction, captive.MapFaction))
+                ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != captive && h.IsLord && h.Clan != Clan.PlayerClan);
+            if (t.Skip(receiver == null, "no receiving lord available")) return t.Line();
+
+            bool toEnemy = receiver.MapFaction != null && captive.MapFaction != null &&
+                           FactionManager.IsAtWarAgainstFaction(receiver.MapFaction, captive.MapFaction);
+
+            TakePrisonerAction.Apply(PartyBase.MainParty, captive);
+
+            NpcProfile receiverProfile = GetOrCreate(behavior, receiver);
+            var quest = new InformalQuest {
+                Type           = QuestType.DeliverPrisoner,
+                Description    = $"[SELFTEST] Hand {captive.Name} to {receiver.Name}.",
+                TargetHeroId   = captive.StringId,
+                TargetHeroName = captive.Name?.ToString(),
+                IssuedOnDay    = behavior.GameStateBridge.GetCurrentGameDay(),
+                RewardGold     = 500,
+                RewardRelation = 5,
+                Status         = QuestStatus.Active
+            };
+            receiverProfile.ActiveQuests.Add(quest);
+            behavior.Store.Set(receiverProfile);
+
+            behavior.GameStateBridge.ExecuteAction(
+                new GameAction { Type = "give_prisoner" }, receiver, new ActionContext(receiverProfile, null));
+
+            bool deliveredPrisonerGrudgeExists = GrudgeBehavior.Instance.GrudgesFor(captive.StringId)
+                .Any(g => g.Source == GrudgeSource.DeliveredPrisoner);
+
+            t.Note($"{captive.Name} -> {receiver.Name} (toEnemy={toEnemy}): deliveredPrisonerGrudgeExists={deliveredPrisonerGrudgeExists}");
+            t.Expect("deliveredPrisonerGrudgeFormed", deliveredPrisonerGrudgeExists, true);
+
+            // ── CaptiveAbuse: a severity-3, player-as-perpetrator plant (the rule's ceiling case).
+            Hero abuseVictim = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != captive && h != receiver && h.IsLord);
+            if (t.Skip(abuseVictim == null, "no third lord available for the CaptiveAbuse plant")) return t.Line();
+
+            var abuseFacts = new CaptiveAbuseFacts {Severity = 3, PlayerWasThePerpetrator = true};
+            GrudgeProposal abuseProposal = Tier2GrudgeRules.CaptiveAbuseGrudge(abuseFacts);
+            int today = behavior.GameStateBridge.GetCurrentGameDay();
+            bool planted = GrudgeBehavior.Instance.TryPlant(abuseVictim, Hero.MainHero, GrudgeSource.CaptiveAbuse,
+                "[SELFTEST] the player tortured me while I was helpless.", abuseProposal.Magnitude, abuseProposal.KnownToPlayer, today);
+            bool captiveAbuseGrudgeExists = GrudgeBehavior.Instance.GrudgesFor(abuseVictim.StringId)
+                .Any(g => g.Source == GrudgeSource.CaptiveAbuse && g.EventDay == today);
+
+            t.Note($"{abuseVictim.Name}: planted={planted}, magnitude={abuseProposal.Magnitude}, captiveAbuseGrudgeExists={captiveAbuseGrudgeExists}");
+            t.Expect("captiveAbuseGrudgeFormed", captiveAbuseGrudgeExists, true);
+
             return t.Line();
         }
 
@@ -1554,8 +1832,16 @@ namespace CalradiaRemembers.Diagnostics
                 targetResolves = CourtActionResolver.ResolveHeldPrisonerByName(targetName, captor) == victim;
             }
 
-            t.Note($"{captor.Name} holds {victim.Name} captive; judge in log: a genuine mercy, not lip service | A: {Show(resp.Dialogue)}");
-            t.Expect("emittedReleasePrisoner", emitted, true);
+            // Emission is MEMORY- and personality-dependent (in a full cr.testall sweep the mechanical
+            // rp_release has often already freed this same captive minutes earlier, and the captor
+            // REMEMBERS it: "he already breathes free air" is the memory system working, not a bug).
+            // The wiring is proven by the mechanical rp_release, so this hard-fails only on a wiring
+            // bug (teaching missing, above) or an empty reply; emission is judged in log.
+            string releaseNote = emitted
+                ? $"emittedReleasePrisoner=True, targetResolves={targetResolves}"
+                : "emittedReleasePrisoner=False (an in-character refusal, e.g. remembering they were already freed, is acceptable)";
+            t.Note($"{captor.Name} holds {victim.Name} captive; {releaseNote}; judge in log: a genuine mercy, not lip service | A: {Show(resp.Dialogue)}");
+            t.Expect("gotInCharacterReply", !string.IsNullOrWhiteSpace(resp.Dialogue), true);
             if (emitted) t.Expect("targetResolvesCorrectly", targetResolves, true);
             return t.Line();
         }

@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Grudges;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -31,6 +33,9 @@ namespace CalradiaRemembers.Quests
 
       /// <summary>Personal-regard hit when the player lets a quest's deadline lapse.</summary>
       private const int DeadlineFailurePenalty = 5;
+
+      /// <summary>Grudges pillar: an honest, spoken abandonment grudges LESS than a silent deadline lapse.</summary>
+      private const int AbandonedQuestGrudgeMagnitude = 25;
 
       /// <summary>Cap on how many terminated quests we keep per NPC before pruning oldest.</summary>
       private const int MaxRetainedQuests = 10;
@@ -183,6 +188,10 @@ namespace CalradiaRemembers.Quests
                   $"The player let the deadline lapse on the task to {Describe(quest)} — a disappointment.");
                QuestJournalBridge.CloseAsFailed(quest, giverHero, $"You did not complete this task in time. {profile.Name} is disappointed.");
                ModLog.Info($"[QUEST] expired for {profile.Name}: {Describe(quest)} (-{DeadlineFailurePenalty} regard).");
+               // Grudges pillar: adds RESOLVABILITY on top of the regard hit above, never a second penalty.
+               GrudgeBehavior.Instance?.TryPlant(giverHero, Hero.MainHero, GrudgeSource.FailedQuest,
+                  $"The player let the deadline lapse on the task to {Describe(quest)}.", GrudgeBackfillRules.FailedQuestMagnitude,
+                  knownToPlayer: true, gameDay);
                changed = true;
             }
 
@@ -247,9 +256,15 @@ namespace CalradiaRemembers.Quests
             : after;
          AddEvent(giver, gameDay, NotableEventType.Conflict,
             $"The player gave up the task to {Describe(quest)} — a broken word, however honest.");
-         QuestJournalBridge.CloseAsFailed(quest, FindGiverHero(giver), "You chose not to complete this task.");
+         Hero giverHero = FindGiverHero(giver);
+         QuestJournalBridge.CloseAsFailed(quest, giverHero, "You chose not to complete this task.");
          Stance.StanceService.OnPromiseBroken(giver); // a broken word spends trust
          store.Set(giver);
+
+         // Grudges pillar: adds RESOLVABILITY on top of the regard hit above, never a second penalty.
+         GrudgeBehavior.Instance?.TryPlant(giverHero, Hero.MainHero, GrudgeSource.FailedQuest,
+            $"The player gave up the task to {Describe(quest)}.", AbandonedQuestGrudgeMagnitude,
+            knownToPlayer: true, gameDay);
 
          ModLog.Info($"[QUEST] {giver.Name}: player abandoned '{quest.Type}' (-{AbandonPenalty} regard).");
          notify?.Invoke($"You abandoned {giver.Name}'s task ({Describe(quest)}). −{AbandonPenalty} regard.", false);

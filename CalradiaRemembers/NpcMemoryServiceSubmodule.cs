@@ -101,6 +101,16 @@ namespace CalradiaRemembers
          // Registered after SchemeStore, which notifies it on a scheme's success — load order does not
          // strictly matter (Instance is set in each behavior's own constructor).
          campaignStarter.AddBehavior(new Commitments.CommitmentBehavior());
+         // Divorce, Phase 1 (the first verb built on the IConversationVerb contract): end_marriage begins a
+         // multi-day estrangement process (the spouse may resist, delay, or defeat it outright); reaching the
+         // end day attempts the real dissolution and, on success, records a culture-scaled scandal. Console:
+         // cr.divorce_info / cr.divorce / cr.divorce_tick.
+         campaignStarter.AddBehavior(new Marriage.DivorceProcessBehavior());
+         // Grudges (consolidation pillar): a resolvable, event-anchored grievance, coexisting with regard
+         // instead of being diluted into it. Registered AFTER WorldEventStore (its one-shot backfill scans
+         // the bastard-claim world events) and after Bastards/DivorceProcessBehavior (it scans their
+         // persisted markers too). Console: cr.grudges / cr.grudge_test / cr.grudge_backfill.
+         campaignStarter.AddBehavior(new Grudges.GrudgeBehavior());
          // Scripted scenarios (the world-reaction engine): a trigger (death/marriage/war/peace) fires a
          // rule whose consequences mutate the world and whose message is dropped into the world-event store.
          // Pure selection lives in CalradiaRemembers.Logic; packs load from ModuleData/scenarios. Registered

@@ -7,7 +7,9 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Commitments;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
@@ -176,6 +178,9 @@ namespace CalradiaRemembers.GameState
             case "lend_troops":
             case "sway_opinion":
             case "release_prisoner":
+            // end_marriage (DIVORCE, Phase 1): the first verb DESIGNED for the IConversationVerb
+            // contract rather than migrated onto it — routed identically to the four above.
+            case "end_marriage":
                return VerbRegistry.Instance.Execute(action, new VerbContext(npcHero, context?.Profile, this, null, context));
             case "pledge_against":
                return ExecutePledgeAgainst(action, npcHero, context);
@@ -1462,6 +1467,10 @@ namespace CalradiaRemembers.GameState
             if (prisonerChar == null)
                return new ActionOutcome($"(You do not hold {quest.TargetHeroName ?? "the captive"} I asked for.)", false);
 
+            // Captured BEFORE the transfer, per the rule's own "prior regard" framing (mirrors
+            // DivorceFacts.SpouseRegardForPlayer's low-regard-nurses-harder read).
+            int captiveRegardForPlayer = Hero.MainHero != null ? prisonerHero.GetRelation(Hero.MainHero) : 0;
+
             // Hand the captive to the lord's party; if they ride with none, take them off the player's hands.
             PartyBase dest = npcHero.PartyBelongedTo?.Party;
             if (dest != null) TransferPrisonerAction.Apply(prisonerChar, MobileParty.MainParty.Party, dest);
@@ -1480,6 +1489,36 @@ namespace CalradiaRemembers.GameState
             StanceService.OnPromiseKept(profile); // a kept bargain earns trust
             QuestJournalBridge.CloseAsCompleted(quest, npcHero);
             ModLog.Info($"[ACTION] give_prisoner: player delivered {prisonerHero.Name} to {npcHero.Name} ({quest.Reward}).");
+
+            // Grudges pillar (Tier 2, DeliveredPrisoner): the captive ALWAYS resents being handed onward
+            // (a betrayal of the custody the player held over them), heavier when handed to their own foe.
+            // Guarded in its own try/catch so a plant failure never claws back the transfer that already
+            // succeeded above.
+            try
+            {
+               bool toEnemy = prisonerHero.MapFaction != null && npcHero.MapFaction != null &&
+                              FactionManager.IsAtWarAgainstFaction(prisonerHero.MapFaction, npcHero.MapFaction);
+
+               var facts = new DeliveredPrisonerFacts {
+                  DeliveredToEnemyOfCaptive = toEnemy,
+                  CaptiveRegardForPlayer = captiveRegardForPlayer
+               };
+               GrudgeProposal proposal = Tier2GrudgeRules.DeliveredPrisonerGrudge(facts);
+
+               if (proposal.Forms)
+               {
+                  string grudgeCause = toEnemy
+                     ? "The player handed me to my enemy."
+                     : "The player sold me off like chattel.";
+
+                  GrudgeBehavior.Instance?.TryPlant(prisonerHero, Hero.MainHero, GrudgeSource.DeliveredPrisoner,
+                     grudgeCause, proposal.Magnitude, proposal.KnownToPlayer, today);
+               }
+            }
+            catch (Exception ex)
+            {
+               ModLog.Error($"[ACTION] give_prisoner grudge plant failed: {ex.GetType().Name}: {ex.Message}");
+            }
 
             return grant ?? reward ?? new ActionOutcome($"{npcHero.Name} takes custody of {prisonerHero.Name}.", true);
          }

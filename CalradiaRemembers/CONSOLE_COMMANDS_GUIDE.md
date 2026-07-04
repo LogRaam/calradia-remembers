@@ -146,6 +146,7 @@ Safe to peek at internal state; they change nothing.
 | `cr.happiness [name]` / `cr.rapport [name]` | Companion contentment / companion-to-companion rapport. |
 | `cr.bargain [name]` / `cr.hire_info [name]` / `cr.recruit_info [name]` | Intimacy-bargain eligibility / hire price / clan-recruit eligibility. |
 | `cr.rp_verbs [name]` | RP-with-teeth court verbs: give_influence / lend_troops / sway_opinion / release_prisoner eligibility + amounts. |
+| `cr.divorce_info [name]` | Divorce (Phase 1): end_marriage eligibility + the first failing gate + any active estrangement process. |
 | `cr.commitments [name]` | Outstanding pledges (TrackedCommitment): promisor, rival, deadline day, days remaining, state. No name = every pledge; a name filters to those involving that hero. |
 | `cr.kinks [name]` | An NPC's kinks + the valid kink names. |
 | `cr.profile_check [name]` / `cr.journal_check` | A profile's romantic-compatibility diagnosis / the quest journal mirror. |
@@ -162,6 +163,7 @@ Each of these stages a feature so it can be checked in one step. They mutate the
 | Schemes | `cr.scheme`, `cr.scheme_advance`, `cr.scheme_assist`, `cr.scheme_warn`, `cr.intercept` |
 | Quests / negotiation | `cr.quest`, `cr.quest_done`, `cr.quest_complete`, `cr.quest_abandon`, `cr.quest_gold`, `cr.quest_scout`, `cr.declare_war_quest`, `cr.deliver_prisoner`, `cr.bargain_items`, `cr.bargain_marriage`, `cr.bargain_leverage` |
 | Marriage / pregnancy / succession | `cr.marry`, `cr.marriage_approve`, `cr.marriage_revoke`, `cr.marriage_status`, `cr.preg`, `cr.preg_birth`, `cr.succession`, `cr.backstory` |
+| Divorce (Phase 1, NPC case) | `cr.divorce` (seed end_marriage via the real verb path), `cr.divorce_tick` (advance every active process by one day) |
 | Bastards | `cr.bastard_check`, `cr.bastard_tag`, `cr.bastard_season`, `cr.bastard_claim`, `cr.bastard_demand`, `cr.bastard_pay` |
 | Companions (missions / camp) | `cr.send_news`, `cr.send_spy`, `cr.send_steal`, `cr.send_barter`, `cr.send_envoy`, `cr.mission_return`, `cr.journey_recall`, `cr.recall_letter`, `cr.happiness_tick`, `cr.happiness_set`, `cr.rapport_tick` |
 | Letters / couriers | `cr.letter`, `cr.letter_compose`, `cr.letter_read`, `cr.letter_reply`, `cr.letter_where`, `cr.courier`, `cr.courier_slow` |
