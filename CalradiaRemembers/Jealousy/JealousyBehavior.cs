@@ -16,8 +16,8 @@ using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
@@ -285,16 +285,18 @@ namespace CalradiaRemembers.Jealousy
 
          NpcProfile profile = behavior.Store.Get(pj.PartyId) ?? HeroProfileMapper.FromHero(party);
 
+         // A wound of the heart, not clan politics — routed to this NPC's PERSONAL regard
+         // (ReputationWithPlayer), not the vanilla clan-relation ledger.
          int delta = -JealousyReaction.Severity(stake, tier, competition, culture);
          if (delta < 0)
-            ChangeRelationAction.ApplyPlayerRelation(party, delta, false, false);
+            ProfileMutator.ApplyReputationDelta(profile, delta);
 
          string grievance = JealousyReaction.BuildGrievance(stake, competition, pj.CourtedName);
          profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy, grievance));
          behavior.Store.Set(profile);
 
          ModLog.Info($"[JEALOUSY] {party.Name} ({stake}{(competition ? "/competition" : "")}) turns on the player " +
-                     $"over {pj.CourtedName} (relation {delta}).");
+                     $"over {pj.CourtedName} (personal regard {delta}).");
 
          // Grudges pillar: the reference tier-1 source. Adds RESOLVABILITY on top of the relation hit
          // already applied above — never a second penalty (the relation delta is untouched).
@@ -532,7 +534,7 @@ namespace CalradiaRemembers.Jealousy
          if (estrange)
          {
             profile.Romantic.Status = RomanticStatus.Estranged;
-            ChangeRelationAction.ApplyPlayerRelation(partner, -EstrangeRelationHit, false, false);
+            ProfileMutator.ApplyReputationDelta(profile, -EstrangeRelationHit); // a wound of the heart, not clan politics
             profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy,
                "I am the first of this house, and you left me to wither while you doted on another. I withdraw what I gave you."));
             behavior.Store.Set(profile);
@@ -542,7 +544,7 @@ namespace CalradiaRemembers.Jealousy
             return;
          }
 
-         ChangeRelationAction.ApplyPlayerRelation(partner, -CompetitionRelationDecay, false, false);
+         ProfileMutator.ApplyReputationDelta(profile, -CompetitionRelationDecay); // a wound of the heart, not clan politics
          profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy,
             culture.EquityExpectation
                ? "I am one of several, and I accept that — but I will not be treated as less. You favour another and slight me."

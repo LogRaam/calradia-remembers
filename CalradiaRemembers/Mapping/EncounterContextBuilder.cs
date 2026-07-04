@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
@@ -130,7 +131,9 @@ namespace CalradiaRemembers.Mapping
          InterceptionReason = ResolveInterceptionReason(hero),
          StanceNote = StanceService.Describe(profile),
          StanceConsequenceHint = ResolveStanceConsequenceHint(hero, profile),
-         GrudgeNote = ResolveGrudgeNote(hero),
+         GrudgeNote = ResolveGrudgeNote(hero, profile),
+         RegardShadowNote = ResolveRegardShadowNote(hero, profile),
+         AppreciationNote = ResolveAppreciationNote(hero, profile),
          StationGuidelinesOverride = ResolveStationGuidelines(hero),
          LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
          LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
@@ -542,6 +545,9 @@ namespace CalradiaRemembers.Mapping
       /// <summary>DIVORCE, Phase 1: end_marriage is taught last, after every court verb above.</summary>
       private static readonly string[] DivorceVerbs = {"end_marriage"};
 
+      /// <summary>Grudges pillar, resolution + discovery halves: make_amends then grudge_terms, taught last of all, after every verb above.</summary>
+      private static readonly string[] GrudgeVerbs = {"make_amends", "grudge_terms"};
+
       /// <summary>
       ///   RP with teeth: composes the ONE generic <see cref="EncounterContext.ExtraActionTeachings" />
       ///   block from the court-action eligibility resolvers in <see cref="CourtActionResolver" /> (the four
@@ -587,6 +593,9 @@ namespace CalradiaRemembers.Mapping
 
          // end_marriage (DIVORCE, Phase 1): the first verb designed for the contract from the start.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, DivorceVerbs));
+
+         // make_amends + grudge_terms (Grudges pillar, resolution + discovery halves): taught last of all.
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, GrudgeVerbs));
 
          return sb.Length == 0 ? null : sb.ToString();
       }
@@ -676,7 +685,14 @@ namespace CalradiaRemembers.Mapping
          return StationGuidelinesPolicy.SelectStationText(key, NarrativeLoader.StationGuidelines);
       }
 
-      private static string ResolveGrudgeNote(Hero hero)
+      /// <summary>
+      ///   Every dominant LIVE grudge as one chronicler-voice sentence each (numberless, knownness-mirrored),
+      ///   plus the tone arbiter's ruling line LAST, so it reads as the final instruction. The dominant
+      ///   grudge is <c>live[0]</c> (<see cref="GrudgeBehavior.LiveGrudgesFor" /> is already ranked by
+      ///   today's effective magnitude via <see cref="GrudgePolicy.SelectDominant" />). Null when the NPC
+      ///   nurses no live grudge worth voicing this turn.
+      /// </summary>
+      private static string ResolveGrudgeNote(Hero hero, NpcProfile profile)
       {
          try
          {
@@ -696,11 +712,106 @@ namespace CalradiaRemembers.Mapping
                if (!string.IsNullOrWhiteSpace(line)) lines.Add(line);
             }
 
-            return lines.Count == 0
-               ? null
-               : string.Join("\n", lines);
+            if (lines.Count == 0) return null;
+
+            // Tone arbiter (owner ruling: a strong grudge DOMINATES the tone): appended LAST so it stands
+            // as the final instruction, after every grudge sentence above.
+            string toneLine = GrudgeToneArbiter.Line(ResolveDominantToneRuling(profile, live[0], today, traits), live[0].KnownToPlayer);
+            if (!string.IsNullOrWhiteSpace(toneLine)) lines.Add(toneLine);
+
+            return string.Join("\n", lines);
          }
          catch { return null; }
+      }
+
+      /// <summary>
+      ///   Grudges pillar tone arbiter: a short clause the SDK's PromptBuilder places right after the
+      ///   CURRENT STANCE regard line, when the dominant live grudge's ruling is Tempered or Dominates,
+      ///   pointing the LLM at the grudge note before it even reaches it. Null when no live grudge shadows
+      ///   the regard at all.
+      /// </summary>
+      private static string ResolveRegardShadowNote(Hero hero, NpcProfile profile)
+      {
+         try
+         {
+            if (hero == null) return null;
+
+            var today = (int) CampaignTime.Now.ToDays;
+            IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today);
+
+            if (live == null || live.Count == 0) return null;
+
+            TraitFacts traits = GrudgeBridge.BuildTraitFacts(hero);
+            ToneRuling ruling = ResolveDominantToneRuling(profile, live[0], today, traits);
+
+            return ruling == ToneRuling.WarmthUnshadowed
+               ? null
+               : "(but a grievance shadows this regard; see below)";
+         }
+         catch { return null; }
+      }
+
+      /// <summary>The tone arbiter's ruling for the dominant live grudge (already resolved by the caller), from its today's effective magnitude, knownness, and the NPC's personal reputation with the player.</summary>
+      private static ToneRuling ResolveDominantToneRuling(NpcProfile profile, Grudge dominant, int today, TraitFacts traits)
+      {
+         int effective = GrudgePolicy.EffectiveMagnitude(dominant, today, traits);
+         int reputation = profile?.ReputationWithPlayer ?? 0;
+
+         return GrudgeToneArbiter.Resolve(effective, dominant.KnownToPlayer, reputation);
+      }
+
+      /// <summary>
+      ///   Appreciations pillar: every dominant LIVE appreciation this NPC feels toward the player, as one
+      ///   chronicler-voice sentence each (numberless, knownness-mirrored, mirroring
+      ///   <see cref="ResolveGrudgeNote" /> exactly), each TARNISHED by the holder's own dominant live
+      ///   grudge (the same lookup <see cref="ResolveGrudgeNote" /> uses) via
+      ///   <see cref="Logic.Appreciations.AppreciationPolicy.TarnishedMagnitude" /> before rendering — a
+      ///   fresh grievance sours a standing warmth. A line that tarnishes to zero is dropped rather than
+      ///   shown at full warmth. Null when the NPC feels no live kindness worth voicing this turn.
+      /// </summary>
+      private static string ResolveAppreciationNote(Hero hero, NpcProfile profile)
+      {
+         try
+         {
+            if (hero == null) return null;
+
+            var today = (int) CampaignTime.Now.ToDays;
+            IReadOnlyList<Logic.Appreciations.Appreciation> live = Appreciations.AppreciationBehavior.Instance?.LiveAppreciationsFor(hero, today);
+
+            if (live == null || live.Count == 0) return null;
+
+            // The same dominant-live-grudge magnitude ResolveGrudgeNote/ResolveRegardShadowNote already
+            // resolve, read independently here so Appreciations stays fully decoupled from Grudges'
+            // internal types (only the plain int crosses the boundary).
+            int activeGrudgeMagnitude = ResolveDominantLiveGrudgeMagnitude(hero);
+
+            Logic.Appreciations.TraitFacts traits = Appreciations.AppreciationBridge.BuildTraitFacts(hero);
+            var lines = new List<string>();
+            foreach (Logic.Appreciations.Appreciation appreciation in live)
+            {
+               int effective = Logic.Appreciations.AppreciationPolicy.EffectiveMagnitude(appreciation, today, traits);
+               int tarnished = Logic.Appreciations.AppreciationPolicy.TarnishedMagnitude(effective, activeGrudgeMagnitude);
+               string line = Logic.Appreciations.AppreciationNarrator.PromptLine(appreciation, appreciation.KnownToPlayer, tarnished);
+               if (!string.IsNullOrWhiteSpace(line)) lines.Add(line);
+            }
+
+            return lines.Count == 0 ? null : string.Join("\n", lines);
+         }
+         catch { return null; }
+      }
+
+      /// <summary>
+      ///   The holder's dominant live grudge's TODAY's effective magnitude (0 when none), the exact number
+      ///   <see cref="AppreciationPolicy.TarnishedMagnitude" /> needs to sour a standing appreciation.
+      /// </summary>
+      private static int ResolveDominantLiveGrudgeMagnitude(Hero hero)
+      {
+         IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, (int) CampaignTime.Now.ToDays);
+         if (live == null || live.Count == 0) return 0;
+
+         TraitFacts traits = GrudgeBridge.BuildTraitFacts(hero);
+
+         return GrudgePolicy.EffectiveMagnitude(live[0], (int) CampaignTime.Now.ToDays, traits);
       }
 
       /// <summary>

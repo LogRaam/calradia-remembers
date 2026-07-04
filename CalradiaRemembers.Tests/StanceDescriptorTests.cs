@@ -71,45 +71,47 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_mixed_stance_WHEN_summarizing_THEN_only_the_axes_that_matter_are_voiced()
         {
-            //Arrange — fond, but wary of the player's word; respect and fear neutral.
+            //Arrange — fond (Affection), but wary of the player's word; respect and fear neutral.
             NpcStance s = new NpcStance { Affection = 50, Trust = -25, Respect = 0, Fear = 0 };
 
             //Act
             string block = StanceDescriptor.Summarize(s);
 
-            //Assert
-            block.Should().Be("You are genuinely fond of the player.\nYou are wary of the player's word.");
+            //Assert — Affection is NEVER voiced here (P0.2): it is already stated once, in words, by the
+            // CURRENT STANCE line elsewhere in the prompt (PromptBuilder.DescribePersonalRegard), so only
+            // the remaining non-neutral axis (Trust) appears.
+            block.Should().Be("You are wary of the player's word.");
         }
 
         // ── Believable combinations (the point of the multi-axis system) ───────
 
         [Test]
-        public void GIVEN_a_beaten_rival_WHEN_summarizing_THEN_hatred_respect_and_fear_coexist()
+        public void GIVEN_a_beaten_rival_WHEN_summarizing_THEN_respect_and_fear_coexist_without_restating_affection()
         {
-            //Arrange — hates you, yet respects your prowess and fears you: a defeated foe.
+            //Arrange — hates you (Affection), yet respects your prowess and fears you: a defeated foe.
             NpcStance s = new NpcStance { Affection = -50, Trust = 0, Respect = 60, Fear = 70 };
 
             //Act
             string block = StanceDescriptor.Summarize(s);
 
-            //Assert
-            block.Should().Contain("real hatred");
+            //Assert — the hatred itself is stated once elsewhere (CURRENT STANCE), not restated here.
+            block.Should().NotContain("hatred");
             block.Should().Contain("high regard");
             block.Should().Contain("openly afraid");
             block.Should().NotContain("trust"); // trust is neutral, so it is left unsaid
         }
 
         [Test]
-        public void GIVEN_a_charming_rogue_the_lord_likes_but_cannot_trust_WHEN_summarizing_THEN_warmth_and_suspicion_coexist()
+        public void GIVEN_a_charming_rogue_the_lord_likes_but_cannot_trust_WHEN_summarizing_THEN_distrust_and_respect_show_without_restating_warmth()
         {
-            //Arrange — fond of you and impressed, but does not trust your word.
+            //Arrange — fond of you and impressed (Affection), but does not trust your word.
             NpcStance s = new NpcStance { Affection = 45, Trust = -45, Respect = 30, Fear = 0 };
 
             //Act
             string block = StanceDescriptor.Summarize(s);
 
-            //Assert
-            block.Should().Contain("genuinely fond");
+            //Assert — warmth is not restated here (P0.2); only Trust/Respect/Fear are this note's business.
+            block.Should().NotContain("fond");
             block.Should().Contain("deeply distrust");
             block.Should().Contain("respect the player's worth");
         }

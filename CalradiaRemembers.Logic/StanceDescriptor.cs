@@ -8,6 +8,10 @@
 // frames the model as "You are [NPC]", so a third-person note ("They are afraid of you") clashes pronouns
 // and lets the model FLIP the feeling onto the player (observed: a feared lord told the player THEY looked
 // afraid). Keeping the note in the same person as the prompt makes the direction unflippable.
+//
+// Updated 04/07/2026 (P0.2, affect-coherence reform): Summarize() no longer voices Affection — that value
+// is already stated once, in words, by the prompt's CURRENT STANCE line, so this block is Trust/Respect/Fear
+// only. Prevents the same ReputationWithPlayer number from being read aloud twice in one prompt.
 
 #region
 
@@ -80,15 +84,23 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>
         ///   The posture block for the prompt — one line per axis that is not neutral, in a stable
-        ///   order (warmth, trust, respect, fear). Null when the NPC is wholly neutral, so the block is
-        ///   skipped entirely. Believable combinations compose naturally from the per-axis lines.
+        ///   order (trust, respect, fear). Null when the NPC is wholly neutral on these axes, so the
+        ///   block is skipped entirely. Believable combinations compose naturally from the per-axis lines.
+        ///
+        ///   Warmth (Affection) is deliberately NOT restated here (P0.2 of the affect-coherence reform,
+        ///   04/07/2026): Affection is a live mirror of <c>NpcProfile.ReputationWithPlayer</c>
+        ///   (<see cref="NpcStance" />'s own doc, and <c>StanceService.ToStance</c>), and the prompt
+        ///   already states that exact number in words once, in the CURRENT STANCE line
+        ///   (<c>PromptBuilder.AppendCurrentStance</c> / <c>DescribePersonalRegard</c>). Voicing it a
+        ///   second time here, via <see cref="AffectionPhrase" />, made the same value read twice under
+        ///   two different vocabularies. <see cref="AffectionPhrase" /> itself is kept (and still tested)
+        ///   as a documented, available phrasing — just no longer wired into this composition.
         /// </summary>
         public static string Summarize(NpcStance stance)
         {
             if (stance == null) return null;
 
             var lines = new List<string>();
-            Add(lines, AffectionPhrase(stance.Affection));
             Add(lines, TrustPhrase(stance.Trust));
             Add(lines, RespectPhrase(stance.Respect));
             Add(lines, FearPhrase(stance.Fear));

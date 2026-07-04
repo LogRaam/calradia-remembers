@@ -46,7 +46,10 @@ Player message
     │
 ChatViewModel.ExecuteSendMessage
     │
-    ├── profile.ReputationWithPlayer = bridge.GetPlayerRelation(npc)   [sync before prompt]
+    ├── profile.ClanRelationWithPlayer = bridge.GetPlayerRelation(npc)   [live vanilla clan relation, synced before prompt]
+    ├── profile.ReputationWithPlayer is its OWN ledger (PERSONAL regard) — never synced from vanilla;
+    │   moved only by change_relation actions / deterministic hooks (RelationGate, StanceService,
+    │   GrudgeResolutionService, JealousyBehavior, DivorceProcessBehavior, CommitmentBehavior…)
     │
 EncounterContextBuilder.Build(npc, profile, bridge, playerMessage)
     │   └── ContextualNameResolver.Resolve(npc, playerMessage)  ← scans Hero.AllAliveHeroes

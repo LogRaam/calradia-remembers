@@ -9,8 +9,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Verbs;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
 
@@ -101,6 +103,92 @@ namespace CalradiaRemembers
 
             return $"[GRUDGE] backfill: {formed} formed, {skipped} skipped. " +
                    "Idempotent by design — run this again right now and expect 0 formed (every marker already migrated).";
+        }
+
+        /// <summary>
+        ///   cr.grudge_resolve [amends|gift &lt;value&gt;] [name] — runs <see cref="GrudgeResolutionService.TryResolveDominant" />
+        ///   against the NPC's dominant resolvable live grudge with the given gesture, no LLM involved.
+        ///   Reports the verdict plus the grudge's before/after magnitude, so the resolution engine can be
+        ///   validated deterministically. Defaults to the Amends gesture (giftValue 0) when the gesture
+        ///   argument is omitted or unrecognized.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("grudge_resolve", "cr")]
+        public static string Grudges_Resolve(List<string> args)
+        {
+            if (!TryContext(out _, out string error)) return error;
+            if (GrudgeBehavior.Instance == null) return "Grudge system not active.";
+
+            args ??= new List<string>();
+            GrudgeGesture gesture = GrudgeGesture.Amends;
+            var giftValue = 0;
+            var nameTokens = new List<string>(args);
+
+            if (nameTokens.Count > 0 && nameTokens[0].Equals("gift", System.StringComparison.OrdinalIgnoreCase))
+            {
+                gesture = GrudgeGesture.Gift;
+                nameTokens.RemoveAt(0);
+                if (nameTokens.Count > 0 && int.TryParse(nameTokens[0], out int parsedValue))
+                {
+                    giftValue = parsedValue;
+                    nameTokens.RemoveAt(0);
+                }
+            }
+            else if (nameTokens.Count > 0 && nameTokens[0].Equals("amends", System.StringComparison.OrdinalIgnoreCase))
+            {
+                nameTokens.RemoveAt(0);
+            }
+
+            Hero npc = ResolveHero(nameTokens);
+            if (npc == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+            if (npc == Hero.MainHero) return "Pick an NPC, not the player.";
+
+            var today = (int) CampaignTime.Now.ToDays;
+            TraitFacts traits = GrudgeBridge.BuildTraitFacts(npc);
+
+            Grudge before = GrudgeBehavior.Instance.LiveGrudgesFor(npc, today)
+                .FirstOrDefault(g => GrudgePolicy.IsResolvable(g) && g.TargetId == Hero.MainHero.StringId);
+            if (before == null) return $"{npc.Name} nurses no resolvable live grudge against the player.";
+
+            int magnitudeBefore = before.Magnitude;
+            int effectiveBefore = GrudgePolicy.EffectiveMagnitude(before, today, traits);
+
+            GrudgeResolutionAttemptResult result = GrudgeResolutionService.TryResolveDominant(npc, gesture, giftValue, today);
+
+            return $"{npc.Name} [{before.Source}]: gesture={gesture}" + (gesture == GrudgeGesture.Gift ? $"({giftValue})" : "") +
+                   $" -> {result.Outcome} | magnitude {magnitudeBefore} (effective {effectiveBefore}) -> {result.Grudge?.Magnitude ?? magnitudeBefore}" +
+                   $" | resolved={result.Grudge?.IsResolved ?? false}";
+        }
+
+        /// <summary>
+        ///   cr.grudge_terms [name] — runs the grudge_terms reveal deterministically (no LLM), via the exact
+        ///   same <see cref="GrudgeTermsVerb.Execute" /> path an in-conversation [ACTION] grudge_terms would
+        ///   take, against the NPC's dominant known, resolvable grudge whose resolution hint is not yet
+        ///   discovered. Reports which grudge's hint was revealed, or that none qualified (already
+        ///   discovered, unresolvable, unknown to the player, or no grudge at all).
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("grudge_terms", "cr")]
+        public static string Grudges_Terms(List<string> args)
+        {
+            if (!TryContext(out _, out string error)) return error;
+            if (GrudgeBehavior.Instance == null) return "Grudge system not active.";
+
+            Hero npc = ResolveHero(args);
+            if (npc == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+            if (npc == Hero.MainHero) return "Pick an NPC, not the player.";
+
+            var today = (int) CampaignTime.Now.ToDays;
+            Grudge before = GrudgeBehavior.Instance.KnownGrudgesFor(npc.StringId, today)
+                .FirstOrDefault(g => !g.ResolutionHintDiscovered && GrudgePolicy.IsResolvable(g) && g.TargetId == Hero.MainHero.StringId);
+
+            if (before == null)
+                return $"{npc.Name} has nothing new to reveal (no known, resolvable grudge with an undiscovered hint).";
+
+            var ctx = new VerbContext(npc, null, null, null, null);
+            ActionOutcome outcome = new GrudgeTermsVerb().Execute(null, ctx);
+
+            return outcome != null
+                ? $"{npc.Name} [{before.Source}]: {outcome.Message}"
+                : $"{npc.Name}: grudge_terms produced no outcome (unexpected).";
         }
     }
 }

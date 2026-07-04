@@ -1,0 +1,15 @@
+<DummyRoot>
+  <ListPanel HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren" MarginTop="4" MarginLeft="30">
+    <Children>
+      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren"
+                              VerticalAlignment="Bottom"
+                              Brush="Encyclopedia.Stat.DefinitionText"
+                              Text="@CalradiaBearingLabel"
+                              MarginRight="5" />
+      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="StretchToParent"
+                              VerticalAlignment="Bottom"
+                              Brush="Encyclopedia.Stat.ValueText"
+                              Text="@CalradiaBearing" />
+    </Children>
+  </ListPanel>
+</DummyRoot>

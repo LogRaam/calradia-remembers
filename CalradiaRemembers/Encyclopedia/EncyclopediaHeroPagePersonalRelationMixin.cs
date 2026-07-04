@@ -7,6 +7,7 @@ using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
 using CalradiaRemembers.Behaviors;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Prompts;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Encyclopedia.Pages;
 using TaleWorlds.Library;
@@ -70,39 +71,6 @@ namespace CalradiaRemembers.Encyclopedia
 
         #region private
 
-        private static string Describe(int r) => r switch {
-            // === RELATIONS LÉGENDAIRES ===
-            >= 95 => "oathbound devotion",
-            >= 85 => "unshakable devotion",
-            >= 70 => "most cherished ally",
-
-            // === RELATIONS SOUDÉES ===
-            >= 50 => "profound admiration",
-            >= 30 => "deep trust",
-
-            // === BONNES RELATIONS ===
-            >= 15 => "genuine regard",
-            >= 5 => "cordial regard",
-
-            // === PIVOT ===
-            >= -5 => "neutral",
-
-            // === MÉFIANCE ===
-            >= -20 => "wary",
-            >= -35 => "quiet distrust",
-
-            // === ANTIPATHIE MARQUÉE ===
-            >= -55 => "ill-disposed",
-            >= -70 => "bitter grudge",
-
-            // === HOSTILITÉ DÉCLARÉE ===
-            >= -85 => "open enmity",
-            >= -95 => "mortal foe",
-
-            // === HAINE ABSOLUE ===
-            _ => "implacable hatred"
-        };
-
         private void Refresh()
         {
             Hero hero = HeroField?.GetValue(ViewModel) as Hero;
@@ -122,7 +90,7 @@ namespace CalradiaRemembers.Encyclopedia
 
             CalradiaPersonalRelation = profile == null
                 ? "unknown"
-                : $"{Describe(profile.ReputationWithPlayer)} ({profile.ReputationWithPlayer:+#;-#;0})";
+                : $"{RegardBands.Describe(profile.ReputationWithPlayer)} ({profile.ReputationWithPlayer:+#;-#;0})";
         }
 
         #endregion
