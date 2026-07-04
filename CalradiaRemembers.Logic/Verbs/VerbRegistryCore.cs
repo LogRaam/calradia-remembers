@@ -58,7 +58,7 @@ namespace CalradiaRemembers.Logic.Verbs
          return verb?.Execute(action, ctx);
       }
 
-      /// <summary>Adds a verb. Order matters for the no-explicit-order overload of <see cref="ComposeTeachings(TContext)" />.</summary>
+      /// <summary>Adds a verb. Order matters for the no-explicit-order overload of <see cref="ComposeTeachings(TContext, System.Action{System.Exception})" />.</summary>
       public void Register(IVerb<TContext, TAction, TResult> verb)
       {
          if (verb != null) _verbs.Add(verb);
