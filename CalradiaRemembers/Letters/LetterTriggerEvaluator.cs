@@ -2,6 +2,7 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
@@ -9,6 +10,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
+using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.MapEvents;
@@ -538,6 +540,26 @@ namespace CalradiaRemembers.Letters
          if (arenaRank > 0) context += $" They are now ranked #{arenaRank} in the tournament leaderboard.";
 
          NpcCongratulatePlayerForTournamentVictory(behavior, today, context);
+         RecordTournamentVictoryChronicle(today, town);
+      }
+
+      /// <summary>Tournament victories are naturally rare per town, so no further anti-spam guard is needed.</summary>
+      private static void RecordTournamentVictoryChronicle(int today, Town town)
+      {
+         try
+         {
+            string townName = town?.Name?.ToString() ?? "the arena";
+            WorldEventStore.Instance?.Record(new WorldEvent {
+               Type = WorldEventType.PlayerFeat,
+               Day = today,
+               Magnitude = 40,
+               InvolvesPlayer = true,
+               Summary = $"{Hero.MainHero.Name} won the tournament at {townName}.",
+               ActorIds = new List<string> {Hero.MainHero.StringId},
+               ChronicleLine = $"{Hero.MainHero.Name} took the prize of the tourney at {townName}, and the crowd hailed the victor"
+            });
+         }
+         catch (Exception ex) { ModLog.Error($"[WORLD] tournament chronicle feeder failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
       #endregion

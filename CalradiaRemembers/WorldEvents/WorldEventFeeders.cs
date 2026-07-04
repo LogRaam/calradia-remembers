@@ -13,6 +13,7 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.MapEvents;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -51,6 +52,11 @@ namespace CalradiaRemembers.WorldEvents
          CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
          CampaignEvents.MakePeace.AddNonSerializedListener(this, OnMakePeace);
          CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
+         CampaignEvents.OnClanChangedKingdomEvent.AddNonSerializedListener(this, OnClanChangedKingdom);
+         CampaignEvents.RulingClanChanged.AddNonSerializedListener(this, OnRulingClanChanged);
+         CampaignEvents.OnGivenBirthEvent.AddNonSerializedListener(this, OnGivenBirth);
+         CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
+         CampaignEvents.HeroPrisonerReleased.AddNonSerializedListener(this, OnHeroPrisonerReleased);
          ModLog.Info("WorldEventFeeders subscribed.");
       }
 
@@ -157,6 +163,11 @@ namespace CalradiaRemembers.WorldEvents
          return false;
       }
 
+      /// <summary>Total combatants across both sides — feeds the player-battle size bypass in <see cref="BattleNotability" />.</summary>
+      private static int TotalCombatants(MapEvent mapEvent)
+         => (mapEvent.GetMapEventSide(BattleSideEnum.Attacker)?.TroopCount ?? 0) +
+            (mapEvent.GetMapEventSide(BattleSideEnum.Defender)?.TroopCount ?? 0);
+
       private static Hero SideLeader(MapEvent mapEvent, BattleSideEnum side)
       {
          MapEventSide s = mapEvent.GetMapEventSide(side);
@@ -246,14 +257,24 @@ namespace CalradiaRemembers.WorldEvents
          {
             if (mapEvent.WinningSide == BattleSideEnum.None) return;
 
+            bool playerAttacker = mapEvent.AttackerSide?.IsMainPartyAmongParties() == true;
+            bool playerDefender = mapEvent.DefenderSide?.IsMainPartyAmongParties() == true;
+            bool playerIn = playerAttacker || playerDefender;
+
+            bool isSiege = mapEvent.EventType == MapEvent.BattleTypes.Siege;
+            bool attackerHasArmy = SideHasArmy(mapEvent, BattleSideEnum.Attacker);
+            bool defenderHasArmy = SideHasArmy(mapEvent, BattleSideEnum.Defender);
+
             // Only a siege or a clash of two armies is worth recording (into world-events, the
             // chronicle, and lords' profiles) — a field skirmish or a bandit chase is noise that
             // would bloat the save. This also skips the per-lord profile memory + stance bumps below.
-            if (!BattleNotability.IsNotable(
-                   mapEvent.EventType == MapEvent.BattleTypes.Siege,
-                   SideHasArmy(mapEvent, BattleSideEnum.Attacker),
-                   SideHasArmy(mapEvent, BattleSideEnum.Defender)))
-               return;
+            // A PLAYER battle earns a further bypass on raw size alone (BattleNotability.IsNotableForPlayer):
+            // a great scrap the player led is chronicle-worthy even without armies on both sides.
+            bool notable = playerIn
+               ? BattleNotability.IsNotableForPlayer(isSiege, attackerHasArmy, defenderHasArmy, TotalCombatants(mapEvent))
+               : BattleNotability.IsNotable(isSiege, attackerHasArmy, defenderHasArmy);
+
+            if (!notable) return;
 
             BattleSideEnum loseSide = mapEvent.WinningSide == BattleSideEnum.Attacker
                ? BattleSideEnum.Defender
@@ -268,9 +289,6 @@ namespace CalradiaRemembers.WorldEvents
 
             if (!winLord && !loseLord) return;
 
-            bool playerAttacker = mapEvent.AttackerSide?.IsMainPartyAmongParties() == true;
-            bool playerDefender = mapEvent.DefenderSide?.IsMainPartyAmongParties() == true;
-            bool playerIn = playerAttacker || playerDefender;
             bool playerWon = playerIn &&
                              mapEvent.WinningSide ==
                              (playerAttacker
@@ -329,38 +347,319 @@ namespace CalradiaRemembers.WorldEvents
          ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail)
       {
          if (settlement == null || Store == null) return;
-         if (detail != ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail.BySiege) return; // only conquests
+
+         bool isSiege = detail == ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail.BySiege;
+         // A fief handed to the player outside of conquest (a king's reward, a clan gift) is a
+         // second chronicle-worthy path through this same feeder — everything else (barter,
+         // rebellion, clan destruction) is left alone.
+         bool isGrantToPlayer = !isSiege && newOwner == Hero.MainHero &&
+                                (detail == ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail.ByGift ||
+                                 detail == ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail.ByKingDecision);
+
+         if (!isSiege && !isGrantToPlayer) return; // only conquests and grants are chronicle-worthy
+
          try
          {
-            Hero taker = capturerHero ?? newOwner;
-            bool playerIn = taker == Hero.MainHero;
-            var e = new WorldEvent {
-               Type = playerIn
-                  ? WorldEventType.PlayerFeat
-                  : WorldEventType.SettlementCaptured,
-               Day = Today,
-               PlaceId = settlement.StringId,
-               Magnitude = settlement.IsTown ? 70 : settlement.IsCastle ? 55 : 35,
-               InvolvesPlayer = playerIn,
-               Summary = $"{taker?.Name?.ToString() ?? "A host"} took {settlement.Name}" +
-                         (oldOwner != null
-                            ? $" from {oldOwner.Name}."
-                            : "."),
-               ActorIds = Ids(taker, oldOwner),
-               FactionIds = FactionIds(taker, oldOwner),
-               // Influence loop: a conquest by the player wounds the dispossessed lord's faction.
-               AggrievedFactionIds = playerIn
-                  ? FactionIds(oldOwner)
-                  : new List<string>(),
-               AggrievedActorIds = playerIn
-                  ? Ids(oldOwner)
-                  : new List<string>()
-            };
-            if (playerIn)
-               e.ChronicleLine = $"{PlayerName} laid siege to {settlement.Name} and wrested it from {oldOwner?.Name?.ToString() ?? "its lord"}, and the banners were changed upon its walls";
-            Store.Record(e);
+            if (isSiege)
+            {
+               Hero taker = capturerHero ?? newOwner;
+               bool playerIn = taker == Hero.MainHero;
+               var e = new WorldEvent {
+                  Type = playerIn
+                     ? WorldEventType.PlayerFeat
+                     : WorldEventType.SettlementCaptured,
+                  Day = Today,
+                  PlaceId = settlement.StringId,
+                  Magnitude = settlement.IsTown ? 70 : settlement.IsCastle ? 55 : 35,
+                  InvolvesPlayer = playerIn,
+                  Summary = $"{taker?.Name?.ToString() ?? "A host"} took {settlement.Name}" +
+                            (oldOwner != null
+                               ? $" from {oldOwner.Name}."
+                               : "."),
+                  ActorIds = Ids(taker, oldOwner),
+                  FactionIds = FactionIds(taker, oldOwner),
+                  // Influence loop: a conquest by the player wounds the dispossessed lord's faction.
+                  AggrievedFactionIds = playerIn
+                     ? FactionIds(oldOwner)
+                     : new List<string>(),
+                  AggrievedActorIds = playerIn
+                     ? Ids(oldOwner)
+                     : new List<string>()
+               };
+               if (playerIn)
+                  e.ChronicleLine = $"{PlayerName} laid siege to {settlement.Name} and wrested it from {oldOwner?.Name?.ToString() ?? "its lord"}, and the banners were changed upon its walls";
+               Store.Record(e);
+            }
+            else
+            {
+               // The liege who bestowed it is the settlement's own kingdom leader once the grant has
+               // landed (a king's decision or a clan gift both flow from the crown in practice).
+               Hero liege = (newOwner.MapFaction as Kingdom)?.Leader;
+               string liegeName = liege?.Name?.ToString() ?? "the crown";
+               Store.Record(new WorldEvent {
+                  Type = WorldEventType.PlayerFeat,
+                  Day = Today,
+                  PlaceId = settlement.StringId,
+                  Magnitude = settlement.IsTown ? 65 : settlement.IsCastle ? 50 : 35,
+                  InvolvesPlayer = true,
+                  Summary = $"{PlayerName} was granted {settlement.Name}.",
+                  ActorIds = Ids(Hero.MainHero, liege),
+                  FactionIds = FactionIds(Hero.MainHero, liege),
+                  ChronicleLine = $"{liegeName} bestowed {settlement.Name} upon {PlayerName}, in reward for faithful service"
+               });
+            }
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] siege feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      // ── Political ascent (vassalage, defection, rulership) — player clan only ───
+
+      /// <summary>
+      ///   The player clan's standing with a kingdom changed. CreateKingdom is a rise to rulership
+      ///   (chronicled via <see cref="OnRulingClanChanged" /> instead, which fires for it too); a leave
+      ///   forced by clan/kingdom destruction carries no agency of the player's to chronicle, so those
+      ///   details are left alone.
+      /// </summary>
+      private void OnClanChangedKingdom(
+         Clan clan, Kingdom oldKingdom, Kingdom newKingdom, ChangeKingdomAction.ChangeKingdomActionDetail detail, bool showNotification)
+      {
+         if (clan == null || clan != Clan.PlayerClan || Store == null) return;
+         try
+         {
+            switch (detail)
+            {
+               case ChangeKingdomAction.ChangeKingdomActionDetail.JoinKingdom:
+               case ChangeKingdomAction.ChangeKingdomActionDetail.JoinAsMercenary:
+                  RecordVassalage(newKingdom);
+
+                  break;
+               case ChangeKingdomAction.ChangeKingdomActionDetail.JoinKingdomByDefection:
+                  RecordDefection(oldKingdom, newKingdom);
+
+                  break;
+               case ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom:
+               case ChangeKingdomAction.ChangeKingdomActionDetail.LeaveAsMercenary:
+               case ChangeKingdomAction.ChangeKingdomActionDetail.LeaveWithRebellion:
+                  RecordDeparture(oldKingdom);
+
+                  break;
+            }
+         }
+         catch (Exception ex) { ModLog.Error($"[WORLD] kingdom-change feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      private void RecordVassalage(Kingdom kingdom)
+      {
+         if (kingdom == null) return;
+         Hero ruler = kingdom.Leader;
+         string rulerName = ruler?.Name?.ToString() ?? "the crown";
+         Store.Record(new WorldEvent {
+            Type = WorldEventType.PlayerFeat,
+            Day = Today,
+            Magnitude = 55,
+            InvolvesPlayer = true,
+            Summary = $"{PlayerName} swore fealty to {kingdom.Name}.",
+            ActorIds = Ids(Hero.MainHero, ruler),
+            FactionIds = new List<string> {kingdom.StringId},
+            ChronicleLine = $"{PlayerName} bent the knee and swore fealty to {rulerName} of {kingdom.Name}"
+         });
+      }
+
+      private void RecordDefection(Kingdom oldKingdom, Kingdom newKingdom)
+      {
+         if (newKingdom == null) return;
+         Hero ruler = newKingdom.Leader;
+         string rulerName = ruler?.Name?.ToString() ?? "the crown";
+         Store.Record(new WorldEvent {
+            Type = WorldEventType.PlayerFeat,
+            Day = Today,
+            Magnitude = 60,
+            InvolvesPlayer = true,
+            Summary = $"{PlayerName} defected to {newKingdom.Name}.",
+            ActorIds = Ids(Hero.MainHero, ruler),
+            FactionIds = new List<string> {newKingdom.StringId},
+            ChronicleLine = oldKingdom != null
+               ? $"{PlayerName} forsook {oldKingdom.Name} and swore fealty instead to {rulerName} of {newKingdom.Name}"
+               : $"{PlayerName} bent the knee and swore fealty to {rulerName} of {newKingdom.Name}"
+         });
+      }
+
+      private void RecordDeparture(Kingdom kingdom)
+      {
+         if (kingdom == null) return;
+         Store.Record(new WorldEvent {
+            Type = WorldEventType.PlayerFeat,
+            Day = Today,
+            Magnitude = 55,
+            InvolvesPlayer = true,
+            Summary = $"{PlayerName} left {kingdom.Name}.",
+            ActorIds = Ids(Hero.MainHero),
+            FactionIds = new List<string> {kingdom.StringId},
+            ChronicleLine = $"{PlayerName} forsook {kingdom.Name}, and the oath was broken"
+         });
+      }
+
+      /// <summary>The player clan was raised to rule a kingdom (by election, succession, or founding one).</summary>
+      private void OnRulingClanChanged(Kingdom kingdom, Clan clan)
+      {
+         if (kingdom == null || clan == null || clan != Clan.PlayerClan || Store == null) return;
+         try
+         {
+            string pronoun = Hero.MainHero?.IsFemale == true ? "her" : "his";
+            Store.Record(new WorldEvent {
+               Type = WorldEventType.PlayerFeat,
+               Day = Today,
+               Magnitude = 85,
+               InvolvesPlayer = true,
+               Summary = $"{PlayerName} was raised to rule {kingdom.Name}.",
+               ActorIds = Ids(Hero.MainHero),
+               FactionIds = new List<string> {kingdom.StringId},
+               ChronicleLine = $"{PlayerName} was raised to rule {kingdom.Name}, and a crown sat new upon {pronoun} brow"
+            });
+         }
+         catch (Exception ex) { ModLog.Error($"[WORLD] ruler feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      // ── Childbirth (dynastic) ────────────────────────────────────────────────
+
+      /// <summary>
+      ///   A child was born. Chronicled only when the player is the mother (always visible), or the
+      ///   father by the player's own wedded spouse (a legitimate, open birth) — a child born of the
+      ///   player elsewhere is a HIDDEN bastard, whose own discovery is the Bastards pillar's separate
+      ///   Scandal channel, and must not be spoiled here.
+      /// </summary>
+      private void OnGivenBirth(Hero mother, List<Hero> children, int newBornCount)
+      {
+         if (mother == null || children == null || Store == null) return;
+         try
+         {
+            bool playerMother = mother == Hero.MainHero;
+            bool motherIsPlayerSpouse = mother == Hero.MainHero?.Spouse;
+
+            foreach (Hero child in children)
+            {
+               if (child == null) continue;
+
+               // Player-mother births are always visible; a player-fathered child is only OPENLY
+               // chronicled when born of the player's own wedded spouse — a child fathered elsewhere is
+               // a HIDDEN bastard, whose own discovery is the Bastards pillar's separate Scandal channel.
+               bool playerIsFather = child.Father == Hero.MainHero;
+               if (!playerMother && !(playerIsFather && motherIsPlayerSpouse)) continue;
+
+               string sex = child.IsFemale ? "daughter" : "son";
+               Store.Record(new WorldEvent {
+                  Type = WorldEventType.PlayerFeat,
+                  Day = Today,
+                  Magnitude = 50,
+                  InvolvesPlayer = true,
+                  Summary = $"A child was born to {PlayerName}.",
+                  ActorIds = Ids(Hero.MainHero, child),
+                  FactionIds = FactionIds(Hero.MainHero),
+                  ChronicleLine = $"there was born to {PlayerName} a {sex}, and the babe was named {child.Name}"
+               });
+            }
+         }
+         catch (Exception ex) { ModLog.Error($"[WORLD] childbirth feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      // ── Captivity (the player, and the lords the player takes) ─────────────
+
+      /// <summary>
+      ///   A hero was taken prisoner. Two chronicle-worthy cases share this native event: the player
+      ///   themself being captured, and the player capturing an enemy lord.
+      /// </summary>
+      private void OnHeroPrisonerTaken(PartyBase capturingParty, Hero prisoner)
+      {
+         if (prisoner == null || Store == null) return;
+         try
+         {
+            if (prisoner == Hero.MainHero)
+            {
+               RecordPlayerCaptured(capturingParty);
+
+               return;
+            }
+
+            if (capturingParty?.LeaderHero == Hero.MainHero && prisoner.IsLord && !IsBandit(prisoner))
+               RecordLordCaptured(prisoner);
+         }
+         catch (Exception ex) { ModLog.Error($"[WORLD] prisoner-taken feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Skips a fresh chronicle entry when the player is already mid-captivity (the last chronicle
+      ///   entry is still an open "player_captured" with no "player_freed" since) — a custody handoff
+      ///   between captors (bandits to the lord who paid them, say) is one captivity, not two.
+      /// </summary>
+      private void RecordPlayerCaptured(PartyBase capturingParty)
+      {
+         WorldEvent last = LastChronicleEntry();
+         if (last?.Status == "player_captured") return;
+
+         Hero captor = capturingParty?.LeaderHero;
+         string captorName = captor?.Name?.ToString() ?? capturingParty?.Name?.ToString() ?? "unknown captors";
+         Store.Record(new WorldEvent {
+            Type = WorldEventType.PlayerFeat,
+            Day = Today,
+            Magnitude = 55,
+            InvolvesPlayer = true,
+            Status = "player_captured",
+            Summary = $"{PlayerName} was taken captive by {captorName}.",
+            ActorIds = Ids(Hero.MainHero, captor),
+            FactionIds = FactionIds(Hero.MainHero, captor),
+            ChronicleLine = $"{PlayerName} fell into the hands of {captorName} and was carried off captive"
+         });
+      }
+
+      /// <summary>Once per unique lord — a capture already chronicled never repeats for the same lord.</summary>
+      private void RecordLordCaptured(Hero lord)
+      {
+         bool already = Store.GetPlayerChronicle()
+                              .Any(e => e.Status == "lord_captured" && e.ActorIds != null && e.ActorIds.Contains(lord.StringId));
+         if (already) return;
+
+         Store.Record(new WorldEvent {
+            Type = WorldEventType.PlayerFeat,
+            Day = Today,
+            Magnitude = 55,
+            InvolvesPlayer = true,
+            Status = "lord_captured",
+            Summary = $"{PlayerName} took {lord.Name} captive.",
+            ActorIds = Ids(Hero.MainHero, lord),
+            FactionIds = FactionIds(Hero.MainHero, lord),
+            ChronicleLine = $"{PlayerName} took {lord.Name} captive upon the field"
+         });
+      }
+
+      private void OnHeroPrisonerReleased(Hero prisoner, PartyBase party, IFaction faction, EndCaptivityDetail detail, bool showNotification)
+      {
+         if (prisoner != Hero.MainHero || Store == null) return;
+         if (detail == EndCaptivityDetail.Death) return; // no chronicle for this — nothing to come back to
+         try
+         {
+            string pronoun = Hero.MainHero.IsFemale ? "her" : "his";
+            Store.Record(new WorldEvent {
+               Type = WorldEventType.PlayerFeat,
+               Day = Today,
+               Magnitude = 45,
+               InvolvesPlayer = true,
+               Status = "player_freed",
+               Summary = $"{PlayerName} won free of captivity.",
+               ActorIds = Ids(Hero.MainHero),
+               FactionIds = FactionIds(Hero.MainHero),
+               ChronicleLine = $"after captivity, {PlayerName} won free again, and came back to {pronoun} own"
+            });
+         }
+         catch (Exception ex) { ModLog.Error($"[WORLD] prisoner-released feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      private static WorldEvent LastChronicleEntry()
+      {
+         IReadOnlyList<WorldEvent> chronicle = Store.GetPlayerChronicle();
+
+         return chronicle.Count > 0
+            ? chronicle[chronicle.Count - 1]
+            : null;
       }
 
       // ── Wars & peace (realm-level rumor, not personal deeds) ───────────────

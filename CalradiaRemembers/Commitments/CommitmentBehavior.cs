@@ -220,17 +220,22 @@ namespace CalradiaRemembers.Commitments
             $"Honored the pledge to move against {targetName}."));
          store.Set(profile);
 
+         // The pledge only ever exists because the player asked for it (pledge_against), so its
+         // fulfillment is chronicle material — the same event enriched with InvolvesPlayer + a
+         // ChronicleLine, not a second record (the breach sweep's own event is left as third-party
+         // rumor; a broken oath is not the player's deed to claim credit for).
          WorldEventStore.Instance?.Record(new WorldEvent {
             Type = WorldEventType.Rivalry,
             Day = today,
-            InvolvesPlayer = false,
+            InvolvesPlayer = true,
             Magnitude = 24,
             Status = "pledge_fulfilled",
             Summary = $"{promisor?.Name?.ToString() ?? "A lord"} honored a pledge and moved against {targetName}, as promised.",
             ActorIds = new List<string> {commitment.PromisorId, commitment.TargetId},
             FactionIds = promisor?.MapFaction != null
                ? new List<string> {promisor.MapFaction.StringId}
-               : new List<string>()
+               : new List<string>(),
+            ChronicleLine = $"at {(Hero.MainHero?.Name?.ToString() ?? "the player")}'s word, {promisor?.Name?.ToString() ?? "a lord"} moved against {targetName}, and kept faith"
          });
 
          CommitmentJournalBridge.CloseFulfilled(commitment);

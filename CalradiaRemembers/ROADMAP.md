@@ -55,6 +55,16 @@ geo/faction/recency-weighted hearsay; the **Chronicle**; commoners + settlement 
 **influence loop** (NPCs speak of *your* deeds, attributed + valence-coloured: kin/faction Wound vs Boon)
 and the **"talk of the realm"** line.
 
+**Chronicle enrichment** *(built 2026-07-04, untested in game)* — the player Chronicle grown from a war
+register into a dynastic biography: 14 new entry types (childbirth, dynastic succession, consort, joining/
+leaving/founding a kingdom, a fief granted, tournament victory, capturing a lord, being captured/freed, a
+large field battle without armies, a grudge made peace, a pledge fulfilled at the player's word, a famous
+captive freed/delivered) each writing `WorldEvent.ChronicleLine` from its own hook, guarded against
+double-counting (once-per-lord capture, custody-handoff dedup, hidden bastard births excluded). Entries now
+group under yearly chapter headings in both the text render (`cr.chronicle`) and the illuminated viewer;
+new empty-state invitation line. Pure additions: `CalradiaRemembers.Logic.ChronicleCalendar` (year math) and
+`BattleNotability.PlayerBattleSizeThreshold` (150 combatants), both unit-tested.
+
 **Stance with teeth** *(increment 1 built 2026-06-27, untested in game)* — the earned multi-axis posture now
 ACTS, not just colours dialogue. Pure `StanceConsequencePolicy` maps a posture+traits to one warranted
 consequence (ColdShoulder → Threat → Plot → Intercept → Assassinate / WarmWelcome → Favor → Warning), with
@@ -292,6 +302,28 @@ a second breakpoint splitting the universal header from the per-NPC block (Anthr
 
 ## Open — not yet built
 
+### Affect coherence reform *(review 2026-07-04, rulings ratified by Gabriel the same day)*
+
+A full inventory of every affect axis (clan relation / personal regard / stance Trust-Respect-Fear /
+grudges / contentment / romantic / discoveries / appreciations) exposed the incoherences; Gabriel ruled:
+1. **Both relation ledgers STAY** (vanilla = CLAN standing, ReputationWithPlayer = PERSONAL regard, as the
+   chat header "Clan N / Personal N" always intended); the fix is ROUTING writers by semantics (personal
+   wounds/mends -> personal; political/public -> clan), not merging.
+2. **A strong grudge DOMINATES the prompt tone**: a concealed vendetta mutes stated warmth (cold courtesy
+   wins); warmth becomes the nuance, not the co-equal.
+3. **Trust/Respect/Reputation stay ETERNAL** (no drift): decay would read as the LLM losing its memory, a
+   perceived bug. The time dimension lives in grudges/appreciations, which do decay.
+4. **Stance becomes VISIBLE**: a numberless "Bearing" line on the hero page (fear/respect/trust in words),
+   diegetically justified (a man's bearing shows).
+Work plan: P0 = one canonical band table for personal regard (was 3 disagreeing vocabularies: encyclopedia
+"wary" at -15 vs prompt "neutral"), stop double-rendering regard in the prompt (CURRENT STANCE +
+AffectionPhrase said it twice), re-route writers (grudge resolution +4, jealousy hits, divorce
+relief/gratitude nudges -> personal; scheme/bastard/battle stay clan), fix the stale CLAUDE.md sync note.
+P1 = the grudge-hint discovery path (NOTHING sets ResolutionHintDiscovered today, the reconcile loop is
+incomplete: asking the NPC what it would take must reveal the remedy), the tone arbiter (ruling 2), wire
+Appreciations (store, plant sites, prompt note with the tarnish, "Kindnesses" encyclopedia section).
+P2 = the Bearing line (ruling 4), consistent formation notifications (KNOWN grudge formation notifies).
+
 ### Appreciations — event-anchored kindnesses, the positive mirror of Grudges *(wished 2026-07-04)*
 
 Gabriel's idea: we have regard (a blended score) and grudges (specific wounds that tell a story); we should also
@@ -362,7 +394,7 @@ new MUST be supported, silently if need be. The plan, binding for increment 1:
   live-planted-only from the wiring increment on (the graceful-degradation net working as designed).
 
 **PURE FOUNDATION EXTENDED overnight 2026-07-04 (test-first .Logic, UNCOMMITTED, NO engine wiring, 960 tests):**
-three pure policies now exist and are documented by their tests: (1) `GrudgeResolutionPolicy` (the "resolvable"
+RESOLUTION NOW WIRED player-side 2026-07-04 (UNCOMMITTED): make_amends conversation verb (Amends gesture, taught only when the NPC holds a KNOWN resolvable grudge) + gift routing via take_gold/give_item (Gift gesture) both flow through a shared GrudgeResolutionService.TryResolveDominant -> GrudgeResolutionPolicy.Evaluate -> Resolve (+4 relation nudge) / Softened (reduce Magnitude) / Rejected. Deed gesture still unwired (needs a verified-deed-in-holder's-favour detector, a design call). cr.grudge_resolve + grudge_resolve self-test. --- three pure policies now exist and are documented by their tests: (1) `GrudgeResolutionPolicy` (the "resolvable"
 half: a matching gesture Amends/Gift/Deed Resolves or Softens a grudge, gated by rigidity + traits; vendetta
 always Rejected; Time-kind only nudged); (2) `DivorceConsequencePolicy` (the full signed matrix: per-role
 PlantGrudge/Relief/Gratitude/None from mutual-vs-repudiated x blessed-vs-unblessed x each clan's alliance

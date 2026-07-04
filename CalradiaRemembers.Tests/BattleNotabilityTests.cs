@@ -40,5 +40,26 @@ namespace CalradiaRemembers.Tests
         {
             BattleNotability.IsNotable(isSiege: false, attackerHasArmy: false, defenderHasArmy: false).Should().BeFalse();
         }
+
+        [Test]
+        public void GIVEN_a_player_battle_at_or_above_the_size_threshold_WHEN_judging_THEN_it_is_notable_without_armies()
+        {
+            BattleNotability.IsNotableForPlayer(isSiege: false, attackerHasArmy: false, defenderHasArmy: false,
+                totalCombatants: BattleNotability.PlayerBattleSizeThreshold).Should().BeTrue();
+        }
+
+        [Test]
+        public void GIVEN_a_player_battle_below_the_size_threshold_WHEN_judging_THEN_it_is_not_notable()
+        {
+            BattleNotability.IsNotableForPlayer(isSiege: false, attackerHasArmy: false, defenderHasArmy: false,
+                totalCombatants: BattleNotability.PlayerBattleSizeThreshold - 1).Should().BeFalse();
+        }
+
+        [Test]
+        public void GIVEN_a_player_siege_below_the_size_threshold_WHEN_judging_THEN_it_is_still_notable()
+        {
+            BattleNotability.IsNotableForPlayer(isSiege: true, attackerHasArmy: false, defenderHasArmy: false,
+                totalCombatants: 1).Should().BeTrue();
+        }
     }
 }

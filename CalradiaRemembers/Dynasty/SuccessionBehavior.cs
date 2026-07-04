@@ -5,9 +5,12 @@
 
 #region
 
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -60,8 +63,32 @@ namespace CalradiaRemembers.Dynasty
                 n++;
             }
 
+            RecordChronicleSuccession(predecessor, heir);
+
             ModLog.Info($"[SUCCESSION] reframed {n} profile(s): the heir is {predName}'s {kinship}.");
             return n;
+        }
+
+        /// <summary>
+        ///   The chronicle itself does not reset on death — it simply keeps writing, now of the heir's own
+        ///   deeds, with this one line marking the turn. Naturally a once-per-reign event; never throws.
+        /// </summary>
+        private static void RecordChronicleSuccession(Hero predecessor, Hero heir)
+        {
+            try
+            {
+                string pronoun = predecessor.IsFemale ? "her" : "his";
+                WorldEventStore.Instance?.Record(new WorldEvent {
+                    Type = WorldEventType.PlayerFeat,
+                    Day = (int) CampaignTime.Now.ToDays,
+                    Magnitude = 80,
+                    InvolvesPlayer = true,
+                    Summary = $"{predecessor.Name} died, and {heir.Name} took up the succession.",
+                    ActorIds = new List<string> {predecessor.StringId, heir.StringId},
+                    ChronicleLine = $"here ended the days of {predecessor.Name}; the chronicle passes to {heir.Name}, of {pronoun} blood"
+                });
+            }
+            catch (Exception ex) { ModLog.Error($"[SUCCESSION] chronicle record failed: {ex.GetType().Name}: {ex.Message}"); }
         }
 
         private static string ResolveKinship(Hero predecessor, Hero heir)

@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.WorldEvents;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
@@ -245,7 +246,7 @@ namespace CalradiaRemembers.Chronicle
          if (deeds == null || deeds.Count == 0)
          {
             IsEmpty = true;
-            EmptyText = "The chronicle of your deeds is yet unwritten.";
+            EmptyText = ChronicleWriter.EmptyStateLine;
 
             return;
          }
@@ -259,14 +260,34 @@ namespace CalradiaRemembers.Chronicle
             if (through >= deeds.Count) return;
 
             Entries.Add(new ChronicleEntryViewModel("", "— and since, not yet set to fine hand: —"));
-            for (int i = through; i < deeds.Count; i++)
-               Entries.Add(MakeTemplatedEntry(deeds[i]));
+            AppendTemplatedEntries(deeds, through);
 
             return;
          }
 
-         foreach (WorldEvent e in deeds)
+         AppendTemplatedEntries(deeds, 0);
+      }
+
+      /// <summary>
+      ///   Appends templated entries from <paramref name="from" /> onward, prepending a chapter-heading
+      ///   row the first time a new chronicle year is reached (mirrors ChronicleWriter's grouping without
+      ///   disturbing each entry's own date line, which the XML binds directly).
+      /// </summary>
+      private void AppendTemplatedEntries(IReadOnlyList<WorldEvent> deeds, int from)
+      {
+         var lastYear = -1;
+         for (int i = from; i < deeds.Count; i++)
+         {
+            WorldEvent e = deeds[i];
+            int year = ChronicleCalendar.YearOf(e.Day);
+            if (year != lastYear)
+            {
+               Entries.Add(new ChronicleEntryViewModel("", ChronicleWriter.YearHeading(year).ToUpperInvariant()));
+               lastYear = year;
+            }
+
             Entries.Add(MakeTemplatedEntry(e));
+         }
       }
 
       #endregion
