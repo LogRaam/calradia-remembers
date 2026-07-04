@@ -48,6 +48,56 @@ namespace CalradiaRemembers
       ///   courier party. Use to watch the courier travel the map, be intercepted, or
       ///   deliver — without going through the compose window.
       /// </summary>
+      /// <summary>
+      ///   cr.courier_test <settlement fragment>
+      ///   Spawns a TEST courier from the named settlement's GATE, riding to the player with a stamped test
+      ///   letter. Built for a player validating the gate-spawn fix across towns / ports / castles: if the
+      ///   courier appears outside the walls and rides out, the spawn is good; if it sits frozen, report the
+      ///   settlement. The letter delivers normally on arrival (or is waylaid like any courier on the road).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("courier_test", "cr")]
+      public static string CourierTestFrom(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         string fragment = args == null ? null : string.Join(" ", args).Trim();
+         if (string.IsNullOrEmpty(fragment)) return "Usage: cr.courier_test <settlement name fragment>";
+
+         Settlement settlement = Settlement.All.FirstOrDefault(s =>
+            (s.IsTown || s.IsCastle) && s.Name != null &&
+            s.Name.ToString().IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0);
+         if (settlement == null) return $"No town or castle matches '{fragment}'.";
+
+         // Prefer a hero actually AT the settlement so the sender's identity fits; any living lord otherwise
+         // (the identity is cosmetic, the spawn position is forced to the settlement's gate either way).
+         Hero sender = settlement.HeroesWithoutParty?.FirstOrDefault(h => h is {IsAlive: true} && h != Hero.MainHero)
+                       ?? Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero);
+         if (sender == null) return "No hero available to play the sender.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, sender);
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+         var letter = new PendingLetter {
+            SenderId = sender.StringId,
+            SenderName = sender.Name?.ToString(),
+            Reason = LetterReason.TournamentVictory,
+            Content = $"[COURIER TEST] This letter was dispatched from the gate of {settlement.Name} on day {today}. " +
+                      "If you are reading it, the courier escaped the walls and reached you.",
+            SentOnDay = today,
+            DispatchDay = today,
+            DeliveryDay = today + 15, // far date fallback so the visible courier does the delivering
+            IsDelivered = false
+         };
+         profile.SentLetters.Add(letter);
+         behavior.Store.Set(profile);
+
+         bool spawned = CourierService.TrySpawnReplyCourier(letter, sender, settlement.GatePosition.ToVec2());
+
+         return spawned
+            ? $"Test courier spawned at the GATE of {settlement.Name} ({(settlement.IsTown ? (settlement.HasPort ? "port town" : "town") : "castle")}), riding to you. Party: {letter.CourierPartyId}."
+            : $"Spawn FAILED at {settlement.Name} — report this settlement.";
+      }
+
       [CommandLineFunctionality.CommandLineArgumentFunction("courier", "cr")]
       public static string DispatchCourier(List<string> args)
       {

@@ -12,6 +12,11 @@ Many of you have asked for a way to support my work, so I’ve set up a Ko-fi pa
 Thank you, truly. ❤️[/center]
 
 [line]
+[size=4][color=#ffd966]What's new in v1.20.9[/color][/size]
+
+A small tool for the curious: the console command [b]cr.courier_test <settlement>[/b] spawns a test courier from the named town or castle's gate, riding to you with a stamped letter. If it reaches you the courier cleared the walls; if it sits frozen inside, that settlement can be reported. Useful for checking towns, ports, and castles across the map. A note on couriers you cannot see: that is by design, not a bug. To keep saves safe, courier parties are removed from the world before every save and are not respawned on load, so a letter caught in transit across a save then arrives by an invisible fallback. And "waylaid" means the courier was genuinely caught and killed on the road, which means it did leave the settlement.
+
+[line]
 [size=4][color=#ffd966]What's new in v1.20.8[/color][/size]
 
 One fix, straight from a player's report: a single meaningful exchange is no longer forgotten. If you said one substantial thing to an NPC and left, the conversation could leave no memory at all (the safety net that records a memory when the AI does not required at least two exchanges), so the NPC greeted you two days later as if nothing had happened. Now one exchange with real substance is remembered too; a drive-by greeting still leaves no clutter. Diagnosis tip: you can inspect what an NPC remembers at any time with the console command [b]cr.memory <name>[/b]. And beware, Calradia sometimes spawns TWO wanderers with the same name; if an NPC seems amnesiac, make sure you are not talking to the twin.

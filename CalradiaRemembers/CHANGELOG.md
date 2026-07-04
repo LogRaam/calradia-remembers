@@ -2,6 +2,20 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.20.9.. 2026-07-03
+
+A small tool for the curious, to help validate the courier fix.
+
+### New (developer/testing)
+- **`cr.courier_test <settlement>`** console command: spawns a test courier from the named town or castle's
+  gate, riding to you with a stamped letter. If it reaches you, the courier cleared the walls; if it sits frozen
+  inside, that settlement can be reported. Handy for checking towns, port towns, and castles across the map.
+
+> On the couriers you cannot see: this is by design, not a bug. To keep saves safe, courier parties are removed
+> from the world before every save and are not respawned on load, so a letter in transit across a save then
+> arrives by an invisible fallback. And "waylaid" means the courier was genuinely caught and killed on the road,
+> which means it did leave the settlement, exactly what we want.
+
 ## v1.20.8.. 2026-07-03
 
 One fix, straight from a player's report.
