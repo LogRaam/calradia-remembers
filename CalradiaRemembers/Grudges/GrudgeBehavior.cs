@@ -56,6 +56,12 @@ namespace CalradiaRemembers.Grudges
       }
 
       /// <summary>Every grudge (live and resolved) this holder has ever nursed — cr.grudges dev truth.</summary>
+      /// <summary>Removes every grudge held by <paramref name="holderId" />. Test/console support so a self-test can seed a holder in a known, isolated state.</summary>
+      public void ClearGrudgesFor(string holderId)
+      {
+         if (!string.IsNullOrEmpty(holderId)) _ledger.Grudges.RemoveAll(g => g.HolderId == holderId);
+      }
+
       public IReadOnlyList<Grudge> GrudgesFor(string holderId)
          => string.IsNullOrEmpty(holderId)
             ? Array.Empty<Grudge>()
@@ -198,6 +204,13 @@ namespace CalradiaRemembers.Grudges
             GrudgeCandidateFacts facts = GrudgeBridge.BuildCandidateFacts(holder, source, magnitude, possessive);
 
             if (!GrudgePolicy.ShouldForm(facts)) return false;
+
+            // Same-event dedup: one holder does not accrue two grudges of the same source on the same day
+            // (e.g. an NPC-NPC divorce whose two spouses share a clan would otherwise plant the clan grudge
+            // twice on each member). Mirrors the migration backfill's holder+source+day identity.
+            if (_ledger.Grudges.Any(g => g.HolderId == holder.StringId && g.Source == source
+                                         && g.EventDay == today && !g.IsResolved))
+               return false;
 
             int regard = holder.GetRelation(target);
             int rigidity = GrudgePolicy.RigidityAt(regard, facts);

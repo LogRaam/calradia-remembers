@@ -38,10 +38,21 @@ namespace CalradiaRemembers.Marriage
    public sealed class DivorceProcessBehavior : CampaignBehaviorBase
    {
       /// <summary>
+      ///   Tuning: at/above this regard for the set-aside spouse, a living hero is a genuine enough friend to count
+      ///   toward their "three best friends" for <see cref="DivorceConsequences.FriendReaction" /> purposes — set
+      ///   above <c>ContextualNameResolver</c>'s own "friend (genuine regard)" bar of 10, since these three are meant
+      ///   to be the CLOSEST bonds, not merely cordial acquaintances.
+      /// </summary>
+      private const int BestFriendThreshold = 20;
+
+      /// <summary>
       ///   Appreciations pillar: the fixed formation magnitude for a DivorceGratitude plant — comparable to
       ///   AppreciationBackfillRules.KindnessInSceneMagnitude.
       /// </summary>
       private const int DivorceGratitudeAppreciationMagnitude = 30;
+
+      /// <summary>Tuning: at most this many of the set-aside spouse's best friends take up a hidden grudge on their behalf.</summary>
+      private const int FriendTierSize = 3;
 
       private const string SaveKey = "CalradiaRemembers_Divorce_v1bytes";
 
@@ -145,30 +156,26 @@ namespace CalradiaRemembers.Marriage
       #region private
 
       /// <summary>
-      ///   One clan's verdict, applied per living member (excluding <paramref name="excludeMember" /> and
-      ///   the player): a grudge per member, or a relief/gratitude nudge per member. Shared by
-      ///   <see cref="DivorceConsequences.SpouseClanReaction" />, <see cref="DivorceConsequences.DivorcerClanReaction" />
-      ///   and <see cref="DivorceConsequences.UnblessedFamilyReaction" /> alike.
+      ///   One hero's verdict: a grudge (<see cref="GrudgeBehavior.TryPlant" />), or a relief/gratitude relation nudge
+      ///   plus its matching Appreciations-pillar plant. Shared by every member of both
+      ///   <see cref="DivorceConsequences.DirectFamilyReaction" />'s family set and
+      ///   <see cref="DivorceConsequences.FriendReaction" />'s friend set — the per-member body is identical, only
+      ///   which hero and which reaction differ.
       /// </summary>
-      private static void ApplyClanReaction(PartyReaction reaction, Clan clan, Hero excludeMember, string cause, int today)
+      private static void ApplyReactionTo(PartyReaction reaction, Hero hero, string cause, int today)
       {
-         if (reaction == null || clan?.Heroes == null || Hero.MainHero == null) return;
+         if (reaction == null || hero == null || Hero.MainHero == null) return;
 
-         foreach (Hero member in clan.Heroes.ToList())
-         {
-            if (member == null || member == excludeMember || member == Hero.MainHero || !member.IsAlive) continue;
+         if (reaction.Kind == ReactionKind.PlantGrudge)
+            GrudgeBehavior.Instance?.TryPlant(hero, Hero.MainHero, GrudgeSource.Divorce, cause,
+               reaction.GrudgeMagnitude, reaction.KnownToPlayer, today);
+         else if (reaction.RelationNudge != 0)
+            ApplyPersonalRelief(hero, reaction.RelationNudge);
 
-            if (reaction.Kind == ReactionKind.PlantGrudge)
-               GrudgeBehavior.Instance?.TryPlant(member, Hero.MainHero, GrudgeSource.Divorce, cause,
-                  reaction.GrudgeMagnitude, reaction.KnownToPlayer, today);
-            else if (reaction.RelationNudge != 0)
-               ApplyPersonalRelief(member, reaction.RelationNudge);
-
-            // Appreciations pillar: a clan whose Gratitude verdict fires (an unwanted marriage/alliance
-            // finally over) also FEELS it as a lingering kindness, a channel separate from the personal
-            // relation nudge above.
-            TryPlantDivorceGratitude(reaction.Kind, member, today);
-         }
+         // Appreciations pillar: a hero whose Gratitude verdict fires (an unwanted marriage/alliance
+         // finally over) also FEELS it as a lingering kindness, a channel separate from the personal
+         // relation nudge above.
+         TryPlantDivorceGratitude(reaction.Kind, hero, today);
       }
 
       /// <summary>
@@ -208,24 +215,10 @@ namespace CalradiaRemembers.Marriage
 
          // Appreciations pillar: the resolver never actually assigns Gratitude to the spouse's own
          // verdict today (only Relief or PlantGrudge — see DivorceConsequencePolicy.ResolveSpouseReaction),
-         // but the check is kept here too for symmetry with ApplyClanReaction and to stay correct should
+         // but the check is kept here too for symmetry with ApplyReactionTo and to stay correct should
          // that ever change.
          TryPlantDivorceGratitude(reaction.Kind, spouse, today);
       }
-
-      /// <summary>
-      ///   Conservative v1 "did these clans value the union as a political alliance" proxy (Gabriel,
-      ///   04/07/2026): no dedicated alliance ledger exists yet, so the two spouses' clans are read as
-      ///   having valued the match when they are the SAME clan or share a faction at divorce time — the
-      ///   same same-faction pattern already used elsewhere in this codebase (SchemeStore, ContextualNameResolver,
-      ///   LetterTriggerEvaluator) as an "allied" proxy. Symmetric by construction: the marriage was one
-      ///   shared alliance, so both <see cref="DivorceFacts.SpouseClanValuedAlliance" /> and
-      ///   <see cref="DivorceFacts.DivorcerClanValuedAlliance" /> read the same fact.
-      /// </summary>
-      private static bool ClansValuedTheAlliance(Hero npc, Hero spouse)
-         => npc?.Clan != null &&
-            spouse?.Clan != null &&
-            (npc.Clan == spouse.Clan || npc.Clan.MapFaction != null && npc.Clan.MapFaction == spouse.Clan.MapFaction);
 
       private static int CurrentDay() => (int) CampaignTime.Now.ToDays;
 
@@ -233,6 +226,62 @@ namespace CalradiaRemembers.Marriage
          => string.IsNullOrEmpty(id)
             ? null
             : Hero.FindFirst(h => h.StringId == id);
+
+      /// <summary>
+      ///   The set-aside spouse's immediate ADULT family (father, mother, siblings, children), resolved via the
+      ///   reliable Hero family API rather than <c>OriginClan</c> (a clan can hold members far beyond the nuclear
+      ///   family). Excludes the player, the divorcer, the spouse themselves, the dead, and children too young to
+      ///   hold a grudge (<see cref="Hero.IsChild" /> — the same adult gate <c>CompanionRapportBehavior</c> already
+      ///   uses elsewhere in this codebase), and dedups (a sibling who is also, say, a shared parent's other child
+      ///   would otherwise appear twice).
+      /// </summary>
+      private static List<Hero> ResolveDirectFamily(Hero spouse, Hero npc)
+      {
+         var result = new List<Hero>();
+
+         if (spouse == null) return result;
+
+         var candidates = new List<Hero>();
+         if (spouse.Father != null) candidates.Add(spouse.Father);
+         if (spouse.Mother != null) candidates.Add(spouse.Mother);
+         if (spouse.Siblings != null) candidates.AddRange(spouse.Siblings);
+         if (spouse.Children != null) candidates.AddRange(spouse.Children);
+
+         var seenIds = new HashSet<string>();
+         foreach (Hero member in candidates)
+         {
+            if (member == null || member == npc || member == spouse || member == Hero.MainHero) continue;
+            if (!member.IsAlive || member.IsChild) continue;
+            if (!seenIds.Add(member.StringId)) continue;
+
+            result.Add(member);
+         }
+
+         return result;
+      }
+
+      /// <summary>
+      ///   The set-aside spouse's THREE BEST living friends: the top <see cref="FriendTierSize" /> heroes by regard
+      ///   FOR THE SPOUSE (not for the player) that clear <see cref="BestFriendThreshold" />, excluding the player,
+      ///   the divorcer, the spouse themselves, and anyone already counted in <paramref name="directFamily" /> (a
+      ///   dedup guard only — <see cref="GrudgeBehavior.TryPlant" /> already dedups by holder+source+day, so a
+      ///   family member who also clears the friend bar would not double-grudge even without this).
+      /// </summary>
+      private static List<Hero> ResolveThreeBestFriends(Hero spouse, Hero npc, IReadOnlyCollection<Hero> directFamily)
+      {
+         if (spouse == null) return new List<Hero>();
+
+         var familyIds = new HashSet<string>(directFamily.Select(h => h.StringId));
+
+         return Hero.AllAliveHeroes
+                    .Where(h => h != null && h != spouse && h != npc && h != Hero.MainHero && !familyIds.Contains(h.StringId))
+                    .Select(h => new {Hero = h, Regard = h.GetRelation(spouse)})
+                    .Where(x => x.Regard >= BestFriendThreshold)
+                    .OrderByDescending(x => x.Regard)
+                    .Take(FriendTierSize)
+                    .Select(x => x.Hero)
+                    .ToList();
+      }
 
       private static int TraitLevel(Hero hero, TraitObject trait)
       {
@@ -319,7 +368,7 @@ namespace CalradiaRemembers.Marriage
       ///   baseline SET already applied by the caller, and <see cref="ReactionKind.None" /> is a no-op.
       ///   Runs inside the caller's <c>SafeRun.Step</c> guard, so this itself does not need its own
       ///   top-level try/catch, but still null-guards every optional collaborator (GrudgeBehavior.Instance,
-      ///   clans, Hero.MainHero) since a divorce can complete even when one of those is unexpectedly absent.
+      ///   Hero.MainHero) since a divorce can complete even when one of those is unexpectedly absent.
       /// </summary>
       private void ApplyConsequenceMatrix(Hero npc,
                                           Hero spouse,
@@ -330,36 +379,37 @@ namespace CalradiaRemembers.Marriage
       {
          if (Hero.MainHero == null) return;
 
-         bool alliedClans = ClansValuedTheAlliance(npc, spouse);
          var facts = new DivorceFacts {
             MutualConsent = mutualConsent,
             // Every vanilla marriage is blessed by default (Gabriel, 04/07/2026: "Le mariage est béni de
             // base en Vanille"); a future forced/unblessed-marriage feature would be the first to ever
-            // set this false, which is the only thing that wakes UnblessedFamilyReaction up.
+            // set this false, which is the only thing that wakes the family's gratitude fold-in up.
             MarriageWasBlessed = true,
-            SpouseRegardForPlayer = spouseVsPlayerBefore,
-            SpouseClanValuedAlliance = alliedClans,
-            DivorcerClanValuedAlliance = alliedClans
+            SpouseRegardForPlayer = spouseVsPlayerBefore
          };
 
          DivorceConsequences consequences = DivorceConsequencePolicy.Resolve(facts);
 
          ApplySpouseReaction(consequences.SpouseReaction, spouse, setAsideCause, today);
-         ApplyClanReaction(consequences.SpouseClanReaction, spouse.Clan, spouse, setAsideCause, today);
-         ApplyClanReaction(consequences.DivorcerClanReaction, npc.Clan, npc, setAsideCause, today);
 
-         // Dormant until unblessed marriages exist: MarriageWasBlessed is hardcoded true above, so this
-         // reaction is always ReactionKind.None today and the loop below is a guaranteed no-op. The
-         // spouse's own clan is the "family that never blessed it" once that fact can ever be false.
-         ApplyClanReaction(consequences.UnblessedFamilyReaction, spouse.Clan, spouse, setAsideCause, today);
+         // Owner ruling 04/07/2026: a repudiated divorce grudges the wronged spouse's IMMEDIATE FAMILY and
+         // THREE BEST FRIENDS, not the whole clan (an extended-clan grudge would mostly fall below the
+         // formation floor anyway). Resolve both circles live off the spouse, apply per member.
+         List<Hero> directFamily = ResolveDirectFamily(spouse, npc);
+         foreach (Hero member in directFamily)
+            ApplyReactionTo(consequences.DirectFamilyReaction, member, setAsideCause, today);
+
+         List<Hero> bestFriends = ResolveThreeBestFriends(spouse, npc, directFamily);
+         foreach (Hero friend in bestFriends)
+            ApplyReactionTo(consequences.FriendReaction, friend, setAsideCause, today);
       }
 
       /// <summary>
       ///   Scandal world-event + NotableEvents on both profiles, the baseline relation SET (correcting for
       ///   whatever hidden penalty the engine applied during the act, so CR owns the emotional outcome), and
       ///   the FULL signed grudge matrix (Grudges pillar, <see cref="DivorceConsequencePolicy" />): the
-      ///   set-aside spouse grudges or feels relief, and BOTH clans (the spouse's own and the divorcer's
-      ///   own) either grudge a lost valued alliance or feel relief/gratitude to see it end. The baseline
+      ///   set-aside spouse grudges or feels relief, and their immediate family and three best friends either
+      ///   grudge the lost match on the spouse's behalf or feel relief/gratitude to see it end. The baseline
       ///   SET and the matrix are two separate channels applied one after the other, never double-counted.
       /// </summary>
       private void ApplySuccessConsequences(Hero npc,

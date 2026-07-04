@@ -1,4 +1,7 @@
 // Code written by Gabriel Mailhot, 04/07/2026.
+// 07/04/2026: narrowed the repudiated-divorce blast radius per Gabriel's ruling — the wronged spouse's
+// IMMEDIATE FAMILY and THREE BEST FRIENDS grudge the player, not the whole clan (30% of the old clan
+// magnitude would fall below the formation floor anyway, so a clan-wide grudge was mostly noise).
 
 #region
 
@@ -70,9 +73,6 @@ namespace CalradiaRemembers.Logic
    /// </summary>
    public sealed class DivorceFacts
    {
-      /// <summary>Same as <see cref="SpouseClanValuedAlliance" />, for the clan of the NPC who initiated the divorce.</summary>
-      public bool DivorcerClanValuedAlliance { get; set; }
-
       /// <summary>
       ///   True when the marriage was an approved/arranged union the families valued as a political alliance, vs made
       ///   against their will.
@@ -81,12 +81,6 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>True when the set-aside spouse acquiesced (never resisted) — see <see cref="DivorcePolicy.IsMutualConsent" />.</summary>
       public bool MutualConsent { get; set; }
-
-      /// <summary>
-      ///   True when the ex-spouse's own clan saw this marriage as a valuable political alliance (typically paired with a
-      ///   blessed union).
-      /// </summary>
-      public bool SpouseClanValuedAlliance { get; set; }
 
       /// <summary>
       ///   The set-aside spouse's prior regard for the player; downstream, <c>GrudgePolicy.RigidityAt</c> turns this into
@@ -100,20 +94,22 @@ namespace CalradiaRemembers.Logic
    /// <summary>The full per-party verdict for one divorce, one <see cref="PartyReaction" /> per stake.</summary>
    public sealed class DivorceConsequences
    {
-      /// <summary>The divorcer's own clan's reaction (applied per living clan member by the engine).</summary>
-      public PartyReaction DivorcerClanReaction { get; set; }
+      /// <summary>
+      ///   The set-aside spouse's IMMEDIATE ADULT FAMILY's reaction (father, mother, siblings, children — resolved live by
+      ///   the engine via the Hero family API, applied per qualifying member). Replaces the old clan-wide grudge: the
+      ///   extended clan feels nothing today, by design.
+      /// </summary>
+      public PartyReaction DirectFamilyReaction { get; set; }
 
-      /// <summary>The ex-spouse's own clan's reaction (applied per living clan member by the engine).</summary>
-      public PartyReaction SpouseClanReaction { get; set; }
+      /// <summary>
+      ///   The set-aside spouse's THREE BEST FRIENDS' reaction (the top 3 living heroes by regard for the spouse, applied
+      ///   per qualifying member). A quiet resentment taken up on their friend's behalf — narrower and less publicly voiced
+      ///   than the family's.
+      /// </summary>
+      public PartyReaction FriendReaction { get; set; }
 
       /// <summary>The set-aside spouse's own reaction.</summary>
       public PartyReaction SpouseReaction { get; set; }
-
-      /// <summary>
-      ///   The family that opposed an unblessed marriage and is glad to see it dissolved.
-      ///   <see cref="ReactionKind.None" /> when the marriage was blessed.
-      /// </summary>
-      public PartyReaction UnblessedFamilyReaction { get; set; }
    }
 
    /// <summary>
@@ -123,40 +119,32 @@ namespace CalradiaRemembers.Logic
    /// </summary>
    public static class DivorceConsequencePolicy
    {
-      /// <summary>
-      ///   Tuning: the gratitude nudge for a clan whose unblessed marriage is finally over (they never wanted it, and now
-      ///   do not have to keep enduring it).
-      /// </summary>
-      public const int ClanGratitudeRelationNudge = 12;
-
-      // ── Clans (spouse's own, and the divorcer's own — symmetric rules) ──
+      // ── The spouse's immediate family ───────────────────────────────────
 
       /// <summary>
-      ///   Tuning: the per-clan-member grudge magnitude when a blessed, valued alliance is lost to the divorce (smaller
-      ///   than the spouse's own — the spouse lived the betrayal directly, the clan only loses the match).
+      ///   Tuning: the grudge magnitude for each qualifying immediate-family member (father, mother, siblings, children) of
+      ///   the repudiated spouse. Smaller than the spouse's own — the family loses one of their own to a broken match, not
+      ///   the betrayal itself — but voiced openly (see <see cref="KnownToPlayer" /> on the reaction), unlike the friends'.
       /// </summary>
-      public const int ClanGrudgeMagnitude = 35;
+      public const int DirectFamilyGrudgeMagnitude = 35;
 
       /// <summary>
-      ///   Tuning: the relief nudge for a clan that never particularly valued the alliance, even though the marriage had
-      ///   been blessed.
+      ///   Tuning: the gratitude nudge for the family that opposed an unblessed marriage from the start, now that it has
+      ///   ended. Dormant today: <c>DivorceProcessBehavior</c> hardcodes every marriage as blessed until a forced/unblessed-
+      ///   marriage feature exists, which is the only thing that would ever set <see cref="DivorceFacts.MarriageWasBlessed" />
+      ///   false and wake this branch up.
       /// </summary>
-      public const int ClanReliefRelationNudge = 8;
+      public const int UnblessedFamilyGratitudeRelationNudge = 15;
+
+      // ── The spouse's three best friends ──────────────────────────────────
 
       /// <summary>
-      ///   Tuning: at/below this prior regard for the player, the repudiated spouse already disliked them, so the grudge
-      ///   is nursed HARDER (a modest magnitude bump; actual rigidity is still computed downstream by
-      ///   <c>GrudgePolicy.RigidityAt</c> from this same regard).
+      ///   Tuning: the grudge magnitude for each of the repudiated spouse's three best (living) friends. Smaller still than
+      ///   the family's, and hidden from the player (<see cref="ReactionKind.PlantGrudge" />'s <c>KnownToPlayer</c> is false)
+      ///   — a quiet resentment nursed on a friend's behalf, not a grievance the friend makes a show of.
       /// </summary>
-      public const int LowRegardThreshold = -10;
+      public const int FriendGrudgeMagnitude = 30;
 
-      /// <summary>
-      ///   Tuning: mutual consent SOFTENS what would otherwise be a clan grudge (a valued, blessed alliance lost) down to
-      ///   a mild relief instead — both sides wanted it, so less blame lands on the player. Deliberately smaller than
-      ///   <see cref="ClanReliefRelationNudge" />: this clan did lose something it valued, so its relief is more muted than a
-      ///   clan that never cared either way.
-      /// </summary>
-      public const int MutualSoftenedClanReliefRelationNudge = 6;
       // ── Spouse (the set-aside party) ────────────────────────────────────
 
       /// <summary>Tuning: the repudiated spouse's grudge magnitude before the low-regard bonus.</summary>
@@ -169,26 +157,17 @@ namespace CalradiaRemembers.Logic
       public const int SpouseGrudgeLowRegardBonus = 15;
 
       /// <summary>
+      ///   Tuning: at/below this prior regard for the player, the repudiated spouse already disliked them, so the grudge
+      ///   is nursed HARDER (a modest magnitude bump; actual rigidity is still computed downstream by
+      ///   <c>GrudgePolicy.RigidityAt</c> from this same regard).
+      /// </summary>
+      public const int LowRegardThreshold = -10;
+
+      /// <summary>
       ///   Tuning: the small relief nudge for a spouse who acquiesced to the divorce (mutual consent softens even the one
       ///   party closest to it — they wanted this too).
       /// </summary>
       public const int SpouseMutualReliefRelationNudge = 5;
-
-      // ── The unblessed-marriage family ───────────────────────────────────
-
-      /// <summary>
-      ///   Tuning: the gratitude nudge for the family that opposed an unblessed marriage from the start, now that it has
-      ///   ended.
-      /// </summary>
-      public const int UnblessedFamilyGratitudeRelationNudge = 15;
-
-      /// <summary>
-      ///   True when a clan (spouse's own or the divorcer's own) reacts with a grudge: the marriage was
-      ///   blessed, this clan valued it as an alliance, and the split was not mutual. Mutual consent always
-      ///   softens this case to <see cref="ReactionKind.Relief" /> instead.
-      /// </summary>
-      public static bool ClanWouldGrudge(bool marriageWasBlessed, bool clanValuedAlliance, bool mutualConsent)
-         => marriageWasBlessed && clanValuedAlliance && !mutualConsent;
 
       // ── Resolution ───────────────────────────────────────────────────────
 
@@ -204,9 +183,8 @@ namespace CalradiaRemembers.Logic
 
          return new DivorceConsequences {
             SpouseReaction = ResolveSpouseReaction(facts),
-            SpouseClanReaction = ResolveClanReaction(facts.MarriageWasBlessed, facts.SpouseClanValuedAlliance, facts.MutualConsent),
-            DivorcerClanReaction = ResolveClanReaction(facts.MarriageWasBlessed, facts.DivorcerClanValuedAlliance, facts.MutualConsent),
-            UnblessedFamilyReaction = ResolveUnblessedFamilyReaction(facts)
+            DirectFamilyReaction = ResolveDirectFamilyReaction(facts),
+            FriendReaction = ResolveFriendReaction(facts)
          };
       }
 
@@ -228,24 +206,30 @@ namespace CalradiaRemembers.Logic
       private static PartyReaction Relief(int relationNudge) => new() {Kind = ReactionKind.Relief, GrudgeMagnitude = 0, KnownToPlayer = false, RelationNudge = relationNudge};
 
       /// <summary>
-      ///   Shared logic for both <see cref="DivorceConsequences.SpouseClanReaction" /> and
-      ///   <see cref="DivorceConsequences.DivorcerClanReaction" /> — the two are symmetric, differing only
-      ///   in which "valued the alliance" fact feeds them. Precedence: a blessed, valued, non-mutual split
-      ///   grudges; mutual consent softens that same case to relief; otherwise MarriageWasBlessed alone
-      ///   decides between gratitude (unblessed: this clan never wanted the match) and mild relief (blessed,
-      ///   but this clan simply did not prize the alliance).
+      ///   The immediate family's verdict: a blessed, repudiated split makes them grudge the player openly
+      ///   (<c>KnownToPlayer = true</c> — they voice their anger); mutual consent leaves them untouched. An
+      ///   unblessed marriage (dormant today, see <see cref="UnblessedFamilyGratitudeRelationNudge" />) folds in as
+      ///   gratitude instead, regardless of who initiated the split — this family never wanted the match, so its end
+      ///   is a relief even when the spouse themselves was the one set aside.
       /// </summary>
-      private static PartyReaction ResolveClanReaction(bool marriageWasBlessed, bool clanValuedAlliance, bool mutualConsent)
+      private static PartyReaction ResolveDirectFamilyReaction(DivorceFacts facts)
       {
-         if (marriageWasBlessed && clanValuedAlliance)
-            return mutualConsent
-               ? Relief(MutualSoftenedClanReliefRelationNudge)
-               : Grudge(ClanGrudgeMagnitude, false);
+         if (!facts.MarriageWasBlessed) return Gratitude(UnblessedFamilyGratitudeRelationNudge);
 
-         return marriageWasBlessed
-            ? Relief(ClanReliefRelationNudge)
-            : Gratitude(ClanGratitudeRelationNudge);
+         return facts.MutualConsent
+            ? NoneReaction()
+            : Grudge(DirectFamilyGrudgeMagnitude, true);
       }
+
+      /// <summary>
+      ///   The three best friends' verdict: a repudiated split earns each a hidden grudge on their friend's behalf;
+      ///   mutual consent leaves them untouched. Unlike the family, friends do not care whether the marriage was ever
+      ///   a blessed political alliance — they are reacting to their friend's own heartbreak, not a lost match.
+      /// </summary>
+      private static PartyReaction ResolveFriendReaction(DivorceFacts facts)
+         => facts.MutualConsent
+            ? NoneReaction()
+            : Grudge(FriendGrudgeMagnitude, false);
 
       private static PartyReaction ResolveSpouseReaction(DivorceFacts facts)
       {
@@ -258,11 +242,6 @@ namespace CalradiaRemembers.Logic
 
          return Grudge(magnitude, true);
       }
-
-      private static PartyReaction ResolveUnblessedFamilyReaction(DivorceFacts facts)
-         => facts.MarriageWasBlessed
-            ? NoneReaction()
-            : Gratitude(UnblessedFamilyGratitudeRelationNudge);
 
       #endregion
    }
