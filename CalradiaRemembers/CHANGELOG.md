@@ -2,6 +2,60 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.21.1.. 2026-07-04
+
+A hotfix for a crash reported right after v1.21.0.
+
+### Fixed
+- **Conversations no longer crash on some saves.** On certain game builds a conversation could close with a
+  "method not found" error the moment you spoke to anyone, because the new divorce feature read a game property
+  (a hero's origin clan) that build does not expose. The mod no longer hard-depends on it: when that property is
+  present it is used as before, and when it is absent (an older build, or a beta that renamed it) divorce stays
+  fully functional, deciding which spouse relocates by a clan-leader heuristic instead. New campaigns were
+  unaffected; the crash only hit older saves where a married couple already existed.
+- **A single faulty conversation option can no longer close the whole chat.** As a safety net beyond the fix
+  above, if any one conversation action ever fails to evaluate, it is now quietly left out for that turn instead
+  of bringing down the entire chat window.
+
+## v1.21.0.. 2026-07-03
+
+Two big additions this release: NPCs now carry resolvable GRUDGES you can see and mend, and you can persuade a
+lord or lady to end a marriage. Plus a batch of fixes from your bug reports (thank you, keep them coming).
+
+### New: Grudges, a resolvable memory of what was done
+- NPCs now hold event-anchored grudges, distinct from their overall regard: someone can like you and still nurse
+  a specific wound (reconcilable), while someone who dislikes you AND holds a grudge is far harder to win back.
+  How rigid a grudge is depends on how they already regard you, and it softens over time (unless the wound is a
+  vendetta, or the holder is the kind who forgets nothing).
+- Grudges are born from the things that already mattered: jealousy, a warned or abetted plot, a task you left
+  unfinished, a marriage you broke, a bastard's claim. They colour how the NPC speaks to you.
+- A new "Grievances" section on an NPC's encyclopedia page shows the grudges you have actually LEARNED of (a
+  concealed grudge stays hidden until it surfaces), in plain words with a sense of how deep it runs.
+- Console: `cr.grudges [name]` (dev view of every grudge), `cr.grudge_test [name]` (plant a test grudge).
+- Existing saves are migrated silently: old jealousy/quest/divorce grievances already in your save become
+  grudges on load, with no double-counting and nothing lost.
+
+### New: Divorce (NPC case)
+- You can now persuade a lord or lady to end their marriage. How willing they are slides with how unhappy the
+  marriage is: a barely-unhappy spouse needs a deep bond with you, a wretched one needs only the opening, and a
+  spouse who is courting you leaves for you outright.
+- The consequences are signed by the parting: a spouse set aside against their will turns on you and the one who
+  left them, while a divorce both sides wanted stings far less. (A fuller family-by-family reckoning comes with
+  the grudge system above.)
+
+### Fixed (from your reports)
+- A gang leader (or a town notable, or a wanderer) no longer speaks like a lord on a throne. Each now carries
+  themselves in a voice fit to their station, editable in ModuleData for the curious.
+- In a keep with two people present, the NPC no longer answers in the wrong person's voice when you merely
+  MENTION the other by name. Only a real address ("Martira, ...") routes the turn to them now.
+- NPCs no longer guess a MENTIONED person's gender from an ambiguous name and "correct" you: they are now told
+  each named person's actual gender and instructed never to second-guess it.
+- The "A word with you..." option now appears when you speak with a clan member you assigned to run an alley.
+
+### Changed
+- In-chat: the Encyclopedia button moved down beside the text box, and the model-mode toggle moved to the far
+  left, clearing the header.
+
 ## v1.20.9.. 2026-07-03
 
 A small tool for the curious, to help validate the courier fix.
@@ -214,7 +268,7 @@ you can now truly talk it through.
   send in the chat box on the right). Close it with [b]Close Preview[/b].
 
 ### Fixed
-- The chat **input box and Send button no longer appear before the character has given their opening line** —
+- The chat **input box and Send button no longer appear before the character has given their opening line**..
   they stay hidden through the "(considering…)" moment and show once the introduction is delivered.
 - The "**scroll down to read more…**" hint no longer flashes up when a message actually fits the window; it
   appears only when the text genuinely overflows and you are scrolled up.

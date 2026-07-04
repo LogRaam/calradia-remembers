@@ -2,6 +2,7 @@
 
 #region
 
+using System;
 using CalradiaRemembers.Logic.Verbs;
 using FluentAssertions;
 using NUnit.Framework;
@@ -118,6 +119,30 @@ namespace CalradiaRemembers.Tests
          string result = registry.ComposeTeachings("ctx", new[] {"unknown_verb", "known_verb"});
 
          result.Should().Be("KNOWN\n");
+      }
+
+      private sealed class ThrowingVerb : IVerb<string, string, string>
+      {
+         public ThrowingVerb(string name) => Name = name;
+         public string Name { get; }
+         public bool IsEligible(string ctx) => throw new MissingMethodException("simulates a game API absent on this build");
+         public string TeachingText(string ctx) => "SHOULD_NOT_APPEAR\n";
+         public string Execute(string action, string ctx) => null;
+      }
+
+      [Test]
+      public void GIVEN_a_verb_whose_eligibility_throws_WHEN_composing_teachings_THEN_it_is_skipped_and_the_others_still_compose()
+      {
+         // The v1.21.0 crash: a verb's IsEligible touched a game API missing on the player's build and the
+         // exception closed EVERY conversation. One faulty verb must degrade to "unavailable", never a crash.
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeVerb("healthy_before", true, "BEFORE\n"));
+         registry.Register(new ThrowingVerb("faulty_verb"));
+         registry.Register(new FakeVerb("healthy_after", true, "AFTER\n"));
+
+         string result = registry.ComposeTeachings("ctx");
+
+         result.Should().Be("BEFORE\nAFTER\n");
       }
 
       // ── Execute ──────────────────────────────────────────────────────────

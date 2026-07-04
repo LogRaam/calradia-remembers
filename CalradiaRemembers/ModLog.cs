@@ -62,6 +62,31 @@ namespace CalradiaRemembers
         }
 
         /// <summary>
+        ///   A compatibility/degradation warning that is ALWAYS recorded, even when the MCM logging switch
+        ///   is off (its default on Nexus). Use ONLY for the rare "a game API we relied on is missing on
+        ///   this build" case: without an always-on trace the mod could quietly degrade after a TaleWorlds
+        ///   update and no one would know. Writes to the log file unconditionally (like the session header)
+        ///   and shows one in-game message so it cannot pass unnoticed.
+        /// </summary>
+        internal static void Compat(string message)
+        {
+            var line = $"[{DateTime.Now:HH:mm:ss}] [COMPAT] [{Tag}] {message}";
+
+            try { File.AppendAllText(LogPath, line + Environment.NewLine); }
+            catch { }
+
+            try
+            {
+                InformationManager.DisplayMessage(
+                    new InformationMessage($"[{Tag}] compatibility notice: {message}", Colors.Yellow));
+            }
+            catch
+            {
+                /* a UI call before the manager is ready must never crash startup */
+            }
+        }
+
+        /// <summary>
         ///   Logs a message both to the in-game console and to the log file.
         /// </summary>
         internal static void Info(string message)

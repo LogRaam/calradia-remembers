@@ -33,6 +33,9 @@ namespace CalradiaRemembers.Logic.Verbs
         /// <summary>
         ///   Composes the teaching text of the named verbs, in the given order, skipping any name that is
         ///   not registered and any verb that is not currently eligible. Null when nothing was composed.
+        ///   A verb whose eligibility or teaching THROWS is skipped, never allowed to escape: this runs on
+        ///   every conversation open, and one buggy verb must not brick the chat window (a v1.21.0 crash
+        ///   where a missing game API in a verb's IsEligible closed every conversation).
         /// </summary>
         public string ComposeTeachings(TContext ctx, IEnumerable<string> order)
         {
@@ -41,14 +44,28 @@ namespace CalradiaRemembers.Logic.Verbs
             var sb = new StringBuilder();
             foreach (string name in order)
             {
-                IVerb<TContext, TAction, TResult> verb = FindByName(name);
-                if (verb == null || !verb.IsEligible(ctx)) continue;
-
-                string text = verb.TeachingText(ctx);
+                string text = SafeTeachingFor(FindByName(name), ctx);
                 if (!string.IsNullOrEmpty(text)) sb.Append(text);
             }
 
             return sb.Length == 0 ? null : sb.ToString();
+        }
+
+        /// <summary>The eligible verb's teaching text, or null when it is unregistered, ineligible, or throws.</summary>
+        private static string SafeTeachingFor(IVerb<TContext, TAction, TResult> verb, TContext ctx)
+        {
+            if (verb == null) return null;
+
+            try
+            {
+                return verb.IsEligible(ctx) ? verb.TeachingText(ctx) : null;
+            }
+            catch
+            {
+                // A verb that faults (e.g. touches a game API absent on this build) is treated as simply
+                // unavailable this turn, rather than crashing the whole conversation.
+                return null;
+            }
         }
 
         /// <summary>Routes to the verb whose Name matches (ordinal, case-insensitive), or null when none is registered under that name.</summary>

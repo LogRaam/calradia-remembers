@@ -292,6 +292,133 @@ a second breakpoint splitting the universal header from the per-NPC block (Anthr
 
 ## Open — not yet built
 
+### Appreciations — event-anchored kindnesses, the positive mirror of Grudges *(wished 2026-07-04)*
+
+Gabriel's idea: we have regard (a blended score) and grudges (specific wounds that tell a story); we should also
+have APPRECIATIONS, the specific KINDNESSES the player did that marked an NPC positively, told as a story the
+same way a grudge is. Completes the affect model: regard = the number, grudges = what was done against them,
+appreciations = what was done for them, all three coexisting.
+
+**Design: a LEAN sibling, not a full mirror.** Reuse ~80% of the Grudge scaffolding (event-anchored model,
+magnitude, decay, knowledge-gating, prompt line, an encyclopedia "Kindnesses"/"Debts of gratitude" section next
+to Grievances, migration backfill from positive markers). But an appreciation has NO rigidity and NO resolution
+mechanic (a grudge's distinctive loop was "make amends"; a kindness has no equivalent). Its lifecycle is
+simpler: it forms, reinforces regard, and fades slowly. Sources: gifts/gold received from the player, being
+freed/ransomed, a quest done for them, troops/influence the player spent on their behalf, a kindness in a scene,
+the divorce Gratitude and the tier-2 positive reactions already produced by DivorceConsequencePolicy.
+
+**The payoff is the cross-interaction with grudges.** The "likes you but resents you" texture becomes fully told
+from BOTH sides at once (an appreciation over X coexisting with a grudge over Y). And a grave betrayal can
+TARNISH standing appreciations (a fresh high-magnitude grudge sours old kindnesses), a rich narrative beat the
+grudge-only model can't express. SEQUENCING: build AFTER the Grudge engine wiring is proven, as its own
+increment, reusing the wired patterns.
+
+### Grudges — resolvable, event-anchored grievances *(ratified 2026-07-03 — a new pillar)*
+
+**Why this is a pillar.** The mod has three affect surfaces today and none does what a grudge is: RELATION is one
+number that blends everything (a wrong is diluted by fondness), STANCE is a dispositional posture (fear, trust),
+and MEMORIES contain the grievances but as passive text with no structured state and no path to closure. A
+first-class Grudge is: anchored on a specific EVENT + coexisting with regard + RESOLVABLE. Gabriel's framing:
+an NPC can like the player yet hold something against them (reconcilable); one who dislikes them AND holds a
+grudge is far harder to win over. So the regard sets the grudge's RIGIDITY (how hard resolution is), and the
+grudge colours the prompt separately from warmth ("you look on the player kindly, BUT you nurse a grievance for
+X, and it tints every exchange until mended").
+
+**Consolidation, not a bolt-on.** The mod already has grudges everywhere, each ad hoc and unresolvable: the
+jealousy grudges, the bastard mother/claimant resentment, the scheme-backlash treachery, the breached pledge
+("promised and did nothing"), and now the divorce's set-aside spouse. A pure `Grudge` (cause, magnitude,
+resolution condition [amends/gift/deed/time], rigidity = f(regard)) + `GrudgePolicy` unifies them. Build order:
+pure model + tests -> migrate ONE existing mechanic as the reference (jealousy or the breached pledge) -> prompt
+surfacing -> generalize. The DIVORCE consequence matrix is the first big client: instead of flat relation
+deltas, the divorce PLANTS signed grudges (the repudiated spouse's grudge is rigid or soft depending on their
+prior regard for the player; a mutual-consent ex barely grudges at all; a family that never blessed the marriage
+is RELIEVED, no grudge, possibly gratitude). This subsumes the signed-consequence taxonomy (spouse repudiated vs
+mutual; ex-clan valued the alliance vs disapproved; NPC's own clan relieved vs outraged; the unblessed-marriage
+family that WANTED the divorce).
+
+**SAVE MIGRATION IS A HARD REQUIREMENT (Gabriel, 2026-07-03).** Players switching from the old system to the
+new MUST be supported, silently if need be. The plan, binding for increment 1:
+- **Additive persistence only**: the grudge store is a NEW byte[] SyncData key (Schemes/Commitments pattern); no
+  existing key, ordinal, or field changes. Old save + new mod = missing key = empty store + backfill. New save +
+  old mod = unknown key ignored = grudges lost but NOTHING breaks (rollback-safe both ways).
+- **One-shot idempotent backfill** on session launch (stamped with a migration version): scan each profile's
+  persisted NotableEvents and SYNTHESIZE grudges from the clear markers that already exist (jealousy grievances,
+  bastard resentment, scheme treachery, breached-pledge summaries, divorce set-aside). Conservative: a grudge is
+  only created from an unambiguous marker, never an interpretation.
+- **Graceful degradation as the net**: a grievance the backfill misses behaves exactly as today (the memory is
+  still in the prompt, the applied relation stays applied) — a partial migration failure is the status quo, not
+  a regression.
+- **No double-counting**: past relation hits are never replayed or refunded; the synthesized grudge adds
+  RESOLVABILITY on top of what already happened.
+- **Migration tests are a first-class deliverable**: synthetic old-style profiles in, asserted grudges out,
+  idempotence (two passes = same result), empty case. The migrator lives in .Logic, pure and unit-tested.
+- **Migration reality per source (read-only inventory, 2026-07-03)**: RELIABLE = jealousy
+  (`NotableEventType.Jealousy` ord 11, mod-exclusive, but NOT compressor-protected so prunable, we now
+  protect it), failed/abandoned quest (structured `InformalQuest.Status Expired/Abandoned` as the primary
+  marker; pruned to 10), divorce set-aside spouse (`Betrayal` + "Was set aside by ... at the player's
+  urging.", compressor-PROTECTED, the most durable). PARTIAL = bastard claim (Scandal WorldEvent,
+  InvolvesPlayer=true, "presses a claim against their house", kept long-term). UNRECOVERABLE = scheme-warned
+  (an anonymous relation delta only) and scheme-abetted beyond the 42-day rumor window: NOT backfilled,
+  live-planted-only from the wiring increment on (the graceful-degradation net working as designed).
+
+**PURE FOUNDATION EXTENDED overnight 2026-07-04 (test-first .Logic, UNCOMMITTED, NO engine wiring, 960 tests):**
+three pure policies now exist and are documented by their tests: (1) `GrudgeResolutionPolicy` (the "resolvable"
+half: a matching gesture Amends/Gift/Deed Resolves or Softens a grudge, gated by rigidity + traits; vendetta
+always Rejected; Time-kind only nudged); (2) `DivorceConsequencePolicy` (the full signed matrix: per-role
+PlantGrudge/Relief/Gratitude/None from mutual-vs-repudiated x blessed-vs-unblessed x each clan's alliance
+stake); (3) `Tier2GrudgeRules` (DeliveredPrisoner, CaptiveAbuse [absorbs the companion revenge driver],
+SwayExposed [hidden], UnblessedMarriage [clears on divorce]). OPEN DESIGN QUESTION surfaced by all three:
+`MarriageWasBlessed` / clan-valued-alliance have NO current source for NPC-NPC marriages (MarriageApproval only
+tracks the PLAYER's marriages) — needs a derivation (allied clans / same faction / conservative default) or a
+new persisted flag. Wiring increments (per policy) fully specified in the overnight morning report.
+
+**The source catalog (Gabriel, 2026-07-03: "faire le tour des systèmes pour alimenter le grudge").** Tiered
+by delivery stage; Tier 1 doubles as the MIGRATION BACKFILL list (their markers already sit in saves):
+- *Tier 1, existing ad hoc resentments*: jealousy (the staked party: spouse-of-X / player's partner / rival /
+  spurned admirer); scheme WARNED (the player tips the target -> the PLOTTER grudges the player for exposing
+  the plot, today a one-shot -33); scheme ABETTED then discovered (the wronged target grudges the player);
+  FAILED or ABANDONED quest (the giver: "you gave your word", intensity by giver traits + task weight, today a
+  dry penalty with no path to redemption); divorce repudiation; bastards (the claim, unpaid blackmail, the
+  Resentful mother).
+- *Tier 2, new detections, high value*: the DELIVERED PRISONER ("you sold me to my enemy", give_prisoner);
+  the CAPTIVE-SCENE VICTIM (NPC or companion, unifies the planned companion revenge driver, which becomes a
+  client of this pillar instead of its own system); the SWAY TARGET who hears the Rivalry rumour ("you turned
+  X against me", emergent from the existing rumour spread); the UNBLESSED-MARRIAGE family (grudges the player
+  while the union lasts, relieved at its divorce, the signed matrix).
+- *Tier 3, vanilla events, dose carefully*: the kin of an EXECUTED lord (a PERMANENT grudge, infinite rigidity,
+  the vendetta end of the spectrum); battle defeats/captures probably TOO NOISY, sample or exclude.
+
+**Trait-modulated susceptibility (the "jealous trait" point).** Traits drive FORMATION threshold, INTENSITY,
+RIGIDITY (resolution cost), and DECAY: Possessive/MonogamousStrict romantic prefs = jealousy grudges form more
+easily and hold harder (monogamous cultures amplify, reuse jealousy_cultures.json); high Calculating = forms
+easily, never decays, resolution wants payment or power; high Mercy = forgiving (high threshold, fast decay,
+a sincere amend suffices) while low Mercy tallies everything; high Honor = grudges broken WORD above all (failed
+quests, oaths) yet honours amends rituals; low Valor = fearful grudges expressed through schemes, never to your
+face. The player-regard interaction stays the master rule: regard sets how hard resolution is.
+
+**Anti-noise guardrails.** Not every negative event is a grudge, or the system duplicates relation as noise: a
+grudge requires SIGNIFICANT + ATTRIBUTABLE + a conceivable resolution path (or an explicit vendetta), a
+magnitude floor, and a PER-NPC CAP (the 2-3 dominant grievances, never a bookkeeper's ledger).
+
+**Surfacing (ratified 2026-07-03: yes, Encyclopedia, but KNOWLEDGE-GATED, never omniscient).** A "Grievances"
+section on the hero's encyclopedia page (a mixin, the house pattern: PersonalRelation / DiscoveredTraits /
+Happiness / Chronicle button), showing only grudges the player KNOWS: narrative text, no numbers, the cause + a
+qualitative rigidity word ("a fresh wound", "an old bitterness", "unforgivable") + the resolution hint only if
+discovered. Knownness model (precedent: DiscoveredTraits = the player knows what they have learned): (a) known
+at birth when the cause was PUBLIC or aimed at the player (a divorce scandal, an openly pressed bastard claim, a
+jealous-threat letter received, a quest the player themselves failed, a prisoner the player delivered); (b)
+known once the NPC voices it (conversation or letter); (c) HIDDEN otherwise, a low-Valor/high-Calculating
+schemer conceals theirs (the exposed-plot patron who grudges the warner stays smooth), preserving the
+stance-assassin surprise pattern, and its late unmasking is a gameplay moment. The same knownness flag drives
+the PROMPT in mirror: a known grudge may be named openly by the NPC; a hidden one instructs concealment
+(courteous but cold, the validated assassin register). Console `cr.grudges [name]` shows everything (dev
+truth), the encyclopedia shows only what the player earned.
+
+Sequencing: the divorce ships first (v1.21.0) with SIMPLE interim consequences (DONE 2026-07-03: relations are
+SET from pre-dissolution baselines, neutralizing the engine's hidden penalty, signed by mutual-consent-vs-
+repudiated read from the spouse's RESISTANCE, since engine relations are symmetric per pair); the full signed
+matrix lands WITH the grudge pillar so it is coded once.
+
 ### RP with teeth, giving conversations real consequences *(ratified 2026-07-02 — a new pillar)*
 
 **Why this is a pillar.** CR's roleplay has always been rich in *voice* but thin in *stakes* outside the
@@ -445,7 +572,9 @@ plain Funcs, no TaleWorlds dependency) plus a mod-side `ExternalVerbAdapter` pro
 can sit in the SAME registry as CR's own verbs. **NOT yet built:** the public `Actions.Register(...)` entry
 point and its `Feed.Record`-style validation pipeline (source id, quota, name-collision): that is the next
 increment. The other ~20 conversation actions stay on the old switch-based path for now (incremental
-migration later). A future **divorce** verb is a natural first INTERNAL consumer of this same contract.
+migration later). **`end_marriage` (divorce, Phase 1) is now BUILT as the first verb DESIGNED for this
+contract from the start** (2026-07-03, see Marriage below) — the architecture validation the contract was
+missing, since the four court verbs only proved a MIGRATION, not a from-scratch addition.
 
 > NOT built (wished 2026-06-25). Sequence: A before B before C. All ride the SDK's existing engine-agnostic
 > design. Linked to the scenario engine below (all are modder-extensible surfaces) and to the ChatAI-
@@ -1055,27 +1184,46 @@ culture-flavoured). Two deferred layers:
   confrontation, not just a letter. Pairs with the scripted-scenarios engine (a jealousy threshold as a
   trigger) and the love-triangle tie-in noted under Camp life.
 
-### Marriage — true polygamy and divorce *(monogamous marriage shipped)*
+### Marriage — true polygamy and divorce *(monogamous marriage shipped; divorce Phase 1 BUILT)*
 
-The marriage chain (family-approval, consorts, by-letter, jealousy) is shipped. Two genuinely-open extensions:
+The marriage chain (family-approval, consorts, by-letter, jealousy) is shipped. One genuinely-open extension,
+one BUILT:
 - **Culture-gated true polygamy** as lore — multiple full spouses, restricted to designated cultures (not the
   current consort workaround), with the family-approval currency scaled accordingly.
-- **Divorce** *(player-requested 2026-07-03; DEFERRED until after RP-with-teeth increment 2 Phase 2)* — a player
-  tried to convince an NPC to leave their spouse; the NPC "agreed" but nothing happened ("soon, soon"), the classic
-  empty-promise pattern (no verb, no executor). Design framing (Gabriel, 2026-07-03): **in the Middle Ages a
-  marriage IS an alliance, so a divorce is a loss of influence and power, effectively a casus belli / a declaration
-  of war**, and BOTH families oppose it fiercely. So this must be WEIGHTY, never "talk once and it is done": gate on
-  a genuinely unhappy marriage + a strong bond with the player + a real reason, and prefer a scheme-like PROCESS
-  over time (the spouse may resist or discover it) rather than an instant flip, which also makes the "soon" honest
-  (it takes time and the game SHOWS it progressing). Consequences must bite: a scandal world-event, the ex-spouse
-  AND their clan turning hostile, a renown/honour hit, faction-level fallout, dovetailing with dynastic succession
-  and jealousy. **Cultural exception to research**: Nordic / Sturgian (and possibly Khuzait) cultures may have
-  treated dissolution more freely, worth a per-culture flavour like the existing marriage/jealousy culture profiles.
-  **Technical crux / SPIKE first**: Bannerlord has NO native divorce (`MarriageAction` only marries, `Hero.Spouse`
-  has no public setter), so dissolution needs reflection on the marriage internals + clan-membership handling
-  (a spouse who joined the other's clan) while leaving children's parentage intact, exactly what `DivorceOfCalradia`
-  does, fragile and version-sensitive and it touches saves. Decide: build our own reflection-based logic vs a soft
-  dependency on `DivorceOfCalradia` if installed. Spike the clean-dissolution question before writing the feature.
+- **Divorce, Phase 1 (NPC case) — BUILT 2026-07-03 (Sonnet, untested in game, NOT committed), 755 tests green.**
+  A player tried to convince an NPC to leave their spouse; the NPC "agreed" but nothing happened ("soon, soon"),
+  the classic empty-promise pattern (no verb, no executor). Design framing (Gabriel, 2026-07-03): **a marriage IS
+  an alliance, so a divorce is a loss of influence and power**, and BOTH families oppose it fiercely — never "talk
+  once and it is done". Built: `end_marriage` starts a multi-day **estrangement process**
+  (`DivorcePolicy.ProcessDurationDays` = 15) the spouse may resist — a daily roll (Honor/Calculating raise it) can
+  Delay (push the end day back, capped) or Abort the process outright — rather than an instant flip; reaching the
+  end day re-validates every guard and, on success, dissolves the marriage for real (`MarriageDissolutionService`)
+  and records a **culture-scaled scandal** world-event (Nordic/Sturgian 0.5x, default 1.0x) plus relation hits (the
+  ex-spouse toward the NPC and toward the player, and the ex-spouse's own clan toward the player). Gates: the
+  marriage must be genuinely unhappy (relation ≤ -5) and the bond with the player deep (≥ 30); refuses while either
+  party is pregnant or a prisoner, or while the spouse who would have to relocate clans heads their own clan, leads
+  a party, or governs a settlement (Phase 1 REFUSES rather than reassigning those roles). **This is also the first
+  verb DESIGNED for the new `IConversationVerb` contract** (`CalradiaRemembers.Verbs` / `VerbRegistry`, not merely
+  migrated onto it like the four RP-with-teeth court verbs) — validating that the contract makes a brand-new verb a
+  clean "implement the interface, register it" addition with no switch statement or prompt-builder method to touch.
+  **Technical crux, RESOLVED by an in-game reflection spike on 1.3.15** (the earlier note that `Hero.Spouse` "has no
+  public setter" was WRONG): `Hero.Spouse`'s setter IS public and self-cleaning (nulls both sides, appends each to
+  the other's `ExSpouses`); clan restore for the spouse who joined the other's clan mirrors `Hero.AfterLoad()`'s own
+  fixup ladder (OriginClan, else smallest same-culture clan, else any — never clanless); `Romance`'s internal
+  `SetRomanticState` is cleared via cached reflection, non-fatal on failure. No dependency on `DivorceOfCalradia`
+  needed. **Phase 2 (deferred, open)**: the PLAYER'S OWN marriage, in BOTH directions (Gabriel's question 2026-07-03:
+  "est-ce qu'un NPC malheureux peut demander le divorce au joueur?"): (a) the player divorcing their own spouse,
+  and (b) the headliner, the UNHAPPY SPOUSE TAKING THE INITIATIVE and DEMANDING a divorce from the player. Every
+  trigger already exists mechanically: collapsed relation/neglect, the jealousy system's witnessed romantic
+  acts, a discovered bastard's scandal, and soon accumulated unresolved grudges as the fuse. Form: a letter
+  ("I want to end this") or an in-conversation confrontation, then the PLAYER'S CHOICE: accept (mutual-consent
+  dissolution, soft consequences, the existing pipeline reused verbatim) or refuse, and then it gets rich: the
+  grudge deepens, her family weighs in, and a determined-enough spouse may begin the estrangement DESPITE the
+  player (the same resistance process, with the player as the resisting side). NOTE: Phase 1 explicitly REFUSES
+  the case where the NPC's spouse IS the player (guard + test added 2026-07-03, because the romance waiver would
+  otherwise have opened the player's own marriage to end_marriage by accident, a path never designed for it).
+  Also: letters/journal-mirror surfacing the estrangement to the player; a `chat_divorce` LLM self-test (Phase 1
+  only has the mechanical `divorce_process` self-test, see `cr.testall`); Khuzait cultural nuance research.
 
 ### Smaller polish (deferred)
 - **Chat composer — a true MULTI-LINE editing box** *(wished 2026-07-01; the "best" option, deferred)*: a player
