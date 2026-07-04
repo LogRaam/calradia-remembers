@@ -242,6 +242,8 @@ namespace CalradiaRemembers.Behaviors
          // once already migrated). Runs last, after every store it scans (Store, WorldEventStore, the
          // Bastards/Divorce markers) is guaranteed loaded.
          SafeRun.Step("OnSessionLaunched.GrudgeBehavior.RunBackfillIfNeeded", () => Grudges.GrudgeBehavior.Instance?.RunBackfillIfNeeded(Store));
+         // Appreciations: the same one-shot, idempotent backfill discipline as Grudges, run right after it.
+         SafeRun.Step("OnSessionLaunched.AppreciationBehavior.RunBackfillIfNeeded", () => Appreciations.AppreciationBehavior.Instance?.RunBackfillIfNeeded(Store));
       }
 
       /// <summary>

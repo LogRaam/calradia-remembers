@@ -5,8 +5,10 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Appreciations;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -24,6 +26,9 @@ namespace CalradiaRemembers.Verbs
     /// </summary>
     public sealed class ReleasePrisonerVerb : IConversationVerb
     {
+        /// <summary>Appreciations pillar: the fixed formation magnitude for the freed captive's RansomedOrFreed plant — mirrors BannerlordGameStateBridge's own free_prisoner constant.</summary>
+        private const int RansomedOrFreedMagnitude = 35;
+
         public string Name => "release_prisoner";
 
         public bool IsEligible(VerbContext ctx)
@@ -73,6 +78,18 @@ namespace CalradiaRemembers.Verbs
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
                     $"Freed {target.Name} from captivity at the player's urging."));
+
+                // Appreciations pillar: the FREED captive remembers who gave them back their freedom —
+                // never lets a plant failure break the release that already succeeded.
+                try
+                {
+                    AppreciationBehavior.Instance?.TryPlant(target, Hero.MainHero, AppreciationSource.RansomedOrFreed,
+                        "The player gave me back my freedom.", RansomedOrFreedMagnitude, knownToPlayer: true, today);
+                }
+                catch (Exception ex)
+                {
+                    ModLog.Error($"[APPRECIATION] release_prisoner plant failed: {ex.GetType().Name}: {ex.Message}");
+                }
 
                 ModLog.Info($"[ACTION] release_prisoner: {npcHero.Name} freed {target.Name} at the player's word.");
 

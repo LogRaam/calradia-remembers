@@ -5,10 +5,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
@@ -49,6 +51,9 @@ namespace CalradiaRemembers.GameState
       private const int MaxHarmsPerScene = 5; // wounds beyond this are narrated but cost no HP
       private const int MaxInfluenceLoss = 18;
       private const int MaxRenownLoss = 12;
+
+      /// <summary>Appreciations pillar: the fixed formation magnitude for a RansomedOrFreed plant (free_prisoner / release_prisoner) — comparable to Tier2GrudgeRules.DeliveredPrisonerBaseMagnitude, being freed weighing roughly as much as delivering a prisoner does on the other side of the ledger.</summary>
+      private const int RansomedOrFreedMagnitude = 35;
 
       /// <summary>
       ///   harm_prisoner: a captor inflicts real physical harm on the player during a captive
@@ -178,9 +183,11 @@ namespace CalradiaRemembers.GameState
             case "lend_troops":
             case "sway_opinion":
             case "release_prisoner":
-            // end_marriage (DIVORCE, Phase 1): the first verb DESIGNED for the IConversationVerb
-            // contract rather than migrated onto it — routed identically to the four above.
+            // end_marriage (DIVORCE, Phase 1) and make_amends (Grudges pillar, resolution half): both
+            // DESIGNED for the IConversationVerb contract rather than migrated onto it — routed
+            // identically to the four above.
             case "end_marriage":
+            case "make_amends":
                return VerbRegistry.Instance.Execute(action, new VerbContext(npcHero, context?.Profile, this, null, context));
             case "pledge_against":
                return ExecutePledgeAgainst(action, npcHero, context);
@@ -575,6 +582,31 @@ namespace CalradiaRemembers.GameState
             StanceService.OnGiftReceived(npcHero); // freedom is a gift — a little trust is earned
             ModLog.Info($"[ACTION] free_prisoner: player released {npcHero.Name} from captivity.");
 
+            // Appreciations pillar: being handed back one's own freedom is a remembered kindness in its
+            // own right, a channel separate from the trust bump above.
+            var today = (int) CampaignTime.Now.ToDays;
+            AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, AppreciationSource.RansomedOrFreed,
+               "The player gave me back my freedom.", RansomedOrFreedMagnitude, knownToPlayer: true, today);
+
+            // Chronicle: a third, independent channel from the trust bump and the appreciation plant above.
+            try
+            {
+               string pronoun = npcHero.IsFemale ? "her" : "his";
+               WorldEventStore.Instance?.Record(new WorldEvent {
+                  Type = WorldEventType.PlayerFeat,
+                  Day = today,
+                  Magnitude = 40,
+                  InvolvesPlayer = true,
+                  Summary = $"{Hero.MainHero.Name} freed {npcHero.Name} from captivity.",
+                  ActorIds = new List<string> {Hero.MainHero.StringId, npcHero.StringId},
+                  FactionIds = npcHero.MapFaction != null
+                     ? new List<string> {npcHero.MapFaction.StringId}
+                     : new List<string>(),
+                  ChronicleLine = $"{Hero.MainHero.Name} gave {npcHero.Name} back {pronoun} freedom, and it was not forgotten"
+               });
+            }
+            catch (Exception ex) { ModLog.Error($"[ACTION] free_prisoner chronicle record failed: {ex.GetType().Name}: {ex.Message}"); }
+
             return new ActionOutcome($"You set {npcHero.Name} free.", true);
          }
          catch (Exception ex)
@@ -677,7 +709,16 @@ namespace CalradiaRemembers.GameState
             StanceService.OnGiftReceived(npcHero); // a freely given gift builds a little trust
             ModLog.Info($"[ACTION] give_item: player gave '{actualName}' (value {value}) to {npcHero?.Name}");
 
-            return new ActionOutcome($"You give {actualName} to {npcHero?.Name}.", false);
+            // Appreciations pillar: a freely given gift is also a remembered kindness, a channel separate
+            // from the trust bump above and from the grudge-softening tail below.
+            if (npcHero != null)
+               TryPlantValueAppreciation(npcHero, AppreciationSource.GiftReceived, value, $"The player gave me {actualName}.");
+
+            // Grudges pillar (Gift gesture): the same item may also soften or mend a grudge npcHero holds
+            // against the player, a channel separate from the trust bump above.
+            string grudgeTail = npcHero != null ? TryGrudgeGiftTail(npcHero, value) : "";
+
+            return new ActionOutcome($"You give {actualName} to {npcHero?.Name}.{grudgeTail}", false);
          }
          catch (Exception ex)
          {
@@ -1189,6 +1230,24 @@ namespace CalradiaRemembers.GameState
 
             ModLog.Info($"[ACTION] take_as_consort: {npcHero.Name} is now the player's consort.");
 
+            try
+            {
+               var today = (int) CampaignTime.Now.ToDays;
+               WorldEventStore.Instance?.Record(new WorldEvent {
+                  Type = WorldEventType.PlayerFeat,
+                  Day = today,
+                  Magnitude = 45,
+                  InvolvesPlayer = true,
+                  Summary = $"{Hero.MainHero.Name} took {npcHero.Name} as consort.",
+                  ActorIds = new List<string> {Hero.MainHero.StringId, npcHero.StringId},
+                  FactionIds = npcHero.MapFaction != null
+                     ? new List<string> {npcHero.MapFaction.StringId}
+                     : new List<string>(),
+                  ChronicleLine = $"{Hero.MainHero.Name} took {npcHero.Name} as consort, and tongues wagged in the halls"
+               });
+            }
+            catch (Exception ex) { ModLog.Error($"[ACTION] take_as_consort chronicle record failed: {ex.GetType().Name}: {ex.Message}"); }
+
             return new ActionOutcome(
                $"You and {npcHero.Name} are bound as consorts — a commitment not named by law, but no less real.", true);
          }
@@ -1219,9 +1278,19 @@ namespace CalradiaRemembers.GameState
             bool silenced = Bastards.BastardBehavior.Instance?.SettleByPayment(npcHero, amount) == true;
             ModLog.Info($"[ACTION] take_gold: player → {npcHero.Name} {amount} gold{(silenced ? " (bastard silence bought)" : "")}");
 
+            // Appreciations pillar: a payment is also a remembered kindness, a channel separate from the
+            // relation bump above and from the grudge-softening tail below (a payment can soften a wound
+            // AND be remembered as a kindness — both are correct).
+            TryPlantValueAppreciation(npcHero, AppreciationSource.GoldReceived, amount, "The player gave me gold.");
+
+            // Grudges pillar (Gift gesture): a payment to the NPC may also soften or mend a grudge they
+            // hold against the player, a channel separate from the relation bump above — never lets a
+            // resolution failure break the gold transfer itself.
+            string grudgeTail = TryGrudgeGiftTail(npcHero, amount);
+
             string tail = silenced
                ? " Her silence is bought — for now."
-               : "";
+               : grudgeTail;
 
             return new ActionOutcome($"You give {npcHero.Name} {amount} denars (purse: {Hero.MainHero.Gold}).{tail}", false);
          }
@@ -1231,6 +1300,56 @@ namespace CalradiaRemembers.GameState
          ModLog.Info($"[ACTION] take_gold: {amount} gold extorted (no hero recipient).");
 
          return new ActionOutcome($"They take {amount} denars from you (purse: {Hero.MainHero.Gold}).", false);
+      }
+
+      /// <summary>
+      ///   Appreciations pillar: plants a GiftReceived/GoldReceived appreciation on <paramref name="npcHero" />
+      ///   scaled from a denar value via <see cref="AppreciationValueScaling.FromValue" />. KnownToPlayer is
+      ///   always true — the player performed (or plainly witnessed) the hand-off themselves. Never throws —
+      ///   a failure here must never break the gift/payment transfer that already succeeded.
+      /// </summary>
+      private static void TryPlantValueAppreciation(Hero npcHero, AppreciationSource source, int value, string cause)
+      {
+         try
+         {
+            if (npcHero == null) return;
+
+            var today = (int) CampaignTime.Now.ToDays;
+            int magnitude = AppreciationValueScaling.FromValue(value);
+            AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, source, cause, magnitude, knownToPlayer: true, today);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[APPRECIATION] value-scaled plant failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Grudges pillar (Gift gesture): routes a gold payment or an item's value, offered to
+      ///   <paramref name="npcHero" />, through <see cref="GrudgeResolutionService.TryResolveDominant" />,
+      ///   returning a short clause to append to the caller's own outcome message when it actually moved a
+      ///   grudge, or an empty string otherwise. Never throws — a resolution failure must never break the
+      ///   gift transfer that already succeeded.
+      /// </summary>
+      private static string TryGrudgeGiftTail(Hero npcHero, int giftValue)
+      {
+         try
+         {
+            var today = (int) CampaignTime.Now.ToDays;
+            GrudgeResolutionAttemptResult result = GrudgeResolutionService.TryResolveDominant(npcHero, GrudgeGesture.Gift, giftValue, today);
+
+            if (!result.Changed) return "";
+
+            return result.Outcome == GrudgeResolutionOutcome.Resolved
+               ? " It also mends an old grievance between you."
+               : " It also softens an old grievance between you.";
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[GRUDGE] gift routing failed: {ex.GetType().Name}: {ex.Message}");
+
+            return "";
+         }
       }
 
       private static ItemRosterElement FindItemInRoster(string itemName)
@@ -1519,6 +1638,24 @@ namespace CalradiaRemembers.GameState
             {
                ModLog.Error($"[ACTION] give_prisoner grudge plant failed: {ex.GetType().Name}: {ex.Message}");
             }
+
+            // Chronicle: a third, independent channel alongside the reward/grant and the grudge above.
+            try
+            {
+               WorldEventStore.Instance?.Record(new WorldEvent {
+                  Type = WorldEventType.PlayerFeat,
+                  Day = today,
+                  Magnitude = 40,
+                  InvolvesPlayer = true,
+                  Summary = $"{Hero.MainHero.Name} delivered {prisonerHero.Name} to {npcHero.Name}.",
+                  ActorIds = new List<string> {Hero.MainHero.StringId, prisonerHero.StringId, npcHero.StringId},
+                  FactionIds = npcHero.MapFaction != null
+                     ? new List<string> {npcHero.MapFaction.StringId}
+                     : new List<string>(),
+                  ChronicleLine = $"{Hero.MainHero.Name} delivered {prisonerHero.Name} in chains to {npcHero.Name}"
+               });
+            }
+            catch (Exception ex) { ModLog.Error($"[ACTION] give_prisoner chronicle record failed: {ex.GetType().Name}: {ex.Message}"); }
 
             return grant ?? reward ?? new ActionOutcome($"{npcHero.Name} takes custody of {prisonerHero.Name}.", true);
          }

@@ -5,8 +5,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
+using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
@@ -312,6 +314,19 @@ namespace CalradiaRemembers.Quests
          QuestJournalBridge.CloseAsCompleted(quest, giverHero);
          Stance.StanceService.OnPromiseKept(giver); // a kept promise earns trust
          store.Set(giver);
+
+         // Appreciations pillar: the GIVER remembers the player making good on the task — a channel
+         // separate from the trust bump above. Never lets a plant failure break the reward already granted.
+         try
+         {
+            AppreciationBehavior.Instance?.TryPlant(giverHero, Hero.MainHero, AppreciationSource.QuestDoneForThem,
+               $"The player did what they promised: {Describe(quest)}.", AppreciationBackfillRules.QuestDoneForThemMagnitude,
+               knownToPlayer: true, gameDay);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[APPRECIATION] quest-done plant failed: {ex.GetType().Name}: {ex.Message}");
+         }
 
          if (grant != null) notify?.Invoke(grant.Message, grant.IsPositive);
          else if (reward != null) notify?.Invoke(reward.Message, true);

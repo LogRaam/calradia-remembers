@@ -111,6 +111,12 @@ namespace CalradiaRemembers
          // the bastard-claim world events) and after Bastards/DivorceProcessBehavior (it scans their
          // persisted markers too). Console: cr.grudges / cr.grudge_test / cr.grudge_backfill.
          campaignStarter.AddBehavior(new Grudges.GrudgeBehavior());
+         // Appreciations (the positive mirror of Grudges): a lingering felt kindness, coexisting with regard
+         // instead of being folded into it. Registered AFTER GrudgeBehavior (its prompt-note tarnish reads
+         // the holder's dominant live grudge) and after WorldEventStore/Bastards/DivorceProcessBehavior (its
+         // one-shot backfill scans their persisted markers too). Console: cr.appreciations / cr.appreciation_test
+         // / cr.appreciation_backfill.
+         campaignStarter.AddBehavior(new Appreciations.AppreciationBehavior());
          // Scripted scenarios (the world-reaction engine): a trigger (death/marriage/war/peace) fires a
          // rule whose consequences mutate the world and whose message is dropped into the world-event store.
          // Pure selection lives in CalradiaRemembers.Logic; packs load from ModuleData/scenarios. Registered
