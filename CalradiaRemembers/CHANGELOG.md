@@ -2,6 +2,31 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.22.1.. 2026-07-04
+
+A patch built from your reports, with a few new threads woven in while I was there.
+
+### Fixed (from your reports)
+- Marriage through conversation now works when you have built a strong bond the ordinary way. The wedding
+  used to check only the mod's own private "regard" score, so a lord or lady would agree in words yet never
+  actually wed you. It now accepts a strong vanilla relationship too, and an NPC will no longer promise a
+  marriage it cannot actually grant.
+- An NPC no longer mis-speaks its own gender. A follower whose stored profile had gone stale could refer to
+  themselves with the wrong pronouns; their gender is now re-read live every conversation.
+- After you marry an NPC, they now recognise that you are their spouse. They used to treat you and the person
+  they married as two different people.
+
+### New
+- The divorce story is now complete. You can end your own marriage in conversation; a deeply unhappy spouse
+  can ask you to end it; and a spouse you refuse for too long will, in time, leave you of their own accord
+  unless you truly mend things between you.
+- You can now settle a grievance with a real deed in the wronged NPC's favour, not only with words or a gift.
+- Your chronicle now records notable conquests of the heart and the bedchamber, in a period register, when
+  adult content is enabled.
+
+### Improved
+- Long, multi-part intimate scenes no longer echo the same phrase or image from an earlier beat.
+
 ## v1.22.0.. 2026-07-04
 
 The big one: NPCs now hold KINDNESSES as well as grudges, you can reconcile a grievance, and the chronicle
