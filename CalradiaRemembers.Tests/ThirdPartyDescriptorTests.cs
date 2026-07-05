@@ -71,6 +71,27 @@ namespace CalradiaRemembers.Tests
         }
 
         [Test]
+        public void GIVEN_two_same_turf_gang_leaders_at_neutral_standing_WHEN_categorizing_THEN_they_are_named_rivals_not_strangers()
+        {
+            ThirdPartyDescriptor.Categorize(0, false, false, false, false, sameClan: false, areRivalGangLeaders: true)
+                .Should().Be("a rival gang leader (a competitor for the same turf, not a friend)");
+        }
+
+        [Test]
+        public void GIVEN_rival_gang_leaders_who_happen_to_hold_regard_WHEN_categorizing_THEN_the_rivalry_overrides_the_friendly_label()
+        {
+            ThirdPartyDescriptor.Categorize(40, false, false, false, false, sameClan: false, areRivalGangLeaders: true)
+                .Should().Contain("rival gang leader");
+        }
+
+        [Test]
+        public void GIVEN_rival_gang_leaders_who_are_genuine_enemies_WHEN_categorizing_THEN_the_stronger_enemy_label_is_kept()
+        {
+            ThirdPartyDescriptor.Categorize(-40, false, false, false, false, sameClan: false, areRivalGangLeaders: true)
+                .Should().Contain("enemy");
+        }
+
+        [Test]
         public void GIVEN_a_faint_acquaintance_outside_any_clan_WHEN_categorizing_THEN_they_are_an_acquaintance()
         {
             //Arrange — non-zero but below the thresholds, and not a clanmate.

@@ -4,6 +4,8 @@
 // backfill list: their markers already sit in existing saves. Tier 2 (DeliveredPrisoner..
 // UnblessedMarriage) are new detections. Tier 3 (ExecutedKin) is the vendetta end of the spectrum.
 // External is reserved for a future Extension Surface inbound grudge (mirrors ExternalWorldEvent).
+// 04/07/2026: CoercedRelease appended (Stance mechanical behaviour-gating, increment 1, Fear) — a
+// fear-coerced freedom bargain plants this instead of the deed-gesture's usual regard.
 
 namespace CalradiaRemembers.Logic.Grudges
 {
@@ -52,6 +54,9 @@ namespace CalradiaRemembers.Logic.Grudges
         ExecutedKin = 11,
 
         /// <summary>A grudge planted by an external mod through the Extension Surface inbound API.</summary>
-        External = 12
+        External = 12,
+
+        /// <summary>Stance mechanical behaviour-gating (increment 1, Fear): a captive fear-coerced into a freedom bargain, resenting the coercion in secret rather than feeling freely given goodwill.</summary>
+        CoercedRelease = 13
     }
 }

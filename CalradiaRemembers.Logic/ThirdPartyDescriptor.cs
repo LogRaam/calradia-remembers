@@ -44,12 +44,19 @@ namespace CalradiaRemembers.Logic
         ///   stranger. Mirrors the original ordering exactly.
         /// </summary>
         public static string Categorize(
-            int relation, bool isSpouse, bool isFather, bool isMother, bool isChild, bool sameClan)
+            int relation, bool isSpouse, bool isFather, bool isMother, bool isChild, bool sameClan,
+            bool areRivalGangLeaders = false)
         {
             if (isSpouse) return "your spouse";
             if (isFather) return "your father";
             if (isMother) return "your mother";
             if (isChild) return "your child";
+
+            // Same-turf gang leaders are structural RIVALS, never friends by shared culture or proximity
+            // (player report: gangs hallucinated friendships/alliances with same-town rival bosses). This
+            // overrides the friendly and neutral tiers; a genuine ENEMY relation below is stronger and kept.
+            if (areRivalGangLeaders && relation > EnemyThreshold)
+                return "a rival gang leader (a competitor for the same turf, not a friend)";
 
             if (relation >= CloseThreshold) return $"a very close friend ({DescribeRelation(relation)})";
             if (relation >= FriendThreshold) return $"a friend ({DescribeRelation(relation)})";
