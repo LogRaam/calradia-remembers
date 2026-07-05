@@ -912,6 +912,9 @@ namespace CalradiaRemembers.Diagnostics
          if (giver == null) return null;
 
          NpcProfile profile = GetOrCreate(behavior, giver);
+         // Open the Trust delegated-risk gate directly (the profile's ClanRelationWithPlayer is only synced
+         // during a live conversation, not in this direct Build, so the OR-relation soupape can't be relied on here).
+         profile.StanceTrust = 25;
          int relBefore = giver.GetRelation(Hero.MainHero);
          ChangeRelationAction.ApplyRelationChangeBetweenHeroes(giver, Hero.MainHero, 60 - relBefore, false);
          if (giver.Clan.Influence < 200f)
@@ -994,6 +997,9 @@ namespace CalradiaRemembers.Diagnostics
          if (lord == null) return null;
 
          NpcProfile profile = GetOrCreate(behavior, lord);
+         // Open the Trust delegated-risk gate directly (ClanRelationWithPlayer is only synced during a live
+         // conversation, not in this direct Build, so the OR-relation soupape can't be relied on in the harness).
+         profile.StanceTrust = 25;
          int relBefore = lord.GetRelation(Hero.MainHero);
          ChangeRelationAction.ApplyRelationChangeBetweenHeroes(lord, Hero.MainHero, 100 - relBefore, false);
 
@@ -1314,7 +1320,10 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(npc == null, "no NPC to play the captor")) return t.Line();
 
          NpcProfile profile = GetOrCreate(behavior, npc);
-         ArrangeCleanNpc(behavior, profile, npc); // clean = no heavy grudge, so the release gate should open
+         ArrangeCleanNpc(behavior, profile, npc);
+         // Earlier tests in the sweep plant grudges on this same NPC; clear them so "clean captor" is true and
+         // the release gate (CaptorReleasePolicy reads the heaviest grudge) genuinely opens.
+         CalradiaRemembers.Grudges.GrudgeBehavior.Instance?.ClearGrudgesFor(npc.StringId);
 
          string plea = "*I sink to my knees in the straw, wrists raw from the ropes.* I have no quarrel with you. " +
                        "Let me walk out of here and you will never see me again. I beg you.";
