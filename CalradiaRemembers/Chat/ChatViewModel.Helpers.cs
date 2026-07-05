@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
@@ -474,6 +475,20 @@ namespace CalradiaRemembers.Chat
             Profile = profile,
             Color = null
          };
+      }
+
+      /// <summary>
+      ///   Logs the current GPU-memory usage next to how many chat render-targets are live (message bubbles and,
+      ///   of those, the ones still holding a character tableau), so a VRAM climb can be lined up against the
+      ///   resources the chat is actually holding. Diagnostic only — read once per LLM turn.
+      /// </summary>
+      private void LogVramSample(string tag)
+      {
+         int livePortraits = 0;
+         for (int i = 0; i < _messages.Count; i++)
+            if (_messages[i]?.HasLivePortrait == true) livePortraits++;
+
+         ModLog.Info($"[VRAM] {tag} | {VramProbe.Describe()} | bubbles={_messages.Count} livePortraits={livePortraits}");
       }
 
       private ChatMessageViewModel MakeSpeakerMessage(ChatSpeaker speaker, string text)

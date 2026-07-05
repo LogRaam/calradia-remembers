@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Services;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -91,6 +92,7 @@ namespace CalradiaRemembers.Chat
             FreeResources();
             SafeStep(LlmServices.ClearTestGenderOverride, "ClearTestGenderOverride");
             ModLog.Info("Chat window closed — returned to campaign map.");
+            ModLog.Info($"[VRAM] close (after teardown) | {VramProbe.Describe()}");
          }
       }
 
@@ -131,6 +133,7 @@ namespace CalradiaRemembers.Chat
          }
 
          ModLog.Info($"Chat window opened on {_hostScreen.GetType().Name} with NPC '{npcName ?? "(none)"}'.");
+         ModLog.Info($"[VRAM] open (baseline) | {VramProbe.Describe()}");
       }
 
       // ── Public API ────────────────────────────────────────────────────────

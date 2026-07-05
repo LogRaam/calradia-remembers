@@ -169,6 +169,8 @@ namespace CalradiaRemembers.Chat
                               ? " | RETRY fired (first attempt was empty or truncated)"
                               : ""));
 
+            LogVramSample("scene");
+
             if (result.Response?.Actions != null)
                foreach (GameAction action in result.Response.Actions)
                {
@@ -984,6 +986,8 @@ namespace CalradiaRemembers.Chat
                            (result.WasRetried
                               ? " | RETRY fired (first attempt was empty or truncated)"
                               : ""));
+
+            LogVramSample("main");
             // Surface a non-"stop" finish reason — "length" means the model cut the reply
             // off (a known DeepSeek quirk); this makes truncated-message reports diagnosable.
             if (!string.IsNullOrEmpty(result.FinishReason) && !string.Equals(result.FinishReason, "stop", StringComparison.OrdinalIgnoreCase))
@@ -1129,6 +1133,8 @@ namespace CalradiaRemembers.Chat
                ModLog.Info($"[15C:{_witnessExchangesThisRound}] {mainSpeaker.Name}: \"{npcReply}\"");
                if (result.Usage != null)
                   ModLog.Info($"  [15C TOKENS] prompt={result.Usage.PromptTokens} (cached:{result.Usage.CachedPromptTokens ?? 0}) | completion={result.Usage.CompletionTokens}");
+
+               LogVramSample("witness");
 
                // End-conversation action is honored even in auto-exchange.
                if (result.Response?.Actions != null)
