@@ -154,6 +154,28 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.nemesis
+      ///   Lists the persistent nemesis roster (name, band, region, alive, recaptures, bound Hero) and whether
+      ///   the player is currently a nemesis's captive. Dev diagnostic for validating the Nemesis pillar in
+      ///   game: capture by a bandit party should mint/reuse a nemesis and bind a real Hero to him.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis", "cr")]
+      public static string ShowNemesisRoster(List<string> args)
+      {
+         Nemesis.NemesisBehavior b = Nemesis.NemesisBehavior.Instance;
+         if (b == null) return "NemesisBehavior not available (load a campaign first).";
+
+         var lines = new List<string>();
+         foreach (NemesisIdentity n in b.All)
+            lines.Add($"- {n.Name} {n.Epithet} [{n.BandCultureKey}/{n.RegionId}] alive={n.IsAlive} " +
+                      $"recaptures={n.RecaptureCount} encounters={n.TimesEncountered} hero={(string.IsNullOrEmpty(n.HeroStringId) ? "none" : n.HeroStringId)}");
+
+         string held = b.PlayerHeldByNemesis() ? "YES — the player is currently held by a nemesis." : "no";
+
+         return (lines.Count == 0 ? "No nemesis on record yet." : string.Join("\n", lines)) + $"\nPlayer held by a nemesis: {held}";
+      }
+
+      /// <summary>
       ///   cr.bandit_queen [solo|collective] [male|female]
       ///   Opens a captive scene with a forced FEMALE bandit chief (intent = spoil / PersonalDesire),
       ///   to test female-aggressor content (facesitting/smothering, reductive domination) without
