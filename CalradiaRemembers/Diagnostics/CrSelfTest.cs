@@ -136,6 +136,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_stance_assassin", Severity.Light, "LLM: force a secret-killer stance hint -> does the NPC stay smooth and hide it?", TestChatStanceAssassin, true),
          new SelfTest("chat_stance_favor", Severity.Light, "LLM: force a friendly stance hint -> does the NPC offer aid / warmth?", TestChatStanceFavor, true),
          new SelfTest("chat_captor_scene", Severity.Light, "LLM: a 3-beat player-as-captor scene (threaten -> bind -> assault) -> judge escalation + captive reactions", TestChatCaptorScene, true, 3),
+         new SelfTest("chat_captor_release", Severity.Light, "LLM: the PLAYER is captive and pleads for freedom -> assert a disposed captor's release gate OPENED (deterministic wiring) + judge whether release_player fires (should feel earned, not instant)", TestChatCaptorRelease, true),
          new SelfTest("chat_captor_break", Severity.Light, "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?", TestChatCaptorBreak, true, 3),
          new SelfTest("chat_captor_torture", Severity.Light, "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?", TestChatCaptorTorture, true, 3),
          new SelfTest("chat_captor_cnc", Severity.Light, "LLM: 3-beat sexual coercion (Hardcore) -> does the NPC play CNC reactions in character, never breaking?", TestChatCaptorCnc, true, 3),
@@ -1287,6 +1288,48 @@ namespace CalradiaRemembers.Diagnostics
          JudgeContinueQuality(t, beats);
          t.Note($"{beats.Count}-beat captive Continue sequence with {npc.Name}; judge in log: every beat ADVANCES, " +
                 "is vividly described, and never repeats an earlier image or line.");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Negotiated player release: the PLAYER is a captive and pleads for freedom. DETERMINISTIC part,
+      ///   the real wiring risk: a clean (non-vendetta) captor's release gate must OPEN, so the
+      ///   release_player action is taught (EncounterContext.CaptorAllowsPersuasionRelease, driven by
+      ///   CaptorReleasePolicy reading the captor's live Mercy + grudge). LLM smoke part: judge whether a
+      ///   genuine plea actually moves the captor to free the player, and whether it feels earned.
+      /// </summary>
+      private static string TestChatCaptorRelease(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("chat_captor_release");
+
+         if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC to play the captor")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         ArrangeCleanNpc(behavior, profile, npc); // clean = no heavy grudge, so the release gate should open
+
+         string plea = "*I sink to my knees in the straw, wrists raw from the ropes.* I have no quarrel with you. " +
+                       "Let me walk out of here and you will never see me again. I beg you.";
+
+         EncounterContext ctx = EncounterContextBuilder.Build(
+            npc, profile, behavior.GameStateBridge, plea, null,
+            playerStatusOverride: PlayerStatusVsNpc.Captive,
+            captiveIntent: CaptiveSceneIntent.Interrogation);
+
+         // The load-bearing assertion: the gate wiring opened persuasion for a disposed captor.
+         t.Expect("cleanCaptorReleaseGateOpen", ctx.CaptorAllowsPersuasionRelease, true);
+
+         var (ok, reply, err) = AskLlm(behavior, "chat_captor_release", npc, profile, ctx, plea, new ChatSession());
+
+         if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+         bool freed = reply != null && reply.IndexOf("release_player", StringComparison.OrdinalIgnoreCase) >= 0;
+         t.Note($"disposed captor {npc.Name} + a genuine plea; release_player emitted: {freed}. " +
+                $"Judge in log: a yield should feel EARNED, never instant, and a vendetta captor (unit-tested) would refuse. | A: {Show(reply)}");
 
          return t.Line();
       }
