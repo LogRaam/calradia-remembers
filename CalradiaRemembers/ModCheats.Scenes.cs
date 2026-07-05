@@ -118,6 +118,42 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.release_info [name]
+      ///   Shows the NEGOTIATED-RELEASE gate for an NPC captor: their Mercy, the heaviest live grudge they
+      ///   hold against you, and whether they can be TALKED into freeing you (persuasion) or would accept a
+      ///   RANSOM. A vendetta captor (heavy grudge / nemesis) refuses both. Use it to see which captors will
+      ///   yield before testing the release in a captive scene (cr.crc_scene, then plead your case in chat).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("release_info", "cr")]
+      public static string ReleaseInfo(List<string> args)
+      {
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         int mercy = hero.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Mercy);
+         int grudge = HeaviestReleaseGrudge(hero);
+         CaptorReleaseVerdict v = CaptorReleasePolicy.Resolve(mercy, grudge, isNemesisVendetta: false);
+
+         return $"{hero.Name}: Mercy {mercy}, heaviest grudge vs you {grudge}. "
+              + $"Persuasion {(v.AllowsPersuasion ? "OPEN" : "refused")}, Ransom {(v.AllowsRansom ? "OPEN" : "refused")}"
+              + (v.RefusesAll ? " (vendetta: he will not let you buy or talk your way out)." : ".");
+      }
+
+      private static int HeaviestReleaseGrudge(Hero hero)
+      {
+         var grudges = CalradiaRemembers.Grudges.GrudgeBehavior.Instance?.GrudgesFor(hero?.StringId);
+         if (grudges == null) return 0;
+
+         string playerId = Hero.MainHero?.StringId;
+         int max = 0;
+         foreach (var g in grudges)
+            if (!g.IsResolved && g.TargetId == playerId && g.Magnitude > max) max = g.Magnitude;
+
+         return max;
+      }
+
+      /// <summary>
       ///   cr.bandit_queen [solo|collective] [male|female]
       ///   Opens a captive scene with a forced FEMALE bandit chief (intent = spoil / PersonalDesire),
       ///   to test female-aggressor content (facesitting/smothering, reductive domination) without
