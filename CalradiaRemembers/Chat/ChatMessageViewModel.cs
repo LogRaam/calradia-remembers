@@ -6,6 +6,7 @@ using System;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
 using TaleWorlds.Library;
 
 #endregion
@@ -206,6 +207,15 @@ namespace CalradiaRemembers.Chat
             try
             {
                 if (string.IsNullOrEmpty(_encyclopediaLink) || Campaign.Current?.EncyclopediaManager == null) return;
+
+                // Never during a scene: the encyclopedia does not open over the scene overlay, and each attempt
+                // leaks GPU render-targets (measured ~+3 GB for a handful of opens) that are never reclaimed.
+                if (ChatManager.ActiveViewModel?.IsEncyclopediaSuppressed == true)
+                {
+                    InformationManager.DisplayMessage(new InformationMessage("The encyclopedia is not available during a scene."));
+
+                    return;
+                }
 
                 Campaign.Current.EncyclopediaManager.GoToLink(_encyclopediaLink);
                 ModLog.Info("[ENCYCLOPEDIA] opened from a chat portrait (right-click).");
