@@ -60,6 +60,34 @@ namespace CalradiaRemembers.Nemesis
       public NemesisIdentity GetByHero(string heroStringId)
          => string.IsNullOrEmpty(heroStringId) ? null : _roster.Nemeses.FirstOrDefault(n => n.HeroStringId == heroStringId);
 
+      /// <summary>
+      ///   The regional recurring roster's core: reuse the LIVING nemesis of this band culture in this region
+      ///   if one exists, else MINT a new latent identity (name/epithet via <see cref="NemesisNameGenerator" />,
+      ///   no Hero yet — the bandit-capture hook attaches a real Hero to it). The seed varies by roster size so
+      ///   fresh bosses do not all share a name.
+      /// </summary>
+      public NemesisIdentity FindOrMint(string bandCultureKey, string regionId, int today)
+      {
+         NemesisIdentity existing = FindRecurring(bandCultureKey, regionId);
+         if (existing != null) return existing;
+
+         NemesisNameResult name = NemesisNameGenerator.Generate(bandCultureKey, _roster.Nemeses.Count);
+         var minted = new NemesisIdentity {
+            Id = "nemesis_" + Guid.NewGuid().ToString("N"),
+            Name = name.Name,
+            Epithet = name.Epithet,
+            BandCultureKey = bandCultureKey,
+            RegionId = regionId,
+            IsAlive = true,
+            MintedDay = today
+         };
+
+         Add(minted);
+         ModLog.Info($"[NEMESIS] minted {minted.Name} {minted.Epithet} ({bandCultureKey}) in region {regionId}.");
+
+         return minted;
+      }
+
       public override void SyncData(IDataStore dataStore)
       {
          if (dataStore.IsSaving)
