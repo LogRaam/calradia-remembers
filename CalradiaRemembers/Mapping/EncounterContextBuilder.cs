@@ -155,9 +155,11 @@ namespace CalradiaRemembers.Mapping
             AppreciationNote = ResolveAppreciationNote(hero, profile),
             SpouseDivorceDemandNote = ResolveSpouseDivorceDemandNote(hero),
             PlayerEndOwnMarriageNote = ResolvePlayerEndOwnMarriageNote(hero),
+            SpouseEstrangementNote = ResolveSpouseEstrangementNote(hero),
             StationGuidelinesOverride = ResolveStationGuidelines(hero),
             LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
             LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
+            NpcSpouseIsPlayer = hero?.Spouse == Hero.MainHero && Hero.MainHero != null,
             ConsortEligible = ResolveConsortEligible(hero, profile),
             ConceptionRisk = ResolveConceptionRisk(hero),
             PowerBalanceNote = ResolvePowerBalanceNote(hero, profile),
@@ -701,6 +703,48 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
+      ///   Divorce escalation: set when THIS NPC is the player's own living spouse AND their estrangement
+      ///   is currently under way (<see cref="SpouseDivorceDemandBehavior.IsEstranging" />). Composes the
+      ///   full directive in the spouse's own voice, folding in the accept_divorce [ACTION] teaching
+      ///   directly (see <see cref="EncounterContext.SpouseEstrangementNote" />'s own doc comment for why
+      ///   this bypasses <see cref="VerbRegistry" />.ExtraActionTeachings). Deliberately does NOT teach
+      ///   decline_divorce: an estrangement already under way is not something to refuse in words, only to
+      ///   accept or to genuinely repair through deeds. Null otherwise.
+      /// </summary>
+      private static string ResolveSpouseEstrangementNote(Hero hero)
+      {
+         try
+         {
+            if (hero is not {IsAlive: true} || Hero.MainHero == null) return null;
+            if (hero != Hero.MainHero.Spouse) return null;
+            if (SpouseDivorceDemandBehavior.Instance?.IsEstranging(hero.StringId) != true) return null;
+
+            var sb = new StringBuilder();
+            sb.AppendLine("SPOUSE_DIVORCE_ESCALATION, YOU ARE ENDING THIS MARRIAGE YOURSELF:");
+            sb.AppendLine("You pressed the player to end this marriage before, and were refused, more than once. You");
+            sb.AppendLine("have resolved to wait no longer: you have begun ending it yourself, on your own timeline,");
+            sb.AppendLine("whether or not the player consents. Speak as someone who has run out of patience but not");
+            sb.AppendLine("out of feeling: weary, resolved, perhaps still grieving what the marriage once was.");
+            sb.AppendLine("If the player plainly consents to end the marriage now, emit:");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: accept_divorce");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine("Only a genuinely warmer bond, proven over time by real deeds and not by words alone spoken");
+            sb.AppendLine("in this conversation, would ever call this off. Do not treat a kind word or a single");
+            sb.AppendLine("apology as enough; stay resolved unless you truly feel the change in how they treat you.");
+            sb.AppendLine();
+
+            return sb.ToString();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MAPPING] ResolveSpouseEstrangementNote failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
       ///   The holder's dominant live grudge's TODAY's effective magnitude (0 when none), the exact number
       ///   <see cref="AppreciationPolicy.TarnishedMagnitude" /> needs to sour a standing appreciation.
       /// </summary>
@@ -929,9 +973,14 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
-      ///   True when the NPC themselves is a viable marriage candidate AND the personal
-      ///   relation is deep enough (≥50) to make the prospect real. The prompt then
-      ///   teaches the <c>marry</c> action; the bridge re-validates before executing.
+      ///   True when the NPC themselves is a viable marriage candidate AND regard is deep enough to
+      ///   make the prospect real — EITHER the mod's own personal-regard ledger OR the live vanilla
+      ///   clan relation reaching <see cref="MarriageEligibility.MarriageEligibilityThreshold" />. The
+      ///   vanilla relation is read LIVE via <see cref="Hero.GetRelation" /> (never a possibly-unsynced
+      ///   profile field), so relation built the ordinary way (gifts, favors, quests) counts toward a
+      ///   match, not only the mod's own hidden ledger. The prompt then teaches the <c>marry</c> action;
+      ///   the bridge re-validates with the SAME threshold before executing
+      ///   (<see cref="GameState.BannerlordGameStateBridge.ExecuteMarry" />).
       /// </summary>
       private static bool ResolveLoveMatchEligible(Hero hero, NpcProfile profile)
       {
@@ -940,7 +989,8 @@ namespace CalradiaRemembers.Mapping
          if (hero.Clan == Clan.PlayerClan) return false; // can't marry own clan
          if (!MarriageProspectResolver.IsMarriageable(Hero.MainHero, hero)) return false;
 
-         return (profile?.ReputationWithPlayer ?? 0) >= 50;
+         return (profile?.ReputationWithPlayer ?? 0) >= MarriageEligibility.MarriageEligibilityThreshold ||
+                Hero.MainHero.GetRelation(hero) >= MarriageEligibility.MarriageEligibilityThreshold;
       }
 
       /// <summary>

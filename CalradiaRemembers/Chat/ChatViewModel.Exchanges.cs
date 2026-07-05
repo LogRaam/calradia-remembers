@@ -521,6 +521,11 @@ namespace CalradiaRemembers.Chat
             if (speaker.IsMain)
                SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer.Value);
 
+            // Re-sync the speaker's sex from the live hero every turn: the identity/pronoun lines of the
+            // prompt read profile.IsFemale, and a profile whose sex went stale (created before the load-time
+            // RefreshPersonality reached it, or seeded wrong) would otherwise make the NPC mis-gender itself.
+            profile.IsFemale = speaker.Hero.IsFemale;
+
             // Sync the player-authored backstory (flavor only) from the overrides file each turn,
             // so it is never persisted stale and reflects edits + the MCM toggle live.
             profile.AuthoredBackstory = CharacterOverrideLoader.BackstoryFor(speaker.Hero);

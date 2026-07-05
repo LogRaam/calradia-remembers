@@ -111,6 +111,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("divorce_process", Severity.Heavy, "married couple -> end_marriage -> force endDay -> tick -> assert dissolved + exSpouses + no one clanless + scandal + relation hits", TestDivorceProcess),
          new SelfTest("spouse_divorce", Severity.Heavy, "marry the player (test spouse) -> force demand -> accept_divorce -> assert dissolved + flag cleared; second test spouse -> force demand -> decline_divorce -> assert refusal grudge planted", TestSpouseDivorceDemand),
          new SelfTest("player_divorce", Severity.Heavy, "marry the player (test spouse, happy) -> end_own_marriage -> assert dissolved + a Divorce grudge on the player; second test spouse (miserable) -> end_own_marriage -> assert dissolved + NO grudge", TestPlayerDivorce),
+         new SelfTest("spouse_estrangement", Severity.Heavy, "marry the player (test spouse) -> force-escalate -> force deadline to today -> tick -> assert dissolved + spouse-side Divorce grudge + escalation cleared; second test spouse -> force-escalate -> raise relation above the reconciliation threshold -> tick -> assert marriage SURVIVES + escalation cleared", TestSpouseEstrangement),
          new SelfTest("grudge_backfill", Severity.Light, "seed a synthetic Jealousy NotableEvent -> force backfill -> assert a Jealousy grudge exists -> force it again -> assert no duplicate", TestGrudgeBackfill),
          new SelfTest("grudge_tier2", Severity.Heavy, "capture+give_prisoner (real path) -> assert a DeliveredPrisoner grudge on the captive; direct severity-3 player-perpetrator CaptiveAbuse plant -> assert it exists", TestGrudgeTier2),
          new SelfTest("grudge_resolve", Severity.Light, "plant a FailedQuest grudge -> resolve w/ its matching gesture -> assert it moved; plant an ExecutedKin (vendetta) grudge -> assert an amends is Rejected; plant a DeliveredPrisoner (always Deed-kind) grudge -> resolve w/ the Deed gesture -> assert it moved", TestGrudgeResolve),
@@ -2520,6 +2521,107 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("mutualOutcomePositive", mutualOutcome is {IsPositive: true}, true);
          t.Expect("dissolvedAfterMutual", dissolvedMutual, true);
          t.Expect("noGrudgeAfterMutual", noGrudgeAfterMutual, true);
+
+         return t.Line();
+      }
+
+      // ── DIVORCE ESCALATION: a refused-enough, still-miserable spouse begins ending it themselves ──
+
+      /// <summary>
+      ///   Scenario A (walk-out): marries the player to a test spouse when unmarried, force-escalates
+      ///   (bypassing the natural refusal-count gate), then force-moves the deadline to TODAY so the sweep
+      ///   walks out immediately rather than waiting the real estrangement length — asserts the marriage
+      ///   dissolved, neither party left clanless, a spouse-side Divorce grudge planted, and the escalation
+      ///   record cleared. Scenario B (reconciliation): marries the player to a SECOND test spouse
+      ///   (freed up by Scenario A's dissolution), force-escalates, then raises the relation ABOVE
+      ///   <see cref="SpouseDivorceDemandPolicy.ReconciliationThreshold" /> BEFORE ticking — asserts the
+      ///   marriage SURVIVES and the escalation record is cleared. Best-effort: either scenario is skipped,
+      ///   with a note, on a barren campaign (no eligible test spouse to seed), without failing the other.
+      /// </summary>
+      private static string TestSpouseEstrangement(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("spouse_estrangement");
+
+         if (t.Abort(SpouseDivorceDemandBehavior.Instance == null, "SpouseDivorceDemandBehavior not active")) return t.Line();
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+         var demands = SpouseDivorceDemandBehavior.Instance;
+
+         // ── Scenario A: WALK-OUT ─────────────────────────────────────────────────────────────────
+         Hero spouseA = Hero.MainHero.Spouse;
+
+         if (spouseA == null)
+         {
+            spouseA = FindTestSpouseForPlayer();
+
+            if (t.Skip(spouseA == null, "no eligible test spouse found to marry the player (scenario A)")) return t.Line();
+
+            MarriageAction.Apply(Hero.MainHero, spouseA);
+
+            if (t.Skip(Hero.MainHero.Spouse != spouseA,
+                   "could not seed a marriage on this campaign (native MarriageAction did not take); walk-out path unexercised")) return t.Line();
+         }
+
+         NpcProfile profileA = GetOrCreate(behavior, spouseA);
+         ArrangeCleanNpc(behavior, profileA, spouseA); // neutral relation — comfortably below the reconciliation bar
+
+         (bool forcedA, string forceMessageA) = demands.ForceEscalate();
+         bool estrangingBeforeTick = demands.IsEstranging(spouseA.StringId);
+
+         if (t.Abort(!forcedA || !estrangingBeforeTick, $"force-escalate did not set the record (scenario A): {forceMessageA}")) return t.Line();
+
+         int todayA = behavior.GameStateBridge.GetCurrentGameDay();
+         demands.DebugForceEscalationDeadline(spouseA.StringId, todayA); // skip the 15-day wait for this test
+
+         int worldEventsBefore = WorldEventStore.Instance.Count;
+
+         demands.RunTick();
+
+         bool dissolvedA = Hero.MainHero.Spouse == null;
+         bool neitherClanlessA = Hero.MainHero.Clan != null && spouseA.Clan != null;
+         bool escalationClearedAfterWalkOut = !demands.IsEstranging(spouseA.StringId);
+         bool walkOutGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(spouseA.StringId)
+                                                   .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == todayA);
+         bool worldEventRecorded = WorldEventStore.Instance.Count > worldEventsBefore;
+
+         t.Note($"scenario A (walk-out) spouse={spouseA.Name}");
+         t.Expect("dissolvedAfterWalkOut", dissolvedA, true);
+         t.Expect("neitherClanlessAfterWalkOut", neitherClanlessA, true);
+         t.Expect("escalationClearedAfterWalkOut", escalationClearedAfterWalkOut, true);
+         t.Expect("walkOutGrudgePlanted", walkOutGrudgePlanted, true);
+         t.Expect("walkOutWorldEventRecorded", worldEventRecorded, true);
+
+         // ── Scenario B: RECONCILIATION — a second, distinct test spouse (the player is free again after A) ──
+         Hero spouseB = FindTestSpouseForPlayer(spouseA);
+
+         if (t.Skip(spouseB == null, "no second eligible test spouse found for the reconciliation scenario")) return t.Line();
+
+         MarriageAction.Apply(Hero.MainHero, spouseB);
+
+         if (t.Skip(Hero.MainHero.Spouse != spouseB,
+                "could not seed the second marriage on this campaign (native MarriageAction did not take); reconciliation path unexercised")) return t.Line();
+
+         NpcProfile profileB = GetOrCreate(behavior, spouseB);
+         ArrangeCleanNpc(behavior, profileB, spouseB);
+
+         (bool forcedB, string forceMessageB) = demands.ForceEscalate();
+
+         if (t.Abort(!forcedB, $"force-escalate did not set the record (scenario B): {forceMessageB}")) return t.Line();
+
+         int reconciledRelation = SpouseDivorceDemandPolicy.ReconciliationThreshold + 5; // comfortably above the bar
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouseB, Hero.MainHero, reconciledRelation - spouseB.GetRelation(Hero.MainHero), false);
+
+         // Deadline is left far in the future (set by ForceEscalate itself) — reconciliation must win on its
+         // own merits, checked BEFORE the deadline, not because the deadline happened to be reached too.
+         demands.RunTick();
+
+         bool stillMarriedAfterReconciliation = Hero.MainHero.Spouse == spouseB;
+         bool escalationClearedAfterReconciliation = !demands.IsEstranging(spouseB.StringId);
+
+         t.Note($"scenario B (reconciliation) spouse={spouseB.Name}");
+         t.Expect("stillMarriedAfterReconciliation", stillMarriedAfterReconciliation, true);
+         t.Expect("escalationClearedAfterReconciliation", escalationClearedAfterReconciliation, true);
 
          return t.Line();
       }

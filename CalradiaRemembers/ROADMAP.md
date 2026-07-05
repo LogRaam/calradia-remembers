@@ -64,6 +64,13 @@ double-counting (once-per-lord capture, custody-handoff dedup, hidden bastard bi
 group under yearly chapter headings in both the text render (`cr.chronicle`) and the illuminated viewer;
 new empty-state invitation line. Pure additions: `CalradiaRemembers.Logic.ChronicleCalendar` (year math) and
 `BattleNotability.PlayerBattleSizeThreshold` (150 combatants), both unit-tested.
+**Notable intimate conquests (2026-07-04, player-requested, BUILT, NOT committed).** Two further entry types, both
+gated on `ModSettings.AdultContentLevel >= Mature` AND the partner being a hero of standing (`IsLord`; never a
+random bandit-camp captive), via the pure `IntimateChroniclePolicy` (tasteful register at Mature/Explicit, bawdier
+at Hardcore, never explicit): **a captive conquest** (a lord/lady of standing taken in an intimate player-as-captor
+scene, `ChatViewModel.RecordCaptiveConquestChronicleIfNeeded`, deduped per captive) and **an heir got** (conception
+upon a hero of standing when the player is one of the two parents, `PregnancyService.RecordConceptionChronicleIfNeeded`
+— the begetting beat, distinct from the childbirth entry `OnGivenBirth` already records so the two never duplicate).
 
 **Stance with teeth** *(increment 1 built 2026-06-27, untested in game)* — the earned multi-axis posture now
 ACTS, not just colours dialogue. Pure `StanceConsequencePolicy` maps a posture+traits to one warranted
@@ -1218,6 +1225,17 @@ culture-flavoured). Two deferred layers:
 
 ### Marriage — true polygamy and divorce *(monogamous marriage shipped; divorce Phase 1 + Phase 2b BUILT)*
 
+**Player-reported bugfix (2026-07-04, Sonnet, BUILT, NOT committed), 1116 mod / 242 SDK tests green.** Two live
+v1.22.0 bugs: (1) the marriage scene never triggered after an NPC accepted — the eligibility gate checked ONLY the
+mod's own personal-regard ledger (`ReputationWithPlayer >= 50`), ignoring vanilla clan relation players had actually
+built; broadened both synced gate sites (`EncounterContextBuilder.ResolveLoveMatchEligible` + the bridge's
+`ExecuteMarry`) to pass on EITHER, via one shared `MarriageEligibility.MarriageEligibilityThreshold` const, and
+added an anti-empty-promise guard in `PromptBuilder` (marriage is family-gated, cannot be settled in one
+conversation) for the non-eligible + still-unmarried case, dropped in Lean. (2) after `cr.marry` the NPC still
+treated the player as a third-party spouse (infidelity framing, the ≥30 stranger-resistance trust gate) instead of
+their own spouse — new additive `EncounterContext.NpcSpouseIsPlayer` renders a distinct marital-intimacy block
+(natural, not infidelity, no stranger thresholds) when the NPC's `Hero.Spouse == Hero.MainHero`.
+
 The marriage chain (family-approval, consorts, by-letter, jealousy) is shipped. One genuinely-open extension,
 one BUILT:
 - **Culture-gated true polygamy** as lore — multiple full spouses, restricted to designated cultures (not the
@@ -1281,15 +1299,42 @@ one BUILT:
   world event + chronicle line, clears any pending 2b flag. Console `cr.end_own_marriage`; mechanical `player_divorce`
   self-test (same best-effort seeding-skip as `spouse_divorce`). Judgment call flagged: `ActionOutcome.IsPositive` is
   true for both tiers (the deed succeeded), so a repudiation still cues the positive sound/colour — revisit if the UI
-  should mark the wronging as negative. **STILL OPEN**: (a) the escalation Gabriel
-  flagged as a deliberate follow-up, not built now by design: a determined-enough spouse, refused enough times,
-  BEGINS the estrangement DESPITE the player (the same resistance process as Phase 1, with the player as the
-  resisting side) rather than waiting forever on the player's consent. NOTE: Phase 1 explicitly REFUSES the case
-  where the NPC's spouse IS the player (guard + test added 2026-07-03, because the romance waiver would otherwise
-  have opened the player's own marriage to end_marriage by accident, a path never designed for it) — Phase 2b is
-  the dedicated feature for that case. Also still open: letters/journal-mirror surfacing the estrangement beyond
-  the initial demand letter; a `chat_spouse_divorce` LLM self-test (today's is mechanical only, see `cr.testall`);
-  Khuzait cultural nuance research.
+  should mark the wronging as negative. **Escalation (the refused spouse begins ending it themselves) — BUILT
+  2026-07-04 (Sonnet, untested in game, NOT committed), mod 1107 / SDK 238 green.** Answers the follow-up Gabriel
+  flagged: a spouse refused enough times, still miserable, stops merely demanding and BEGINS an estrangement DESPITE
+  the player, on a deadline, rather than waiting forever on their consent. Owner-ratified shape lands SIMPLER than the
+  originally-sketched "same resistance process as Phase 1 with the player resisting": no daily Honor/Calculating rolls
+  here, just two pure gates in `SpouseDivorceDemandPolicy` — `ShouldEscalate` (refusal count ≥ `RefusalsBeforeEscalation`
+  = 2 AND relation still ≤ `DivorcePolicy.UnhappyThreshold`, never while pregnant/prisoner/already-escalating) and
+  `IsReconciled` (relation ≥ `ReconciliationThreshold` = 10 — deliberate HYSTERESIS above the misery bar, so a genuine
+  warming calls it off, not a nudge that merely clears the misery reading again). `SpouseDivorceDemandBehavior` now
+  owns a running per-spouse refusal COUNT alongside the demand flag (both additive byte[] SyncData, a shared
+  `SyncDictionary` helper serializes all three spouseId→int dictionaries under their own save keys) and an escalation
+  record (spouseId → deadline day, `today + DivorcePolicy.ProcessDurationDays`); `RegisterRefusal` increments the
+  count and, when `ShouldEscalate` clears, calls `BeginEstrangement` instead of leaving the demand to resurface —
+  clears the demand flag, sets the deadline, queues a `LetterReason.SpouseDivorceEscalation` letter ("I have waited
+  long enough"). The weekly tick gained `SweepEscalations`: reconciled (checked BEFORE the deadline, so it always
+  wins even on the deadline's own day) calls it off via `ResolveReconciliation` (clears the record + refusal count,
+  a relief profile note); deadline passed walks out for real via `ResolveWalkOut`, reusing the SAME
+  `MarriageDissolutionService.TryDissolvePlayerMarriage` every other divorce path shares (its own live
+  re-validation IS the anti-double-dissolve guard — an already-dissolved marriage just fails here and the record is
+  left for a retry next week). Walk-out consequences are deliberately MODERATE (not the tiered family/friends
+  storm): ONE `GrudgeSource.Divorce` grudge on the spouse, a Scandal world event + chronicle line framed as the
+  SPOUSE's own departure ("weary of waiting... ended their marriage... and departed"), a Betrayal profile note.
+  `ExecuteAcceptDivorce`/`ExecuteEndOwnMarriage` (the bridge) now also recognize an active estrangement (not just a
+  pending demand) as consent and call `CancelEstrangement` on success. New SDK `EncounterContext.SpouseEstrangementNote`
+  (host-composed, mirrors `SpouseDivorceDemandNote`'s field pattern, rendered right after
+  `PlayerEndOwnMarriageNote`, dropped in Lean) teaches ONLY `accept_divorce` (no `decline_divorce`: an estrangement
+  under way is not something to refuse in words) plus reconciliation-through-deeds framing. Console
+  `cr.spouse_divorce_escalate` (+ `_info` now reports ESTRANGING/deadline); mechanical `spouse_estrangement`
+  self-test (force-escalate → force the deadline to today → tick → assert dissolved + grudge; second test spouse →
+  force-escalate → raise relation above the reconciliation threshold → tick → assert marriage SURVIVES). NOTE:
+  Phase 1 explicitly REFUSES the case where the NPC's spouse IS the player (guard + test added 2026-07-03, because
+  the romance waiver would otherwise have opened the player's own marriage to end_marriage by accident, a path never
+  designed for it) — Phase 2b is the dedicated feature for that case. Still open: letters/journal-mirror surfacing
+  the estrangement beyond the initial letter (today's `[SPOUSE_DIVORCE]` log line and the announcing letter are the
+  only visible cues, no reminder as the deadline nears); a `chat_spouse_divorce`/`chat_spouse_estrangement` LLM
+  self-test (today's are mechanical only, see `cr.testall`); Khuzait cultural nuance research.
 
 ### Smaller polish (deferred)
 - **Chat composer — a true MULTI-LINE editing box** *(wished 2026-07-01; the "best" option, deferred)*: a player

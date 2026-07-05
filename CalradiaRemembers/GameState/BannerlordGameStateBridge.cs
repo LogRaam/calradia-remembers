@@ -1006,8 +1006,12 @@ namespace CalradiaRemembers.GameState
       /// <summary>
       ///   marry: the NPC has proposed marriage to the player in conversation and the player
       ///   has accepted. Guards are re-checked here (the bridge is the law) before calling
-      ///   <see cref="MarriageAction.Apply" />. The mod's internal reputation score (≥50) is
-      ///   the gating threshold, matching <see cref="EncounterContextBuilder.ResolveLoveMatchEligible" />.
+      ///   <see cref="MarriageAction.Apply" />. The gating threshold is
+      ///   <see cref="MarriageEligibility.MarriageEligibilityThreshold" />, met EITHER by the mod's
+      ///   internal reputation score OR by the live vanilla clan relation
+      ///   (<see cref="Hero.GetRelation" />) — kept in exact sync with
+      ///   <see cref="EncounterContextBuilder.ResolveLoveMatchEligible" />, which teaches the action
+      ///   using the same two-sided check.
       /// </summary>
       private static ActionOutcome ExecuteMarry(Hero npcHero, ActionContext context)
       {
@@ -1030,8 +1034,10 @@ namespace CalradiaRemembers.GameState
                   $"({npcHero.Name} cannot be wed to you under the laws of Calradia.)", false);
 
             int reputation = context?.Profile?.ReputationWithPlayer ?? 0;
+            int vanillaRelation = npcHero.GetRelation(player);
 
-            if (reputation < 50)
+            if (reputation < MarriageEligibility.MarriageEligibilityThreshold &&
+                vanillaRelation < MarriageEligibility.MarriageEligibilityThreshold)
                return new ActionOutcome(
                   $"({npcHero.Name} does not yet hold you dear enough to take this step.)", false);
 
@@ -1050,12 +1056,15 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
-      ///   Divorce, Phase 2b: accept_divorce — the player's OWN spouse has been pressing a divorce demand
-      ///   in conversation (see <see cref="Mapping.EncounterContextBuilder" />'s SpouseDivorceDemandNote),
-      ///   and the player consents in free text (no button). Dissolves the marriage via
-      ///   <see cref="MarriageDissolutionService.TryDissolvePlayerMarriage" />. Mutual consent (this was
-      ///   the spouse's own wish): the consequences are deliberately SOFT, a modest personal-regard
-      ///   settling at most, never the full repudiated-divorce grudge matrix
+      ///   Divorce, Phase 2b (+ its escalation follow-up): accept_divorce — the player's OWN spouse has
+      ///   been pressing a divorce demand in conversation (see <see cref="Mapping.EncounterContextBuilder" />'s
+      ///   SpouseDivorceDemandNote), OR has since stopped waiting and begun an outright estrangement of
+      ///   their own (SpouseEstrangementNote) — either way, the player consents in free text (no button).
+      ///   Dissolves the marriage via <see cref="MarriageDissolutionService.TryDissolvePlayerMarriage" />,
+      ///   whose own live re-validation (already-dissolved, no longer married) is what stops this from ever
+      ///   double-dissolving against the weekly estrangement sweep. Mutual consent (this was the spouse's
+      ///   own wish either way): the consequences are deliberately SOFT, a modest personal-regard settling
+      ///   at most, never the full repudiated-divorce grudge matrix
       ///   <see cref="Marriage.DivorceProcessBehavior" /> applies to the NPC-NPC case.
       /// </summary>
       private static ActionOutcome ExecuteAcceptDivorce(Hero npcHero)
@@ -1068,8 +1077,10 @@ namespace CalradiaRemembers.GameState
                return new ActionOutcome("(There is no marriage between you and this person to end.)", false);
 
             var demands = SpouseDivorceDemandBehavior.Instance;
+            bool demanding = demands?.IsDemanding(npcHero.StringId) == true;
+            bool estranging = demands?.IsEstranging(npcHero.StringId) == true;
 
-            if (demands == null || !demands.IsDemanding(npcHero.StringId))
+            if (demands == null || (!demanding && !estranging))
                return new ActionOutcome($"({npcHero.Name} has not pressed you to end the marriage.)", false);
 
             int spouseVsPlayerBefore = npcHero.GetRelation(player);
@@ -1078,6 +1089,7 @@ namespace CalradiaRemembers.GameState
                return new ActionOutcome($"(The marriage could not be ended: {reason}.)", false);
 
             demands.Accept(npcHero.StringId);
+            demands.CancelEstrangement(npcHero.StringId);
 
             var today = (int) CampaignTime.Now.ToDays;
 
@@ -1184,11 +1196,14 @@ namespace CalradiaRemembers.GameState
 
             var demands = SpouseDivorceDemandBehavior.Instance;
             bool spouseWasDemanding = demands?.IsDemanding(npcHero.StringId) == true;
+            bool spouseWasEstranging = demands?.IsEstranging(npcHero.StringId) == true;
 
             int spouseVsPlayerBefore = npcHero.GetRelation(player);
 
+            // An estrangement already under way is at least as clear a "they too want this" signal as a
+            // pending Phase 2b demand — the spouse had already stopped merely asking.
             bool mutualConsent = PlayerDivorceConsentPolicy.SpouseConsents(new PlayerDivorceConsentFacts {
-               SpouseHasPendingDemand = spouseWasDemanding,
+               SpouseHasPendingDemand = spouseWasDemanding || spouseWasEstranging,
                SpouseRelationWithPlayer = spouseVsPlayerBefore
             });
 
@@ -1196,6 +1211,7 @@ namespace CalradiaRemembers.GameState
                return new ActionOutcome($"(The marriage could not be ended: {reason}.)", false);
 
             if (spouseWasDemanding) demands.Accept(npcHero.StringId);
+            if (spouseWasEstranging) demands.CancelEstrangement(npcHero.StringId);
 
             var today = (int) CampaignTime.Now.ToDays;
             const string cause = "The marriage was ended by the player's own choice.";

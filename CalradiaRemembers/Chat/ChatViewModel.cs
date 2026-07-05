@@ -12,6 +12,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Services;
+using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
@@ -1084,17 +1085,20 @@ namespace CalradiaRemembers.Chat
 
          if (Hero.MainHero == null) return;
 
-         int severity = CaptiveIntentRules.CaptiveAbuseSeverity(_captorSceneIntent);
-         var facts = new CaptiveAbuseFacts {Severity = severity, PlayerWasThePerpetrator = true};
-         GrudgeProposal proposal = Tier2GrudgeRules.CaptiveAbuseGrudge(facts);
-
-         if (!proposal.Forms) return;
-
          Hero prisoner = _npcHero ??
                          (_captorSceneProfile != null
                             ? Hero.FindFirst(h => h != null && h.StringId == _captorSceneProfile.Id)
                             : null);
 
+         // Chronicle pillar: independent of whether a grudge forms below (a Reward scene never
+         // grudges, but could still be a chronicle-worthy conquest of a highborn captive).
+         RecordCaptiveConquestChronicleIfNeeded(prisoner);
+
+         int severity = CaptiveIntentRules.CaptiveAbuseSeverity(_captorSceneIntent);
+         var facts = new CaptiveAbuseFacts {Severity = severity, PlayerWasThePerpetrator = true};
+         GrudgeProposal proposal = Tier2GrudgeRules.CaptiveAbuseGrudge(facts);
+
+         if (!proposal.Forms) return;
          if (prisoner == null) return;
 
          int today = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
@@ -1102,6 +1106,58 @@ namespace CalradiaRemembers.Chat
 
          GrudgeBehavior.Instance?.TryPlant(prisoner, Hero.MainHero, GrudgeSource.CaptiveAbuse, cause,
             proposal.Magnitude, proposal.KnownToPlayer, today);
+      }
+
+      /// <summary>
+      ///   Chronicle pillar: a captive lord or lady of standing taken in an intimate captor scene earns
+      ///   a chronicle line, via the pure <see cref="IntimateChroniclePolicy" /> (gated on
+      ///   <see cref="ModSettings.AdultContentLevel" />; a tasteful line at Mature/Explicit, bawdier at
+      ///   Hardcore, nothing at Off). Never a random bandit-camp captive (<c>prisoner.IsLord</c> gates
+      ///   it), and only when the scene's intent was actually intimate (reuses
+      ///   <see cref="CaptiveIntentRules.IsForcedSexual" /> as the "this was an intimate scene" signal —
+      ///   the same classification already used for the player-as-captive body toll, applied here in the
+      ///   reverse captor direction). Deduplicated per unique captive so repeat scenes with the same
+      ///   prisoner do not bloat the chronicle. Never throws — a flavour line must never risk a save.
+      /// </summary>
+      private void RecordCaptiveConquestChronicleIfNeeded(Hero prisoner)
+      {
+         try
+         {
+            if (prisoner == null || Hero.MainHero == null) return;
+            if (!prisoner.IsLord) return;
+            if (!CaptiveIntentRules.IsForcedSexual(_captorSceneIntent)) return;
+
+            WorldEventStore store = WorldEventStore.Instance;
+            if (store == null) return;
+
+            bool already = store.GetPlayerChronicle()
+                                .Any(e => e.Status == "captive_conquest" && e.ActorIds != null && e.ActorIds.Contains(prisoner.StringId));
+            if (already) return;
+
+            string line = IntimateChroniclePolicy.BuildLine(
+               ModSettings.AdultContentLevel, true, IntimateChronicleSceneKind.CaptiveConquest,
+               Hero.MainHero.Name?.ToString(), prisoner.Name?.ToString(), prisoner.IsFemale);
+
+            if (string.IsNullOrWhiteSpace(line)) return;
+
+            var factionIds = new List<string>();
+            if (Hero.MainHero.MapFaction != null) factionIds.Add(Hero.MainHero.MapFaction.StringId);
+            if (prisoner.MapFaction != null) factionIds.Add(prisoner.MapFaction.StringId);
+
+            store.Record(new WorldEvent {
+               Type = WorldEventType.PlayerFeat,
+               Day = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays,
+               Magnitude = 40,
+               InvolvesPlayer = true,
+               Status = "captive_conquest",
+               Summary = $"{Hero.MainHero.Name} took {prisoner.Name} as a captive lover.",
+               ActorIds = new List<string> {Hero.MainHero.StringId, prisoner.StringId},
+               FactionIds = factionIds,
+               ChronicleLine = line
+            });
+            ModLog.Info($"[CHRONICLE] captive conquest recorded for {prisoner.Name}.");
+         }
+         catch (Exception ex) { ModLog.Error($"[CHRONICLE] captive conquest feeder failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
       /// <summary>

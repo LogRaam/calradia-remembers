@@ -22,6 +22,18 @@ namespace CalradiaRemembers.Logic
         public const float MaxAgeGap = 25f;
 
         /// <summary>
+        ///   The regard threshold that makes a love-match marriage conceivable: EITHER the mod's own
+        ///   personal-regard ledger (<c>NpcProfile.ReputationWithPlayer</c>) OR the live vanilla clan
+        ///   relation (<c>Hero.GetRelation</c>) reaching this value. Shared by
+        ///   <c>EncounterContextBuilder.ResolveLoveMatchEligible</c> (teaches the action) and
+        ///   <c>BannerlordGameStateBridge.ExecuteMarry</c> (re-validates before sealing it) so the two
+        ///   gates can never drift apart. Broadened from personal-regard-only after a player report:
+        ///   players who built vanilla relation the ordinary way (gifts, favors, quests) expected that
+        ///   to count toward a match, not just the mod's own hidden ledger.
+        /// </summary>
+        public const int MarriageEligibilityThreshold = 50;
+
+        /// <summary>
         ///   True when the candidate could wed the player: alive and unwed, adult, opposite sex, and
         ///   no further apart in age than <see cref="MaxAgeGap" />.
         /// </summary>

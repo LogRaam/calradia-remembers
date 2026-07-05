@@ -45,6 +45,31 @@ namespace CalradiaRemembers.Logic
    }
 
    /// <summary>
+   ///   Every already-resolved fact <see cref="SpouseDivorceDemandPolicy.ShouldEscalate" /> needs. The
+   ///   engine gathers these live for the player's current spouse each time a refusal is registered.
+   /// </summary>
+   public sealed class SpouseDivorceEscalationFacts
+   {
+      /// <summary>True when this spouse's estrangement is already under way — never begun twice.</summary>
+      public bool AlreadyEscalating { get; set; }
+
+      /// <summary>True when either the spouse or the player is currently pregnant — never begun then.</summary>
+      public bool EitherPregnant { get; set; }
+
+      /// <summary>True when either the spouse or the player is currently held prisoner — never begun then.</summary>
+      public bool EitherPrisoner { get; set; }
+
+      /// <summary>
+      ///   How many times this spouse's divorce demand has been refused (explicitly, or by the
+      ///   grace-period timeout), lifetime for the current demand cycle.
+      /// </summary>
+      public int RefusalCount { get; set; }
+
+      /// <summary>The spouse's own personal relation toward the player, read at the moment of refusal.</summary>
+      public int SpouseRelationWithPlayer { get; set; }
+   }
+
+   /// <summary>
    ///   Pure gate deciding whether the player's own spouse is unhappy enough to raise a divorce demand this
    ///   evaluation period. Every constant here is a tuning knob: changing one is a one-line, test-covered
    ///   decision, never a hunt through engine code.
@@ -63,6 +88,22 @@ namespace CalradiaRemembers.Logic
       ///   raise the demand, with no fresh wound needed at all.
       /// </summary>
       public const int MiserableRelationThreshold = -20;
+
+      // ── Escalation: the demand stops waiting and the spouse begins ending it themselves ────────
+
+      /// <summary>
+      ///   Tuning: the refusal count at/above which continued refusal, with the marriage still unhappy,
+      ///   tips the demand into an outright estrangement — the spouse stops merely asking.
+      /// </summary>
+      public const int RefusalsBeforeEscalation = 2;
+
+      /// <summary>
+      ///   Tuning: the relation at/above which an active estrangement is called off. Deliberately set
+      ///   ABOVE <see cref="DivorcePolicy.UnhappyThreshold" /> (the misery bar an escalation requires) —
+      ///   hysteresis, so a genuine warming of the bond calls it off, not a passing nudge that merely
+      ///   clears the misery bar again.
+      /// </summary>
+      public const int ReconciliationThreshold = 10;
 
       /// <summary>
       ///   True when the player's spouse should raise a divorce demand this evaluation period: never while
@@ -84,6 +125,31 @@ namespace CalradiaRemembers.Logic
          bool grudgeTipped = facts.LiveGrudgeMagnitudeAgainstPlayer >= GrudgeMagnitudeBar;
 
          return miserable || freshWound || grudgeTipped;
+      }
+
+      /// <summary>
+      ///   True when a spouse's ACTIVE estrangement should be called off: their relation with the player
+      ///   has risen to a genuine warmth, not merely climbed out of misery. See
+      ///   <see cref="ReconciliationThreshold" /> for why the bar sits above
+      ///   <see cref="DivorcePolicy.UnhappyThreshold" /> rather than at it.
+      /// </summary>
+      public static bool IsReconciled(int spouseRelationWithPlayer) => spouseRelationWithPlayer >= ReconciliationThreshold;
+
+      /// <summary>
+      ///   True when a refused-but-still-pressing spouse should stop merely demanding and BEGIN an
+      ///   estrangement of their own: they have been refused at least <see cref="RefusalsBeforeEscalation" />
+      ///   times AND the marriage still reads unhappy by <see cref="DivorcePolicy.UnhappyThreshold" /> (the
+      ///   same "unhappy" bar the rest of the divorce feature already shares) — never while an estrangement
+      ///   is already under way, and never while either party is pregnant or held prisoner.
+      /// </summary>
+      public static bool ShouldEscalate(SpouseDivorceEscalationFacts facts)
+      {
+         if (facts == null) return false;
+         if (facts.AlreadyEscalating) return false;
+         if (facts.EitherPregnant || facts.EitherPrisoner) return false;
+         if (facts.RefusalCount < RefusalsBeforeEscalation) return false;
+
+         return facts.SpouseRelationWithPlayer <= DivorcePolicy.UnhappyThreshold;
       }
    }
 }

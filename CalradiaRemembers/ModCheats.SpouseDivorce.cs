@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Marriage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -84,7 +85,7 @@ namespace CalradiaRemembers
 
         /// <summary>
         ///   cr.spouse_divorce_info — reports whether the player's current spouse (if any) has a pending
-        ///   divorce demand, and since which day. Read-only.
+        ///   divorce demand or an active estrangement, and since/until which day. Read-only.
         /// </summary>
         [CommandLineFunctionality.CommandLineArgumentFunction("spouse_divorce_info", "cr")]
         public static string SpouseDivorceInfo(List<string> args)
@@ -101,6 +102,15 @@ namespace CalradiaRemembers
                 return sb.ToString();
             }
 
+            int? deadlineDay = SpouseDivorceDemandBehavior.Instance?.EscalationDeadlineDay(spouse.StringId);
+
+            if (deadlineDay != null)
+            {
+                sb.AppendLine($"{spouse.Name}: ESTRANGING, deadline day {deadlineDay} (today is day {(int) CampaignTime.Now.ToDays}).");
+
+                return sb.ToString();
+            }
+
             int? startDay = SpouseDivorceDemandBehavior.Instance?.DemandStartDay(spouse.StringId);
             sb.AppendLine(startDay == null
                 ? $"{spouse.Name}: no divorce demand pending."
@@ -110,8 +120,29 @@ namespace CalradiaRemembers
         }
 
         /// <summary>
-        ///   cr.spouse_divorce_tick — runs one weekly evaluation right now (the demand-raising check plus
-        ///   the grace-period refusal sweep), skipping the wait for the real weekly tick.
+        ///   cr.spouse_divorce_escalate — forces the player's CURRENT spouse into the estrangement state
+        ///   right now, bypassing the refusal-count gate (sets the persisted escalation record; the
+        ///   announcing letter is queued too, when the LLM is available). Says so plainly when the player
+        ///   is unmarried or already estranging.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("spouse_divorce_escalate", "cr")]
+        public static string SpouseDivorceEscalate(List<string> args)
+        {
+            if (!TryContext(out _, out string error)) return error;
+            if (SpouseDivorceDemandBehavior.Instance == null) return "Spouse-divorce-demand behavior not active. Start a campaign first.";
+
+            (bool success, string message) = SpouseDivorceDemandBehavior.Instance.ForceEscalate();
+
+            return success
+                ? message + " Talk to them, run cr.spouse_divorce_accept, or raise their relation to " +
+                  $"{SpouseDivorceDemandPolicy.ReconciliationThreshold}+ then cr.spouse_divorce_tick."
+                : message;
+        }
+
+        /// <summary>
+        ///   cr.spouse_divorce_tick — runs one weekly evaluation right now (the demand-raising check, the
+        ///   grace-period refusal sweep, and the active-estrangement sweep: reconcile / walk-out / still
+        ///   pending), skipping the wait for the real weekly tick.
         /// </summary>
         [CommandLineFunctionality.CommandLineArgumentFunction("spouse_divorce_tick", "cr")]
         public static string SpouseDivorceTick(List<string> args)
@@ -121,7 +152,7 @@ namespace CalradiaRemembers
 
             SpouseDivorceDemandBehavior.Instance.RunTick();
 
-            return "Ran one weekly evaluation (demand-raising + grace-period refusal sweep). Use cr.spouse_divorce_info to see the result.";
+            return "Ran one weekly evaluation (demand-raising + grace-period refusal sweep + estrangement sweep). Use cr.spouse_divorce_info to see the result.";
         }
     }
 }

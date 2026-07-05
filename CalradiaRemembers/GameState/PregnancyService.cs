@@ -4,7 +4,10 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
+using CalradiaRemembers.Logic;
+using CalradiaRemembers.WorldEvents;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.Core;
@@ -77,6 +80,11 @@ namespace CalradiaRemembers.GameState
             string fatherName = father?.Name?.ToString() ?? "an unknown man";
             ModLog.Info($"[PREGNANCY] {motherName} conceived a child (father: {fatherName}).");
 
+            // Chronicle pillar: an heir got upon a hero of standing, when the player is one of the two
+            // parents — the conception/begetting beat, distinct from the childbirth chronicle entry
+            // OnGivenBirth already records (WorldEventFeeders) so the two never duplicate.
+            RecordConceptionChronicleIfNeeded(mother, effectiveFather);
+
             return $"A child has been conceived (mother: {motherName}, father: {fatherName}).";
          }
          catch (Exception ex)
@@ -122,6 +130,60 @@ namespace CalradiaRemembers.GameState
          PregnancyBirthBehavior.Instance?.TrackConception(mother);
 
          return true;
+      }
+
+      /// <summary>
+      ///   Chronicle pillar: an heir got upon a hero of standing, when the player is one of the two
+      ///   parents and the OTHER parent is a lord or lady — never the shared hidden "Unknown" father, a
+      ///   faceless bandit never being a hero of standing to begin with. This is the conception/begetting
+      ///   beat, distinct from and never duplicating the childbirth entry
+      ///   <see cref="CalradiaRemembers.WorldEvents.WorldEventFeeders" />'s <c>OnGivenBirth</c> already
+      ///   records at delivery. Gated by the pure <see cref="IntimateChroniclePolicy" /> on
+      ///   <see cref="ModSettings.AdultContentLevel" /> (nothing at Off). Never throws.
+      /// </summary>
+      private static void RecordConceptionChronicleIfNeeded(Hero mother, Hero father)
+      {
+         try
+         {
+            if (Hero.MainHero == null || mother == null || father == null) return;
+
+            bool playerIsMother = mother == Hero.MainHero;
+            bool playerIsFather = father == Hero.MainHero;
+
+            if (!playerIsMother && !playerIsFather) return;
+
+            Hero partner = playerIsMother
+               ? father
+               : mother;
+
+            if (partner == Hero.MainHero || !partner.IsLord) return;
+
+            WorldEventStore store = WorldEventStore.Instance;
+            if (store == null) return;
+
+            string line = IntimateChroniclePolicy.BuildLine(
+               ModSettings.AdultContentLevel, true, IntimateChronicleSceneKind.Conception,
+               Hero.MainHero.Name?.ToString(), partner.Name?.ToString(), partner.IsFemale);
+
+            if (string.IsNullOrWhiteSpace(line)) return;
+
+            var factionIds = new List<string>();
+            if (Hero.MainHero.MapFaction != null) factionIds.Add(Hero.MainHero.MapFaction.StringId);
+            if (partner.MapFaction != null) factionIds.Add(partner.MapFaction.StringId);
+
+            store.Record(new WorldEvent {
+               Type = WorldEventType.PlayerFeat,
+               Day = (int) CampaignTime.Now.ToDays,
+               Magnitude = 40,
+               InvolvesPlayer = true,
+               Summary = $"An heir was conceived between {Hero.MainHero.Name} and {partner.Name}.",
+               ActorIds = new List<string> {mother.StringId, father.StringId},
+               FactionIds = factionIds,
+               ChronicleLine = line
+            });
+            ModLog.Info($"[CHRONICLE] conception recorded (mother: {mother.Name}, father: {father.Name}).");
+         }
+         catch (Exception ex) { ModLog.Error($"[CHRONICLE] conception feeder failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
       /// <summary>
