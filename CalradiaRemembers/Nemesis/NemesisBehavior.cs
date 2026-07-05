@@ -114,6 +114,34 @@ namespace CalradiaRemembers.Nemesis
          return _activeNemesisHero;
       }
 
+      /// <summary>
+      ///   The scene-escape chance against the ACTIVE nemesis captor, decaying with each prior recapture
+      ///   (<see cref="NemesisEscapeChancePolicy" />), or null when the player's captor is not a nemesis (so
+      ///   the caller keeps its ordinary flat chance). A nemesis is never a perfect cage, but he learns.
+      /// </summary>
+      public double? ActiveNemesisEscapeChance()
+      {
+         if (_activeNemesisHero == null || Hero.MainHero?.IsPrisoner != true) return null;
+
+         NemesisIdentity nem = GetByHero(_activeNemesisHero.StringId);
+         if (nem == null) return null;
+
+         return NemesisEscapeChancePolicy.EscapeChance(nem.RecaptureCount);
+      }
+
+      /// <summary>
+      ///   True when the player is CURRENTLY held prisoner by the recorded nemesis party. The vanilla
+      ///   spontaneous-escape drip is then fully suppressed, so the only luck exit is the decaying
+      ///   scene-escape (you cannot simply wait a nemesis out).
+      /// </summary>
+      public bool PlayerHeldByNemesis()
+      {
+         if (_activeNemesisHero == null || _activeCaptorParty == null) return false;
+         if (Hero.MainHero?.IsPrisoner != true) return false;
+
+         return Hero.MainHero.PartyBelongedToAsPrisoner?.MobileParty == _activeCaptorParty;
+      }
+
       #region private
 
       /// <summary>The vanilla bandit-clan StringId of the capturing band (looters / forest_bandits / ...), or a fallback.</summary>

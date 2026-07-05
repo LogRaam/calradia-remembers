@@ -487,7 +487,10 @@ namespace CalradiaRemembers.GameState
             force = true;
          }
 
-         if (!force && MBRandom.RandomFloat >= EscapeChance) return false;
+         // Against a nemesis captor the chance DECAYS with each recapture (he grows more careful, never a
+         // perfect cage); an ordinary captor keeps the flat chance.
+         double chance = Nemesis.NemesisBehavior.Instance?.ActiveNemesisEscapeChance() ?? EscapeChance;
+         if (!force && MBRandom.RandomFloat >= chance) return false;
 
          // Commit the outcome NOW (irreversible), but defer the actual campaign action to scene
          // close: freeing mid-chat could pop an encounter/menu and disrupt the open scene window.
