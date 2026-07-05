@@ -31,10 +31,16 @@ namespace CalradiaRemembers.Chat
         private string _portraitId = "";
         private string _portraitTextureProviderName = "";
 
+        // A stable identity for this line's speaker (Hero StringId, else the portrait troop's StringId, else the
+        // author name). The chat keeps at most ONE live portrait tableau per distinct speaker key, so a long
+        // transcript never holds more GPU render-targets than there are participants present in the room.
+        private string _speakerKey = "";
+
         public ChatMessageViewModel(Hero speakerHero, string authorName, string messageText, bool isPlayer)
         {
             _displayText = BuildDisplayText(authorName, messageText);
             ResolvePortrait(speakerHero?.CharacterObject, authorName);
+            _speakerKey = speakerHero?.StringId ?? authorName ?? "";
             _encyclopediaLink = speakerHero?.EncyclopediaLink ?? "";
             _authorColor = isPlayer ? PlayerColor : NpcColor;
         }
@@ -47,6 +53,7 @@ namespace CalradiaRemembers.Chat
         {
             _displayText = BuildDisplayText(authorName, messageText);
             ResolvePortrait(portraitCharacter, authorName);
+            _speakerKey = portraitCharacter?.StringId ?? authorName ?? "";
             _authorColor = isPlayer ? PlayerColor : NpcColor;
         }
 
@@ -58,6 +65,7 @@ namespace CalradiaRemembers.Chat
         {
             _displayText = BuildDisplayText(authorName, messageText);
             ResolvePortrait(speakerHero?.CharacterObject, authorName);
+            _speakerKey = speakerHero?.StringId ?? authorName ?? "";
             _encyclopediaLink = speakerHero?.EncyclopediaLink ?? "";
             _authorColor = colorHex ?? NpcColor;
         }
@@ -70,6 +78,7 @@ namespace CalradiaRemembers.Chat
         {
             _displayText = BuildDisplayText(authorName, messageText);
             ResolvePortrait(portraitCharacter, authorName);
+            _speakerKey = portraitCharacter?.StringId ?? authorName ?? "";
             _authorColor = colorHex ?? NpcColor;
         }
 
@@ -157,6 +166,33 @@ namespace CalradiaRemembers.Chat
                 _portraitTextureProviderName = value;
                 OnPropertyChangedWithValue(value);
             }
+        }
+
+        /// <summary>
+        ///   The stable identity of this line's speaker, used to keep at most one live portrait per participant.
+        /// </summary>
+        public string SpeakerKey => _speakerKey;
+
+        /// <summary>
+        ///   True while this line still carries a rendered character tableau (a GPU render-target). A system
+        ///   line, a narration line, or an already-released older duplicate has none.
+        /// </summary>
+        public bool HasLivePortrait => _showAvatar && !string.IsNullOrEmpty(_portraitId);
+
+        /// <summary>
+        ///   Frees this line's character tableau by clearing the ImageId the widget renders from. Merely hiding
+        ///   the avatar does NOT release the GPU render-target; only an empty ImageId makes the
+        ///   ImageIdentifierWidget drop its texture provider. The text stays, so scrollback survives. The chat
+        ///   calls this on the older lines of a speaker once that speaker talks again, bounding VRAM to the
+        ///   number of distinct participants present rather than the transcript length.
+        /// </summary>
+        public void ReleasePortrait()
+        {
+            if (!_showAvatar && string.IsNullOrEmpty(_portraitId)) return;
+            PortraitId = "";
+            PortraitTextureProviderName = "";
+            PortraitAdditionalArgs = "";
+            ShowAvatar = false;
         }
 
         /// <summary>

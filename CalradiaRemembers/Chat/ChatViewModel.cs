@@ -213,9 +213,48 @@ namespace CalradiaRemembers.Chat
       {
          _messages = new MBBindingList<ChatMessageViewModel>();
 
+         // A character tableau is a GPU render-target; one per transcript line exhausts VRAM on a long scene
+         // (the create_render_texture crash). On every insertion, collapse to at most one live portrait per
+         // distinct speaker present, freeing the render-targets of that speaker's older lines.
+         _messages.ListChanged += OnMessagesListChanged;
+
          // Every chat opens on the roleplay model; the explicit-scene activators
          // (captive encounter, player-as-captor) flip the mode to NSFW right after.
          LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(false);
+      }
+
+      /// <summary>
+      ///   Keeps VRAM bounded by the number of participants, not the transcript length: on each inserted line,
+      ///   walk the transcript newest-first and release the character tableau of every line whose speaker already
+      ///   has a more-recent live portrait. Only the render-target is freed; the line's text is untouched.
+      /// </summary>
+      private void OnMessagesListChanged(object sender, ListChangedEventArgs e)
+      {
+         if (e.ListChangedType != ListChangedType.ItemAdded) return;
+
+         try
+         {
+            HashSet<string> speakersWithLivePortrait = new HashSet<string>(StringComparer.Ordinal);
+            int released = 0;
+            for (int i = _messages.Count - 1; i >= 0; i--)
+            {
+               ChatMessageViewModel line = _messages[i];
+               if (line == null || !line.HasLivePortrait) continue;
+
+               if (!speakersWithLivePortrait.Add(line.SpeakerKey))
+               {
+                  line.ReleasePortrait(); // this speaker already has a newer portrait alive
+                  released++;
+               }
+            }
+
+            if (released > 0)
+               ModLog.Info($"[CHAT] live portraits: {speakersWithLivePortrait.Count} kept (one per participant), {released} tableau(s) freed.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ChatViewModel.OnMessagesListChanged failed: {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       // ── Chat mode ─────────────────────────────────────────────────────────
