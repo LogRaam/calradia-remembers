@@ -974,6 +974,15 @@ and everyone else still works.
   needs a full encyclopedia rebuild — that is the parked "generated portraits" separate-mod territory, not
   this item.
 
+**RATIFIED 2026-07-04 (Gabriel): start with the CHAT WINDOW surface, drop-in folder, custom-if-exists-else-3D.**
+Confirms the tiered fallback exactly ("thumbnail present -> show it; absent -> today's 3D render", silent on a
+missing/unreadable file). Naming decision REFINES the resolver key: try `Portraits/<Hero.StringId>.png` FIRST
+(unique, rename-proof), then `Portraits/<normalized-name>.png` as a friendly fallback, plus a dev console command
+`cr.portrait_id` that prints the exact filename to drop for the NPC currently in conversation (StringId is opaque
+otherwise). Format: square PNG, ~256x256. PRIORITY: queued AFTER the stance axes (Trust/Respect/Affection) per
+Gabriel's "toute la stance d'abord"; the PNG->Gauntlet spike (fork A/B above, B preferred) is the first step when
+it comes up.
+
 ### Player action narration — interpret the player's `*…*` and first-person deeds *(wished 2026-06-28, player feedback)*
 
 A recurring roleplay frustration: a player types a physical action — `*I take her by the wrist*`, or first-person
@@ -1183,7 +1192,7 @@ mod `CrSettings.LeanPrompt` MCM toggle ("Compact prompt for small models", LLM P
 player can toggle it and see the reduction. **DEFERRED:** the budget-based / auto-detect variant (v1 is the manual
 toggle); trimming the commoner prompt (already short); a lean variant of the captive-scene rules.
 
-### Stance — mechanical behaviour-gating *(stance ships narrative-only; the mechanical layer wished)*
+### Stance — mechanical behaviour-gating *(all 4 axes 🔨 BUILT 2026-07-04→05, untested in game)*
 
 Stance (Trust/Respect/Fear, plus Affection mirrored from relation) is fully wired into **perception**: deeds
 move it, words nudge it (capped + cooled), fear decays, and `StanceDescriptor` feeds the prompt so the LLM
@@ -1195,6 +1204,338 @@ outcomes**, not just tone:
 Build on the existing deed bridges (prisoner bargain, `join_clan`, barter); the gate is a pure threshold policy
 in `CalradiaRemembers.Logic` (testable), consulted by the bridge before it commits. "Words nudge, deeds prove"
 — and now the posture **bites**.
+
+**RATIFIED 2026-07-04 (Gabriel: "beaucoup de valeur, dans la philosophie de CR"), two structural rulings:**
+1. **Gate on the PROVEN level, not on flattery.** "Deeds prove" is a hard rule at the gate. NOTE (verified in
+   code 2026-07-04): the ANTI-FLATTERY GUARANTEE ALREADY EXISTS in `StanceGate` — a spoken round caps at
+   `WordCap` = ±2 per 8h, a proven deed at `DeedCap` = ±30. Reaching a gate at 40 by words alone would take
+   ~20 accepted rounds over ~160 in-game hours (and Fear decays underneath). So the gate reads `stance.Fear`
+   DIRECTLY — no separate "proven floor" store, no new SyncData key. The earlier A/B storage question is moot.
+   DECAY CAVEAT: unlike Trust/Respect/Affection (ETERNAL, no decay — forgetting reads as a bug), **Fear is the
+   one stance axis that fades** (`FearDecayPerDay` = 2, toward 0). So Fear-based coercion leverage is
+   inherently TEMPORARY by design: a lord cowed today yields softer terms, but ~20 days of calm erase the scare
+   and the leverage expires. This is a feature (terror recedes), not a bug — the fiction should own it.
+2. **One axis at a time, FEAR first.** Additive per the save-migration hard rule; Fear already has its
+   receptacle (the graduated FEAR stance register + hidden Grudges as the resentment sink). Then Trust,
+   Respect, Affection as later increments.
+Axis→domain grid (each axis owns one family of consequences, kept disjoint for lisibility + pure-policy testing):
+- **Fear → coercion**: high → accepts tribute / yields a prisoner / backs down, BUT plants a HIDDEN grudge
+  instead of regard (feeds the existing stance-assassin / hidden-hatred pattern); low + low Respect → refuses
+  flat, may escalate.
+- **Trust → delegated risk**: gates verbs where the NPC EXPOSES themselves (companion mission, lending troops
+  without surety, sensitive info, accepting marriage). Low Trust → "prove it first."
+- **Respect → political weight**: modifier on influence/negotiation (threat credibility, negotiating as an
+  equal vs. snubbing, weight in a scheme).
+- **Affection → personal loyalty**: gate for the romantic AND for staying loyal despite a poor CLAN standing,
+  distinct from clan regard.
+Increment plan: **Fear-1** = wire the coercion gate into the freedom-bargain / ransom bridge (fearful captive
+yields softer terms + hidden-grudge tail), pure `StanceGatePolicy` in `.Logic`, tested first; thresholds TO
+RATIFY before any code.
+
+**Fear-1 🔨 BUILT 2026-07-04 (untested in game), 1141 mod tests.** `CalradiaRemembers.Logic/StanceGatePolicy.cs`
+(`ResolveCoercion(fear, respect, honor, valor, calculating)`): `YieldFearFloor=40` (raised by positive
+Honor/Valor at `+5`/level each, lowered by positive Calculating at `-5`/level, floor clamped ≥
+`RefuseFearCeiling`), `RefuseFearCeiling=15` + `RefuseRespectCeiling=10` (both must hold to refuse flat),
+`RansomSoftenMultiplier=0.75`, `CoercedGrudgeMagnitude=30` (+`5`/level of positive Calculating). Wired into
+`BannerlordGameStateBridge.ExecuteFreePrisoner`: reads the captive's live Fear/Respect (`StanceService.ToStance`)
++ Honor/Valor/Calculating off the live Hero; `RefusesFlat` blocks the release outright (bargain declined, captive
+stays put); `YieldsSofterTerms` proceeds with the release and additionally plants a HIDDEN `GrudgeSource.CoercedRelease`
+(new value, appended — ordinal 13) via `GrudgeBehavior.TryPlant`, on top of (never instead of) the existing
+deed-gesture/appreciation/chronicle channels. A profile-less captive (no stance data — the `cr.test free_prisoner`
+self-test path) skips the gate entirely (`Neutral`) rather than defaulting Fear/Respect to 0/0, which would
+otherwise satisfy the refuse-flat thresholds by construction and block every ordinary release. **SOFTER TERMS
+delivered PROMPT-side (2026-07-04):** since `free_prisoner` carries no numeric ransom (the LLM emits its own
+freeform `give_gold` in the same response), the 0.75 multiplier is NOT clamped in the bridge; instead a new
+additive `EncounterContext.CaptiveFearCoerced` (computed in `EncounterContextBuilder.ResolveCaptiveFearCoerced`
+via the SAME `StanceGatePolicy.ResolveCoercion`, so prompt-advice and bridge-law never disagree) makes
+`PromptBuilder.AppendPrisonerFreedomBargain` instruct the frightened captive to offer a LARGER sum / harsher
+terms. Prompt is advice, bridge is law (the hidden grudge), both consult the identical policy. Console:
+`cr.stance_set <trust> <respect> <fear> [name]` (already existed) seeds the axes to exercise yield/refuse in
+game. Next (DONE, see Respect-1 below): Respect (political weight), then Affection (personal loyalty), per the
+axis→domain grid above.
+
+**Trust-1 🔨 BUILT 2026-07-04 (untested in game), 1148 mod tests.** Trust → DELEGATED RISK: gates the verbs where
+the NPC exposes THEIR OWN resources to the player. `StanceGatePolicy.WillDelegateRisk(trust, relation)` =
+`trust >= DelegatedRiskTrustFloor (20) || relation >= DelegatedRiskRelationBypass (30)`. Wired into
+`GiveInfluenceVerb` + `LendTroopsVerb` (the NPC lending their OWN influence/troops to the player; the reciprocal
+`SpendInfluenceVerb`/`GiveTroopsVerb` are untouched), at BOTH surfaces: `IsEligible` (advice — not taught below
+the gate, so the LLM never promises it) and `Execute` (law — re-reads live Trust/relation, refuses in character
+"Prove yourself first"), reading Trust via `StanceService.ToStance` and relation via `profile.ClanRelationWithPlayer`.
+**OR-relation soupape (Gabriel ratified 2026-07-04):** an established ally (vanilla relation ≥ 30) still lends
+even with 0 CR-tracked Trust, so the gate never silently narrows a shipped feature; an unproven stranger must
+still earn Trust (kept quest +15, gift +4, capped word nudges) to cross the floor. Profile-less NPCs were already
+excluded from these verbs (`Profile` is a hard prerequisite), so no new blocking for untracked heroes. Trust-only
+for now (no trait modulation yet). Console: `cr.stance_set 25 0 0 <name>` seeds Trust to test. **OPEN SEAM:** the
+companion risky-errand gate (Spy/Steal) is left commented-out in `CompanionMissionBehavior.Dispatch` — freshly
+recruited companions sit at Trust 0 AND relation ~0, so gating would lock an already-shipped feature; needs its
+own design (gate only the riskiest missions, or seed companion Trust on recruit) before wiring.
+
+**Respect-1 🔨 BUILT 2026-07-05 (untested in game), 1159 mod tests.** Respect → POLITICAL WEIGHT: gates
+`join_clan` (recruiting a lord into the player's clan). A lord who holds the player in contempt will not throw in
+their lot, however cordial the relation. Wired at BOTH surfaces: `EncounterContextBuilder.ResolveLordRecruitEligible`
+(advice — now takes `profile`, adds the Respect check on top of the existing `LordRecruitment` gate, so a
+contemptuous lord is never taught the action) and `BannerlordGameStateBridge.ExecuteJoinClan` (law — now takes
+`profile` off `ActionContext`, re-reads live Respect/relation, refuses in character "does not respect you enough to
+throw in their lot with you. Earn their esteem first."). Profile-less lords skip the Respect check entirely
+(`join_clan` never depended on a stance profile before this increment, so an untracked lord is not newly narrowed).
+**Site-specific HIGH soupape (Gabriel ratified 2026-07-05):** the naive shared soupape was DEAD here —
+`LordRecruitment.MinRelation` (60) already exceeds the general `RespectRelationBypass` (30), so it always fired and
+the Respect floor never bound. Fixed with a dedicated `StanceGatePolicy.CommandsRespectToJoinClan(respect, relation)`
+= `respect >= RespectFloor (20) || relation >= RecruitRespectRelationBypass (80)`: an adored lord (relation 80+)
+still joins on relation alone, but a merely-eligible lord (60..79) must ALSO respect the player (Respect ≥ 20), so
+the floor genuinely binds in that band. The general `CommandsRespect` (bypass 30) stays reserved for future
+lower-gated Respect sites (sway_opinion weight, threat credibility). Side-effect fix while wiring this:
+`GiveInfluenceVerb`/`LendTroopsVerb` (Trust-1) would not actually compile — `profile.ClanRelationWithPlayer` is
+`int?`, passed where `WillDelegateRisk` expects `int` — fixed with `?? 0`. Console: `cr.stance_set 0 25 0 <name>`
+seeds Respect to test (Respect is the 2nd arg); use relation 60-79 to see the floor bind.
+
+**Affection-1 🔨 BUILT 2026-07-05 (untested in game), 1161 mod tests.** Affection → PERSONAL LOYALTY despite a
+cold clan standing (Gabriel ratified 2026-07-05: the "activator", not a floor). Affection is not a deed-earned
+axis; it mirrors the NPC's personal regard (`ReputationWithPlayer`), which already gates romance/marriage, so
+its novel mechanical role is a THIRD door onto the delegated-risk gate: a lord who personally adores the player
+lends their own troops/influence out of personal loyalty even without proven Trust or a warm clan relation.
+`WillDelegateRisk(trust, relation, affection)` now = `trust >= 20 || relation >= 30 || affection >= AffectionLoyaltyFloor (40)`,
+reading affection from `profile.ReputationWithPlayer` at all four `GiveInfluenceVerb`/`LendTroopsVerb` sites.
+NOT applied to `join_clan` (its upstream `LordRecruitment.MinRelation` = 60 already gates relation, so an
+Affection override there would be moot). Console: `cr.rep_set <n> [name]` (personal regard) + `cr.stance_set 0 0 0 <name>`
+(zero the earned axes) + a cold relation, then a lend request should still succeed by personal loyalty.
+
+**✅ STANCE MECHANICAL LAYER COMPLETE (4/4 axes, 2026-07-04→05, all untested in game):** Fear → coercion
+(freedom-bargain), Trust → delegated risk (lend troops/influence), Respect → political weight (join_clan),
+Affection → personal loyalty (delegated-risk third door). All pure in `StanceGatePolicy` (.Logic, fully tested),
+consulted at both the advice (prompt/eligibility) and law (execution) surfaces, with `cr.stance_set`/`cr.rep_set`
+seeding for in-game tests. OPEN follow-ups noted in place: companion risky-errand Trust gate (seam), and later
+Respect sites (sway_opinion weight / threat credibility) that the general `CommandsRespect` bypass already awaits.
+
+### Player feedback round — SuperGraham339 (2026-07-05), triage + 2 new ratified pillars
+
+A rich living-feedback dump. UNIFYING THEME under ~half the points: the LLM lacks ground-truth game facts and
+hallucinates (army size, vanilla quests it issued, gang-leader rivalries, player backstory/appearance, "Christ").
+So half the list is ONE class of fix: feed the missing fact into context + hook unhooked entry points.
+
+**Quick wins 🔨 BUILT 2026-07-05 (untested in game), 1167 mod tests:**
+- **Diacritic folding in name matching** — pure `CalradiaRemembers.Logic\NameNormalization.Fold` (lowercase +
+  NFD decompose, drop NonSpacingMark, recompose), 6 tests. Applied in `ContextualNameResolver` (both message
+  tokens and hero name parts) and `ModCheats.ResolveHero` (rewritten to fold+tokenize: every folded query token
+  must substring some folded name part, so "Heloise the Finger" also disambiguates shared epithets). "Héloïse"
+  now matches a typed "Heloise".
+- **Player party troop count in context** — additive `EncounterContext.PlayerPartyTroopCount` (default 0), set in
+  `EncounterContextBuilder.ResolvePlayerPartyTroopCount` ONLY when `hero.PartyBelongedTo == MobileParty.MainParty`
+  (a present party member/companion; non-party NPCs get 0 = no metagame count). Rendered when > 0: "The player
+  currently leads N soldiers in their party." (SEAM flagged: it is conversation-stable, could later hoist into the
+  cacheable prompt prefix.)
+- **Anachronism guardrail** — a light bullet in both full and lean behaviour guidelines: Calradia has its own
+  faiths/gods/history, never reference Earth's religions/deities/saints/historical figures (no Christ/Rome/
+  Napoleon). Does not curb RP agency. (SEAM: skipped when a station/modder `BehaviorGuidelinesOverride` is active,
+  same as every built-in bullet.)
+
+**Bugs — triaged 2026-07-05:**
+- **No Encyclopedia button in captive dialogue — RESOLVED BY DIAGNOSIS, no separate fix.** The button
+  (`CalradiaRemembersChat.xml` `EncyclopediaButton`) is gated only by `IsEncyclopediaVisible => _npcHero != null`,
+  with NO extra captive-mode masking. A real-Hero captor (a lord) already shows it in the captive scene; a
+  SYNTHESIZED bandit captor (no Hero, like Ranulf) correctly hides it because there IS no encyclopedia page for a
+  non-Hero. So this is the SAME root cause as the named-bandit-memory bug and is fixed automatically by the Nemesis
+  pillar (Hero captor -> page exists -> button reappears). Building a separate UI fix would be wrong.
+- **Chat-granted player freedom is not made real in vanilla (Gabriel clarified 2026-07-05).** The case is: the
+  player NEGOTIATES their release OR ESCAPES via chat, the LLM plays it narratively, but the vanilla captivity never
+  ends, so captivity resumes. "The prompt is advice, the bridge is law": a bridge action must apply
+  `EndCaptivityAction`. State of play: (a) ESCAPE already has a real mechanic (`escape_attempt` ->
+  `ResolvePlayerEscapeAttempt` -> `_pendingEscape` -> `FinalizePendingEscape` -> `EndCaptivityAction.ApplyByEscape`,
+  deferred to scene close). If a chat escape failed to take, the likely cause is a narration/roll DESYNC (the LLM
+  narrated success while the ~10% roll failed) or `escape_attempt` never emitted; verify at build. (b) NEGOTIATED
+  RELEASE has NO action at all: `free_prisoner` is the inverse (the PLAYER frees THEIR captive via
+  `EndCaptivityAction.ApplyByReleasedByChoice(npcHero, MainHero)`). FIX = add the mirror: a captor-side
+  "release the player" action that, when the captor is genuinely persuaded (gated, not trivial), applies
+  `EndCaptivityAction.ApplyByReleasedByChoice(captor, MainHero)`, deferred to scene close like the escape, taught in
+  the captive-scene / lord-audience prompt. Build-ready design; needs SDK teaching + bridge execute + deferred
+  finalize + persuasion gate. Pure gate BUILT+tested: `CaptorReleasePolicy.Resolve(mercy, grudge, isNemesisVendetta)`
+  -> `{AllowsPersuasion, AllowsRansom}` (vendetta grudge >= 40 or nemesis refuses both; else ransom always, persuasion
+  if Mercy >= 1 OR light grudge < 15). **🔨 ENGINE WIRING BUILT 2026-07-05 (untested in game, 1241 tests, mod 0 err),
+  persuasion path:** SDK `EncounterContext.CaptorAllowsPersuasionRelease/RansomRelease` (additive) +
+  `PromptBuilder.AppendCaptorReleaseRule` teaches `release_player` to the captor (shared across bandit-menace /
+  lord-reckoning / CNC captive scenes, only when the gate allows); `EncounterContextBuilder.ResolveCaptorReleaseVerdict`
+  computes the flags via `CaptorReleasePolicy` when `PlayerStatus == Captive` (Mercy off the captor Hero, heaviest
+  live grudge vs player off `GrudgeBehavior.GrudgesFor`); bridge `CommitCaptorRelease(captor)` re-validates the gate
+  and sets a deferred `_pendingRelease`, `FinalizePendingRelease` applies `EndCaptivityAction.ApplyByReleasedByChoice(MainHero, captor)`
+  at scene close (mirrors `_pendingEscape`); `ChatViewModel` detects `release_player` -> `ResolveCaptorRelease`
+  (renders the parting line, commits, concludes the scene) and calls `FinalizePendingRelease` in `FinalizeCaptiveSceneMemory`.
+  **OPEN follow-up: the RANSOM-in-gold path** (the `ransom: N` amount + gold deduction) is deferred; the flag is
+  computed but this increment teaches/handles PERSUASION release only. Needs in-game validation.
+
+**CAPTIVITY ESCAPE BALANCE (analysed + ratified 2026-07-05).** Full escape surface in Hardcore: (a) scene
+`escape_attempt` = flat 10% per attempt (`EscapeChance = 0.10`), accumulating over scenes (1-0.9^N: ~27% by 3
+scenes, ~65% by 10); (b) vanilla spontaneous escape = ~30% of native rolls survive (`VanillaCaptivityPatch`
+suppresses 70% in Hardcore), a recurring drip that tends to near-certain over a long captivity ("time frees you");
+(c) vanilla ransom = fully OFF in Hardcore; (d) negotiated release (above) = near-at-will for a disposed captor, 0
+for a vendetta/nemesis; (e) rescue/battle = situational. NET: ordinary captivity is easily escapable (fine); a
+NEMESIS could still be waited out via the vanilla drip. GABRIEL'S RULING: a nemesis keeps SOME escape chance (never
+a perfect cage), but it DECAYS with each recapture as he grows more careful, and he says so in-fiction ("you slipped
+me once, not again"). Pure `NemesisEscapeChancePolicy.EscapeChance(recaptureCount)` BUILT+tested (base 10%,
+-2.5%/recapture, floor 2%, never 0). Engine wiring (nemesis increment): fully suppress the vanilla drip for a
+nemesis captor (so the decaying scene-escape is the only luck exit), source `recaptureCount` from a new
+`NemesisIdentity` field, feed it to the scene-escape roll, and voice a "not this time" beat when count > 0.
+
+- **NPCs unaware of VANILLA quests they issued — 🔨 FIXED 2026-07-05 (untested in game, mod 0 err).** New additive
+  `EncounterContext.NativeQuestNote`, built in `EncounterContextBuilder.ResolveNativeQuestNote(hero)`: scans
+  `Campaign.Current.QuestManager.Quests` for ONGOING quests whose `QuestGiver == this NPC`, EXCLUDING CR's own
+  mirrors (`CalradiaRemembersQuest`, `CommitmentQuest`) so nothing double-surfaces, and formats a note ("TASKS FROM
+  THE REALM'S AFFAIRS YOU SET THIS PLAYER ... speak as the one who set it, never baffled"). `PromptBuilder.AppendNativeQuestNote`
+  renders it, gated non-Captive alongside `AppendActiveQuests` (same guard that stops a bandit captor mistaking a
+  quest for one they gave). The giver now acknowledges their own native quest.
+- **Rival gang-leaders framed as friends-by-culture — 🔨 FIXED 2026-07-05 (untested, 1244 tests, mod 0 err).** Pure
+  `ThirdPartyDescriptor.Categorize` gained an `areRivalGangLeaders` param (defaulted, so no caller churn): after
+  kinship, two same-turf gang leaders are labelled "a rival gang leader (a competitor for the same turf, not a
+  friend)", overriding the friendly/neutral tiers (a genuine ENEMY relation is stronger and kept). +3 tests.
+  `ContextualNameResolver.AreRivalGangLeaders` computes it (both `Occupation.GangLeader`, same `CurrentSettlement`,
+  different heroes). The NPC is now told the rivalry instead of hallucinating a tribal friendship; the wrong −8
+  `change_relation` for offering to move against a rival should self-correct (hurting a named RIVAL reads as a
+  favour). If the −8 persists in game, the `change_relation` vocabulary is the follow-up lever.
+- **Alley-placed companion gives generic vanilla replies (#5) — ALREADY HOOKED, likely already fixed.** `LlmDialogFlow.EntryHubTokens`
+  already includes `alley_player_owned_start` alongside `hero_main_options`, added (with a comment citing a prior
+  player report) precisely because the alley-manager conversation branches from "start" and never passes through
+  `hero_main_options`, so CR's "A word with you." was missing there. So SuperGraham's report most likely predates
+  this fix; needs in-game RE-VALIDATION on the current build. The "maybe more broadly impacting" residual = if any
+  OTHER conversation context surfaces unhooked, add its hub token to `EntryHubTokens` (the clean extension point).
+
+**PILLAR: Nemesis — the persistent named bandit boss (ratified 2026-07-05).** Root cause of "Ranulf the Faceless
+Fox keeps his NAME but has no memory (`cr.memory`/`cr.info` empty)": the bandit captor is a transient troop, not a
+Hero, so no `NpcProfile` attaches. FIX = whenever ANY bandits take the player
+prisoner (NOT only the town-ambush arc — every bandit capture), the chief is a PERSISTENT MINOR-LORD Hero instead
+of a jetable troop — a Hero has a profile, so memory/grudges persist for free and he becomes a foe you can hunt,
+owe, and kill. The boss belongs to the CAPTURING bandit faction (Looters / Forest Bandits / Mountain Bandits /
+Sea Raiders / Desert Bandits / Steppe Bandits, per the vanilla bandit clans), so his culture/flavour matches who
+took you. Shape RATIFIED = a REGIONAL RECURRING ROSTER keyed by faction+region: on capture, if a living nemesis
+of that band exists in the region he IS the captor (you recross Ranulf); else mint a new one; killing him fires a
+world-event and he does not return. Increment 1 = just the persistent captor Hero + memory (fixes the bug, unlocks
+the rest), fired from the general bandit-capture hook; the town-ambush arc's existing "elite chief of the
+paymaster's culture" becomes one caller of the same machinery, not the only trigger. Later
+increments ABSORB the player's own wishlist: owe-money-to-the-boss -> collector party comes (courier-like), be
+delinquent -> his men hunt you, kill him -> head on a pike + world-event on "the fate of those who cross me";
+also folds in rival lords sending hit teams / notables sending thugs. Ties to captivity arc, stance-with-teeth
+(town ambush / Intercept / Assassinate), world-events, and interop with the "named bandits" mod (Nexus 10376) the
+player cited. See [[project-ambush-captivity]], [[project-stance-system]].
+
+**MAP-PRESENCE MECHANIC — RATIFIED 2026-07-05 (Gabriel), resolves the persistence-vs-pursuit tension.** THE
+TENSION: for it to be an adventure the boss must survive the vanilla world's constant bandit-clearing (a random
+lord must not erase your nemesis before you can hunt him), yet the player wants to PHYSICALLY pursue and kill him.
+A standing map party can't do both (AI-destructible vs chaseable). RESOLUTION (Gabriel's, cleaner than a
+dormant/summon or protected-party approach): **the nemesis has NO persistent party on the map at all — he lives in
+RUMOURS and world-events (a latent identity: Hero + faction-band + capture-region affinity).** He MATERIALIZES
+only at an encounter: when the player engages a bandit party OF HIS BAND'S FACTION, IN THE REGION where that
+player was captured, there is a RANDOM CHANCE that party turns out to be led by the nemesis. So the hunt is
+EMERGENT and diegetic: the player goes bandit-clearing in his territory and, after some empty bands, eventually
+runs into him leading one. Consequences: no standing party ⇒ nothing for the AI to attrit ⇒ persistence is free
+and hack-free; his death is PLAYER-GATED by construction (he only ever exists in a fight the player chose to
+start); killing/capturing him at that encounter resolves the arc (world-event, head on a pike, or the player
+becomes HIS captor). Design knobs to lock at build time: (a) the attach-chance and its PACING (rising / pity-timer
+so he is guaranteed eventually, per "intercepte plusieurs bandes sans le trouver, mais à un moment donné il tombe
+sur lui"); (b) region breadth (exact capture region vs a wider area) and whether player-initiated only or also
+when bandits engage the player; (c) the TECHNICAL SPIKE — attaching the persistent nemesis Hero as the LEADER of
+an ordinary vanilla bandit party at encounter time so he really fights, can be captured, and can be killed. The
+rumour/world-event layer keeps him present between encounters ("the Faceless Fox still raids near X, and still
+means to collect what you owe") and can nudge the player toward his region; the debt/collector and "his men hunt
+you" wishes ride on top as world-events, no standing party required.
+
+**BOTH ENCOUNTER DIRECTIONS ARE CHAT-FIRST + SYMMETRIC (Gabriel 2026-07-05):** the nemesis identity attaches to a
+qualifying (faction + capture-region) vanilla bandit party in EITHER outcome, and both open in CR chat, not a raw
+battle. (1) WIN/INTERCEPT: when the player engages such a party and the roll reveals the nemesis, the encounter
+OPENS WITH A CONVERSATION with him (reuses the map-conversation entry), confront him, settle the debt, taunt,
+before it breaks to a fight / capture / kill (and if the player LOSES that fight, he naturally takes the player,
+looping to direction 2). (2) LOSE/CAPTURED: if a matching-faction band in the capture region defeats and captures
+the player, the nemesis IS the captor and the captive scene runs with HIM, and because he is a persistent Hero
+with a profile he REMEMBERS the player, the debt, and the prior scene (exactly the "Ranulf keeps his name but not
+his memory" bug fixed by construction). The capture direction needs NO bespoke scene code (Gabriel 2026-07-05):
+it is the EXISTING captivity event verbatim, and the captor's history with the player injects ITSELF through the
+standard prompt-history path (`AppendHistory` over the captor's `NotableEvents`) purely because the captor is now
+the persistent nemesis Hero rather than a nameless troop. The ONLY requirement is the attach mechanic making him
+the captor Hero; the memory, the debt recall, the "what we did to each other last time" all come for free. One
+machinery (attach the persistent nemesis Hero as the vanilla band's leader), two chat-first faces: hunter and
+hunted swap places across encounters.
+
+**ENGINE-FEASIBILITY SPIKE (read-only, 2026-07-05): VERDICT = BUILDABLE-WITH-CAVEATS.** The load-bearing mechanic
+is ALREADY SHIPPING CODE: `AmbushCaptivityBehavior.SpawnCaptors` (`Stance\AmbushCaptivityBehavior.cs:683-739`)
+already mints a real persistent bandit-faction Hero (`HeroCreator.CreateSpecialHero` from a bandit template into
+`Clan.BanditFactions` "looters"), makes him the party `LeaderHero` (`LordPartyComponent.CreateLordParty`), fills
+the band with vanilla looter troops, and round-trips his StringId across save/load via `SyncData` (`_chiefId`).
+Today it deliberately KILLS the chief in `ClearConvoy` (`:234-237`, "so we don't leak a hero into the world").
+THE NEMESIS IS LITERALLY THAT CODE MINUS THE KILL, PLUS IDENTITY REUSE. Seam map:
+- **Captor-side chat-first = FREE.** `ChatManager.OpenForCaptiveEncounter(captorHero, profile,…)` (`Chat\ChatManager.cs:141-184`)
+  already opens the captive scene with a real Hero speaking first (called from `AmbushCaptivityBehavior.TryOpenLordAudience`);
+  `CaptiveEncounterService.cs:186` resolves the captor as `captorParty.LeaderHero` and routes a hero-led band to the
+  PROFILED-Hero branch (not the synthetic-brigand branch), so the boss's memory flows via `AppendHistory` with zero
+  new scene code. A persistent-Hero captor can also be forced virtually via the `ArrivedPaymasterFor` override pattern
+  (`:84-93`).
+- **Profile/memory = FREE.** `HeroProfileMapper.FromHero(boss)` + `store.Set` (`Mapping\HeroProfileMapper.cs:18-44`,
+  `Storage\BannerlordNpcMemoryStore.cs:37,53`) gives any Hero a persisted profile; `CaptiveEncounterService` already
+  mints a captor lord's profile on first capture. `cr.memory`/`cr.info` then work on him identically to a lord.
+- **THE ONE NEW SEAM = WIN/intercept chat-first against a bandit party.** Vanilla routes bandit map-contact to the
+  attack/leave encounter menu, not `hero_main_options`, and CR's interception explicitly EXCLUDES bandits
+  (`InterceptionBehavior.cs:307`). Build it by intercepting the bandit encounter menu (`GameMenuOpened` handler like
+  `AmbushCaptivityBehavior.cs:354-388`, or a Harmony `GameMenu.SwitchToMenu` prefix like `Letters\VanillaCaptivityPatch.cs:36-78`)
+  and opening `ChatManager` directly pre-battle, then dismissing the encounter cleanly via
+  `ChatManager.EndMapEncounterIfNeeded` (`:330-345`). Medium effort, solid precedent, no blocker.
+TOP RISKS to guard at build time: (1) do NOT leak the persistent bandit Hero into vanilla bandit-boss/ransom/notable
+systems (despawn his PARTY between encounters, keep the HERO alive for re-attach, keep him out of native reaping);
+(2) save/load must re-attach the SAME Hero to a NEW regional band next encounter (needs the roster SyncData behaviour +
+the pure `NemesisRosterPolicy`/`NemesisRevealPolicy`); (3) pre-battle interception of a hostile party is where the
+historical army-encounter save-corruption crashes lived, so reuse the `PlayerIsSubordinateInArmy` /
+`EndMapEncounterIfNeeded` guards. Store the boss's `Hero.StringId` on `NemesisIdentity` so the identity survives while
+his party is despawned.
+
+**INCREMENT-1 HOOK GAP (Gabriel 2026-07-05):** the persistent bandit chief is ALREADY created for the scripted
+town-AMBUSH path (`SpawnCaptors`), but NOT for the case the design actually centres on: the player LOSING a
+VANILLA map encounter to a bandit party and being taken prisoner the ordinary way. That plain-defeat capture is the
+NEW hook increment 1 must add: when a bandit party defeats+captures the player, run the roster/reveal roll and, on a
+hit, attach the persistent nemesis Hero as the captor (mint-or-reuse per faction+region) so CR's existing captivity
+scene runs with HIM and his memory. So the two entry points are: (a) ambush arc = already builds a chief, just make
+it persistent + identity-backed; (b) vanilla lost fight = the genuinely new capture hook. Both then converge on the
+same attach-Hero-as-captor machinery.
+
+**EXPANDED VISION (Gabriel brainstorm 2026-07-05): the vendetta has FOUR resolutions + bounty missions, nearly all
+FREE because the boss is a real Hero.** This may be the FEDERATING pillar: it pulls in captivity, stance, grudges,
+world-events, quests, and captor-scenes at once.
+- **Battlefield:** he is NOT a separate elite troop, HE is the elite, a named Hero agent leading the band; equip and
+  skill him as a real threat with a solid escort. (Loadout is TUNE.)
+- **Resolution 1 KILL in battle** -> Hero dies -> world-event. Nearly free.
+- **Resolution 2 EXECUTE:** capture him (he is a Hero, so vanilla take-prisoner works) then the vanilla behead option
+  -> head on a pike + world-event. Nearly free (verify the execute option surfaces on a bandit-faction hero).
+- **Resolution 3 IMPRISON + TORTURE in chat:** the INVERSION, the player is now the captor, reusing CR's existing
+  captor-side captive scenes, and loaded with his full vendetta memory ("remember my finger?"). Nearly free.
+- **Resolution 4 SPARE + TURN (recruit):** a Stealth/Rogue fantasy, beat him then spare him, his stance turns
+  (Respect/Fear up, grudge resolved) and he can be recruited as a companion. The DEEPEST branch, the only
+  not-free one: needs a HARD stance/grudge-gated turn path (reuses the just-built stance mechanical layer) + a
+  bandit->clan faction conversion. Design the turn gate before building.
+- **Bounty MISSIONS (the world hook):** a lord tasks the player to capture or execute the nemesis, verified by the
+  real capture/execution event; reuses the quest/negotiation framework + world-events. Ties to Extension Surface.
+SEQUENCING: increment 1 (persistent Hero captor + memory + attach + chat-first + escape-decay) unlocks the core;
+then RESOLUTION (kill/execute/torture, nearly free); then bounty missions; then the TURN branch (most gated, on
+stance). Each layer is standalone and shippable. See [[project-nemesis]].
+
+**PILLAR: Player appearance — derived + editable (ratified 2026-07-05).** Kills the backstory/appearance
+hallucination AND resolves the mutilation-persistence tension (a hallucinated "missing finger" must never
+auto-persist; the player AUTHORS it if they want). Two volets: (1) DERIVE the reliably-available attributes from
+`BodyProperties` (height, build/weight, age, gender, hair colour/style; NOTE eye colour and fine proportions are
+baked in the packed face code and not reliably readable, so skip those); (2) an EDITABLE per-hero prose descriptor
+in the Encyclopedia ("a mysterious air, moves with grace, limps on the left leg, missing a finger"), save-persisted
+so it follows the heir on a character change. Together they render a "THE PLAYER'S APPEARANCE" prompt block and
+RETIRE `player_description.txt` (replaced by the in-game field). Extends [[project-player-authored-characters]].
+**Pure composer 🔨 BUILT 2026-07-05 (overnight, untested, uncommitted):** `AppearanceComposer.Compose(facts, authoredProse, voice)`
++ `AppearanceFacts` carrier, bands the 0..1 body sliders + age into phrases, omits unknowns, appends authored prose,
+returns "" when nothing stands out. Banding thresholds are const/flagged TUNE (height 0.35/0.65, build 0.3/0.6/0.85,
+age 25/40/60). **FRAMING (Gabriel 2026-07-05): the appearance is read BY the speaking NPC, so voice matters.** Now
+GENERALIZED to serve BOTH targets via `AppearanceVoice` (Gabriel ratified scope = player + speaking NPC, witnesses
+deferred): `Subject` (default, THIRD person, "A tall, powerfully built man in his middle years, with dark hair.") for
+the PLAYER and any other described hero, rendered under a naming heading, never "you"; `Self` (SECOND person, "You are
+a tall... man in your middle years, with dark hair.") for the SPEAKING NPC's OWN body, so it grounds its self-image
+and never invents contradictory looks. Renamed `PlayerAppearanceComposer` -> `AppearanceComposer`. 29 tests. STILL TODO
+(engine, needs Gabriel + in-game): read the reliable `BodyProperties`/`DynamicBodyProperties` sliders to fill
+`AppearanceFacts` (reused per hero: player, speaking NPC); the editable per-hero Encyclopedia prose field; and the
+wiring (player block under a naming heading in Subject voice; the NPC's own block in Self voice).
+
+**Notes / no-action:** the captive-scene violence (stabbing, finger) LANDS and he wants MORE explicit interpersonal
+scenes (a sensitivity toggle is a maybe, not a restriction); "it is easy to overpower the AI" but he PREFERS
+agency over any restriction (do NOT add guardrails that curb RP agency); raw stream-of-consciousness feedback IS
+welcome (a light bug/wish/note structure would help even more).
 
 ### Town ambush — works end-to-end behind the toggle; refining *(stance increment 3; still shipped OFF)*
 
