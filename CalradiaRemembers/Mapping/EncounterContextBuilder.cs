@@ -51,6 +51,12 @@ namespace CalradiaRemembers.Mapping
       /// <summary>Registration order of the court verbs taught BEFORE pledge_against, in <see cref="VerbRegistry" />.</summary>
       private static readonly string[] CourtVerbsBeforePledge = {"give_influence", "lend_troops", "sway_opinion"};
 
+      /// <summary>
+      ///   04/07/2026: give_troops and spend_influence, the RECIPROCAL of the two court verbs above (the
+      ///   PLAYER reinforces a needy NPC instead of the NPC favouring the player) — taught right after them.
+      /// </summary>
+      private static readonly string[] ReciprocalCourtVerbs = {"give_troops", "spend_influence"};
+
       /// <summary>DIVORCE, Phase 1: end_marriage is taught last, after every court verb above.</summary>
       private static readonly string[] DivorceVerbs = {"end_marriage"};
 
@@ -774,12 +780,13 @@ namespace CalradiaRemembers.Mapping
       /// <summary>
       ///   RP with teeth: composes the ONE generic <see cref="EncounterContext.ExtraActionTeachings" />
       ///   block from the court-action eligibility resolvers in <see cref="CourtActionResolver" /> (the four
-      ///   increment-1 verbs, plus increment 2's <c>pledge_against</c>). Each verb's own section (and its
-      ///   [ACTION] format) is included only when currently eligible, so the LLM is never taught a verb the
-      ///   bridge would refuse. Null when none apply right now, or while the player is this NPC's captive
-      ///   (none of these favours make sense from a dungeon). The four increment-1 verbs are composed via
-      ///   <see cref="VerbRegistry" /> (<see cref="IConversationVerb" />); pledge_against stays inline here
-      ///   (untouched by this spike) between the two ComposeTeachings calls, preserving its original position.
+      ///   increment-1 verbs, their 04/07/2026 reciprocals give_troops/spend_influence, plus increment 2's
+      ///   <c>pledge_against</c>). Each verb's own section (and its [ACTION] format) is included only when
+      ///   currently eligible, so the LLM is never taught a verb the bridge would refuse. Null when none
+      ///   apply right now, or while the player is this NPC's captive (none of these favours make sense from
+      ///   a dungeon). The verbs are composed via <see cref="VerbRegistry" /> (<see cref="IConversationVerb" />);
+      ///   pledge_against stays inline here (untouched by this spike) between the two ComposeTeachings calls,
+      ///   preserving its original position.
       /// </summary>
       private static string ResolveExtraActionTeachings(Hero hero,
                                                         NpcProfile profile,
@@ -797,6 +804,9 @@ namespace CalradiaRemembers.Mapping
          // (CalradiaRemembers.Verbs); the pledge_against block below still sits between these and
          // release_prisoner, so the two ComposeTeachings calls keep that exact interleaving.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, CourtVerbsBeforePledge));
+
+         // give_troops + spend_influence (04/07/2026): the reciprocal direction, taught right after.
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, ReciprocalCourtVerbs));
 
          string pledgeRival = CourtActionResolver.ResolvePledgeRivalName(hero, profile);
          if (pledgeRival != null)

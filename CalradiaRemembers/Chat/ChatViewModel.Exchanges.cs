@@ -7,11 +7,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Lore;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Quests;
@@ -694,9 +696,22 @@ namespace CalradiaRemembers.Chat
             // over the female player and may press the advantage in later talks (persisted on the profile).
             if (actType == NotableEventType.Intimacy)
             {
-               Hero leveraged = Hero.FindFirst(h => h.StringId == profile.Id);
-               if (leveraged != null && IntimacyBargainEligibility.IsEligible(leveraged))
-                  profile.IntimacyLeverageHeld = true;
+               Hero partner = Hero.FindFirst(h => h.StringId == profile.Id);
+               if (partner != null)
+               {
+                  bool exploited = IntimacyBargainEligibility.IsEligible(partner);
+
+                  if (exploited)
+                     profile.IntimacyLeverageHeld = true;
+
+                  // Appreciations pillar (KindnessInScene): a consensual tenderness the partner remembers
+                  // fondly. Not when the dynamic is the exploiter pressing an advantage, which is leverage,
+                  // not a kindness done to them. Mirrors AppreciationBackfillRules' Intimacy-event rule.
+                  else if (ModSettings.AdultContentLevel != AdultContentLevel.Off)
+                     AppreciationBehavior.Instance?.TryPlant(partner, Hero.MainHero,
+                        AppreciationSource.KindnessInScene, "A tender moment we shared.",
+                        AppreciationBackfillRules.KindnessInSceneMagnitude, knownToPlayer: true, gameDay);
+               }
             }
 
             // ── Execute game actions emitted by the LLM ───────────────────

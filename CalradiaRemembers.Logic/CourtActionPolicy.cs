@@ -3,6 +3,9 @@
 // roleplay real vanilla consequences (give_influence, lend_troops, sway_opinion, release_prisoner).
 // The engine-coupled facts are gathered in CalradiaRemembers.GameState.CourtActionResolver; this class
 // only reasons over plain numbers, so the tuning stays protected by tests.
+// 04/07/2026: added give_troops and spend_influence, the RECIPROCAL direction of lend_troops/give_influence
+// (the PLAYER reinforces a needy NPC instead of the NPC favouring the player) — closes the last open
+// Appreciations source, TroopsOrInfluenceSpentForThem.
 
 using System;
 using System.Collections.Generic;
@@ -94,6 +97,74 @@ namespace CalradiaRemembers.Logic
 
             return Math.Max(0, Math.Min(desired, Math.Min(spare, playerRoom)));
         }
+
+        // ── give_troops (reciprocal of lend_troops: the player reinforces a needy NPC's own party) ──
+
+        /// <summary>Tuning: an NPC's party counts as "weakened" only once its size limit is at least this large (a tiny elite escort is never "under-strength").</summary>
+        public const int GiveTroopsMinPartySizeLimit = 15;
+
+        /// <summary>Tuning: the fraction of their party's size limit an NPC's healthy troop count must fall below to count as weakened.</summary>
+        public const float GiveTroopsWeakenedFraction = 0.5f;
+
+        /// <summary>Tuning: minimum personal relation before an NPC will accept troops from the player at all — charity toward the needy, not a deep bond, so this sits far below lend_troops' own-initiative threshold.</summary>
+        public const int GiveTroopsMinRelation = 0;
+
+        /// <summary>Tuning: the fraction of the player's OWN healthy troops that must remain after a gift.</summary>
+        public const float GiveTroopsPlayerMinRetainFraction = 0.70f;
+
+        /// <summary>Tuning: the player's own party must never be reduced below this many healthy troops, regardless of size.</summary>
+        public const int GiveTroopsPlayerFloor = 15;
+
+        /// <summary>Tuning: the hard cap on a single reinforcement gift.</summary>
+        public const int GiveTroopsMaxCount = 8;
+
+        /// <summary>Tuning: relation points per +1 troop offered, once eligible.</summary>
+        public const int GiveTroopsRelationDivisor = 6;
+
+        /// <summary>Tuning: cooldown (in-game days) before the player can reinforce the same NPC again.</summary>
+        public const int GiveTroopsCooldownDays = 14;
+
+        /// <summary>
+        ///   True when an NPC's own party is genuinely under-strength and worth reinforcing: fielding a party big
+        ///   enough to matter (<see cref="GiveTroopsMinPartySizeLimit" />) yet under <see cref="GiveTroopsWeakenedFraction" />
+        ///   of its own size limit in healthy troops.
+        /// </summary>
+        public static bool IsPartyWeakened(int healthyTroops, int partySizeLimit)
+            => partySizeLimit >= GiveTroopsMinPartySizeLimit && healthyTroops < partySizeLimit * GiveTroopsWeakenedFraction;
+
+        /// <summary>
+        ///   How many of the player's OWN healthy regular troops they could spare for a weakened NPC's party:
+        ///   scaled modestly by relation (<see cref="GiveTroopsMaxCount" /> cap), never dipping the player's own
+        ///   party below <see cref="GiveTroopsPlayerMinRetainFraction" /> of its current strength nor
+        ///   <see cref="GiveTroopsPlayerFloor" /> troops outright, and never more than the NPC party's own
+        ///   remaining room.
+        /// </summary>
+        public static int TroopGiftCount(int relation, int playerHealthyTroops, int npcRoom)
+        {
+            if (relation < GiveTroopsMinRelation || playerHealthyTroops <= 0 || npcRoom <= 0) return 0;
+
+            int mustKeep = Math.Max(GiveTroopsPlayerFloor, (int) Math.Ceiling(playerHealthyTroops * GiveTroopsPlayerMinRetainFraction));
+            int spare = Math.Max(0, playerHealthyTroops - mustKeep);
+            if (spare <= 0) return 0;
+
+            int desired = Math.Min(GiveTroopsMaxCount, Math.Max(1, relation / GiveTroopsRelationDivisor + 1));
+
+            return Math.Max(0, Math.Min(desired, Math.Min(spare, npcRoom)));
+        }
+
+        // ── spend_influence (reciprocal of give_influence: the player backs a needy lord's clan at court) ──
+
+        /// <summary>Tuning: an NPC's own clan counts as needing court backing when its influence sits below this.</summary>
+        public const int SpendInfluenceNpcNeedThreshold = 30;
+
+        /// <summary>Tuning: minimum personal relation before an NPC will accept the player spending influence on their behalf — mirrors <see cref="GiveTroopsMinRelation" />'s much lower charity bar.</summary>
+        public const int SpendInfluenceMinRelation = 0;
+
+        /// <summary>Tuning: cooldown (in-game days) before the player can back the same NPC's clan again.</summary>
+        public const int SpendInfluenceCooldownDays = 7;
+
+        /// <summary>True when the given clan's influence is low enough to plausibly welcome the player's backing at court.</summary>
+        public static bool ClanNeedsInfluence(float clanInfluence) => clanInfluence < SpendInfluenceNpcNeedThreshold;
 
         // ── sway_opinion ─────────────────────────────────────────────────────
 

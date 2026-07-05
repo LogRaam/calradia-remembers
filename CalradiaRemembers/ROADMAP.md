@@ -338,6 +338,18 @@ have APPRECIATIONS, the specific KINDNESSES the player did that marked an NPC po
 same way a grudge is. Completes the affect model: regard = the number, grudges = what was done against them,
 appreciations = what was done for them, all three coexisting.
 
+**Status (04/07/2026): TroopsOrInfluenceSpentForThem CLOSED.** The last open Appreciations source now has a
+live-plant path: `give_troops`/`spend_influence` (CalradiaRemembers.Verbs), the RECIPROCAL of the existing
+`lend_troops`/`give_influence` verbs — the PLAYER reinforces a needy NPC's under-strength party or spends
+their own clan's influence to back a needy lord's clan at court, instead of the NPC favouring the player.
+Same emission model as every other verb: the LLM plays the NPC, so the action fires when the NPC ACCEPTS the
+player's in-conversation offer, never when the player merely proposes it. Eligibility/amount math lives in
+`CourtActionPolicy`/`CourtActionResolver` (mirrors give_influence/lend_troops exactly, reversed), gated by a
+weakened-party or low-clan-influence "need" check plus a safety floor on the player's own reserve. Still no
+backfill marker for this source (unchanged from the header note in `AppreciationBackfillRules` — nothing in
+an existing save records a past troop/influence hand-off), so it stays live-plant-only going forward, same as
+before this build.
+
 **Design: a LEAN sibling, not a full mirror.** Reuse ~80% of the Grudge scaffolding (event-anchored model,
 magnitude, decay, knowledge-gating, prompt line, an encyclopedia "Kindnesses"/"Debts of gratitude" section next
 to Grievances, migration backfill from positive markers). But an appreciation has NO rigidity and NO resolution

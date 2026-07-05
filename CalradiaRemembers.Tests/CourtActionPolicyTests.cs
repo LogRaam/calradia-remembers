@@ -99,6 +99,80 @@ namespace CalradiaRemembers.Tests
          CourtActionPolicy.TroopLoanCount(50, 1, 10).Should().Be(0);
       }
 
+      // ── give_troops (reciprocal of lend_troops) ─────────────────────────
+
+      [Test]
+      public void GIVEN_a_party_below_the_weakened_fraction_of_a_large_enough_size_limit_WHEN_checking_if_weakened_THEN_it_is()
+      {
+         //Arrange — size limit 40, healthy 15 (under 50%).
+         CourtActionPolicy.IsPartyWeakened(15, 40).Should().BeTrue();
+      }
+
+      [Test]
+      public void GIVEN_a_party_at_or_above_the_weakened_fraction_WHEN_checking_if_weakened_THEN_it_is_not()
+      {
+         CourtActionPolicy.IsPartyWeakened(25, 40).Should().BeFalse();
+      }
+
+      [Test]
+      public void GIVEN_a_size_limit_below_the_minimum_worth_reinforcing_WHEN_checking_if_weakened_THEN_a_tiny_escort_never_counts()
+      {
+         //Arrange — even a nearly-empty 5-troop escort (limit 10) is not "under-strength", it is just small.
+         CourtActionPolicy.IsPartyWeakened(1, 10).Should().BeFalse();
+      }
+
+      [Test]
+      public void GIVEN_relation_below_the_charity_floor_WHEN_computing_the_troop_gift_THEN_it_is_zero()
+      {
+         CourtActionPolicy.TroopGiftCount(-5, 200, 20).Should().Be(0);
+      }
+
+      [Test]
+      public void GIVEN_ample_spare_troops_and_room_WHEN_computing_the_troop_gift_THEN_it_scales_with_relation()
+      {
+         //Arrange — relation 30 / 6 + 1 = 6 desired, well within the player's spare and the NPC's room.
+         CourtActionPolicy.TroopGiftCount(30, 300, 50).Should().Be(6);
+      }
+
+      [Test]
+      public void GIVEN_an_extremely_deep_relation_WHEN_computing_the_troop_gift_THEN_it_is_capped()
+      {
+         CourtActionPolicy.TroopGiftCount(1000, 1000, 1000).Should().Be(CourtActionPolicy.GiveTroopsMaxCount);
+      }
+
+      [Test]
+      public void GIVEN_the_player_has_barely_more_than_the_floor_WHEN_computing_the_troop_gift_THEN_it_never_dips_the_player_below_the_floor()
+      {
+         //Arrange — 20 troops, must keep max(15, 70% of 20=14) = 15, so at most 5 are spare regardless of relation.
+         CourtActionPolicy.TroopGiftCount(1000, 20, 50).Should().Be(5);
+      }
+
+      [Test]
+      public void GIVEN_the_player_at_or_under_the_floor_WHEN_computing_the_troop_gift_THEN_it_is_zero()
+      {
+         CourtActionPolicy.TroopGiftCount(50, 15, 10).Should().Be(0);
+      }
+
+      [Test]
+      public void GIVEN_the_npc_party_nearly_full_WHEN_computing_the_troop_gift_THEN_it_never_exceeds_the_npcs_room()
+      {
+         CourtActionPolicy.TroopGiftCount(1000, 1000, 2).Should().Be(2);
+      }
+
+      // ── spend_influence (reciprocal of give_influence) ──────────────────
+
+      [Test]
+      public void GIVEN_a_clan_influence_below_the_need_threshold_WHEN_checking_if_a_clan_needs_influence_THEN_it_does()
+      {
+         CourtActionPolicy.ClanNeedsInfluence(CourtActionPolicy.SpendInfluenceNpcNeedThreshold - 1).Should().BeTrue();
+      }
+
+      [Test]
+      public void GIVEN_a_clan_influence_at_or_above_the_need_threshold_WHEN_checking_if_a_clan_needs_influence_THEN_it_does_not()
+      {
+         CourtActionPolicy.ClanNeedsInfluence(CourtActionPolicy.SpendInfluenceNpcNeedThreshold).Should().BeFalse();
+      }
+
       // ── sway_opinion ──────────────────────────────────────────────────────
 
       [Test]

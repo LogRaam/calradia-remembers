@@ -104,6 +104,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("mission_reward", Severity.Heavy, "MissionBoard FULL LOOP -> register -> Complete -> player reports to giver -> assert reward PAID + quest Completed", TestMissionRewardLoop),
          new SelfTest("rp_influence", Severity.Light, "eligible lord -> give_influence -> assert clan influence moved + marker + cooldown refuses repeat", TestRpInfluence),
          new SelfTest("rp_troops", Severity.Heavy, "lord w/ healthy party -> lend_troops -> assert rosters moved + marker", TestRpTroops),
+         new SelfTest("rp_give_troops", Severity.Heavy, "lord w/ under-strength party -> give_troops -> assert rosters moved + marker + appreciation planted", TestRpGiveTroops),
+         new SelfTest("rp_spend_influence", Severity.Light, "needy lord's clan -> spend_influence -> assert clan influence moved + marker + appreciation planted + cooldown refuses repeat", TestRpSpendInfluence),
          new SelfTest("rp_sway", Severity.Light, "NPC + 3rd hero -> sway_opinion(against) -> assert relation dropped + marker + world event + cooldown refuses repeat", TestRpSway),
          new SelfTest("rp_release", Severity.Heavy, "seed 3rd-party captive on a lord's party -> release_prisoner -> assert freed + relation bump", TestRpRelease),
          new SelfTest("commitment_fulfilled", Severity.Light, "seed a real pledge -> OnSchemeResolved(true) -> assert no longer active + reputation bonus + world event + journal mirror closed", TestCommitmentFulfilled),
@@ -992,6 +994,71 @@ namespace CalradiaRemembers.Diagnostics
 
          return CourtActionResolver.TryLendTroops(lord, profile, out int count)
             ? (lord, profile, count)
+            : null;
+      }
+
+      /// <summary>
+      ///   The reciprocal of <see cref="SeedTroopsEligible" /> (04/07/2026): finds a lord leading their own,
+      ///   genuinely under-strength party (rather than manufacturing one — mirrors that method's "pick, don't
+      ///   force" pattern), forces relation comfortably above the charity floor, and tops up the player's
+      ///   OWN roster when a fresh MainParty would otherwise start too thin to clear the safety floor. Then
+      ///   re-checks the real gate against the live rosters. Null when no such party exists nearby.
+      /// </summary>
+      private static (Hero lord, NpcProfile profile, int count)? SeedGiveTroopsEligible(NpcMemoryCampaignBehavior behavior)
+      {
+         MobileParty playerParty = MobileParty.MainParty;
+         if (playerParty?.MemberRoster != null)
+         {
+            CharacterObject basicTroop = Hero.MainHero?.Culture?.BasicTroop;
+            int have = playerParty.MemberRoster.TotalManCount;
+            if (basicTroop != null && have < 80) playerParty.MemberRoster.AddToCounts(basicTroop, 80 - have);
+         }
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero &&
+            h.IsAlive &&
+            !h.IsPrisoner &&
+            h.Clan != Clan.PlayerClan &&
+            h.PartyBelongedTo != null &&
+            h.PartyBelongedTo.LeaderHero == h &&
+            h.PartyBelongedTo.Party.PartySizeLimit >= CourtActionPolicy.GiveTroopsMinPartySizeLimit &&
+            h.PartyBelongedTo.MemberRoster.TotalManCount < h.PartyBelongedTo.Party.PartySizeLimit * CourtActionPolicy.GiveTroopsWeakenedFraction);
+
+         if (lord == null) return null;
+
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         int relBefore = lord.GetRelation(Hero.MainHero);
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(lord, Hero.MainHero, 30 - relBefore, false);
+
+         return CourtActionResolver.TryGiveTroops(lord, profile, out int count)
+            ? (lord, profile, count)
+            : null;
+      }
+
+      /// <summary>
+      ///   The reciprocal of <see cref="SeedInfluenceEligible" /> (04/07/2026): finds a live lord of another
+      ///   clan, forces relation comfortably above the charity floor, drains their clan's influence below
+      ///   the need threshold, and tops up the player's own clan reserve, then re-checks the real gate.
+      /// </summary>
+      private static (Hero npc, NpcProfile profile, int amount)? SeedSpendInfluenceEligible(NpcMemoryCampaignBehavior behavior)
+      {
+         Hero npc = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan);
+
+         if (npc == null) return null;
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         int relBefore = npc.GetRelation(Hero.MainHero);
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, Hero.MainHero, 30 - relBefore, false);
+
+         if (npc.Clan.Influence >= CourtActionPolicy.SpendInfluenceNpcNeedThreshold)
+            ChangeClanInfluenceAction.Apply(npc.Clan, CourtActionPolicy.SpendInfluenceNpcNeedThreshold - 5f - npc.Clan.Influence);
+
+         if (Clan.PlayerClan.Influence < 200f)
+            ChangeClanInfluenceAction.Apply(Clan.PlayerClan, 200f - Clan.PlayerClan.Influence);
+
+         return CourtActionResolver.TrySpendInfluence(npc, profile, out int amount)
+            ? (npc, profile, amount)
             : null;
       }
 
@@ -3388,6 +3455,92 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("npcLost", npcBefore - npcAfter, expected);
          t.Expect("noHeroesMoved", playerHeroesAfter, playerHeroesBefore);
          t.Expect("markerStamped", marked, true);
+
+         return t.Line();
+      }
+
+      // ── give_troops / spend_influence (04/07/2026 — reciprocal of lend_troops / give_influence) ──
+
+      private static string TestRpGiveTroops(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("rp_give_troops");
+
+         (Hero lord, NpcProfile profile, int expected)? seed = SeedGiveTroopsEligible(behavior);
+
+         if (t.Skip(seed == null, "no lord leading a genuinely under-strength party nearby, even after forcing relation")) return t.Line();
+         (Hero lord, NpcProfile profile, int expected) = seed.Value;
+
+         MobileParty npcParty = lord.PartyBelongedTo;
+         MobileParty playerParty = MobileParty.MainParty;
+
+         if (t.Abort(npcParty == null || playerParty == null, "a party vanished between eligibility check and execution")) return t.Line();
+
+         int npcBefore = npcParty.MemberRoster.TotalManCount;
+         int playerBefore = playerParty.MemberRoster.TotalManCount;
+         var today = (int) CampaignTime.Now.ToDays;
+
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "give_troops"}, lord, new ActionContext(profile, null));
+
+         int npcAfter = npcParty.MemberRoster.TotalManCount;
+         int playerAfter = playerParty.MemberRoster.TotalManCount;
+         NpcProfile after = behavior.Store.Get(lord.StringId);
+         bool marked = after != null &&
+                       after.Events.Any(e =>
+                          !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.GiveTroopsMarker, StringComparison.Ordinal) >= 0);
+
+         IReadOnlyList<Appreciation> appreciations = AppreciationBehavior.Instance?.AppreciationsFor(lord.StringId) ?? Array.Empty<Appreciation>();
+         bool appreciationPlanted = appreciations.Any(a => a.Source == AppreciationSource.TroopsOrInfluenceSpentForThem && a.EventDay == today);
+
+         t.Note($"lord={lord.Name} expected={expected}, npcTroops {npcBefore}->{npcAfter}, playerTroops {playerBefore}->{playerAfter}");
+         t.Expect("outcomePositive", outcome?.IsPositive, true);
+         t.Expect("npcGained", npcAfter - npcBefore, expected);
+         t.Expect("playerLost", playerBefore - playerAfter, expected);
+         t.Expect("markerStamped", marked, true);
+         t.Expect("appreciationPlanted", appreciationPlanted, true);
+
+         return t.Line();
+      }
+
+      private static string TestRpSpendInfluence(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("rp_spend_influence");
+
+         (Hero npc, NpcProfile profile, int amount)? seed = SeedSpendInfluenceEligible(behavior);
+
+         if (t.Skip(seed == null, "no live lord of another clan eligible to receive influence, even after forcing relation + need + player reserve")) return t.Line();
+         (Hero npc, NpcProfile profile, int amount) = seed.Value;
+
+         float npcBefore = npc.Clan.Influence;
+         float playerBefore = Clan.PlayerClan.Influence;
+         var today = (int) CampaignTime.Now.ToDays;
+
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "spend_influence"}, npc, new ActionContext(profile, null));
+
+         float npcAfter = npc.Clan.Influence;
+         float playerAfter = Clan.PlayerClan.Influence;
+         NpcProfile after = behavior.Store.Get(npc.StringId);
+         bool marked = after != null &&
+                       after.Events.Any(e =>
+                          !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.SpendInfluenceMarker, StringComparison.Ordinal) >= 0);
+
+         IReadOnlyList<Appreciation> appreciations = AppreciationBehavior.Instance?.AppreciationsFor(npc.StringId) ?? Array.Empty<Appreciation>();
+         bool appreciationPlanted = appreciations.Any(a => a.Source == AppreciationSource.TroopsOrInfluenceSpentForThem && a.EventDay == today);
+
+         // Same day, right after stamping the marker — the cooldown must refuse a repeat.
+         ActionOutcome again = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "spend_influence"}, npc, new ActionContext(after, null));
+         bool stillEligible = CourtActionResolver.TrySpendInfluence(npc, after, out _);
+
+         t.Note($"npc={npc.Name} amount={amount}, playerInfluence {playerBefore:0}->{playerAfter:0}, npcInfluence {npcBefore:0}->{npcAfter:0}");
+         t.Expect("outcomePositive", outcome?.IsPositive, true);
+         t.Expect("npcRose", npcAfter - npcBefore, (float) amount);
+         t.Expect("playerFell", playerBefore - playerAfter, (float) amount);
+         t.Expect("markerStamped", marked, true);
+         t.Expect("appreciationPlanted", appreciationPlanted, true);
+         t.Expect("secondRefused", again == null || !again.IsPositive, true);
+         t.Expect("resolverNowIneligible", !stillEligible, true);
 
          return t.Line();
       }

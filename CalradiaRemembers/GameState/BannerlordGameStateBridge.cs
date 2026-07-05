@@ -181,8 +181,12 @@ namespace CalradiaRemembers.GameState
             // give_influence, lend_troops, sway_opinion, release_prisoner: migrated to the
             // IConversationVerb contract (CalradiaRemembers.Verbs): VerbRegistry routes by Name,
             // reusing the same CourtActionResolver/CourtActionPolicy eligibility and math as before.
+            // give_troops, spend_influence (04/07/2026): the RECIPROCAL direction — the player reinforces
+            // a needy NPC instead of the NPC favouring the player — designed for the same contract.
             case "give_influence":
             case "lend_troops":
+            case "give_troops":
+            case "spend_influence":
             case "sway_opinion":
             case "release_prisoner":
             // end_marriage (DIVORCE, Phase 1) and make_amends (Grudges pillar, resolution half): both
@@ -632,7 +636,9 @@ namespace CalradiaRemembers.GameState
       // give_influence, lend_troops, sway_opinion, release_prisoner executors moved to
       // CalradiaRemembers.Verbs (GiveInfluenceVerb / LendTroopsVerb / SwayOpinionVerb / ReleasePrisonerVerb),
       // routed by VerbRegistry from the switch above. Reuse CourtActionResolver/CourtActionPolicy exactly
-      // as before; see those classes for the eligibility gates and cooldown markers.
+      // as before; see those classes for the eligibility gates and cooldown markers. give_troops /
+      // spend_influence (04/07/2026, GiveTroopsVerb / SpendInfluenceVerb) are the reciprocal direction,
+      // routed identically.
 
       /// <summary>
       ///   gather_news action: the player asked one of their companions to ride out and bring back word of

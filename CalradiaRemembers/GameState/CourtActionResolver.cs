@@ -17,13 +17,14 @@ using TaleWorlds.CampaignSystem.Roster;
 namespace CalradiaRemembers.GameState
 {
    /// <summary>
-   ///   Reads the live game state into the eligibility/amount facts for the four "RP with teeth"
-   ///   court actions (give_influence, lend_troops, sway_opinion, release_prisoner), delegating the
-   ///   pure math to <see cref="CourtActionPolicy" />. Shared by three call sites so they can never
-   ///   drift apart: <c>EncounterContextBuilder</c> (what to teach the LLM), <c>BannerlordGameStateBridge</c>
-   ///   (re-validation at execution — the bridge is the law), and the <c>cr.rp_verbs</c> console command.
-   ///   Per-NPC cooldowns are derived from the profile's own <see cref="NpcProfile.Events" /> (a hidden
-   ///   marker in the recorded summary), so no new persisted field is needed.
+   ///   Reads the live game state into the eligibility/amount facts for the "RP with teeth" court actions
+   ///   (give_influence, lend_troops, sway_opinion, release_prisoner, and their 04/07/2026 reciprocals
+   ///   give_troops/spend_influence), delegating the pure math to <see cref="CourtActionPolicy" />. Shared
+   ///   by three call sites so they can never drift apart: <c>EncounterContextBuilder</c> (what to teach the
+   ///   LLM), <c>BannerlordGameStateBridge</c> (re-validation at execution — the bridge is the law), and the
+   ///   <c>cr.rp_verbs</c>/<c>cr.give_troops</c>/<c>cr.spend_influence</c> console commands. Per-NPC
+   ///   cooldowns are derived from the profile's own <see cref="NpcProfile.Events" /> (a hidden marker in
+   ///   the recorded summary), so no new persisted field is needed.
    /// </summary>
    public static class CourtActionResolver
    {
@@ -32,6 +33,20 @@ namespace CalradiaRemembers.GameState
 
       /// <summary>Hidden marker recorded on a lend_troops memory event, scanned back for the cooldown.</summary>
       public const string TroopsMarker = "[cr_troops]";
+
+      /// <summary>
+      ///   Hidden marker recorded on a give_troops memory event (04/07/2026, the reciprocal of lend_troops),
+      ///   scanned back for the cooldown. Deliberately distinct from <see cref="TroopsMarker" /> so the two
+      ///   opposite directions never share a cooldown clock.
+      /// </summary>
+      public const string GiveTroopsMarker = "[cr_troops_given]";
+
+      /// <summary>
+      ///   Hidden marker recorded on a spend_influence memory event (04/07/2026, the reciprocal of
+      ///   give_influence), scanned back for the cooldown. Deliberately distinct from
+      ///   <see cref="InfluenceMarker" /> so the two opposite directions never share a cooldown clock.
+      /// </summary>
+      public const string SpendInfluenceMarker = "[cr_influence_spent]";
 
       /// <summary>Hidden marker PREFIX recorded on a sway_opinion memory event; the target's StringId follows.</summary>
       public const string SwayMarkerPrefix = "[cr_sway:";
@@ -136,6 +151,90 @@ namespace CalradiaRemembers.GameState
          }
 
          return moved;
+      }
+
+      // ── give_troops (reciprocal of lend_troops, 04/07/2026) ─────────────
+
+      /// <summary>
+      ///   True when the player could currently reinforce this NPC's own (genuinely under-strength) party
+      ///   with some of the player's own spare troops, with the count that would be offered. Every gate
+      ///   re-checked: a living NPC leading their own party, no standing war between the two factions,
+      ///   non-hostile personal relation, a party that is truly weakened, the NPC party having room to
+      ///   receive them, and the player's own party having spare troops above a safety floor; plus the
+      ///   cooldown.
+      /// </summary>
+      public static bool TryGiveTroops(Hero npc, NpcProfile profile, out int count)
+      {
+         count = 0;
+         if (npc is not {IsAlive: true} || npc.IsPrisoner || npc == Hero.MainHero) return false;
+         if (Hero.MainHero == null) return false;
+
+         MobileParty npcParty = npc.PartyBelongedTo;
+         if (npcParty == null || npcParty.LeaderHero != npc) return false;
+
+         if (npc.MapFaction != null && Hero.MainHero.MapFaction != null &&
+             FactionManager.IsAtWarAgainstFaction(npc.MapFaction, Hero.MainHero.MapFaction)) return false;
+
+         int relation = npc.GetRelation(Hero.MainHero);
+         if (relation < CourtActionPolicy.GiveTroopsMinRelation) return false;
+
+         int npcHealthyTroops = HealthyRegularTroopCount(npcParty.MemberRoster);
+         if (!CourtActionPolicy.IsPartyWeakened(npcHealthyTroops, npcParty.Party.PartySizeLimit)) return false;
+
+         int npcRoom = Math.Max(0, npcParty.Party.PartySizeLimit - npcParty.MemberRoster.TotalManCount);
+         if (npcRoom <= 0) return false;
+
+         MobileParty playerParty = MobileParty.MainParty;
+         if (playerParty == null) return false;
+
+         int playerHealthyTroops = HealthyRegularTroopCount(playerParty.MemberRoster);
+
+         int candidate = CourtActionPolicy.TroopGiftCount(relation, playerHealthyTroops, npcRoom);
+         if (candidate <= 0) return false;
+         if (!CourtActionPolicy.CooldownElapsed(LastMarkerDay(profile, GiveTroopsMarker), Today(), CourtActionPolicy.GiveTroopsCooldownDays)) return false;
+
+         count = candidate;
+
+         return true;
+      }
+
+      // ── spend_influence (reciprocal of give_influence, 04/07/2026) ──────
+
+      /// <summary>
+      ///   True when the player's own clan could currently spend some influence to back this needy lord's
+      ///   clan at court, with the amount that would transfer. Every gate re-checked: a living lord of
+      ///   another clan, no standing war between the two factions, non-hostile personal relation, the
+      ///   NPC's own clan genuinely low on influence, and the player's clan holding comfortably more in
+      ///   reserve than the grant costs; plus the cooldown. Reuses <see cref="CourtActionPolicy.InfluenceGrant" />
+      ///   and <see cref="CourtActionPolicy.CanAffordInfluenceGrant" /> exactly as <see cref="TryGiveInfluence" />
+      ///   does — the same math, only the giver and receiver are swapped.
+      /// </summary>
+      public static bool TrySpendInfluence(Hero npc, NpcProfile profile, out int amount)
+      {
+         amount = 0;
+         if (npc is not {IsLord: true, IsAlive: true} || npc.IsPrisoner) return false;
+         if (Hero.MainHero == null) return false;
+
+         Clan recipient = npc.Clan;
+         if (recipient == null || recipient == Clan.PlayerClan) return false;
+
+         if (npc.MapFaction != null && Hero.MainHero.MapFaction != null &&
+             FactionManager.IsAtWarAgainstFaction(npc.MapFaction, Hero.MainHero.MapFaction)) return false;
+
+         int relation = npc.GetRelation(Hero.MainHero);
+         if (relation < CourtActionPolicy.SpendInfluenceMinRelation) return false;
+         if (!CourtActionPolicy.ClanNeedsInfluence(recipient.Influence)) return false;
+
+         int candidate = CourtActionPolicy.InfluenceGrant(relation);
+         if (candidate <= 0) return false;
+
+         Clan giver = Clan.PlayerClan;
+         if (giver == null || !CourtActionPolicy.CanAffordInfluenceGrant(giver.Influence, candidate)) return false;
+         if (!CourtActionPolicy.CooldownElapsed(LastMarkerDay(profile, SpendInfluenceMarker), Today(), CourtActionPolicy.SpendInfluenceCooldownDays)) return false;
+
+         amount = candidate;
+
+         return true;
       }
 
       // ── sway_opinion ─────────────────────────────────────────────────────
@@ -272,8 +371,12 @@ namespace CalradiaRemembers.GameState
 
       #region private
 
-      /// <summary>Sum of healthy (unwounded) rank-and-file troops in a roster — heroes never count toward a loan.</summary>
-      private static int HealthyRegularTroopCount(TroopRoster roster)
+      /// <summary>
+      ///   Sum of healthy (unwounded) rank-and-file troops in a roster — heroes never count toward a loan
+      ///   or a gift. Public so the <c>cr.give_troops</c> diagnostic and the self-test seeding can read the
+      ///   same figure the eligibility gate itself uses, rather than duplicating the LINQ.
+      /// </summary>
+      public static int HealthyRegularTroopCount(TroopRoster roster)
       {
          if (roster == null) return 0;
 

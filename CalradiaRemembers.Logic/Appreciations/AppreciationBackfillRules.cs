@@ -75,6 +75,15 @@ namespace CalradiaRemembers.Logic.Appreciations
         public const int KindnessInSceneMagnitude = 30;
         public const int QuestDoneForThemMagnitude = 25;
 
+        /// <summary>
+        ///   Live-plant magnitude for TroopsOrInfluenceSpentForThem (04/07/2026: give_troops/spend_influence,
+        ///   the reciprocal of lend_troops/give_influence). NOT a backfill rule — this source still has no
+        ///   recoverable marker in an existing save (see this file's header) — the constant lives here only
+        ///   so every Appreciations magnitude stays in the one place, mirroring KindnessInSceneMagnitude and
+        ///   QuestDoneForThemMagnitude above.
+        /// </summary>
+        public const int TroopsOrInfluenceSpentForThemMagnitude = 30;
+
         /// <summary>The truncation length for a cause carried onto a synthesized appreciation (chronicler prose, not a data dump).</summary>
         public const int MaxCauseLength = 160;
 

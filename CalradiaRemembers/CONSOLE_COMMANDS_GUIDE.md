@@ -146,6 +146,7 @@ Safe to peek at internal state; they change nothing.
 | `cr.happiness [name]` / `cr.rapport [name]` | Companion contentment / companion-to-companion rapport. |
 | `cr.bargain [name]` / `cr.hire_info [name]` / `cr.recruit_info [name]` | Intimacy-bargain eligibility / hire price / clan-recruit eligibility. |
 | `cr.rp_verbs [name]` | RP-with-teeth court verbs: give_influence / lend_troops / sway_opinion / release_prisoner eligibility + amounts. |
+| `cr.give_troops [name]` / `cr.spend_influence [name]` | Reciprocal of lend_troops/give_influence (the player reinforces a needy NPC): forces the action via the REAL bridge path, reporting the underlying facts + outcome. |
 | `cr.divorce_info [name]` | Divorce (Phase 1): end_marriage eligibility + the first failing gate + any active estrangement process. |
 | `cr.spouse_divorce_info` | Divorce (Phase 2b): whether the player's own current spouse has a pending divorce demand, and since which day. |
 | `cr.commitments [name]` | Outstanding pledges (TrackedCommitment): promisor, rival, deadline day, days remaining, state. No name = every pledge; a name filters to those involving that hero. |
