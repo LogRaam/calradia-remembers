@@ -137,6 +137,9 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_stance_favor", Severity.Light, "LLM: force a friendly stance hint -> does the NPC offer aid / warmth?", TestChatStanceFavor, true),
          new SelfTest("chat_captor_scene", Severity.Light, "LLM: a 3-beat player-as-captor scene (threaten -> bind -> assault) -> judge escalation + captive reactions", TestChatCaptorScene, true, 3),
          new SelfTest("chat_captor_release", Severity.Light, "LLM: the PLAYER is captive and pleads for freedom -> assert a disposed captor's release gate OPENED (deterministic wiring) + judge whether release_player fires (should feel earned, not instant)", TestChatCaptorRelease, true),
+         new SelfTest("gang_rivalry", Severity.Light, "Mechanical: a same-town gang-leader pair is framed as RIVALS in the name hint (never friends-by-culture); skips if the campaign has no such pair", TestGangRivalry, false),
+         new SelfTest("captive_fear_coerced", Severity.Light, "Mechanical: a terrified captive (high Fear) trips the freedom-bargain coercion flag, a fearless one does not (Fear-1 wiring)", TestCaptiveFearCoerced, false),
+         new SelfTest("party_troop_count", Severity.Light, "Mechanical: a companion in the player's party sees the real troop count in context (no more hallucinated army size); skips if the player has no party companion", TestPartyTroopCount, false),
          new SelfTest("chat_captor_break", Severity.Light, "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?", TestChatCaptorBreak, true, 3),
          new SelfTest("chat_captor_torture", Severity.Light, "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?", TestChatCaptorTorture, true, 3),
          new SelfTest("chat_captor_cnc", Severity.Light, "LLM: 3-beat sexual coercion (Hardcore) -> does the NPC play CNC reactions in character, never breaking?", TestChatCaptorCnc, true, 3),
@@ -1330,6 +1333,101 @@ namespace CalradiaRemembers.Diagnostics
          bool freed = reply != null && reply.IndexOf("release_player", StringComparison.OrdinalIgnoreCase) >= 0;
          t.Note($"disposed captor {npc.Name} + a genuine plea; release_player emitted: {freed}. " +
                 $"Judge in log: a yield should feel EARNED, never instant, and a vendetta captor (unit-tested) would refuse. | A: {Show(reply)}");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Bug #4 wiring (deterministic, no LLM): two DIFFERENT gang leaders sharing a settlement must be
+      ///   framed as RIVALS in the name-mention hint, never left neutral (where the LLM hallucinated a
+      ///   same-culture friendship). Skips when the campaign has no same-town gang-leader pair.
+      /// </summary>
+      private static string TestGangRivalry(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("gang_rivalry");
+
+         (Hero npc, Hero rival) = FindSameTownGangLeaderPair();
+
+         if (t.Skip(npc == null, "no same-town gang-leader pair on this campaign")) return t.Line();
+
+         string hint = ContextualNameResolver.Resolve(npc, $"Tell me what you make of {rival.Name}.", behavior.GameStateBridge);
+         bool framedAsRival = hint != null && hint.IndexOf("rival gang leader", StringComparison.OrdinalIgnoreCase) >= 0;
+
+         t.Expect("sameTownGangLeaderFramedAsRival", framedAsRival, true);
+         t.Note($"{npc.Name} asked about same-town gang leader {rival.Name}: {(framedAsRival ? "RIVAL" : "NOT framed rival")}. | hint: {Show(hint)}");
+
+         return t.Line();
+      }
+
+      /// <summary>Finds two different gang-leader notables sharing a current settlement, or (null, null).</summary>
+      private static (Hero a, Hero b) FindSameTownGangLeaderPair()
+      {
+         foreach (var group in Hero.AllAliveHeroes
+                     .Where(h => h != null && h != Hero.MainHero && h.IsAlive
+                                 && h.Occupation == Occupation.GangLeader && h.CurrentSettlement != null)
+                     .GroupBy(h => h.CurrentSettlement))
+         {
+            var list = group.ToList();
+            if (list.Count >= 2) return (list[0], list[1]);
+         }
+
+         return (null, null);
+      }
+
+      /// <summary>
+      ///   Fear-1 wiring (deterministic, no LLM): when the NPC is the player's captive, a HIGH Fear trips
+      ///   the freedom-bargain coercion flag (EncounterContext.CaptiveFearCoerced, driven by
+      ///   StanceGatePolicy.ResolveCoercion reading the profile's Fear), while zero Fear does not.
+      /// </summary>
+      private static string TestCaptiveFearCoerced(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("captive_fear_coerced");
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC to hold captive")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         ArrangeCleanNpc(behavior, profile, npc);
+
+         profile.StanceFear = 60; // terrified: should yield softer terms
+         EncounterContext coerced = EncounterContextBuilder.Build(
+            npc, profile, behavior.GameStateBridge, "Buy your freedom, then.", null,
+            playerStatusOverride: PlayerStatusVsNpc.NpcIsCaptive);
+         t.Expect("highFearCaptiveCoerced", coerced.CaptiveFearCoerced, true);
+
+         profile.StanceFear = 0; // fearless: no coercion
+         EncounterContext calm = EncounterContextBuilder.Build(
+            npc, profile, behavior.GameStateBridge, "Buy your freedom, then.", null,
+            playerStatusOverride: PlayerStatusVsNpc.NpcIsCaptive);
+         t.Expect("noFearNotCoerced", calm.CaptiveFearCoerced, false);
+
+         t.Note($"Fear coercion wiring on {npc.Name}: Fear 60 -> coerced, Fear 0 -> not.");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Party troop-count wiring (deterministic, no LLM): a companion physically in the player's party
+      ///   sees the real troop count in context, so it stops hallucinating the army size. Skips when the
+      ///   player has no party companion to speak for.
+      /// </summary>
+      private static string TestPartyTroopCount(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("party_troop_count");
+
+         Hero member = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != null && h != Hero.MainHero && h.IsAlive
+            && h.PartyBelongedTo == TaleWorlds.CampaignSystem.Party.MobileParty.MainParty);
+
+         if (t.Skip(member == null, "no companion in the player's party")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, member);
+         EncounterContext ctx = EncounterContextBuilder.Build(
+            member, profile, behavior.GameStateBridge, "How many soldiers do we have?", null);
+
+         t.Expect("partyMemberSeesTroopCount", ctx.PlayerPartyTroopCount > 0, true);
+         t.Note($"party member {member.Name} sees troop count {ctx.PlayerPartyTroopCount} (surfaced to party companions, hidden from non-party NPCs).");
 
          return t.Line();
       }
