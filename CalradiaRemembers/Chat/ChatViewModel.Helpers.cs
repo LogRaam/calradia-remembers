@@ -625,6 +625,37 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Resolves a captor's decision to free the player. Unlike escape there is no roll: the captor chose
+      ///   this, so their parting line stands. The bridge re-validates the release gate and commits the
+      ///   freeing (deferred to scene close so the window is not disrupted, like escape); the scene then ends.
+      /// </summary>
+      private void ResolveCaptorRelease(
+         ChatMessageViewModel placeholder,
+         ChatSpeaker speaker,
+         NpcProfile profile,
+         string npcLine,
+         ParsedResponse response)
+      {
+         ReplacePlaceholder(placeholder, npcLine, speaker);
+         RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
+         StoryLog.WriteNpcLine(speaker.Name, npcLine);
+         if (!string.IsNullOrWhiteSpace(response?.Narration))
+            AppendNarration(response.Narration);
+
+         bool freed = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.CommitCaptorRelease(speaker.Hero) ?? false;
+         ModLog.Info($"[RELEASE] captor {speaker.Name} release {(freed ? "committed — player freed at scene close" : "refused by the gate")}.");
+
+         _conversationEnded = true;
+         _sceneContinuations = 0;
+         IsScenePaused = false;
+         IsPrivateRequestVisible = false;
+         CloseButtonText = "Leave";
+         IsPleaseContinueVisible = true;
+         OnPropertyChanged(nameof(IsOfferItemVisible));
+         AppendSystemMessage(freed ? $"{profile?.Name} has set you free." : $"{profile?.Name} has ended the conversation.", false);
+      }
+
+      /// <summary>
       ///   Resolves the reacting party for a witness reaction: the main NPC when the name matches it,
       ///   otherwise the matching listed witness. Returns the portrait hero (null when heroless), the
       ///   display colour, and the hero StringId. Extracted from AppendWitnessReaction to keep it simple.

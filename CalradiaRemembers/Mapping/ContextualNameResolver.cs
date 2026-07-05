@@ -135,7 +135,22 @@ namespace CalradiaRemembers.Mapping
             npc.Father == other,
             npc.Mother == other,
             npc.Children != null && npc.Children.Any(c => c == other),
-            npc.Clan != null && npc.Clan == other.Clan);
+            npc.Clan != null && npc.Clan == other.Clan,
+            AreRivalGangLeaders(npc, other));
+
+      /// <summary>
+      ///   Two DIFFERENT gang leaders whose turf is the same settlement are structural rivals, so the NPC is
+      ///   told so rather than left to hallucinate a same-culture friendship (player report). Both must be
+      ///   gang-leader notables sharing a current settlement.
+      /// </summary>
+      private static bool AreRivalGangLeaders(Hero npc, Hero other)
+      {
+         if (npc == null || other == null || npc == other) return false;
+         if (npc.Occupation != Occupation.GangLeader) return false;
+         if (other.Occupation != Occupation.GangLeader) return false;
+
+         return npc.CurrentSettlement != null && npc.CurrentSettlement == other.CurrentSettlement;
+      }
 
       private static HashSet<string> ExtractTokens(string message)
       {
@@ -144,7 +159,10 @@ namespace CalradiaRemembers.Mapping
          {
             if (word.Length < MinTokenLength) continue;
             if (IsStopWord(word)) continue;
-            tokens.Add(word);
+
+            // Diacritic-folded so "Heloise" (as typed) matches a hero named "Héloïse" — the same
+            // folding applied to the hero name parts below in NameSharesTokenWithMessage.
+            tokens.Add(NameNormalization.Fold(word));
          }
 
          return tokens;
@@ -210,7 +228,9 @@ namespace CalradiaRemembers.Mapping
             if (part.Length < MinTokenLength) continue;
             if (IsStopWord(part)) continue;
 
-            if (messageTokens.Contains(part)) return true;
+            // Folded the same way as the message tokens, so "Heloise the Finger" (typed plain)
+            // still matches "Héloïse the Finger" (stored accented).
+            if (messageTokens.Contains(NameNormalization.Fold(part))) return true;
          }
 
          return false;

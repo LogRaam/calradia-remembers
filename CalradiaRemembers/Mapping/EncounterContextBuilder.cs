@@ -119,6 +119,7 @@ namespace CalradiaRemembers.Mapping
             PlayerFatherName = FormatParent(Hero.MainHero?.Father),
             PlayerMotherName = FormatParent(Hero.MainHero?.Mother),
             PlayerClanTier = Hero.MainHero?.Clan?.Tier ?? 0,
+            PlayerPartyTroopCount = ResolvePlayerPartyTroopCount(hero),
             PlayerArenaRank = ResolveArenaRank(),
             PlayerArenaWins = ResolveArenaWins(),
             Witnesses = witnesses,
@@ -127,6 +128,10 @@ namespace CalradiaRemembers.Mapping
             IsLastWitnessExchange = isLastWitnessExchange,
             IsCollectiveCaptiveScene = isCollectiveCaptiveScene,
             IsCaptorScene = isCaptorScene,
+            CaptiveFearCoerced = ResolveCaptiveFearCoerced(hero, profile, playerStatus),
+            CaptorAllowsPersuasionRelease = ResolveCaptorReleaseVerdict(hero, playerStatus).AllowsPersuasion,
+            CaptorAllowsRansomRelease = ResolveCaptorReleaseVerdict(hero, playerStatus).AllowsRansom,
+            NativeQuestNote = ResolveNativeQuestNote(hero),
             CaptiveIntent = captiveIntent,
             CaptiveVictimName = captiveVictimName,
             PlayerCoercedAgainstCompanion = playerCoercedAgainstCompanion,
@@ -150,7 +155,7 @@ namespace CalradiaRemembers.Mapping
                ? hero.PartyBelongedToAsPrisoner?.MapFaction?.Name?.ToString()
                : null,
             MercenaryOfferKingdom = ResolveMercenaryOfferKingdom(hero),
-            LordRecruitEligible = ResolveLordRecruitEligible(hero),
+            LordRecruitEligible = ResolveLordRecruitEligible(hero, profile),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
             InterceptionReason = ResolveInterceptionReason(hero),
@@ -459,6 +464,27 @@ namespace CalradiaRemembers.Mapping
          catch { return 0; }
       }
 
+      /// <summary>
+      ///   The player's own party troop count, fed ONLY when <paramref name="hero" /> would plausibly know
+      ///   it: one of the player's own companions or clan-family members, physically present in
+      ///   <see cref="MobileParty.MainParty" /> right now (<c>hero.PartyBelongedTo == MobileParty.MainParty</c>,
+      ///   the same "party membership" predicate <see cref="ResolveCanGatherNews" /> and
+      ///   <see cref="ResolveCompanionOnErrand" /> already use elsewhere in this builder). Any other NPC
+      ///   (a stranger, an enemy lord, a bandit) has no plausible way to know the exact figure, so they get 0
+      ///   ("not provided") and the prompt stays silent on it rather than handing out a metagame number.
+      /// </summary>
+      private static int ResolvePlayerPartyTroopCount(Hero hero)
+      {
+         try
+         {
+            if (hero == null || hero == Hero.MainHero || !hero.IsAlive) return 0;
+            if (hero.PartyBelongedTo != MobileParty.MainParty) return 0;
+
+            return MobileParty.MainParty?.MemberRoster?.TotalManCount ?? 0;
+         }
+         catch { return 0; }
+      }
+
       private static int ResolveArenaWins()
       {
          try
@@ -581,6 +607,109 @@ namespace CalradiaRemembers.Mapping
          if (!(hero.IsPlayerCompanion || hero.Clan == Clan.PlayerClan)) return false;
 
          return CompanionMissionBehavior.Instance?.IsAway(hero.StringId) == true;
+      }
+
+      /// <summary>
+      ///   Stance mechanical behaviour-gating (increment 1, Fear): true when the held captive's live
+      ///   Fear/Respect and traits, run through the SAME <see cref="StanceGatePolicy.ResolveCoercion" />
+      ///   the bridge consults before actually releasing them, resolve to
+      ///   <see cref="CoercionOutcome.YieldsSofterTerms" /> — so the freedom-bargain prompt can ask for
+      ///   notably harsher terms. Advice only: <see cref="EncounterContext.CaptiveFearCoerced" /> never
+      ///   itself changes anything, it only colours what the LLM proposes; the bridge remains the law
+      ///   that plants the hidden grudge on an actual yield. Mirrors the freedom bargain's own
+      ///   NpcIsCaptive eligibility gate (<c>PromptBuilder.AppendPrisonerFreedomBargain</c>) so the note
+      ///   never appears when the bargain itself is not taught. A null profile (no stance ever tracked)
+      ///   leaves it false, same as the bridge's own untracked-captive default.
+      /// </summary>
+      private static bool ResolveCaptiveFearCoerced(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus)
+      {
+         try
+         {
+            if (playerStatus != PlayerStatusVsNpc.NpcIsCaptive || profile == null) return false;
+
+            NpcStance stance = StanceService.ToStance(profile);
+            int honor = TraitLevel(hero, DefaultTraits.Honor);
+            int valor = TraitLevel(hero, DefaultTraits.Valor);
+            int calculating = TraitLevel(hero, DefaultTraits.Calculating);
+
+            CoercionResult coercion = StanceGatePolicy.ResolveCoercion(stance.Fear, stance.Respect, honor, valor, calculating);
+
+            return coercion.Outcome == CoercionOutcome.YieldsSofterTerms;
+         }
+         catch { return false; }
+      }
+
+      /// <summary>
+      ///   Captivity release gate (advice side): when the PLAYER is this NPC's captive, resolves whether the
+      ///   captor is open to freeing them, via the pure <see cref="CaptorReleasePolicy" /> reading the captor's
+      ///   Mercy and the heaviest live grudge they hold against the player. The bridge re-checks the same gate
+      ///   before it commits a real freeing (the prompt proposes, the bridge disposes). Refuses everything when
+      ///   the player is not this NPC's captive.
+      /// </summary>
+      private static CaptorReleaseVerdict ResolveCaptorReleaseVerdict(Hero hero, PlayerStatusVsNpc playerStatus)
+      {
+         try
+         {
+            if (playerStatus != PlayerStatusVsNpc.Captive || hero == null)
+               return new CaptorReleaseVerdict(false, false);
+
+            int mercy = TraitLevel(hero, DefaultTraits.Mercy);
+            int grudge = HeaviestGrudgeAgainstPlayer(hero);
+
+            return CaptorReleasePolicy.Resolve(mercy, grudge, isNemesisVendetta: false);
+         }
+         catch { return new CaptorReleaseVerdict(false, false); }
+      }
+
+      /// <summary>The magnitude of the heaviest LIVE grudge this hero holds against the player, or 0 when none.</summary>
+      private static int HeaviestGrudgeAgainstPlayer(Hero hero)
+      {
+         var grudges = CalradiaRemembers.Grudges.GrudgeBehavior.Instance?.GrudgesFor(hero?.StringId);
+         if (grudges == null) return 0;
+
+         string playerId = Hero.MainHero?.StringId;
+         int max = 0;
+         foreach (var g in grudges)
+            if (!g.IsResolved && g.TargetId == playerId && g.Magnitude > max) max = g.Magnitude;
+
+         return max;
+      }
+
+      /// <summary>
+      ///   Builds a prompt note listing the native/vanilla quests THIS NPC gave the player that are still
+      ///   ongoing, so the giver never acts baffled about a task they set outside CR dialogue (player report:
+      ///   an NPC "confused" about a quest in the journal they themselves issued). Excludes CR's own quest
+      ///   mirrors, already surfaced by their own systems. Null when there are none.
+      /// </summary>
+      private static string ResolveNativeQuestNote(Hero hero)
+      {
+         try
+         {
+            if (hero == null || Campaign.Current?.QuestManager == null) return null;
+
+            var lines = new List<string>();
+            foreach (var quest in Campaign.Current.QuestManager.Quests)
+            {
+               if (quest == null || !quest.IsOngoing || quest.QuestGiver != hero) continue;
+               if (quest is CalradiaRemembers.Quests.CalradiaRemembersQuest) continue;
+               if (quest is CalradiaRemembers.Commitments.CommitmentQuest) continue;
+
+               string title = quest.Title?.ToString();
+               if (!string.IsNullOrWhiteSpace(title)) lines.Add("- " + title.Trim());
+            }
+
+            if (lines.Count == 0) return null;
+
+            return "TASKS FROM THE REALM'S AFFAIRS YOU SET THIS PLAYER (the game's own quests, still open):\n"
+                 + string.Join("\n", lines)
+                 + "\nYou know you asked this of them; if they raise it, speak as the one who set it, never baffled.";
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MAPPING] ResolveNativeQuestNote failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
       }
 
       /// <summary>
@@ -962,14 +1091,27 @@ namespace CalradiaRemembers.Mapping
       ///   True when this lord could be persuaded to defect into the player's clan — gates the
       ///   <c>join_clan</c> teaching. Gathers live facts and delegates to the pure
       ///   <see cref="LordRecruitment" />; the bridge re-checks the same gate before sealing it.
+      ///   Stance mechanical behaviour-gating (increment 3, Respect, ratified 2026-07-04; join_clan soupape
+      ///   ratified 2026-07-05): additionally requires <see cref="StanceGatePolicy.CommandsRespectToJoinClan" />,
+      ///   reading the lord's live Respect (<see cref="StanceService.ToStance" />) and relation
+      ///   (<see cref="NpcProfile.ClanRelationWithPlayer" />) — a lord who holds the player in contempt will
+      ///   not throw in their lot, however cordial the relation. The join_clan variant uses a HIGH relation
+      ///   bypass (<see cref="StanceGatePolicy.RecruitRespectRelationBypass" />, 80) precisely because
+      ///   <see cref="LordRecruitment.MinRelation" /> (60) already gates relation: an adored lord (80+) still
+      ///   joins on relation alone, but a merely-eligible lord (60..79) must ALSO respect the player, so the
+      ///   Respect floor genuinely binds. Skipped entirely when there is no stance profile (join_clan never
+      ///   depended on one before this increment, so an untracked lord is not newly narrowed).
       /// </summary>
-      private static bool ResolveLordRecruitEligible(Hero hero)
+      private static bool ResolveLordRecruitEligible(Hero hero, NpcProfile profile)
       {
          try
          {
             LordRecruitmentFacts facts = LordRecruitmentFactsBuilder.Build(hero);
 
-            return facts != null && LordRecruitment.IsEligible(facts);
+            if (facts == null || !LordRecruitment.IsEligible(facts)) return false;
+            if (profile == null) return true; // no stance profile to gate on — inherit prior behaviour
+
+            return StanceGatePolicy.CommandsRespectToJoinClan(StanceService.ToStance(profile).Respect, profile.ClanRelationWithPlayer ?? 0);
          }
          catch { return false; }
       }

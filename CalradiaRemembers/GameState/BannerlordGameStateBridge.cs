@@ -78,6 +78,8 @@ namespace CalradiaRemembers.GameState
       private static bool _captiveHarmApplied;
       private static bool _forceNextEscape; // console test hook (cr.escape_force)
       private static bool _pendingEscape;
+      private static bool _pendingRelease; // captor chose to free the player; applied at scene close
+      private static Hero _pendingReleaseCaptor;
       private static int _sceneHarmCount;
 
       /// <inheritdoc />
@@ -131,6 +133,8 @@ namespace CalradiaRemembers.GameState
          _captiveHarmApplied = false;
          _sceneHarmCount = 0;
          _pendingEscape = false;
+         _pendingRelease = false;
+         _pendingReleaseCaptor = null;
       }
       // ── Sprint 10: action execution ───────────────────────────────────────
 
@@ -151,7 +155,7 @@ namespace CalradiaRemembers.GameState
             case "join_as_mercenary":
                return ExecuteJoinAsMercenary(npcHero);
             case "join_clan":
-               return ExecuteJoinClan(npcHero);
+               return ExecuteJoinClan(npcHero, context?.Profile);
             case "scheme_assist":
                return ExecuteSchemeAssist(npcHero);
             case "scheme_heed":
@@ -165,7 +169,7 @@ namespace CalradiaRemembers.GameState
             case "give_prisoner":
                return ExecuteGivePrisoner(npcHero, context);
             case "free_prisoner":
-               return ExecuteFreePrisoner(npcHero);
+               return ExecuteFreePrisoner(npcHero, context);
             case "grant_blessing":
                return ExecuteGrantBlessing(action, npcHero);
             case "harm_prisoner":
@@ -493,6 +497,78 @@ namespace CalradiaRemembers.GameState
          return true;
       }
 
+      /// <inheritdoc />
+      public bool CommitCaptorRelease(Hero captor)
+      {
+         try
+         {
+            if (captor == null) return false;
+
+            // The prompt only PROPOSES; the bridge is the law. Re-validate the same gate the teaching used.
+            CaptorReleaseVerdict verdict = ResolveCaptorReleaseVerdict(captor);
+            if (!verdict.AllowsPersuasion) return false;
+
+            _pendingRelease = true;
+            _pendingReleaseCaptor = captor;
+            ModLog.Info($"[RELEASE] {captor.Name} agreed to free the player (applied at scene close).");
+
+            return true;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"CommitCaptorRelease failed: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
+      }
+
+      /// <inheritdoc />
+      public void FinalizePendingRelease()
+      {
+         if (!_pendingRelease) return;
+         _pendingRelease = false;
+
+         Hero captor = _pendingReleaseCaptor;
+         _pendingReleaseCaptor = null;
+
+         try
+         {
+            EndCaptivityAction.ApplyByReleasedByChoice(Hero.MainHero, captor);
+            ModLog.Info("[RELEASE] EndCaptivityAction.ApplyByReleasedByChoice applied — the captor freed the player.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"FinalizePendingRelease failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Re-validates a captor's willingness to free the player via the pure <see cref="CaptorReleasePolicy" />,
+      ///   reading the captor's Mercy and the heaviest live grudge they hold against the player. Mirrors the
+      ///   advice-side gate in <c>EncounterContextBuilder</c> so the prompt and the bridge cannot disagree.
+      /// </summary>
+      private static CaptorReleaseVerdict ResolveCaptorReleaseVerdict(Hero captor)
+      {
+         int mercy = TraitLevelOf(captor, DefaultTraits.Mercy);
+         int grudge = HeaviestGrudgeAgainstPlayer(captor);
+
+         return CaptorReleasePolicy.Resolve(mercy, grudge, isNemesisVendetta: false);
+      }
+
+      /// <summary>The magnitude of the heaviest LIVE grudge this hero holds against the player, or 0 when none.</summary>
+      private static int HeaviestGrudgeAgainstPlayer(Hero hero)
+      {
+         var grudges = GrudgeBehavior.Instance?.GrudgesFor(hero?.StringId);
+         if (grudges == null) return 0;
+
+         string playerId = Hero.MainHero?.StringId;
+         int max = 0;
+         foreach (var g in grudges)
+            if (!g.IsResolved && g.TargetId == playerId && g.Magnitude > max) max = g.Magnitude;
+
+         return max;
+      }
+
       public ActionOutcome SettleItemBargain(NpcProfile giver,
                                              Hero giverHero,
                                              InformalQuest quest,
@@ -581,14 +657,28 @@ namespace CalradiaRemembers.GameState
       ///   player agreed — release them. The reward they promised (goodwill, a ransom, or service) rides
       ///   alongside as the LLM's own change_relation / give_gold / join_clan actions. Guarded: only a
       ///   hero the player actually holds prisoner is freed, so a stray emission can never let one escape.
+      ///   Stance mechanical behaviour-gating (increment 1, Fear): re-validated here, never trusted from
+      ///   the LLM's own framing of the bargain — <see cref="StanceGatePolicy.ResolveCoercion"/> reads the
+      ///   captive's live Fear/Respect and traits and can refuse the bargain outright (a captive too
+      ///   unafraid and too contemptuous to be moved) or mark it as fear-coerced (softer terms for the
+      ///   player, but a HIDDEN grudge instead of open regard).
       /// </summary>
-      private static ActionOutcome ExecuteFreePrisoner(Hero npcHero)
+      private static ActionOutcome ExecuteFreePrisoner(Hero npcHero, ActionContext context)
       {
          try
          {
             if (npcHero == null) return null;
             if (!npcHero.IsPrisoner || npcHero.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero)
                return new ActionOutcome($"({npcHero.Name} is not yours to set free.)", false);
+
+            CoercionResult coercion = ResolveFreePrisonerCoercion(npcHero, context);
+
+            if (coercion.Outcome == CoercionOutcome.RefusesFlat)
+            {
+               ModLog.Info($"[ACTION] free_prisoner refused: {npcHero.Name} is unafraid and unmoved by the bargain.");
+
+               return new ActionOutcome($"{npcHero.Name} is not afraid enough to bargain, and refuses to be swayed.", false);
+            }
 
             EndCaptivityAction.ApplyByReleasedByChoice(npcHero, Hero.MainHero);
             StanceService.OnGiftReceived(npcHero); // freedom is a gift — a little trust is earned
@@ -603,6 +693,18 @@ namespace CalradiaRemembers.GameState
             // Grudges pillar (Deed gesture): freeing them is a verified real favour toward npcHero, a
             // channel separate from the trust bump and the appreciation plant above.
             string grudgeTail = GrudgeResolutionService.TryGrudgeDeedTail(npcHero, today);
+
+            // Stance mechanical behaviour-gating (increment 1, Fear): a fear-coerced yield plants its
+            // OWN hidden grudge on top of (never instead of) the deed-gesture resolution above — the
+            // captive quietly resents being cowed even as any standing grievance toward them mends.
+            // SEAM (flagged, not implemented): RansomMultiplier is meant to soften "whatever ransom/term
+            // value the bargain uses", but free_prisoner carries no numeric ransom at this call site —
+            // the LLM pairs its own freeform give_gold/join_clan/change_relation action(s) in the SAME
+            // response, executed independently and unclamped by this bridge. There is no seam here to
+            // scale that value without a larger cross-action correlation change, which this increment
+            // does not make. See the increment's report for detail.
+            if (coercion.Outcome == CoercionOutcome.YieldsSofterTerms)
+               TryPlantCoercedGrudge(npcHero, coercion.HiddenGrudgeMagnitude, today);
 
             // Chronicle: a third, independent channel from the trust bump and the appreciation plant above.
             try
@@ -630,6 +732,55 @@ namespace CalradiaRemembers.GameState
             ModLog.Error($"[ACTION] free_prisoner failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
+         }
+      }
+
+      /// <summary>
+      ///   Stance mechanical behaviour-gating (increment 1, Fear): reads the captive's LIVE Fear/Respect
+      ///   from the persisted profile and traits from the live Hero, then resolves
+      ///   <see cref="StanceGatePolicy.ResolveCoercion"/>. A MISSING profile (no stance data at all —
+      ///   the console self-test seam, or a captive the mod has never tracked) deliberately skips the
+      ///   gate (<see cref="CoercionOutcome.Neutral" />, unchanged bargain): defaulting an untracked
+      ///   captive's Fear/Respect to 0/0 would otherwise satisfy the RefusesFlat thresholds by construction
+      ///   and block every ordinary release the gate has no real basis to judge.
+      /// </summary>
+      private static CoercionResult ResolveFreePrisonerCoercion(Hero npcHero, ActionContext context)
+      {
+         NpcProfile profile = context?.Profile;
+         if (profile == null) return new CoercionResult(CoercionOutcome.Neutral, 1.0, 0);
+
+         NpcStance stance = StanceService.ToStance(profile);
+
+         int honor = TraitLevelOf(npcHero, DefaultTraits.Honor);
+         int valor = TraitLevelOf(npcHero, DefaultTraits.Valor);
+         int calculating = TraitLevelOf(npcHero, DefaultTraits.Calculating);
+
+         return StanceGatePolicy.ResolveCoercion(stance.Fear, stance.Respect, honor, valor, calculating);
+      }
+
+      /// <summary>A hero's trait level, or 0 when the hero or the trait cannot be read (never throws).</summary>
+      private static int TraitLevelOf(Hero hero, TraitObject trait)
+      {
+         try { return hero?.GetTraitLevel(trait) ?? 0; }
+         catch { return 0; }
+      }
+
+      /// <summary>
+      ///   Stance mechanical behaviour-gating (increment 1, Fear): plants a HIDDEN grudge against the
+      ///   player for a fear-coerced release — resentment instead of open regard, per the ratified
+      ///   axis→domain design (Fear → coercion). Never lets a plant failure break the release that
+      ///   already succeeded.
+      /// </summary>
+      private static void TryPlantCoercedGrudge(Hero npcHero, int magnitude, int today)
+      {
+         try
+         {
+            GrudgeBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, GrudgeSource.CoercedRelease,
+               "They cowed me into freeing them out of fear, not goodwill.", magnitude, knownToPlayer: false, today);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[STANCE] coerced-release grudge plant failed: {ex.GetType().Name}: {ex.Message}");
          }
       }
 
@@ -923,8 +1074,13 @@ namespace CalradiaRemembers.GameState
       ///   <see cref="LordRecruitmentFactsBuilder" /> + <see cref="LordRecruitment" />), but the whole
       ///   gate is re-checked here: the prompt is advice, the bridge is law. The lord's old clan
       ///   loses a member and its faction cools toward the player — vanilla consequences left to play out.
+      ///   Stance mechanical behaviour-gating (increment 3, Respect, ratified 2026-07-04): additionally
+      ///   re-validated against <see cref="StanceGatePolicy.CommandsRespectToJoinClan" /> (high relation
+      ///   bypass so the Respect floor binds above the recruitment's own relation gate), the same discipline
+      ///   as the Fear-1/Trust-2 gates. Skipped when there is no stance profile (join_clan never depended on
+      ///   one before this increment).
       /// </summary>
-      private static ActionOutcome ExecuteJoinClan(Hero npcHero)
+      private static ActionOutcome ExecuteJoinClan(Hero npcHero, NpcProfile profile)
       {
          try
          {
@@ -938,6 +1094,9 @@ namespace CalradiaRemembers.GameState
 
             if (facts == null || !LordRecruitment.IsEligible(facts))
                return new ActionOutcome($"({npcHero.Name} will not leave their house to join yours — not yet.)", false);
+
+            if (profile != null && !StanceGatePolicy.CommandsRespectToJoinClan(StanceService.ToStance(profile).Respect, profile.ClanRelationWithPlayer ?? 0))
+               return new ActionOutcome($"({npcHero.Name} does not respect you enough to throw in their lot with you. Earn their esteem first.)", false);
 
             Clan oldClan = npcHero.Clan;
 

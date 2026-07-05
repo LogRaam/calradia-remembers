@@ -5,6 +5,8 @@
 using System;
 using System.Text;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Logic;
+using CalradiaRemembers.Stance;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -18,13 +20,18 @@ namespace CalradiaRemembers.Verbs
     ///   weight at court. Eligibility and the amount granted are entirely <see cref="CourtActionResolver.TryGiveInfluence" />
     ///   (re-checked fresh both while teaching and at execution: "the bridge is law"); this class only
     ///   orchestrates: teach it, then, on the matching [ACTION], move the influence and stamp the cooldown marker.
+    ///   Stance mechanical behaviour-gating (increment 2, Trust, ratified 2026-07-04): this is the NPC
+    ///   exposing THEIR OWN clan's standing to the player (never the reciprocal <see cref="SpendInfluenceVerb" />),
+    ///   so it is additionally gated on <see cref="StanceGatePolicy.WillDelegateRisk" /> reading the NPC's
+    ///   live Trust — re-checked both here and at execution, the same discipline as the Fear-1 coercion gate.
     /// </summary>
     public sealed class GiveInfluenceVerb : IConversationVerb
     {
         public string Name => "give_influence";
 
         public bool IsEligible(VerbContext ctx)
-            => ctx?.Npc != null && ctx.Profile != null && CourtActionResolver.TryGiveInfluence(ctx.Npc, ctx.Profile, out _);
+            => ctx?.Npc != null && ctx.Profile != null && CourtActionResolver.TryGiveInfluence(ctx.Npc, ctx.Profile, out _)
+               && StanceGatePolicy.WillDelegateRisk(StanceService.ToStance(ctx.Profile).Trust, ctx.Profile.ClanRelationWithPlayer ?? 0, ctx.Profile.ReputationWithPlayer);
 
         public string TeachingText(VerbContext ctx)
         {
@@ -54,6 +61,12 @@ namespace CalradiaRemembers.Verbs
                 NpcProfile profile = ctx?.Profile;
 
                 if (npcHero == null || profile == null) return null;
+
+                // Stance mechanical behaviour-gating (increment 2, Trust): re-validated here, never
+                // trusted from the LLM's own framing of the offer.
+                if (!StanceGatePolicy.WillDelegateRisk(StanceService.ToStance(profile).Trust, profile.ClanRelationWithPlayer ?? 0, profile.ReputationWithPlayer))
+                    return new ActionOutcome($"{npcHero.Name} does not yet trust you enough to risk their own standing on your word. Prove yourself first.", false);
+
                 if (!CourtActionResolver.TryGiveInfluence(npcHero, profile, out int amount))
                     return new ActionOutcome($"({npcHero.Name} has no influence to spare you just now.)", false);
 

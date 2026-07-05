@@ -57,8 +57,12 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   Resolves the target hero: a name fragment if provided (case-insensitive,
-      ///   excluding the player), else the current conversation NPC.
+      ///   Resolves the target hero: a name fragment if provided (case-insensitive, diacritic-folded,
+      ///   excluding the player), else the current conversation NPC. Diacritic folding
+      ///   (<see cref="NameNormalization.Fold" />) lets a plain-typed query like "Heloise" find a hero
+      ///   named "Héloïse". A multi-word query ("Heloise the Finger") requires EVERY folded query token
+      ///   to be found (as a substring) within SOME folded name part, so a full name/epithet disambiguates
+      ///   between several heroes who merely share one part (e.g. the same epithet).
       /// </summary>
       private static Hero ResolveHero(IEnumerable<string> nameTokens)
       {
@@ -66,11 +70,27 @@ namespace CalradiaRemembers
             ? ""
             : string.Join(" ", nameTokens).Trim();
 
-         if (!string.IsNullOrEmpty(query))
-            return Hero.AllAliveHeroes.FirstOrDefault(h =>
-               h != Hero.MainHero && h.Name != null && h.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
+         if (string.IsNullOrEmpty(query)) return Hero.OneToOneConversationHero;
 
-         return Hero.OneToOneConversationHero;
+         string[] queryTokens = query
+                                .Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries)
+                                .Select(NameNormalization.Fold)
+                                .ToArray();
+
+         if (queryTokens.Length == 0) return Hero.OneToOneConversationHero;
+
+         return Hero.AllAliveHeroes.FirstOrDefault(h =>
+         {
+            if (h == Hero.MainHero || h.Name == null) return false;
+
+            string[] nameParts = h.Name
+                                   .ToString()
+                                   .Split(new[] {' ', '-'}, StringSplitOptions.RemoveEmptyEntries)
+                                   .Select(NameNormalization.Fold)
+                                   .ToArray();
+
+            return queryTokens.All(qt => nameParts.Any(np => np.Contains(qt)));
+         });
       }
 
       private static bool TryContext(out NpcMemoryCampaignBehavior behavior, out string error)

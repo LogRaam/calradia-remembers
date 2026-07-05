@@ -98,6 +98,17 @@ namespace CalradiaRemembers.Missions
          if (!CompanionMissions.CanAttempt(skill))
             return (false, $"{companion.Name} is too unschooled in {CompanionMissions.GoverningSkill(type).ToString().ToLowerInvariant()} for that errand.");
 
+         // SEAM (flagged, not wired — Stance mechanical behaviour-gating, increment 2, Trust): a risky
+         // errand (CompanionMissions.IsRisky — Spy/Steal) is arguably also "the companion exposing
+         // themselves" and could refuse below StanceGatePolicy.WillDelegateRisk(their Trust in the
+         // player), reading it via NpcMemoryCampaignBehavior.Instance?.Store?.Get(companion.StringId).
+         // NOT implemented this increment: companions get a profile lazily (first conversation), so most
+         // freshly-recruited companions would sit at neutral Trust (0) and this would silently lock out
+         // Spy/Steal for them until a stance-moving deed fires elsewhere — a real behaviour change to an
+         // already-shipped feature (companion missions, 2026-06-23) that deserves its own ratification
+         // rather than riding in on this increment. Left commented per the increment's "do not force it"
+         // guidance; see the increment's report for detail.
+
          Settlement dest = ResolveDestination(about);
 
          if (dest == null) return (false, "There is no town to send them to.");

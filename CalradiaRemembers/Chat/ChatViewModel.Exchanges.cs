@@ -614,6 +614,16 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
+            // ── Negotiated release (captive scenes) ────────────────────────
+            // The captor chose to free the prisoner. Only taught when the gate allows it, and the
+            // bridge re-validates before it commits: the prompt proposes, the bridge frees for real.
+            if (IsCaptiveEncounter && DialogueHeuristics.HasAction(response, "release_player"))
+            {
+               ResolveCaptorRelease(placeholder, speaker, profile, npcLine, response);
+
+               return;
+            }
+
             // Render the turn: dialogue bubble, or a narration-only turn (no empty bubble), or
             // a "(silence...)" fallback. npcLine is empty for a narration-only turn.
             npcLine = RenderNpcTurn(placeholder, speaker, response);

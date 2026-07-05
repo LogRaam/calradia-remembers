@@ -1022,6 +1022,10 @@ namespace CalradiaRemembers.Chat
          // was rolled so freeing the player never popped an encounter over the open scene window.
          behavior?.GameStateBridge?.FinalizePendingEscape();
 
+         // A captor-granted release is likewise applied now, as the scene closes (deferred from the moment
+         // the captor emitted release_player) so freeing the player never popped an encounter mid-scene.
+         behavior?.GameStateBridge?.FinalizePendingRelease();
+
          // The body's toll for a forced sexual scene: guaranteed only if the captor's own
          // narration never wounded the player (a harm_prisoner action). Runs for both lord and
          // bandit captors, so it precedes the bandit-profile persistence guard below.

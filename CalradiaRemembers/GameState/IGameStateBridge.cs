@@ -78,6 +78,20 @@ namespace CalradiaRemembers.GameState
         void FinalizePendingEscape();
 
         /// <summary>
+        ///   The captor has chosen to free the player. Re-validates the release gate
+        ///   (<c>CaptorReleasePolicy</c>) and, on success, COMMITS the freeing but defers the actual
+        ///   campaign action to <see cref="FinalizePendingRelease"/> at scene close so the open chat window
+        ///   is not disrupted. Returns true when the release took, false when the gate refuses it.
+        /// </summary>
+        bool CommitCaptorRelease(Hero captor);
+
+        /// <summary>
+        ///   Applies a committed captor-granted release (<see cref="EndCaptivityAction"/> by choice) if one
+        ///   is pending. Called once when a captive scene closes. No-op otherwise.
+        /// </summary>
+        void FinalizePendingRelease();
+
+        /// <summary>
         ///   Short summary of active inter-kingdom wars, suitable for injection
         ///   into the world state section of the system prompt.
         ///   Returns an empty string when there are no active wars.
