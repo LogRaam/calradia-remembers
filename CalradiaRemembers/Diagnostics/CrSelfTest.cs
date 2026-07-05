@@ -141,6 +141,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("captive_fear_coerced", Severity.Light, "Mechanical: a terrified captive (high Fear) trips the freedom-bargain coercion flag, a fearless one does not (Fear-1 wiring)", TestCaptiveFearCoerced, false),
          new SelfTest("party_troop_count", Severity.Light, "Mechanical: a companion in the player's party sees the real troop count in context (no more hallucinated army size); skips if the player has no party companion", TestPartyTroopCount, false),
          new SelfTest("nemesis_mint", Severity.Light, "Mechanical: minting a nemesis creates a persistent Hero WITH a memory profile (the 'no memory' bug fixed), reuses him in-region, mints a distinct one per region; PLANTS test nemeses (reload after)", TestNemesisMint, false),
+         new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate, false),
          new SelfTest("chat_captor_break", Severity.Light, "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?", TestChatCaptorBreak, true, 3),
          new SelfTest("chat_captor_torture", Severity.Light, "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?", TestChatCaptorTorture, true, 3),
          new SelfTest("chat_captor_cnc", Severity.Light, "LLM: 3-beat sexual coercion (Hardcore) -> does the NPC play CNC reactions in character, never breaking?", TestChatCaptorCnc, true, 3),
@@ -1470,6 +1471,37 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("differentRegionMintsDistinctHero", h3 != h1, true);
 
          t.Note($"minted nemesis {h1.Name}: profile registered, reused in-region, distinct across regions. Plants test nemeses (reload after the sweep).");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Stance mechanical layer (deterministic, no LLM): the Trust delegated-risk gate BITES. A lord with a
+      ///   healthy party teaches lend_troops when Trust is earned (StanceTrust 25, via the seed), and STOPS
+      ///   teaching it once Trust, clan relation and personal regard are all zeroed. Proves the flagship stance
+      ///   work actually gates a verb, not just colours the prompt.
+      /// </summary>
+      private static string TestStanceGate(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("stance_gate");
+
+         (Hero lord, NpcProfile profile, int count)? seed = SeedTroopsEligible(behavior); // seeds StanceTrust=25
+
+         if (t.Skip(seed == null, "no lord leading a healthy party to test the Trust gate")) return t.Line();
+         (Hero lord, NpcProfile profile, int _) = seed.Value;
+
+         EncounterContext open = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "Lend me some soldiers for the road.");
+         bool taughtWhenTrusted = open.ExtraActionTeachings?.IndexOf("lend_troops", StringComparison.OrdinalIgnoreCase) >= 0;
+         t.Expect("lendTaughtWhenTrusted", taughtWhenTrusted, true);
+
+         profile.StanceTrust = 0;
+         profile.ClanRelationWithPlayer = 0;
+         profile.ReputationWithPlayer = 0;
+         EncounterContext closed = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "Lend me some soldiers for the road.");
+         bool taughtWhenUntrusted = closed.ExtraActionTeachings?.IndexOf("lend_troops", StringComparison.OrdinalIgnoreCase) >= 0;
+         t.Expect("lendRefusedWhenUntrusted", taughtWhenUntrusted, false);
+
+         t.Note($"Trust gate on {lord.Name}: taught at Trust 25, refused at Trust/relation/regard 0. The stance layer bites.");
 
          return t.Line();
       }
