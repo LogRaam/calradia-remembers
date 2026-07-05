@@ -54,6 +54,11 @@ namespace CalradiaRemembers.Chat
       private static int _baselineLayerCount;
       private static bool _chatHoldsFocus;
 
+      // Heartbeat VRAM diagnostic: sample at most once every VramTickSeconds while the chat is open, so an idle
+      // scene (no LLM responses to trigger the per-turn read) still leaves a VRAM trend in the log.
+      private static DateTime _lastVramTick = DateTime.MinValue;
+      private const double VramTickSeconds = 10.0;
+
       public static ChatViewModel ActiveViewModel { get; private set; }
 
       public static bool IsOpen => _activeLayer != null;
@@ -252,6 +257,8 @@ namespace CalradiaRemembers.Chat
       {
          if (!IsOpen || _hostScreen == null) return;
 
+         SampleVramPeriodically(); // a heartbeat VRAM read, so an idle (no-response) scene still traces its trend
+
          try
          {
             int layers = _hostScreen.Layers?.Count ?? _baselineLayerCount;
@@ -310,6 +317,26 @@ namespace CalradiaRemembers.Chat
       }
 
       #region private
+
+      /// <summary>
+      ///   A throttled VRAM read pumped from the per-frame focus arbiter, so even a scene left idle (no LLM
+      ///   response to trigger the per-turn sample) leaves a periodic [VRAM] trace — the clean way to see whether
+      ///   the background map screen leaks over time with no interaction. Diagnostic only; never throws.
+      /// </summary>
+      private static void SampleVramPeriodically()
+      {
+         try
+         {
+            DateTime now = DateTime.UtcNow;
+            if ((now - _lastVramTick).TotalSeconds < VramTickSeconds) return;
+            _lastVramTick = now;
+            ModLog.Info($"[VRAM] tick (idle heartbeat) | {VramProbe.Describe()}");
+         }
+         catch
+         {
+            // a diagnostic must never disturb the game
+         }
+      }
 
       /// <summary>
       ///   Runs a teardown/open step, swallowing and logging any exception so that one
