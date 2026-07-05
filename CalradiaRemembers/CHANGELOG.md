@@ -7,9 +7,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 A crash fix, straight from a player's report.
 
 ### Fixed
-- Fixed a crash (which could corrupt a save) that happened when you were travelling inside another lord's
-  army and that lord, having heard of your deeds, decided to ride toward you. The mod no longer tries to
-  intercept a player who is already with the pursuer, and abandons any chase the moment you join their army.
+- Fixed a crash that happened when you were travelling inside another lord's army and that lord, having heard
+  of your deeds, decided to ride toward you. The mod no longer tries to intercept a player who is already with
+  the pursuer, and abandons any chase the moment you join their army. If this bug hit you, your save is not
+  lost: it was never damaged, only caught in a re-crash loop, so simply updating to this version and reloading
+  will let it open and play on. As an extra safeguard, on every load the mod now stands down any pursuer left
+  bearing on a player who is inside an army.
 
 ## v1.22.1.. 2026-07-04
 

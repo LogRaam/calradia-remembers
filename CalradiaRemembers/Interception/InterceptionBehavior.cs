@@ -81,6 +81,36 @@ namespace CalradiaRemembers.Interception
       public override void RegisterEvents()
       {
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+         CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
+      }
+
+      /// <summary>
+      ///   Self-heal on every load. The active pursuit is transient (never persisted), so a normal reload
+      ///   already lets a pursuer's AI return to its plans. This is the belt-and-suspenders pass: if the
+      ///   player is a SUBORDINATE inside an army (the state the game cannot resolve an encounter in, and
+      ///   crashes on), stand down any party still bearing directly on the player's own party, so a chase
+      ///   left over from before the army-crash fix cannot fire the crash on the first tick after loading.
+      /// </summary>
+      private void OnSessionLaunched(CampaignGameStarter starter)
+      {
+         try
+         {
+            MobileParty main = MobileParty.MainParty;
+
+            if (main == null || !PlayerIsSubordinateInArmy()) return;
+
+            var stood = 0;
+            foreach (MobileParty p in MobileParty.All)
+            {
+               if (p == null || p == main || p.TargetParty != main) continue;
+               p.SetMoveModeHold();
+               stood++;
+            }
+
+            if (stood > 0)
+               ModLog.Info($"[INTERCEPT] on load, stood down {stood} party(ies) bearing on the player: the player is inside an army and cannot be safely encountered.");
+         }
+         catch (Exception ex) { ModLog.Error($"[INTERCEPT] on-load heal failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
       /// <summary>
