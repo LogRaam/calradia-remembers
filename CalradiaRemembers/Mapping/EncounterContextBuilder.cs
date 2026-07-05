@@ -132,6 +132,7 @@ namespace CalradiaRemembers.Mapping
             CaptorAllowsPersuasionRelease = ResolveCaptorReleaseVerdict(hero, playerStatus).AllowsPersuasion,
             CaptorAllowsRansomRelease = ResolveCaptorReleaseVerdict(hero, playerStatus).AllowsRansom,
             NativeQuestNote = ResolveNativeQuestNote(hero),
+            NemesisRecaptureNote = ResolveNemesisRecaptureNote(hero, playerStatus),
             CaptiveIntent = captiveIntent,
             CaptiveVictimName = captiveVictimName,
             PlayerCoercedAgainstCompanion = playerCoercedAgainstCompanion,
@@ -710,6 +711,26 @@ namespace CalradiaRemembers.Mapping
 
             return null;
          }
+      }
+
+      /// <summary>
+      ///   Nemesis pillar: when the PLAYER is this captor's prisoner and the captor is a nemesis who has
+      ///   recaptured them after a prior escape, a note has him acknowledge it in character and play colder.
+      ///   Null when the captor is not a recaptured nemesis.
+      /// </summary>
+      private static string ResolveNemesisRecaptureNote(Hero hero, PlayerStatusVsNpc playerStatus)
+      {
+         try
+         {
+            if (playerStatus != PlayerStatusVsNpc.Captive || hero == null) return null;
+
+            int recaptures = Nemesis.NemesisBehavior.Instance?.RecaptureCountFor(hero) ?? 0;
+            if (recaptures <= 0) return null;
+
+            return "THIS PRISONER HAS SLIPPED YOU BEFORE, AND NOW YOU HAVE THEM AGAIN: you are colder and more "
+                 + "careful this time. Make it plain, in your own words, that they will not escape you a second time.";
+         }
+         catch { return null; }
       }
 
       /// <summary>

@@ -142,6 +142,15 @@ namespace CalradiaRemembers.Nemesis
          return Hero.MainHero.PartyBelongedToAsPrisoner?.MobileParty == _activeCaptorParty;
       }
 
+      /// <summary>The recapture count of the nemesis embodied by <paramref name="hero" />, or 0 when he is not a tracked nemesis.</summary>
+      public int RecaptureCountFor(Hero hero)
+      {
+         if (hero == null) return 0;
+         NemesisIdentity nem = GetByHero(hero.StringId);
+
+         return nem?.RecaptureCount ?? 0;
+      }
+
       #region private
 
       /// <summary>The vanilla bandit-clan StringId of the capturing band (looters / forest_bandits / ...), or a fallback.</summary>
