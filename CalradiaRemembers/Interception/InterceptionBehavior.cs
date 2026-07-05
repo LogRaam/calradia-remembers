@@ -191,6 +191,10 @@ namespace CalradiaRemembers.Interception
 
       private void BeginPursuit(Hero lord, InterceptionTrigger trigger, int today)
       {
+         // Last line of defense against the army-encounter crash: never engage a party the player is already
+         // with (a subordinate army member, a shared army, or an attached party).
+         if (PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(lord.PartyBelongedTo)) return;
+
          lord.PartyBelongedTo.SetMoveEngageParty(MobileParty.MainParty, MobileParty.NavigationType.Default);
          _activePursuerId = lord.StringId;
          _activePursuerTrigger = trigger;
@@ -234,7 +238,10 @@ namespace CalradiaRemembers.Interception
          // NB: do NOT clear on arrival — the pursuit ends when the player actually talks to them
          // (ConsumeInterceptionReason) so the opener survives the meeting. Otherwise the pure rule
          // gives up a stale chase (timeout) or a hopeless one (the player is well clear and faster).
-         bool invalid = pursuer is not {IsAlive: true} || pursuerParty == null || main == null;
+         // Also release the moment the player is no longer freely interceptable: if they joined the pursuer's
+         // army (or any army as a subordinate) mid-chase, the pending engagement would crash on contact.
+         bool invalid = pursuer is not {IsAlive: true} || pursuerParty == null || main == null
+                        || PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(pursuerParty);
          bool giveUp = !invalid &&
                        InterceptionPolicy.ShouldAbandonChase(
                           pursuerParty.Speed, main.Speed,
@@ -253,6 +260,7 @@ namespace CalradiaRemembers.Interception
          MobileParty main = MobileParty.MainParty;
 
          if (main == null || Hero.MainHero == null) return;
+         if (PlayerIsSubordinateInArmy()) return; // never intercept a player attached inside another lord's army
 
          Vec2 playerPos = main.GetPosition2D;
          IFaction territory = NearestSettlementFaction(playerPos);
@@ -267,6 +275,7 @@ namespace CalradiaRemembers.Interception
 
             if (lord is not {IsLord: true} || lord == Hero.MainHero) continue;
             if (p == main || p.IsBandit || p.MapFaction == null) continue;
+            if (PlayerSharesArmyOrAttached(p)) continue; // player leads an army holding this party, or is attached to it
             if (p.GetPosition2D.Distance(playerPos) > InterceptRange) continue;
 
             scanned++;
@@ -288,6 +297,34 @@ namespace CalradiaRemembers.Interception
 
             return; // one interception started per day
          }
+      }
+
+      /// <summary>
+      ///   True when the player is a SUBORDINATE member of some army (their party is attached to an army they
+      ///   do not lead). Forcing a PlayerEncounter in that state throws deep in PlayerEncounter.SetupFields
+      ///   (a player-reported save-corrupting crash: an army leader "rides toward" the player who is already
+      ///   in their army). No interception may start or continue while this holds.
+      /// </summary>
+      private static bool PlayerIsSubordinateInArmy()
+      {
+         MobileParty main = MobileParty.MainParty;
+
+         return main?.Army != null && main.Army.LeaderParty != main;
+      }
+
+      /// <summary>
+      ///   True when <paramref name="party" /> is already TOGETHER with the player and so cannot validly be
+      ///   an interception target: it shares the player's army (e.g. the player leads an army this party is
+      ///   in), or one is physically attached to the other.
+      /// </summary>
+      private static bool PlayerSharesArmyOrAttached(MobileParty party)
+      {
+         MobileParty main = MobileParty.MainParty;
+
+         if (main == null || party == null) return false;
+         if (main.Army != null && party.Army == main.Army) return true;
+
+         return main.AttachedTo == party || party.AttachedTo == main;
       }
 
       #endregion
