@@ -1511,6 +1511,26 @@ SEQUENCING: increment 1 (persistent Hero captor + memory + attach + chat-first +
 then RESOLUTION (kill/execute/torture, nearly free); then bounty missions; then the TURN branch (most gated, on
 stance). Each layer is standalone and shippable. See [[project-nemesis]].
 
+**INCREMENT 1 🔨 CODE-COMPLETE 2026-07-05 (committed, NEEDS IN-GAME VALIDATION, mod 0 err / 1244 tests):**
+- **Persistence** — `NemesisBehavior : CampaignBehaviorBase` + `NemesisRoster`: save-safe byte[] JSON roster
+  (additive key, degrades to empty, mirrors GrudgeBehavior), registered in the submodule. `FindOrMint` = the
+  regional recurring roster (reuse the living nemesis of a band+region, else mint a latent identity via
+  `NemesisNameGenerator`).
+- **Capture hook** — `OnHeroPrisonerTaken`: when a bandit party takes the PLAYER, reuse/mint the nemesis, mint or
+  reuse his persistent bandit-faction Hero (the proven `SpawnCaptors` pattern MINUS the throwaway kill), name him
+  after the identity, register a memory profile (so `cr.memory`/`cr.info` work on him = the "Ranulf has no memory"
+  bug fixed by construction), and record him as the active captor. `RecaptureCount` bumps on re-capture.
+- **Captor override** — `CaptiveEncounterService` now resolves `captor = ambushPaymaster ?? nemesisCaptor ?? LeaderHero`,
+  so the captive scene runs with the nemesis Hero and his memory (the profiled-lord CNC path).
+- **Escape-decay** — the scene-escape roll uses `NemesisEscapeChancePolicy` (decays with `RecaptureCount`) against a
+  nemesis; `VanillaCaptivityPatch` fully suppresses the vanilla escape drip while a nemesis holds the player
+  (`PlayerHeldByNemesis`), so you cannot wait him out; never a perfect cage (2% floor).
+- Defensive throughout (degrades to the vanilla bandit scene on any failure). Commits: persistence, FindOrMint,
+  capture hook, escape-decay. **STILL OPEN (polish):** the "not this time" prompt beat when RecaptureCount > 0
+  (needs an EncounterContext note); the physical band-leadership vs the virtual override (chose the override,
+  lower-risk); band-culture/region keys are coarse first-pass (TUNE); the WIN/intercept chat-first side (the
+  spike's one new seam) is a later increment. **The whole flow needs an in-game play-through to validate.**
+
 **PILLAR: Player appearance — derived + editable (ratified 2026-07-05).** Kills the backstory/appearance
 hallucination AND resolves the mutilation-persistence tension (a hallucinated "missing finger" must never
 auto-persist; the player AUTHORS it if they want). Two volets: (1) DERIVE the reliably-available attributes from
