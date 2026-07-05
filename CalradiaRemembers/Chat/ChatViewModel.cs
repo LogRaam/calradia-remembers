@@ -257,6 +257,27 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      /// <summary>
+      ///   Frees every line's character tableau on teardown so no GPU render-target survives the chat closing.
+      ///   Releasing the movie already destroys the widgets (which frees their tableaus), but clearing the
+      ///   ImageIds here first makes the release explicit and independent of engine teardown timing — a hedge
+      ///   against tableaus lingering across many open/close cycles in one session. Also detaches the per-insert
+      ///   cap handler so nothing fires during teardown. Called by <see cref="ChatManager.Close" />.
+      /// </summary>
+      public void ReleaseAllPortraits()
+      {
+         try
+         {
+            _messages.ListChanged -= OnMessagesListChanged;
+            for (int i = 0; i < _messages.Count; i++)
+               _messages[i]?.ReleasePortrait();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ChatViewModel.ReleaseAllPortraits failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
       // ── Chat mode ─────────────────────────────────────────────────────────
       // One window, five behaviors. A single mode value (instead of a trio of
       // booleans) so adding a mode means extending the enum and reviewing the

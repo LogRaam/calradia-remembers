@@ -78,6 +78,9 @@ namespace CalradiaRemembers.Chat
             SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
             SafeStep(() => ActiveViewModel?.FinalizeWitnessMemories(), "FinalizeWitnessMemories");
 
+            // Free every character tableau (GPU render-target) before releasing the movie, so no portrait
+            // survives the close regardless of engine teardown timing.
+            SafeStep(() => ActiveViewModel?.ReleaseAllPortraits(), "ReleaseAllPortraits");
             SafeStep(KillChatWindow, "KillChatWindow");
             SafeStep(EndVanillaConversation, "EndVanillaConversation");
             SafeStep(EndMapEncounterIfNeeded, "EndMapEncounterIfNeeded");
