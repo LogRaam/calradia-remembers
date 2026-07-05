@@ -58,5 +58,19 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>Campaign day this nemesis died, or null while still alive.</summary>
         public int? DeathDay { get; set; }
+
+        /// <summary>
+        ///   StringId of the persistent Hero that embodies this nemesis, so the identity survives across
+        ///   saves and between encounters even while his party is despawned, and the SAME Hero is re-attached
+        ///   as the leader/captor of a fresh vanilla band next time. Null until the Hero is first minted.
+        /// </summary>
+        public string HeroStringId { get; set; }
+
+        /// <summary>
+        ///   How many times this nemesis has RECAPTURED the player after they escaped him. Feeds
+        ///   <see cref="NemesisEscapeChancePolicy"/>: each recapture makes him more careful, lowering the
+        ///   escape chance toward its floor (he never becomes a perfect cage).
+        /// </summary>
+        public int RecaptureCount { get; set; }
     }
 }
