@@ -183,7 +183,10 @@ namespace CalradiaRemembers.Letters
 
          bool playerIsFemale = player.IsFemale;
 
-         Hero captor = ambushPaymaster ?? captorParty.LeaderHero;
+         // A nemesis (a persistent bandit boss who has taken the player before) overrides the band's
+         // nonexistent hero leader, so the captive scene runs with HIM and his memory (Nemesis pillar).
+         Hero nemesisCaptor = Nemesis.NemesisBehavior.Instance?.NemesisCaptorFor(captorParty);
+         Hero captor = ambushPaymaster ?? nemesisCaptor ?? captorParty.LeaderHero;
          if (captor is {IsHumanPlayerCharacter: false})
          {
             // ── Lord captor: a profiled, named hero (existing CNC path) ──

@@ -11,9 +11,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Mapping;
 using Newtonsoft.Json;
+using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.Core;
+using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
 
 #endregion
@@ -33,6 +39,12 @@ namespace CalradiaRemembers.Nemesis
 
       private NemesisRoster _roster = new NemesisRoster();
 
+      // Transient (non-serialized) active-capture mapping: which bandit party currently holds the player and
+      // the nemesis Hero who is their captor. Lost on a save/load mid-captivity (degrades to the vanilla
+      // bandit scene), re-established on the next capture; the Hero itself persists via the roster.
+      private MobileParty _activeCaptorParty;
+      private Hero _activeNemesisHero;
+
       public NemesisBehavior()
       {
          Instance = this;
@@ -43,8 +55,134 @@ namespace CalradiaRemembers.Nemesis
 
       public override void RegisterEvents()
       {
-         // The bandit-capture hook (mint/reuse + attach the Hero as captor) lands in a later increment-1 piece.
+         CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
       }
+
+      /// <summary>
+      ///   The bandit-capture hook: when a bandit party takes the PLAYER prisoner, reuse-or-mint the regional
+      ///   nemesis for that band, mint/reuse his persistent Hero (with a memory profile so cr.memory/cr.info
+      ///   work on him), and record him as the active captor. <see cref="CaptiveEncounterService" /> then runs
+      ///   the captive scene with HIM. Defensive throughout: any failure degrades to the vanilla bandit scene.
+      /// </summary>
+      private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner)
+      {
+         try
+         {
+            if (prisoner != Hero.MainHero) return; // only the PLAYER becoming a captive spawns a nemesis
+            MobileParty band = capturer?.MobileParty;
+            if (band == null || !band.IsBandit) return;
+
+            string bandKey = ResolveBandCultureKey(band);
+            string regionId = ResolveRegionId(band);
+            var today = (int) CampaignTime.Now.ToDays;
+
+            NemesisIdentity existing = FindRecurring(bandKey, regionId);
+            NemesisIdentity nem = FindOrMint(bandKey, regionId, today); // reuses `existing` if present
+            Hero hero = ResolveOrMintHero(nem, today);
+            if (hero == null) return;
+
+            _activeCaptorParty = band;
+            _activeNemesisHero = hero;
+            nem.TimesEncountered++;
+            if (existing != null) nem.RecaptureCount++; // he has caught the player before, and now again
+            ModLog.Info($"[NEMESIS] {hero.Name} now holds the player captive (band {bandKey}, region {regionId}, recaptures {nem.RecaptureCount}).");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[NEMESIS] capture hook failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Consulted by <see cref="CaptiveEncounterService" /> in place of the band's (nonexistent) hero
+      ///   leader: the nemesis Hero holding the player in THIS party, or null. Clears the stale mapping once
+      ///   the player is no longer this party's prisoner.
+      /// </summary>
+      public Hero NemesisCaptorFor(MobileParty captorParty)
+      {
+         if (_activeNemesisHero == null || _activeCaptorParty == null) return null;
+         if (captorParty != _activeCaptorParty) return null;
+
+         if (Hero.MainHero?.IsPrisoner != true)
+         {
+            _activeNemesisHero = null;
+            _activeCaptorParty = null;
+
+            return null;
+         }
+
+         return _activeNemesisHero;
+      }
+
+      #region private
+
+      /// <summary>The vanilla bandit-clan StringId of the capturing band (looters / forest_bandits / ...), or a fallback.</summary>
+      private static string ResolveBandCultureKey(MobileParty band)
+      {
+         string clanId = band?.ActualClan?.StringId;
+
+         return string.IsNullOrEmpty(clanId) ? "looters" : clanId;
+      }
+
+      /// <summary>A coarse, stable region key for the capture (the band's home hideout, else its culture). TUNE: refine to the nearest settlement/region.</summary>
+      private static string ResolveRegionId(MobileParty band)
+      {
+         string key = band?.HomeSettlement?.StringId ?? band?.Party?.Culture?.StringId;
+
+         return string.IsNullOrEmpty(key) ? "wilds" : key;
+      }
+
+      /// <summary>
+      ///   Reuse the identity's persistent Hero if he still lives, else mint a new bandit-faction Hero (the
+      ///   proven SpawnCaptors pattern MINUS the throwaway kill), name him after the identity, bind his
+      ///   StringId, and register a memory profile so he remembers the player across encounters.
+      /// </summary>
+      private static Hero ResolveOrMintHero(NemesisIdentity nem, int today)
+      {
+         try
+         {
+            if (!string.IsNullOrEmpty(nem.HeroStringId))
+            {
+               Hero existing = Hero.FindFirst(h => h != null && h.StringId == nem.HeroStringId);
+               if (existing != null && existing.IsAlive) return existing;
+            }
+
+            Clan bandits = Clan.BanditFactions?.FirstOrDefault(c => c.StringId == nem.BandCultureKey)
+                           ?? Clan.BanditFactions?.FirstOrDefault();
+            if (bandits == null) return null;
+
+            CharacterObject template = CharacterObject.All?.FirstOrDefault(c => c != null && c.StringId == "bandit_chief")
+                                       ?? CharacterObject.All?.FirstOrDefault(c => c != null && c.Occupation == Occupation.Wanderer);
+            if (template == null) return null;
+
+            Hero hero = HeroCreator.CreateSpecialHero(template, null, bandits, null, 35);
+            if (hero == null) return null;
+
+            try { hero.SetName(new TextObject(nem.Name + " " + nem.Epithet), new TextObject(nem.Name)); }
+            catch (Exception ex) { ModLog.Error($"[NEMESIS] SetName failed: {ex.GetType().Name}: {ex.Message}"); }
+
+            nem.HeroStringId = hero.StringId;
+
+            try
+            {
+               NpcProfile profile = HeroProfileMapper.FromHero(hero);
+               NpcMemoryCampaignBehavior.Instance?.Store?.Set(profile);
+            }
+            catch (Exception ex) { ModLog.Error($"[NEMESIS] profile register failed: {ex.GetType().Name}: {ex.Message}"); }
+
+            ModLog.Info($"[NEMESIS] minted persistent Hero for {nem.Name} {nem.Epithet}.");
+
+            return hero;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[NEMESIS] ResolveOrMintHero failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      #endregion
 
       /// <summary>The living nemesis of this band culture anchored to this region, or null (mint a new one).</summary>
       public NemesisIdentity FindRecurring(string bandCultureKey, string regionId)
