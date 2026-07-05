@@ -2,14 +2,20 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.22.2.. 2026-07-04
+
+A crash fix, straight from a player's report.
+
+### Fixed
+- Fixed a crash (which could corrupt a save) that happened when you were travelling inside another lord's
+  army and that lord, having heard of your deeds, decided to ride toward you. The mod no longer tries to
+  intercept a player who is already with the pursuer, and abandons any chase the moment you join their army.
+
 ## v1.22.1.. 2026-07-04
 
 A patch built from your reports, with a few new threads woven in while I was there.
 
 ### Fixed (from your reports)
-- Fixed a crash (which could corrupt a save) that happened when you were travelling inside another lord's
-  army and that lord, having heard of your deeds, decided to ride toward you. The mod no longer tries to
-  intercept a player who is already with the pursuer, and abandons any chase the moment you join their army.
 - Marriage through conversation now works when you have built a strong bond the ordinary way. The wedding
   used to check only the mod's own private "regard" score, so a lord or lady would agree in words yet never
   actually wed you. It now accepts a strong vanilla relationship too, and an NPC will no longer promise a
