@@ -151,6 +151,18 @@ namespace CalradiaRemembers.Nemesis
          return nem?.RecaptureCount ?? 0;
       }
 
+      /// <summary>
+      ///   Reuse-or-mint the nemesis for this band culture + region AND ensure his persistent Hero exists
+      ///   (name bound, memory profile registered). Returns the Hero, or null if minting failed. Shared by
+      ///   the capture hook and the self-test harness so the mint path can be validated without a real capture.
+      /// </summary>
+      public Hero MintCaptorFor(string bandCultureKey, string regionId, int today)
+      {
+         NemesisIdentity nem = FindOrMint(bandCultureKey, regionId, today);
+
+         return ResolveOrMintHero(nem, today);
+      }
+
       #region private
 
       /// <summary>The vanilla bandit-clan StringId of the capturing band (looters / forest_bandits / ...), or a fallback.</summary>

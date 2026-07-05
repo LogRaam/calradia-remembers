@@ -140,6 +140,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("gang_rivalry", Severity.Light, "Mechanical: a same-town gang-leader pair is framed as RIVALS in the name hint (never friends-by-culture); skips if the campaign has no such pair", TestGangRivalry, false),
          new SelfTest("captive_fear_coerced", Severity.Light, "Mechanical: a terrified captive (high Fear) trips the freedom-bargain coercion flag, a fearless one does not (Fear-1 wiring)", TestCaptiveFearCoerced, false),
          new SelfTest("party_troop_count", Severity.Light, "Mechanical: a companion in the player's party sees the real troop count in context (no more hallucinated army size); skips if the player has no party companion", TestPartyTroopCount, false),
+         new SelfTest("nemesis_mint", Severity.Light, "Mechanical: minting a nemesis creates a persistent Hero WITH a memory profile (the 'no memory' bug fixed), reuses him in-region, mints a distinct one per region; PLANTS test nemeses (reload after)", TestNemesisMint, false),
          new SelfTest("chat_captor_break", Severity.Light, "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?", TestChatCaptorBreak, true, 3),
          new SelfTest("chat_captor_torture", Severity.Light, "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?", TestChatCaptorTorture, true, 3),
          new SelfTest("chat_captor_cnc", Severity.Light, "LLM: 3-beat sexual coercion (Hardcore) -> does the NPC play CNC reactions in character, never breaking?", TestChatCaptorCnc, true, 3),
@@ -1428,6 +1429,38 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Expect("partyMemberSeesTroopCount", ctx.PlayerPartyTroopCount > 0, true);
          t.Note($"party member {member.Name} sees troop count {ctx.PlayerPartyTroopCount} (surfaced to party companions, hidden from non-party NPCs).");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Nemesis increment 1 mint wiring (deterministic, no LLM): minting a nemesis captor creates a
+      ///   PERSISTENT Hero WITH a memory profile (so cr.memory/cr.info work on him = the "Ranulf has no
+      ///   memory" bug fixed by construction), reuses the SAME Hero for the same band+region, and mints a
+      ///   DISTINCT one per region. NOTE: plants test nemeses into the roster, reload after the sweep.
+      /// </summary>
+      private static string TestNemesisMint(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_mint");
+
+         Nemesis.NemesisBehavior nb = Nemesis.NemesisBehavior.Instance;
+
+         if (t.Skip(nb == null, "NemesisBehavior not available")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Hero h1 = nb.MintCaptorFor("looters", "selftest_region", today);
+
+         if (t.Abort(h1 == null, "mint returned no Hero (bandit clan/template unavailable?)")) return t.Line();
+
+         t.Expect("nemesisHeroHasMemoryProfile", behavior.Store?.Get(h1.StringId) != null, true);
+
+         Hero h2 = nb.MintCaptorFor("looters", "selftest_region", today);
+         t.Expect("sameRegionReusesSameHero", h2 == h1, true);
+
+         Hero h3 = nb.MintCaptorFor("looters", "selftest_other_region", today);
+         t.Expect("differentRegionMintsDistinctHero", h3 != h1, true);
+
+         t.Note($"minted nemesis {h1.Name}: profile registered, reused in-region, distinct across regions. Plants test nemeses (reload after the sweep).");
 
          return t.Line();
       }
