@@ -345,16 +345,7 @@ namespace CalradiaRemembers.Chat
       ///   (a synthesized bandit captor or a nameless commoner has none, so the button hides).
       /// </summary>
       [DataSourceProperty]
-      public bool IsEncyclopediaVisible => _npcHero != null && !IsEncyclopediaSuppressed;
-
-      /// <summary>
-      ///   The encyclopedia is suppressed during a scene (player-as-captive or player-as-captor). Opening it there
-      ///   does not actually work over the scene overlay AND it allocates encyclopedia render-targets (character
-      ///   tableaux, banners) that Bannerlord never reclaims — a large, un-freed step toward the GPU VRAM ceiling
-      ///   on a long scene (measured at ~+3 GB for a handful of opens). Both the header button and the
-      ///   right-click-portrait path honour this.
-      /// </summary>
-      public bool IsEncyclopediaSuppressed => IsCaptiveEncounter || _captorScene;
+      public bool IsEncyclopediaVisible => _npcHero != null;
 
       /// <summary>
       ///   True when the mode button should be shown: only when an NSFW model is configured in the MCM
@@ -909,7 +900,6 @@ namespace CalradiaRemembers.Chat
          try
          {
             if (_npcHero == null || Campaign.Current?.EncyclopediaManager == null) return;
-            if (IsEncyclopediaSuppressed) return; // never during a scene: it does not open, and leaks GPU memory
 
             // No explicit focus hand-off needed: ChatManager.ArbitrateFocus (pumped every frame) sees the
             // encyclopedia's layer appear and yields the chat's focus to it, then reclaims it on close.
