@@ -4,6 +4,7 @@
 
 using System;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -17,7 +18,7 @@ using TaleWorlds.Localization;
 namespace CalradiaRemembers.Letters
 {
    /// <summary>View model for the dedicated courier window.</summary>
-   public sealed class LetterViewModel : ViewModel
+   public sealed class LetterViewModel : ViewModel, IManagedPortrait
    {
       private const float ComposeHeight = 440f;
       private const float ReadHeight = 680f;
@@ -331,21 +332,27 @@ namespace CalradiaRemembers.Letters
       /// <summary>Resolves the correspondent's in-game portrait (same render as chat / encyclopedia).</summary>
       private void ResolvePortrait(Hero hero)
       {
-         CharacterObject character = hero?.CharacterObject;
-         if (character != null)
-         {
-            var portrait =
-               new CharacterImageIdentifierVM(CharacterCode.CreateFrom(character));
-            _portraitId = portrait.Id ?? "";
-            _portraitTextureProviderName = portrait.TextureProviderName ?? "";
-            _portraitAdditionalArgs = portrait.AdditionalArgs ?? "";
-            _showPortrait = !string.IsNullOrEmpty(_portraitId);
-         }
-         else
-         {
-            _portraitId = _portraitTextureProviderName = _portraitAdditionalArgs = "";
-            _showPortrait = false;
-         }
+         PortraitData portrait = PortraitTextureGuard.Create(hero?.CharacterObject);
+         _portraitId = portrait.Id;
+         _portraitTextureProviderName = portrait.TextureProviderName;
+         _portraitAdditionalArgs = portrait.AdditionalArgs;
+         _showPortrait = portrait.HasImage;
+      }
+
+      /// <summary>The correspondent's identity. The letter shows a single portrait, so this mainly satisfies the guard's contract.</summary>
+      public string PortraitKey => _profile?.Id ?? "";
+
+      /// <summary>True while the correspondent portrait still holds a rendered tableau (a GPU render-target).</summary>
+      public bool HasLivePortrait => _showPortrait && !string.IsNullOrEmpty(_portraitId);
+
+      /// <summary>Frees the correspondent portrait's render-target on close by clearing the bound image id.</summary>
+      public void ReleasePortrait()
+      {
+         if (!_showPortrait && string.IsNullOrEmpty(_portraitId)) return;
+         PortraitId = "";
+         PortraitTextureProviderName = "";
+         PortraitAdditionalArgs = "";
+         ShowPortrait = false;
       }
 
       // ── Sealing (no inline LLM call) ────────────────────────────────────

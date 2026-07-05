@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Grudges;
+using CalradiaRemembers.GUI;
 using CalradiaRemembers.Items;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
@@ -224,58 +225,27 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Keeps VRAM bounded by the number of participants, not the transcript length: on each inserted line,
-      ///   walk the transcript newest-first and release the character tableau of every line whose speaker already
-      ///   has a more-recent live portrait. Only the render-target is freed; the line's text is untouched.
+      ///   On each inserted line, keep VRAM bounded by the number of participants (not the transcript length):
+      ///   the guard collapses the transcript to at most one live character tableau per distinct speaker, freeing
+      ///   older duplicates. Only the render-target is freed; each line's text stays.
       /// </summary>
       private void OnMessagesListChanged(object sender, ListChangedEventArgs e)
       {
-         if (e.ListChangedType != ListChangedType.ItemAdded) return;
-
-         try
-         {
-            HashSet<string> speakersWithLivePortrait = new HashSet<string>(StringComparer.Ordinal);
-            int released = 0;
-            for (int i = _messages.Count - 1; i >= 0; i--)
-            {
-               ChatMessageViewModel line = _messages[i];
-               if (line == null || !line.HasLivePortrait) continue;
-
-               if (!speakersWithLivePortrait.Add(line.SpeakerKey))
-               {
-                  line.ReleasePortrait(); // this speaker already has a newer portrait alive
-                  released++;
-               }
-            }
-
-            if (released > 0)
-               ModLog.Info($"[CHAT] live portraits: {speakersWithLivePortrait.Count} kept (one per participant), {released} tableau(s) freed.");
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"ChatViewModel.OnMessagesListChanged failed: {ex.GetType().Name}: {ex.Message}");
-         }
+         if (e.ListChangedType == ListChangedType.ItemAdded)
+            PortraitTextureGuard.EnforceOnePerParticipant(_messages);
       }
 
       /// <summary>
       ///   Frees every line's character tableau on teardown so no GPU render-target survives the chat closing.
-      ///   Releasing the movie already destroys the widgets (which frees their tableaus), but clearing the
-      ///   ImageIds here first makes the release explicit and independent of engine teardown timing — a hedge
+      ///   Releasing the movie already destroys the widgets (which frees their tableaus), but the guard clears
+      ///   the ImageIds first, making the release explicit and independent of engine teardown timing — a hedge
       ///   against tableaus lingering across many open/close cycles in one session. Also detaches the per-insert
       ///   cap handler so nothing fires during teardown. Called by <see cref="ChatManager.Close" />.
       /// </summary>
       public void ReleaseAllPortraits()
       {
-         try
-         {
-            _messages.ListChanged -= OnMessagesListChanged;
-            for (int i = 0; i < _messages.Count; i++)
-               _messages[i]?.ReleasePortrait();
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"ChatViewModel.ReleaseAllPortraits failed: {ex.GetType().Name}: {ex.Message}");
-         }
+         _messages.ListChanged -= OnMessagesListChanged;
+         PortraitTextureGuard.ReleaseAll(_messages);
       }
 
       // ── Chat mode ─────────────────────────────────────────────────────────

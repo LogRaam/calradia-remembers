@@ -34,6 +34,7 @@ namespace CalradiaRemembers.Letters
 
          _layer.IsFocusLayer = false;
          _layer.InputRestrictions.ResetInputRestrictions();
+         _vm?.ReleasePortrait(); // free the correspondent tableau before the movie teardown
          _layer.ReleaseMovie(_movieId);
          _host?.RemoveLayer(_layer);
 

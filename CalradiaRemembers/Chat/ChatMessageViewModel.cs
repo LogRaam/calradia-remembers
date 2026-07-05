@@ -3,16 +3,16 @@
 #region
 
 using System;
+using CalradiaRemembers.GUI;
+using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.Core;
-using TaleWorlds.Core.ViewModelCollection.ImageIdentifiers;
 using TaleWorlds.Library;
 
 #endregion
 
 namespace CalradiaRemembers.Chat
 {
-    public sealed class ChatMessageViewModel : ViewModel
+    public sealed class ChatMessageViewModel : ViewModel, IManagedPortrait
     {
         private const string NpcColor = "#e8d8b8FF"; // warm cream
         private const string PlayerColor = "#a8c8e0FF"; // cool blue
@@ -171,7 +171,7 @@ namespace CalradiaRemembers.Chat
         /// <summary>
         ///   The stable identity of this line's speaker, used to keep at most one live portrait per participant.
         /// </summary>
-        public string SpeakerKey => _speakerKey;
+        public string PortraitKey => _speakerKey;
 
         /// <summary>
         ///   True while this line still carries a rendered character tableau (a GPU render-target). A system
@@ -220,14 +220,10 @@ namespace CalradiaRemembers.Chat
 
         private void ResolvePortrait(CharacterObject character, string authorName)
         {
-            if (character != null)
-            {
-                CharacterImageIdentifierVM portrait =
-                    new CharacterImageIdentifierVM(CharacterCode.CreateFrom(character));
-                _portraitId                  = portrait.Id ?? "";
-                _portraitTextureProviderName = portrait.TextureProviderName ?? "";
-                _portraitAdditionalArgs      = portrait.AdditionalArgs ?? "";
-            }
+            PortraitData portrait        = PortraitTextureGuard.Create(character);
+            _portraitId                  = portrait.Id;
+            _portraitTextureProviderName = portrait.TextureProviderName;
+            _portraitAdditionalArgs      = portrait.AdditionalArgs;
             ModLog.Info(
                 $"Portrait for {authorName}: " +
                 $"CharacterObjectNull={character == null}, " +
