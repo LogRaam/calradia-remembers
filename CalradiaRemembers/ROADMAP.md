@@ -309,7 +309,12 @@ a second breakpoint splitting the universal header from the per-NPC block (Anthr
 
 ## Open — not yet built
 
-### Affect coherence reform *(review 2026-07-04, rulings ratified by Gabriel the same day)*
+### Affect coherence reform *(review 2026-07-04 — ✅ SHIPPED v1.22.0)*
+
+**✅ SHIPPED in v1.22.0.** The full P0/P1/P2 plan below was implemented and released: one canonical RegardBands
+vocabulary, writers re-routed by semantics, the grudge tone arbiter (ruling 2), the grudge-hint discovery path
+(`grudge_terms`), the Appreciations wiring + tarnish, and the numberless "Bearing" line (ruling 4). Kept here for
+the design record.
 
 A full inventory of every affect axis (clan relation / personal regard / stance Trust-Respect-Fear /
 grudges / contentment / romantic / discoveries / appreciations) exposed the incoherences; Gabriel ruled:
@@ -331,14 +336,17 @@ incomplete: asking the NPC what it would take must reveal the remedy), the tone 
 Appreciations (store, plant sites, prompt note with the tarnish, "Kindnesses" encyclopedia section).
 P2 = the Bearing line (ruling 4), consistent formation notifications (KNOWN grudge formation notifies).
 
-### Appreciations — event-anchored kindnesses, the positive mirror of Grudges *(wished 2026-07-04)*
+### Appreciations — event-anchored kindnesses, the positive mirror of Grudges *(wished 2026-07-04 — ✅ COMPLETE 2026-07-04)*
 
 Gabriel's idea: we have regard (a blended score) and grudges (specific wounds that tell a story); we should also
 have APPRECIATIONS, the specific KINDNESSES the player did that marked an NPC positively, told as a story the
 same way a grudge is. Completes the affect model: regard = the number, grudges = what was done against them,
 appreciations = what was done for them, all three coexisting.
 
-**Status (04/07/2026): TroopsOrInfluenceSpentForThem CLOSED.** The last open Appreciations source now has a
+**Status (04/07/2026): PILLAR COMPLETE — the core shipped in v1.22.0, and both deferred sources now have a live
+trigger, so every kindness source is symmetric to a grudge source.** KindnessInScene: a consensual Intimacy
+event now plants it on the partner (excluding the exploiter-leverage dynamic, which is leverage, not a kindness).
+And TroopsOrInfluenceSpentForThem is CLOSED — the last open Appreciations source now has a
 live-plant path: `give_troops`/`spend_influence` (CalradiaRemembers.Verbs), the RECIPROCAL of the existing
 `lend_troops`/`give_influence` verbs — the PLAYER reinforces a needy NPC's under-strength party or spends
 their own clan's influence to back a needy lord's clan at court, instead of the NPC favouring the player.
@@ -364,7 +372,7 @@ TARNISH standing appreciations (a fresh high-magnitude grudge sours old kindness
 grudge-only model can't express. SEQUENCING: build AFTER the Grudge engine wiring is proven, as its own
 increment, reusing the wired patterns.
 
-### Grudges — resolvable, event-anchored grievances *(ratified 2026-07-03 — a new pillar)*
+### Grudges — resolvable, event-anchored grievances *(ratified 2026-07-03 — ✅ SHIPPED v1.22.0; the Amends/Gift/Deed reconciliation trio is complete)*
 
 **Why this is a pillar.** The mod has three affect surfaces today and none does what a grudge is: RELATION is one
 number that blends everything (a wrong is diluted by fondness), STANCE is a dispositional posture (fear, trust),
@@ -493,6 +501,10 @@ hardcoded `PromptBuilder` section per verb. The mod composes the block in `Encou
 `CourtActionResolver` (engine-coupled facts) + `CourtActionPolicy` (pure amounts/caps/cooldowns, tested).
 Per-NPC (and per-NPC-and-target, for sway) cooldowns are derived by scanning the NPC's own `NpcProfile.Events`
 for a hidden marker the action itself records — no new persisted field. Console: `cr.rp_verbs [name]`.
+**Reciprocal court verbs (04/07/2026):** `give_troops` / `spend_influence` — the PLAYER-side mirror of increment
+1's `lend_troops` / `give_influence`, letting the player reinforce a needy NPC's under-strength party or fund a
+lord low on court influence, with a safety floor on the player's own reserve. They also CLOSE the Appreciations
+pillar (the `TroopsOrInfluenceSpentForThem` source). Console: `cr.give_troops` / `cr.spend_influence`.
 
 **Increment 2 — the TrackedCommitment engine. 🔨 Phase 1 (the mechanical spine) BUILT 2026-07-03 (untested in
 game), 694 mod tests / 190 SDK tests green.** The symmetric of `InformalQuest`: instead of the NPC setting the
@@ -1066,7 +1078,7 @@ A player asked whether three things are realistic to even want. Feasibility read
   button on the party/prisoner screen to open the scene, AND a companion SELECTOR (like the captive-encounter witness
   picker) to bring 1-2 allies into a collective scene. Plus NPC standing effects (the inverse of public humiliation).
 
-### Conception from any vaginal act — consensual scenes + female NPCs *(wished 2026-06-24)*
+### Conception from any vaginal act — consensual scenes + female NPCs *(wished 2026-06-24 — ✅ BUILT, in the live pregnancy system)*
 
 Today conception is **captive-only** and **player-only**: `impregnation_risk` is taught solely in the
 captor/captive block, and `CaptivePregnancyService.TryConceive` hardcodes the mother as `Hero.MainHero`.
@@ -1107,7 +1119,7 @@ always** — self-handles the player-mother and legit-wife-mother cases (already
 two-phase `cr.preg_birth` console test is the verdict on whether delivery happens at all; only if it never
 delivers even with the flag do we fall back to Path B (a Dramalord-style own registry + own delivery).
 
-### Bastards — a hidden birth as a grave consequence layer *(wished 2026-06-24, refined 2026-06-25)*
+### Bastards — a hidden birth as a grave consequence layer *(wished 2026-06-24 — ✅ SHIPPED v1.15.0)*
 
 A child conceived outside marriage is not a stat line — it is a **grave event**, and the design discipline is
 that almost nothing here is new code: it **assembles levers CR already owns**. Design only — nothing built.
@@ -1147,7 +1159,7 @@ Ties five systems together: **pregnancy** (the source) → **jealousy** (the sca
 the **world-event/rumour** channel. The clan a bastard is born into is settled by the pregnancy plan above
 (child → mother's clan, always).
 
-### Lean prompt for small / local models *(wished 2026-06-23)*
+### Lean prompt for small / local models *(wished 2026-06-23 — ✅ SHIPPED, Lean v2 ~1490 tokens, v1.20.0)*
 
 Players on small local models (e.g. Gemma 3n E4B via LM Studio) hit the "(My words escape me…)" fallback —
 the LLM call fails because CR's system prompt is large and their context window is short (the prompt
@@ -1235,9 +1247,14 @@ culture-flavoured). Two deferred layers:
   confrontation, not just a letter. Pairs with the scripted-scenarios engine (a jealousy threshold as a
   trigger) and the love-triangle tie-in noted under Camp life.
 
-### Marriage — true polygamy and divorce *(monogamous marriage shipped; divorce Phase 1 + Phase 2b BUILT)*
+### Marriage — true polygamy and divorce *(monogamous marriage shipped; divorce arc ✅ COMPLETE — Phase 1/2a/2b/escalation, v1.22.1; true polygamy still OPEN)*
 
-**Player-reported bugfix (2026-07-04, Sonnet, BUILT, NOT committed), 1116 mod / 242 SDK tests green.** Two live
+**Divorce arc COMPLETE (shipped v1.22.1):** Phase 1 (persuade an NPC to divorce their NPC spouse), Phase 2a (the
+player ends their OWN marriage in chat), Phase 2b (an unhappy spouse DEMANDS a divorce), and the escalation (a
+spouse refused too long BEGINS the estrangement themselves, walking out at a deadline unless the player genuinely
+repairs the bond, with a save-safe on-load heal). All chat-driven, no button. Still OPEN: TRUE POLYGAMY.
+
+**Player-reported bugfix (2026-07-04 — ✅ SHIPPED v1.22.1), 1116 mod / 242 SDK tests green.** Two live
 v1.22.0 bugs: (1) the marriage scene never triggered after an NPC accepted — the eligibility gate checked ONLY the
 mod's own personal-regard ledger (`ReputationWithPlayer >= 50`), ignoring vanilla clan relation players had actually
 built; broadened both synced gate sites (`EncounterContextBuilder.ResolveLoveMatchEligible` + the bridge's
