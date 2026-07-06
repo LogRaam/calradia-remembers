@@ -17,6 +17,7 @@ using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Dynasty;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
+using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
@@ -33,6 +34,7 @@ using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.Core;
@@ -92,6 +94,9 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("give_item", Severity.Light, "pick a player item -> give_item -> assert it left the inventory", TestGiveItem),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
          new SelfTest("stance_letter", Severity.Heavy, "hostile stance -> weekly eval -> assert a cold StanceHostility letter is queued", TestStanceLetter),
+         new SelfTest("stance_plot", Severity.Heavy, "stance with teeth increment 2: force a Plot-verdict lord (traits forced dishonourable+calculating) -> weekly eval -> assert a real scheme is planted against the player, no letter written", TestStancePlot),
+         new SelfTest("stance_intercept", Severity.Heavy, "stance with teeth increment 2: force an Intercept-verdict lord (traits forced honourable+bold) -> weekly eval -> assert InterceptionBehavior actually begins a pursuit (skips MANUAL if its own cooldown/army guard legitimately blocks it)", TestStanceIntercept),
+         new SelfTest("stance_warning", Severity.Heavy, "stance with teeth increment 2: seed a secret scheme against the player -> force a friendly Warning-verdict lord -> assert the letter NAMES the real plotter", TestStanceWarning),
          new SelfTest("scheme_assist", Severity.Heavy, "plot + regard -> PlayerAssists -> assert the plot advanced", TestSchemeAssist),
          new SelfTest("pregnancy", Severity.Heavy, "fertile female -> TryConceive(force) -> assert pregnant", TestPregnancy),
          new SelfTest("companion_mission", Severity.Heavy, "dispatch a companion -> assert away -> resolve -> assert home", TestCompanionMission),
@@ -4093,6 +4098,145 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{npc.Name}: rep -50 -> fired={fired}, StanceHostility letters {before}->{afterCount}, cooldownStamped={after?.StanceLastConsequenceDay}");
          t.Expect("letterFired", fired, true);
          t.Expect("hostilityLetterQueued", afterCount, before + 1);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   "Stance with teeth" increment 2: the Plot verdict must fire a REAL scheme against the player
+      ///   (SchemeStore.ForcePlot), never a letter. StanceConsequencePolicy gates Plot on the lord's own
+      ///   traits (dishonourable + calculating), which the self-test cannot rely on any given campaign
+      ///   handing it, so it forces the trait levels deterministically (mirrors CharacterLoreBehavior's
+      ///   own use of Hero.SetTraitLevel) rather than hunting for a naturally-matching lord.
+      /// </summary>
+      private static string TestStancePlot(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("stance_plot");
+
+         if (t.Abort(SchemeStore.Instance == null, "SchemeStore not active")) return t.Line();
+
+         Hero plotter = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && h.Clan != Clan.PlayerClan &&
+            !SchemeStore.Instance.Active.Any(s => s.PlotterId == h.StringId && s.TargetId == Hero.MainHero.StringId));
+
+         if (t.Skip(plotter == null, "no lord free to plot against the player")) return t.Line();
+
+         // Dishonourable + calculating, but not so merciless (mercy <= -1) that the policy would pick
+         // Assassinate instead of Plot.
+         plotter.SetTraitLevel(DefaultTraits.Honor, -1);
+         plotter.SetTraitLevel(DefaultTraits.Calculating, 1);
+         plotter.SetTraitLevel(DefaultTraits.Mercy, 0);
+
+         NpcProfile profile = GetOrCreate(behavior, plotter);
+         int lettersBefore = profile.SentLetters.Count;
+         profile.ReputationWithPlayer = -80; // real hatred, past the lethal-hatred floor
+         profile.StanceLastConsequenceDay = 0; // cooldown elapsed
+         behavior.Store.Set(profile);
+
+         bool fired = StanceConsequenceBehavior.DebugEvaluate(plotter);
+
+         NpcProfile after = behavior.Store.Get(plotter.StringId);
+         bool schemePlanted = SchemeStore.Instance.Active.Any(s => s.PlotterId == plotter.StringId && s.TargetId == Hero.MainHero.StringId);
+         int lettersAfter = after?.SentLetters.Count ?? lettersBefore;
+
+         t.Note($"{plotter.Name}: fired={fired}, schemeAgainstPlayer={schemePlanted}, letters {lettersBefore}->{lettersAfter}");
+         t.Expect("fired", fired, true);
+         t.Expect("schemePlantedAgainstPlayer", schemePlanted, true);
+         t.Expect("noLetterWritten", lettersAfter, lettersBefore);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   "Stance with teeth" increment 2: the Intercept verdict must actually send InterceptionBehavior
+      ///   after the player (not merely write a letter). Traits are forced deterministically (honourable +
+      ///   bold, so the policy picks Intercept rather than Plot/Assassinate). The pursuit itself still runs
+      ///   through InterceptionBehavior's own per-lord cooldown and "one pursuer at a time" guard, so a
+      ///   fired verdict that could not ride out (guard legitimately blocked it) is MANUAL, not a failure.
+      /// </summary>
+      private static string TestStanceIntercept(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("stance_intercept");
+
+         if (t.Abort(InterceptionBehavior.Instance == null, "InterceptionBehavior not active")) return t.Line();
+
+         bool playerSubordinateInArmy = MobileParty.MainParty?.Army != null && MobileParty.MainParty.Army.LeaderParty != MobileParty.MainParty;
+
+         if (t.Skip(playerSubordinateInArmy, "player is subordinate in an army - the interception guard blocks any pursuit here")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h);
+
+         if (t.Skip(lord == null, "no lord leading a party on the map to send")) return t.Line();
+
+         // Honourable + bold: NOT dishonourable (so the policy never picks Plot/Assassinate over Intercept).
+         lord.SetTraitLevel(DefaultTraits.Honor, 1);
+         lord.SetTraitLevel(DefaultTraits.Valor, 1);
+
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         profile.ReputationWithPlayer = -80; // real hatred, past the lethal-hatred floor
+         profile.StanceFear = 0; // undeterred: dares to ride out in person
+         profile.StanceLastConsequenceDay = 0; // cooldown elapsed
+         behavior.Store.Set(profile);
+
+         bool fired = StanceConsequenceBehavior.DebugEvaluate(lord);
+         string reason = InterceptionBehavior.Instance.ConsumeInterceptionReason(lord);
+
+         t.Note($"{lord.Name}: fired={fired}, pursuitBegan={reason != null}");
+         t.Expect("fired", fired, true);
+
+         if (t.Skip(fired && reason == null, "verdict fired but InterceptionBehavior's own cooldown or an army guard blocked the pursuit itself, not a wiring fault"))
+            return t.Line();
+
+         t.Expect("pursuitBegan", reason != null, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   "Stance with teeth" increment 2, the friendly-ladder payoff: when a real secret scheme targets
+      ///   the player, the Warning letter must NAME the plotter (not just speak generic warmth). Reads the
+      ///   expected name from SchemeStore.GetSecretSchemerAgainst at the moment of firing (the very same
+      ///   call the production code makes), so the assertion is independent of test ordering even if an
+      ///   earlier self-test already left some other scheme afoot against the player.
+      /// </summary>
+      private static string TestStanceWarning(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("stance_warning");
+
+         if (t.Abort(SchemeStore.Instance == null, "SchemeStore not active")) return t.Line();
+
+         Hero plotter = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && h.Clan != Clan.PlayerClan &&
+            !SchemeStore.Instance.Active.Any(s => s.PlotterId == h.StringId && s.TargetId == Hero.MainHero.StringId));
+         Hero friend = ConversationNpc();
+
+         if (t.Skip(plotter == null || friend == null || friend == plotter, "need a distinct plotter and a friendly NPC to warn the player")) return t.Line();
+         if (t.Skip(friend.Clan == Clan.PlayerClan, "NPC is in the player's own clan - no stance letters")) return t.Line();
+
+         SchemeStore.Instance.ForcePlot(plotter, Hero.MainHero, SchemeKind.Slander);
+         Hero expectedThreat = SchemeStore.Instance.GetSecretSchemerAgainst(Hero.MainHero);
+
+         if (t.Skip(expectedThreat == null, "ForcePlot did not yield a nameable secret scheme against the player (env-dependent)")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, friend);
+         int lettersBefore = profile.SentLetters.Count(l => l.Reason == LetterReason.StanceFavor);
+         profile.ReputationWithPlayer = 60; // genuine friendly affection, above the Favor floor
+         profile.StanceTrust = 50; // trusts the player enough to tip them off
+         profile.StanceLastConsequenceDay = 0; // cooldown elapsed
+         behavior.Store.Set(profile);
+
+         bool fired = StanceConsequenceBehavior.DebugEvaluate(friend);
+
+         NpcProfile after = behavior.Store.Get(friend.StringId);
+         string content = after?.SentLetters.LastOrDefault(l => l.Reason == LetterReason.StanceFavor)?.Content;
+         bool namesThreat = content != null && content.IndexOf(expectedThreat.Name.ToString(), StringComparison.OrdinalIgnoreCase) >= 0;
+         int lettersAfter = after?.SentLetters.Count(l => l.Reason == LetterReason.StanceFavor) ?? lettersBefore;
+
+         t.Note($"{friend.Name} warns of {expectedThreat.Name}: fired={fired}, namesThreat={namesThreat}");
+         t.Expect("fired", fired, true);
+         t.Expect("lettersQueued", lettersAfter, lettersBefore + 1);
+         t.Expect("namesThreat", namesThreat, true);
 
          return t.Line();
       }

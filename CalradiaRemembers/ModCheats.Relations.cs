@@ -8,12 +8,15 @@ using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Stance;
+using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.TournamentGames;
+using TaleWorlds.Core;
 using TaleWorlds.Library;
 
 #endregion
@@ -306,6 +309,85 @@ namespace CalradiaRemembers
          string block = StanceService.Describe(p) ?? "(wholly neutral)";
 
          return $"{hero.Name} stance set — Trust {p.StanceTrust}, Respect {p.StanceRespect}, Fear {p.StanceFear}\n{block}";
+      }
+
+      /// <summary>
+      ///   cr.stance_plot [name]
+      ///   "Stance with teeth" increment 2: forces the named lord (or the conversation NPC) to launch a
+      ///   REAL scheme against the PLAYER (the Plot verdict), bypassing the stance/trait evaluation so
+      ///   you can watch it mature with cr.scheme_advance / cr.schemes without waiting on the weekly tick.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("stance_plot", "cr")]
+      public static string ForceStancePlot(List<string> args)
+      {
+         var store = SchemeStore.Instance;
+
+         if (store == null) return "Scheme system is not active.";
+
+         Hero plotter = ResolveHero(args);
+
+         if (plotter == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         SchemeKind kind = MBRandom.RandomInt(2) == 0
+            ? SchemeKind.Slander
+            : SchemeKind.Sabotage;
+
+         return store.ForcePlot(plotter, Hero.MainHero, kind);
+      }
+
+      /// <summary>
+      ///   cr.stance_intercept [name]
+      ///   "Stance with teeth" increment 2: forces the named lord (or the conversation NPC) through the
+      ///   PRODUCTION intercept path (the Intercept verdict). Unlike cr.intercept (which always bypasses
+      ///   the guard for raw pursuit testing), this respects InterceptionBehavior's own per-lord cooldown
+      ///   and its "one pursuer at a time" rule, so it may correctly report that no pursuit began.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("stance_intercept", "cr")]
+      public static string ForceStanceIntercept(List<string> args)
+      {
+         var behavior = InterceptionBehavior.Instance;
+
+         if (behavior == null) return "Interception system is not active.";
+
+         Hero lord = ResolveHero(args);
+
+         if (lord == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         return behavior.TriggerStanceIntercept(lord)
+            ? $"{lord.Name} rides out to intercept you (production path, cooldown respected)."
+            : $"{lord.Name} did not ride out (on cooldown, another pursuit already active, or no party to send).";
+      }
+
+      /// <summary>
+      ///   cr.stance_warning [name]
+      ///   "Stance with teeth" increment 2: forces the named lord (or the conversation NPC) into the
+      ///   Warning verdict now, bypassing the friendly-stance gate. If a real secret scheme currently
+      ///   targets the player, the queued letter NAMES the plotter; otherwise it reads as the generic
+      ///   friendly warmth. Pair with cr.stance_plot on a THIRD hero first to see the named case.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("stance_warning", "cr")]
+      public static string ForceStanceWarning(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         int lettersBefore = profile.SentLetters.Count(l => l.Reason == LetterReason.StanceFavor);
+         profile.ReputationWithPlayer = 60; // genuine friendly affection, above the Favor floor
+         profile.StanceTrust = 50; // trusts the player enough to tip them off
+         profile.StanceLastConsequenceDay = 0; // cooldown elapsed
+         behavior.Store.Set(profile);
+
+         bool fired = StanceConsequenceBehavior.DebugEvaluate(hero);
+
+         NpcProfile after = behavior.Store.Get(hero.StringId);
+         string latest = after?.SentLetters.LastOrDefault(l => l.Reason == LetterReason.StanceFavor)?.Content;
+         int lettersAfter = after?.SentLetters.Count(l => l.Reason == LetterReason.StanceFavor) ?? lettersBefore;
+
+         return $"{hero.Name}: fired={fired}, StanceFavor letters {lettersBefore}->{lettersAfter}\n{latest ?? "(no letter queued)"}";
       }
 
       private static string SimulateGold(string type, List<string> args, string usage)

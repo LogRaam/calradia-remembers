@@ -78,6 +78,26 @@ namespace CalradiaRemembers.Interception
          return $"{lord.Name} now rides to intercept you.";
       }
 
+      /// <summary>
+      ///   Production entry point for the stance-consequence weekly tick ("stance with teeth" increment 2):
+      ///   a lord whose earned posture warrants the Intercept verdict actually rides out, through the same
+      ///   <see cref="BeginPursuit" /> path as <see cref="DebugForceIntercept" />. Unlike that debug seam,
+      ///   this honours the lord's own per-lord cooldown and the "one pursuer at a time" rule, so it never
+      ///   spams a pursuit; it may legitimately do nothing. Returns true only when a pursuit actually began.
+      /// </summary>
+      public bool TriggerStanceIntercept(Hero lord)
+      {
+         if (lord?.PartyBelongedTo == null || MobileParty.MainParty == null) return false;
+         if (_activePursuerId != null) return false; // one interception at a time, same as the organic daily roll
+
+         var today = (int) CampaignTime.Now.ToDays;
+         if (_cooldown.TryGetValue(lord.StringId, out int last) && today - last < CooldownDays) return false;
+
+         BeginPursuit(lord, InterceptionTrigger.HeardOfDeed, today);
+
+         return _activePursuerId == lord.StringId;
+      }
+
       public override void RegisterEvents()
       {
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);

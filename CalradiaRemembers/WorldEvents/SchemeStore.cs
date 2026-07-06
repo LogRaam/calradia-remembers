@@ -98,6 +98,20 @@ namespace CalradiaRemembers.WorldEvents
          => target != null && _schemes.Any(s => s.TargetId == target.StringId && SchemeAgentPolicy.CanWarnTarget(s.State));
 
       /// <summary>
+      ///   The plotter of a still-secret scheme against <paramref name="target" />, or null when none
+      ///   applies. Used by the stance Warning payoff ("stance with teeth" increment 2): a trusted friend
+      ///   NAMES the real threat instead of speaking only in generic warmth.
+      /// </summary>
+      public Hero GetSecretSchemerAgainst(Hero target)
+      {
+         if (target == null) return null;
+
+         Scheme scheme = _schemes.FirstOrDefault(s => s.TargetId == target.StringId && SchemeAgentPolicy.CanWarnTarget(s.State));
+
+         return scheme == null ? null : FindHero(scheme.PlotterId);
+      }
+
+      /// <summary>
       ///   The player throws in with the plotter's scheme: it leaps forward (pure
       ///   <see cref="SchemeAgentPolicy.ApplyPlayerAid" />), and if that carries it to fruition the
       ///   standing-damage effect lands and a rumour spreads. Secret partial help stays quiet.
