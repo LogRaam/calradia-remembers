@@ -534,8 +534,13 @@ Succeeded case and from `PlayerAssists`' success branch) when the launched schem
 recognizing (never causing) any real battle with the promisor's party and the target/their faction on opposite
 sides — and detects breach on a daily overdue sweep, retiring the pledge either way with a `StanceService`
 kept/broken-promise call, a `NotableEvent`, and a `WorldEventStore` rumour ("X honored/broke their pledge to move
-against Y"). One pledge in flight per lord. **Phase 2 (not built): the quest-journal mirror, `cr.*` self-tests,
-and console diagnostics** — `CommitmentBehavior.Active` and each `TrackedCommitment.Id` are the seam left for it.
+against Y"). One pledge in flight per lord. **Phase 2 ✅ BUILT (untested in game): the quest-journal mirror
+(`CommitmentQuest`/`CommitmentJournalBridge`, a read-only `QuestBase` mirroring `CalradiaRemembersQuest`, opened
+on Create, closed success/fail on fulfil/breach, `ReconcileOnSessionLaunch` anti-stuck pass), console
+diagnostics (`cr.commitments`, `cr.pledge`, `cr.pledge_fulfill`, `cr.pledge_breach`), and the
+`commitment_fulfilled`/`commitment_breached` self-tests in `cr.testall`. The mirror persists only
+`_promisorId`/`_commitmentId` as additive SaveableFields on a new QuestBase subtype; an old save with no mirror
+degrades gracefully (no journal entry for a pledge already in flight).**
 
 **Increment 3 — backing the player in a KINGDOM DECISION** (a vote, a policy, a succession). **Needs a spike
 first**: Bannerlord's kingdom-decision API must be scoped before this increment can be estimated — the mechanics

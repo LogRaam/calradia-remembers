@@ -2271,6 +2271,8 @@ namespace CalradiaRemembers.Diagnostics
          NpcProfile afterPledge = behavior.Store.Get(npc.StringId);
          int repBefore = afterPledge.ReputationWithPlayer;
          int eventsBefore = WorldEventStore.Instance.Count;
+         QuestManager qm = Campaign.Current?.QuestManager;
+         string commitmentId = live.Id;
 
          commitments.DebugRunBreachSweep();
 
@@ -2278,11 +2280,13 @@ namespace CalradiaRemembers.Diagnostics
          bool stillActive = commitments.HasActive(npc.StringId);
          int repAfter = after.ReputationWithPlayer;
          int eventsAfter = WorldEventStore.Instance.Count;
+         bool mirrorGone = qm == null || qm.Quests.OfType<CommitmentQuest>().All(q => q.CommitmentId != commitmentId);
 
          t.Note($"{npc.Name} -> {target.Name}: reputation {repBefore}->{repAfter}, worldEvents {eventsBefore}->{eventsAfter}");
          t.Expect("pledgeNoLongerActive", stillActive, false);
          t.Expect("reputationFell", repAfter - repBefore, CommitmentPolicy.BreachedRelationPenalty);
          t.Expect("worldEventRecorded", eventsAfter > eventsBefore, true);
+         t.Expect("journalMirrorClosed", mirrorGone, true);
 
          return t.Line();
       }

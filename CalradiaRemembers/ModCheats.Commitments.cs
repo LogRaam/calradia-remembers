@@ -104,5 +104,86 @@ namespace CalradiaRemembers
 
          return $"{outcome.Message} (relation {npc.Name}->{target.Name}: {relBefore} -> {npc.GetRelation(target)})";
       }
+
+      /// <summary>
+      ///   cr.pledge_fulfill [name]
+      ///   Force-fulfills the named hero's outstanding pledge (matched as promisor OR rival; with no name,
+      ///   the first outstanding pledge found) via the SAME <see cref="CommitmentBehavior.OnSchemeResolved" />
+      ///   path <see cref="WorldEvents.SchemeStore" /> calls when a launched scheme actually succeeds, no
+      ///   waiting on the underlying scheme. Reports the reputation swing and confirms the pledge is no
+      ///   longer active. **(save)**
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("pledge_fulfill", "cr")]
+      public static string ForcePledgeFulfill(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         CommitmentBehavior commitments = CommitmentBehavior.Instance;
+         if (commitments == null) return "Commitment tracker not active.";
+
+         Hero filter = args is {Count: > 0} ? ResolveHero(args) : null;
+         TrackedCommitment commitment = FindCommitment(commitments, filter);
+
+         if (commitment == null)
+            return filter == null
+               ? "No outstanding pledges to fulfill."
+               : $"No outstanding pledge involving {filter.Name}.";
+
+         Hero promisor = Hero.FindFirst(h => h.StringId == commitment.PromisorId);
+         Hero rival = Hero.FindFirst(h => h.StringId == commitment.TargetId);
+         int repBefore = behavior.Store.Get(commitment.PromisorId)?.ReputationWithPlayer ?? 0;
+
+         commitments.OnSchemeResolved(commitment.PromisorId, commitment.TargetId, true);
+
+         int repAfter = behavior.Store.Get(commitment.PromisorId)?.ReputationWithPlayer ?? repBefore;
+         bool stillActive = commitments.HasActive(commitment.PromisorId);
+
+         return $"{promisor?.Name?.ToString() ?? commitment.PromisorId} -> {rival?.Name?.ToString() ?? commitment.TargetId}: " +
+                $"forced FULFILLED (reputation {repBefore} -> {repAfter}, stillActive={stillActive}). See cr.commitments.";
+      }
+
+      /// <summary>
+      ///   cr.pledge_breach [name]
+      ///   Force-breaches the named hero's outstanding pledge (matched as promisor OR rival; with no name,
+      ///   the first outstanding pledge found): sets its deadline to yesterday, then runs the SAME daily
+      ///   overdue sweep <see cref="CommitmentBehavior" /> runs every tick
+      ///   (<see cref="CommitmentBehavior.DebugRunBreachSweep" />), no waiting on the real season-long
+      ///   clock. Reports the reputation swing and confirms the pledge is no longer active. **(save)**
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("pledge_breach", "cr")]
+      public static string ForcePledgeBreach(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         CommitmentBehavior commitments = CommitmentBehavior.Instance;
+         if (commitments == null) return "Commitment tracker not active.";
+
+         Hero filter = args is {Count: > 0} ? ResolveHero(args) : null;
+         TrackedCommitment commitment = FindCommitment(commitments, filter);
+
+         if (commitment == null)
+            return filter == null
+               ? "No outstanding pledges to breach."
+               : $"No outstanding pledge involving {filter.Name}.";
+
+         Hero promisor = Hero.FindFirst(h => h.StringId == commitment.PromisorId);
+         Hero rival = Hero.FindFirst(h => h.StringId == commitment.TargetId);
+         int repBefore = behavior.Store.Get(commitment.PromisorId)?.ReputationWithPlayer ?? 0;
+
+         commitment.DeadlineDay = behavior.GameStateBridge.GetCurrentGameDay() - 1; // force overdue, deterministic
+         commitments.DebugRunBreachSweep();
+
+         int repAfter = behavior.Store.Get(commitment.PromisorId)?.ReputationWithPlayer ?? repBefore;
+         bool stillActive = commitments.HasActive(commitment.PromisorId);
+
+         return $"{promisor?.Name?.ToString() ?? commitment.PromisorId} -> {rival?.Name?.ToString() ?? commitment.TargetId}: " +
+                $"forced BREACHED (reputation {repBefore} -> {repAfter}, stillActive={stillActive}). See cr.commitments.";
+      }
+
+      /// <summary>The first Active pledge naming <paramref name="filter" /> as either promisor or rival, or (with no filter) the first outstanding pledge.</summary>
+      private static TrackedCommitment FindCommitment(CommitmentBehavior commitments, Hero filter)
+         => filter == null
+            ? commitments.Active.FirstOrDefault()
+            : commitments.Active.FirstOrDefault(c => c.PromisorId == filter.StringId || c.TargetId == filter.StringId);
    }
 }
