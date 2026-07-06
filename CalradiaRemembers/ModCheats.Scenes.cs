@@ -372,6 +372,68 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.crc_scene_staged [female|male] [solo|collective] [intent] [name]
+      ///   Like cr.crc_scene, but STAGES the encounter as a 3D conversation scene (via CaptiveSceneStager) instead
+      ///   of a bare overlay on the world map — the VRAM-crash fix. Starts a conversation with the captor, then
+      ///   opens the captive chat over the loaded scene. Watch [VRAM]: it should stay flat (no naval map behind).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("crc_scene_staged", "cr")]
+      public static string LaunchCaptiveSceneStaged(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+         if (behavior.LlmServices is not {IsAvailable: true})
+            return "LLM services not available. Set your OpenRouter API key first.";
+
+         bool? genderOverride = null;
+         var collective = false;
+         var intent = CaptiveSceneIntent.Interrogation;
+         var nameTokens = new List<string>();
+         foreach (string arg in args ?? new List<string>())
+            if (arg.Equals("female", StringComparison.OrdinalIgnoreCase)) genderOverride = true;
+            else if (arg.Equals("male", StringComparison.OrdinalIgnoreCase)) genderOverride = false;
+            else if (arg.Equals("collective", StringComparison.OrdinalIgnoreCase)) collective = true;
+            else if (arg.Equals("solo", StringComparison.OrdinalIgnoreCase)) collective = false;
+            else if (arg.Equals("desire", StringComparison.OrdinalIgnoreCase)) intent = CaptiveSceneIntent.PersonalDesire;
+            else if (Enum.TryParse(arg, true, out CaptiveSceneIntent parsedIntent)) intent = parsedIntent;
+            else nameTokens.Add(arg);
+
+         Hero captor = ResolveHero(nameTokens);
+         if (captor == null)
+            return "No captor found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile captorProfile = GetOrCreateProfile(behavior, captor);
+
+         if (genderOverride.HasValue)
+         {
+            LlmServices.TestPlayerGenderOverride = genderOverride;
+            behavior.LlmServices.Invalidate();
+         }
+
+         var witnesses = new List<WitnessEntry>();
+         if (collective)
+            witnesses.AddRange(new[] {
+               new WitnessEntry {
+                  Name = "A soldier", RelationToNpc = "one of your men, present on your orders",
+                  Persona = "Imposing — silent, obedient, watching"
+               },
+               new WitnessEntry {
+                  Name = "Another soldier", RelationToNpc = "one of your men, present on your orders",
+                  Persona = "Impassive — expressionless, unmoved"
+               }
+            });
+
+         Chat.CaptiveSceneStager.StageCaptiveEncounter(captor, captorProfile, witnesses, collective, intent);
+
+         string adultWarning = ModSettings.AdultContentLevel != AdultContentLevel.Hardcore
+            ? " (NOTE: adult level is not Hardcore — CNC rules will NOT appear; set it in MCM.)"
+            : "";
+
+         return $"Staging captive scene with {captor.Name} as a 3D conversation [{intent}]. " +
+                $"The chat opens once the scene loads.{adultWarning}";
+      }
+
+      /// <summary>
       ///   cr.companion_scene [torment|assault|coerce] [victim:Name] [captorName]
       ///   Opens a COMPANION-VICTIM captive scene: the captor works on one of your companions while you are made
       ///   to watch (torment / assault) or are forced to act (coerce). Forces PlayerStatus = Captive so the rules

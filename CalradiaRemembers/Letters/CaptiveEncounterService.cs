@@ -471,7 +471,10 @@ namespace CalradiaRemembers.Letters
          CaptiveSceneIntent intent,
          CharacterObject portraitCharacter = null)
       {
-         ChatManager.OpenForCaptiveEncounter(captor, captorProfile, witnesses, isCollective, intent, portraitCharacter);
+         // Staged as a 3D conversation (the captor before you, animated), never as a bare overlay on the world
+         // map: the live naval map behind an overlay leaks render-textures (the create_render_texture VRAM
+         // crash). The stager falls back to the direct overlay (map suspended) if no conversation can start.
+         CaptiveSceneStager.StageCaptiveEncounter(captor, captorProfile, witnesses, isCollective, intent, portraitCharacter);
       }
 
       private static List<WitnessEntry> ResolveLordWitnesses(

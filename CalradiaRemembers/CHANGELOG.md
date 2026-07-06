@@ -2,6 +2,17 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.23.0.. 2026-07-05
+
+A big update. Captivity becomes a scene you are truly in, the bandit chief who takes you gains a name and a memory, and the graphics crash a few of you ran into is gone at the root.
+
+### Fixed
+- The graphics crash ("rglGPU_device_d3d11::create_render_texture: Not enough memory resources") that could strike during a captivity scene is gone. It hit hardest for players running the War Sails expansion: the chat window sat as an overlay over the live campaign map, and that map kept filling video memory frame after frame, never letting it go, until a long scene or a second and third one ran the card dry. Rather than paper over it, captivity scenes no longer play over the map at all (see New below), which removes the cause entirely.
+
+### New
+- Captivity is now a scene you stand inside. When your captor comes for you, you are brought before them in a proper 3D scene, the two of you face to face, instead of a window floating over the world map. It reads the way a real conversation does, and being a scene of its own is exactly what makes the crash above impossible.
+- The Nemesis, first step. A bandit chief who takes you prisoner is no longer a faceless nobody you forget the moment you are free. The one who holds you becomes a named, persistent figure the world remembers, who keeps his own account of what passed between you, and whom your road can cross again. This is the opening of a larger rivalry that will grow in later updates.
+
 ## v1.22.2.. 2026-07-04
 
 A crash fix, straight from a player's report.

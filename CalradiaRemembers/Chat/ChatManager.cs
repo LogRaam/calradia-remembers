@@ -42,6 +42,7 @@ namespace CalradiaRemembers.Chat
       private static GauntletLayer _activeLayer;
       private static GauntletMovieIdentifier _activeMovieId;
       private static ScreenBase _hostScreen;
+      private static ChatScreen _chatScreen;
       private static CampaignTimeControlMode _previousTimeControlMode;
       private static bool _previousTimeControlModeLock;
       private static bool _timeControlModeSaved;
@@ -58,6 +59,23 @@ namespace CalradiaRemembers.Chat
       // scene (no LLM responses to trigger the per-turn read) still leaves a VRAM trend in the log.
       private static DateTime _lastVramTick = DateTime.MinValue;
       private const double VramTickSeconds = 10.0;
+
+      /// <summary>
+      ///   How the chat window is hosted. <see cref="ChatHostMode.Overlay" /> is the original design: a layer on
+      ///   the live host screen — keeps the map visible behind, but grabs input (so the encyclopedia / ESC menu
+      ///   are starved of focus) and, on the War Sails naval map, leaks render-textures (the VRAM crash).
+      ///   <see cref="ChatHostMode.PushedScreen" /> pushes a real screen on the stack: the engine suspends the map
+      ///   (no VRAM leak) and hands focus to whatever opens on top of us (native, no arbitration hack). Toggled at
+      ///   runtime by cr.chat_screen for A/B comparison.
+      /// </summary>
+      public enum ChatHostMode
+      {
+         Overlay,
+         PushedScreen
+      }
+
+      /// <summary>Active hosting mode. Defaults to the original Overlay so nothing changes until opted in.</summary>
+      public static ChatHostMode HostMode { get; set; } = ChatHostMode.Overlay;
 
       public static ChatViewModel ActiveViewModel { get; private set; }
 
@@ -87,6 +105,9 @@ namespace CalradiaRemembers.Chat
             // Free every character tableau (GPU render-target) before releasing the movie, so no portrait
             // survives the close regardless of engine teardown timing.
             SafeStep(() => ActiveViewModel?.ReleaseAllPortraits(), "ReleaseAllPortraits");
+            // Turn the host map scene's rendering back on before we tear our layer down, so the map is live
+            // again the instant the chat is gone.
+            SafeStep(GUI.MapSceneSuspender.Resume, "ResumeMapScene");
             SafeStep(KillChatWindow, "KillChatWindow");
             SafeStep(EndVanillaConversation, "EndVanillaConversation");
             SafeStep(EndMapEncounterIfNeeded, "EndMapEncounterIfNeeded");
@@ -136,6 +157,12 @@ namespace CalradiaRemembers.Chat
 
             return;
          }
+
+         // Overlay mode only: stop the host map scene rendering behind our overlay (the naval-map VRAM fix).
+         // Pushed-screen mode suspends the map by construction (the engine suspends the screen below), so this
+         // reflection hack is neither needed nor wanted there.
+         if (HostMode == ChatHostMode.Overlay)
+            SafeStep(() => GUI.MapSceneSuspender.Suspend(_hostScreen), "SuspendMapScene");
 
          ModLog.Info($"Chat window opened on {_hostScreen.GetType().Name} with NPC '{npcName ?? "(none)"}'.");
          ModLog.Info($"[VRAM] open (baseline) | {VramProbe.Describe()}");
@@ -259,6 +286,9 @@ namespace CalradiaRemembers.Chat
 
          SampleVramPeriodically(); // a heartbeat VRAM read, so an idle (no-response) scene still traces its trend
 
+         // Pushed-screen mode needs no focus juggling — the engine hands focus to whatever is pushed on top of us.
+         if (HostMode == ChatHostMode.PushedScreen) return;
+
          try
          {
             int layers = _hostScreen.Layers?.Count ?? _baselineLayerCount;
@@ -274,6 +304,7 @@ namespace CalradiaRemembers.Chat
                ActiveViewModel?.SetVisualOffscreen(true);
                _chatHoldsFocus = false;
                ModLog.Info("Chat overlay yielded focus and slid aside for a screen above it (pause menu / encyclopedia / popup).");
+               LogScreenState("yield"); // exactly when the new layer exists — identifies WHAT appeared and at what order
             }
             else if (!somethingModalOnTop && !_chatHoldsFocus)
             {
@@ -316,7 +347,60 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      /// <summary>
+      ///   Diagnostic: dumps the screen stack top and the host screen's layer list (type + order) to the log.
+      ///   Used to find out where the encyclopedia actually lands when opened from a chat hosted on the map
+      ///   (it displays fine over a mission host, but never appears over NavalMapScreen). Never throws.
+      /// </summary>
+      public static void LogScreenState(string tag)
+      {
+         try
+         {
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"[SCREENS] {tag} | top={ScreenManager.TopScreen?.GetType().Name ?? "null"}");
+
+            if (_hostScreen?.Layers != null)
+            {
+               sb.Append($" | host={_hostScreen.GetType().Name} layers[{_hostScreen.Layers.Count}]: ");
+               foreach (ScreenLayer layer in _hostScreen.Layers)
+               {
+                  if (layer == null) continue;
+                  sb.Append(layer.GetType().Name);
+                  object order = ReadOrderForDiagnostics(layer);
+                  if (order != null) sb.Append($"(o={order})");
+                  if (ReferenceEquals(layer, _activeLayer)) sb.Append("[CHAT]");
+                  sb.Append(' ');
+               }
+            }
+
+            ModLog.Info(sb.ToString());
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"LogScreenState failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
       #region private
+
+      /// <summary>Best-effort read of a layer's render order for the diagnostics dump (property name varies by build).</summary>
+      private static object ReadOrderForDiagnostics(ScreenLayer layer)
+      {
+         foreach (string name in new[] {"Order", "SortOrder", "LocalOrder"})
+         {
+            try
+            {
+               var p = layer.GetType().GetProperty(name);
+               if (p != null) return p.GetValue(layer);
+            }
+            catch
+            {
+               // diagnostic only
+            }
+         }
+
+         return null;
+      }
 
       /// <summary>
       ///   A throttled VRAM read pumped from the per-frame focus arbiter, so even a scene left idle (no LLM
@@ -395,6 +479,7 @@ namespace CalradiaRemembers.Chat
          _activeMovieId = null;
          ActiveViewModel = null;
          _hostScreen = null;
+         _chatScreen = null;
          _timeControlModeSaved = false;
          _chatHoldsFocus = false;
       }
@@ -425,14 +510,26 @@ namespace CalradiaRemembers.Chat
          ModLog.Info($"Movie loaded? {movie?.IsLoaded}");
          ModLog.Info($"RootWidget null? {movie?.RootWidget == null}");
 
-         _hostScreen.AddLayer(_activeLayer);
-         _activeLayer.IsFocusLayer = true;
-         ScreenManager.TrySetFocus(_activeLayer);
+         if (HostMode == ChatHostMode.PushedScreen)
+         {
+            // A real screen on the stack: the engine suspends the screen below (no naval-map VRAM leak) and hands
+            // focus/input to any screen pushed on top of us (the encyclopedia, the ESC menu) natively — so no
+            // overlay focus-arbitration is needed. The ChatScreen adds the layer and takes focus on initialize.
+            _chatScreen = new ChatScreen(_activeLayer);
+            ScreenManager.PushScreen(_chatScreen);
+            ModLog.Info("Chat hosted as a pushed screen (map suspended, native focus).");
+         }
+         else
+         {
+            _hostScreen.AddLayer(_activeLayer);
+            _activeLayer.IsFocusLayer = true;
+            ScreenManager.TrySetFocus(_activeLayer);
 
-         // Baseline for ArbitrateFocus: any later growth in the host screen's layer count means a game
-         // screen (pause menu, encyclopedia, popup) opened over the chat, and the chat should yield to it.
-         _baselineLayerCount = _hostScreen.Layers?.Count ?? 0;
-         _chatHoldsFocus = true;
+            // Baseline for ArbitrateFocus: any later growth in the host screen's layer count means a game
+            // screen (pause menu, encyclopedia, popup) opened over the chat, and the chat should yield to it.
+            _baselineLayerCount = _hostScreen.Layers?.Count ?? 0;
+            _chatHoldsFocus = true;
+         }
       }
 
       private static void KillChatWindow()
@@ -442,7 +539,19 @@ namespace CalradiaRemembers.Chat
          _activeLayer.IsFocusLayer = false;
          _activeLayer.InputRestrictions.ResetInputRestrictions();
          _activeLayer.ReleaseMovie(_activeMovieId);
-         _hostScreen?.RemoveLayer(_activeLayer);
+
+         if (_chatScreen != null)
+         {
+            // Pushed-screen mode: drop our layer, then pop our screen so the engine finalizes it and returns to
+            // the screen below. Only pop when we are actually the top screen, to never pop someone else's.
+            _chatScreen.RemoveLayer(_activeLayer);
+            if (ScreenManager.TopScreen == _chatScreen) ScreenManager.PopScreen();
+            else ModLog.Info("KillChatWindow: chat screen is not on top — leaving the pop to the engine.");
+         }
+         else
+         {
+            _hostScreen?.RemoveLayer(_activeLayer);
+         }
       }
 
       private static void PauseCampaignMap()

@@ -221,6 +221,9 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.RefreshRelationships", RefreshRelationships);
          SafeRun.Step("OnSessionLaunched.RumorStore.Clear", RumorStore.Clear);
          SafeRun.Step("OnSessionLaunched.DialogFlow.Register", () => DialogFlow.Register(campaignGameStarter));
+         // The staged-captive intercept line: while a captive scene is staging its conversation, this wins the
+         // "start" token (so no vanilla "Who are you?" intro shows) and hands the conversation to the captive chat.
+         SafeRun.Step("OnSessionLaunched.CaptiveSceneStager.Register", () => Chat.CaptiveSceneStager.Register(campaignGameStarter));
          ModLog.Info("Dialog flow registered.");
 
          SafeRun.Step("OnSessionLaunched.DialogueRecorder.Subscribe", DialogueRecorder.Subscribe);

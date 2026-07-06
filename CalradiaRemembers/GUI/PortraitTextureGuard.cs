@@ -24,6 +24,14 @@ namespace CalradiaRemembers.GUI
     public static class PortraitTextureGuard
     {
         /// <summary>
+        ///   Diagnostic switch (off by default; toggled by <c>cr.vram_noportrait</c>): when set, no character
+        ///   tableau is ever created, so the chat shows text-only. It isolates the VRAM climb — if the leak
+        ///   vanishes with portraits off, the culprit is the live character tableau; if it persists, the culprit
+        ///   is the naval map scene rendering behind our overlay.
+        /// </summary>
+        public static bool SuppressForDiagnostics { get; set; }
+
+        /// <summary>
         ///   Resolves a character into the flat id/provider/args a bound ImageIdentifierWidget renders from.
         ///   A null character (a synthesized speaker with no CharacterObject) yields an empty, image-less result.
         ///   Not cached: the strings encode the character's live body and equipment, and caching them would risk
@@ -31,7 +39,7 @@ namespace CalradiaRemembers.GUI
         /// </summary>
         public static PortraitData Create(CharacterObject character)
         {
-            if (character == null) return PortraitData.None;
+            if (character == null || SuppressForDiagnostics) return PortraitData.None;
 
             try
             {

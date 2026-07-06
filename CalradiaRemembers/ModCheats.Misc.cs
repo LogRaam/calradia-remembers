@@ -92,6 +92,98 @@ namespace CalradiaRemembers
          return sb.ToString();
       }
 
+      /// <summary>
+      ///   cr.vram — logs one GPU-memory reading right now (game dedicated / shared / system dedicated).
+      ///   Works with or without a chat open, and paused. Use it to spot-check VRAM during the control test.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("vram", "cr")]
+      public static string Vram(List<string> args)
+      {
+         string line = VramProbe.Describe();
+         ModLog.Info($"[VRAM] spot | {line}");
+
+         return line;
+      }
+
+      /// <summary>
+      ///   cr.vram_watch [on|off] — toggles the frame-loop VRAM heartbeat that runs even with NO chat open and
+      ///   the game paused. Turn it on, sit on the map without opening a chat, and watch the [VRAM] watch lines:
+      ///   flat means our overlay drives the leak; climbing means the map screen leaks on its own.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("vram_watch", "cr")]
+      public static string VramWatchToggle(List<string> args)
+      {
+         bool on = args is {Count: > 0}
+            ? !string.Equals(args[0], "off", StringComparison.OrdinalIgnoreCase)
+            : !VramWatch.Enabled;
+
+         VramWatch.Enabled = on;
+
+         return on
+            ? "VRAM watch ON — a [VRAM] watch line every 10s, even with no chat open. Sit on the map and watch the trend."
+            : "VRAM watch OFF.";
+      }
+
+      /// <summary>
+      ///   cr.vram_noportrait [on|off] — suppresses every live character portrait in the chat (text-only). Run a
+      ///   captive scene with it ON and watch the [VRAM] trend: flat means the portrait tableau was the leak;
+      ///   still climbing means the naval map scene behind our overlay is the leak. Discriminating test only.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("vram_noportrait", "cr")]
+      public static string VramNoPortrait(List<string> args)
+      {
+         bool on = args is {Count: > 0}
+            ? !string.Equals(args[0], "off", StringComparison.OrdinalIgnoreCase)
+            : !GUI.PortraitTextureGuard.SuppressForDiagnostics;
+
+         GUI.PortraitTextureGuard.SuppressForDiagnostics = on;
+
+         return on
+            ? "Portraits SUPPRESSED (text-only). Open a captive scene and watch [VRAM]: flat = tableau was the leak."
+            : "Portraits restored.";
+      }
+
+      /// <summary>
+      ///   cr.mapsuspend [on|off] — toggles the fix that stops the host map scene from rendering behind the chat
+      ///   overlay (default ON). Turn it OFF to reproduce the VRAM climb, ON to confirm it goes flat. Applies to
+      ///   the NEXT chat opened.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("mapsuspend", "cr")]
+      public static string MapSuspendToggle(List<string> args)
+      {
+         bool on = args is {Count: > 0}
+            ? !string.Equals(args[0], "off", StringComparison.OrdinalIgnoreCase)
+            : !GUI.MapSceneSuspender.Enabled;
+
+         GUI.MapSceneSuspender.Enabled = on;
+
+         return on
+            ? "Map-scene suspend ON (fix active) — the map stops rendering behind the next chat. Watch [VRAM] go flat."
+            : "Map-scene suspend OFF — the map renders behind the chat again (reproduces the leak).";
+      }
+
+      /// <summary>
+      ///   cr.chat_screen [on|off] — toggles how the chat is hosted (applies to the NEXT chat opened).
+      ///   on  = pushed screen: the map is suspended (no VRAM leak) and other screens/menus take focus natively.
+      ///   off = overlay (original): the map stays live behind the chat, but input is grabbed and the naval map
+      ///         leaks VRAM. Flip it to compare the two head to head without restarting.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("chat_screen", "cr")]
+      public static string ChatScreenToggle(List<string> args)
+      {
+         bool on = args is {Count: > 0}
+            ? !string.Equals(args[0], "off", StringComparison.OrdinalIgnoreCase)
+            : ChatManager.HostMode != ChatManager.ChatHostMode.PushedScreen;
+
+         ChatManager.HostMode = on
+            ? ChatManager.ChatHostMode.PushedScreen
+            : ChatManager.ChatHostMode.Overlay;
+
+         return on
+            ? "Chat host = PUSHED SCREEN (map suspended, native focus). Opens on the NEXT chat."
+            : "Chat host = OVERLAY (original: live map behind, input grabbed). Opens on the NEXT chat.";
+      }
+
       [CommandLineFunctionality.CommandLineArgumentFunction("open_chat", "campaign")]
       public static string OpenChat(List<string> args)
       {

@@ -209,6 +209,7 @@ namespace CalradiaRemembers.Chat
 
                 Campaign.Current.EncyclopediaManager.GoToLink(_encyclopediaLink);
                 ModLog.Info("[ENCYCLOPEDIA] opened from a chat portrait (right-click).");
+                ChatManager.LogScreenState("encyclopedia right-click"); // where did it actually land?
             }
             catch (Exception ex)
             {

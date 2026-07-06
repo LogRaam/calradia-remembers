@@ -905,6 +905,7 @@ namespace CalradiaRemembers.Chat
             // encyclopedia's layer appear and yields the chat's focus to it, then reclaims it on close.
             Campaign.Current.EncyclopediaManager.GoToLink(_npcHero.EncyclopediaLink);
             ModLog.Info($"[ENCYCLOPEDIA] opened on {_npcName} from the chat.");
+            ChatManager.LogScreenState("encyclopedia button"); // where did it actually land?
          }
          catch (Exception ex)
          {

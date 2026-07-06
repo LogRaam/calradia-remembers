@@ -10,6 +10,7 @@ using System.Reflection;
 using Bannerlord.UIExtenderEx;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Diagnostics;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
@@ -162,6 +163,18 @@ namespace CalradiaRemembers
          // opinion is voiced in conversation; the pure rules are in CalradiaRemembers.Logic.
          campaignStarter.AddBehavior(new Missions.CompanionRapportBehavior());
          Log($"{ModName} campaign behavior registered.");
+      }
+
+      /// <summary>
+      ///   Per-frame tick, fired by the engine even when the campaign is paused and no chat is open. Used only
+      ///   to pump the opt-in <see cref="VramWatch" /> heartbeat (off by default) so the background map screen's
+      ///   VRAM can be traced during the no-chat control test.
+      /// </summary>
+      protected override void OnApplicationTick(float dt)
+      {
+         base.OnApplicationTick(dt);
+         VramWatch.Tick();
+         Chat.CaptiveSceneStager.Tick(); // opens a staged captive chat once its conversation scene has loaded
       }
 
       /// <summary>
