@@ -118,6 +118,9 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("grudge_tier2", Severity.Heavy, "capture+give_prisoner (real path) -> assert a DeliveredPrisoner grudge on the captive; direct severity-3 player-perpetrator CaptiveAbuse plant -> assert it exists", TestGrudgeTier2),
          new SelfTest("grudge_resolve", Severity.Light, "plant a FailedQuest grudge -> resolve w/ its matching gesture -> assert it moved; plant an ExecutedKin (vendetta) grudge -> assert an amends is Rejected; plant a DeliveredPrisoner (always Deed-kind) grudge -> resolve w/ the Deed gesture -> assert it moved", TestGrudgeResolve),
          new SelfTest("grudge_terms", Severity.Light, "plant a known grudge -> assert hint undiscovered -> grudge_terms reveal -> assert hint discovered -> reveal again -> assert nothing new", TestGrudgeTerms),
+         new SelfTest("grudge_execute_kin", Severity.Light, "find a live lord with a recognized close living kin -> ExecutedKinGrudgeBehavior.PlantOnKinOf (the real engine-glue loop) -> assert a vendetta grudge lands on that kin at max rigidity, unresolvable", TestGrudgeExecuteKin),
+         new SelfTest("grudge_unblessed_marriage", Severity.Heavy, "marry the player (test spouse, no blessing seeded) via the real MarriageApprovalBehavior wedding hook -> assert an UnblessedMarriage grudge lands on a disapproving kinsman -> end_own_marriage -> assert the grudge resolves (cleared, not merely decayed)", TestGrudgeUnblessedMarriage),
+         new SelfTest("grudge_sway", Severity.Light, "NPC + 3rd hero -> real sway_opinion(against) via the bridge -> assert SwayExposureBehavior queued a pending watch -> DebugForceReveal -> assert a hidden SwayExposed grudge lands on the target", TestGrudgeSway),
          new SelfTest("appreciation_flow", Severity.Light, "plant a kindness -> assert it lives -> plant a strong grudge on the same holder -> assert the tarnished effective magnitude drops -> force backfill twice -> assert the second pass is a no-op", TestAppreciationFlow),
          new SelfTest("declare_war", Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it", TestDeclareWar),
          new SelfTest("scenario", Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals", TestScenario),
@@ -3208,6 +3211,132 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      // ── Grudges: Tier 3 engine wiring (ExecutedKinGrudgeBehavior.PlantOnKinOf run directly, ──
+      // ── the exact same kin-enumeration + TryPlant loop the real HeroKilledEvent listener uses, ──
+      // ── against a REAL lord's REAL close living kin already present in this campaign) ──────────
+
+      private static string TestGrudgeExecuteKin(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("grudge_execute_kin");
+
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+
+         Hero victim = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && CloseKinCandidatesOf(h).Any());
+
+         if (t.Skip(victim == null, "no live lord in this campaign has a recognized close living kin (spouse/parent/adult child/adult sibling) to test against")) return t.Line();
+
+         // Isolate: clear whichever kin we are about to test so a leftover cap-eviction from
+         // earlier self-tests cannot mask this scenario's own plant.
+         foreach (Hero kin in CloseKinCandidatesOf(victim))
+            GrudgeBehavior.Instance.ClearGrudgesFor(kin.StringId);
+
+         string cause = $"[SELFTEST] {Hero.MainHero.Name} had {victim.Name} put to death.";
+         (int considered, int planted) = ExecutedKinGrudgeBehavior.PlantOnKinOf(victim, cause, today);
+
+         t.Note($"{victim.Name}: {considered} kin considered, {planted} vendetta grudge(s) planted.");
+         t.Expect("kinConsidered", considered > 0, true);
+         t.Expect("kinPlanted", planted > 0, true);
+
+         Hero plantedKin = CloseKinCandidatesOf(victim)
+            .FirstOrDefault(k => GrudgeBehavior.Instance.GrudgesFor(k.StringId).Any(g => g.Source == GrudgeSource.ExecutedKin && g.EventDay == today));
+
+         if (t.Skip(plantedKin == null, "planted grudge not found back on any candidate kin")) return t.Line();
+
+         Grudge vendetta = GrudgeBehavior.Instance.GrudgesFor(plantedKin.StringId)
+                                         .LastOrDefault(g => g.Source == GrudgeSource.ExecutedKin && g.EventDay == today);
+
+         t.Note($"{plantedKin.Name}: rigidity={vendetta?.Rigidity}, magnitude={vendetta?.Magnitude}, resolutionKind={vendetta?.ResolutionKind}");
+         t.Expect("vendettaRigidityMax", vendetta?.Rigidity, GrudgePolicy.VendettaRigidity);
+         t.Expect("vendettaUnresolvable", vendetta != null && !GrudgePolicy.IsResolvable(vendetta), true);
+         t.Expect("vendettaKnownToPlayer", vendetta?.KnownToPlayer, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Mirrors <c>ExecutedKinGrudgeBehavior.CloseLivingKinOf</c> (private to that class) just enough
+      ///   for this self-test to locate a real campaign lord with recognized close living kin, without
+      ///   needing to expose the engine behavior's own enumeration publicly.
+      /// </summary>
+      private static IEnumerable<Hero> CloseKinCandidatesOf(Hero victim)
+      {
+         if (victim.Spouse is {IsAlive: true} spouse && spouse != Hero.MainHero) yield return spouse;
+         if (victim.Father is {IsAlive: true} father && father != Hero.MainHero) yield return father;
+         if (victim.Mother is {IsAlive: true} mother && mother != Hero.MainHero) yield return mother;
+
+         if (victim.Children != null)
+            foreach (Hero child in victim.Children)
+               if (child is {IsAlive: true, IsChild: false} && child != Hero.MainHero) yield return child;
+
+         if (victim.Siblings != null)
+            foreach (Hero sibling in victim.Siblings)
+               if (sibling is {IsAlive: true, IsChild: false} && sibling != Hero.MainHero) yield return sibling;
+      }
+
+      /// <summary>
+      ///   Exercises the LIVE UnblessedMarriage plant + clear wiring end to end, no synthetic
+      ///   Tier2GrudgeRules calls: marries the player to a test spouse WITHOUT ever seeding a
+      ///   MarriageApprovalBehavior blessing (the real OnBeforeHeroesMarried hook then reads the match as
+      ///   unapproved and chills the family), asserts a live UnblessedMarriage grudge lands on a kinsman who
+      ///   actually disapproved, then ends the marriage via the real end_own_marriage action and asserts the
+      ///   very same grudge RESOLVES (per the rule's own doc: cleared, not merely decayed, the instant the
+      ///   marriage ends). Best-effort: skips cleanly on a barren campaign (no eligible test spouse, or one
+      ///   with no other living adult kinsman in their birth clan to disapprove).
+      /// </summary>
+      private static string TestGrudgeUnblessedMarriage(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("grudge_unblessed_marriage");
+
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+         if (t.Abort(MarriageApprovalBehavior.Instance == null, "MarriageApprovalBehavior not active")) return t.Line();
+         if (t.Abort(DivorceProcessBehavior.Instance == null, "DivorceProcessBehavior not active")) return t.Line();
+
+         Hero spouse = FindTestSpouseForPlayer();
+
+         if (t.Skip(spouse == null, "no eligible test spouse found to marry the player")) return t.Line();
+
+         Clan family = spouse.Clan;
+         Hero kin = family?.Heroes?.FirstOrDefault(h => h != spouse && h is {IsAlive: true} && !h.IsChild);
+
+         if (t.Skip(kin == null, "the test spouse's birth clan has no other living adult kinsman to disapprove")) return t.Line();
+
+         // Isolate: clear whichever kin we are about to test so a leftover plant from an earlier
+         // grudge_unblessed_test run in this same session cannot mask this scenario's own plant.
+         GrudgeBehavior.Instance.ClearGrudgesFor(kin.StringId);
+
+         // Deliberately NEVER call MarriageApprovalBehavior.Instance.Grant: this match is unblessed by
+         // construction, exercising the exact real path a fresh in-game match with no seeded blessing takes.
+         MarriageAction.Apply(Hero.MainHero, spouse);
+
+         if (t.Skip(Hero.MainHero.Spouse != spouse,
+                "could not seed the marriage on this campaign (native MarriageAction did not take)")) return t.Line();
+
+         bool grudgePlanted = GrudgeBehavior.Instance.GrudgesFor(kin.StringId)
+                                            .Any(g => g.Source == GrudgeSource.UnblessedMarriage && g.TargetId == Hero.MainHero.StringId && !g.IsResolved);
+
+         t.Note($"spouse={spouse.Name}, kin={kin.Name}: grudgePlanted={grudgePlanted}");
+         t.Expect("unblessedMarriageGrudgePlantedOnKin", grudgePlanted, true);
+
+         NpcProfile profile = GetOrCreate(behavior, spouse);
+         ArrangeCleanNpc(behavior, profile, spouse);
+
+         behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "end_own_marriage"}, spouse, new ActionContext(profile, null));
+
+         bool dissolved = Hero.MainHero.Spouse == null;
+         bool grudgeResolved = GrudgeBehavior.Instance.GrudgesFor(kin.StringId)
+                                            .Any(g => g.Source == GrudgeSource.UnblessedMarriage && g.TargetId == Hero.MainHero.StringId && g.IsResolved);
+
+         t.Note($"after end_own_marriage: dissolved={dissolved}, grudgeResolved={grudgeResolved}");
+         t.Expect("dissolvedAfterDivorce", dissolved, true);
+         t.Expect("unblessedMarriageGrudgeClearedOnDivorce", grudgeResolved, true);
+
+         return t.Line();
+      }
+
       // ── Grudges: the Tier 2 engine wiring (Arrange mirrors TestDeliverPrisoner for the ──
       // ── DeliveredPrisoner half — real give_prisoner path; the CaptiveAbuse half exercises ──
       // ── the pure rule + the real TryPlant store call directly, the deterministic core shared ──
@@ -3285,6 +3414,62 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Note($"{abuseVictim.Name}: planted={planted}, magnitude={abuseProposal.Magnitude}, captiveAbuseGrudgeExists={captiveAbuseGrudgeExists}");
          t.Expect("captiveAbuseGrudgeFormed", captiveAbuseGrudgeExists, true);
+
+         return t.Line();
+      }
+
+      // ── Grudges: sway_opinion's Tier 2 LIVE plant site (Arrange mirrors TestRpSway: resolve an NPC ──
+      // ── + 3rd-party pair, real sway_opinion(against) via the bridge) -> assert the exact same Rivalry ──
+      // ── rumour SwayOpinionVerb records is now watched by SwayExposureBehavior -> force the reveal ──
+      // ── (bypassing only the awareness TIMING, never the SwayExposedGrudge rule nor TryPlant's own ──
+      // ── guardrails) -> assert a hidden SwayExposed grudge lands on the target ────────────────────────
+
+      private static string TestGrudgeSway(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("grudge_sway");
+
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+         if (t.Abort(SwayExposureBehavior.Instance == null, "SwayExposureBehavior not active")) return t.Line();
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+         (Hero npc, Hero target)? pair = ResolveSwayPair();
+
+         if (t.Skip(pair == null, "need an NPC + a distinct third lord to sway an opinion of")) return t.Line();
+         (Hero npc, Hero target) = pair.Value;
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+
+         if (t.Skip(!CourtActionResolver.CanTeachSway(npc, profile), "NPC not eligible to teach sway_opinion")) return t.Line();
+
+         // SelectSwayTarget picks the most-negative rival, which can already sit at the -100 engine floor
+         // where a further drop clamps to nothing, give the relation headroom, mirrors TestRpSway.
+         if (npc.GetRelation(target) <= -90)
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, -50 - npc.GetRelation(target), false);
+
+         var today = (int) CampaignTime.Now.ToDays;
+         int pendingBefore = SwayExposureBehavior.Instance.Pending.Count(p => p.TargetId == target.StringId);
+
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {
+               Type = "sway_opinion",
+               Parameters = new Dictionary<string, string> {{"target", target.Name.ToString()}, {"stance", "against"}}
+            }, npc, new ActionContext(profile, null));
+
+         int pendingAfter = SwayExposureBehavior.Instance.Pending.Count(p => p.TargetId == target.StringId);
+
+         // The real reveal timing is probabilistic/geographic (WorldEventStore.IsAwareOf); force it now,
+         // exactly the same Tier2GrudgeRules.SwayExposedGrudge + GrudgeBehavior.TryPlant call the daily
+         // tick would eventually make, without waiting on the awareness model.
+         string revealResult = SwayExposureBehavior.Instance.DebugForceReveal(target);
+         Grudge swayGrudge = GrudgeBehavior.Instance.GrudgesFor(target.StringId)
+                                          .FirstOrDefault(g => g.Source == GrudgeSource.SwayExposed && g.EventDay == today);
+
+         t.Note($"{npc.Name} vs {target.Name}: pendingQueued={pendingAfter > pendingBefore}, reveal=\"{revealResult}\", " +
+                $"swayExposedGrudgeExists={swayGrudge != null}, knownToPlayer={swayGrudge?.KnownToPlayer}");
+         t.Expect("outcomePositive", outcome?.IsPositive, true);
+         t.Expect("pendingWatchQueued", pendingAfter > pendingBefore, true);
+         t.Expect("swayExposedGrudgeFormed", swayGrudge != null, true);
+         t.Expect("hiddenFromPlayer", swayGrudge?.KnownToPlayer, false);
 
          return t.Line();
       }

@@ -405,6 +405,15 @@ namespace CalradiaRemembers.Marriage
          List<Hero> bestFriends = ResolveThreeBestFriends(spouse, npc, directFamily);
          foreach (Hero friend in bestFriends)
             ApplyReactionTo(consequences.FriendReaction, friend, setAsideCause, today);
+
+         // Grudges pillar (UnblessedMarriage): only ever planted for the PLAYER's own marriage
+         // (MarriageApprovalBehavior.OnBeforeHeroesMarried), so only clear it when the player is actually
+         // a party to THIS divorce (npc is the Phase 2a divorcer, which is the player for end_own_marriage;
+         // the Phase 1 NPC-NPC case never touches the player's own spouse, but the guard is kept anyway so
+         // an unrelated NPC-NPC split can never wipe the player's own still-standing in-law grudge).
+         if (npc == Hero.MainHero || spouse == Hero.MainHero)
+            SafeRun.Step("DivorceProcessBehavior.ClearUnblessedMarriageGrudges",
+               () => GrudgeBehavior.Instance?.ResolveUnblessedMarriageGrudgesAgainst(Hero.MainHero.StringId, today));
       }
 
       /// <summary>

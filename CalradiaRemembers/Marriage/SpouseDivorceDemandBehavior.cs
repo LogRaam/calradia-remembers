@@ -422,6 +422,12 @@ namespace CalradiaRemembers.Marriage
             "Waited long enough to be heard, was refused too many times, and finally ended our marriage myself.",
             EstrangementWalkOutGrudgeMagnitude, true, today);
 
+         // Grudges pillar (UnblessedMarriage): this walk-out ends the player's OWN marriage just as
+         // surely as end_own_marriage does, so any live UnblessedMarriage grudge the spouse's family holds
+         // against the player (planted at the wedding by MarriageApprovalBehavior when unblessed) clears
+         // here too, not only on the player-initiated path.
+         GrudgeBehavior.Instance?.ResolveUnblessedMarriageGrudgesAgainst(player.StringId, today);
+
          NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouse.StringId);
 
          if (profile != null)

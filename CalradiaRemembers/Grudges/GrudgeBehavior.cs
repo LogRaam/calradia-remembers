@@ -68,6 +68,50 @@ namespace CalradiaRemembers.Grudges
             : _ledger.Grudges.Where(g => g.HolderId == holderId).ToList();
 
       /// <summary>
+      ///   Resolves (never merely removes) every live <see cref="GrudgeSource.UnblessedMarriage" /> grudge
+      ///   held against <paramref name="targetId" />, across every holder. Called the moment the player's
+      ///   OWN marriage dissolves: <c>Tier2GrudgeRules.UnblessedMarriageGrudge</c>'s own doc is explicit
+      ///   that this grudge exists ONLY while the marriage stands and is meant to CLEAR entirely the
+      ///   instant it ends, not merely decay. Bypasses the usual <see cref="GrudgePolicy.Resolve" />
+      ///   resolvability gate on purpose: an extreme prior regard could in principle push this grudge's
+      ///   own <see cref="Grudge.Rigidity" /> to <see cref="GrudgePolicy.VendettaRigidity" /> even though it
+      ///   was never truly a vendetta (only <see cref="GrudgeSource.ExecutedKin" /> is), and the divorce
+      ///   ending it must still hold either way. A monogamous campaign has at most one live marriage's
+      ///   in-laws holding this source against the player at any time, so no holder scoping beyond the
+      ///   source+target filter is needed. Returns how many were resolved, for logging and the
+      ///   cr.grudge_unblessed_clear diagnostic. Never throws.
+      /// </summary>
+      public int ResolveUnblessedMarriageGrudgesAgainst(string targetId, int today)
+      {
+         if (string.IsNullOrEmpty(targetId)) return 0;
+
+         try
+         {
+            var resolved = 0;
+
+            foreach (Grudge g in _ledger.Grudges)
+            {
+               if (g.Source != GrudgeSource.UnblessedMarriage || g.TargetId != targetId || g.IsResolved) continue;
+
+               g.IsResolved = true;
+               g.ResolvedDay = today;
+               resolved++;
+            }
+
+            if (resolved > 0)
+               ModLog.Info($"[GRUDGE] {resolved} UnblessedMarriage grudge(s) against the target cleared: the marriage has ended.");
+
+            return resolved;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[GRUDGE] ResolveUnblessedMarriageGrudgesAgainst failed: {ex.GetType().Name}: {ex.Message}");
+
+            return 0;
+         }
+      }
+
+      /// <summary>
       ///   The dominant LIVE grudges this holder nurses that the PLAYER actually knows about — the ONLY
       ///   query the encyclopedia's "Grievances" section reads (never the full ledger). Reuses
       ///   <see cref="LiveGrudgesFor" /> for the same dominant ranking the prompt sees, then filters to

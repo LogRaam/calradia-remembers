@@ -428,8 +428,18 @@ PlantGrudge/Relief/Gratitude/None from mutual-vs-repudiated x blessed-vs-unbless
 stake); (3) `Tier2GrudgeRules` (DeliveredPrisoner, CaptiveAbuse [absorbs the companion revenge driver],
 SwayExposed [hidden], UnblessedMarriage [clears on divorce]). OPEN DESIGN QUESTION surfaced by all three:
 `MarriageWasBlessed` / clan-valued-alliance have NO current source for NPC-NPC marriages (MarriageApproval only
-tracks the PLAYER's marriages) — needs a derivation (allied clans / same faction / conservative default) or a
-new persisted flag. Wiring increments (per policy) fully specified in the overnight morning report.
+tracks the PLAYER's marriages), needing a derivation (allied clans / same faction / conservative default) or a
+new persisted flag. **RESOLVED 2026-07-06 (Gabriel, option A, conservative):** NPC-NPC marriages are treated as
+blessed by default and never plant an UnblessedMarriage grudge, since those weddings happen off-screen and a
+hidden grudge there is noise the player never perceives; only the PLAYER's OWN unblessed marriages ever plant
+this source. Live-wired the same day: `MarriageApprovalBehavior.OnBeforeHeroesMarried` plants the grudge on
+every family member its own relation swing already chills (the same disapproving kin, never one who warmed
+despite the family's verdict); `DivorceProcessBehavior`/`SpouseDivorceDemandBehavior` clear it, via the new
+`GrudgeBehavior.ResolveUnblessedMarriageGrudgesAgainst`, the moment the player's own marriage dissolves (either
+path). `DivorceConsequencePolicy`'s own dormant Gratitude fold-in (reconstructing `MarriageWasBlessed` at
+divorce time for the NPC-NPC case) stays dormant, out of scope here. cr.grudge_unblessed_test / cr.grudge_unblessed_clear
++ the grudge_unblessed_marriage self-test (real marry -> plant -> end_own_marriage -> clear). Wiring increments
+(per policy) fully specified in the overnight morning report.
 
 **The source catalog (Gabriel, 2026-07-03: "faire le tour des systèmes pour alimenter le grudge").** Tiered
 by delivery stage; Tier 1 doubles as the MIGRATION BACKFILL list (their markers already sit in saves):

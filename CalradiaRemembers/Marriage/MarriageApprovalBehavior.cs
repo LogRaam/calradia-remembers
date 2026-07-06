@@ -2,9 +2,12 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Grudges;
+using CalradiaRemembers.Logic.Grudges;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.Core;
@@ -108,13 +111,17 @@ namespace CalradiaRemembers.Marriage
       ///   Applies the marriage swing to every living family member except the spouse and the
       ///   player. The base sign comes from the family's verdict; each member then leans by
       ///   their own standing with the player (relation / 2), clamped, so a dissenter can resist
-      ///   or invert the tide. Returns how many kin moved, and how many warmed vs cooled.
+      ///   or invert the tide. Returns how many kin moved, how many warmed vs cooled, and the
+      ///   actual disapproving members (those who cooled) so an unblessed match can plant a
+      ///   Grudges-pillar grievance on exactly the same kin this swing already chilled, never on
+      ///   one who warmed to it despite the family's own verdict.
       /// </summary>
-      private static (int affected, int warmed, int cooled) ApplyToFamily(Clan family, Hero spouse, int baseDelta)
+      private static (int affected, int warmed, int cooled, List<Hero> disapproving) ApplyToFamily(Clan family, Hero spouse, int baseDelta)
       {
          int affected = 0,
              warmed = 0,
              cooled = 0;
+         var disapproving = new List<Hero>();
          foreach (Hero member in family.Heroes.ToList())
          {
             if (member is not {IsAlive: true}) continue;
@@ -129,10 +136,14 @@ namespace CalradiaRemembers.Marriage
                member, delta, false, false);
             affected++;
             if (delta > 0) warmed++;
-            else cooled++;
+            else
+            {
+               cooled++;
+               disapproving.Add(member);
+            }
          }
 
-         return (affected, warmed, cooled);
+         return (affected, warmed, cooled, disapproving);
       }
 
       private static int Clamp(int v, int min, int max) => v < min ? min : v > max ? max : v;
@@ -148,6 +159,39 @@ namespace CalradiaRemembers.Marriage
          if (b == Hero.MainHero) return a;
 
          return null;
+      }
+
+      /// <summary>
+      ///   Grudges pillar, Tier 2 live plant site: an UnblessedMarriage grievance on every family member
+      ///   who actually disapproved of this match (<paramref name="disapproving" />, already resolved by
+      ///   <see cref="ApplyToFamily" />), via the real <see cref="Tier2GrudgeRules.UnblessedMarriageGrudge" />
+      ///   rule and <see cref="GrudgeBehavior.TryPlant" /> gate (anti-noise guardrails, the per-holder cap
+      ///   can still legitimately refuse). Guarded so a failure here never breaks the relation swing or the
+      ///   quick-info notice already applied above it.
+      /// </summary>
+      private static void PlantUnblessedMarriageGrudges(List<Hero> disapproving, Hero spouse, string clan)
+      {
+         if (disapproving == null || disapproving.Count == 0) return;
+         if (GrudgeBehavior.Instance == null || Hero.MainHero == null) return;
+
+         try
+         {
+            var facts = new UnblessedMarriageFacts {MarriageIsUnblessed = true, StillMarried = true};
+            GrudgeProposal proposal = Tier2GrudgeRules.UnblessedMarriageGrudge(facts);
+
+            if (!proposal.Forms) return;
+
+            var today = (int) CampaignTime.Now.ToDays;
+            string cause = $"The player wed {spouse.Name} into {clan} without the family's blessing.";
+
+            foreach (Hero member in disapproving)
+               GrudgeBehavior.Instance.TryPlant(member, Hero.MainHero, GrudgeSource.UnblessedMarriage,
+                  cause, proposal.Magnitude, proposal.KnownToPlayer, today);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MARRIAGE] UnblessedMarriage grudge plant failed (non-fatal): {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       /// <summary>
@@ -177,8 +221,16 @@ namespace CalradiaRemembers.Marriage
          int baseDelta = approved
             ? ApprovedRelationBonus
             : UnapprovedRelationPenalty;
-         (int affected, int warmed, int cooled) = ApplyToFamily(family, spouse, baseDelta);
+         (int affected, int warmed, int cooled, List<Hero> disapproving) = ApplyToFamily(family, spouse, baseDelta);
          string clan = family.Name?.ToString() ?? "their family";
+
+         // Grudges pillar, Tier 2 (UnblessedMarriage): ONLY the player's own marriages ever plant this
+         // source (NPC-NPC weddings happen off-screen, so a hidden grudge there is noise the player never
+         // perceives). Plants on exactly the kin this swing already chilled, never on one who happened to
+         // warm despite the family's own verdict. Lasts while the marriage stands; DivorceProcessBehavior /
+         // SpouseDivorceDemandBehavior clear it the moment this same marriage ends.
+         if (!approved)
+            PlantUnblessedMarriageGrudges(disapproving, spouse, clan);
 
          // Surface the dissent: a blessed union that still has sour kin, or a slighted
          // family with a few quiet well-wishers, is the heart of the love-vs-ambition beat.

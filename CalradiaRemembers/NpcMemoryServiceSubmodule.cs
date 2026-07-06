@@ -119,6 +119,17 @@ namespace CalradiaRemembers
          // the bastard-claim world events) and after Bastards/DivorceProcessBehavior (it scans their
          // persisted markers too). Console: cr.grudges / cr.grudge_test / cr.grudge_backfill.
          campaignStarter.AddBehavior(new Grudges.GrudgeBehavior());
+         // Grudges Tier 3 LIVE plant site: the player executes a lord, that lord's close living kin
+         // (spouse/parents/children/siblings, capped to a handful) each form a permanent ExecutedKin
+         // vendetta. Registered right after GrudgeBehavior (this listener only ever calls its TryPlant);
+         // no SyncData of its own, no backfill by design (Tier 3 has none). Console: cr.grudge_execute_kin.
+         campaignStarter.AddBehavior(new Grudges.ExecutedKinGrudgeBehavior());
+         // Grudges Tier 2 LIVE plant site: sway_opinion's own Rivalry rumour (recorded by SwayOpinionVerb
+         // into WorldEventStore) is watched here for the swayed-against target's own awareness, planting a
+         // hidden SwayExposed grudge once it plausibly reaches them. Registered after WorldEventStore (it
+         // reads from it) and GrudgeBehavior (this listener only ever calls its TryPlant); no backfill (a
+         // LIVE-only source, mirroring ExecutedKinGrudgeBehavior). Console: cr.grudge_sway_test.
+         campaignStarter.AddBehavior(new Grudges.SwayExposureBehavior());
 
          campaignStarter.AddBehavior(new Nemesis.NemesisBehavior());
          // Appreciations (the positive mirror of Grudges): a lingering felt kindness, coexisting with regard

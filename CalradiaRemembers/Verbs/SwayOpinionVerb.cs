@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
@@ -83,20 +84,29 @@ namespace CalradiaRemembers.Verbs
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
                     $"At the player's word, {verb} {target.Name}. {CourtActionResolver.SwayMarker(target.StringId)}"));
 
-                // Ambient gossip: bad blood (or a reconciliation) between two lords, third-party rumor fodder
-                // — mirrors ConversationEventFeeder.RecordPublicAffront / SchemeStore's own Rivalry recordings.
-                WorldEventStore.Instance?.Record(new WorldEvent {
+                // Ambient gossip: bad blood (or a reconciliation) between two lords, third-party rumor fodder,
+                // mirroring ConversationEventFeeder.RecordPublicAffront / SchemeStore's own Rivalry recordings.
+                var rumour = new WorldEvent {
                     Type = WorldEventType.Rivalry,
                     Day = today,
                     PlaceId = npcHero.CurrentSettlement?.StringId,
                     InvolvesPlayer = false,
-                    Magnitude = 20, // Tuning: modest reach — ambient court gossip, not a realm-shaking event
+                    Magnitude = 20, // Tuning: modest reach, ambient court gossip, not a realm-shaking event
                     Summary = $"{npcHero.Name} {verb} {target.Name}, swayed by {Hero.MainHero.Name}'s word.",
                     ActorIds = new List<string> {npcHero.StringId, target.StringId},
                     FactionIds = npcHero.MapFaction != null
                         ? new List<string> {npcHero.MapFaction.StringId}
                         : new List<string>()
-                });
+                };
+                WorldEventStore.Instance?.Record(rumour);
+
+                // Grudges pillar (Tier 2, LIVE): only a sway AGAINST the target wounds them, a sway FOR
+                // them is a kindness, never a grudge. Queues a delayed, hidden reveal check against the
+                // very Rivalry rumour just recorded above. SwayExposureBehavior watches it through
+                // WorldEventStore's own awareness model, reusing the existing rumour-spread mechanism
+                // rather than inventing a new one (mirrors JealousyBehavior's own PendingAwareness gate).
+                if (against)
+                    SwayExposureBehavior.Instance?.QueueExposure(target, rumour.Id, Math.Abs(delta), today);
 
                 ModLog.Info($"[ACTION] sway_opinion: {npcHero.Name} {verb} {target.Name} ({delta:+#;-#;0}).");
 

@@ -25,6 +25,9 @@ namespace CalradiaRemembers
         /// <summary>Test-grudge magnitude for cr.grudge_test — comfortably above every formation floor.</summary>
         private const int TestGrudgeMagnitude = 40;
 
+        /// <summary>Test sway magnitude for cr.grudge_sway_test: a plausible mid-range value on the same scale as CourtActionPolicy.SwayAgainstDelta.</summary>
+        private const int TestSwayMagnitude = 20;
+
         /// <summary>
         ///   cr.grudges [name] — dev-truth dump of every grudge this NPC has ever nursed (live and
         ///   resolved), regardless of what the player has actually learned. Source, cause, day, stored vs
@@ -84,6 +87,56 @@ namespace CalradiaRemembers
             return planted
                 ? $"{npc.Name} now nurses a test grudge (FailedQuest, magnitude {TestGrudgeMagnitude}). Run 'cr.grudges {npc.Name}' to inspect it, or open chat to see it colour the prompt."
                 : $"{npc.Name} refused the test grudge (anti-noise guardrail or a full, stronger house — run 'cr.grudges {npc.Name}' to see why).";
+        }
+
+        /// <summary>
+        ///   cr.grudge_sway_test [name]: plants a synthetic SwayExposed grudge on the NPC (bypassing the
+        ///   real sway_opinion + rumour-reveal pipeline) via the real Tier2GrudgeRules.SwayExposedGrudge
+        ///   rule and TryPlant gate, mirroring cr.grudge_test's shape. To exercise the REAL delayed reveal
+        ///   pipeline instead (sway_opinion -> Rivalry rumour -> SwayExposureBehavior -> awareness ->
+        ///   plant), sway a real target in conversation (stance=against) then run cr.grudge_sway_reveal.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("grudge_sway_test", "cr")]
+        public static string Grudges_SwayTest(List<string> args)
+        {
+            if (!TryContext(out _, out string error)) return error;
+            if (GrudgeBehavior.Instance == null) return "Grudge system not active.";
+
+            Hero npc = ResolveHero(args);
+            if (npc == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+            if (npc == Hero.MainHero) return "Pick an NPC, not the player.";
+
+            var today = (int) CampaignTime.Now.ToDays;
+            var facts = new SwayExposedFacts {RumourReachedTarget = true, SwayMagnitude = TestSwayMagnitude};
+            GrudgeProposal proposal = Tier2GrudgeRules.SwayExposedGrudge(facts);
+
+            bool planted = GrudgeBehavior.Instance.TryPlant(
+                npc, Hero.MainHero, GrudgeSource.SwayExposed,
+                "[SELFTEST] Word reached them that the player had turned someone's opinion against them.",
+                proposal.Magnitude, proposal.KnownToPlayer, today);
+
+            return planted
+                ? $"{npc.Name} now nurses a test SwayExposed grudge (hidden, magnitude {proposal.Magnitude}). Run 'cr.grudges {npc.Name}' to inspect it."
+                : $"{npc.Name} refused the test grudge (anti-noise guardrail or a full, stronger house).";
+        }
+
+        /// <summary>
+        ///   cr.grudge_sway_reveal [name]: forces the REAL pending SwayExposureBehavior watch for this
+        ///   NPC (queued by a real in-conversation sway_opinion against them) to reveal now, bypassing only
+        ///   the awareness TIMING (never the SwayExposedGrudge rule nor TryPlant's own guardrails). Reports
+        ///   when no watch is pending.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("grudge_sway_reveal", "cr")]
+        public static string Grudges_SwayReveal(List<string> args)
+        {
+            if (!TryContext(out _, out string error)) return error;
+            if (SwayExposureBehavior.Instance == null) return "Sway exposure system not active.";
+
+            Hero npc = ResolveHero(args);
+            if (npc == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+            if (npc == Hero.MainHero) return "Pick an NPC, not the player.";
+
+            return SwayExposureBehavior.Instance.DebugForceReveal(npc);
         }
 
         /// <summary>
@@ -194,6 +247,87 @@ namespace CalradiaRemembers
             return outcome != null
                 ? $"{npc.Name} [{before.Source}]: {outcome.Message}"
                 : $"{npc.Name}: grudge_terms produced no outcome (unexpected).";
+        }
+
+        /// <summary>
+        ///   cr.grudge_unblessed_test [name]: plants a synthetic UnblessedMarriage grudge on the NPC
+        ///   (bypassing the real MarriageApprovalBehavior wedding pipeline) via the real
+        ///   Tier2GrudgeRules.UnblessedMarriageGrudge rule and TryPlant gate, mirroring cr.grudge_sway_test's
+        ///   shape. To exercise the REAL plant instead, revoke or never grant a blessing (cr.marriage_revoke)
+        ///   then marry the family's kin via cr.marry, and check with cr.grudges.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("grudge_unblessed_test", "cr")]
+        public static string Grudges_UnblessedMarriageTest(List<string> args)
+        {
+            if (!TryContext(out _, out string error)) return error;
+            if (GrudgeBehavior.Instance == null) return "Grudge system not active.";
+
+            Hero npc = ResolveHero(args);
+            if (npc == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+            if (npc == Hero.MainHero) return "Pick an NPC, not the player.";
+
+            var today = (int) CampaignTime.Now.ToDays;
+            var facts = new UnblessedMarriageFacts {MarriageIsUnblessed = true, StillMarried = true};
+            GrudgeProposal proposal = Tier2GrudgeRules.UnblessedMarriageGrudge(facts);
+
+            bool planted = GrudgeBehavior.Instance.TryPlant(
+                npc, Hero.MainHero, GrudgeSource.UnblessedMarriage,
+                "[SELFTEST] The player wed into their family without earning its blessing.",
+                proposal.Magnitude, proposal.KnownToPlayer, today);
+
+            return planted
+                ? $"{npc.Name} now nurses a test UnblessedMarriage grudge (known, magnitude {proposal.Magnitude}). " +
+                  $"Run 'cr.grudges {npc.Name}' to inspect it, or 'cr.grudge_unblessed_clear' to test the divorce-time clear."
+                : $"{npc.Name} refused the test grudge (anti-noise guardrail or a full, stronger house).";
+        }
+
+        /// <summary>
+        ///   cr.grudge_unblessed_clear: runs the exact GrudgeBehavior.ResolveUnblessedMarriageGrudgesAgainst
+        ///   seam DivorceProcessBehavior and SpouseDivorceDemandBehavior call the moment the player's own
+        ///   marriage dissolves, clearing every live UnblessedMarriage grudge against the player regardless
+        ///   of holder. No NPC argument: this source is only ever aimed at the player, so it resolves
+        ///   everything at once, exactly as a real divorce would.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("grudge_unblessed_clear", "cr")]
+        public static string Grudges_UnblessedMarriageClear(List<string> args)
+        {
+            if (!TryContext(out _, out string error)) return error;
+            if (GrudgeBehavior.Instance == null) return "Grudge system not active.";
+            if (Hero.MainHero == null) return "No player hero.";
+
+            var today = (int) CampaignTime.Now.ToDays;
+            int resolved = GrudgeBehavior.Instance.ResolveUnblessedMarriageGrudgesAgainst(Hero.MainHero.StringId, today);
+
+            return resolved > 0
+                ? $"{resolved} UnblessedMarriage grudge(s) against the player resolved, as at a real divorce. Run 'cr.grudges <name>' to confirm."
+                : "No live UnblessedMarriage grudge against the player found to clear.";
+        }
+
+        /// <summary>
+        ///   cr.grudge_execute_kin [name] - force-runs the exact ExecutedKinGrudgeBehavior plant loop
+        ///   against the named hero's close living kin (spouse/parents/children/siblings), as if the
+        ///   player had just had them executed, without actually killing anyone. Goes through the real
+        ///   TryPlant gate for every kin considered, so it can legitimately plant fewer than it considers
+        ///   (anti-noise guardrail, or a full, stronger house).
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("grudge_execute_kin", "cr")]
+        public static string Grudges_ExecuteKin(List<string> args)
+        {
+            if (!TryContext(out _, out string error)) return error;
+            if (GrudgeBehavior.Instance == null) return "Grudge system not active.";
+
+            Hero npc = ResolveHero(args);
+            if (npc == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+            if (npc == Hero.MainHero) return "Pick an NPC, not the player.";
+
+            var today = (int) CampaignTime.Now.ToDays;
+            string cause = $"[SELFTEST] {Hero.MainHero.Name} had {npc.Name} put to death.";
+
+            (int considered, int planted) = ExecutedKinGrudgeBehavior.PlantOnKinOf(npc, cause, today);
+
+            return considered == 0
+                ? $"{npc.Name} has no close living kin (spouse/parent/adult child/adult sibling) to grudge the player."
+                : $"{npc.Name}'s kin: {considered} considered, {planted} vendetta grudge(s) planted. Run 'cr.grudges <kin name>' to inspect.";
         }
     }
 }
