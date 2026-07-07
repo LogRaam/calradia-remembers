@@ -232,6 +232,85 @@ namespace CalradiaRemembers.Quests
          return changed;
       }
 
+      /// <summary>
+      ///   Nemesis pillar increment 3 (bounty missions): true when SOME giver, anywhere, already holds an
+      ///   active (outstanding or awaiting-reward) bounty quest on the nemesis embodied by
+      ///   <paramref name="nemesisHeroId" />. A living nemesis may only ever have one bounty on his head at
+      ///   a time, checked store-wide (mirrors <see cref="FindOutstandingLetterFor" />'s scan shape) so a
+      ///   second lord cannot stack a duplicate bounty on the same foe.
+      /// </summary>
+      public static bool HasActiveBountyFor(string nemesisHeroId, BannerlordNpcMemoryStore store)
+      {
+         if (string.IsNullOrEmpty(nemesisHeroId) || store == null) return false;
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile == null) continue;
+
+            if (profile.ActiveQuests.Any(q =>
+                   q.Type == QuestType.NemesisBounty
+                   && q.Status == QuestStatus.Active
+                   && string.Equals(q.TargetHeroId, nemesisHeroId, StringComparison.Ordinal)))
+               return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>
+      ///   Nemesis pillar increment 3 (bounty missions): issues a scripted bounty on a tracked nemesis,
+      ///   never proposed by the LLM (the target and reward are already known, deterministically, before
+      ///   the offer is even shown), so this bypasses <see cref="QuestFactory" /> and builds the
+      ///   <see cref="InformalQuest" /> directly, the same shape the console negotiation-framework seeds
+      ///   use (e.g. <c>cr.deliver_prisoner</c>). Respects the same "one task at a time" rule as an
+      ///   ordinary LLM-offered quest. Returns null (and issues nothing) when the giver already has an
+      ///   outstanding task: the caller (the dialogue offer, or a console test) should not have shown the
+      ///   offer in that case, but this is re-checked here as the final guard. The reward is fixed at
+      ///   issuance by the caller (see <see cref="Logic.NemesisBountyRewardPolicy" />), never renegotiated.
+      /// </summary>
+      public static InformalQuest IssueNemesisBounty(NpcProfile giver,
+                                                      Hero giverHero,
+                                                      Hero nemesisHero,
+                                                      string nemesisDisplayName,
+                                                      int rewardGold,
+                                                      int rewardRelation,
+                                                      int gameDay,
+                                                      BannerlordNpcMemoryStore store)
+      {
+         if (giver == null || giverHero == null || nemesisHero == null || store == null) return null;
+
+         if (giver.ActiveQuests.Any(q => q.IsOutstanding))
+         {
+            ModLog.Info($"[QUEST] {giver.Name} offered a nemesis bounty while one task is already outstanding, ignored.");
+
+            return null;
+         }
+
+         var quest = new InformalQuest {
+            Type = QuestType.NemesisBounty,
+            Description = $"Capture or slay {nemesisDisplayName}.",
+            TargetHeroId = nemesisHero.StringId,
+            TargetHeroName = nemesisHero.Name?.ToString() ?? nemesisDisplayName,
+            IssuedOnDay = gameDay,
+            Reward = RewardGrant.None,
+            RewardGold = rewardGold,
+            RewardRelation = rewardRelation,
+            Status = QuestStatus.Active
+         };
+
+         giver.ActiveQuests.Add(quest);
+         AddEvent(giver, gameDay, NotableEventType.Agreement, $"Placed a bounty on {nemesisDisplayName}.");
+         store.Set(giver);
+
+         QuestJournalBridge.OpenMirror(quest, giverHero);
+
+         ModLog.Info($"[QUEST] {giver.Name} issued a nemesis bounty on {nemesisDisplayName} " + $"(reward {rewardGold}g/+{rewardRelation}).");
+
+         return quest;
+      }
+
       #region private
 
       private static void AbandonQuest(NpcProfile giver,
@@ -354,6 +433,7 @@ namespace CalradiaRemembers.Quests
             case QuestType.Siege: return $"help take {q.TargetSettlement}";
             case QuestType.CapturePrisoner: return $"capture {q.TargetHeroName}";
             case QuestType.ExecuteEnemy: return $"kill {q.TargetHeroName}";
+            case QuestType.NemesisBounty: return $"capture or kill {q.TargetHeroName}";
             case QuestType.RescuePrisoner: return $"free {q.TargetHeroName}";
             case QuestType.DeliverLetter: return $"carry a message to {q.TargetHeroName}";
             case QuestType.ProvideGold: return "provide financial support for your child";

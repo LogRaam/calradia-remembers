@@ -228,6 +228,10 @@ namespace CalradiaRemembers.Behaviors
          // holds a tracked nemesis prisoner, an extra hero_main_options line (reached from the party-screen
          // Talk on him, same hub as any other hero) opens the captor scene against him. Console: cr.nemesis_captor_scene / cr.execute_prisoner.
          SafeRun.Step("OnSessionLaunched.NemesisPrisonerDialogFlow.Register", () => Nemesis.NemesisPrisonerDialogFlow.Register(campaignGameStarter));
+         // Nemesis pillar increment 3 (bounty missions, the world hook): an eligible lord (own region
+         // matches a living, unresolved, not-already-bountied nemesis) offers to pay for his capture or
+         // death, reached from the same hero_main_options hub. Console: cr.nemesis_bounty / cr.nemesis_bounty_complete.
+         SafeRun.Step("OnSessionLaunched.NemesisBountyDialogFlow.Register", () => Nemesis.NemesisBountyDialogFlow.Register(campaignGameStarter));
          ModLog.Info("Dialog flow registered.");
 
          SafeRun.Step("OnSessionLaunched.DialogueRecorder.Subscribe", DialogueRecorder.Subscribe);

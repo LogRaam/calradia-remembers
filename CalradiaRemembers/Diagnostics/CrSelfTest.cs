@@ -131,6 +131,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("nemesis_kill", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(battle death) -> assert IsAlive flips false + a closure world-event is recorded", TestNemesisKilledInBattle),
          new SelfTest("nemesis_execute", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(executed) -> assert IsAlive flips false + the closure world-event reads distinctly from the battle-death flavor", TestNemesisExecuted),
          new SelfTest("nemesis_execute_prisoner", Severity.Light, "mint a fresh nemesis -> TakePrisonerAction (real capture) -> assert PlayerHeldNemesisPrisoner detects him -> BannerlordGameStateBridge.ExecuteAction(execute_prisoner) (the REAL bridge action the chat entry point's LLM emission triggers, not the Resolve harness) -> assert the existing HeroKilledEvent hook still resolves him + records the closure deed", TestNemesisExecutePrisoner),
+         new SelfTest("nemesis_bounty_capture", Severity.Light, "mint a nemesis anchored to a real lord's own region -> assert NemesisBountyDialogFlow's gate finds him eligible -> IssueNemesisBounty (real reward math) -> real TakePrisonerAction on him -> assert QuestDeedTracker's widened CapturePrisoner hook stamps the NemesisBounty quest satisfied", TestNemesisBountyCapture),
+         new SelfTest("nemesis_bounty_execute", Severity.Light, "mint a nemesis anchored to a real lord's own region -> IssueNemesisBounty -> capture then execute him via the real execute_prisoner bridge action -> assert the widened HeroKilledEvent hook stamps the NemesisBounty quest AND NemesisResolutionBehavior resolves the identity, both off the same event", TestNemesisBountyExecute),
          new SelfTest("declare_war", Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it", TestDeclareWar),
          new SelfTest("scenario", Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals", TestScenario),
          new SelfTest("llm_dialogue", Severity.Light, "LLM: a plain greeting -> log the reply (relevance judged from the log)", TestLlmDialogue, true),
@@ -1288,6 +1290,113 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Expect("closureRecorded", closure != null, true);
          t.Note($"{nem.Name} {nem.Epithet}: minted, really captured, detected as held, executed via the real bridge action; summary={closure?.Summary}");
+
+         return t.Line();
+      }
+
+      /// <summary>Mints a nemesis anchored to a real lord's own region (home settlement, else current settlement, else culture), so the region-eligibility gate genuinely matches instead of being simulated. Returns (null, null, null) when no lord has a resolvable region.</summary>
+      private static (Hero Giver, Hero NemesisHero, NemesisIdentity Identity) MintBountyEligibleNemesis(int today)
+      {
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+         if (giver == null) return (null, null, null);
+
+         string regionId = giver.HomeSettlement?.StringId ?? giver.CurrentSettlement?.StringId ?? giver.Culture?.StringId;
+         if (string.IsNullOrEmpty(regionId)) return (null, null, null);
+
+         Hero nemesisHero = NemesisBehavior.Instance?.MintCaptorFor("looters", regionId, today);
+         if (nemesisHero == null) return (giver, null, null);
+
+         NemesisIdentity nem = NemesisBehavior.Instance.GetByHero(nemesisHero.StringId);
+         if (nem != null) nem.IsAlive = true; // isolate from a stale resolved run earlier in the same session
+
+         return (giver, nemesisHero, nem);
+      }
+
+      // ── Nemesis pillar increment 3: bounty missions ─────────────────────────────────────────────────
+
+      private static string TestNemesisBountyCapture(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_bounty_capture");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today);
+
+         if (t.Skip(giver == null, "no lord with a resolvable region available to hold the bounty")) return t.Line();
+         if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+
+         t.Expect("eligibleBeforeIssue", Nemesis.NemesisBountyDialogFlow.FindEligibleNemesisFor(giver) == nem, true);
+
+         int expectedGold = NemesisBountyRewardPolicy.ComputeGold(nem.RecaptureCount, nem.TimesEncountered);
+         int expectedRelation = NemesisBountyRewardPolicy.ComputeRelation(nem.RecaptureCount);
+         string displayName = $"{nem.Name} {nem.Epithet}";
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         InformalQuest quest = Quests.QuestService.IssueNemesisBounty(
+            profile, giver, nemesisHero, displayName, expectedGold, expectedRelation, today, behavior.Store);
+
+         if (t.Abort(quest == null, $"IssueNemesisBounty refused ({giver.Name} already had an outstanding task?)")) return t.Line();
+
+         t.Expect("noLongerEligibleOnceIssued", Nemesis.NemesisBountyDialogFlow.FindEligibleNemesisFor(giver) == nem, false);
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, nemesisHero);
+         bool captured = nemesisHero.IsPrisoner && nemesisHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+
+         if (t.Abort(!captured, $"capture failed for {nemesisHero.Name}")) return t.Line();
+
+         InformalQuest after = behavior.Store.Get(giver.StringId)?.ActiveQuests
+                                        .FirstOrDefault(q => q.Type == QuestType.NemesisBounty && q.TargetHeroId == nemesisHero.StringId);
+
+         t.Expect("stampedByRealCapture", after != null && after.IsAwaitingReward, true);
+         t.Expect("rewardGold", after?.RewardGold, expectedGold);
+         t.Expect("rewardRelation", after?.RewardRelation, expectedRelation);
+         t.Note($"{displayName}: bounty from {giver.Name} ({expectedGold}g/+{expectedRelation}), stamped by a real capture, evidence={after?.Evidence}");
+
+         return t.Line();
+      }
+
+      private static string TestNemesisBountyExecute(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_bounty_execute");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today);
+
+         if (t.Skip(giver == null, "no lord with a resolvable region available to hold the bounty")) return t.Line();
+         if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+
+         int expectedGold = NemesisBountyRewardPolicy.ComputeGold(nem.RecaptureCount, nem.TimesEncountered);
+         int expectedRelation = NemesisBountyRewardPolicy.ComputeRelation(nem.RecaptureCount);
+         string displayName = $"{nem.Name} {nem.Epithet}";
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         InformalQuest quest = Quests.QuestService.IssueNemesisBounty(
+            profile, giver, nemesisHero, displayName, expectedGold, expectedRelation, today, behavior.Store);
+
+         if (t.Abort(quest == null, $"IssueNemesisBounty refused ({giver.Name} already had an outstanding task?)")) return t.Line();
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, nemesisHero);
+         bool captured = nemesisHero.IsPrisoner && nemesisHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+
+         if (t.Abort(!captured, $"capture failed for {nemesisHero.Name}")) return t.Line();
+
+         // The REAL bridge action a captor-scene LLM emission triggers, the same call
+         // TestNemesisExecutePrisoner exercises, so both the vendetta resolution AND the bounty
+         // stamp are proven off the one real event, not two separate harnesses.
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "execute_prisoner"}, nemesisHero, null);
+
+         t.Expect("outcomePositive", outcome?.IsPositive, true);
+         t.Expect("nemesisResolved", nem.IsAlive, false);
+
+         InformalQuest after = behavior.Store.Get(giver.StringId)?.ActiveQuests
+                                        .FirstOrDefault(q => q.Type == QuestType.NemesisBounty && q.TargetHeroId == nemesisHero.StringId);
+
+         t.Expect("stampedByRealExecution", after != null && after.IsAwaitingReward, true);
+         t.Note($"{displayName}: bounty from {giver.Name} ({expectedGold}g/+{expectedRelation}), stamped by a real execution, evidence={after?.Evidence}");
 
          return t.Line();
       }

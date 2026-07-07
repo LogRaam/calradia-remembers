@@ -328,7 +328,13 @@ namespace CalradiaRemembers.Quests
          int day = CurrentDay();
          ForEachOutstandingQuest((profile, quest) =>
          {
-            if (quest.Type == QuestType.ExecuteEnemy && string.Equals(quest.TargetHeroId, victim.StringId, StringComparison.Ordinal))
+            // Nemesis pillar increment 3 (bounty missions): a NemesisBounty quest is satisfied by EITHER
+            // this hook or OnHeroPrisonerTaken below, whichever fires first (a bounty is "capture OR
+            // execute", never both required). Any player-dealt death counts (battle or execution alike);
+            // NemesisResolutionBehavior's own HeroKilledEvent listener separately resolves the identity
+            // itself (IsAlive/DeathDay), unaffected by whether a bounty happened to be outstanding on him.
+            if ((quest.Type == QuestType.ExecuteEnemy || quest.Type == QuestType.NemesisBounty)
+                && string.Equals(quest.TargetHeroId, victim.StringId, StringComparison.Ordinal))
                Stamp(profile, quest, $"Killed {victim.Name} on day {day}", day);
          });
       }
@@ -343,7 +349,10 @@ namespace CalradiaRemembers.Quests
          int day = CurrentDay();
          ForEachOutstandingQuest((profile, quest) =>
          {
-            if (quest.Type == QuestType.CapturePrisoner && string.Equals(quest.TargetHeroId, prisoner.StringId, StringComparison.Ordinal))
+            // Nemesis pillar increment 3 (bounty missions): see the matching comment in OnHeroKilled, a
+            // capture satisfies a NemesisBounty quest exactly like an ordinary CapturePrisoner one.
+            if ((quest.Type == QuestType.CapturePrisoner || quest.Type == QuestType.NemesisBounty)
+                && string.Equals(quest.TargetHeroId, prisoner.StringId, StringComparison.Ordinal))
                Stamp(profile, quest, $"Captured {prisoner.Name} on day {day}", day);
          });
       }

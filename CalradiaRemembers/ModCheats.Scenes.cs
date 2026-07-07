@@ -261,6 +261,110 @@ namespace CalradiaRemembers
          return outcome?.Message ?? $"execute_prisoner produced no outcome for {hero.Name} (not currently your prisoner?).";
       }
 
+      /// <summary>
+      ///   cr.nemesis_bounty [lord name]
+      ///   Nemesis pillar increment 3 (bounty missions test harness): force-offers (and immediately
+      ///   accepts, on the giver's behalf) a bounty on the named lord's own region, minting or reusing a
+      ///   tracked nemesis anchored there via the same MintCaptorFor path the real capture hook uses, so
+      ///   the region-eligibility gate (NemesisBountyPolicy) and the reward math
+      ///   (NemesisBountyRewardPolicy) both run for real, not simulated. Falls back to the first living
+      ///   non-player lord when no name matches.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis_bounty", "cr")]
+      public static string ForceNemesisBounty(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero lord = (args is {Count: > 0} ? ResolveHero(args) : null)
+                     ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+
+         if (lord == null) return "No lord found. Pass a name fragment, or start a conversation with a lord first.";
+
+         Nemesis.NemesisBehavior roster = Nemesis.NemesisBehavior.Instance;
+         if (roster == null) return "NemesisBehavior not available (load a campaign first).";
+
+         string regionId = lord.HomeSettlement?.StringId ?? lord.CurrentSettlement?.StringId ?? lord.Culture?.StringId;
+         if (string.IsNullOrEmpty(regionId))
+            return $"{lord.Name} has no resolvable region (no home settlement, no current settlement, no culture), cannot anchor a bounty test.";
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Hero nemesisHero = roster.MintCaptorFor("looters", regionId, today);
+         if (nemesisHero == null) return "Could not mint or reuse a nemesis (no bandit template available in this campaign).";
+
+         NemesisIdentity nem = roster.GetByHero(nemesisHero.StringId);
+         if (nem == null) return $"{nemesisHero.Name} minted, but could not be resolved back to a tracked identity.";
+
+         if (Quests.QuestService.HasActiveBountyFor(nem.HeroStringId, behavior.Store))
+            return $"{nem.Name} {nem.Epithet} already has an active bounty on his head somewhere.";
+
+         int gold = NemesisBountyRewardPolicy.ComputeGold(nem.RecaptureCount, nem.TimesEncountered);
+         int relation = NemesisBountyRewardPolicy.ComputeRelation(nem.RecaptureCount);
+         string displayName = $"{nem.Name} {nem.Epithet}";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, lord);
+         InformalQuest quest = Quests.QuestService.IssueNemesisBounty(
+            profile, lord, nemesisHero, displayName, gold, relation, today, behavior.Store);
+
+         if (quest == null) return $"{lord.Name} already has an unfinished task for you, settle or abandon it first.";
+
+         return $"{lord.Name} placed a bounty on {displayName} (region '{regionId}'): {gold}g/+{relation} for his capture or death. " +
+                $"Capture or kill him, then report back to {lord.Name} (or use cr.nemesis_bounty_complete).";
+      }
+
+      /// <summary>
+      ///   cr.nemesis_bounty_complete [giver name]
+      ///   Force-completes the named giver's outstanding nemesis bounty (or the first active one found on
+      ///   any giver, if no name matches): stamps the deed satisfied if not already, then runs the same
+      ///   acknowledge-and-pay path as cr.quest_complete. Tests the report-back/reward leg without a real
+      ///   capture or kill.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis_bounty_complete", "cr")]
+      public static string ForceNemesisBountyComplete(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero giver = args is {Count: > 0} ? ResolveHero(args) : null;
+         NpcProfile profile = giver != null ? GetOrCreateProfile(behavior, giver) : null;
+         InformalQuest quest = profile?.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.NemesisBounty && q.Status == QuestStatus.Active);
+
+         if (quest == null)
+            foreach (string id in behavior.Store.ListIds())
+            {
+               NpcProfile candidate = behavior.Store.Get(id);
+               InformalQuest candidateQuest = candidate?.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.NemesisBounty && q.Status == QuestStatus.Active);
+
+               if (candidateQuest == null) continue;
+
+               profile = candidate;
+               quest = candidateQuest;
+               giver = Hero.FindFirst(h => h != null && h.StringId == candidate.Id);
+
+               break;
+            }
+
+         if (quest == null || profile == null || giver == null)
+            return "No active nemesis bounty found anywhere. Seed one first with cr.nemesis_bounty [lord name].";
+
+         int day = behavior.GameStateBridge.GetCurrentGameDay();
+         if (quest.IsOutstanding)
+         {
+            quest.SatisfiedOnDay = day;
+            quest.Evidence = "(debug) forced complete on day " + day;
+            behavior.Store.Set(profile);
+            Quests.QuestJournalBridge.NotifyDeedDone(quest, giver);
+         }
+
+         int rewardGold = quest.RewardGold;
+         int rewardRelation = quest.RewardRelation;
+         var fake = new ParsedResponse {Dialogue = "", QuestCompleted = new QuestCompletionClaim {Type = QuestType.NemesisBounty}};
+
+         Quests.QuestService.ApplyResponse(profile, giver, fake, day,
+            behavior.GameStateBridge, behavior.Store,
+            (text, positive) => ChatManager.ActiveViewModel?.AppendSystemMessage(text, positive));
+
+         return $"{giver.Name}: nemesis bounty force-completed, journal closed, reward paid ({rewardGold}g/+{rewardRelation}).";
+      }
+
       #region private nemesis resolution harness
 
       private static string ForceNemesisResolution(List<string> args, bool wasExecuted)

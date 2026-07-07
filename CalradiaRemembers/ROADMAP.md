@@ -1564,6 +1564,35 @@ command and self-test. Console: `cr.nemesis_captor_scene` (unchanged, staged), `
 Self-test: `nemesis_execute_prisoner` (replaces `nemesis_captivity_prompt`, now exercises the real bridge action).
 **Untested in game.**
 
+**INCREMENT 3 (bounty missions, the world hook) 2026-07-06, mod builds 0 warning, 1291 tests:** a lord tasks
+the player to hunt down a specific active nemesis for a reward, anchoring the personal vendetta in the wider
+world. Reuses the quest framework end to end rather than adding new structure: a new `QuestType.NemesisBounty`
+(appended last, save-safe) built and issued directly (never via `[QUEST]`/the LLM, since the target and reward
+are already fixed, deterministic facts by the time the offer shows) through `QuestService.IssueNemesisBounty`,
+journaled through the existing `CalradiaRemembersQuest` mirror exactly like any other quest. OFFER: a new
+`NemesisBountyDialogFlow` registers on the same `hero_main_options` hub as `LlmDialogFlow`/`NemesisPrisonerDialogFlow`;
+gated by `NemesisBountyPolicy` (pure, tested) on the PRIMARY rule only, the issuing lord's own region (home
+settlement, else current settlement, else culture as a last resort) must match the nemesis's `RegionId` AND he
+must be a living, already-manifested (Hero-bound) foe AND no bounty on him is already active anywhere
+(`QuestService.HasActiveBountyFor`, store-wide). The optional "past victim" rule (a lord this nemesis has
+personally wronged may also offer, regardless of region) is FLAGGED, not built: CR has no persisted record of
+which lords a given nemesis has preyed upon. Accepting shows an accept/decline `InquiryData` naming him and the
+reward; declining leaves the offer available again later (nothing is marked "declined"). VERIFIED BY THE REAL
+DEED, never roleplay: `QuestDeedTracker`'s two existing hooks (`OnHeroPrisonerTaken`, `OnHeroKilled`) were simply
+WIDENED to also recognize `QuestType.NemesisBounty` alongside their ordinary `CapturePrisoner`/`ExecuteEnemy`
+cases, so a capture OR a kill (battle death or execution alike) by the player satisfies the same quest,
+whichever comes first; `NemesisResolutionBehavior`'s own vendetta-closure listener on the same `HeroKilledEvent`
+is untouched and fires independently. REWARD: `NemesisBountyRewardPolicy` (pure, tested) scales gold and
+personal relation by his notoriety (`RecaptureCount`, `TimesEncountered`), both clamped to a sane ceiling; paid
+on report-back to the issuing lord exactly like any other quest (bypasses the RelationGate cooldown/cap, same
+as every other verified quest reward). No new persisted state: the bounty lives entirely inside the giver's
+existing `ActiveQuests` list (additive enum value only). Console: `cr.nemesis_bounty [lord name]` (force-offers
+and accepts, minting/reusing a nemesis for real in the lord's own region so the real gate and reward math both
+run), `cr.nemesis_bounty_complete [giver name]` (force-completes and pays). Self-tests:
+`nemesis_bounty_capture`, `nemesis_bounty_execute` (both mint a nemesis anchored to a real lord's region, issue
+through the real path, then satisfy the quest through a REAL `TakePrisonerAction`/`execute_prisoner` bridge
+call, not a simulated stamp). **Untested in game.**
+
 **PILLAR: Player appearance — derived + editable (ratified 2026-07-05).** Kills the backstory/appearance
 hallucination AND resolves the mutilation-persistence tension (a hallucinated "missing finger" must never
 auto-persist; the player AUTHORS it if they want). Two volets: (1) DERIVE the reliably-available attributes from
