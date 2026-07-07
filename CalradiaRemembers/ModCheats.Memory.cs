@@ -214,14 +214,6 @@ namespace CalradiaRemembers
       ///   relative part (tester report: guessed '9' was the day and the rest hours).
       /// </summary>
       private static string DescribeDay(int gameDay)
-      {
-         var today = (int) CampaignTime.Now.ToDays;
-
-         if (gameDay <= 0 || gameDay > today) return $"Day {gameDay}";
-         int ago = today - gameDay;
-         string rel = ago == 0 ? "today" : ago == 1 ? "yesterday" : $"{ago} days ago";
-
-         return $"Day {gameDay} ({rel})";
-      }
+         => MemoryDayFormatter.Describe(gameDay, (int) CampaignTime.Now.ToDays);
    }
 }

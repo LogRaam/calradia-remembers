@@ -149,6 +149,7 @@ namespace CalradiaRemembers.Chat
       private bool _hasWitnesses;
       private string _inputText = "";
       private bool _isComposeOpen;
+      private bool _isMemoryPanelOpen;
       private bool _isPleaseContinueVisible;
       private bool _isPrivateRequestVisible;
 
@@ -160,6 +161,12 @@ namespace CalradiaRemembers.Chat
       // SceneFocusSelector never repeats the same driving focus two rounds running. -1 = no prior round.
       private int _lastSceneFocusIndex = -1;
       private MBBindingList<ChatMessageViewModel> _messages;
+
+      // ── Shared-memories panel (read-only) ─────────────────────────────────
+      // A left panel mirroring cr.memory: what this NPC remembers of the player.
+      // Rebuilt from the persisted profile each time it opens.
+      private MBBindingList<MemoryEntryViewModel> _memories;
+      private string _memoryPanelTitle = "Shared memories";
 
       private ChatMode _mode = ChatMode.Conversation;
       private Hero _npcHero;
@@ -213,6 +220,7 @@ namespace CalradiaRemembers.Chat
       public ChatViewModel()
       {
          _messages = new MBBindingList<ChatMessageViewModel>();
+         _memories = new MBBindingList<MemoryEntryViewModel>();
 
          // A character tableau is a GPU render-target; one per transcript line exhausts VRAM on a long scene
          // (the create_render_texture crash). On every insertion, collapse to at most one live portrait per
@@ -449,6 +457,54 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      /// <summary>The rows of the shared-memories panel: a read-only mirror of this NPC's remembered history.</summary>
+      [DataSourceProperty]
+      public MBBindingList<MemoryEntryViewModel> Memories
+      {
+         get => _memories;
+         set
+         {
+            if (_memories == value) return;
+            _memories = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>True while the left "shared memories" panel is open (a read-only view of what this NPC remembers).</summary>
+      [DataSourceProperty]
+      public bool IsMemoryPanelOpen
+      {
+         get => _isMemoryPanelOpen;
+         set
+         {
+            if (_isMemoryPanelOpen == value) return;
+            _isMemoryPanelOpen = value;
+            OnPropertyChangedWithValue(value);
+            OnPropertyChanged(nameof(IsMemoryToggleVisible));
+         }
+      }
+
+      /// <summary>
+      ///   The "Memories" open button: shown only when there is a real hero across the conversation (one with a
+      ///   persistent profile to remember anything (a synthesized bandit captor or nameless commoner has none),
+      ///   and the panel is not already open. Mirrors <see cref="IsEncyclopediaVisible" />'s population.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsMemoryToggleVisible => _npcHero != null && !_isMemoryPanelOpen;
+
+      /// <summary>The header of the memory panel, for example "What {name} remembers".</summary>
+      [DataSourceProperty]
+      public string MemoryPanelTitle
+      {
+         get => _memoryPanelTitle;
+         set
+         {
+            if (_memoryPanelTitle == value) return;
+            _memoryPanelTitle = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
       /// <summary>
       ///   The in-chat mode button label: which of the two configured models requests currently use.
       ///   Clicking the button flips it (see <see cref="ExecuteToggleModelMode" />).
@@ -678,6 +734,37 @@ namespace CalradiaRemembers.Chat
          _ = RunLlmExchangeAsync(opener, speaker, placeholder, true);
       }
 
+      /// <summary>
+      ///   Opens the interception meeting with the lord speaking FIRST. A lord who rode out to stop the player
+      ///   does not wait to be addressed: this fires an NPC-led opening turn so he raises why he sought them out.
+      ///   The interception directive in the system prompt (EncounterContext.InterceptionReason, resolved on this
+      ///   turn's build) shapes what he opens with. A plain live conversation otherwise (full memory + actions),
+      ///   mirroring the companion-audience opener.
+      /// </summary>
+      public void ActivateInterceptionOpener()
+      {
+         _mode = ChatMode.Conversation;
+
+         ChatSpeaker speaker = MainSpeaker();
+         if (speaker.Profile == null)
+         {
+            ModLog.Error("Interception opener: no profile, cannot open the meeting.");
+
+            return;
+         }
+
+         ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+         _messages.Add(placeholder);
+         IsSendEnabled = false;
+
+         // The lord opens. A synthetic cue, never shown or logged as a player line; the THIS MEETING directive
+         // carries the actual reason he rode out (territorial challenge, or word of a fresh deed).
+         const string opener = "[You rode out and stopped the player on the road. Open the conversation YOURSELF, " +
+                               "in your own voice, on the footing described above. Do not wait for them to speak first.]";
+         MarkOpenerPending();
+         _ = RunLlmExchangeAsync(opener, speaker, placeholder, true);
+      }
+
       /// <summary>Adds a single witness to the session. Used by the console command for testing.</summary>
       public void AddWitness(WitnessEntry entry)
       {
@@ -822,6 +909,71 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   The "Memories" button: opens the left panel listing what this NPC remembers of the player (a
+      ///   read-only view of the shared history, mirroring cr.memory), or closes it if already open. Shares the
+      ///   left area with the review panel, so opening one closes the other.
+      /// </summary>
+      public void ExecuteToggleMemoryPanel()
+      {
+         if (_isMemoryPanelOpen)
+         {
+            IsMemoryPanelOpen = false;
+
+            return;
+         }
+
+         if (_isComposeOpen) IsComposeOpen = false;
+         RefreshMemories();
+         IsMemoryPanelOpen = true;
+      }
+
+      /// <summary>The memory panel's "Close" button.</summary>
+      public void ExecuteCloseMemoryPanel()
+      {
+         if (!_isMemoryPanelOpen) return;
+         IsMemoryPanelOpen = false;
+      }
+
+      /// <summary>
+      ///   Rebuilds the shared-memories list from the current NPC's persisted profile: a read-only mirror of
+      ///   cr.memory, oldest first, so the panel reads like a journal. Called each time the panel opens so it is
+      ///   always current. An NPC with no memory (or a heroless speaker with no persistent profile) shows a
+      ///   single gentle placeholder. Never throws; a reference panel must not risk the conversation.
+      /// </summary>
+      private void RefreshMemories()
+      {
+         try
+         {
+            _memories.Clear();
+
+            NpcProfile profile = MainSpeaker().Profile;
+            MemoryPanelTitle = _npcHero != null
+               ? $"What {_npcName} remembers"
+               : "Shared memories";
+
+            if (profile?.Events == null || profile.Events.Count == 0)
+            {
+               _memories.Add(new MemoryEntryViewModel(
+                  "", "No shared memories yet. They begin to form as the two of you speak and act together."));
+
+               return;
+            }
+
+            var today = (int) CampaignTime.Now.ToDays;
+            foreach (NotableEvent e in profile.Events)
+            {
+               string meta = MemoryDayFormatter.Describe(e.gameDay, today);
+               if (e.type != NotableEventType.Other) meta += $"   ·   {e.type}";
+               _memories.Add(new MemoryEntryViewModel(meta, e.summary));
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"RefreshMemories failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
       ///   Player chose "Continue" during a captive scene pause. Fires one more NPC-led
       ///   narration turn. Input stays locked until the NPC asks a question or the scene ends.
       /// </summary>
@@ -885,6 +1037,7 @@ namespace CalradiaRemembers.Chat
       public void ExecuteOpenCompose()
       {
          if (!IsNormalInputVisible || _isComposeOpen) return;
+         if (_isMemoryPanelOpen) IsMemoryPanelOpen = false; // share the left area with the memory panel
          IsComposeOpen = true;
       }
 
@@ -1327,6 +1480,7 @@ namespace CalradiaRemembers.Chat
       {
          _npcHero = npcHero;
          OnPropertyChanged(nameof(IsEncyclopediaVisible)); // may be set after the prefab loads (captive scenes)
+         OnPropertyChanged(nameof(IsMemoryToggleVisible)); // ditto, the memory button shares this population
          if (!string.IsNullOrWhiteSpace(npcHero?.Name?.ToString())) _npcName = npcHero.Name.ToString();
          TitleText = $"Calradia Remembers — {_npcName}";
          _storyIntroWritten = false;

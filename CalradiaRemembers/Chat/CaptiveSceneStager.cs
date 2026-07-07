@@ -59,7 +59,18 @@ namespace CalradiaRemembers.Chat
             "cr_captive_stage_intercept",
             "start", "cr_captive_stage_hold",
             "So. Here you are.",
-            () => IsStaging,
+            () => IsStaging && _pending?.Kind != StagedSceneKind.PlainConversation,
+            OnInterceptLineReached,
+            200);
+
+         // The same auto-open mechanism, for a plain (non-captive) forced meeting, e.g. a lord who rode out to
+         // intercept the player. A neutral throwaway line wins "start" (covered by the chat within a few frames)
+         // so the vanilla menu the player could dodge never shows.
+         starter.AddDialogLine(
+            "cr_intercept_stage_intercept",
+            "start", "cr_captive_stage_hold",
+            "You. A word, before you go any further.",
+            () => IsStaging && _pending?.Kind == StagedSceneKind.PlainConversation,
             OnInterceptLineReached,
             200);
       }
@@ -125,6 +136,22 @@ namespace CalradiaRemembers.Chat
          PartyBase prisonerParty = prisonerHero?.PartyBelongedToAsPrisoner ?? PartyBase.MainParty;
 
          BeginStagedConversation(pending, partner, prisonerParty, "CAPTOR STAGE");
+      }
+
+      /// <summary>
+      ///   Stages a PLAIN (non-captive) forced meeting with <paramref name="lord" />: a lord who rode out to
+      ///   intercept the player. Opens the ordinary CR conversation chat AUTOMATICALLY over a VRAM-safe
+      ///   conversation scene, so the player cannot dodge the meeting by backing out of a vanilla menu. The
+      ///   interception opener is consumed when the chat's context is built, colouring the lord's first words.
+      /// </summary>
+      public static void StagePlainConversation(Hero lord)
+      {
+         var pending = new Pending {
+            Kind = StagedSceneKind.PlainConversation,
+            Captor = lord
+         };
+
+         BeginStagedConversation(pending, lord?.CharacterObject, lord?.PartyBelongedTo?.Party, "INTERCEPT STAGE");
       }
 
       /// <summary>
@@ -227,6 +254,15 @@ namespace CalradiaRemembers.Chat
 
       private static void OpenDirect(Pending p)
       {
+         if (p.Kind == StagedSceneKind.PlainConversation)
+         {
+            // Open the ordinary CR conversation for the lord, exactly as clicking "A word with you." would, but
+            // programmatically so the meeting cannot be dodged. OneToOneConversationHero is the lord here.
+            Behaviors.NpcMemoryCampaignBehavior.Instance?.DialogFlow?.OpenChatForInterceptingHero(p.Captor);
+
+            return;
+         }
+
          if (p.Kind == StagedSceneKind.CaptorScene)
          {
             ChatManager.OpenForCaptorScene(p.Captor, p.Profile, p.Intent);
@@ -246,7 +282,10 @@ namespace CalradiaRemembers.Chat
          VictimEncounter,
 
          /// <summary>The player holds the NPC prisoner and drives the scene. <see cref="ChatManager.OpenForCaptorScene" />.</summary>
-         CaptorScene
+         CaptorScene,
+
+         /// <summary>A plain forced meeting (a lord who intercepted the player): opens the ordinary CR conversation chat.</summary>
+         PlainConversation
       }
 
       private sealed class Pending

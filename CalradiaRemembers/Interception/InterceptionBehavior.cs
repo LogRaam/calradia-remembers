@@ -5,15 +5,18 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
+using TaleWorlds.MountAndBlade;
 
 #endregion
 
@@ -34,6 +37,11 @@ namespace CalradiaRemembers.Interception
       private const int DailyInterceptChancePercent = 25;
 
       private const float InterceptRange = 40f; // a lord this close can plausibly ride out
+
+      // TUNE: how close the pursuer must come before the meeting is forced open. Small (parties "meet" within
+      // well under a map unit); generous enough that a slightly faster, moving player is still hailed rather
+      // than outrunning the whole meeting. Tune in-game if a lord opens the chat while still visibly distant.
+      private const float ArrivalRange = 1.5f;
       private const int MaxCandidates = 12; // bound the per-day work
       private const int RecentDeedWindowDays = 6;
       public static InterceptionBehavior Instance;
@@ -42,6 +50,10 @@ namespace CalradiaRemembers.Interception
       private string _activePursuerId;
       private int _activePursuerSince = -1;
       private InterceptionTrigger _activePursuerTrigger = InterceptionTrigger.None;
+
+      // Once the meeting has been forced open for the active pursuer, this guards against re-opening it every
+      // frame. Reset when a pursuit begins, is consumed by the chat, or is released.
+      private bool _meetingOpened;
 
       public InterceptionBehavior()
       {
@@ -61,6 +73,7 @@ namespace CalradiaRemembers.Interception
          _activePursuerId = null;
          _activePursuerSince = -1;
          _activePursuerTrigger = InterceptionTrigger.None;
+         _meetingOpened = false;
 
          return trigger == InterceptionTrigger.TerritorialPatrol
             ? "It is YOU who sought this meeting: you rode out to challenge the player for crossing your realm's " +
@@ -102,6 +115,7 @@ namespace CalradiaRemembers.Interception
       {
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
          CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
+         CampaignEvents.TickEvent.AddNonSerializedListener(this, OnTick);
       }
 
       /// <summary>
@@ -249,6 +263,7 @@ namespace CalradiaRemembers.Interception
          _activePursuerId = lord.StringId;
          _activePursuerTrigger = trigger;
          _activePursuerSince = today;
+         _meetingOpened = false;
          _cooldown[lord.StringId] = today;
 
          string line = trigger == InterceptionTrigger.TerritorialPatrol
@@ -277,6 +292,72 @@ namespace CalradiaRemembers.Interception
          catch (Exception ex) { ModLog.Error($"[INTERCEPT] daily tick failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
+      /// <summary>
+      ///   Per-frame arrival check. The lord riding out (<see cref="BeginPursuit" />) only moves them toward the
+      ///   player; an AI engage does NOT reliably open a conversation (a friendly party just stacks, and a moving
+      ///   player is never physically caught), which is why players saw "a lord rides toward me and then nothing
+      ///   comes of it". So the moment the pursuer is on the player and the player is free on the open map, we
+      ///   FORCE the meeting open ourselves, via the same VRAM-safe staged conversation the captive scenes use.
+      ///   It opens the CR chat AUTOMATICALLY (no vanilla menu the player could simply back out of to dodge it).
+      /// </summary>
+      private void OnTick(float dt)
+      {
+         if (_activePursuerId == null || _meetingOpened) return;
+
+         try { TryForceMeeting(); }
+         catch (Exception ex)
+         {
+            _meetingOpened = true; // never re-attempt a throwing open every frame; the daily release clears it
+            ModLog.Error($"[INTERCEPT] forcing the meeting failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      private void TryForceMeeting()
+      {
+         Hero pursuer = FindHero(_activePursuerId);
+         MobileParty pursuerParty = pursuer?.PartyBelongedTo;
+         MobileParty main = MobileParty.MainParty;
+
+         if (pursuer is not {IsAlive: true} || pursuerParty == null || main == null) return;
+         if (pursuerParty.GetPosition2D.Distance(main.GetPosition2D) > ArrivalRange) return;
+         if (!PlayerIsFreeOnMap()) return;
+
+         // Same army guard as BeginPursuit: forcing an encounter/conversation while the player is a subordinate
+         // inside an army crashes deep in the engine.
+         if (PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(pursuerParty)) return;
+
+         // Stage the meeting as a conversation scene (3D, VRAM-safe) and let it open the CR chat on its own. The
+         // interception opener is consumed as the chat's context is built (EncounterContextBuilder ->
+         // ConsumeInterceptionReason), colouring the lord's first words.
+         _meetingOpened = true;
+
+         // The lord has arrived and the meeting is opening: END the engage now. Clearing only our tracking left
+         // the vanilla SetMoveEngageParty in place, so once the conversation ended the lord kept shadowing the
+         // player forever. Standing him down hands him back to his own AI (same primitive as the on-load heal).
+         pursuerParty.SetMoveModeHold();
+
+         CaptiveSceneStager.StagePlainConversation(pursuer);
+         ModLog.Info($"[INTERCEPT] {pursuer.Name} reached the player, forcing the meeting open.");
+      }
+
+      /// <summary>
+      ///   True only when the player is standing free on the open campaign map: not in a scene/battle, an existing
+      ///   conversation, a settlement, an encounter, or a game menu, and with no CR chat already open or staging.
+      ///   Forcing a conversation in any of those states is unsafe or nonsensical.
+      /// </summary>
+      private static bool PlayerIsFreeOnMap()
+      {
+         if (Mission.Current != null) return false;
+         if (Hero.OneToOneConversationHero != null) return false;
+         if (Hero.MainHero?.CurrentSettlement != null) return false;
+         if (PlayerEncounter.Current != null) return false;
+         if (Campaign.Current?.CurrentMenuContext != null) return false;
+         if (ChatManager.IsOpen) return false;
+         if (CaptiveSceneStager.IsStaging) return false;
+
+         return true;
+      }
+
       private void ReleaseStalePursuit(int today)
       {
          if (_activePursuerId == null) return;
@@ -300,9 +381,15 @@ namespace CalradiaRemembers.Interception
 
          if (!invalid && !giveUp) return;
          if (giveUp) ModLog.Info($"[INTERCEPT] {pursuer.Name} gives up the chase.");
+
+         // End the engage on any abandoned chase too, so a lord who timed out or was outrun stops bearing on the
+         // player instead of trailing them indefinitely. Null when the pursuer died (nothing to stand down).
+         pursuerParty?.SetMoveModeHold();
+
          _activePursuerId = null;
          _activePursuerSince = -1;
          _activePursuerTrigger = InterceptionTrigger.None;
+         _meetingOpened = false;
       }
 
       private void TryStartInterception(int today)

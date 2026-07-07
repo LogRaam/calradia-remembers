@@ -353,6 +353,38 @@ namespace CalradiaRemembers.Dialogue
          return true;
       }
 
+      /// <summary>
+      ///   Opens the ordinary CR conversation chat for <paramref name="hero" /> PROGRAMMATICALLY (no player menu
+      ///   click), so a forced meeting (a lord who rode out to intercept the player) cannot be dodged by backing
+      ///   out of the vanilla menu. Called from the staged-conversation opener while the map conversation with the
+      ///   lord is live, so <see cref="Hero.OneToOneConversationHero" /> is that lord. Picks a relation-appropriate
+      ///   greeting and drops any line the staging captured (there is no real vanilla exchange to carry over).
+      /// </summary>
+      public void OpenChatForInterceptingHero(Hero hero)
+      {
+         try
+         {
+            Hero target = hero ?? Hero.OneToOneConversationHero;
+            if (target == null)
+            {
+               ModLog.Error("[INTERCEPT] no hero to open the meeting chat with.");
+
+               return;
+            }
+
+            // Nothing real was said before this staged meeting; drop whatever the recorder caught from the
+            // staging line so it is not seeded into the chat as a spoken line.
+            NpcMemoryCampaignBehavior.Instance?.DialogueRecorder?.Clear();
+
+            // No canned greeting: the lord opens with an LLM-generated line via the NPC-led opener below, so he
+            // does not both greet blandly AND then raise why he rode out.
+            _pendingGreeting = null;
+            OnPlayerSelectedChat();
+            ChatManager.ActiveViewModel?.ActivateInterceptionOpener();
+         }
+         catch (Exception ex) { ModLog.Error($"[INTERCEPT] OpenChatForInterceptingHero failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
       private void OnPlayerSelectedChat()
       {
          ModLog.Info("=== OnPlayerSelectedChat STARTED ===");
@@ -377,7 +409,9 @@ namespace CalradiaRemembers.Dialogue
             }
 
             Profile = GetOrCreateProfile(hero, behavior.Store);
-            Context = EncounterContextBuilder.Build(hero, Profile, behavior.GameStateBridge);
+            // resolveInterception:false, since this open-time context is never fed to the model (each LLM turn rebuilds
+            // its own), so it must not consume the one-shot interception directive before the first turn does.
+            Context = EncounterContextBuilder.Build(hero, Profile, behavior.GameStateBridge, resolveInterception: false);
             Session = new ChatSession();
 
             string npcName = hero.Name?.ToString() ?? "the lord";

@@ -38,6 +38,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TraitFacts = CalradiaRemembers.Logic.Appreciations.TraitFacts;
 
@@ -87,6 +88,7 @@ namespace CalradiaRemembers.Diagnostics
       /// <summary>The registry. To add a test: write a method, then add one line here.</summary>
       private static readonly List<SelfTest> Tests = new() {
          new SelfTest("providegold", Severity.Light, "seed ProvideGold -> take_gold -> assert stamped", TestProvideGold),
+         new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
          new SelfTest("succession", Severity.Light, "seed private+public events -> Apply -> assert private dropped", TestSuccession),
          new SelfTest("recruit", Severity.Heavy, "eligible lord -> join_clan -> assert he moved into your clan", TestRecruit),
@@ -3910,6 +3912,55 @@ namespace CalradiaRemembers.Diagnostics
          bool stillOpen = profile.ActiveQuests.Any(q => q.Type == QuestType.ProvideGold && q.IsOutstanding);
          t.Note($"giver={giver.Name}");
          t.Expect("stamped", !stillOpen, true);
+
+         return t.Line();
+      }
+
+      private static string TestQuestHideout(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("quest_hideout");
+
+         bool Infested(Settlement h)
+         {
+            try { return h.Hideout != null && h.Hideout.IsInfested; }
+            catch { return false; }
+         }
+
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+         if (t.Skip(giver == null, "no live lords in this campaign")) return t.Line();
+
+         // Pick a town that actually has an infested lair in range, so the real pipeline can bind one and the
+         // assertions are meaningful. A slightly tighter radius than QuestFactory's guarantees it will also find it.
+         Settlement town = Settlement.All.FirstOrDefault(s =>
+            s.IsTown && Settlement.All.Any(h => h.IsHideout && Infested(h) && h.GetPosition2D.Distance(s.GetPosition2D) <= 70f));
+
+         if (t.Skip(town == null, "no town has an infested hideout in range; the quest is correctly refusable only")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         QuestService.ApplyResponse(
+            profile, giver,
+            new ParsedResponse {
+               Dialogue = "",
+               QuestGiven = new QuestProposal {
+                  Type = QuestType.BanditHideout,
+                  TargetSettlement = town.Name?.ToString(),
+                  Description = $"[SELFTEST] {giver.Name} asks you to clear a lair.",
+                  RewardGold = 200
+               }
+            },
+            behavior.GameStateBridge.GetCurrentGameDay(),
+            behavior.GameStateBridge, behavior.Store, null);
+
+         profile = behavior.Store.Get(giver.StringId);
+         InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.BanditHideout && q.IsOutstanding);
+
+         if (t.Abort(quest == null, $"the pipeline seeded no hideout quest for {giver.Name} despite an in-range lair")) return t.Line();
+
+         Settlement lair = Settlement.All.FirstOrDefault(s => s.StringId == quest.TargetHideoutId);
+         t.Note($"giver={giver.Name} anchor={quest.TargetSettlement} dir='{quest.DirectionHint}'");
+         t.Expect("boundRealLair", !string.IsNullOrEmpty(quest.TargetHideoutId), true);
+         t.Expect("hasBearing", !string.IsNullOrWhiteSpace(quest.DirectionHint), true);
+         t.Expect("lairIsRealHideout", lair != null && lair.IsHideout, true);
 
          return t.Line();
       }

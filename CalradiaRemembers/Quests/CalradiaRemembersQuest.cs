@@ -7,6 +7,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
 
@@ -55,8 +56,13 @@ namespace CalradiaRemembers.Quests
          _questKey = BuildQuestKey(giver, quest);
 
          AddLog(BuildDescriptionText(quest));
+         // A factual bearing the LLM's own description may not carry, so the player is pointed to the region of
+         // a lair that stays hidden until scouted (the map marker sits on the anchor town, not the hidden lair).
+         if (!string.IsNullOrWhiteSpace(quest.DirectionHint))
+            AddLog(new TextObject($"The lair lies to the {quest.DirectionHint}."));
          SetDialogs();
          StartQuest();
+         TrackTarget(quest);
       }
 
       // We manage deadline ourselves in QuestService.RunDailyMaintenance —
@@ -121,6 +127,51 @@ namespace CalradiaRemembers.Quests
       }
 
       #region private
+
+      /// <summary>
+      ///   Places a map marker on the deed's target so the player can actually find where to go: the hero to
+      ///   capture / kill / rescue / deliver to / scout (preferred when the quest is hero-bound), otherwise the
+      ///   settlement to clear bandits around, besiege, or raid. Faction-bound deeds (attack a kingdom, a
+      ///   caravan) have no single point and simply show no marker. Best-effort and never throws: an
+      ///   unresolvable target just leaves the quest markerless, as before.
+      /// </summary>
+      private void TrackTarget(InformalQuest quest)
+      {
+         try
+         {
+            if (!string.IsNullOrWhiteSpace(quest.TargetHeroId))
+            {
+               Hero hero = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+               if (hero != null)
+               {
+                  AddTrackedObject(hero);
+
+                  return;
+               }
+            }
+
+            if (string.IsNullOrWhiteSpace(quest.TargetSettlement)) return;
+
+            Settlement settlement = ResolveSettlementByName(quest.TargetSettlement);
+            if (settlement != null) AddTrackedObject(settlement);
+         }
+         catch (Exception ex) { ModLog.Error($"[QUEST-JOURNAL] TrackTarget failed: {ex.Message}"); }
+      }
+
+      /// <summary>Resolves a settlement by display name (exact preferred), matching how QuestFactory bound it.</summary>
+      private static Settlement ResolveSettlementByName(string name)
+      {
+         Settlement match = null;
+         foreach (Settlement s in Settlement.All)
+         {
+            string sn = s?.Name?.ToString();
+            if (string.IsNullOrEmpty(sn)) continue;
+            if (string.Equals(sn, name, StringComparison.OrdinalIgnoreCase)) return s;
+            if (match == null && sn.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0) match = s;
+         }
+
+         return match;
+      }
 
       private static TextObject BuildDescriptionText(InformalQuest quest) => new(quest.Description);
 

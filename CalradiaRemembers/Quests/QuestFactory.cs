@@ -32,6 +32,10 @@ namespace CalradiaRemembers.Quests
       private const int MaxRewardGold = 5000;
       private const int MaxRewardRelation = 10;
 
+      // TUNE: generous radius (campaign-map units) around the named town within which a real, still-infested
+      // hideout must exist for the giver to send the player after it. No lair in range => no such task to give.
+      private const float HideoutSearchRadius = 80f;
+
       /// <summary>
       ///   Builds the quest, or returns null when the proposal cannot be grounded in
       ///   the current game world (no such settlement/hero/faction for its type).
@@ -133,6 +137,81 @@ namespace CalradiaRemembers.Quests
          quest.TargetHeroName = h.Name?.ToString();
 
          return true;
+      }
+
+      /// <summary>
+      ///   Binds a hideout deed to a specific, still-infested lair near a named town. The town (the giver's if
+      ///   they named nothing resolvable) is the anchor for the bearing the player is given; the lair is the one
+      ///   whose clearing satisfies the quest. Returns false when no clearable lair lies within
+      ///   <see cref="HideoutSearchRadius" /> of the anchor, so the giver never offers an impossible hunt.
+      /// </summary>
+      private static bool BindHideout(InformalQuest quest, string townName, Hero giver)
+      {
+         Settlement anchor = ResolveSettlement(townName) ?? NearestTownTo(giver);
+         if (anchor == null) return false;
+
+         Settlement lair = NearestActiveHideout(anchor.GetPosition2D, HideoutSearchRadius);
+         if (lair == null) return false;
+
+         quest.TargetSettlement = anchor.Name?.ToString();
+         quest.TargetHideoutId = lair.StringId;
+
+         Vec2 a = anchor.GetPosition2D,
+              h = lair.GetPosition2D;
+         string bearing = CalradiaRemembers.Logic.CardinalDirectionPolicy.Describe(a.x, a.y, h.x, h.y);
+         quest.DirectionHint = $"{bearing} of {anchor.Name}";
+
+         return true;
+      }
+
+      /// <summary>The nearest still-infested (uncleared) bandit hideout within <paramref name="maxDistance" />, or null.</summary>
+      private static Settlement NearestActiveHideout(Vec2 from, float maxDistance)
+      {
+         Settlement best = null;
+         float bestDist = maxDistance;
+
+         foreach (Settlement s in Settlement.All)
+         {
+            if (s == null || !s.IsHideout) continue;
+
+            try
+            {
+               if (s.Hideout == null || !s.Hideout.IsInfested) continue;
+            }
+            catch { continue; } // a build where the hideout state cannot be read: treat as ineligible
+
+            float d = s.GetPosition2D.Distance(from);
+            if (d > bestDist) continue;
+            bestDist = d;
+            best = s;
+         }
+
+         return best;
+      }
+
+      /// <summary>The nearest real settlement to <paramref name="giver" />, used as the bearing anchor when they named no resolvable town.</summary>
+      private static Settlement NearestTownTo(Hero giver)
+      {
+         Vec2? pos = giver?.PartyBelongedTo?.GetPosition2D
+                  ?? giver?.CurrentSettlement?.GetPosition2D
+                  ?? giver?.HomeSettlement?.GetPosition2D;
+
+         if (pos == null) return null;
+
+         Settlement best = null;
+         float bestDist = float.MaxValue;
+
+         foreach (Settlement s in Settlement.All)
+         {
+            if (s == null || !(s.IsTown || s.IsCastle || s.IsVillage)) continue;
+
+            float d = s.GetPosition2D.Distance(pos.Value);
+            if (d >= bestDist) continue;
+            bestDist = d;
+            best = s;
+         }
+
+         return best;
       }
 
       private static bool BindSettlement(InformalQuest quest,
@@ -279,8 +358,13 @@ namespace CalradiaRemembers.Quests
          switch (proposal.Type)
          {
             case QuestType.BanditClear:
-            case QuestType.BanditHideout:
                return BindSettlement(quest, proposal.TargetSettlement);
+
+            case QuestType.BanditHideout:
+               // Bind a REAL, still-infested lair in the region so the deed is concrete and trackable, and,
+               // since only the player can ever clear a hideout, unambiguously the player's own deed. If none
+               // exists near the named town, the giver has no such task to give and the proposal is refused.
+               return BindHideout(quest, proposal.TargetSettlement, giver);
 
             case QuestType.Siege:
                return BindSettlement(quest, proposal.TargetSettlement, requireFortification: true);

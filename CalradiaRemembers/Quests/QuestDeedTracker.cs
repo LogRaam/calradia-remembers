@@ -38,6 +38,10 @@ namespace CalradiaRemembers.Quests
       // Visual detection radius in campaign-map units (matches typical party spotting range).
       private const float ScoutRangeUnits = 3.0f;
 
+      // TUNE: generous radius (campaign-map units) around the quest's named town within which bandits felled in
+      // the open count as clearing them "near" that town, replacing the brittle exact-settlement-name match.
+      private const float BanditClearZoneRadius = 80f;
+
       public void Subscribe()
       {
          CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
@@ -65,6 +69,12 @@ namespace CalradiaRemembers.Quests
          public HashSet<string> LoserFactionIds = new();
          public bool LosersAreBandits;
          public string SettlementName;
+
+         // The specific hideout that fell (its settlement id), for a hideout battle; null otherwise.
+         public string HideoutSettlementId;
+
+         // Where the battle happened (the player's own position at its end), for zone-based bandit-clear matching.
+         public Vec2 BattlePosition;
       }
 
       #region private
@@ -200,20 +210,27 @@ namespace CalradiaRemembers.Quests
          switch (quest.Type)
          {
             case QuestType.BanditClear:
-               return f.LosersAreBandits && !f.IsHideout && SettlementMatches(quest, f)
+               // Zone-based, not an exact settlement-name match: bandits felled in the open anywhere within a
+               // generous radius of the named town count. The old exact match left the player unable to complete
+               // after clearing bandits that reported a slightly different nearest settlement.
+               return f.LosersAreBandits && !f.IsHideout && (SettlementMatches(quest, f) || WithinBanditClearZone(quest, f))
                   ? $"Defeated the bandits near {quest.TargetSettlement} on day {day}"
                   : null;
 
             case QuestType.BanditHideout:
-               // A hideout battle reports the hidden lair itself as its settlement, so the
-               // nearest NAMED settlement at battle's end rarely equals the one named when
-               // the quest was issued — requiring an exact match left these quests forever
-               // unverifiable (the player clears the lair but the deed never registers, and
-               // the NPC ends up "rewarding" it ad hoc, repeatedly). Since only one quest is
-               // ever outstanding per giver, clearing any bandit hideout is accepted as the deed.
-               return f.LosersAreBandits && f.IsHideout
-                  ? $"Cleared the bandit hideout near {quest.TargetSettlement} on day {day}"
-                  : null;
+               if (!f.LosersAreBandits || !f.IsHideout) return null;
+
+               // New quests are bound to a SPECIFIC existing lair (chosen in the giver's region at issue time);
+               // only that lair's fall counts, and since only the player can ever clear a hideout, its fall is
+               // unambiguously their deed. Quests saved before this carry no target lair and, as before, accept
+               // any hideout clear so they stay completable.
+               if (!string.IsNullOrEmpty(quest.TargetHideoutId)
+                   && !string.Equals(quest.TargetHideoutId, f.HideoutSettlementId, StringComparison.Ordinal))
+                  return null;
+
+               return quest.DirectionHint != null
+                  ? $"Cleared the bandit hideout {quest.DirectionHint} on day {day}"
+                  : $"Cleared the bandit hideout near {quest.TargetSettlement} on day {day}";
 
             case QuestType.AttackFaction:
                return quest.TargetFactionId != null && f.LoserFactionIds.Contains(quest.TargetFactionId)
@@ -304,6 +321,26 @@ namespace CalradiaRemembers.Quests
 
       private static bool SettlementMatches(InformalQuest quest, BattleFacts f)
          => !string.IsNullOrWhiteSpace(quest.TargetSettlement) && string.Equals(quest.TargetSettlement, f.SettlementName, StringComparison.OrdinalIgnoreCase);
+
+      /// <summary>True when the battle happened within a generous radius of the quest's named town.</summary>
+      private static bool WithinBanditClearZone(InformalQuest quest, BattleFacts f)
+      {
+         Settlement town = ResolveSettlementByName(quest.TargetSettlement);
+
+         return town != null && town.GetPosition2D.Distance(f.BattlePosition) <= BanditClearZoneRadius;
+      }
+
+      /// <summary>Resolves a settlement by its display name (exact match), or null.</summary>
+      private static Settlement ResolveSettlementByName(string name)
+      {
+         if (string.IsNullOrWhiteSpace(name)) return null;
+
+         foreach (Settlement s in Settlement.All)
+            if (string.Equals(s?.Name?.ToString(), name, StringComparison.OrdinalIgnoreCase))
+               return s;
+
+         return null;
+      }
 
       private static void Stamp(NpcProfile profile, InformalQuest quest, string evidence, int day)
       {
@@ -428,7 +465,13 @@ namespace CalradiaRemembers.Quests
             // Heroes the defeated parties were holding prisoner — the player just
             // freed them by winning this battle. Read before the aftermath scatters them.
             FreedPrisonerHeroIds = new HashSet<string>(losers.SelectMany(PrisonerHeroIds)),
-            SettlementName = ResolveBattleSettlementName(mapEvent)
+            SettlementName = ResolveBattleSettlementName(mapEvent),
+            // The specific lair that fell (a hideout battle's settlement IS the hideout), for targeted matching.
+            HideoutSettlementId = mapEvent.IsHideoutBattle
+               ? mapEvent.MapEventSettlement?.StringId
+               : null,
+            // The player fought here, so their party position marks where the battle was, for zone matching.
+            BattlePosition = MobileParty.MainParty?.GetPosition2D ?? default
          };
 
          int day = CurrentDay();

@@ -95,7 +95,8 @@ namespace CalradiaRemembers.Mapping
          bool playerCoercedAgainstCompanion = false,
          bool captiveVictimIsFemale = false,
          CompanionAudienceReason companionAudience = CompanionAudienceReason.None,
-         bool audienceRetirementIsLanded = false)
+         bool audienceRetirementIsLanded = false,
+         bool resolveInterception = true)
       {
          int daysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge);
          bool npcIsPrisonerOfAnother = IsPrisonerOfAnother(hero);
@@ -159,7 +160,10 @@ namespace CalradiaRemembers.Mapping
             LordRecruitEligible = ResolveLordRecruitEligible(hero, profile),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
-            InterceptionReason = ResolveInterceptionReason(hero),
+            // One-shot and consumed on read, so ONLY resolve it on a real LLM turn, never on the dead
+            // open-time build in OnPlayerSelectedChat, which would swallow the directive before the lord ever
+            // speaks (the reason the interception opener never actually reached the model).
+            InterceptionReason = resolveInterception ? ResolveInterceptionReason(hero) : null,
             StanceNote = StanceService.Describe(profile),
             StanceConsequenceHint = ResolveStanceConsequenceHint(hero, profile),
             GrudgeNote = ResolveGrudgeNote(hero, profile),

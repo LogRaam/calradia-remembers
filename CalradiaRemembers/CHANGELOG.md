@@ -2,6 +2,19 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.24.0.. 2026-07-07
+
+Straight from your comments. Lords who ride up to you now actually talk, the tasks NPCs give you can actually be finished, and you can glance back at what someone remembers of you without ever leaving the chat.
+
+### Fixed
+- Lords who ride out to meet you now truly meet you. Several of you reported a lord galloping toward you on the map after some deed, a notice popping up.. and then nothing, the meeting never opening. Now, the moment they reach you, the conversation opens on its own in a proper scene, and they speak first: they raise why they sought you out, be it a challenge for crossing their lands or word of what you have just done. It can no longer be missed by walking away, and it cannot come to nothing.
+- Tasks you are given can actually be completed now. Several problems were tangled together here. A character could describe a task the game could never honour, asking you to "bring back proof" (a blade, a banner, a captive) that exists as no real item. That is gone: a task is proven by the deed itself, which the game verifies from real events, and the giver now says so plainly and tells you where to go instead of inventing an errand you cannot finish.
+- Bandit tasks are far easier to finish honestly. Clearing the enemy anywhere in the region around the named town now counts, rather than demanding an exact, fragile match on a single settlement name. A "clear the hideout" task now names a real, existing lair and points you toward it ("the lair lies to the north of.."), and felling it is recognised as your deed. Such a task is never given at all when no real lair sits nearby.
+- Tasks now drop a marker on the map for their target, the settlement or the person, so you are no longer left guessing where to ride.
+
+### New
+- A "Shared memories" panel, right in the chat. While you speak with someone you have met before, a Memories button opens a side panel that lays out, plainly, everything they remember of you.. each entry dated, oldest first, like a shared journal. Read-only for now; editing your history from the panel will follow.
+
 ## v1.23.0.. 2026-07-05
 
 A big update. Captivity becomes a scene you are truly in, the bandit chief who takes you gains a name and a memory, and the graphics crash a few of you ran into is gone at the root.
