@@ -24,15 +24,15 @@ namespace CalradiaRemembers.Logic
    /// </summary>
    public static class CaptiveEncounterPolicy
    {
-      private const float BaseProbabilityPerDay = 0.10f;
+      private const float BaseProbabilityPerDay = 0.15f;
       private const float KinkBonusDominance = 0.05f;
       private const float KinkBonusFreeUse = 0.10f;
       private const float KinkBonusMasterSlave = 0.05f;
 
       private const float KinkBonusPowerImbalance = 0.10f;
       private const float KinkBonusSadism = 0.05f;
-      private const float MaxBaseProbability = 0.50f;
-      private const float MaxTotalProbability = 0.60f;
+      private const float MaxBaseProbability = 0.60f;
+      private const float MaxTotalProbability = 0.70f;
 
       // ── SelectIntent weighted draw (01/07/2026) ─────────────────────────
       private const int IntentFloorWeight = 10; // Interrogation/PersonalDesire/Domination/Torture: never zero.

@@ -17,9 +17,9 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_capped_base_plus_bonuses_WHEN_computing_probability_THEN_the_total_is_capped()
       {
-         //Arrange — base 0.50 + 0.20 bonus = 0.70, but the total caps at 0.60.
+         //Arrange: base capped 0.60 + 0.20 bonus = 0.80, but the total caps at 0.70.
          CaptiveEncounterPolicy.EncounterProbability(10, Kinks(Kink.PowerImbalance, Kink.FreeUse))
-                               .Should().BeApproximately(0.60f, 0.0001f);
+                               .Should().BeApproximately(0.70f, 0.0001f);
       }
 
       // ── Bandit captor rolls (added 01/07/2026) ──────────────────────────────
@@ -38,14 +38,14 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_few_days_and_no_kinks_WHEN_computing_probability_THEN_it_climbs_with_the_days()
       {
-         CaptiveEncounterPolicy.EncounterProbability(3, Kinks()).Should().BeApproximately(0.30f, 0.0001f);
+         CaptiveEncounterPolicy.EncounterProbability(3, Kinks()).Should().BeApproximately(0.45f, 0.0001f);
       }
 
       [Test]
       public void GIVEN_a_kink_that_carries_no_bonus_WHEN_computing_probability_THEN_only_the_base_applies()
       {
-         //Arrange — Praise is not one of the predatory bonus kinks.
-         CaptiveEncounterPolicy.EncounterProbability(3, Kinks(Kink.Praise)).Should().BeApproximately(0.30f, 0.0001f);
+         //Arrange: Praise is not one of the predatory bonus kinks.
+         CaptiveEncounterPolicy.EncounterProbability(3, Kinks(Kink.Praise)).Should().BeApproximately(0.45f, 0.0001f);
       }
 
       [Test]
@@ -58,8 +58,8 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_long_captivity_WHEN_computing_probability_THEN_the_base_caps()
       {
-         //Arrange — 10 days would be 1.0, but the base is capped at 0.50.
-         CaptiveEncounterPolicy.EncounterProbability(10, Kinks()).Should().BeApproximately(0.50f, 0.0001f);
+         //Arrange: 10 days would be 1.5, but the base is capped at 0.60.
+         CaptiveEncounterPolicy.EncounterProbability(10, Kinks()).Should().BeApproximately(0.60f, 0.0001f);
       }
 
       [Test]
@@ -185,7 +185,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_null_kinks_WHEN_computing_probability_THEN_only_the_base_applies()
       {
-         CaptiveEncounterPolicy.EncounterProbability(2, null).Should().BeApproximately(0.20f, 0.0001f);
+         CaptiveEncounterPolicy.EncounterProbability(2, null).Should().BeApproximately(0.30f, 0.0001f);
       }
 
       [Test]
@@ -197,9 +197,9 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_predatory_kinks_WHEN_computing_probability_THEN_their_bonuses_add()
       {
-         //Arrange — 3 days (0.30) + PowerImbalance (0.10) + FreeUse (0.10) = 0.50.
+         //Arrange: 3 days (0.45) + PowerImbalance (0.10) + FreeUse (0.10) = 0.65.
          CaptiveEncounterPolicy.EncounterProbability(3, Kinks(Kink.PowerImbalance, Kink.FreeUse))
-                               .Should().BeApproximately(0.50f, 0.0001f);
+                               .Should().BeApproximately(0.65f, 0.0001f);
       }
 
       [Test]

@@ -37,7 +37,7 @@ namespace CalradiaRemembers.Letters
    {
       // Timing constants (the probability + intent tuning now lives in the pure, unit-tested
       // CalradiaRemembers.Logic.CaptiveEncounterPolicy).
-      private const int CooldownDays = 2;
+      private const int CooldownDays = 1;
       private const int MinDaysBeforeFirstTrigger = 1;
 
       private static readonly string[] BanditEpithets = {

@@ -71,17 +71,13 @@ namespace CalradiaRemembers.Letters
             return false;
          }
 
-         // A nemesis is too careful to let the player slip away by luck: fully suppress the vanilla drip, so
-         // the only luck exit is the decaying scene-escape (you cannot simply wait a nemesis out).
-         if (Nemesis.NemesisBehavior.Instance?.PlayerHeldByNemesis() == true)
-         {
-            ModLog.Info("[CAPTIVITY] vanilla escape suppressed — a nemesis does not let you slip away by chance.");
+         // A nemesis suppresses the drip harder than an ordinary captor and tightens his guard with every
+         // recapture, but never fully: a slim passive chance always remains, so the player is not left to wait
+         // out days with no exit. Ordinary captors keep the flat suppress.
+         double suppress = Nemesis.NemesisBehavior.Instance?.ActiveNemesisVanillaSuppressChance() ?? EscapeSuppressChance;
 
-            return false;
-         }
-
-         if (!(MBRandom.RandomFloat < EscapeSuppressChance)) return true; // the escape stands this time
-         ModLog.Info($"[CAPTIVITY] vanilla escape '{menuId}' re-rolled away — the player stays captive.");
+         if (!(MBRandom.RandomFloat < suppress)) return true; // the escape stands this time
+         ModLog.Info($"[CAPTIVITY] vanilla escape '{menuId}' re-rolled away (suppress {suppress:0.00}); the player stays captive.");
 
          return false;
       }

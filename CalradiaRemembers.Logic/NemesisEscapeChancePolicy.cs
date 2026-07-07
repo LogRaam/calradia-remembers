@@ -28,6 +28,15 @@ namespace CalradiaRemembers.Logic
         /// <summary>TUNE: the floor a decaying chance never falls below, so a nemesis is never a perfect, hopeless cage.</summary>
         public const double MinEscapeChance = 0.02;
 
+        /// <summary>TUNE: fraction of the vanilla spontaneous-escape drip a nemesis suppresses on the FIRST captivity (no prior recapture). Below 1.0 on purpose: a fresh nemesis is not a perfect passive cage, about one offered escape in five still stands.</summary>
+        public const double VanillaDripSuppressBase = 0.80;
+
+        /// <summary>TUNE: how much more of the drip the nemesis suppresses per prior recapture, as he tightens his guard.</summary>
+        public const double VanillaDripSuppressPerRecapture = 0.05;
+
+        /// <summary>TUNE: the ceiling on drip suppression, so even a many-times nemesis leaves a slim passive chance (never a hopeless cage).</summary>
+        public const double VanillaDripSuppressMax = 0.95;
+
         /// <summary>
         ///   The scene-escape chance against a nemesis who has already recaptured the player
         ///   <paramref name="recaptureCount"/> times (0 on the first captivity). Decays linearly by
@@ -41,6 +50,21 @@ namespace CalradiaRemembers.Logic
             double chance = BaseEscapeChance - recaptureCount * DropPerRecapture;
 
             return chance < MinEscapeChance ? MinEscapeChance : chance;
+        }
+
+        /// <summary>
+        ///   The fraction of vanilla spontaneous-escape rolls a NEMESIS captor suppresses, rising with each
+        ///   prior recapture as he tightens his guard, clamped to <see cref="VanillaDripSuppressMax"/> so a
+        ///   passive escape is always at least slimly possible (the player is never left to wait out days with
+        ///   no exit). A negative count is treated as zero. The passive-drip mirror of <see cref="EscapeChance"/>.
+        /// </summary>
+        public static double VanillaDripSuppressChance(int recaptureCount)
+        {
+            if (recaptureCount < 0) recaptureCount = 0;
+
+            double suppress = VanillaDripSuppressBase + recaptureCount * VanillaDripSuppressPerRecapture;
+
+            return suppress > VanillaDripSuppressMax ? VanillaDripSuppressMax : suppress;
         }
     }
 }

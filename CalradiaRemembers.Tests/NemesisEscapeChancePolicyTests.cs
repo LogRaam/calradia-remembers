@@ -52,5 +52,41 @@ namespace CalradiaRemembers.Tests
         {
             NemesisEscapeChancePolicy.EscapeChance(-5).Should().Be(NemesisEscapeChancePolicy.BaseEscapeChance);
         }
+
+        [Test]
+        public void GIVEN_a_first_captivity_WHEN_resolving_the_vanilla_drip_suppress_THEN_it_is_the_base_and_leaves_a_real_chance()
+        {
+            double suppress = NemesisEscapeChancePolicy.VanillaDripSuppressChance(0);
+
+            suppress.Should().Be(NemesisEscapeChancePolicy.VanillaDripSuppressBase);
+            suppress.Should().BeLessThan(1.0, "a fresh nemesis never fully suppresses the passive escape");
+        }
+
+        [Test]
+        public void GIVEN_one_prior_recapture_WHEN_resolving_the_vanilla_drip_suppress_THEN_it_has_tightened_by_one_step()
+        {
+            NemesisEscapeChancePolicy.VanillaDripSuppressChance(1)
+                .Should().BeApproximately(NemesisEscapeChancePolicy.VanillaDripSuppressBase + NemesisEscapeChancePolicy.VanillaDripSuppressPerRecapture, 1e-9);
+        }
+
+        [Test]
+        public void GIVEN_growing_recapture_counts_WHEN_resolving_the_vanilla_drip_suppress_THEN_it_never_decreases_and_never_fully_cages()
+        {
+            double previous = 0.0;
+            for (int recaptures = 0; recaptures <= 20; recaptures++)
+            {
+                double suppress = NemesisEscapeChancePolicy.VanillaDripSuppressChance(recaptures);
+                suppress.Should().BeGreaterThanOrEqualTo(previous);
+                suppress.Should().BeLessThanOrEqualTo(NemesisEscapeChancePolicy.VanillaDripSuppressMax);
+                suppress.Should().BeLessThan(1.0);
+                previous = suppress;
+            }
+        }
+
+        [Test]
+        public void GIVEN_a_negative_recapture_count_WHEN_resolving_the_vanilla_drip_suppress_THEN_it_is_treated_as_a_first_captivity()
+        {
+            NemesisEscapeChancePolicy.VanillaDripSuppressChance(-3).Should().Be(NemesisEscapeChancePolicy.VanillaDripSuppressBase);
+        }
     }
 }

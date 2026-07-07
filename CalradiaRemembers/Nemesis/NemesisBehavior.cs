@@ -130,6 +130,22 @@ namespace CalradiaRemembers.Nemesis
       }
 
       /// <summary>
+      ///   The fraction of vanilla spontaneous-escape rolls to suppress against the ACTIVE nemesis captor,
+      ///   rising with each prior recapture (<see cref="NemesisEscapeChancePolicy" />), or null when the
+      ///   player's captor is not a nemesis (the caller then keeps its ordinary flat suppress). A nemesis is
+      ///   harder to slip than an ordinary captor, yet never impossible: a slim passive chance always remains.
+      /// </summary>
+      public double? ActiveNemesisVanillaSuppressChance()
+      {
+         if (_activeNemesisHero == null || Hero.MainHero?.IsPrisoner != true) return null;
+
+         NemesisIdentity nem = GetByHero(_activeNemesisHero.StringId);
+         if (nem == null) return null;
+
+         return NemesisEscapeChancePolicy.VanillaDripSuppressChance(nem.RecaptureCount);
+      }
+
+      /// <summary>
       ///   True when the player is CURRENTLY held prisoner by the recorded nemesis party. The vanilla
       ///   spontaneous-escape drip is then fully suppressed, so the only luck exit is the decaying
       ///   scene-escape (you cannot simply wait a nemesis out).
