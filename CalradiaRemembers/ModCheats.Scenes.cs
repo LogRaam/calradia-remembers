@@ -176,6 +176,120 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.nemesis_kill [name]
+      ///   Nemesis pillar increment 2 (R1 test harness): simulates a BATTLE death (not an execution) of
+      ///   the named tracked nemesis, or the first living one on the roster if no name matches. Runs the
+      ///   exact same NemesisResolutionBehavior.Resolve code path the real HeroKilledEvent hook uses.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis_kill", "cr")]
+      public static string ForceNemesisKilledInBattle(List<string> args)
+         => ForceNemesisResolution(args, false);
+
+      /// <summary>
+      ///   cr.nemesis_execute [name]
+      ///   Nemesis pillar increment 2 (R2 test harness): simulates an EXECUTION of the named tracked
+      ///   nemesis, or the first living one on the roster if no name matches. Runs the exact same
+      ///   NemesisResolutionBehavior.Resolve code path the real HeroKilledEvent hook uses.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis_execute", "cr")]
+      public static string ForceNemesisExecuted(List<string> args)
+         => ForceNemesisResolution(args, true);
+
+      /// <summary>
+      ///   cr.nemesis_captor_scene [interrogation|desire|domination|torture|training|reward]
+      ///   Nemesis pillar increment 2 (R3 test harness): opens a PLAYER-AS-CAPTOR scene against the
+      ///   first tracked nemesis with a bound Hero, the inversion of his earlier captivity of the
+      ///   player. Confirms his existing memory profile (built in increment 1) loads automatically, since
+      ///   the scene keys off his Hero/StringId exactly like cr.captor_scene. Routes through
+      ///   CaptiveSceneStager.StageCaptorScene (the VRAM-safe staged-conversation path, no live conversation
+      ///   to ride from the console), unlike the real in-game entry point (NemesisPrisonerDialogFlow's
+      ///   hero_main_options line, reached from the party-screen Talk on a held nemesis), which opens
+      ///   directly via ChatManager.OpenForCaptorScene because it already rides a live conversation scene.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis_captor_scene", "cr")]
+      public static string ForceNemesisCaptorScene(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         if (behavior.LlmServices is not {IsAvailable: true}) return "LLM services not available. Set your OpenRouter API key first.";
+
+         Nemesis.NemesisBehavior b = Nemesis.NemesisBehavior.Instance;
+         if (b == null) return "NemesisBehavior not available (load a campaign first).";
+
+         var intent = CaptiveSceneIntent.Interrogation;
+         foreach (string arg in args ?? new List<string>())
+            Enum.TryParse(arg, true, out intent);
+
+         NemesisIdentity nem = b.All.FirstOrDefault(n => !string.IsNullOrEmpty(n.HeroStringId));
+         if (nem == null) return "No nemesis has a bound Hero yet. Get captured by a bandit party first (or cr.nemesis to check the roster).";
+
+         Hero nemesisHero = Hero.FindFirst(h => h != null && h.StringId == nem.HeroStringId);
+         if (nemesisHero == null) return $"{nem.Name} {nem.Epithet}'s Hero could not be resolved (StringId {nem.HeroStringId}).";
+
+         NpcProfile profile = behavior.Store?.Get(nemesisHero.StringId) ?? HeroProfileMapper.FromHero(nemesisHero);
+         Chat.CaptiveSceneStager.StageCaptorScene(nemesisHero, profile, intent);
+
+         return $"Staging captor scene with {nem.Name} {nem.Epithet} as YOUR prisoner (the inversion; intent {intent}). " +
+                $"Alive={nem.IsAlive}. The chat opens once the scene loads.";
+      }
+
+      /// <summary>
+      ///   cr.execute_prisoner [name]
+      ///   Nemesis pillar increment 2 (R2 execute, chat-driven entry point): exercises the
+      ///   execute_prisoner bridge action directly, the same call BannerlordGameStateBridge.ExecuteAction
+      ///   makes when the LLM emits it during a player-as-captor scene (NemesisPrisonerDialogFlow /
+      ///   cr.nemesis_captor_scene). Targets the named hero, else the tracked nemesis currently held
+      ///   prisoner (see cr.nemesis), else the current conversation partner. The bridge re-validates
+      ///   custody itself, so this is not a forced test framing: the target must be a REAL prisoner
+      ///   of the player.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("execute_prisoner", "cr")]
+      public static string ForceExecutePrisoner(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = args is {Count: > 0} ? ResolveHero(args) : null;
+         hero ??= Nemesis.NemesisBehavior.Instance?.PlayerHeldNemesisPrisoner();
+         hero ??= Hero.OneToOneConversationHero;
+
+         if (hero == null)
+            return "No prisoner found. Pass a name fragment, or hold a nemesis/hero prisoner first (cr.capture <name>).";
+
+         NpcProfile profile = behavior.Store?.Get(hero.StringId) ?? HeroProfileMapper.FromHero(hero);
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "execute_prisoner"}, hero, new ActionContext(profile, null));
+
+         return outcome?.Message ?? $"execute_prisoner produced no outcome for {hero.Name} (not currently your prisoner?).";
+      }
+
+      #region private nemesis resolution harness
+
+      private static string ForceNemesisResolution(List<string> args, bool wasExecuted)
+      {
+         Nemesis.NemesisBehavior b = Nemesis.NemesisBehavior.Instance;
+         if (b == null) return "NemesisBehavior not available (load a campaign first).";
+
+         Hero nemesisHero = args is {Count: > 0} ? ResolveHero(args) : null;
+         if (nemesisHero == null || b.GetByHero(nemesisHero.StringId) == null)
+         {
+            NemesisIdentity living = b.All.FirstOrDefault(n => n.IsAlive && !string.IsNullOrEmpty(n.HeroStringId));
+            nemesisHero = living != null ? Hero.FindFirst(h => h != null && h.StringId == living.HeroStringId) : null;
+         }
+
+         if (nemesisHero == null) return "No living tracked nemesis found. Pass a name fragment, or capture the player once first (cr.nemesis to check the roster).";
+
+         NemesisIdentity nem = b.GetByHero(nemesisHero.StringId);
+         if (nem == null) return $"{nemesisHero.Name} is not a tracked nemesis.";
+         if (!nem.IsAlive) return $"{nem.Name} {nem.Epithet} is already resolved (IsAlive=false).";
+
+         Nemesis.NemesisResolutionBehavior.Resolve(nemesisHero, Hero.MainHero, wasExecuted);
+
+         return $"{nem.Name} {nem.Epithet} resolved as {(wasExecuted ? "EXECUTED" : "KILLED IN BATTLE")} " +
+                $"(IsAlive={nem.IsAlive}, deathDay={nem.DeathDay}).";
+      }
+
+      #endregion
+
+      /// <summary>
       ///   cr.bandit_queen [solo|collective] [male|female]
       ///   Opens a captive scene with a forced FEMALE bandit chief (intent = spoil / PersonalDesire),
       ///   to test female-aggressor content (facesitting/smothering, reductive domination) without

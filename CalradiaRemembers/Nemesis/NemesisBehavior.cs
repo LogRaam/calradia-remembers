@@ -168,6 +168,28 @@ namespace CalradiaRemembers.Nemesis
       }
 
       /// <summary>
+      ///   Nemesis pillar increment 2 (R2 execute / R3 torture, chat-driven entry point): the tracked,
+      ///   LIVING nemesis Hero the PLAYER currently holds prisoner (the inversion of the usual captivity),
+      ///   or null when no such nemesis is held. Reuses the exact "held by the player" check the rest of
+      ///   the mod already relies on for a prisoner in the player's own party (<see cref="Hero.PartyBelongedToAsPrisoner" />'s
+      ///   leader). Consulted by <see cref="NemesisPrisonerDialogFlow" />'s hero_main_options gate and by
+      ///   its console test harnesses, so both prove the exact same detection.
+      /// </summary>
+      public Hero PlayerHeldNemesisPrisoner()
+      {
+         foreach (NemesisIdentity nem in _roster.Nemeses)
+         {
+            if (!nem.IsAlive || string.IsNullOrEmpty(nem.HeroStringId)) continue;
+
+            Hero hero = Hero.FindFirst(h => h != null && h.StringId == nem.HeroStringId);
+            if (hero is {IsAlive: true, IsPrisoner: true} && hero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero)
+               return hero;
+         }
+
+         return null;
+      }
+
+      /// <summary>
       ///   Reuse-or-mint the nemesis for this band culture + region AND ensure his persistent Hero exists
       ///   (name bound, memory profile registered). Returns the Hero, or null if minting failed. Shared by
       ///   the capture hook and the self-test harness so the mint path can be validated without a real capture.

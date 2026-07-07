@@ -24,6 +24,7 @@ using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
+using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Scenarios;
 using CalradiaRemembers.Services;
@@ -127,6 +128,9 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("grudge_unblessed_marriage", Severity.Heavy, "marry the player (test spouse, no blessing seeded) via the real MarriageApprovalBehavior wedding hook -> assert an UnblessedMarriage grudge lands on a disapproving kinsman -> end_own_marriage -> assert the grudge resolves (cleared, not merely decayed)", TestGrudgeUnblessedMarriage),
          new SelfTest("grudge_sway", Severity.Light, "NPC + 3rd hero -> real sway_opinion(against) via the bridge -> assert SwayExposureBehavior queued a pending watch -> DebugForceReveal -> assert a hidden SwayExposed grudge lands on the target", TestGrudgeSway),
          new SelfTest("appreciation_flow", Severity.Light, "plant a kindness -> assert it lives -> plant a strong grudge on the same holder -> assert the tarnished effective magnitude drops -> force backfill twice -> assert the second pass is a no-op", TestAppreciationFlow),
+         new SelfTest("nemesis_kill", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(battle death) -> assert IsAlive flips false + a closure world-event is recorded", TestNemesisKilledInBattle),
+         new SelfTest("nemesis_execute", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(executed) -> assert IsAlive flips false + the closure world-event reads distinctly from the battle-death flavor", TestNemesisExecuted),
+         new SelfTest("nemesis_execute_prisoner", Severity.Light, "mint a fresh nemesis -> TakePrisonerAction (real capture) -> assert PlayerHeldNemesisPrisoner detects him -> BannerlordGameStateBridge.ExecuteAction(execute_prisoner) (the REAL bridge action the chat entry point's LLM emission triggers, not the Resolve harness) -> assert the existing HeroKilledEvent hook still resolves him + records the closure deed", TestNemesisExecutePrisoner),
          new SelfTest("declare_war", Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it", TestDeclareWar),
          new SelfTest("scenario", Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals", TestScenario),
          new SelfTest("llm_dialogue", Severity.Light, "LLM: a plain greeting -> log the reply (relevance judged from the log)", TestLlmDialogue, true),
@@ -1162,6 +1166,128 @@ namespace CalradiaRemembers.Diagnostics
          AppreciationBehavior.Instance.DebugForceBackfill(behavior.Store);
          (int formed2, int _) = AppreciationBehavior.Instance.DebugForceBackfill(behavior.Store);
          t.Expect("secondBackfillPassFormsNothingNew", formed2, 0);
+
+         return t.Line();
+      }
+
+      // ── Nemesis pillar increment 2: resolution (R1 kill in battle / R2 execute) ────────────────────
+
+      /// <summary>Mints (or reuses) a fresh, forced-alive nemesis identity in an isolated region key so the two resolution self-tests never collide with each other or a real in-game nemesis.</summary>
+      private static (Hero Hero, NemesisIdentity Identity) MintSelfTestNemesis(string regionId, int today)
+      {
+         Hero hero = NemesisBehavior.Instance?.MintCaptorFor("looters", regionId, today);
+         if (hero == null) return (null, null);
+
+         NemesisIdentity nem = NemesisBehavior.Instance.GetByHero(hero.StringId);
+         if (nem != null) nem.IsAlive = true; // isolate from a stale resolved run earlier in the same session
+
+         return (hero, nem);
+      }
+
+      private static string TestNemesisKilledInBattle(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_kill");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_battle", today);
+
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+
+         NemesisResolutionBehavior.Resolve(hero, Hero.MainHero, false);
+
+         t.Expect("isAlive", nem.IsAlive, false);
+         t.Expect("deathDayStamped", nem.DeathDay == today, true);
+
+         WorldEvent closure = WorldEventStore.Instance.GetPlayerChronicle()
+                                              .LastOrDefault(e => e.Day == today && e.ActorIds != null && e.ActorIds.Contains(hero.StringId));
+
+         t.Expect("closureRecorded", closure != null, true);
+         t.Note($"summary={closure?.Summary}");
+
+         return t.Line();
+      }
+
+      private static string TestNemesisExecuted(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_execute");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_execute", today);
+
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+
+         NemesisResolutionBehavior.Resolve(hero, Hero.MainHero, true);
+
+         t.Expect("isAlive", nem.IsAlive, false);
+
+         WorldEvent closure = WorldEventStore.Instance.GetPlayerChronicle()
+                                              .LastOrDefault(e => e.Day == today && e.ActorIds != null && e.ActorIds.Contains(hero.StringId));
+
+         t.Expect("closureRecorded", closure != null, true);
+
+         string playerName = Hero.MainHero.Name?.ToString() ?? "the player";
+         string displayName = $"{nem.Name} {nem.Epithet}";
+         string expectedExecutedSummary = NemesisResolutionPolicy.ClosureSummary(playerName, displayName, NemesisResolutionKind.Executed);
+         string battleFlavorSummary = NemesisResolutionPolicy.ClosureSummary(playerName, displayName, NemesisResolutionKind.KilledInBattle);
+
+         t.Expect("summaryMatchesExecutedFlavor", closure?.Summary, expectedExecutedSummary);
+         t.Expect("summaryDiffersFromBattleFlavor", closure?.Summary != battleFlavorSummary, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The R2/R3 chat-driven in-game entry point's own wiring, end to end: a fresh nemesis is REALLY
+      ///   captured (TakePrisonerAction, the same call the rest of the mod's prisoner tests use), the
+      ///   detection helper NemesisPrisonerDialogFlow's hero_main_options gate consults must find him, and
+      ///   the execute_prisoner bridge action (the real BannerlordGameStateBridge.ExecuteAction call the
+      ///   LLM's [ACTION] emission triggers during the captor scene, not the Resolve() test harness the
+      ///   other two nemesis tests use) must still land on the existing HeroKilledEvent hook.
+      /// </summary>
+      private static string TestNemesisExecutePrisoner(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_execute_prisoner");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_execute_prisoner", today);
+
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+
+         t.Expect("notHeldBeforeCapture", NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() == hero, false);
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, hero);
+         bool captured = hero.IsPrisoner && hero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+
+         if (t.Abort(!captured, $"capture failed for {hero.Name}")) return t.Line();
+
+         t.Expect("detectionReturnsHeldNemesis", NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() == hero, true);
+
+         // The REAL bridge action a captor-scene LLM emission triggers (not NemesisResolutionBehavior's
+         // Resolve() harness): proves the chat-driven entry point's own action reaches the same
+         // HeroKilledEvent hook the resolution behaviour already listens for.
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "execute_prisoner"}, hero, null);
+
+         t.Expect("outcomePositive", outcome?.IsPositive, true);
+         t.Expect("isAlive", nem.IsAlive, false);
+
+         WorldEvent closure = WorldEventStore.Instance.GetPlayerChronicle()
+                                              .LastOrDefault(e => e.Day == today && e.ActorIds != null && e.ActorIds.Contains(hero.StringId));
+
+         t.Expect("closureRecorded", closure != null, true);
+         t.Note($"{nem.Name} {nem.Epithet}: minted, really captured, detected as held, executed via the real bridge action; summary={closure?.Summary}");
 
          return t.Line();
       }

@@ -132,6 +132,11 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new Grudges.SwayExposureBehavior());
 
          campaignStarter.AddBehavior(new Nemesis.NemesisBehavior());
+         // Nemesis pillar increment 2 (resolution layer): closes out a tracked nemesis on
+         // CampaignEvents.HeroKilledEvent (R1 kill in battle / R2 execute), recording a closure deed
+         // when the player dealt the death. Registered right after NemesisBehavior (this listener only
+         // ever reads/mutates its roster); no SyncData of its own. Console: cr.nemesis_kill / cr.nemesis_execute.
+         campaignStarter.AddBehavior(new Nemesis.NemesisResolutionBehavior());
          // Appreciations (the positive mirror of Grudges): a lingering felt kindness, coexisting with regard
          // instead of being folded into it. Registered AFTER GrudgeBehavior (its prompt-note tarnish reads
          // the holder's dominant live grudge) and after WorldEventStore/Bastards/DivorceProcessBehavior (its

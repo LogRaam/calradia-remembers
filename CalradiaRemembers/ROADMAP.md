@@ -1546,6 +1546,24 @@ stance). Each layer is standalone and shippable. See [[project-nemesis]].
   lower-risk); band-culture/region keys are coarse first-pass (TUNE); the WIN/intercept chat-first side (the
   spike's one new seam) is a later increment. **The whole flow needs an in-game play-through to validate.**
 
+**INCREMENT 2 (R2 execute / R3 torture entry point), REDIRECTED 2026-07-06, mod builds 0 warning, 1271 tests:**
+a first pass built a recurring daily-tick popup menu (Torture / Execute / Leave) for a nemesis held prisoner.
+Gabriel redirected: no clickable menu. Instead the player takes the initiative from the party-screen prisoner
+"Talk" action, the same `hero_main_options` hub any hero conversation reaches (vanilla already lets you converse
+with a hero prisoner you hold; no engine block to work around). `NemesisPrisonerDialogFlow` adds one extra line
+there, shown only when the conversation partner is the tracked nemesis `NemesisBehavior.PlayerHeldNemesisPrisoner()`
+returns, opening a PLAYER-AS-CAPTOR chat (`ChatManager.OpenForCaptorScene`, rides the live conversation scene
+already open, VRAM-safe) instead of an ordinary chat. From there it is a CHAT: the player describes what they do
+(interrogate, threaten, torture, spare, execute), and the LLM detects `execute_prisoner` exactly like every other
+CR action. SDK teaches it in `PromptBuilder.AppendPlayerCaptorSceneRules` (generic: "the prisoner you hold", no
+nemesis-specific text); the mod bridge (`BannerlordGameStateBridge.ExecuteExecutePrisoner`) re-validates custody
+before calling the real `KillCharacterAction.ApplyByExecution`, which `NemesisResolutionBehavior` (closure deed for
+a tracked nemesis) and `ExecutedKinGrudgeBehavior` (a real lord's kin vendetta) both already react to, unchanged.
+Removed: `NemesisCaptivityPromptBehavior`, `NemesisCaptivityPromptPolicy` (+ its tests), the `cr.nemesis_captivity_prompt`
+command and self-test. Console: `cr.nemesis_captor_scene` (unchanged, staged), `cr.execute_prisoner [name]` (new).
+Self-test: `nemesis_execute_prisoner` (replaces `nemesis_captivity_prompt`, now exercises the real bridge action).
+**Untested in game.**
+
 **PILLAR: Player appearance — derived + editable (ratified 2026-07-05).** Kills the backstory/appearance
 hallucination AND resolves the mutilation-persistence tension (a hallucinated "missing finger" must never
 auto-persist; the player AUTHORS it if they want). Two volets: (1) DERIVE the reliably-available attributes from

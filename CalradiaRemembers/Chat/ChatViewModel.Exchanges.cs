@@ -729,6 +729,7 @@ namespace CalradiaRemembers.Chat
             // ── Execute game actions emitted by the LLM ───────────────────
             // RelationGate may stamp profile.LastRelationGainHour, so persist
             // AFTER actions run (below), not before.
+            bool prisonerExecuted = false;
             if (response.Actions is {Count: > 0})
             {
                // Double-payment guard: when the LLM emits join_party it sometimes ALSO
@@ -779,6 +780,13 @@ namespace CalradiaRemembers.Chat
                   ActionOutcome outcome =
                      behavior.GameStateBridge.ExecuteAction(action, speaker.Hero, actionContext);
                   if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);
+
+                  // execute_prisoner (Nemesis pillar, R2): the prisoner is dead, so the scene locks
+                  // afterward exactly like a normal end_conversation. The bridge already re-validated
+                  // custody, so IsPositive true here means the killing genuinely happened.
+                  if (string.Equals(action.Type, "execute_prisoner", StringComparison.OrdinalIgnoreCase) &&
+                      outcome?.IsPositive == true)
+                     prisonerExecuted = true;
 
                   // Story log: narrative description of game-world consequences.
                   if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase))
@@ -843,9 +851,10 @@ namespace CalradiaRemembers.Chat
             // ─────────────────────────────────────────────────────────────
 
             // ── Conversation end resolution ───────────────────────────────
-            // Two paths lock input so the player can only leave:
+            // Three paths lock input so the player can only leave:
             // 1. end_conversation action (NPC refuses — anger, insult, etc.)
             // 2. farewell event (NPC naturally closes the exchange)
+            // 3. execute_prisoner action (the prisoner is dead; see below)
             if (response.Actions != null)
                foreach (GameAction action in response.Actions)
                {
@@ -886,6 +895,18 @@ namespace CalradiaRemembers.Chat
                CloseButtonText = "Leave";
                OnPropertyChanged(nameof(IsOfferItemVisible));
                ModLog.Info("[CONVERSATION] farewell event — input locked.");
+            }
+
+            // 3. execute_prisoner action (Nemesis pillar, R2): the prisoner is dead, there is no one
+            //    left to converse with, so the scene locks like any other close.
+            if (!_conversationEnded && prisonerExecuted)
+            {
+               _conversationEnded = true;
+               IsSendEnabled = false;
+               IsPrivateRequestVisible = false;
+               CloseButtonText = "Leave";
+               OnPropertyChanged(nameof(IsOfferItemVisible));
+               ModLog.Info("[CAPTOR SCENE] execute_prisoner ended the scene.");
             }
             // ─────────────────────────────────────────────────────────────
 

@@ -80,6 +80,7 @@ namespace CalradiaRemembers.Chat
          bool playerCoerced = false)
       {
          var pending = new Pending {
+            Kind = StagedSceneKind.VictimEncounter,
             Captor = captor,
             Profile = captorProfile,
             Witnesses = witnesses,
@@ -91,9 +92,53 @@ namespace CalradiaRemembers.Chat
          };
 
          CharacterObject partner = captor?.CharacterObject ?? portraitCharacter;
+         PartyBase captorParty =
+            captor?.PartyBelongedTo?.Party
+         ?? Hero.MainHero?.PartyBelongedToAsPrisoner?.MobileParty?.Party;
+
+         BeginStagedConversation(pending, partner, captorParty, "CAPTIVE STAGE");
+      }
+
+      /// <summary>
+      ///   Stages a PLAYER-AS-CAPTOR scene (the inversion: <paramref name="prisonerHero" /> is the
+      ///   player's own prisoner) over the same VRAM-safe conversation scene as
+      ///   <see cref="StageCaptiveEncounter" />, instead of a bare overlay on the world map. Call this
+      ///   rather than <see cref="ChatManager.OpenForCaptorScene" /> directly whenever a real prisoner is
+      ///   involved (a nemesis, a captured lord); the direct overlay call remains fine for the console
+      ///   dev harness, which forces the framing on an NPC who need not truly be held.
+      /// </summary>
+      public static void StageCaptorScene(
+         Hero prisonerHero,
+         NpcProfile prisonerProfile,
+         CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation)
+      {
+         var pending = new Pending {
+            Kind = StagedSceneKind.CaptorScene,
+            Captor = prisonerHero,
+            Profile = prisonerProfile,
+            Intent = intent
+         };
+
+         CharacterObject partner = prisonerHero?.CharacterObject;
+         // The prisoner has no party of their own (they are held IN the player's), so the party the
+         // conversation attaches them to is whichever PartyBase is actually holding them captive.
+         PartyBase prisonerParty = prisonerHero?.PartyBelongedToAsPrisoner ?? PartyBase.MainParty;
+
+         BeginStagedConversation(pending, partner, prisonerParty, "CAPTOR STAGE");
+      }
+
+      /// <summary>
+      ///   Shared staging core for both directions: opens a map conversation with
+      ///   <paramref name="partner" /> (their <paramref name="partnerParty" /> for scene attachment) and
+      ///   arms the pending state <see cref="Tick" /> polls; falls back to the direct (unstaged) open when
+      ///   there is no partner to converse with, no <see cref="Campaign.ConversationManager" />, or the
+      ///   conversation fails to start. <paramref name="logTag" /> distinguishes the two directions in the log.
+      /// </summary>
+      private static void BeginStagedConversation(Pending pending, CharacterObject partner, PartyBase partnerParty, string logTag)
+      {
          if (partner == null || Campaign.Current?.ConversationManager == null)
          {
-            ModLog.Info("[CAPTIVE STAGE] no conversation partner available — opening directly on the map.");
+            ModLog.Info($"[{logTag}] no conversation partner available, opening directly on the map.");
             OpenDirect(pending);
 
             return;
@@ -101,23 +146,19 @@ namespace CalradiaRemembers.Chat
 
          try
          {
-            PartyBase captorParty =
-               captor?.PartyBelongedTo?.Party
-            ?? Hero.MainHero?.PartyBelongedToAsPrisoner?.MobileParty?.Party;
-
             var playerData = new ConversationCharacterData(CharacterObject.PlayerCharacter, PartyBase.MainParty);
-            var partnerData = new ConversationCharacterData(partner, captorParty);
+            var partnerData = new ConversationCharacterData(partner, partnerParty);
 
             _pending = pending;
             _lineReached = false;
             _settleFrames = 0;
             _fallbackFrames = 0;
             Campaign.Current.ConversationManager.OpenMapConversation(playerData, partnerData);
-            ModLog.Info($"[CAPTIVE STAGE] conversation started with {partner.StringId}; awaiting the scene to load.");
+            ModLog.Info($"[{logTag}] conversation started with {partner.StringId}; awaiting the scene to load.");
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[CAPTIVE STAGE] OpenMapConversation failed: {ex.GetType().Name}: {ex.Message} — opening directly on the map.");
+            ModLog.Error($"[{logTag}] OpenMapConversation failed: {ex.GetType().Name}: {ex.Message}, opening directly on the map.");
             _pending = null;
             OpenDirect(pending);
          }
@@ -186,14 +227,32 @@ namespace CalradiaRemembers.Chat
 
       private static void OpenDirect(Pending p)
       {
+         if (p.Kind == StagedSceneKind.CaptorScene)
+         {
+            ChatManager.OpenForCaptorScene(p.Captor, p.Profile, p.Intent);
+
+            return;
+         }
+
          ChatManager.OpenForCaptiveEncounter(
             p.Captor, p.Profile, p.Witnesses, p.IsCollective, p.Intent,
             p.PortraitCharacter, p.VictimCompanion, p.PlayerCoerced);
       }
 
+      /// <summary>Which direction a staged scene opens once its conversation scene is loaded.</summary>
+      private enum StagedSceneKind
+      {
+         /// <summary>The captor (NPC or bandit) summons the player, who is the captive. <see cref="ChatManager.OpenForCaptiveEncounter" />.</summary>
+         VictimEncounter,
+
+         /// <summary>The player holds the NPC prisoner and drives the scene. <see cref="ChatManager.OpenForCaptorScene" />.</summary>
+         CaptorScene
+      }
+
       private sealed class Pending
       {
          public Hero Captor;
+         public StagedSceneKind Kind;
          public bool IsCollective;
          public CaptiveSceneIntent Intent;
          public bool PlayerCoerced;

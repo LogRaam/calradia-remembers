@@ -224,6 +224,10 @@ namespace CalradiaRemembers.Behaviors
          // The staged-captive intercept line: while a captive scene is staging its conversation, this wins the
          // "start" token (so no vanilla "Who are you?" intro shows) and hands the conversation to the captive chat.
          SafeRun.Step("OnSessionLaunched.CaptiveSceneStager.Register", () => Chat.CaptiveSceneStager.Register(campaignGameStarter));
+         // Nemesis pillar increment 2 (R2 execute / R3 torture, chat-driven entry point): while the player
+         // holds a tracked nemesis prisoner, an extra hero_main_options line (reached from the party-screen
+         // Talk on him, same hub as any other hero) opens the captor scene against him. Console: cr.nemesis_captor_scene / cr.execute_prisoner.
+         SafeRun.Step("OnSessionLaunched.NemesisPrisonerDialogFlow.Register", () => Nemesis.NemesisPrisonerDialogFlow.Register(campaignGameStarter));
          ModLog.Info("Dialog flow registered.");
 
          SafeRun.Step("OnSessionLaunched.DialogueRecorder.Subscribe", DialogueRecorder.Subscribe);

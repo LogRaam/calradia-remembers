@@ -170,6 +170,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteGivePrisoner(npcHero, context);
             case "free_prisoner":
                return ExecuteFreePrisoner(npcHero, context);
+            case "execute_prisoner":
+               return ExecuteExecutePrisoner(npcHero);
             case "grant_blessing":
                return ExecuteGrantBlessing(action, npcHero);
             case "harm_prisoner":
@@ -733,6 +735,41 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] free_prisoner failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   execute_prisoner: the player, mid PLAYER-AS-CAPTOR scene (the mod's <c>ChatViewModel.ActivateCaptorSceneMode</c>),
+      ///   states a real, final killing act against the prisoner they hold, and the LLM recognized it (see
+      ///   the SDK's <c>PromptBuilder.AppendPlayerCaptorSceneRules</c>). Guarded exactly like free_prisoner:
+      ///   the prompt is advice, the bridge is law, so only a hero the player ACTUALLY holds prisoner right
+      ///   now is executed; a stray or premature emission never kills the wrong person. Runs the same real
+      ///   vanilla <see cref="KillCharacterAction.ApplyByExecution"/> the old map-popup entry point used,
+      ///   which raises <see cref="CampaignEvents.HeroKilledEvent"/> with detail Executed: existing
+      ///   listeners fire off that same event without any special-casing here. For a tracked nemesis,
+      ///   <see cref="Nemesis.NemesisResolutionBehavior"/> records the closure deed; for any other captured
+      ///   lord, <see cref="Grudges.ExecutedKinGrudgeBehavior"/> plants a vendetta on their living kin,
+      ///   exactly as it already does for any other execution in the game.
+      /// </summary>
+      private static ActionOutcome ExecuteExecutePrisoner(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null) return null;
+            if (!npcHero.IsPrisoner || npcHero.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero)
+               return new ActionOutcome($"({npcHero.Name} is not yours to execute.)", false);
+
+            string name = npcHero.Name?.ToString() ?? "the prisoner";
+            KillCharacterAction.ApplyByExecution(npcHero, Hero.MainHero, true);
+            ModLog.Info($"[ACTION] execute_prisoner: player executed {name}.");
+
+            return new ActionOutcome($"{name} is executed at your hand.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] execute_prisoner failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }
