@@ -91,9 +91,12 @@ player falls first; recurring captive scenes are dungeon/fortress-framed when he
 **The captivity arc (Gabriel 2026-06-27), the lose branch:** 3.2a lose → captured + convoyed to the commissioning
 lord ✅; 3.2b arrival → the lord's reckoning audience ✅; 3.2c convoy **rescue ambush** by your companions (BUILT
 2026-06-28); 3.2d **Hardcore companion-victim captivity scenes** — the captor torments/assaults a held companion
-before the player, or coerces the player to do it (revenge driver). **Phase 2 BUILT 2026-06-30 (console-testable
-`cr.companion_scene`, NOT committed); NEXT = auto-fire in CaptiveEncounterService + the revenge consequence (grief +
-stance crater + world-event).** Reuses CR's captive-scene chat.
+before the player, or coerces the player to do it (revenge driver). **Phase 2 BUILT 2026-06-30; Phase 3 ✅ SHIPPED
+v1.26.0 (2026-07-07): auto-fire in CaptiveEncounterService (CompanionScenePolicy gate, 45%, variant pick) + the full
+aftermath on scene close (pure `CompanionAbuseConsequencePolicy`): grief stance-crater on the companion's bond
+(Trust/Affection, deeper when the player was coerced), a REVENGE grudge vs a NAMED captor (new append-only
+`GrudgeSource.CaptorCruelty`, resolution=Deed, coexists with the vs-player CaptiveAbuse grudge), and the atrocity
+chronicled as a world-event. `companion_revenge` self-test.** Reuses CR's captive-scene chat.
 **In-game-test feedback round (Gabriel 2026-06-30, BUILT, NOT committed):** (a) the chat "scroll down to read more"
 hint no longer flashes up the instant a scene's opening narration runs a line long — it appears only when a
 substantial block of text sits below the fold (`MoreHintRevealMargin`). (b/c) **the captive companion is now a REAL
@@ -1609,10 +1612,17 @@ GENERALIZED to serve BOTH targets via `AppearanceVoice` (Gabriel ratified scope 
 deferred): `Subject` (default, THIRD person, "A tall, powerfully built man in his middle years, with dark hair.") for
 the PLAYER and any other described hero, rendered under a naming heading, never "you"; `Self` (SECOND person, "You are
 a tall... man in your middle years, with dark hair.") for the SPEAKING NPC's OWN body, so it grounds its self-image
-and never invents contradictory looks. Renamed `PlayerAppearanceComposer` -> `AppearanceComposer`. 29 tests. STILL TODO
-(engine, needs Gabriel + in-game): read the reliable `BodyProperties`/`DynamicBodyProperties` sliders to fill
-`AppearanceFacts` (reused per hero: player, speaking NPC); the editable per-hero Encyclopedia prose field; and the
-wiring (player block under a naming heading in Subject voice; the NPC's own block in Self voice).
+and never invents contradictory looks. Renamed `PlayerAppearanceComposer` -> `AppearanceComposer`. 29 tests.
+**✅ SHIPPED v1.26.0 (2026-07-07), wired end to end:** `AppearanceFactsExtractor` reads the live hero (gender, age,
+build/weight off `BodyProperties`); `FaceColorReader` resolves HAIR + SKIN to a real RGB (face-key offsets via
+`MBBodyProperties.GetParamsFromKey`, sampled on that race/gender/age's colour gradient) and classifies them into
+words; EYE colour is banded HEURISTICALLY from its raw offset (the engine exposes NO eye palette — verified by
+reflection; `cr.appearance` prints raw offsets for calibration, bands are TUNE). `AppearanceProseBehavior` persists
+the authored per-hero prose (byte[] JSON, save-safe); `EncounterContextBuilder` fills `PlayerAppearance` (Subject)
++ `NpcSelfAppearance` (Self); PromptBuilder renders both plus the bandit-captor "what you can SEE" line. Console
+`cr.appearance [clear|<text>]` is the interim edit surface; `appearance` self-test. STILL OPEN: the editable
+per-hero prose field IN the Encyclopedia UI (replaces the console surface); height via `GetScaleFromKey` (readable,
+not yet banded); retiring the legacy `player_description.txt` (still cohabits, appearance block is primary).
 
 **Notes / no-action:** the captive-scene violence (stabbing, finger) LANDS and he wants MORE explicit interpersonal
 scenes (a sensitivity toggle is a maybe, not a restriction); "it is easy to overpower the AI" but he PREFERS
