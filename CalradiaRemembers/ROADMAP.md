@@ -1616,7 +1616,7 @@ and never invents contradictory looks. Renamed `PlayerAppearanceComposer` -> `Ap
 **✅ SHIPPED v1.26.0 (2026-07-07), wired end to end:** `AppearanceFactsExtractor` reads the live hero (gender, age,
 build/weight off `BodyProperties`); `FaceColorReader` resolves HAIR + SKIN to a real RGB (face-key offsets via
 `MBBodyProperties.GetParamsFromKey`, sampled on that race/gender/age's colour gradient) and classifies them into
-words; EYE colour is banded HEURISTICALLY from its raw offset (the engine exposes NO eye palette — verified by
+words; EYE colour is banded HEURISTICALLY from its raw offset (the engine exposes NO eye palette, verified by
 reflection; `cr.appearance` prints raw offsets for calibration, bands are TUNE). `AppearanceProseBehavior` persists
 the authored per-hero prose (byte[] JSON, save-safe); `EncounterContextBuilder` fills `PlayerAppearance` (Subject)
 + `NpcSelfAppearance` (Self); PromptBuilder renders both plus the bandit-captor "what you can SEE" line. Console
