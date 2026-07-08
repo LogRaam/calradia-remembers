@@ -41,7 +41,7 @@ namespace CalradiaRemembers
             return $"Player appearance (as an NPC sees you): \"{composed}\"\n" +
                    $"Authored prose: \"{prose}\"\n" +
                    $"Colour readout (calibration): hair={c.Hair ?? "?"} (offset {c.HairOffset:0.00}), " +
-                   $"skin={c.Skin ?? "?"} (offset {c.SkinOffset:0.00}), eyes={c.Eye ?? "?"} (offset {c.EyeOffset:0.00}, HEURISTIC).\n" +
+                   $"skin={c.Skin ?? "?"} (offset {c.SkinOffset:0.00}), eyes={c.Eye ?? "?"} (offset {c.EyeOffset:0.00}, banded).\n" +
                    "Set prose with: cr.appearance <text>   |   clear with: cr.appearance clear";
          }
 

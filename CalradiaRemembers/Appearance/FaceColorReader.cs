@@ -149,21 +149,26 @@ namespace CalradiaRemembers.Appearance
         }
 
         /// <summary>
-        ///   A plain eye-colour word (the composer appends " eyes"), banded from the raw 0..1 offset. HEURISTIC:
-        ///   there is no eye-colour palette to resolve a true RGB, so this ramp (dark to light) is a best guess,
-        ///   calibrated against cr.appearance's offset readout. TUNE the bands if a known eye colour reads wrong.
+        ///   A plain eye-colour word (the composer appends " eyes"), banded from the raw 0..1 offset. There is no
+        ///   eye-colour palette in the engine to resolve a true RGB, so the bands were CALIBRATED empirically
+        ///   (2026-07-07) against the face editor's Eye Color slider across its full travel: the ramp runs
+        ///   blue (pale to deep) -> pale steel grey -> green (pale to deep) -> hazel -> dark brown, each gamut
+        ///   blending into the next. Screenshots anchored: ~0.00 pale grey-blue, ~0.10 blue, ~0.25 deep blue,
+        ///   ~0.35 pale grey, ~0.50 green, ~0.65 deep green, ~0.80 hazel, ~1.00 near-black brown.
         /// </summary>
         private static string ClassifyEye(float offset)
         {
             if (offset < 0) return null;
 
-            if (offset < 0.15f) return "dark brown";
-            if (offset < 0.35f) return "brown";
-            if (offset < 0.50f) return "hazel";
-            if (offset < 0.68f) return "green";
-            if (offset < 0.85f) return "blue";
+            if (offset < 0.05f) return "grey-blue";
+            if (offset < 0.20f) return "blue";
+            if (offset < 0.30f) return "deep blue";
+            if (offset < 0.44f) return "grey";
+            if (offset < 0.60f) return "green";
+            if (offset < 0.72f) return "deep green";
+            if (offset < 0.88f) return "hazel";
 
-            return "grey";
+            return "dark brown";
         }
     }
 }
