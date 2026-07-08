@@ -107,35 +107,6 @@
                             Text="Request Private" />
               </Children>
             </ButtonWidget>
-            <!-- Model mode toggle: shows which of the two configured models is active
-                 (roleplay/NSFW) and flips it on click. Deliberately muted: a utility
-                 control, not a story beat. Visible only when an NSFW model is set. -->
-            <ButtonWidget Id="ModelModeButton"
-                          WidthSizePolicy="Fixed"
-                          HeightSizePolicy="Fixed"
-                          SuggestedWidth="130"
-                          SuggestedHeight="22"
-                          HorizontalAlignment="Left"
-                          VerticalAlignment="Bottom"
-                          MarginBottom="6"
-                          MarginLeft="10"
-                          IsVisible="@IsModelModeToggleVisible"
-                          DoNotPassEventsToChildren="true"
-                          Brush="ButtonBrush1"
-                          UpdateChildrenStates="true"
-                          Command.Click="ExecuteToggleModelMode">
-              <Children>
-                <TextWidget WidthSizePolicy="StretchToParent"
-                            HeightSizePolicy="StretchToParent"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Brush="Popup.Button.Text"
-                            Brush.FontSize="14"
-                            Brush.FontColor="#b8b0a0FF"
-                            Brush.TextHorizontalAlignment="Center"
-                            Text="@ModelModeText" />
-              </Children>
-            </ButtonWidget>
           </Children>
         </Widget>
 
@@ -341,6 +312,65 @@
                         Brush="Popup.Button.Text"
                         Brush.FontSize="16"
                         Text="Give Gold" />
+          </Children>
+        </ButtonWidget>
+
+        <!-- Model mode toggle (roleplay/NSFW): moved down from the title bar into the utility-button row so the
+             header is free for a richer witnesses display. Visible only when an NSFW model is configured. -->
+        <ButtonWidget Id="ModelModeButton"
+                      WidthSizePolicy="Fixed"
+                      HeightSizePolicy="Fixed"
+                      SuggestedWidth="110"
+                      SuggestedHeight="24"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Bottom"
+                      PositionYOffset="-165"
+                      MarginRight="405"
+                      IsVisible="@IsModelModeToggleVisible"
+                      DoNotPassEventsToChildren="true"
+                      Brush="ButtonBrush1"
+                      UpdateChildrenStates="true"
+                      Command.Click="ExecuteToggleModelMode">
+          <Children>
+            <TextWidget WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Brush="Popup.Button.Text"
+                        Brush.FontSize="14"
+                        Brush.FontColor="#b8b0a0FF"
+                        Brush.TextHorizontalAlignment="Center"
+                        Text="@ModelModeText" />
+          </Children>
+        </ButtonWidget>
+
+        <!-- Opens the vanilla escape/options menu (and MCM mod options) over the chat, the same call ESC makes,
+             so the player can change settings / enable logging / swap models WITHOUT ending the conversation
+             (the chat swallows ESC as a keyboard-focus layer). Sits in the utility-button row. -->
+        <ButtonWidget Id="OptionsButton"
+                      WidthSizePolicy="Fixed"
+                      HeightSizePolicy="Fixed"
+                      SuggestedWidth="110"
+                      SuggestedHeight="24"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Bottom"
+                      PositionYOffset="-165"
+                      MarginRight="285"
+                      IsVisible="@IsGameMenuButtonVisible"
+                      DoNotPassEventsToChildren="true"
+                      Brush="ButtonBrush1"
+                      UpdateChildrenStates="true"
+                      Command.Click="ExecuteOpenGameMenu">
+          <Children>
+            <TextWidget WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Brush="Popup.Button.Text"
+                        Brush.FontSize="14"
+                        Brush.FontColor="#b8b0a0FF"
+                        Brush.TextHorizontalAlignment="Center"
+                        Text="Options" />
           </Children>
         </ButtonWidget>
 

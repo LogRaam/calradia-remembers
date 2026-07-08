@@ -52,6 +52,18 @@ namespace CalradiaRemembers.Tests
         }
 
         [Test]
+        public void GIVEN_the_only_matching_identity_has_been_turned_to_the_players_service_WHEN_finding_a_recurring_nemesis_THEN_he_is_ignored()
+        {
+            // Increment 4: a spared, turned nemesis is still alive but no longer an enemy captor, so he must
+            // never be reused as the boss of a fresh band that takes the player prisoner.
+            NemesisIdentity turned = Make("n1", "forest_bandits", "region_north", isAlive: true);
+            turned.TurnedDay = 120;
+            var roster = new List<NemesisIdentity> { turned };
+
+            NemesisRosterPolicy.FindRecurring(roster, "forest_bandits", "region_north").Should().BeNull();
+        }
+
+        [Test]
         public void GIVEN_a_living_nemesis_in_a_different_region_WHEN_finding_a_recurring_nemesis_THEN_he_is_ignored()
         {
             NemesisIdentity elsewhere = Make("n1", "forest_bandits", "region_south", isAlive: true);

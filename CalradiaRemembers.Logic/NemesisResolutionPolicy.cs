@@ -59,5 +59,19 @@ namespace CalradiaRemembers.Logic
             => kind == NemesisResolutionKind.Executed
                 ? $"I finally took {nemesisDisplayName} alive and had his head struck from his shoulders, the long hunt between us ended for good"
                 : $"I finally cut {nemesisDisplayName} down in battle, and the long hunt between us was ended";
+
+        /// <summary>
+        ///   TUNE: the turning of a nemesis is a rarer, more remarkable feat than cutting him down, so its
+        ///   news carries a touch further than a plain closure kill.
+        /// </summary>
+        public const int TurnedMagnitude = 60;
+
+        /// <summary>The third-person rumour line for a nemesis SPARED and turned to the player's service (increment 4).</summary>
+        public static string TurnedSummary(string playerName, string nemesisDisplayName)
+            => $"{playerName} spared {nemesisDisplayName} and bent him to their service; the hunter now rides at their side.";
+
+        /// <summary>The first-person chronicler-voice line for a turned nemesis (no date, no leading name).</summary>
+        public static string TurnedChronicleLine(string nemesisDisplayName)
+            => $"I held {nemesisDisplayName} at my mercy and, rather than end him, bent him to my banner; the man who once hunted me now rides at my side";
     }
 }

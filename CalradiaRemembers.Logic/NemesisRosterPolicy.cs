@@ -35,6 +35,7 @@ namespace CalradiaRemembers.Logic
             return roster
                 .Where(n => n != null
                             && n.IsAlive
+                            && !n.IsTurned // a nemesis turned to the player's service is no longer an enemy captor
                             && n.BandCultureKey == bandCultureKey
                             && n.RegionId == regionId)
                 .OrderByDescending(n => n.TimesEncountered)

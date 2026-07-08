@@ -53,5 +53,21 @@ namespace CalradiaRemembers.Tests
             executedLine.Should().Contain("Grimolf the Faceless Fox");
             battleLine.Should().Contain("Grimolf the Faceless Fox");
         }
+
+        [Test]
+        public void GIVEN_a_nemesis_spared_and_turned_WHEN_building_the_turned_summary_THEN_it_names_both_and_reads_as_a_turning_not_a_death()
+        {
+            string summary = NemesisResolutionPolicy.TurnedSummary("Roswitha", "Grimolf the Faceless Fox");
+
+            summary.Should().Contain("Roswitha");
+            summary.Should().Contain("Grimolf the Faceless Fox");
+            summary.Should().NotBe(NemesisResolutionPolicy.ClosureSummary("Roswitha", "Grimolf the Faceless Fox", NemesisResolutionKind.Executed));
+        }
+
+        [Test]
+        public void GIVEN_a_nemesis_spared_and_turned_WHEN_building_the_turned_chronicle_line_THEN_it_names_the_nemesis()
+        {
+            NemesisResolutionPolicy.TurnedChronicleLine("Grimolf the Faceless Fox").Should().Contain("Grimolf the Faceless Fox");
+        }
     }
 }

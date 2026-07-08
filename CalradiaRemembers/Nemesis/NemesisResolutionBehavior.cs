@@ -97,6 +97,52 @@ namespace CalradiaRemembers.Nemesis
             return nem;
         }
 
+        /// <summary>
+        ///   Nemesis pillar increment 4 (SPARE + TURN): marks a tracked nemesis TURNED (spared and taken
+        ///   into the player's service) and closes his vendetta (any grudge he held against the player dies),
+        ///   recording the closure deed. The MECHANICAL conversion (release, clan, party) is the bridge's job
+        ///   (<see cref="GameState.BannerlordGameStateBridge" />); this owns only the identity + chronicle,
+        ///   exactly as <see cref="Resolve" /> does for a death, so the bridge action and the
+        ///   <c>cr.test nemesis_turn</c> harness prove the same code. Returns the identity, or null when
+        ///   <paramref name="nemesis" /> is not a tracked, still-active nemesis (idempotent when already turned).
+        /// </summary>
+        public static NemesisIdentity Turn(Hero nemesis)
+        {
+            if (nemesis == null || NemesisBehavior.Instance == null) return null;
+
+            NemesisIdentity nem = NemesisBehavior.Instance.GetByHero(nemesis.StringId);
+            if (nem == null || !nem.IsAlive || nem.IsTurned) return nem; // not tracked, dead, or already turned
+
+            var today = (int) CampaignTime.Now.ToDays;
+            nem.TurnedDay = today;
+
+            // His vendetta ends: any grudge he held against the player dies now that he serves them.
+            GrudgeBehavior.Instance?.ClearGrudgesFor(nemesis.StringId);
+
+            string displayName = $"{nem.Name} {nem.Epithet}";
+            string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
+
+            var actorIds = new List<string> {nemesis.StringId};
+            if (Hero.MainHero?.StringId != null) actorIds.Add(Hero.MainHero.StringId);
+
+            WorldEventStore.Instance?.Record(new WorldEvent {
+                Type = WorldEventType.PlayerFeat,
+                Day = today,
+                Magnitude = NemesisResolutionPolicy.TurnedMagnitude,
+                InvolvesPlayer = true,
+                Summary = NemesisResolutionPolicy.TurnedSummary(playerName, displayName),
+                ChronicleLine = NemesisResolutionPolicy.TurnedChronicleLine(displayName),
+                ActorIds = actorIds,
+                FactionIds = Hero.MainHero?.MapFaction != null
+                    ? new List<string> {Hero.MainHero.MapFaction.StringId}
+                    : new List<string>()
+            });
+
+            ModLog.Info($"[NEMESIS] {displayName} spared and turned to the player's service; vendetta closed.");
+
+            return nem;
+        }
+
         #region private
 
         private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)

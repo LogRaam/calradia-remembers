@@ -60,6 +60,17 @@ namespace CalradiaRemembers.Logic
         public int? DeathDay { get; set; }
 
         /// <summary>
+        ///   Campaign day this nemesis was SPARED and turned to the player's service (increment 4), or null.
+        ///   A turned nemesis is still alive but no longer an enemy: he stops recurring as a captor
+        ///   (<see cref="NemesisRosterPolicy.FindRecurring"/> skips him) and his vendetta is closed. Additive
+        ///   and save-safe: old saves load it as null.
+        /// </summary>
+        public int? TurnedDay { get; set; }
+
+        /// <summary>True once this nemesis has been spared and taken into the player's service.</summary>
+        public bool IsTurned => TurnedDay != null;
+
+        /// <summary>
         ///   StringId of the persistent Hero that embodies this nemesis, so the identity survives across
         ///   saves and between encounters even while his party is despawned, and the SAME Hero is re-attached
         ///   as the leader/captor of a fresh vanilla band next time. Null until the Hero is first minted.

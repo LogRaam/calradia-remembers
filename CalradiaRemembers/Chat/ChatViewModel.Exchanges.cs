@@ -730,6 +730,7 @@ namespace CalradiaRemembers.Chat
             // RelationGate may stamp profile.LastRelationGainHour, so persist
             // AFTER actions run (below), not before.
             bool prisonerExecuted = false;
+            bool nemesisTurned = false;
             if (response.Actions is {Count: > 0})
             {
                // Double-payment guard: when the LLM emits join_party it sometimes ALSO
@@ -787,6 +788,13 @@ namespace CalradiaRemembers.Chat
                   if (string.Equals(action.Type, "execute_prisoner", StringComparison.OrdinalIgnoreCase) &&
                       outcome?.IsPositive == true)
                      prisonerExecuted = true;
+
+                  // turn_nemesis (Nemesis pillar, increment 4): a positive outcome means the bridge's gate
+                  // accepted the turn and he is now sworn to the player. The captor scene is over (he is an
+                  // ally, not a captive), so it locks afterward exactly like execute_prisoner does.
+                  if (string.Equals(action.Type, "turn_nemesis", StringComparison.OrdinalIgnoreCase) &&
+                      outcome?.IsPositive == true)
+                     nemesisTurned = true;
 
                   // Story log: narrative description of game-world consequences.
                   if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase))
@@ -898,15 +906,18 @@ namespace CalradiaRemembers.Chat
             }
 
             // 3. execute_prisoner action (Nemesis pillar, R2): the prisoner is dead, there is no one
-            //    left to converse with, so the scene locks like any other close.
-            if (!_conversationEnded && prisonerExecuted)
+            //    left to converse with, so the scene locks like any other close. turn_nemesis (increment 4)
+            //    ends it the same way: the captive is now a sworn ally, not a prisoner to keep menacing.
+            if (!_conversationEnded && (prisonerExecuted || nemesisTurned))
             {
                _conversationEnded = true;
                IsSendEnabled = false;
                IsPrivateRequestVisible = false;
                CloseButtonText = "Leave";
                OnPropertyChanged(nameof(IsOfferItemVisible));
-               ModLog.Info("[CAPTOR SCENE] execute_prisoner ended the scene.");
+               ModLog.Info(nemesisTurned
+                  ? "[CAPTOR SCENE] turn_nemesis ended the scene; the nemesis is turned."
+                  : "[CAPTOR SCENE] execute_prisoner ended the scene.");
             }
             // ─────────────────────────────────────────────────────────────
 

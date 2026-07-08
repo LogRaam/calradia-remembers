@@ -133,6 +133,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("nemesis_kill", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(battle death) -> assert IsAlive flips false + a closure world-event is recorded", TestNemesisKilledInBattle),
          new SelfTest("nemesis_execute", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(executed) -> assert IsAlive flips false + the closure world-event reads distinctly from the battle-death flavor", TestNemesisExecuted),
          new SelfTest("nemesis_execute_prisoner", Severity.Light, "mint a fresh nemesis -> TakePrisonerAction (real capture) -> assert PlayerHeldNemesisPrisoner detects him -> BannerlordGameStateBridge.ExecuteAction(execute_prisoner) (the REAL bridge action the chat entry point's LLM emission triggers, not the Resolve harness) -> assert the existing HeroKilledEvent hook still resolves him + records the closure deed", TestNemesisExecutePrisoner),
+         new SelfTest("nemesis_turn", Severity.Light, "increment 4 (SPARE + TURN): mint a nemesis -> real TakePrisonerAction -> force his stance below the gate floor and assert the real BannerlordGameStateBridge.ExecuteAction(turn_nemesis) REFUSES (still a prisoner, not turned) -> raise Fear/Respect past the floors and assert it TURNS him (identity marked turned, released from captivity, sworn into the player's clan)", TestNemesisTurn),
          new SelfTest("nemesis_bounty_capture", Severity.Light, "mint a nemesis anchored to a real lord's own region -> assert NemesisBountyDialogFlow's gate finds him eligible -> IssueNemesisBounty (real reward math) -> real TakePrisonerAction on him -> assert QuestDeedTracker's widened CapturePrisoner hook stamps the NemesisBounty quest satisfied", TestNemesisBountyCapture),
          new SelfTest("nemesis_bounty_execute", Severity.Light, "mint a nemesis anchored to a real lord's own region -> IssueNemesisBounty -> capture then execute him via the real execute_prisoner bridge action -> assert the widened HeroKilledEvent hook stamps the NemesisBounty quest AND NemesisResolutionBehavior resolves the identity, both off the same event", TestNemesisBountyExecute),
          new SelfTest("declare_war", Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it", TestDeclareWar),
@@ -1292,6 +1293,53 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Expect("closureRecorded", closure != null, true);
          t.Note($"{nem.Name} {nem.Epithet}: minted, really captured, detected as held, executed via the real bridge action; summary={closure?.Summary}");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Nemesis pillar increment 4 (SPARE + TURN): the whole turn path through the REAL bridge action, on a
+      ///   really-captured nemesis. First forces his stance below the gate floor and asserts the offer is
+      ///   REFUSED and he stays a prisoner; then raises Fear/Respect past the floors and asserts he TURNS,
+      ///   is marked turned, is released, and is sworn into the player's clan. His minted traits (low Honor,
+      ///   some Calculating) are already non-defiant, so only the stance floors need forcing.
+      /// </summary>
+      private static string TestNemesisTurn(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_turn");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null || Clan.PlayerClan == null, "no player hero/clan")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_turn", today);
+
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, hero);
+         if (t.Abort(NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() != hero, $"capture/detection failed for {hero.Name}")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, hero);
+
+         // Refusal: a nemesis who does not fear you enough will not bend, and stays your prisoner.
+         profile.StanceFear = NemesisTurnPolicy.FearFloor - 20;
+         profile.StanceRespect = NemesisTurnPolicy.RespectFloor + 20;
+         behavior.Store.Set(profile);
+         ActionOutcome refused = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "turn_nemesis"}, hero, null);
+         t.Expect("fearlessRefuses", refused?.IsPositive, false);
+         t.Expect("stillPrisonerAfterRefusal", hero.IsPrisoner, true);
+         t.Expect("notTurnedAfterRefusal", nem.IsTurned, false);
+
+         // Acceptance: cowed AND respectful, with a light grudge, the archetype that turns.
+         profile.StanceFear = NemesisTurnPolicy.FearFloor + 30;
+         profile.StanceRespect = NemesisTurnPolicy.RespectFloor + 20;
+         behavior.Store.Set(profile);
+         ActionOutcome turned = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "turn_nemesis"}, hero, null);
+         t.Expect("cowedRespectfulTurns", turned?.IsPositive, true);
+         t.Expect("identityMarkedTurned", nem.IsTurned, true);
+         t.Expect("releasedFromCaptivity", hero.IsPrisoner, false);
+         t.Expect("swornIntoPlayerClan", hero.Clan == Clan.PlayerClan, true);
+         t.Note($"{nem.Name} {nem.Epithet}: captured, refused when fearless, turned when cowed+respectful; now of clan {hero.Clan?.Name?.ToString() ?? "?"}.");
 
          return t.Line();
       }

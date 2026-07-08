@@ -17,6 +17,7 @@ using CalradiaRemembers.Mapping;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
@@ -56,6 +57,7 @@ namespace CalradiaRemembers.Nemesis
       public override void RegisterEvents()
       {
          CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
+         CampaignEvents.HeroPrisonerReleased.AddNonSerializedListener(this, OnHeroPrisonerReleased);
       }
 
       /// <summary>
@@ -91,6 +93,43 @@ namespace CalradiaRemembers.Nemesis
          {
             ModLog.Error($"[NEMESIS] capture hook failed: {ex.GetType().Name}: {ex.Message}");
          }
+      }
+
+      /// <summary>
+      ///   The player has been let out of captivity. If the party that held them was the ACTIVE nemesis's band
+      ///   (an escape, or any non-death release), the nemesis REMEMBERS it: a notable event lands on his memory
+      ///   profile ("they slipped my grasp"), so a later re-crossing reflects that the player got away from him
+      ///   (a player-reported gap: escaping recorded nothing). Records for a spontaneous escape AND whatever
+      ///   release path a third-party escape mod uses, since both raise this event. Transient by design: if the
+      ///   captivity spanned a save/load the active mapping is already gone and nothing is recorded, the same
+      ///   degradation the rest of the capture layer accepts.
+      /// </summary>
+      private void OnHeroPrisonerReleased(Hero prisoner, PartyBase party, IFaction faction, EndCaptivityDetail detail, bool showNotification)
+      {
+         try
+         {
+            if (prisoner != Hero.MainHero) return;
+            if (detail == EndCaptivityDetail.Death) return; // died a prisoner: nothing to remember him escaping
+            if (_activeNemesisHero == null || _activeCaptorParty == null) return;
+            if (party?.MobileParty != _activeCaptorParty) return; // freed from some other captor, not the nemesis
+
+            var store = NpcMemoryCampaignBehavior.Instance?.Store;
+            NpcProfile profile = store?.Get(_activeNemesisHero.StringId);
+            if (store != null && profile != null)
+            {
+               var day = (int) CampaignTime.Now.ToDays;
+               string playerName = Hero.MainHero?.Name?.ToString() ?? "the captive";
+               profile.Events.Add(new NotableEvent(day, NotableEventType.Conflict,
+                  $"{playerName} slipped my grasp and escaped my hold. A debt I mean to collect."));
+               store.Set(profile);
+               ModLog.Info($"[NEMESIS] {_activeNemesisHero.Name} remembers the player escaping his hold (release detail {detail}).");
+            }
+
+            // Captivity under this nemesis is over; drop the transient active mapping.
+            _activeNemesisHero = null;
+            _activeCaptorParty = null;
+         }
+         catch (Exception ex) { ModLog.Error($"[NEMESIS] prisoner-released hook failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
       /// <summary>

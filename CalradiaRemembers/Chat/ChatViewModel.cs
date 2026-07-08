@@ -356,6 +356,16 @@ namespace CalradiaRemembers.Chat
       public bool IsEncyclopediaVisible => _npcHero != null;
 
       /// <summary>
+      ///   The "Options" button: reproduces what pressing ESC does, opening the vanilla escape/options menu
+      ///   (and the MCM mod options) over the chat, so the player can change settings, enable logging, or swap
+      ///   models WITHOUT ending the conversation (the chat is a keyboard-focus layer, so it swallows ESC).
+      ///   Shown in an ordinary live conversation; hidden in a captor/captive scene, which rides a mission where
+      ///   the map escape menu is not the right target.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsGameMenuButtonVisible => _mode == ChatMode.Conversation && !_captorScene;
+
+      /// <summary>
       ///   True when the mode button should be shown: only when an NSFW model is configured in the MCM
       ///   menu (otherwise the toggle would change nothing) and adult content is enabled at all.
       /// </summary>
@@ -805,10 +815,12 @@ namespace CalradiaRemembers.Chat
          if (string.IsNullOrWhiteSpace(text)) return;
          try
          {
-            // A heroless captor (synthesized bandit) falls back to a bandit-troop portrait.
-            _messages.Add(_npcHero?.CharacterObject == null && _npcPortraitCharacter != null
-               ? new ChatMessageViewModel(_npcPortraitCharacter, _npcName, text, false)
-               : new ChatMessageViewModel(_npcHero, _npcName, text, false));
+            // A heroless captor (synthesized bandit), OR a freshly-minted nemesis whose Hero tableau is not yet
+            // renderable on the first encounter, falls back to a bandit-troop portrait so the line keeps an avatar.
+            ChatMessageViewModel npcMsg = new ChatMessageViewModel(_npcHero, _npcName, text, false);
+            if (!npcMsg.HasLivePortrait && _npcPortraitCharacter != null)
+               npcMsg = new ChatMessageViewModel(_npcPortraitCharacter, _npcName, text, false);
+            _messages.Add(npcMsg);
             ModLog.Info("AppendNpcMessage: added to _messages");
             ChatManager.ScrollToBottom();
             if (recordTranscript) RecordTranscript(false, _npcName, _npcHero?.StringId, text);
@@ -1048,6 +1060,17 @@ namespace CalradiaRemembers.Chat
       ///   <see cref="ChatManager.SuspendForExternalScreen" /> hands focus to the encyclopedia, reclaiming it
       ///   automatically once the player closes it.
       /// </summary>
+      /// <summary>
+      ///   The "Options" button: opens the vanilla escape/options menu over the chat, the same call ESC makes
+      ///   on the map (see <see cref="GameMenuOpener" />). The focus arbiter yields the chat to it and reclaims
+      ///   focus when it closes, exactly like the encyclopedia. A graceful no-op if the menu cannot be reached.
+      /// </summary>
+      public void ExecuteOpenGameMenu()
+      {
+         if (!GameMenuOpener.TryOpenEscapeMenu())
+            ModLog.Info("[MENU] the options menu could not be opened from the chat this time.");
+      }
+
       public void ExecuteOpenEncyclopedia()
       {
          try
@@ -1481,6 +1504,15 @@ namespace CalradiaRemembers.Chat
          _npcHero = npcHero;
          OnPropertyChanged(nameof(IsEncyclopediaVisible)); // may be set after the prefab loads (captive scenes)
          OnPropertyChanged(nameof(IsMemoryToggleVisible)); // ditto, the memory button shares this population
+
+         // A freshly-minted bandit boss (nemesis) may not have a renderable character tableau on the FIRST
+         // encounter (a race: he is minted the same instant the captive scene fires). Keep his band's troop face
+         // on hand so a blank Hero portrait can fall back to it, and his lines still carry an avatar instead of
+         // running under the player's with no separator (a player-reported bug). Lords always render, so only a
+         // bandit-clan captor needs this.
+         if (_npcPortraitCharacter == null && npcHero?.Clan?.IsBanditFaction == true)
+            _npcPortraitCharacter = npcHero.Clan.BasicTroop;
+
          if (!string.IsNullOrWhiteSpace(npcHero?.Name?.ToString())) _npcName = npcHero.Name.ToString();
          TitleText = $"Calradia Remembers — {_npcName}";
          _storyIntroWritten = false;

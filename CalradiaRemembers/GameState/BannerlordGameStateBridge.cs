@@ -172,6 +172,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteFreePrisoner(npcHero, context);
             case "execute_prisoner":
                return ExecuteExecutePrisoner(npcHero);
+            case "turn_nemesis":
+               return ExecuteTurnNemesis(npcHero, context?.Profile);
             case "grant_blessing":
                return ExecuteGrantBlessing(action, npcHero);
             case "harm_prisoner":
@@ -774,6 +776,92 @@ namespace CalradiaRemembers.GameState
             return null;
          }
       }
+
+      /// <summary>
+      ///   turn_nemesis (Nemesis pillar increment 4, SPARE + TURN): mid a captor scene the player offers to
+      ///   spare a tracked nemesis they hold prisoner and take him into their service, and the LLM recognized a
+      ///   genuine acceptance. The prompt is advice, the bridge is law: this re-validates that the NPC really is
+      ///   the nemesis the PLAYER currently holds, then re-runs the RATIFIED turn gate
+      ///   (<see cref="NemesisTurnPolicy" />) on his live Fear/Respect, his grudge against the player, and his
+      ///   traits. A refusal (fears you too little, respects you too little, too defiant, or hates you too
+      ///   deeply) is honoured in character and changes nothing. On a genuine turn he is freed, sworn into the
+      ///   player's clan and party, his vendetta closed, and the identity marked turned (never recurs as an
+      ///   enemy captor) with a closure deed recorded (<see cref="Nemesis.NemesisResolutionBehavior.Turn" />).
+      /// </summary>
+      private static ActionOutcome ExecuteTurnNemesis(Hero npcHero, NpcProfile profile)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            Hero held = Nemesis.NemesisBehavior.Instance?.PlayerHeldNemesisPrisoner();
+            if (held == null || held != npcHero)
+               return new ActionOutcome($"({npcHero.Name} is not a nemesis you hold prisoner to turn.)", false);
+
+            NpcProfile p = profile ?? Behaviors.NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
+            if (p == null)
+               return new ActionOutcome($"({npcHero.Name} cannot be read well enough to judge whether he would turn.)", false);
+
+            NpcStance stance = StanceService.ToStance(p);
+            int honor = TraitLevelOf(npcHero, DefaultTraits.Honor);
+            int valor = TraitLevelOf(npcHero, DefaultTraits.Valor);
+            int calculating = TraitLevelOf(npcHero, DefaultTraits.Calculating);
+            int grudge = NemesisGrudgeAgainstPlayer(npcHero);
+
+            NemesisTurnVerdict verdict = NemesisTurnPolicy.Resolve(
+               new NemesisTurnFacts(stance.Fear, stance.Respect, grudge, honor, valor, calculating));
+
+            if (!verdict.CanTurn)
+               return new ActionOutcome($"({npcHero.Name} refuses to bend: he {TurnRefusalPhrase(verdict.Refusal)}.)", false);
+
+            // He turns. Free him, swear him into the player's clan and party, and close the vendetta.
+            Clan oldClan = npcHero.Clan;
+            EndCaptivityAction.ApplyByReleasedByChoice(npcHero, Hero.MainHero);
+            npcHero.Clan = Clan.PlayerClan;
+            if (MobileParty.MainParty != null) AddHeroToPartyAction.Apply(npcHero, MobileParty.MainParty);
+
+            // Identity + chronicle side (marks TurnedDay, clears his grudge against the player, records the deed).
+            Nemesis.NemesisResolutionBehavior.Turn(npcHero);
+
+            ModLog.Info($"[ACTION] turn_nemesis: {npcHero.Name} spared and turned (left {oldClan?.StringId ?? "?"}, sworn to the player's clan).");
+
+            return new ActionOutcome(
+               $"{npcHero.Name} bends the knee and swears himself to you. The hunter now rides at your side.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] turn_nemesis failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>The deepest grudge the nemesis holds specifically against the player (0..100), or 0 when none.</summary>
+      private static int NemesisGrudgeAgainstPlayer(Hero nemesis)
+      {
+         try
+         {
+            var grudges = Grudges.GrudgeBehavior.Instance?.GrudgesFor(nemesis.StringId);
+            if (grudges == null) return 0;
+
+            var max = 0;
+            foreach (var g in grudges)
+               if (g != null && string.Equals(g.TargetId, Hero.MainHero?.StringId, StringComparison.Ordinal) && g.Magnitude > max)
+                  max = g.Magnitude;
+
+            return max;
+         }
+         catch { return 0; }
+      }
+
+      /// <summary>Maps a turn refusal to a short in-character phrase for the outcome line.</summary>
+      private static string TurnRefusalPhrase(NemesisTurnRefusal reason) => reason switch {
+         NemesisTurnRefusal.FearsYouTooLittle => "does not fear you enough to bend",
+         NemesisTurnRefusal.RespectsYouTooLittle => "sees no honour in serving the likes of you",
+         NemesisTurnRefusal.TooDefiant => "would sooner die free than serve his captor",
+         NemesisTurnRefusal.HatesYouTooMuch => "hates you far too deeply to ever serve you",
+         _ => "will not turn"
+      };
 
       /// <summary>
       ///   Stance mechanical behaviour-gating (increment 1, Fear): reads the captive's LIVE Fear/Respect

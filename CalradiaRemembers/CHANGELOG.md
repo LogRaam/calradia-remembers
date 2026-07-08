@@ -2,6 +2,19 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.25.0.. 2026-07-07
+
+The bandit boss who takes you prisoner grows into a real rival: he now sounds like the brute he is, remembers when you slip his grasp, and, once you have beaten and captured him, can be spared and turned to your own service. Plus a handful of fixes straight from your reports.
+
+### New
+- Spare a beaten nemesis and turn him to your side. Once you hold the recurring bandit boss prisoner and speak with him, you may offer to spare his life and take him into your service. Whether he bends is a matter of the man: one you have truly cowed and who has come to respect you may swear himself to you; a brave or honour-bound one would sooner die free than serve his captor; and one whose hatred runs too deep refuses unless your dominance over him is utter. Turn him and he forsakes his band, rides at your side, and the long vendetta between you is closed for good.
+- An Options button, right in the chat. It opens the game's own options (and the mod's MCM settings) over the conversation, exactly as pressing Escape would, so you can switch models, enable logging, or change a setting without ever ending the chat. The model-mode toggle now sits down in that same button row.
+
+### Fixed
+- The recurring bandit boss now talks like the brigand he is. He was writing with the eloquence and cold calculation of a lord. He keeps his name and his memory of you, but now sounds like the coarse, brutal cutthroat he is, not a nobleman on a dais. This also curbs the odd, too-soft turns some of you saw; a brute menaces, he does not reassure.
+- Bandit leaders always show a chat portrait now. A freshly-named bandit boss could appear with no portrait on the very first meeting (his face was not yet ready the instant he was created), which ran his lines under yours. He now falls back to his band's own face, so every line is clearly his and reads as its own turn.
+- The bandit boss remembers your escape. Slipping free of a nemesis now leaves a mark in his memory ("they slipped my grasp"), so the next time your roads cross he knows you got away from him.
+
 ## v1.24.0.. 2026-07-07
 
 Straight from your comments. Lords who ride up to you now actually talk, the tasks NPCs give you can actually be finished, and you can glance back at what someone remembers of you without ever leaving the chat.

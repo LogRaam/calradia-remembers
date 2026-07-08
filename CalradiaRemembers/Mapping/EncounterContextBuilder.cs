@@ -148,6 +148,10 @@ namespace CalradiaRemembers.Mapping
             AggressorKind = aggressorKind,
             ReactToPlayerIntervention = reactToPlayerIntervention,
             CaptorIsBandit = captorIsBandit,
+            // A brigand by station: a faceless bandit, OR a named nemesis who still belongs to a bandit clan.
+            // Drives the coarse-voice overlay so a nemesis does not read like a lord. He keeps his name and
+            // memory (the "does not know you" perception stays on CaptorIsBandit above), only his VOICE coarsens.
+            CaptorIsBrigand = captorIsBandit || IsBanditClanHero(hero),
             PlayerLooksWealthy = captorIsBandit && PlayerLooksWealthy(),
             PlayerLooksImportant = captorIsBandit && PlayerLooksImportant(),
             CompanionAskingPrice = ResolveCompanionAskingPrice(hero),
@@ -381,6 +385,13 @@ namespace CalradiaRemembers.Mapping
       ///   notable influence), so a bandit might suspect a valuable, ransomable figure — even
       ///   without knowing the name. Never exposes the actual identity.
       /// </summary>
+      /// <summary>True when <paramref name="hero" /> is a member of a bandit clan (a nemesis boss), so his captor voice should coarsen to a brigand's.</summary>
+      private static bool IsBanditClanHero(Hero hero)
+      {
+         try { return hero?.Clan?.IsBanditFaction == true; }
+         catch { return false; }
+      }
+
       private static bool PlayerLooksImportant()
       {
          try

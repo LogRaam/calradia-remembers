@@ -497,9 +497,16 @@ namespace CalradiaRemembers.Chat
          if (speaker.IsMain && speaker.Hero?.CharacterObject == null && _npcPortraitCharacter != null)
             return new ChatMessageViewModel(_npcPortraitCharacter, speaker.Name, text, false);
 
-         return speaker.IsMain || string.IsNullOrEmpty(speaker.Color)
+         ChatMessageViewModel msg = speaker.IsMain || string.IsNullOrEmpty(speaker.Color)
             ? new ChatMessageViewModel(speaker.Hero, speaker.Name, text, false)
             : new ChatMessageViewModel(speaker.Hero, speaker.Name, text, speaker.Color);
+
+         // A freshly-minted nemesis Hero's tableau may not be renderable yet on the first encounter; fall back
+         // to the band's troop face so his line still carries an avatar (a player-reported "no portrait" bug).
+         if (speaker.IsMain && !msg.HasLivePortrait && _npcPortraitCharacter != null)
+            return new ChatMessageViewModel(_npcPortraitCharacter, speaker.Name, text, false);
+
+         return msg;
       }
 
       // ── Sprint 15B helpers ────────────────────────────────────────────────
