@@ -215,6 +215,18 @@ namespace CalradiaRemembers.Letters
 
             if (MBRandom.RandomFloat > CalculateProbability(daysInCaptivity, captorProfile)) return;
 
+            // Companion-victim scene (Phase 3 auto-fire): with companions held alongside, the captor may work on
+            // one of THEM before the player, instead of on the player. Pure gate in CompanionScenePolicy; the
+            // Phase 3 consequence (grief, revenge, chronicle) then lands when that scene closes.
+            List<Hero> heldCompanions = HeldCompanionsOf(captorParty);
+            if (heldCompanions.Count > 0 && CompanionScenePolicy.ShouldTargetCompanion(heldCompanions.Count, RollPercent(100)))
+            {
+               _lastEncounterDay = today;
+               OpenCompanionVictimScene(captor, captorProfile, heldCompanions);
+
+               return;
+            }
+
             _lastEncounterDay = today;
             (List<WitnessEntry> witnesses, bool isCollective) = SelectWitnesses(captorParty, captor, store);
             CaptiveSceneIntent intent = SelectIntent(captorProfile, captorProfile.ReputationWithPlayer);
@@ -469,12 +481,52 @@ namespace CalradiaRemembers.Letters
          List<WitnessEntry> witnesses,
          bool isCollective,
          CaptiveSceneIntent intent,
-         CharacterObject portraitCharacter = null)
+         CharacterObject portraitCharacter = null,
+         Hero victimCompanion = null,
+         bool playerCoerced = false)
       {
          // Staged as a 3D conversation (the captor before you, animated), never as a bare overlay on the world
          // map: the live naval map behind an overlay leaks render-textures (the create_render_texture VRAM
          // crash). The stager falls back to the direct overlay (map suspended) if no conversation can start.
-         CaptiveSceneStager.StageCaptiveEncounter(captor, captorProfile, witnesses, isCollective, intent, portraitCharacter);
+         CaptiveSceneStager.StageCaptiveEncounter(captor, captorProfile, witnesses, isCollective, intent, portraitCharacter, victimCompanion, playerCoerced);
+      }
+
+      /// <summary>
+      ///   Opens a COMPANION-VICTIM scene (Phase 3 auto-fire): the captor works on one of the companions held
+      ///   alongside the player. Picks the victim, the variant (torment / soldiers assault / player coerced) and
+      ///   its collective/coercion flags from the pure <see cref="CompanionScenePolicy" />.
+      /// </summary>
+      private static void OpenCompanionVictimScene(Hero captor, NpcProfile captorProfile, List<Hero> heldCompanions)
+      {
+         Hero victim = heldCompanions[MBRandom.RandomInt(heldCompanions.Count)];
+         CompanionSceneKind kind = CompanionScenePolicy.PickKind(RollPercent(100));
+         bool collective = CompanionScenePolicy.IsCollective(kind);
+         bool coerced = CompanionScenePolicy.IsPlayerCoerced(kind);
+         CaptiveSceneIntent intent = kind == CompanionSceneKind.CaptorTorments
+            ? CaptiveSceneIntent.Torture
+            : CaptiveSceneIntent.Domination;
+
+         List<WitnessEntry> witnesses = collective
+            ? BuildSoldierWitnesses()
+            : new List<WitnessEntry>();
+
+         ModLog.Info($"[CAPTIVE] companion-victim scene: captor={captor?.Name?.ToString() ?? "?"}, victim={victim.Name}, kind={kind}, collective={collective}, coerced={coerced}.");
+         ShowEncounterPopup(captor, captorProfile, witnesses, collective, intent, null, victim, coerced);
+      }
+
+      /// <summary>The player's clan companions currently held prisoner in <paramref name="captorParty" /> (captured alongside them).</summary>
+      private static List<Hero> HeldCompanionsOf(MobileParty captorParty)
+      {
+         try
+         {
+            Clan clan = Clan.PlayerClan;
+            if (clan?.Companions == null || captorParty == null) return new List<Hero>();
+
+            return clan.Companions
+                       .Where(h => h is {IsAlive: true, IsPrisoner: true} && h.PartyBelongedToAsPrisoner?.MobileParty == captorParty)
+                       .ToList();
+         }
+         catch { return new List<Hero>(); }
       }
 
       private static List<WitnessEntry> ResolveLordWitnesses(
@@ -554,12 +606,20 @@ namespace CalradiaRemembers.Letters
          List<WitnessEntry> witnesses,
          bool isCollective,
          CaptiveSceneIntent intent,
-         CharacterObject portraitCharacter = null)
+         CharacterObject portraitCharacter = null,
+         Hero victimCompanion = null,
+         bool playerCoerced = false)
       {
          string captorName = captor?.Name?.ToString() ?? captorProfile?.Name ?? "your captor";
-         string flavor = isCollective
-            ? "You are brought before your captors. You have no choice but to comply."
-            : $"You are brought before {captorName}. Alone. You have no choice but to comply.";
+         string flavor;
+         if (victimCompanion != null)
+            flavor = playerCoerced
+               ? $"{captorName} has {victimCompanion.Name} dragged before you, and puts the choice in your hands."
+               : $"{captorName} has {victimCompanion.Name} dragged before you, to be worked on while you are made to watch.";
+         else
+            flavor = isCollective
+               ? "You are brought before your captors. You have no choice but to comply."
+               : $"You are brought before {captorName}. Alone. You have no choice but to comply.";
 
          InformationManager.ShowInquiry(new InquiryData(
             $"{captorName} summons you",
@@ -568,7 +628,7 @@ namespace CalradiaRemembers.Letters
             false,
             "Enter",
             null,
-            () => OpenEncounterChat(captor, captorProfile, witnesses, isCollective, intent, portraitCharacter),
+            () => OpenEncounterChat(captor, captorProfile, witnesses, isCollective, intent, portraitCharacter, victimCompanion, playerCoerced),
             null
          ), true);
       }

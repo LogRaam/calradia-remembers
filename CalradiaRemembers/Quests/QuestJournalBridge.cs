@@ -3,8 +3,10 @@
 #region
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -108,18 +110,81 @@ namespace CalradiaRemembers.Quests
                                                       .OfType<CalradiaRemembersQuest>()
                                                       .ToList()) // snapshot — we may mutate during iteration
          {
-            if (IsStillOutstanding(q, store, out string reason)) continue;
+            MirrorReconcileDecision decision = DecideForMirror(q, store, out string detail);
 
-            // Log WHY before closing — players have reported active quests vanishing on
-            // load; this surfaces the exact branch (dead giver, missing profile, or id
-            // drift) so a repro with logging on is diagnosable instead of guesswork.
-            ModLog.Info($"[QUEST-JOURNAL] Closing mirror '{q.StringId}' at session launch — {reason}.");
-            q.CloseAsCancelled("The task has been resolved or is no longer relevant.");
+            if (decision == MirrorReconcileDecision.Keep)
+            {
+               // Log the ambiguous keeps (there is a detail) so a "why didn't it close" repro stays diagnosable.
+               if (detail != null) ModLog.Info($"[QUEST-JOURNAL] Keeping mirror '{q.StringId}' at session launch: {detail}.");
+
+               continue;
+            }
+
+            ModLog.Info($"[QUEST-JOURNAL] Closing mirror '{q.StringId}' at session launch: {detail}.");
+            q.CloseAsCancelled(decision == MirrorReconcileDecision.CloseGiverGone
+               ? "The one who set you this task is gone."
+               : "This task has already been resolved.");
             closed++;
          }
 
          if (closed > 0)
             ModLog.Info($"[QUEST-JOURNAL] Reconciled {closed} stale mirror(s) at session launch.");
+
+         RestoreMissingMirrors(store);
+      }
+
+      /// <summary>
+      ///   The reconciler's second direction: the journal is a PROJECTION of the authoritative store, so a live
+      ///   <see cref="InformalQuest" /> (outstanding or awaiting its reward) whose journal mirror is missing gets
+      ///   the mirror RE-CREATED. This heals saves damaged by the old false-cancel bug (the quest survived in the
+      ///   giver's profile; only its journal entry was destroyed on load) and any future mirror loss. Idempotent:
+      ///   an already-open mirror blocks re-creation, and <see cref="Campaign.Current" />'s quest list only holds
+      ///   ongoing quests, so closed history never blocks a legitimate restore. Per-quest failures are contained.
+      /// </summary>
+      public static void RestoreMissingMirrors(BannerlordNpcMemoryStore store)
+      {
+         if (store == null || Campaign.Current?.QuestManager == null) return;
+
+         var openKeys = new HashSet<string>(Campaign.Current.QuestManager.Quests
+                                                    .OfType<CalradiaRemembersQuest>()
+                                                    .Select(q => q.QuestKey));
+
+         var restored = 0;
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile == null || profile.ActiveQuests.Count == 0) continue;
+
+            Hero giver = Hero.FindFirst(h => h.StringId == profile.Id);
+            bool giverAliveAndResolved = giver is {IsAlive: true};
+
+            foreach (InformalQuest quest in profile.ActiveQuests.ToList())
+            {
+               string key = giverAliveAndResolved ? CalradiaRemembersQuest.BuildQuestId(giver, quest) : null;
+               bool questIsLive = quest.IsOutstanding || quest.IsAwaitingReward;
+
+               if (!QuestReconcilePolicy.ShouldRestoreMirror(questIsLive, giverAliveAndResolved, key != null && openKeys.Contains(key)))
+                  continue;
+
+               try
+               {
+                  var mirror = new CalradiaRemembersQuest(quest, giver);
+                  if (quest.IsAwaitingReward)
+                     mirror.MarkDeedDone(quest.Evidence ?? "The task is done");
+                  openKeys.Add(key);
+                  restored++;
+                  ModLog.Info($"[QUEST-JOURNAL] Restored missing mirror '{key}' for {giver.Name} ({quest.Status}{(quest.IsAwaitingReward ? ", awaiting reward" : "")}).");
+               }
+               catch (Exception ex)
+               {
+                  ModLog.Error($"[QUEST-JOURNAL] Restore of '{key}' failed: {ex.GetType().Name}: {ex.Message}");
+               }
+            }
+         }
+
+         if (restored > 0)
+            ModLog.Info($"[QUEST-JOURNAL] Restored {restored} missing journal mirror(s) from the quest store.");
       }
 
       #region private
@@ -131,55 +196,67 @@ namespace CalradiaRemembers.Quests
          if (quest == null || giver == null || Campaign.Current?.QuestManager == null)
             return null;
 
-         string targetId = CalradiaRemembersQuest.BuildQuestId(giver, quest);
+         string targetKey = CalradiaRemembersQuest.BuildQuestId(giver, quest);
 
+         // Match on the STABLE QuestKey, never the engine's StringId (which it can rewrite on registration).
+         // Matching on StringId here silently failed to find the mirror, so a completed/cancelled quest never
+         // closed its journal entry, and the next session-launch reconciler then cancelled it.
          return Campaign.Current.QuestManager.Quests
                         .OfType<CalradiaRemembersQuest>()
-                        .FirstOrDefault(q => q.StringId == targetId);
+                        .FirstOrDefault(q => q.QuestKey == targetKey);
       }
 
-      private static bool IsStillOutstanding(CalradiaRemembersQuest mirror, BannerlordNpcMemoryStore store, out string reason)
+      /// <summary>
+      ///   Decides a mirror's fate at session launch, delegating the actual rule to the pure
+      ///   <see cref="QuestReconcilePolicy" />. The guiding principle: NEVER cancel a quest we cannot positively
+      ///   prove is finished. A false cancel destroys a valid, often already-completed task (the repeatedly-
+      ///   reported "quest auto-failed on load" bug). So only a confirmed-dead giver or a matching quest found in
+      ///   a terminal state closes a mirror; a null giver reference, an unloaded profile, or id drift after a
+      ///   version upgrade all resolve to Keep. <paramref name="detail" /> is a human-readable reason (null for a
+      ///   plain, matched keep) for the diagnostic log.
+      /// </summary>
+      private static MirrorReconcileDecision DecideForMirror(CalradiaRemembersQuest mirror, BannerlordNpcMemoryStore store, out string detail)
       {
          Hero giver = mirror.QuestGiver;
-         if (giver is not {IsAlive: true})
-         {
-            reason = "quest giver is missing or no longer alive";
 
-            return false;
+         // A NULL giver reference is ambiguous (the engine may not have restored it), NOT a confirmed death:
+         // treating it as death here would nuke a valid quest, so only a resolved-but-not-alive giver counts.
+         bool giverConfirmedDead = giver != null && !giver.IsAlive;
+
+         NpcProfile profile = giver != null ? store.Get(giver.StringId) : null;
+
+         bool hasLiveMatch = false, hasTerminalMatch = false;
+         if (profile != null && giver != null)
+            foreach (InformalQuest q in profile.ActiveQuests)
+            {
+               // Match on the STABLE key, never mirror.StringId (the engine may have rewritten it).
+               if (CalradiaRemembersQuest.BuildQuestId(giver, q) != mirror.QuestKey) continue;
+               if (q.IsOutstanding || q.IsAwaitingReward) hasLiveMatch = true;
+               else hasTerminalMatch = true;
+            }
+
+         MirrorReconcileDecision decision = QuestReconcilePolicy.Decide(giverConfirmedDead, hasLiveMatch, hasTerminalMatch);
+
+         switch (decision)
+         {
+            case MirrorReconcileDecision.CloseGiverGone:
+               detail = $"giver {giver?.Name?.ToString() ?? "?"} is dead, the task can no longer be reported";
+
+               break;
+            case MirrorReconcileDecision.CloseTerminal:
+               detail = "a matching quest has genuinely terminated";
+
+               break;
+            default:
+               // Keep. Only annotate the AMBIGUOUS keeps (no live match found) for diagnostics; a clean match is silent.
+               detail = hasLiveMatch
+                  ? null
+                  : $"no confident match for living giver {giver?.Name?.ToString() ?? "(unresolved reference)"}, keeping rather than risk a false cancel";
+
+               break;
          }
 
-         NpcProfile profile = store.Get(giver.StringId);
-         if (profile == null)
-         {
-            reason = $"no stored profile for giver {giver.Name} ({giver.StringId}) — store not loaded in time?";
-
-            return false;
-         }
-
-         // A mirror is still live while its quest is ACTIVE — whether the deed is still outstanding OR already
-         // done and merely awaiting the report-back/reward (IsAwaitingReward). Closing the latter on reload was
-         // the bug behind "completed a task (e.g. via Give Gold), reload, journal shows it failed/cancelled" even
-         // though the CR quest state and reward were intact.
-         bool match = profile.ActiveQuests.Any(q =>
-            (q.IsOutstanding || q.IsAwaitingReward) &&
-            CalradiaRemembersQuest.BuildQuestId(giver, q) == mirror.StringId);
-         if (match)
-         {
-            reason = null;
-
-            return true;
-         }
-
-         // The mirror has no matching outstanding quest. Dump what the profile DOES hold so
-         // a repro log reveals whether it is id drift (IssuedOnDay changed) or a real state
-         // change (the quest was completed/expired) — the two have very different fixes.
-         string have = profile.ActiveQuests.Count == 0
-            ? "(none)"
-            : string.Join(" | ", profile.ActiveQuests.Select(q =>
-               $"{CalradiaRemembersQuest.BuildQuestId(giver, q)}[{q.Status}{(q.IsOutstanding ? ",outstanding" : "")}{(q.IsAwaitingReward ? ",awaitingReward" : "")}]"));
-         reason = $"no outstanding quest matches mirror id '{mirror.StringId}'. Profile quests: {have}";
-
-         return false;
+         return decision;
       }
 
       #endregion

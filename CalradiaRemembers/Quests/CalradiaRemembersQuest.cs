@@ -69,6 +69,15 @@ namespace CalradiaRemembers.Quests
       // hide the engine's countdown to avoid double-expiry display.
       public override bool IsRemainingTimeHidden => true;
 
+      /// <summary>
+      ///   The STABLE match key (<see cref="BuildQuestId" /> at creation, saved verbatim). Match against THIS,
+      ///   never <see cref="MBObjectBase.StringId" />: the engine can rewrite a quest's StringId on registration
+      ///   (a numeric suffix on collision), which silently broke both the close path and the session-launch
+      ///   reconciler and made completed quests read as cancelled on reload. Built from append-only, stable parts
+      ///   (giver id, quest type ordinal, issue day), so it survives version upgrades and reloads intact.
+      /// </summary>
+      public string QuestKey => _questKey;
+
       public override TextObject Title => new(ResolveLiveQuest()?.Description ?? _questKey);
 
       /// <summary>

@@ -130,11 +130,16 @@ namespace CalradiaRemembers.Logic
             var withClauses = new List<string>();
             string hairColor = (facts.HairColorDescriptor ?? "").Trim();
             if (hairColor.Length > 0) withClauses.Add(hairColor + " hair");
+            string eyeColor = (facts.EyeColorDescriptor ?? "").Trim();
+            if (eyeColor.Length > 0) withClauses.Add(eyeColor + " eyes");
             if (!facts.IsFemale && facts.HasBeard) withClauses.Add("a beard");
+
+            string skinTone = (facts.SkinToneDescriptor ?? "").Trim();
 
             var adjectives = new List<string>();
             if (heightWord != null) adjectives.Add(heightWord);
             if (buildWord != null) adjectives.Add(buildWord);
+            if (skinTone.Length > 0) adjectives.Add(skinTone);
 
             bool hasNothingToSay = adjectives.Count == 0 && agePhrase == null && withClauses.Count == 0;
             if (hasNothingToSay) return "";
@@ -151,9 +156,18 @@ namespace CalradiaRemembers.Logic
                 sentence += " in " + AgePossessive(facts.IsFemale, voice) + " " + agePhrase;
 
             if (withClauses.Count > 0)
-                sentence += ", with " + string.Join(" and ", withClauses);
+                sentence += ", with " + JoinNatural(withClauses);
 
             return sentence + ".";
+        }
+
+        /// <summary>Joins clauses as English prose: "a", "a and b", or "a, b and c" (no Oxford comma).</summary>
+        private static string JoinNatural(List<string> items)
+        {
+            if (items.Count <= 1) return items.Count == 1 ? items[0] : "";
+            if (items.Count == 2) return items[0] + " and " + items[1];
+
+            return string.Join(", ", items.GetRange(0, items.Count - 1)) + " and " + items[items.Count - 1];
         }
 
         private static string AgePossessive(bool isFemale, AppearanceVoice voice)

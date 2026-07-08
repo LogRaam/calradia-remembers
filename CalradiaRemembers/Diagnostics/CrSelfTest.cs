@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
@@ -129,6 +130,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("grudge_execute_kin", Severity.Light, "find a live lord with a recognized close living kin -> ExecutedKinGrudgeBehavior.PlantOnKinOf (the real engine-glue loop) -> assert a vendetta grudge lands on that kin at max rigidity, unresolvable", TestGrudgeExecuteKin),
          new SelfTest("grudge_unblessed_marriage", Severity.Heavy, "marry the player (test spouse, no blessing seeded) via the real MarriageApprovalBehavior wedding hook -> assert an UnblessedMarriage grudge lands on a disapproving kinsman -> end_own_marriage -> assert the grudge resolves (cleared, not merely decayed)", TestGrudgeUnblessedMarriage),
          new SelfTest("grudge_sway", Severity.Light, "NPC + 3rd hero -> real sway_opinion(against) via the bridge -> assert SwayExposureBehavior queued a pending watch -> DebugForceReveal -> assert a hidden SwayExposed grudge lands on the target", TestGrudgeSway),
+         new SelfTest("companion_revenge", Severity.Light, "companion-victim Phase 3: plant a CaptiveAbuse grudge (companion vs PLAYER) AND a CaptorCruelty grudge (companion vs CAPTOR) on the SAME holder the SAME day -> assert BOTH survive, since they use distinct sources so the holder+source+day dedup does not collapse them", TestCompanionRevenge),
+         new SelfTest("appearance", Severity.Light, "extract the player's body facts -> compose the appearance block in Subject (3rd person, read by an NPC) and Self (2nd person) voices, with authored prose -> assert the facts extract, the authored prose is carried, and the Self voice reads in the second person", TestAppearance),
          new SelfTest("appreciation_flow", Severity.Light, "plant a kindness -> assert it lives -> plant a strong grudge on the same holder -> assert the tarnished effective magnitude drops -> force backfill twice -> assert the second pass is a no-op", TestAppreciationFlow),
          new SelfTest("nemesis_kill", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(battle death) -> assert IsAlive flips false + a closure world-event is recorded", TestNemesisKilledInBattle),
          new SelfTest("nemesis_execute", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(executed) -> assert IsAlive flips false + the closure world-event reads distinctly from the battle-death flavor", TestNemesisExecuted),
@@ -3764,6 +3767,71 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("pendingWatchQueued", pendingAfter > pendingBefore, true);
          t.Expect("swayExposedGrudgeFormed", swayGrudge != null, true);
          t.Expect("hiddenFromPlayer", swayGrudge?.KnownToPlayer, false);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Companion-victim Phase 3: the tormented companion may hold TWO grudges from one scene, CaptiveAbuse
+      ///   against the PLAYER (coerced / did not protect) and CaptorCruelty against the CAPTOR (revenge). They
+      ///   share a holder and a day, so this proves the distinct sources keep both from being collapsed by the
+      ///   holder+source+day dedup.
+      /// </summary>
+      private static string TestCompanionRevenge(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("companion_revenge");
+
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Hero holder = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && GrudgeBehavior.Instance.LiveGrudgesFor(h, today).Count == 0);
+         if (t.Skip(holder == null, "no grudge-free lord to stand in as the tormented companion")) return t.Line();
+
+         Hero captor = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != holder && h.IsLord);
+         if (t.Skip(captor == null, "no second lord to stand in as the captor")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, holder);
+         ArrangeCleanNpc(behavior, profile, holder);
+
+         bool vsPlayer = GrudgeBehavior.Instance.TryPlant(holder, Hero.MainHero, GrudgeSource.CaptiveAbuse,
+            "[SELFTEST] I was made to suffer while they watched.", 45, true, today);
+         bool vsCaptor = GrudgeBehavior.Instance.TryPlant(holder, captor, GrudgeSource.CaptorCruelty,
+            "[SELFTEST] the captor broke me; I will see them answer.", 50, true, today);
+
+         IReadOnlyList<Grudge> held = GrudgeBehavior.Instance.GrudgesFor(holder.StringId);
+         bool playerGrudge = held.Any(g => g.Source == GrudgeSource.CaptiveAbuse && g.TargetId == Hero.MainHero.StringId && !g.IsResolved);
+         bool captorGrudge = held.Any(g => g.Source == GrudgeSource.CaptorCruelty && g.TargetId == captor.StringId && !g.IsResolved);
+
+         t.Note($"holder={holder.Name}, captor={captor.Name}: planted vsPlayer={vsPlayer}, vsCaptor={vsCaptor}");
+         t.Expect("bothPlanted", vsPlayer && vsCaptor, true);
+         t.Expect("playerGrudgeLive", playerGrudge, true);
+         t.Expect("captorRevengeGrudgeLive", captorGrudge, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Appearance pillar: proves the engine extraction + pure composer + prose store compose a usable block.
+      ///   Reads the live player's body facts, composes both voices with a scrap of authored prose, and checks
+      ///   the prose is carried and the Self voice is second person.
+      /// </summary>
+      private static string TestAppearance(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("appearance");
+
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+         if (t.Abort(AppearanceProseBehavior.Instance == null, "appearance store not active (load a campaign first)")) return t.Line();
+
+         AppearanceFacts facts = AppearanceFactsExtractor.Extract(Hero.MainHero);
+         string subject = AppearanceComposer.Compose(facts, "moves with a slight limp", AppearanceVoice.Subject);
+         string self = AppearanceComposer.Compose(facts, null, AppearanceVoice.Self);
+
+         t.Note($"subject=\"{subject}\" | self=\"{self}\"");
+         t.Expect("factsExtracted", facts != null, true);
+         t.Expect("authoredProseCarried", subject.Contains("limp"), true);
+         t.Expect("selfVoiceSecondPerson", self.Length == 0 || self.StartsWith("You are"), true);
 
          return t.Line();
       }

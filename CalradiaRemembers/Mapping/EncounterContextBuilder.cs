@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Bastards;
 using CalradiaRemembers.GameState;
@@ -152,6 +153,11 @@ namespace CalradiaRemembers.Mapping
             // Drives the coarse-voice overlay so a nemesis does not read like a lord. He keeps his name and
             // memory (the "does not know you" perception stays on CaptorIsBandit above), only his VOICE coarsens.
             CaptorIsBrigand = captorIsBandit || IsBanditClanHero(hero),
+            // Appearance: the PLAYER described in the third person (Subject) so the NPC pictures them
+            // consistently, and the SPEAKING NPC's own body in the second person (Self) so it does not invent
+            // contradictory looks. Derived body facts + any player-authored prose, both may be empty (renders none).
+            PlayerAppearance = ComposeAppearance(Hero.MainHero, AppearanceVoice.Subject),
+            NpcSelfAppearance = ComposeAppearance(hero, AppearanceVoice.Self),
             PlayerLooksWealthy = captorIsBandit && PlayerLooksWealthy(),
             PlayerLooksImportant = captorIsBandit && PlayerLooksImportant(),
             CompanionAskingPrice = ResolveCompanionAskingPrice(hero),
@@ -390,6 +396,22 @@ namespace CalradiaRemembers.Mapping
       {
          try { return hero?.Clan?.IsBanditFaction == true; }
          catch { return false; }
+      }
+
+      /// <summary>
+      ///   Composes a hero's appearance block from derived body facts plus any authored prose, in the given
+      ///   voice. Returns null (renders nothing) for a null hero or when nothing stands out and no prose exists.
+      /// </summary>
+      private static string ComposeAppearance(Hero hero, AppearanceVoice voice)
+      {
+         if (hero == null) return null;
+
+         string composed = AppearanceComposer.Compose(
+            AppearanceFactsExtractor.Extract(hero),
+            AppearanceProseBehavior.Instance?.Get(hero.StringId),
+            voice);
+
+         return string.IsNullOrWhiteSpace(composed) ? null : composed;
       }
 
       private static bool PlayerLooksImportant()

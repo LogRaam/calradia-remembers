@@ -57,6 +57,15 @@ namespace CalradiaRemembers.Logic.Grudges
         External = 12,
 
         /// <summary>Stance mechanical behaviour-gating (increment 1, Fear): a captive fear-coerced into a freedom bargain, resenting the coercion in secret rather than feeling freely given goodwill.</summary>
-        CoercedRelease = 13
+        CoercedRelease = 13,
+
+        /// <summary>
+        ///   A held companion's REVENGE grudge against the NAMED captor who tormented or assaulted them before
+        ///   the player (companion-victim scene, Phase 3). Distinct from <see cref="CaptiveAbuse" /> (which the
+        ///   same companion may hold against the PLAYER for coercing them or failing to protect them), so both
+        ///   coexist rather than colliding on the holder+source+day dedup. Only planted against a persistent
+        ///   Hero captor (a nemesis or lord); a faceless bandit is ephemeral and earns no lasting vendetta.
+        /// </summary>
+        CaptorCruelty = 14
     }
 }

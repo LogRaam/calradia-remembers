@@ -178,6 +178,10 @@ namespace CalradiaRemembers
          // well-matched warm, the ill-matched feud) and weds the warm/eligible (kept in your clan). The
          // opinion is voiced in conversation; the pure rules are in CalradiaRemembers.Logic.
          campaignStarter.AddBehavior(new Missions.CompanionRapportBehavior());
+         // Player appearance: persists the player-authored per-hero appearance prose that (with the derived body
+         // facts) renders THE PLAYER'S APPEARANCE and each NPC's own appearance in the prompt, replacing the old
+         // static player_description.txt. Console: cr.appearance.
+         campaignStarter.AddBehavior(new Appearance.AppearanceProseBehavior());
          Log($"{ModName} campaign behavior registered.");
       }
 

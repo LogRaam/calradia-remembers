@@ -13,6 +13,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Services;
+using CalradiaRemembers.Stance;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -1249,7 +1250,7 @@ namespace CalradiaRemembers.Chat
          // Grudges pillar (Tier 2, CaptiveAbuse — the companion revenge driver): independent of the
          // captor's OWN memory below (skipped outright for an ephemeral bandit captor), since the
          // grudge holder here is the tormented COMPANION, never the captor.
-         PlantCompanionAbuseGrudgeIfNeeded();
+         FinalizeCompanionVictimConsequence();
 
          NpcProfile profile = _captiveEncounterProfile;
 
@@ -1626,7 +1627,15 @@ namespace CalradiaRemembers.Chat
       ///   happen unpunished. Called from <see cref="FinalizeCaptiveSceneMemory" /> — independent of that
       ///   method's own captor-memory writes below it, so an ephemeral bandit captor never suppresses it.
       /// </summary>
-      private void PlantCompanionAbuseGrudgeIfNeeded()
+      /// <summary>
+      ///   Companion-victim captive scene (Phase 3): the full mechanical aftermath, once when the scene closes.
+      ///   The tormented COMPANION (1) resents the PLAYER for coercing them or failing to protect them (the
+      ///   existing CaptiveAbuse grudge), (2) has the bond with the player SCARRED by grief (a stance crater),
+      ///   (3) holds a REVENGE grudge against a NAMED captor (a nemesis/lord, never a faceless ephemeral bandit),
+      ///   and the atrocity is (4) recorded as a world-event, the player's chronicled revenge driver. No-op
+      ///   outside a companion-victim scene, or when the scene's intent was not abusive (severity 0).
+      /// </summary>
+      private void FinalizeCompanionVictimConsequence()
       {
          if (_captiveVictimName == null || Hero.MainHero == null) return;
 
@@ -1637,19 +1646,79 @@ namespace CalradiaRemembers.Chat
 
          if (victim == null) return;
 
+         var behavior = NpcMemoryCampaignBehavior.Instance;
          int severity = CaptiveIntentRules.CaptiveAbuseSeverity(_captiveEncounterIntent);
-         var facts = new CaptiveAbuseFacts {Severity = severity, PlayerWasThePerpetrator = _captivePlayerCoerced};
-         GrudgeProposal proposal = Tier2GrudgeRules.CaptiveAbuseGrudge(facts);
+         int today = behavior?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
 
-         if (!proposal.Forms) return;
+         // (1) The companion resents the PLAYER (coerced to hurt them, or failed to protect them).
+         var playerFacts = new CaptiveAbuseFacts {Severity = severity, PlayerWasThePerpetrator = _captivePlayerCoerced};
+         GrudgeProposal playerProposal = Tier2GrudgeRules.CaptiveAbuseGrudge(playerFacts);
+         if (playerProposal.Forms)
+         {
+            string cause = _captivePlayerCoerced
+               ? "The player was forced to hurt me with their own hands while I was helpless."
+               : "The player let me be broken before them and did nothing to stop it.";
+            GrudgeBehavior.Instance?.TryPlant(victim, Hero.MainHero, GrudgeSource.CaptiveAbuse, cause,
+               playerProposal.Magnitude, playerProposal.KnownToPlayer, today);
+         }
 
-         int today = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
-         string cause = _captivePlayerCoerced
-            ? "The player was forced to hurt me with their own hands while I was helpless."
-            : "The player let me be broken before them and did nothing to stop it.";
+         // (2)-(4) Grief + revenge + chronicle. A NAMED captor (a persistent Hero, not a faceless bandit) earns
+         // the lasting revenge grudge; a faceless brigand is ephemeral and earns none.
+         Hero captor = _captiveEncounterIsBandit ? null : _npcHero;
+         CompanionAbuseConsequence c = CompanionAbuseConsequencePolicy.Resolve(severity, _captivePlayerCoerced, captor != null);
+         if (!c.Forms) return;
 
-         GrudgeBehavior.Instance?.TryPlant(victim, Hero.MainHero, GrudgeSource.CaptiveAbuse, cause,
-            proposal.Magnitude, proposal.KnownToPlayer, today);
+         // (2) Grief: the ordeal scars the companion's bond with the player who could not save them.
+         NpcProfile victimProfile = behavior?.Store?.Get(victim.StringId);
+         if (victimProfile != null)
+         {
+            StanceService.ApplyDeed(victimProfile, StanceAxis.Trust, c.BondTrustCrater);
+            StanceService.ApplyDeed(victimProfile, StanceAxis.Affection, c.BondAffectionCrater);
+            behavior.Store.Set(victimProfile);
+            ModLog.Info($"[COMPANION SCENE] grief: {victim.Name}'s bond with the player scarred (Trust {c.BondTrustCrater}, Affection {c.BondAffectionCrater}).");
+         }
+
+         // (3) Revenge: the companion joins the vendetta against the named captor.
+         if (captor != null && c.CaptorRevengeMagnitude > 0)
+            GrudgeBehavior.Instance?.TryPlant(victim, captor, GrudgeSource.CaptorCruelty,
+               $"{captor.Name} tormented me while I was helpless, and made the one I served watch. I will see them answer for it.",
+               c.CaptorRevengeMagnitude, true, today);
+
+         // (4) The atrocity, recorded as the player's chronicled revenge driver.
+         RecordCompanionAbuseWorldEvent(victim, captor, c.WorldEventMagnitude, today);
+      }
+
+      /// <summary>Records the companion-abuse atrocity into the world-event store: the player's lasting grievance against the captor. Never throws.</summary>
+      private void RecordCompanionAbuseWorldEvent(Hero victim, Hero captor, int magnitude, int today)
+      {
+         try
+         {
+            WorldEventStore store = WorldEventStore.Instance;
+            if (store == null || victim == null || Hero.MainHero == null) return;
+
+            string captorName = captor?.Name?.ToString() ?? _npcName ?? "the captor";
+            string playerName = Hero.MainHero.Name?.ToString() ?? "the player";
+
+            var actorIds = new List<string>();
+            if (captor?.StringId != null) actorIds.Add(captor.StringId);
+            actorIds.Add(victim.StringId);
+            if (Hero.MainHero.StringId != null) actorIds.Add(Hero.MainHero.StringId);
+
+            store.Record(new WorldEvent {
+               Type = WorldEventType.Other,
+               Day = today,
+               Magnitude = magnitude,
+               InvolvesPlayer = true,
+               Summary = $"{captorName} broke {victim.Name} before {playerName}'s eyes, and {playerName} could not stop it.",
+               ChronicleLine = $"I was made to watch {captorName} break {victim.Name}, and could do nothing, a debt I have not forgotten",
+               ActorIds = actorIds,
+               FactionIds = Hero.MainHero.MapFaction != null
+                  ? new List<string> {Hero.MainHero.MapFaction.StringId}
+                  : new List<string>()
+            });
+            ModLog.Info($"[COMPANION SCENE] atrocity recorded: {captorName} vs {victim.Name}.");
+         }
+         catch (Exception ex) { ModLog.Error($"[COMPANION SCENE] world-event record failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
       /// <summary>

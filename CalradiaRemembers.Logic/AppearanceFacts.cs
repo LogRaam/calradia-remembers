@@ -15,7 +15,8 @@ namespace CalradiaRemembers.Logic
     public sealed class AppearanceFacts
     {
         public AppearanceFacts(bool isFemale, int ageYears, double heightNormalized, double buildNormalized,
-            double weightNormalized, string hairColorDescriptor, bool hasBeard)
+            double weightNormalized, string hairColorDescriptor, bool hasBeard, string skinToneDescriptor = null,
+            string eyeColorDescriptor = null)
         {
             IsFemale = isFemale;
             AgeYears = ageYears;
@@ -24,6 +25,8 @@ namespace CalradiaRemembers.Logic
             WeightNormalized = weightNormalized;
             HairColorDescriptor = hairColorDescriptor;
             HasBeard = hasBeard;
+            SkinToneDescriptor = skinToneDescriptor;
+            EyeColorDescriptor = eyeColorDescriptor;
         }
 
         /// <summary>True for a female player; drives the noun ("woman"/"man") and possessive pronoun ("her"/"his").</summary>
@@ -59,5 +62,17 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>True when the player wears a beard. Only ever voiced for a male player (<see cref="IsFemale"/> false).</summary>
         public bool HasBeard { get; }
+
+        /// <summary>
+        ///   A short skin-tone word (e.g. "fair-skinned", "tan", "dark-skinned"), or null/empty when not
+        ///   derivable. Voiced as an adjective alongside height and build; omitted entirely rather than "unknown".
+        /// </summary>
+        public string SkinToneDescriptor { get; }
+
+        /// <summary>
+        ///   A short eye-colour word (e.g. "blue", "brown", "hazel"), or null/empty when not derivable. Voiced as
+        ///   a "with ... eyes" clause alongside hair; omitted entirely rather than "unknown".
+        /// </summary>
+        public string EyeColorDescriptor { get; }
     }
 }

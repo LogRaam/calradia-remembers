@@ -2,6 +2,17 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.26.0.. 2026-07-07
+
+NPCs finally SEE you, captivity alongside your companions grows real teeth, and a save/load quest bug reported this week is fixed with a healing pass that restores quests older versions wrongly cancelled.
+
+### New
+- NPCs see what you actually look like. Every character you speak to now perceives your real appearance, read live from your actual character: gender, age, build, hair colour and skin tone (resolved from the game's own face data), plus eye colour. No more NPCs inventing a description that contradicts the person standing in front of them. You can add your own touch with the console: cr.appearance <text> (for example "moves with a slight limp, a scar across the left brow") and every NPC will weave it in; cr.appearance alone shows what they see, cr.appearance clear removes your text. Each NPC also keeps their OWN appearance straight, and even a bandit captor who does not know your name still sees the frame and bearing of the prisoner in front of him.
+- Captors may turn on your companions (Hardcore). When you are taken prisoner together with companions, the captor may drag ONE OF THEM before you instead: tormented in person, given to the soldiers, or, cruellest of all, your own hands forced to it. And it leaves marks: your companion's trust in you is scarred (deeper if you were made to do it), the atrocity enters the world's memory and your chronicle, and against a NAMED captor (a lord, or your nemesis) the companion swears a revenge of their own, joining your vendetta.
+
+### Fixed
+- Quests no longer auto-fail when you load a save. Reported this week: loading a save fired the "quest cancelled" banner on a perfectly valid quest, even one already completed and awaiting its reward. Root cause found (the journal entry silently failed to match its quest across a reload or a version upgrade, and a safety pass then wrongly cancelled it) and fixed for good: the load pass can no longer cancel any quest it cannot PROVE is finished, matching now uses a stable key that survives reloads and upgrades, and a healing pass RESTORES quests that an earlier version wrongly cancelled, so if the task is still alive in the giver's mind, it reappears in your journal, including its "Done, return for your reward" state.
+
 ## v1.25.0.. 2026-07-07
 
 The bandit boss who takes you prisoner grows into a real rival: he now sounds like the brute he is, remembers when you slip his grasp, and, once you have beaten and captured him, can be spared and turned to your own service. Plus a handful of fixes straight from your reports.

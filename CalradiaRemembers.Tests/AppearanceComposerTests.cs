@@ -161,6 +161,61 @@ namespace CalradiaRemembers.Tests
             AppearanceComposer.Compose(facts, "").Should().Be("A man, with a beard.");
         }
 
+        // ── Skin tone (an adjective beside height/build) ────────────────────
+
+        [Test]
+        public void GIVEN_a_skin_tone_WHEN_composing_THEN_it_reads_as_an_adjective_beside_build()
+        {
+            var facts = new AppearanceFacts(
+                isFemale: false,
+                ageYears: 45,
+                heightNormalized: AppearanceComposer.HeightTallAbove + 0.1,
+                buildNormalized: AppearanceComposer.BuildPowerfulAbove + 0.1,
+                weightNormalized: AppearanceComposer.BuildPowerfulAbove + 0.1,
+                hairColorDescriptor: "dark",
+                hasBeard: false,
+                skinToneDescriptor: "dark-skinned");
+
+            AppearanceComposer.Compose(facts, "")
+                .Should().Be("A tall, powerfully built, dark-skinned man in his middle years, with dark hair.");
+        }
+
+        [Test]
+        public void GIVEN_no_skin_tone_WHEN_composing_THEN_no_skin_adjective_appears()
+        {
+            var facts = new AppearanceFacts(false, 30, 0.5, 0.5, 0.5, null, false, skinToneDescriptor: null);
+
+            AppearanceComposer.Compose(facts, "").Should().NotContain("skinned");
+        }
+
+        [Test]
+        public void GIVEN_only_a_skin_tone_and_age_WHEN_composing_THEN_it_still_reads()
+        {
+            var facts = new AppearanceFacts(true, 30, 0.5, 0.5, 0.5, null, false, skinToneDescriptor: "fair-skinned");
+
+            AppearanceComposer.Compose(facts, "").Should().Be("A fair-skinned woman in her prime.");
+        }
+
+        // ── Eye colour (a "with ... eyes" clause beside hair) ───────────────
+
+        [Test]
+        public void GIVEN_an_eye_colour_WHEN_composing_THEN_it_reads_in_the_with_clause_after_hair()
+        {
+            var facts = new AppearanceFacts(false, 30, 0.5, 0.5, 0.5, "dark", false,
+                skinToneDescriptor: null, eyeColorDescriptor: "blue");
+
+            AppearanceComposer.Compose(facts, "").Should().Be("A man in his prime, with dark hair and blue eyes.");
+        }
+
+        [Test]
+        public void GIVEN_hair_eyes_and_a_beard_WHEN_composing_THEN_the_with_clause_joins_naturally()
+        {
+            var facts = new AppearanceFacts(false, 30, 0.5, 0.5, 0.5, "dark", hasBeard: true,
+                skinToneDescriptor: null, eyeColorDescriptor: "green");
+
+            AppearanceComposer.Compose(facts, "").Should().Be("A man in his prime, with dark hair, green eyes and a beard.");
+        }
+
         [Test]
         public void GIVEN_hair_and_a_beard_together_WHEN_composing_THEN_both_join_in_one_with_clause()
         {
