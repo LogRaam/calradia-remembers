@@ -327,15 +327,17 @@ namespace CalradiaRemembers.Nemesis
       /// <summary>
       ///   The regional recurring roster's core: reuse the LIVING nemesis of this band culture in this region
       ///   if one exists, else MINT a new latent identity (name/epithet via <see cref="NemesisNameGenerator" />,
-      ///   no Hero yet — the bandit-capture hook attaches a real Hero to it). The seed varies by roster size so
-      ///   fresh bosses do not all share a name.
+      ///   no Hero yet; the bandit-capture hook attaches a real Hero to it). The seed is a RANDOM roll at
+      ///   mint: the roster count seeded it before, which made the FIRST nemesis of every campaign the same
+      ///   man ("Wick the Cutthroat", a player report). Randomness is safe because the minted name/epithet
+      ///   are PERSISTED on the identity and never re-derived from the seed.
       /// </summary>
       public NemesisIdentity FindOrMint(string bandCultureKey, string regionId, int today)
       {
          NemesisIdentity existing = FindRecurring(bandCultureKey, regionId);
          if (existing != null) return existing;
 
-         NemesisNameResult name = NemesisNameGenerator.Generate(bandCultureKey, _roster.Nemeses.Count);
+         NemesisNameResult name = NemesisNameGenerator.Generate(bandCultureKey, MBRandom.RandomInt(int.MaxValue));
          var minted = new NemesisIdentity {
             Id = "nemesis_" + Guid.NewGuid().ToString("N"),
             Name = name.Name,

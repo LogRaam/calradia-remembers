@@ -132,6 +132,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("grudge_sway", Severity.Light, "NPC + 3rd hero -> real sway_opinion(against) via the bridge -> assert SwayExposureBehavior queued a pending watch -> DebugForceReveal -> assert a hidden SwayExposed grudge lands on the target", TestGrudgeSway),
          new SelfTest("companion_revenge", Severity.Light, "companion-victim Phase 3: plant a CaptiveAbuse grudge (companion vs PLAYER) AND a CaptorCruelty grudge (companion vs CAPTOR) on the SAME holder the SAME day -> assert BOTH survive, since they use distinct sources so the holder+source+day dedup does not collapse them", TestCompanionRevenge),
          new SelfTest("appearance", Severity.Light, "extract the player's body facts -> compose the appearance block in Subject (3rd person, read by an NPC) and Self (2nd person) voices, with authored prose -> assert the facts extract, the authored prose is carried, and the Self voice reads in the second person", TestAppearance),
+         new SelfTest("quest_menu", Severity.Light, "viable-quest referential: scan a live lord's grounded quest menu -> assert it is non-empty (there is always something to do), every line carries a known type token, and a named settlement target truly resolves (so QuestFactory will ground the offer by construction)", TestQuestMenu),
+         new SelfTest("prisoner_trade", Severity.Heavy, "prisoner trade: take a real lord captive into the player's party -> real buy_prisoner via the bridge (an NPC lord buys him) -> assert the player was PAID (price clamped around the ransom anchor) and the captive left the player's custody -> cleanup frees him", TestPrisonerTrade),
          new SelfTest("appreciation_flow", Severity.Light, "plant a kindness -> assert it lives -> plant a strong grudge on the same holder -> assert the tarnished effective magnitude drops -> force backfill twice -> assert the second pass is a no-op", TestAppreciationFlow),
          new SelfTest("nemesis_kill", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(battle death) -> assert IsAlive flips false + a closure world-event is recorded", TestNemesisKilledInBattle),
          new SelfTest("nemesis_execute", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(executed) -> assert IsAlive flips false + the closure world-event reads distinctly from the battle-death flavor", TestNemesisExecuted),
@@ -3813,6 +3815,64 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
+      ///   Prisoner trade, the buy direction end to end: a real lord is taken captive into the player's
+      ///   party, a second lord (the buyer) purchases him through the real bridge action, and the test
+      ///   asserts the gold moved to the player (clamped by PrisonerTradePolicy around the ransom anchor)
+      ///   and the captive left the player's custody. Cleanup releases the captive whatever happened.
+      /// </summary>
+      private static string TestPrisonerTrade(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("prisoner_trade");
+
+         if (t.Abort(Hero.MainHero == null || MobileParty.MainParty == null, "no player party")) return t.Line();
+
+         Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != null && h.Clan?.Leader != h);
+         if (t.Skip(captive == null, "no free lord to take captive")) return t.Line();
+
+         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h != captive && h.IsLord && !h.IsPrisoner && h.Clan != captive.Clan);
+         if (t.Skip(buyer == null, "no second lord to stand as the buyer")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, buyer);
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, captive);
+         if (t.Abort(!captive.IsPrisoner, "could not take the test captive")) return t.Line();
+
+         try
+         {
+            int goldBefore = Hero.MainHero.Gold;
+            int anchor = Verbs.BuyPrisonerVerb.RansomAnchor(captive);
+
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {
+                  Type = "buy_prisoner",
+                  Parameters = new Dictionary<string, string> {
+                     {"target", captive.Name.ToString()},
+                     {"price", "999999"} // an absurd ask, so the clamp itself is what gets proven
+                  }
+               }, buyer, new ActionContext(profile, null));
+
+            int paid = Hero.MainHero.Gold - goldBefore;
+            int expected = CalradiaRemembers.Logic.PrisonerTradePolicy.ClampPrice(999999, anchor);
+            bool leftCustody = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners().All(h => h != captive);
+
+            t.Note($"captive={captive.Name}, buyer={buyer.Name}, anchor={anchor}, paid={paid} (expected {expected}), outcome=\"{outcome?.Message}\"");
+            t.Expect("outcomePositive", outcome?.IsPositive, true);
+            t.Expect("paidTheClampedPrice", paid == expected, true);
+            t.Expect("captiveLeftPlayerCustody", leftCustody, true);
+         }
+         finally
+         {
+            // Whatever happened, the test lord goes free so the campaign is left unharmed.
+            try { if (captive.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(captive, buyer); }
+            catch { /* best-effort cleanup */ }
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
       ///   Appearance pillar: proves the engine extraction + pure composer + prose store compose a usable block.
       ///   Reads the live player's body facts, composes both voices with a scrap of authored prose, and checks
       ///   the prose is carried and the Self voice is second person.
@@ -3832,6 +3892,55 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("factsExtracted", facts != null, true);
          t.Expect("authoredProseCarried", subject.Contains("limp"), true);
          t.Expect("selfVoiceSecondPerson", self.Length == 0 || self.StartsWith("You are"), true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Viable-quest referential: proves the world scan yields a grounded, non-empty menu for a live
+      ///   lord, and that its named settlement targets truly resolve (the by-construction guarantee that
+      ///   QuestFactory will ground whatever the model offers from the menu).
+      /// </summary>
+      private static string TestQuestMenu(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("quest_menu");
+
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         if (t.Skip(giver == null, "no live free lord in this campaign")) return t.Line();
+
+         int day = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
+         string menu = Quests.ViableQuestScanner.BuildMenu(giver, day);
+
+         t.Note($"giver={giver.Name} ({giver.MapFaction?.Name}), menu:\n{menu}");
+         t.Expect("menuNonEmpty", !string.IsNullOrWhiteSpace(menu), true);
+
+         if (string.IsNullOrWhiteSpace(menu)) return t.Line();
+
+         // Every line must open with a known type token, and a settlement target must truly resolve.
+         var knownTokens = new[] {
+            "bandit_hideout", "bandit_clear", "attack_lord", "capture_prisoner", "attack_faction",
+            "raid_village", "scout_army", "rescue_prisoner", "deliver_letter"
+         };
+         var allKnown = true;
+         var settlementsResolve = true;
+         foreach (string line in menu.Split('\n'))
+         {
+            string trimmed = line.Trim();
+
+            if (trimmed.Length == 0) continue;
+            if (!knownTokens.Any(tok => trimmed.StartsWith("- " + tok, StringComparison.Ordinal))) allKnown = false;
+
+            int idx = trimmed.IndexOf("target_settlement: ", StringComparison.Ordinal);
+            if (idx < 0) continue;
+
+            string name = trimmed.Substring(idx + "target_settlement: ".Length);
+            name = name.Substring(0, name.IndexOf(')') is var p and >= 0 ? p : name.Length);
+            if (!Settlement.All.Any(s => string.Equals(s?.Name?.ToString(), name, StringComparison.OrdinalIgnoreCase)))
+               settlementsResolve = false;
+         }
+
+         t.Expect("allTypeTokensKnown", allKnown, true);
+         t.Expect("settlementTargetsResolve", settlementsResolve, true);
 
          return t.Line();
       }

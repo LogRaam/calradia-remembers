@@ -57,6 +57,14 @@ namespace CalradiaRemembers.Quests
       {
          if (giver == null || response == null) return;
 
+         // The model emitted a [QUEST] block that could not be parsed (unknown type, or truncated).
+         // Say so plainly: the spoken offer and the registered state must never silently diverge.
+         if (response.QuestBlockMalformed)
+         {
+            ModLog.Info($"[QUEST] {giver.Name} emitted a [QUEST] block that could not be parsed; nothing recorded.");
+            notify?.Invoke("No task was recorded: the offer came through garbled. Ask them to state it plainly again.", false);
+         }
+
          if (response.QuestGiven != null)
             IssueQuest(giver, giverHero, response.QuestGiven, gameDay, store, notify);
 
@@ -457,10 +465,12 @@ namespace CalradiaRemembers.Quests
                                      BannerlordNpcMemoryStore store,
                                      Action<string, bool> notify)
       {
-         // One task at a time: never stack a new quest on an unfinished one.
+         // One task at a time: never stack a new quest on an unfinished one. Say so (the NPC just SPOKE
+         // the offer, so silence here reads as a broken promise).
          if (giver.ActiveQuests.Any(q => q.IsOutstanding))
          {
             ModLog.Info($"[QUEST] {giver.Name} offered a task while one is outstanding — ignored.");
+            notify?.Invoke($"No new task was recorded: you already carry one for {giver.Name}. Finish or renounce it first.", false);
 
             return;
          }
@@ -469,6 +479,7 @@ namespace CalradiaRemembers.Quests
          if (quest == null)
          {
             ModLog.Info($"[QUEST] {giver.Name} offered a task that could not be grounded (type {proposal.Type}) — ignored.");
+            notify?.Invoke("No task was recorded: what they offered could not be matched to the world. Ask them to restate it.", false);
 
             return;
          }

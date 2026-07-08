@@ -49,6 +49,39 @@ negotiation framework — **deliver-a-prisoner** + **declare-war** deeds (Phases
 "intimacy as currency"** (adult-gated, exploiter archetype, persistent leverage) **(untested)**; **talk to a
 prisoner — bargain for freedom/rescue** (cases A & B) **(untested)**.
 
+### Viable-quest referential, a spoken offer ALWAYS registers *(ratified 2026-07-08, 🔨 BUILT 2026-07-08, untested in game)*
+Root cause of "the NPC offered a mission but no quest was recorded" (recurring player reports): the LLM was
+taught 17 quest types in the ABSTRACT, blind to the world, so it invented targets `QuestFactory` refused, and
+every refusal was SILENT (the spoken promise stood while the game registered nothing). Ratified answer =
+PREVENTION over repair: before the conversation, `ViableQuestScanner` (mod) scans the live world for the tasks
+THIS giver can truly hand out (a real still-infested lair near his ground via the factory's OWN primitives, a
+real enemy lord/village/army when his realm wars, a real captive ally, a kinsman for a letter, so there is
+ALWAYS something to do), and the prompt teaches ONLY that grounded menu, targets named verbatim
+(`EncounterContext.ViableQuestMenu`; generic catalogue = SDK fallback). Registration then succeeds by
+construction. Pure formatting core `QuestMenuComposer` (cap 8 lines, 5 tests); cached per giver per day.
+Plus the pairing contract (a task EXISTS only with the [QUEST] block in the same reply) and NOTHING-IS-SILENT:
+a malformed/truncated [QUEST] block is flagged (`ParsedResponse.QuestBlockMalformed`) and told to the player in
+chat, as are the one-task-at-a-time and ungroundable refusals (`notify` in `IssueQuest`). `quest_menu` self-test.
+**NEXT (increment 2, ratified direction 2026-07-08 Gabriel): grow the referential beyond war errands, to PERSONAL
+quests (provide horses / cattle / grain: a category-constrained DeliverItems variant, verified by a real
+hand-over of matching goods) and MISSION-type work (espionage beyond scout_army, e.g. scout a settlement,
+observe a lord); each new type needs its own real-event verification in QuestDeedTracker, so they land as a
+separate increment.**
+
+### Prisoner trade, both ways for gold *(ratified 2026-07-08, 🔨 BUILT 2026-07-08, untested in game)*
+Player report ("we must be able to exchange prisoners, add them to the item+denars window") ratified by Gabriel
+with BOTH directions and gold: it opens the bounty-hunting loop (a lord wants a man and names a price; a player
+who wants a prisoner can simply buy him). Two `IConversationVerb`s: **buy_prisoner** (the NPC pays the player
+for a hero captive the player's party holds; the sold captive plants the DeliveredPrisoner grudge, heavier when
+sold to his enemy) and **sell_prisoner** (the player pays for a captive the NPC's clan holds, custody via
+`CourtActionResolver`, purse checked). THE BRIDGE IS LAW on price: the LLM negotiates in-fiction but the figure
+is clamped by the pure `PrisonerTradePolicy` (6 tests) around the game's OWN ransom valuation (floor 40%, cap
+3x, absolute min 50): a silver tongue haggles within reason, never into absurdity. Teachings ride
+`ExtraActionTeachings` (each verb gates itself on live holdings, captives + fair-price anchors named); a
+**Sell Prisoner** chat button (Give Gold pattern: picker pre-fills the input); the viable-quest menu gains the
+wartime `deliver_prisoner` bounty entry ("bring me any of their lords in chains and be paid"). `prisoner_trade`
+self-test (real capture, real bridge purchase, clamp proven with an absurd ask, cleanup frees the lord).
+
 **World & influence** — world-event/rumor store (battles, sieges, marriages, executions, wars) with
 geo/faction/recency-weighted hearsay; the **Chronicle**; commoners + settlement intel; **NPC↔NPC schemes**;
 **NPC-initiated interceptions** (a lord rides out to challenge you); **power-balance** context block; the

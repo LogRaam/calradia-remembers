@@ -197,6 +197,10 @@ namespace CalradiaRemembers.GameState
             case "spend_influence":
             case "sway_opinion":
             case "release_prisoner":
+            // buy_prisoner / sell_prisoner (prisoner trade, 08/07/2026): the NPC buys a captive the player
+            // holds, or sells one his clan holds, for gold clamped around the game's ransom valuation.
+            case "buy_prisoner":
+            case "sell_prisoner":
             // end_marriage (DIVORCE, Phase 1) and make_amends (Grudges pillar, resolution half): both
             // DESIGNED for the IConversationVerb contract rather than migrated onto it — routed
             // identically to the four above.

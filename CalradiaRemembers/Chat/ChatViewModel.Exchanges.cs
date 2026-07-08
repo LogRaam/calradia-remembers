@@ -1023,7 +1023,17 @@ namespace CalradiaRemembers.Chat
             // Surface a non-"stop" finish reason — "length" means the model cut the reply
             // off (a known DeepSeek quirk); this makes truncated-message reports diagnosable.
             if (!string.IsNullOrEmpty(result.FinishReason) && !string.Equals(result.FinishReason, "stop", StringComparison.OrdinalIgnoreCase))
+            {
                ModLog.Info($"  [FINISH] reason={result.FinishReason} (non-stop — reply may be truncated by the model/provider)");
+
+               // A PROVIDER content-filter cut (players read a mid-sentence stop as the MOD censoring):
+               // say plainly whose scissors these are. Only after the SDK's automatic re-roll also came
+               // back filtered, so a quietly recovered reply never carries a scary banner.
+               string normalizedFinish = result.FinishReason.Replace("-", "").Replace("_", "");
+               if (string.Equals(normalizedFinish, "contentfilter", StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(normalizedFinish, "moderation", StringComparison.OrdinalIgnoreCase))
+                  AppendSystemMessage("The model host's own content filter cut this reply short. This is the provider, not the mod; another attempt, model, or provider usually passes.", false);
+            }
          }
          catch (Exception ex)
          {

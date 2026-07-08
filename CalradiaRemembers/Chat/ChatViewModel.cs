@@ -17,6 +17,7 @@ using CalradiaRemembers.Stance;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
 using TaleWorlds.Library;
 
 #endregion
@@ -1008,6 +1009,37 @@ namespace CalradiaRemembers.Chat
       {
          if (_mode != ChatMode.Conversation || _conversationEnded) return;
          PromptGoldOffer();
+      }
+
+      /// <summary>
+      ///   Opens the prisoner picker so the player can offer to SELL a hero captive their party holds
+      ///   (prisoner trade): the pick pre-fills the chat input, the player edits and sends as usual, and
+      ///   the NPC answers in character (emitting buy_prisoner when a sale is truly agreed).
+      /// </summary>
+      public void ExecuteOfferPrisoner()
+      {
+         if (_mode != ChatMode.Conversation || _conversationEnded) return;
+
+         List<Hero> held = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners();
+         if (held.Count == 0)
+         {
+            AppendSystemMessage("You hold no hero captives to offer.", false);
+
+            return;
+         }
+
+         var options = held.Select(h => new InquiryElement(h, h.Name?.ToString() ?? "a captive", null)).ToList();
+         MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
+            "Offer a Prisoner",
+            "Which captive do you offer to sell?",
+            options, true, 1, 1, "Offer", "Cancel",
+            picked =>
+            {
+               if (picked?.FirstOrDefault()?.Identifier is not Hero captive) return;
+               InputText = $"I have {captive.Name} in my custody. Would you buy this prisoner from me?";
+               ModLog.Info($"[OFFER PRISONER] pre-filled: {captive.Name}.");
+            },
+            null));
       }
 
       /// <summary>

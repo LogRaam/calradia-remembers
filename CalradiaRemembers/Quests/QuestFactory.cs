@@ -34,7 +34,7 @@ namespace CalradiaRemembers.Quests
 
       // TUNE: generous radius (campaign-map units) around the named town within which a real, still-infested
       // hideout must exist for the giver to send the player after it. No lair in range => no such task to give.
-      private const float HideoutSearchRadius = 80f;
+      internal const float HideoutSearchRadius = 80f;
 
       /// <summary>
       ///   Builds the quest, or returns null when the proposal cannot be grounded in
@@ -165,7 +165,7 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>The nearest still-infested (uncleared) bandit hideout within <paramref name="maxDistance" />, or null.</summary>
-      private static Settlement NearestActiveHideout(Vec2 from, float maxDistance)
+      internal static Settlement NearestActiveHideout(Vec2 from, float maxDistance)
       {
          Settlement best = null;
          float bestDist = maxDistance;
@@ -190,7 +190,7 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>The nearest real settlement to <paramref name="giver" />, used as the bearing anchor when they named no resolvable town.</summary>
-      private static Settlement NearestTownTo(Hero giver)
+      internal static Settlement NearestTownTo(Hero giver)
       {
          Vec2? pos = giver?.PartyBelongedTo?.GetPosition2D
                   ?? giver?.CurrentSettlement?.GetPosition2D

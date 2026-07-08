@@ -17,6 +17,7 @@ using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
+using CalradiaRemembers.Quests;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
@@ -48,6 +49,9 @@ namespace CalradiaRemembers.Mapping
 
       /// <summary>Registration order of the court verbs taught AFTER pledge_against, in <see cref="VerbRegistry" />.</summary>
       private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner"};
+
+      // Prisoner trade (08/07/2026): the NPC may BUY a captive the player holds, or SELL one his clan holds.
+      private static readonly string[] PrisonerTradeVerbs = {"buy_prisoner", "sell_prisoner"};
 
       /// <summary>Registration order of the court verbs taught BEFORE pledge_against, in <see cref="VerbRegistry" />.</summary>
       private static readonly string[] CourtVerbsBeforePledge = {"give_influence", "lend_troops", "sway_opinion"};
@@ -153,6 +157,10 @@ namespace CalradiaRemembers.Mapping
             // Drives the coarse-voice overlay so a nemesis does not read like a lord. He keeps his name and
             // memory (the "does not know you" perception stays on CaptorIsBandit above), only his VOICE coarsens.
             CaptorIsBrigand = captorIsBandit || IsBanditClanHero(hero),
+            // A bandit captor whose profile ALREADY carries memories of the player (a recurring nemesis on a
+            // re-capture, or later turns of a scene where they introduced themselves) knows who he holds:
+            // the "brigands do not know your name" perception then yields to a greeting by name.
+            CaptorKnowsPlayer = captorIsBandit && profile?.Events is {Count: > 0},
             // Appearance: the PLAYER described in the third person (Subject) so the NPC pictures them
             // consistently, and the SPEAKING NPC's own body in the second person (Self) so it does not invent
             // contradictory looks. Derived body facts + any player-authored prose, both may be empty (renders none).
@@ -161,6 +169,12 @@ namespace CalradiaRemembers.Mapping
             PlayerLooksWealthy = captorIsBandit && PlayerLooksWealthy(),
             PlayerLooksImportant = captorIsBandit && PlayerLooksImportant(),
             CompanionAskingPrice = ResolveCompanionAskingPrice(hero),
+            // The grounded quest menu (viable-quest referential): the tasks this giver can TRULY hand out,
+            // pre-validated against the live world so a spoken offer always registers. Skipped for a captor
+            // (quest teaching is suppressed in captive scenes anyway, no point scanning).
+            ViableQuestMenu = playerStatus == PlayerStatusVsNpc.Captive
+               ? null
+               : ViableQuestScanner.BuildMenu(hero, bridge?.GetCurrentGameDay() ?? 0),
             HeldLordPrisoners = ResolveHeldLordPrisoners(),
             NpcIsPrisonerOfAnother = npcIsPrisonerOfAnother,
             NpcCaptorName = npcIsPrisonerOfAnother
@@ -1013,6 +1027,10 @@ namespace CalradiaRemembers.Mapping
 
          // release_prisoner: migrated to the IConversationVerb contract as well (see above).
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, CourtVerbsAfterPledge));
+
+         // Prisoner trade: buy (the NPC pays for a captive the player holds) and sell (the player pays
+         // for one the NPC's clan holds). Each verb gates itself on the live holdings.
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, PrisonerTradeVerbs));
 
          // end_marriage (DIVORCE, Phase 1): the first verb designed for the contract from the start.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, DivorceVerbs));

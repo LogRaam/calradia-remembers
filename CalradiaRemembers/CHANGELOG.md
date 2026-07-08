@@ -2,6 +2,19 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.27.0.. 2026-07-08
+
+Prisoners become a currency you can trade in conversation, a task an NPC offers now always lands as a real quest, and a fistful of fixes straight from this week's reports.
+
+### New
+- Trade prisoners in conversation, both ways, for gold. A lord may offer to BUY a hero captive you are dragging along (a new Sell Prisoner button in the chat opens a picker), or SELL you one his clan holds. You haggle the price in character, but the figure is held to reason: it is anchored to the captive's real ransom worth (a hard bargain never goes below a floor, a silver tongue never talks a lord into absurdity). This opens bounty hunting: a lord at war can ask you to bring him an enemy in chains for a price, and a captive you sell to his enemy remembers being handed over.
+- A task an NPC offers is now always a real, doable quest. Before the conversation, the mod checks the living world for the tasks THIS person can truly set you (a real bandit lair near his lands, a real enemy lord to defeat when his realm is at war, a letter to carry to a real kinsman, and so on) and teaches the NPC only those, with the real names. So when a lord gives you a task, it lands in your journal with a target you can actually reach, and when you ask for work, there is always something real to be done. No more missions spoken aloud that never appear.
+
+### Fixed
+- A bandit boss who has met you before now knows your name. On a first capture a brigand does not know who you are (you tell him in the scene, as before), but a recurring nemesis who already holds memories of you greets you by name instead of pretending you are a stranger.
+- Bandit bosses are no longer all named the same. A minting quirk made the first named bandit of every campaign come out identical ("Wick the Cutthroat"); their names are now truly rolled from their culture's pool.
+- Replies cut short by a provider's content filter are handled and explained. Some model hosts (notably certain DeepSeek deployments) stop a reply mid-sentence when their own moderation trips, which read as the mod censoring text. The mod now automatically re-rolls such a cut reply once (a fresh attempt usually gets through), and if it is cut again, tells you plainly that the provider's filter, not the mod, did it. Switching model or provider remains the reliable fix for adult play.
+
 ## v1.26.0.. 2026-07-07
 
 NPCs finally SEE you, captivity alongside your companions grows real teeth, and a save/load quest bug reported this week is fixed with a healing pass that restores quests older versions wrongly cancelled.
