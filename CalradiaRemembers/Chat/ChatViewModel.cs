@@ -1012,22 +1012,67 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Opens the prisoner picker so the player can offer to SELL a hero captive their party holds
-      ///   (prisoner trade): the pick pre-fills the chat input, the player edits and sends as usual, and
-      ///   the NPC answers in character (emitting buy_prisoner when a sale is truly agreed).
+      ///   The bag: the ONE "what do you offer?" control. It gives an item, gold, OR (when the player holds
+      ///   hero captives) a prisoner, so no separate prisoner button clutters the row. A bargain awaiting
+      ///   payment-in-kind is settled directly; otherwise, when captives are held, the player first picks a
+      ///   category, else it goes straight to the item/gold picker. The pick pre-fills the chat input, which
+      ///   the player edits and sends as usual.
       /// </summary>
-      public void ExecuteOfferPrisoner()
+      public void ExecuteOfferItem()
       {
          if (_mode != ChatMode.Conversation || _conversationEnded) return;
 
-         List<Hero> held = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners();
-         if (held.Count == 0)
+         // A bargain awaiting goods: the bag settles it (multi-select, bridge enforces the value).
+         InformalQuest bargain = FindOutstandingItemBargain();
+         if (bargain != null)
          {
-            AppendSystemMessage("You hold no hero captives to offer.", false);
+            ItemPickerService.ShowBargainPicker(
+               bargain.RequiredItemValue, offers => SettleItemBargain(bargain, offers));
 
             return;
          }
 
+         List<Hero> prisoners = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners();
+         if (prisoners.Count == 0)
+         {
+            ShowInventoryOffer();
+
+            return;
+         }
+
+         var choices = new List<InquiryElement> {
+            new InquiryElement("goods", "Goods or gold", null),
+            new InquiryElement("prisoner", "A prisoner", null)
+         };
+         MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
+            "What do you offer?",
+            "",
+            choices, true, 1, 1, "Choose", "Cancel",
+            picked =>
+            {
+               if ((picked?.FirstOrDefault()?.Identifier as string) == "prisoner") OfferHeldPrisoner(prisoners);
+               else ShowInventoryOffer();
+            },
+            null));
+      }
+
+      /// <summary>Opens the item picker (with a give-gold fallback) and pre-fills the chosen item into the input.</summary>
+      private void ShowInventoryOffer()
+      {
+         // Remember the exact item id so give_item transfers THAT item, not whatever name the LLM echoes back.
+         ItemPickerService.ShowItemPicker(
+            (itemId, name, value) =>
+            {
+               _offeredItemId = itemId;
+               InputText = $"I would like to offer you {name} (worth {value:N0} denars).";
+               ModLog.Info($"[OFFER] player pre-filled offer: {name} ({value} denars, id={itemId}).");
+            },
+            PromptGoldOffer);
+      }
+
+      /// <summary>Opens a picker of the held hero captives so the player can offer to sell one; the pick pre-fills the chat input.</summary>
+      private void OfferHeldPrisoner(List<Hero> held)
+      {
          var options = held.Select(h => new InquiryElement(h, h.Name?.ToString() ?? "a captive", null)).ToList();
          MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
             "Offer a Prisoner",
@@ -1040,39 +1085,6 @@ namespace CalradiaRemembers.Chat
                ModLog.Info($"[OFFER PRISONER] pre-filled: {captive.Name}.");
             },
             null));
-      }
-
-      /// <summary>
-      ///   Opens the item picker so the player can select something from the party
-      ///   inventory to offer. On selection the item name and value are pre-filled
-      ///   into the chat input — the player can then edit and send as usual.
-      /// </summary>
-      public void ExecuteOfferItem()
-      {
-         if (_mode != ChatMode.Conversation || _conversationEnded) return;
-
-         // When this NPC is awaiting payment-in-kind for a bargain, the bag settles it:
-         // multi-select goods, the bridge enforces the value and honors the favor.
-         InformalQuest bargain = FindOutstandingItemBargain();
-         if (bargain != null)
-         {
-            ItemPickerService.ShowBargainPicker(
-               bargain.RequiredItemValue, offers => SettleItemBargain(bargain, offers));
-
-            return;
-         }
-
-         // Otherwise the bag is a spontaneous gift: one unified control gives gold OR an item.
-         // Remember the exact item the player picked so give_item transfers THAT item by id,
-         // rather than re-matching whatever name the LLM echoes back (which fails on any rewording).
-         ItemPickerService.ShowItemPicker(
-            (itemId, name, value) =>
-            {
-               _offeredItemId = itemId;
-               InputText = $"I would like to offer you {name} (worth {value:N0} denars).";
-               ModLog.Info($"[OFFER] player pre-filled offer: {name} ({value} denars, id={itemId}).");
-            },
-            PromptGoldOffer);
       }
 
       /// <summary>

@@ -17,6 +17,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.WorldEvents;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.Core;
 
 #endregion
 
@@ -60,6 +61,10 @@ namespace CalradiaRemembers.Nemesis
             var today = (int) CampaignTime.Now.ToDays;
             nem.IsAlive = false;
             nem.DeathDay = today;
+            // Cooldown: no fresh nemesis of his band culture rises for 1..3 years, so killing him is not
+            // instantly undone by an identical new boss on the next capture (Gabriel 2026-07-08).
+            nem.RespawnBlockedUntilDay = today + MBRandom.RandomInt(
+               NemesisRosterPolicy.RespawnCooldownMinDays, NemesisRosterPolicy.RespawnCooldownMaxDays + 1);
 
             // Any grudge the nemesis himself held against the player dies with him.
             GrudgeBehavior.Instance?.ClearGrudgesFor(victim.StringId);

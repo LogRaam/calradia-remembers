@@ -60,6 +60,14 @@ namespace CalradiaRemembers.Logic
         public int? DeathDay { get; set; }
 
         /// <summary>
+        ///   Campaign day before which NO fresh nemesis of this band CULTURE may be minted (a cooldown rolled
+        ///   at his death, 1..3 Calradian years). Kills the "kill him, get captured, immediately face an
+        ///   identical new boss" churn: the same type of bandit takes the player as a faceless captor for a
+        ///   while before a new named nemesis rises. Null while alive. Additive/save-safe (old saves load null).
+        /// </summary>
+        public int? RespawnBlockedUntilDay { get; set; }
+
+        /// <summary>
         ///   Campaign day this nemesis was SPARED and turned to the player's service (increment 4), or null.
         ///   A turned nemesis is still alive but no longer an enemy: he stops recurring as a captor
         ///   (<see cref="NemesisRosterPolicy.FindRecurring"/> skips him) and his vendetta is closed. Additive

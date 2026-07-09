@@ -1466,6 +1466,24 @@ also folds in rival lords sending hit teams / notables sending thugs. Ties to ca
 (town ambush / Intercept / Assassinate), world-events, and interop with the "named bandits" mod (Nexus 10376) the
 player cited. See [[project-ambush-captivity]], [[project-stance-system]].
 
+**MAP-PRESENCE MECHANIC, ACTIVE HUNT: 🔨 BUILT 2026-07-08 (untested in game).** The materialization is live:
+`NemesisBehavior` brackets a player battle (`MapEventStarted`/`MapEventEnded`); when the player engages a bandit
+band of a living, latent, non-turned nemesis's culture near his region anchor (`FindHuntableNemesisNear`, culture
+match plus `NemesisMaterializePolicy.WithinRegion` proximity, or culture-only when his region is not a real
+settlement), the ratified PITY-TIMER `NemesisRevealPolicy.ShouldReveal(EncountersSinceReveal, roll)` (15% rising
+to a certainty after 6 qualifying misses) decides; on a reveal `TryMaterializeInto` mint-or-reuses his Hero and
+`AddHeroToPartyAction`s him INTO that band with a screen notice ("your hunt has found him"), a miss just builds
+pity credit. He fights and can be killed (existing `NemesisResolutionBehavior.OnHeroKilled` closes the arc) or
+captured (existing prisoner dialog). On MapEventEnded, if he survived un-captured he is `DetachToLatent`'d
+(removed from the band's roster) so he keeps NO standing party. **No nemesis exists until a real CAPTURE mints one
+(`OnHeroPrisonerTaken`), so merely defeating bandits never spawns a hunt** (Gabriel's point A, already satisfied).
+**RESPAWN COOLDOWN (Gabriel 2026-07-08): killing a nemesis rolls `RespawnBlockedUntilDay` = death + 1..3 Calradian
+years; `NemesisRosterPolicy.IsCultureRespawnBlocked` then blocks a fresh mint of that CULTURE (`FindOrMint` returns
+null, the same bandits take the player as a faceless captor until the cooldown passes).** `nemesis_hunt`
+self-test; unit tests for `WithinRegion`, `IsCultureRespawnBlocked`, and the existing `NemesisRevealPolicy`. STILL
+OPEN (later): the rumour/world-event "he still raids near X" nudge layer between encounters; region-breadth tuning.
+Original ratified design below.
+
 **MAP-PRESENCE MECHANIC — RATIFIED 2026-07-05 (Gabriel), resolves the persistence-vs-pursuit tension.** THE
 TENSION: for it to be an adventure the boss must survive the vanilla world's constant bandit-clearing (a random
 lord must not erase your nemesis before you can hunt him), yet the player wants to PHYSICALLY pursue and kill him.

@@ -107,6 +107,48 @@ namespace CalradiaRemembers.Tests
 
         // ── Helpers ───────────────────────────────────────────────────────────
 
+        // ── Respawn cooldown after a kill (no identical new boss on the next capture) ──
+
+        [Test]
+        public void GIVEN_a_recently_killed_nemesis_still_in_cooldown_WHEN_checking_the_culture_THEN_a_fresh_mint_is_blocked()
+        {
+            NemesisIdentity dead = Make("d1", "looters", "region_a", isAlive: false);
+            dead.DeathDay = 100;
+            dead.RespawnBlockedUntilDay = 100 + NemesisRosterPolicy.RespawnCooldownMinDays;
+
+            NemesisRosterPolicy.IsCultureRespawnBlocked(new List<NemesisIdentity> { dead }, "looters", today: 120)
+                .Should().BeTrue();
+        }
+
+        [Test]
+        public void GIVEN_the_cooldown_has_elapsed_WHEN_checking_the_culture_THEN_a_fresh_mint_is_allowed()
+        {
+            NemesisIdentity dead = Make("d1", "looters", "region_a", isAlive: false);
+            dead.RespawnBlockedUntilDay = 200;
+
+            NemesisRosterPolicy.IsCultureRespawnBlocked(new List<NemesisIdentity> { dead }, "looters", today: 200)
+                .Should().BeFalse();
+        }
+
+        [Test]
+        public void GIVEN_the_cooldown_is_for_a_DIFFERENT_culture_WHEN_checking_THEN_this_culture_is_not_blocked()
+        {
+            NemesisIdentity dead = Make("d1", "sea_raiders", "region_a", isAlive: false);
+            dead.RespawnBlockedUntilDay = 300;
+
+            NemesisRosterPolicy.IsCultureRespawnBlocked(new List<NemesisIdentity> { dead }, "looters", today: 120)
+                .Should().BeFalse();
+        }
+
+        [Test]
+        public void GIVEN_a_living_nemesis_with_no_death_cooldown_WHEN_checking_THEN_nothing_is_blocked()
+        {
+            NemesisIdentity living = Make("n1", "looters", "region_a", isAlive: true);
+
+            NemesisRosterPolicy.IsCultureRespawnBlocked(new List<NemesisIdentity> { living }, "looters", today: 120)
+                .Should().BeFalse();
+        }
+
         private static NemesisIdentity Make(string id, string bandCultureKey, string regionId, bool isAlive, int timesEncountered = 0)
             => new NemesisIdentity
             {

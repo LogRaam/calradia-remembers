@@ -2,6 +2,16 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.28.0.. 2026-07-08
+
+The bandit boss who took you prisoner can now be HUNTED DOWN and finished, and the chat's offer controls are tidied into one.
+
+### New
+- Hunt down the nemesis who took you. Until now the recurring bandit boss only crossed your path if he captured you again. Now you can go after him: he keeps no army standing on the map (so no random lord can wipe him out before you get your reckoning), but when you go bandit-clearing in his territory, a band you engage has a rising chance to turn out to be led by HIM. Ride into his region, clear a few empty bands, and eventually you run into the man himself, to kill or capture as you please. And he only ever appears in a fight YOU chose to start, so his end is always in your hands. Kill him and no new boss of that same bandit type rises for a good year or three, so the same looters take you as a nameless captor for a while before another named nemesis is born. (A nemesis is still only ever created by a real capture, so simply beating bandits never conjures one.)
+
+### Fixed
+- The offer buttons no longer overlap in conversation. The Sell Prisoner button could sit on top of the Mode button. Offering is now one control: click the coin-purse and, when you hold captives, choose whether you are offering goods or gold, or a prisoner. One button fewer, and nothing overlaps at any UI scale.
+
 ## v1.27.0.. 2026-07-08
 
 Prisoners become a currency you can trade in conversation, a task an NPC offers now always lands as a real quest, and a fistful of fixes straight from this week's reports.

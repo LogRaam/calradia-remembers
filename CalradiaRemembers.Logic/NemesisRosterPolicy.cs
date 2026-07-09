@@ -42,5 +42,28 @@ namespace CalradiaRemembers.Logic
                 .ThenBy(n => n.Id, StringComparer.Ordinal)
                 .FirstOrDefault();
         }
+
+        /// <summary>TUNE: a Calradian year in campaign days (an 84-day year), the floor of the respawn cooldown.</summary>
+        public const int RespawnCooldownMinDays = 84;
+
+        /// <summary>TUNE: three Calradian years, the ceiling of the respawn cooldown rolled at a nemesis's death.</summary>
+        public const int RespawnCooldownMaxDays = 252;
+
+        /// <summary>
+        ///   True when a nemesis of <paramref name="bandCultureKey"/> was recently killed and his
+        ///   <see cref="NemesisIdentity.RespawnBlockedUntilDay"/> has not yet passed, so no FRESH nemesis of
+        ///   that culture may be minted (the same bandits take the player as a faceless captor until then). A
+        ///   living, turned, or never-blocked identity never blocks. Region-agnostic: the block is per band
+        ///   CULTURE, as ratified ("another nemesis of the same type").
+        /// </summary>
+        public static bool IsCultureRespawnBlocked(IEnumerable<NemesisIdentity> roster, string bandCultureKey, int today)
+        {
+            if (roster == null) return false;
+
+            return roster.Any(n => n != null
+                                   && n.BandCultureKey == bandCultureKey
+                                   && n.RespawnBlockedUntilDay.HasValue
+                                   && today < n.RespawnBlockedUntilDay.Value);
+        }
     }
 }

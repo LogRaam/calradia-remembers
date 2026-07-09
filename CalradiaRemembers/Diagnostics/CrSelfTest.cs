@@ -139,6 +139,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("nemesis_execute", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(executed) -> assert IsAlive flips false + the closure world-event reads distinctly from the battle-death flavor", TestNemesisExecuted),
          new SelfTest("nemesis_execute_prisoner", Severity.Light, "mint a fresh nemesis -> TakePrisonerAction (real capture) -> assert PlayerHeldNemesisPrisoner detects him -> BannerlordGameStateBridge.ExecuteAction(execute_prisoner) (the REAL bridge action the chat entry point's LLM emission triggers, not the Resolve harness) -> assert the existing HeroKilledEvent hook still resolves him + records the closure deed", TestNemesisExecutePrisoner),
          new SelfTest("nemesis_turn", Severity.Light, "increment 4 (SPARE + TURN): mint a nemesis -> real TakePrisonerAction -> force his stance below the gate floor and assert the real BannerlordGameStateBridge.ExecuteAction(turn_nemesis) REFUSES (still a prisoner, not turned) -> raise Fear/Respect past the floors and assert it TURNS him (identity marked turned, released from captivity, sworn into the player's clan)", TestNemesisTurn),
+         new SelfTest("nemesis_hunt", Severity.Heavy, "active hunt (map-presence): seed a latent nemesis of a live bandit band's culture -> force NemesisBehavior.TryMaterializeInto -> assert a nemesis Hero materialized INTO that band (joined its roster), so a battle the player starts can put the hunt's target in front of him; cleanup detaches him and marks the identity dead", TestNemesisHunt),
          new SelfTest("nemesis_bounty_capture", Severity.Light, "mint a nemesis anchored to a real lord's own region -> assert NemesisBountyDialogFlow's gate finds him eligible -> IssueNemesisBounty (real reward math) -> real TakePrisonerAction on him -> assert QuestDeedTracker's widened CapturePrisoner hook stamps the NemesisBounty quest satisfied", TestNemesisBountyCapture),
          new SelfTest("nemesis_bounty_execute", Severity.Light, "mint a nemesis anchored to a real lord's own region -> IssueNemesisBounty -> capture then execute him via the real execute_prisoner bridge action -> assert the widened HeroKilledEvent hook stamps the NemesisBounty quest AND NemesisResolutionBehavior resolves the identity, both off the same event", TestNemesisBountyExecute),
          new SelfTest("declare_war", Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it", TestDeclareWar),
@@ -1345,6 +1346,52 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("releasedFromCaptivity", hero.IsPrisoner, false);
          t.Expect("swornIntoPlayerClan", hero.Clan == Clan.PlayerClan, true);
          t.Note($"{nem.Name} {nem.Epithet}: captured, refused when fearless, turned when cowed+respectful; now of clan {hero.Clan?.Name?.ToString() ?? "?"}.");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Active hunt (map-presence): a latent nemesis of a live bandit band's culture materializes INTO that
+      ///   band when the player engages it, so a battle the player chose to start can put the hunt's target in
+      ///   front of him. Seeds a looters nemesis (region-agnostic, so the match is culture-only), forces the
+      ///   roll, and asserts the nemesis Hero joined the band's roster. Cleans up: detach + mark the identity dead.
+      /// </summary>
+      private static string TestNemesisHunt(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_hunt");
+
+         NemesisBehavior nem = NemesisBehavior.Instance;
+         if (t.Abort(nem == null, "NemesisBehavior not active")) return t.Line();
+
+         MobileParty band = MobileParty.All.FirstOrDefault(p =>
+            p != null && p.IsBandit && p.MapEvent == null && p.ActualClan?.StringId == "looters");
+         if (t.Skip(band == null, "no free looters band on the map to test the hunt")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         // "wilds" is an unresolvable region key, so the match is culture-only (no proximity gate for the test).
+         (Hero hero, NemesisIdentity identity) = MintSelfTestNemesis("wilds", today);
+         if (t.Abort(hero == null || identity == null, "could not mint a test nemesis")) return t.Line();
+
+         // Make ours the most-established so FindHuntableNemesisNear picks it over any other looters nemesis,
+         // and ensure it is latent (detach from anywhere the mint may have left the Hero).
+         identity.TimesEncountered = 99999;
+         Nemesis.NemesisBehavior.DetachToLatent(hero);
+
+         Hero materialized = null;
+         try
+         {
+            materialized = nem.TryMaterializeInto(band, forceRoll: true);
+            bool inBand = materialized != null && materialized.PartyBelongedTo == band;
+
+            t.Note($"band={band.Name} (looters), materialized={materialized?.Name}, joinedBand={inBand}");
+            t.Expect("materialized", materialized != null, true);
+            t.Expect("joinedTheBand", inBand, true);
+         }
+         finally
+         {
+            if (materialized != null) Nemesis.NemesisBehavior.DetachToLatent(materialized);
+            identity.IsAlive = false;
+         }
 
          return t.Line();
       }

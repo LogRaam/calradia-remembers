@@ -18,8 +18,11 @@ using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
 
@@ -46,6 +49,13 @@ namespace CalradiaRemembers.Nemesis
       private MobileParty _activeCaptorParty;
       private Hero _activeNemesisHero;
 
+      // Transient (non-serialized) ACTIVE-HUNT mapping: the nemesis Hero materialized into a bandit party the
+      // player just engaged, and that party. Cleared when the engagement ends (he is detached back to latent
+      // unless the player killed or captured him). Lost on a save/load mid-battle (a rare edge: he would stay
+      // in the band), the same degradation the capture layer accepts.
+      private Hero _materializedHero;
+      private MobileParty _materializedParty;
+
       public NemesisBehavior()
       {
          Instance = this;
@@ -58,6 +68,10 @@ namespace CalradiaRemembers.Nemesis
       {
          CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
          CampaignEvents.HeroPrisonerReleased.AddNonSerializedListener(this, OnHeroPrisonerReleased);
+         // Active hunt: bracket a player-vs-bandit engagement to maybe materialize the nemesis into the
+         // band (start) and to detach him back to latent when the fight ends without his death/capture (end).
+         CampaignEvents.MapEventStarted.AddNonSerializedListener(this, OnMapEventStarted);
+         CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
       }
 
       /// <summary>
@@ -130,6 +144,159 @@ namespace CalradiaRemembers.Nemesis
             _activeCaptorParty = null;
          }
          catch (Exception ex) { ModLog.Error($"[NEMESIS] prisoner-released hook failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      // ── Active hunt: the nemesis materializes only in a fight the player chose to start ──
+
+      /// <summary>
+      ///   Start of a player battle: if the other side is a bandit band of a living, latent nemesis's culture,
+      ///   near the region he haunts, a chance roll may turn that band out to be led by him. Never while the
+      ///   player is a prisoner or a capture scene is live.
+      /// </summary>
+      private void OnMapEventStarted(MapEvent mapEvent, PartyBase attacker, PartyBase defender)
+      {
+         try
+         {
+            if (mapEvent == null || !mapEvent.IsPlayerMapEvent) return;
+            if (Hero.MainHero?.IsPrisoner == true) return;
+            if (_activeNemesisHero != null || _materializedHero != null) return;
+
+            MobileParty band = EngagedBanditParty(attacker, defender);
+            if (band == null) return;
+
+            Hero hero = TryMaterializeInto(band, forceRoll: false);
+            if (hero == null) return;
+
+            _materializedHero = hero;
+            _materializedParty = band;
+         }
+         catch (Exception ex) { ModLog.Error($"[NEMESIS] hunt start hook failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   End of the engagement: if the materialized nemesis survived UN-captured, detach him back to latent so
+      ///   he keeps no standing party on the map (killed or captured, the resolution layer owns the aftermath).
+      /// </summary>
+      private void OnMapEventEnded(MapEvent mapEvent)
+      {
+         try
+         {
+            if (_materializedHero == null) return;
+
+            Hero hero = _materializedHero;
+            if (hero.IsAlive && !hero.IsPrisoner && hero.PartyBelongedTo != null)
+            {
+               DetachToLatent(hero);
+               ModLog.Info($"[NEMESIS] {hero.Name} slips the fight and fades back to latent.");
+            }
+
+            _materializedHero = null;
+            _materializedParty = null;
+         }
+         catch (Exception ex) { ModLog.Error($"[NEMESIS] hunt end hook failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Maybe materialize a living, latent nemesis of this band's culture into it: gated by
+      ///   <see cref="NemesisMaterializePolicy" /> (region proximity + a chance roll, or forced for the
+      ///   self-test). Ensures his Hero (minting it if latent), detaches him from anywhere, and adds him to the
+      ///   band. Returns the Hero, or null when none materialized. Public so the self-test can drive it without
+      ///   a real battle; the transient hunt mapping is owned by the event path, not set here.
+      /// </summary>
+      public Hero TryMaterializeInto(MobileParty band, bool forceRoll)
+      {
+         if (band == null || !band.IsBandit || _materializedHero != null) return null;
+
+         NemesisIdentity nem = FindHuntableNemesisNear(band);
+         if (nem == null || !NemesisIsLatent(nem)) return null;
+
+         // A qualifying encounter: the ratified pity-timer reveal roll (rises to a certainty by
+         // NemesisRevealPolicy.GuaranteeAfterEncounters, so the hunt is emergent but never endless). A miss
+         // builds pity credit; forceRoll (0.0) always reveals, for the self-test.
+         double roll = forceRoll ? 0.0 : MBRandom.RandomFloat;
+         if (!NemesisRevealPolicy.ShouldReveal(nem.EncountersSinceReveal, roll))
+         {
+            nem.EncountersSinceReveal++;
+            ModLog.Info($"[NEMESIS] {nem.Name} did not reveal this engagement (pity {nem.EncountersSinceReveal}/{NemesisRevealPolicy.GuaranteeAfterEncounters}).");
+
+            return null;
+         }
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Hero hero = MintCaptorFor(nem.BandCultureKey, nem.RegionId, today);
+         if (hero == null) return null;
+
+         if (hero.PartyBelongedTo != null && hero.PartyBelongedTo != band) DetachToLatent(hero);
+         AddHeroToPartyAction.Apply(hero, band, false);
+
+         nem.EncountersSinceReveal = 0; // revealed: the pity counter resets
+         nem.TimesEncountered++;
+         ModLog.Info($"[NEMESIS] materialized {hero.Name} into a {nem.BandCultureKey} band the player engaged (region {nem.RegionId}).");
+         InformationManager.DisplayMessage(new InformationMessage($"{hero.Name} leads this band. Your hunt has found him."));
+
+         return hero;
+      }
+
+      /// <summary>The bandit party in a player map event (the side that is not the player's main party), or null.</summary>
+      private static MobileParty EngagedBanditParty(PartyBase attacker, PartyBase defender)
+      {
+         MobileParty a = attacker?.MobileParty, d = defender?.MobileParty;
+
+         if (a != null && a.IsBandit && a != MobileParty.MainParty) return a;
+         if (d != null && d.IsBandit && d != MobileParty.MainParty) return d;
+
+         return null;
+      }
+
+      /// <summary>The most-established living, non-turned nemesis of this band's culture whose region anchor is near it (or region-agnostic when his anchor is not a real settlement), or null.</summary>
+      private NemesisIdentity FindHuntableNemesisNear(MobileParty band)
+      {
+         string culture = ResolveBandCultureKey(band);
+         Vec2 pos = band.GetPosition2D;
+         NemesisIdentity best = null;
+         int bestEncounters = -1;
+
+         foreach (NemesisIdentity n in _roster.Nemeses)
+         {
+            if (n == null || !n.IsAlive || n.IsTurned || n.BandCultureKey != culture) continue;
+
+            Settlement anchor = ResolveRegionSettlement(n.RegionId);
+            if (anchor != null && !NemesisMaterializePolicy.WithinRegion(anchor.GetPosition2D.x, anchor.GetPosition2D.y, pos.x, pos.y, NemesisMaterializePolicy.RegionMatchRadius))
+               continue; // he haunts a real region and this band is outside it
+
+            if (n.TimesEncountered > bestEncounters)
+            {
+               best = n;
+               bestEncounters = n.TimesEncountered;
+            }
+         }
+
+         return best;
+      }
+
+      /// <summary>Removes the nemesis Hero from whatever party holds him, back to a latent floating Hero with no map presence. Best-effort; never throws.</summary>
+      public static void DetachToLatent(Hero hero)
+      {
+         MobileParty party = hero?.PartyBelongedTo;
+         if (party == null) return;
+
+         try { party.MemberRoster?.RemoveTroop(hero.CharacterObject); }
+         catch (Exception ex) { ModLog.Error($"[NEMESIS] detach failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>The settlement a region key names, or null when the key is a culture/"wilds" fallback (then match on culture alone).</summary>
+      private static Settlement ResolveRegionSettlement(string regionId)
+         => string.IsNullOrEmpty(regionId) ? null : Settlement.All?.FirstOrDefault(s => s != null && s.StringId == regionId);
+
+      /// <summary>True when the nemesis's Hero keeps no map party and is no prisoner (latent, ready to materialize); a Hero not yet minted is latent by construction.</summary>
+      private static bool NemesisIsLatent(NemesisIdentity nem)
+      {
+         if (string.IsNullOrEmpty(nem.HeroStringId)) return true;
+
+         Hero hero = Hero.FindFirst(h => h != null && h.StringId == nem.HeroStringId);
+         if (hero == null || !hero.IsAlive) return true;
+
+         return !hero.IsPrisoner && hero.PartyBelongedTo == null;
       }
 
       /// <summary>
@@ -265,6 +432,8 @@ namespace CalradiaRemembers.Nemesis
       /// </summary>
       private static Hero ResolveOrMintHero(NemesisIdentity nem, int today)
       {
+         if (nem == null) return null; // cooldown-blocked mint, or a bad call: no Hero to resolve
+
          try
          {
             if (!string.IsNullOrEmpty(nem.HeroStringId))
@@ -336,6 +505,15 @@ namespace CalradiaRemembers.Nemesis
       {
          NemesisIdentity existing = FindRecurring(bandCultureKey, regionId);
          if (existing != null) return existing;
+
+         // Respawn cooldown: a nemesis of this culture died recently, so no new one rises yet (the capture
+         // then degrades to a faceless bandit scene). Gabriel 2026-07-08: killing him buys 1..3 quiet years.
+         if (NemesisRosterPolicy.IsCultureRespawnBlocked(_roster.Nemeses, bandCultureKey, today))
+         {
+            ModLog.Info($"[NEMESIS] no new {bandCultureKey} nemesis: the last one's respawn cooldown has not passed.");
+
+            return null;
+         }
 
          NemesisNameResult name = NemesisNameGenerator.Generate(bandCultureKey, MBRandom.RandomInt(int.MaxValue));
          var minted = new NemesisIdentity {
