@@ -1733,6 +1733,20 @@ culture-flavoured). Two deferred layers:
 
 ### Marriage — true polygamy and divorce *(monogamous marriage shipped; divorce arc ✅ COMPLETE — Phase 1/2a/2b/escalation, v1.22.1; true polygamy still OPEN)*
 
+**WISHED (player 2026-07-08, note to build LATER): marry a NOTABLE, and on marriage they join your CLAN.** A
+player leaving a conflicting mod asked whether CR could "marry notables then make them family or clan members".
+Today it CANNOT: `MarriageProspectResolver` draws candidates only from `npc.Clan.Heroes` / the NPC's children, so
+a notable (gang leader, merchant, artisan, village headman, `Clan == null`) is never a marriage prospect. Design
+notes (Gabriel 2026-07-08): (a) a notable needs **NO family blessing** (there is no clan head to consult, so it is
+a direct courtship of the notable themselves, gated only on regard + the notable's own consent, not the
+family-approval currency lords require); (b) the value proposition DIFFERS by target and should be surfaced so the
+choice matters, **marrying a LORD grants influence/alliance benefits (political allies, a house tie)** while
+marrying a notable is a lesser, more personal match (settlement/economic ties, not political power). Build sketch:
+a notable-candidate pool for the prospect resolver + prompt block (the notable NPC offers THEMSELVES, no blessing
+path), and on marriage promote the notable into the player's clan as a Hero (mirror `AddCompanionAction` /
+clan-join, detaching them from their settlement post). A real chantier (notables are not lords: settlement
+detachment, clan status, no `OriginClan`), so a separate increment.
+
 **Divorce arc COMPLETE (shipped v1.22.1):** Phase 1 (persuade an NPC to divorce their NPC spouse), Phase 2a (the
 player ends their OWN marriage in chat), Phase 2b (an unhappy spouse DEMANDS a divorce), and the escalation (a
 spouse refused too long BEGINS the estrangement themselves, walking out at a deadline unless the player genuinely

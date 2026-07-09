@@ -2,6 +2,11 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.28.1.. 2026-07-08
+
+### Fixed
+- Child support requests now actually close when you pay them. The support quest ("help support my child") was marked done and told you to return for a reward, but never completed no matter how much coin you gave, leaving it stuck in your log. Since you pay the support straight to the person who asked, it now settles the instant you pay, and she remembers the support with a little goodwill.
+
 ## v1.28.0.. 2026-07-08
 
 The bandit boss who took you prisoner can now be HUNTED DOWN and finished, and the chat's offer controls are tidied into one.

@@ -1814,7 +1814,7 @@ namespace CalradiaRemembers.GameState
          if (npcHero != null)
          {
             GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, amount);
-            StampProvideGoldIfOutstanding(npcHero, amount); // any payment satisfies a ProvideGold quest
+            CompleteProvideGoldOnPayment(npcHero, amount); // any payment satisfies AND closes a ProvideGold quest
 
             // Paying a scheming bastard-mother her demand IS settling the blackmail (buys her silence).
             bool silenced = Bastards.BastardBehavior.Instance?.SettleByPayment(npcHero, amount) == true;
@@ -2010,15 +2010,18 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
-      ///   Stamps an outstanding <see cref="QuestType.ProvideGold" /> quest as satisfied
-      ///   the moment the player gives any gold to the quest giver. Any non-zero payment
-      ///   counts — the LLM can acknowledge whether the amount was sufficient in dialogue.
+      ///   Satisfies AND COMPLETES an outstanding <see cref="QuestType.ProvideGold" /> quest (a support demand,
+      ///   e.g. child support) the moment the player gives its giver any gold. The payment is made DIRECTLY to
+      ///   the very person who asked, so there is nothing to "return and collect": completing it here, rather
+      ///   than only stamping the deed done and waiting for the giver to emit [QUEST_COMPLETE] (which the model
+      ///   rarely did), fixes a player report of the quest staying stuck "done, return for your reward" forever.
+      ///   The goodwill reward is paid here too, straight to the personal score (verified deed bypasses the gate).
       /// </summary>
-      private static void StampProvideGoldIfOutstanding(Hero npcHero, int amountGiven)
+      private static void CompleteProvideGoldOnPayment(Hero npcHero, int amountGiven)
       {
          BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
 
-         if (store == null || npcHero == null) return;
+         if (store == null || npcHero == null || Hero.MainHero == null) return;
 
          NpcProfile profile = store.Get(npcHero.StringId);
 
@@ -2030,10 +2033,23 @@ namespace CalradiaRemembers.GameState
          var day = (int) CampaignTime.Now.ToDays;
          quest.SatisfiedOnDay = day;
          quest.Evidence = $"Player provided {amountGiven} denars on day {day}.";
+
+         if (quest.RewardRelation > 0)
+         {
+            int before = profile.ReputationWithPlayer;
+            profile.ReputationWithPlayer = ClampInt(before + quest.RewardRelation, -100, 100);
+            profile.LastRelationGainHour = CampaignTime.Now.ToHours;
+         }
+
+         quest.Status = QuestStatus.Completed;
+         profile.Events.Add(new NotableEvent(day, NotableEventType.Collaboration,
+            $"The player gave {amountGiven} denars toward the support I asked of them."));
+         QuestJournalBridge.CloseAsCompleted(quest, npcHero);
+         Stance.StanceService.OnPromiseKept(profile);
          store.Set(profile);
 
-         QuestJournalBridge.NotifyDeedDone(quest, npcHero);
-         ModLog.Info($"[QUEST] ProvideGold satisfied: {npcHero.Name} received {amountGiven} denars.");
+         MBInformationManager.AddQuickInformation(new TextObject($"{npcHero.Name} is grateful for the support."), 0, npcHero.CharacterObject);
+         ModLog.Info($"[QUEST] ProvideGold completed: {npcHero.Name} received {amountGiven} denars (quest closed).");
       }
 
       private static bool TryGetInt(IReadOnlyDictionary<string, string> parameters, string key, out int value)
