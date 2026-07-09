@@ -94,6 +94,73 @@ namespace CalradiaRemembers.Items
       }
 
       /// <summary>
+      ///   Opens a MULTI-selection picker of the player's goods that match a ProvideGoods supply category
+      ///   (horses / livestock / grain), so they can hand over enough to meet <paramref name="requiredCount" />.
+      ///   Fires <paramref name="onConfirm" /> with one <see cref="ItemOffer" /> per chosen stack; the bridge
+      ///   tallies the count and enforces it (a short offer is rejected there), so this only gathers intent.
+      /// </summary>
+      public static void ShowSupplyPicker(string categoryKey, int requiredCount, Action<List<ItemOffer>> onConfirm)
+      {
+         if (onConfirm == null) return;
+         try
+         {
+            if (MobileParty.MainParty?.ItemRoster == null) return;
+
+            string label = SupplyItemMatcher.Label(categoryKey);
+            var eligible = new List<(ItemObject item, int amount)>();
+            foreach ((ItemObject item, int amount) in BuildEligibleItems())
+               if (SupplyItemMatcher.Matches(item, categoryKey))
+                  eligible.Add((item, amount));
+
+            if (eligible.Count == 0)
+            {
+               MBInformationManager.AddQuickInformation(new TextObject($"Your party carries no {label} to hand over."));
+
+               return;
+            }
+
+            eligible.Sort(CompareItems);
+            var elements = new List<InquiryElement>(eligible.Count);
+            foreach ((ItemObject item, int amount) in eligible)
+            {
+               string count = amount > 1 ? $" ×{amount}" : "";
+               elements.Add(new InquiryElement(item.StringId, $"{item.Name}{count}", null));
+            }
+
+            MBInformationManager.ShowMultiSelectionInquiry(
+               new MultiSelectionInquiryData(
+                  "Hand Over Supplies",
+                  $"Hand over at least {requiredCount} {label}:",
+                  elements,
+                  true,
+                  1, elements.Count,
+                  "Hand Over", "Cancel",
+                  selected =>
+                  {
+                     if (selected == null || selected.Count == 0) return;
+                     var offers = new List<ItemOffer>(selected.Count);
+                     foreach (InquiryElement element in selected)
+                     {
+                        var id = element.Identifier as string;
+
+                        if (string.IsNullOrEmpty(id)) continue;
+                        int held = CountInRoster(id);
+                        if (held > 0) offers.Add(new ItemOffer(id, held));
+                     }
+
+                     if (offers.Count > 0) onConfirm(offers);
+                  },
+                  null),
+               false,
+               true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ItemPickerService] ShowSupplyPicker failed: {ex.Message}");
+         }
+      }
+
+      /// <summary>
       ///   Opens the unified "give" picker: the player's eligible party items
       ///   (sorted by type category then value descending) plus, when
       ///   <paramref name="onGoldSelected" /> is supplied, a "Gold" entry pinned to the top.

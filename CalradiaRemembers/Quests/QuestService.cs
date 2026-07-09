@@ -449,6 +449,8 @@ namespace CalradiaRemembers.Quests
                 return q.Reward == RewardGrant.JoinParty
                     ? "bring goods in payment for their service"
                     : $"deliver goods worth {q.RequiredItemValue} denars";
+            case QuestType.ProvideGoods:
+                return $"bring {q.RequiredItemCount} {q.RequiredItemCategory}";
             default: return "carry out a task";
          }
       }

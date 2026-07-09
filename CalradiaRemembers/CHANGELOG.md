@@ -2,6 +2,12 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.29.0.. 2026-07-08
+
+### Added
+- Personal supply quests. A lord can now ask you to bring a supply of goods: horses for their cavalry, or livestock or grain to feed their host. Bring the goods and hand them over through the coin-purse bag; the game counts what you give and closes the task the moment you deliver enough, paying its reward. Verified by a real hand-over (never the model's word), and always on offer, so there is always something practical to do for a lord.
+- Your appearance, editable on your own Encyclopedia page. Your hero page now shows "How others see you", the description every NPC reads of you (your build, age and colouring, plus any note you add), with an "Add more info" button that opens an editor to write a detail others can see (a scar, a limp, a certain air). A live preview shows the final line as you type.
+
 ## v1.28.1.. 2026-07-08
 
 ### Fixed

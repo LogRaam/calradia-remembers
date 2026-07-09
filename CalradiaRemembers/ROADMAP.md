@@ -62,11 +62,18 @@ construction. Pure formatting core `QuestMenuComposer` (cap 8 lines, 5 tests); c
 Plus the pairing contract (a task EXISTS only with the [QUEST] block in the same reply) and NOTHING-IS-SILENT:
 a malformed/truncated [QUEST] block is flagged (`ParsedResponse.QuestBlockMalformed`) and told to the player in
 chat, as are the one-task-at-a-time and ungroundable refusals (`notify` in `IssueQuest`). `quest_menu` self-test.
-**NEXT (increment 2, ratified direction 2026-07-08 Gabriel): grow the referential beyond war errands, to PERSONAL
-quests (provide horses / cattle / grain: a category-constrained DeliverItems variant, verified by a real
-hand-over of matching goods) and MISSION-type work (espionage beyond scout_army, e.g. scout a settlement,
-observe a lord); each new type needs its own real-event verification in QuestDeedTracker, so they land as a
-separate increment.**
+**INCREMENT 2, PERSONAL SUPPLY QUESTS: 🔨 BUILT 2026-07-08 (untested in game).** New `QuestType.ProvideGoods`
+(count-based, lords only for inc1, ratified A=count/B=lords 2026-07-08): a lord asks the player to bring a COUNT
+of a category (horses / livestock / grain), handed over for real via the bag. Pure `ProvideGoodsPolicy` (category
+normalization + count clamp, 4 tests); `SupplyItemMatcher` maps a category to runtime items (ItemType.Horse; the
+livestock/grain `ItemCategory` StringIds); `ItemPickerService.ShowSupplyPicker` (category-filtered); bridge
+`SettleSupplyQuest` tallies the COUNT and COMPLETES on delivery (takes exactly the required count, pays gold+regard,
+closes, like the ProvideGold-on-payment fix); `QuestFactory` grounds it (unknown category refused); taught in
+`AppendQuestInstructions` (category + required_count fields) and always on the viable-quest menu for a lord.
+`supply_quest` self-test + SDK parser test. STILL OPEN (increment 2 remainder): **NOTABLES asking for supply
+(a headman/merchant, bigger surface)**, and **MISSION/espionage types (scout a settlement/lord beyond scout_army;
+each needs its own QuestDeedTracker verification).** Next per the plan: the editable appearance Encyclopedia field,
+then the JPG/PNG portrait spike.
 
 ### Prisoner trade, both ways for gold *(ratified 2026-07-08, 🔨 BUILT 2026-07-08, untested in game)*
 Player report ("we must be able to exchange prisoners, add them to the item+denars window") ratified by Gabriel
@@ -1671,9 +1678,16 @@ words; EYE colour is banded HEURISTICALLY from its raw offset (the engine expose
 reflection; `cr.appearance` prints raw offsets for calibration, bands are TUNE). `AppearanceProseBehavior` persists
 the authored per-hero prose (byte[] JSON, save-safe); `EncounterContextBuilder` fills `PlayerAppearance` (Subject)
 + `NpcSelfAppearance` (Self); PromptBuilder renders both plus the bandit-captor "what you can SEE" line. Console
-`cr.appearance [clear|<text>]` is the interim edit surface; `appearance` self-test. STILL OPEN: the editable
-per-hero prose field IN the Encyclopedia UI (replaces the console surface); height via `GetScaleFromKey` (readable,
-not yet banded); retiring the legacy `player_description.txt` (still cohabits, appearance block is primary).
+`cr.appearance [clear|<text>]` is the interim edit surface; `appearance` self-test. **Editable Encyclopedia field
+✅ SHIPPED + validated in-game 2026-07-08:** on the PLAYER'S OWN hero page (`EncyclopediaHeroPageAppearanceMixin` +
+`HeroPageAppearancePatch` + `CR_HeroAppearanceButton.xml`) a "How others see you" line shows the full composed look
+(derived + note) and an "Add more info" button opens a **custom Gauntlet popup** (`AppearanceEditorManager` /
+`AppearanceEditorViewModel` / `CalradiaRemembersAppearanceEditor.xml`, mirroring ChronicleManager) with a title,
+explanation, a single-line field, and a LIVE wrapped preview of the final line; Confirm saves to
+`AppearanceProseBehavior`. PLAYER-ONLY on purpose (an NPC note would orphan if they left the clan). The custom
+popup (not `ShowTextInquiry`) fixes the Backspace-navigates-BACK bug and allows a larger box; see
+[[feedback-bannerlord-ui-patterns]]. `cr.appearance` kept as the quick surface. STILL OPEN: height via
+`GetScaleFromKey` (readable, not yet banded); retiring the legacy `player_description.txt` (still cohabits).
 
 **Notes / no-action:** the captive-scene violence (stabbing, finger) LANDS and he wants MORE explicit interpersonal
 scenes (a sensitivity toggle is a maybe, not a restriction); "it is easy to overpower the AI" but he PREFERS

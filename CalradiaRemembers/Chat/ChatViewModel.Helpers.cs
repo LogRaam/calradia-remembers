@@ -390,6 +390,47 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      /// <summary>The outstanding ProvideGoods supply task of the current conversation partner, or null.</summary>
+      private InformalQuest FindOutstandingSupplyQuest()
+      {
+         try
+         {
+            NpcProfile giver = NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile;
+
+            if (giver == null || _npcHero == null) return null;
+
+            return giver.ActiveQuests.FirstOrDefault(q =>
+               q.Type == QuestType.ProvideGoods && q.IsOutstanding);
+         }
+         catch
+         {
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Hands the chosen goods to the bridge for a ProvideGoods supply task. The bridge tallies the count,
+      ///   and on a full delivery completes the quest (reward paid, journal closed) there; here we only surface
+      ///   the outcome line and refresh the bag's visibility.
+      /// </summary>
+      private void SettleSupply(InformalQuest supply, List<ItemOffer> offers)
+      {
+         try
+         {
+            var behavior = NpcMemoryCampaignBehavior.Instance;
+            NpcProfile giver = behavior?.DialogFlow?.Profile;
+
+            if (behavior?.GameStateBridge == null || giver == null) return;
+
+            ActionOutcome outcome = behavior.GameStateBridge.SettleSupplyQuest(giver, _npcHero, supply, offers);
+            if (outcome == null) return;
+
+            AppendSystemMessage(outcome.Message, outcome.IsPositive);
+            if (outcome.IsPositive) OnPropertyChanged(nameof(IsOfferItemVisible));
+         }
+         catch (Exception ex) { ModLog.Error($"[QUEST] SettleSupply failed: {ex.Message}"); }
+      }
+
       /// <summary>
       ///   Ends a captive scene that has run past its hard cap with a neutral time-skip summary,
       ///   so an eager model that keeps deferring its climax cannot drag the scene on forever.

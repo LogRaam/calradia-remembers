@@ -1,0 +1,34 @@
+<DummyRoot>
+  <ListPanel StackLayout.LayoutMethod="VerticalTopToBottom"
+             HeightSizePolicy="CoverChildren" WidthSizePolicy="Fixed" SuggestedWidth="380"
+             HorizontalAlignment="Left"
+             MarginTop="14" MarginLeft="30"
+             IsVisible="@IsAppearanceEditable">
+    <Children>
+      <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                  MarginBottom="4"
+                  Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                  Brush.TextHorizontalAlignment="Left"
+                  Text="@AppearanceHeader" />
+      <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                  MarginBottom="8"
+                  Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="16"
+                  Brush.TextHorizontalAlignment="Left"
+                  Text="@AppearanceText" />
+      <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                    SuggestedWidth="200" SuggestedHeight="40"
+                    HorizontalAlignment="Left"
+                    Brush="ButtonBrush1"
+                    DoNotPassEventsToChildren="true"
+                    UpdateChildrenStates="true"
+                    Command.Click="ExecuteAddMoreInfo">
+        <Children>
+          <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                      Brush="Popup.Button.Text" Brush.FontSize="17"
+                      Text="@AppearanceButtonText" />
+        </Children>
+      </ButtonWidget>
+    </Children>
+  </ListPanel>
+</DummyRoot>

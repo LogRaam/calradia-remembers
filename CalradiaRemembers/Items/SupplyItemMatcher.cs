@@ -1,0 +1,49 @@
+// Code written by Gabriel Mailhot, 08/07/2026.
+// Personal supply quests (referential increment 2): maps a canonical ProvideGoods category key (from the pure
+// CalradiaRemembers.Logic.ProvideGoodsPolicy) to actual party items at RUNTIME. Item categories are only
+// populated once the game has loaded, so this cannot be previewed standalone; matching is by the reliable
+// ItemType for horses and by the standard vanilla ItemCategory StringIds for livestock and grain.
+
+#region
+
+using CalradiaRemembers.Logic;
+using TaleWorlds.Core;
+
+#endregion
+
+namespace CalradiaRemembers.Items
+{
+    /// <summary>Whether a party item counts toward a <c>ProvideGoods</c> supply category.</summary>
+    internal static class SupplyItemMatcher
+    {
+        public static bool Matches(ItemObject item, string categoryKey)
+        {
+            if (item == null || string.IsNullOrEmpty(categoryKey)) return false;
+
+            string cat = item.ItemCategory?.StringId?.ToLowerInvariant() ?? "";
+
+            switch (categoryKey)
+            {
+                case ProvideGoodsPolicy.Horses:
+                    // Riding and war horses count; pack animals (mules) do not fill a cavalry demand.
+                    return item.ItemType == ItemObject.ItemTypeEnum.Horse
+                           && !cat.Contains("pack") && cat != "mule";
+                case ProvideGoodsPolicy.Livestock:
+                    return cat is "cow" or "sheep" or "hog" or "chicken" or "goose" or "pig" or "goat" or "cattle";
+                case ProvideGoodsPolicy.Grain:
+                    return cat == "grain";
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>A short player-facing word for the category, for picker titles and NPC lines.</summary>
+        public static string Label(string categoryKey)
+            => categoryKey switch {
+                ProvideGoodsPolicy.Horses => "horses",
+                ProvideGoodsPolicy.Livestock => "livestock",
+                ProvideGoodsPolicy.Grain => "grain",
+                _ => "goods"
+            };
+    }
+}

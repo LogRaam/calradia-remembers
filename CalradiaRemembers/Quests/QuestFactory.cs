@@ -5,6 +5,7 @@
 using System;
 using System.Linq;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Marriage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -425,6 +426,16 @@ namespace CalradiaRemembers.Quests
                   return BindFaction(quest, proposal.TargetFaction);
 
                return BindFirstEnemyFaction(quest, giver);
+
+            case QuestType.ProvideGoods:
+               // A personal supply task: bind a recognized goods category and a sane count. An unrecognized
+               // category is refused (the giver never asks for goods the game cannot verify handing over).
+               string category = ProvideGoodsPolicy.Normalize(proposal.Category);
+               if (category == null) return false;
+               quest.RequiredItemCategory = category;
+               quest.RequiredItemCount = ProvideGoodsPolicy.ClampCount(proposal.RequiredCount);
+
+               return true;
 
             default:
                return false;

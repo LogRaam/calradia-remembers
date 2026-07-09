@@ -1032,6 +1032,16 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         // A supply task (ProvideGoods) awaiting delivery: the bag hands over the matching goods by count.
+         InformalQuest supply = FindOutstandingSupplyQuest();
+         if (supply != null)
+         {
+            ItemPickerService.ShowSupplyPicker(
+               supply.RequiredItemCategory, supply.RequiredItemCount, offers => SettleSupply(supply, offers));
+
+            return;
+         }
+
          List<Hero> prisoners = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners();
          if (prisoners.Count == 0)
          {

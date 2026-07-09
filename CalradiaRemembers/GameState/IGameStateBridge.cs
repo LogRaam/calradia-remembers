@@ -141,6 +141,14 @@ namespace CalradiaRemembers.GameState
         ActionOutcome SettleItemBargain(NpcProfile giver, Hero giverHero, InformalQuest quest, IReadOnlyList<ItemOffer> offered);
 
         /// <summary>
+        ///   Settles a <see cref="QuestType.ProvideGoods" /> supply task: tallies the COUNT of handed-over
+        ///   goods that match the quest's category, and, when the required count is met, hands them over and
+        ///   COMPLETES the quest (pays its gold/regard reward, closes the journal). A short delivery removes
+        ///   nothing and asks for more; <see cref="ActionOutcome.IsPositive" /> is true only when it closed.
+        /// </summary>
+        ActionOutcome SettleSupplyQuest(NpcProfile giver, Hero giverHero, InformalQuest quest, IReadOnlyList<ItemOffer> offered);
+
+        /// <summary>
         ///   Applies the standing penalty for the player being publicly abased before
         ///   <paramref name="witnessCount"/> onlookers (Sprint 17 captive humiliation).
         ///   The clan loses Renown (prestige) and Influence (political authority),

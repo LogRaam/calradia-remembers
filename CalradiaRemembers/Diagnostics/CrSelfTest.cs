@@ -134,6 +134,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("appearance", Severity.Light, "extract the player's body facts -> compose the appearance block in Subject (3rd person, read by an NPC) and Self (2nd person) voices, with authored prose -> assert the facts extract, the authored prose is carried, and the Self voice reads in the second person", TestAppearance),
          new SelfTest("quest_menu", Severity.Light, "viable-quest referential: scan a live lord's grounded quest menu -> assert it is non-empty (there is always something to do), every line carries a known type token, and a named settlement target truly resolves (so QuestFactory will ground the offer by construction)", TestQuestMenu),
          new SelfTest("provide_gold", Severity.Heavy, "child-support fix: seed a ProvideGold quest -> real take_gold via the bridge (player pays the giver) -> assert the quest is CLOSED (Completed, not stuck 'awaiting reward') and the goodwill regard was paid, since the payment IS the completion (no [QUEST_COMPLETE] needed). Restores gold so the economy is unchanged", TestProvideGoldCompletes),
+         new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster", TestSupplyQuest),
          new SelfTest("prisoner_trade", Severity.Heavy, "prisoner trade: take a real lord captive into the player's party -> real buy_prisoner via the bridge (an NPC lord buys him) -> assert the player was PAID (price clamped around the ransom anchor) and the captive left the player's custody -> cleanup frees him", TestPrisonerTrade),
          new SelfTest("appreciation_flow", Severity.Light, "plant a kindness -> assert it lives -> plant a strong grudge on the same holder -> assert the tarnished effective magnitude drops -> force backfill twice -> assert the second pass is a no-op", TestAppreciationFlow),
          new SelfTest("nemesis_kill", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(battle death) -> assert IsAlive flips false + a closure world-event is recorded", TestNemesisKilledInBattle),
@@ -4044,6 +4045,87 @@ namespace CalradiaRemembers.Diagnostics
          Hero.MainHero.ChangeHeroGold(playerGoldBefore - Hero.MainHero.Gold);
 
          return t.Line();
+      }
+
+      /// <summary>
+      ///   Personal supply quest (ProvideGoods) end-to-end: a bad-category proposal is refused by the real
+      ///   issuance pipeline (nothing grounded), a grain proposal is issued through QuestService.ApplyResponse
+      ///   and grounds a real category+count, and a real hand-over through SettleSupplyQuest takes exactly the
+      ///   required count, closes the quest (Completed), and pays the reward. Leaves the roster as it found it.
+      /// </summary>
+      private static string TestSupplyQuest(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("supply_quest");
+
+         if (t.Abort(Hero.MainHero == null || MobileParty.MainParty?.ItemRoster == null, "no player party")) return t.Line();
+
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         if (t.Skip(giver == null, "no live lord to stand as the supply-asking giver")) return t.Line();
+
+         ItemObject grain = TaleWorlds.ObjectSystem.MBObjectManager.Instance?.GetObject<ItemObject>("grain");
+         if (t.Skip(grain == null || !Items.SupplyItemMatcher.Matches(grain, ProvideGoodsPolicy.Grain), "no grain item to test the hand-over")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         ArrangeCleanNpc(behavior, profile, giver); // clean slate so the one-task-at-a-time gate cannot block issuance
+         int day = behavior.GameStateBridge.GetCurrentGameDay();
+
+         // Refusal branch: an unrecognized goods category grounds no quest at all.
+         QuestService.ApplyResponse(profile, giver,
+            new ParsedResponse {Dialogue = "", QuestGiven = new QuestProposal {Type = QuestType.ProvideGoods, Category = "swords", RequiredCount = 5}},
+            day, behavior.GameStateBridge, behavior.Store, null);
+         bool refused = behavior.Store.Get(giver.StringId).ActiveQuests.All(q => q.Type != QuestType.ProvideGoods);
+         t.Expect("badCategoryRefused", refused, true);
+
+         // Issue a real grain supply task through the pipeline (grounds category + count).
+         const int need = 3;
+         QuestService.ApplyResponse(profile, giver,
+            new ParsedResponse {
+               Dialogue = "",
+               QuestGiven = new QuestProposal {
+                  Type = QuestType.ProvideGoods, Category = "grain", RequiredCount = need,
+                  RewardGold = 150, RewardRelation = 3, Description = $"[SELFTEST] {giver.Name} needs grain for the host."
+               }
+            },
+            day, behavior.GameStateBridge, behavior.Store, null);
+
+         profile = behavior.Store.Get(giver.StringId);
+         InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.ProvideGoods && q.IsOutstanding);
+         if (t.Abort(quest == null, $"the pipeline seeded no ProvideGoods quest for {giver.Name}")) return t.Line();
+         t.Expect("groundedCategory", quest.RequiredItemCategory, ProvideGoodsPolicy.Grain);
+         t.Expect("groundedCount", quest.RequiredItemCount, need);
+
+         // Hand over the grain through the real bridge settlement.
+         int held0 = CountItemInParty(grain);
+         MobileParty.MainParty.ItemRoster.AddToCounts(grain, need);
+         int regardBefore = profile.ReputationWithPlayer;
+
+         var offers = new List<ItemOffer> {new ItemOffer(grain.StringId, CountItemInParty(grain))};
+         ActionOutcome outcome = behavior.GameStateBridge.SettleSupplyQuest(profile, giver, quest, offers);
+
+         InformalQuest after = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.ProvideGoods);
+         int taken = held0 + need - CountItemInParty(grain);
+
+         t.Note($"giver={giver.Name}, grain={grain.Name}: grounded {quest.RequiredItemCount} {quest.RequiredItemCategory}, status={after?.Status}, taken={taken}/{need}, regard {regardBefore}->{profile.ReputationWithPlayer}");
+         t.Expect("handOverSettled", outcome?.IsPositive, true);
+         t.Expect("questCompleted", after?.Status, QuestStatus.Completed);
+         t.Expect("tookExactlyRequired", taken, need);
+         t.Expect("goodwillPaid", profile.ReputationWithPlayer > regardBefore, true);
+
+         // Restore the roster: drop any surplus grain the test added.
+         int surplus = CountItemInParty(grain) - held0;
+         if (surplus > 0) MobileParty.MainParty.ItemRoster.AddToCounts(grain, -surplus);
+
+         return t.Line();
+      }
+
+      /// <summary>How many of an item the player's party currently holds.</summary>
+      private static int CountItemInParty(ItemObject item)
+      {
+         var n = 0;
+         foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
+            if (el.EquipmentElement.Item == item) n += el.Amount;
+
+         return n;
       }
 
       // ── Conversation smoke tests (each = 1 real LLM call; relevance judged from the log) ──

@@ -85,6 +85,11 @@ namespace CalradiaRemembers.Quests
          // 5. A letter always travels: a real recipient of the giver's own clan or circle, elsewhere.
          AddLetterEntry(entries, giver);
 
+         // 6. A lord always needs supplies: horses for the cavalry, livestock or grain for the host. Always
+         // groundable (the player can bring goods), so this personal task is always on the menu.
+         entries.Add(new QuestMenuEntry("provide_goods", null, null,
+            "have the player bring you a supply of horses, livestock, or grain (set category + required_count)"));
+
          return entries;
       }
 

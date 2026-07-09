@@ -631,6 +631,78 @@ namespace CalradiaRemembers.GameState
          }
       }
 
+      /// <summary>
+      ///   Settles a <see cref="QuestType.ProvideGoods" /> supply task: tallies the COUNT of handed-over goods
+      ///   that genuinely match the quest's category (only they count, whatever the picker gathered), and, when
+      ///   the required count is met, hands over exactly that many, then COMPLETES the quest here (pays the
+      ///   gold/regard reward, closes the journal) since the goods are delivered directly to the giver in
+      ///   conversation, there is nothing to return and collect. A short delivery is rejected, never faked.
+      /// </summary>
+      public ActionOutcome SettleSupplyQuest(NpcProfile giver,
+                                             Hero giverHero,
+                                             InformalQuest quest,
+                                             IReadOnlyList<ItemOffer> offered)
+      {
+         try
+         {
+            if (quest is not {Type: QuestType.ProvideGoods}) return null;
+            if (giver == null || Hero.MainHero == null || offered == null || offered.Count == 0) return null;
+
+            ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+            if (roster == null) return null;
+
+            string categoryKey = quest.RequiredItemCategory;
+            string label = Items.SupplyItemMatcher.Label(categoryKey);
+
+            var toRemove = new List<(ItemObject item, int count)>();
+            var count = 0;
+            foreach (ItemOffer offer in offered)
+            {
+               if (string.IsNullOrEmpty(offer.ItemId) || offer.Count <= 0) continue;
+               ItemObject item = FindRosterItem(roster, offer.ItemId, out int available);
+
+               if (item == null || available <= 0 || !Items.SupplyItemMatcher.Matches(item, categoryKey)) continue;
+               int take = Math.Min(offer.Count, available);
+               count += take;
+               toRemove.Add((item, take));
+            }
+
+            if (count < quest.RequiredItemCount)
+               return new ActionOutcome($"({giverHero?.Name}: that is only {count} of the {quest.RequiredItemCount} {label} I asked for. Bring more.)", false);
+
+            // Count met: hand over exactly the required number (never take more than asked).
+            int remaining = quest.RequiredItemCount;
+            foreach ((ItemObject item, int c) in toRemove)
+            {
+               if (remaining <= 0) break;
+               int take = Math.Min(c, remaining);
+               roster.AddToCounts(item, -take);
+               remaining -= take;
+            }
+
+            var day = (int) CampaignTime.Now.ToDays;
+            quest.SatisfiedOnDay = day;
+            quest.Evidence = $"Delivered {quest.RequiredItemCount} {label} on day {day}.";
+            quest.Status = QuestStatus.Completed;
+
+            ActionOutcome reward = GrantQuestReward(giverHero, giver, quest.RewardGold, quest.RewardRelation);
+            giver.Events.Add(new NotableEvent(day, NotableEventType.Collaboration, $"The player brought the {quest.RequiredItemCount} {label} I needed."));
+            Quests.QuestJournalBridge.CloseAsCompleted(quest, giverHero);
+            Stance.StanceService.OnPromiseKept(giver);
+            NpcMemoryCampaignBehavior.Instance?.Store?.Set(giver);
+
+            ModLog.Info($"[QUEST] ProvideGoods completed: {giverHero?.Name} received {quest.RequiredItemCount} {label}.");
+
+            return reward ?? new ActionOutcome($"{giverHero?.Name} accepts your {label} with thanks.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[QUEST] SettleSupplyQuest failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
       #region private
 
       private static int ClampInt(int value, int min, int max)
