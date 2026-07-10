@@ -119,6 +119,7 @@ namespace CalradiaRemembers.Mapping
             KnownWanderers = ResolveKnownWanderers(hero, playerMessage),
             NpcCurrentActivity = bridge.GetCurrentActivity(hero),
             CurrentLocationNote = BuildLocationNote(hero),
+            GeographyNote = SettlementContextResolver.Resolve(hero, playerMessage),
             PlayerSpouseName = Hero.MainHero?.Spouse?.IsAlive == true
                ? Hero.MainHero.Spouse.Name?.ToString()
                : null,

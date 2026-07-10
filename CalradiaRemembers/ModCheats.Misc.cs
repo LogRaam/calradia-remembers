@@ -493,6 +493,29 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.geo [something you might say about a place]
+      ///   Prints the geography-grounding note CR would inject for the NPC you are talking to: the encyclopedia
+      ///   blurb of where they stand, plus a fact line and blurb for any settlement your text names. Use it to
+      ///   confirm the LLM is now told the real lay of the land (report: NPCs invented where places sit).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("geo", "cr")]
+      public static string Geography(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+
+         Hero hero = Hero.OneToOneConversationHero;
+
+         if (hero == null) return "Talk to an NPC first (cr.geo reads the geography note for your conversation partner).";
+
+         string message = args is {Count: > 0} ? string.Join(" ", args) : null;
+         string note = SettlementContextResolver.Resolve(hero, message);
+
+         return string.IsNullOrEmpty(note)
+            ? $"{hero.Name}: no geography note (not in a settlement, and your text named no known place). Try: cr.geo tell me about <place>."
+            : $"{hero.Name} would be told:\n{note}";
+      }
+
+      /// <summary>
       ///   cr.jealousy_comp
       ///   Reports the player's current partner household (native spouse + committed consorts) with
       ///   each one's culture, sharing-tolerance and how long since they were last attended to, then

@@ -2,6 +2,11 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.1.. 2026-07-10
+
+### Added
+- NPCs now know the real lay of the land. Until now they had culture labels but no sense of where places actually sit, so they would invent geography (a lord calling a Vlandian border castle a watch "toward Empire territory" when its pass in fact leads to Battania). The mod now grounds them from the game's own map data: an NPC is told the encyclopedia description of the settlement they stand in, and whenever you name a place in conversation, they are given that place's real description plus which people hold it, its culture, and roughly which direction and how far it lies from where they are. This is drawn live from the world (never a hand-written lorebook that could drift), so it is always current and correct, and it costs only a couple of lines added when a place is actually mentioned. New `cr.geo` console command prints exactly what an NPC would be told.
+
 ## v1.30.0.. 2026-07-10
 
 Custom chat portraits, letters that actually get through, changeable orientation, and two engine-level fixes straight from this week's reports.

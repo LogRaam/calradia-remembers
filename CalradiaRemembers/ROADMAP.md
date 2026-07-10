@@ -1798,6 +1798,21 @@ held captive now yields the room by force when the player asks to speak privatel
 than the LLM being allowed to refuse. `ChatViewModel.NpcIsPlayerPrisoner()` gates both the button short-circuit
 and the free-text `request_privacy` resolution.
 
+**SHIPPED v1.30.1 (player suggestion, SuperGraham339 2026-07-10): geography grounding from the engine, not a
+lorebook.** Report: NPCs invent where places sit (a Vlandian border castle described as lying "toward Empire
+territory" when the game's own encyclopedia says its pass leads to Battania). The game already holds authoritative,
+always-current geography, so instead of the player's literal "SillyTavern-style JSON lorebook" (which would
+DUPLICATE and DRIFT as mods rename settlements and ownership shifts mid-campaign), CR grounds from `Settlement`
+data: `SettlementContextResolver` (mod, mirrors `ContextualNameResolver`) injects the NPC's current-settlement
+`EncyclopediaText` plus, for any settlement named in the player message, its `EncyclopediaText` + culture/holder +
+a bearing (`GeographyDescriber` pure, direction + coarse distance band from map positions). Pass-through string in
+`EncounterContext.GeographyNote`, rendered by SDK `PromptBuilder` under "THE LAY OF THE LAND (real geography, treat
+as fact)". `cr.geo` console prints it. FOLLOW-UPS (open): (a) ground the QUEST-TARGET settlement too (the reported
+case was a lord describing a place tied to his own watch/quest, which the player-message scan does not catch until
+the player names it; thread the quest/encounter's target settlement into the resolver); (b) OPTIONAL later flavor
+layer, a small keyword-triggered CULTURE lore snippet (temperament/history the engine does NOT encode), which is
+the one place a hand-authored lorebook is genuinely the right tool (geography never is).
+
 **Divorce arc COMPLETE (shipped v1.22.1):** Phase 1 (persuade an NPC to divorce their NPC spouse), Phase 2a (the
 player ends their OWN marriage in chat), Phase 2b (an unhappy spouse DEMANDS a divorce), and the escalation (a
 spouse refused too long BEGINS the estrangement themselves, walking out at a deadline unless the player genuinely
