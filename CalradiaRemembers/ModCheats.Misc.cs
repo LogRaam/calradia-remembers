@@ -516,6 +516,29 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.impression [name]
+      ///   Prints the "first impression" opening disposition CR would inject for a barely-known noble (or the
+      ///   current conversation partner): how their traits and your standing colour their opening tone. Blank
+      ///   means a neutral opening, an own-clan lord, or an already-known NPC (their stance governs).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("impression", "cr")]
+      public static string Impression(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or talk to one first.";
+
+         NpcProfile profile = behavior.Store.Get(hero.StringId);
+         string note = FirstImpressionResolver.Resolve(hero, profile, behavior.GameStateBridge);
+
+         return string.IsNullOrEmpty(note)
+            ? $"{hero.Name}: no first impression (neutral opening, your own clan, or already known)."
+            : $"{hero.Name} opens as:\n{note}";
+      }
+
+      /// <summary>
       ///   cr.jealousy_comp
       ///   Reports the player's current partner household (native spouse + committed consorts) with
       ///   each one's culture, sharing-tolerance and how long since they were last attended to, then

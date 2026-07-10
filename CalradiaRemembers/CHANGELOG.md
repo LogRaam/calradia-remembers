@@ -2,6 +2,11 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.2.. 2026-07-10
+
+### Added
+- Nobles now have a first impression of you. A lord you barely know no longer opens perfectly neutral and reasonable: his own nature and your standing colour how he receives you. A cruel or dishonourable lord (low Mercy or Honor) is more likely to open arrogant, suspicious or demeaning toward an unproven, landless newcomer, and an ambitious lord can resent a new clan risen in his own faction as one more mouth at the table when the spoils are shared, all without you having to offend him first. Your standing disarms it: a high clan tier, renown or a string of fiefs makes you read as a peer rather than a target. Each lord's leaning is fixed to his character (a given lord is consistently haughty, not randomly so). Two things it deliberately does NOT do: it never touches the relation number (it colours his opening tone only, and only your deeds move his regard), and a lord in YOUR OWN CLAN is never prejudiced, he opens loyal and glad of the cause you share. An already-known friend or rival keeps the standing you have built. New `cr.impression` console command prints how a given lord would open.
+
 ## v1.30.1.. 2026-07-10
 
 ### Added

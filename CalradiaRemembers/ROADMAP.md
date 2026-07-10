@@ -32,6 +32,108 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## NEXT PILLAR (near-term): the ASSEMBLY (multi-party gatherings)
+
+Ratified with Gabriel 2026-07-10. NOT started yet, scheduled "very soon". A player (or a lord) convenes an
+ASSEMBLY of lords and companions at a strategic settlement: the invited travel there in person, a dedicated
+multi-party session orchestrates the meeting, and missions may be distributed. Example: a lord at war summons
+a war-council of all his allies to talk strategy. The pillar = the conversational ENGINE (already built, see
+below) + a convening/travel/presence layer + a session layer + a mission-distribution layer.
+
+**FOUNDATION ALREADY BUILT (2026-07-10, uncommitted, in-game test pending): the ROUND TABLE.** A deterministic
+group-turn driver, the model-independent answer to a player report (weak LLMs never volunteer witness
+reactions, so witnesses stay mute unless singled out; the existing Sprint 15C back-and-forth is model-driven).
+Trigger = a "Round Table" chat button OR a free-text intent ("what do you all think?"). It gives each present
+participant a deterministic turn (they may address one another), told to speak at more length. Files: pure
+`RoundTableIntentDetector` + `RoundTablePolicy` (Logic, tested), `EncounterContext.IsRoundTableTurn` + SDK
+`PromptBuilder` "ROUND TABLE" directive, mod `ChatViewModel.RunRoundTableAsync`/`ExecuteRoundTable` (reuses the
+15B/15C per-speaker machinery: `SpeakerForWitness`/`BuildSessionFor`/`RenderNpcTurn`), a prefab button. In the
+chat it caps at 3 turns per burst; the ASSEMBLY lifts that cap (full round of present participants). Ship this
+as v1.31.0 (a shippable feature on its own, and the assembly's engine).
+
+### Locked design decisions (Gabriel 2026-07-10)
+1. **Host = ANY town or castle.** RSVP refuses an ENEMY-owned host; accepts a host that is the invitee's own,
+   an ally's, or neutral. Emergent constraint: a parley with an enemy therefore requires NEUTRAL ground.
+2. **REAL party movement** toward the host settlement. If an accepted invitee cannot present himself by a
+   deadline, an **AMBASSADOR** (a stand-in of his clan or a companion, else a light generated envoy) is created
+   to sit in his name. This is the robust answer to fragile forced-AI movement (CR's courier scar tissue):
+   narration covers the gap instead of a stuck party breaking the feature.
+3. **Enemies MAY be invited** (a parley). A refusal costs NO relation.
+4. **The PLAYER decides when to open** (no minimum present). Invitees wait; the player must WAIT at the
+   settlement for people to arrive. If the player tries to LEAVE the town/castle, a popup asks to cancel;
+   leaving CANCELS the assembly (invitees stand down, ambassadors despawn).
+5. **NO participant cap:** the player invites and assumes the LLM cost (do not limit roleplay). Consequence: in
+   assembly mode the round-table goes the FULL round of present participants (no 3-turn per-lap cap, that is
+   only the in-chat convenience), and the player paces it, addressing individuals as he likes.
+
+### Lifecycle
+1. At a town/castle menu: "Summon an assembly" (invitee picker: known lords + companions) sends summons (CR letters).
+2. RSVP resolved (policy + a short acceptance/refusal letter). Accepted lords travel to the host; party companions are present already.
+3. Settlement menu shows a live counter "Assembly: X of N present", updated as parties arrive.
+4. The player opens when ready: "Open the assembly" menu button opens the round-table session over the present roster.
+5. (Later inc) missions distributed during the session.
+6. REVERSE: a lord summons the PLAYER (a war-council); a summons letter arrives, the player travels to the lord's settlement, and on arrival the same menu opens the assembly with the lord as host.
+
+### Increment breakdown + seams
+- **State layer (foundation):** `AssemblyBehavior : CampaignBehaviorBase` holding the pending assembly (host `Settlement`, initiator, invitees each { heroId, status Invited/Accepted/Declined/EnRoute/Present/Ambassador, ETA, deadline }). `SyncData` ADDITIVE + idempotent restore (save-safe hard rule: an in-flight assembly must survive a save/load). Pure `.Logic` (testable, delegatable to Sonnet): `AssemblyRsvpPolicy` (relation to the host owner, war, distance, occupation, besieged -> Accept/Decline + reason; enemy-owned host -> Decline) and `AssemblyArrivalPolicy` (ETA + deadline + the ambassador-fallback decision).
+- **Inc 1: convene + presence (no session yet).** Settlement menu options via `AddGameMenuOption` (CR already touches game menus): "Summon an assembly" (picker), dynamic "X of N present" text, "Open the assembly". Summons via the letter system; RSVP + reply letters. Accepted lords move via `SetMoveGoToSettlement` refreshed on tick (courier pattern); presence marked on `OnSettlementEntered` when the party enters the host. Deadline -> ambassador. Leave-guard: intercept the settlement Leave menu -> "Cancel assembly?" popup -> cleanup. Deliverable: summon, watch them converge, counter rises, cancel works. No dialogue yet.
+- **Inc 2: the assembly session** = the round-table engine over the present roster (2-companion cap lifted, full round with no 3-cap, a "host" framing in the prompt, ambassadors speak for their lord).
+- **Inc 3: lord-summons-player** (summons letter -> player travels to the lord's settlement -> on arrival the menu opens the assembly, lord = host).
+- **Inc 4: mission distribution** during the session (reuse `QuestFactory` / the viable-quest referential; a mission "distributed" to an ambassador's seat goes to the lord's house).
+- **UI:** first reuse the existing chat window (functional); a bespoke multi-portrait assembly window is later polish.
+
+### Technical risks (flagged, not blocking)
+- **Enemy on neutral ground:** ensure no auto-hostility/encounter fires during a parley (a safe-conduct); needs handling.
+- **Ambassador identity:** prefer a living clan member or a companion of the lord; fall back to a light generated envoy (needs a profile + portrait for the session). To confirm at build time.
+- **Real-movement fragility:** mitigated by the ambassador fallback (Gabriel's idea turns the failure mode into narrative).
+- **Cost:** uncapped by design (the player's choice).
+
+### Reuse (not from scratch)
+CR letters/couriers (summons + replies), the courier pattern (visible movement + guaranteed arrival/ambassador), settlement game menus, the ROUND TABLE engine (session), `QuestFactory`/viable-quest referential (missions), and the interception 3D-conversation staging (VRAM-safe) for the meeting.
+
+---
+
+## SHIPPED (v1.30.2, 2026-07-10): FIRST IMPRESSIONS (opening prejudice / disposition)
+
+Player report (ProudSeal 2026-07-10): NPCs are too neutral and too reasonable on meeting, so a rivalry
+requires the player to actively offend someone first. He wants prejudice and ambition rife: a noble with low
+Mercy/Honor (and Calculating?) more likely to open ARROGANT, SUSPICIOUS or DEMEANING, modulated by the
+player's standing (clan tier, wealth, fiefs, renown); and lords who resent a NEW clan in their faction as a
+rival for rewards, without being offended first. Flavor he gave: Belgir deriding a landless upstart whose
+father was "arrow-fodder for the wars against the Battanians".
+
+**DESIGN** (extends the Stance pillar, "words nudge, deeds prove"): it colors the OPENING TONE, NOT the
+relation numbers (no automatic malus, deeds still govern relation, so the contract holds). Pure
+`FirstImpressionPolicy` (Logic, tested): inputs = NPC traits (Mercy/Honor/Calculating/Generosity/Valor),
+player standing (tier, renown, fief count, wealth band), faction context (the player a recent joiner of the
+NPC's faction = a rival for rewards), NPC status; output = an opening DISPOSITION (Cordial / Neutral / Cool /
+Arrogant / Suspicious / Demeaning) + intensity. Rolled STABLE per NPC (seed by StringId) so a noble is
+consistently arrogant (a personality), not random each talk. Injected as `EncounterContext.OpeningDisposition`
+(prompt tone), rendered by PromptBuilder.
+
+**GATING (who is exempt):**
+- **A lord in the PLAYER'S OWN CLAN (including one who joined it) is NEVER prejudiced (Gabriel 2026-07-10).**
+  He has cast his lot with the player: his opening disposition is loyal, grateful, or a believer in the
+  player's mission, never arrogance or contempt. Same for companions. The clan-membership check is the HARD
+  gate, checked first.
+- Already-known NPCs (relation far from 0, or prior memories) use their existing stance, not a cold first
+  impression.
+- Only strangers / low-acquaintance OTHER lords (especially same-faction reward-rivals, or the
+  status-conscious toward a landless upstart) get the prejudice roll.
+
+**Softeners:** high player renown or a strong battle record disarms a Valorous noble (respect of arms); a
+rich or titled player reads as a peer, not a target. **Ambition sub-trigger:** low Generosity (or ambitious) +
+same faction + the player's clan a recent arrival, produces resentment of "having to share the rewards".
+
+Trait-mapping sketch: low Mercy produces demeaning, low Honor projects suspicion, high Calculating produces
+cold transactional dismissal of a low-value newcomer, low Generosity produces reward-jealousy. Shipped as
+`FirstImpressionPolicy` + `FirstImpressionDisposition` + `FirstImpressionDescriber` (Logic, tested),
+`EncounterContext.OpeningDisposition` + SDK "FIRST IMPRESSION" prompt block, mod `FirstImpressionResolver`,
+`cr.impression` console. STILL OPEN (deferred): the noble-rides-out-to-meet-you (interception) frequency knob
+UP that ProudSeal also asked for; and extending first impressions beyond lords to notables/wanderers.
+
+---
+
 ## ✅ Shipped & built
 
 Live on Nexus, or built + committed awaiting upload. **(untested)** = built green and committed but its
