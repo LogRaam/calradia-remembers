@@ -457,24 +457,31 @@ namespace CalradiaRemembers.Letters
 
          var today = (int) CampaignTime.Now.ToDays;
          bool isLegitimate = mother == Hero.MainHero?.Spouse;
+         bool motherWithPlayer = IsWithPlayer(mother);
 
          string childDesc = playerChildren.Count == 1
             ? $"a {(playerChildren[0].IsFemale ? "daughter" : "son")} named {playerChildren[0].Name}"
             : $"{playerChildren.Count} children";
          var context = $"{(isLegitimate ? "Legitimate" : "Illegitimate")} birth. She has given birth to {childDesc} on day {today}.";
 
-         // Birth announcement — sent immediately.
-         LetterGenerationService.QueueInitialLetter(
-            profile, mother, LetterReason.BirthAnnouncement, context,
-            behavior.LlmServices, behavior.Store, today);
+         // Birth announcement: a fond note from afar, never sent to a mother riding beside the player (the game
+         // already announces the birth). Sent immediately.
+         if (BirthLetterPolicy.ShouldSendAnnouncement(motherWithPlayer))
+            LetterGenerationService.QueueInitialLetter(
+               profile, mother, LetterReason.BirthAnnouncement, context,
+               behavior.LlmServices, behavior.Store, today);
 
-         // Child support request — sent a week later; quest opens on delivery.
-         string supportContext = context + $" She is now asking the player for {ChildSupportAmount} denars to help raise the child.";
-         LetterGenerationService.QueueInitialLetter(
-            profile, mother, LetterReason.ChildSupportRequest, supportContext,
-            behavior.LlmServices, behavior.Store, today + ChildSupportDelayDays);
+         // Child support request: sent a week later, quest opens on delivery. The player's own spouse never duns
+         // him for their shared child, and a mother travelling with him writes nothing (player report 2026-07-10).
+         if (BirthLetterPolicy.ShouldRequestChildSupport(motherWithPlayer, isLegitimate))
+         {
+            string supportContext = context + $" She is now asking the player for {ChildSupportAmount} denars to help raise the child.";
+            LetterGenerationService.QueueInitialLetter(
+               profile, mother, LetterReason.ChildSupportRequest, supportContext,
+               behavior.LlmServices, behavior.Store, today + ChildSupportDelayDays);
+         }
 
-         ModLog.Info($"[LETTER] birth letters queued: {mother.Name} → player ({childDesc}, {(isLegitimate ? "legitimate" : "illegitimate")}).");
+         ModLog.Info($"[LETTER] birth letters evaluated: {mother.Name} → player ({childDesc}, {(isLegitimate ? "legitimate" : "illegitimate")}, withPlayer={motherWithPlayer}).");
       }
 
       private void OnMapEventEnded(MapEvent mapEvent)

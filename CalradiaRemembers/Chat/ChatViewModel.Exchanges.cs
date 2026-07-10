@@ -857,8 +857,10 @@ namespace CalradiaRemembers.Chat
                   if (!string.Equals(action.Type, "request_privacy",
                          StringComparison.OrdinalIgnoreCase)) continue;
                   action.Parameters.TryGetValue("result", out string privacyResult);
-                  bool privacyAccepted = string.Equals(privacyResult, "accepted",
-                     StringComparison.OrdinalIgnoreCase);
+                  // A prisoner cannot refuse the player: whatever the LLM emitted, the player's own captive
+                  // yields the room (player suggestion, ApocalyptikGreen 2026-07-10).
+                  bool privacyAccepted = NpcIsPlayerPrisoner()
+                     || string.Equals(privacyResult, "accepted", StringComparison.OrdinalIgnoreCase);
                   if (privacyAccepted)
                   {
                      _witnesses.Clear();

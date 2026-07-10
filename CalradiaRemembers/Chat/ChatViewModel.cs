@@ -1246,6 +1246,21 @@ namespace CalradiaRemembers.Chat
       public void ExecuteRequestPrivate()
       {
          if (_privacyRequestUsed || _witnesses.Count == 0) return;
+
+         // A prisoner has no say over who stays: the player commands the room. Clear the witnesses outright,
+         // with no LLM round-trip and no chance of a "refusal" (player suggestion, ApocalyptikGreen 2026-07-10).
+         if (NpcIsPlayerPrisoner())
+         {
+            _privacyRequestUsed = true;
+            _witnesses.Clear();
+            _currentSpeakerHeroId = null; // no witnesses left, back to the main NPC
+            RefreshWitnessUi();
+            AppendSystemMessage("You order the others out. You are alone with your prisoner.", true);
+            ModLog.Info("[WITNESSES] private audience taken by force (the player's prisoner has no say).");
+
+            return;
+         }
+
          _privacyRequestPending = true;
          _privacyRequestUsed = true;
          RefreshWitnessUi();
@@ -1255,6 +1270,13 @@ namespace CalradiaRemembers.Chat
          InputText = "I would speak with you privately.";
          ExecuteSendMessage();
       }
+
+      /// <summary>
+      ///   True when the NPC in this conversation is the player's own captive. Such an NPC has no say over who
+      ///   stays in the room, so a private audience is granted by force rather than left to the LLM to refuse.
+      /// </summary>
+      private bool NpcIsPlayerPrisoner()
+         => _npcHero is {IsPrisoner: true} && _npcHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
 
       public void ExecuteSendMessage()
       {

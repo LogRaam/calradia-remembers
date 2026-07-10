@@ -356,6 +356,19 @@ namespace CalradiaRemembers.Behaviors
                   continue;
                }
 
+               // A child-support demand from the player's own spouse is never legitimate: the child is shared and
+               // kept in the household, not a debt collected by courier (player report 2026-07-10, married mother
+               // in the player's party still demanding support). Dropping it here also heals saves where such a
+               // letter was queued before the marriage.
+               if (letter.Reason == LetterReason.ChildSupportRequest && sender == Hero.MainHero?.Spouse)
+               {
+                  letter.IsLost = true;
+                  changed = true;
+                  ModLog.Info($"[LETTER] dropped child-support demand from the player's spouse {profile.Name} (shared child, not a debt).");
+
+                  continue;
+               }
+
                if (CourierService.TrySpawnReplyCourier(letter, sender))
                   changed = true;
             }

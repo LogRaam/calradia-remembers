@@ -1779,6 +1779,25 @@ path), and on marriage promote the notable into the player's clan as a Hero (mir
 clan-join, detaching them from their settlement post). A real chantier (notables are not lords: settlement
 detachment, clan status, no `OriginClan`), so a separate increment.
 
+**WISHED (player greenarcher13, 2026-07-10, note to build LATER): an OOC (out-of-character) channel to correct the
+AI mid-conversation.** The player suggested a way to tell the AI "OOC: you're sending letters that aren't
+applicable, please remove all references to them and any relationship modifiers." Genuinely useful as an escape
+hatch when the world state drifts, but non-trivial and abuse-prone: it would let the player edit memory/stance
+directly through free text, so it needs (a) a distinct parse path (an `OOC:` prefix the LLM never treats as
+in-character), (b) a bounded, auditable set of effects (forget a named event, clear a specific pending letter,
+nudge a stance back), NOT arbitrary "give me +100 relation", and (c) a world-consistency guard so it corrects
+drift without becoming a cheat console. Design before building. Note: the specific case that prompted this (a
+married spouse still demanding child support) is fixed deterministically in v1.30.0, so the OOC channel is for the
+GENERAL class of AI drift, not that bug. RELATED follow-up: an already-ACTIVE child-support `ProvideGold` quest
+whose giver later became the player's spouse is not retroactively cancelled today (only the pending LETTER is
+healed); a quest-level heal (close a `ProvideGold` quest when its giver is now `Hero.MainHero.Spouse`) would fully
+close greenarcher13's loop for saves where the quest already opened.
+
+**FIXED v1.30.0 (player suggestion, ApocalyptikGreen 2026-07-10): a prisoner cannot deny a private audience.** A
+held captive now yields the room by force when the player asks to speak privately (button or free text), rather
+than the LLM being allowed to refuse. `ChatViewModel.NpcIsPlayerPrisoner()` gates both the button short-circuit
+and the free-text `request_privacy` resolution.
+
 **Divorce arc COMPLETE (shipped v1.22.1):** Phase 1 (persuade an NPC to divorce their NPC spouse), Phase 2a (the
 player ends their OWN marriage in chat), Phase 2b (an unhappy spouse DEMANDS a divorce), and the escalation (a
 spouse refused too long BEGINS the estrangement themselves, walking out at a deadline unless the player genuinely
