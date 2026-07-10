@@ -49,6 +49,9 @@
     <Reference Include="System.Numerics.Vectors">
       <HintPath>$(BannerlordGameBinaryDir)\System.Numerics.Vectors.dll</HintPath>
       <Private>false</Private>
+      <!-- Aliased so a file needing the GAME's Vector2 identity (a Harmony patch on an engine method) can
+           name it without colliding with the framework's System.Numerics copy of the same type. -->
+      <Aliases>global,GameNumerics</Aliases>
     </Reference>
     <Reference Include="TaleWorlds.CampaignSystem">
       <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.CampaignSystem.dll</HintPath>

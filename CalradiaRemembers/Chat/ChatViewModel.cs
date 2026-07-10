@@ -150,6 +150,9 @@ namespace CalradiaRemembers.Chat
       private bool _eventRecordedThisSession; // any non-empty [EVENT] this session
       private bool _hasWitnesses;
       private string _inputText = "";
+      private string _composePreviewText = "";
+      private bool _composePreviewDirty;
+      private long _lastComposePreviewTicks;
       private bool _isComposeOpen;
       private bool _isMemoryPanelOpen;
       private bool _isPleaseContinueVisible;
@@ -234,6 +237,13 @@ namespace CalradiaRemembers.Chat
          LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(false);
       }
 
+      // The per-insert cap once collapsed the transcript to one live tableau per speaker, which blanked older
+      // lines' portraits. MEASURED SAFE and relaxed (2026-07-09): over a long conversation the game's dedicated
+      // VRAM stayed flat as live portraits climbed, because the original v1.23 leak was the map screen rendering
+      // behind the overlay (fixed, unrelated to portrait count) and we free every tableau on close
+      // (ReleaseAllPortraits). So all portraits now persist. Flip back to true only if a VRAM report resurfaces.
+      private const bool EnforcePortraitCapInChat = false;
+
       /// <summary>
       ///   On each inserted line, keep VRAM bounded by the number of participants (not the transcript length):
       ///   the guard collapses the transcript to at most one live character tableau per distinct speaker, freeing
@@ -241,7 +251,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private void OnMessagesListChanged(object sender, ListChangedEventArgs e)
       {
-         if (e.ListChangedType == ListChangedType.ItemAdded)
+         if (EnforcePortraitCapInChat && e.ListChangedType == ListChangedType.ItemAdded)
             PortraitTextureGuard.EnforceOnePerParticipant(_messages);
       }
 
@@ -320,7 +330,45 @@ namespace CalradiaRemembers.Chat
             if (_inputText == value) return;
             _inputText = value;
             OnPropertyChangedWithValue(value);
+            _composePreviewDirty = true; // the wrapped preview refreshes on a throttle, not every keystroke
          }
+      }
+
+      // Player report (v1.29.0): typing a LONG message tanked FPS (~200 -> ~15) because the wrapped preview
+      // (a RichTextWidget) re-parsed and re-wrapped the whole text on EVERY keystroke. It now binds to this
+      // separate property, pushed at most a few times a second by PumpComposePreview from the per-frame tick.
+      [DataSourceProperty]
+      public string ComposePreviewText
+      {
+         get => _composePreviewText;
+         set
+         {
+            if (_composePreviewText == value) return;
+            _composePreviewText = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      // Shortest gap between two wrapped-preview refreshes; ~150 ms is imperceptible for reading but turns a
+      // per-keystroke re-layout of a long message into a handful per second.
+      private static readonly long ComposePreviewThrottleTicks = TimeSpan.FromMilliseconds(150).Ticks;
+
+      /// <summary>
+      ///   Pushes the typed text into the wrapped preview at most every <see cref="ComposePreviewThrottleTicks" />,
+      ///   so a long message does not re-wrap on every keystroke (the FPS-drop report). Clearing (after Send) is
+      ///   pushed immediately. Called each frame from <see cref="ChatScrollablePanel" />.
+      /// </summary>
+      public void PumpComposePreview()
+      {
+         if (!_composePreviewDirty) return;
+
+         bool cleared = string.IsNullOrEmpty(_inputText);
+         long now = DateTime.UtcNow.Ticks;
+         if (!cleared && now - _lastComposePreviewTicks < ComposePreviewThrottleTicks) return;
+
+         _lastComposePreviewTicks = now;
+         _composePreviewDirty = false;
+         ComposePreviewText = _inputText ?? "";
       }
 
       /// <summary>

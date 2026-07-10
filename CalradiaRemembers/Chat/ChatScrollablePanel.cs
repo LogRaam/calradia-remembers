@@ -83,6 +83,11 @@ namespace CalradiaRemembers.Chat
             // the reliable place for it; it acts only on a transition, so it is cheap when nothing changes.
             ChatManager.ArbitrateFocus();
 
+            // Refresh the wrapped compose preview on a throttle (not every keystroke), so a long message does
+            // not re-wrap the whole RichTextWidget on each key press (the FPS-drop report). Cheap: a no-op
+            // unless the input changed and the throttle interval has elapsed.
+            ChatManager.ActiveViewModel?.PumpComposePreview();
+
             UpdateMoreHint();
 
             if (_scrollToBottomFramesRemaining <= 0)

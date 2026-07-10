@@ -459,6 +459,40 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.orientation &lt;straight|bi|gay|lesbian|pan|asexual&gt; [name]
+      ///   Changes an NPC's sexual orientation (player request: enable e.g. a female-female romance the rolled
+      ///   orientation blocked). Persists on the profile; for a permanent change add "orientation" to that NPC's
+      ///   entry in character_overrides.json (re-synced live each turn).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("orientation", "cr")]
+      public static string SetOrientation(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+         if (args == null || args.Count == 0)
+            return "Usage: cr.orientation <straight|bi|gay|lesbian|pan|asexual> [name]";
+
+         NpcMemoryService.Core.Models.SexualOrientation? orientation = Logic.OrientationParser.Parse(args[0]);
+         if (orientation == null)
+            return $"Unknown orientation '{args[0]}'. Try: straight, bi, gay/lesbian, pan, asexual.";
+
+         string nameFragment = args.Count > 1 ? string.Join(" ", args.GetRange(1, args.Count - 1)).Trim() : null;
+         Hero hero = !string.IsNullOrWhiteSpace(nameFragment)
+            ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Name != null && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
+            : Hero.OneToOneConversationHero;
+
+         if (hero == null) return "No NPC found. Pass a name fragment or talk to one first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         if (profile.Romantic == null) return $"{hero.Name} has no romantic profile to change.";
+
+         profile.Romantic.Orientation = orientation.Value;
+         behavior.Store.Set(profile);
+
+         return $"{hero.Name}'s orientation is now {orientation.Value}. For a permanent change, add \"orientation\": \"{args[0]}\" to their character_overrides.json entry.";
+      }
+
+      /// <summary>
       ///   cr.jealousy_comp
       ///   Reports the player's current partner household (native spouse + committed consorts) with
       ///   each one's culture, sharing-tolerance and how long since they were last attended to, then

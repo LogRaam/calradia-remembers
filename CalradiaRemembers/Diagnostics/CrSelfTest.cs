@@ -135,6 +135,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("quest_menu", Severity.Light, "viable-quest referential: scan a live lord's grounded quest menu -> assert it is non-empty (there is always something to do), every line carries a known type token, and a named settlement target truly resolves (so QuestFactory will ground the offer by construction)", TestQuestMenu),
          new SelfTest("provide_gold", Severity.Heavy, "child-support fix: seed a ProvideGold quest -> real take_gold via the bridge (player pays the giver) -> assert the quest is CLOSED (Completed, not stuck 'awaiting reward') and the goodwill regard was paid, since the payment IS the completion (no [QUEST_COMPLETE] needed). Restores gold so the economy is unchanged", TestProvideGoldCompletes),
          new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster", TestSupplyQuest),
+         new SelfTest("courier_waylay", Severity.Heavy, "waylaid-letter resend: a waylaid letter keeps its typed text, and the Resend path re-queues a FRESH non-lost letter carrying the SAME content, so a waylaid letter never has to be retyped. Cleans up its test letters + courier (no popup)", TestCourierWaylayResend),
          new SelfTest("prisoner_trade", Severity.Heavy, "prisoner trade: take a real lord captive into the player's party -> real buy_prisoner via the bridge (an NPC lord buys him) -> assert the player was PAID (price clamped around the ransom anchor) and the captive left the player's custody -> cleanup frees him", TestPrisonerTrade),
          new SelfTest("appreciation_flow", Severity.Light, "plant a kindness -> assert it lives -> plant a strong grudge on the same holder -> assert the tarnished effective magnitude drops -> force backfill twice -> assert the second pass is a no-op", TestAppreciationFlow),
          new SelfTest("nemesis_kill", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(battle death) -> assert IsAlive flips false + a closure world-event is recorded", TestNemesisKilledInBattle),
@@ -4114,6 +4115,55 @@ namespace CalradiaRemembers.Diagnostics
          // Restore the roster: drop any surplus grain the test added.
          int surplus = CountItemInParty(grain) - held0;
          if (surplus > 0) MobileParty.MainParty.ItemRoster.AddToCounts(grain, -surplus);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Waylaid-letter resend: a lost letter keeps its text, and the resend path re-queues a fresh, non-lost
+      ///   letter with the SAME content (the player never retypes a waylaid letter). Cleans up the test letters
+      ///   and the courier the resend spawned, removing the letters BEFORE the courier so its disband matches no
+      ///   letter and fires no loss/popup.
+      /// </summary>
+      private static string TestCourierWaylayResend(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("courier_waylay");
+
+         Hero recipient = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         if (t.Skip(recipient == null, "no live lord to stand as a letter recipient")) return t.Line();
+
+         const string tag = "CR_SELFTEST_WAYLAY";
+         NpcProfile profile = GetOrCreate(behavior, recipient);
+         var today = (int) CampaignTime.Now.ToDays;
+
+         var lost = new PlayerLetter {
+            RecipientId = profile.Id,
+            RecipientName = profile.Name,
+            Content = tag,
+            SentOnDay = today,
+            DeliveryDay = today + 8,
+            IsLost = true
+         };
+         profile.ReceivedPlayerLetters.Add(lost);
+         behavior.Store.Set(profile);
+
+         Letters.CourierService.ResendWaylaidLetterForTest(behavior.Store, profile, lost);
+         profile = behavior.Store.Get(recipient.StringId);
+
+         PlayerLetter resent = profile.ReceivedPlayerLetters.LastOrDefault(l => l.Content == tag && !l.IsLost);
+         t.Note($"recipient={recipient.Name}: lostKeptText={lost.Content == tag}, resent={resent != null}");
+         t.Expect("waylaidLetterKeepsItsText", lost.Content, tag);
+         t.Expect("resendQueuedFreshLetter", resent != null, true);
+         t.Expect("resendPreservedContent", resent?.Content, tag);
+
+         string courierId = resent?.CourierPartyId;
+         profile.ReceivedPlayerLetters.RemoveAll(l => l.Content == tag);
+         behavior.Store.Set(profile);
+         if (!string.IsNullOrEmpty(courierId))
+         {
+            MobileParty cp = MobileParty.All.FirstOrDefault(p => p.StringId == courierId);
+            if (cp != null) Travel.TravelingParty.Destroy(cp);
+         }
 
          return t.Line();
       }

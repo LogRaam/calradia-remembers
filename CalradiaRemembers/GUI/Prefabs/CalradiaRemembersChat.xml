@@ -168,8 +168,8 @@
                             <ButtonWidget Id="AvatarContainer"
                                     WidthSizePolicy="Fixed"
                                     HeightSizePolicy="Fixed"
-                                    SuggestedWidth="96"
-                                    SuggestedHeight="88"
+                                    SuggestedWidth="@AvatarWidth"
+                                    SuggestedHeight="@AvatarHeight"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Top"
                                     MarginTop="2"
@@ -184,6 +184,7 @@
                                                        SuggestedHeight="44"
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Top"
+                                                       IsVisible="@ShowVanillaPortrait"
                                                        TextureProviderName="@PortraitTextureProviderName"
                                                        ImageId="@PortraitId"
                                                        AdditionalArgs="@PortraitAdditionalArgs"
@@ -191,9 +192,18 @@
                                                        HideWhenNull="false"
                                                        IsDisabled="true" />
 
+                                <!-- PORTRAIT SPIKE: custom player portrait, loaded at runtime from its path. -->
+                                <CrRuntimeImageWidget Id="CustomAvatar"
+                                                      WidthSizePolicy="StretchToParent"
+                                                      HeightSizePolicy="StretchToParent"
+                                                      IsVisible="@ShowCustomPortrait"
+                                                      ImagePath="@PlayerPortraitPath"
+                                                      IsDisabled="true" />
+
                                 <Widget Id="AvatarFrame"
                                         WidthSizePolicy="StretchToParent"
-                                        HeightSizePolicy="StretchToParent"                                        
+                                        HeightSizePolicy="StretchToParent"
+                                        IsVisible="@ShowVanillaPortrait"
                                         Sprite="frame_9"
                                         ExtendLeft="15" ExtendTop="22" ExtendRight="15" ExtendBottom="-22"
                                         AlphaFactor="0.25"
@@ -206,7 +216,7 @@
                                             HeightSizePolicy="CoverChildren"
                                             HorizontalAlignment="Left"
                                             VerticalAlignment="Top"
-                                            MarginLeft="112"
+                                            MarginLeft="@TextMarginLeft"
                                             MarginRight="18"
                                             Brush="Default"
                                             Brush.FontSize="22"
@@ -699,7 +709,7 @@
                                     Brush.FontColor="#e8d8b8FF"
                                     Brush.TextHorizontalAlignment="Left"
                                     Brush.TextVerticalAlignment="Top"
-                                    Text="@InputText" />
+                                    Text="@ComposePreviewText" />
                   </Children>
                 </Widget>
               </Children>

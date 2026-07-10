@@ -34,8 +34,47 @@ namespace CalradiaRemembers.Portraits
         private static readonly FieldInfo SheetsField =
             typeof(SpriteCategory).GetField("<SpriteSheets>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance);
 
+        // SpritePart.Texture returns null unless its category reads as LOADED (decompiled:
+        // "_category != null && _category.IsLoaded && SpriteSheets?.Count >= SheetID"), and IsLoaded's
+        // setter is internal: the black-frame culprit once the sheets were in place.
+        private static readonly MethodInfo IsLoadedSetter =
+            typeof(SpriteCategory).GetProperty("IsLoaded")?.GetSetMethod(true);
+
+        private static readonly Dictionary<string, (Sprite sprite, int width, int height)> Cache =
+            new Dictionary<string, (Sprite, int, int)>();
+
         private static FieldInfo Backing(string name)
             => typeof(SpritePart).GetField($"<{name}>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        /// <summary>
+        ///   Cached load by path: builds a sprite once per file and reuses it, so N chat lines sharing one
+        ///   portrait hold ONE texture. A miss is cached as null so a missing file is not retried every line.
+        ///   The kept texture is intentionally not released (it stays available); a full feature would evict.
+        /// </summary>
+        public static Sprite GetOrCreateCached(string fullPath)
+        {
+            if (string.IsNullOrEmpty(fullPath)) return null;
+            if (Cache.TryGetValue(fullPath, out var cached)) return cached.sprite;
+
+            Sprite sprite = TryCreate(fullPath, out Sprite s, out EngTex tex, out _) ? s : null;
+            Cache[fullPath] = (sprite, tex?.Width ?? 0, tex?.Height ?? 0);
+
+            return sprite;
+        }
+
+        /// <summary>The pixel dimensions of the (cached) image at <paramref name="fullPath" />, false if it will not load.</summary>
+        public static bool TryGetDimensions(string fullPath, out int width, out int height)
+        {
+            width = 0;
+            height = 0;
+            if (GetOrCreateCached(fullPath) == null) return false;
+
+            (Sprite _, int w, int h) = Cache[fullPath];
+            width = w;
+            height = h;
+
+            return width > 0 && height > 0;
+        }
 
         /// <summary>
         ///   Loads <paramref name="fullPath" /> and builds a full-texture sprite. Returns the engine texture so
@@ -79,6 +118,8 @@ namespace CalradiaRemembers.Portraits
                 var tex2d = new Texture(new EngineTexture(engineTexture));
                 var category = new SpriteCategory("cr_runtime_portrait", 1, false) {SheetSizes = new[] {new Vec2i(w, h)}};
                 SheetsField?.SetValue(category, new List<Texture> {tex2d});
+                IsLoadedSetter?.Invoke(category, new object[] {true});
+                diag += $", sheets={category.SpriteSheets?.Count ?? -1}, catLoaded={category.IsLoaded}";
 
                 // SheetID is 1-BASED (vanilla sprite data starts at 1; the engine indexes SpriteSheets[SheetID - 1]),
                 // so 0 underflows the sheet array: the earlier black frame and the IndexOutOfRangeException.

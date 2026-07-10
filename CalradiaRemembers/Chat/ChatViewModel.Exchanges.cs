@@ -534,6 +534,15 @@ namespace CalradiaRemembers.Chat
             // so it is never persisted stale and reflects edits + the MCM toggle live.
             profile.AuthoredBackstory = CharacterOverrideLoader.BackstoryFor(speaker.Hero);
 
+            // Sync an authored orientation override (player request: enable e.g. a female-female romance the
+            // rolled "heterosexual" blocked). Applied live each turn so an edit takes effect without a reload.
+            NpcMemoryService.Core.Models.SexualOrientation? authoredOrientation = CharacterOverrideLoader.OrientationFor(speaker.Hero);
+            if (authoredOrientation.HasValue && profile.Romantic != null && profile.Romantic.Orientation != authoredOrientation.Value)
+            {
+               profile.Romantic.Orientation = authoredOrientation.Value;
+               ModLog.Info($"[OVERRIDE] {profile.Name} orientation set to {authoredOrientation.Value} by authored char data.");
+            }
+
             // ── Diagnostic: log the full system prompt sent to the LLM ─────
             if (ModSettings.VerboseLogging)
                try

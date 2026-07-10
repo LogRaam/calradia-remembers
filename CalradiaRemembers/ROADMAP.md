@@ -1037,9 +1037,17 @@ Confirms the tiered fallback exactly ("thumbnail present -> show it; absent -> t
 missing/unreadable file). Naming decision REFINES the resolver key: try `Portraits/<Hero.StringId>.png` FIRST
 (unique, rename-proof), then `Portraits/<normalized-name>.png` as a friendly fallback, plus a dev console command
 `cr.portrait_id` that prints the exact filename to drop for the NPC currently in conversation (StringId is opaque
-otherwise). Format: square PNG, ~256x256. PRIORITY: queued AFTER the stance axes (Trust/Respect/Affection) per
-Gabriel's "toute la stance d'abord"; the PNG->Gauntlet spike (fork A/B above, B preferred) is the first step when
-it comes up.
+otherwise). Format: square PNG, ~256x256.
+
+**SPIKE ✅ GREEN, validated in-game 2026-07-09 (fork RESOLVED: B, runtime load).** A hand-made 445x805 PNG loaded
+from disk at runtime rendered in a Gauntlet widget, and VRAM stayed FLAT over 2x300 load+release cycles (RTX 3080,
+dedicated memory steady). Full proven recipe (engine texture from bytes -> SpriteCategory with sheets injected +
+IsLoaded forced -> SpritePart SheetID=1 + reflected UVs -> SpriteGeneric -> `.Sprite` set by widget Id after
+LoadMovie, never @-bound; `Texture.Release()` on close) lives in [[feedback-bannerlord-ui-patterns]] and the
+reference implementation in `Portraits/RuntimePortraitFactory.cs` + `PortraitSpikeManager.cs`
+(`cr.portrait_spike` / `cr.portrait_spike_stress`, shipped inert in v1.29.1). **The feature (chat-window surface
+first, per the ratified order) is now UNBLOCKED and ready to build**: shared resolver + LetterViewModel/chat
+wiring, reusing the spike factory.
 
 ### Player action narration — interpret the player's `*…*` and first-person deeds *(wished 2026-06-28, player feedback)*
 

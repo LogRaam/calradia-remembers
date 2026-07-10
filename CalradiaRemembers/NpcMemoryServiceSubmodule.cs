@@ -303,6 +303,7 @@ namespace CalradiaRemembers
             }
 
             RegisterBuiltInType(builtinTypes, typeof(ChatScrollablePanel));
+            RegisterBuiltInType(builtinTypes, typeof(Portraits.CrRuntimeImageWidget));
 
             Log("Custom widget types registered.");
          }

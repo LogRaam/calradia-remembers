@@ -3,6 +3,7 @@
 #region
 
 using System;
+using System.IO;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
@@ -21,6 +22,14 @@ namespace CalradiaRemembers.Chat
         private string _displayText;
         private bool _showAvatar = true;
         private string _portraitAdditionalArgs = "";
+
+        // PORTRAIT SPIKE: when this is a player line and a custom portrait PNG is present, show it (larger)
+        // instead of the vanilla 3D render, so the player's custom face sits beside the NPCs' vanilla ones.
+        private string _playerPortraitPath = "";
+        private bool _showCustomPortrait;
+        private float _avatarWidth = 96f;
+        private float _avatarHeight = 88f;
+        private float _textMarginLeft = 112f;
 
         // The encyclopedia link of the hero who spoke this line, for the right-click on their portrait.
         // Empty for a heroless speaker (a bandit troop) or a system line, whose right-click is a no-op.
@@ -43,6 +52,7 @@ namespace CalradiaRemembers.Chat
             _speakerKey = speakerHero?.StringId ?? authorName ?? "";
             _encyclopediaLink = speakerHero?.EncyclopediaLink ?? "";
             _authorColor = isPlayer ? PlayerColor : NpcColor;
+            ApplyCustomPortrait(speakerHero?.StringId, speakerHero?.Name?.ToString());
         }
 
         /// <summary>
@@ -55,6 +65,7 @@ namespace CalradiaRemembers.Chat
             ResolvePortrait(portraitCharacter, authorName);
             _speakerKey = portraitCharacter?.StringId ?? authorName ?? "";
             _authorColor = isPlayer ? PlayerColor : NpcColor;
+            ApplyCustomPortrait(portraitCharacter?.StringId, portraitCharacter?.Name?.ToString());
         }
 
         /// <summary>
@@ -68,6 +79,7 @@ namespace CalradiaRemembers.Chat
             _speakerKey = speakerHero?.StringId ?? authorName ?? "";
             _encyclopediaLink = speakerHero?.EncyclopediaLink ?? "";
             _authorColor = colorHex ?? NpcColor;
+            ApplyCustomPortrait(speakerHero?.StringId, speakerHero?.Name?.ToString());
         }
 
         /// <summary>
@@ -80,6 +92,7 @@ namespace CalradiaRemembers.Chat
             ResolvePortrait(portraitCharacter, authorName);
             _speakerKey = portraitCharacter?.StringId ?? authorName ?? "";
             _authorColor = colorHex ?? NpcColor;
+            ApplyCustomPortrait(portraitCharacter?.StringId, portraitCharacter?.Name?.ToString());
         }
 
         /// <summary>
@@ -92,6 +105,25 @@ namespace CalradiaRemembers.Chat
             _authorColor = colorHex;
             _showAvatar  = false; // no portrait/frame for a system line
         }
+
+        // ── Portrait spike bindings (player custom vs NPC vanilla) ──
+        [DataSourceProperty]
+        public string PlayerPortraitPath => _playerPortraitPath;
+
+        [DataSourceProperty]
+        public bool ShowCustomPortrait => _showCustomPortrait;
+
+        [DataSourceProperty]
+        public bool ShowVanillaPortrait => _showAvatar && !_showCustomPortrait;
+
+        [DataSourceProperty]
+        public float AvatarWidth => _avatarWidth;
+
+        [DataSourceProperty]
+        public float AvatarHeight => _avatarHeight;
+
+        [DataSourceProperty]
+        public float TextMarginLeft => _textMarginLeft;
 
         [DataSourceProperty]
         public string AuthorColor
@@ -188,6 +220,10 @@ namespace CalradiaRemembers.Chat
         /// </summary>
         public void ReleasePortrait()
         {
+            // A custom portrait is a cached sprite (no GPU render-target), so there is nothing to free and it
+            // must stay visible on every player line, not just the latest, unlike the vanilla tableaus below.
+            if (_showCustomPortrait) return;
+
             if (!_showAvatar && string.IsNullOrEmpty(_portraitId)) return;
             PortraitId = "";
             PortraitTextureProviderName = "";
@@ -218,6 +254,47 @@ namespace CalradiaRemembers.Chat
         }
 
         #region private
+
+        /// <summary>
+        ///   Custom chat portraits: if the player has dropped an image for this speaker in
+        ///   ModuleData/ChatPortraits/ (by StringId or name), show it instead of the vanilla 3D render. Any
+        ///   speaker (the player or an NPC) with an image gets it; everyone else keeps the small vanilla avatar.
+        /// </summary>
+        private void ApplyCustomPortrait(string stringId, string displayName)
+        {
+            if (!_showAvatar) return;
+
+            string path = Portraits.ChatPortraitResolver.ResolveForHero(stringId, displayName);
+            if (string.IsNullOrEmpty(path)) return;
+
+            _playerPortraitPath = path;
+            _showCustomPortrait = true;
+
+            // The portrait FILLS the avatar column width and grows only in HEIGHT to keep the PNG's aspect
+            // (no stretch), capped so a very tall image cannot make a giant row. Width never exceeds the column,
+            // so the message text stays at its fixed margin and the whole conversation stays aligned.
+            const float colWidth = 96f;
+            const float maxHeight = 220f;
+            if (Portraits.RuntimePortraitFactory.TryGetDimensions(path, out int w, out int h) && w > 0 && h > 0)
+            {
+                float scale = Math.Min(colWidth / w, maxHeight / h);
+                _avatarWidth = w * scale;
+                _avatarHeight = h * scale;
+            }
+            else
+            {
+                _avatarWidth = colWidth;
+                _avatarHeight = 174f;
+            }
+
+            _textMarginLeft = 112f; // fixed: the text never moves, whatever the portrait's height
+
+            // A custom line uses a cached sprite, not a 3D render-target: clear the vanilla ids so it is never
+            // counted as a live tableau nor released by the one-per-speaker VRAM management (it would vanish).
+            _portraitId = "";
+            _portraitTextureProviderName = "";
+            _portraitAdditionalArgs = "";
+        }
 
         private void ResolvePortrait(CharacterObject character, string authorName)
         {

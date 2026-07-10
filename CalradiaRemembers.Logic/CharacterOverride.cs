@@ -6,6 +6,7 @@
 #region
 
 using System.Collections.Generic;
+using NpcMemoryService.Core.Models;
 
 #endregion
 
@@ -43,12 +44,21 @@ namespace CalradiaRemembers.Logic
 
         public string Backstory { get; set; }
 
+        /// <summary>
+        ///   Optional authored sexual orientation (a human word: straight, bi, gay/lesbian, pan, asexual...).
+        ///   Overrides the NPC's rolled orientation, e.g. to enable a same-sex romance the roll blocked.
+        /// </summary>
+        public string Orientation { get; set; }
+
         /// <summary>True when this override sets at least one trait.</summary>
         public bool HasTraits =>
             Valor.HasValue || Honor.HasValue || Mercy.HasValue || Generosity.HasValue || Calculating.HasValue;
 
         /// <summary>True when the backstory carries authored flavor.</summary>
         public bool HasBackstory => !string.IsNullOrWhiteSpace(Backstory);
+
+        /// <summary>The authored orientation parsed to an enum, or null when unset/unrecognized.</summary>
+        public SexualOrientation? ParsedOrientation => OrientationParser.Parse(Orientation);
 
         /// <summary>
         ///   The authored trait levels that are actually set, each clamped to the engine band, in a

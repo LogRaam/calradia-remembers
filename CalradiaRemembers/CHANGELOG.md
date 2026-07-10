@@ -2,6 +2,21 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.0.. 2026-07-10
+
+Custom chat portraits, letters that actually get through, changeable orientation, and two engine-level fixes straight from this week's reports.
+
+### Added
+- Custom chat portraits. Drop a PNG or JPG in `Modules/CalradiaRemembers/ModuleData/ChatPortraits/` and that hero's lines in the chat window show YOUR image instead of the 3D render: `player.png` for your own hero, or name the file after an NPC (use the `cr.portrait_id` console command in a chat to get the exact file name). The image keeps its own proportions, sized to the portrait column, and heroes without an image keep the normal 3D portrait. The folder is created for you with a README on first launch.
+- Sexual orientation can now be authored per character. `character_overrides.json` accepts an `orientation` field (straight, bisexual, gay, lesbian, pansexual, asexual), and the `cr.orientation` console command changes it live, so a female-female romance is now possible with an NPC written that way instead of her insisting she is only into men.
+- Letters can now run long: the message box accepts up to 8000 characters (it was cutting off far earlier).
+
+### Fixed
+- Couriers are no longer robbed on every single trip. A letter's journey is now a real gauntlet instead of a rigged one: each bandit party near the road has a one-in-three chance of taking hostile interest, and even then the chase catches the courier less than a third of the time. And when a letter IS lost, you are told and offered to send it again (the text is kept, not retyped).
+- Typing a long message no longer tanks the frame rate. The engine recomputes the text box's visible window every frame by shaving the whole text one character at a time, which at a few thousand characters meant millions of wasted operations per frame and a stuttering map behind the chat. The mod now does that same computation the fast way for long text (short text and every vanilla box keep the engine's own path). The letter editor had the same lag and gets the same cure.
+- A written backstory now actually shapes how the NPC speaks. Voice and mannerisms from the backstory (speech quirks, recurring words, a distinctive manner) are adopted as HOW the character talks, while staying inside Calradia: no imported names, places or powers from outside the world, and no change to WHAT the character decides.
+- The chat window no longer trims older portraits out of long conversations; every line keeps its speaker's face for the whole session (measured safe on the mission screen where the chat lives).
+
 ## v1.29.2.. 2026-07-09
 
 ### Fixed

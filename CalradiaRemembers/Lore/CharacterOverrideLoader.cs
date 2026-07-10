@@ -38,6 +38,13 @@ namespace CalradiaRemembers.Lore
             : null;
       }
 
+      /// <summary>
+      ///   The authored sexual orientation for <paramref name="hero" /> when custom data is enabled and set,
+      ///   else null. Synced onto the NPC's RomanticProfile before each prompt so an edit takes effect live.
+      /// </summary>
+      public static NpcMemoryService.Core.Models.SexualOrientation? OrientationFor(Hero hero)
+         => ModSettings.UseCustomTraits ? For(hero)?.ParsedOrientation : null;
+
       /// <summary>The override that applies to <paramref name="hero" />, or null.</summary>
       public static CharacterOverride For(Hero hero)
          => hero == null

@@ -200,7 +200,7 @@ You'll find them in:
 
 [b][color=#6aa84f]cultural_traditions.json[/color][/b]: the cultural norms of each people (Vlandian, Battanian, Aserai, Sturgian, Khuzait, Imperial… or your own factions): their views on authority, honor, courtship, and gender roles. This is what gives a Battanian and an Aserai noble genuinely different outlooks. Edit the text inside the quotes to reshape a culture.. just keep the JSON structure intact (matching `"Faction": "description"` pairs, commas between them).
 
-[b][color=#6aa84f]character_overrides.json[/color][/b]: hand-author individual NPCs. Give a named character your own five personality traits (valor, honor, mercy, generosity, calculating, each -2..+2) and an optional backstory, and they become that person.. the authored traits are the real source of truth, so they shape how the character speaks, their derived nature, and even the campaign AI. Enable it with the [b]Use custom traits[/b] option (Mod Options → Calradia Remembers → Character); turn it off to restore vanilla traits. Ships empty.. nothing changes until you add an entry and opt in.
+[b][color=#6aa84f]character_overrides.json[/color][/b]: hand-author individual NPCs. Give a named character your own five personality traits (valor, honor, mercy, generosity, calculating, each -2..+2) and an optional backstory, and they become that person.. the authored traits are the real source of truth, so they shape how the character speaks, their derived nature, and even the campaign AI. You can also set a character's [b]sexual orientation[/b] here.. add [b][color=#ffe599]"orientation": "bisexual"[/color][/b] (or "lesbian", "gay", "pan", "asexual", "straight") to their entry to enable, say, a female-female romance the default roll would have blocked. It applies live, even to a character already married, and there is a quick [b][color=#93c47d]cr.orientation <value> [name][/color][/b] console command to try it on the spot. Enable authored data with the [b]Use custom traits[/b] option (Mod Options → Calradia Remembers → Character); turn it off to restore vanilla traits. Ships empty.. nothing changes until you add an entry and opt in.
 
 [spoiler]
 Each trait runs [b]−2…+2[/b]. Traits set the [i]pool[/i] of a character's leanings; a few are then drawn from it, so a trait biases the [i]range[/i] of who they are rather than forcing one fixed result. The romantic / intimate effects below surface only at the higher adult tiers.
@@ -224,6 +224,15 @@ Each trait runs [b]−2…+2[/b]. Traits set the [i]pool[/i] of a character's le
 [b]At Hardcore[/b], traits also shape the kink [i]pool[/i].. broadly: low Mercy → dominant / sadistic & control kinks; high Mercy → submissive / masochistic; high Calculating → control & conditioning; low Honor → power-imbalance / corruption; high Honor → breeding / praise; low Generosity → ownership / possessive; high Valor → exhibition / prize. Use [b][color=#93c47d]cr.kinks [name][/color][/b] in the console to see and tweak a character's actual kinks.
 
 [b]Camp life:[/b] two companions who share the same leaning on a trait bond; opposite leanings clash (Honor weighs heaviest, then Mercy and Calculating).[/spoiler]
+
+[b][color=#6aa84f]ChatPortraits\ (hand-made chat portraits)[/color][/b]: give any character.. or yourself.. a painted portrait in the chat window instead of the small in-game 3D head. Drop image files into a [b]ChatPortraits[/b] folder inside [b]ModuleData\[/b]. The mod creates that folder for you, with a short README inside, the first time you launch a campaign, so you always have a ready place to put them.
+
+[list]
+[*][b]Your own portrait[/b]: name the file [b][color=#ffe599]player.png[/color][/b].
+[*][b]An NPC's portrait[/b]: name it after the character.. e.g. [b][color=#ffe599]rhagaea.png[/color][/b] (their name in lowercase, spaces as underscores), or after their internal id for a match that survives a rename. Not sure of the exact name? While talking to a character, run [b][color=#93c47d]cr.portrait_id [name][/color][/b] in the console.. it prints the precise file name(s) to use for them, and tells you whether one is already found.
+[/list]
+
+[b]Format:[/b] a [b]PNG[/b] or [b]JPG[/b], ideally around 512×512 or larger (a bigger image downscales cleanly; a tiny one looks soft). Any shape is fine.. the portrait frame adapts to your image's proportions without stretching it, and the conversation text stays neatly aligned whatever the shape. Only the characters you make art for change; everyone else keeps the ordinary render, so you can give portraits to just your favourites.. no file, no change.
 
 [quote]💡Tips: keep edits in English (the AI is prompted in English), back up the originals before you tinker, and if you touch the `.json` make sure it stays valid (a missing comma or quote will stop it loading). Your edits load whenever you start or reload a campaign.. so after editing, return to the main menu and load your save. No reinstalling or recompiling.[/quote]
 

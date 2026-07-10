@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.Travel;
 using NpcMemoryService.Core.Models;
@@ -43,6 +44,14 @@ namespace CalradiaRemembers.Letters
       // A small, weak escort so the party is a real (defeatable) target, not invincible.
       private const int CourierEscortSize = 3;
 
+      // Map-unit range within which a bandit band is close enough to notice a passing courier and be
+      // rolled once for the chase (see CourierWaylayPolicy). TUNE.
+      private const float WaylayScanRadius = 12f;
+
+      // Courier id -> bandit ids already rolled for this courier, so each band decides only ONCE whether to
+      // give chase (not every hour it stays in range). Pruned when the courier is delivered or destroyed.
+      private static readonly Dictionary<string, HashSet<string>> RolledBandits = new();
+
       // Grace days past DeliveryDay before we force-deliver a stuck courier (anti-soft-lock).
       private const int ForceDeliveryGraceDays = 4;
 
@@ -80,10 +89,97 @@ namespace CalradiaRemembers.Letters
       {
          if (!IsCourier(courier?.StringId)) return;
          if (store == null) return;
+
+         ScanForWaylayers(courier); // some bandit bands nearby may decide to give chase this hour
          if (CheckPlayerLetterCourierArrival(courier, store)) return;
 
          CheckReplyCourierArrival(courier, store);
       }
+
+      /// <summary>
+      ///   Player ruling (2026-07-10): the courier is IGNORED by every party by default, and each bandit band it
+      ///   passes gets ONE independent chance to give chase (<see cref="CourierWaylayPolicy" />), not the whole map
+      ///   converging on a lone weak party (the 6-of-6 report). The IGNORE reliably stops the auto-targeting (the
+      ///   engine's target scan skips ShouldBeIgnored parties, confirmed by decompile). Forcing an ignored party's
+      ///   pursuit through the AI is NOT reliable (the AI drops the ignored target on its next think), so a caught
+      ///   chase is resolved DIRECTLY by disbanding the courier, which fires the normal waylay (letter lost + the
+      ///   resend prompt). The fast courier escapes most chases, so real interception stays rare and speed-rewarding.
+      /// </summary>
+      private static void ScanForWaylayers(MobileParty courier)
+      {
+         try
+         {
+            if (courier is not {IsActive: true}) return;
+
+            courier.IgnoreByOtherPartiesTill(CampaignTime.DaysFromNow(3f)); // no band auto-targets it
+
+            if (!RolledBandits.TryGetValue(courier.StringId, out HashSet<string> rolled))
+            {
+               rolled = new HashSet<string>();
+               RolledBandits[courier.StringId] = rolled;
+            }
+
+            Vec2 pos = courier.GetPosition2D;
+            foreach (MobileParty bandit in MobileParty.AllBanditParties)
+            {
+               if (bandit is not {IsActive: true} || !bandit.IsBandit) continue;
+               if (bandit.GetPosition2D.Distance(pos) > WaylayScanRadius) continue;
+               if (!rolled.Add(bandit.StringId)) continue; // this band decides only once for this courier
+
+               if (!CourierWaylayPolicy.ShouldTurnHostile(MBRandom.RandomInt(100))) continue; // it lets the courier pass
+
+               if (!CourierWaylayPolicy.ChaseCatchesCourier(MBRandom.RandomInt(100)))
+               {
+                  ModLog.Info($"[COURIER] band '{bandit.StringId}' gave chase but courier '{courier.StringId}' outran them.");
+
+                  continue;
+               }
+
+               ModLog.Info($"[COURIER] band '{bandit.StringId}' waylays courier '{courier.StringId}'.");
+               TravelingParty.Destroy(courier); // fires MobilePartyDestroyed -> HandlePartyDestroyed (lost + resend)
+
+               return;
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COURIER] ScanForWaylayers failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>Drops a courier's per-band roll memory once it is delivered or destroyed.</summary>
+      private static void ForgetWaylayRolls(string courierId)
+      {
+         if (!string.IsNullOrEmpty(courierId)) RolledBandits.Remove(courierId);
+      }
+
+      /// <summary>
+      ///   TEST hook (cr.courier_waylay): waylays the given courier NOW by disbanding it, exactly as a catching
+      ///   bandit band does, so the loss handling and the Resend prompt can be seen on demand. Returns a report.
+      /// </summary>
+      public static string WaylayCourierNow(string courierId)
+      {
+         try
+         {
+            MobileParty courier = MobileParty.All.FirstOrDefault(p => p.StringId == courierId);
+            if (courier is not {IsActive: true}) return "courier party not found.";
+
+            TravelingParty.Destroy(courier); // fires MobilePartyDestroyed -> HandlePartyDestroyed (lost + resend)
+
+            return $"courier '{courierId}' waylaid; the Resend prompt should appear.";
+         }
+         catch (Exception ex)
+         {
+            return $"waylay error: {ex.GetType().Name}: {ex.Message}";
+         }
+      }
+
+      /// <summary>
+      ///   TEST hook (self-test): revives a waylaid letter with the same text and re-dispatches a courier, the
+      ///   same action the "Send again" prompt takes, but callable without the UI so it can be asserted.
+      /// </summary>
+      internal static void ResendWaylaidLetterForTest(BannerlordNpcMemoryStore store, NpcProfile profile, PlayerLetter letter)
+         => ResendWaylaidLetter(store, profile, letter);
 
       /// <summary>
       ///   After a load, in-flight letters carry a courier id pointing to a party that was
@@ -188,6 +284,8 @@ namespace CalradiaRemembers.Letters
          string partyId = destroyed.StringId;
 
          if (string.IsNullOrEmpty(partyId)) return;
+
+         ForgetWaylayRolls(partyId);
 
          foreach (string id in store.ListIds())
          {
@@ -435,6 +533,7 @@ namespace CalradiaRemembers.Letters
             if (courier == null) return false;
 
             DirectCourierToRecipient(courier, recipient);
+            courier.IgnoreByOtherPartiesTill(CampaignTime.DaysFromNow(3f)); // ignored until a band is rolled to chase it
             letter.CourierPartyId = courier.StringId;
             ActiveCourierIds.Add(courier.StringId);
 
@@ -474,6 +573,7 @@ namespace CalradiaRemembers.Letters
             if (courier == null) return false;
 
             DirectReplyCourierToPlayer(courier, playerParty);
+            courier.IgnoreByOtherPartiesTill(CampaignTime.DaysFromNow(3f)); // ignored until a band is rolled to chase it
             letter.CourierPartyId = courier.StringId;
             ActiveCourierIds.Add(courier.StringId);
 
@@ -715,10 +815,58 @@ namespace CalradiaRemembers.Letters
          ActiveCourierIds.Remove(partyId);
          store.Set(profile);
 
-         MBInformationManager.AddQuickInformation(new TextObject($"Your courier to {forward.RecipientName} was waylaid. The letter is lost."));
-         ModLog.Info($"[COURIER] destroyed — letter to {forward.RecipientName} lost.");
+         ModLog.Info($"[COURIER] destroyed: letter to {forward.RecipientName} waylaid.");
+
+         // Player report: losing the TYPED letter is the frustrating part. The text is preserved on the letter,
+         // so offer a one-click resend rather than making the player retype it. The waylay still happened (the
+         // stakes stay), but the writing is never wasted.
+         OfferResend(store, profile, forward);
 
          return true;
+      }
+
+      /// <summary>Asks the player whether to send a waylaid letter again, re-dispatching it with the same text.</summary>
+      private static void OfferResend(BannerlordNpcMemoryStore store, NpcProfile profile, PlayerLetter letter)
+      {
+         try
+         {
+            InformationManager.ShowInquiry(new InquiryData(
+               "Letter Waylaid",
+               $"Your courier to {letter.RecipientName} was waylaid by bandits and the letter did not arrive. Send it again? Your message is kept.",
+               true, true, "Send again", "Let it go",
+               () => ResendWaylaidLetter(store, profile, letter),
+               () => MBInformationManager.AddQuickInformation(new TextObject($"The letter to {letter.RecipientName} is abandoned."))));
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COURIER] OfferResend failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>Revives a waylaid letter (same content) and sends a fresh courier; falls back to date delivery.</summary>
+      private static void ResendWaylaidLetter(BannerlordNpcMemoryStore store, NpcProfile profile, PlayerLetter letter)
+      {
+         try
+         {
+            Hero recipient = Hero.FindFirst(h => h.StringId == letter.RecipientId);
+            if (!CanReceiveLetter(recipient))
+            {
+               MBInformationManager.AddQuickInformation(new TextObject($"{letter.RecipientName} can no longer receive letters."));
+
+               return;
+            }
+
+            // SentOnDay/DeliveryDay are init-only, so re-queue a FRESH letter carrying the same text rather than
+            // revive the lost one; CreateAndQueue recomputes the delay and dispatches a new courier. The old lost
+            // letter stays as history.
+            PlayerLetterService.CreateAndQueue(profile, letter.Content, (int) CampaignTime.Now.ToDays, store);
+            MBInformationManager.AddQuickInformation(new TextObject($"A fresh courier carries your letter to {letter.RecipientName}."));
+            ModLog.Info($"[COURIER] resent waylaid letter to {letter.RecipientName}.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COURIER] ResendWaylaidLetter failed: {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       private static void RebuildCourierForNpcToPlayer(NpcProfile profile)

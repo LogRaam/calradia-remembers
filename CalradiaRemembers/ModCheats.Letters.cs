@@ -158,6 +158,44 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.courier_waylay [name]
+      ///   Dispatches a courier and immediately waylays it (as a catching bandit band would), so the loss
+      ///   handling and the "Send again" Resend prompt can be seen on demand without chasing anything on the map.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("courier_waylay", "cr")]
+      public static string DispatchWaylaidCourier(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         var letter = new PlayerLetter {
+            RecipientId = profile.Id,
+            RecipientName = profile.Name,
+            Content = "A test letter meant to be waylaid, then resent.",
+            SentOnDay = today,
+            DeliveryDay = today + 8
+         };
+         profile.ReceivedPlayerLetters.Add(letter);
+
+         Hero recipient = Hero.FindFirst(h => h.StringId == profile.Id);
+         bool spawned = CourierService.TrySpawnCourier(letter, recipient, 2.0f, false);
+         behavior.Store.Set(profile);
+
+         if (!spawned) return $"Courier spawn FAILED for {hero.Name} (date fallback active).";
+
+         string result = CourierService.WaylayCourierNow(letter.CourierPartyId);
+
+         return $"Courier to {hero.Name} dispatched, then {result}";
+      }
+
+      /// <summary>
       ///   cr.letter_read [name]
       ///   Delivers a synthetic letter from the given NPC through the real delivery path
       ///   (<see cref="LetterPopupManager.Show" />): the parchment window opens in READ mode with

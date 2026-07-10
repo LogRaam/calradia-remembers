@@ -191,6 +191,7 @@
                                 MarginTop="8"
                                 MarginBottom="8"
                                 Brush="CR.Letter.Input"
+                                MaxLength="8000"
                                 Text="@InputText" />
           </Children>
         </Widget>

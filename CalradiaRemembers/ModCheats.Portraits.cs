@@ -7,7 +7,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using CalradiaRemembers.Portraits;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
 using TaleWorlds.TwoDimension;
 using EngTex = TaleWorlds.Engine.Texture;
@@ -78,6 +80,28 @@ namespace CalradiaRemembers
             return Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                 "Mount and Blade II Bannerlord", "cr_portrait_test.png");
+        }
+
+        /// <summary>
+        ///   cr.portrait_id [name]
+        ///   Prints the exact file name to drop in ModuleData/ChatPortraits/ for the current (or named) NPC, since
+        ///   a hero's StringId is opaque otherwise. Also reports whether an image is already found for them.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("portrait_id", "cr")]
+        public static string PortraitId(List<string> args)
+        {
+            string nameFragment = args is {Count: > 0} ? string.Join(" ", args).Trim() : null;
+            Hero hero = !string.IsNullOrWhiteSpace(nameFragment)
+                ? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Name != null && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0)
+                : Hero.OneToOneConversationHero;
+
+            if (hero == null) return "No NPC found. Talk to one or pass a name fragment.";
+
+            string hint = ChatPortraitResolver.FileNameHint(hero.StringId, hero.Name?.ToString());
+            string existing = ChatPortraitResolver.ResolveForHero(hero.StringId, hero.Name?.ToString());
+            string tail = existing != null ? $" Already found: {Path.GetFileName(existing)}." : " None dropped yet.";
+
+            return $"{hero.Name}: drop a square PNG/JPG named {hint} in ModuleData\\ChatPortraits\\.{tail}";
         }
     }
 }
