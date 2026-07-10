@@ -45,10 +45,9 @@ namespace CalradiaRemembers.Quests
          : base(
             BuildQuestId(giver, quest),
             giver,
-            // NEVER hand the engine a finite timeout: WE own deadline handling
-            // (QuestService.RunDailyMaintenance) and hide the engine countdown
-            // (IsRemainingTimeHidden). A native duration let the engine auto-FAIL the quest
-            // on its own — observed as an in-progress quest dropping to failed on RELOAD.
+            // Stored directly as the engine due time (no arithmetic): never times out. WE own
+            // deadline handling (QuestService.RunDailyMaintenance) and hide the engine
+            // countdown (IsRemainingTimeHidden).
             CampaignTime.Never,
             quest.RewardGold)
       {
@@ -68,6 +67,16 @@ namespace CalradiaRemembers.Quests
       // We manage deadline ourselves in QuestService.RunDailyMaintenance —
       // hide the engine's countdown to avoid double-expiry display.
       public override bool IsRemainingTimeHidden => true;
+
+      /// <summary>
+      ///   LOAD-BEARING (root cause of the "failed then re-accepted on reload" noise): at load,
+      ///   <c>QuestManager.OnGameLoaded</c> CANCELS every non-finalized quest that is neither attached to a live
+      ///   Issue nor special ("There is not active issue for quest ... Quest will be canceled"). Our mirrors have
+      ///   no Issue, so a non-empty special type is the engine's own path for issue-less custom quests to survive
+      ///   a reload. Side effects verified in the decompiled engine: exempt from the clan-leader-change auto-cancel
+      ///   (our reconciler owns that lifecycle) and a cosmetic quest-marker icon variant; the journal UI ignores it.
+      /// </summary>
+      public override string SpecialQuestType => "CalradiaRemembers";
 
       /// <summary>
       ///   The STABLE match key (<see cref="BuildQuestId" /> at creation, saved verbatim). Match against THIS,

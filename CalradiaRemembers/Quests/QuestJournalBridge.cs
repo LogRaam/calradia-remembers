@@ -105,6 +105,11 @@ namespace CalradiaRemembers.Quests
       {
          if (store == null || Campaign.Current?.QuestManager == null) return;
 
+         // Survival diagnostic: mirrors present at launch = they made it through the engine's load
+         // (a 0 here with quests live in the store means the engine dropped them during load).
+         int atLaunch = Campaign.Current.QuestManager.Quests.OfType<CalradiaRemembersQuest>().Count();
+         ModLog.Info($"[QUEST-JOURNAL] CR mirrors in manager at session launch: {atLaunch}.");
+
          var closed = 0;
          foreach (CalradiaRemembersQuest q in Campaign.Current.QuestManager.Quests
                                                       .OfType<CalradiaRemembersQuest>()

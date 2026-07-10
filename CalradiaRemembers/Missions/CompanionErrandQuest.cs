@@ -39,9 +39,8 @@ namespace CalradiaRemembers.Missions
          : base(
             BuildQuestId(companion, mission.Id),
             companion,
-            // Same discipline as CalradiaRemembersQuest: NEVER a finite timeout, or the engine
-            // auto-fails the mirror on reload. CompanionMissionBehavior owns the real deadline
-            // (LingerUntilDay / RecallOrderDay), this is a read-only reflection of it.
+            // Stored directly as the engine due time: never times out. CompanionMissionBehavior
+            // owns the real deadline (LingerUntilDay / RecallOrderDay), this reflects it read-only.
             CampaignTime.Never,
             0) // no gold reward: this is not a quest the player can complete for a payout
       {
@@ -56,6 +55,13 @@ namespace CalradiaRemembers.Missions
 
       // We have no engine countdown to show: the errand's real timing lives in CompanionMissionBehavior.
       public override bool IsRemainingTimeHidden => true;
+
+      /// <summary>
+      ///   LOAD-BEARING: without a special type, QuestManager.OnGameLoaded cancels every non-finalized quest
+      ///   that has no live Issue attached, so the mirror died (with a cancel banner) at every reload.
+      ///   See <see cref="Quests.CalradiaRemembersQuest.SpecialQuestType" /> for the full engine analysis.
+      /// </summary>
+      public override string SpecialQuestType => "CalradiaRemembers";
 
       public override TextObject Title => new(CompanionErrandJournalText.BuildTitle(ResolveCompanionName()));
 

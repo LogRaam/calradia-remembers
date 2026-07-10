@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 20/06/2026.
+// Code written by Gabriel Mailhot, 01/07/2026.
 
 #region
 
@@ -21,6 +21,7 @@ namespace CalradiaRemembers.Logic
    ///       a queued collective aggressor (another single member, or the whole remaining band at
    ///       once) takes their turn, OR
    ///     </item>
+   ///     /model
    ///     <item>
    ///       with a decreasing chance the current aggressor runs ANOTHER act (a new position),
    ///       OR
@@ -104,6 +105,27 @@ namespace CalradiaRemembers.Logic
 
       #region private
 
+      // The lead's opening act only (the sole act that carries an Intro, and, for SlowBurn, a
+      // RisingTension build-up before the act begins). Subsequent acts always use the compressed
+      // shapes in DecideNextAct, never one of these.
+      private static CaptiveSceneStage[] ArcStages(SceneArc arc)
+      {
+         switch (arc)
+         {
+            case SceneArc.SlowBurn:
+               return new[] {
+                  CaptiveSceneStage.Intro, CaptiveSceneStage.RisingTension, CaptiveSceneStage.Initiate,
+                  CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax
+               };
+            case SceneArc.Sudden:
+               return new[] {CaptiveSceneStage.Intro, CaptiveSceneStage.Initiate, CaptiveSceneStage.Climax};
+            default: // Classic
+               return new[] {
+                  CaptiveSceneStage.Intro, CaptiveSceneStage.Initiate, CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax
+               };
+         }
+      }
+
       // Decreasing odds of "another round" so most scenes are 1–2 acts, rarely the capped 3.
       private static int ContinueChance(int completedActs)
          => completedActs == 1 ? 55
@@ -178,27 +200,6 @@ namespace CalradiaRemembers.Logic
          for (var i = 0; i < others; i++)
             if (_rng.Next(100) < 70)
                _pendingOthers.Enqueue(CaptiveAggressorKind.AnotherSingle);
-      }
-
-      // The lead's opening act only (the sole act that carries an Intro, and, for SlowBurn, a
-      // RisingTension build-up before the act begins). Subsequent acts always use the compressed
-      // shapes in DecideNextAct, never one of these.
-      private static CaptiveSceneStage[] ArcStages(SceneArc arc)
-      {
-         switch (arc)
-         {
-            case SceneArc.SlowBurn:
-               return new[] {
-                  CaptiveSceneStage.Intro, CaptiveSceneStage.RisingTension, CaptiveSceneStage.Initiate,
-                  CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax
-               };
-            case SceneArc.Sudden:
-               return new[] {CaptiveSceneStage.Intro, CaptiveSceneStage.Initiate, CaptiveSceneStage.Climax};
-            default: // Classic
-               return new[] {
-                  CaptiveSceneStage.Intro, CaptiveSceneStage.Initiate, CaptiveSceneStage.Intensify, CaptiveSceneStage.Climax
-               };
-         }
       }
 
       // Not the true terminal: a single Aftermath come-down beat runs first (walked directly by

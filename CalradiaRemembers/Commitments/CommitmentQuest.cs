@@ -44,9 +44,8 @@ namespace CalradiaRemembers.Commitments
             : base(
                 BuildQuestId(promisor, commitment.Id),
                 promisor,
-                // Same discipline as CalradiaRemembersQuest/CompanionErrandQuest: NEVER a finite
-                // timeout, or the engine auto-fails the mirror on reload. CommitmentBehavior owns the
-                // real deadline (TrackedCommitment.DeadlineDay); this is a read-only reflection of it.
+                // Stored directly as the engine due time: never times out. CommitmentBehavior owns
+                // the real deadline (TrackedCommitment.DeadlineDay); this reflects it read-only.
                 CampaignTime.Never,
                 0) // no gold reward: fulfillment/breach consequences are relation + world-event, not gold
         {
@@ -60,6 +59,13 @@ namespace CalradiaRemembers.Commitments
 
         // We have no engine countdown to show: the real timing lives in CommitmentBehavior.
         public override bool IsRemainingTimeHidden => true;
+
+        /// <summary>
+        ///   LOAD-BEARING: without a special type, QuestManager.OnGameLoaded cancels every non-finalized quest
+        ///   that has no live Issue attached, so the mirror died (with a cancel banner) at every reload.
+        ///   See <see cref="Quests.CalradiaRemembersQuest.SpecialQuestType" /> for the full engine analysis.
+        /// </summary>
+        public override string SpecialQuestType => "CalradiaRemembers";
 
         public override TextObject Title => new(CommitmentJournalText.BuildTitle(ResolvePromisorName()));
 

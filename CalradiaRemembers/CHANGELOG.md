@@ -2,6 +2,11 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.29.2.. 2026-07-09
+
+### Fixed
+- Reloading a save no longer plays a "quest failed" then "quest accepted" chime with two banners for each Calradia Remembers quest. The engine cancels, on every load, any quest not tied to one of its own live "issues"; the mod's quests are not, so each was cancelled and instantly re-created by the save-heal (nothing was ever lost, but it was noisy). The mod's journal entries now mark themselves as the engine's own "special quest" kind, the supported path for issue-less custom quests to survive a reload, so they persist silently. Also fixes the same silent reload-cancel for companion-errand and pledge journal entries.
+
 ## v1.29.1.. 2026-07-09
 
 ### Fixed
