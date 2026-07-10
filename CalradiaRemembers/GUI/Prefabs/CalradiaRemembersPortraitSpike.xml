@@ -1,0 +1,72 @@
+<Prefab>
+  <Window Id="CalradiaRemembersPortraitSpikeWindow" Layer="Overlay">
+
+    <Widget Id="Backdrop"
+            WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+            Sprite="BlankWhiteSquare_9" Color="#000000C0">
+      <Children>
+
+        <Widget Id="Panel"
+                WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                SuggestedWidth="460" SuggestedHeight="540"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Sprite="BlankWhiteSquare_9" Color="#1c1812F9">
+          <Children>
+
+            <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                    Sprite="frame_9" ExtendLeft="10" ExtendTop="10" ExtendRight="10" ExtendBottom="10"
+                    AlphaFactor="0.5" IsDisabled="true" />
+
+            <ListPanel StackLayout.LayoutMethod="VerticalTopToBottom"
+                       WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                       VerticalAlignment="Top" MarginTop="28" MarginLeft="30" MarginRight="30">
+              <Children>
+
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="34"
+                            MarginBottom="14"
+                            Brush="Default" Brush.FontSize="24" Brush.FontColor="#c8a878FF"
+                            Brush.TextHorizontalAlignment="Center" Text="Runtime Portrait Spike" />
+
+                <!-- Magenta backing on purpose: if the portrait widget draws NOTHING we see magenta; if it draws
+                     a black texture we see black. Distinguishes the two failure modes at a glance. -->
+                <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="320" SuggestedHeight="320"
+                        HorizontalAlignment="Center" MarginBottom="8"
+                        Sprite="BlankWhiteSquare_9" Color="#FF00FFFF">
+                  <Children>
+                    <Widget Id="PortraitImage"
+                            WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" />
+                  </Children>
+                </Widget>
+
+                <!-- Calibration: code assigns a KNOWN vanilla sprite here. White square visible = code-set
+                     sprites render fine and the problem is our custom sprite; nothing = the set path itself. -->
+                <Widget Id="CalibrationSquare"
+                        WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="40" SuggestedHeight="40"
+                        HorizontalAlignment="Center" MarginBottom="8" />
+
+                <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                MarginBottom="4"
+                                Brush="Default" Brush.FontSize="15" Brush.FontColor="#9a8a78FF"
+                                Text="@Status" />
+
+              </Children>
+            </ListPanel>
+
+            <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="160" SuggestedHeight="40"
+                          HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="24"
+                          Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                          Command.Click="ExecuteClose">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Brush="Popup.Button.Text" Brush.FontSize="18" Text="@CloseButtonText" />
+              </Children>
+            </ButtonWidget>
+
+          </Children>
+        </Widget>
+
+      </Children>
+    </Widget>
+  </Window>
+</Prefab>

@@ -306,6 +306,16 @@ namespace CalradiaRemembers.Letters
                foreach (PendingLetter letter in profile.SentLetters)
                {
                   if (!InFlightWithDeadCourier(letter.CourierPartyId, letter.IsDelivered, letter.IsLost)) continue;
+
+                  // Never respawn a courier for a dead sender: the letter died with its author.
+                  if (sender is not {IsAlive: true})
+                  {
+                     letter.IsLost = true;
+                     changed = true;
+
+                     continue;
+                  }
+
                   Vec2? at = TakePosition(letter.CourierPartyId);
 
                   if (!TrySpawnReplyCourier(letter, sender, at)) continue;
@@ -450,7 +460,7 @@ namespace CalradiaRemembers.Letters
       {
          try
          {
-            if (letter == null || sender == null) return false;
+            if (letter == null || sender is not {IsAlive: true}) return false; // no couriers for the dead
             MobileParty playerParty = MobileParty.MainParty;
 
             if (playerParty == null) return false;
@@ -521,6 +531,21 @@ namespace CalradiaRemembers.Letters
             PendingLetter letter = profile?.SentLetters.FirstOrDefault(l => l.CourierPartyId == courier.StringId && !l.IsDelivered && !l.IsLost);
 
             if (letter == null) continue;
+
+            // The sender died while the courier was on the road: the letter is never delivered
+            // (word of the death overtakes the courier, who turns back).
+            Hero sender = Hero.FindFirst(h => h != null && h.StringId == profile.Id);
+            if (sender is not {IsAlive: true})
+            {
+               letter.IsLost = true;
+               letter.CourierPartyId = null;
+               ActiveCourierIds.Remove(courier.StringId);
+               Disband(courier);
+               store.Set(profile);
+               ModLog.Info($"[COURIER-REPLY] courier turned back: {profile.Name} died with their letter on the road.");
+
+               return;
+            }
 
             MobileParty playerParty = MobileParty.MainParty;
 

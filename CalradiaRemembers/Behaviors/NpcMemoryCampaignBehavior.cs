@@ -345,6 +345,17 @@ namespace CalradiaRemembers.Behaviors
 
                if (sender == null) continue;
 
+               // The letter dies with its author (player report: a wife dead in childbirth kept "writing"
+               // her queued child-support demand). Marking it lost also heals older saves on this tick.
+               if (!sender.IsAlive)
+               {
+                  letter.IsLost = true;
+                  changed = true;
+                  ModLog.Info($"[LETTER] dropped pending letter from the late {profile.Name} (died before dispatch).");
+
+                  continue;
+               }
+
                if (CourierService.TrySpawnReplyCourier(letter, sender))
                   changed = true;
             }

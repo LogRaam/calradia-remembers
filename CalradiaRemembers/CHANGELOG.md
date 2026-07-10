@@ -2,6 +2,12 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.29.1.. 2026-07-09
+
+### Fixed
+- The dead no longer write letters. A letter queued before its sender died (a wife lost in childbirth still "demanding" child support was the reported case) is now dropped instead of dispatched: no courier departs for a dead sender, one already on the road turns back, and stuck letters in existing saves clear on the next day's tick.
+- A lord's wife no longer sends jealous threats to a male player who simply did her husband a service. Jealousy now checks the rival is a plausible one: a same-sex pair is never read as courtship (matching the mod's romance and marriage model), flirtation stamped on a quest hand-over is treated as the gratitude it is, and spoken flirtation alone only reads as courtship once it forms a repeated pattern. Real intimacy between a plausible pair still counts immediately.
+
 ## v1.29.0.. 2026-07-08
 
 ### Added

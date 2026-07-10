@@ -1738,7 +1738,17 @@ Console `cr.ambush`.
 ### Jealousy — the competition loop and the duel *(v1 shipped; escalation deferred)*
 
 v1 fires a one-shot reaction (staked NPC → grudge + grievance memory + JealousThreat letter, witness-gated,
-culture-flavoured). Two deferred layers:
+culture-flavoured). **Plausibility gate SHIPPED v1.29.1** (player report: a male player did a male lord a service
+and the lord's wife sent threats): pure `JealousyTriggerPolicy`, a same-sex pair is never a rival courtship
+(matches the opposite-sex romance/marriage model), a flirt stamped on a quest turn-in is mislabeled gratitude
+(ignored), spoken flirtation needs a repeated pattern (>= 2 flirt/intimacy events); intimacy counts at once for a
+plausible pair. Deferred layers:
+- **WISHED (Gabriel 2026-07-09): the SUSPICIOUS SPOUSE — repeated favors read as courtship.** A player who
+  repeatedly does services for an opposite-sex married lord could rouse the spouse's SUSPICION even with no flirt
+  at all (the wife watching a young champion keep doing her husband favors). A deliberate separate trigger, NOT
+  the flirt path: keyed on repeated Collaboration events / high regard with an opposite-sex married NPC, own
+  thresholds, likely a milder register (cold words, a warning letter) before real grudges. Design carefully so
+  ordinary questing does not spam suspicion (the v1.29.1 report was exactly a false positive on a quest turn-in).
 - **Competition loop**: rival suitors who actively and repeatedly contend for the same NPC over time (not a
   single reaction) — courtship as an ongoing contest the player can win or lose.
 - **Duel & scheming**: a slighted rival may challenge the player or scheme against them — a real

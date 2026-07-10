@@ -688,20 +688,28 @@ namespace CalradiaRemembers.Chat
             StanceService.ApplyWordShift(profile, response.StanceShift);
 
             // Jealousy (Sprint 24): a romantic act recorded this turn may provoke a staked
-            // third party. Flirt always; intimacy only when adult content is enabled. Witnesses
-            // present mean the act is telegraphed and the word spreads quickly.
+            // third party. Intimacy only when adult content is enabled. Witnesses present mean
+            // the act is telegraphed and the word spreads quickly. Plausibility gate (player
+            // report: a lord's wife threatened a MALE player over a quest turn-in the model had
+            // stamped as flirt): a same-sex pair is never a rival courtship in this romance
+            // model, spoken flirtation counts only as a PATTERN and never in the same breath as
+            // a quest completion; intimacy is a deed and counts at once for a plausible pair.
             NotableEventType? actType = response.NewEventData?.Type;
             if (actType == NotableEventType.Flirt || actType == NotableEventType.Intimacy && ModSettings.AdultContentLevel != AdultContentLevel.Off)
             {
                Hero courted = Hero.FindFirst(h => h.StringId == profile.Id);
-               if (courted != null)
-                  JealousyBehavior.Instance?.OnRomanticAct(
-                     courted,
-                     actType == NotableEventType.Intimacy
-                        ? RomanticActTier.Intimacy
-                        : RomanticActTier.Flirt,
-                     _witnesses.Count > 0,
-                     gameDay);
+               RomanticActTier tier = actType == NotableEventType.Intimacy
+                  ? RomanticActTier.Intimacy
+                  : RomanticActTier.Flirt;
+               bool oppositeSex = courted != null && Hero.MainHero != null && courted.IsFemale != Hero.MainHero.IsFemale;
+               int romanticEvents = profile.Events.Count(e =>
+                  e.type is NotableEventType.Flirt or NotableEventType.Intimacy); // includes today's, just applied
+               bool questBeat = response.QuestCompleted != null;
+
+               if (courted != null && JealousyTriggerPolicy.IsPlausibleCourtship(tier, oppositeSex, romanticEvents, questBeat))
+                  JealousyBehavior.Instance?.OnRomanticAct(courted, tier, _witnesses.Count > 0, gameDay);
+               else
+                  ModLog.Info($"[JEALOUSY] act ignored as courtship ({tier}{(oppositeSex ? "" : ", same-sex pair")}, {romanticEvents} romantic event(s){(questBeat ? ", quest turn-in" : "")}).");
             }
 
             // Negotiation Phase 3: a leveraged intimacy with the exploiter archetype — he now holds it

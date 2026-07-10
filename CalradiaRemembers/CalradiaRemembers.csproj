@@ -98,6 +98,10 @@
       <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.InputSystem.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="TaleWorlds.TwoDimension">
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.TwoDimension.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="TaleWorlds.Library">
       <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.Library.dll</HintPath>
       <Private>false</Private>
