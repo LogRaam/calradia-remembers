@@ -93,6 +93,21 @@ CR letters/couriers (summons + replies), the courier pattern (visible movement +
 
 ---
 
+## SHIPPED v1.30.5 (player request, SuperGraham339 2026-07-11): RESCUE AWARENESS + Enter-to-send
+
+Freeing a captive lord by force is now remembered and ripples outward. Trigger: the player wins the battle/siege
+(`RescueBehavior`: buffer `HeroPrisonerReleased` with detail `ReleasedAfterBattle`, resolve on `MapEventEnded` when
+the player is on the winning side; captor matched by the defeated side's parties/factions). Consequences (all via
+pure tested policies in `CalradiaRemembers.Logic.Rescue`): the rescued lord and their close family record a
+first-person memory + strong regard (`RescueGratitudePolicy` Self=12 / Family=6 / Friend=3, memory for self+family
+only), a few close friends (relation >= 20 to the rescued, capped 5) warm without a memory, and the CAPTOR has a
+chance to discover the player did it and plant a grudge (`CaptorGrudgePolicy`: 60% public siege / 35% quiet field,
+magnitude 30/20, knownToPlayer = public; new `GrudgeSource.PrisonerRescued`). Once per lord (persisted set).
+`cr.rescue [name]` simulates the whole chain. Also Enter-to-send in the chat quick-input (`ChatInputWidget`, Enter
+while focused calls `ExecuteSendMessage`; the multi-line compose keeps Enter as newline). **BUILT + deployed
+2026-07-11, UNTESTED in game (Gabriel to test with the held v1.30.5).** DEFERRED ideas: re-rescue currently never
+re-credits (once-per-lord forever); no thank-you letter; notables not covered; friends threshold/caps are TUNE.
+
 ## SHIPPED (v1.30.2, 2026-07-10): FIRST IMPRESSIONS (opening prejudice / disposition)
 
 Player report (ProudSeal 2026-07-10): NPCs are too neutral and too reasonable on meeting, so a rivalry

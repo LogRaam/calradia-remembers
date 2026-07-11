@@ -66,6 +66,13 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   coexist rather than colliding on the holder+source+day dedup. Only planted against a persistent
         ///   Hero captor (a nemesis or lord); a faceless bandit is ephemeral and earns no lasting vendetta.
         /// </summary>
-        CaptorCruelty = 14
+        CaptorCruelty = 14,
+
+        /// <summary>
+        ///   "You stormed my walls and stole my prize": a captor whose valuable prisoner the player freed by force,
+        ///   and who has traced the deed back to the player. Only planted when the captor DISCOVERS the player was
+        ///   responsible (see <c>CaptorGrudgePolicy</c>); a public siege is both easier to trace and openly resented.
+        /// </summary>
+        PrisonerRescued = 15
     }
 }

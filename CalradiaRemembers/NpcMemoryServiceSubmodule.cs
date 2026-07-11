@@ -82,6 +82,10 @@ namespace CalradiaRemembers
          // Jealousy (Sprint 24): a romantic act can provoke a third party with a real stake.
          // Knowledge-gated, probabilistic, delayed; reactions are a grudge + optional threat letter.
          campaignStarter.AddBehavior(new Jealousy.JealousyBehavior());
+         // Rescue awareness: freeing a captive lord by force makes the lord, their family and a few close
+         // friends grateful (memory + regard), and the captor may trace it back and hold a grudge. Registered
+         // after GrudgeBehavior below? No: it reads GrudgeBehavior.Instance at runtime, so order is harmless.
+         campaignStarter.AddBehavior(new Rescue.RescueBehavior());
          // Pregnancy birth: a CR-created pregnancy's child is placed in the MOTHER's clan at birth (the
          // bastard rule). Tracks CR's own conceptions only, so vanilla NPC patrilineality is untouched.
          campaignStarter.AddBehavior(new GameState.PregnancyBirthBehavior());

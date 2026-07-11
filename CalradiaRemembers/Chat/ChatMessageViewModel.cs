@@ -253,6 +253,27 @@ namespace CalradiaRemembers.Chat
             }
         }
 
+        /// <summary>The speaker's display name (first line of the message block), for the portrait panel title.</summary>
+        public string SpeakerName => _displayText?.Split('\n')[0] ?? "";
+
+        /// <summary>
+        ///   Left-click on this speaker's portrait: opens the full-size PORTRAIT panel on the left for this
+        ///   speaker (their custom image or the 3D render). A system or narration line has no portrait and does
+        ///   nothing. Bound via Command.Click on the avatar.
+        /// </summary>
+        public void ExecuteShowPortrait()
+        {
+            try
+            {
+                if (!_showAvatar) return;
+                ChatManager.ActiveViewModel?.OpenPortraitPanel(this);
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"ChatMessageViewModel.ExecuteShowPortrait failed: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
         #region private
 
         /// <summary>

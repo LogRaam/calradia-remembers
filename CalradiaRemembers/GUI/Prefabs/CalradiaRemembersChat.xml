@@ -162,10 +162,11 @@
                                 MarginBottom="2">
                           <Children>
 
-                            <!-- ButtonWidget so a RIGHT-CLICK on the portrait (Command.AlternateClick) opens that
-                                 speaker's encyclopedia page. Left-click is unbound, so it does nothing. The child
-                                 portrait/frame are IsDisabled, so the button reliably catches the click. -->
+                            <!-- LEFT-click opens that speaker's portrait full-size in the left panel; RIGHT-click
+                                 (Command.AlternateClick) opens their encyclopedia page. The child portrait/frame
+                                 are IsDisabled, so the button reliably catches both clicks. -->
                             <ButtonWidget Id="AvatarContainer"
+                                    Command.Click="ExecuteShowPortrait"
                                     WidthSizePolicy="Fixed"
                                     HeightSizePolicy="Fixed"
                                     SuggestedWidth="@AvatarWidth"
@@ -325,61 +326,56 @@
           </Children>
         </ButtonWidget>
 
-        <!-- Model mode toggle (roleplay/NSFW): moved down from the title bar into the utility-button row so the
-             header is free for a richer witnesses display. Visible only when an NSFW model is configured. -->
+        <!-- Model mode toggle (roleplay/NSFW): small, discreet plain text in the bottom-left corner (no button
+             chrome), below the Options label. Visible only when an NSFW model is configured (nothing to toggle
+             otherwise). -->
         <ButtonWidget Id="ModelModeButton"
-                      WidthSizePolicy="Fixed"
-                      HeightSizePolicy="Fixed"
-                      SuggestedWidth="110"
-                      SuggestedHeight="24"
-                      HorizontalAlignment="Right"
+                      WidthSizePolicy="CoverChildren"
+                      HeightSizePolicy="CoverChildren"
+                      HorizontalAlignment="Left"
                       VerticalAlignment="Bottom"
-                      PositionYOffset="-165"
-                      MarginRight="405"
+                      MarginLeft="22"
+                      MarginBottom="18"
                       IsVisible="@IsModelModeToggleVisible"
                       DoNotPassEventsToChildren="true"
-                      Brush="ButtonBrush1"
                       UpdateChildrenStates="true"
                       Command.Click="ExecuteToggleModelMode">
           <Children>
-            <TextWidget WidthSizePolicy="StretchToParent"
-                        HeightSizePolicy="StretchToParent"
-                        HorizontalAlignment="Center"
+            <TextWidget WidthSizePolicy="CoverChildren"
+                        HeightSizePolicy="CoverChildren"
+                        HorizontalAlignment="Left"
                         VerticalAlignment="Center"
-                        Brush="Popup.Button.Text"
+                        Brush="Default"
                         Brush.FontSize="14"
-                        Brush.FontColor="#b8b0a0FF"
-                        Brush.TextHorizontalAlignment="Center"
+                        Brush.FontColor="#8a8072FF"
+                        Brush.TextHorizontalAlignment="Left"
                         Text="@ModelModeText" />
           </Children>
         </ButtonWidget>
 
         <!-- Opens the vanilla escape/options menu (and MCM mod options) over the chat, the same call ESC makes,
              so the player can change settings / enable logging / swap models WITHOUT ending the conversation
-             (the chat swallows ESC as a keyboard-focus layer). Sits in the utility-button row. -->
+             (the chat swallows ESC as a keyboard-focus layer). Small, discreet plain text in the bottom-left. -->
         <ButtonWidget Id="OptionsButton"
-                      WidthSizePolicy="Fixed"
-                      HeightSizePolicy="Fixed"
-                      SuggestedWidth="110"
-                      SuggestedHeight="24"
-                      HorizontalAlignment="Right"
+                      WidthSizePolicy="CoverChildren"
+                      HeightSizePolicy="CoverChildren"
+                      HorizontalAlignment="Left"
                       VerticalAlignment="Bottom"
-                      PositionYOffset="-165"
-                      MarginRight="285"
+                      MarginLeft="22"
+                      MarginBottom="42"
                       IsVisible="@IsGameMenuButtonVisible"
                       DoNotPassEventsToChildren="true"
-                      Brush="ButtonBrush1"
                       UpdateChildrenStates="true"
                       Command.Click="ExecuteOpenGameMenu">
           <Children>
-            <TextWidget WidthSizePolicy="StretchToParent"
-                        HeightSizePolicy="StretchToParent"
-                        HorizontalAlignment="Center"
+            <TextWidget WidthSizePolicy="CoverChildren"
+                        HeightSizePolicy="CoverChildren"
+                        HorizontalAlignment="Left"
                         VerticalAlignment="Center"
-                        Brush="Popup.Button.Text"
+                        Brush="Default"
                         Brush.FontSize="14"
-                        Brush.FontColor="#b8b0a0FF"
-                        Brush.TextHorizontalAlignment="Center"
+                        Brush.FontColor="#8a8072FF"
+                        Brush.TextHorizontalAlignment="Left"
                         Text="Options" />
           </Children>
         </ButtonWidget>
@@ -493,21 +489,21 @@
                           Color="#0d0a08DD"
                           AlphaFactor="0.4">
               <Children>
-                <EditableTextWidget Id="MessageInput"
-                                    WidthSizePolicy="StretchToParent"
-                                    HeightSizePolicy="StretchToParent"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center"
-                                    MarginLeft="12"
-                                    MarginRight="12"
-                                    MarginTop="6"
-                                    MarginBottom="6"
-                                    Brush="Default"
-                                    Brush.FontSize="20"
-                                    Brush.FontColor="#e8d8b8FF"
-                                    Brush.TextHorizontalAlignment="Left"
-                                    MaxLength="8000"
-                                    Text="@InputText" />
+                <ChatInputWidget Id="MessageInput"
+                                 WidthSizePolicy="StretchToParent"
+                                 HeightSizePolicy="StretchToParent"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Center"
+                                 MarginLeft="12"
+                                 MarginRight="12"
+                                 MarginTop="6"
+                                 MarginBottom="6"
+                                 Brush="Default"
+                                 Brush.FontSize="20"
+                                 Brush.FontColor="#e8d8b8FF"
+                                 Brush.TextHorizontalAlignment="Left"
+                                 MaxLength="8000"
+                                 Text="@InputText" />
               </Children>
             </Widget>
 
@@ -794,7 +790,7 @@
                 HeightSizePolicy="StretchToParent"
                 VerticalAlignment="Top"
                 MarginTop="78"
-                MarginBottom="490"
+                MarginBottom="94"
                 MarginLeft="24"
                 MarginRight="24"
                 Sprite="BlankWhiteSquare_9"
@@ -870,48 +866,6 @@
           </Children>
         </Widget>
 
-        <!-- NPC portrait beneath the memory list: their custom ChatPortraits image when present, else the
-             vanilla 3D render. Fixed height so the list keeps the top of the panel and the portrait the bottom. -->
-        <Widget Id="MemoryPortraitArea"
-                WidthSizePolicy="StretchToParent"
-                HeightSizePolicy="Fixed"
-                SuggestedHeight="380"
-                VerticalAlignment="Bottom"
-                MarginBottom="94"
-                MarginLeft="24"
-                MarginRight="24"
-                Sprite="BlankWhiteSquare_9"
-                Color="#0d0a08DD"
-                AlphaFactor="0.4">
-          <Children>
-            <CrRuntimeImageWidget Id="MemoryCustomPortrait"
-                                  WidthSizePolicy="Fixed"
-                                  HeightSizePolicy="Fixed"
-                                  SuggestedWidth="@MemoryPortraitWidth"
-                                  SuggestedHeight="@MemoryPortraitHeight"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
-                                  IsVisible="@ShowMemoryCustomPortrait"
-                                  ImagePath="@MemoryPortraitPath"
-                                  IsDisabled="true" />
-
-            <ImageIdentifierWidget Id="MemoryVanillaPortrait"
-                                   WidthSizePolicy="Fixed"
-                                   HeightSizePolicy="Fixed"
-                                   SuggestedWidth="@MemoryPortraitWidth"
-                                   SuggestedHeight="@MemoryPortraitHeight"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   IsVisible="@ShowMemoryVanillaPortrait"
-                                   TextureProviderName="@MemoryPortraitTextureProviderName"
-                                   ImageId="@MemoryPortraitId"
-                                   AdditionalArgs="@MemoryPortraitAdditionalArgs"
-                                   IsBig="true"
-                                   HideWhenNull="false"
-                                   IsDisabled="true" />
-          </Children>
-        </Widget>
-
         <ButtonWidget Id="MemoryCloseButton"
                       WidthSizePolicy="Fixed"
                       HeightSizePolicy="Fixed"
@@ -924,6 +878,217 @@
                       Brush="ButtonBrush1"
                       UpdateChildrenStates="true"
                       Command.Click="ExecuteCloseMemoryPanel">
+          <Children>
+            <TextWidget WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Brush="Popup.Button.Text"
+                        Brush.FontSize="20"
+                        Text="Close" />
+          </Children>
+        </ButtonWidget>
+
+      </Children>
+    </Widget>
+
+    <!-- PORTRAIT panel: opened by a left-click on any chat portrait, shows that speaker's portrait full-size
+         (custom ChatPortraits image or the 3D render), aspect-preserved. Shares the left area with the memory
+         panel (only one open at a time). -->
+    <Widget Id="PortraitPanel"
+            WidthSizePolicy="Fixed"
+            HeightSizePolicy="StretchToParent"
+            SuggestedWidth="520"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            MarginTop="100"
+            MarginBottom="100"
+            PositionXOffset="-750"
+            IsVisible="@IsPortraitPanelOpen"
+            Sprite="BlankWhiteSquare_9"
+            Color="#1a1612F2">
+      <Children>
+
+        <Widget Id="PortraitPanelDecorativeFrame"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                Sprite="frame_9"
+                ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
+                AlphaFactor="0.4"
+                IsDisabled="true" />
+
+        <TextWidget Id="PortraitPanelTitle"
+                    WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="Fixed"
+                    SuggestedHeight="40"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    MarginTop="24"
+                    Brush="Default"
+                    Brush.FontSize="24"
+                    Brush.FontColor="#c8a878FF"
+                    Brush.TextHorizontalAlignment="Center"
+                    Text="@PortraitPanelTitle"
+                    IsDisabled="true" />
+
+        <!-- Roleplay dossier: a scrollable text column (facts, background, backstory, appearance, what you have
+             learned, grievances). Sits between the title and the PERMANENT portrait pinned at the bottom. -->
+        <Widget Id="PortraitDossierArea"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                VerticalAlignment="Top"
+                MarginTop="72"
+                MarginBottom="546"
+                MarginLeft="24"
+                MarginRight="24">
+          <Children>
+            <PortraitScrollablePanel Id="PortraitScrollPanel"
+                                     WidthSizePolicy="StretchToParent"
+                                     HeightSizePolicy="StretchToParent"
+                                     MarginRight="28"
+                                     AutoHideScrollBars="true"
+                                     ClipRect="PortraitClipRect"
+                                     InnerPanel="PortraitClipRect\PortraitContentList"
+                                     VerticalScrollbar="..\PortraitScrollbar\Scrollbar">
+              <Children>
+                <Widget Id="PortraitClipRect"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        ClipContents="true">
+                  <Children>
+                    <ListPanel Id="PortraitContentList"
+                               WidthSizePolicy="StretchToParent"
+                               HeightSizePolicy="CoverChildren"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               MarginLeft="6"
+                               MarginRight="6"
+                               StackLayout.LayoutMethod="VerticalTopToBottom">
+                      <Children>
+
+                        <!-- Inline facts (Culture / Age / Role / Relation / Personal regard) -->
+                        <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                        Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="18"
+                                        Brush.TextHorizontalAlignment="Left"
+                                        Text="@PanelInfoFacts" IsVisible="@ShowPanelInfo" IsDisabled="true" />
+
+                        <!-- Background (vanilla encyclopedia) -->
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                    MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                    Brush.TextHorizontalAlignment="Left" Text="Background"
+                                    IsVisible="@ShowPanelBackground" IsDisabled="true" />
+                        <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                        MarginTop="2" Brush="Default" Brush.FontSize="17" Brush.FontColor="#d8c8a8FF"
+                                        Brush.TextHorizontalAlignment="Left"
+                                        Text="@PanelBackground" IsVisible="@ShowPanelBackground" IsDisabled="true" />
+
+                        <!-- Character (mod authored backstory) -->
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                    MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                    Brush.TextHorizontalAlignment="Left" Text="Character"
+                                    IsVisible="@ShowPanelCharacter" IsDisabled="true" />
+                        <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                        MarginTop="2" Brush="Default" Brush.FontSize="17" Brush.FontColor="#d8c8a8FF"
+                                        Brush.TextHorizontalAlignment="Left"
+                                        Text="@PanelCharacter" IsVisible="@ShowPanelCharacter" IsDisabled="true" />
+
+                        <!-- Appearance (from body stats) -->
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                    MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                    Brush.TextHorizontalAlignment="Left" Text="Appearance"
+                                    IsVisible="@ShowPanelAppearance" IsDisabled="true" />
+                        <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                        MarginTop="2" Brush="Default" Brush.FontSize="17" Brush.FontColor="#d8c8a8FF"
+                                        Brush.TextHorizontalAlignment="Left"
+                                        Text="@PanelAppearance" IsVisible="@ShowPanelAppearance" IsDisabled="true" />
+
+                        <!-- What you have learned (discovered traits / kinks) -->
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                    MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                    Brush.TextHorizontalAlignment="Left" Text="What you have learned"
+                                    IsVisible="@ShowPanelDiscoveries" IsDisabled="true" />
+                        <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                        MarginTop="2" Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="16"
+                                        Brush.TextHorizontalAlignment="Left"
+                                        Text="@PanelInfoDiscoveries" IsVisible="@ShowPanelDiscoveries" IsDisabled="true" />
+
+                        <!-- Grievances (what the player has learned this NPC holds) -->
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                    MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                    Brush.TextHorizontalAlignment="Left" Text="Grievances"
+                                    IsVisible="@ShowPanelGrievances" IsDisabled="true" />
+                        <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                        MarginTop="2" Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="16"
+                                        Brush.TextHorizontalAlignment="Left"
+                                        Text="@PanelGrievances" IsVisible="@ShowPanelGrievances" IsDisabled="true" />
+
+                      </Children>
+                    </ListPanel>
+                  </Children>
+                </Widget>
+              </Children>
+            </PortraitScrollablePanel>
+
+            <Standard.VerticalScrollbar Id="PortraitScrollbar"
+                                        HeightSizePolicy="StretchToParent"
+                                        HorizontalAlignment="Right"
+                                        MarginRight="4" />
+          </Children>
+        </Widget>
+
+        <!-- Permanent portrait, pinned to the bottom of the panel above the Close button (only the text scrolls). -->
+        <Widget Id="PortraitPanelImageArea"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="Fixed"
+                SuggestedHeight="450"
+                VerticalAlignment="Bottom"
+                MarginBottom="86"
+                MarginLeft="24"
+                MarginRight="24"
+                Sprite="BlankWhiteSquare_9"
+                Color="#0d0a08DD"
+                AlphaFactor="0.4">
+          <Children>
+            <CrRuntimeImageWidget Id="PanelCustomPortrait"
+                                  WidthSizePolicy="Fixed"
+                                  HeightSizePolicy="Fixed"
+                                  SuggestedWidth="@PanelPortraitWidth"
+                                  SuggestedHeight="@PanelPortraitHeight"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  IsVisible="@ShowPanelCustomPortrait"
+                                  ImagePath="@PanelPortraitPath"
+                                  IsDisabled="true" />
+
+            <ImageIdentifierWidget Id="PanelVanillaPortrait"
+                                   WidthSizePolicy="Fixed"
+                                   HeightSizePolicy="Fixed"
+                                   SuggestedWidth="@PanelPortraitWidth"
+                                   SuggestedHeight="@PanelPortraitHeight"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   IsVisible="@ShowPanelVanillaPortrait"
+                                   TextureProviderName="@PanelPortraitTextureProviderName"
+                                   ImageId="@PanelPortraitId"
+                                   AdditionalArgs="@PanelPortraitAdditionalArgs"
+                                   IsBig="true"
+                                   HideWhenNull="false"
+                                   IsDisabled="true" />
+          </Children>
+        </Widget>
+
+        <ButtonWidget Id="PortraitCloseButton"
+                      WidthSizePolicy="Fixed"
+                      HeightSizePolicy="Fixed"
+                      SuggestedWidth="440"
+                      SuggestedHeight="56"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Bottom"
+                      MarginBottom="22"
+                      DoNotPassEventsToChildren="true"
+                      Brush="ButtonBrush1"
+                      UpdateChildrenStates="true"
+                      Command.Click="ExecuteClosePortraitPanel">
           <Children>
             <TextWidget WidthSizePolicy="StretchToParent"
                         HeightSizePolicy="StretchToParent"

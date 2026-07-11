@@ -173,16 +173,36 @@ namespace CalradiaRemembers.Chat
       private MBBindingList<MemoryEntryViewModel> _memories;
       private string _memoryPanelTitle = "Shared memories";
 
-      // The NPC's portrait shown BELOW the memory list: their custom ChatPortraits image when present, else the
-      // vanilla 3D render. Resolved when the panel opens.
-      private string _memoryPortraitPath = "";
-      private bool _showMemoryCustomPortrait;
-      private bool _showMemoryVanillaPortrait;
-      private string _memoryPortraitId = "";
-      private string _memoryPortraitProvider = "";
-      private string _memoryPortraitArgs = "";
-      private float _memoryPortraitW = 344f;
-      private float _memoryPortraitH = 458f;
+      // ── Portrait panel ────────────────────────────────────────────────────
+      // A left panel (same area as the memory panel) showing a clicked speaker's portrait at full size: their
+      // custom ChatPortraits image when present, else the vanilla 3D render. Opened by a left-click on a portrait.
+      private bool _isPortraitPanelOpen;
+      private string _portraitPanelTitle = "Portrait";
+      private string _panelPortraitPath = "";
+      private bool _showPanelCustomPortrait;
+      private bool _showPanelVanillaPortrait;
+      private string _panelPortraitId = "";
+      private string _panelPortraitProvider = "";
+      private string _panelPortraitArgs = "";
+      private float _panelPortraitW = 344f;
+      private float _panelPortraitH = 458f;
+
+      // A roleplay dossier shown ABOVE the portrait when the clicked line is a known NPC (hidden for the player's
+      // own line or a heroless speaker): inline facts (culture / age / role / relation / personal regard), the
+      // vanilla encyclopedia background, the mod's authored backstory, the physical description from body stats,
+      // the traits/kinks discovered so far, and the grievances the player has learned this NPC holds.
+      private bool _showPanelInfo;
+      private bool _showPanelBackground;
+      private bool _showPanelCharacter;
+      private bool _showPanelAppearance;
+      private bool _showPanelDiscoveries;
+      private bool _showPanelGrievances;
+      private string _panelInfoFacts = "";
+      private string _panelBackground = "";
+      private string _panelCharacter = "";
+      private string _panelAppearance = "";
+      private string _panelInfoDiscoveries = "";
+      private string _panelGrievances = "";
 
       private ChatMode _mode = ChatMode.Conversation;
       private Hero _npcHero;
@@ -578,29 +598,100 @@ namespace CalradiaRemembers.Chat
 
       // ── Memory-panel portrait (custom PNG or vanilla 3D) ──
       [DataSourceProperty]
-      public string MemoryPortraitPath => _memoryPortraitPath;
+      public string PanelPortraitPath => _panelPortraitPath;
 
       [DataSourceProperty]
-      public bool ShowMemoryCustomPortrait => _showMemoryCustomPortrait;
+      public bool ShowPanelCustomPortrait => _showPanelCustomPortrait;
 
       [DataSourceProperty]
-      public bool ShowMemoryVanillaPortrait => _showMemoryVanillaPortrait;
+      public bool ShowPanelVanillaPortrait => _showPanelVanillaPortrait;
 
       [DataSourceProperty]
-      public string MemoryPortraitId => _memoryPortraitId;
+      public string PanelPortraitId => _panelPortraitId;
 
       [DataSourceProperty]
-      public string MemoryPortraitTextureProviderName => _memoryPortraitProvider;
+      public string PanelPortraitTextureProviderName => _panelPortraitProvider;
 
       [DataSourceProperty]
-      public string MemoryPortraitAdditionalArgs => _memoryPortraitArgs;
+      public string PanelPortraitAdditionalArgs => _panelPortraitArgs;
 
       /// <summary>Displayed portrait size, aspect-preserved to fit the portrait box (must be float for the setter).</summary>
       [DataSourceProperty]
-      public float MemoryPortraitWidth => _memoryPortraitW;
+      public float PanelPortraitWidth => _panelPortraitW;
 
       [DataSourceProperty]
-      public float MemoryPortraitHeight => _memoryPortraitH;
+      public float PanelPortraitHeight => _panelPortraitH;
+
+      // ── Portrait-panel roleplay dossier (scrollable, above the portrait) ──
+      /// <summary>True when the clicked line is a known NPC, so the dossier is shown (hidden for the player).</summary>
+      [DataSourceProperty]
+      public bool ShowPanelInfo => _showPanelInfo;
+
+      [DataSourceProperty]
+      public bool ShowPanelBackground => _showPanelBackground;
+
+      [DataSourceProperty]
+      public bool ShowPanelCharacter => _showPanelCharacter;
+
+      [DataSourceProperty]
+      public bool ShowPanelAppearance => _showPanelAppearance;
+
+      /// <summary>True when this NPC has at least one discovered trait/kink to list.</summary>
+      [DataSourceProperty]
+      public bool ShowPanelDiscoveries => _showPanelDiscoveries;
+
+      [DataSourceProperty]
+      public bool ShowPanelGrievances => _showPanelGrievances;
+
+      /// <summary>Inline facts, one per line: "Culture: Empire", "Age: 38", "Role: Lady", "Relation: +12", "Personal regard: neutral (0)".</summary>
+      [DataSourceProperty]
+      public string PanelInfoFacts => _panelInfoFacts;
+
+      /// <summary>The vanilla encyclopedia background paragraph for this hero.</summary>
+      [DataSourceProperty]
+      public string PanelBackground => _panelBackground;
+
+      /// <summary>The mod's authored backstory for this hero, when one is defined in the character files.</summary>
+      [DataSourceProperty]
+      public string PanelCharacter => _panelCharacter;
+
+      /// <summary>The physical description derived from this hero's body/appearance stats.</summary>
+      [DataSourceProperty]
+      public string PanelAppearance => _panelAppearance;
+
+      /// <summary>Bulleted list of traits/kinks discovered about this NPC over the campaign.</summary>
+      [DataSourceProperty]
+      public string PanelInfoDiscoveries => _panelInfoDiscoveries;
+
+      /// <summary>Bulleted list of grievances the player has learned this NPC holds.</summary>
+      [DataSourceProperty]
+      public string PanelGrievances => _panelGrievances;
+
+      /// <summary>True while the left PORTRAIT panel is open (a full-size view of a clicked speaker's portrait).</summary>
+      [DataSourceProperty]
+      public bool IsPortraitPanelOpen
+      {
+         get => _isPortraitPanelOpen;
+         set
+         {
+            if (_isPortraitPanelOpen == value) return;
+            _isPortraitPanelOpen = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>The portrait panel's header (the speaker's name).</summary>
+      [DataSourceProperty]
+      public string PortraitPanelTitle
+      {
+         get => _portraitPanelTitle;
+         set
+         {
+            if (_portraitPanelTitle == value) return;
+            _portraitPanelTitle = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
       /// <summary>
       ///   The in-chat mode button label: which of the two configured models requests currently use.
@@ -1029,6 +1120,7 @@ namespace CalradiaRemembers.Chat
          }
 
          if (_isComposeOpen) IsComposeOpen = false;
+         if (_isPortraitPanelOpen) IsPortraitPanelOpen = false; // one left panel at a time
          RefreshMemories();
          IsMemoryPanelOpen = true;
       }
@@ -1041,60 +1133,224 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Resolves the NPC portrait shown below the memory list: their custom ChatPortraits image when the
-      ///   player has dropped one, otherwise the vanilla 3D render. A heroless speaker shows neither.
+      ///   Opens the dedicated left PORTRAIT panel showing this chat line's speaker at full size (their custom
+      ///   ChatPortraits image when present, else the vanilla 3D render), aspect-preserved and never stretched.
+      ///   Fired by a LEFT-click on any chat portrait. Shares the left area with the memory / compose panels, so
+      ///   it closes whichever of those is open (one left panel at a time).
       /// </summary>
-      private void ResolveMemoryPortrait()
+      public void OpenPortraitPanel(ChatMessageViewModel msg)
       {
-         _memoryPortraitPath = "";
-         _showMemoryCustomPortrait = false;
-         _showMemoryVanillaPortrait = false;
-         _memoryPortraitId = "";
-         _memoryPortraitProvider = "";
-         _memoryPortraitArgs = "";
+         if (msg == null) return;
 
-         // The image is drawn at the largest size that fits this box WITHOUT distortion (aspect preserved),
-         // then centred: the player's PNG may be any ratio (4:5, square, wide), so it must never be stretched.
-         const float boxW = 452f;
-         const float boxH = 366f;
-         var aspectW = 1f; // vanilla 3D fallback: the character tableau renders roughly SQUARE, so 1:1 avoids
-         var aspectH = 1f; // the vertical stretch a taller nominal caused (report: a bearded lord elongated)
+         _panelPortraitPath = "";
+         _showPanelCustomPortrait = false;
+         _showPanelVanillaPortrait = false;
+         _panelPortraitId = "";
+         _panelPortraitProvider = "";
+         _panelPortraitArgs = "";
+         ResolvePanelInfo(msg);
 
-         if (_npcHero != null)
+         // Drawn at the largest size that fits the BOTTOM portrait region WITHOUT distortion, then centred: the
+         // player's PNG may be any ratio (4:5, square, wide), so it must never be stretched. The facts block sits
+         // above it, so the box is shorter than the panel (report layout: info at top, portrait at the bottom).
+         const float boxW = 460f;
+         const float boxH = 430f;
+         var aspectW = 2f; // vanilla 3D fallback: the character tableau renders WIDE, 2:1 (the same aspect as the
+         var aspectH = 1f; // 88x44 chat avatar), so a 2:1 box shows it without stretching (report: 1:1 stretched it)
+
+         if (msg.ShowCustomPortrait && !string.IsNullOrEmpty(msg.PlayerPortraitPath))
          {
-            string custom = Portraits.ChatPortraitResolver.ResolveForHero(_npcHero.StringId, _npcName);
-            if (!string.IsNullOrEmpty(custom))
+            _panelPortraitPath = msg.PlayerPortraitPath;
+            _showPanelCustomPortrait = true;
+            if (Portraits.RuntimePortraitFactory.TryGetDimensions(msg.PlayerPortraitPath, out int iw, out int ih) && iw > 0 && ih > 0)
             {
-               _memoryPortraitPath = custom;
-               _showMemoryCustomPortrait = true;
-               if (Portraits.RuntimePortraitFactory.TryGetDimensions(custom, out int iw, out int ih) && iw > 0 && ih > 0)
-               {
-                  aspectW = iw;
-                  aspectH = ih;
-               }
+               aspectW = iw;
+               aspectH = ih;
             }
-            else
-            {
-               PortraitData p = PortraitTextureGuard.Create(_npcHero.CharacterObject);
-               _memoryPortraitId = p.Id;
-               _memoryPortraitProvider = p.TextureProviderName;
-               _memoryPortraitArgs = p.AdditionalArgs;
-               _showMemoryVanillaPortrait = !string.IsNullOrEmpty(p.Id);
-            }
+         }
+         else if (!string.IsNullOrEmpty(msg.PortraitId))
+         {
+            _panelPortraitId = msg.PortraitId;
+            _panelPortraitProvider = msg.PortraitTextureProviderName;
+            _panelPortraitArgs = msg.PortraitAdditionalArgs;
+            _showPanelVanillaPortrait = true;
+         }
+         else
+         {
+            return; // a system or narration line has no portrait to show
          }
 
          float scale = Math.Min(boxW / aspectW, boxH / aspectH);
-         _memoryPortraitW = aspectW * scale;
-         _memoryPortraitH = aspectH * scale;
+         _panelPortraitW = aspectW * scale;
+         _panelPortraitH = aspectH * scale;
+         PortraitPanelTitle = string.IsNullOrEmpty(msg.SpeakerName) ? "Portrait" : msg.SpeakerName;
 
-         OnPropertyChanged(nameof(MemoryPortraitWidth));
-         OnPropertyChanged(nameof(MemoryPortraitHeight));
-         OnPropertyChanged(nameof(MemoryPortraitPath));
-         OnPropertyChanged(nameof(ShowMemoryCustomPortrait));
-         OnPropertyChanged(nameof(ShowMemoryVanillaPortrait));
-         OnPropertyChanged(nameof(MemoryPortraitId));
-         OnPropertyChanged(nameof(MemoryPortraitTextureProviderName));
-         OnPropertyChanged(nameof(MemoryPortraitAdditionalArgs));
+         if (_isComposeOpen) IsComposeOpen = false;
+         if (_isMemoryPanelOpen) IsMemoryPanelOpen = false;
+
+         OnPropertyChanged(nameof(PanelPortraitWidth));
+         OnPropertyChanged(nameof(PanelPortraitHeight));
+         OnPropertyChanged(nameof(PanelPortraitPath));
+         OnPropertyChanged(nameof(ShowPanelCustomPortrait));
+         OnPropertyChanged(nameof(ShowPanelVanillaPortrait));
+         OnPropertyChanged(nameof(PanelPortraitId));
+         OnPropertyChanged(nameof(PanelPortraitTextureProviderName));
+         OnPropertyChanged(nameof(PanelPortraitAdditionalArgs));
+         OnPropertyChanged(nameof(ShowPanelInfo));
+         OnPropertyChanged(nameof(ShowPanelBackground));
+         OnPropertyChanged(nameof(ShowPanelCharacter));
+         OnPropertyChanged(nameof(ShowPanelAppearance));
+         OnPropertyChanged(nameof(ShowPanelDiscoveries));
+         OnPropertyChanged(nameof(ShowPanelGrievances));
+         OnPropertyChanged(nameof(PanelInfoFacts));
+         OnPropertyChanged(nameof(PanelBackground));
+         OnPropertyChanged(nameof(PanelCharacter));
+         OnPropertyChanged(nameof(PanelAppearance));
+         OnPropertyChanged(nameof(PanelInfoDiscoveries));
+         OnPropertyChanged(nameof(PanelGrievances));
+
+         IsPortraitPanelOpen = true;
+      }
+
+      /// <summary>
+      ///   Fills the portrait panel's encyclopedia-style facts from the clicked line's speaker. Shown only for a
+      ///   living NPC hero we can resolve (never for the player's own line or a heroless bandit face): culture,
+      ///   age, occupation, the vanilla clan relation, personal regard (descriptor + score), and every trait or
+      ///   kink the player has discovered about them. Any resolution gap simply hides the facts block.
+      /// </summary>
+      private void ResolvePanelInfo(ChatMessageViewModel msg)
+      {
+         _showPanelInfo = false;
+         _showPanelBackground = false;
+         _showPanelCharacter = false;
+         _showPanelAppearance = false;
+         _showPanelDiscoveries = false;
+         _showPanelGrievances = false;
+         _panelInfoFacts = "";
+         _panelBackground = "";
+         _panelCharacter = "";
+         _panelAppearance = "";
+         _panelInfoDiscoveries = "";
+         _panelGrievances = "";
+
+         string key = msg.PortraitKey;
+         if (string.IsNullOrEmpty(key)) return;
+
+         Hero hero = Hero.FindFirst(h => h.StringId == key);
+         if (hero == null || hero == Hero.MainHero) return; // player's own line: portrait only, no dossier
+
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId);
+
+         // Inline facts, one "Label: value" per line (no table alignment, per the design note).
+         int regard = profile?.ReputationWithPlayer ?? 0;
+         var facts = new System.Text.StringBuilder();
+         facts.Append("Culture: ").Append(hero.Culture?.Name?.ToString() ?? "Unknown").Append('\n');
+         facts.Append("Age: ").Append((int) hero.Age).Append('\n');
+         facts.Append("Role: ").Append(DescribeOccupation(hero)).Append('\n');
+         facts.Append("Relation: ").Append(hero.GetRelationWithPlayer().ToString("+#;-#;0")).Append('\n');
+         facts.Append("Personal regard: ").Append($"{ThirdPartyDescriptor.DescribeRelation(regard)} ({regard:+#;-#;0})");
+         _panelInfoFacts = facts.ToString();
+
+         // Vanilla encyclopedia background (the "Mina is a member of the Pethros…" paragraph). Hero.EncyclopediaText
+         // is populated lazily by the encyclopedia manager, so it is empty when read cold from the chat: the static
+         // generator builds it on demand. Strip the encyclopedia hyperlink markup (names become plain text).
+         _panelBackground = StripMarkup(SafeRead(() => Hero.SetHeroEncyclopediaTextAndLinks(hero)?.ToString()));
+         _showPanelBackground = !string.IsNullOrWhiteSpace(_panelBackground);
+
+         // The mod's authored backstory: from the override files, or the value synced onto the profile.
+         _panelCharacter = SafeRead(() => Lore.CharacterOverrideLoader.BackstoryFor(hero));
+         if (string.IsNullOrWhiteSpace(_panelCharacter)) _panelCharacter = profile?.AuthoredBackstory ?? "";
+         _showPanelCharacter = !string.IsNullOrWhiteSpace(_panelCharacter);
+
+         // Physical description from body/appearance stats.
+         _panelAppearance = SafeRead(() => Appearance.AppearanceProseBehavior.Instance?.Get(hero.StringId));
+         _showPanelAppearance = !string.IsNullOrWhiteSpace(_panelAppearance);
+
+         if (profile?.DiscoveredTraits != null && profile.DiscoveredTraits.Count > 0)
+         {
+            _panelInfoDiscoveries = string.Join("\n",
+               profile.DiscoveredTraits.Select(t => "• " + t.Description));
+            _showPanelDiscoveries = _panelInfoDiscoveries.Length > 0;
+         }
+
+         _panelGrievances = ResolveKnownGrievances(hero);
+         _showPanelGrievances = !string.IsNullOrEmpty(_panelGrievances);
+
+         _showPanelInfo = true;
+      }
+
+      /// <summary>Runs a possibly-throwing read (engine text lookups) and returns "" on any failure.</summary>
+      private static string SafeRead(Func<string> read)
+      {
+         try { return read() ?? ""; }
+         catch { return ""; }
+      }
+
+      /// <summary>Strips angle-bracket markup (encyclopedia hyperlink tags), leaving the plain display text.</summary>
+      private static string StripMarkup(string s)
+         => string.IsNullOrEmpty(s)
+            ? s
+            : System.Text.RegularExpressions.Regex.Replace(s, "<[^>]+>", "").Trim();
+
+      /// <summary>
+      ///   The grievances the player has EARNED knowledge of against this NPC, one bullet per line, rendered
+      ///   through the same pure narrator the encyclopedia's Grievances section uses. Empty when none are known.
+      /// </summary>
+      private static string ResolveKnownGrievances(Hero hero)
+      {
+         try
+         {
+            Grudges.GrudgeBehavior behavior = Grudges.GrudgeBehavior.Instance;
+            if (behavior == null) return "";
+
+            var today = (int) CampaignTime.Now.ToDays;
+            var lines = new List<string>();
+            foreach (Logic.Grudges.Grudge grudge in behavior.KnownGrudgesFor(hero.StringId, today))
+            {
+               bool targetIsPlayer = grudge.TargetId == Hero.MainHero?.StringId;
+               string targetName = targetIsPlayer
+                  ? null
+                  : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == grudge.TargetId)?.Name?.ToString();
+
+               Logic.Grudges.TraitFacts traits = Grudges.GrudgeBridge.BuildTraitFacts(hero);
+               int mag = Logic.Grudges.GrudgePolicy.EffectiveMagnitude(grudge, today, traits);
+               Logic.Grudges.GrudgeResolutionKind kind =
+                  Logic.Grudges.GrudgePolicy.ResolutionKindFor(grudge.Source, grudge.Rigidity);
+
+               string line = Logic.Grudges.GrudgeNarrator.DisplayLine(grudge, targetIsPlayer, targetName, mag, kind);
+               if (!string.IsNullOrEmpty(line)) lines.Add("• " + line);
+            }
+
+            return string.Join("\n", lines);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[PORTRAIT] grievances resolve failed: {ex.GetType().Name}: {ex.Message}");
+
+            return "";
+         }
+      }
+
+      /// <summary>A short, readable occupation label for the facts block (gender-aware for nobles).</summary>
+      private static string DescribeOccupation(Hero hero)
+      {
+         if (hero.IsLord) return hero.IsFemale ? "Lady" : "Lord";
+         if (hero.IsWanderer) return "Wanderer";
+         if (hero.IsNotable) return "Notable";
+         if (hero.IsMerchant) return "Merchant";
+         if (hero.IsGangLeader) return "Gang leader";
+         if (hero.IsRuralNotable) return "Rural notable";
+         if (hero.IsArtisan) return "Artisan";
+         if (hero.IsPreacher) return "Preacher";
+
+         return hero.Occupation.ToString();
+      }
+
+      /// <summary>The portrait panel's "Close" button.</summary>
+      public void ExecuteClosePortraitPanel()
+      {
+         if (!_isPortraitPanelOpen) return;
+         IsPortraitPanelOpen = false;
       }
 
       /// <summary>
@@ -1108,7 +1364,6 @@ namespace CalradiaRemembers.Chat
          try
          {
             _memories.Clear();
-            ResolveMemoryPortrait();
 
             NpcProfile profile = MainSpeaker().Profile;
             MemoryPanelTitle = _npcHero != null
@@ -1255,6 +1510,7 @@ namespace CalradiaRemembers.Chat
       {
          if (!IsNormalInputVisible || _isComposeOpen) return;
          if (_isMemoryPanelOpen) IsMemoryPanelOpen = false; // share the left area with the memory panel
+         if (_isPortraitPanelOpen) IsPortraitPanelOpen = false; // and with the portrait panel
          IsComposeOpen = true;
       }
 
@@ -1773,9 +2029,15 @@ namespace CalradiaRemembers.Chat
       ///   arbiter when a game screen opens over the chat, so the chat gets out of its way without being torn
       ///   down or hidden (the layer keeps ticking, so LLM turns and the arbiter keep running).
       /// </summary>
-      public void SetVisualOffscreen(bool off) => ChatVisualOffsetX = off
-         ? 800f
-         : -30f;
+      public void SetVisualOffscreen(bool off)
+      {
+         ChatVisualOffsetX = off ? 800f : -30f;
+
+         // The portrait dossier is anchored to the right of the screen (not inside the sliding window), so it
+         // would sit ON TOP of whatever screen just took focus (report: it overlapped the encyclopedia). Close
+         // it when the chat yields, so the player reopens it with a left-click when they return to the chat.
+         if (off && _isPortraitPanelOpen) IsPortraitPanelOpen = false;
+      }
 
       /// <summary>Replaces the full witness list (called by WitnessResolver at session open).</summary>
       public void SetWitnesses(List<WitnessEntry> witnesses)

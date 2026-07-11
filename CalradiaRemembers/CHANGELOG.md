@@ -4,8 +4,17 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v1.30.5.. 2026-07-11
 
+### Added
+- Freeing a captive lord is now remembered, and it makes waves. When you win the battle or siege that breaks a lord or lady out of captivity (not a bandit, and not one of your own clan), they remember it: a lasting first-person memory ("You freed me from the dungeons of X, I will not forget that you came for me") and real warmth toward you. Their close family, who owe you a debt for it, warm and remember too, and a few of the rescued lord's closest friends warm a little as well. It is a strong commitment, and it can make you an enemy: the captor whose prisoner you tore away has a chance to trace the deed back to you and nurse a grudge over it, more likely and more openly resented when you took it by a public siege than by a quiet field victory. New `cr.rescue [name]` console command simulates the whole chain on a chosen lord.
+- Press Enter to send your chat message. While the quick-input line is focused, Enter (or numpad Enter) sends, just like clicking Send. The multi-line compose panel on the right still keeps Enter for new lines, so stage directions are unaffected.
+- Left-click a chat portrait to open that character's roleplay dossier. A dedicated panel slides in showing, at a glance, everything that helps you play the scene: their culture, age, role and your standing (both the clan relation and your personal regard, named in plain words like "genuine regard (14)"); the game's own encyclopedia description of who they are; their authored backstory if you have written one for them in character_overrides.json; a physical description drawn from their actual appearance; the traits and kinks you have discovered about them over the campaign; and any grievances you have learned they hold. The text scrolls, and their portrait sits permanently at the bottom (your custom ChatPortraits image if there is one, otherwise their normal 3D render, always at its true aspect). The panel closes itself the moment another screen opens over the chat, so it never overlaps the encyclopedia or a menu.
+
+### Changed
+- The Options and Mode controls are now small, unobtrusive text at the bottom-left of the chat instead of two green buttons, keeping the focus on the conversation.
+- The portrait was removed from the Memories panel (it now lives in the dedicated portrait dossier above), so the memories list reads cleanly on its own again.
+
 ### Fixed
-- The Memories-panel portrait no longer stretches, and takes less room. A character shown by their normal 3D render (no custom image) was drawn stretched tall, and the whole portrait crowded the memories (player report). The 3D render now keeps its true square-ish shape instead of being forced into a taller frame, and the portrait area is smaller so the memories above it are easier to read. Custom images already kept their own aspect and still do.
+- A character's 3D portrait now shows at its true wide shape (it renders roughly 2:1, wider than tall) instead of being squeezed into a square, so vanilla portraits are no longer distorted.
 
 ## v1.30.4.. 2026-07-11
 
