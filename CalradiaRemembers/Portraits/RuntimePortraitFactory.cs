@@ -109,13 +109,23 @@ namespace CalradiaRemembers.Portraits
 
                 string uniqueName = $"cr_rt_tex_{StableHash(fullPath):x8}";
 
-                // PREFERRED: the engine's own per-file loader, the same pipeline real game textures use, so
-                // the channels come out right and the native resource is keyed by the FILE (two different
-                // images can never collide into one texture, the player-wears-the-NPC's-face report).
+                // The 2D sprite renderer samples RED and BLUE swapped relative to how BOTH engine loaders decode
+                // (memory loader AND the per-file path loader both come out inverted, confirmed in game), so we
+                // colour-correct the SOURCE once, up front, whichever loader then reads it.
+                byte[] corrected = SwapRedBlue(File.ReadAllBytes(fullPath)); // decoded, R/B swapped, PNG re-encoded
+
+                // PREFERRED: the engine's own per-file loader, the same pipeline real game textures use. It keys
+                // the native resource by the FILE, so two DIFFERENT images can never collide into one texture
+                // (the player-wears-the-NPC's-face report). We feed it a per-source TEMP file holding the
+                // colour-corrected bytes, so identity (from the path) and colour (from the pre-swap) are both right.
                 var loader = "path";
+                string tempDir = Path.Combine(Path.GetTempPath(), "CalradiaRemembersPortraits");
+                string tempName = $"cr_portrait_{StableHash(fullPath):x8}.png";
                 try
                 {
-                    engineTexture = EngTex.LoadTextureFromPath(Path.GetFileName(fullPath), Path.GetDirectoryName(fullPath));
+                    Directory.CreateDirectory(tempDir);
+                    File.WriteAllBytes(Path.Combine(tempDir, tempName), corrected);
+                    engineTexture = EngTex.LoadTextureFromPath(tempName, tempDir);
                     if (engineTexture != null)
                     {
                         engineTexture.SetTextureAsAlwaysValid();
@@ -125,13 +135,12 @@ namespace CalradiaRemembers.Portraits
                 }
                 catch { engineTexture = null; }
 
-                // FALLBACK: decode from memory. That decoder reads red/blue swapped relative to the 2D
-                // renderer, so the bytes are channel-swapped first; the texture is then named uniquely so the
+                // FALLBACK: build the texture straight from the corrected bytes in memory, named uniquely so the
                 // by-name caches downstream cannot unify two different images.
                 if (engineTexture == null)
                 {
                     loader = "memory";
-                    engineTexture = EngTex.CreateFromMemory(SwapRedBlue(File.ReadAllBytes(fullPath)));
+                    engineTexture = EngTex.CreateFromMemory(corrected);
 
                     if (engineTexture == null)
                     {
@@ -142,17 +151,16 @@ namespace CalradiaRemembers.Portraits
 
                     engineTexture.SetTextureAsAlwaysValid();
                     engineTexture.PreloadTexture(true);
-                }
-
-                try { engineTexture.Name = uniqueName; }
-                catch
-                {
-                    // naming is defensive; rendering works without it
+                    try { engineTexture.Name = uniqueName; }
+                    catch
+                    {
+                        // naming is defensive; rendering works without it
+                    }
                 }
 
                 int w = engineTexture.Width;
                 int h = engineTexture.Height;
-                diag = $"loaded {w}x{h} via {loader} (IsLoaded={engineTexture.IsLoaded()}, name={uniqueName}) from {Path.GetFileName(fullPath)}";
+                diag = $"loaded {w}x{h} via {loader} (IsLoaded={engineTexture.IsLoaded()}) from {Path.GetFileName(fullPath)}";
                 if (w <= 0 || h <= 0) diag += " (WARN zero dims: texture may still be loading)";
                 ModLog.Info($"[PORTRAIT] {diag}");
 
