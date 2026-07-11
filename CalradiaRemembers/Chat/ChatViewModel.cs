@@ -783,12 +783,19 @@ namespace CalradiaRemembers.Chat
          IsSendEnabled = false;
 
          // The companion opens (they asked for this word). A synthetic cue, never shown or logged as a player line.
-         string opener = reason == CompanionAudienceReason.Retirement
-            ? "[You asked the player for a private word. Open the conversation yourself: voice, in your own way, that " +
-              "the long years of war have worn you down and you wish to lay down the sword. Be respectful — the " +
-              "outcome is theirs to decide.]"
-            : "[You asked the player for a private word. Open the conversation yourself: raise what has been troubling " +
-              "you in their service, in your own voice.]";
+         string opener = reason switch {
+            CompanionAudienceReason.Retirement =>
+               "[You asked the player for a private word. Open the conversation yourself: voice, in your own way, that " +
+               "the long years of war have worn you down and you wish to lay down the sword. Be respectful, the " +
+               "outcome is theirs to decide.]",
+            CompanionAudienceReason.SecretAffection =>
+               "[You asked the player for a private word. Open the conversation yourself: confide, in your own voice, " +
+               "that serving faithfully at their side has quietly turned to something more, real affection. Broach it " +
+               "with the courage and vulnerability of a comrade, tender and honest, never a demand.]",
+            _ =>
+               "[You asked the player for a private word. Open the conversation yourself: raise what has been troubling " +
+               "you in their service, in your own voice.]"
+         };
 
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, speaker, placeholder, true);

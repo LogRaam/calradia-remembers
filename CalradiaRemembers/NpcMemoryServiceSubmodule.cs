@@ -170,6 +170,9 @@ namespace CalradiaRemembers
          // eases toward baseline; a companion left bitterly unhappy for a season departs. The grievance is
          // voiced in conversation. The score lives on the profile; the pure model is CalradiaRemembers.Logic.
          campaignStarter.AddBehavior(new Missions.CompanionHappinessBehavior());
+         // The positive counterpart: a happy, deeply-bonded companion may ask for a private word to confide
+         // affection and become the player's discreet secret lover (adult-gated). Pure model in the Logic project.
+         campaignStarter.AddBehavior(new Missions.CompanionAffectionBehavior());
          // War-weariness: wounds and captures accrue a toll on each companion (a SEPARATE axis from happiness);
          // rest eases it; a spent veteran asks for an honorable retirement — a landless one leaves, a landed one
          // (governor / party-leader) steps back from the field but stays in the clan. Pure model in Logic.

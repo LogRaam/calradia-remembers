@@ -73,10 +73,12 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.audience [retire|grievance] [name]
+      ///   cr.audience [retire|grievance|lover] [name]
       ///   Opens a companion AUDIENCE conversation directly (skips the popup): the companion speaks first, voicing
-      ///   a war-weary retirement (default) or a grievance. For a retirement, grant it in your own words and the
-      ///   companion emits `retire` — a landless one leaves at close, a landed one steps back from the field.
+      ///   a war-weary retirement (default), a grievance, or (lover/affection) confiding they wish to become your
+      ///   discreet secret lover. For a retirement, grant it in your own words and the companion emits `retire`; for
+      ///   a lover audience, welcome it and they emit `take_as_secret_lover` (needs adult content on + a bonded,
+      ///   orientation-compatible companion).
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("audience", "cr")]
       public static string OpenAudience(List<string> args)
@@ -89,6 +91,7 @@ namespace CalradiaRemembers
          foreach (string arg in args ?? new List<string>())
             if (arg.Equals("grievance", StringComparison.OrdinalIgnoreCase)) reason = CompanionAudienceReason.Grievance;
             else if (arg.Equals("retire", StringComparison.OrdinalIgnoreCase) || arg.Equals("retirement", StringComparison.OrdinalIgnoreCase)) reason = CompanionAudienceReason.Retirement;
+            else if (arg.Equals("lover", StringComparison.OrdinalIgnoreCase) || arg.Equals("affection", StringComparison.OrdinalIgnoreCase) || arg.Equals("secret", StringComparison.OrdinalIgnoreCase)) reason = CompanionAudienceReason.SecretAffection;
             else nameTokens.Add(arg);
 
          Hero hero = ResolveHero(nameTokens);

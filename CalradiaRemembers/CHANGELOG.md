@@ -2,6 +2,11 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.3.. 2026-07-10
+
+### Added
+- A faithful companion may confide they have come to love you. One of your own companions, someone who has followed you through war, may now ask for a private word and, if the bond has quietly grown into something more, confide genuine affection and ask to become your discreet secret lover: quiet moments together, kept hidden by their own choice to spare you and your household the jealousy it could stir. This is brotherhood or sisterhood first, never manipulation and never a bargain: they ask nothing in return but you, and a gentle refusal leaves the friendship whole. If you welcome it, the bond is set discreetly, with no gossip and no chronicle to spread it. It only ever comes from a content, deeply-bonded, orientation-compatible companion, and only when adult content is enabled. New `cr.audience lover [name]` console command opens the conversation directly for testing.
+
 ## v1.30.2.. 2026-07-10
 
 ### Added

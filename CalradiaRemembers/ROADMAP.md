@@ -134,6 +134,59 @@ UP that ProudSeal also asked for; and extending first impressions beyond lords t
 
 ---
 
+## WISHED (Gabriel 2026-07-10): a companion may request an audience on OTHER subjects, not only discontent
+
+Today a companion only asks to speak with the player when they are UNHAPPY: `CompanionAudienceReason` has just
+`Grievance` (unhappy in service) and `Retirement` (war-weary), fired by `CompanionHappinessBehavior` /
+`WarWearinessBehavior`, so the whole "companion rides up to speak" surface reads as a retention-risk warning.
+Gabriel wants companions to feel alive: they should also seek the player out for POSITIVE and varied reasons, so
+an audience is not always bad news.
+
+DESIGN: append new values to `CompanionAudienceReason` (append-only, save-ordinal stable), each with its own
+opening cue + prompt framing (mirror the captive-intent pattern: one distinct opener and PURPOSE block per
+reason). Candidate reasons:
+- **Counsel** they want to weigh in on a live decision (a war, a marriage, an alliance, a fief to take next).
+- **News / rumour** they heard something worth telling (ties to the hearsay + world-event store: only what they
+  would plausibly know).
+- **Ambition / request** they want more (a mission of their own to lead, a promotion, gold, a fief, a blessing
+  to marry, a seat at the clan's council).
+- **Personal** a romance, a family matter, homesickness, or a grudge of their OWN with another NPC.
+- **Gratitude / bond** after a shared victory or a gift, they seek the player out to pledge loyalty (a purely
+  warm beat).
+- **Concern / warning** troubled by something the player DID (a moral beat, distinct from a grievance about
+  their own lot), or a suspicion of a scheme against the player they want to warn of (ties to stance/schemes).
+
+Reuse the existing audience infrastructure (`EncounterContext.CompanionAudience`, the ride-up/opening-cue path).
+A trigger behavior decides WHEN: periodic mood-and-cooldown check plus event hooks (after a battle, after a
+player decision, on a world-event they would know), with strict anti-spam so companions do not pester. Some
+reasons can hand off into other systems (a request may grant something concrete via the quest/join paths; a
+warning may feed the scheme/stance layer). Pure `.Logic` for the selection/eligibility + cooldown, testable.
+
+**SHIPPED v1.30.3 (Gabriel 2026-07-10): a faithful companion may seek the player out to become a SECRET LOVER,
+out of genuine affection, NEVER manipulation.** Built as: `CompanionAudienceReason.SecretAffection` +
+`RomanticProfile.IsSecretLover` + `EncounterContext.SecretLoverEligible` + SDK `AppendSecretLoverProposal`
+(teaches `take_as_secret_lover`); mod `ResolveSecretLoverEligible` (companions only, orientation-compatible,
+regard >= 50, adult-gated, not attached), `ExecuteTakeAsSecretLover` (sets the bond DISCREETLY, no world-event),
+trigger `CompanionAffectionBehavior` (weekly, content companion, `CompanionSecretAffectionPolicy` pure + tested,
+cooldown), `cr.audience lover`. The rest of the companion-audience reasons above remain wished. Original design:
+This is the crucial framing: a companion who has
+seen war beside the player is a brother or sister in arms first. The bond is built on shared hardship and deep
+trust, and the pull is admiration for the leader they have followed, so any intimacy grows from loyalty, not
+scheming. A companion NEVER uses this to pressure, bargain, or extract from the player (that is the separate
+exploiter/`IntimacyBargainEligible` archetype, and an unrelated stranger, not a sworn companion). Concretely, a
+female companion might simply wish to share quality intimate moments with her hero, and want to keep it secret
+out of her OWN discretion, to spare the player and the household the jealousy it could stir, not from fear of
+exposure and never as a hold over him.
+
+Mechanically it reuses CR's existing romance surface, not a new one: the `SecretLover` concept, gated by the
+v1.30.0 orientation compatibility, an attraction threshold (high regard/admiration + close, long service), and
+the adult content level. It may later deepen into a committed consort bond. It deliberately does NOT plug into
+the blackmail path that other secret lovers can (a loyal companion would never), and the jealousy interaction is
+one the companion actively tries to AVOID by keeping it discreet, not a trap. So the build is a new audience
+reason + a trigger + wiring into the romance/consort systems, not a fresh mechanic.
+
+---
+
 ## ✅ Shipped & built
 
 Live on Nexus, or built + committed awaiting upload. **(untested)** = built green and committed but its

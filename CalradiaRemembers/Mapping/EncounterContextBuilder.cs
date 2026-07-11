@@ -203,6 +203,7 @@ namespace CalradiaRemembers.Mapping
             LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
             NpcSpouseIsPlayer = hero?.Spouse == Hero.MainHero && Hero.MainHero != null,
             ConsortEligible = ResolveConsortEligible(hero, profile),
+            SecretLoverEligible = ResolveSecretLoverEligible(hero, profile),
             ConceptionRisk = ResolveConceptionRisk(hero),
             PowerBalanceNote = ResolvePowerBalanceNote(hero, profile),
             MarriageProspects = MarriageProspectResolver.Build(hero),
@@ -828,6 +829,29 @@ namespace CalradiaRemembers.Mapping
          if (status == RomanticStatus.Committed) return false;
 
          return profile.ReputationWithPlayer >= 60;
+      }
+
+      /// <summary>
+      ///   True when this NPC is one of the player's OWN companions, bonded deeply enough through shared war
+      ///   (regard ≥ 50, orientation-compatible, not already attached), that they could become the player's
+      ///   discreet secret lover. Unlike the consort bond, it does NOT require a prior Intimate arc: the depth of
+      ///   the comrade bond is what makes the confession plausible. The adult-content gate is applied in the
+      ///   prompt (AppendSecretLoverProposal) and at the audience trigger, not here.
+      /// </summary>
+      private static bool ResolveSecretLoverEligible(Hero hero, NpcProfile profile)
+      {
+         if (ModSettings.AdultContentLevel == AdultContentLevel.Off) return false; // adult-content gate lives here
+         if (hero == null || Hero.MainHero == null) return false;
+         if (!hero.IsPlayerCompanion) return false; // brotherhood/sisterhood: the player's own companions only
+         if (profile?.Romantic == null) return false;
+         if (!profile.Romantic.IsCompatibleWith(Hero.MainHero.IsFemale)) return false;
+         if (profile.Romantic.IsConsort || profile.Romantic.IsSecretLover) return false;
+         if (hero == Hero.MainHero.Spouse) return false;
+
+         RomanticStatus status = profile.Romantic.Status;
+         if (status == RomanticStatus.Committed || status == RomanticStatus.Estranged || status == RomanticStatus.Broken) return false;
+
+         return profile.ReputationWithPlayer >= 50;
       }
 
       /// <summary>

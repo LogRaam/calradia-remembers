@@ -164,6 +164,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteMarry(npcHero, context);
             case "take_as_consort":
                return ExecuteTakeAsConsort(npcHero, context);
+            case "take_as_secret_lover":
+               return ExecuteTakeAsSecretLover(npcHero, context);
             case "give_item":
                return ExecuteGiveItem(action, npcHero, context);
             case "give_prisoner":
@@ -1868,6 +1870,48 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] take_as_consort failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   take_as_secret_lover: a faithful companion and the player have both welcomed a discreet, hidden bond
+      ///   born of shared war. Purely mod-tracked and DELIBERATELY silent (no world-event, no chronicle that
+      ///   gossip could spread): the secrecy is the point, kept to avoid stirring jealousy. Sets
+      ///   <c>IsSecretLover = true</c> and <c>Status = SecretLover</c> on the companion's romantic profile.
+      ///   Re-validates the eligibility guards (the prompt is advice, the bridge is law).
+      /// </summary>
+      private static ActionOutcome ExecuteTakeAsSecretLover(Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null || context?.Profile == null) return null;
+
+            NpcProfile profile = context.Profile;
+
+            if (profile.Romantic == null)
+               return new ActionOutcome($"({npcHero.Name} has no romantic connection to build upon.)", false);
+            if (!npcHero.IsPlayerCompanion)
+               return new ActionOutcome($"({npcHero.Name} is not one of your own companions.)", false);
+            if (!profile.Romantic.IsCompatibleWith(Hero.MainHero.IsFemale))
+               return new ActionOutcome($"(There is no such spark between you and {npcHero.Name}.)", false);
+            if (profile.Romantic.IsConsort || profile.Romantic.IsSecretLover || npcHero == Hero.MainHero.Spouse)
+               return new ActionOutcome($"(You and {npcHero.Name} are already bound.)", false);
+            if (profile.ReputationWithPlayer < 50)
+               return new ActionOutcome($"({npcHero.Name} is not yet close enough to you for this.)", false);
+
+            profile.Romantic.Status = RomanticStatus.SecretLover;
+            profile.Romantic.IsSecretLover = true;
+
+            ModLog.Info($"[ACTION] take_as_secret_lover: {npcHero.Name} is now the player's secret lover (kept discreet, no world-event).");
+
+            return new ActionOutcome(
+               $"You and {npcHero.Name} share something now, quiet and yours alone, kept from every other eye.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] take_as_secret_lover failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }
