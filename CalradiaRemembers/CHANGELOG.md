@@ -2,6 +2,11 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.4.. 2026-07-10
+
+### Changed
+- Authored personalities come through more strongly. When you give a character a backstory (in character_overrides.json) that implies a distinctive manner but you do not spell out their speech quirks by hand, the character now invents two or three subtle, fitting ones of their own (a recurring word, a favourite turn of phrase, a way of addressing people) and uses them consistently. Players found a persona like "Kratos from God of War style" needed hand-written quirks to really land; now the character comes through even without them, while still staying entirely within Calradia (style and temperament only, never imported names, places, or powers).
+
 ## v1.30.3.. 2026-07-10
 
 ### Added

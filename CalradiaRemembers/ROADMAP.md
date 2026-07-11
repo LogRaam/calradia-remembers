@@ -187,6 +187,18 @@ reason + a trigger + wiring into the romance/consort systems, not a fresh mechan
 
 ---
 
+## WISHED (Gabriel 2026-07-10): an ESCORTED courier option at the tavernkeeper
+
+Player report (enivicivokke, and others): couriers still get intercepted too often for some players, worse with
+mods like Better Bandits Plus. Gabriel's ruling: NOT a "pay for guaranteed delivery" option (too gamey). Instead,
+the tavernkeeper offers TWO choices when hiring a courier: (1) a STANDARD courier (today's lone rider, subject to
+the `CourierWaylayPolicy` 1-in-3 gauntlet), and (2) a new ESCORTED courier, dearer, that spawns the courier party
+accompanied by about 5 mid-tier CAVALRY, giving it a good chance to WIN a fight against a bandit band rather than
+just outrun it. Build sketch: a second hire option in the tavern letter flow (a higher price); the escorted
+courier's `MobileParty` is created with those 5 troops in its roster (so a waylay that catches it resolves as a
+real skirmish the escort usually wins, instead of the abstract `TravelingParty.Destroy` loss); tune the escort
+troop tier/count and the win odds. Standard couriers keep the current behaviour untouched.
+
 ## ✅ Shipped & built
 
 Live on Nexus, or built + committed awaiting upload. **(untested)** = built green and committed but its
