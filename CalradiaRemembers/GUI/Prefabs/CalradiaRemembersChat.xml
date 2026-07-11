@@ -107,6 +107,30 @@
                             Text="Request Private" />
               </Children>
             </ButtonWidget>
+            <ButtonWidget Id="RoundTableButton"
+                          WidthSizePolicy="Fixed"
+                          HeightSizePolicy="Fixed"
+                          SuggestedWidth="110"
+                          SuggestedHeight="22"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Bottom"
+                          MarginBottom="6"
+                          MarginRight="148"
+                          IsVisible="@IsRoundTableVisible"
+                          DoNotPassEventsToChildren="true"
+                          Brush="ButtonBrush1"
+                          UpdateChildrenStates="true"
+                          Command.Click="ExecuteRoundTable">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Brush="Popup.Button.Text"
+                            Brush.FontSize="14"
+                            Text="Round Table" />
+              </Children>
+            </ButtonWidget>
           </Children>
         </Widget>
 

@@ -370,68 +370,6 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   The current NPC's outstanding item-barter bargain (deliver goods for a favor),
-      ///   or null when there is none. Read from the live conversation profile.
-      /// </summary>
-      private InformalQuest FindOutstandingItemBargain()
-      {
-         try
-         {
-            NpcProfile giver = NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile;
-
-            if (giver == null || _npcHero == null) return null;
-
-            return giver.ActiveQuests.FirstOrDefault(q =>
-               q.Type == QuestType.DeliverItems && q.IsOutstanding);
-         }
-         catch
-         {
-            return null;
-         }
-      }
-
-      /// <summary>The outstanding ProvideGoods supply task of the current conversation partner, or null.</summary>
-      private InformalQuest FindOutstandingSupplyQuest()
-      {
-         try
-         {
-            NpcProfile giver = NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile;
-
-            if (giver == null || _npcHero == null) return null;
-
-            return giver.ActiveQuests.FirstOrDefault(q =>
-               q.Type == QuestType.ProvideGoods && q.IsOutstanding);
-         }
-         catch
-         {
-            return null;
-         }
-      }
-
-      /// <summary>
-      ///   Hands the chosen goods to the bridge for a ProvideGoods supply task. The bridge tallies the count,
-      ///   and on a full delivery completes the quest (reward paid, journal closed) there; here we only surface
-      ///   the outcome line and refresh the bag's visibility.
-      /// </summary>
-      private void SettleSupply(InformalQuest supply, List<ItemOffer> offers)
-      {
-         try
-         {
-            var behavior = NpcMemoryCampaignBehavior.Instance;
-            NpcProfile giver = behavior?.DialogFlow?.Profile;
-
-            if (behavior?.GameStateBridge == null || giver == null) return;
-
-            ActionOutcome outcome = behavior.GameStateBridge.SettleSupplyQuest(giver, _npcHero, supply, offers);
-            if (outcome == null) return;
-
-            AppendSystemMessage(outcome.Message, outcome.IsPositive);
-            if (outcome.IsPositive) OnPropertyChanged(nameof(IsOfferItemVisible));
-         }
-         catch (Exception ex) { ModLog.Error($"[QUEST] SettleSupply failed: {ex.Message}"); }
-      }
-
-      /// <summary>
       ///   Ends a captive scene that has run past its hard cap with a neutral time-skip summary,
       ///   so an eager model that keeps deferring its climax cannot drag the scene on forever.
       ///   Gender-neutral wording so it fits any prisoner.
@@ -594,6 +532,53 @@ namespace CalradiaRemembers.Chat
 
          HasWitnesses = any;
          IsPrivateRequestVisible = any && !_privacyRequestUsed && AllowsPrivacyRequest;
+
+         // The round-table button is offered whenever there is a group to go round (witnesses present),
+         // outside captive scenes and once the conversation has not been ended.
+         IsRoundTableVisible = _roundTable.ComputeVisible(_witnesses.Count, IsCaptiveEncounter, _conversationEnded);
+      }
+
+      /// <summary>A ChatSpeaker for a present witness (resolved Hero + stored profile + colour), or null if gone.</summary>
+      private ChatSpeaker SpeakerForWitness(WitnessEntry w)
+      {
+         if (string.IsNullOrEmpty(w?.HeroStringId)) return null;
+
+         Hero h = Hero.FindFirst(x => x.StringId == w.HeroStringId);
+         NpcProfile p = NpcMemoryCampaignBehavior.Instance?.Store?.Get(w.HeroStringId);
+
+         if (h == null || p == null) return null;
+
+         _witnessColors.TryGetValue(w.Name, out string color);
+
+         return new ChatSpeaker {
+            IsMain = false,
+            Hero = h,
+            Name = w.Name,
+            Profile = p,
+            Color = color ?? WitnessPalette[0]
+         };
+      }
+
+      /// <summary>Every present witness that resolves to a live hero with a profile, as ChatSpeakers.</summary>
+      private List<ChatSpeaker> PresentWitnessSpeakers()
+      {
+         var list = new List<ChatSpeaker>();
+         foreach (WitnessEntry w in _witnesses)
+         {
+            ChatSpeaker s = SpeakerForWitness(w);
+            if (s != null) list.Add(s);
+         }
+
+         return list;
+      }
+
+      /// <summary>The main NPC followed by every present witness, as ChatSpeakers (for the button round-table).</summary>
+      private List<ChatSpeaker> AllPresentSpeakers()
+      {
+         var list = new List<ChatSpeaker> {MainSpeaker()};
+         list.AddRange(PresentWitnessSpeakers());
+
+         return list;
       }
 
       /// <summary>Removes a placeholder bubble entirely (used for a narration-only turn).</summary>
@@ -752,69 +737,6 @@ namespace CalradiaRemembers.Chat
          }
 
          return (null, WitnessPalette[0], null);
-      }
-
-
-      /// <summary>
-      ///   Hands the chosen goods to the bridge, which enforces the value floor and — if met —
-      ///   removes them and honors the bargain's favor. On success the quest is closed and the
-      ///   NPC accepts the goods in their own voice (one LLM turn, written to the story log)
-      ///   rather than a bare mechanical line — falling back to the plain confirmation when the
-      ///   LLM is unavailable. A short offer keeps the plain refusal line.
-      /// </summary>
-      private void SettleItemBargain(InformalQuest bargain, List<ItemOffer> offers)
-      {
-         try
-         {
-            var behavior = NpcMemoryCampaignBehavior.Instance;
-            NpcProfile giver = behavior?.DialogFlow?.Profile;
-
-            if (behavior?.GameStateBridge == null || giver == null) return;
-
-            // Resolve the goods' display names BEFORE the bridge removes them from the
-            // roster, so the NPC's acceptance line can name what it was paid with.
-            string goods = ItemBargainText.DescribeOfferedGoods(offers);
-
-            ActionOutcome outcome = behavior.GameStateBridge
-                                            .SettleItemBargain(giver, _npcHero, bargain, offers);
-
-            if (outcome == null) return;
-
-            // Short offer — the deal didn't close; nothing was removed. Keep the plain line.
-            if (!outcome.IsPositive)
-            {
-               AppendSystemMessage(outcome.Message, false);
-
-               return;
-            }
-
-            // Deal closed: stamp the bargain settled and drop the bag button.
-            int day = behavior.GameStateBridge.GetCurrentGameDay();
-            QuestService.MarkBargainSettled(giver, bargain, _npcHero, day, behavior.Store);
-            OnPropertyChanged(nameof(IsOfferItemVisible));
-
-            // Narrative beat instead of a bare green line: the NPC accepts the goods in
-            // their own voice (shown under their portrait, written to the story log) via
-            // one LLM turn driven by a synthetic stage cue. Fall back to the mechanical
-            // confirmation when the LLM is unavailable so the player still sees the result.
-            if (behavior.LlmServices is not {IsAvailable: true})
-            {
-               AppendSystemMessage(outcome.Message, true);
-
-               return;
-            }
-
-            ChatSpeaker speaker = MainSpeaker();
-            ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
-            _messages.Add(placeholder);
-            IsSendEnabled = false;
-            _ = RunLlmExchangeAsync(
-               ItemBargainText.BuildBargainAcceptanceStimulus(goods), speaker, placeholder, true);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[OFFER] SettleItemBargain failed: {ex.GetType().Name}: {ex.Message}");
-         }
       }
 
       private ChatSpeaker SpeakerForCurrent()

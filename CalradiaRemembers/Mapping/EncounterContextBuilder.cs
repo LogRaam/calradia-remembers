@@ -101,7 +101,8 @@ namespace CalradiaRemembers.Mapping
          bool captiveVictimIsFemale = false,
          CompanionAudienceReason companionAudience = CompanionAudienceReason.None,
          bool audienceRetirementIsLanded = false,
-         bool resolveInterception = true)
+         bool resolveInterception = true,
+         bool isRoundTableTurn = false)
       {
          int daysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge);
          bool npcIsPrisonerOfAnother = IsPrisonerOfAnother(hero);
@@ -109,6 +110,7 @@ namespace CalradiaRemembers.Mapping
 
          return new() {
             PlayerStatus = playerStatus,
+            IsRoundTableTurn = isRoundTableTurn,
             WarStatus = bridge.GetDiplomaticStatus(hero),
             DaysSinceLastMeeting = daysSinceLastMeeting,
             MeetingGapNote = MeetingGapDescriber.Describe(daysSinceLastMeeting),

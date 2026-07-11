@@ -26,7 +26,7 @@ using TaleWorlds.Library;
 
 namespace CalradiaRemembers.Chat
 {
-   public sealed partial class ChatViewModel : ViewModel
+   public sealed partial class ChatViewModel : ViewModel, IRoundTableHost, IActionConfirmationHost, IOfferHost
    {
       // Externalized scene STRUCTURE: a director walks an explicit stage machine (Intro → Initiate
       // → Intensify → Climax → Conclude, plus collective sub-acts) and feeds the model ONE named
@@ -145,6 +145,15 @@ namespace CalradiaRemembers.Chat
       private string _currentSpeakerHeroId;
       private CaptiveSceneDirector _director;
 
+      // ── Round table (group mode) ──────────────────────────────────────────
+      // The group-lap feature (open the floor to everyone) lives in its own controller so it no longer threads
+      // through the shared ChatViewModel partials (which forced a surgical-commit dance every release). The
+      // controller owns the "requested"/rotation state and drives the deterministic lap through the
+      // IRoundTableHost seam (this view model). _isRoundTableVisible backs the prefab-bound IsRoundTableVisible
+      // button; its value is computed by the controller.
+      private readonly RoundTableController _roundTable = new RoundTableController();
+      private bool _isRoundTableVisible;
+
       // ── Fallback conversation memory ──────────────────────────────────────
       // The LLM mostly emits [EVENT] on a natural farewell; if the player closes
       // the window mid-exchange, nothing was recorded and the NPC forgets the
@@ -219,10 +228,6 @@ namespace CalradiaRemembers.Chat
       // RunLlmExchangeAsync finally block from re-enabling input prematurely.
       private bool _npcWitnessExchangePending;
 
-      // StringId of the item the player picked from the bag this turn — give_item transfers exactly
-      // this, so a freely-given gift never depends on the LLM echoing the item's display name back.
-      private string _offeredItemId;
-
       // Total player text length this session — feeds the one-substantial-turn fallback-memory rule.
       private int _playerCharsThisSession;
 
@@ -276,7 +281,9 @@ namespace CalradiaRemembers.Chat
       // VRAM stayed flat as live portraits climbed, because the original v1.23 leak was the map screen rendering
       // behind the overlay (fixed, unrelated to portrait count) and we free every tableau on close
       // (ReleaseAllPortraits). So all portraits now persist. Flip back to true only if a VRAM report resurfaces.
-      private const bool EnforcePortraitCapInChat = false;
+      // static readonly, not const: keeps this a runtime kill-switch (flip to true to re-enable the cap) without
+      // the compiler folding the const away and flagging the guard below as unreachable dead code.
+      private static readonly bool EnforcePortraitCapInChat = false;
 
       /// <summary>
       ///   On each inserted line, keep VRAM bounded by the number of participants (not the transcript length):
@@ -503,6 +510,19 @@ namespace CalradiaRemembers.Chat
          {
             if (_isPrivateRequestVisible == value) return;
             _isPrivateRequestVisible = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>True when the "Round Table" button should be shown (a group is present to go round).</summary>
+      [DataSourceProperty]
+      public bool IsRoundTableVisible
+      {
+         get => _isRoundTableVisible;
+         set
+         {
+            if (_isRoundTableVisible == value) return;
+            _isRoundTableVisible = value;
             OnPropertyChangedWithValue(value);
          }
       }
@@ -1080,184 +1100,10 @@ namespace CalradiaRemembers.Chat
 
       // ── Action confirmation (terminal-style, in chat) ─────────────────────
       // A consequential LLM action (coin transfer / service commitment) is not applied on the spot: it is queued
-      // and the player is asked to confirm IN CHAT, Y as default. This tames the LLM re-emitting the same action
-      // every turn (the reported repeated charges), and a declined action is forgotten (never applied, and a
-      // correction is fed back so neither the ongoing context nor the end-of-conversation memory records it).
-      private bool _awaitingConfirmation;
-      private readonly Queue<PendingConfirmation> _pendingConfirmations = new Queue<PendingConfirmation>();
-
-      // Idempotence: a coin/commit action already resolved this conversation (applied, declined, or a give
-      // already paid) is not acted on again, so the LLM re-emitting the same transfer every turn does nothing.
-      // Key is type:targetId:amount, so a genuinely different amount or NPC is still a distinct action.
-      private readonly HashSet<string> _resolvedActionKeys = new HashSet<string>();
-
-      /// <summary>True while the chat is listening for a Y/n answer instead of sending to the LLM.</summary>
-      public bool IsAwaitingConfirmation => _awaitingConfirmation;
-
-      /// <summary>What the action loop should do with a coin/commit action after preprocessing it.</summary>
-      public enum ActionDisposition
-      {
-         /// <summary>Run it now through the bridge, as the loop normally would (ordinary actions and give_gold).</summary>
-         ExecuteInline,
-
-         /// <summary>It was queued for the player's in-chat confirmation; the loop must not run it.</summary>
-         Queued,
-
-         /// <summary>It is a repeat of an already-resolved action this conversation; the loop must drop it.</summary>
-         Skip
-      }
-
-      /// <summary>
-      ///   Preprocesses a coin/commit action before the loop would run it. An identical action already resolved
-      ///   this conversation is dropped (<see cref="ActionDisposition.Skip" />), taming the LLM re-emitting the
-      ///   same transfer every turn. A player-outgoing spend (take_gold, join_party) is queued for confirmation
-      ///   (<see cref="ActionDisposition.Queued" />). Everything else, including give_gold (the NPC's own gift to
-      ///   the player) and consequences like change_relation, runs inline as before.
-      /// </summary>
-      public ActionDisposition PreprocessConsequentialAction(GameAction action, Hero npc, NpcProfile profile, ActionContext context)
-      {
-         if (action == null) return ActionDisposition.ExecuteInline;
-
-         string type = action.Type ?? "";
-         bool tracked = type.Equals("give_gold", StringComparison.OrdinalIgnoreCase)
-                        || type.Equals("take_gold", StringComparison.OrdinalIgnoreCase)
-                        || type.Equals("join_party", StringComparison.OrdinalIgnoreCase);
-         if (!tracked) return ActionDisposition.ExecuteInline; // change_relation, execute_prisoner, etc.: untouched
-
-         int amount = ExtractAmount(action);
-         string key = $"{type.ToLowerInvariant()}:{npc?.StringId}:{amount}";
-         if (_resolvedActionKeys.Contains(key))
-         {
-            ModLog.Info($"[CONFIRM] repeat suppressed ({key}): the LLM re-emitted an already-resolved transfer.");
-
-            return ActionDisposition.Skip;
-         }
-
-         _resolvedActionKeys.Add(key); // resolved for this conversation whatever happens next
-
-         if (!ActionConfirmationPolicy.RequiresConfirmation(type)) return ActionDisposition.ExecuteInline; // give_gold
-
-         string npcName = npc?.Name?.ToString() ?? profile?.Name ?? "them";
-         _pendingConfirmations.Enqueue(new PendingConfirmation
-         {
-            Action = action,
-            Npc = npc,
-            Profile = profile,
-            Context = context,
-            Amount = amount,
-            Question = ActionConfirmationPolicy.BuildQuestion(type, npcName, amount)
-         });
-
-         return ActionDisposition.Queued;
-      }
-
-      /// <summary>The coin amount of a gold/hire action, from its "amount" or "price" parameter (0 if absent).</summary>
-      private static int ExtractAmount(GameAction action)
-      {
-         int amount = 0;
-         if (action.Parameters != null
-             && (action.Parameters.TryGetValue("amount", out string a) || action.Parameters.TryGetValue("price", out a)))
-            int.TryParse(a, out amount);
-
-         return amount;
-      }
-
-      /// <summary>
-      ///   Raises the next queued confirmation as an OOC chat prompt (Y default), putting the chat into listen
-      ///   mode. If the conversation already ended (the player cannot answer), the queued spends are DROPPED, not
-      ///   applied: a player-outgoing payment must never go through without the player's consent.
-      /// </summary>
-      public void PromptNextConfirmation()
-      {
-         if (_pendingConfirmations.Count == 0)
-         {
-            _awaitingConfirmation = false;
-
-            return;
-         }
-
-         if (_conversationEnded)
-         {
-            ModLog.Info($"[CONFIRM] conversation ended with {_pendingConfirmations.Count} unanswered confirmation(s), dropped, nothing charged.");
-            _pendingConfirmations.Clear();
-            _awaitingConfirmation = false;
-
-            return;
-         }
-
-         _awaitingConfirmation = true;
-         AppendOocMessage($"» {_pendingConfirmations.Peek().Question} [Y/n]");
-      }
-
-      /// <summary>
-      ///   Routes a player input while a confirmation is pending. Enter/y/yes applies it; n/no declines it;
-      ///   anything else is treated as the player recomposing: every pending action is declined and the typed
-      ///   message is sent to the LLM as a fresh turn.
-      /// </summary>
-      private void HandleConfirmationInput(string raw)
-      {
-         ConfirmationAnswer answer = ActionConfirmationPolicy.ParseAnswer(raw);
-
-         if (answer == ConfirmationAnswer.Recompose)
-         {
-            while (_pendingConfirmations.Count > 0) DeclineAction(_pendingConfirmations.Dequeue());
-            _awaitingConfirmation = false;
-            InputText = raw;
-            ExecuteSendMessage(); // now that _awaitingConfirmation is false, this sends normally
-
-            return;
-         }
-
-         PendingConfirmation p = _pendingConfirmations.Dequeue();
-         if (answer == ConfirmationAnswer.Confirm) ApplyConfirmedAction(p);
-         else DeclineAction(p);
-
-         if (_pendingConfirmations.Count > 0) PromptNextConfirmation();
-         else _awaitingConfirmation = false;
-      }
-
-      /// <summary>Executes a confirmed action through the bridge and reports it, exactly as the inline path would have.</summary>
-      private void ApplyConfirmedAction(PendingConfirmation p)
-      {
-         try
-         {
-            ActionOutcome outcome = NpcMemoryCampaignBehavior.Instance?.GameStateBridge
-               .ExecuteAction(p.Action, p.Npc, p.Context);
-            if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);
-
-            if (string.Equals(p.Action.Type, "give_gold", StringComparison.OrdinalIgnoreCase))
-               StoryLog.WriteGoldTransfer(p.Profile?.Name, p.Amount, true);
-            else if (string.Equals(p.Action.Type, "take_gold", StringComparison.OrdinalIgnoreCase))
-               StoryLog.WriteGoldTransfer(p.Profile?.Name, p.Amount, false);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[CONFIRM] apply failed: {ex.GetType().Name}: {ex.Message}");
-         }
-      }
-
-      /// <summary>
-      ///   Drops a declined action: it is never executed, and a correction is recorded into the transcript so the
-      ///   LLM stops treating it as done (both in the ongoing exchange and in the end-of-conversation summary).
-      /// </summary>
-      private void DeclineAction(PendingConfirmation p)
-      {
-         AppendOocMessage($"» Declined. \"{p.Question}\" was not carried out.");
-         string note = $"(Out of character: I declined the offer \"{p.Question}\" It did not happen, no coins or service changed hands. Do not treat it as done.)";
-         try { RecordTranscript(true, "You", Hero.MainHero?.StringId, note); }
-         catch (Exception ex) { ModLog.Error($"[CONFIRM] decline note failed: {ex.GetType().Name}: {ex.Message}"); }
-         ModLog.Info($"[CONFIRM] player declined {p.Action?.Type} ({p.Amount}).");
-      }
-
-      private sealed class PendingConfirmation
-      {
-         public GameAction Action;
-         public int Amount;
-         public ActionContext Context;
-         public Hero Npc;
-         public NpcProfile Profile;
-         public string Question;
-      }
+      // and the player asked to confirm IN CHAT. The whole feature (queue, dedup, Y/n flow, apply/decline) lives
+      // in its own controller so it no longer threads through the shared ChatViewModel partials (mirroring the
+      // round-table extraction); the controller drives this view model through the IActionConfirmationHost seam.
+      private readonly ActionConfirmationController _confirmation = new ActionConfirmationController();
 
       /// <summary>
       ///   Appends a witness reaction as a separate chat message, resolved to the
@@ -1609,6 +1455,13 @@ namespace CalradiaRemembers.Chat
          _ = RunCaptiveSceneContinuationAsync();
       }
 
+      // ── Offer ("give") flow ───────────────────────────────────────────────
+      // The bag (item/gold/prisoner gift, plus settling an outstanding bargain or supply quest) lives in its own
+      // controller so it no longer threads through the shared ChatViewModel partials (mirroring the round-table and
+      // action-confirmation extractions); the controller owns _offeredItemId and drives this view model through the
+      // IOfferHost seam. ExecuteOfferItem/ExecuteOfferGold stay here because their buttons are prefab-bound.
+      private readonly OfferController _offer = new OfferController();
+
       /// <summary>
       ///   Legacy entry point kept for the old "Give Gold" binding: routes to the same gold
       ///   prompt the unified give control now uses.
@@ -1616,7 +1469,7 @@ namespace CalradiaRemembers.Chat
       public void ExecuteOfferGold()
       {
          if (_mode != ChatMode.Conversation || _conversationEnded) return;
-         PromptGoldOffer();
+         _offer.PromptGold(this);
       }
 
       /// <summary>
@@ -1628,81 +1481,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public void ExecuteOfferItem()
       {
-         if (_mode != ChatMode.Conversation || _conversationEnded) return;
-
-         // A bargain awaiting goods: the bag settles it (multi-select, bridge enforces the value).
-         InformalQuest bargain = FindOutstandingItemBargain();
-         if (bargain != null)
-         {
-            ItemPickerService.ShowBargainPicker(
-               bargain.RequiredItemValue, offers => SettleItemBargain(bargain, offers));
-
-            return;
-         }
-
-         // A supply task (ProvideGoods) awaiting delivery: the bag hands over the matching goods by count.
-         InformalQuest supply = FindOutstandingSupplyQuest();
-         if (supply != null)
-         {
-            ItemPickerService.ShowSupplyPicker(
-               supply.RequiredItemCategory, supply.RequiredItemCount, offers => SettleSupply(supply, offers));
-
-            return;
-         }
-
-         List<Hero> prisoners = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners();
-         if (prisoners.Count == 0)
-         {
-            ShowInventoryOffer();
-
-            return;
-         }
-
-         var choices = new List<InquiryElement> {
-            new InquiryElement("goods", "Goods or gold", null),
-            new InquiryElement("prisoner", "A prisoner", null)
-         };
-         MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
-            "What do you offer?",
-            "",
-            choices, true, 1, 1, "Choose", "Cancel",
-            picked =>
-            {
-               if ((picked?.FirstOrDefault()?.Identifier as string) == "prisoner") OfferHeldPrisoner(prisoners);
-               else ShowInventoryOffer();
-            },
-            null));
-      }
-
-      /// <summary>Opens the item picker (with a give-gold fallback) and pre-fills the chosen item into the input.</summary>
-      private void ShowInventoryOffer()
-      {
-         // Remember the exact item id so give_item transfers THAT item, not whatever name the LLM echoes back.
-         ItemPickerService.ShowItemPicker(
-            (itemId, name, value) =>
-            {
-               _offeredItemId = itemId;
-               InputText = $"I would like to offer you {name} (worth {value:N0} denars).";
-               ModLog.Info($"[OFFER] player pre-filled offer: {name} ({value} denars, id={itemId}).");
-            },
-            PromptGoldOffer);
-      }
-
-      /// <summary>Opens a picker of the held hero captives so the player can offer to sell one; the pick pre-fills the chat input.</summary>
-      private void OfferHeldPrisoner(List<Hero> held)
-      {
-         var options = held.Select(h => new InquiryElement(h, h.Name?.ToString() ?? "a captive", null)).ToList();
-         MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
-            "Offer a Prisoner",
-            "Which captive do you offer to sell?",
-            options, true, 1, 1, "Offer", "Cancel",
-            picked =>
-            {
-               if (picked?.FirstOrDefault()?.Identifier is not Hero captive) return;
-               InputText = $"I have {captive.Name} in my custody. Would you buy this prisoner from me?";
-               ModLog.Info($"[OFFER PRISONER] pre-filled: {captive.Name}.");
-            },
-            null));
+         _offer.Execute(this);
       }
 
       /// <summary>
@@ -1839,15 +1618,35 @@ namespace CalradiaRemembers.Chat
       private bool NpcIsPlayerPrisoner()
          => _npcHero is {IsPrisoner: true} && _npcHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
 
+      /// <summary>
+      ///   Player opens the floor to the whole group (the "Round Table" button): the main NPC and each present
+      ///   witness take a turn in a deterministic lap (capped, they may address one another), then control returns
+      ///   to the player. A model-independent alternative to hoping the model volunteers witness reactions.
+      /// </summary>
+      public void ExecuteRoundTable()
+      {
+         if (_npcWitnessExchangePending || _conversationEnded || IsCaptiveEncounter) return;
+         if (_witnesses.Count == 0 || !IsSendEnabled) return;
+
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (behavior?.LlmServices is not {IsAvailable: true}) return;
+
+         ModLog.Info("[ROUNDTABLE] player opened the floor (button).");
+         _npcWitnessExchangePending = true;
+         IsSendEnabled = false;
+         _ = RunRoundTableLapAsync(AllPresentSpeakers());
+      }
+
       public void ExecuteSendMessage()
       {
          // While a consequential action awaits confirmation, this input is the Y/n answer, not an LLM turn.
          // An empty input (the player just pressed Enter) is the default Yes, so intercept BEFORE the empty guard.
-         if (_awaitingConfirmation)
+         if (_confirmation.IsAwaiting)
          {
             string answer = InputText ?? "";
             InputText = "";
-            HandleConfirmationInput(answer);
+            _confirmation.HandleInput(this, answer);
 
             return;
          }
@@ -1872,6 +1671,9 @@ namespace CalradiaRemembers.Chat
          if (_isComposeOpen) IsComposeOpen = false; // sending closes the review panel
          _witnessExchangesThisRound = 0; // reset the 15C cap for this new player turn
          _sceneContinuations = 0; // reset scene-continuation count for this new player turn
+         // The player may open the floor to the group in their own words ("what do you all think?"); consumed
+         // after the main NPC's reply to run a round-table lap. Only outside captive scenes, with a group present.
+         _roundTable.OnPlayerSend(text, _witnesses.Count, IsCaptiveEncounter);
          _ = RunLlmExchangeAsync(text, speaker, placeholder);
       }
 
@@ -2273,15 +2075,6 @@ namespace CalradiaRemembers.Chat
       ///   or a witness the player addressed. Carries the profile/hero/colour needed
       ///   to route the LLM call and render the reply under the right portrait.
       /// </summary>
-      private sealed class ChatSpeaker
-      {
-         public string Color; // null → default NPC cream
-         public Hero Hero;
-         public bool IsMain;
-         public string Name;
-         public NpcProfile Profile;
-      }
-
       /// <summary>One attributed line of conversation history.</summary>
       private sealed class TranscriptEntry
       {
@@ -2421,29 +2214,6 @@ namespace CalradiaRemembers.Chat
             ModLog.Info($"[COMPANION SCENE] atrocity recorded: {captorName} vs {victim.Name}.");
          }
          catch (Exception ex) { ModLog.Error($"[COMPANION SCENE] world-event record failed: {ex.GetType().Name}: {ex.Message}"); }
-      }
-
-      /// <summary>
-      ///   Asks the player how many denars to give, then pre-fills the chat input so the
-      ///   NPC can respond with take_gold — which transfers the gold and stamps any outstanding
-      ///   ProvideGold quest as satisfied (any amount counts).
-      /// </summary>
-      private void PromptGoldOffer()
-      {
-         int carried = Hero.MainHero?.Gold ?? 0;
-         InformationManager.ShowTextInquiry(new TextInquiryData(
-            "Give Gold",
-            $"How many denars? (You carry {carried:N0}.)",
-            true, true,
-            "Give", "Cancel",
-            amountText =>
-            {
-               if (!int.TryParse(amountText?.Trim(), out int amount) || amount <= 0) return;
-               amount = Math.Min(amount, carried);
-               InputText = $"I would like to give you {amount:N0} denars.";
-               ModLog.Info($"[OFFER GOLD] pre-filled: {amount} denars.");
-            },
-            null));
       }
 
       #endregion

@@ -1,0 +1,53 @@
+// Code written by Gabriel Mailhot, 11/07/2026.
+
+namespace CalradiaRemembers.Logic
+{
+    /// <summary>
+    ///   The pure decision state of the round-table feature: whether the player's last message opened the floor to
+    ///   the whole group, whether the round-table button/UI should be offered, and where the next deterministic lap
+    ///   should start. Kept in CalradiaRemembers.Logic so it is unit-testable without the engine; the engine glue
+    ///   (running the actual turns) lives in the mod's RoundTableController, which composes this.
+    /// </summary>
+    public sealed class RoundTableGate
+    {
+        private bool _requested;
+
+        /// <summary>
+        ///   Round-robin start index for the next lap: rotates so, over repeated triggers, participants beyond the
+        ///   per-burst cap still get a turn. Read and advanced by the controller's lap.
+        /// </summary>
+        public int Start { get; set; }
+
+        /// <summary>
+        ///   True when the round-table button/UI should be shown: a group is present (witnessCount &gt; 0), the
+        ///   scene is not a captive encounter, and the conversation has not ended.
+        /// </summary>
+        public bool ComputeVisible(int witnessCount, bool isCaptiveEncounter, bool conversationEnded)
+            => witnessCount > 0 && !isCaptiveEncounter && !conversationEnded;
+
+        /// <summary>
+        ///   Records whether the player's own message opened the floor to the whole group this turn: only outside a
+        ///   captive scene, with a group present, and when the text reads as a round-table intent
+        ///   (<see cref="RoundTableIntentDetector" />). Overwrites any prior pending request.
+        /// </summary>
+        public void OnPlayerSend(string text, int witnessCount, bool isCaptiveEncounter)
+            => _requested = witnessCount > 0 && !isCaptiveEncounter && RoundTableIntentDetector.Detects(text);
+
+        /// <summary>
+        ///   Consumes a pending "open the floor" request after the main NPC's reply: returns true (and clears the
+        ///   request, so it fires at most once) when a request is pending, the main NPC just spoke, the scene is not
+        ///   a captive encounter, and the conversation is still open; false otherwise.
+        /// </summary>
+        public bool TryConsumeForMainReply(bool speakerIsMain, bool isCaptiveEncounter, bool conversationEnded)
+        {
+            if (_requested && speakerIsMain && !isCaptiveEncounter && !conversationEnded)
+            {
+                _requested = false;
+
+                return true;
+            }
+
+            return false;
+        }
+    }
+}

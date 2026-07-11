@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 03/07/2026.
+// Code written by Gabriel Mailhot, 11/07/2026.
 
 #region
 
@@ -536,7 +536,7 @@ namespace CalradiaRemembers.Chat
 
             // Sync an authored orientation override (player request: enable e.g. a female-female romance the
             // rolled "heterosexual" blocked). Applied live each turn so an edit takes effect without a reload.
-            NpcMemoryService.Core.Models.SexualOrientation? authoredOrientation = CharacterOverrideLoader.OrientationFor(speaker.Hero);
+            SexualOrientation? authoredOrientation = CharacterOverrideLoader.OrientationFor(speaker.Hero);
             if (authoredOrientation.HasValue && profile.Romantic != null && profile.Romantic.Orientation != authoredOrientation.Value)
             {
                profile.Romantic.Orientation = authoredOrientation.Value;
@@ -714,9 +714,9 @@ namespace CalradiaRemembers.Chat
                // deliberately enabled same-sex romance rouses jealousy like any other; the default world
                // (heterosexual orientations) keeps the original opposite-sex behaviour. No romantic profile
                // falls back to the opposite-sex rule.
-               bool plausiblePair = courted != null && Hero.MainHero != null &&
-                                    (profile.Romantic?.IsCompatibleWith(Hero.MainHero.IsFemale)
-                                     ?? courted.IsFemale != Hero.MainHero.IsFemale);
+               bool plausiblePair = courted != null &&
+                                    Hero.MainHero != null &&
+                                    (profile.Romantic?.IsCompatibleWith(Hero.MainHero.IsFemale) ?? courted.IsFemale != Hero.MainHero.IsFemale);
                int romanticEvents = profile.Events.Count(e =>
                   e.type is NotableEventType.Flirt or NotableEventType.Intimacy); // includes today's, just applied
                bool questBeat = response.QuestCompleted != null;
@@ -745,15 +745,15 @@ namespace CalradiaRemembers.Chat
                   else if (ModSettings.AdultContentLevel != AdultContentLevel.Off)
                      AppreciationBehavior.Instance?.TryPlant(partner, Hero.MainHero,
                         AppreciationSource.KindnessInScene, "A tender moment we shared.",
-                        AppreciationBackfillRules.KindnessInSceneMagnitude, knownToPlayer: true, gameDay);
+                        AppreciationBackfillRules.KindnessInSceneMagnitude, true, gameDay);
                }
             }
 
             // ── Execute game actions emitted by the LLM ───────────────────
             // RelationGate may stamp profile.LastRelationGainHour, so persist
             // AFTER actions run (below), not before.
-            bool prisonerExecuted = false;
-            bool nemesisTurned = false;
+            var prisonerExecuted = false;
+            var nemesisTurned = false;
             if (response.Actions is {Count: > 0})
             {
                // Double-payment guard: when the LLM emits join_party it sometimes ALSO
@@ -764,7 +764,7 @@ namespace CalradiaRemembers.Chat
                   string.Equals(a.Type, "join_party", StringComparison.OrdinalIgnoreCase));
 
                var actionContext = new ActionContext(profile, response.NewEventData?.Type) {
-                  OfferedItemId = _offeredItemId
+                  OfferedItemId = _offer.OfferedItemId
                };
                foreach (GameAction action in response.Actions)
                {
@@ -805,7 +805,8 @@ namespace CalradiaRemembers.Chat
                   // dropped (the LLM re-emitting the same transfer), and a player-outgoing spend (take_gold /
                   // join_party) is queued for in-chat confirmation. give_gold and everything else run inline.
                   ActionDisposition disposition =
-                     PreprocessConsequentialAction(action, speaker.Hero, profile, actionContext);
+                     _confirmation.Preprocess(action, speaker.Hero, profile, actionContext);
+
                   if (disposition != ActionDisposition.ExecuteInline) continue;
 
                   ActionOutcome outcome =
@@ -872,8 +873,7 @@ namespace CalradiaRemembers.Chat
                   action.Parameters.TryGetValue("result", out string privacyResult);
                   // A prisoner cannot refuse the player: whatever the LLM emitted, the player's own captive
                   // yields the room (player suggestion, ApocalyptikGreen 2026-07-10).
-                  bool privacyAccepted = NpcIsPlayerPrisoner()
-                     || string.Equals(privacyResult, "accepted", StringComparison.OrdinalIgnoreCase);
+                  bool privacyAccepted = NpcIsPlayerPrisoner() || string.Equals(privacyResult, "accepted", StringComparison.OrdinalIgnoreCase);
                   if (privacyAccepted)
                   {
                      _witnesses.Clear();
@@ -963,6 +963,20 @@ namespace CalradiaRemembers.Chat
 
             // Mark any delivered player letters read now that the NPC has responded.
             PlayerLetterService.MarkLettersRead(profile, behavior.Store);
+
+            // ── Round table: the player opened the floor to the group this turn ──
+            // Takes precedence over the model-driven 15C auto-exchange: instead of hoping the model
+            // volunteered [WITNESS_REACTION]s, give each present witness a deterministic turn (they may
+            // address one another), capped, then return control to the player. Model-independent.
+            if (_roundTable.TryConsumeForMainReply(speaker.IsMain, IsCaptiveEncounter, _conversationEnded))
+            {
+               foreach (var (wName, wHeroId, wText) in witnessReactions)
+                  RecordTranscript(false, wName, wHeroId, wText); // preserve order: any reactions precede the lap
+               _npcWitnessExchangePending = true;
+               _ = RunRoundTableLapAsync(PresentWitnessSpeakers());
+
+               return; // finally runs but input stays locked (_npcWitnessExchangePending)
+            }
 
             // ── Sprint 15C: NPC auto-replies once to witness reactions ─────
             // When the main NPC held the floor and witnesses reacted, give them one
@@ -1062,8 +1076,7 @@ namespace CalradiaRemembers.Chat
                // say plainly whose scissors these are. Only after the SDK's automatic re-roll also came
                // back filtered, so a quietly recovered reply never carries a scary banner.
                string normalizedFinish = result.FinishReason.Replace("-", "").Replace("_", "");
-               if (string.Equals(normalizedFinish, "contentfilter", StringComparison.OrdinalIgnoreCase)
-                   || string.Equals(normalizedFinish, "moderation", StringComparison.OrdinalIgnoreCase))
+               if (string.Equals(normalizedFinish, "contentfilter", StringComparison.OrdinalIgnoreCase) || string.Equals(normalizedFinish, "moderation", StringComparison.OrdinalIgnoreCase))
                   AppendSystemMessage("The model host's own content filter cut this reply short. This is the provider, not the mod; another attempt, model, or provider usually passes.", false);
             }
          }
@@ -1077,7 +1090,7 @@ namespace CalradiaRemembers.Chat
          {
             // A bag offer is consumed by the turn it was sent with — clear it so a later, unrelated
             // give_item never re-transfers the previously picked item.
-            _offeredItemId = null;
+            _offer.ClearOfferedItem();
 
             // The NPC's opening turn (if any) is delivered now — reveal the chat input (unless the scene paused,
             // which hides it in its own right). Notify so the InputBox/Send/"<" reappear.
@@ -1096,8 +1109,8 @@ namespace CalradiaRemembers.Chat
             {
                IsSendEnabled = !_conversationEnded;
                // Reply delivered and control is back with the player: raise any queued action confirmation now
-               // (PromptNextConfirmation auto-applies instead if the conversation just ended).
-               if (_pendingConfirmations.Count > 0 && !_awaitingConfirmation) PromptNextConfirmation();
+               // (PromptNext drops them instead if the conversation just ended).
+               if (_confirmation.HasPending && !_confirmation.IsAwaiting) _confirmation.PromptNext(this);
             }
          }
       }
@@ -1262,10 +1275,125 @@ namespace CalradiaRemembers.Chat
             IsSendEnabled = !_conversationEnded;
             // Control is back with the player after the witness lap: raise any confirmation queued from the
             // main reply that was deferred while the lap ran.
-            if (_pendingConfirmations.Count > 0 && !_awaitingConfirmation && !_isScenePaused && !_sceneContinuationPending)
-               PromptNextConfirmation();
+            if (_confirmation.HasPending && !_confirmation.IsAwaiting && !_isScenePaused && !_sceneContinuationPending)
+               _confirmation.PromptNext(this);
          }
       }
+
+      /// <summary>
+      ///   Runs one round-table lap through the controller, then restores player input. The lap body (turn order,
+      ///   per-speaker LLM turns, the rotation update) lives in <see cref="RoundTableController.RunAsync" />; this
+      ///   thin wrapper owns the finally that re-enables the input the button/consume path locked, mirroring the
+      ///   original RunRoundTableAsync's finally exactly (clears the witness-exchange guard, re-enables send unless
+      ///   the conversation ended, and refreshes the witness UI).
+      /// </summary>
+      private async Task RunRoundTableLapAsync(List<ChatSpeaker> participants)
+      {
+         try
+         {
+            await _roundTable.RunAsync(this, participants);
+         }
+         finally
+         {
+            _npcWitnessExchangePending = false;
+            IsSendEnabled = !_conversationEnded;
+            RefreshWitnessUi();
+         }
+      }
+
+      #region IRoundTableHost
+
+      /// <summary>True once the conversation has ended (NPC farewell / end_conversation) so the lap stops.</summary>
+      bool IRoundTableHost.IsConversationEnded => _conversationEnded;
+
+      /// <summary>True while this view model is still the active chat (guards a stale async continuation).</summary>
+      bool IRoundTableHost.IsStillActiveView => ReferenceEquals(ChatManager.ActiveViewModel, this);
+
+      ChatSession IRoundTableHost.BuildSession(ChatSpeaker speaker) => BuildSessionFor(speaker);
+
+      IReadOnlyList<WitnessEntry> IRoundTableHost.BuildContextWitnesses(ChatSpeaker speaker) => BuildContextWitnesses(speaker);
+
+      ChatMessageViewModel IRoundTableHost.AddPlaceholder(ChatSpeaker speaker)
+      {
+         ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+         _messages.Add(placeholder);
+         ChatManager.ScrollToBottom();
+
+         return placeholder;
+      }
+
+      void IRoundTableHost.RemovePlaceholder(ChatMessageViewModel placeholder) => RemovePlaceholder(placeholder);
+
+      string IRoundTableHost.RenderTurn(ChatMessageViewModel placeholder, ChatSpeaker speaker, ParsedResponse response)
+         => RenderNpcTurn(placeholder, speaker, response);
+
+      void IRoundTableHost.RecordTranscriptLine(bool isPlayer, string name, string heroId, string text)
+         => RecordTranscript(isPlayer, name, heroId, text);
+
+      void IRoundTableHost.AppendNarration(string narration) => AppendNarration(narration);
+
+      void IRoundTableHost.HandleWitnessLeaves(ParsedResponse response) => HandleWitnessLeaves(response);
+
+      /// <summary>Locks the conversation exactly as an NPC's end_conversation does during a round-table lap.</summary>
+      void IRoundTableHost.MarkConversationEndedBySpeaker(string speakerName)
+      {
+         _conversationEnded = true;
+         IsPrivateRequestVisible = false;
+         CloseButtonText = "Leave";
+         OnPropertyChanged(nameof(IsOfferItemVisible));
+         AppendSystemMessage($"{speakerName} has ended the conversation.", false);
+      }
+
+      void IRoundTableHost.LogVram(string tag) => LogVramSample(tag);
+
+      #endregion
+
+      #region IActionConfirmationHost
+
+      /// <summary>True once the conversation has ended so queued spends are dropped rather than applied unconfirmed.</summary>
+      bool IActionConfirmationHost.IsConversationEnded => _conversationEnded;
+
+      void IActionConfirmationHost.AppendOoc(string text) => AppendOocMessage(text);
+
+      void IActionConfirmationHost.AppendSystemMessageLine(string text, bool positive) => AppendSystemMessage(text, positive);
+
+      void IActionConfirmationHost.RecordTranscriptLine(bool isPlayer, string name, string heroId, string text)
+         => RecordTranscript(isPlayer, name, heroId, text);
+
+      /// <summary>The recompose path: restore the typed text as the player's input and send it as a fresh LLM turn.</summary>
+      void IActionConfirmationHost.SendPlayerMessage(string raw)
+      {
+         InputText = raw;
+         ExecuteSendMessage();
+      }
+
+      #endregion
+
+      #region IOfferHost
+
+      /// <summary>The current conversation partner (the recipient of any offer).</summary>
+      Hero IOfferHost.Npc => _npcHero;
+
+      /// <summary>True while an offer may be made: a plain live conversation that has not yet ended.</summary>
+      bool IOfferHost.CanOffer => _mode == ChatMode.Conversation && !_conversationEnded;
+
+      void IOfferHost.SetInputText(string text) => InputText = text;
+
+      void IOfferHost.AppendSystemMessageLine(string text, bool positive) => AppendSystemMessage(text, positive);
+
+      void IOfferHost.NotifyOfferItemVisibilityChanged() => OnPropertyChanged(nameof(IsOfferItemVisible));
+
+      /// <summary>Starts one NPC acceptance turn for a just-closed item bargain (the NPC accepts the goods in their own voice).</summary>
+      void IOfferHost.BeginBargainAcceptanceTurn(string stimulus)
+      {
+         ChatSpeaker speaker = MainSpeaker();
+         ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+         _messages.Add(placeholder);
+         IsSendEnabled = false;
+         _ = RunLlmExchangeAsync(stimulus, speaker, placeholder, true);
+      }
+
+      #endregion
 
       #endregion
    }
