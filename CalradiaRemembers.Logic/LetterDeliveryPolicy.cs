@@ -1,0 +1,54 @@
+// Code written by Gabriel Mailhot, 11/07/2026.
+// Two distinct delivery concerns for letters: divorce letters must ALWAYS reach the player (they must never
+// be silently held back, whatever their sender's proximity), while loneliness/longing letters read wrong
+// when the sender is standing right beside the player and should instead wait until they part again.
+
+#region
+
+using NpcMemoryService.Core.Models;
+
+#endregion
+
+namespace CalradiaRemembers.Logic
+{
+    /// <summary>
+    ///   Pure gate deciding whether a letter should be delivered now, or held back because its sender is
+    ///   currently near the player. Kept separate from cadence/distance policies: this is purely about
+    ///   the moment of delivery, not whether a letter is written at all.
+    /// </summary>
+    public static class LetterDeliveryPolicy
+    {
+        /// <summary>
+        ///   True for a letter reason that must ALWAYS reach the player, even while its sender stands right
+        ///   beside them: the player must always be told a divorce is unfolding, so these are never deferred
+        ///   for proximity.
+        /// </summary>
+        public static bool IsGuaranteedDelivery(LetterReason reason)
+        {
+            return reason == LetterReason.SpouseDivorceDemand || reason == LetterReason.SpouseDivorceEscalation;
+        }
+
+        /// <summary>
+        ///   True for a loneliness or longing letter reason that reads wrong when the sender is standing
+        ///   beside the player, and so should defer delivery until they are apart again.
+        /// </summary>
+        public static bool ShouldDeferWhenNear(LetterReason reason)
+        {
+            return reason == LetterReason.RomanticCorrespondence
+                || reason == LetterReason.SpouseCorrespondence
+                || reason == LetterReason.AwaitingReply;
+        }
+
+        /// <summary>
+        ///   The delivery gate: true when the letter should be held back rather than delivered right now,
+        ///   that is, the sender is currently near the player AND this reason is one that reads wrong up
+        ///   close (<see cref="ShouldDeferWhenNear" />). Guaranteed-delivery reasons
+        ///   (<see cref="IsGuaranteedDelivery" />) are never deferred by proximity even if a future reason
+        ///   set were to overlap both lists.
+        /// </summary>
+        public static bool ShouldDeferDelivery(LetterReason reason, bool senderNearPlayer)
+        {
+            return senderNearPlayer && ShouldDeferWhenNear(reason);
+        }
+    }
+}

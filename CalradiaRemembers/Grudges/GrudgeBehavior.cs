@@ -112,6 +112,41 @@ namespace CalradiaRemembers.Grudges
       }
 
       /// <summary>
+      ///   Resolves every live <see cref="GrudgeSource.Divorce" /> grudge HELD BY <paramref name="holderId" />
+      ///   (a reconciled spouse), so a called-off divorce no longer shadows the marriage in conversation. Returns
+      ///   the number cleared.
+      /// </summary>
+      public int ResolveDivorceGrudgesFrom(string holderId, int today)
+      {
+         if (string.IsNullOrEmpty(holderId)) return 0;
+
+         try
+         {
+            var resolved = 0;
+
+            foreach (Grudge g in _ledger.Grudges)
+            {
+               if (g.Source != GrudgeSource.Divorce || g.HolderId != holderId || g.IsResolved) continue;
+
+               g.IsResolved = true;
+               g.ResolvedDay = today;
+               resolved++;
+            }
+
+            if (resolved > 0)
+               ModLog.Info($"[GRUDGE] {resolved} Divorce grudge(s) from {holderId} cleared: the marriage reconciled.");
+
+            return resolved;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[GRUDGE] ResolveDivorceGrudgesFrom failed: {ex.GetType().Name}: {ex.Message}");
+
+            return 0;
+         }
+      }
+
+      /// <summary>
       ///   The dominant LIVE grudges this holder nurses that the PLAYER actually knows about — the ONLY
       ///   query the encyclopedia's "Grievances" section reads (never the full ledger). Reuses
       ///   <see cref="LiveGrudgesFor" /> for the same dominant ranking the prompt sees, then filters to

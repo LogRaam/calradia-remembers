@@ -42,6 +42,13 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>The spouse's own personal relation toward the player.</summary>
       public int SpouseRelationWithPlayer { get; set; }
+
+      /// <summary>
+      ///   The mod's own PERSONAL regard ledger for the spouse toward the player (the number the player
+      ///   actually sees and interacts with), the source of truth for how the spouse feels, distinct from
+      ///   the vanilla <see cref="SpouseRelationWithPlayer" />.
+      /// </summary>
+      public int SpouseReputationWithPlayer { get; set; }
    }
 
    /// <summary>
@@ -67,6 +74,13 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>The spouse's own personal relation toward the player, read at the moment of refusal.</summary>
       public int SpouseRelationWithPlayer { get; set; }
+
+      /// <summary>
+      ///   The mod's own PERSONAL regard ledger for the spouse toward the player (the number the player
+      ///   actually sees and interacts with), the source of truth for how the spouse feels, distinct from
+      ///   the vanilla <see cref="SpouseRelationWithPlayer" />.
+      /// </summary>
+      public int SpouseReputationWithPlayer { get; set; }
    }
 
    /// <summary>
@@ -88,6 +102,13 @@ namespace CalradiaRemembers.Logic
       ///   raise the demand, with no fresh wound needed at all.
       /// </summary>
       public const int MiserableRelationThreshold = -20;
+
+      /// <summary>
+      ///   Tuning: at/above this PERSONAL regard (<see cref="SpouseDivorceDemandFacts.SpouseReputationWithPlayer" />)
+      ///   the marriage is genuinely warm and NEVER divorces, whatever the vanilla relation or a stray grudge
+      ///   says.
+      /// </summary>
+      public const int HappyMarriageRegardThreshold = 20;
 
       // ── Escalation: the demand stops waiting and the spouse begins ending it themselves ────────
 
@@ -112,13 +133,16 @@ namespace CalradiaRemembers.Logic
       ///   (<see cref="MiserableRelationThreshold" />), a fresh wound just struck (jealousy or a discovered
       ///   bastard scandal, even at a merely moderate relation), or a live grudge against the player already
       ///   clears <see cref="GrudgeMagnitudeBar" />. A genuinely happy marriage, with none of these, never
-      ///   demands.
+      ///   demands. Above all of that, a spouse whose PERSONAL regard already clears
+      ///   <see cref="HappyMarriageRegardThreshold" /> never demands at all (the happy-marriage veto), whatever
+      ///   the vanilla relation or a stray grudge says.
       /// </summary>
       public static bool ShouldDemand(SpouseDivorceDemandFacts facts)
       {
          if (facts == null) return false;
          if (facts.AlreadyDemanding) return false;
          if (facts.EitherPregnant || facts.EitherPrisoner) return false;
+         if (facts.SpouseReputationWithPlayer >= HappyMarriageRegardThreshold) return false;
 
          bool miserable = facts.SpouseRelationWithPlayer <= MiserableRelationThreshold;
          bool freshWound = facts.RecentJealousyWound || facts.DiscoveredBastardScandal;
@@ -140,7 +164,9 @@ namespace CalradiaRemembers.Logic
       ///   estrangement of their own: they have been refused at least <see cref="RefusalsBeforeEscalation" />
       ///   times AND the marriage still reads unhappy by <see cref="DivorcePolicy.UnhappyThreshold" /> (the
       ///   same "unhappy" bar the rest of the divorce feature already shares) — never while an estrangement
-      ///   is already under way, and never while either party is pregnant or held prisoner.
+      ///   is already under way, and never while either party is pregnant or held prisoner. Same happy-marriage
+      ///   veto as <see cref="ShouldDemand" />: a spouse whose PERSONAL regard already clears
+      ///   <see cref="HappyMarriageRegardThreshold" /> never escalates at all.
       /// </summary>
       public static bool ShouldEscalate(SpouseDivorceEscalationFacts facts)
       {
@@ -148,6 +174,7 @@ namespace CalradiaRemembers.Logic
          if (facts.AlreadyEscalating) return false;
          if (facts.EitherPregnant || facts.EitherPrisoner) return false;
          if (facts.RefusalCount < RefusalsBeforeEscalation) return false;
+         if (facts.SpouseReputationWithPlayer >= HappyMarriageRegardThreshold) return false;
 
          return facts.SpouseRelationWithPlayer <= DivorcePolicy.UnhappyThreshold;
       }

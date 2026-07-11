@@ -27,10 +27,10 @@ namespace CalradiaRemembers.Logic.Grudges
     /// <summary>
     ///   Pure precedence rule: whether a dominant live grudge outranks the NPC's overall regard for the
     ///   player's tone this turn, and the directive line to voice when it does. The magnitude thresholds
-    ///   alone decide the ruling; <c>reputationWithPlayer</c> is accepted so future callers can log or
-    ///   reason about it alongside the ruling, but it does not currently shift either threshold (a
-    ///   deliberately narrow first cut — see the owner's "a strong grudge DOMINATES" ruling, which speaks
-    ///   only of the grudge's own magnitude).
+    ///   decide the ruling, but <c>reputationWithPlayer</c> now DOES shift them: a genuinely warm
+    ///   relationship (see <see cref="WarmthTemperingFloor" />) raises both bars smoothly, so a real bond
+    ///   needs a heavier grudge before it is tempered or dominated. A neutral or cold relationship rules
+    ///   exactly as before (see the owner's original "a strong grudge DOMINATES" ruling).
     /// </summary>
     public static class GrudgeToneArbiter
     {
@@ -39,6 +39,21 @@ namespace CalradiaRemembers.Logic.Grudges
 
         /// <summary>Tuning: at/above this effective magnitude (but below <see cref="DominanceThreshold" />), a reserve shadows the warmth.</summary>
         public const int TemperThreshold = 20;
+
+        /// <summary>
+        ///   Tuning: the personal regard at/above which warmth begins to soften a grudge's grip. Below this
+        ///   floor, regard does not change the ruling at all, so a neutral or cold relationship behaves
+        ///   exactly as if regard did not exist.
+        /// </summary>
+        public const int WarmthTemperingFloor = 20;
+
+        /// <summary>
+        ///   The number of points by which both <see cref="TemperThreshold" /> and
+        ///   <see cref="DominanceThreshold" /> rise for a given personal regard: zero at or below
+        ///   <see cref="WarmthTemperingFloor" /> (including all negative regard), then rising point for
+        ///   point above it.
+        /// </summary>
+        public static int RegardTempering(int reputationWithPlayer) => System.Math.Max(0, reputationWithPlayer - WarmthTemperingFloor);
 
         private const string DominantKnownLine =
             "This grievance outweighs whatever warmth you otherwise feel; let it set your tone before any fondness.";
@@ -51,14 +66,21 @@ namespace CalradiaRemembers.Logic.Grudges
 
         /// <summary>
         ///   The tone ruling for this conversation, from the dominant live grudge's effective magnitude
-        ///   alone. <paramref name="grudgeKnownToPlayer" /> and <paramref name="reputationWithPlayer" /> do
-        ///   not change WHICH band applies (see <see cref="Line" /> for how knownness colours the wording
-        ///   once <see cref="ToneRuling.GrudgeDominates" /> is reached).
+        ///   weighed against a regard-raised pair of bars. <paramref name="reputationWithPlayer" /> raises
+        ///   both <see cref="DominanceThreshold" /> and <see cref="TemperThreshold" /> by
+        ///   <see cref="RegardTempering" /> points, so a warmer relationship needs a heavier grudge before
+        ///   it is tempered or dominated; at or below <see cref="WarmthTemperingFloor" /> the bars sit at
+        ///   their base values, unchanged from before. <paramref name="grudgeKnownToPlayer" /> does not
+        ///   change WHICH band applies (see <see cref="Line" /> for how knownness colours the wording once
+        ///   <see cref="ToneRuling.GrudgeDominates" /> is reached).
         /// </summary>
         public static ToneRuling Resolve(int effectiveGrudgeMagnitude, bool grudgeKnownToPlayer, int reputationWithPlayer)
         {
-            if (effectiveGrudgeMagnitude >= DominanceThreshold) return ToneRuling.GrudgeDominates;
-            if (effectiveGrudgeMagnitude >= TemperThreshold) return ToneRuling.WarmthTempered;
+            int dominance = DominanceThreshold + RegardTempering(reputationWithPlayer);
+            int temper = TemperThreshold + RegardTempering(reputationWithPlayer);
+
+            if (effectiveGrudgeMagnitude >= dominance) return ToneRuling.GrudgeDominates;
+            if (effectiveGrudgeMagnitude >= temper) return ToneRuling.WarmthTempered;
 
             return ToneRuling.WarmthUnshadowed;
         }

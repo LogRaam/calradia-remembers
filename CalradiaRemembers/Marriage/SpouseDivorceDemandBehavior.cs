@@ -201,9 +201,12 @@ namespace CalradiaRemembers.Marriage
 
          ModLog.Info($"[SPOUSE_DIVORCE] {spouse.Name}'s divorce demand was refused (refusal #{refusals}) — resentment deepens.");
 
+         int regard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouse.StringId)?.ReputationWithPlayer ?? 0;
+
          var escalationFacts = new SpouseDivorceEscalationFacts {
             RefusalCount = refusals,
             SpouseRelationWithPlayer = spouse.GetRelation(Hero.MainHero),
+            SpouseReputationWithPlayer = regard,
             AlreadyEscalating = IsEstranging(spouse.StringId),
             EitherPregnant = spouse.IsPregnant || Hero.MainHero.IsPregnant,
             EitherPrisoner = spouse.IsPrisoner || Hero.MainHero.IsPrisoner
@@ -258,7 +261,10 @@ namespace CalradiaRemembers.Marriage
       /// <summary>Records a fresh demand and queues the announcing letter, in the spouse's own voice.</summary>
       private void Begin(Hero spouse, int today)
       {
-         _demandStartDay[spouse.StringId] = today;
+         // The refusal clock does NOT start here: it starts only once the announcing letter has actually reached
+         // the player (SweepTimeouts starts it on delivery). A demand the player never saw must never time out
+         // into a refusal, so a deferred or in-flight letter cannot silently escalate to a divorce.
+         _demandStartDay[spouse.StringId] = DivorceDemandTimeoutPolicy.ClockNotStarted;
 
          var behavior = NpcMemoryCampaignBehavior.Instance;
          NpcProfile profile = behavior?.Store?.Get(spouse.StringId);
@@ -300,10 +306,13 @@ namespace CalradiaRemembers.Marriage
                recentJealousyWound = true;
          }
 
+         int regard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouse.StringId)?.ReputationWithPlayer ?? 0;
+
          return new SpouseDivorceDemandFacts {
             SpouseRelationWithPlayer = player != null
                ? spouse.GetRelation(player)
                : 0,
+            SpouseReputationWithPlayer = regard,
             RecentJealousyWound = recentJealousyWound,
             DiscoveredBastardScandal = HasRecentBastardScandal(spouse, today),
             LiveGrudgeMagnitudeAgainstPlayer = maxGrudgeMagnitude,
@@ -381,6 +390,10 @@ namespace CalradiaRemembers.Marriage
       private void ResolveReconciliation(Hero spouse, int today)
       {
          CancelEstrangement(spouse.StringId);
+
+         // Clear the spouse's divorce grudge(s): a called-off divorce must not keep shadowing the marriage in
+         // conversation (the "she is warm until you mention the divorce, then fixates" report).
+         GrudgeBehavior.Instance?.ResolveDivorceGrudgesFrom(spouse.StringId, today);
 
          NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouse.StringId);
 
@@ -478,12 +491,39 @@ namespace CalradiaRemembers.Marriage
                continue;
             }
 
-            if (today - _demandStartDay[spouseId] < GracePeriodDays) continue;
+            // Start the refusal clock only once the announcing letter has actually reached the player. Until then
+            // the demand cannot time out, so a demand the player never saw never becomes a refusal.
+            if (_demandStartDay[spouseId] == DivorceDemandTimeoutPolicy.ClockNotStarted)
+            {
+               if (DemandLetterDelivered(spouse)) _demandStartDay[spouseId] = today;
+
+               continue; // never time out on the same tick the clock starts
+            }
+
+            if (!DivorceDemandTimeoutPolicy.IsRefusalDue(_demandStartDay[spouseId], today, GracePeriodDays)) continue;
 
             Hero timedOutSpouse = spouse;
             SafeRun.Step($"SpouseDivorceDemandBehavior.SweepTimeouts({spouseId})",
                () => RegisterRefusal(timedOutSpouse, today));
          }
+      }
+
+      /// <summary>
+      ///   True once the spouse's CURRENT divorce-demand letter (the most recently sent one) has actually been
+      ///   delivered to the player. Until it has, the refusal clock does not start, so an undelivered or deferred
+      ///   demand can never become a refusal.
+      /// </summary>
+      private static bool DemandLetterDelivered(Hero spouse)
+      {
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouse.StringId);
+         if (profile?.SentLetters == null) return false;
+
+         PendingLetter demand = profile.SentLetters
+            .Where(l => l.Reason == LetterReason.SpouseDivorceDemand)
+            .OrderByDescending(l => l.SentOnDay)
+            .FirstOrDefault();
+
+         return demand != null && demand.IsDelivered && !demand.IsLost;
       }
 
       /// <summary>
@@ -510,7 +550,12 @@ namespace CalradiaRemembers.Marriage
                continue;
             }
 
-            if (SpouseDivorceDemandPolicy.IsReconciled(spouse.GetRelation(Hero.MainHero)))
+            // Reconciliation reads the mod's PERSONAL regard (the number the player actually warms through
+            // conversation), not the vanilla clan relation, so a marriage the player has genuinely mended calls
+            // off the walk-out even when the vanilla number lags behind.
+            int reconcileRegard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouseId)?.ReputationWithPlayer
+                                  ?? spouse.GetRelation(Hero.MainHero);
+            if (SpouseDivorceDemandPolicy.IsReconciled(reconcileRegard))
             {
                Hero reconciledSpouse = spouse;
                SafeRun.Step($"SpouseDivorceDemandBehavior.SweepEscalations.Reconciled({spouseId})",

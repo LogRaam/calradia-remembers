@@ -1,6 +1,8 @@
 // Code written by Gabriel Mailhot, 04/07/2026.
 // Grudges pillar, tone arbiter: a strong grudge must outrank stated warmth. These tests pin the three
-// bands, their boundaries, and the known-vs-hidden wording split at GrudgeDominates.
+// bands, their boundaries, the known-vs-hidden wording split at GrudgeDominates, and (11/07/2026) how a
+// warm personal regard raises both bars so a genuine bond needs a heavier grudge before it is tempered or
+// dominated (fixes the "spouse fixates on the divorce grudge despite +31 regard" bug).
 
 #region
 
@@ -62,12 +64,83 @@ namespace CalradiaRemembers.Tests.Grudges
 
         [TestCase(-50)]
         [TestCase(0)]
-        [TestCase(80)]
-        public void GIVEN_any_reputation_value_WHEN_resolving_the_ruling_THEN_only_the_magnitude_band_decides_it(int reputation)
+        [TestCase(GrudgeToneArbiter.WarmthTemperingFloor)]
+        public void GIVEN_reputation_at_or_below_the_warmth_tempering_floor_WHEN_resolving_the_ruling_THEN_only_the_magnitude_band_decides_it(int reputation)
         {
-            // The owner ruling speaks only of the grudge's own magnitude; reputation must never move the band.
+            // At or below the floor, regard does not move the band: behaviour is identical to before this feature.
             GrudgeToneArbiter.Resolve(GrudgeToneArbiter.DominanceThreshold, grudgeKnownToPlayer: true, reputationWithPlayer: reputation)
                 .Should().Be(ToneRuling.GrudgeDominates);
+        }
+
+        // ── Regard tempering: warmth raises both bars ───────────────────────
+
+        [Test]
+        public void GIVEN_neutral_regard_WHEN_resolving_the_ruling_THEN_the_dominance_band_matches_todays_behaviour()
+        {
+            GrudgeToneArbiter.Resolve(40, grudgeKnownToPlayer: true, reputationWithPlayer: 0)
+                .Should().Be(ToneRuling.GrudgeDominates);
+        }
+
+        [Test]
+        public void GIVEN_neutral_regard_WHEN_resolving_the_ruling_THEN_the_temper_band_matches_todays_behaviour()
+        {
+            GrudgeToneArbiter.Resolve(20, grudgeKnownToPlayer: true, reputationWithPlayer: 0)
+                .Should().Be(ToneRuling.WarmthTempered);
+        }
+
+        [Test]
+        public void GIVEN_neutral_regard_WHEN_resolving_the_ruling_THEN_just_below_the_temper_band_reads_unshadowed()
+        {
+            GrudgeToneArbiter.Resolve(19, grudgeKnownToPlayer: true, reputationWithPlayer: 0)
+                .Should().Be(ToneRuling.WarmthUnshadowed);
+        }
+
+        [Test]
+        public void GIVEN_the_reported_spouse_regard_of_31_WHEN_resolving_a_magnitude_40_divorce_grudge_THEN_warmth_is_tempered_not_dominated()
+        {
+            // The reported bug: a +31 spouse with a magnitude-40 divorce grudge used to be told to fixate on it.
+            GrudgeToneArbiter.Resolve(40, grudgeKnownToPlayer: true, reputationWithPlayer: 31)
+                .Should().Be(ToneRuling.WarmthTempered);
+        }
+
+        [Test]
+        public void GIVEN_the_reported_spouse_regard_of_31_WHEN_resolving_a_magnitude_31_grudge_THEN_warmth_is_tempered()
+        {
+            GrudgeToneArbiter.Resolve(31, grudgeKnownToPlayer: true, reputationWithPlayer: 31)
+                .Should().Be(ToneRuling.WarmthTempered);
+        }
+
+        [Test]
+        public void GIVEN_the_reported_spouse_regard_of_31_WHEN_resolving_a_magnitude_30_grudge_THEN_warmth_reads_unshadowed()
+        {
+            GrudgeToneArbiter.Resolve(30, grudgeKnownToPlayer: true, reputationWithPlayer: 31)
+                .Should().Be(ToneRuling.WarmthUnshadowed);
+        }
+
+        [Test]
+        public void GIVEN_deep_trust_at_regard_50_WHEN_resolving_a_magnitude_40_grudge_THEN_warmth_reads_unshadowed()
+        {
+            GrudgeToneArbiter.Resolve(40, grudgeKnownToPlayer: true, reputationWithPlayer: 50)
+                .Should().Be(ToneRuling.WarmthUnshadowed);
+        }
+
+        [Test]
+        public void GIVEN_cold_negative_regard_WHEN_resolving_a_magnitude_40_grudge_THEN_the_grudge_still_dominates()
+        {
+            // RegardTempering clamps at zero: cold or negative regard must never LOWER the bars either.
+            GrudgeToneArbiter.Resolve(40, grudgeKnownToPlayer: true, reputationWithPlayer: -30)
+                .Should().Be(ToneRuling.GrudgeDominates);
+        }
+
+        [TestCase(0, 0)]
+        [TestCase(19, 0)]
+        [TestCase(20, 0)]
+        [TestCase(21, 1)]
+        [TestCase(31, 11)]
+        [TestCase(-5, 0)]
+        public void GIVEN_a_reputation_value_WHEN_computing_regard_tempering_THEN_it_matches_the_expected_point_rise(int reputation, int expectedTempering)
+        {
+            GrudgeToneArbiter.RegardTempering(reputation).Should().Be(expectedTempering);
         }
 
         // ── Lines: known vs hidden wording, only at GrudgeDominates ─────────

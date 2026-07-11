@@ -801,6 +801,13 @@ namespace CalradiaRemembers.Chat
                      continue;
                   }
 
+                  // Coin/commit actions are preprocessed: a repeat of one already resolved this conversation is
+                  // dropped (the LLM re-emitting the same transfer), and a player-outgoing spend (take_gold /
+                  // join_party) is queued for in-chat confirmation. give_gold and everything else run inline.
+                  ActionDisposition disposition =
+                     PreprocessConsequentialAction(action, speaker.Hero, profile, actionContext);
+                  if (disposition != ActionDisposition.ExecuteInline) continue;
+
                   ActionOutcome outcome =
                      behavior.GameStateBridge.ExecuteAction(action, speaker.Hero, actionContext);
                   if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);
@@ -1086,7 +1093,12 @@ namespace CalradiaRemembers.Chat
             // for the player to press Continue / Try something. Each async path re-enables
             // input in its own finally when it terminates.
             if (!_npcWitnessExchangePending && !_sceneContinuationPending && !_isScenePaused)
+            {
                IsSendEnabled = !_conversationEnded;
+               // Reply delivered and control is back with the player: raise any queued action confirmation now
+               // (PromptNextConfirmation auto-applies instead if the conversation just ended).
+               if (_pendingConfirmations.Count > 0 && !_awaitingConfirmation) PromptNextConfirmation();
+            }
          }
       }
 
@@ -1248,6 +1260,10 @@ namespace CalradiaRemembers.Chat
          {
             _npcWitnessExchangePending = false;
             IsSendEnabled = !_conversationEnded;
+            // Control is back with the player after the witness lap: raise any confirmation queued from the
+            // main reply that was deferred while the lap ran.
+            if (_pendingConfirmations.Count > 0 && !_awaitingConfirmation && !_isScenePaused && !_sceneContinuationPending)
+               PromptNextConfirmation();
          }
       }
 

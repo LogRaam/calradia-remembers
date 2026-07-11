@@ -4,8 +4,10 @@
 #region
 
 using System.Linq;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
+using TaleWorlds.CampaignSystem;
 
 #endregion
 
@@ -28,6 +30,13 @@ namespace CalradiaRemembers.Letters
                 NpcProfile profile = store.Get(id);
                 if (profile?.SentLetters == null || profile.SentLetters.Count == 0) continue;
 
+                // A longing/loneliness letter must not reach the player while its sender is standing beside them
+                // (the "she wrote she misses me while riding in my own party" report): this date-based fallback
+                // otherwise delivered it regardless of proximity, defeating the courier deferral. A divorce letter
+                // is always delivered, near or not, so the player is never blindsided by an unfolding divorce.
+                Hero sender = Hero.FindFirst(h => h != null && h.StringId == id);
+                bool near = sender != null && HeroProximity.IsNearPlayer(sender);
+
                 // Skip letters that have an active reply courier — the courier handles delivery.
                 // Never deliver a blank letter: an in-flight placeholder whose LLM call failed or was
                 // interrupted mid-session keeps Content null, and delivering it showed the player
@@ -36,7 +45,8 @@ namespace CalradiaRemembers.Letters
                     .FirstOrDefault(l => !l.IsDelivered && !l.IsLost
                                       && !string.IsNullOrWhiteSpace(l.Content)
                                       && string.IsNullOrEmpty(l.CourierPartyId)
-                                      && l.DeliveryDay <= today);
+                                      && l.DeliveryDay <= today
+                                      && !LetterDeliveryPolicy.ShouldDeferDelivery(l.Reason, near));
 
                 if (due == null) continue;
 

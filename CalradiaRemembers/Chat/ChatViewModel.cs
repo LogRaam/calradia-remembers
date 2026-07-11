@@ -6,10 +6,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Items;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Services;
@@ -44,6 +46,7 @@ namespace CalradiaRemembers.Chat
       // System notification line colors (relation/gold outcomes shown inline in chat).
       private const string SystemGainColor = "#9fe0a0FF"; // soft green — favorable
       private const string SystemLossColor = "#e0a0a0FF"; // soft red — unfavorable
+      private const string OocColor = "#8fb8c8FF"; // muted slate-cyan, clearly out-of-character (terminal prompts)
 
       // ── Sprint 15C: NPC→witness auto-exchange ─────────────────────────────
       // Maximum NPC→witness auto-exchanges per player turn. Each exchange is one
@@ -1057,6 +1060,206 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Adds an out-of-character (OOC) line in the terminal-style colour, used for the action-confirmation
+      ///   prompts and their results. Distinct from an in-fiction system notification so the player reads it as
+      ///   the game talking to them, not the NPC.
+      /// </summary>
+      public void AppendOocMessage(string text)
+      {
+         if (string.IsNullOrWhiteSpace(text)) return;
+         try
+         {
+            _messages.Add(new ChatMessageViewModel(text, OocColor));
+            ChatManager.ScrollToBottom();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"AppendOocMessage threw {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      // ── Action confirmation (terminal-style, in chat) ─────────────────────
+      // A consequential LLM action (coin transfer / service commitment) is not applied on the spot: it is queued
+      // and the player is asked to confirm IN CHAT, Y as default. This tames the LLM re-emitting the same action
+      // every turn (the reported repeated charges), and a declined action is forgotten (never applied, and a
+      // correction is fed back so neither the ongoing context nor the end-of-conversation memory records it).
+      private bool _awaitingConfirmation;
+      private readonly Queue<PendingConfirmation> _pendingConfirmations = new Queue<PendingConfirmation>();
+
+      // Idempotence: a coin/commit action already resolved this conversation (applied, declined, or a give
+      // already paid) is not acted on again, so the LLM re-emitting the same transfer every turn does nothing.
+      // Key is type:targetId:amount, so a genuinely different amount or NPC is still a distinct action.
+      private readonly HashSet<string> _resolvedActionKeys = new HashSet<string>();
+
+      /// <summary>True while the chat is listening for a Y/n answer instead of sending to the LLM.</summary>
+      public bool IsAwaitingConfirmation => _awaitingConfirmation;
+
+      /// <summary>What the action loop should do with a coin/commit action after preprocessing it.</summary>
+      public enum ActionDisposition
+      {
+         /// <summary>Run it now through the bridge, as the loop normally would (ordinary actions and give_gold).</summary>
+         ExecuteInline,
+
+         /// <summary>It was queued for the player's in-chat confirmation; the loop must not run it.</summary>
+         Queued,
+
+         /// <summary>It is a repeat of an already-resolved action this conversation; the loop must drop it.</summary>
+         Skip
+      }
+
+      /// <summary>
+      ///   Preprocesses a coin/commit action before the loop would run it. An identical action already resolved
+      ///   this conversation is dropped (<see cref="ActionDisposition.Skip" />), taming the LLM re-emitting the
+      ///   same transfer every turn. A player-outgoing spend (take_gold, join_party) is queued for confirmation
+      ///   (<see cref="ActionDisposition.Queued" />). Everything else, including give_gold (the NPC's own gift to
+      ///   the player) and consequences like change_relation, runs inline as before.
+      /// </summary>
+      public ActionDisposition PreprocessConsequentialAction(GameAction action, Hero npc, NpcProfile profile, ActionContext context)
+      {
+         if (action == null) return ActionDisposition.ExecuteInline;
+
+         string type = action.Type ?? "";
+         bool tracked = type.Equals("give_gold", StringComparison.OrdinalIgnoreCase)
+                        || type.Equals("take_gold", StringComparison.OrdinalIgnoreCase)
+                        || type.Equals("join_party", StringComparison.OrdinalIgnoreCase);
+         if (!tracked) return ActionDisposition.ExecuteInline; // change_relation, execute_prisoner, etc.: untouched
+
+         int amount = ExtractAmount(action);
+         string key = $"{type.ToLowerInvariant()}:{npc?.StringId}:{amount}";
+         if (_resolvedActionKeys.Contains(key))
+         {
+            ModLog.Info($"[CONFIRM] repeat suppressed ({key}): the LLM re-emitted an already-resolved transfer.");
+
+            return ActionDisposition.Skip;
+         }
+
+         _resolvedActionKeys.Add(key); // resolved for this conversation whatever happens next
+
+         if (!ActionConfirmationPolicy.RequiresConfirmation(type)) return ActionDisposition.ExecuteInline; // give_gold
+
+         string npcName = npc?.Name?.ToString() ?? profile?.Name ?? "them";
+         _pendingConfirmations.Enqueue(new PendingConfirmation
+         {
+            Action = action,
+            Npc = npc,
+            Profile = profile,
+            Context = context,
+            Amount = amount,
+            Question = ActionConfirmationPolicy.BuildQuestion(type, npcName, amount)
+         });
+
+         return ActionDisposition.Queued;
+      }
+
+      /// <summary>The coin amount of a gold/hire action, from its "amount" or "price" parameter (0 if absent).</summary>
+      private static int ExtractAmount(GameAction action)
+      {
+         int amount = 0;
+         if (action.Parameters != null
+             && (action.Parameters.TryGetValue("amount", out string a) || action.Parameters.TryGetValue("price", out a)))
+            int.TryParse(a, out amount);
+
+         return amount;
+      }
+
+      /// <summary>
+      ///   Raises the next queued confirmation as an OOC chat prompt (Y default), putting the chat into listen
+      ///   mode. If the conversation already ended (the player cannot answer), the queued spends are DROPPED, not
+      ///   applied: a player-outgoing payment must never go through without the player's consent.
+      /// </summary>
+      public void PromptNextConfirmation()
+      {
+         if (_pendingConfirmations.Count == 0)
+         {
+            _awaitingConfirmation = false;
+
+            return;
+         }
+
+         if (_conversationEnded)
+         {
+            ModLog.Info($"[CONFIRM] conversation ended with {_pendingConfirmations.Count} unanswered confirmation(s), dropped, nothing charged.");
+            _pendingConfirmations.Clear();
+            _awaitingConfirmation = false;
+
+            return;
+         }
+
+         _awaitingConfirmation = true;
+         AppendOocMessage($"» {_pendingConfirmations.Peek().Question} [Y/n]");
+      }
+
+      /// <summary>
+      ///   Routes a player input while a confirmation is pending. Enter/y/yes applies it; n/no declines it;
+      ///   anything else is treated as the player recomposing: every pending action is declined and the typed
+      ///   message is sent to the LLM as a fresh turn.
+      /// </summary>
+      private void HandleConfirmationInput(string raw)
+      {
+         ConfirmationAnswer answer = ActionConfirmationPolicy.ParseAnswer(raw);
+
+         if (answer == ConfirmationAnswer.Recompose)
+         {
+            while (_pendingConfirmations.Count > 0) DeclineAction(_pendingConfirmations.Dequeue());
+            _awaitingConfirmation = false;
+            InputText = raw;
+            ExecuteSendMessage(); // now that _awaitingConfirmation is false, this sends normally
+
+            return;
+         }
+
+         PendingConfirmation p = _pendingConfirmations.Dequeue();
+         if (answer == ConfirmationAnswer.Confirm) ApplyConfirmedAction(p);
+         else DeclineAction(p);
+
+         if (_pendingConfirmations.Count > 0) PromptNextConfirmation();
+         else _awaitingConfirmation = false;
+      }
+
+      /// <summary>Executes a confirmed action through the bridge and reports it, exactly as the inline path would have.</summary>
+      private void ApplyConfirmedAction(PendingConfirmation p)
+      {
+         try
+         {
+            ActionOutcome outcome = NpcMemoryCampaignBehavior.Instance?.GameStateBridge
+               .ExecuteAction(p.Action, p.Npc, p.Context);
+            if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);
+
+            if (string.Equals(p.Action.Type, "give_gold", StringComparison.OrdinalIgnoreCase))
+               StoryLog.WriteGoldTransfer(p.Profile?.Name, p.Amount, true);
+            else if (string.Equals(p.Action.Type, "take_gold", StringComparison.OrdinalIgnoreCase))
+               StoryLog.WriteGoldTransfer(p.Profile?.Name, p.Amount, false);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[CONFIRM] apply failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Drops a declined action: it is never executed, and a correction is recorded into the transcript so the
+      ///   LLM stops treating it as done (both in the ongoing exchange and in the end-of-conversation summary).
+      /// </summary>
+      private void DeclineAction(PendingConfirmation p)
+      {
+         AppendOocMessage($"» Declined. \"{p.Question}\" was not carried out.");
+         string note = $"(Out of character: I declined the offer \"{p.Question}\" It did not happen, no coins or service changed hands. Do not treat it as done.)";
+         try { RecordTranscript(true, "You", Hero.MainHero?.StringId, note); }
+         catch (Exception ex) { ModLog.Error($"[CONFIRM] decline note failed: {ex.GetType().Name}: {ex.Message}"); }
+         ModLog.Info($"[CONFIRM] player declined {p.Action?.Type} ({p.Amount}).");
+      }
+
+      private sealed class PendingConfirmation
+      {
+         public GameAction Action;
+         public int Amount;
+         public ActionContext Context;
+         public Hero Npc;
+         public NpcProfile Profile;
+         public string Question;
+      }
+
+      /// <summary>
       ///   Appends a witness reaction as a separate chat message, resolved to the
       ///   witness's own portrait if their <see cref="WitnessEntry.HeroStringId" />
       ///   is known. Falls back to name-only when the hero cannot be found.
@@ -1638,6 +1841,17 @@ namespace CalradiaRemembers.Chat
 
       public void ExecuteSendMessage()
       {
+         // While a consequential action awaits confirmation, this input is the Y/n answer, not an LLM turn.
+         // An empty input (the player just pressed Enter) is the default Yes, so intercept BEFORE the empty guard.
+         if (_awaitingConfirmation)
+         {
+            string answer = InputText ?? "";
+            InputText = "";
+            HandleConfirmationInput(answer);
+
+            return;
+         }
+
          string text = (InputText ?? "").Trim();
 
          if (string.IsNullOrEmpty(text)) return;

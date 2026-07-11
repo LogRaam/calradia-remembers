@@ -15,6 +15,7 @@ namespace CalradiaRemembers.Tests
    {
       private static SpouseDivorceDemandFacts Happy() => new() {
          SpouseRelationWithPlayer = 40,
+         SpouseReputationWithPlayer = 0, // below HappyMarriageRegardThreshold: does not itself veto these scenarios
          RecentJealousyWound = false,
          DiscoveredBastardScandal = false,
          LiveGrudgeMagnitudeAgainstPlayer = 0,
@@ -114,11 +115,66 @@ namespace CalradiaRemembers.Tests
          SpouseDivorceDemandPolicy.ShouldDemand(null).Should().BeFalse();
       }
 
+      // ── Happy-marriage veto: high personal regard overrides every other demand trigger ─────────
+
+      [Test]
+      public void GIVEN_a_miserable_relation_WHEN_personal_regard_is_high_THEN_the_demand_is_vetoed()
+      {
+         SpouseDivorceDemandFacts facts = Happy();
+         facts.SpouseRelationWithPlayer = SpouseDivorceDemandPolicy.MiserableRelationThreshold;
+         facts.SpouseReputationWithPlayer = SpouseDivorceDemandPolicy.HappyMarriageRegardThreshold;
+
+         SpouseDivorceDemandPolicy.ShouldDemand(facts).Should().BeFalse();
+      }
+
+      [Test]
+      public void GIVEN_a_fresh_jealousy_wound_WHEN_personal_regard_is_high_THEN_the_demand_is_vetoed()
+      {
+         SpouseDivorceDemandFacts facts = Happy();
+         facts.SpouseRelationWithPlayer = -5;
+         facts.RecentJealousyWound = true;
+         facts.SpouseReputationWithPlayer = SpouseDivorceDemandPolicy.HappyMarriageRegardThreshold;
+
+         SpouseDivorceDemandPolicy.ShouldDemand(facts).Should().BeFalse();
+      }
+
+      [Test]
+      public void GIVEN_a_live_grudge_above_the_bar_WHEN_personal_regard_is_high_THEN_the_demand_is_vetoed()
+      {
+         SpouseDivorceDemandFacts facts = Happy();
+         facts.SpouseRelationWithPlayer = -5;
+         facts.LiveGrudgeMagnitudeAgainstPlayer = SpouseDivorceDemandPolicy.GrudgeMagnitudeBar;
+         facts.SpouseReputationWithPlayer = SpouseDivorceDemandPolicy.HappyMarriageRegardThreshold;
+
+         SpouseDivorceDemandPolicy.ShouldDemand(facts).Should().BeFalse();
+      }
+
+      [Test]
+      public void GIVEN_personal_regard_one_below_the_veto_threshold_WHEN_the_marriage_is_miserable_THEN_the_demand_still_fires()
+      {
+         SpouseDivorceDemandFacts facts = Happy();
+         facts.SpouseRelationWithPlayer = SpouseDivorceDemandPolicy.MiserableRelationThreshold;
+         facts.SpouseReputationWithPlayer = SpouseDivorceDemandPolicy.HappyMarriageRegardThreshold - 1;
+
+         SpouseDivorceDemandPolicy.ShouldDemand(facts).Should().BeTrue();
+      }
+
+      [Test]
+      public void GIVEN_personal_regard_at_the_veto_threshold_WHEN_the_marriage_is_miserable_THEN_the_demand_is_vetoed()
+      {
+         SpouseDivorceDemandFacts facts = Happy();
+         facts.SpouseRelationWithPlayer = SpouseDivorceDemandPolicy.MiserableRelationThreshold;
+         facts.SpouseReputationWithPlayer = SpouseDivorceDemandPolicy.HappyMarriageRegardThreshold;
+
+         SpouseDivorceDemandPolicy.ShouldDemand(facts).Should().BeFalse();
+      }
+
       // ── Escalation: a refused-enough, still-miserable spouse begins ending it themselves ──────────
 
       private static SpouseDivorceEscalationFacts HappyEscalation() => new() {
          RefusalCount = SpouseDivorceDemandPolicy.RefusalsBeforeEscalation,
          SpouseRelationWithPlayer = DivorcePolicy.UnhappyThreshold,
+         SpouseReputationWithPlayer = 0, // below HappyMarriageRegardThreshold: does not itself veto these scenarios
          AlreadyEscalating = false,
          EitherPregnant = false,
          EitherPrisoner = false
@@ -188,6 +244,35 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_null_facts_WHEN_evaluating_escalation_THEN_no_escalation_is_raised()
       {
          SpouseDivorceDemandPolicy.ShouldEscalate(null).Should().BeFalse();
+      }
+
+      // ── Happy-marriage veto: high personal regard overrides escalation too ──────────────────────
+
+      [Test]
+      public void GIVEN_enough_refusals_WHEN_personal_regard_is_high_THEN_the_escalation_is_vetoed()
+      {
+         SpouseDivorceEscalationFacts facts = HappyEscalation();
+         facts.SpouseReputationWithPlayer = SpouseDivorceDemandPolicy.HappyMarriageRegardThreshold;
+
+         SpouseDivorceDemandPolicy.ShouldEscalate(facts).Should().BeFalse();
+      }
+
+      [Test]
+      public void GIVEN_personal_regard_one_below_the_veto_threshold_WHEN_the_refusal_bar_is_cleared_THEN_the_escalation_still_fires()
+      {
+         SpouseDivorceEscalationFacts facts = HappyEscalation();
+         facts.SpouseReputationWithPlayer = SpouseDivorceDemandPolicy.HappyMarriageRegardThreshold - 1;
+
+         SpouseDivorceDemandPolicy.ShouldEscalate(facts).Should().BeTrue();
+      }
+
+      [Test]
+      public void GIVEN_personal_regard_at_the_veto_threshold_WHEN_the_refusal_bar_is_cleared_THEN_the_escalation_is_vetoed()
+      {
+         SpouseDivorceEscalationFacts facts = HappyEscalation();
+         facts.SpouseReputationWithPlayer = SpouseDivorceDemandPolicy.HappyMarriageRegardThreshold;
+
+         SpouseDivorceDemandPolicy.ShouldEscalate(facts).Should().BeFalse();
       }
 
       // ── Reconciliation: hysteresis above the misery bar calls an active estrangement off ────────

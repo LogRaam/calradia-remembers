@@ -297,7 +297,7 @@ namespace CalradiaRemembers.Letters
             if (!CanSendLetter(profile, today, 10)) continue;
             if (DaysSinceLastEvent(profile, today) < 3) continue; // met recently
 
-            string context = $"Romantic status: {profile.Romantic.Status}. " + $"Last saw the player {DaysSinceLastEvent(profile, today)} days ago.";
+            string context = $"Romantic status: {profile.Romantic.Status}. " + $"Last saw the player {DaysSinceLastEvent(profile, today)} days ago." + $" Your feeling toward the player right now: {ThirdPartyDescriptor.DescribeRelation(profile.ReputationWithPlayer)}. Write in a tone true to that feeling, not a generic longing.";
 
             LetterGenerationService.QueueInitialLetter(
                profile, hero, LetterReason.RomanticCorrespondence, context,
@@ -322,7 +322,7 @@ namespace CalradiaRemembers.Letters
             if (profile != null && CanSendLetter(profile, today, 7) && DaysSinceLastEvent(profile, today) >= 5
                 && PassesAbsenceDistanceRoll(spouse))
             {
-               var ctx = $"Player's spouse. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
+               var ctx = $"Player's spouse. Has not seen the player in {DaysSinceLastEvent(profile, today)} days." + $" Your feeling toward the player right now: {ThirdPartyDescriptor.DescribeRelation(profile.ReputationWithPlayer)}. Write in a tone true to that feeling: a warm marriage writes with warmth, never generic reproach.";
                LetterGenerationService.QueueInitialLetter(
                   profile, spouse, LetterReason.SpouseCorrespondence, ctx,
                   llmServices, store, today);
