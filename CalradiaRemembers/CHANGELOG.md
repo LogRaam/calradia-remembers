@@ -2,21 +2,17 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v1.30.5.. 2026-07-10
+## v1.30.3.. 2026-07-10
+
+### Added
+- A faithful companion may confide they have come to love you. One of your own companions, someone who has followed you through war, may now ask for a private word and, if the bond has quietly grown into something more, confide genuine affection and ask to become your discreet secret lover: quiet moments together, kept hidden by their own choice to spare you and your household the jealousy it could stir. This is brotherhood or sisterhood first, never manipulation and never a bargain: they ask nothing in return but you, and a gentle refusal leaves the friendship whole. If you welcome it, the bond is set discreetly, with no gossip and no chronicle to spread it. It only ever comes from a content, deeply-bonded, orientation-compatible companion, and only when adult content is enabled. New `cr.audience lover [name]` console command opens the conversation directly for testing.
 
 ### Fixed
 - People beside you no longer write you letters. "Near" now means what it should: an NPC in your party, in a party you lead, marching in your ARMY (the reported case: a lady invited into the player's army kept sending "I miss you" letters), or in the same town or castle as you, sends no letter at all. And a letter already written before you came together is not lost, only held: the courier simply departs later, once you are truly apart. This covers every letter the mod sends and heals letters already queued on existing saves.
 - Received letters now say when they were written. The reading window's heading shows "From X, sent 3 days ago" (or "sent today" / "sent yesterday"), so a note penned before current events reads as the dated dispatch it is instead of a strangely out-of-touch message. Letters from older saves without a recorded writing day simply show no age line.
 
-## v1.30.4.. 2026-07-10
-
 ### Changed
 - Authored personalities come through more strongly. When you give a character a backstory (in character_overrides.json) that implies a distinctive manner but you do not spell out their speech quirks by hand, the character now invents two or three subtle, fitting ones of their own (a recurring word, a favourite turn of phrase, a way of addressing people) and uses them consistently. Players found a persona like "Kratos from God of War style" needed hand-written quirks to really land; now the character comes through even without them, while still staying entirely within Calradia (style and temperament only, never imported names, places, or powers).
-
-## v1.30.3.. 2026-07-10
-
-### Added
-- A faithful companion may confide they have come to love you. One of your own companions, someone who has followed you through war, may now ask for a private word and, if the bond has quietly grown into something more, confide genuine affection and ask to become your discreet secret lover: quiet moments together, kept hidden by their own choice to spare you and your household the jealousy it could stir. This is brotherhood or sisterhood first, never manipulation and never a bargain: they ask nothing in return but you, and a gentle refusal leaves the friendship whole. If you welcome it, the bond is set discreetly, with no gossip and no chronicle to spread it. It only ever comes from a content, deeply-bonded, orientation-compatible companion, and only when adult content is enabled. New `cr.audience lover [name]` console command opens the conversation directly for testing.
 
 ## v1.30.2.. 2026-07-10
 
