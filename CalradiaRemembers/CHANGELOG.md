@@ -2,6 +2,12 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.5.. 2026-07-10
+
+### Fixed
+- People beside you no longer write you letters. "Near" now means what it should: an NPC in your party, in a party you lead, marching in your ARMY (the reported case: a lady invited into the player's army kept sending "I miss you" letters), or in the same town or castle as you, sends no letter at all. And a letter already written before you came together is not lost, only held: the courier simply departs later, once you are truly apart. This covers every letter the mod sends and heals letters already queued on existing saves.
+- Received letters now say when they were written. The reading window's heading shows "From X, sent 3 days ago" (or "sent today" / "sent yesterday"), so a note penned before current events reads as the dated dispatch it is instead of a strangely out-of-touch message. Letters from older saves without a recorded writing day simply show no age line.
+
 ## v1.30.4.. 2026-07-10
 
 ### Changed

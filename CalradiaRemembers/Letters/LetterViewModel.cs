@@ -272,7 +272,7 @@ namespace CalradiaRemembers.Letters
          _profile = senderProfile;
          _state = new LetterComposerState(LetterWindowMode.Read);
          _title = $"A LETTER FROM {(letter?.SenderName ?? senderProfile?.Name ?? "?").ToUpperInvariant()}";
-         _senderHeading = $"From {letter?.SenderName ?? senderProfile?.Name}";
+         _senderHeading = ComposeSenderHeading(letter, senderProfile?.Name);
          _panelHeight = ReadHeight;
          ResolvePortrait(Hero.FindFirst(h => h.StringId == senderProfile?.Id));
          RefreshFromState();
@@ -286,13 +286,30 @@ namespace CalradiaRemembers.Letters
          _npcHero = npcHero;
          _state = new LetterComposerState(LetterWindowMode.Reply);
          _title = $"REPLY TO {(profile?.Name ?? letter?.SenderName ?? "?").ToUpperInvariant()}";
-         _senderHeading = $"From {letter?.SenderName ?? profile?.Name}";
+         _senderHeading = ComposeSenderHeading(letter, profile?.Name);
          _panelHeight = ReplyHeight;
          ResolvePortrait(npcHero ?? Hero.FindFirst(h => h.StringId == profile?.Id));
          RefreshFromState();
       }
 
       #region private
+
+      /// <summary>
+      ///   "From X" plus how long ago the letter was written ("From X, sent 3 days ago"), so a note penned
+      ///   before current events reads as the dated dispatch it is (player report). No age line when the
+      ///   writing day is unknown (older saves).
+      /// </summary>
+      private static string ComposeSenderHeading(PendingLetter letter, string fallbackName)
+      {
+         string from = $"From {letter?.SenderName ?? fallbackName}";
+         string age = letter == null
+            ? null
+            : Logic.LetterAgeDescriber.Describe(letter.SentOnDay, (int) CampaignTime.Now.ToDays);
+
+         return string.IsNullOrEmpty(age)
+            ? from
+            : $"{from}, {age}";
+      }
 
       private void RecomputeSendEnabled()
          => IsSendEnabled = _state.CanSend(_inputText, Hero.MainHero?.Gold ?? 0);

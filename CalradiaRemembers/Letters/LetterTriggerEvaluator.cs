@@ -361,20 +361,12 @@ namespace CalradiaRemembers.Letters
       // ── Helpers ───────────────────────────────────────────────────────────
 
       /// <summary>
-      ///   True when the NPC is currently traveling with the player — in the same
-      ///   party or a party led by the player. They would write a letter to someone
-      ///   far away, not to someone riding beside them.
+      ///   True when the NPC is effectively beside the player right now: same party, a party the player
+      ///   leads, the same ARMY, or the same town/castle (player report: a lady in the player's own army
+      ///   kept "writing from afar"). Such an NPC talks, they do not post letters. Delegates to the letter
+      ///   system's single authoritative <see cref="HeroProximity.IsNearPlayer" />.
       /// </summary>
-      private static bool IsWithPlayer(Hero hero)
-      {
-         if (hero == null) return false;
-         MobileParty main = MobileParty.MainParty;
-
-         if (main == null) return false;
-         MobileParty heroParty = hero.PartyBelongedTo;
-
-         return heroParty == main || heroParty?.LeaderHero == Hero.MainHero;
-      }
+      private static bool IsWithPlayer(Hero hero) => HeroProximity.IsNearPlayer(hero);
 
       private static void NpcCongratulatePlayerForTournamentVictory(NpcMemoryCampaignBehavior behavior, int today, string context)
       {

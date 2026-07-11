@@ -369,6 +369,17 @@ namespace CalradiaRemembers.Behaviors
                   continue;
                }
 
+               // A sender who is effectively BESIDE the player right now (same party, same army, same town or
+               // castle) does not post a letter to them (player report: a lady in the player's army sent "I miss
+               // you" letters). The letter is not lost, only DEFERRED: the courier departs on a later tick, once
+               // they are truly apart. Also heals letters already queued on existing saves.
+               if (Letters.HeroProximity.IsNearPlayer(sender))
+               {
+                  ModLog.Info($"[LETTER] deferred dispatch from {profile.Name} ({letter.Reason}): they are with the player right now.");
+
+                  continue;
+               }
+
                if (CourierService.TrySpawnReplyCourier(letter, sender))
                   changed = true;
             }
