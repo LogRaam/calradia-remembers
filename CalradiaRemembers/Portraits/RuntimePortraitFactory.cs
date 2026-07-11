@@ -46,6 +46,19 @@ namespace CalradiaRemembers.Portraits
         private static FieldInfo Backing(string name)
             => typeof(SpritePart).GetField($"<{name}>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance);
 
+        /// <summary>Deterministic FNV-1a hash of the path (case-folded), for the per-file sprite name.</summary>
+        private static uint StableHash(string path)
+        {
+            uint h = 2166136261;
+            foreach (char c in (path ?? "").ToLowerInvariant())
+            {
+                h ^= c;
+                h *= 16777619;
+            }
+
+            return h;
+        }
+
         /// <summary>
         ///   Cached load by path: builds a sprite once per file and reuses it, so N chat lines sharing one
         ///   portrait hold ONE texture. A miss is cached as null so a missing file is not retried every line.
@@ -115,15 +128,20 @@ namespace CalradiaRemembers.Portraits
                 diag = $"loaded {w}x{h} (IsLoaded={engineTexture.IsLoaded()}) from {Path.GetFileName(fullPath)} ({bytes.Length} bytes)";
                 if (w <= 0 || h <= 0) diag += " (WARN zero dims: texture may still be loading)";
 
+                // The name must be UNIQUE PER FILE: the render layer caches by sprite/category NAME, so two
+                // different images sharing "cr_runtime_portrait" collide and every row shows the first-loaded
+                // face (player report: the player's line wore the NPC's portrait). Hash the path into the name.
+                string spriteName = $"cr_runtime_portrait_{StableHash(fullPath):x8}";
+
                 var tex2d = new Texture(new EngineTexture(engineTexture));
-                var category = new SpriteCategory("cr_runtime_portrait", 1, false) {SheetSizes = new[] {new Vec2i(w, h)}};
+                var category = new SpriteCategory(spriteName, 1, false) {SheetSizes = new[] {new Vec2i(w, h)}};
                 SheetsField?.SetValue(category, new List<Texture> {tex2d});
                 IsLoadedSetter?.Invoke(category, new object[] {true});
-                diag += $", sheets={category.SpriteSheets?.Count ?? -1}, catLoaded={category.IsLoaded}";
+                diag += $", sheets={category.SpriteSheets?.Count ?? -1}, catLoaded={category.IsLoaded}, name={spriteName}";
 
                 // SheetID is 1-BASED (vanilla sprite data starts at 1; the engine indexes SpriteSheets[SheetID - 1]),
                 // so 0 underflows the sheet array: the earlier black frame and the IndexOutOfRangeException.
-                var part = new SpritePart("cr_runtime_portrait_part", category, w, h) {SheetID = 1, SheetX = 0, SheetY = 0};
+                var part = new SpritePart($"{spriteName}_part", category, w, h) {SheetID = 1, SheetX = 0, SheetY = 0};
                 MinUField?.SetValue(part, 0f);
                 MinVField?.SetValue(part, 0f);
                 MaxUField?.SetValue(part, 1f);
@@ -133,7 +151,7 @@ namespace CalradiaRemembers.Portraits
                 part.UpdateInitValues();
 
                 var nine = new SpriteNinePatchParameters(0, 0, 0, 0);
-                sprite = new SpriteGeneric("cr_runtime_portrait", part, nine);
+                sprite = new SpriteGeneric(spriteName, part, nine);
 
                 return true;
             }
