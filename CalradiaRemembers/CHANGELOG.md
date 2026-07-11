@@ -2,6 +2,11 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.5.. 2026-07-11
+
+### Fixed
+- The Memories-panel portrait no longer stretches, and takes less room. A character shown by their normal 3D render (no custom image) was drawn stretched tall, and the whole portrait crowded the memories (player report). The 3D render now keeps its true square-ish shape instead of being forced into a taller frame, and the portrait area is smaller so the memories above it are easier to read. Custom images already kept their own aspect and still do.
+
 ## v1.30.4.. 2026-07-11
 
 ### Added

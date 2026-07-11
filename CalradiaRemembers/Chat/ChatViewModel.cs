@@ -1055,10 +1055,10 @@ namespace CalradiaRemembers.Chat
 
          // The image is drawn at the largest size that fits this box WITHOUT distortion (aspect preserved),
          // then centred: the player's PNG may be any ratio (4:5, square, wide), so it must never be stretched.
-         const float boxW = 458f;
-         const float boxH = 456f;
-         var aspectW = 3f; // vanilla 3D fallback: a nominal portrait aspect
-         var aspectH = 4f;
+         const float boxW = 452f;
+         const float boxH = 366f;
+         var aspectW = 1f; // vanilla 3D fallback: the character tableau renders roughly SQUARE, so 1:1 avoids
+         var aspectH = 1f; // the vertical stretch a taller nominal caused (report: a bearded lord elongated)
 
          if (_npcHero != null)
          {
