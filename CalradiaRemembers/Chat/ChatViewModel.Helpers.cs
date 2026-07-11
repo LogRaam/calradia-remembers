@@ -502,12 +502,21 @@ namespace CalradiaRemembers.Chat
 
       private ChatSpeaker MainSpeaker()
       {
-         NpcProfile profile = _audienceReason != CompanionAudienceReason.None
-            ? _audienceProfile
-            : NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile ??
-              (IsCaptiveEncounter ? _captiveEncounterProfile
-                 : _captorScene ? _captorSceneProfile
-                 : null);
+         // The speaker's profile must ALWAYS follow the speaker's hero (_npcHero), so a captor never wears
+         // another hero's memories and a scene's events are never written to the wrong person. Resolve it live
+         // from the store by the current hero's id; the mode/last-conversation caches are only a fallback for a
+         // heroless speaker (a synthetic bandit captor) or before the hero's profile is persisted. The old code
+         // consulted the session-lifetime DialogFlow.Profile FIRST, which stayed pinned to the last companion
+         // chatted with and so bled into captive scenes (the "Garios thinks he's Fercread" report).
+         NpcProfile heroOwn = _npcHero != null
+            ? NpcMemoryCampaignBehavior.Instance?.Store?.Get(_npcHero.StringId)
+            : null;
+         NpcProfile profile = SpeakerProfileSelector.Select(
+            heroOwn,
+            _audienceReason != CompanionAudienceReason.None, _audienceProfile,
+            IsCaptiveEncounter, _captiveEncounterProfile,
+            _captorScene, _captorSceneProfile,
+            NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile);
 
          return new ChatSpeaker {
             IsMain = true,
