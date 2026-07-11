@@ -1,10 +1,12 @@
 // Code written by Gabriel Mailhot, 09/07/2026.
 // Player report (v1.29.0): a MALE player completed a quest for a MALE lord and the lord's WIFE sent jealous
-// threats. Root cause (design ruling, Gabriel 2026-07-09): a male player is no threat to her marriage, the mod's
-// romance model (like its marriage system) is opposite-sex, so a same-sex pair can never read as courtship. On
-// top of that, the model sometimes stamps warm gratitude as a [EVENT] flirt; "words nudge, deeds prove": spoken
-// flirtation only counts once it is a PATTERN, and a flirt stamped in the same breath as a quest completion is
-// mislabeled gratitude, never courtship. Intimacy is a deed and always counts (for a plausible pair).
+// threats. Root cause (design ruling, Gabriel 2026-07-09): a pair that cannot be a real courtship is no threat
+// to anyone's marriage. Since v1.30.x orientation is authorable, so "cannot be" is decided by the courted NPC's
+// ORIENTATION (host-computed via RomanticProfile.IsCompatibleWith): the default world stays opposite-sex, but a
+// deliberately enabled same-sex romance is a real courtship and rouses jealousy like any other. On top of that,
+// the model sometimes stamps warm gratitude as a [EVENT] flirt; "words nudge, deeds prove": spoken flirtation
+// only counts once it is a PATTERN, and a flirt stamped in the same breath as a quest completion is mislabeled
+// gratitude, never courtship. Intimacy is a deed and always counts (for a plausible pair).
 
 namespace CalradiaRemembers.Logic
 {
@@ -18,19 +20,20 @@ namespace CalradiaRemembers.Logic
         public const int FlirtPatternMinimum = 2;
 
         /// <summary>
-        ///   True when the act should provoke a staked third party. <paramref name="isOppositeSexPair" /> is
-        ///   whether the player and the courted NPC are of opposite sexes (the mod's romance model, like its
-        ///   marriage system, is opposite-sex, so nothing else reads as a rival courtship);
+        ///   True when the act should provoke a staked third party. <paramref name="isPlausiblePair" /> is
+        ///   whether the player and the courted NPC could truly be a courtship, decided by the courted NPC's
+        ///   orientation vs the player's gender (host computes it via <c>RomanticProfile.IsCompatibleWith</c>;
+        ///   the default world is opposite-sex, an authored orientation can make a same-sex pair real);
         ///   <paramref name="romanticEventCount" /> is the pair's total recorded flirt/intimacy events including
         ///   the one just stamped; <paramref name="completedQuestThisTurn" /> is true when the same reply
         ///   settled a quest.
         /// </summary>
         public static bool IsPlausibleCourtship(RomanticActTier tier,
-                                                bool isOppositeSexPair,
+                                                bool isPlausiblePair,
                                                 int romanticEventCount,
                                                 bool completedQuestThisTurn)
         {
-            if (!isOppositeSexPair) return false; // no threat to the marriage: not a rival in this romance model
+            if (!isPlausiblePair) return false; // no threat to anyone: this pair cannot be a courtship
 
             if (tier != RomanticActTier.Flirt) return true; // intimacy or marriage: deeds, always count
 

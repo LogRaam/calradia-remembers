@@ -66,6 +66,15 @@ namespace CalradiaRemembers.Jealousy
                Party = partner, Stake = JealousStake.PlayerPartner, Courted = courted, Other = courted
             };
 
+         // 2b) The player's own SECRET LOVER: a real intimate bond, wounded quietly (its own stake, so the
+         // reaction stays discreet: a private letter, never a public scene, no grudge).
+         Hero secretLover = ResolvePlayerSecretLover(courted, getProfile);
+
+         if (secretLover != null)
+            return new JealousResolution {
+               Party = secretLover, Stake = JealousStake.SecretLover, Courted = courted, Other = courted
+            };
+
          // 3) A rival suitor for the courted NPC — kept consistent via the locked id when present.
          Hero rival = ResolveRivalSuitor(courted, lockedRivalId);
 
@@ -105,6 +114,28 @@ namespace CalradiaRemembers.Jealousy
             if (p?.Romantic == null) continue;
 
             if (p.Romantic.IsConsort && p.Romantic.Status == RomanticStatus.Committed)
+               return h;
+         }
+
+         return null;
+      }
+
+      /// <summary>
+      ///   The player's own secret lover (the discreet companion bond), when one exists and is not the courted
+      ///   NPC themselves. A real intimate bond: it reacts, but with its own quiet stake.
+      /// </summary>
+      private static Hero ResolvePlayerSecretLover(Hero courted, Func<string, NpcProfile> getProfile)
+      {
+         if (getProfile == null) return null;
+
+         foreach (Hero h in Hero.AllAliveHeroes)
+         {
+            if (h == courted || h == Hero.MainHero || !h.IsAlive) continue;
+            NpcProfile p = getProfile(h.StringId);
+
+            if (p?.Romantic == null) continue;
+
+            if (p.Romantic.IsSecretLover)
                return h;
          }
 

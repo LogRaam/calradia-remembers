@@ -1864,6 +1864,12 @@ namespace CalradiaRemembers.GameState
             }
             catch (Exception ex) { ModLog.Error($"[ACTION] take_as_consort chronicle record failed: {ex.GetType().Name}: {ex.Message}"); }
 
+            // Openly taking a consort is the most public romantic commitment short of marriage: it rouses a
+            // staked party AT THE ACT (an existing spouse above all), not only through the later daily
+            // competition loop (jealousy audit 2026-07-10). Treated as witnessed, marriage-tier.
+            Jealousy.JealousyBehavior.Instance?.OnRomanticAct(
+               npcHero, RomanticActTier.Marriage, true, (int) CampaignTime.Now.ToDays);
+
             return new ActionOutcome(
                $"You and {npcHero.Name} are bound as consorts — a commitment not named by law, but no less real.", true);
          }

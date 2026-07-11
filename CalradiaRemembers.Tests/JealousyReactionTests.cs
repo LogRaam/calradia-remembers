@@ -133,5 +133,54 @@ namespace CalradiaRemembers.Tests
          //Assert
          context.Should().Contain("the writer", "a null hero name must never surface as an empty gap in the prompt");
       }
+
+      // ── Secret lover (the discreet stake) ─────────────────────────────────
+
+      [Test]
+      public void GIVEN_a_secret_lover_WHEN_scored_THEN_the_hurt_is_real_but_milder_than_open_betrayal()
+      {
+         //Arrange
+         JealousyCulture monogamous = JealousyCulture.Monogamous;
+
+         //Act/Assert: quieter than a betrayed exclusive partner at every tier.
+         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Flirt, false, monogamous).Should().Be(5);
+         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Intimacy, false, monogamous).Should().Be(12);
+         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Marriage, false, monogamous).Should().Be(20);
+         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Marriage, false, monogamous)
+                         .Should().BeLessThan(JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Marriage, false, monogamous));
+      }
+
+      [Test]
+      public void GIVEN_a_secret_lover_WHEN_scored_THEN_culture_outrage_never_scales_the_private_wound()
+      {
+         //Arrange: a Low-outrage culture scales public stakes down, but the secret bond is personal.
+         JealousyCulture permissive = JealousyCulture.FromRaw("Low", 0, "Low", false, "");
+
+         //Act/Assert
+         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Intimacy, false, permissive).Should().Be(12);
+      }
+
+      [Test]
+      public void GIVEN_a_secret_lover_WHEN_the_letter_context_is_built_THEN_it_stays_private_and_never_threatens_exposure()
+      {
+         //Act
+         string context = JealousyReaction.BuildLetterContext(
+            JealousStake.SecretLover, false, "Alara", "Liena", JealousyCulture.Monogamous);
+
+         //Assert: the discretion holds even in the hurt (private, tender, no scene, no exposure).
+         context.Should().Contain("Alara").And.Contain("Liena");
+         context.Should().Contain("SECRET").And.Contain("NO public scene");
+         context.Should().Contain("NEVER hint at exposing");
+      }
+
+      [Test]
+      public void GIVEN_a_secret_lover_WHEN_the_grievance_is_built_THEN_it_reads_as_quiet_hurt_not_menace()
+      {
+         //Act
+         string grievance = JealousyReaction.BuildGrievance(JealousStake.SecretLover, false, "Liena");
+
+         //Assert
+         grievance.Should().Contain("Liena").And.Contain("quietly");
+      }
    }
 }

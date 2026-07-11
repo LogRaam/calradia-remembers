@@ -710,15 +710,21 @@ namespace CalradiaRemembers.Chat
                RomanticActTier tier = actType == NotableEventType.Intimacy
                   ? RomanticActTier.Intimacy
                   : RomanticActTier.Flirt;
-               bool oppositeSex = courted != null && Hero.MainHero != null && courted.IsFemale != Hero.MainHero.IsFemale;
+               // Pair plausibility follows the courted NPC's ORIENTATION (authorable since v1.30.x), so a
+               // deliberately enabled same-sex romance rouses jealousy like any other; the default world
+               // (heterosexual orientations) keeps the original opposite-sex behaviour. No romantic profile
+               // falls back to the opposite-sex rule.
+               bool plausiblePair = courted != null && Hero.MainHero != null &&
+                                    (profile.Romantic?.IsCompatibleWith(Hero.MainHero.IsFemale)
+                                     ?? courted.IsFemale != Hero.MainHero.IsFemale);
                int romanticEvents = profile.Events.Count(e =>
                   e.type is NotableEventType.Flirt or NotableEventType.Intimacy); // includes today's, just applied
                bool questBeat = response.QuestCompleted != null;
 
-               if (courted != null && JealousyTriggerPolicy.IsPlausibleCourtship(tier, oppositeSex, romanticEvents, questBeat))
+               if (courted != null && JealousyTriggerPolicy.IsPlausibleCourtship(tier, plausiblePair, romanticEvents, questBeat))
                   JealousyBehavior.Instance?.OnRomanticAct(courted, tier, _witnesses.Count > 0, gameDay);
                else
-                  ModLog.Info($"[JEALOUSY] act ignored as courtship ({tier}{(oppositeSex ? "" : ", same-sex pair")}, {romanticEvents} romantic event(s){(questBeat ? ", quest turn-in" : "")}).");
+                  ModLog.Info($"[JEALOUSY] act ignored as courtship ({tier}{(plausiblePair ? "" : ", implausible pair")}, {romanticEvents} romantic event(s){(questBeat ? ", quest turn-in" : "")}).");
             }
 
             // Negotiation Phase 3: a leveraged intimacy with the exploiter archetype — he now holds it

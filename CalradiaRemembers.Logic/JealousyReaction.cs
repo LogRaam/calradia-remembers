@@ -39,6 +39,10 @@ namespace CalradiaRemembers.Logic
                 case JealousStake.RivalSuitor:
                     b = tier == RomanticActTier.Flirt ? 6 : tier == RomanticActTier.Intimacy ? 15 : 18;
                     return Scale(b, culture);
+                case JealousStake.SecretLover:
+                    // A discreet bond wounds quietly: real hurt, milder than a betrayed open partner, and
+                    // culture never scales it (the bond is personal, outside any public custom).
+                    return tier == RomanticActTier.Flirt ? 5 : tier == RomanticActTier.Intimacy ? 12 : 20;
                 default: // SpurnedAdmirer
                     b = tier == RomanticActTier.Flirt ? 5 : tier == RomanticActTier.Intimacy ? 12 : 15;
                     return Scale(b, culture);
@@ -51,6 +55,7 @@ namespace CalradiaRemembers.Logic
             switch (stake)
             {
                 case JealousStake.RivalSuitor:     return 0.80f;
+                case JealousStake.SecretLover:     return 0.75f; // letters are the discreet bond's own channel
                 case JealousStake.SpouseOfCourted: return 0.70f;
                 case JealousStake.PlayerPartner:   return 0.65f;
                 default:                           return 0.50f;
@@ -70,6 +75,8 @@ namespace CalradiaRemembers.Logic
                         : $"My partner gave their affection to {courted} while bound to me. The betrayal cuts deep.";
                 case JealousStake.RivalSuitor:
                     return $"The player has been courting {courted}, whom I had hoped to win for myself. I mean to make them regret it.";
+                case JealousStake.SecretLover:
+                    return $"What we share is secret, and still they turned to {courted}. I said nothing before the others; the hurt is mine to carry quietly.";
                 default:
                     return $"I offered the player my heart, and they turned instead to {courted}.";
             }
@@ -96,6 +103,11 @@ namespace CalradiaRemembers.Logic
                 case JealousStake.RivalSuitor:
                     return $"You are {name}. You had hoped to win {courted}'s hand yourself, and now the player courts them." +
                            $"{hint} Warn the player off — make plain that you intend to marry {courted}, and that you will not yield quietly.";
+                case JealousStake.SecretLover:
+                    return $"You are {name}, the player's SECRET lover, a bond you both keep hidden by choice. They have " +
+                           $"turned their affection toward {courted}. Write a PRIVATE, quietly wounded letter: tender and " +
+                           "hurt, asking where you truly stand. You chose the secrecy to protect them, so you make NO " +
+                           "public scene, NO threat, and NEVER hint at exposing what you share: the discretion holds even now.";
                 default:
                     return $"You are {name}. You once felt deeply for the player, and they have turned instead to {courted}." +
                            $"{hint} Write as the spurned — bitter, reproachful, or vengeful.";

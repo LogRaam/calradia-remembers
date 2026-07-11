@@ -187,6 +187,35 @@ reason + a trigger + wiring into the romance/consort systems, not a fresh mechan
 
 ---
 
+## JEALOUSY AUDIT (2026-07-10): fixes shipped v1.30.3, gaps deferred
+
+Full-system audit at Gabriel's request (all trigger sites, jealous-party resolution, gates, consequences,
+competition loop mapped). SHIPPED in v1.30.3:
+1. **Secret lover is now a jealous party** (new append-only `JealousStake.SecretLover`, resolver step 2b): a
+   real intimate bond reacts, but DISCREETLY, true to its nature: milder regard hit (5/12/20, never
+   culture-scaled), a private wounded letter (75%, never a public scene, never a threat of exposure), and NO
+   grudge planted (the bond absorbs the hurt). Not part of the household competition loop (by design: an
+   equity-demand letter would break the secrecy).
+2. **`take_as_consort` now rouses jealousy AT THE ACT** (marriage-tier, witnessed): openly taking a consort
+   wakes an existing spouse immediately, not only through the later competition loop.
+3. **Orientation-aware plausibility**: `IsPlausibleCourtship` takes `isPlausiblePair` computed from the courted
+   NPC's ORIENTATION (`RomanticProfile.IsCompatibleWith`), not raw sex. Default world unchanged
+   (heterosexual = opposite-sex rule); an authored same-sex romance (v1.30.x orientation) now rouses jealousy
+   like any other. Fixes the v1.29.1 gate's blind spot.
+4. **Jealousy letters use the full proximity rule** (party/army/settlement via `HeroProximity`), and
+   `cr.jealousy [flirt|intimacy|marriage] [name]` tests every tier.
+
+DEFERRED gaps (audit findings, to build later):
+- **Letter-borne romance is invisible to jealousy**: the whole correspondence channel (RomanticCorrespondence
+  and player letters) never calls `OnRomanticAct`, so a courtship conducted entirely by courier rouses no one.
+  Needs a stamp-equivalent when a letter exchange is flagged romantic.
+- **Non-committed romances are unprotected**: an NPC merely Courting/Intimate with the player is never resolved
+  as "the player's partner" (only spouse, consort, and now secret lover). And no BETROTHAL concept exists at
+  all (only Hero.Spouse). Candidate: a light "promised" stake.
+- **The courted NPC's own consort/secret-lover** is never the jealous party (only `courted.Spouse` is checked).
+- Already-tracked (existing ROADMAP entries): the duel/scheming escalation, love-triangle tie-in, trait-modulated
+  susceptibility (Possessive/MonogamousStrict).
+
 ## WISHED (Gabriel 2026-07-10): an ESCORTED courier option at the tavernkeeper
 
 Player report (enivicivokke, and others): couriers still get intercepted too often for some players, worse with

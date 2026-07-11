@@ -25,6 +25,13 @@ namespace CalradiaRemembers.Logic
         RivalSuitor,
 
         /// <summary>An NPC who carried a strong attraction to the player and was passed over.</summary>
-        SpurnedAdmirer
+        SpurnedAdmirer,
+
+        /// <summary>
+        ///   The player's own SECRET LOVER (a faithful companion bound discreetly). Their jealousy is real but
+        ///   PRIVATE, true to the bond's nature: quiet hurt and a discreet letter, never a public scene, never
+        ///   a threat of exposure, and no grudge planted. Added last to preserve serialized ordinals.
+        /// </summary>
+        SecretLover
     }
 }

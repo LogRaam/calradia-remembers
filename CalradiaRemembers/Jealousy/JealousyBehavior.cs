@@ -300,12 +300,15 @@ namespace CalradiaRemembers.Jealousy
 
          // Grudges pillar: the reference tier-1 source. Adds RESOLVABILITY on top of the relation hit
          // already applied above — never a second penalty (the relation delta is untouched).
-         GrudgeBehavior.Instance?.TryPlant(party, Hero.MainHero, GrudgeSource.Jealousy, grievance,
-            GrudgeBackfillRules.JealousyMagnitude, knownToPlayer: true, today);
+         // EXCEPT the secret lover: their hurt stays private and the bond absorbs it (quiet regard loss and
+         // a discreet letter, never a grudge that hardens into a grievance arc).
+         if (stake != JealousStake.SecretLover)
+            GrudgeBehavior.Instance?.TryPlant(party, Hero.MainHero, GrudgeSource.Jealousy, grievance,
+               GrudgeBackfillRules.JealousyMagnitude, knownToPlayer: true, today);
 
-         // A threatening/confronting letter — unless they ride with the player, in which case
-         // they would say it to the player's face rather than send a courier.
-         bool withPlayer = party.PartyBelongedTo == MobileParty.MainParty;
+         // A threatening/confronting letter, unless they are beside the player (same party, army, or
+         // settlement), in which case they would say it to the player's face rather than send a courier.
+         bool withPlayer = Letters.HeroProximity.IsNearPlayer(party);
 
          if (!pj.WithLetter || withPlayer) return;
          string context = JealousyReaction.BuildLetterContext(
