@@ -173,6 +173,17 @@ namespace CalradiaRemembers.Chat
       private MBBindingList<MemoryEntryViewModel> _memories;
       private string _memoryPanelTitle = "Shared memories";
 
+      // The NPC's portrait shown BELOW the memory list: their custom ChatPortraits image when present, else the
+      // vanilla 3D render. Resolved when the panel opens.
+      private string _memoryPortraitPath = "";
+      private bool _showMemoryCustomPortrait;
+      private bool _showMemoryVanillaPortrait;
+      private string _memoryPortraitId = "";
+      private string _memoryPortraitProvider = "";
+      private string _memoryPortraitArgs = "";
+      private float _memoryPortraitW = 344f;
+      private float _memoryPortraitH = 458f;
+
       private ChatMode _mode = ChatMode.Conversation;
       private Hero _npcHero;
       private string _npcName = "the lord";
@@ -564,6 +575,32 @@ namespace CalradiaRemembers.Chat
             OnPropertyChangedWithValue(value);
          }
       }
+
+      // ── Memory-panel portrait (custom PNG or vanilla 3D) ──
+      [DataSourceProperty]
+      public string MemoryPortraitPath => _memoryPortraitPath;
+
+      [DataSourceProperty]
+      public bool ShowMemoryCustomPortrait => _showMemoryCustomPortrait;
+
+      [DataSourceProperty]
+      public bool ShowMemoryVanillaPortrait => _showMemoryVanillaPortrait;
+
+      [DataSourceProperty]
+      public string MemoryPortraitId => _memoryPortraitId;
+
+      [DataSourceProperty]
+      public string MemoryPortraitTextureProviderName => _memoryPortraitProvider;
+
+      [DataSourceProperty]
+      public string MemoryPortraitAdditionalArgs => _memoryPortraitArgs;
+
+      /// <summary>Displayed portrait size, aspect-preserved to fit the portrait box (must be float for the setter).</summary>
+      [DataSourceProperty]
+      public float MemoryPortraitWidth => _memoryPortraitW;
+
+      [DataSourceProperty]
+      public float MemoryPortraitHeight => _memoryPortraitH;
 
       /// <summary>
       ///   The in-chat mode button label: which of the two configured models requests currently use.
@@ -1004,6 +1041,63 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Resolves the NPC portrait shown below the memory list: their custom ChatPortraits image when the
+      ///   player has dropped one, otherwise the vanilla 3D render. A heroless speaker shows neither.
+      /// </summary>
+      private void ResolveMemoryPortrait()
+      {
+         _memoryPortraitPath = "";
+         _showMemoryCustomPortrait = false;
+         _showMemoryVanillaPortrait = false;
+         _memoryPortraitId = "";
+         _memoryPortraitProvider = "";
+         _memoryPortraitArgs = "";
+
+         // The image is drawn at the largest size that fits this box WITHOUT distortion (aspect preserved),
+         // then centred: the player's PNG may be any ratio (4:5, square, wide), so it must never be stretched.
+         const float boxW = 458f;
+         const float boxH = 456f;
+         var aspectW = 3f; // vanilla 3D fallback: a nominal portrait aspect
+         var aspectH = 4f;
+
+         if (_npcHero != null)
+         {
+            string custom = Portraits.ChatPortraitResolver.ResolveForHero(_npcHero.StringId, _npcName);
+            if (!string.IsNullOrEmpty(custom))
+            {
+               _memoryPortraitPath = custom;
+               _showMemoryCustomPortrait = true;
+               if (Portraits.RuntimePortraitFactory.TryGetDimensions(custom, out int iw, out int ih) && iw > 0 && ih > 0)
+               {
+                  aspectW = iw;
+                  aspectH = ih;
+               }
+            }
+            else
+            {
+               PortraitData p = PortraitTextureGuard.Create(_npcHero.CharacterObject);
+               _memoryPortraitId = p.Id;
+               _memoryPortraitProvider = p.TextureProviderName;
+               _memoryPortraitArgs = p.AdditionalArgs;
+               _showMemoryVanillaPortrait = !string.IsNullOrEmpty(p.Id);
+            }
+         }
+
+         float scale = Math.Min(boxW / aspectW, boxH / aspectH);
+         _memoryPortraitW = aspectW * scale;
+         _memoryPortraitH = aspectH * scale;
+
+         OnPropertyChanged(nameof(MemoryPortraitWidth));
+         OnPropertyChanged(nameof(MemoryPortraitHeight));
+         OnPropertyChanged(nameof(MemoryPortraitPath));
+         OnPropertyChanged(nameof(ShowMemoryCustomPortrait));
+         OnPropertyChanged(nameof(ShowMemoryVanillaPortrait));
+         OnPropertyChanged(nameof(MemoryPortraitId));
+         OnPropertyChanged(nameof(MemoryPortraitTextureProviderName));
+         OnPropertyChanged(nameof(MemoryPortraitAdditionalArgs));
+      }
+
+      /// <summary>
       ///   Rebuilds the shared-memories list from the current NPC's persisted profile: a read-only mirror of
       ///   cr.memory, oldest first, so the panel reads like a journal. Called each time the panel opens so it is
       ///   always current. An NPC with no memory (or a heroless speaker with no persistent profile) shows a
@@ -1014,6 +1108,7 @@ namespace CalradiaRemembers.Chat
          try
          {
             _memories.Clear();
+            ResolveMemoryPortrait();
 
             NpcProfile profile = MainSpeaker().Profile;
             MemoryPanelTitle = _npcHero != null

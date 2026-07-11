@@ -2,6 +2,11 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.4.. 2026-07-11
+
+### Added
+- The Memories panel now shows the character's portrait. "What X remembers" is split in two: their shared history at the top, and their portrait below it. It uses the custom image you dropped in ChatPortraits for that character if there is one, otherwise their normal 3D portrait, and it is always shown at its true aspect ratio (never stretched), so a 4:5, square, or wide image all display correctly.
+
 ## v1.30.3.. 2026-07-10
 
 ### Added

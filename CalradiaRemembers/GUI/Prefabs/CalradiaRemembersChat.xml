@@ -794,7 +794,7 @@
                 HeightSizePolicy="StretchToParent"
                 VerticalAlignment="Top"
                 MarginTop="78"
-                MarginBottom="94"
+                MarginBottom="556"
                 MarginLeft="24"
                 MarginRight="24"
                 Sprite="BlankWhiteSquare_9"
@@ -867,6 +867,48 @@
                                         HeightSizePolicy="StretchToParent"
                                         HorizontalAlignment="Right"
                                         MarginRight="4" />
+          </Children>
+        </Widget>
+
+        <!-- NPC portrait beneath the memory list: their custom ChatPortraits image when present, else the
+             vanilla 3D render. Fixed height so the list keeps the top of the panel and the portrait the bottom. -->
+        <Widget Id="MemoryPortraitArea"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="Fixed"
+                SuggestedHeight="470"
+                VerticalAlignment="Bottom"
+                MarginBottom="94"
+                MarginLeft="24"
+                MarginRight="24"
+                Sprite="BlankWhiteSquare_9"
+                Color="#0d0a08DD"
+                AlphaFactor="0.4">
+          <Children>
+            <CrRuntimeImageWidget Id="MemoryCustomPortrait"
+                                  WidthSizePolicy="Fixed"
+                                  HeightSizePolicy="Fixed"
+                                  SuggestedWidth="@MemoryPortraitWidth"
+                                  SuggestedHeight="@MemoryPortraitHeight"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  IsVisible="@ShowMemoryCustomPortrait"
+                                  ImagePath="@MemoryPortraitPath"
+                                  IsDisabled="true" />
+
+            <ImageIdentifierWidget Id="MemoryVanillaPortrait"
+                                   WidthSizePolicy="Fixed"
+                                   HeightSizePolicy="Fixed"
+                                   SuggestedWidth="@MemoryPortraitWidth"
+                                   SuggestedHeight="@MemoryPortraitHeight"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   IsVisible="@ShowMemoryVanillaPortrait"
+                                   TextureProviderName="@MemoryPortraitTextureProviderName"
+                                   ImageId="@MemoryPortraitId"
+                                   AdditionalArgs="@MemoryPortraitAdditionalArgs"
+                                   IsBig="true"
+                                   HideWhenNull="false"
+                                   IsDisabled="true" />
           </Children>
         </Widget>
 
