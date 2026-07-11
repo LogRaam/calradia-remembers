@@ -267,14 +267,21 @@ namespace CalradiaRemembers.Services
                Type = "give_gold",
                Description = "Transfer gold from you to the player (payment, reward, gift, bribe). " +
                              "'amount' is a whole number of denars. " +
-                             "The amount must reflect your actual willingness — do not give what you would not give.",
+                             "The amount must reflect your actual willingness: do not give what you would not give. " +
+                             "DIRECTION CHECK: use this ONLY when YOU hand YOUR OWN coin to the player. When the " +
+                             "PLAYER is the one paying, including in a stage direction such as *hands you 1000 " +
+                             "denars* or *he gives her the coin* (the player writing about themselves in the third " +
+                             "person), that is take_gold, never give_gold.",
                Parameters = new List<string> {"amount"}
             },
             new() {
                Type = "take_gold",
                Description = "Transfer gold from the player to you (tribute, fee, debt repaid). " +
                              "'amount' is a whole number of denars. " +
-                             "Only emit if the player has agreed or you have the authority to demand it.",
+                             "Only emit if the player has agreed or you have the authority to demand it. " +
+                             "This includes when the player mimes the payment in a stage direction (*hands you " +
+                             "500 denars*, *he gives her the money*): the player is the one paying, so it is " +
+                             "take_gold, not give_gold.",
                Parameters = new List<string> {"amount"}
             }
          };
