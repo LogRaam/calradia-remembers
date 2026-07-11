@@ -107,26 +107,54 @@ namespace CalradiaRemembers.Portraits
                     return false;
                 }
 
-                byte[] bytes = SwapRedBlue(File.ReadAllBytes(fullPath));
-                engineTexture = EngTex.CreateFromMemory(bytes);
+                string uniqueName = $"cr_rt_tex_{StableHash(fullPath):x8}";
 
+                // PREFERRED: the engine's own per-file loader, the same pipeline real game textures use, so
+                // the channels come out right and the native resource is keyed by the FILE (two different
+                // images can never collide into one texture, the player-wears-the-NPC's-face report).
+                var loader = "path";
+                try
+                {
+                    engineTexture = EngTex.LoadTextureFromPath(Path.GetFileName(fullPath), Path.GetDirectoryName(fullPath));
+                    if (engineTexture != null)
+                    {
+                        engineTexture.SetTextureAsAlwaysValid();
+                        engineTexture.PreloadTexture(true);
+                        if (engineTexture.Width <= 0 || engineTexture.Height <= 0) engineTexture = null; // did not really load
+                    }
+                }
+                catch { engineTexture = null; }
+
+                // FALLBACK: decode from memory. That decoder reads red/blue swapped relative to the 2D
+                // renderer, so the bytes are channel-swapped first; the texture is then named uniquely so the
+                // by-name caches downstream cannot unify two different images.
                 if (engineTexture == null)
                 {
-                    diag = "CreateFromMemory returned null";
+                    loader = "memory";
+                    engineTexture = EngTex.CreateFromMemory(SwapRedBlue(File.ReadAllBytes(fullPath)));
 
-                    return false;
+                    if (engineTexture == null)
+                    {
+                        diag = "both loaders failed (LoadTextureFromPath and CreateFromMemory)";
+
+                        return false;
+                    }
+
+                    engineTexture.SetTextureAsAlwaysValid();
+                    engineTexture.PreloadTexture(true);
                 }
 
-                // Keep the from-memory texture alive and force its GPU upload, so it is renderable this frame
-                // rather than getting collected or rendering before the deferred upload lands (a likely cause of
-                // the black frame).
-                engineTexture.SetTextureAsAlwaysValid();
-                engineTexture.PreloadTexture(true);
+                try { engineTexture.Name = uniqueName; }
+                catch
+                {
+                    // naming is defensive; rendering works without it
+                }
 
                 int w = engineTexture.Width;
                 int h = engineTexture.Height;
-                diag = $"loaded {w}x{h} (IsLoaded={engineTexture.IsLoaded()}) from {Path.GetFileName(fullPath)} ({bytes.Length} bytes)";
+                diag = $"loaded {w}x{h} via {loader} (IsLoaded={engineTexture.IsLoaded()}, name={uniqueName}) from {Path.GetFileName(fullPath)}";
                 if (w <= 0 || h <= 0) diag += " (WARN zero dims: texture may still be loading)";
+                ModLog.Info($"[PORTRAIT] {diag}");
 
                 // The name must be UNIQUE PER FILE: the render layer caches by sprite/category NAME, so two
                 // different images sharing "cr_runtime_portrait" collide and every row shows the first-loaded
