@@ -369,6 +369,17 @@ namespace CalradiaRemembers.Behaviors
                   continue;
                }
 
+               // Only ADULTS initiate correspondence: a child's queued letter is dropped (heals existing saves,
+               // the queue-time gate refuses new ones). A child may still reply to a letter the player sent them.
+               if (sender.IsChild && letter.Reason != LetterReason.PlayerLetterReply)
+               {
+                  letter.IsLost = true;
+                  changed = true;
+                  ModLog.Info($"[LETTER] dropped queued letter from the child {profile.Name} ({letter.Reason}): children initiate no letters.");
+
+                  continue;
+               }
+
                // A sender who is effectively BESIDE the player right now (same party, same army, same town or
                // castle) does not post a letter to them (player report: a lady in the player's army sent "I miss
                // you" letters). The letter is not lost, only DEFERRED: the courier departs on a later tick, once
