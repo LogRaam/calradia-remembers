@@ -109,58 +109,34 @@ namespace CalradiaRemembers.Portraits
 
                 string uniqueName = $"cr_rt_tex_{StableHash(fullPath):x8}";
 
-                // The 2D sprite renderer samples RED and BLUE swapped relative to how BOTH engine loaders decode
-                // (memory loader AND the per-file path loader both come out inverted, confirmed in game), so we
-                // colour-correct the SOURCE once, up front, whichever loader then reads it.
+                // The 2D sprite renderer samples RED and BLUE swapped relative to how the engine decodes an
+                // image (warm skin rendered blue), so colour-correct the bytes IN MEMORY first (no temp file).
                 byte[] corrected = SwapRedBlue(File.ReadAllBytes(fullPath)); // decoded, R/B swapped, PNG re-encoded
+                engineTexture = EngTex.CreateFromMemory(corrected);
 
-                // PREFERRED: the engine's own per-file loader, the same pipeline real game textures use. It keys
-                // the native resource by the FILE, so two DIFFERENT images can never collide into one texture
-                // (the player-wears-the-NPC's-face report). We feed it a per-source TEMP file holding the
-                // colour-corrected bytes, so identity (from the path) and colour (from the pre-swap) are both right.
-                var loader = "path";
-                string tempDir = Path.Combine(Path.GetTempPath(), "CalradiaRemembersPortraits");
-                string tempName = $"cr_portrait_{StableHash(fullPath):x8}.png";
-                try
-                {
-                    Directory.CreateDirectory(tempDir);
-                    File.WriteAllBytes(Path.Combine(tempDir, tempName), corrected);
-                    engineTexture = EngTex.LoadTextureFromPath(tempName, tempDir);
-                    if (engineTexture != null)
-                    {
-                        engineTexture.SetTextureAsAlwaysValid();
-                        engineTexture.PreloadTexture(true);
-                        if (engineTexture.Width <= 0 || engineTexture.Height <= 0) engineTexture = null; // did not really load
-                    }
-                }
-                catch { engineTexture = null; }
-
-                // FALLBACK: build the texture straight from the corrected bytes in memory, named uniquely so the
-                // by-name caches downstream cannot unify two different images.
                 if (engineTexture == null)
                 {
-                    loader = "memory";
-                    engineTexture = EngTex.CreateFromMemory(corrected);
+                    diag = "CreateFromMemory returned null";
 
-                    if (engineTexture == null)
-                    {
-                        diag = "both loaders failed (LoadTextureFromPath and CreateFromMemory)";
+                    return false;
+                }
 
-                        return false;
-                    }
+                engineTexture.SetTextureAsAlwaysValid();
+                engineTexture.PreloadTexture(true);
 
-                    engineTexture.SetTextureAsAlwaysValid();
-                    engineTexture.PreloadTexture(true);
-                    try { engineTexture.Name = uniqueName; }
-                    catch
-                    {
-                        // naming is defensive; rendering works without it
-                    }
+                // A UNIQUE NATIVE TEXTURE NAME is what keeps two different images apart: the render layer's
+                // by-name cache otherwise unifies same-named textures, so every custom row wore the first-loaded
+                // face (the player-wears-the-NPC's-portrait report). This is exactly why the engine's own
+                // path-loader avoided the clash (it names the texture by its file path); we do the same in memory.
+                try { engineTexture.Name = uniqueName; }
+                catch
+                {
+                    // naming is defensive; rendering works without it
                 }
 
                 int w = engineTexture.Width;
                 int h = engineTexture.Height;
-                diag = $"loaded {w}x{h} via {loader} (IsLoaded={engineTexture.IsLoaded()}) from {Path.GetFileName(fullPath)}";
+                diag = $"loaded {w}x{h} (IsLoaded={engineTexture.IsLoaded()}, name={uniqueName}) from {Path.GetFileName(fullPath)}";
                 if (w <= 0 || h <= 0) diag += " (WARN zero dims: texture may still be loading)";
                 ModLog.Info($"[PORTRAIT] {diag}");
 
