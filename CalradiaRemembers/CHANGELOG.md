@@ -2,6 +2,11 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.7.. 2026-07-11
+
+### Fixed
+- You can gift goods or gold again while holding prisoners. When you offered something and also held captives, the game first asked whether you meant "Goods or gold" or "A prisoner"; choosing "Goods or gold" then silently did nothing (the give picker never opened), so only prisoners could be handed over. The picker now opens correctly in that case (it was being requested in a way the game dropped when it followed another popup; it now waits its turn, exactly as the prisoner picker already did).
+
 ## v1.30.6.. 2026-07-11
 
 ### Fixed

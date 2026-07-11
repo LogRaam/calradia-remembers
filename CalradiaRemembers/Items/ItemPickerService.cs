@@ -221,8 +221,12 @@ namespace CalradiaRemembers.Items
                      Resolve(stringId, onItemSelected);
                   },
                   null),
-               false, // pauseGameActiveState — chat already pauses time
-               true); // prioritize — show on top of the chat window
+               false, // pauseGameActiveState: chat already pauses time
+               false); // NOT prioritized: a prioritized inquiry opened from inside a parent inquiry's closing
+                       // callback (the "What do you offer?" menu picking "Goods or gold") is swallowed by the
+                       // engine, so the picker never appeared while prisoners were held. Queuing shows it right
+                       // after the parent closes (exactly what the prisoner picker does), and a queued inquiry
+                       // still appears over the chat.
          }
          catch (Exception ex)
          {
