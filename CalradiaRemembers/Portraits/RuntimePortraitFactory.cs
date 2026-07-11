@@ -94,7 +94,7 @@ namespace CalradiaRemembers.Portraits
                     return false;
                 }
 
-                byte[] bytes = File.ReadAllBytes(fullPath);
+                byte[] bytes = SwapRedBlue(File.ReadAllBytes(fullPath));
                 engineTexture = EngTex.CreateFromMemory(bytes);
 
                 if (engineTexture == null)
@@ -142,6 +142,57 @@ namespace CalradiaRemembers.Portraits
                 diag = $"{ex.GetType().Name}: {ex.Message}";
 
                 return false;
+            }
+        }
+
+        /// <summary>
+        ///   The engine's <c>CreateFromMemory</c> decodes the file with RED and BLUE swapped relative to what
+        ///   the 2D sprite renderer samples (player report: warm skin rendered BLUE). Decode the image
+        ///   ourselves (GDI+), swap R and B on every pixel, and re-encode, so the engine's backwards read
+        ///   lands the colours the right way round. Any decode surprise falls back to the original bytes
+        ///   (worst case: the old swapped colours, never a missing portrait).
+        /// </summary>
+        private static byte[] SwapRedBlue(byte[] imageBytes)
+        {
+            try
+            {
+                using (var input = new MemoryStream(imageBytes))
+                using (var bitmap = new System.Drawing.Bitmap(input))
+                {
+                    var rect = new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height);
+                    System.Drawing.Imaging.BitmapData data = bitmap.LockBits(
+                        rect, System.Drawing.Imaging.ImageLockMode.ReadWrite,
+                        System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                    try
+                    {
+                        int count = Math.Abs(data.Stride) * data.Height;
+                        var pixels = new byte[count];
+                        System.Runtime.InteropServices.Marshal.Copy(data.Scan0, pixels, 0, count);
+
+                        for (var i = 0; i + 3 < count; i += 4)
+                        {
+                            byte blue = pixels[i]; // 32bppArgb lays out B,G,R,A per pixel
+                            pixels[i] = pixels[i + 2];
+                            pixels[i + 2] = blue;
+                        }
+
+                        System.Runtime.InteropServices.Marshal.Copy(pixels, 0, data.Scan0, count);
+                    }
+                    finally { bitmap.UnlockBits(data); }
+
+                    using (var output = new MemoryStream())
+                    {
+                        bitmap.Save(output, System.Drawing.Imaging.ImageFormat.Png);
+
+                        return output.ToArray();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[PORTRAIT] channel swap failed ({ex.GetType().Name}: {ex.Message}); using the raw file bytes.");
+
+                return imageBytes;
             }
         }
     }

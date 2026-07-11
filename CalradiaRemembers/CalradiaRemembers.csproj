@@ -43,6 +43,9 @@
   <!-- ─── TaleWorlds DLLs (referenced from the game install) ────────────── -->
 
   <ItemGroup>
+    <!-- GDI+ decode for the chat-portrait channel fix: the engine's CreateFromMemory reads red/blue swapped,
+         so we decode, swap, and re-encode the image ourselves before handing it over. -->
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Net.Http" />
     <!-- TaleWorlds.Library.Vec2 exposes System.Numerics.Vector2 in its public API, so this assembly
          must be referenced explicitly for any file using Vec2 to compile cleanly. The game ships a copy. -->
