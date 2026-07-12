@@ -2,6 +2,14 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.8.. 2026-07-12
+
+### Fixed
+- Authored backstories land forcefully again. A character you have written a strong persona for (in character_overrides.json), especially one that names a bold figure to model the voice on, now clearly adopts that manner instead of the flat, generic voice a recent version produced (the "it just said 'I smile with a character-like smile', no hint of personality" report). The prompt that carries your backstory to the model now commits to it fully and, for a named figure, takes that figure's full manner and force of personality while still keeping their world out of Calradia (no imported names, places, powers, or lore). A late instruction that had the model invent its own faint, subtle quirks was watering strong personas down; inventing quirks now only kicks in when the backstory itself spells out none.
+
+### Added
+- New `cr.backstory_test [name]` console command injects a strong named persona (a Kratos-style warrior) onto a chosen character at runtime, without editing character_overrides.json, so the authored-backstory path can be checked end to end in one command. It targets the named character (an exact name match wins over a partial one, so "Mina" is not swallowed by "Vamina") or the current conversation NPC, turns custom traits on for the session, and logs what it did.
+
 ## v1.30.7.. 2026-07-11
 
 ### Fixed

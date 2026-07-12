@@ -104,5 +104,43 @@ namespace CalradiaRemembers.Tests
 
             set.Resolve(heroId: "aria_south", heroName: "Aria").Honor.Should().Be(-2);
         }
+
+        // ── Runtime injection (With): the console backstory-test path ───────────
+
+        [Test]
+        public void GIVEN_an_injected_override_WHEN_resolving_by_id_THEN_the_injected_backstory_is_returned()
+        {
+            var set = new CharacterOverrideSet(null)
+                .With(new CharacterOverride { Id = "lord_1", Hero = "Derthert", Backstory = "A rage-forged warrior." });
+
+            set.Resolve("lord_1", "Derthert").Backstory.Should().Be("A rage-forged warrior.");
+        }
+
+        [Test]
+        public void GIVEN_an_injection_for_a_hero_that_already_has_a_file_entry_WHEN_resolving_THEN_the_injection_wins_by_id()
+        {
+            var set = new CharacterOverrideSet(new[] { new CharacterOverride { Id = "lord_1", Hero = "Derthert", Backstory = "old" } })
+                .With(new CharacterOverride { Id = "lord_1", Hero = "Derthert", Backstory = "new" });
+
+            set.Resolve("lord_1", "Derthert").Backstory.Should().Be("new");
+            set.Count.Should().Be(1); // replaced, not duplicated
+        }
+
+        [Test]
+        public void GIVEN_an_injection_for_one_hero_WHEN_resolving_others_THEN_the_rest_of_the_set_is_preserved()
+        {
+            var set = new CharacterOverrideSet(new[] { new CharacterOverride { Id = "lord_other", Hero = "Caladog", Backstory = "kept" } })
+                .With(new CharacterOverride { Id = "lord_1", Hero = "Derthert", Backstory = "injected" });
+
+            set.Resolve("lord_other", "Caladog").Backstory.Should().Be("kept");
+            set.Resolve("lord_1", "Derthert").Backstory.Should().Be("injected");
+        }
+
+        [Test]
+        public void GIVEN_a_null_override_WHEN_added_THEN_the_set_is_unchanged()
+        {
+            var set = new CharacterOverrideSet(new[] { new CharacterOverride { Id = "lord_1", Hero = "Derthert" } });
+            set.With(null).Count.Should().Be(1);
+        }
     }
 }

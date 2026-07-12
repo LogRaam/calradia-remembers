@@ -51,5 +51,24 @@ namespace CalradiaRemembers.Logic
             if (byName.Count == 1) return byName[0];
             return null; // none, or an ambiguous homonym with no id to disambiguate
         }
+
+        /// <summary>
+        ///   A new set with <paramref name="ov"/> added, replacing any existing entry that would resolve to
+        ///   the same hero: one sharing its <see cref="CharacterOverride.Id"/>, or (when the injected override
+        ///   carries no id) one sharing its <see cref="CharacterOverride.Hero"/> name. Lets a runtime/console
+        ///   injection override a file entry for one NPC without wiping the rest. A null <paramref name="ov"/>
+        ///   returns this set unchanged.
+        /// </summary>
+        public CharacterOverrideSet With(CharacterOverride ov)
+        {
+            if (ov == null) return this;
+
+            bool SameTarget(CharacterOverride o) =>
+                (!string.IsNullOrWhiteSpace(ov.Id) && string.Equals(o.Id, ov.Id, StringComparison.OrdinalIgnoreCase))
+                || (string.IsNullOrWhiteSpace(ov.Id) && !string.IsNullOrWhiteSpace(ov.Hero)
+                    && string.Equals(o.Hero, ov.Hero, StringComparison.OrdinalIgnoreCase));
+
+            return new CharacterOverrideSet(_overrides.Where(o => !SameTarget(o)).Concat(new[] { ov }));
+        }
     }
 }

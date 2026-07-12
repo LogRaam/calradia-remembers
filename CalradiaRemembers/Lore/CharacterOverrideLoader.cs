@@ -51,6 +51,17 @@ namespace CalradiaRemembers.Lore
             ? null
             : Set.Resolve(hero.StringId, hero.Name?.ToString());
 
+      /// <summary>
+      ///   Adds (or replaces) a single override at runtime, keyed by hero id/name, without touching
+      ///   character_overrides.json. Used by the console to inject a test backstory into the live prompt
+      ///   pipeline (the per-turn sync reads <see cref="BackstoryFor" /> from this set). A session reload
+      ///   restores the file-backed set. Callers must also ensure custom traits are enabled for it to apply.
+      /// </summary>
+      public static void InjectRuntimeOverride(CharacterOverride ov)
+      {
+         if (ov != null) Set = Set.With(ov);
+      }
+
       public static void Load()
       {
          string path = Path.Combine(
