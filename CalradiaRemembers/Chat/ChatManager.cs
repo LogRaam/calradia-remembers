@@ -1,10 +1,12 @@
-// Code written by Gabriel Mailhot, 22/06/2026.
+// Code written by Gabriel Mailhot, 05/07/2026.
 
 #region
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.GUI;
 using CalradiaRemembers.Services;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -32,20 +34,15 @@ namespace CalradiaRemembers.Chat
    /// </summary>
    public static class ChatManager
    {
-      private const string PrefabName = "CalradiaRemembersChat";
-
       // The chat overlay's render order (very high, so it sits above the campaign map). It cannot be changed
       // after the layer is built, so to keep a game screen opened over the chat (the encyclopedia) visible, the
       // arbiter slides the chat's WINDOW off-screen (a VM-bound offset) instead of restacking the layer.
       private const int ChatLayerOrder = 10000;
+      private const string PrefabName = "CalradiaRemembersChat";
+      private const double VramTickSeconds = 10.0;
 
       private static GauntletLayer _activeLayer;
       private static GauntletMovieIdentifier _activeMovieId;
-      private static ScreenBase _hostScreen;
-      private static ChatScreen _chatScreen;
-      private static CampaignTimeControlMode _previousTimeControlMode;
-      private static bool _previousTimeControlModeLock;
-      private static bool _timeControlModeSaved;
 
       // Continuous focus arbitration. The chat is a high-order modal focus layer, so ANY game screen that
       // appears over it (the alt-tab pause menu, the encyclopedia, a native popup) would otherwise be starved
@@ -54,11 +51,15 @@ namespace CalradiaRemembers.Chat
       // something modal is up, so the chat yields its focus + input grab; back to baseline, the chat reclaims.
       private static int _baselineLayerCount;
       private static bool _chatHoldsFocus;
+      private static ChatScreen _chatScreen;
+      private static ScreenBase _hostScreen;
 
       // Heartbeat VRAM diagnostic: sample at most once every VramTickSeconds while the chat is open, so an idle
       // scene (no LLM responses to trigger the per-turn read) still leaves a VRAM trend in the log.
       private static DateTime _lastVramTick = DateTime.MinValue;
-      private const double VramTickSeconds = 10.0;
+      private static CampaignTimeControlMode _previousTimeControlMode;
+      private static bool _previousTimeControlModeLock;
+      private static bool _timeControlModeSaved;
 
       /// <summary>
       ///   How the chat window is hosted. <see cref="ChatHostMode.Overlay" /> is the original design: a layer on
@@ -74,202 +75,12 @@ namespace CalradiaRemembers.Chat
          PushedScreen
       }
 
+      public static ChatViewModel ActiveViewModel { get; private set; }
+
       /// <summary>Active hosting mode. Defaults to the original Overlay so nothing changes until opted in.</summary>
       public static ChatHostMode HostMode { get; set; } = ChatHostMode.Overlay;
 
-      public static ChatViewModel ActiveViewModel { get; private set; }
-
       public static bool IsOpen => _activeLayer != null;
-
-      public static void Close()
-      {
-         if (!IsOpen) return;
-
-         // CRITICAL: FreeResources() (which nulls _activeLayer) MUST run no matter what.
-         // If any teardown step threw before it, _activeLayer would stay non-null, IsOpen
-         // would stay true forever, and every future Open() would no-op — silently killing
-         // all conversations for the rest of the session. The finally block guarantees the
-         // reset; each Finalize* is individually guarded so one failing does not skip the rest.
-         try
-         {
-            // Record the session in the NPC's memory before tearing down. Each call is
-            // a no-op outside its own mode and idempotent. The async summary either may
-            // launch captures the data it needs, so it survives the teardown below.
-            SafeStep(() => ActiveViewModel?.FinalizeStoryLog(), "FinalizeStoryLog");
-            SafeStep(() => ActiveViewModel?.FinalizeCaptiveSceneMemory(), "FinalizeCaptiveSceneMemory");
-            SafeStep(() => ActiveViewModel?.FinalizeCaptorSceneMemory(), "FinalizeCaptorSceneMemory");
-            SafeStep(() => ActiveViewModel?.FinalizeCompanionAudience(), "FinalizeCompanionAudience");
-            SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
-            SafeStep(() => ActiveViewModel?.FinalizeWitnessMemories(), "FinalizeWitnessMemories");
-
-            // Free every character tableau (GPU render-target) before releasing the movie, so no portrait
-            // survives the close regardless of engine teardown timing.
-            SafeStep(() => ActiveViewModel?.ReleaseAllPortraits(), "ReleaseAllPortraits");
-            // Turn the host map scene's rendering back on before we tear our layer down, so the map is live
-            // again the instant the chat is gone.
-            SafeStep(GUI.MapSceneSuspender.Resume, "ResumeMapScene");
-            SafeStep(KillChatWindow, "KillChatWindow");
-            SafeStep(EndVanillaConversation, "EndVanillaConversation");
-            SafeStep(EndMapEncounterIfNeeded, "EndMapEncounterIfNeeded");
-            SafeStep(RestoreTime, "RestoreTime");
-         }
-         finally
-         {
-            FreeResources();
-            SafeStep(LlmServices.ClearTestGenderOverride, "ClearTestGenderOverride");
-            ModLog.Info("Chat window closed — returned to campaign map.");
-            ModLog.Info($"[VRAM] close (after teardown) | {VramProbe.Describe()}");
-         }
-      }
-
-      public static void Open(string npcName = null)
-      {
-         if (IsOpen)
-         {
-            ModLog.Info("ChatManager.Open called but chat is already open.");
-
-            return;
-         }
-
-         _hostScreen = ScreenManager.TopScreen;
-         if (_hostScreen == null)
-         {
-            ModLog.Error("ChatManager.Open: no top screen available.");
-
-            return;
-         }
-
-         if (Campaign.Current != null) PauseCampaignMap();
-
-         try
-         {
-            GenerateChatWindow(npcName);
-         }
-         catch (Exception ex)
-         {
-            // A half-built window would leave _activeLayer set and trap every future Open()
-            // behind the IsOpen guard. Tear down what little we made and reset so the next
-            // attempt has a clean slate.
-            ModLog.Error($"ChatManager.Open: GenerateChatWindow failed: {ex.GetType().Name}: {ex.Message}");
-            SafeStep(KillChatWindow, "KillChatWindow (open-failure cleanup)");
-            SafeStep(RestoreTime, "RestoreTime (open-failure cleanup)");
-            FreeResources();
-
-            return;
-         }
-
-         // Overlay mode only: stop the host map scene rendering behind our overlay (the naval-map VRAM fix).
-         // Pushed-screen mode suspends the map by construction (the engine suspends the screen below), so this
-         // reflection hack is neither needed nor wanted there.
-         if (HostMode == ChatHostMode.Overlay)
-            SafeStep(() => GUI.MapSceneSuspender.Suspend(_hostScreen), "SuspendMapScene");
-
-         ModLog.Info($"Chat window opened on {_hostScreen.GetType().Name} with NPC '{npcName ?? "(none)"}'.");
-         ModLog.Info($"[VRAM] open (baseline) | {VramProbe.Describe()}");
-      }
-
-      // ── Public API ────────────────────────────────────────────────────────
-
-      /// <summary>
-      ///   Opens the chat window for a captive encounter initiated by the captor NPC.
-      ///   Unlike a vanilla dialogue, this is triggered programmatically from the daily
-      ///   tick — the player has no choice but to enter. Witnesses are pre-resolved by
-      ///   <see cref="CalradiaRemembers.Letters.CaptiveEncounterService" />.
-      /// </summary>
-      public static void OpenForCaptiveEncounter(
-         Hero captorHero,
-         NpcProfile captorProfile,
-         List<WitnessEntry> witnesses,
-         bool isCollective,
-         CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation,
-         CharacterObject portraitCharacter = null,
-         Hero victimCompanionHero = null,
-         bool playerCoerced = false)
-      {
-         Open(captorHero?.Name?.ToString() ?? captorProfile?.Name);
-
-         if (ActiveViewModel == null) return;
-         if (captorHero != null) ActiveViewModel.SetNpcHero(captorHero);
-         else if (captorProfile != null) ActiveViewModel.SetNpcName(captorProfile.Name);
-         if (captorHero == null && portraitCharacter != null)
-            ActiveViewModel.SetNpcPortraitCharacter(portraitCharacter);
-
-         // The victim companion is a REAL participant, not just a name in the prompt: add them as a witness
-         // entry carrying their HeroStringId (so the chat resolves their portrait) and IsCaptiveVictim (so the
-         // host never counts them as one of the captor's men). Their voice — cries, pleas, defiance — then comes
-         // through the existing [WITNESS_REACTION] channel, under their own portrait. Their gender flows to the
-         // prompt so the model stops borrowing the player's.
-         string victimName = victimCompanionHero?.Name?.ToString();
-         bool victimIsFemale = victimCompanionHero?.IsFemale ?? false;
-         if (victimCompanionHero != null)
-         {
-            var withVictim = witnesses != null ? new List<WitnessEntry>(witnesses) : new List<WitnessEntry>();
-            withVictim.Add(new WitnessEntry {
-               Name = victimName,
-               RelationToNpc = "the player's captive companion, bound and at your mercy",
-               HeroStringId = victimCompanionHero.StringId,
-               IsPlayerCompanion = true,
-               IsCaptiveVictim = true
-            });
-            witnesses = withVictim;
-         }
-
-         if (witnesses is {Count: > 0}) ActiveViewModel.SetWitnesses(witnesses);
-
-         // A faceless brigand captor has no Hero — that absence is exactly the bandit signal.
-         bool captorIsBandit = captorHero == null;
-         ActiveViewModel.ActivateCaptiveEncounterMode(captorProfile, isCollective, intent, captorIsBandit, victimName, playerCoerced, victimIsFemale);
-      }
-
-      /// <summary>
-      ///   Opens a companion AUDIENCE the companion themselves requested from a map popup ("Let us speak of it"):
-      ///   a grievance, or a war-weary bid to retire. A normal conversation (full memory + actions) in which the
-      ///   companion speaks FIRST and voices why they came. For a retirement, granting it in the talk fires the
-      ///   companion's <c>retire</c> action; persuading them keeps them on.
-      /// </summary>
-      public static void OpenForCompanionAudience(Hero companion, NpcProfile profile, CompanionAudienceReason reason, bool landed)
-      {
-         if (companion == null || profile == null) return;
-
-         Open(companion.Name?.ToString() ?? profile.Name);
-         if (ActiveViewModel == null) return;
-
-         ActiveViewModel.SetNpcHero(companion);
-         ActiveViewModel.ActivateCompanionAudience(profile, reason, landed);
-      }
-
-      /// <summary>
-      ///   Opens the chat window for a PLAYER-AS-CAPTOR scene: the NPC is the player's prisoner and the player
-      ///   drives. A normal live conversation framed so the NPC reacts as the captive. The player speaks first.
-      /// </summary>
-      public static void OpenForCaptorScene(
-         Hero prisonerHero,
-         NpcProfile prisonerProfile,
-         CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation)
-      {
-         Open(prisonerHero?.Name?.ToString() ?? prisonerProfile?.Name);
-
-         if (ActiveViewModel == null) return;
-         if (prisonerHero != null) ActiveViewModel.SetNpcHero(prisonerHero);
-         else if (prisonerProfile != null) ActiveViewModel.SetNpcName(prisonerProfile.Name);
-
-         ActiveViewModel.ActivateCaptorSceneMode(prisonerProfile, intent);
-      }
-
-      /// <summary>
-      ///   Opens the chat window for a transient commoner conversation.
-      ///   The synthetic profile and settlement knowledge are passed directly to
-      ///   <see cref="ChatViewModel.ActivateCommonerMode" />; nothing is loaded
-      ///   from or saved to the profile store.
-      /// </summary>
-      public static void OpenForCommoner(
-         NpcProfile profile,
-         CommonsKnowledge knowledge)
-      {
-         Open(profile?.Name);
-
-         ActiveViewModel?.ActivateCommonerMode(profile, knowledge);
-      }
 
       /// <summary>
       ///   Keeps the chat from starving any game screen that opens over it of input. The chat is a high-order
@@ -322,6 +133,235 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      public static void Close()
+      {
+         if (!IsOpen) return;
+
+         // CRITICAL: FreeResources() (which nulls _activeLayer) MUST run no matter what.
+         // If any teardown step threw before it, _activeLayer would stay non-null, IsOpen
+         // would stay true forever, and every future Open() would no-op — silently killing
+         // all conversations for the rest of the session. The finally block guarantees the
+         // reset; each Finalize* is individually guarded so one failing does not skip the rest.
+         try
+         {
+            // Record the session in the NPC's memory before tearing down. Each call is
+            // a no-op outside its own mode and idempotent. The async summary either may
+            // launch captures the data it needs, so it survives the teardown below.
+            SafeStep(() => ActiveViewModel?.FinalizeStoryLog(), "FinalizeStoryLog");
+            SafeStep(() => ActiveViewModel?.FinalizeCaptiveSceneMemory(), "FinalizeCaptiveSceneMemory");
+            SafeStep(() => ActiveViewModel?.FinalizeCaptorSceneMemory(), "FinalizeCaptorSceneMemory");
+            SafeStep(() => ActiveViewModel?.FinalizeCompanionAudience(), "FinalizeCompanionAudience");
+            SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
+            SafeStep(() => ActiveViewModel?.FinalizeWitnessMemories(), "FinalizeWitnessMemories");
+
+            // Free every character tableau (GPU render-target) before releasing the movie, so no portrait
+            // survives the close regardless of engine teardown timing.
+            SafeStep(() => ActiveViewModel?.ReleaseAllPortraits(), "ReleaseAllPortraits");
+            // Turn the host map scene's rendering back on before we tear our layer down, so the map is live
+            // again the instant the chat is gone.
+            SafeStep(MapSceneSuspender.Resume, "ResumeMapScene");
+            SafeStep(KillChatWindow, "KillChatWindow");
+            SafeStep(EndVanillaConversation, "EndVanillaConversation");
+            SafeStep(EndMapEncounterIfNeeded, "EndMapEncounterIfNeeded");
+            SafeStep(RestoreTime, "RestoreTime");
+         }
+         finally
+         {
+            FreeResources();
+            SafeStep(LlmServices.ClearTestGenderOverride, "ClearTestGenderOverride");
+            ModLog.Info("Chat window closed — returned to campaign map.");
+            ModLog.Info($"[VRAM] close (after teardown) | {VramProbe.Describe()}");
+         }
+      }
+
+      /// <summary>
+      ///   Diagnostic: dumps the screen stack top and the host screen's layer list (type + order) to the log.
+      ///   Used to find out where the encyclopedia actually lands when opened from a chat hosted on the map
+      ///   (it displays fine over a mission host, but never appears over NavalMapScreen). Never throws.
+      /// </summary>
+      public static void LogScreenState(string tag)
+      {
+         try
+         {
+            var sb = new StringBuilder();
+            sb.Append($"[SCREENS] {tag} | top={ScreenManager.TopScreen?.GetType().Name ?? "null"}");
+
+            if (_hostScreen?.Layers != null)
+            {
+               sb.Append($" | host={_hostScreen.GetType().Name} layers[{_hostScreen.Layers.Count}]: ");
+               foreach (ScreenLayer layer in _hostScreen.Layers)
+               {
+                  if (layer == null) continue;
+                  sb.Append(layer.GetType().Name);
+                  object order = ReadOrderForDiagnostics(layer);
+                  if (order != null) sb.Append($"(o={order})");
+                  if (ReferenceEquals(layer, _activeLayer)) sb.Append("[CHAT]");
+                  sb.Append(' ');
+               }
+            }
+
+            ModLog.Info(sb.ToString());
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"LogScreenState failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      public static void Open(string npcName = null)
+      {
+         if (IsOpen)
+         {
+            ModLog.Info("ChatManager.Open called but chat is already open.");
+
+            return;
+         }
+
+         _hostScreen = ScreenManager.TopScreen;
+         if (_hostScreen == null)
+         {
+            ModLog.Error("ChatManager.Open: no top screen available.");
+
+            return;
+         }
+
+         if (Campaign.Current != null) PauseCampaignMap();
+
+         try
+         {
+            GenerateChatWindow(npcName);
+         }
+         catch (Exception ex)
+         {
+            // A half-built window would leave _activeLayer set and trap every future Open()
+            // behind the IsOpen guard. Tear down what little we made and reset so the next
+            // attempt has a clean slate.
+            ModLog.Error($"ChatManager.Open: GenerateChatWindow failed: {ex.GetType().Name}: {ex.Message}");
+            SafeStep(KillChatWindow, "KillChatWindow (open-failure cleanup)");
+            SafeStep(RestoreTime, "RestoreTime (open-failure cleanup)");
+            FreeResources();
+
+            return;
+         }
+
+         // Overlay mode only: stop the host map scene rendering behind our overlay (the naval-map VRAM fix).
+         // Pushed-screen mode suspends the map by construction (the engine suspends the screen below), so this
+         // reflection hack is neither needed nor wanted there.
+         if (HostMode == ChatHostMode.Overlay)
+            SafeStep(() => MapSceneSuspender.Suspend(_hostScreen), "SuspendMapScene");
+
+         ModLog.Info($"Chat window opened on {_hostScreen.GetType().Name} with NPC '{npcName ?? "(none)"}'.");
+         ModLog.Info($"[VRAM] open (baseline) | {VramProbe.Describe()}");
+      }
+
+      // ── Public API ────────────────────────────────────────────────────────
+
+      /// <summary>
+      ///   Opens the chat window for a captive encounter initiated by the captor NPC.
+      ///   Unlike a vanilla dialogue, this is triggered programmatically from the daily
+      ///   tick — the player has no choice but to enter. Witnesses are pre-resolved by
+      ///   <see cref="CalradiaRemembers.Letters.CaptiveEncounterService" />.
+      /// </summary>
+      public static void OpenForCaptiveEncounter(
+         Hero captorHero,
+         NpcProfile captorProfile,
+         List<WitnessEntry> witnesses,
+         bool isCollective,
+         CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation,
+         CharacterObject portraitCharacter = null,
+         Hero victimCompanionHero = null,
+         bool playerCoerced = false)
+      {
+         Open(captorHero?.Name?.ToString() ?? captorProfile?.Name);
+
+         if (ActiveViewModel == null) return;
+         if (captorHero != null) ActiveViewModel.SetNpcHero(captorHero);
+         else if (captorProfile != null) ActiveViewModel.SetNpcName(captorProfile.Name);
+         if (captorHero == null && portraitCharacter != null)
+            ActiveViewModel.SetNpcPortraitCharacter(portraitCharacter);
+
+         // The victim companion is a REAL participant, not just a name in the prompt: add them as a witness
+         // entry carrying their HeroStringId (so the chat resolves their portrait) and IsCaptiveVictim (so the
+         // host never counts them as one of the captor's men). Their voice — cries, pleas, defiance — then comes
+         // through the existing [WITNESS_REACTION] channel, under their own portrait. Their gender flows to the
+         // prompt so the model stops borrowing the player's.
+
+         var withVictim = witnesses != null
+            ? new List<WitnessEntry>(witnesses)
+            : new List<WitnessEntry>();
+         string victimName = victimCompanionHero?.Name?.ToString();
+         bool victimIsFemale = victimCompanionHero?.IsFemale ?? false;
+
+         if (victimCompanionHero != null)
+         {
+            withVictim.Add(new WitnessEntry {
+               Name = victimName ?? "Unknown",
+               RelationToNpc = "the player's captive companion, bound and at your mercy",
+               HeroStringId = victimCompanionHero.StringId,
+               IsPlayerCompanion = true,
+               IsCaptiveVictim = true
+            });
+            witnesses = withVictim;
+         }
+
+         if (witnesses is {Count: > 0}) ActiveViewModel.SetWitnesses(witnesses);
+
+         // A faceless brigand captor has no Hero — that absence is exactly the bandit signal.
+         bool captorIsBandit = captorHero == null;
+         ActiveViewModel.ActivateCaptiveEncounterMode(captorProfile, isCollective, intent, captorIsBandit, victimName, playerCoerced, victimIsFemale);
+      }
+
+      /// <summary>
+      ///   Opens the chat window for a PLAYER-AS-CAPTOR scene: the NPC is the player's prisoner and the player
+      ///   drives. A normal live conversation framed so the NPC reacts as the captive. The player speaks first.
+      /// </summary>
+      public static void OpenForCaptorScene(
+         Hero prisonerHero,
+         NpcProfile prisonerProfile,
+         CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation)
+      {
+         Open(prisonerHero?.Name?.ToString() ?? prisonerProfile?.Name);
+
+         if (ActiveViewModel == null) return;
+         if (prisonerHero != null) ActiveViewModel.SetNpcHero(prisonerHero);
+         else if (prisonerProfile != null) ActiveViewModel.SetNpcName(prisonerProfile.Name);
+
+         ActiveViewModel.ActivateCaptorSceneMode(prisonerProfile, intent);
+      }
+
+      /// <summary>
+      ///   Opens the chat window for a transient commoner conversation.
+      ///   The synthetic profile and settlement knowledge are passed directly to
+      ///   <see cref="ChatViewModel.ActivateCommonerMode" />; nothing is loaded
+      ///   from or saved to the profile store.
+      /// </summary>
+      public static void OpenForCommoner(
+         NpcProfile profile,
+         CommonsKnowledge knowledge)
+      {
+         Open(profile?.Name);
+
+         ActiveViewModel?.ActivateCommonerMode(profile, knowledge);
+      }
+
+      /// <summary>
+      ///   Opens a companion AUDIENCE the companion themselves requested from a map popup ("Let us speak of it"):
+      ///   a grievance, or a war-weary bid to retire. A normal conversation (full memory + actions) in which the
+      ///   companion speaks FIRST and voices why they came. For a retirement, granting it in the talk fires the
+      ///   companion's <c>retire</c> action; persuading them keeps them on.
+      /// </summary>
+      public static void OpenForCompanionAudience(Hero companion, NpcProfile profile, CompanionAudienceReason reason, bool landed)
+      {
+         if (companion == null || profile == null) return;
+
+         Open(companion.Name?.ToString() ?? profile.Name);
+
+         if (ActiveViewModel == null) return;
+
+         ActiveViewModel.SetNpcHero(companion);
+         ActiveViewModel.ActivateCompanionAudience(profile, reason, landed);
+      }
+
       /// <summary>
       ///   Requests the chat to scroll to its newest message on the next frame.
       ///   Safe to call from any code path that just appended a message.
@@ -347,94 +387,7 @@ namespace CalradiaRemembers.Chat
          }
       }
 
-      /// <summary>
-      ///   Diagnostic: dumps the screen stack top and the host screen's layer list (type + order) to the log.
-      ///   Used to find out where the encyclopedia actually lands when opened from a chat hosted on the map
-      ///   (it displays fine over a mission host, but never appears over NavalMapScreen). Never throws.
-      /// </summary>
-      public static void LogScreenState(string tag)
-      {
-         try
-         {
-            var sb = new System.Text.StringBuilder();
-            sb.Append($"[SCREENS] {tag} | top={ScreenManager.TopScreen?.GetType().Name ?? "null"}");
-
-            if (_hostScreen?.Layers != null)
-            {
-               sb.Append($" | host={_hostScreen.GetType().Name} layers[{_hostScreen.Layers.Count}]: ");
-               foreach (ScreenLayer layer in _hostScreen.Layers)
-               {
-                  if (layer == null) continue;
-                  sb.Append(layer.GetType().Name);
-                  object order = ReadOrderForDiagnostics(layer);
-                  if (order != null) sb.Append($"(o={order})");
-                  if (ReferenceEquals(layer, _activeLayer)) sb.Append("[CHAT]");
-                  sb.Append(' ');
-               }
-            }
-
-            ModLog.Info(sb.ToString());
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"LogScreenState failed: {ex.GetType().Name}: {ex.Message}");
-         }
-      }
-
       #region private
-
-      /// <summary>Best-effort read of a layer's render order for the diagnostics dump (property name varies by build).</summary>
-      private static object ReadOrderForDiagnostics(ScreenLayer layer)
-      {
-         foreach (string name in new[] {"Order", "SortOrder", "LocalOrder"})
-         {
-            try
-            {
-               var p = layer.GetType().GetProperty(name);
-               if (p != null) return p.GetValue(layer);
-            }
-            catch
-            {
-               // diagnostic only
-            }
-         }
-
-         return null;
-      }
-
-      /// <summary>
-      ///   A throttled VRAM read pumped from the per-frame focus arbiter, so even a scene left idle (no LLM
-      ///   response to trigger the per-turn sample) leaves a periodic [VRAM] trace — the clean way to see whether
-      ///   the background map screen leaks over time with no interaction. Diagnostic only; never throws.
-      /// </summary>
-      private static void SampleVramPeriodically()
-      {
-         try
-         {
-            DateTime now = DateTime.UtcNow;
-            if ((now - _lastVramTick).TotalSeconds < VramTickSeconds) return;
-            _lastVramTick = now;
-            ModLog.Info($"[VRAM] tick (idle heartbeat) | {VramProbe.Describe()}");
-         }
-         catch
-         {
-            // a diagnostic must never disturb the game
-         }
-      }
-
-      /// <summary>
-      ///   Runs a teardown/open step, swallowing and logging any exception so that one
-      ///   failing step never aborts the sequence. Keeping the window lifecycle resilient
-      ///   is what guarantees a single bad teardown does not freeze all future conversations.
-      /// </summary>
-      private static void SafeStep(Action step, string label)
-      {
-         try { step(); }
-         catch (Exception ex)
-         {
-            ModLog.Error($"ChatManager.{label} failed: {ex.GetType().Name}: {ex.Message}");
-         }
-      }
 
       /// <summary>
       ///   Finishes the lingering map encounter after a map conversation. Talking to a lord on the
@@ -566,6 +519,26 @@ namespace CalradiaRemembers.Chat
          ModLog.Info($"Campaign time paused (was {_previousTimeControlMode}, lock {_previousTimeControlModeLock}).");
       }
 
+      /// <summary>Best-effort read of a layer's render order for the diagnostics dump (property name varies by build).</summary>
+      private static object ReadOrderForDiagnostics(ScreenLayer layer)
+      {
+         foreach (string name in new[] {"Order", "SortOrder", "LocalOrder"})
+         {
+            try
+            {
+               var p = layer.GetType().GetProperty(name);
+
+               if (p != null) return p.GetValue(layer);
+            }
+            catch
+            {
+               // diagnostic only
+            }
+         }
+
+         return null;
+      }
+
       private static void RestoreTime()
       {
          if (!_timeControlModeSaved || Campaign.Current == null) return;
@@ -573,6 +546,41 @@ namespace CalradiaRemembers.Chat
          // Restore both the mode and the lock, so a forced state we interrupted (the ambush convoy) resumes.
          Campaign.Current.TimeControlMode = _previousTimeControlMode;
          Campaign.Current.SetTimeControlModeLock(_previousTimeControlModeLock);
+      }
+
+      /// <summary>
+      ///   Runs a teardown/open step, swallowing and logging any exception so that one
+      ///   failing step never aborts the sequence. Keeping the window lifecycle resilient
+      ///   is what guarantees a single bad teardown does not freeze all future conversations.
+      /// </summary>
+      private static void SafeStep(Action step, string label)
+      {
+         try { step(); }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ChatManager.{label} failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   A throttled VRAM read pumped from the per-frame focus arbiter, so even a scene left idle (no LLM
+      ///   response to trigger the per-turn sample) leaves a periodic [VRAM] trace — the clean way to see whether
+      ///   the background map screen leaks over time with no interaction. Diagnostic only; never throws.
+      /// </summary>
+      private static void SampleVramPeriodically()
+      {
+         try
+         {
+            DateTime now = DateTime.UtcNow;
+
+            if ((now - _lastVramTick).TotalSeconds < VramTickSeconds) return;
+            _lastVramTick = now;
+            ModLog.Info($"[VRAM] tick (idle heartbeat) | {VramProbe.Describe()}");
+         }
+         catch
+         {
+            // a diagnostic must never disturb the game
+         }
       }
 
       #endregion

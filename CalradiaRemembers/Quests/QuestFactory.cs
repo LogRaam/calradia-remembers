@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 22/06/2026.
+// Code written by Gabriel Mailhot, 08/07/2026.
 
 #region
 
@@ -27,15 +27,15 @@ namespace CalradiaRemembers.Quests
    /// </summary>
    public static class QuestFactory
    {
+      // TUNE: generous radius (campaign-map units) around the named town within which a real, still-infested
+      // hideout must exist for the giver to send the player after it. No lair in range => no such task to give.
+      internal const float HideoutSearchRadius = 80f;
+
       /// <summary>Upper bound on an LLM-proposed item-barter value, for non-priced grants.</summary>
       private const int MaxRequiredItemValue = 100000;
 
       private const int MaxRewardGold = 5000;
       private const int MaxRewardRelation = 10;
-
-      // TUNE: generous radius (campaign-map units) around the named town within which a real, still-infested
-      // hideout must exist for the giver to send the player after it. No lair in range => no such task to give.
-      internal const float HideoutSearchRadius = 80f;
 
       /// <summary>
       ///   Builds the quest, or returns null when the proposal cannot be grounded in
@@ -64,6 +64,59 @@ namespace CalradiaRemembers.Quests
          return ResolveTargets(quest, proposal, giver)
             ? quest
             : null;
+      }
+
+      /// <summary>The nearest still-infested (uncleared) bandit hideout within <paramref name="maxDistance" />, or null.</summary>
+      internal static Settlement NearestActiveHideout(Vec2 from, float maxDistance)
+      {
+         Settlement best = null;
+         float bestDist = maxDistance;
+
+         foreach (Settlement s in Settlement.All)
+         {
+            if (s == null || !s.IsHideout) continue;
+
+            try
+            {
+               if (s.Hideout == null || !s.Hideout.IsInfested) continue;
+            }
+            catch { continue; } // a build where the hideout state cannot be read: treat as ineligible
+
+            float d = s.GetPosition2D.Distance(from);
+
+            if (d > bestDist) continue;
+            bestDist = d;
+            best = s;
+         }
+
+         return best;
+      }
+
+      /// <summary>
+      ///   The nearest real settlement to <paramref name="giver" />, used as the bearing anchor when they named no
+      ///   resolvable town.
+      /// </summary>
+      internal static Settlement NearestTownTo(Hero giver)
+      {
+         Vec2? pos = giver?.PartyBelongedTo?.GetPosition2D ?? giver?.CurrentSettlement?.GetPosition2D ?? giver?.HomeSettlement?.GetPosition2D;
+
+         if (pos == null) return null;
+
+         Settlement best = null;
+         var bestDist = float.MaxValue;
+
+         foreach (Settlement s in Settlement.All)
+         {
+            if (s == null || !(s.IsTown || s.IsCastle || s.IsVillage)) continue;
+
+            float d = s.GetPosition2D.Distance(pos.Value);
+
+            if (d >= bestDist) continue;
+            bestDist = d;
+            best = s;
+         }
+
+         return best;
       }
 
       #region private
@@ -149,9 +202,11 @@ namespace CalradiaRemembers.Quests
       private static bool BindHideout(InformalQuest quest, string townName, Hero giver)
       {
          Settlement anchor = ResolveSettlement(townName) ?? NearestTownTo(giver);
+
          if (anchor == null) return false;
 
          Settlement lair = NearestActiveHideout(anchor.GetPosition2D, HideoutSearchRadius);
+
          if (lair == null) return false;
 
          quest.TargetSettlement = anchor.Name?.ToString();
@@ -159,60 +214,10 @@ namespace CalradiaRemembers.Quests
 
          Vec2 a = anchor.GetPosition2D,
               h = lair.GetPosition2D;
-         string bearing = CalradiaRemembers.Logic.CardinalDirectionPolicy.Describe(a.x, a.y, h.x, h.y);
+         string bearing = CardinalDirectionPolicy.Describe(a.x, a.y, h.x, h.y);
          quest.DirectionHint = $"{bearing} of {anchor.Name}";
 
          return true;
-      }
-
-      /// <summary>The nearest still-infested (uncleared) bandit hideout within <paramref name="maxDistance" />, or null.</summary>
-      internal static Settlement NearestActiveHideout(Vec2 from, float maxDistance)
-      {
-         Settlement best = null;
-         float bestDist = maxDistance;
-
-         foreach (Settlement s in Settlement.All)
-         {
-            if (s == null || !s.IsHideout) continue;
-
-            try
-            {
-               if (s.Hideout == null || !s.Hideout.IsInfested) continue;
-            }
-            catch { continue; } // a build where the hideout state cannot be read: treat as ineligible
-
-            float d = s.GetPosition2D.Distance(from);
-            if (d > bestDist) continue;
-            bestDist = d;
-            best = s;
-         }
-
-         return best;
-      }
-
-      /// <summary>The nearest real settlement to <paramref name="giver" />, used as the bearing anchor when they named no resolvable town.</summary>
-      internal static Settlement NearestTownTo(Hero giver)
-      {
-         Vec2? pos = giver?.PartyBelongedTo?.GetPosition2D
-                  ?? giver?.CurrentSettlement?.GetPosition2D
-                  ?? giver?.HomeSettlement?.GetPosition2D;
-
-         if (pos == null) return null;
-
-         Settlement best = null;
-         float bestDist = float.MaxValue;
-
-         foreach (Settlement s in Settlement.All)
-         {
-            if (s == null || !(s.IsTown || s.IsCastle || s.IsVillage)) continue;
-
-            float d = s.GetPosition2D.Distance(pos.Value);
-            if (d >= bestDist) continue;
-            bestDist = d;
-            best = s;
-         }
-
-         return best;
       }
 
       private static bool BindSettlement(InformalQuest quest,
@@ -431,6 +436,7 @@ namespace CalradiaRemembers.Quests
                // A personal supply task: bind a recognized goods category and a sane count. An unrecognized
                // category is refused (the giver never asks for goods the game cannot verify handing over).
                string category = ProvideGoodsPolicy.Normalize(proposal.Category);
+
                if (category == null) return false;
                quest.RequiredItemCategory = category;
                quest.RequiredItemCount = ProvideGoodsPolicy.ClampCount(proposal.RequiredCount);

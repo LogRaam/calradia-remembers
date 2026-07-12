@@ -1,20 +1,14 @@
-// Code written by Gabriel Mailhot, 05/07/2026.
-// Stages a captive encounter as a CONVERSATION SCENE (3D) instead of a bare overlay on the world map. On the
-// heavy War Sails naval map, opening the chat as an overlay leaves that map rendering behind it and leaks
-// render-textures (the create_render_texture VRAM crash). A lord/tavern conversation never crashes because it
-// rides a light conversation MISSION that suspends the map. So we do the same here: start a conversation with
-// the captor (loading the 3D scene), then open the captive chat over that scene. ChatManager.Close already ends
-// the vanilla conversation, so the scene is torn down for free on close.
+// Code written by Gabriel Mailhot, 07/07/2026.
 
 #region
 
 using System;
 using System.Collections.Generic;
+using CalradiaRemembers.Behaviors;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Conversation;
 using TaleWorlds.CampaignSystem.Party;
-using TaleWorlds.Core;
 using TaleWorlds.MountAndBlade;
 
 #endregion
@@ -30,18 +24,34 @@ namespace CalradiaRemembers.Chat
    /// </summary>
    public static class CaptiveSceneStager
    {
-      // Frames to let the conversation scene render after our intercept line fires, so the chat opens over a
-      // fully set-up mission screen rather than mid-transition.
-      private const int SettleFrames = 3;
-
       // Fallback: if our intercept line never fires (another mod's start line won the token), open anyway once
       // the conversation has been live this long. ~1 second at 60 fps.
       private const int FallbackFrames = 60;
 
-      private static Pending _pending;
-      private static bool _lineReached;
-      private static int _settleFrames;
+      // Frames to let the conversation scene render after our intercept line fires, so the chat opens over a
+      // fully set-up mission screen rather than mid-transition.
+      private const int SettleFrames = 3;
       private static int _fallbackFrames;
+      private static bool _lineReached;
+
+      private static Pending _pending;
+      private static int _settleFrames;
+
+      /// <summary>Which direction a staged scene opens once its conversation scene is loaded.</summary>
+      private enum StagedSceneKind
+      {
+         /// <summary>
+         ///   The captor (NPC or bandit) summons the player, who is the captive.
+         ///   <see cref="ChatManager.OpenForCaptiveEncounter" />.
+         /// </summary>
+         VictimEncounter,
+
+         /// <summary>The player holds the NPC prisoner and drives the scene. <see cref="ChatManager.OpenForCaptorScene" />.</summary>
+         CaptorScene,
+
+         /// <summary>A plain forced meeting (a lord who intercepted the player): opens the ordinary CR conversation chat.</summary>
+         PlainConversation
+      }
 
       /// <summary>True while a conversation scene is loading and the captive chat is waiting to open over it.</summary>
       public static bool IsStaging => _pending != null;
@@ -104,8 +114,7 @@ namespace CalradiaRemembers.Chat
 
          CharacterObject partner = captor?.CharacterObject ?? portraitCharacter;
          PartyBase captorParty =
-            captor?.PartyBelongedTo?.Party
-         ?? Hero.MainHero?.PartyBelongedToAsPrisoner?.MobileParty?.Party;
+            captor?.PartyBelongedTo?.Party ?? Hero.MainHero?.PartyBelongedToAsPrisoner?.MobileParty?.Party;
 
          BeginStagedConversation(pending, partner, captorParty, "CAPTIVE STAGE");
       }
@@ -155,6 +164,55 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Pumped every frame from the submodule. Once the conversation scene is loaded (a Mission is live) and
+      ///   the chat is not already open, opens the captive chat over the scene. Fail-soft: any error opens
+      ///   directly so the encounter is never lost.
+      /// </summary>
+      public static void Tick()
+      {
+         if (_pending == null) return;
+         if (ChatManager.IsOpen)
+         {
+            _pending = null; // something else opened the chat; drop the staging
+
+            return;
+         }
+
+         // Primary path: our intercept line fired, meaning the conversation is set up and displaying. Give the
+         // screen a few frames to settle, then open the chat over the loaded scene.
+         if (_lineReached)
+         {
+            if (++_settleFrames < SettleFrames) return;
+            OpenPending("intercept line");
+
+            return;
+         }
+
+         // Fallback: the conversation is live (scene loading/loaded) but our line never fired — another mod's
+         // start line may have won the token. Open anyway after a grace period so the encounter is never lost.
+         bool conversationActive = Hero.OneToOneConversationHero != null || Mission.Current != null;
+
+         if (!conversationActive) return;
+         if (++_fallbackFrames < FallbackFrames) return;
+         OpenPending("fallback (intercept line never fired)");
+      }
+
+      private sealed class Pending
+      {
+         public Hero Captor;
+         public CaptiveSceneIntent Intent;
+         public bool IsCollective;
+         public StagedSceneKind Kind;
+         public bool PlayerCoerced;
+         public CharacterObject PortraitCharacter;
+         public NpcProfile Profile;
+         public Hero VictimCompanion;
+         public List<WitnessEntry> Witnesses;
+      }
+
+      #region private
+
+      /// <summary>
       ///   Shared staging core for both directions: opens a map conversation with
       ///   <paramref name="partner" /> (their <paramref name="partnerParty" /> for scene attachment) and
       ///   arms the pending state <see cref="Tick" /> polls; falls back to the direct (unstaged) open when
@@ -191,44 +249,34 @@ namespace CalradiaRemembers.Chat
          }
       }
 
-      /// <summary>
-      ///   Pumped every frame from the submodule. Once the conversation scene is loaded (a Mission is live) and
-      ///   the chat is not already open, opens the captive chat over the scene. Fail-soft: any error opens
-      ///   directly so the encounter is never lost.
-      /// </summary>
-      public static void Tick()
-      {
-         if (_pending == null) return;
-         if (ChatManager.IsOpen)
-         {
-            _pending = null; // something else opened the chat; drop the staging
-
-            return;
-         }
-
-         // Primary path: our intercept line fired, meaning the conversation is set up and displaying. Give the
-         // screen a few frames to settle, then open the chat over the loaded scene.
-         if (_lineReached)
-         {
-            if (++_settleFrames < SettleFrames) return;
-            OpenPending("intercept line");
-
-            return;
-         }
-
-         // Fallback: the conversation is live (scene loading/loaded) but our line never fired — another mod's
-         // start line may have won the token. Open anyway after a grace period so the encounter is never lost.
-         bool conversationActive = Hero.OneToOneConversationHero != null || Mission.Current != null;
-         if (!conversationActive) return;
-         if (++_fallbackFrames < FallbackFrames) return;
-         OpenPending("fallback (intercept line never fired)");
-      }
-
       /// <summary>Consequence of the intercept line: the conversation is ready; the tick opens the chat next frame.</summary>
       private static void OnInterceptLineReached()
       {
          _lineReached = true;
          ModLog.Info("[CAPTIVE STAGE] intercept line reached — the conversation is ready for the chat.");
+      }
+
+      private static void OpenDirect(Pending p)
+      {
+         if (p.Kind == StagedSceneKind.PlainConversation)
+         {
+            // Open the ordinary CR conversation for the lord, exactly as clicking "A word with you." would, but
+            // programmatically so the meeting cannot be dodged. OneToOneConversationHero is the lord here.
+            NpcMemoryCampaignBehavior.Instance?.DialogFlow?.OpenChatForInterceptingHero(p.Captor);
+
+            return;
+         }
+
+         if (p.Kind == StagedSceneKind.CaptorScene)
+         {
+            ChatManager.OpenForCaptorScene(p.Captor, p.Profile, p.Intent);
+
+            return;
+         }
+
+         ChatManager.OpenForCaptiveEncounter(
+            p.Captor, p.Profile, p.Witnesses, p.IsCollective, p.Intent,
+            p.PortraitCharacter, p.VictimCompanion, p.PlayerCoerced);
       }
 
       private static void OpenPending(string via)
@@ -252,53 +300,6 @@ namespace CalradiaRemembers.Chat
          }
       }
 
-      private static void OpenDirect(Pending p)
-      {
-         if (p.Kind == StagedSceneKind.PlainConversation)
-         {
-            // Open the ordinary CR conversation for the lord, exactly as clicking "A word with you." would, but
-            // programmatically so the meeting cannot be dodged. OneToOneConversationHero is the lord here.
-            Behaviors.NpcMemoryCampaignBehavior.Instance?.DialogFlow?.OpenChatForInterceptingHero(p.Captor);
-
-            return;
-         }
-
-         if (p.Kind == StagedSceneKind.CaptorScene)
-         {
-            ChatManager.OpenForCaptorScene(p.Captor, p.Profile, p.Intent);
-
-            return;
-         }
-
-         ChatManager.OpenForCaptiveEncounter(
-            p.Captor, p.Profile, p.Witnesses, p.IsCollective, p.Intent,
-            p.PortraitCharacter, p.VictimCompanion, p.PlayerCoerced);
-      }
-
-      /// <summary>Which direction a staged scene opens once its conversation scene is loaded.</summary>
-      private enum StagedSceneKind
-      {
-         /// <summary>The captor (NPC or bandit) summons the player, who is the captive. <see cref="ChatManager.OpenForCaptiveEncounter" />.</summary>
-         VictimEncounter,
-
-         /// <summary>The player holds the NPC prisoner and drives the scene. <see cref="ChatManager.OpenForCaptorScene" />.</summary>
-         CaptorScene,
-
-         /// <summary>A plain forced meeting (a lord who intercepted the player): opens the ordinary CR conversation chat.</summary>
-         PlainConversation
-      }
-
-      private sealed class Pending
-      {
-         public Hero Captor;
-         public StagedSceneKind Kind;
-         public bool IsCollective;
-         public CaptiveSceneIntent Intent;
-         public bool PlayerCoerced;
-         public CharacterObject PortraitCharacter;
-         public NpcProfile Profile;
-         public Hero VictimCompanion;
-         public List<WitnessEntry> Witnesses;
-      }
+      #endregion
    }
 }

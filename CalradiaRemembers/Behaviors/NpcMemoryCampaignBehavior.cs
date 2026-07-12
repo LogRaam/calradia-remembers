@@ -1,18 +1,22 @@
-// Code written by Gabriel Mailhot, 19/06/2026.
+// Code written by Gabriel Mailhot, 10/07/2026.
 
 #region
 
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Appreciations;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Commoners;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Dialogue;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Missions;
+using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
@@ -106,23 +110,6 @@ namespace CalradiaRemembers.Behaviors
       }
 
       /// <summary>
-      ///   When any hero dies, close the quests they had given the player: an outstanding task, or one
-      ///   already done whose reward can no longer be collected. Not the player's fault, so no penalty.
-      /// </summary>
-      private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
-      {
-         SafeRun.Step("OnHeroKilled.CancelQuestsOfDeadGiver", () =>
-         {
-            if (victim == null) return;
-
-            NpcProfile giver = Store?.Get(victim.StringId);
-            if (giver == null || giver.ActiveQuests.Count == 0) return;
-
-            QuestService.CancelQuestsOfDeadGiver(giver, victim, GameStateBridge.GetCurrentGameDay(), Store);
-         });
-      }
-
-      /// <summary>
       ///   Called by Bannerlord on every save and load.
       ///   We delegate entirely to the store — it handles both directions.
       /// </summary>
@@ -181,6 +168,24 @@ namespace CalradiaRemembers.Behaviors
       }
 
       /// <summary>
+      ///   When any hero dies, close the quests they had given the player: an outstanding task, or one
+      ///   already done whose reward can no longer be collected. Not the player's fault, so no penalty.
+      /// </summary>
+      private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
+      {
+         SafeRun.Step("OnHeroKilled.CancelQuestsOfDeadGiver", () =>
+         {
+            if (victim == null) return;
+
+            NpcProfile giver = Store?.Get(victim.StringId);
+
+            if (giver == null || giver.ActiveQuests.Count == 0) return;
+
+            QuestService.CancelQuestsOfDeadGiver(giver, victim, GameStateBridge.GetCurrentGameDay(), Store);
+         });
+      }
+
+      /// <summary>
       ///   Fires every game hour for each party. Used to deliver courier letters within
       ///   1 hour of arrival rather than waiting for the daily tick.
       /// </summary>
@@ -223,15 +228,15 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.DialogFlow.Register", () => DialogFlow.Register(campaignGameStarter));
          // The staged-captive intercept line: while a captive scene is staging its conversation, this wins the
          // "start" token (so no vanilla "Who are you?" intro shows) and hands the conversation to the captive chat.
-         SafeRun.Step("OnSessionLaunched.CaptiveSceneStager.Register", () => Chat.CaptiveSceneStager.Register(campaignGameStarter));
+         SafeRun.Step("OnSessionLaunched.CaptiveSceneStager.Register", () => CaptiveSceneStager.Register(campaignGameStarter));
          // Nemesis pillar increment 2 (R2 execute / R3 torture, chat-driven entry point): while the player
          // holds a tracked nemesis prisoner, an extra hero_main_options line (reached from the party-screen
          // Talk on him, same hub as any other hero) opens the captor scene against him. Console: cr.nemesis_captor_scene / cr.execute_prisoner.
-         SafeRun.Step("OnSessionLaunched.NemesisPrisonerDialogFlow.Register", () => Nemesis.NemesisPrisonerDialogFlow.Register(campaignGameStarter));
+         SafeRun.Step("OnSessionLaunched.NemesisPrisonerDialogFlow.Register", () => NemesisPrisonerDialogFlow.Register(campaignGameStarter));
          // Nemesis pillar increment 3 (bounty missions, the world hook): an eligible lord (own region
          // matches a living, unresolved, not-already-bountied nemesis) offers to pay for his capture or
          // death, reached from the same hero_main_options hub. Console: cr.nemesis_bounty / cr.nemesis_bounty_complete.
-         SafeRun.Step("OnSessionLaunched.NemesisBountyDialogFlow.Register", () => Nemesis.NemesisBountyDialogFlow.Register(campaignGameStarter));
+         SafeRun.Step("OnSessionLaunched.NemesisBountyDialogFlow.Register", () => NemesisBountyDialogFlow.Register(campaignGameStarter));
          ModLog.Info("Dialog flow registered.");
 
          SafeRun.Step("OnSessionLaunched.DialogueRecorder.Subscribe", DialogueRecorder.Subscribe);
@@ -252,9 +257,9 @@ namespace CalradiaRemembers.Behaviors
          // Grudges: the one-shot, idempotent backfill (safe to run on every launch — a versioned no-op
          // once already migrated). Runs last, after every store it scans (Store, WorldEventStore, the
          // Bastards/Divorce markers) is guaranteed loaded.
-         SafeRun.Step("OnSessionLaunched.GrudgeBehavior.RunBackfillIfNeeded", () => Grudges.GrudgeBehavior.Instance?.RunBackfillIfNeeded(Store));
+         SafeRun.Step("OnSessionLaunched.GrudgeBehavior.RunBackfillIfNeeded", () => GrudgeBehavior.Instance?.RunBackfillIfNeeded(Store));
          // Appreciations: the same one-shot, idempotent backfill discipline as Grudges, run right after it.
-         SafeRun.Step("OnSessionLaunched.AppreciationBehavior.RunBackfillIfNeeded", () => Appreciations.AppreciationBehavior.Instance?.RunBackfillIfNeeded(Store));
+         SafeRun.Step("OnSessionLaunched.AppreciationBehavior.RunBackfillIfNeeded", () => AppreciationBehavior.Instance?.RunBackfillIfNeeded(Store));
       }
 
       /// <summary>
@@ -384,7 +389,7 @@ namespace CalradiaRemembers.Behaviors
                // castle) does not post a letter to them (player report: a lady in the player's army sent "I miss
                // you" letters). The letter is not lost, only DEFERRED: the courier departs on a later tick, once
                // they are truly apart. Also heals letters already queued on existing saves.
-               if (Letters.HeroProximity.IsNearPlayer(sender))
+               if (HeroProximity.IsNearPlayer(sender))
                {
                   ModLog.Info($"[LETTER] deferred dispatch from {profile.Name} ({letter.Reason}): they are with the player right now.");
 
@@ -445,7 +450,7 @@ namespace CalradiaRemembers.Behaviors
             if (hero == null) continue; // hero gone — skip silently
 
             bool beforeNeedsRomantic = profile.Romantic == null;
-            bool beforeStaleTrait = string.IsNullOrEmpty(profile.Trait) || profile.Trait.StartsWith("Thoroughly Conventional");
+            bool beforeStaleTrait = profile.Trait != null && (string.IsNullOrEmpty(profile.Trait) || profile.Trait.StartsWith("Thoroughly Conventional"));
 
             if (!beforeNeedsRomantic && !beforeStaleTrait) continue;
 

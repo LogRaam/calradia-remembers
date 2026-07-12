@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 21/06/2026.
+// Code written by Gabriel Mailhot, 10/07/2026.
 
 #region
 
@@ -9,7 +9,6 @@ using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
-using TaleWorlds.Core.ViewModelCollection.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 
@@ -72,6 +71,9 @@ namespace CalradiaRemembers.Letters
       [DataSourceProperty]
       public bool HasCourierNote => !string.IsNullOrEmpty(_courierNote);
 
+      /// <summary>True while the correspondent portrait still holds a rendered tableau (a GPU render-target).</summary>
+      public bool HasLivePortrait => _showPortrait && !string.IsNullOrEmpty(_portraitId);
+
       [DataSourceProperty]
       public string InputText
       {
@@ -132,6 +134,12 @@ namespace CalradiaRemembers.Letters
             OnPropertyChangedWithValue(value);
          }
       }
+
+      /// <summary>
+      ///   The correspondent's identity. The letter shows a single portrait, so this mainly satisfies the guard's
+      ///   contract.
+      /// </summary>
+      public string PortraitKey => _profile?.Id ?? "";
 
       [DataSourceProperty]
       public string PortraitTextureProviderName
@@ -250,6 +258,16 @@ namespace CalradiaRemembers.Letters
          SealAndSendReply(text);
       }
 
+      /// <summary>Frees the correspondent portrait's render-target on close by clearing the bound image id.</summary>
+      public void ReleasePortrait()
+      {
+         if (!_showPortrait && string.IsNullOrEmpty(_portraitId)) return;
+         PortraitId = "";
+         PortraitTextureProviderName = "";
+         PortraitAdditionalArgs = "";
+         ShowPortrait = false;
+      }
+
       /// <summary>Write a fresh letter to a chosen recipient (a courier fee may apply).</summary>
       public void SetupCompose(NpcProfile recipientProfile, int courierCost)
       {
@@ -301,10 +319,10 @@ namespace CalradiaRemembers.Letters
       /// </summary>
       private static string ComposeSenderHeading(PendingLetter letter, string fallbackName)
       {
-         string from = $"From {letter?.SenderName ?? fallbackName}";
+         var from = $"From {letter?.SenderName ?? fallbackName}";
          string age = letter == null
             ? null
-            : Logic.LetterAgeDescriber.Describe(letter.SentOnDay, (int) CampaignTime.Now.ToDays);
+            : LetterAgeDescriber.Describe(letter.SentOnDay, (int) CampaignTime.Now.ToDays);
 
          return string.IsNullOrEmpty(age)
             ? from
@@ -354,22 +372,6 @@ namespace CalradiaRemembers.Letters
          _portraitTextureProviderName = portrait.TextureProviderName;
          _portraitAdditionalArgs = portrait.AdditionalArgs;
          _showPortrait = portrait.HasImage;
-      }
-
-      /// <summary>The correspondent's identity. The letter shows a single portrait, so this mainly satisfies the guard's contract.</summary>
-      public string PortraitKey => _profile?.Id ?? "";
-
-      /// <summary>True while the correspondent portrait still holds a rendered tableau (a GPU render-target).</summary>
-      public bool HasLivePortrait => _showPortrait && !string.IsNullOrEmpty(_portraitId);
-
-      /// <summary>Frees the correspondent portrait's render-target on close by clearing the bound image id.</summary>
-      public void ReleasePortrait()
-      {
-         if (!_showPortrait && string.IsNullOrEmpty(_portraitId)) return;
-         PortraitId = "";
-         PortraitTextureProviderName = "";
-         PortraitAdditionalArgs = "";
-         ShowPortrait = false;
       }
 
       // ── Sealing (no inline LLM call) ────────────────────────────────────

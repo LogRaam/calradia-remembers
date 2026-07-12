@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 04/07/2026.
+// Code written by Gabriel Mailhot, 11/07/2026.
 
 #region
 
@@ -9,6 +9,7 @@ using System.Text;
 using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Bastards;
+using CalradiaRemembers.Commitments;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
@@ -17,6 +18,7 @@ using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
+using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Verbs;
@@ -50,17 +52,8 @@ namespace CalradiaRemembers.Mapping
       /// <summary>Registration order of the court verbs taught AFTER pledge_against, in <see cref="VerbRegistry" />.</summary>
       private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner"};
 
-      // Prisoner trade (08/07/2026): the NPC may BUY a captive the player holds, or SELL one his clan holds.
-      private static readonly string[] PrisonerTradeVerbs = {"buy_prisoner", "sell_prisoner"};
-
       /// <summary>Registration order of the court verbs taught BEFORE pledge_against, in <see cref="VerbRegistry" />.</summary>
       private static readonly string[] CourtVerbsBeforePledge = {"give_influence", "lend_troops", "sway_opinion"};
-
-      /// <summary>
-      ///   04/07/2026: give_troops and spend_influence, the RECIPROCAL of the two court verbs above (the
-      ///   PLAYER reinforces a needy NPC instead of the NPC favouring the player) — taught right after them.
-      /// </summary>
-      private static readonly string[] ReciprocalCourtVerbs = {"give_troops", "spend_influence"};
 
       /// <summary>DIVORCE, Phase 1: end_marriage is taught last, after every court verb above.</summary>
       private static readonly string[] DivorceVerbs = {"end_marriage"};
@@ -70,6 +63,15 @@ namespace CalradiaRemembers.Mapping
       ///   verb above.
       /// </summary>
       private static readonly string[] GrudgeVerbs = {"make_amends", "grudge_terms"};
+
+      // Prisoner trade (08/07/2026): the NPC may BUY a captive the player holds, or SELL one his clan holds.
+      private static readonly string[] PrisonerTradeVerbs = {"buy_prisoner", "sell_prisoner"};
+
+      /// <summary>
+      ///   04/07/2026: give_troops and spend_influence, the RECIPROCAL of the two court verbs above (the
+      ///   PLAYER reinforces a needy NPC instead of the NPC favouring the player) — taught right after them.
+      /// </summary>
+      private static readonly string[] ReciprocalCourtVerbs = {"give_troops", "spend_influence"};
 
       /// <summary>
       ///   Builds an <see cref="EncounterContext" /> for the given NPC.
@@ -110,7 +112,6 @@ namespace CalradiaRemembers.Mapping
 
          return new() {
             PlayerStatus = playerStatus,
-            IsRoundTableTurn = isRoundTableTurn,
             WarStatus = bridge.GetDiplomaticStatus(hero),
             DaysSinceLastMeeting = daysSinceLastMeeting,
             MeetingGapNote = MeetingGapDescriber.Describe(daysSinceLastMeeting),
@@ -136,6 +137,7 @@ namespace CalradiaRemembers.Mapping
             PrivacyRequested = privacyRequested,
             IsWitnessExchangeTurn = isWitnessExchangeTurn,
             IsLastWitnessExchange = isLastWitnessExchange,
+            IsRoundTableTurn = isRoundTableTurn,
             IsCollectiveCaptiveScene = isCollectiveCaptiveScene,
             IsCaptorScene = isCaptorScene,
             CaptiveFearCoerced = ResolveCaptiveFearCoerced(hero, profile, playerStatus),
@@ -191,7 +193,9 @@ namespace CalradiaRemembers.Mapping
             // One-shot and consumed on read, so ONLY resolve it on a real LLM turn, never on the dead
             // open-time build in OnPlayerSelectedChat, which would swallow the directive before the lord ever
             // speaks (the reason the interception opener never actually reached the model).
-            InterceptionReason = resolveInterception ? ResolveInterceptionReason(hero) : null,
+            InterceptionReason = resolveInterception
+               ? ResolveInterceptionReason(hero)
+               : null,
             StanceNote = StanceService.Describe(profile),
             StanceConsequenceHint = ResolveStanceConsequenceHint(hero, profile),
             GrudgeNote = ResolveGrudgeNote(hero, profile),
@@ -316,6 +320,24 @@ namespace CalradiaRemembers.Mapping
          }
       }
 
+      /// <summary>
+      ///   Composes a hero's appearance block from derived body facts plus any authored prose, in the given
+      ///   voice. Returns null (renders nothing) for a null hero or when nothing stands out and no prose exists.
+      /// </summary>
+      private static string ComposeAppearance(Hero hero, AppearanceVoice voice)
+      {
+         if (hero == null) return null;
+
+         string composed = AppearanceComposer.Compose(
+            AppearanceFactsExtractor.Extract(hero),
+            AppearanceProseBehavior.Instance?.Get(hero.StringId),
+            voice);
+
+         return string.IsNullOrWhiteSpace(composed)
+            ? null
+            : composed;
+      }
+
       private static int ComputeDaysSinceLastMeeting(NpcProfile profile, IGameStateBridge bridge)
       {
          if (profile == null || profile.Events == null || profile.Events.Count == 0)
@@ -353,6 +375,37 @@ namespace CalradiaRemembers.Mapping
          return parent.IsAlive
             ? name
             : $"the late {name}";
+      }
+
+      /// <summary>The magnitude of the heaviest LIVE grudge this hero holds against the player, or 0 when none.</summary>
+      private static int HeaviestGrudgeAgainstPlayer(Hero hero)
+      {
+         IReadOnlyList<Grudge> grudges = GrudgeBehavior.Instance?.GrudgesFor(hero?.StringId);
+
+         if (grudges == null) return 0;
+
+         string playerId = Hero.MainHero?.StringId;
+         var max = 0;
+         foreach (Grudge g in grudges)
+            if (!g.IsResolved && g.TargetId == playerId && g.Magnitude > max)
+               max = g.Magnitude;
+
+         return max;
+      }
+
+      /// <summary>
+      ///   True when the player carries real political weight (a clan of noble standing or
+      ///   notable influence), so a bandit might suspect a valuable, ransomable figure — even
+      ///   without knowing the name. Never exposes the actual identity.
+      /// </summary>
+      /// <summary>
+      ///   True when <paramref name="hero" /> is a member of a bandit clan (a nemesis boss), so his captor voice should
+      ///   coarsen to a brigand's.
+      /// </summary>
+      private static bool IsBanditClanHero(Hero hero)
+      {
+         try { return hero?.Clan?.IsBanditFaction == true; }
+         catch { return false; }
       }
 
       /// <summary>True when the harmed hero (by StringId) is a clansman of the observer — a kinsman struck.</summary>
@@ -403,34 +456,6 @@ namespace CalradiaRemembers.Mapping
          }
 
          return false;
-      }
-
-      /// <summary>
-      ///   True when the player carries real political weight (a clan of noble standing or
-      ///   notable influence), so a bandit might suspect a valuable, ransomable figure — even
-      ///   without knowing the name. Never exposes the actual identity.
-      /// </summary>
-      /// <summary>True when <paramref name="hero" /> is a member of a bandit clan (a nemesis boss), so his captor voice should coarsen to a brigand's.</summary>
-      private static bool IsBanditClanHero(Hero hero)
-      {
-         try { return hero?.Clan?.IsBanditFaction == true; }
-         catch { return false; }
-      }
-
-      /// <summary>
-      ///   Composes a hero's appearance block from derived body facts plus any authored prose, in the given
-      ///   voice. Returns null (renders nothing) for a null hero or when nothing stands out and no prose exists.
-      /// </summary>
-      private static string ComposeAppearance(Hero hero, AppearanceVoice voice)
-      {
-         if (hero == null) return null;
-
-         string composed = AppearanceComposer.Compose(
-            AppearanceFactsExtractor.Extract(hero),
-            AppearanceProseBehavior.Instance?.Get(hero.StringId),
-            voice);
-
-         return string.IsNullOrWhiteSpace(composed) ? null : composed;
       }
 
       private static bool PlayerLooksImportant()
@@ -521,27 +546,6 @@ namespace CalradiaRemembers.Mapping
          catch { return 0; }
       }
 
-      /// <summary>
-      ///   The player's own party troop count, fed ONLY when <paramref name="hero" /> would plausibly know
-      ///   it: one of the player's own companions or clan-family members, physically present in
-      ///   <see cref="MobileParty.MainParty" /> right now (<c>hero.PartyBelongedTo == MobileParty.MainParty</c>,
-      ///   the same "party membership" predicate <see cref="ResolveCanGatherNews" /> and
-      ///   <see cref="ResolveCompanionOnErrand" /> already use elsewhere in this builder). Any other NPC
-      ///   (a stranger, an enemy lord, a bandit) has no plausible way to know the exact figure, so they get 0
-      ///   ("not provided") and the prompt stays silent on it rather than handing out a metagame number.
-      /// </summary>
-      private static int ResolvePlayerPartyTroopCount(Hero hero)
-      {
-         try
-         {
-            if (hero == null || hero == Hero.MainHero || !hero.IsAlive) return 0;
-            if (hero.PartyBelongedTo != MobileParty.MainParty) return 0;
-
-            return MobileParty.MainParty?.MemberRoster?.TotalManCount ?? 0;
-         }
-         catch { return 0; }
-      }
-
       private static int ResolveArenaWins()
       {
          try
@@ -591,6 +595,58 @@ namespace CalradiaRemembers.Mapping
          if (hero.PartyBelongedTo != MobileParty.MainParty) return false;
 
          return CompanionMissionBehavior.Instance?.IsAway(hero.StringId) != true;
+      }
+
+      /// <summary>
+      ///   Stance mechanical behaviour-gating (increment 1, Fear): true when the held captive's live
+      ///   Fear/Respect and traits, run through the SAME <see cref="StanceGatePolicy.ResolveCoercion" />
+      ///   the bridge consults before actually releasing them, resolve to
+      ///   <see cref="CoercionOutcome.YieldsSofterTerms" /> — so the freedom-bargain prompt can ask for
+      ///   notably harsher terms. Advice only: <see cref="EncounterContext.CaptiveFearCoerced" /> never
+      ///   itself changes anything, it only colours what the LLM proposes; the bridge remains the law
+      ///   that plants the hidden grudge on an actual yield. Mirrors the freedom bargain's own
+      ///   NpcIsCaptive eligibility gate (<c>PromptBuilder.AppendPrisonerFreedomBargain</c>) so the note
+      ///   never appears when the bargain itself is not taught. A null profile (no stance ever tracked)
+      ///   leaves it false, same as the bridge's own untracked-captive default.
+      /// </summary>
+      private static bool ResolveCaptiveFearCoerced(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus)
+      {
+         try
+         {
+            if (playerStatus != PlayerStatusVsNpc.NpcIsCaptive || profile == null) return false;
+
+            NpcStance stance = StanceService.ToStance(profile);
+            int honor = TraitLevel(hero, DefaultTraits.Honor);
+            int valor = TraitLevel(hero, DefaultTraits.Valor);
+            int calculating = TraitLevel(hero, DefaultTraits.Calculating);
+
+            CoercionResult coercion = StanceGatePolicy.ResolveCoercion(stance.Fear, stance.Respect, honor, valor, calculating);
+
+            return coercion.Outcome == CoercionOutcome.YieldsSofterTerms;
+         }
+         catch { return false; }
+      }
+
+      /// <summary>
+      ///   Captivity release gate (advice side): when the PLAYER is this NPC's captive, resolves whether the
+      ///   captor is open to freeing them, via the pure <see cref="CaptorReleasePolicy" /> reading the captor's
+      ///   Mercy and the heaviest live grudge they hold against the player. The bridge re-checks the same gate
+      ///   before it commits a real freeing (the prompt proposes, the bridge disposes). Refuses everything when
+      ///   the player is not this NPC's captive.
+      /// </summary>
+      private static CaptorReleaseVerdict ResolveCaptorReleaseVerdict(Hero hero, PlayerStatusVsNpc playerStatus)
+      {
+         try
+         {
+            if (playerStatus != PlayerStatusVsNpc.Captive || hero == null)
+               return new CaptorReleaseVerdict(false, false);
+
+            int mercy = TraitLevel(hero, DefaultTraits.Mercy);
+            int grudge = HeaviestGrudgeAgainstPlayer(hero);
+
+            return CaptorReleasePolicy.Resolve(mercy, grudge, false);
+         }
+         catch { return new CaptorReleaseVerdict(false, false); }
       }
 
       /// <summary>
@@ -667,129 +723,6 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
-      ///   Stance mechanical behaviour-gating (increment 1, Fear): true when the held captive's live
-      ///   Fear/Respect and traits, run through the SAME <see cref="StanceGatePolicy.ResolveCoercion" />
-      ///   the bridge consults before actually releasing them, resolve to
-      ///   <see cref="CoercionOutcome.YieldsSofterTerms" /> — so the freedom-bargain prompt can ask for
-      ///   notably harsher terms. Advice only: <see cref="EncounterContext.CaptiveFearCoerced" /> never
-      ///   itself changes anything, it only colours what the LLM proposes; the bridge remains the law
-      ///   that plants the hidden grudge on an actual yield. Mirrors the freedom bargain's own
-      ///   NpcIsCaptive eligibility gate (<c>PromptBuilder.AppendPrisonerFreedomBargain</c>) so the note
-      ///   never appears when the bargain itself is not taught. A null profile (no stance ever tracked)
-      ///   leaves it false, same as the bridge's own untracked-captive default.
-      /// </summary>
-      private static bool ResolveCaptiveFearCoerced(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus)
-      {
-         try
-         {
-            if (playerStatus != PlayerStatusVsNpc.NpcIsCaptive || profile == null) return false;
-
-            NpcStance stance = StanceService.ToStance(profile);
-            int honor = TraitLevel(hero, DefaultTraits.Honor);
-            int valor = TraitLevel(hero, DefaultTraits.Valor);
-            int calculating = TraitLevel(hero, DefaultTraits.Calculating);
-
-            CoercionResult coercion = StanceGatePolicy.ResolveCoercion(stance.Fear, stance.Respect, honor, valor, calculating);
-
-            return coercion.Outcome == CoercionOutcome.YieldsSofterTerms;
-         }
-         catch { return false; }
-      }
-
-      /// <summary>
-      ///   Captivity release gate (advice side): when the PLAYER is this NPC's captive, resolves whether the
-      ///   captor is open to freeing them, via the pure <see cref="CaptorReleasePolicy" /> reading the captor's
-      ///   Mercy and the heaviest live grudge they hold against the player. The bridge re-checks the same gate
-      ///   before it commits a real freeing (the prompt proposes, the bridge disposes). Refuses everything when
-      ///   the player is not this NPC's captive.
-      /// </summary>
-      private static CaptorReleaseVerdict ResolveCaptorReleaseVerdict(Hero hero, PlayerStatusVsNpc playerStatus)
-      {
-         try
-         {
-            if (playerStatus != PlayerStatusVsNpc.Captive || hero == null)
-               return new CaptorReleaseVerdict(false, false);
-
-            int mercy = TraitLevel(hero, DefaultTraits.Mercy);
-            int grudge = HeaviestGrudgeAgainstPlayer(hero);
-
-            return CaptorReleasePolicy.Resolve(mercy, grudge, isNemesisVendetta: false);
-         }
-         catch { return new CaptorReleaseVerdict(false, false); }
-      }
-
-      /// <summary>The magnitude of the heaviest LIVE grudge this hero holds against the player, or 0 when none.</summary>
-      private static int HeaviestGrudgeAgainstPlayer(Hero hero)
-      {
-         var grudges = CalradiaRemembers.Grudges.GrudgeBehavior.Instance?.GrudgesFor(hero?.StringId);
-         if (grudges == null) return 0;
-
-         string playerId = Hero.MainHero?.StringId;
-         int max = 0;
-         foreach (var g in grudges)
-            if (!g.IsResolved && g.TargetId == playerId && g.Magnitude > max) max = g.Magnitude;
-
-         return max;
-      }
-
-      /// <summary>
-      ///   Builds a prompt note listing the native/vanilla quests THIS NPC gave the player that are still
-      ///   ongoing, so the giver never acts baffled about a task they set outside CR dialogue (player report:
-      ///   an NPC "confused" about a quest in the journal they themselves issued). Excludes CR's own quest
-      ///   mirrors, already surfaced by their own systems. Null when there are none.
-      /// </summary>
-      private static string ResolveNativeQuestNote(Hero hero)
-      {
-         try
-         {
-            if (hero == null || Campaign.Current?.QuestManager == null) return null;
-
-            var lines = new List<string>();
-            foreach (var quest in Campaign.Current.QuestManager.Quests)
-            {
-               if (quest == null || !quest.IsOngoing || quest.QuestGiver != hero) continue;
-               if (quest is CalradiaRemembers.Quests.CalradiaRemembersQuest) continue;
-               if (quest is CalradiaRemembers.Commitments.CommitmentQuest) continue;
-
-               string title = quest.Title?.ToString();
-               if (!string.IsNullOrWhiteSpace(title)) lines.Add("- " + title.Trim());
-            }
-
-            if (lines.Count == 0) return null;
-
-            return "TASKS FROM THE REALM'S AFFAIRS YOU SET THIS PLAYER (the game's own quests, still open):\n"
-                 + string.Join("\n", lines)
-                 + "\nYou know you asked this of them; if they raise it, speak as the one who set it, never baffled.";
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[MAPPING] ResolveNativeQuestNote failed: {ex.GetType().Name}: {ex.Message}");
-
-            return null;
-         }
-      }
-
-      /// <summary>
-      ///   Nemesis pillar: when the PLAYER is this captor's prisoner and the captor is a nemesis who has
-      ///   recaptured them after a prior escape, a note has him acknowledge it in character and play colder.
-      ///   Null when the captor is not a recaptured nemesis.
-      /// </summary>
-      private static string ResolveNemesisRecaptureNote(Hero hero, PlayerStatusVsNpc playerStatus)
-      {
-         try
-         {
-            if (playerStatus != PlayerStatusVsNpc.Captive || hero == null) return null;
-
-            int recaptures = Nemesis.NemesisBehavior.Instance?.RecaptureCountFor(hero) ?? 0;
-            if (recaptures <= 0) return null;
-
-            return "THIS PRISONER HAS SLIPPED YOU BEFORE, AND NOW YOU HAVE THEM AGAIN: you are colder and more "
-                 + "careful this time. Make it plain, in your own words, that they will not escape you a second time.";
-         }
-         catch { return null; }
-      }
-
-      /// <summary>
       ///   Which party, if either, could conceive from a completed vaginal act this scene — the pure
       ///   <see cref="ConceptionResolver" /> mapped to the prompt's <see cref="ConceptionRisk" />. Just
       ///   sex + life + fertile age; the prompt itself only TEACHES the action inside an intimate, adult
@@ -831,152 +764,6 @@ namespace CalradiaRemembers.Mapping
          if (status == RomanticStatus.Committed) return false;
 
          return profile.ReputationWithPlayer >= 60;
-      }
-
-      /// <summary>
-      ///   True when this NPC is one of the player's OWN companions, bonded deeply enough through shared war
-      ///   (regard ≥ 50, orientation-compatible, not already attached), that they could become the player's
-      ///   discreet secret lover. Unlike the consort bond, it does NOT require a prior Intimate arc: the depth of
-      ///   the comrade bond is what makes the confession plausible. The adult-content gate is applied in the
-      ///   prompt (AppendSecretLoverProposal) and at the audience trigger, not here.
-      /// </summary>
-      private static bool ResolveSecretLoverEligible(Hero hero, NpcProfile profile)
-      {
-         if (ModSettings.AdultContentLevel == AdultContentLevel.Off) return false; // adult-content gate lives here
-         if (hero == null || Hero.MainHero == null) return false;
-         if (!hero.IsPlayerCompanion) return false; // brotherhood/sisterhood: the player's own companions only
-         if (profile?.Romantic == null) return false;
-         if (!profile.Romantic.IsCompatibleWith(Hero.MainHero.IsFemale)) return false;
-         if (profile.Romantic.IsConsort || profile.Romantic.IsSecretLover) return false;
-         if (hero == Hero.MainHero.Spouse) return false;
-
-         RomanticStatus status = profile.Romantic.Status;
-         if (status == RomanticStatus.Committed || status == RomanticStatus.Estranged || status == RomanticStatus.Broken) return false;
-
-         return profile.ReputationWithPlayer >= 50;
-      }
-
-      /// <summary>
-      ///   Divorce, Phase 2b: set when THIS NPC is the player's own spouse and currently has a pending
-      ///   divorce demand (<see cref="SpouseDivorceDemandBehavior.IsDemanding" />). Composes the full
-      ///   directive in the spouse's own voice, folding in the accept_divorce / decline_divorce [ACTION]
-      ///   teaching directly (see <see cref="EncounterContext.SpouseDivorceDemandNote" />'s own doc comment
-      ///   for why this bypasses <see cref="VerbRegistry" />/ExtraActionTeachings: a single demand naming
-      ///   exactly one NPC, not a composed set of independently-eligible verbs). Null otherwise.
-      /// </summary>
-      private static string ResolveSpouseDivorceDemandNote(Hero hero)
-      {
-         try
-         {
-            if (hero == null || Hero.MainHero == null) return null;
-            if (hero != Hero.MainHero.Spouse) return null;
-            if (SpouseDivorceDemandBehavior.Instance?.IsDemanding(hero.StringId) != true) return null;
-
-            var sb = new StringBuilder();
-            sb.AppendLine("SPOUSE_DIVORCE_DEMAND, YOU ARE PRESSING TO END THIS MARRIAGE:");
-            sb.AppendLine("You have grown truly, deeply unhappy in this marriage, and you have written to the player of");
-            sb.AppendLine("it. Now, in this very conversation, you press them plainly to consent to ending it. Speak as");
-            sb.AppendLine("someone genuinely wounded and resolved, never petty or theatrical, and let your own nature set");
-            sb.AppendLine("the register: cold resolve, quiet grief, or open reproach.");
-            sb.AppendLine("If the player CONSENTS, agrees, or otherwise accepts ending the marriage, emit:");
-            sb.AppendLine("[ACTION]");
-            sb.AppendLine("type: accept_divorce");
-            sb.AppendLine("[/ACTION]");
-            sb.AppendLine("If the player FIRMLY AND CLEARLY refuses to end it, you may instead emit:");
-            sb.AppendLine("[ACTION]");
-            sb.AppendLine("type: decline_divorce");
-            sb.AppendLine("[/ACTION]");
-            sb.AppendLine("If they deflect, stall, or you are simply unsure, emit neither action and react in character;");
-            sb.AppendLine("the matter will come up again.");
-            sb.AppendLine();
-
-            return sb.ToString();
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[MAPPING] ResolveSpouseDivorceDemandNote failed: {ex.GetType().Name}: {ex.Message}");
-
-            return null;
-         }
-      }
-
-      /// <summary>
-      ///   Divorce, Phase 2a: set when THIS NPC is the player's own LIVING spouse, teaching the
-      ///   player-initiated end_own_marriage action. Coexists cleanly alongside
-      ///   <see cref="ResolveSpouseDivorceDemandNote" />'s own note when the spouse also happens to be
-      ///   demanding a divorce of their own (Phase 2b) — both notes render together and name distinct
-      ///   triggers (the spouse's demand vs the player's own free choice), so nothing here needs to gate on
-      ///   that flag. Null when this NPC is not the player's living spouse.
-      /// </summary>
-      private static string ResolvePlayerEndOwnMarriageNote(Hero hero)
-      {
-         try
-         {
-            if (hero is not {IsAlive: true} || Hero.MainHero == null) return null;
-            if (hero != Hero.MainHero.Spouse) return null;
-
-            var sb = new StringBuilder();
-            sb.AppendLine("PLAYER_END_OWN_MARRIAGE, THE PLAYER MAY CHOOSE TO END THIS MARRIAGE:");
-            sb.AppendLine("You are speaking with the player's own spouse. The player may, in their own words, express a");
-            sb.AppendLine("clear wish to end this marriage. If they state plainly and unambiguously that they want the");
-            sb.AppendLine("marriage to end now, emit:");
-            sb.AppendLine("[ACTION]");
-            sb.AppendLine("type: end_own_marriage");
-            sb.AppendLine("[/ACTION]");
-            sb.AppendLine("Do not emit this on mere venting, a passing complaint, or an abstract question about");
-            sb.AppendLine("divorce; only when the player clearly states they want to end the marriage now.");
-            sb.AppendLine();
-
-            return sb.ToString();
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[MAPPING] ResolvePlayerEndOwnMarriageNote failed: {ex.GetType().Name}: {ex.Message}");
-
-            return null;
-         }
-      }
-
-      /// <summary>
-      ///   Divorce escalation: set when THIS NPC is the player's own living spouse AND their estrangement
-      ///   is currently under way (<see cref="SpouseDivorceDemandBehavior.IsEstranging" />). Composes the
-      ///   full directive in the spouse's own voice, folding in the accept_divorce [ACTION] teaching
-      ///   directly (see <see cref="EncounterContext.SpouseEstrangementNote" />'s own doc comment for why
-      ///   this bypasses <see cref="VerbRegistry" />.ExtraActionTeachings). Deliberately does NOT teach
-      ///   decline_divorce: an estrangement already under way is not something to refuse in words, only to
-      ///   accept or to genuinely repair through deeds. Null otherwise.
-      /// </summary>
-      private static string ResolveSpouseEstrangementNote(Hero hero)
-      {
-         try
-         {
-            if (hero is not {IsAlive: true} || Hero.MainHero == null) return null;
-            if (hero != Hero.MainHero.Spouse) return null;
-            if (SpouseDivorceDemandBehavior.Instance?.IsEstranging(hero.StringId) != true) return null;
-
-            var sb = new StringBuilder();
-            sb.AppendLine("SPOUSE_DIVORCE_ESCALATION, YOU ARE ENDING THIS MARRIAGE YOURSELF:");
-            sb.AppendLine("You pressed the player to end this marriage before, and were refused, more than once. You");
-            sb.AppendLine("have resolved to wait no longer: you have begun ending it yourself, on your own timeline,");
-            sb.AppendLine("whether or not the player consents. Speak as someone who has run out of patience but not");
-            sb.AppendLine("out of feeling: weary, resolved, perhaps still grieving what the marriage once was.");
-            sb.AppendLine("If the player plainly consents to end the marriage now, emit:");
-            sb.AppendLine("[ACTION]");
-            sb.AppendLine("type: accept_divorce");
-            sb.AppendLine("[/ACTION]");
-            sb.AppendLine("Only a genuinely warmer bond, proven over time by real deeds and not by words alone spoken");
-            sb.AppendLine("in this conversation, would ever call this off. Do not treat a kind word or a single");
-            sb.AppendLine("apology as enough; stay resolved unless you truly feel the change in how they treat you.");
-            sb.AppendLine();
-
-            return sb.ToString();
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[MAPPING] ResolveSpouseEstrangementNote failed: {ex.GetType().Name}: {ex.Message}");
-
-            return null;
-         }
       }
 
       /// <summary>
@@ -1268,6 +1055,119 @@ namespace CalradiaRemembers.Mapping
          return npcKingdom.Name?.ToString();
       }
 
+      /// <summary>
+      ///   Builds a prompt note listing the native/vanilla quests THIS NPC gave the player that are still
+      ///   ongoing, so the giver never acts baffled about a task they set outside CR dialogue (player report:
+      ///   an NPC "confused" about a quest in the journal they themselves issued). Excludes CR's own quest
+      ///   mirrors, already surfaced by their own systems. Null when there are none.
+      /// </summary>
+      private static string ResolveNativeQuestNote(Hero hero)
+      {
+         try
+         {
+            if (hero == null || Campaign.Current?.QuestManager == null) return null;
+
+            var lines = new List<string>();
+            foreach (QuestBase quest in Campaign.Current.QuestManager.Quests)
+            {
+               if (quest == null || !quest.IsOngoing || quest.QuestGiver != hero) continue;
+               if (quest is CalradiaRemembersQuest) continue;
+               if (quest is CommitmentQuest) continue;
+
+               var title = quest.Title?.ToString();
+               if (!string.IsNullOrWhiteSpace(title)) lines.Add("- " + title.Trim());
+            }
+
+            if (lines.Count == 0) return null;
+
+            return "TASKS FROM THE REALM'S AFFAIRS YOU SET THIS PLAYER (the game's own quests, still open):\n" + string.Join("\n", lines) + "\nYou know you asked this of them; if they raise it, speak as the one who set it, never baffled.";
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MAPPING] ResolveNativeQuestNote failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Nemesis pillar: when the PLAYER is this captor's prisoner and the captor is a nemesis who has
+      ///   recaptured them after a prior escape, a note has him acknowledge it in character and play colder.
+      ///   Null when the captor is not a recaptured nemesis.
+      /// </summary>
+      private static string ResolveNemesisRecaptureNote(Hero hero, PlayerStatusVsNpc playerStatus)
+      {
+         try
+         {
+            if (playerStatus != PlayerStatusVsNpc.Captive || hero == null) return null;
+
+            int recaptures = NemesisBehavior.Instance?.RecaptureCountFor(hero) ?? 0;
+
+            if (recaptures <= 0) return null;
+
+            return "THIS PRISONER HAS SLIPPED YOU BEFORE, AND NOW YOU HAVE THEM AGAIN: you are colder and more " + "careful this time. Make it plain, in your own words, that they will not escape you a second time.";
+         }
+         catch { return null; }
+      }
+
+      /// <summary>
+      ///   Divorce, Phase 2a: set when THIS NPC is the player's own LIVING spouse, teaching the
+      ///   player-initiated end_own_marriage action. Coexists cleanly alongside
+      ///   <see cref="ResolveSpouseDivorceDemandNote" />'s own note when the spouse also happens to be
+      ///   demanding a divorce of their own (Phase 2b) — both notes render together and name distinct
+      ///   triggers (the spouse's demand vs the player's own free choice), so nothing here needs to gate on
+      ///   that flag. Null when this NPC is not the player's living spouse.
+      /// </summary>
+      private static string ResolvePlayerEndOwnMarriageNote(Hero hero)
+      {
+         try
+         {
+            if (hero is not {IsAlive: true} || Hero.MainHero == null) return null;
+            if (hero != Hero.MainHero.Spouse) return null;
+
+            var sb = new StringBuilder();
+            sb.AppendLine("PLAYER_END_OWN_MARRIAGE, THE PLAYER MAY CHOOSE TO END THIS MARRIAGE:");
+            sb.AppendLine("You are speaking with the player's own spouse. The player may, in their own words, express a");
+            sb.AppendLine("clear wish to end this marriage. If they state plainly and unambiguously that they want the");
+            sb.AppendLine("marriage to end now, emit:");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: end_own_marriage");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine("Do not emit this on mere venting, a passing complaint, or an abstract question about");
+            sb.AppendLine("divorce; only when the player clearly states they want to end the marriage now.");
+            sb.AppendLine();
+
+            return sb.ToString();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MAPPING] ResolvePlayerEndOwnMarriageNote failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   The player's own party troop count, fed ONLY when <paramref name="hero" /> would plausibly know
+      ///   it: one of the player's own companions or clan-family members, physically present in
+      ///   <see cref="MobileParty.MainParty" /> right now (<c>hero.PartyBelongedTo == MobileParty.MainParty</c>,
+      ///   the same "party membership" predicate <see cref="ResolveCanGatherNews" /> and
+      ///   <see cref="ResolveCompanionOnErrand" /> already use elsewhere in this builder). Any other NPC
+      ///   (a stranger, an enemy lord, a bandit) has no plausible way to know the exact figure, so they get 0
+      ///   ("not provided") and the prompt stays silent on it rather than handing out a metagame number.
+      /// </summary>
+      private static int ResolvePlayerPartyTroopCount(Hero hero)
+      {
+         try
+         {
+            if (hero == null || hero == Hero.MainHero || !hero.IsAlive) return 0;
+            if (hero.PartyBelongedTo != MobileParty.MainParty) return 0;
+
+            return MobileParty.MainParty?.MemberRoster?.TotalManCount ?? 0;
+         }
+         catch { return 0; }
+      }
+
       // ── Helpers ───────────────────────────────────────────────────────────
 
       /// <summary>
@@ -1393,6 +1293,116 @@ namespace CalradiaRemembers.Mapping
       {
          try { return SchemeStore.Instance?.HasSecretSchemeAgainst(hero) ?? false; }
          catch { return false; }
+      }
+
+      /// <summary>
+      ///   True when this NPC is one of the player's OWN companions, bonded deeply enough through shared war
+      ///   (regard ≥ 50, orientation-compatible, not already attached), that they could become the player's
+      ///   discreet secret lover. Unlike the consort bond, it does NOT require a prior Intimate arc: the depth of
+      ///   the comrade bond is what makes the confession plausible. The adult-content gate is applied in the
+      ///   prompt (AppendSecretLoverProposal) and at the audience trigger, not here.
+      /// </summary>
+      private static bool ResolveSecretLoverEligible(Hero hero, NpcProfile profile)
+      {
+         if (ModSettings.AdultContentLevel == AdultContentLevel.Off) return false; // adult-content gate lives here
+         if (hero == null || Hero.MainHero == null) return false;
+         if (!hero.IsPlayerCompanion) return false; // brotherhood/sisterhood: the player's own companions only
+         if (profile?.Romantic == null) return false;
+         if (!profile.Romantic.IsCompatibleWith(Hero.MainHero.IsFemale)) return false;
+         if (profile.Romantic.IsConsort || profile.Romantic.IsSecretLover) return false;
+         if (hero == Hero.MainHero.Spouse) return false;
+
+         RomanticStatus status = profile.Romantic.Status;
+
+         if (status == RomanticStatus.Committed || status == RomanticStatus.Estranged || status == RomanticStatus.Broken) return false;
+
+         return profile.ReputationWithPlayer >= 50;
+      }
+
+      /// <summary>
+      ///   Divorce, Phase 2b: set when THIS NPC is the player's own spouse and currently has a pending
+      ///   divorce demand (<see cref="SpouseDivorceDemandBehavior.IsDemanding" />). Composes the full
+      ///   directive in the spouse's own voice, folding in the accept_divorce / decline_divorce [ACTION]
+      ///   teaching directly (see <see cref="EncounterContext.SpouseDivorceDemandNote" />'s own doc comment
+      ///   for why this bypasses <see cref="VerbRegistry" />/ExtraActionTeachings: a single demand naming
+      ///   exactly one NPC, not a composed set of independently-eligible verbs). Null otherwise.
+      /// </summary>
+      private static string ResolveSpouseDivorceDemandNote(Hero hero)
+      {
+         try
+         {
+            if (hero == null || Hero.MainHero == null) return null;
+            if (hero != Hero.MainHero.Spouse) return null;
+            if (SpouseDivorceDemandBehavior.Instance?.IsDemanding(hero.StringId) != true) return null;
+
+            var sb = new StringBuilder();
+            sb.AppendLine("SPOUSE_DIVORCE_DEMAND, YOU ARE PRESSING TO END THIS MARRIAGE:");
+            sb.AppendLine("You have grown truly, deeply unhappy in this marriage, and you have written to the player of");
+            sb.AppendLine("it. Now, in this very conversation, you press them plainly to consent to ending it. Speak as");
+            sb.AppendLine("someone genuinely wounded and resolved, never petty or theatrical, and let your own nature set");
+            sb.AppendLine("the register: cold resolve, quiet grief, or open reproach.");
+            sb.AppendLine("If the player CONSENTS, agrees, or otherwise accepts ending the marriage, emit:");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: accept_divorce");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine("If the player FIRMLY AND CLEARLY refuses to end it, you may instead emit:");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: decline_divorce");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine("If they deflect, stall, or you are simply unsure, emit neither action and react in character;");
+            sb.AppendLine("the matter will come up again.");
+            sb.AppendLine();
+
+            return sb.ToString();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MAPPING] ResolveSpouseDivorceDemandNote failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Divorce escalation: set when THIS NPC is the player's own living spouse AND their estrangement
+      ///   is currently under way (<see cref="SpouseDivorceDemandBehavior.IsEstranging" />). Composes the
+      ///   full directive in the spouse's own voice, folding in the accept_divorce [ACTION] teaching
+      ///   directly (see <see cref="EncounterContext.SpouseEstrangementNote" />'s own doc comment for why
+      ///   this bypasses <see cref="VerbRegistry" />.ExtraActionTeachings). Deliberately does NOT teach
+      ///   decline_divorce: an estrangement already under way is not something to refuse in words, only to
+      ///   accept or to genuinely repair through deeds. Null otherwise.
+      /// </summary>
+      private static string ResolveSpouseEstrangementNote(Hero hero)
+      {
+         try
+         {
+            if (hero is not {IsAlive: true} || Hero.MainHero == null) return null;
+            if (hero != Hero.MainHero.Spouse) return null;
+            if (SpouseDivorceDemandBehavior.Instance?.IsEstranging(hero.StringId) != true) return null;
+
+            var sb = new StringBuilder();
+            sb.AppendLine("SPOUSE_DIVORCE_ESCALATION, YOU ARE ENDING THIS MARRIAGE YOURSELF:");
+            sb.AppendLine("You pressed the player to end this marriage before, and were refused, more than once. You");
+            sb.AppendLine("have resolved to wait no longer: you have begun ending it yourself, on your own timeline,");
+            sb.AppendLine("whether or not the player consents. Speak as someone who has run out of patience but not");
+            sb.AppendLine("out of feeling: weary, resolved, perhaps still grieving what the marriage once was.");
+            sb.AppendLine("If the player plainly consents to end the marriage now, emit:");
+            sb.AppendLine("[ACTION]");
+            sb.AppendLine("type: accept_divorce");
+            sb.AppendLine("[/ACTION]");
+            sb.AppendLine("Only a genuinely warmer bond, proven over time by real deeds and not by words alone spoken");
+            sb.AppendLine("in this conversation, would ever call this off. Do not treat a kind word or a single");
+            sb.AppendLine("apology as enough; stay resolved unless you truly feel the change in how they treat you.");
+            sb.AppendLine();
+
+            return sb.ToString();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MAPPING] ResolveSpouseEstrangementNote failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
       }
 
       /// <summary>

@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 01/07/2026.
+// Code written by Gabriel Mailhot, 06/07/2026.
 
 #region
 
@@ -8,14 +8,18 @@ using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Nemesis;
+using CalradiaRemembers.Quests;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 
@@ -102,6 +106,38 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.captor_scene [interrogation|domination|torture|...] [name]
+      ///   Opens a PLAYER-AS-CAPTOR scene: the named NPC (or the conversation NPC) is YOUR prisoner and you drive
+      ///   the scene; they react as a captive of their nature. Forces the framing for testing (the NPC need not
+      ///   truly be your prisoner). Non-Hardcore = a tense confrontation; Hardcore unlocks the explicit CNC layer.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("captor_scene", "cr")]
+      public static string ForceCaptorScene(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         if (behavior.LlmServices is not {IsAvailable: true}) return "LLM services not available. Set your OpenRouter API key first.";
+
+         var intent = CaptiveSceneIntent.Interrogation;
+         var nameTokens = new List<string>();
+         foreach (string arg in args ?? new List<string>())
+            if (Enum.TryParse(arg, true, out CaptiveSceneIntent parsed)) intent = parsed;
+            else nameTokens.Add(arg);
+
+         Hero npc = ResolveHero(nameTokens);
+
+         if (npc == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = behavior.Store?.Get(npc.StringId) ?? HeroProfileMapper.FromHero(npc);
+         ChatManager.OpenForCaptorScene(npc, profile, intent);
+
+         string warn = ModSettings.AdultContentLevel != AdultContentLevel.Hardcore
+            ? " (NOTE: set Adult Content Level to Hardcore in MCM for the explicit CNC layer.)"
+            : "";
+
+         return $"Captor scene opened with {npc.Name} as your prisoner (intent {intent}).{warn}";
+      }
+
+      /// <summary>
       ///   cr.escape_force
       ///   Makes the NEXT escape attempt in a captive scene succeed, so the full escape flow
       ///   (constrained captor reaction → freeing on scene close) can be tested despite the 10%
@@ -115,121 +151,6 @@ namespace CalradiaRemembers
          behavior.GameStateBridge?.ForceNextEscapeSuccess();
 
          return "Armed: your next escape attempt in a captive scene will succeed. " + "Type an escape attempt in the scene to trigger it.";
-      }
-
-      /// <summary>
-      ///   cr.release_info [name]
-      ///   Shows the NEGOTIATED-RELEASE gate for an NPC captor: their Mercy, the heaviest live grudge they
-      ///   hold against you, and whether they can be TALKED into freeing you (persuasion) or would accept a
-      ///   RANSOM. A vendetta captor (heavy grudge / nemesis) refuses both. Use it to see which captors will
-      ///   yield before testing the release in a captive scene (cr.crc_scene, then plead your case in chat).
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("release_info", "cr")]
-      public static string ReleaseInfo(List<string> args)
-      {
-         Hero hero = ResolveHero(args);
-
-         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         int mercy = hero.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Mercy);
-         int grudge = HeaviestReleaseGrudge(hero);
-         CaptorReleaseVerdict v = CaptorReleasePolicy.Resolve(mercy, grudge, isNemesisVendetta: false);
-
-         return $"{hero.Name}: Mercy {mercy}, heaviest grudge vs you {grudge}. "
-              + $"Persuasion {(v.AllowsPersuasion ? "OPEN" : "refused")}, Ransom {(v.AllowsRansom ? "OPEN" : "refused")}"
-              + (v.RefusesAll ? " (vendetta: he will not let you buy or talk your way out)." : ".");
-      }
-
-      private static int HeaviestReleaseGrudge(Hero hero)
-      {
-         var grudges = CalradiaRemembers.Grudges.GrudgeBehavior.Instance?.GrudgesFor(hero?.StringId);
-         if (grudges == null) return 0;
-
-         string playerId = Hero.MainHero?.StringId;
-         int max = 0;
-         foreach (var g in grudges)
-            if (!g.IsResolved && g.TargetId == playerId && g.Magnitude > max) max = g.Magnitude;
-
-         return max;
-      }
-
-      /// <summary>
-      ///   cr.nemesis
-      ///   Lists the persistent nemesis roster (name, band, region, alive, recaptures, bound Hero) and whether
-      ///   the player is currently a nemesis's captive. Dev diagnostic for validating the Nemesis pillar in
-      ///   game: capture by a bandit party should mint/reuse a nemesis and bind a real Hero to him.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis", "cr")]
-      public static string ShowNemesisRoster(List<string> args)
-      {
-         Nemesis.NemesisBehavior b = Nemesis.NemesisBehavior.Instance;
-         if (b == null) return "NemesisBehavior not available (load a campaign first).";
-
-         var lines = new List<string>();
-         foreach (NemesisIdentity n in b.All)
-            lines.Add($"- {n.Name} {n.Epithet} [{n.BandCultureKey}/{n.RegionId}] alive={n.IsAlive} " +
-                      $"recaptures={n.RecaptureCount} encounters={n.TimesEncountered} hero={(string.IsNullOrEmpty(n.HeroStringId) ? "none" : n.HeroStringId)}");
-
-         string held = b.PlayerHeldByNemesis() ? "YES — the player is currently held by a nemesis." : "no";
-
-         return (lines.Count == 0 ? "No nemesis on record yet." : string.Join("\n", lines)) + $"\nPlayer held by a nemesis: {held}";
-      }
-
-      /// <summary>
-      ///   cr.nemesis_kill [name]
-      ///   Nemesis pillar increment 2 (R1 test harness): simulates a BATTLE death (not an execution) of
-      ///   the named tracked nemesis, or the first living one on the roster if no name matches. Runs the
-      ///   exact same NemesisResolutionBehavior.Resolve code path the real HeroKilledEvent hook uses.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis_kill", "cr")]
-      public static string ForceNemesisKilledInBattle(List<string> args)
-         => ForceNemesisResolution(args, false);
-
-      /// <summary>
-      ///   cr.nemesis_execute [name]
-      ///   Nemesis pillar increment 2 (R2 test harness): simulates an EXECUTION of the named tracked
-      ///   nemesis, or the first living one on the roster if no name matches. Runs the exact same
-      ///   NemesisResolutionBehavior.Resolve code path the real HeroKilledEvent hook uses.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis_execute", "cr")]
-      public static string ForceNemesisExecuted(List<string> args)
-         => ForceNemesisResolution(args, true);
-
-      /// <summary>
-      ///   cr.nemesis_captor_scene [interrogation|desire|domination|torture|training|reward]
-      ///   Nemesis pillar increment 2 (R3 test harness): opens a PLAYER-AS-CAPTOR scene against the
-      ///   first tracked nemesis with a bound Hero, the inversion of his earlier captivity of the
-      ///   player. Confirms his existing memory profile (built in increment 1) loads automatically, since
-      ///   the scene keys off his Hero/StringId exactly like cr.captor_scene. Routes through
-      ///   CaptiveSceneStager.StageCaptorScene (the VRAM-safe staged-conversation path, no live conversation
-      ///   to ride from the console), unlike the real in-game entry point (NemesisPrisonerDialogFlow's
-      ///   hero_main_options line, reached from the party-screen Talk on a held nemesis), which opens
-      ///   directly via ChatManager.OpenForCaptorScene because it already rides a live conversation scene.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis_captor_scene", "cr")]
-      public static string ForceNemesisCaptorScene(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
-         if (behavior.LlmServices is not {IsAvailable: true}) return "LLM services not available. Set your OpenRouter API key first.";
-
-         Nemesis.NemesisBehavior b = Nemesis.NemesisBehavior.Instance;
-         if (b == null) return "NemesisBehavior not available (load a campaign first).";
-
-         var intent = CaptiveSceneIntent.Interrogation;
-         foreach (string arg in args ?? new List<string>())
-            Enum.TryParse(arg, true, out intent);
-
-         NemesisIdentity nem = b.All.FirstOrDefault(n => !string.IsNullOrEmpty(n.HeroStringId));
-         if (nem == null) return "No nemesis has a bound Hero yet. Get captured by a bandit party first (or cr.nemesis to check the roster).";
-
-         Hero nemesisHero = Hero.FindFirst(h => h != null && h.StringId == nem.HeroStringId);
-         if (nemesisHero == null) return $"{nem.Name} {nem.Epithet}'s Hero could not be resolved (StringId {nem.HeroStringId}).";
-
-         NpcProfile profile = behavior.Store?.Get(nemesisHero.StringId) ?? HeroProfileMapper.FromHero(nemesisHero);
-         Chat.CaptiveSceneStager.StageCaptorScene(nemesisHero, profile, intent);
-
-         return $"Staging captor scene with {nem.Name} {nem.Epithet} as YOUR prisoner (the inversion; intent {intent}). " +
-                $"Alive={nem.IsAlive}. The chat opens once the scene loads.";
       }
 
       /// <summary>
@@ -247,8 +168,10 @@ namespace CalradiaRemembers
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
 
-         Hero hero = args is {Count: > 0} ? ResolveHero(args) : null;
-         hero ??= Nemesis.NemesisBehavior.Instance?.PlayerHeldNemesisPrisoner();
+         Hero hero = args is {Count: > 0}
+            ? ResolveHero(args)
+            : null;
+         hero ??= NemesisBehavior.Instance?.PlayerHeldNemesisPrisoner();
          hero ??= Hero.OneToOneConversationHero;
 
          if (hero == null)
@@ -275,34 +198,40 @@ namespace CalradiaRemembers
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
 
-         Hero lord = (args is {Count: > 0} ? ResolveHero(args) : null)
-                     ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+         Hero lord = (args is {Count: > 0}
+                        ? ResolveHero(args)
+                        : null) ??
+                     Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
 
          if (lord == null) return "No lord found. Pass a name fragment, or start a conversation with a lord first.";
 
-         Nemesis.NemesisBehavior roster = Nemesis.NemesisBehavior.Instance;
+         var roster = NemesisBehavior.Instance;
+
          if (roster == null) return "NemesisBehavior not available (load a campaign first).";
 
          string regionId = lord.HomeSettlement?.StringId ?? lord.CurrentSettlement?.StringId ?? lord.Culture?.StringId;
+
          if (string.IsNullOrEmpty(regionId))
             return $"{lord.Name} has no resolvable region (no home settlement, no current settlement, no culture), cannot anchor a bounty test.";
 
          var today = (int) CampaignTime.Now.ToDays;
          Hero nemesisHero = roster.MintCaptorFor("looters", regionId, today);
+
          if (nemesisHero == null) return "Could not mint or reuse a nemesis (no bandit template available in this campaign).";
 
          NemesisIdentity nem = roster.GetByHero(nemesisHero.StringId);
+
          if (nem == null) return $"{nemesisHero.Name} minted, but could not be resolved back to a tracked identity.";
 
-         if (Quests.QuestService.HasActiveBountyFor(nem.HeroStringId, behavior.Store))
+         if (QuestService.HasActiveBountyFor(nem.HeroStringId, behavior.Store))
             return $"{nem.Name} {nem.Epithet} already has an active bounty on his head somewhere.";
 
          int gold = NemesisBountyRewardPolicy.ComputeGold(nem.RecaptureCount, nem.TimesEncountered);
          int relation = NemesisBountyRewardPolicy.ComputeRelation(nem.RecaptureCount);
-         string displayName = $"{nem.Name} {nem.Epithet}";
+         var displayName = $"{nem.Name} {nem.Epithet}";
 
          NpcProfile profile = GetOrCreateProfile(behavior, lord);
-         InformalQuest quest = Quests.QuestService.IssueNemesisBounty(
+         InformalQuest quest = QuestService.IssueNemesisBounty(
             profile, lord, nemesisHero, displayName, gold, relation, today, behavior.Store);
 
          if (quest == null) return $"{lord.Name} already has an unfinished task for you, settle or abandon it first.";
@@ -323,8 +252,12 @@ namespace CalradiaRemembers
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
 
-         Hero giver = args is {Count: > 0} ? ResolveHero(args) : null;
-         NpcProfile profile = giver != null ? GetOrCreateProfile(behavior, giver) : null;
+         Hero giver = args is {Count: > 0}
+            ? ResolveHero(args)
+            : null;
+         NpcProfile profile = giver != null
+            ? GetOrCreateProfile(behavior, giver)
+            : null;
          InformalQuest quest = profile?.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.NemesisBounty && q.Status == QuestStatus.Active);
 
          if (quest == null)
@@ -351,47 +284,79 @@ namespace CalradiaRemembers
             quest.SatisfiedOnDay = day;
             quest.Evidence = "(debug) forced complete on day " + day;
             behavior.Store.Set(profile);
-            Quests.QuestJournalBridge.NotifyDeedDone(quest, giver);
+            QuestJournalBridge.NotifyDeedDone(quest, giver);
          }
 
          int rewardGold = quest.RewardGold;
          int rewardRelation = quest.RewardRelation;
          var fake = new ParsedResponse {Dialogue = "", QuestCompleted = new QuestCompletionClaim {Type = QuestType.NemesisBounty}};
 
-         Quests.QuestService.ApplyResponse(profile, giver, fake, day,
+         QuestService.ApplyResponse(profile, giver, fake, day,
             behavior.GameStateBridge, behavior.Store,
             (text, positive) => ChatManager.ActiveViewModel?.AppendSystemMessage(text, positive));
 
          return $"{giver.Name}: nemesis bounty force-completed, journal closed, reward paid ({rewardGold}g/+{rewardRelation}).";
       }
 
-      #region private nemesis resolution harness
-
-      private static string ForceNemesisResolution(List<string> args, bool wasExecuted)
+      /// <summary>
+      ///   cr.nemesis_captor_scene [interrogation|desire|domination|torture|training|reward]
+      ///   Nemesis pillar increment 2 (R3 test harness): opens a PLAYER-AS-CAPTOR scene against the
+      ///   first tracked nemesis with a bound Hero, the inversion of his earlier captivity of the
+      ///   player. Confirms his existing memory profile (built in increment 1) loads automatically, since
+      ///   the scene keys off his Hero/StringId exactly like cr.captor_scene. Routes through
+      ///   CaptiveSceneStager.StageCaptorScene (the VRAM-safe staged-conversation path, no live conversation
+      ///   to ride from the console), unlike the real in-game entry point (NemesisPrisonerDialogFlow's
+      ///   hero_main_options line, reached from the party-screen Talk on a held nemesis), which opens
+      ///   directly via ChatManager.OpenForCaptorScene because it already rides a live conversation scene.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis_captor_scene", "cr")]
+      public static string ForceNemesisCaptorScene(List<string> args)
       {
-         Nemesis.NemesisBehavior b = Nemesis.NemesisBehavior.Instance;
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         if (behavior.LlmServices is not {IsAvailable: true}) return "LLM services not available. Set your OpenRouter API key first.";
+
+         var b = NemesisBehavior.Instance;
+
          if (b == null) return "NemesisBehavior not available (load a campaign first).";
 
-         Hero nemesisHero = args is {Count: > 0} ? ResolveHero(args) : null;
-         if (nemesisHero == null || b.GetByHero(nemesisHero.StringId) == null)
-         {
-            NemesisIdentity living = b.All.FirstOrDefault(n => n.IsAlive && !string.IsNullOrEmpty(n.HeroStringId));
-            nemesisHero = living != null ? Hero.FindFirst(h => h != null && h.StringId == living.HeroStringId) : null;
-         }
+         var intent = CaptiveSceneIntent.Interrogation;
+         foreach (string arg in args ?? new List<string>())
+            Enum.TryParse(arg, true, out intent);
 
-         if (nemesisHero == null) return "No living tracked nemesis found. Pass a name fragment, or capture the player once first (cr.nemesis to check the roster).";
+         NemesisIdentity nem = b.All.FirstOrDefault(n => !string.IsNullOrEmpty(n.HeroStringId));
 
-         NemesisIdentity nem = b.GetByHero(nemesisHero.StringId);
-         if (nem == null) return $"{nemesisHero.Name} is not a tracked nemesis.";
-         if (!nem.IsAlive) return $"{nem.Name} {nem.Epithet} is already resolved (IsAlive=false).";
+         if (nem == null) return "No nemesis has a bound Hero yet. Get captured by a bandit party first (or cr.nemesis to check the roster).";
 
-         Nemesis.NemesisResolutionBehavior.Resolve(nemesisHero, Hero.MainHero, wasExecuted);
+         Hero nemesisHero = Hero.FindFirst(h => h != null && h.StringId == nem.HeroStringId);
 
-         return $"{nem.Name} {nem.Epithet} resolved as {(wasExecuted ? "EXECUTED" : "KILLED IN BATTLE")} " +
-                $"(IsAlive={nem.IsAlive}, deathDay={nem.DeathDay}).";
+         if (nemesisHero == null) return $"{nem.Name} {nem.Epithet}'s Hero could not be resolved (StringId {nem.HeroStringId}).";
+
+         NpcProfile profile = behavior.Store?.Get(nemesisHero.StringId) ?? HeroProfileMapper.FromHero(nemesisHero);
+         CaptiveSceneStager.StageCaptorScene(nemesisHero, profile, intent);
+
+         return $"Staging captor scene with {nem.Name} {nem.Epithet} as YOUR prisoner (the inversion; intent {intent}). " +
+                $"Alive={nem.IsAlive}. The chat opens once the scene loads.";
       }
 
-      #endregion
+      /// <summary>
+      ///   cr.nemesis_execute [name]
+      ///   Nemesis pillar increment 2 (R2 test harness): simulates an EXECUTION of the named tracked
+      ///   nemesis, or the first living one on the roster if no name matches. Runs the exact same
+      ///   NemesisResolutionBehavior.Resolve code path the real HeroKilledEvent hook uses.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis_execute", "cr")]
+      public static string ForceNemesisExecuted(List<string> args)
+         => ForceNemesisResolution(args, true);
+
+      /// <summary>
+      ///   cr.nemesis_kill [name]
+      ///   Nemesis pillar increment 2 (R1 test harness): simulates a BATTLE death (not an execution) of
+      ///   the named tracked nemesis, or the first living one on the roster if no name matches. Runs the
+      ///   exact same NemesisResolutionBehavior.Resolve code path the real HeroKilledEvent hook uses.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis_kill", "cr")]
+      public static string ForceNemesisKilledInBattle(List<string> args)
+         => ForceNemesisResolution(args, false);
 
       /// <summary>
       ///   cr.bandit_queen [solo|collective] [male|female]
@@ -484,37 +449,6 @@ namespace CalradiaRemembers
             : "";
 
          return $"Bandit captive scene opened with {captor.Name} [{intent}{(collective ? ", collective" : "")}].{warn}";
-      }
-
-      /// <summary>
-      ///   cr.captor_scene [interrogation|domination|torture|...] [name]
-      ///   Opens a PLAYER-AS-CAPTOR scene: the named NPC (or the conversation NPC) is YOUR prisoner and you drive
-      ///   the scene; they react as a captive of their nature. Forces the framing for testing (the NPC need not
-      ///   truly be your prisoner). Non-Hardcore = a tense confrontation; Hardcore unlocks the explicit CNC layer.
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("captor_scene", "cr")]
-      public static string ForceCaptorScene(List<string> args)
-      {
-         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
-         if (behavior.LlmServices is not {IsAvailable: true}) return "LLM services not available. Set your OpenRouter API key first.";
-
-         var intent = CaptiveSceneIntent.Interrogation;
-         var nameTokens = new List<string>();
-         foreach (string arg in args ?? new List<string>())
-            if (Enum.TryParse(arg, true, out CaptiveSceneIntent parsed)) intent = parsed;
-            else nameTokens.Add(arg);
-
-         Hero npc = ResolveHero(nameTokens);
-         if (npc == null) return "No NPC found. Pass a name fragment or start a conversation first.";
-
-         NpcProfile profile = behavior.Store?.Get(npc.StringId) ?? HeroProfileMapper.FromHero(npc);
-         ChatManager.OpenForCaptorScene(npc, profile, intent);
-
-         string warn = ModSettings.AdultContentLevel != AdultContentLevel.Hardcore
-            ? " (NOTE: set Adult Content Level to Hardcore in MCM for the explicit CNC layer.)"
-            : "";
-
-         return $"Captor scene opened with {npc.Name} as your prisoner (intent {intent}).{warn}";
       }
 
       /// <summary>
@@ -617,6 +551,7 @@ namespace CalradiaRemembers
             else nameTokens.Add(arg);
 
          Hero captor = ResolveHero(nameTokens);
+
          if (captor == null)
             return "No captor found. Pass a name fragment or start a conversation first.";
 
@@ -641,7 +576,7 @@ namespace CalradiaRemembers
                }
             });
 
-         Chat.CaptiveSceneStager.StageCaptiveEncounter(captor, captorProfile, witnesses, collective, intent);
+         CaptiveSceneStager.StageCaptiveEncounter(captor, captorProfile, witnesses, collective, intent);
 
          string adultWarning = ModSettings.AdultContentLevel != AdultContentLevel.Hardcore
             ? " (NOTE: adult level is not Hardcore — CNC rules will NOT appear; set it in MCM.)"
@@ -668,7 +603,7 @@ namespace CalradiaRemembers
          if (behavior.LlmServices is not {IsAvailable: true})
             return "LLM services not available. Set your OpenRouter API key first.";
 
-         CompanionSceneKind kind = CompanionSceneKind.CaptorTorments;
+         var kind = CompanionSceneKind.CaptorTorments;
          string victimFragment = null;
          var nameTokens = new List<string>();
          foreach (string arg in args ?? new List<string>())
@@ -679,17 +614,21 @@ namespace CalradiaRemembers
             else nameTokens.Add(arg);
 
          Hero captor = ResolveHero(nameTokens);
+
          if (captor == null)
             return "No captor found. Pass a name fragment or start a conversation first.";
 
          Hero victim = ResolveCompanionVictimHero(victimFragment);
+
          if (victim == null)
             return "No companion in your clan to use as the victim. Recruit one first, or pass victim:<name> matching a clan companion.";
          NpcProfile captorProfile = GetOrCreateProfile(behavior, captor);
 
          bool collective = CompanionScenePolicy.IsCollective(kind);
          bool coerced = CompanionScenePolicy.IsPlayerCoerced(kind);
-         var intent = kind == CompanionSceneKind.CaptorTorments ? CaptiveSceneIntent.Torture : CaptiveSceneIntent.Domination;
+         CaptiveSceneIntent intent = kind == CompanionSceneKind.CaptorTorments
+            ? CaptiveSceneIntent.Torture
+            : CaptiveSceneIntent.Domination;
 
          var witnesses = new List<WitnessEntry>();
          if (collective)
@@ -713,21 +652,6 @@ namespace CalradiaRemembers
          return $"Companion scene opened: {captor.Name} vs {victim.Name} [{kind}].{adultWarning}";
       }
 
-      /// <summary>The companion Hero to use as the scene's victim: a clan companion, name-matched if given, else the first.</summary>
-      private static Hero ResolveCompanionVictimHero(string fragment)
-      {
-         List<Hero> companions = Clan.PlayerClan?.Companions?.Where(h => h is {IsAlive: true}).ToList() ?? new List<Hero>();
-
-         if (!string.IsNullOrWhiteSpace(fragment))
-         {
-            Hero match = companions.FirstOrDefault(h =>
-               h.Name?.ToString().IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0);
-            if (match != null) return match;
-         }
-
-         return companions.Count > 0 ? companions[0] : null;
-      }
-
       /// <summary>cr.kinks [name] — list the NPC's current kinks and the valid kink names.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("kinks", "cr")]
       public static string ListKinks(List<string> args)
@@ -747,10 +671,110 @@ namespace CalradiaRemembers
          return $"{hero.Name} kinks: {current}\nValid: {ValidKinkNames()}";
       }
 
+      /// <summary>
+      ///   cr.release_info [name]
+      ///   Shows the NEGOTIATED-RELEASE gate for an NPC captor: their Mercy, the heaviest live grudge they
+      ///   hold against you, and whether they can be TALKED into freeing you (persuasion) or would accept a
+      ///   RANSOM. A vendetta captor (heavy grudge / nemesis) refuses both. Use it to see which captors will
+      ///   yield before testing the release in a captive scene (cr.crc_scene, then plead your case in chat).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("release_info", "cr")]
+      public static string ReleaseInfo(List<string> args)
+      {
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         int mercy = hero.GetTraitLevel(DefaultTraits.Mercy);
+         int grudge = HeaviestReleaseGrudge(hero);
+         CaptorReleaseVerdict v = CaptorReleasePolicy.Resolve(mercy, grudge, false);
+
+         return $"{hero.Name}: Mercy {mercy}, heaviest grudge vs you {grudge}. " +
+                $"Persuasion {(v.AllowsPersuasion ? "OPEN" : "refused")}, Ransom {(v.AllowsRansom ? "OPEN" : "refused")}" +
+                (v.RefusesAll
+                   ? " (vendetta: he will not let you buy or talk your way out)."
+                   : ".");
+      }
+
       /// <summary>cr.remove_kink &lt;kink&gt; [name] — removes a kink from the NPC's profile.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("remove_kink", "cr")]
       public static string RemoveKink(List<string> args)
          => MutateKink(args, false, "cr.remove_kink <kink> [name]");
+
+      /// <summary>
+      ///   cr.nemesis
+      ///   Lists the persistent nemesis roster (name, band, region, alive, recaptures, bound Hero) and whether
+      ///   the player is currently a nemesis's captive. Dev diagnostic for validating the Nemesis pillar in
+      ///   game: capture by a bandit party should mint/reuse a nemesis and bind a real Hero to him.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("nemesis", "cr")]
+      public static string ShowNemesisRoster(List<string> args)
+      {
+         var b = NemesisBehavior.Instance;
+
+         if (b == null) return "NemesisBehavior not available (load a campaign first).";
+
+         var lines = new List<string>();
+         foreach (NemesisIdentity n in b.All)
+            lines.Add($"- {n.Name} {n.Epithet} [{n.BandCultureKey}/{n.RegionId}] alive={n.IsAlive} " +
+                      $"recaptures={n.RecaptureCount} encounters={n.TimesEncountered} hero={(string.IsNullOrEmpty(n.HeroStringId) ? "none" : n.HeroStringId)}");
+
+         string held = b.PlayerHeldByNemesis()
+            ? "YES — the player is currently held by a nemesis."
+            : "no";
+
+         return (lines.Count == 0
+                   ? "No nemesis on record yet."
+                   : string.Join("\n", lines)) +
+                $"\nPlayer held by a nemesis: {held}";
+      }
+
+      #region private
+
+      private static string ForceNemesisResolution(List<string> args, bool wasExecuted)
+      {
+         var b = NemesisBehavior.Instance;
+
+         if (b == null) return "NemesisBehavior not available (load a campaign first).";
+
+         Hero nemesisHero = args is {Count: > 0}
+            ? ResolveHero(args)
+            : null;
+         if (nemesisHero == null || b.GetByHero(nemesisHero.StringId) == null)
+         {
+            NemesisIdentity living = b.All.FirstOrDefault(n => n.IsAlive && !string.IsNullOrEmpty(n.HeroStringId));
+            nemesisHero = living != null
+               ? Hero.FindFirst(h => h != null && h.StringId == living.HeroStringId)
+               : null;
+         }
+
+         if (nemesisHero == null) return "No living tracked nemesis found. Pass a name fragment, or capture the player once first (cr.nemesis to check the roster).";
+
+         NemesisIdentity nem = b.GetByHero(nemesisHero.StringId);
+
+         if (nem == null) return $"{nemesisHero.Name} is not a tracked nemesis.";
+         if (!nem.IsAlive) return $"{nem.Name} {nem.Epithet} is already resolved (IsAlive=false).";
+
+         NemesisResolutionBehavior.Resolve(nemesisHero, Hero.MainHero, wasExecuted);
+
+         return $"{nem.Name} {nem.Epithet} resolved as {(wasExecuted ? "EXECUTED" : "KILLED IN BATTLE")} " +
+                $"(IsAlive={nem.IsAlive}, deathDay={nem.DeathDay}).";
+      }
+
+      private static int HeaviestReleaseGrudge(Hero hero)
+      {
+         IReadOnlyList<Grudge> grudges = GrudgeBehavior.Instance?.GrudgesFor(hero?.StringId);
+
+         if (grudges == null) return 0;
+
+         string playerId = Hero.MainHero?.StringId;
+         var max = 0;
+         foreach (Grudge g in grudges)
+            if (!g.IsResolved && g.TargetId == playerId && g.Magnitude > max)
+               max = g.Magnitude;
+
+         return max;
+      }
 
       private static string MutateKink(List<string> args, bool add, string usage)
       {
@@ -805,7 +829,27 @@ namespace CalradiaRemembers
          return $"{kink} {(add ? "added to" : "removed from")} {hero.Name}. Now: {state}.";
       }
 
+      /// <summary>The companion Hero to use as the scene's victim: a clan companion, name-matched if given, else the first.</summary>
+      private static Hero ResolveCompanionVictimHero(string fragment)
+      {
+         List<Hero> companions = Clan.PlayerClan?.Companions?.Where(h => h is {IsAlive: true}).ToList() ?? new List<Hero>();
+
+         if (!string.IsNullOrWhiteSpace(fragment))
+         {
+            Hero match = companions.FirstOrDefault(h =>
+               h.Name?.ToString().IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0);
+
+            if (match != null) return match;
+         }
+
+         return companions.Count > 0
+            ? companions[0]
+            : null;
+      }
+
       private static string ValidKinkNames()
          => string.Join(", ", Enum.GetNames(typeof(Kink)).Where(n => n != nameof(Kink.None)));
+
+      #endregion
    }
 }

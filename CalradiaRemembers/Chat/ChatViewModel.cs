@@ -1,25 +1,26 @@
-// Code written by Gabriel Mailhot, 04/07/2026.
+// Code written by Gabriel Mailhot, 11/07/2026.
 
 #region
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.GUI;
-using CalradiaRemembers.Items;
 using CalradiaRemembers.Logic;
-using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Lore;
 using CalradiaRemembers.Missions;
+using CalradiaRemembers.Portraits;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.Core;
 using TaleWorlds.Library;
 
 #endregion
@@ -37,6 +38,7 @@ namespace CalradiaRemembers.Chat
       // Cream color matching ChatMessageViewModel's default NPC hue, used when the
       // main NPC appears as a reacting witness (while another participant speaks).
       private const string NpcCreamColor = "#e8d8b8FF";
+      private const string OocColor = "#8fb8c8FF"; // muted slate-cyan, clearly out-of-character (terminal prompts)
       private const string PlaceholderText = "(considering...)";
 
       // Scene narration (second-person prose during captive/CNC scenes): pale violet,
@@ -46,12 +48,24 @@ namespace CalradiaRemembers.Chat
       // System notification line colors (relation/gold outcomes shown inline in chat).
       private const string SystemGainColor = "#9fe0a0FF"; // soft green — favorable
       private const string SystemLossColor = "#e0a0a0FF"; // soft red — unfavorable
-      private const string OocColor = "#8fb8c8FF"; // muted slate-cyan, clearly out-of-character (terminal prompts)
 
       // ── Sprint 15C: NPC→witness auto-exchange ─────────────────────────────
       // Maximum NPC→witness auto-exchanges per player turn. Each exchange is one
       // LLM call; the chain terminates early if witnesses fall silent.
       private const int WitnessExchangeCap = 3;
+
+      // Shortest gap between two wrapped-preview refreshes; ~150 ms is imperceptible for reading but turns a
+      // per-keystroke re-layout of a long message into a handful per second.
+      private static readonly long ComposePreviewThrottleTicks = TimeSpan.FromMilliseconds(150).Ticks;
+
+      // The per-insert cap once collapsed the transcript to one live tableau per speaker, which blanked older
+      // lines' portraits. MEASURED SAFE and relaxed (2026-07-09): over a long conversation the game's dedicated
+      // VRAM stayed flat as live portraits climbed, because the original v1.23 leak was the map screen rendering
+      // behind the overlay (fixed, unrelated to portrait count) and we free every tableau on close
+      // (ReleaseAllPortraits). So all portraits now persist. Flip back to true only if a VRAM report resurfaces.
+      // static readonly, not const: keeps this a runtime kill-switch (flip to true to re-enable the cap) without
+      // the compiler folding the const away and flagging the guard below as unreachable dead code.
+      private static readonly bool EnforcePortraitCapInChat = false;
 
       private static readonly string[] EscapeFailureFallbacks = {
          "An iron grip closes on you and hauls you back. \"Going somewhere? I think not.\"",
@@ -77,10 +91,32 @@ namespace CalradiaRemembers.Chat
 
       private static bool _llmFailureHintShown;
 
+      // ── Action confirmation (terminal-style, in chat) ─────────────────────
+      // A consequential LLM action (coin transfer / service commitment) is not applied on the spot: it is queued
+      // and the player asked to confirm IN CHAT. The whole feature (queue, dedup, Y/n flow, apply/decline) lives
+      // in its own controller so it no longer threads through the shared ChatViewModel partials (mirroring the
+      // round-table extraction); the controller drives this view model through the IActionConfirmationHost seam.
+      private readonly ActionConfirmationController _confirmation = new ActionConfirmationController();
+
       // Last reaction text shown per witness (canonical name → text). Used to drop a witness's
       // verbatim-repeated line: weaker models copy their own [WITNESS_REACTION] turn after turn,
       // which soft prompt rules do not stop — so we filter the duplicate mechanically.
       private readonly Dictionary<string, string> _lastWitnessReaction = new(StringComparer.OrdinalIgnoreCase);
+
+      // ── Offer ("give") flow ───────────────────────────────────────────────
+      // The bag (item/gold/prisoner gift, plus settling an outstanding bargain or supply quest) lives in its own
+      // controller so it no longer threads through the shared ChatViewModel partials (mirroring the round-table and
+      // action-confirmation extractions); the controller owns _offeredItemId and drives this view model through the
+      // IOfferHost seam. ExecuteOfferItem/ExecuteOfferGold stay here because their buttons are prefab-bound.
+      private readonly OfferController _offer = new OfferController();
+
+      // ── Round table (group mode) ──────────────────────────────────────────
+      // The group-lap feature (open the floor to everyone) lives in its own controller so it no longer threads
+      // through the shared ChatViewModel partials (which forced a surgical-commit dance every release). The
+      // controller owns the "requested"/rotation state and drives the deterministic lap through the
+      // IRoundTableHost seam (this view model). _isRoundTableVisible backs the prefab-bound IsRoundTableVisible
+      // button; its value is computed by the controller.
+      private readonly RoundTableController _roundTable = new RoundTableController();
 
       // Attributed conversation history — the single source of truth for rebuilding
       // each speaker's ChatSession per turn (their own lines as assistant, everyone
@@ -135,6 +171,8 @@ namespace CalradiaRemembers.Chat
       private NpcProfile _commonerProfile;
       private ChatSession _commonerSession;
       private CommonsKnowledge _commonsKnowledge;
+      private bool _composePreviewDirty;
+      private string _composePreviewText = "";
 
       // Set when the NPC emits an end_conversation action — locks input so the
       // player can only read the farewell and leave.
@@ -145,15 +183,6 @@ namespace CalradiaRemembers.Chat
       private string _currentSpeakerHeroId;
       private CaptiveSceneDirector _director;
 
-      // ── Round table (group mode) ──────────────────────────────────────────
-      // The group-lap feature (open the floor to everyone) lives in its own controller so it no longer threads
-      // through the shared ChatViewModel partials (which forced a surgical-commit dance every release). The
-      // controller owns the "requested"/rotation state and drives the deterministic lap through the
-      // IRoundTableHost seam (this view model). _isRoundTableVisible backs the prefab-bound IsRoundTableVisible
-      // button; its value is computed by the controller.
-      private readonly RoundTableController _roundTable = new RoundTableController();
-      private bool _isRoundTableVisible;
-
       // ── Fallback conversation memory ──────────────────────────────────────
       // The LLM mostly emits [EVENT] on a natural farewell; if the player closes
       // the window mid-exchange, nothing was recorded and the NPC forgets the
@@ -162,59 +191,32 @@ namespace CalradiaRemembers.Chat
       private bool _eventRecordedThisSession; // any non-empty [EVENT] this session
       private bool _hasWitnesses;
       private string _inputText = "";
-      private string _composePreviewText = "";
-      private bool _composePreviewDirty;
-      private long _lastComposePreviewTicks;
       private bool _isComposeOpen;
       private bool _isMemoryPanelOpen;
       private bool _isPleaseContinueVisible;
+
+      // ── Portrait panel ────────────────────────────────────────────────────
+      // A left panel (same area as the memory panel) showing a clicked speaker's portrait at full size: their
+      // custom ChatPortraits image when present, else the vanilla 3D render. Opened by a left-click on a portrait.
+      private bool _isPortraitPanelOpen;
       private bool _isPrivateRequestVisible;
+      private bool _isRoundTableVisible;
 
       // Pause state — stored context so ExecuteContinue can resume without parameters.
       private bool _isScenePaused;
       private bool _isSendEnabled = true;
+      private long _lastComposePreviewTicks;
 
       // The scene-focus index picked last round (BuildSceneSetup/BuildResumeSetup), so
       // SceneFocusSelector never repeats the same driving focus two rounds running. -1 = no prior round.
       private int _lastSceneFocusIndex = -1;
-      private MBBindingList<ChatMessageViewModel> _messages;
 
       // ── Shared-memories panel (read-only) ─────────────────────────────────
       // A left panel mirroring cr.memory: what this NPC remembers of the player.
       // Rebuilt from the persisted profile each time it opens.
       private MBBindingList<MemoryEntryViewModel> _memories;
       private string _memoryPanelTitle = "Shared memories";
-
-      // ── Portrait panel ────────────────────────────────────────────────────
-      // A left panel (same area as the memory panel) showing a clicked speaker's portrait at full size: their
-      // custom ChatPortraits image when present, else the vanilla 3D render. Opened by a left-click on a portrait.
-      private bool _isPortraitPanelOpen;
-      private string _portraitPanelTitle = "Portrait";
-      private string _panelPortraitPath = "";
-      private bool _showPanelCustomPortrait;
-      private bool _showPanelVanillaPortrait;
-      private string _panelPortraitId = "";
-      private string _panelPortraitProvider = "";
-      private string _panelPortraitArgs = "";
-      private float _panelPortraitW = 344f;
-      private float _panelPortraitH = 458f;
-
-      // A roleplay dossier shown ABOVE the portrait when the clicked line is a known NPC (hidden for the player's
-      // own line or a heroless speaker): inline facts (culture / age / role / relation / personal regard), the
-      // vanilla encyclopedia background, the mod's authored backstory, the physical description from body stats,
-      // the traits/kinks discovered so far, and the grievances the player has learned this NPC holds.
-      private bool _showPanelInfo;
-      private bool _showPanelBackground;
-      private bool _showPanelCharacter;
-      private bool _showPanelAppearance;
-      private bool _showPanelDiscoveries;
-      private bool _showPanelGrievances;
-      private string _panelInfoFacts = "";
-      private string _panelBackground = "";
-      private string _panelCharacter = "";
-      private string _panelAppearance = "";
-      private string _panelInfoDiscoveries = "";
-      private string _panelGrievances = "";
+      private MBBindingList<ChatMessageViewModel> _messages;
 
       private ChatMode _mode = ChatMode.Conversation;
       private Hero _npcHero;
@@ -232,6 +234,7 @@ namespace CalradiaRemembers.Chat
       private int _playerCharsThisSession;
 
       private int _playerTurnsThisSession; // completed player→NPC exchanges
+      private string _portraitPanelTitle = "Portrait";
 
       // Set when the player clicks "Request Private" — injected once, then cleared.
       private bool _privacyRequestPending;
@@ -245,6 +248,11 @@ namespace CalradiaRemembers.Chat
       private NpcMemoryCampaignBehavior _scenePauseBehavior;
       private ChatSpeaker _scenePauseSpeaker;
       private string _sendButtonText = "Send";
+
+      // A roleplay dossier shown ABOVE the portrait when the clicked line is a known NPC (hidden for the player's
+      // own line or a heroless speaker): inline facts (culture / age / role / relation / personal regard), the
+      // vanilla encyclopedia background, the mod's authored backstory, the physical description from body stats,
+      // the traits/kinks discovered so far, and the grievances the player has learned this NPC holds.
 
       // ── Story Log ─────────────────────────────────────────────────────────
       // True once the conversation intro has been written this session (lazy —
@@ -274,39 +282,6 @@ namespace CalradiaRemembers.Chat
          // Every chat opens on the roleplay model; the explicit-scene activators
          // (captive encounter, player-as-captor) flip the mode to NSFW right after.
          LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(false);
-      }
-
-      // The per-insert cap once collapsed the transcript to one live tableau per speaker, which blanked older
-      // lines' portraits. MEASURED SAFE and relaxed (2026-07-09): over a long conversation the game's dedicated
-      // VRAM stayed flat as live portraits climbed, because the original v1.23 leak was the map screen rendering
-      // behind the overlay (fixed, unrelated to portrait count) and we free every tableau on close
-      // (ReleaseAllPortraits). So all portraits now persist. Flip back to true only if a VRAM report resurfaces.
-      // static readonly, not const: keeps this a runtime kill-switch (flip to true to re-enable the cap) without
-      // the compiler folding the const away and flagging the guard below as unreachable dead code.
-      private static readonly bool EnforcePortraitCapInChat = false;
-
-      /// <summary>
-      ///   On each inserted line, keep VRAM bounded by the number of participants (not the transcript length):
-      ///   the guard collapses the transcript to at most one live character tableau per distinct speaker, freeing
-      ///   older duplicates. Only the render-target is freed; each line's text stays.
-      /// </summary>
-      private void OnMessagesListChanged(object sender, ListChangedEventArgs e)
-      {
-         if (EnforcePortraitCapInChat && e.ListChangedType == ListChangedType.ItemAdded)
-            PortraitTextureGuard.EnforceOnePerParticipant(_messages);
-      }
-
-      /// <summary>
-      ///   Frees every line's character tableau on teardown so no GPU render-target survives the chat closing.
-      ///   Releasing the movie already destroys the widgets (which frees their tableaus), but the guard clears
-      ///   the ImageIds first, making the release explicit and independent of engine teardown timing — a hedge
-      ///   against tableaus lingering across many open/close cycles in one session. Also detaches the per-insert
-      ///   cap handler so nothing fires during teardown. Called by <see cref="ChatManager.Close" />.
-      /// </summary>
-      public void ReleaseAllPortraits()
-      {
-         _messages.ListChanged -= OnMessagesListChanged;
-         PortraitTextureGuard.ReleaseAll(_messages);
       }
 
       // ── Chat mode ─────────────────────────────────────────────────────────
@@ -349,6 +324,21 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      // Player report (v1.29.0): typing a LONG message tanked FPS (~200 -> ~15) because the wrapped preview
+      // (a RichTextWidget) re-parsed and re-wrapped the whole text on EVERY keystroke. It now binds to this
+      // separate property, pushed at most a few times a second by PumpComposePreview from the per-frame tick.
+      [DataSourceProperty]
+      public string ComposePreviewText
+      {
+         get => _composePreviewText;
+         set
+         {
+            if (_composePreviewText == value) return;
+            _composePreviewText = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
       /// <summary>True when at least one witness is present — drives IsVisible on the witnesses line.</summary>
       [DataSourceProperty]
       public bool HasWitnesses
@@ -373,43 +363,6 @@ namespace CalradiaRemembers.Chat
             OnPropertyChangedWithValue(value);
             _composePreviewDirty = true; // the wrapped preview refreshes on a throttle, not every keystroke
          }
-      }
-
-      // Player report (v1.29.0): typing a LONG message tanked FPS (~200 -> ~15) because the wrapped preview
-      // (a RichTextWidget) re-parsed and re-wrapped the whole text on EVERY keystroke. It now binds to this
-      // separate property, pushed at most a few times a second by PumpComposePreview from the per-frame tick.
-      [DataSourceProperty]
-      public string ComposePreviewText
-      {
-         get => _composePreviewText;
-         set
-         {
-            if (_composePreviewText == value) return;
-            _composePreviewText = value;
-            OnPropertyChangedWithValue(value);
-         }
-      }
-
-      // Shortest gap between two wrapped-preview refreshes; ~150 ms is imperceptible for reading but turns a
-      // per-keystroke re-layout of a long message into a handful per second.
-      private static readonly long ComposePreviewThrottleTicks = TimeSpan.FromMilliseconds(150).Ticks;
-
-      /// <summary>
-      ///   Pushes the typed text into the wrapped preview at most every <see cref="ComposePreviewThrottleTicks" />,
-      ///   so a long message does not re-wrap on every keystroke (the FPS-drop report). Clearing (after Send) is
-      ///   pushed immediately. Called each frame from <see cref="ChatScrollablePanel" />.
-      /// </summary>
-      public void PumpComposePreview()
-      {
-         if (!_composePreviewDirty) return;
-
-         bool cleared = string.IsNullOrEmpty(_inputText);
-         long now = DateTime.UtcNow.Ticks;
-         if (!cleared && now - _lastComposePreviewTicks < ComposePreviewThrottleTicks) return;
-
-         _lastComposePreviewTicks = now;
-         _composePreviewDirty = false;
-         ComposePreviewText = _inputText ?? "";
       }
 
       /// <summary>
@@ -456,6 +409,28 @@ namespace CalradiaRemembers.Chat
       [DataSourceProperty]
       public bool IsGameMenuButtonVisible => _mode == ChatMode.Conversation && !_captorScene;
 
+      /// <summary>True while the left "shared memories" panel is open (a read-only view of what this NPC remembers).</summary>
+      [DataSourceProperty]
+      public bool IsMemoryPanelOpen
+      {
+         get => _isMemoryPanelOpen;
+         set
+         {
+            if (_isMemoryPanelOpen == value) return;
+            _isMemoryPanelOpen = value;
+            OnPropertyChangedWithValue(value);
+            OnPropertyChanged(nameof(IsMemoryToggleVisible));
+         }
+      }
+
+      /// <summary>
+      ///   The "Memories" open button: shown only when there is a real hero across the conversation (one with a
+      ///   persistent profile to remember anything (a synthesized bandit captor or nameless commoner has none),
+      ///   and the panel is not already open. Mirrors <see cref="IsEncyclopediaVisible" />'s population.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsMemoryToggleVisible => _npcHero != null && !_isMemoryPanelOpen;
+
       /// <summary>
       ///   True when the mode button should be shown: only when an NSFW model is configured in the MCM
       ///   menu (otherwise the toggle would change nothing) and adult content is enabled at all.
@@ -497,6 +472,19 @@ namespace CalradiaRemembers.Chat
          {
             if (_isPleaseContinueVisible == value) return;
             _isPleaseContinueVisible = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>True while the left PORTRAIT panel is open (a full-size view of a clicked speaker's portrait).</summary>
+      [DataSourceProperty]
+      public bool IsPortraitPanelOpen
+      {
+         get => _isPortraitPanelOpen;
+         set
+         {
+            if (_isPortraitPanelOpen == value) return;
+            _isPortraitPanelOpen = value;
             OnPropertyChangedWithValue(value);
          }
       }
@@ -559,18 +547,6 @@ namespace CalradiaRemembers.Chat
          }
       }
 
-      [DataSourceProperty]
-      public MBBindingList<ChatMessageViewModel> Messages
-      {
-         get => _messages;
-         set
-         {
-            if (_messages == value) return;
-            _messages = value;
-            OnPropertyChangedWithValue(value);
-         }
-      }
-
       /// <summary>The rows of the shared-memories panel: a read-only mirror of this NPC's remembered history.</summary>
       [DataSourceProperty]
       public MBBindingList<MemoryEntryViewModel> Memories
@@ -583,28 +559,6 @@ namespace CalradiaRemembers.Chat
             OnPropertyChangedWithValue(value);
          }
       }
-
-      /// <summary>True while the left "shared memories" panel is open (a read-only view of what this NPC remembers).</summary>
-      [DataSourceProperty]
-      public bool IsMemoryPanelOpen
-      {
-         get => _isMemoryPanelOpen;
-         set
-         {
-            if (_isMemoryPanelOpen == value) return;
-            _isMemoryPanelOpen = value;
-            OnPropertyChangedWithValue(value);
-            OnPropertyChanged(nameof(IsMemoryToggleVisible));
-         }
-      }
-
-      /// <summary>
-      ///   The "Memories" open button: shown only when there is a real hero across the conversation (one with a
-      ///   persistent profile to remember anything (a synthesized bandit captor or nameless commoner has none),
-      ///   and the panel is not already open. Mirrors <see cref="IsEncyclopediaVisible" />'s population.
-      /// </summary>
-      [DataSourceProperty]
-      public bool IsMemoryToggleVisible => _npcHero != null && !_isMemoryPanelOpen;
 
       /// <summary>The header of the memory panel, for example "What {name} remembers".</summary>
       [DataSourceProperty]
@@ -619,99 +573,14 @@ namespace CalradiaRemembers.Chat
          }
       }
 
-      // ── Memory-panel portrait (custom PNG or vanilla 3D) ──
       [DataSourceProperty]
-      public string PanelPortraitPath => _panelPortraitPath;
-
-      [DataSourceProperty]
-      public bool ShowPanelCustomPortrait => _showPanelCustomPortrait;
-
-      [DataSourceProperty]
-      public bool ShowPanelVanillaPortrait => _showPanelVanillaPortrait;
-
-      [DataSourceProperty]
-      public string PanelPortraitId => _panelPortraitId;
-
-      [DataSourceProperty]
-      public string PanelPortraitTextureProviderName => _panelPortraitProvider;
-
-      [DataSourceProperty]
-      public string PanelPortraitAdditionalArgs => _panelPortraitArgs;
-
-      /// <summary>Displayed portrait size, aspect-preserved to fit the portrait box (must be float for the setter).</summary>
-      [DataSourceProperty]
-      public float PanelPortraitWidth => _panelPortraitW;
-
-      [DataSourceProperty]
-      public float PanelPortraitHeight => _panelPortraitH;
-
-      // ── Portrait-panel roleplay dossier (scrollable, above the portrait) ──
-      /// <summary>True when the clicked line is a known NPC, so the dossier is shown (hidden for the player).</summary>
-      [DataSourceProperty]
-      public bool ShowPanelInfo => _showPanelInfo;
-
-      [DataSourceProperty]
-      public bool ShowPanelBackground => _showPanelBackground;
-
-      [DataSourceProperty]
-      public bool ShowPanelCharacter => _showPanelCharacter;
-
-      [DataSourceProperty]
-      public bool ShowPanelAppearance => _showPanelAppearance;
-
-      /// <summary>True when this NPC has at least one discovered trait/kink to list.</summary>
-      [DataSourceProperty]
-      public bool ShowPanelDiscoveries => _showPanelDiscoveries;
-
-      [DataSourceProperty]
-      public bool ShowPanelGrievances => _showPanelGrievances;
-
-      /// <summary>Inline facts, one per line: "Culture: Empire", "Age: 38", "Role: Lady", "Relation: +12", "Personal regard: neutral (0)".</summary>
-      [DataSourceProperty]
-      public string PanelInfoFacts => _panelInfoFacts;
-
-      /// <summary>The vanilla encyclopedia background paragraph for this hero.</summary>
-      [DataSourceProperty]
-      public string PanelBackground => _panelBackground;
-
-      /// <summary>The mod's authored backstory for this hero, when one is defined in the character files.</summary>
-      [DataSourceProperty]
-      public string PanelCharacter => _panelCharacter;
-
-      /// <summary>The physical description derived from this hero's body/appearance stats.</summary>
-      [DataSourceProperty]
-      public string PanelAppearance => _panelAppearance;
-
-      /// <summary>Bulleted list of traits/kinks discovered about this NPC over the campaign.</summary>
-      [DataSourceProperty]
-      public string PanelInfoDiscoveries => _panelInfoDiscoveries;
-
-      /// <summary>Bulleted list of grievances the player has learned this NPC holds.</summary>
-      [DataSourceProperty]
-      public string PanelGrievances => _panelGrievances;
-
-      /// <summary>True while the left PORTRAIT panel is open (a full-size view of a clicked speaker's portrait).</summary>
-      [DataSourceProperty]
-      public bool IsPortraitPanelOpen
+      public MBBindingList<ChatMessageViewModel> Messages
       {
-         get => _isPortraitPanelOpen;
+         get => _messages;
          set
          {
-            if (_isPortraitPanelOpen == value) return;
-            _isPortraitPanelOpen = value;
-            OnPropertyChangedWithValue(value);
-         }
-      }
-
-      /// <summary>The portrait panel's header (the speaker's name).</summary>
-      [DataSourceProperty]
-      public string PortraitPanelTitle
-      {
-         get => _portraitPanelTitle;
-         set
-         {
-            if (_portraitPanelTitle == value) return;
-            _portraitPanelTitle = value;
+            if (_messages == value) return;
+            _messages = value;
             OnPropertyChangedWithValue(value);
          }
       }
@@ -727,6 +596,66 @@ namespace CalradiaRemembers.Chat
             : "Mode: Roleplay";
 
       public Action OnCloseRequested { get; set; }
+
+      /// <summary>The physical description derived from this hero's body/appearance stats.</summary>
+      [DataSourceProperty]
+      public string PanelAppearance { get; private set; } = "";
+
+      /// <summary>The vanilla encyclopedia background paragraph for this hero.</summary>
+      [DataSourceProperty]
+      public string PanelBackground { get; private set; } = "";
+
+      /// <summary>The mod's authored backstory for this hero, when one is defined in the character files.</summary>
+      [DataSourceProperty]
+      public string PanelCharacter { get; private set; } = "";
+
+      /// <summary>Bulleted list of grievances the player has learned this NPC holds.</summary>
+      [DataSourceProperty]
+      public string PanelGrievances { get; private set; } = "";
+
+      /// <summary>Bulleted list of traits/kinks discovered about this NPC over the campaign.</summary>
+      [DataSourceProperty]
+      public string PanelInfoDiscoveries { get; private set; } = "";
+
+      /// <summary>
+      ///   Inline facts, one per line: "Culture: Empire", "Age: 38", "Role: Lady", "Relation: +12", "Personal regard:
+      ///   neutral (0)".
+      /// </summary>
+      [DataSourceProperty]
+      public string PanelInfoFacts { get; private set; } = "";
+
+      [DataSourceProperty]
+      public string PanelPortraitAdditionalArgs { get; private set; } = "";
+
+      [DataSourceProperty]
+      public float PanelPortraitHeight { get; private set; } = 458f;
+
+      [DataSourceProperty]
+      public string PanelPortraitId { get; private set; } = "";
+
+      // ── Memory-panel portrait (custom PNG or vanilla 3D) ──
+      [DataSourceProperty]
+      public string PanelPortraitPath { get; private set; } = "";
+
+      [DataSourceProperty]
+      public string PanelPortraitTextureProviderName { get; private set; } = "";
+
+      /// <summary>Displayed portrait size, aspect-preserved to fit the portrait box (must be float for the setter).</summary>
+      [DataSourceProperty]
+      public float PanelPortraitWidth { get; private set; } = 344f;
+
+      /// <summary>The portrait panel's header (the speaker's name).</summary>
+      [DataSourceProperty]
+      public string PortraitPanelTitle
+      {
+         get => _portraitPanelTitle;
+         set
+         {
+            if (_portraitPanelTitle == value) return;
+            _portraitPanelTitle = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
       /// <summary>
       ///   Subtitle showing the NPC's clan standing and personal regard for the player.
@@ -754,6 +683,33 @@ namespace CalradiaRemembers.Chat
             OnPropertyChangedWithValue(value);
          }
       }
+
+      [DataSourceProperty]
+      public bool ShowPanelAppearance { get; private set; }
+
+      [DataSourceProperty]
+      public bool ShowPanelBackground { get; private set; }
+
+      [DataSourceProperty]
+      public bool ShowPanelCharacter { get; private set; }
+
+      [DataSourceProperty]
+      public bool ShowPanelCustomPortrait { get; private set; }
+
+      /// <summary>True when this NPC has at least one discovered trait/kink to list.</summary>
+      [DataSourceProperty]
+      public bool ShowPanelDiscoveries { get; private set; }
+
+      [DataSourceProperty]
+      public bool ShowPanelGrievances { get; private set; }
+
+      // ── Portrait-panel roleplay dossier (scrollable, above the portrait) ──
+      /// <summary>True when the clicked line is a known NPC, so the dossier is shown (hidden for the player).</summary>
+      [DataSourceProperty]
+      public bool ShowPanelInfo { get; private set; }
+
+      [DataSourceProperty]
+      public bool ShowPanelVanillaPortrait { get; private set; }
 
       [DataSourceProperty]
       public string TitleText
@@ -1025,7 +981,7 @@ namespace CalradiaRemembers.Chat
          {
             // A heroless captor (synthesized bandit), OR a freshly-minted nemesis whose Hero tableau is not yet
             // renderable on the first encounter, falls back to a bandit-troop portrait so the line keeps an avatar.
-            ChatMessageViewModel npcMsg = new ChatMessageViewModel(_npcHero, _npcName, text, false);
+            var npcMsg = new ChatMessageViewModel(_npcHero, _npcName, text, false);
             if (!npcMsg.HasLivePortrait && _npcPortraitCharacter != null)
                npcMsg = new ChatMessageViewModel(_npcPortraitCharacter, _npcName, text, false);
             _messages.Add(npcMsg);
@@ -1037,6 +993,25 @@ namespace CalradiaRemembers.Chat
          {
             ModLog.Error($"AppendNpcMessage threw {ex.GetType().Name}: {ex.Message}");
             ModLog.Error($"Stack: {ex.StackTrace}");
+         }
+      }
+
+      /// <summary>
+      ///   Adds an out-of-character (OOC) line in the terminal-style colour, used for the action-confirmation
+      ///   prompts and their results. Distinct from an in-fiction system notification so the player reads it as
+      ///   the game talking to them, not the NPC.
+      /// </summary>
+      public void AppendOocMessage(string text)
+      {
+         if (string.IsNullOrWhiteSpace(text)) return;
+         try
+         {
+            _messages.Add(new ChatMessageViewModel(text, OocColor));
+            ChatManager.ScrollToBottom();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"AppendOocMessage threw {ex.GetType().Name}: {ex.Message}");
          }
       }
 
@@ -1078,32 +1053,6 @@ namespace CalradiaRemembers.Chat
             ModLog.Error($"AppendSystemMessage threw {ex.GetType().Name}: {ex.Message}");
          }
       }
-
-      /// <summary>
-      ///   Adds an out-of-character (OOC) line in the terminal-style colour, used for the action-confirmation
-      ///   prompts and their results. Distinct from an in-fiction system notification so the player reads it as
-      ///   the game talking to them, not the NPC.
-      /// </summary>
-      public void AppendOocMessage(string text)
-      {
-         if (string.IsNullOrWhiteSpace(text)) return;
-         try
-         {
-            _messages.Add(new ChatMessageViewModel(text, OocColor));
-            ChatManager.ScrollToBottom();
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"AppendOocMessage threw {ex.GetType().Name}: {ex.Message}");
-         }
-      }
-
-      // ── Action confirmation (terminal-style, in chat) ─────────────────────
-      // A consequential LLM action (coin transfer / service commitment) is not applied on the spot: it is queued
-      // and the player asked to confirm IN CHAT. The whole feature (queue, dedup, Y/n flow, apply/decline) lives
-      // in its own controller so it no longer threads through the shared ChatViewModel partials (mirroring the
-      // round-table extraction); the controller drives this view model through the IActionConfirmationHost seam.
-      private readonly ActionConfirmationController _confirmation = new ActionConfirmationController();
 
       /// <summary>
       ///   Appends a witness reaction as a separate chat message, resolved to the
@@ -1154,26 +1103,6 @@ namespace CalradiaRemembers.Chat
          IsComposeOpen = false;
       }
 
-      /// <summary>
-      ///   The "Memories" button: opens the left panel listing what this NPC remembers of the player (a
-      ///   read-only view of the shared history, mirroring cr.memory), or closes it if already open. Shares the
-      ///   left area with the review panel, so opening one closes the other.
-      /// </summary>
-      public void ExecuteToggleMemoryPanel()
-      {
-         if (_isMemoryPanelOpen)
-         {
-            IsMemoryPanelOpen = false;
-
-            return;
-         }
-
-         if (_isComposeOpen) IsComposeOpen = false;
-         if (_isPortraitPanelOpen) IsPortraitPanelOpen = false; // one left panel at a time
-         RefreshMemories();
-         IsMemoryPanelOpen = true;
-      }
-
       /// <summary>The memory panel's "Close" button.</summary>
       public void ExecuteCloseMemoryPanel()
       {
@@ -1181,264 +1110,11 @@ namespace CalradiaRemembers.Chat
          IsMemoryPanelOpen = false;
       }
 
-      /// <summary>
-      ///   Opens the dedicated left PORTRAIT panel showing this chat line's speaker at full size (their custom
-      ///   ChatPortraits image when present, else the vanilla 3D render), aspect-preserved and never stretched.
-      ///   Fired by a LEFT-click on any chat portrait. Shares the left area with the memory / compose panels, so
-      ///   it closes whichever of those is open (one left panel at a time).
-      /// </summary>
-      public void OpenPortraitPanel(ChatMessageViewModel msg)
-      {
-         if (msg == null) return;
-
-         _panelPortraitPath = "";
-         _showPanelCustomPortrait = false;
-         _showPanelVanillaPortrait = false;
-         _panelPortraitId = "";
-         _panelPortraitProvider = "";
-         _panelPortraitArgs = "";
-         ResolvePanelInfo(msg);
-
-         // Drawn at the largest size that fits the BOTTOM portrait region WITHOUT distortion, then centred: the
-         // player's PNG may be any ratio (4:5, square, wide), so it must never be stretched. The facts block sits
-         // above it, so the box is shorter than the panel (report layout: info at top, portrait at the bottom).
-         const float boxW = 460f;
-         const float boxH = 430f;
-         var aspectW = 2f; // vanilla 3D fallback: the character tableau renders WIDE, 2:1 (the same aspect as the
-         var aspectH = 1f; // 88x44 chat avatar), so a 2:1 box shows it without stretching (report: 1:1 stretched it)
-
-         if (msg.ShowCustomPortrait && !string.IsNullOrEmpty(msg.PlayerPortraitPath))
-         {
-            _panelPortraitPath = msg.PlayerPortraitPath;
-            _showPanelCustomPortrait = true;
-            if (Portraits.RuntimePortraitFactory.TryGetDimensions(msg.PlayerPortraitPath, out int iw, out int ih) && iw > 0 && ih > 0)
-            {
-               aspectW = iw;
-               aspectH = ih;
-            }
-         }
-         else if (!string.IsNullOrEmpty(msg.PortraitId))
-         {
-            _panelPortraitId = msg.PortraitId;
-            _panelPortraitProvider = msg.PortraitTextureProviderName;
-            _panelPortraitArgs = msg.PortraitAdditionalArgs;
-            _showPanelVanillaPortrait = true;
-         }
-         else
-         {
-            return; // a system or narration line has no portrait to show
-         }
-
-         float scale = Math.Min(boxW / aspectW, boxH / aspectH);
-         _panelPortraitW = aspectW * scale;
-         _panelPortraitH = aspectH * scale;
-         PortraitPanelTitle = string.IsNullOrEmpty(msg.SpeakerName) ? "Portrait" : msg.SpeakerName;
-
-         if (_isComposeOpen) IsComposeOpen = false;
-         if (_isMemoryPanelOpen) IsMemoryPanelOpen = false;
-
-         OnPropertyChanged(nameof(PanelPortraitWidth));
-         OnPropertyChanged(nameof(PanelPortraitHeight));
-         OnPropertyChanged(nameof(PanelPortraitPath));
-         OnPropertyChanged(nameof(ShowPanelCustomPortrait));
-         OnPropertyChanged(nameof(ShowPanelVanillaPortrait));
-         OnPropertyChanged(nameof(PanelPortraitId));
-         OnPropertyChanged(nameof(PanelPortraitTextureProviderName));
-         OnPropertyChanged(nameof(PanelPortraitAdditionalArgs));
-         OnPropertyChanged(nameof(ShowPanelInfo));
-         OnPropertyChanged(nameof(ShowPanelBackground));
-         OnPropertyChanged(nameof(ShowPanelCharacter));
-         OnPropertyChanged(nameof(ShowPanelAppearance));
-         OnPropertyChanged(nameof(ShowPanelDiscoveries));
-         OnPropertyChanged(nameof(ShowPanelGrievances));
-         OnPropertyChanged(nameof(PanelInfoFacts));
-         OnPropertyChanged(nameof(PanelBackground));
-         OnPropertyChanged(nameof(PanelCharacter));
-         OnPropertyChanged(nameof(PanelAppearance));
-         OnPropertyChanged(nameof(PanelInfoDiscoveries));
-         OnPropertyChanged(nameof(PanelGrievances));
-
-         IsPortraitPanelOpen = true;
-      }
-
-      /// <summary>
-      ///   Fills the portrait panel's encyclopedia-style facts from the clicked line's speaker. Shown only for a
-      ///   living NPC hero we can resolve (never for the player's own line or a heroless bandit face): culture,
-      ///   age, occupation, the vanilla clan relation, personal regard (descriptor + score), and every trait or
-      ///   kink the player has discovered about them. Any resolution gap simply hides the facts block.
-      /// </summary>
-      private void ResolvePanelInfo(ChatMessageViewModel msg)
-      {
-         _showPanelInfo = false;
-         _showPanelBackground = false;
-         _showPanelCharacter = false;
-         _showPanelAppearance = false;
-         _showPanelDiscoveries = false;
-         _showPanelGrievances = false;
-         _panelInfoFacts = "";
-         _panelBackground = "";
-         _panelCharacter = "";
-         _panelAppearance = "";
-         _panelInfoDiscoveries = "";
-         _panelGrievances = "";
-
-         string key = msg.PortraitKey;
-         if (string.IsNullOrEmpty(key)) return;
-
-         Hero hero = Hero.FindFirst(h => h.StringId == key);
-         if (hero == null || hero == Hero.MainHero) return; // player's own line: portrait only, no dossier
-
-         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId);
-
-         // Inline facts, one "Label: value" per line (no table alignment, per the design note).
-         int regard = profile?.ReputationWithPlayer ?? 0;
-         var facts = new System.Text.StringBuilder();
-         facts.Append("Culture: ").Append(hero.Culture?.Name?.ToString() ?? "Unknown").Append('\n');
-         facts.Append("Age: ").Append((int) hero.Age).Append('\n');
-         facts.Append("Role: ").Append(DescribeOccupation(hero)).Append('\n');
-         facts.Append("Relation: ").Append(hero.GetRelationWithPlayer().ToString("+#;-#;0")).Append('\n');
-         facts.Append("Personal regard: ").Append($"{ThirdPartyDescriptor.DescribeRelation(regard)} ({regard:+#;-#;0})");
-         _panelInfoFacts = facts.ToString();
-
-         // Vanilla encyclopedia background (the "Mina is a member of the Pethros…" paragraph). Hero.EncyclopediaText
-         // is populated lazily by the encyclopedia manager, so it is empty when read cold from the chat: the static
-         // generator builds it on demand. Strip the encyclopedia hyperlink markup (names become plain text).
-         _panelBackground = StripMarkup(SafeRead(() => Hero.SetHeroEncyclopediaTextAndLinks(hero)?.ToString()));
-         _showPanelBackground = !string.IsNullOrWhiteSpace(_panelBackground);
-
-         // The mod's authored backstory: from the override files, or the value synced onto the profile.
-         _panelCharacter = SafeRead(() => Lore.CharacterOverrideLoader.BackstoryFor(hero));
-         if (string.IsNullOrWhiteSpace(_panelCharacter)) _panelCharacter = profile?.AuthoredBackstory ?? "";
-         _showPanelCharacter = !string.IsNullOrWhiteSpace(_panelCharacter);
-
-         // Physical description from body/appearance stats.
-         _panelAppearance = SafeRead(() => Appearance.AppearanceProseBehavior.Instance?.Get(hero.StringId));
-         _showPanelAppearance = !string.IsNullOrWhiteSpace(_panelAppearance);
-
-         if (profile?.DiscoveredTraits != null && profile.DiscoveredTraits.Count > 0)
-         {
-            _panelInfoDiscoveries = string.Join("\n",
-               profile.DiscoveredTraits.Select(t => "• " + t.Description));
-            _showPanelDiscoveries = _panelInfoDiscoveries.Length > 0;
-         }
-
-         _panelGrievances = ResolveKnownGrievances(hero);
-         _showPanelGrievances = !string.IsNullOrEmpty(_panelGrievances);
-
-         _showPanelInfo = true;
-      }
-
-      /// <summary>Runs a possibly-throwing read (engine text lookups) and returns "" on any failure.</summary>
-      private static string SafeRead(Func<string> read)
-      {
-         try { return read() ?? ""; }
-         catch { return ""; }
-      }
-
-      /// <summary>Strips angle-bracket markup (encyclopedia hyperlink tags), leaving the plain display text.</summary>
-      private static string StripMarkup(string s)
-         => string.IsNullOrEmpty(s)
-            ? s
-            : System.Text.RegularExpressions.Regex.Replace(s, "<[^>]+>", "").Trim();
-
-      /// <summary>
-      ///   The grievances the player has EARNED knowledge of against this NPC, one bullet per line, rendered
-      ///   through the same pure narrator the encyclopedia's Grievances section uses. Empty when none are known.
-      /// </summary>
-      private static string ResolveKnownGrievances(Hero hero)
-      {
-         try
-         {
-            Grudges.GrudgeBehavior behavior = Grudges.GrudgeBehavior.Instance;
-            if (behavior == null) return "";
-
-            var today = (int) CampaignTime.Now.ToDays;
-            var lines = new List<string>();
-            foreach (Logic.Grudges.Grudge grudge in behavior.KnownGrudgesFor(hero.StringId, today))
-            {
-               bool targetIsPlayer = grudge.TargetId == Hero.MainHero?.StringId;
-               string targetName = targetIsPlayer
-                  ? null
-                  : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == grudge.TargetId)?.Name?.ToString();
-
-               Logic.Grudges.TraitFacts traits = Grudges.GrudgeBridge.BuildTraitFacts(hero);
-               int mag = Logic.Grudges.GrudgePolicy.EffectiveMagnitude(grudge, today, traits);
-               Logic.Grudges.GrudgeResolutionKind kind =
-                  Logic.Grudges.GrudgePolicy.ResolutionKindFor(grudge.Source, grudge.Rigidity);
-
-               string line = Logic.Grudges.GrudgeNarrator.DisplayLine(grudge, targetIsPlayer, targetName, mag, kind);
-               if (!string.IsNullOrEmpty(line)) lines.Add("• " + line);
-            }
-
-            return string.Join("\n", lines);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[PORTRAIT] grievances resolve failed: {ex.GetType().Name}: {ex.Message}");
-
-            return "";
-         }
-      }
-
-      /// <summary>A short, readable occupation label for the facts block (gender-aware for nobles).</summary>
-      private static string DescribeOccupation(Hero hero)
-      {
-         if (hero.IsLord) return hero.IsFemale ? "Lady" : "Lord";
-         if (hero.IsWanderer) return "Wanderer";
-         if (hero.IsNotable) return "Notable";
-         if (hero.IsMerchant) return "Merchant";
-         if (hero.IsGangLeader) return "Gang leader";
-         if (hero.IsRuralNotable) return "Rural notable";
-         if (hero.IsArtisan) return "Artisan";
-         if (hero.IsPreacher) return "Preacher";
-
-         return hero.Occupation.ToString();
-      }
-
       /// <summary>The portrait panel's "Close" button.</summary>
       public void ExecuteClosePortraitPanel()
       {
          if (!_isPortraitPanelOpen) return;
          IsPortraitPanelOpen = false;
-      }
-
-      /// <summary>
-      ///   Rebuilds the shared-memories list from the current NPC's persisted profile: a read-only mirror of
-      ///   cr.memory, oldest first, so the panel reads like a journal. Called each time the panel opens so it is
-      ///   always current. An NPC with no memory (or a heroless speaker with no persistent profile) shows a
-      ///   single gentle placeholder. Never throws; a reference panel must not risk the conversation.
-      /// </summary>
-      private void RefreshMemories()
-      {
-         try
-         {
-            _memories.Clear();
-
-            NpcProfile profile = MainSpeaker().Profile;
-            MemoryPanelTitle = _npcHero != null
-               ? $"What {_npcName} remembers"
-               : "Shared memories";
-
-            if (profile?.Events == null || profile.Events.Count == 0)
-            {
-               _memories.Add(new MemoryEntryViewModel(
-                  "", "No shared memories yet. They begin to form as the two of you speak and act together."));
-
-               return;
-            }
-
-            var today = (int) CampaignTime.Now.ToDays;
-            foreach (NotableEvent e in profile.Events)
-            {
-               string meta = MemoryDayFormatter.Describe(e.gameDay, today);
-               if (e.type != NotableEventType.Other) meta += $"   ·   {e.type}";
-               _memories.Add(new MemoryEntryViewModel(meta, e.summary));
-            }
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"RefreshMemories failed: {ex.GetType().Name}: {ex.Message}");
-         }
       }
 
       /// <summary>
@@ -1454,13 +1130,6 @@ namespace CalradiaRemembers.Chat
          IsSendEnabled = false;
          _ = RunCaptiveSceneContinuationAsync();
       }
-
-      // ── Offer ("give") flow ───────────────────────────────────────────────
-      // The bag (item/gold/prisoner gift, plus settling an outstanding bargain or supply quest) lives in its own
-      // controller so it no longer threads through the shared ChatViewModel partials (mirroring the round-table and
-      // action-confirmation extractions); the controller owns _offeredItemId and drives this view model through the
-      // IOfferHost seam. ExecuteOfferItem/ExecuteOfferGold stay here because their buttons are prefab-bound.
-      private readonly OfferController _offer = new OfferController();
 
       /// <summary>
       ///   Legacy entry point kept for the old "Give Gold" binding: routes to the same gold
@@ -1496,24 +1165,6 @@ namespace CalradiaRemembers.Chat
          IsComposeOpen = true;
       }
 
-      /// <summary>
-      ///   Opens the in-game encyclopedia on the conversation partner's page, over the chat, so a player can
-      ///   place who they are speaking of (and browse on from there) without the chat's modal focus locking
-      ///   the rest of the interface away (a player-requested need). The chat stays open behind it and
-      ///   <see cref="ChatManager.SuspendForExternalScreen" /> hands focus to the encyclopedia, reclaiming it
-      ///   automatically once the player closes it.
-      /// </summary>
-      /// <summary>
-      ///   The "Options" button: opens the vanilla escape/options menu over the chat, the same call ESC makes
-      ///   on the map (see <see cref="GameMenuOpener" />). The focus arbiter yields the chat to it and reclaims
-      ///   focus when it closes, exactly like the encyclopedia. A graceful no-op if the menu cannot be reached.
-      /// </summary>
-      public void ExecuteOpenGameMenu()
-      {
-         if (!GameMenuOpener.TryOpenEscapeMenu())
-            ModLog.Info("[MENU] the options menu could not be opened from the chat this time.");
-      }
-
       public void ExecuteOpenEncyclopedia()
       {
          try
@@ -1530,6 +1181,24 @@ namespace CalradiaRemembers.Chat
          {
             ModLog.Error($"ExecuteOpenEncyclopedia failed: {ex.GetType().Name}: {ex.Message}");
          }
+      }
+
+      /// <summary>
+      ///   Opens the in-game encyclopedia on the conversation partner's page, over the chat, so a player can
+      ///   place who they are speaking of (and browse on from there) without the chat's modal focus locking
+      ///   the rest of the interface away (a player-requested need). The chat stays open behind it and
+      ///   <see cref="ChatManager.SuspendForExternalScreen" /> hands focus to the encyclopedia, reclaiming it
+      ///   automatically once the player closes it.
+      /// </summary>
+      /// <summary>
+      ///   The "Options" button: opens the vanilla escape/options menu over the chat, the same call ESC makes
+      ///   on the map (see <see cref="GameMenuOpener" />). The focus arbiter yields the chat to it and reclaims
+      ///   focus when it closes, exactly like the encyclopedia. A graceful no-op if the menu cannot be reached.
+      /// </summary>
+      public void ExecuteOpenGameMenu()
+      {
+         if (!GameMenuOpener.TryOpenEscapeMenu())
+            ModLog.Info("[MENU] the options menu could not be opened from the chat this time.");
       }
 
       /// <summary>
@@ -1612,13 +1281,6 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   True when the NPC in this conversation is the player's own captive. Such an NPC has no say over who
-      ///   stays in the room, so a private audience is granted by force rather than left to the LLM to refuse.
-      /// </summary>
-      private bool NpcIsPlayerPrisoner()
-         => _npcHero is {IsPrisoner: true} && _npcHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
-
-      /// <summary>
       ///   Player opens the floor to the whole group (the "Round Table" button): the main NPC and each present
       ///   witness take a turn in a deterministic lap (capped, they may address one another), then control returns
       ///   to the player. A model-independent alternative to hoping the model volunteers witness reactions.
@@ -1675,6 +1337,26 @@ namespace CalradiaRemembers.Chat
          // after the main NPC's reply to run a round-table lap. Only outside captive scenes, with a group present.
          _roundTable.OnPlayerSend(text, _witnesses.Count, IsCaptiveEncounter);
          _ = RunLlmExchangeAsync(text, speaker, placeholder);
+      }
+
+      /// <summary>
+      ///   The "Memories" button: opens the left panel listing what this NPC remembers of the player (a
+      ///   read-only view of the shared history, mirroring cr.memory), or closes it if already open. Shares the
+      ///   left area with the review panel, so opening one closes the other.
+      /// </summary>
+      public void ExecuteToggleMemoryPanel()
+      {
+         if (_isMemoryPanelOpen)
+         {
+            IsMemoryPanelOpen = false;
+
+            return;
+         }
+
+         if (_isComposeOpen) IsComposeOpen = false;
+         if (_isPortraitPanelOpen) IsPortraitPanelOpen = false; // one left panel at a time
+         RefreshMemories();
+         IsMemoryPanelOpen = true;
       }
 
       /// <summary>
@@ -1819,58 +1501,6 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Chronicle pillar: a captive lord or lady of standing taken in an intimate captor scene earns
-      ///   a chronicle line, via the pure <see cref="IntimateChroniclePolicy" /> (gated on
-      ///   <see cref="ModSettings.AdultContentLevel" />; a tasteful line at Mature/Explicit, bawdier at
-      ///   Hardcore, nothing at Off). Never a random bandit-camp captive (<c>prisoner.IsLord</c> gates
-      ///   it), and only when the scene's intent was actually intimate (reuses
-      ///   <see cref="CaptiveIntentRules.IsForcedSexual" /> as the "this was an intimate scene" signal —
-      ///   the same classification already used for the player-as-captive body toll, applied here in the
-      ///   reverse captor direction). Deduplicated per unique captive so repeat scenes with the same
-      ///   prisoner do not bloat the chronicle. Never throws — a flavour line must never risk a save.
-      /// </summary>
-      private void RecordCaptiveConquestChronicleIfNeeded(Hero prisoner)
-      {
-         try
-         {
-            if (prisoner == null || Hero.MainHero == null) return;
-            if (!prisoner.IsLord) return;
-            if (!CaptiveIntentRules.IsForcedSexual(_captorSceneIntent)) return;
-
-            WorldEventStore store = WorldEventStore.Instance;
-            if (store == null) return;
-
-            bool already = store.GetPlayerChronicle()
-                                .Any(e => e.Status == "captive_conquest" && e.ActorIds != null && e.ActorIds.Contains(prisoner.StringId));
-            if (already) return;
-
-            string line = IntimateChroniclePolicy.BuildLine(
-               ModSettings.AdultContentLevel, true, IntimateChronicleSceneKind.CaptiveConquest,
-               Hero.MainHero.Name?.ToString(), prisoner.Name?.ToString(), prisoner.IsFemale);
-
-            if (string.IsNullOrWhiteSpace(line)) return;
-
-            var factionIds = new List<string>();
-            if (Hero.MainHero.MapFaction != null) factionIds.Add(Hero.MainHero.MapFaction.StringId);
-            if (prisoner.MapFaction != null) factionIds.Add(prisoner.MapFaction.StringId);
-
-            store.Record(new WorldEvent {
-               Type = WorldEventType.PlayerFeat,
-               Day = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays,
-               Magnitude = 40,
-               InvolvesPlayer = true,
-               Status = "captive_conquest",
-               Summary = $"{Hero.MainHero.Name} took {prisoner.Name} as a captive lover.",
-               ActorIds = new List<string> {Hero.MainHero.StringId, prisoner.StringId},
-               FactionIds = factionIds,
-               ChronicleLine = line
-            });
-            ModLog.Info($"[CHRONICLE] captive conquest recorded for {prisoner.Name}.");
-         }
-         catch (Exception ex) { ModLog.Error($"[CHRONICLE] captive conquest feeder failed: {ex.GetType().Name}: {ex.Message}"); }
-      }
-
-      /// <summary>
       ///   Records a light "I was present" memory into each HERO witness's own profile when a group
       ///   conversation closes, so a later one-to-one with them reflects the shared scene — the player
       ///   reported companions not recognising they had taken part in a group conversation. Called once from
@@ -1998,6 +1628,120 @@ namespace CalradiaRemembers.Chat
             ModLog.Info($"[WITNESS MEMORY] recorded a 'was present' memory for {recorded} hero witness(es) of the talk with {mainNpc}.");
       }
 
+      /// <summary>
+      ///   Opens the dedicated left PORTRAIT panel showing this chat line's speaker at full size (their custom
+      ///   ChatPortraits image when present, else the vanilla 3D render), aspect-preserved and never stretched.
+      ///   Fired by a LEFT-click on any chat portrait. Shares the left area with the memory / compose panels, so
+      ///   it closes whichever of those is open (one left panel at a time).
+      /// </summary>
+      public void OpenPortraitPanel(ChatMessageViewModel msg)
+      {
+         if (msg == null) return;
+
+         PanelPortraitPath = "";
+         ShowPanelCustomPortrait = false;
+         ShowPanelVanillaPortrait = false;
+         PanelPortraitId = "";
+         PanelPortraitTextureProviderName = "";
+         PanelPortraitAdditionalArgs = "";
+         ResolvePanelInfo(msg);
+
+         // Drawn at the largest size that fits the BOTTOM portrait region WITHOUT distortion, then centred: the
+         // player's PNG may be any ratio (4:5, square, wide), so it must never be stretched. The facts block sits
+         // above it, so the box is shorter than the panel (report layout: info at top, portrait at the bottom).
+         const float boxW = 460f;
+         const float boxH = 430f;
+         var aspectW = 2f; // vanilla 3D fallback: the character tableau renders WIDE, 2:1 (the same aspect as the
+         var aspectH = 1f; // 88x44 chat avatar), so a 2:1 box shows it without stretching (report: 1:1 stretched it)
+
+         if (msg.ShowCustomPortrait && !string.IsNullOrEmpty(msg.PlayerPortraitPath))
+         {
+            PanelPortraitPath = msg.PlayerPortraitPath;
+            ShowPanelCustomPortrait = true;
+            if (RuntimePortraitFactory.TryGetDimensions(msg.PlayerPortraitPath, out int iw, out int ih) && iw > 0 && ih > 0)
+            {
+               aspectW = iw;
+               aspectH = ih;
+            }
+         }
+         else if (!string.IsNullOrEmpty(msg.PortraitId))
+         {
+            PanelPortraitId = msg.PortraitId;
+            PanelPortraitTextureProviderName = msg.PortraitTextureProviderName;
+            PanelPortraitAdditionalArgs = msg.PortraitAdditionalArgs;
+            ShowPanelVanillaPortrait = true;
+         }
+         else
+         {
+            return; // a system or narration line has no portrait to show
+         }
+
+         float scale = Math.Min(boxW / aspectW, boxH / aspectH);
+         PanelPortraitWidth = aspectW * scale;
+         PanelPortraitHeight = aspectH * scale;
+         PortraitPanelTitle = string.IsNullOrEmpty(msg.SpeakerName)
+            ? "Portrait"
+            : msg.SpeakerName;
+
+         if (_isComposeOpen) IsComposeOpen = false;
+         if (_isMemoryPanelOpen) IsMemoryPanelOpen = false;
+
+         OnPropertyChanged(nameof(PanelPortraitWidth));
+         OnPropertyChanged(nameof(PanelPortraitHeight));
+         OnPropertyChanged(nameof(PanelPortraitPath));
+         OnPropertyChanged(nameof(ShowPanelCustomPortrait));
+         OnPropertyChanged(nameof(ShowPanelVanillaPortrait));
+         OnPropertyChanged(nameof(PanelPortraitId));
+         OnPropertyChanged(nameof(PanelPortraitTextureProviderName));
+         OnPropertyChanged(nameof(PanelPortraitAdditionalArgs));
+         OnPropertyChanged(nameof(ShowPanelInfo));
+         OnPropertyChanged(nameof(ShowPanelBackground));
+         OnPropertyChanged(nameof(ShowPanelCharacter));
+         OnPropertyChanged(nameof(ShowPanelAppearance));
+         OnPropertyChanged(nameof(ShowPanelDiscoveries));
+         OnPropertyChanged(nameof(ShowPanelGrievances));
+         OnPropertyChanged(nameof(PanelInfoFacts));
+         OnPropertyChanged(nameof(PanelBackground));
+         OnPropertyChanged(nameof(PanelCharacter));
+         OnPropertyChanged(nameof(PanelAppearance));
+         OnPropertyChanged(nameof(PanelInfoDiscoveries));
+         OnPropertyChanged(nameof(PanelGrievances));
+
+         IsPortraitPanelOpen = true;
+      }
+
+      /// <summary>
+      ///   Pushes the typed text into the wrapped preview at most every <see cref="ComposePreviewThrottleTicks" />,
+      ///   so a long message does not re-wrap on every keystroke (the FPS-drop report). Clearing (after Send) is
+      ///   pushed immediately. Called each frame from <see cref="ChatScrollablePanel" />.
+      /// </summary>
+      public void PumpComposePreview()
+      {
+         if (!_composePreviewDirty) return;
+
+         bool cleared = string.IsNullOrEmpty(_inputText);
+         long now = DateTime.UtcNow.Ticks;
+
+         if (!cleared && now - _lastComposePreviewTicks < ComposePreviewThrottleTicks) return;
+
+         _lastComposePreviewTicks = now;
+         _composePreviewDirty = false;
+         ComposePreviewText = _inputText ?? "";
+      }
+
+      /// <summary>
+      ///   Frees every line's character tableau on teardown so no GPU render-target survives the chat closing.
+      ///   Releasing the movie already destroys the widgets (which frees their tableaus), but the guard clears
+      ///   the ImageIds first, making the release explicit and independent of engine teardown timing — a hedge
+      ///   against tableaus lingering across many open/close cycles in one session. Also detaches the per-insert
+      ///   cap handler so nothing fires during teardown. Called by <see cref="ChatManager.Close" />.
+      /// </summary>
+      public void ReleaseAllPortraits()
+      {
+         _messages.ListChanged -= OnMessagesListChanged;
+         PortraitTextureGuard.ReleaseAll(_messages);
+      }
+
       public void SetNpcHero(Hero npcHero)
       {
          _npcHero = npcHero;
@@ -2047,7 +1791,9 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public void SetVisualOffscreen(bool off)
       {
-         ChatVisualOffsetX = off ? 800f : -30f;
+         ChatVisualOffsetX = off
+            ? 800f
+            : -30f;
 
          // The portrait dossier is anchored to the right of the screen (not inside the sliding window), so it
          // would sit ON TOP of whatever screen just took focus (report: it overlapped the encyclopedia). Close
@@ -2086,6 +1832,77 @@ namespace CalradiaRemembers.Chat
 
       #region private
 
+      /// <summary>A short, readable occupation label for the facts block (gender-aware for nobles).</summary>
+      private static string DescribeOccupation(Hero hero)
+      {
+         if (hero.IsLord)
+            return hero.IsFemale
+               ? "Lady"
+               : "Lord";
+         if (hero.IsWanderer) return "Wanderer";
+         if (hero.IsNotable) return "Notable";
+         if (hero.IsMerchant) return "Merchant";
+         if (hero.IsGangLeader) return "Gang leader";
+         if (hero.IsRuralNotable) return "Rural notable";
+         if (hero.IsArtisan) return "Artisan";
+         if (hero.IsPreacher) return "Preacher";
+
+         return hero.Occupation.ToString();
+      }
+
+      /// <summary>
+      ///   The grievances the player has EARNED knowledge of against this NPC, one bullet per line, rendered
+      ///   through the same pure narrator the encyclopedia's Grievances section uses. Empty when none are known.
+      /// </summary>
+      private static string ResolveKnownGrievances(Hero hero)
+      {
+         try
+         {
+            var behavior = GrudgeBehavior.Instance;
+
+            if (behavior == null) return "";
+
+            var today = (int) CampaignTime.Now.ToDays;
+            var lines = new List<string>();
+            foreach (Grudge grudge in behavior.KnownGrudgesFor(hero.StringId, today))
+            {
+               bool targetIsPlayer = grudge.TargetId == Hero.MainHero?.StringId;
+               string targetName = targetIsPlayer
+                  ? null
+                  : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == grudge.TargetId)?.Name?.ToString();
+
+               TraitFacts traits = GrudgeBridge.BuildTraitFacts(hero);
+               int mag = GrudgePolicy.EffectiveMagnitude(grudge, today, traits);
+               GrudgeResolutionKind kind =
+                  GrudgePolicy.ResolutionKindFor(grudge.Source, grudge.Rigidity);
+
+               string line = GrudgeNarrator.DisplayLine(grudge, targetIsPlayer, targetName, mag, kind);
+               if (!string.IsNullOrEmpty(line)) lines.Add("• " + line);
+            }
+
+            return string.Join("\n", lines);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[PORTRAIT] grievances resolve failed: {ex.GetType().Name}: {ex.Message}");
+
+            return "";
+         }
+      }
+
+      /// <summary>Runs a possibly-throwing read (engine text lookups) and returns "" on any failure.</summary>
+      private static string SafeRead(Func<string> read)
+      {
+         try { return read() ?? ""; }
+         catch { return ""; }
+      }
+
+      /// <summary>Strips angle-bracket markup (encyclopedia hyperlink tags), leaving the plain display text.</summary>
+      private static string StripMarkup(string s)
+         => string.IsNullOrEmpty(s)
+            ? s
+            : Regex.Replace(s, "<[^>]+>", "").Trim();
+
       /// <summary>
       ///   How many witnesses are the captor's MEN — the ones who can take an aggressor turn and who form the
       ///   shaming audience. Excludes the bound victim companion: they are present and voiced, but they are the
@@ -2093,18 +1910,6 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private int CountAggressorWitnesses()
          => _witnesses?.Count(w => w != null && !w.IsCaptiveVictim) ?? 0;
-
-      /// <summary>
-      ///   Marks that an NPC-led OPENER is now generating (a captive scene / companion audience where the NPC
-      ///   speaks first), so the chat input stays hidden until the introduction is delivered. Cleared in the
-      ///   RunLlmExchangeAsync finally when that turn completes.
-      /// </summary>
-      private void MarkOpenerPending()
-      {
-         _awaitingOpener = true;
-         OnPropertyChanged(nameof(IsChatInputVisible));
-         OnPropertyChanged(nameof(IsComposeToggleVisible));
-      }
 
       // ── Grudges pillar, Tier 2: CaptiveAbuse (the two live plant sites) ────
 
@@ -2159,8 +1964,11 @@ namespace CalradiaRemembers.Chat
 
          // (2)-(4) Grief + revenge + chronicle. A NAMED captor (a persistent Hero, not a faceless bandit) earns
          // the lasting revenge grudge; a faceless brigand is ephemeral and earns none.
-         Hero captor = _captiveEncounterIsBandit ? null : _npcHero;
+         Hero captor = _captiveEncounterIsBandit
+            ? null
+            : _npcHero;
          CompanionAbuseConsequence c = CompanionAbuseConsequencePolicy.Resolve(severity, _captivePlayerCoerced, captor != null);
+
          if (!c.Forms) return;
 
          // (2) Grief: the ordeal scars the companion's bond with the player who could not save them.
@@ -2183,12 +1991,100 @@ namespace CalradiaRemembers.Chat
          RecordCompanionAbuseWorldEvent(victim, captor, c.WorldEventMagnitude, today);
       }
 
-      /// <summary>Records the companion-abuse atrocity into the world-event store: the player's lasting grievance against the captor. Never throws.</summary>
+      /// <summary>
+      ///   Marks that an NPC-led OPENER is now generating (a captive scene / companion audience where the NPC
+      ///   speaks first), so the chat input stays hidden until the introduction is delivered. Cleared in the
+      ///   RunLlmExchangeAsync finally when that turn completes.
+      /// </summary>
+      private void MarkOpenerPending()
+      {
+         _awaitingOpener = true;
+         OnPropertyChanged(nameof(IsChatInputVisible));
+         OnPropertyChanged(nameof(IsComposeToggleVisible));
+      }
+
+      /// <summary>
+      ///   True when the NPC in this conversation is the player's own captive. Such an NPC has no say over who
+      ///   stays in the room, so a private audience is granted by force rather than left to the LLM to refuse.
+      /// </summary>
+      private bool NpcIsPlayerPrisoner()
+         => _npcHero is {IsPrisoner: true} && _npcHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+
+      /// <summary>
+      ///   On each inserted line, keep VRAM bounded by the number of participants (not the transcript length):
+      ///   the guard collapses the transcript to at most one live character tableau per distinct speaker, freeing
+      ///   older duplicates. Only the render-target is freed; each line's text stays.
+      /// </summary>
+      private void OnMessagesListChanged(object sender, ListChangedEventArgs e)
+      {
+         if (EnforcePortraitCapInChat && e.ListChangedType == ListChangedType.ItemAdded)
+            PortraitTextureGuard.EnforceOnePerParticipant(_messages);
+      }
+
+      /// <summary>
+      ///   Chronicle pillar: a captive lord or lady of standing taken in an intimate captor scene earns
+      ///   a chronicle line, via the pure <see cref="IntimateChroniclePolicy" /> (gated on
+      ///   <see cref="ModSettings.AdultContentLevel" />; a tasteful line at Mature/Explicit, bawdier at
+      ///   Hardcore, nothing at Off). Never a random bandit-camp captive (<c>prisoner.IsLord</c> gates
+      ///   it), and only when the scene's intent was actually intimate (reuses
+      ///   <see cref="CaptiveIntentRules.IsForcedSexual" /> as the "this was an intimate scene" signal —
+      ///   the same classification already used for the player-as-captive body toll, applied here in the
+      ///   reverse captor direction). Deduplicated per unique captive so repeat scenes with the same
+      ///   prisoner do not bloat the chronicle. Never throws — a flavour line must never risk a save.
+      /// </summary>
+      private void RecordCaptiveConquestChronicleIfNeeded(Hero prisoner)
+      {
+         try
+         {
+            if (prisoner == null || Hero.MainHero == null) return;
+            if (!prisoner.IsLord) return;
+            if (!CaptiveIntentRules.IsForcedSexual(_captorSceneIntent)) return;
+
+            var store = WorldEventStore.Instance;
+
+            if (store == null) return;
+
+            bool already = store.GetPlayerChronicle()
+                                .Any(e => e.Status == "captive_conquest" && e.ActorIds != null && e.ActorIds.Contains(prisoner.StringId));
+
+            if (already) return;
+
+            string line = IntimateChroniclePolicy.BuildLine(
+               ModSettings.AdultContentLevel, true, IntimateChronicleSceneKind.CaptiveConquest,
+               Hero.MainHero.Name?.ToString(), prisoner.Name?.ToString(), prisoner.IsFemale);
+
+            if (string.IsNullOrWhiteSpace(line)) return;
+
+            var factionIds = new List<string>();
+            if (Hero.MainHero.MapFaction != null) factionIds.Add(Hero.MainHero.MapFaction.StringId);
+            if (prisoner.MapFaction != null) factionIds.Add(prisoner.MapFaction.StringId);
+
+            store.Record(new WorldEvent {
+               Type = WorldEventType.PlayerFeat,
+               Day = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays,
+               Magnitude = 40,
+               InvolvesPlayer = true,
+               Status = "captive_conquest",
+               Summary = $"{Hero.MainHero.Name} took {prisoner.Name} as a captive lover.",
+               ActorIds = new List<string> {Hero.MainHero.StringId, prisoner.StringId},
+               FactionIds = factionIds,
+               ChronicleLine = line
+            });
+            ModLog.Info($"[CHRONICLE] captive conquest recorded for {prisoner.Name}.");
+         }
+         catch (Exception ex) { ModLog.Error($"[CHRONICLE] captive conquest feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Records the companion-abuse atrocity into the world-event store: the player's lasting grievance against the
+      ///   captor. Never throws.
+      /// </summary>
       private void RecordCompanionAbuseWorldEvent(Hero victim, Hero captor, int magnitude, int today)
       {
          try
          {
-            WorldEventStore store = WorldEventStore.Instance;
+            var store = WorldEventStore.Instance;
+
             if (store == null || victim == null || Hero.MainHero == null) return;
 
             string captorName = captor?.Name?.ToString() ?? _npcName ?? "the captor";
@@ -2214,6 +2110,114 @@ namespace CalradiaRemembers.Chat
             ModLog.Info($"[COMPANION SCENE] atrocity recorded: {captorName} vs {victim.Name}.");
          }
          catch (Exception ex) { ModLog.Error($"[COMPANION SCENE] world-event record failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Rebuilds the shared-memories list from the current NPC's persisted profile: a read-only mirror of
+      ///   cr.memory, oldest first, so the panel reads like a journal. Called each time the panel opens so it is
+      ///   always current. An NPC with no memory (or a heroless speaker with no persistent profile) shows a
+      ///   single gentle placeholder. Never throws; a reference panel must not risk the conversation.
+      /// </summary>
+      private void RefreshMemories()
+      {
+         try
+         {
+            _memories.Clear();
+
+            NpcProfile profile = MainSpeaker().Profile;
+            MemoryPanelTitle = _npcHero != null
+               ? $"What {_npcName} remembers"
+               : "Shared memories";
+
+            if (profile?.Events == null || profile.Events.Count == 0)
+            {
+               _memories.Add(new MemoryEntryViewModel(
+                  "", "No shared memories yet. They begin to form as the two of you speak and act together."));
+
+               return;
+            }
+
+            var today = (int) CampaignTime.Now.ToDays;
+            foreach (NotableEvent e in profile.Events)
+            {
+               string meta = MemoryDayFormatter.Describe(e.gameDay, today);
+               if (e.type != NotableEventType.Other) meta += $"   ·   {e.type}";
+               _memories.Add(new MemoryEntryViewModel(meta, e.summary));
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"RefreshMemories failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Fills the portrait panel's encyclopedia-style facts from the clicked line's speaker. Shown only for a
+      ///   living NPC hero we can resolve (never for the player's own line or a heroless bandit face): culture,
+      ///   age, occupation, the vanilla clan relation, personal regard (descriptor + score), and every trait or
+      ///   kink the player has discovered about them. Any resolution gap simply hides the facts block.
+      /// </summary>
+      private void ResolvePanelInfo(ChatMessageViewModel msg)
+      {
+         ShowPanelInfo = false;
+         ShowPanelBackground = false;
+         ShowPanelCharacter = false;
+         ShowPanelAppearance = false;
+         ShowPanelDiscoveries = false;
+         ShowPanelGrievances = false;
+         PanelInfoFacts = "";
+         PanelBackground = "";
+         PanelCharacter = "";
+         PanelAppearance = "";
+         PanelInfoDiscoveries = "";
+         PanelGrievances = "";
+
+         string key = msg.PortraitKey;
+
+         if (string.IsNullOrEmpty(key)) return;
+
+         Hero hero = Hero.FindFirst(h => h.StringId == key);
+
+         if (hero == null || hero == Hero.MainHero) return; // player's own line: portrait only, no dossier
+
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId);
+
+         // Inline facts, one "Label: value" per line (no table alignment, per the design note).
+         int regard = profile?.ReputationWithPlayer ?? 0;
+         var facts = new StringBuilder();
+         facts.Append("Culture: ").Append(hero.Culture?.Name?.ToString() ?? "Unknown").Append('\n');
+         facts.Append("Age: ").Append((int) hero.Age).Append('\n');
+         facts.Append("Role: ").Append(DescribeOccupation(hero)).Append('\n');
+         facts.Append("Relation: ").Append(hero.GetRelationWithPlayer().ToString("+#;-#;0")).Append('\n');
+         facts.Append("Personal regard: ").Append($"{ThirdPartyDescriptor.DescribeRelation(regard)} ({regard:+#;-#;0})");
+         PanelInfoFacts = facts.ToString();
+
+         // Vanilla encyclopedia background (the "Mina is a member of the Pethros…" paragraph). Hero.EncyclopediaText
+         // is populated lazily by the encyclopedia manager, so it is empty when read cold from the chat: the static
+         // generator builds it on demand. Strip the encyclopedia hyperlink markup (names become plain text).
+         PanelBackground = StripMarkup(SafeRead(() => Hero.SetHeroEncyclopediaTextAndLinks(hero)?.ToString()));
+         ShowPanelBackground = !string.IsNullOrWhiteSpace(PanelBackground);
+
+         // The mod's authored backstory: from the override files, or the value synced onto the profile.
+         PanelCharacter = SafeRead(() => CharacterOverrideLoader.BackstoryFor(hero));
+         if (string.IsNullOrWhiteSpace(PanelCharacter)) PanelCharacter = profile?.AuthoredBackstory ?? "";
+         ShowPanelCharacter = !string.IsNullOrWhiteSpace(PanelCharacter);
+
+         // Physical description from body/appearance stats.
+         PanelAppearance = SafeRead(() => AppearanceProseBehavior.Instance?.Get(hero.StringId));
+         ShowPanelAppearance = !string.IsNullOrWhiteSpace(PanelAppearance);
+
+         if (profile?.DiscoveredTraits != null && profile.DiscoveredTraits.Count > 0)
+         {
+            PanelInfoDiscoveries = string.Join("\n",
+               profile.DiscoveredTraits.Select(t => "• " + t.Description));
+            ShowPanelDiscoveries = PanelInfoDiscoveries.Length > 0;
+         }
+
+         PanelGrievances = ResolveKnownGrievances(hero);
+         ShowPanelGrievances = !string.IsNullOrEmpty(PanelGrievances);
+
+         ShowPanelInfo = true;
       }
 
       #endregion

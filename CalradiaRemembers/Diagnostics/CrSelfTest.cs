@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 04/07/2026.
+// Code written by Gabriel Mailhot, 10/07/2026.
 
 #region
 
@@ -19,6 +19,8 @@ using CalradiaRemembers.Dynasty;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
+using CalradiaRemembers.Items;
+using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
@@ -30,6 +32,7 @@ using CalradiaRemembers.Quests;
 using CalradiaRemembers.Scenarios;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Stance;
+using CalradiaRemembers.Travel;
 using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
@@ -41,6 +44,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.ObjectSystem;
 using TraitFacts = CalradiaRemembers.Logic.Appreciations.TraitFacts;
 
 #endregion
@@ -163,11 +167,11 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_stance_favor", Severity.Light, "LLM: force a friendly stance hint -> does the NPC offer aid / warmth?", TestChatStanceFavor, true),
          new SelfTest("chat_captor_scene", Severity.Light, "LLM: a 3-beat player-as-captor scene (threaten -> bind -> assault) -> judge escalation + captive reactions", TestChatCaptorScene, true, 3),
          new SelfTest("chat_captor_release", Severity.Light, "LLM: the PLAYER is captive and pleads for freedom -> assert a disposed captor's release gate OPENED (deterministic wiring) + judge whether release_player fires (should feel earned, not instant)", TestChatCaptorRelease, true),
-         new SelfTest("gang_rivalry", Severity.Light, "Mechanical: a same-town gang-leader pair is framed as RIVALS in the name hint (never friends-by-culture); skips if the campaign has no such pair", TestGangRivalry, false),
-         new SelfTest("captive_fear_coerced", Severity.Light, "Mechanical: a terrified captive (high Fear) trips the freedom-bargain coercion flag, a fearless one does not (Fear-1 wiring)", TestCaptiveFearCoerced, false),
-         new SelfTest("party_troop_count", Severity.Light, "Mechanical: a companion in the player's party sees the real troop count in context (no more hallucinated army size); skips if the player has no party companion", TestPartyTroopCount, false),
-         new SelfTest("nemesis_mint", Severity.Light, "Mechanical: minting a nemesis creates a persistent Hero WITH a memory profile (the 'no memory' bug fixed), reuses him in-region, mints a distinct one per region; PLANTS test nemeses (reload after)", TestNemesisMint, false),
-         new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate, false),
+         new SelfTest("gang_rivalry", Severity.Light, "Mechanical: a same-town gang-leader pair is framed as RIVALS in the name hint (never friends-by-culture); skips if the campaign has no such pair", TestGangRivalry),
+         new SelfTest("captive_fear_coerced", Severity.Light, "Mechanical: a terrified captive (high Fear) trips the freedom-bargain coercion flag, a fearless one does not (Fear-1 wiring)", TestCaptiveFearCoerced),
+         new SelfTest("party_troop_count", Severity.Light, "Mechanical: a companion in the player's party sees the real troop count in context (no more hallucinated army size); skips if the player has no party companion", TestPartyTroopCount),
+         new SelfTest("nemesis_mint", Severity.Light, "Mechanical: minting a nemesis creates a persistent Hero WITH a memory profile (the 'no memory' bug fixed), reuses him in-region, mints a distinct one per region; PLANTS test nemeses (reload after)", TestNemesisMint),
+         new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate),
          new SelfTest("chat_captor_break", Severity.Light, "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?", TestChatCaptorBreak, true, 3),
          new SelfTest("chat_captor_torture", Severity.Light, "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?", TestChatCaptorTorture, true, 3),
          new SelfTest("chat_captor_cnc", Severity.Light, "LLM: 3-beat sexual coercion (Hardcore) -> does the NPC play CNC reactions in character, never breaking?", TestChatCaptorCnc, true, 3),
@@ -504,8 +508,41 @@ namespace CalradiaRemembers.Diagnostics
          return $"LLM call timed out after {elapsed:0.0}s (budget {_budgetSeconds}s); cancelled in-flight, sweep continues";
       }
 
+      /// <summary>
+      ///   Mirrors <c>ExecutedKinGrudgeBehavior.CloseLivingKinOf</c> (private to that class) just enough
+      ///   for this self-test to locate a real campaign lord with recognized close living kin, without
+      ///   needing to expose the engine behavior's own enumeration publicly.
+      /// </summary>
+      private static IEnumerable<Hero> CloseKinCandidatesOf(Hero victim)
+      {
+         if (victim.Spouse is {IsAlive: true} spouse && spouse != Hero.MainHero) yield return spouse;
+         if (victim.Father is {IsAlive: true} father && father != Hero.MainHero) yield return father;
+         if (victim.Mother is {IsAlive: true} mother && mother != Hero.MainHero) yield return mother;
+
+         if (victim.Children != null)
+            foreach (Hero child in victim.Children)
+               if (child is {IsAlive: true, IsChild: false} && child != Hero.MainHero)
+                  yield return child;
+
+         if (victim.Siblings != null)
+            foreach (Hero sibling in victim.Siblings)
+               if (sibling is {IsAlive: true, IsChild: false} && sibling != Hero.MainHero)
+                  yield return sibling;
+      }
+
       private static Hero ConversationNpc()
          => Hero.OneToOneConversationHero ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+
+      /// <summary>How many of an item the player's party currently holds.</summary>
+      private static int CountItemInParty(ItemObject item)
+      {
+         var n = 0;
+         foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
+            if (el.EquipmentElement.Item == item)
+               n += el.Amount;
+
+         return n;
+      }
 
       /// <summary>How many beats reuse a long verbatim phrase (6+ contiguous words) from an EARLIER beat — the looping fault.</summary>
       private static int CountRepeatedBeats(List<string> texts)
@@ -527,6 +564,36 @@ namespace CalradiaRemembers.Diagnostics
       /// <summary>The first alive FEMALE lord (for a male-player / female-prisoner scene), else any female hero.</summary>
       private static Hero FemaleNpc()
          => Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.IsFemale) ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsFemale);
+
+      /// <summary>Finds two different gang-leader notables sharing a current settlement, or (null, null).</summary>
+      private static (Hero a, Hero b) FindSameTownGangLeaderPair()
+      {
+         foreach (IGrouping<Settlement, Hero> group in Hero.AllAliveHeroes
+                                                           .Where(h => h != null && h != Hero.MainHero && h.IsAlive && h.Occupation == Occupation.GangLeader && h.CurrentSettlement != null)
+                                                           .GroupBy(h => h.CurrentSettlement))
+         {
+            List<Hero> list = group.ToList();
+
+            if (list.Count >= 2) return (list[0], list[1]);
+         }
+
+         return (null, null);
+      }
+
+      /// <summary>
+      ///   An unmarried, adult, opposite-sex lord/lady of a clan, free to relocate into the player's clan at
+      ///   marriage (not a clan leader, does not lead their own party, does not govern a settlement) — the
+      ///   spouse_divorce self-test's own seed, mirroring cr.divorce_setup's FindTestSpouse but for the
+      ///   PLAYER's marriage rather than an NPC's. <paramref name="exclude" /> lets the test find a SECOND,
+      ///   distinct candidate for its decline scenario after the first has already been dissolved.
+      /// </summary>
+      private static Hero FindTestSpouseForPlayer(Hero exclude = null)
+      {
+         bool playerFemale = Hero.MainHero.IsFemale;
+
+         return Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != null && h != Hero.MainHero && h != exclude && h.Spouse == null && h.IsAlive && !h.IsChild && h.IsLord && h.Clan != null && !h.IsClanLeader && h.IsFemale != playerFemale && h.GovernorOf == null && !(h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h));
+      }
 
       private static NpcProfile GetOrCreate(NpcMemoryCampaignBehavior behavior, Hero hero)
       {
@@ -563,6 +630,49 @@ namespace CalradiaRemembers.Diagnostics
       /// </summary>
       private static int LlmBaseBudgetSeconds(int? overrideSeconds)
          => overrideSeconds ?? Math.Min(ModSettings.LlmResponseTimeoutSeconds, 75);
+
+      /// <summary>
+      ///   Mints a nemesis anchored to a real lord's own region (home settlement, else current settlement, else culture),
+      ///   so the region-eligibility gate genuinely matches instead of being simulated. Returns (null, null, null) when no lord
+      ///   has a resolvable region.
+      /// </summary>
+      private static (Hero Giver, Hero NemesisHero, NemesisIdentity Identity) MintBountyEligibleNemesis(int today)
+      {
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+
+         if (giver == null) return (null, null, null);
+
+         string regionId = giver.HomeSettlement?.StringId ?? giver.CurrentSettlement?.StringId ?? giver.Culture?.StringId;
+
+         if (string.IsNullOrEmpty(regionId)) return (null, null, null);
+
+         Hero nemesisHero = NemesisBehavior.Instance?.MintCaptorFor("looters", regionId, today);
+
+         if (nemesisHero == null) return (giver, null, null);
+
+         NemesisIdentity nem = NemesisBehavior.Instance.GetByHero(nemesisHero.StringId);
+         if (nem != null) nem.IsAlive = true; // isolate from a stale resolved run earlier in the same session
+
+         return (giver, nemesisHero, nem);
+      }
+
+      // ── Nemesis pillar increment 2: resolution (R1 kill in battle / R2 execute) ────────────────────
+
+      /// <summary>
+      ///   Mints (or reuses) a fresh, forced-alive nemesis identity in an isolated region key so the two resolution
+      ///   self-tests never collide with each other or a real in-game nemesis.
+      /// </summary>
+      private static (Hero Hero, NemesisIdentity Identity) MintSelfTestNemesis(string regionId, int today)
+      {
+         Hero hero = NemesisBehavior.Instance?.MintCaptorFor("looters", regionId, today);
+
+         if (hero == null) return (null, null);
+
+         NemesisIdentity nem = NemesisBehavior.Instance.GetByHero(hero.StringId);
+         if (nem != null) nem.IsAlive = true; // isolate from a stale resolved run earlier in the same session
+
+         return (hero, nem);
+      }
 
       /// <summary>The active LLM model id (e.g. "x-ai/grok-4.20"), so test logs can be compared across LLMs.</summary>
       private static string ModelLabel(NpcMemoryCampaignBehavior behavior)
@@ -635,23 +745,6 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          return null;
-      }
-
-      /// <summary>
-      ///   An unmarried, adult, opposite-sex lord/lady of a clan, free to relocate into the player's clan at
-      ///   marriage (not a clan leader, does not lead their own party, does not govern a settlement) — the
-      ///   spouse_divorce self-test's own seed, mirroring cr.divorce_setup's FindTestSpouse but for the
-      ///   PLAYER's marriage rather than an NPC's. <paramref name="exclude" /> lets the test find a SECOND,
-      ///   distinct candidate for its decline scenario after the first has already been dissolved.
-      /// </summary>
-      private static Hero FindTestSpouseForPlayer(Hero exclude = null)
-      {
-         bool playerFemale = Hero.MainHero.IsFemale;
-
-         return Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != null && h != Hero.MainHero && h != exclude && h.Spouse == null && h.IsAlive && !h.IsChild
-            && h.IsLord && h.Clan != null && !h.IsClanLeader && h.IsFemale != playerFemale
-            && h.GovernorOf == null && !(h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h));
       }
 
       /// <summary>
@@ -926,6 +1019,44 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
+      ///   The reciprocal of <see cref="SeedTroopsEligible" /> (04/07/2026): finds a lord leading their own,
+      ///   genuinely under-strength party (rather than manufacturing one — mirrors that method's "pick, don't
+      ///   force" pattern), forces relation comfortably above the charity floor, and tops up the player's
+      ///   OWN roster when a fresh MainParty would otherwise start too thin to clear the safety floor. Then
+      ///   re-checks the real gate against the live rosters. Null when no such party exists nearby.
+      /// </summary>
+      private static (Hero lord, NpcProfile profile, int count)? SeedGiveTroopsEligible(NpcMemoryCampaignBehavior behavior)
+      {
+         MobileParty playerParty = MobileParty.MainParty;
+         if (playerParty?.MemberRoster != null)
+         {
+            CharacterObject basicTroop = Hero.MainHero?.Culture?.BasicTroop;
+            int have = playerParty.MemberRoster.TotalManCount;
+            if (basicTroop != null && have < 80) playerParty.MemberRoster.AddToCounts(basicTroop, 80 - have);
+         }
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero &&
+            h.IsAlive &&
+            !h.IsPrisoner &&
+            h.Clan != Clan.PlayerClan &&
+            h.PartyBelongedTo != null &&
+            h.PartyBelongedTo.LeaderHero == h &&
+            h.PartyBelongedTo.Party.PartySizeLimit >= CourtActionPolicy.GiveTroopsMinPartySizeLimit &&
+            h.PartyBelongedTo.MemberRoster.TotalManCount < h.PartyBelongedTo.Party.PartySizeLimit * CourtActionPolicy.GiveTroopsWeakenedFraction);
+
+         if (lord == null) return null;
+
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         int relBefore = lord.GetRelation(Hero.MainHero);
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(lord, Hero.MainHero, 30 - relBefore, false);
+
+         return CourtActionResolver.TryGiveTroops(lord, profile, out int count)
+            ? (lord, profile, count)
+            : null;
+      }
+
+      /// <summary>
       ///   Finds a live lord of another clan and forces the two real preconditions
       ///   <see cref="CourtActionResolver.TryGiveInfluence" />
       ///   checks (personal relation, the giver clan's influence reserve) via the same real actions the executor
@@ -1006,6 +1137,33 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
+      ///   The reciprocal of <see cref="SeedInfluenceEligible" /> (04/07/2026): finds a live lord of another
+      ///   clan, forces relation comfortably above the charity floor, drains their clan's influence below
+      ///   the need threshold, and tops up the player's own clan reserve, then re-checks the real gate.
+      /// </summary>
+      private static (Hero npc, NpcProfile profile, int amount)? SeedSpendInfluenceEligible(NpcMemoryCampaignBehavior behavior)
+      {
+         Hero npc = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan);
+
+         if (npc == null) return null;
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         int relBefore = npc.GetRelation(Hero.MainHero);
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, Hero.MainHero, 30 - relBefore, false);
+
+         if (npc.Clan.Influence >= CourtActionPolicy.SpendInfluenceNpcNeedThreshold)
+            ChangeClanInfluenceAction.Apply(npc.Clan, CourtActionPolicy.SpendInfluenceNpcNeedThreshold - 5f - npc.Clan.Influence);
+
+         if (Clan.PlayerClan.Influence < 200f)
+            ChangeClanInfluenceAction.Apply(Clan.PlayerClan, 200f - Clan.PlayerClan.Influence);
+
+         return CourtActionResolver.TrySpendInfluence(npc, profile, out int amount)
+            ? (npc, profile, amount)
+            : null;
+      }
+
+      /// <summary>
       ///   Finds a lord leading their own party with enough headcount to plausibly clear
       ///   <see cref="CourtActionResolver.TryLendTroops" />, forces relation comfortably above the threshold,
       ///   then re-checks the real gate against the live roster. Null when no such party exists nearby.
@@ -1035,71 +1193,6 @@ namespace CalradiaRemembers.Diagnostics
             : null;
       }
 
-      /// <summary>
-      ///   The reciprocal of <see cref="SeedTroopsEligible" /> (04/07/2026): finds a lord leading their own,
-      ///   genuinely under-strength party (rather than manufacturing one — mirrors that method's "pick, don't
-      ///   force" pattern), forces relation comfortably above the charity floor, and tops up the player's
-      ///   OWN roster when a fresh MainParty would otherwise start too thin to clear the safety floor. Then
-      ///   re-checks the real gate against the live rosters. Null when no such party exists nearby.
-      /// </summary>
-      private static (Hero lord, NpcProfile profile, int count)? SeedGiveTroopsEligible(NpcMemoryCampaignBehavior behavior)
-      {
-         MobileParty playerParty = MobileParty.MainParty;
-         if (playerParty?.MemberRoster != null)
-         {
-            CharacterObject basicTroop = Hero.MainHero?.Culture?.BasicTroop;
-            int have = playerParty.MemberRoster.TotalManCount;
-            if (basicTroop != null && have < 80) playerParty.MemberRoster.AddToCounts(basicTroop, 80 - have);
-         }
-
-         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero &&
-            h.IsAlive &&
-            !h.IsPrisoner &&
-            h.Clan != Clan.PlayerClan &&
-            h.PartyBelongedTo != null &&
-            h.PartyBelongedTo.LeaderHero == h &&
-            h.PartyBelongedTo.Party.PartySizeLimit >= CourtActionPolicy.GiveTroopsMinPartySizeLimit &&
-            h.PartyBelongedTo.MemberRoster.TotalManCount < h.PartyBelongedTo.Party.PartySizeLimit * CourtActionPolicy.GiveTroopsWeakenedFraction);
-
-         if (lord == null) return null;
-
-         NpcProfile profile = GetOrCreate(behavior, lord);
-         int relBefore = lord.GetRelation(Hero.MainHero);
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(lord, Hero.MainHero, 30 - relBefore, false);
-
-         return CourtActionResolver.TryGiveTroops(lord, profile, out int count)
-            ? (lord, profile, count)
-            : null;
-      }
-
-      /// <summary>
-      ///   The reciprocal of <see cref="SeedInfluenceEligible" /> (04/07/2026): finds a live lord of another
-      ///   clan, forces relation comfortably above the charity floor, drains their clan's influence below
-      ///   the need threshold, and tops up the player's own clan reserve, then re-checks the real gate.
-      /// </summary>
-      private static (Hero npc, NpcProfile profile, int amount)? SeedSpendInfluenceEligible(NpcMemoryCampaignBehavior behavior)
-      {
-         Hero npc = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan);
-
-         if (npc == null) return null;
-
-         NpcProfile profile = GetOrCreate(behavior, npc);
-         int relBefore = npc.GetRelation(Hero.MainHero);
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, Hero.MainHero, 30 - relBefore, false);
-
-         if (npc.Clan.Influence >= CourtActionPolicy.SpendInfluenceNpcNeedThreshold)
-            ChangeClanInfluenceAction.Apply(npc.Clan, CourtActionPolicy.SpendInfluenceNpcNeedThreshold - 5f - npc.Clan.Influence);
-
-         if (Clan.PlayerClan.Influence < 200f)
-            ChangeClanInfluenceAction.Apply(Clan.PlayerClan, 200f - Clan.PlayerClan.Influence);
-
-         return CourtActionResolver.TrySpendInfluence(npc, profile, out int amount)
-            ? (npc, profile, amount)
-            : null;
-      }
-
       /// <summary>True when the two normalized texts share any contiguous run of <paramref name="n" /> words (verbatim reuse).</summary>
       private static bool SharesLongPhrase(string a, string b, int n = 6)
       {
@@ -1123,6 +1216,30 @@ namespace CalradiaRemembers.Diagnostics
       private static string Show(string s) => _fullReplies
          ? s ?? ""
          : Preview(s);
+
+      /// <summary>
+      ///   Appearance pillar: proves the engine extraction + pure composer + prose store compose a usable block.
+      ///   Reads the live player's body facts, composes both voices with a scrap of authored prose, and checks
+      ///   the prose is carried and the Self voice is second person.
+      /// </summary>
+      private static string TestAppearance(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("appearance");
+
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+         if (t.Abort(AppearanceProseBehavior.Instance == null, "appearance store not active (load a campaign first)")) return t.Line();
+
+         AppearanceFacts facts = AppearanceFactsExtractor.Extract(Hero.MainHero);
+         string subject = AppearanceComposer.Compose(facts, "moves with a slight limp");
+         string self = AppearanceComposer.Compose(facts, null, AppearanceVoice.Self);
+
+         t.Note($"subject=\"{subject}\" | self=\"{self}\"");
+         t.Expect("factsExtracted", facts != null, true);
+         t.Expect("authoredProseCarried", subject.Contains("limp"), true);
+         t.Expect("selfVoiceSecondPerson", self.Length == 0 || self.StartsWith("You are"), true);
+
+         return t.Line();
+      }
 
       private static string TestAppreciationFlow(NpcMemoryCampaignBehavior behavior)
       {
@@ -1180,328 +1297,6 @@ namespace CalradiaRemembers.Diagnostics
          AppreciationBehavior.Instance.DebugForceBackfill(behavior.Store);
          (int formed2, int _) = AppreciationBehavior.Instance.DebugForceBackfill(behavior.Store);
          t.Expect("secondBackfillPassFormsNothingNew", formed2, 0);
-
-         return t.Line();
-      }
-
-      // ── Nemesis pillar increment 2: resolution (R1 kill in battle / R2 execute) ────────────────────
-
-      /// <summary>Mints (or reuses) a fresh, forced-alive nemesis identity in an isolated region key so the two resolution self-tests never collide with each other or a real in-game nemesis.</summary>
-      private static (Hero Hero, NemesisIdentity Identity) MintSelfTestNemesis(string regionId, int today)
-      {
-         Hero hero = NemesisBehavior.Instance?.MintCaptorFor("looters", regionId, today);
-         if (hero == null) return (null, null);
-
-         NemesisIdentity nem = NemesisBehavior.Instance.GetByHero(hero.StringId);
-         if (nem != null) nem.IsAlive = true; // isolate from a stale resolved run earlier in the same session
-
-         return (hero, nem);
-      }
-
-      private static string TestNemesisKilledInBattle(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("nemesis_kill");
-
-         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
-         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
-         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
-
-         var today = (int) CampaignTime.Now.ToDays;
-         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_battle", today);
-
-         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
-
-         NemesisResolutionBehavior.Resolve(hero, Hero.MainHero, false);
-
-         t.Expect("isAlive", nem.IsAlive, false);
-         t.Expect("deathDayStamped", nem.DeathDay == today, true);
-
-         WorldEvent closure = WorldEventStore.Instance.GetPlayerChronicle()
-                                              .LastOrDefault(e => e.Day == today && e.ActorIds != null && e.ActorIds.Contains(hero.StringId));
-
-         t.Expect("closureRecorded", closure != null, true);
-         t.Note($"summary={closure?.Summary}");
-
-         return t.Line();
-      }
-
-      private static string TestNemesisExecuted(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("nemesis_execute");
-
-         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
-         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
-         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
-
-         var today = (int) CampaignTime.Now.ToDays;
-         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_execute", today);
-
-         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
-
-         NemesisResolutionBehavior.Resolve(hero, Hero.MainHero, true);
-
-         t.Expect("isAlive", nem.IsAlive, false);
-
-         WorldEvent closure = WorldEventStore.Instance.GetPlayerChronicle()
-                                              .LastOrDefault(e => e.Day == today && e.ActorIds != null && e.ActorIds.Contains(hero.StringId));
-
-         t.Expect("closureRecorded", closure != null, true);
-
-         string playerName = Hero.MainHero.Name?.ToString() ?? "the player";
-         string displayName = $"{nem.Name} {nem.Epithet}";
-         string expectedExecutedSummary = NemesisResolutionPolicy.ClosureSummary(playerName, displayName, NemesisResolutionKind.Executed);
-         string battleFlavorSummary = NemesisResolutionPolicy.ClosureSummary(playerName, displayName, NemesisResolutionKind.KilledInBattle);
-
-         t.Expect("summaryMatchesExecutedFlavor", closure?.Summary, expectedExecutedSummary);
-         t.Expect("summaryDiffersFromBattleFlavor", closure?.Summary != battleFlavorSummary, true);
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   The R2/R3 chat-driven in-game entry point's own wiring, end to end: a fresh nemesis is REALLY
-      ///   captured (TakePrisonerAction, the same call the rest of the mod's prisoner tests use), the
-      ///   detection helper NemesisPrisonerDialogFlow's hero_main_options gate consults must find him, and
-      ///   the execute_prisoner bridge action (the real BannerlordGameStateBridge.ExecuteAction call the
-      ///   LLM's [ACTION] emission triggers during the captor scene, not the Resolve() test harness the
-      ///   other two nemesis tests use) must still land on the existing HeroKilledEvent hook.
-      /// </summary>
-      private static string TestNemesisExecutePrisoner(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("nemesis_execute_prisoner");
-
-         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
-         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
-         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
-
-         var today = (int) CampaignTime.Now.ToDays;
-         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_execute_prisoner", today);
-
-         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
-
-         t.Expect("notHeldBeforeCapture", NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() == hero, false);
-
-         TakePrisonerAction.Apply(PartyBase.MainParty, hero);
-         bool captured = hero.IsPrisoner && hero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
-
-         if (t.Abort(!captured, $"capture failed for {hero.Name}")) return t.Line();
-
-         t.Expect("detectionReturnsHeldNemesis", NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() == hero, true);
-
-         // The REAL bridge action a captor-scene LLM emission triggers (not NemesisResolutionBehavior's
-         // Resolve() harness): proves the chat-driven entry point's own action reaches the same
-         // HeroKilledEvent hook the resolution behaviour already listens for.
-         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
-            new GameAction {Type = "execute_prisoner"}, hero, null);
-
-         t.Expect("outcomePositive", outcome?.IsPositive, true);
-         t.Expect("isAlive", nem.IsAlive, false);
-
-         WorldEvent closure = WorldEventStore.Instance.GetPlayerChronicle()
-                                              .LastOrDefault(e => e.Day == today && e.ActorIds != null && e.ActorIds.Contains(hero.StringId));
-
-         t.Expect("closureRecorded", closure != null, true);
-         t.Note($"{nem.Name} {nem.Epithet}: minted, really captured, detected as held, executed via the real bridge action; summary={closure?.Summary}");
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Nemesis pillar increment 4 (SPARE + TURN): the whole turn path through the REAL bridge action, on a
-      ///   really-captured nemesis. First forces his stance below the gate floor and asserts the offer is
-      ///   REFUSED and he stays a prisoner; then raises Fear/Respect past the floors and asserts he TURNS,
-      ///   is marked turned, is released, and is sworn into the player's clan. His minted traits (low Honor,
-      ///   some Calculating) are already non-defiant, so only the stance floors need forcing.
-      /// </summary>
-      private static string TestNemesisTurn(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("nemesis_turn");
-
-         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
-         if (t.Abort(Hero.MainHero == null || Clan.PlayerClan == null, "no player hero/clan")) return t.Line();
-
-         var today = (int) CampaignTime.Now.ToDays;
-         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_turn", today);
-
-         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
-
-         TakePrisonerAction.Apply(PartyBase.MainParty, hero);
-         if (t.Abort(NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() != hero, $"capture/detection failed for {hero.Name}")) return t.Line();
-
-         NpcProfile profile = GetOrCreate(behavior, hero);
-
-         // Refusal: a nemesis who does not fear you enough will not bend, and stays your prisoner.
-         profile.StanceFear = NemesisTurnPolicy.FearFloor - 20;
-         profile.StanceRespect = NemesisTurnPolicy.RespectFloor + 20;
-         behavior.Store.Set(profile);
-         ActionOutcome refused = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "turn_nemesis"}, hero, null);
-         t.Expect("fearlessRefuses", refused?.IsPositive, false);
-         t.Expect("stillPrisonerAfterRefusal", hero.IsPrisoner, true);
-         t.Expect("notTurnedAfterRefusal", nem.IsTurned, false);
-
-         // Acceptance: cowed AND respectful, with a light grudge, the archetype that turns.
-         profile.StanceFear = NemesisTurnPolicy.FearFloor + 30;
-         profile.StanceRespect = NemesisTurnPolicy.RespectFloor + 20;
-         behavior.Store.Set(profile);
-         ActionOutcome turned = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "turn_nemesis"}, hero, null);
-         t.Expect("cowedRespectfulTurns", turned?.IsPositive, true);
-         t.Expect("identityMarkedTurned", nem.IsTurned, true);
-         t.Expect("releasedFromCaptivity", hero.IsPrisoner, false);
-         t.Expect("swornIntoPlayerClan", hero.Clan == Clan.PlayerClan, true);
-         t.Note($"{nem.Name} {nem.Epithet}: captured, refused when fearless, turned when cowed+respectful; now of clan {hero.Clan?.Name?.ToString() ?? "?"}.");
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Active hunt (map-presence): a latent nemesis of a live bandit band's culture materializes INTO that
-      ///   band when the player engages it, so a battle the player chose to start can put the hunt's target in
-      ///   front of him. Seeds a looters nemesis (region-agnostic, so the match is culture-only), forces the
-      ///   roll, and asserts the nemesis Hero joined the band's roster. Cleans up: detach + mark the identity dead.
-      /// </summary>
-      private static string TestNemesisHunt(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("nemesis_hunt");
-
-         NemesisBehavior nem = NemesisBehavior.Instance;
-         if (t.Abort(nem == null, "NemesisBehavior not active")) return t.Line();
-
-         MobileParty band = MobileParty.All.FirstOrDefault(p =>
-            p != null && p.IsBandit && p.MapEvent == null && p.ActualClan?.StringId == "looters");
-         if (t.Skip(band == null, "no free looters band on the map to test the hunt")) return t.Line();
-
-         var today = (int) CampaignTime.Now.ToDays;
-         // "wilds" is an unresolvable region key, so the match is culture-only (no proximity gate for the test).
-         (Hero hero, NemesisIdentity identity) = MintSelfTestNemesis("wilds", today);
-         if (t.Abort(hero == null || identity == null, "could not mint a test nemesis")) return t.Line();
-
-         // Make ours the most-established so FindHuntableNemesisNear picks it over any other looters nemesis,
-         // and ensure it is latent (detach from anywhere the mint may have left the Hero).
-         identity.TimesEncountered = 99999;
-         Nemesis.NemesisBehavior.DetachToLatent(hero);
-
-         Hero materialized = null;
-         try
-         {
-            materialized = nem.TryMaterializeInto(band, forceRoll: true);
-            bool inBand = materialized != null && materialized.PartyBelongedTo == band;
-
-            t.Note($"band={band.Name} (looters), materialized={materialized?.Name}, joinedBand={inBand}");
-            t.Expect("materialized", materialized != null, true);
-            t.Expect("joinedTheBand", inBand, true);
-         }
-         finally
-         {
-            if (materialized != null) Nemesis.NemesisBehavior.DetachToLatent(materialized);
-            identity.IsAlive = false;
-         }
-
-         return t.Line();
-      }
-
-      /// <summary>Mints a nemesis anchored to a real lord's own region (home settlement, else current settlement, else culture), so the region-eligibility gate genuinely matches instead of being simulated. Returns (null, null, null) when no lord has a resolvable region.</summary>
-      private static (Hero Giver, Hero NemesisHero, NemesisIdentity Identity) MintBountyEligibleNemesis(int today)
-      {
-         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
-         if (giver == null) return (null, null, null);
-
-         string regionId = giver.HomeSettlement?.StringId ?? giver.CurrentSettlement?.StringId ?? giver.Culture?.StringId;
-         if (string.IsNullOrEmpty(regionId)) return (null, null, null);
-
-         Hero nemesisHero = NemesisBehavior.Instance?.MintCaptorFor("looters", regionId, today);
-         if (nemesisHero == null) return (giver, null, null);
-
-         NemesisIdentity nem = NemesisBehavior.Instance.GetByHero(nemesisHero.StringId);
-         if (nem != null) nem.IsAlive = true; // isolate from a stale resolved run earlier in the same session
-
-         return (giver, nemesisHero, nem);
-      }
-
-      // ── Nemesis pillar increment 3: bounty missions ─────────────────────────────────────────────────
-
-      private static string TestNemesisBountyCapture(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("nemesis_bounty_capture");
-
-         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
-
-         var today = (int) CampaignTime.Now.ToDays;
-         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today);
-
-         if (t.Skip(giver == null, "no lord with a resolvable region available to hold the bounty")) return t.Line();
-         if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
-
-         t.Expect("eligibleBeforeIssue", Nemesis.NemesisBountyDialogFlow.FindEligibleNemesisFor(giver) == nem, true);
-
-         int expectedGold = NemesisBountyRewardPolicy.ComputeGold(nem.RecaptureCount, nem.TimesEncountered);
-         int expectedRelation = NemesisBountyRewardPolicy.ComputeRelation(nem.RecaptureCount);
-         string displayName = $"{nem.Name} {nem.Epithet}";
-
-         NpcProfile profile = GetOrCreate(behavior, giver);
-         InformalQuest quest = Quests.QuestService.IssueNemesisBounty(
-            profile, giver, nemesisHero, displayName, expectedGold, expectedRelation, today, behavior.Store);
-
-         if (t.Abort(quest == null, $"IssueNemesisBounty refused ({giver.Name} already had an outstanding task?)")) return t.Line();
-
-         t.Expect("noLongerEligibleOnceIssued", Nemesis.NemesisBountyDialogFlow.FindEligibleNemesisFor(giver) == nem, false);
-
-         TakePrisonerAction.Apply(PartyBase.MainParty, nemesisHero);
-         bool captured = nemesisHero.IsPrisoner && nemesisHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
-
-         if (t.Abort(!captured, $"capture failed for {nemesisHero.Name}")) return t.Line();
-
-         InformalQuest after = behavior.Store.Get(giver.StringId)?.ActiveQuests
-                                        .FirstOrDefault(q => q.Type == QuestType.NemesisBounty && q.TargetHeroId == nemesisHero.StringId);
-
-         t.Expect("stampedByRealCapture", after != null && after.IsAwaitingReward, true);
-         t.Expect("rewardGold", after?.RewardGold, expectedGold);
-         t.Expect("rewardRelation", after?.RewardRelation, expectedRelation);
-         t.Note($"{displayName}: bounty from {giver.Name} ({expectedGold}g/+{expectedRelation}), stamped by a real capture, evidence={after?.Evidence}");
-
-         return t.Line();
-      }
-
-      private static string TestNemesisBountyExecute(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("nemesis_bounty_execute");
-
-         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
-
-         var today = (int) CampaignTime.Now.ToDays;
-         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today);
-
-         if (t.Skip(giver == null, "no lord with a resolvable region available to hold the bounty")) return t.Line();
-         if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
-
-         int expectedGold = NemesisBountyRewardPolicy.ComputeGold(nem.RecaptureCount, nem.TimesEncountered);
-         int expectedRelation = NemesisBountyRewardPolicy.ComputeRelation(nem.RecaptureCount);
-         string displayName = $"{nem.Name} {nem.Epithet}";
-
-         NpcProfile profile = GetOrCreate(behavior, giver);
-         InformalQuest quest = Quests.QuestService.IssueNemesisBounty(
-            profile, giver, nemesisHero, displayName, expectedGold, expectedRelation, today, behavior.Store);
-
-         if (t.Abort(quest == null, $"IssueNemesisBounty refused ({giver.Name} already had an outstanding task?)")) return t.Line();
-
-         TakePrisonerAction.Apply(PartyBase.MainParty, nemesisHero);
-         bool captured = nemesisHero.IsPrisoner && nemesisHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
-
-         if (t.Abort(!captured, $"capture failed for {nemesisHero.Name}")) return t.Line();
-
-         // The REAL bridge action a captor-scene LLM emission triggers, the same call
-         // TestNemesisExecutePrisoner exercises, so both the vendetta resolution AND the bounty
-         // stamp are proven off the one real event, not two separate harnesses.
-         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
-            new GameAction {Type = "execute_prisoner"}, nemesisHero, null);
-
-         t.Expect("outcomePositive", outcome?.IsPositive, true);
-         t.Expect("nemesisResolved", nem.IsAlive, false);
-
-         InformalQuest after = behavior.Store.Get(giver.StringId)?.ActiveQuests
-                                        .FirstOrDefault(q => q.Type == QuestType.NemesisBounty && q.TargetHeroId == nemesisHero.StringId);
-
-         t.Expect("stampedByRealExecution", after != null && after.IsAwaitingReward, true);
-         t.Note($"{displayName}: bounty from {giver.Name} ({expectedGold}g/+{expectedRelation}), stamped by a real execution, evidence={after?.Evidence}");
 
          return t.Line();
       }
@@ -1584,6 +1379,39 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      /// <summary>
+      ///   Fear-1 wiring (deterministic, no LLM): when the NPC is the player's captive, a HIGH Fear trips
+      ///   the freedom-bargain coercion flag (EncounterContext.CaptiveFearCoerced, driven by
+      ///   StanceGatePolicy.ResolveCoercion reading the profile's Fear), while zero Fear does not.
+      /// </summary>
+      private static string TestCaptiveFearCoerced(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("captive_fear_coerced");
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC to hold captive")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         ArrangeCleanNpc(behavior, profile, npc);
+
+         profile.StanceFear = 60; // terrified: should yield softer terms
+         EncounterContext coerced = EncounterContextBuilder.Build(
+            npc, profile, behavior.GameStateBridge, "Buy your freedom, then.",
+            playerStatusOverride: PlayerStatusVsNpc.NpcIsCaptive);
+         t.Expect("highFearCaptiveCoerced", coerced.CaptiveFearCoerced, true);
+
+         profile.StanceFear = 0; // fearless: no coercion
+         EncounterContext calm = EncounterContextBuilder.Build(
+            npc, profile, behavior.GameStateBridge, "Buy your freedom, then.",
+            playerStatusOverride: PlayerStatusVsNpc.NpcIsCaptive);
+         t.Expect("noFearNotCoerced", calm.CaptiveFearCoerced, false);
+
+         t.Note($"Fear coercion wiring on {npc.Name}: Fear 60 -> coerced, Fear 0 -> not.");
+
+         return t.Line();
+      }
+
       private static string TestChatBastardMother(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("chat_bastard_mother");
@@ -1647,209 +1475,6 @@ namespace CalradiaRemembers.Diagnostics
          JudgeContinueQuality(t, beats);
          t.Note($"{beats.Count}-beat captive Continue sequence with {npc.Name}; judge in log: every beat ADVANCES, " +
                 "is vividly described, and never repeats an earlier image or line.");
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Negotiated player release: the PLAYER is a captive and pleads for freedom. DETERMINISTIC part,
-      ///   the real wiring risk: a clean (non-vendetta) captor's release gate must OPEN, so the
-      ///   release_player action is taught (EncounterContext.CaptorAllowsPersuasionRelease, driven by
-      ///   CaptorReleasePolicy reading the captor's live Mercy + grudge). LLM smoke part: judge whether a
-      ///   genuine plea actually moves the captor to free the player, and whether it feels earned.
-      /// </summary>
-      private static string TestChatCaptorRelease(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("chat_captor_release");
-
-         if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
-
-         Hero npc = ConversationNpc();
-
-         if (t.Skip(npc == null, "no NPC to play the captor")) return t.Line();
-
-         NpcProfile profile = GetOrCreate(behavior, npc);
-         ArrangeCleanNpc(behavior, profile, npc);
-         // Earlier tests in the sweep plant grudges on this same NPC; clear them so "clean captor" is true and
-         // the release gate (CaptorReleasePolicy reads the heaviest grudge) genuinely opens.
-         CalradiaRemembers.Grudges.GrudgeBehavior.Instance?.ClearGrudgesFor(npc.StringId);
-
-         string plea = "*I sink to my knees in the straw, wrists raw from the ropes.* I have no quarrel with you. " +
-                       "Let me walk out of here and you will never see me again. I beg you.";
-
-         EncounterContext ctx = EncounterContextBuilder.Build(
-            npc, profile, behavior.GameStateBridge, plea, null,
-            playerStatusOverride: PlayerStatusVsNpc.Captive,
-            captiveIntent: CaptiveSceneIntent.Interrogation);
-
-         // The load-bearing assertion: the gate wiring opened persuasion for a disposed captor.
-         t.Expect("cleanCaptorReleaseGateOpen", ctx.CaptorAllowsPersuasionRelease, true);
-
-         var (ok, reply, err) = AskLlm(behavior, "chat_captor_release", npc, profile, ctx, plea, new ChatSession());
-
-         if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
-
-         bool freed = reply != null && reply.IndexOf("release_player", StringComparison.OrdinalIgnoreCase) >= 0;
-         t.Note($"disposed captor {npc.Name} + a genuine plea; release_player emitted: {freed}. " +
-                $"Judge in log: a yield should feel EARNED, never instant, and a vendetta captor (unit-tested) would refuse. | A: {Show(reply)}");
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Bug #4 wiring (deterministic, no LLM): two DIFFERENT gang leaders sharing a settlement must be
-      ///   framed as RIVALS in the name-mention hint, never left neutral (where the LLM hallucinated a
-      ///   same-culture friendship). Skips when the campaign has no same-town gang-leader pair.
-      /// </summary>
-      private static string TestGangRivalry(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("gang_rivalry");
-
-         (Hero npc, Hero rival) = FindSameTownGangLeaderPair();
-
-         if (t.Skip(npc == null, "no same-town gang-leader pair on this campaign")) return t.Line();
-
-         string hint = ContextualNameResolver.Resolve(npc, $"Tell me what you make of {rival.Name}.", behavior.GameStateBridge);
-         bool framedAsRival = hint != null && hint.IndexOf("rival gang leader", StringComparison.OrdinalIgnoreCase) >= 0;
-
-         t.Expect("sameTownGangLeaderFramedAsRival", framedAsRival, true);
-         t.Note($"{npc.Name} asked about same-town gang leader {rival.Name}: {(framedAsRival ? "RIVAL" : "NOT framed rival")}. | hint: {Show(hint)}");
-
-         return t.Line();
-      }
-
-      /// <summary>Finds two different gang-leader notables sharing a current settlement, or (null, null).</summary>
-      private static (Hero a, Hero b) FindSameTownGangLeaderPair()
-      {
-         foreach (var group in Hero.AllAliveHeroes
-                     .Where(h => h != null && h != Hero.MainHero && h.IsAlive
-                                 && h.Occupation == Occupation.GangLeader && h.CurrentSettlement != null)
-                     .GroupBy(h => h.CurrentSettlement))
-         {
-            var list = group.ToList();
-            if (list.Count >= 2) return (list[0], list[1]);
-         }
-
-         return (null, null);
-      }
-
-      /// <summary>
-      ///   Fear-1 wiring (deterministic, no LLM): when the NPC is the player's captive, a HIGH Fear trips
-      ///   the freedom-bargain coercion flag (EncounterContext.CaptiveFearCoerced, driven by
-      ///   StanceGatePolicy.ResolveCoercion reading the profile's Fear), while zero Fear does not.
-      /// </summary>
-      private static string TestCaptiveFearCoerced(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("captive_fear_coerced");
-
-         Hero npc = ConversationNpc();
-
-         if (t.Skip(npc == null, "no NPC to hold captive")) return t.Line();
-
-         NpcProfile profile = GetOrCreate(behavior, npc);
-         ArrangeCleanNpc(behavior, profile, npc);
-
-         profile.StanceFear = 60; // terrified: should yield softer terms
-         EncounterContext coerced = EncounterContextBuilder.Build(
-            npc, profile, behavior.GameStateBridge, "Buy your freedom, then.", null,
-            playerStatusOverride: PlayerStatusVsNpc.NpcIsCaptive);
-         t.Expect("highFearCaptiveCoerced", coerced.CaptiveFearCoerced, true);
-
-         profile.StanceFear = 0; // fearless: no coercion
-         EncounterContext calm = EncounterContextBuilder.Build(
-            npc, profile, behavior.GameStateBridge, "Buy your freedom, then.", null,
-            playerStatusOverride: PlayerStatusVsNpc.NpcIsCaptive);
-         t.Expect("noFearNotCoerced", calm.CaptiveFearCoerced, false);
-
-         t.Note($"Fear coercion wiring on {npc.Name}: Fear 60 -> coerced, Fear 0 -> not.");
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Party troop-count wiring (deterministic, no LLM): a companion physically in the player's party
-      ///   sees the real troop count in context, so it stops hallucinating the army size. Skips when the
-      ///   player has no party companion to speak for.
-      /// </summary>
-      private static string TestPartyTroopCount(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("party_troop_count");
-
-         Hero member = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != null && h != Hero.MainHero && h.IsAlive
-            && h.PartyBelongedTo == TaleWorlds.CampaignSystem.Party.MobileParty.MainParty);
-
-         if (t.Skip(member == null, "no companion in the player's party")) return t.Line();
-
-         NpcProfile profile = GetOrCreate(behavior, member);
-         EncounterContext ctx = EncounterContextBuilder.Build(
-            member, profile, behavior.GameStateBridge, "How many soldiers do we have?", null);
-
-         t.Expect("partyMemberSeesTroopCount", ctx.PlayerPartyTroopCount > 0, true);
-         t.Note($"party member {member.Name} sees troop count {ctx.PlayerPartyTroopCount} (surfaced to party companions, hidden from non-party NPCs).");
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Nemesis increment 1 mint wiring (deterministic, no LLM): minting a nemesis captor creates a
-      ///   PERSISTENT Hero WITH a memory profile (so cr.memory/cr.info work on him = the "Ranulf has no
-      ///   memory" bug fixed by construction), reuses the SAME Hero for the same band+region, and mints a
-      ///   DISTINCT one per region. NOTE: plants test nemeses into the roster, reload after the sweep.
-      /// </summary>
-      private static string TestNemesisMint(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("nemesis_mint");
-
-         Nemesis.NemesisBehavior nb = Nemesis.NemesisBehavior.Instance;
-
-         if (t.Skip(nb == null, "NemesisBehavior not available")) return t.Line();
-
-         var today = (int) CampaignTime.Now.ToDays;
-         Hero h1 = nb.MintCaptorFor("looters", "selftest_region", today);
-
-         if (t.Abort(h1 == null, "mint returned no Hero (bandit clan/template unavailable?)")) return t.Line();
-
-         t.Expect("nemesisHeroHasMemoryProfile", behavior.Store?.Get(h1.StringId) != null, true);
-
-         Hero h2 = nb.MintCaptorFor("looters", "selftest_region", today);
-         t.Expect("sameRegionReusesSameHero", h2 == h1, true);
-
-         Hero h3 = nb.MintCaptorFor("looters", "selftest_other_region", today);
-         t.Expect("differentRegionMintsDistinctHero", h3 != h1, true);
-
-         t.Note($"minted nemesis {h1.Name}: profile registered, reused in-region, distinct across regions. Plants test nemeses (reload after the sweep).");
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Stance mechanical layer (deterministic, no LLM): the Trust delegated-risk gate BITES. A lord with a
-      ///   healthy party teaches lend_troops when Trust is earned (StanceTrust 25, via the seed), and STOPS
-      ///   teaching it once Trust, clan relation and personal regard are all zeroed. Proves the flagship stance
-      ///   work actually gates a verb, not just colours the prompt.
-      /// </summary>
-      private static string TestStanceGate(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("stance_gate");
-
-         (Hero lord, NpcProfile profile, int count)? seed = SeedTroopsEligible(behavior); // seeds StanceTrust=25
-
-         if (t.Skip(seed == null, "no lord leading a healthy party to test the Trust gate")) return t.Line();
-         (Hero lord, NpcProfile profile, int _) = seed.Value;
-
-         EncounterContext open = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "Lend me some soldiers for the road.");
-         bool taughtWhenTrusted = open.ExtraActionTeachings?.IndexOf("lend_troops", StringComparison.OrdinalIgnoreCase) >= 0;
-         t.Expect("lendTaughtWhenTrusted", taughtWhenTrusted, true);
-
-         profile.StanceTrust = 0;
-         profile.ClanRelationWithPlayer = 0;
-         profile.ReputationWithPlayer = 0;
-         EncounterContext closed = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "Lend me some soldiers for the road.");
-         bool taughtWhenUntrusted = closed.ExtraActionTeachings?.IndexOf("lend_troops", StringComparison.OrdinalIgnoreCase) >= 0;
-         t.Expect("lendRefusedWhenUntrusted", taughtWhenUntrusted, false);
-
-         t.Note($"Trust gate on {lord.Name}: taught at Trust 25, refused at Trust/relation/regard 0. The stance layer bites.");
 
          return t.Line();
       }
@@ -2008,6 +1633,51 @@ namespace CalradiaRemembers.Diagnostics
             : " (NOTE: not Hardcore — explicit CNC will NOT appear.)";
          t.Note($"GROUP CNC vs {npc.Name} (player + Gerwin + Talos); judge in log: does she react to being OUTNUMBERED / passed between several, naming them?{note}");
          t.Expect("threeBeatsReplied", replied, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Negotiated player release: the PLAYER is a captive and pleads for freedom. DETERMINISTIC part,
+      ///   the real wiring risk: a clean (non-vendetta) captor's release gate must OPEN, so the
+      ///   release_player action is taught (EncounterContext.CaptorAllowsPersuasionRelease, driven by
+      ///   CaptorReleasePolicy reading the captor's live Mercy + grudge). LLM smoke part: judge whether a
+      ///   genuine plea actually moves the captor to free the player, and whether it feels earned.
+      /// </summary>
+      private static string TestChatCaptorRelease(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("chat_captor_release");
+
+         if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC to play the captor")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         ArrangeCleanNpc(behavior, profile, npc);
+         // Earlier tests in the sweep plant grudges on this same NPC; clear them so "clean captor" is true and
+         // the release gate (CaptorReleasePolicy reads the heaviest grudge) genuinely opens.
+         GrudgeBehavior.Instance?.ClearGrudgesFor(npc.StringId);
+
+         string plea = "*I sink to my knees in the straw, wrists raw from the ropes.* I have no quarrel with you. " +
+                       "Let me walk out of here and you will never see me again. I beg you.";
+
+         EncounterContext ctx = EncounterContextBuilder.Build(
+            npc, profile, behavior.GameStateBridge, plea,
+            playerStatusOverride: PlayerStatusVsNpc.Captive,
+            captiveIntent: CaptiveSceneIntent.Interrogation);
+
+         // The load-bearing assertion: the gate wiring opened persuasion for a disposed captor.
+         t.Expect("cleanCaptorReleaseGateOpen", ctx.CaptorAllowsPersuasionRelease, true);
+
+         var (ok, reply, err) = AskLlm(behavior, "chat_captor_release", npc, profile, ctx, plea, new ChatSession());
+
+         if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+         bool freed = reply != null && reply.IndexOf("release_player", StringComparison.OrdinalIgnoreCase) >= 0;
+         t.Note($"disposed captor {npc.Name} + a genuine plea; release_player emitted: {freed}. " +
+                $"Judge in log: a yield should feel EARNED, never instant, and a vendetta captor (unit-tested) would refuse. | A: {Show(reply)}");
 
          return t.Line();
       }
@@ -2710,6 +2380,99 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      /// <summary>
+      ///   Companion-victim Phase 3: the tormented companion may hold TWO grudges from one scene, CaptiveAbuse
+      ///   against the PLAYER (coerced / did not protect) and CaptorCruelty against the CAPTOR (revenge). They
+      ///   share a holder and a day, so this proves the distinct sources keep both from being collapsed by the
+      ///   holder+source+day dedup.
+      /// </summary>
+      private static string TestCompanionRevenge(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("companion_revenge");
+
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Hero holder = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && GrudgeBehavior.Instance.LiveGrudgesFor(h, today).Count == 0);
+
+         if (t.Skip(holder == null, "no grudge-free lord to stand in as the tormented companion")) return t.Line();
+
+         Hero captor = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != holder && h.IsLord);
+
+         if (t.Skip(captor == null, "no second lord to stand in as the captor")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, holder);
+         ArrangeCleanNpc(behavior, profile, holder);
+
+         bool vsPlayer = GrudgeBehavior.Instance.TryPlant(holder, Hero.MainHero, GrudgeSource.CaptiveAbuse,
+            "[SELFTEST] I was made to suffer while they watched.", 45, true, today);
+         bool vsCaptor = GrudgeBehavior.Instance.TryPlant(holder, captor, GrudgeSource.CaptorCruelty,
+            "[SELFTEST] the captor broke me; I will see them answer.", 50, true, today);
+
+         IReadOnlyList<Grudge> held = GrudgeBehavior.Instance.GrudgesFor(holder.StringId);
+         bool playerGrudge = held.Any(g => g.Source == GrudgeSource.CaptiveAbuse && g.TargetId == Hero.MainHero.StringId && !g.IsResolved);
+         bool captorGrudge = held.Any(g => g.Source == GrudgeSource.CaptorCruelty && g.TargetId == captor.StringId && !g.IsResolved);
+
+         t.Note($"holder={holder.Name}, captor={captor.Name}: planted vsPlayer={vsPlayer}, vsCaptor={vsCaptor}");
+         t.Expect("bothPlanted", vsPlayer && vsCaptor, true);
+         t.Expect("playerGrudgeLive", playerGrudge, true);
+         t.Expect("captorRevengeGrudgeLive", captorGrudge, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Waylaid-letter resend: a lost letter keeps its text, and the resend path re-queues a fresh, non-lost
+      ///   letter with the SAME content (the player never retypes a waylaid letter). Cleans up the test letters
+      ///   and the courier the resend spawned, removing the letters BEFORE the courier so its disband matches no
+      ///   letter and fires no loss/popup.
+      /// </summary>
+      private static string TestCourierWaylayResend(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("courier_waylay");
+
+         Hero recipient = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+
+         if (t.Skip(recipient == null, "no live lord to stand as a letter recipient")) return t.Line();
+
+         const string tag = "CR_SELFTEST_WAYLAY";
+         NpcProfile profile = GetOrCreate(behavior, recipient);
+         var today = (int) CampaignTime.Now.ToDays;
+
+         var lost = new PlayerLetter {
+            RecipientId = profile.Id,
+            RecipientName = profile.Name,
+            Content = tag,
+            SentOnDay = today,
+            DeliveryDay = today + 8,
+            IsLost = true
+         };
+         profile.ReceivedPlayerLetters.Add(lost);
+         behavior.Store.Set(profile);
+
+         CourierService.ResendWaylaidLetterForTest(behavior.Store, profile, lost);
+         profile = behavior.Store.Get(recipient.StringId);
+
+         PlayerLetter resent = profile.ReceivedPlayerLetters.LastOrDefault(l => l.Content == tag && !l.IsLost);
+         t.Note($"recipient={recipient.Name}: lostKeptText={lost.Content == tag}, resent={resent != null}");
+         t.Expect("waylaidLetterKeepsItsText", lost.Content, tag);
+         t.Expect("resendQueuedFreshLetter", resent != null, true);
+         t.Expect("resendPreservedContent", resent?.Content, tag);
+
+         string courierId = resent?.CourierPartyId;
+         profile.ReceivedPlayerLetters.RemoveAll(l => l.Content == tag);
+         behavior.Store.Set(profile);
+         if (!string.IsNullOrEmpty(courierId))
+         {
+            MobileParty cp = MobileParty.All.FirstOrDefault(p => p.StringId == courierId);
+            if (cp != null) TravelingParty.Destroy(cp);
+         }
+
+         return t.Line();
+      }
+
       private static string TestDeclareWar(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("declare_war");
@@ -2893,7 +2656,9 @@ namespace CalradiaRemembers.Diagnostics
             directFamilyCandidates.AddRange(spouse.Children.Where(c => c is {IsAlive: true, IsChild: false} && c != npc && c != Hero.MainHero));
 
          if (directFamilyCandidates.Count == 0)
+         {
             t.Note("directFamilyGrudgePlanted skipped: seeded spouse has no qualifying adult family member in this campaign");
+         }
          else
          {
             bool directFamilyGrudgePlanted = directFamilyCandidates.Any(member =>
@@ -2908,7 +2673,9 @@ namespace CalradiaRemembers.Diagnostics
                                         .FirstOrDefault();
 
          if (bestFriendCandidate == null)
+         {
             t.Note("friendGrudgePlanted skipped: no qualifying best friend for the seeded spouse in this campaign");
+         }
          else
          {
             bool friendGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(bestFriendCandidate.StringId)
@@ -2974,288 +2741,6 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{npc2.Name} x {spouse2.Name} (mutual consent, second couple): " +
                 $"mutualConsentSpouseGrudgeAbsent={mutualConsentSpouseGrudgeAbsent}");
          t.Expect("mutualConsentSpouseGrudgeAbsent", mutualConsentSpouseGrudgeAbsent, true);
-
-         return t.Line();
-      }
-
-      // ── DIVORCE, Phase 2b: the player's OWN spouse demands the divorce ────────────────────────────
-
-      /// <summary>
-      ///   Scenario A (accept): marries the player to a test spouse when unmarried (reuses the real
-      ///   marriage if the campaign already has one), force-demands, then exercises accept_divorce through
-      ///   the real bridge path — asserts the marriage dissolved, neither party left clanless, and the
-      ///   demand flag cleared. Scenario B (decline): marries the player to a SECOND test spouse (freed up
-      ///   by Scenario A's dissolution), force-demands, exercises decline_divorce — asserts the demand flag
-      ///   cleared (so it can resurface) and a GrudgeSource.Divorce grudge planted on the refused spouse.
-      ///   Best-effort: either scenario is skipped, with a note, on a barren campaign (no eligible test
-      ///   spouse to seed), without failing the other.
-      /// </summary>
-      private static string TestSpouseDivorceDemand(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("spouse_divorce");
-
-         if (t.Abort(SpouseDivorceDemandBehavior.Instance == null, "SpouseDivorceDemandBehavior not active")) return t.Line();
-         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
-
-         var demands = SpouseDivorceDemandBehavior.Instance;
-
-         // ── Scenario A: ACCEPT ───────────────────────────────────────────────────────────────────
-         Hero spouseA = Hero.MainHero.Spouse;
-
-         if (spouseA == null)
-         {
-            spouseA = FindTestSpouseForPlayer();
-
-            if (t.Skip(spouseA == null, "no eligible test spouse found to marry the player (scenario A)")) return t.Line();
-
-            MarriageAction.Apply(Hero.MainHero, spouseA);
-
-            // The native marriage does not always take from a console context (a clan-leader player the model
-            // will not relocate, etc.). Seeding is best-effort: skip cleanly rather than mis-report the demand
-            // path as broken. The path itself is exercised in full whenever the player already has a spouse.
-            if (t.Skip(Hero.MainHero.Spouse != spouseA,
-                   "could not seed a marriage on this campaign (native MarriageAction did not take); demand path unchanged")) return t.Line();
-         }
-
-         NpcProfile profileA = GetOrCreate(behavior, spouseA);
-         ArrangeCleanNpc(behavior, profileA, spouseA);
-
-         demands.ForceDemand();
-         bool demandingBeforeAccept = demands.IsDemanding(spouseA.StringId);
-
-         if (t.Abort(!demandingBeforeAccept, "force-demand did not set the flag (scenario A)")) return t.Line();
-
-         ActionOutcome acceptOutcome = behavior.GameStateBridge.ExecuteAction(
-            new GameAction {Type = "accept_divorce"}, spouseA, new ActionContext(profileA, null));
-
-         bool dissolved = Hero.MainHero.Spouse == null;
-         bool neitherClanless = Hero.MainHero.Clan != null && spouseA.Clan != null;
-         bool flagClearedAfterAccept = !demands.IsDemanding(spouseA.StringId);
-
-         t.Note($"scenario A (accept) spouse={spouseA.Name}: outcome={(acceptOutcome != null ? acceptOutcome.IsPositive.ToString() : "null")}");
-         t.Expect("acceptOutcomePositive", acceptOutcome is {IsPositive: true}, true);
-         t.Expect("dissolvedAfterAccept", dissolved, true);
-         t.Expect("neitherClanlessAfterAccept", neitherClanless, true);
-         t.Expect("demandFlagClearedAfterAccept", flagClearedAfterAccept, true);
-
-         // ── Scenario B: DECLINE — a second, distinct test spouse (the player is free again after A) ──
-         Hero spouseB = FindTestSpouseForPlayer(spouseA);
-
-         if (t.Skip(spouseB == null, "no second eligible test spouse found for the decline scenario")) return t.Line();
-
-         MarriageAction.Apply(Hero.MainHero, spouseB);
-
-         if (t.Skip(Hero.MainHero.Spouse != spouseB,
-                "could not seed the second marriage on this campaign (native MarriageAction did not take); decline path unexercised")) return t.Line();
-
-         NpcProfile profileB = GetOrCreate(behavior, spouseB);
-         ArrangeCleanNpc(behavior, profileB, spouseB);
-
-         demands.ForceDemand();
-         bool demandingBeforeDecline = demands.IsDemanding(spouseB.StringId);
-
-         if (t.Abort(!demandingBeforeDecline, "force-demand did not set the flag (scenario B)")) return t.Line();
-
-         int today = behavior.GameStateBridge.GetCurrentGameDay();
-
-         ActionOutcome declineOutcome = behavior.GameStateBridge.ExecuteAction(
-            new GameAction {Type = "decline_divorce"}, spouseB, new ActionContext(profileB, null));
-
-         bool stillMarriedAfterDecline = Hero.MainHero.Spouse == spouseB;
-         bool flagClearedAfterDecline = !demands.IsDemanding(spouseB.StringId);
-         bool refusalGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(spouseB.StringId)
-                                                   .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == today);
-
-         t.Note($"scenario B (decline) spouse={spouseB.Name}: outcome={(declineOutcome != null ? declineOutcome.IsPositive.ToString() : "null")}");
-         t.Expect("stillMarriedAfterDecline", stillMarriedAfterDecline, true);
-         t.Expect("demandFlagClearedAfterDecline", flagClearedAfterDecline, true);
-         t.Expect("refusalGrudgePlanted", refusalGrudgePlanted, true);
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Divorce, Phase 2a: exercises end_own_marriage through the REAL bridge.ExecuteAction path against
-      ///   two scenarios sharing the tiered consequence engine with the NPC-NPC case (Phase 1) and the
-      ///   accept_divorce path (Phase 2b). Mirrors TestSpouseDivorceDemand's arrange/skip shape: marriage
-      ///   seeding is best-effort (a clan-leader player, or one already deep in another test's mutations,
-      ///   can genuinely fail to seed), so a failed seed skips cleanly rather than mis-reporting the action
-      ///   itself as broken.
-      /// </summary>
-      private static string TestPlayerDivorce(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("player_divorce");
-
-         if (t.Abort(DivorceProcessBehavior.Instance == null, "DivorceProcessBehavior not active")) return t.Line();
-         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
-
-         // ── Scenario A: REPUDIATED — a happy (neutral) spouse, the player ends it anyway ────────────
-         Hero spouseA = Hero.MainHero.Spouse;
-
-         if (spouseA == null)
-         {
-            spouseA = FindTestSpouseForPlayer();
-
-            if (t.Skip(spouseA == null, "no eligible test spouse found to marry the player (scenario A)")) return t.Line();
-
-            MarriageAction.Apply(Hero.MainHero, spouseA);
-
-            // Seeding is best-effort: a clan-leader player the model will not relocate, etc. Skip cleanly
-            // rather than mis-report the action path as broken.
-            if (t.Skip(Hero.MainHero.Spouse != spouseA,
-                   "could not seed a marriage on this campaign (native MarriageAction did not take); end_own_marriage path unchanged")) return t.Line();
-         }
-
-         NpcProfile profileA = GetOrCreate(behavior, spouseA);
-         ArrangeCleanNpc(behavior, profileA, spouseA); // neutral relation, no pending demand — happy enough to be repudiated
-
-         int todayA = behavior.GameStateBridge.GetCurrentGameDay();
-
-         ActionOutcome repudiatedOutcome = behavior.GameStateBridge.ExecuteAction(
-            new GameAction {Type = "end_own_marriage"}, spouseA, new ActionContext(profileA, null));
-
-         bool dissolvedRepudiated = Hero.MainHero.Spouse == null;
-         bool neitherClanlessRepudiated = Hero.MainHero.Clan != null && spouseA.Clan != null;
-         bool repudiatedGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(spouseA.StringId)
-                                                    .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == todayA);
-
-         t.Note($"scenario A (repudiated) spouse={spouseA.Name}: outcome={(repudiatedOutcome != null ? repudiatedOutcome.IsPositive.ToString() : "null")}");
-         // A repudiation succeeds mechanically but cues NEGATIVE (red): the player wronged an unwilling spouse.
-         t.Expect("repudiatedOutcomeCuesNegative", repudiatedOutcome is {IsPositive: false}, true);
-         t.Expect("dissolvedAfterRepudiated", dissolvedRepudiated, true);
-         t.Expect("neitherClanlessAfterRepudiated", neitherClanlessRepudiated, true);
-         t.Expect("repudiatedGrudgePlanted", repudiatedGrudgePlanted, true);
-
-         // ── Scenario B: MUTUAL — a miserable spouse, the player ends it, no grudge storm ─────────────
-         Hero spouseB = FindTestSpouseForPlayer(spouseA);
-
-         if (t.Skip(spouseB == null, "no second eligible test spouse found for the mutual scenario")) return t.Line();
-
-         MarriageAction.Apply(Hero.MainHero, spouseB);
-
-         if (t.Skip(Hero.MainHero.Spouse != spouseB,
-                "could not seed the second marriage on this campaign (native MarriageAction did not take); mutual path unexercised")) return t.Line();
-
-         NpcProfile profileB = GetOrCreate(behavior, spouseB);
-         ArrangeCleanNpc(behavior, profileB, spouseB);
-
-         int miserable = DivorcePolicy.UnhappyThreshold - 5; // comfortably unhappy, mirrors cr.divorce_setup's own seed
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouseB, Hero.MainHero, miserable - spouseB.GetRelation(Hero.MainHero), false);
-
-         int todayB = behavior.GameStateBridge.GetCurrentGameDay();
-
-         ActionOutcome mutualOutcome = behavior.GameStateBridge.ExecuteAction(
-            new GameAction {Type = "end_own_marriage"}, spouseB, new ActionContext(profileB, null));
-
-         bool dissolvedMutual = Hero.MainHero.Spouse == null;
-         bool noGrudgeAfterMutual = !GrudgeBehavior.Instance.GrudgesFor(spouseB.StringId)
-                                                .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == todayB);
-
-         t.Note($"scenario B (mutual) spouse={spouseB.Name}: outcome={(mutualOutcome != null ? mutualOutcome.IsPositive.ToString() : "null")}");
-         t.Expect("mutualOutcomePositive", mutualOutcome is {IsPositive: true}, true);
-         t.Expect("dissolvedAfterMutual", dissolvedMutual, true);
-         t.Expect("noGrudgeAfterMutual", noGrudgeAfterMutual, true);
-
-         return t.Line();
-      }
-
-      // ── DIVORCE ESCALATION: a refused-enough, still-miserable spouse begins ending it themselves ──
-
-      /// <summary>
-      ///   Scenario A (walk-out): marries the player to a test spouse when unmarried, force-escalates
-      ///   (bypassing the natural refusal-count gate), then force-moves the deadline to TODAY so the sweep
-      ///   walks out immediately rather than waiting the real estrangement length — asserts the marriage
-      ///   dissolved, neither party left clanless, a spouse-side Divorce grudge planted, and the escalation
-      ///   record cleared. Scenario B (reconciliation): marries the player to a SECOND test spouse
-      ///   (freed up by Scenario A's dissolution), force-escalates, then raises the relation ABOVE
-      ///   <see cref="SpouseDivorceDemandPolicy.ReconciliationThreshold" /> BEFORE ticking — asserts the
-      ///   marriage SURVIVES and the escalation record is cleared. Best-effort: either scenario is skipped,
-      ///   with a note, on a barren campaign (no eligible test spouse to seed), without failing the other.
-      /// </summary>
-      private static string TestSpouseEstrangement(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("spouse_estrangement");
-
-         if (t.Abort(SpouseDivorceDemandBehavior.Instance == null, "SpouseDivorceDemandBehavior not active")) return t.Line();
-         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
-         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
-
-         var demands = SpouseDivorceDemandBehavior.Instance;
-
-         // ── Scenario A: WALK-OUT ─────────────────────────────────────────────────────────────────
-         Hero spouseA = Hero.MainHero.Spouse;
-
-         if (spouseA == null)
-         {
-            spouseA = FindTestSpouseForPlayer();
-
-            if (t.Skip(spouseA == null, "no eligible test spouse found to marry the player (scenario A)")) return t.Line();
-
-            MarriageAction.Apply(Hero.MainHero, spouseA);
-
-            if (t.Skip(Hero.MainHero.Spouse != spouseA,
-                   "could not seed a marriage on this campaign (native MarriageAction did not take); walk-out path unexercised")) return t.Line();
-         }
-
-         NpcProfile profileA = GetOrCreate(behavior, spouseA);
-         ArrangeCleanNpc(behavior, profileA, spouseA); // neutral relation — comfortably below the reconciliation bar
-
-         (bool forcedA, string forceMessageA) = demands.ForceEscalate();
-         bool estrangingBeforeTick = demands.IsEstranging(spouseA.StringId);
-
-         if (t.Abort(!forcedA || !estrangingBeforeTick, $"force-escalate did not set the record (scenario A): {forceMessageA}")) return t.Line();
-
-         int todayA = behavior.GameStateBridge.GetCurrentGameDay();
-         demands.DebugForceEscalationDeadline(spouseA.StringId, todayA); // skip the 15-day wait for this test
-
-         int worldEventsBefore = WorldEventStore.Instance.Count;
-
-         demands.RunTick();
-
-         bool dissolvedA = Hero.MainHero.Spouse == null;
-         bool neitherClanlessA = Hero.MainHero.Clan != null && spouseA.Clan != null;
-         bool escalationClearedAfterWalkOut = !demands.IsEstranging(spouseA.StringId);
-         bool walkOutGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(spouseA.StringId)
-                                                   .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == todayA);
-         bool worldEventRecorded = WorldEventStore.Instance.Count > worldEventsBefore;
-
-         t.Note($"scenario A (walk-out) spouse={spouseA.Name}");
-         t.Expect("dissolvedAfterWalkOut", dissolvedA, true);
-         t.Expect("neitherClanlessAfterWalkOut", neitherClanlessA, true);
-         t.Expect("escalationClearedAfterWalkOut", escalationClearedAfterWalkOut, true);
-         t.Expect("walkOutGrudgePlanted", walkOutGrudgePlanted, true);
-         t.Expect("walkOutWorldEventRecorded", worldEventRecorded, true);
-
-         // ── Scenario B: RECONCILIATION — a second, distinct test spouse (the player is free again after A) ──
-         Hero spouseB = FindTestSpouseForPlayer(spouseA);
-
-         if (t.Skip(spouseB == null, "no second eligible test spouse found for the reconciliation scenario")) return t.Line();
-
-         MarriageAction.Apply(Hero.MainHero, spouseB);
-
-         if (t.Skip(Hero.MainHero.Spouse != spouseB,
-                "could not seed the second marriage on this campaign (native MarriageAction did not take); reconciliation path unexercised")) return t.Line();
-
-         NpcProfile profileB = GetOrCreate(behavior, spouseB);
-         ArrangeCleanNpc(behavior, profileB, spouseB);
-
-         (bool forcedB, string forceMessageB) = demands.ForceEscalate();
-
-         if (t.Abort(!forcedB, $"force-escalate did not set the record (scenario B): {forceMessageB}")) return t.Line();
-
-         int reconciledRelation = SpouseDivorceDemandPolicy.ReconciliationThreshold + 5; // comfortably above the bar
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouseB, Hero.MainHero, reconciledRelation - spouseB.GetRelation(Hero.MainHero), false);
-
-         // Deadline is left far in the future (set by ForceEscalate itself) — reconciliation must win on its
-         // own merits, checked BEFORE the deadline, not because the deadline happened to be reached too.
-         demands.RunTick();
-
-         bool stillMarriedAfterReconciliation = Hero.MainHero.Spouse == spouseB;
-         bool escalationClearedAfterReconciliation = !demands.IsEstranging(spouseB.StringId);
-
-         t.Note($"scenario B (reconciliation) spouse={spouseB.Name}");
-         t.Expect("stillMarriedAfterReconciliation", stillMarriedAfterReconciliation, true);
-         t.Expect("escalationClearedAfterReconciliation", escalationClearedAfterReconciliation, true);
 
          return t.Line();
       }
@@ -3342,6 +2827,28 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      /// <summary>
+      ///   Bug #4 wiring (deterministic, no LLM): two DIFFERENT gang leaders sharing a settlement must be
+      ///   framed as RIVALS in the name-mention hint, never left neutral (where the LLM hallucinated a
+      ///   same-culture friendship). Skips when the campaign has no same-town gang-leader pair.
+      /// </summary>
+      private static string TestGangRivalry(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("gang_rivalry");
+
+         (Hero npc, Hero rival) = FindSameTownGangLeaderPair();
+
+         if (t.Skip(npc == null, "no same-town gang-leader pair on this campaign")) return t.Line();
+
+         string hint = ContextualNameResolver.Resolve(npc, $"Tell me what you make of {rival.Name}.", behavior.GameStateBridge);
+         bool framedAsRival = hint != null && hint.IndexOf("rival gang leader", StringComparison.OrdinalIgnoreCase) >= 0;
+
+         t.Expect("sameTownGangLeaderFramedAsRival", framedAsRival, true);
+         t.Note($"{npc.Name} asked about same-town gang leader {rival.Name}: {(framedAsRival ? "RIVAL" : "NOT framed rival")}. | hint: {Show(hint)}");
+
+         return t.Line();
+      }
+
       private static string TestGiveItem(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("give_item");
@@ -3404,6 +2911,51 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("jealousyGrudgeFormed", jealousyGrudgeExists, true);
          t.Expect("secondPassFormsNothingNew", formed2, 0);
          t.Expect("noDuplicateForThisEvent", countAfterBoth, 1);
+
+         return t.Line();
+      }
+
+      // ── Grudges: Tier 3 engine wiring (ExecutedKinGrudgeBehavior.PlantOnKinOf run directly, ──
+      // ── the exact same kin-enumeration + TryPlant loop the real HeroKilledEvent listener uses, ──
+      // ── against a REAL lord's REAL close living kin already present in this campaign) ──────────
+
+      private static string TestGrudgeExecuteKin(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("grudge_execute_kin");
+
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+
+         Hero victim = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && CloseKinCandidatesOf(h).Any());
+
+         if (t.Skip(victim == null, "no live lord in this campaign has a recognized close living kin (spouse/parent/adult child/adult sibling) to test against")) return t.Line();
+
+         // Isolate: clear whichever kin we are about to test so a leftover cap-eviction from
+         // earlier self-tests cannot mask this scenario's own plant.
+         foreach (Hero kin in CloseKinCandidatesOf(victim))
+            GrudgeBehavior.Instance.ClearGrudgesFor(kin.StringId);
+
+         var cause = $"[SELFTEST] {Hero.MainHero.Name} had {victim.Name} put to death.";
+         (int considered, int planted) = ExecutedKinGrudgeBehavior.PlantOnKinOf(victim, cause, today);
+
+         t.Note($"{victim.Name}: {considered} kin considered, {planted} vendetta grudge(s) planted.");
+         t.Expect("kinConsidered", considered > 0, true);
+         t.Expect("kinPlanted", planted > 0, true);
+
+         Hero plantedKin = CloseKinCandidatesOf(victim)
+            .FirstOrDefault(k => GrudgeBehavior.Instance.GrudgesFor(k.StringId).Any(g => g.Source == GrudgeSource.ExecutedKin && g.EventDay == today));
+
+         if (t.Skip(plantedKin == null, "planted grudge not found back on any candidate kin")) return t.Line();
+
+         Grudge vendetta = GrudgeBehavior.Instance.GrudgesFor(plantedKin.StringId)
+                                         .LastOrDefault(g => g.Source == GrudgeSource.ExecutedKin && g.EventDay == today);
+
+         t.Note($"{plantedKin.Name}: rigidity={vendetta?.Rigidity}, magnitude={vendetta?.Magnitude}, resolutionKind={vendetta?.ResolutionKind}");
+         t.Expect("vendettaRigidityMax", vendetta?.Rigidity, GrudgePolicy.VendettaRigidity);
+         t.Expect("vendettaUnresolvable", vendetta != null && !GrudgePolicy.IsResolvable(vendetta), true);
+         t.Expect("vendettaKnownToPlayer", vendetta?.KnownToPlayer, true);
 
          return t.Line();
       }
@@ -3508,6 +3060,62 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      // ── Grudges: sway_opinion's Tier 2 LIVE plant site (Arrange mirrors TestRpSway: resolve an NPC ──
+      // ── + 3rd-party pair, real sway_opinion(against) via the bridge) -> assert the exact same Rivalry ──
+      // ── rumour SwayOpinionVerb records is now watched by SwayExposureBehavior -> force the reveal ──
+      // ── (bypassing only the awareness TIMING, never the SwayExposedGrudge rule nor TryPlant's own ──
+      // ── guardrails) -> assert a hidden SwayExposed grudge lands on the target ────────────────────────
+
+      private static string TestGrudgeSway(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("grudge_sway");
+
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+         if (t.Abort(SwayExposureBehavior.Instance == null, "SwayExposureBehavior not active")) return t.Line();
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+         (Hero npc, Hero target)? pair = ResolveSwayPair();
+
+         if (t.Skip(pair == null, "need an NPC + a distinct third lord to sway an opinion of")) return t.Line();
+         (Hero npc, Hero target) = pair.Value;
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+
+         if (t.Skip(!CourtActionResolver.CanTeachSway(npc, profile), "NPC not eligible to teach sway_opinion")) return t.Line();
+
+         // SelectSwayTarget picks the most-negative rival, which can already sit at the -100 engine floor
+         // where a further drop clamps to nothing, give the relation headroom, mirrors TestRpSway.
+         if (npc.GetRelation(target) <= -90)
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, -50 - npc.GetRelation(target), false);
+
+         var today = (int) CampaignTime.Now.ToDays;
+         int pendingBefore = SwayExposureBehavior.Instance.Pending.Count(p => p.TargetId == target.StringId);
+
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {
+               Type = "sway_opinion",
+               Parameters = new Dictionary<string, string> {{"target", target.Name.ToString()}, {"stance", "against"}}
+            }, npc, new ActionContext(profile, null));
+
+         int pendingAfter = SwayExposureBehavior.Instance.Pending.Count(p => p.TargetId == target.StringId);
+
+         // The real reveal timing is probabilistic/geographic (WorldEventStore.IsAwareOf); force it now,
+         // exactly the same Tier2GrudgeRules.SwayExposedGrudge + GrudgeBehavior.TryPlant call the daily
+         // tick would eventually make, without waiting on the awareness model.
+         string revealResult = SwayExposureBehavior.Instance.DebugForceReveal(target);
+         Grudge swayGrudge = GrudgeBehavior.Instance.GrudgesFor(target.StringId)
+                                           .FirstOrDefault(g => g.Source == GrudgeSource.SwayExposed && g.EventDay == today);
+
+         t.Note($"{npc.Name} vs {target.Name}: pendingQueued={pendingAfter > pendingBefore}, reveal=\"{revealResult}\", " +
+                $"swayExposedGrudgeExists={swayGrudge != null}, knownToPlayer={swayGrudge?.KnownToPlayer}");
+         t.Expect("outcomePositive", outcome?.IsPositive, true);
+         t.Expect("pendingWatchQueued", pendingAfter > pendingBefore, true);
+         t.Expect("swayExposedGrudgeFormed", swayGrudge != null, true);
+         t.Expect("hiddenFromPlayer", swayGrudge?.KnownToPlayer, false);
+
+         return t.Line();
+      }
+
       // ── Grudges: the discovery path (grudge_terms) — before this verb, nothing in the game ever ──
       // ── set Grudge.ResolutionHintDiscovered; a player could see a known grievance but never LEARN ──
       // ── what would mend it. Plant via the real TryPlant gate, reveal via the real GrudgeTermsVerb. ──
@@ -3556,132 +3164,6 @@ namespace CalradiaRemembers.Diagnostics
          ActionOutcome result2 = verb.Execute(null, ctx);
          t.Note($"{npc.Name}: second reveal -> {result2?.Message}");
          t.Expect("secondRevealReportsNothingNew", result2?.IsPositive, false);
-
-         return t.Line();
-      }
-
-      // ── Grudges: Tier 3 engine wiring (ExecutedKinGrudgeBehavior.PlantOnKinOf run directly, ──
-      // ── the exact same kin-enumeration + TryPlant loop the real HeroKilledEvent listener uses, ──
-      // ── against a REAL lord's REAL close living kin already present in this campaign) ──────────
-
-      private static string TestGrudgeExecuteKin(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("grudge_execute_kin");
-
-         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
-         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
-
-         var today = (int) CampaignTime.Now.ToDays;
-
-         Hero victim = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && CloseKinCandidatesOf(h).Any());
-
-         if (t.Skip(victim == null, "no live lord in this campaign has a recognized close living kin (spouse/parent/adult child/adult sibling) to test against")) return t.Line();
-
-         // Isolate: clear whichever kin we are about to test so a leftover cap-eviction from
-         // earlier self-tests cannot mask this scenario's own plant.
-         foreach (Hero kin in CloseKinCandidatesOf(victim))
-            GrudgeBehavior.Instance.ClearGrudgesFor(kin.StringId);
-
-         string cause = $"[SELFTEST] {Hero.MainHero.Name} had {victim.Name} put to death.";
-         (int considered, int planted) = ExecutedKinGrudgeBehavior.PlantOnKinOf(victim, cause, today);
-
-         t.Note($"{victim.Name}: {considered} kin considered, {planted} vendetta grudge(s) planted.");
-         t.Expect("kinConsidered", considered > 0, true);
-         t.Expect("kinPlanted", planted > 0, true);
-
-         Hero plantedKin = CloseKinCandidatesOf(victim)
-            .FirstOrDefault(k => GrudgeBehavior.Instance.GrudgesFor(k.StringId).Any(g => g.Source == GrudgeSource.ExecutedKin && g.EventDay == today));
-
-         if (t.Skip(plantedKin == null, "planted grudge not found back on any candidate kin")) return t.Line();
-
-         Grudge vendetta = GrudgeBehavior.Instance.GrudgesFor(plantedKin.StringId)
-                                         .LastOrDefault(g => g.Source == GrudgeSource.ExecutedKin && g.EventDay == today);
-
-         t.Note($"{plantedKin.Name}: rigidity={vendetta?.Rigidity}, magnitude={vendetta?.Magnitude}, resolutionKind={vendetta?.ResolutionKind}");
-         t.Expect("vendettaRigidityMax", vendetta?.Rigidity, GrudgePolicy.VendettaRigidity);
-         t.Expect("vendettaUnresolvable", vendetta != null && !GrudgePolicy.IsResolvable(vendetta), true);
-         t.Expect("vendettaKnownToPlayer", vendetta?.KnownToPlayer, true);
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Mirrors <c>ExecutedKinGrudgeBehavior.CloseLivingKinOf</c> (private to that class) just enough
-      ///   for this self-test to locate a real campaign lord with recognized close living kin, without
-      ///   needing to expose the engine behavior's own enumeration publicly.
-      /// </summary>
-      private static IEnumerable<Hero> CloseKinCandidatesOf(Hero victim)
-      {
-         if (victim.Spouse is {IsAlive: true} spouse && spouse != Hero.MainHero) yield return spouse;
-         if (victim.Father is {IsAlive: true} father && father != Hero.MainHero) yield return father;
-         if (victim.Mother is {IsAlive: true} mother && mother != Hero.MainHero) yield return mother;
-
-         if (victim.Children != null)
-            foreach (Hero child in victim.Children)
-               if (child is {IsAlive: true, IsChild: false} && child != Hero.MainHero) yield return child;
-
-         if (victim.Siblings != null)
-            foreach (Hero sibling in victim.Siblings)
-               if (sibling is {IsAlive: true, IsChild: false} && sibling != Hero.MainHero) yield return sibling;
-      }
-
-      /// <summary>
-      ///   Exercises the LIVE UnblessedMarriage plant + clear wiring end to end, no synthetic
-      ///   Tier2GrudgeRules calls: marries the player to a test spouse WITHOUT ever seeding a
-      ///   MarriageApprovalBehavior blessing (the real OnBeforeHeroesMarried hook then reads the match as
-      ///   unapproved and chills the family), asserts a live UnblessedMarriage grudge lands on a kinsman who
-      ///   actually disapproved, then ends the marriage via the real end_own_marriage action and asserts the
-      ///   very same grudge RESOLVES (per the rule's own doc: cleared, not merely decayed, the instant the
-      ///   marriage ends). Best-effort: skips cleanly on a barren campaign (no eligible test spouse, or one
-      ///   with no other living adult kinsman in their birth clan to disapprove).
-      /// </summary>
-      private static string TestGrudgeUnblessedMarriage(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("grudge_unblessed_marriage");
-
-         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
-         if (t.Abort(MarriageApprovalBehavior.Instance == null, "MarriageApprovalBehavior not active")) return t.Line();
-         if (t.Abort(DivorceProcessBehavior.Instance == null, "DivorceProcessBehavior not active")) return t.Line();
-
-         Hero spouse = FindTestSpouseForPlayer();
-
-         if (t.Skip(spouse == null, "no eligible test spouse found to marry the player")) return t.Line();
-
-         Clan family = spouse.Clan;
-         Hero kin = family?.Heroes?.FirstOrDefault(h => h != spouse && h is {IsAlive: true} && !h.IsChild);
-
-         if (t.Skip(kin == null, "the test spouse's birth clan has no other living adult kinsman to disapprove")) return t.Line();
-
-         // Isolate: clear whichever kin we are about to test so a leftover plant from an earlier
-         // grudge_unblessed_test run in this same session cannot mask this scenario's own plant.
-         GrudgeBehavior.Instance.ClearGrudgesFor(kin.StringId);
-
-         // Deliberately NEVER call MarriageApprovalBehavior.Instance.Grant: this match is unblessed by
-         // construction, exercising the exact real path a fresh in-game match with no seeded blessing takes.
-         MarriageAction.Apply(Hero.MainHero, spouse);
-
-         if (t.Skip(Hero.MainHero.Spouse != spouse,
-                "could not seed the marriage on this campaign (native MarriageAction did not take)")) return t.Line();
-
-         bool grudgePlanted = GrudgeBehavior.Instance.GrudgesFor(kin.StringId)
-                                            .Any(g => g.Source == GrudgeSource.UnblessedMarriage && g.TargetId == Hero.MainHero.StringId && !g.IsResolved);
-
-         t.Note($"spouse={spouse.Name}, kin={kin.Name}: grudgePlanted={grudgePlanted}");
-         t.Expect("unblessedMarriageGrudgePlantedOnKin", grudgePlanted, true);
-
-         NpcProfile profile = GetOrCreate(behavior, spouse);
-         ArrangeCleanNpc(behavior, profile, spouse);
-
-         behavior.GameStateBridge.ExecuteAction(
-            new GameAction {Type = "end_own_marriage"}, spouse, new ActionContext(profile, null));
-
-         bool dissolved = Hero.MainHero.Spouse == null;
-         bool grudgeResolved = GrudgeBehavior.Instance.GrudgesFor(kin.StringId)
-                                            .Any(g => g.Source == GrudgeSource.UnblessedMarriage && g.TargetId == Hero.MainHero.StringId && g.IsResolved);
-
-         t.Note($"after end_own_marriage: dissolved={dissolved}, grudgeResolved={grudgeResolved}");
-         t.Expect("dissolvedAfterDivorce", dissolved, true);
-         t.Expect("unblessedMarriageGrudgeClearedOnDivorce", grudgeResolved, true);
 
          return t.Line();
       }
@@ -3767,415 +3249,65 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
-      // ── Grudges: sway_opinion's Tier 2 LIVE plant site (Arrange mirrors TestRpSway: resolve an NPC ──
-      // ── + 3rd-party pair, real sway_opinion(against) via the bridge) -> assert the exact same Rivalry ──
-      // ── rumour SwayOpinionVerb records is now watched by SwayExposureBehavior -> force the reveal ──
-      // ── (bypassing only the awareness TIMING, never the SwayExposedGrudge rule nor TryPlant's own ──
-      // ── guardrails) -> assert a hidden SwayExposed grudge lands on the target ────────────────────────
-
-      private static string TestGrudgeSway(NpcMemoryCampaignBehavior behavior)
+      /// <summary>
+      ///   Exercises the LIVE UnblessedMarriage plant + clear wiring end to end, no synthetic
+      ///   Tier2GrudgeRules calls: marries the player to a test spouse WITHOUT ever seeding a
+      ///   MarriageApprovalBehavior blessing (the real OnBeforeHeroesMarried hook then reads the match as
+      ///   unapproved and chills the family), asserts a live UnblessedMarriage grudge lands on a kinsman who
+      ///   actually disapproved, then ends the marriage via the real end_own_marriage action and asserts the
+      ///   very same grudge RESOLVES (per the rule's own doc: cleared, not merely decayed, the instant the
+      ///   marriage ends). Best-effort: skips cleanly on a barren campaign (no eligible test spouse, or one
+      ///   with no other living adult kinsman in their birth clan to disapprove).
+      /// </summary>
+      private static string TestGrudgeUnblessedMarriage(NpcMemoryCampaignBehavior behavior)
       {
-         var t = new TestRun("grudge_sway");
+         var t = new TestRun("grudge_unblessed_marriage");
 
          if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
-         if (t.Abort(SwayExposureBehavior.Instance == null, "SwayExposureBehavior not active")) return t.Line();
-         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+         if (t.Abort(MarriageApprovalBehavior.Instance == null, "MarriageApprovalBehavior not active")) return t.Line();
+         if (t.Abort(DivorceProcessBehavior.Instance == null, "DivorceProcessBehavior not active")) return t.Line();
 
-         (Hero npc, Hero target)? pair = ResolveSwayPair();
+         Hero spouse = FindTestSpouseForPlayer();
 
-         if (t.Skip(pair == null, "need an NPC + a distinct third lord to sway an opinion of")) return t.Line();
-         (Hero npc, Hero target) = pair.Value;
+         if (t.Skip(spouse == null, "no eligible test spouse found to marry the player")) return t.Line();
 
-         NpcProfile profile = GetOrCreate(behavior, npc);
+         Clan family = spouse.Clan;
+         Hero kin = family?.Heroes?.FirstOrDefault(h => h != spouse && h is {IsAlive: true} && !h.IsChild);
 
-         if (t.Skip(!CourtActionResolver.CanTeachSway(npc, profile), "NPC not eligible to teach sway_opinion")) return t.Line();
+         if (t.Skip(kin == null, "the test spouse's birth clan has no other living adult kinsman to disapprove")) return t.Line();
 
-         // SelectSwayTarget picks the most-negative rival, which can already sit at the -100 engine floor
-         // where a further drop clamps to nothing, give the relation headroom, mirrors TestRpSway.
-         if (npc.GetRelation(target) <= -90)
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, -50 - npc.GetRelation(target), false);
+         // Isolate: clear whichever kin we are about to test so a leftover plant from an earlier
+         // grudge_unblessed_test run in this same session cannot mask this scenario's own plant.
+         GrudgeBehavior.Instance.ClearGrudgesFor(kin.StringId);
 
-         var today = (int) CampaignTime.Now.ToDays;
-         int pendingBefore = SwayExposureBehavior.Instance.Pending.Count(p => p.TargetId == target.StringId);
+         // Deliberately NEVER call MarriageApprovalBehavior.Instance.Grant: this match is unblessed by
+         // construction, exercising the exact real path a fresh in-game match with no seeded blessing takes.
+         MarriageAction.Apply(Hero.MainHero, spouse);
 
-         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
-            new GameAction {
-               Type = "sway_opinion",
-               Parameters = new Dictionary<string, string> {{"target", target.Name.ToString()}, {"stance", "against"}}
-            }, npc, new ActionContext(profile, null));
+         if (t.Skip(Hero.MainHero.Spouse != spouse,
+                "could not seed the marriage on this campaign (native MarriageAction did not take)")) return t.Line();
 
-         int pendingAfter = SwayExposureBehavior.Instance.Pending.Count(p => p.TargetId == target.StringId);
+         bool grudgePlanted = GrudgeBehavior.Instance.GrudgesFor(kin.StringId)
+                                            .Any(g => g.Source == GrudgeSource.UnblessedMarriage && g.TargetId == Hero.MainHero.StringId && !g.IsResolved);
 
-         // The real reveal timing is probabilistic/geographic (WorldEventStore.IsAwareOf); force it now,
-         // exactly the same Tier2GrudgeRules.SwayExposedGrudge + GrudgeBehavior.TryPlant call the daily
-         // tick would eventually make, without waiting on the awareness model.
-         string revealResult = SwayExposureBehavior.Instance.DebugForceReveal(target);
-         Grudge swayGrudge = GrudgeBehavior.Instance.GrudgesFor(target.StringId)
-                                          .FirstOrDefault(g => g.Source == GrudgeSource.SwayExposed && g.EventDay == today);
+         t.Note($"spouse={spouse.Name}, kin={kin.Name}: grudgePlanted={grudgePlanted}");
+         t.Expect("unblessedMarriageGrudgePlantedOnKin", grudgePlanted, true);
 
-         t.Note($"{npc.Name} vs {target.Name}: pendingQueued={pendingAfter > pendingBefore}, reveal=\"{revealResult}\", " +
-                $"swayExposedGrudgeExists={swayGrudge != null}, knownToPlayer={swayGrudge?.KnownToPlayer}");
-         t.Expect("outcomePositive", outcome?.IsPositive, true);
-         t.Expect("pendingWatchQueued", pendingAfter > pendingBefore, true);
-         t.Expect("swayExposedGrudgeFormed", swayGrudge != null, true);
-         t.Expect("hiddenFromPlayer", swayGrudge?.KnownToPlayer, false);
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Companion-victim Phase 3: the tormented companion may hold TWO grudges from one scene, CaptiveAbuse
-      ///   against the PLAYER (coerced / did not protect) and CaptorCruelty against the CAPTOR (revenge). They
-      ///   share a holder and a day, so this proves the distinct sources keep both from being collapsed by the
-      ///   holder+source+day dedup.
-      /// </summary>
-      private static string TestCompanionRevenge(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("companion_revenge");
-
-         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
-         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
-
-         var today = (int) CampaignTime.Now.ToDays;
-         Hero holder = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsLord && GrudgeBehavior.Instance.LiveGrudgesFor(h, today).Count == 0);
-         if (t.Skip(holder == null, "no grudge-free lord to stand in as the tormented companion")) return t.Line();
-
-         Hero captor = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != holder && h.IsLord);
-         if (t.Skip(captor == null, "no second lord to stand in as the captor")) return t.Line();
-
-         NpcProfile profile = GetOrCreate(behavior, holder);
-         ArrangeCleanNpc(behavior, profile, holder);
-
-         bool vsPlayer = GrudgeBehavior.Instance.TryPlant(holder, Hero.MainHero, GrudgeSource.CaptiveAbuse,
-            "[SELFTEST] I was made to suffer while they watched.", 45, true, today);
-         bool vsCaptor = GrudgeBehavior.Instance.TryPlant(holder, captor, GrudgeSource.CaptorCruelty,
-            "[SELFTEST] the captor broke me; I will see them answer.", 50, true, today);
-
-         IReadOnlyList<Grudge> held = GrudgeBehavior.Instance.GrudgesFor(holder.StringId);
-         bool playerGrudge = held.Any(g => g.Source == GrudgeSource.CaptiveAbuse && g.TargetId == Hero.MainHero.StringId && !g.IsResolved);
-         bool captorGrudge = held.Any(g => g.Source == GrudgeSource.CaptorCruelty && g.TargetId == captor.StringId && !g.IsResolved);
-
-         t.Note($"holder={holder.Name}, captor={captor.Name}: planted vsPlayer={vsPlayer}, vsCaptor={vsCaptor}");
-         t.Expect("bothPlanted", vsPlayer && vsCaptor, true);
-         t.Expect("playerGrudgeLive", playerGrudge, true);
-         t.Expect("captorRevengeGrudgeLive", captorGrudge, true);
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Prisoner trade, the buy direction end to end: a real lord is taken captive into the player's
-      ///   party, a second lord (the buyer) purchases him through the real bridge action, and the test
-      ///   asserts the gold moved to the player (clamped by PrisonerTradePolicy around the ransom anchor)
-      ///   and the captive left the player's custody. Cleanup releases the captive whatever happened.
-      /// </summary>
-      private static string TestPrisonerTrade(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("prisoner_trade");
-
-         if (t.Abort(Hero.MainHero == null || MobileParty.MainParty == null, "no player party")) return t.Line();
-
-         Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != null && h.Clan?.Leader != h);
-         if (t.Skip(captive == null, "no free lord to take captive")) return t.Line();
-
-         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h != captive && h.IsLord && !h.IsPrisoner && h.Clan != captive.Clan);
-         if (t.Skip(buyer == null, "no second lord to stand as the buyer")) return t.Line();
-
-         NpcProfile profile = GetOrCreate(behavior, buyer);
-
-         TakePrisonerAction.Apply(PartyBase.MainParty, captive);
-         if (t.Abort(!captive.IsPrisoner, "could not take the test captive")) return t.Line();
-
-         try
-         {
-            int goldBefore = Hero.MainHero.Gold;
-            int anchor = Verbs.BuyPrisonerVerb.RansomAnchor(captive);
-
-            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
-               new GameAction {
-                  Type = "buy_prisoner",
-                  Parameters = new Dictionary<string, string> {
-                     {"target", captive.Name.ToString()},
-                     {"price", "999999"} // an absurd ask, so the clamp itself is what gets proven
-                  }
-               }, buyer, new ActionContext(profile, null));
-
-            int paid = Hero.MainHero.Gold - goldBefore;
-            int expected = CalradiaRemembers.Logic.PrisonerTradePolicy.ClampPrice(999999, anchor);
-            bool leftCustody = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners().All(h => h != captive);
-
-            t.Note($"captive={captive.Name}, buyer={buyer.Name}, anchor={anchor}, paid={paid} (expected {expected}), outcome=\"{outcome?.Message}\"");
-            t.Expect("outcomePositive", outcome?.IsPositive, true);
-            t.Expect("paidTheClampedPrice", paid == expected, true);
-            t.Expect("captiveLeftPlayerCustody", leftCustody, true);
-         }
-         finally
-         {
-            // Whatever happened, the test lord goes free so the campaign is left unharmed.
-            try { if (captive.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(captive, buyer); }
-            catch { /* best-effort cleanup */ }
-         }
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Appearance pillar: proves the engine extraction + pure composer + prose store compose a usable block.
-      ///   Reads the live player's body facts, composes both voices with a scrap of authored prose, and checks
-      ///   the prose is carried and the Self voice is second person.
-      /// </summary>
-      private static string TestAppearance(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("appearance");
-
-         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
-         if (t.Abort(AppearanceProseBehavior.Instance == null, "appearance store not active (load a campaign first)")) return t.Line();
-
-         AppearanceFacts facts = AppearanceFactsExtractor.Extract(Hero.MainHero);
-         string subject = AppearanceComposer.Compose(facts, "moves with a slight limp", AppearanceVoice.Subject);
-         string self = AppearanceComposer.Compose(facts, null, AppearanceVoice.Self);
-
-         t.Note($"subject=\"{subject}\" | self=\"{self}\"");
-         t.Expect("factsExtracted", facts != null, true);
-         t.Expect("authoredProseCarried", subject.Contains("limp"), true);
-         t.Expect("selfVoiceSecondPerson", self.Length == 0 || self.StartsWith("You are"), true);
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Viable-quest referential: proves the world scan yields a grounded, non-empty menu for a live
-      ///   lord, and that its named settlement targets truly resolve (the by-construction guarantee that
-      ///   QuestFactory will ground whatever the model offers from the menu).
-      /// </summary>
-      private static string TestQuestMenu(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("quest_menu");
-
-         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
-         if (t.Skip(giver == null, "no live free lord in this campaign")) return t.Line();
-
-         int day = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
-         string menu = Quests.ViableQuestScanner.BuildMenu(giver, day);
-
-         t.Note($"giver={giver.Name} ({giver.MapFaction?.Name}), menu:\n{menu}");
-         t.Expect("menuNonEmpty", !string.IsNullOrWhiteSpace(menu), true);
-
-         if (string.IsNullOrWhiteSpace(menu)) return t.Line();
-
-         // Every line must open with a known type token, and a settlement target must truly resolve.
-         var knownTokens = new[] {
-            "bandit_hideout", "bandit_clear", "attack_lord", "capture_prisoner", "attack_faction",
-            "raid_village", "scout_army", "rescue_prisoner", "deliver_letter"
-         };
-         var allKnown = true;
-         var settlementsResolve = true;
-         foreach (string line in menu.Split('\n'))
-         {
-            string trimmed = line.Trim();
-
-            if (trimmed.Length == 0) continue;
-            if (!knownTokens.Any(tok => trimmed.StartsWith("- " + tok, StringComparison.Ordinal))) allKnown = false;
-
-            int idx = trimmed.IndexOf("target_settlement: ", StringComparison.Ordinal);
-            if (idx < 0) continue;
-
-            string name = trimmed.Substring(idx + "target_settlement: ".Length);
-            name = name.Substring(0, name.IndexOf(')') is var p and >= 0 ? p : name.Length);
-            if (!Settlement.All.Any(s => string.Equals(s?.Name?.ToString(), name, StringComparison.OrdinalIgnoreCase)))
-               settlementsResolve = false;
-         }
-
-         t.Expect("allTypeTokensKnown", allKnown, true);
-         t.Expect("settlementTargetsResolve", settlementsResolve, true);
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Child-support fix: a ProvideGold quest (a support demand) must CLOSE when the player pays its giver,
-      ///   not linger "done, return for your reward" forever (a player report). Seeds one, gives gold through
-      ///   the real take_gold bridge action, and asserts the quest is Completed with its goodwill paid. Leaves
-      ///   the economy as it found it (returns the gold to the player, removes it from the giver).
-      /// </summary>
-      private static string TestProvideGoldCompletes(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("provide_gold");
-
-         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
-
-         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
-         if (t.Skip(giver == null, "no live lord to stand as the support-asking giver")) return t.Line();
-
-         NpcProfile profile = GetOrCreate(behavior, giver);
-         var today = (int) CampaignTime.Now.ToDays;
-
-         var quest = new InformalQuest {
-            Type = QuestType.ProvideGold,
-            Description = "Help support my child.",
-            IssuedOnDay = today,
-            RewardRelation = 5,
-            Status = QuestStatus.Active
-         };
-         profile.ActiveQuests.Add(quest);
-         QuestJournalBridge.OpenMirror(quest, giver);
-         behavior.Store.Set(profile);
-
-         const int pay = 100;
-         int playerGoldBefore = Hero.MainHero.Gold;
-         int regardBefore = profile.ReputationWithPlayer;
-         if (Hero.MainHero.Gold < pay) Hero.MainHero.ChangeHeroGold(pay - Hero.MainHero.Gold);
-         int giverGoldBefore = giver.Gold;
+         NpcProfile profile = GetOrCreate(behavior, spouse);
+         ArrangeCleanNpc(behavior, profile, spouse);
 
          behavior.GameStateBridge.ExecuteAction(
-            new GameAction {Type = "take_gold", Parameters = new Dictionary<string, string> {{"amount", pay.ToString()}}},
-            giver, new ActionContext(profile, null));
+            new GameAction {Type = "end_own_marriage"}, spouse, new ActionContext(profile, null));
 
-         InformalQuest after = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.ProvideGold);
-         t.Note($"giver={giver.Name}: status={after?.Status}, awaitingReward={after?.IsAwaitingReward}, regard {regardBefore}->{profile.ReputationWithPlayer}");
-         t.Expect("questCompleted", after?.Status, QuestStatus.Completed);
-         t.Expect("notStuckAwaitingReward", after?.IsAwaitingReward, false);
-         t.Expect("goodwillPaid", profile.ReputationWithPlayer > regardBefore, true);
+         bool dissolved = Hero.MainHero.Spouse == null;
+         bool grudgeResolved = GrudgeBehavior.Instance.GrudgesFor(kin.StringId)
+                                             .Any(g => g.Source == GrudgeSource.UnblessedMarriage && g.TargetId == Hero.MainHero.StringId && g.IsResolved);
 
-         // Restore the economy: give the player back what the test moved, take it off the giver.
-         int moved = giverGoldBefore >= 0 ? giver.Gold - giverGoldBefore : 0;
-         if (moved > 0) giver.ChangeHeroGold(-moved);
-         Hero.MainHero.ChangeHeroGold(playerGoldBefore - Hero.MainHero.Gold);
+         t.Note($"after end_own_marriage: dissolved={dissolved}, grudgeResolved={grudgeResolved}");
+         t.Expect("dissolvedAfterDivorce", dissolved, true);
+         t.Expect("unblessedMarriageGrudgeClearedOnDivorce", grudgeResolved, true);
 
          return t.Line();
-      }
-
-      /// <summary>
-      ///   Personal supply quest (ProvideGoods) end-to-end: a bad-category proposal is refused by the real
-      ///   issuance pipeline (nothing grounded), a grain proposal is issued through QuestService.ApplyResponse
-      ///   and grounds a real category+count, and a real hand-over through SettleSupplyQuest takes exactly the
-      ///   required count, closes the quest (Completed), and pays the reward. Leaves the roster as it found it.
-      /// </summary>
-      private static string TestSupplyQuest(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("supply_quest");
-
-         if (t.Abort(Hero.MainHero == null || MobileParty.MainParty?.ItemRoster == null, "no player party")) return t.Line();
-
-         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
-         if (t.Skip(giver == null, "no live lord to stand as the supply-asking giver")) return t.Line();
-
-         ItemObject grain = TaleWorlds.ObjectSystem.MBObjectManager.Instance?.GetObject<ItemObject>("grain");
-         if (t.Skip(grain == null || !Items.SupplyItemMatcher.Matches(grain, ProvideGoodsPolicy.Grain), "no grain item to test the hand-over")) return t.Line();
-
-         NpcProfile profile = GetOrCreate(behavior, giver);
-         ArrangeCleanNpc(behavior, profile, giver); // clean slate so the one-task-at-a-time gate cannot block issuance
-         int day = behavior.GameStateBridge.GetCurrentGameDay();
-
-         // Refusal branch: an unrecognized goods category grounds no quest at all.
-         QuestService.ApplyResponse(profile, giver,
-            new ParsedResponse {Dialogue = "", QuestGiven = new QuestProposal {Type = QuestType.ProvideGoods, Category = "swords", RequiredCount = 5}},
-            day, behavior.GameStateBridge, behavior.Store, null);
-         bool refused = behavior.Store.Get(giver.StringId).ActiveQuests.All(q => q.Type != QuestType.ProvideGoods);
-         t.Expect("badCategoryRefused", refused, true);
-
-         // Issue a real grain supply task through the pipeline (grounds category + count).
-         const int need = 3;
-         QuestService.ApplyResponse(profile, giver,
-            new ParsedResponse {
-               Dialogue = "",
-               QuestGiven = new QuestProposal {
-                  Type = QuestType.ProvideGoods, Category = "grain", RequiredCount = need,
-                  RewardGold = 150, RewardRelation = 3, Description = $"[SELFTEST] {giver.Name} needs grain for the host."
-               }
-            },
-            day, behavior.GameStateBridge, behavior.Store, null);
-
-         profile = behavior.Store.Get(giver.StringId);
-         InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.ProvideGoods && q.IsOutstanding);
-         if (t.Abort(quest == null, $"the pipeline seeded no ProvideGoods quest for {giver.Name}")) return t.Line();
-         t.Expect("groundedCategory", quest.RequiredItemCategory, ProvideGoodsPolicy.Grain);
-         t.Expect("groundedCount", quest.RequiredItemCount, need);
-
-         // Hand over the grain through the real bridge settlement.
-         int held0 = CountItemInParty(grain);
-         MobileParty.MainParty.ItemRoster.AddToCounts(grain, need);
-         int regardBefore = profile.ReputationWithPlayer;
-
-         var offers = new List<ItemOffer> {new ItemOffer(grain.StringId, CountItemInParty(grain))};
-         ActionOutcome outcome = behavior.GameStateBridge.SettleSupplyQuest(profile, giver, quest, offers);
-
-         InformalQuest after = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.ProvideGoods);
-         int taken = held0 + need - CountItemInParty(grain);
-
-         t.Note($"giver={giver.Name}, grain={grain.Name}: grounded {quest.RequiredItemCount} {quest.RequiredItemCategory}, status={after?.Status}, taken={taken}/{need}, regard {regardBefore}->{profile.ReputationWithPlayer}");
-         t.Expect("handOverSettled", outcome?.IsPositive, true);
-         t.Expect("questCompleted", after?.Status, QuestStatus.Completed);
-         t.Expect("tookExactlyRequired", taken, need);
-         t.Expect("goodwillPaid", profile.ReputationWithPlayer > regardBefore, true);
-
-         // Restore the roster: drop any surplus grain the test added.
-         int surplus = CountItemInParty(grain) - held0;
-         if (surplus > 0) MobileParty.MainParty.ItemRoster.AddToCounts(grain, -surplus);
-
-         return t.Line();
-      }
-
-      /// <summary>
-      ///   Waylaid-letter resend: a lost letter keeps its text, and the resend path re-queues a fresh, non-lost
-      ///   letter with the SAME content (the player never retypes a waylaid letter). Cleans up the test letters
-      ///   and the courier the resend spawned, removing the letters BEFORE the courier so its disband matches no
-      ///   letter and fires no loss/popup.
-      /// </summary>
-      private static string TestCourierWaylayResend(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("courier_waylay");
-
-         Hero recipient = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
-         if (t.Skip(recipient == null, "no live lord to stand as a letter recipient")) return t.Line();
-
-         const string tag = "CR_SELFTEST_WAYLAY";
-         NpcProfile profile = GetOrCreate(behavior, recipient);
-         var today = (int) CampaignTime.Now.ToDays;
-
-         var lost = new PlayerLetter {
-            RecipientId = profile.Id,
-            RecipientName = profile.Name,
-            Content = tag,
-            SentOnDay = today,
-            DeliveryDay = today + 8,
-            IsLost = true
-         };
-         profile.ReceivedPlayerLetters.Add(lost);
-         behavior.Store.Set(profile);
-
-         Letters.CourierService.ResendWaylaidLetterForTest(behavior.Store, profile, lost);
-         profile = behavior.Store.Get(recipient.StringId);
-
-         PlayerLetter resent = profile.ReceivedPlayerLetters.LastOrDefault(l => l.Content == tag && !l.IsLost);
-         t.Note($"recipient={recipient.Name}: lostKeptText={lost.Content == tag}, resent={resent != null}");
-         t.Expect("waylaidLetterKeepsItsText", lost.Content, tag);
-         t.Expect("resendQueuedFreshLetter", resent != null, true);
-         t.Expect("resendPreservedContent", resent?.Content, tag);
-
-         string courierId = resent?.CourierPartyId;
-         profile.ReceivedPlayerLetters.RemoveAll(l => l.Content == tag);
-         behavior.Store.Set(profile);
-         if (!string.IsNullOrEmpty(courierId))
-         {
-            MobileParty cp = MobileParty.All.FirstOrDefault(p => p.StringId == courierId);
-            if (cp != null) Travel.TravelingParty.Destroy(cp);
-         }
-
-         return t.Line();
-      }
-
-      /// <summary>How many of an item the player's party currently holds.</summary>
-      private static int CountItemInParty(ItemObject item)
-      {
-         var n = 0;
-         foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
-            if (el.EquipmentElement.Item == item) n += el.Amount;
-
-         return n;
       }
 
       // ── Conversation smoke tests (each = 1 real LLM call; relevance judged from the log) ──
@@ -4301,6 +3433,441 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      // ── Nemesis pillar increment 3: bounty missions ─────────────────────────────────────────────────
+
+      private static string TestNemesisBountyCapture(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_bounty_capture");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today);
+
+         if (t.Skip(giver == null, "no lord with a resolvable region available to hold the bounty")) return t.Line();
+         if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+
+         t.Expect("eligibleBeforeIssue", NemesisBountyDialogFlow.FindEligibleNemesisFor(giver) == nem, true);
+
+         int expectedGold = NemesisBountyRewardPolicy.ComputeGold(nem.RecaptureCount, nem.TimesEncountered);
+         int expectedRelation = NemesisBountyRewardPolicy.ComputeRelation(nem.RecaptureCount);
+         var displayName = $"{nem.Name} {nem.Epithet}";
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         InformalQuest quest = QuestService.IssueNemesisBounty(
+            profile, giver, nemesisHero, displayName, expectedGold, expectedRelation, today, behavior.Store);
+
+         if (t.Abort(quest == null, $"IssueNemesisBounty refused ({giver.Name} already had an outstanding task?)")) return t.Line();
+
+         t.Expect("noLongerEligibleOnceIssued", NemesisBountyDialogFlow.FindEligibleNemesisFor(giver) == nem, false);
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, nemesisHero);
+         bool captured = nemesisHero.IsPrisoner && nemesisHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+
+         if (t.Abort(!captured, $"capture failed for {nemesisHero.Name}")) return t.Line();
+
+         InformalQuest after = behavior.Store.Get(giver.StringId)?.ActiveQuests
+                                       .FirstOrDefault(q => q.Type == QuestType.NemesisBounty && q.TargetHeroId == nemesisHero.StringId);
+
+         t.Expect("stampedByRealCapture", after != null && after.IsAwaitingReward, true);
+         t.Expect("rewardGold", after?.RewardGold, expectedGold);
+         t.Expect("rewardRelation", after?.RewardRelation, expectedRelation);
+         t.Note($"{displayName}: bounty from {giver.Name} ({expectedGold}g/+{expectedRelation}), stamped by a real capture, evidence={after?.Evidence}");
+
+         return t.Line();
+      }
+
+      private static string TestNemesisBountyExecute(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_bounty_execute");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today);
+
+         if (t.Skip(giver == null, "no lord with a resolvable region available to hold the bounty")) return t.Line();
+         if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+
+         int expectedGold = NemesisBountyRewardPolicy.ComputeGold(nem.RecaptureCount, nem.TimesEncountered);
+         int expectedRelation = NemesisBountyRewardPolicy.ComputeRelation(nem.RecaptureCount);
+         var displayName = $"{nem.Name} {nem.Epithet}";
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         InformalQuest quest = QuestService.IssueNemesisBounty(
+            profile, giver, nemesisHero, displayName, expectedGold, expectedRelation, today, behavior.Store);
+
+         if (t.Abort(quest == null, $"IssueNemesisBounty refused ({giver.Name} already had an outstanding task?)")) return t.Line();
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, nemesisHero);
+         bool captured = nemesisHero.IsPrisoner && nemesisHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+
+         if (t.Abort(!captured, $"capture failed for {nemesisHero.Name}")) return t.Line();
+
+         // The REAL bridge action a captor-scene LLM emission triggers, the same call
+         // TestNemesisExecutePrisoner exercises, so both the vendetta resolution AND the bounty
+         // stamp are proven off the one real event, not two separate harnesses.
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "execute_prisoner"}, nemesisHero, null);
+
+         t.Expect("outcomePositive", outcome?.IsPositive, true);
+         t.Expect("nemesisResolved", nem.IsAlive, false);
+
+         InformalQuest after = behavior.Store.Get(giver.StringId)?.ActiveQuests
+                                       .FirstOrDefault(q => q.Type == QuestType.NemesisBounty && q.TargetHeroId == nemesisHero.StringId);
+
+         t.Expect("stampedByRealExecution", after != null && after.IsAwaitingReward, true);
+         t.Note($"{displayName}: bounty from {giver.Name} ({expectedGold}g/+{expectedRelation}), stamped by a real execution, evidence={after?.Evidence}");
+
+         return t.Line();
+      }
+
+      private static string TestNemesisExecuted(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_execute");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_execute", today);
+
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+
+         NemesisResolutionBehavior.Resolve(hero, Hero.MainHero, true);
+
+         t.Expect("isAlive", nem.IsAlive, false);
+
+         WorldEvent closure = WorldEventStore.Instance.GetPlayerChronicle()
+                                             .LastOrDefault(e => e.Day == today && e.ActorIds != null && e.ActorIds.Contains(hero.StringId));
+
+         t.Expect("closureRecorded", closure != null, true);
+
+         string playerName = Hero.MainHero.Name?.ToString() ?? "the player";
+         var displayName = $"{nem.Name} {nem.Epithet}";
+         string expectedExecutedSummary = NemesisResolutionPolicy.ClosureSummary(playerName, displayName, NemesisResolutionKind.Executed);
+         string battleFlavorSummary = NemesisResolutionPolicy.ClosureSummary(playerName, displayName, NemesisResolutionKind.KilledInBattle);
+
+         t.Expect("summaryMatchesExecutedFlavor", closure?.Summary, expectedExecutedSummary);
+         t.Expect("summaryDiffersFromBattleFlavor", closure?.Summary != battleFlavorSummary, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The R2/R3 chat-driven in-game entry point's own wiring, end to end: a fresh nemesis is REALLY
+      ///   captured (TakePrisonerAction, the same call the rest of the mod's prisoner tests use), the
+      ///   detection helper NemesisPrisonerDialogFlow's hero_main_options gate consults must find him, and
+      ///   the execute_prisoner bridge action (the real BannerlordGameStateBridge.ExecuteAction call the
+      ///   LLM's [ACTION] emission triggers during the captor scene, not the Resolve() test harness the
+      ///   other two nemesis tests use) must still land on the existing HeroKilledEvent hook.
+      /// </summary>
+      private static string TestNemesisExecutePrisoner(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_execute_prisoner");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_execute_prisoner", today);
+
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+
+         t.Expect("notHeldBeforeCapture", NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() == hero, false);
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, hero);
+         bool captured = hero.IsPrisoner && hero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+
+         if (t.Abort(!captured, $"capture failed for {hero.Name}")) return t.Line();
+
+         t.Expect("detectionReturnsHeldNemesis", NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() == hero, true);
+
+         // The REAL bridge action a captor-scene LLM emission triggers (not NemesisResolutionBehavior's
+         // Resolve() harness): proves the chat-driven entry point's own action reaches the same
+         // HeroKilledEvent hook the resolution behaviour already listens for.
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "execute_prisoner"}, hero, null);
+
+         t.Expect("outcomePositive", outcome?.IsPositive, true);
+         t.Expect("isAlive", nem.IsAlive, false);
+
+         WorldEvent closure = WorldEventStore.Instance.GetPlayerChronicle()
+                                             .LastOrDefault(e => e.Day == today && e.ActorIds != null && e.ActorIds.Contains(hero.StringId));
+
+         t.Expect("closureRecorded", closure != null, true);
+         t.Note($"{nem.Name} {nem.Epithet}: minted, really captured, detected as held, executed via the real bridge action; summary={closure?.Summary}");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Active hunt (map-presence): a latent nemesis of a live bandit band's culture materializes INTO that
+      ///   band when the player engages it, so a battle the player chose to start can put the hunt's target in
+      ///   front of him. Seeds a looters nemesis (region-agnostic, so the match is culture-only), forces the
+      ///   roll, and asserts the nemesis Hero joined the band's roster. Cleans up: detach + mark the identity dead.
+      /// </summary>
+      private static string TestNemesisHunt(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_hunt");
+
+         var nem = NemesisBehavior.Instance;
+
+         if (t.Abort(nem == null, "NemesisBehavior not active")) return t.Line();
+
+         MobileParty band = MobileParty.All.FirstOrDefault(p =>
+            p != null && p.IsBandit && p.MapEvent == null && p.ActualClan?.StringId == "looters");
+
+         if (t.Skip(band == null, "no free looters band on the map to test the hunt")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         // "wilds" is an unresolvable region key, so the match is culture-only (no proximity gate for the test).
+         (Hero hero, NemesisIdentity identity) = MintSelfTestNemesis("wilds", today);
+
+         if (t.Abort(hero == null || identity == null, "could not mint a test nemesis")) return t.Line();
+
+         // Make ours the most-established so FindHuntableNemesisNear picks it over any other looters nemesis,
+         // and ensure it is latent (detach from anywhere the mint may have left the Hero).
+         identity.TimesEncountered = 99999;
+         NemesisBehavior.DetachToLatent(hero);
+
+         Hero materialized = null;
+         try
+         {
+            materialized = nem.TryMaterializeInto(band, true);
+            bool inBand = materialized != null && materialized.PartyBelongedTo == band;
+
+            t.Note($"band={band.Name} (looters), materialized={materialized?.Name}, joinedBand={inBand}");
+            t.Expect("materialized", materialized != null, true);
+            t.Expect("joinedTheBand", inBand, true);
+         }
+         finally
+         {
+            if (materialized != null) NemesisBehavior.DetachToLatent(materialized);
+            identity.IsAlive = false;
+         }
+
+         return t.Line();
+      }
+
+      private static string TestNemesisKilledInBattle(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_kill");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_battle", today);
+
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+
+         NemesisResolutionBehavior.Resolve(hero, Hero.MainHero, false);
+
+         t.Expect("isAlive", nem.IsAlive, false);
+         t.Expect("deathDayStamped", nem.DeathDay == today, true);
+
+         WorldEvent closure = WorldEventStore.Instance.GetPlayerChronicle()
+                                             .LastOrDefault(e => e.Day == today && e.ActorIds != null && e.ActorIds.Contains(hero.StringId));
+
+         t.Expect("closureRecorded", closure != null, true);
+         t.Note($"summary={closure?.Summary}");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Nemesis increment 1 mint wiring (deterministic, no LLM): minting a nemesis captor creates a
+      ///   PERSISTENT Hero WITH a memory profile (so cr.memory/cr.info work on him = the "Ranulf has no
+      ///   memory" bug fixed by construction), reuses the SAME Hero for the same band+region, and mints a
+      ///   DISTINCT one per region. NOTE: plants test nemeses into the roster, reload after the sweep.
+      /// </summary>
+      private static string TestNemesisMint(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_mint");
+
+         var nb = NemesisBehavior.Instance;
+
+         if (t.Skip(nb == null, "NemesisBehavior not available")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Hero h1 = nb.MintCaptorFor("looters", "selftest_region", today);
+
+         if (t.Abort(h1 == null, "mint returned no Hero (bandit clan/template unavailable?)")) return t.Line();
+
+         t.Expect("nemesisHeroHasMemoryProfile", behavior.Store?.Get(h1.StringId) != null, true);
+
+         Hero h2 = nb.MintCaptorFor("looters", "selftest_region", today);
+         t.Expect("sameRegionReusesSameHero", h2 == h1, true);
+
+         Hero h3 = nb.MintCaptorFor("looters", "selftest_other_region", today);
+         t.Expect("differentRegionMintsDistinctHero", h3 != h1, true);
+
+         t.Note($"minted nemesis {h1.Name}: profile registered, reused in-region, distinct across regions. Plants test nemeses (reload after the sweep).");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Nemesis pillar increment 4 (SPARE + TURN): the whole turn path through the REAL bridge action, on a
+      ///   really-captured nemesis. First forces his stance below the gate floor and asserts the offer is
+      ///   REFUSED and he stays a prisoner; then raises Fear/Respect past the floors and asserts he TURNS,
+      ///   is marked turned, is released, and is sworn into the player's clan. His minted traits (low Honor,
+      ///   some Calculating) are already non-defiant, so only the stance floors need forcing.
+      /// </summary>
+      private static string TestNemesisTurn(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_turn");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null || Clan.PlayerClan == null, "no player hero/clan")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_turn", today);
+
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, hero);
+
+         if (t.Abort(NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() != hero, $"capture/detection failed for {hero.Name}")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, hero);
+
+         // Refusal: a nemesis who does not fear you enough will not bend, and stays your prisoner.
+         profile.StanceFear = NemesisTurnPolicy.FearFloor - 20;
+         profile.StanceRespect = NemesisTurnPolicy.RespectFloor + 20;
+         behavior.Store.Set(profile);
+         ActionOutcome refused = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "turn_nemesis"}, hero, null);
+         t.Expect("fearlessRefuses", refused?.IsPositive, false);
+         t.Expect("stillPrisonerAfterRefusal", hero.IsPrisoner, true);
+         t.Expect("notTurnedAfterRefusal", nem.IsTurned, false);
+
+         // Acceptance: cowed AND respectful, with a light grudge, the archetype that turns.
+         profile.StanceFear = NemesisTurnPolicy.FearFloor + 30;
+         profile.StanceRespect = NemesisTurnPolicy.RespectFloor + 20;
+         behavior.Store.Set(profile);
+         ActionOutcome turned = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "turn_nemesis"}, hero, null);
+         t.Expect("cowedRespectfulTurns", turned?.IsPositive, true);
+         t.Expect("identityMarkedTurned", nem.IsTurned, true);
+         t.Expect("releasedFromCaptivity", hero.IsPrisoner, false);
+         t.Expect("swornIntoPlayerClan", hero.Clan == Clan.PlayerClan, true);
+         t.Note($"{nem.Name} {nem.Epithet}: captured, refused when fearless, turned when cowed+respectful; now of clan {hero.Clan?.Name?.ToString() ?? "?"}.");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Party troop-count wiring (deterministic, no LLM): a companion physically in the player's party
+      ///   sees the real troop count in context, so it stops hallucinating the army size. Skips when the
+      ///   player has no party companion to speak for.
+      /// </summary>
+      private static string TestPartyTroopCount(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("party_troop_count");
+
+         Hero member = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != null && h != Hero.MainHero && h.IsAlive && h.PartyBelongedTo == MobileParty.MainParty);
+
+         if (t.Skip(member == null, "no companion in the player's party")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, member);
+         EncounterContext ctx = EncounterContextBuilder.Build(
+            member, profile, behavior.GameStateBridge, "How many soldiers do we have?");
+
+         t.Expect("partyMemberSeesTroopCount", ctx.PlayerPartyTroopCount > 0, true);
+         t.Note($"party member {member.Name} sees troop count {ctx.PlayerPartyTroopCount} (surfaced to party companions, hidden from non-party NPCs).");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Divorce, Phase 2a: exercises end_own_marriage through the REAL bridge.ExecuteAction path against
+      ///   two scenarios sharing the tiered consequence engine with the NPC-NPC case (Phase 1) and the
+      ///   accept_divorce path (Phase 2b). Mirrors TestSpouseDivorceDemand's arrange/skip shape: marriage
+      ///   seeding is best-effort (a clan-leader player, or one already deep in another test's mutations,
+      ///   can genuinely fail to seed), so a failed seed skips cleanly rather than mis-reporting the action
+      ///   itself as broken.
+      /// </summary>
+      private static string TestPlayerDivorce(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("player_divorce");
+
+         if (t.Abort(DivorceProcessBehavior.Instance == null, "DivorceProcessBehavior not active")) return t.Line();
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+
+         // ── Scenario A: REPUDIATED — a happy (neutral) spouse, the player ends it anyway ────────────
+         Hero spouseA = Hero.MainHero.Spouse;
+
+         if (spouseA == null)
+         {
+            spouseA = FindTestSpouseForPlayer();
+
+            if (t.Skip(spouseA == null, "no eligible test spouse found to marry the player (scenario A)")) return t.Line();
+
+            MarriageAction.Apply(Hero.MainHero, spouseA);
+
+            // Seeding is best-effort: a clan-leader player the model will not relocate, etc. Skip cleanly
+            // rather than mis-report the action path as broken.
+            if (t.Skip(Hero.MainHero.Spouse != spouseA,
+                   "could not seed a marriage on this campaign (native MarriageAction did not take); end_own_marriage path unchanged")) return t.Line();
+         }
+
+         NpcProfile profileA = GetOrCreate(behavior, spouseA);
+         ArrangeCleanNpc(behavior, profileA, spouseA); // neutral relation, no pending demand — happy enough to be repudiated
+
+         int todayA = behavior.GameStateBridge.GetCurrentGameDay();
+
+         ActionOutcome repudiatedOutcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "end_own_marriage"}, spouseA, new ActionContext(profileA, null));
+
+         bool dissolvedRepudiated = Hero.MainHero.Spouse == null;
+         bool neitherClanlessRepudiated = Hero.MainHero.Clan != null && spouseA.Clan != null;
+         bool repudiatedGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(spouseA.StringId)
+                                                      .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == todayA);
+
+         t.Note($"scenario A (repudiated) spouse={spouseA.Name}: outcome={(repudiatedOutcome != null ? repudiatedOutcome.IsPositive.ToString() : "null")}");
+         // A repudiation succeeds mechanically but cues NEGATIVE (red): the player wronged an unwilling spouse.
+         t.Expect("repudiatedOutcomeCuesNegative", repudiatedOutcome is {IsPositive: false}, true);
+         t.Expect("dissolvedAfterRepudiated", dissolvedRepudiated, true);
+         t.Expect("neitherClanlessAfterRepudiated", neitherClanlessRepudiated, true);
+         t.Expect("repudiatedGrudgePlanted", repudiatedGrudgePlanted, true);
+
+         // ── Scenario B: MUTUAL — a miserable spouse, the player ends it, no grudge storm ─────────────
+         Hero spouseB = FindTestSpouseForPlayer(spouseA);
+
+         if (t.Skip(spouseB == null, "no second eligible test spouse found for the mutual scenario")) return t.Line();
+
+         MarriageAction.Apply(Hero.MainHero, spouseB);
+
+         if (t.Skip(Hero.MainHero.Spouse != spouseB,
+                "could not seed the second marriage on this campaign (native MarriageAction did not take); mutual path unexercised")) return t.Line();
+
+         NpcProfile profileB = GetOrCreate(behavior, spouseB);
+         ArrangeCleanNpc(behavior, profileB, spouseB);
+
+         int miserable = DivorcePolicy.UnhappyThreshold - 5; // comfortably unhappy, mirrors cr.divorce_setup's own seed
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouseB, Hero.MainHero, miserable - spouseB.GetRelation(Hero.MainHero), false);
+
+         int todayB = behavior.GameStateBridge.GetCurrentGameDay();
+
+         ActionOutcome mutualOutcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "end_own_marriage"}, spouseB, new ActionContext(profileB, null));
+
+         bool dissolvedMutual = Hero.MainHero.Spouse == null;
+         bool noGrudgeAfterMutual = !GrudgeBehavior.Instance.GrudgesFor(spouseB.StringId)
+                                                   .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == todayB);
+
+         t.Note($"scenario B (mutual) spouse={spouseB.Name}: outcome={(mutualOutcome != null ? mutualOutcome.IsPositive.ToString() : "null")}");
+         t.Expect("mutualOutcomePositive", mutualOutcome is {IsPositive: true}, true);
+         t.Expect("dissolvedAfterMutual", dissolvedMutual, true);
+         t.Expect("noGrudgeAfterMutual", noGrudgeAfterMutual, true);
+
+         return t.Line();
+      }
+
       private static string TestPregnancy(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("pregnancy");
@@ -4324,6 +3891,73 @@ namespace CalradiaRemembers.Diagnostics
             string refused = PregnancyService.TryConceive(infertile, Hero.MainHero, true);
             t.Note($"ageGate={infertile.Name}(age {infertile.Age:0})");
             t.Expect("infertileRefused", refused == null, true);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Prisoner trade, the buy direction end to end: a real lord is taken captive into the player's
+      ///   party, a second lord (the buyer) purchases him through the real bridge action, and the test
+      ///   asserts the gold moved to the player (clamped by PrisonerTradePolicy around the ransom anchor)
+      ///   and the captive left the player's custody. Cleanup releases the captive whatever happened.
+      /// </summary>
+      private static string TestPrisonerTrade(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("prisoner_trade");
+
+         if (t.Abort(Hero.MainHero == null || MobileParty.MainParty == null, "no player party")) return t.Line();
+
+         Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != null && h.Clan?.Leader != h);
+
+         if (t.Skip(captive == null, "no free lord to take captive")) return t.Line();
+
+         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h != captive && h.IsLord && !h.IsPrisoner && h.Clan != captive.Clan);
+
+         if (t.Skip(buyer == null, "no second lord to stand as the buyer")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, buyer);
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, captive);
+
+         if (t.Abort(!captive.IsPrisoner, "could not take the test captive")) return t.Line();
+
+         try
+         {
+            int goldBefore = Hero.MainHero.Gold;
+            int anchor = BuyPrisonerVerb.RansomAnchor(captive);
+
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {
+                  Type = "buy_prisoner",
+                  Parameters = new Dictionary<string, string> {
+                     {"target", captive.Name.ToString()},
+                     {"price", "999999"} // an absurd ask, so the clamp itself is what gets proven
+                  }
+               }, buyer, new ActionContext(profile, null));
+
+            int paid = Hero.MainHero.Gold - goldBefore;
+            int expected = PrisonerTradePolicy.ClampPrice(999999, anchor);
+            bool leftCustody = BuyPrisonerVerb.PlayerHeldHeroPrisoners().All(h => h != captive);
+
+            t.Note($"captive={captive.Name}, buyer={buyer.Name}, anchor={anchor}, paid={paid} (expected {expected}), outcome=\"{outcome?.Message}\"");
+            t.Expect("outcomePositive", outcome?.IsPositive, true);
+            t.Expect("paidTheClampedPrice", paid == expected, true);
+            t.Expect("captiveLeftPlayerCustody", leftCustody, true);
+         }
+         finally
+         {
+            // Whatever happened, the test lord goes free so the campaign is left unharmed.
+            try
+            {
+               if (captive.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(captive, buyer);
+            }
+            catch
+            {
+               /* best-effort cleanup */
+            }
          }
 
          return t.Line();
@@ -4374,9 +4008,66 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      /// <summary>
+      ///   Child-support fix: a ProvideGold quest (a support demand) must CLOSE when the player pays its giver,
+      ///   not linger "done, return for your reward" forever (a player report). Seeds one, gives gold through
+      ///   the real take_gold bridge action, and asserts the quest is Completed with its goodwill paid. Leaves
+      ///   the economy as it found it (returns the gold to the player, removes it from the giver).
+      /// </summary>
+      private static string TestProvideGoldCompletes(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("provide_gold");
+
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+
+         if (t.Skip(giver == null, "no live lord to stand as the support-asking giver")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         var today = (int) CampaignTime.Now.ToDays;
+
+         var quest = new InformalQuest {
+            Type = QuestType.ProvideGold,
+            Description = "Help support my child.",
+            IssuedOnDay = today,
+            RewardRelation = 5,
+            Status = QuestStatus.Active
+         };
+         profile.ActiveQuests.Add(quest);
+         QuestJournalBridge.OpenMirror(quest, giver);
+         behavior.Store.Set(profile);
+
+         const int pay = 100;
+         int playerGoldBefore = Hero.MainHero.Gold;
+         int regardBefore = profile.ReputationWithPlayer;
+         if (Hero.MainHero.Gold < pay) Hero.MainHero.ChangeHeroGold(pay - Hero.MainHero.Gold);
+         int giverGoldBefore = giver.Gold;
+
+         behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "take_gold", Parameters = new Dictionary<string, string> {{"amount", pay.ToString()}}},
+            giver, new ActionContext(profile, null));
+
+         InformalQuest after = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.ProvideGold);
+         t.Note($"giver={giver.Name}: status={after?.Status}, awaitingReward={after?.IsAwaitingReward}, regard {regardBefore}->{profile.ReputationWithPlayer}");
+         t.Expect("questCompleted", after?.Status, QuestStatus.Completed);
+         t.Expect("notStuckAwaitingReward", after?.IsAwaitingReward, false);
+         t.Expect("goodwillPaid", profile.ReputationWithPlayer > regardBefore, true);
+
+         // Restore the economy: give the player back what the test moved, take it off the giver.
+         int moved = giverGoldBefore >= 0
+            ? giver.Gold - giverGoldBefore
+            : 0;
+         if (moved > 0) giver.ChangeHeroGold(-moved);
+         Hero.MainHero.ChangeHeroGold(playerGoldBefore - Hero.MainHero.Gold);
+
+         return t.Line();
+      }
+
       private static string TestQuestHideout(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("quest_hideout");
+
 
          bool Infested(Settlement h)
          {
@@ -4384,7 +4075,9 @@ namespace CalradiaRemembers.Diagnostics
             catch { return false; }
          }
 
+
          Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+
          if (t.Skip(giver == null, "no live lords in this campaign")) return t.Line();
 
          // Pick a town that actually has an infested lair in range, so the real pipeline can bind one and the
@@ -4423,6 +4116,59 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      /// <summary>
+      ///   Viable-quest referential: proves the world scan yields a grounded, non-empty menu for a live
+      ///   lord, and that its named settlement targets truly resolve (the by-construction guarantee that
+      ///   QuestFactory will ground whatever the model offers from the menu).
+      /// </summary>
+      private static string TestQuestMenu(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("quest_menu");
+
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+
+         if (t.Skip(giver == null, "no live free lord in this campaign")) return t.Line();
+
+         int day = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
+         string menu = ViableQuestScanner.BuildMenu(giver, day);
+
+         t.Note($"giver={giver.Name} ({giver.MapFaction?.Name}), menu:\n{menu}");
+         t.Expect("menuNonEmpty", !string.IsNullOrWhiteSpace(menu), true);
+
+         if (string.IsNullOrWhiteSpace(menu)) return t.Line();
+
+         // Every line must open with a known type token, and a settlement target must truly resolve.
+         var knownTokens = new[] {
+            "bandit_hideout", "bandit_clear", "attack_lord", "capture_prisoner", "attack_faction",
+            "raid_village", "scout_army", "rescue_prisoner", "deliver_letter"
+         };
+         var allKnown = true;
+         var settlementsResolve = true;
+         foreach (string line in menu.Split('\n'))
+         {
+            string trimmed = line.Trim();
+
+            if (trimmed.Length == 0) continue;
+            if (!knownTokens.Any(tok => trimmed.StartsWith("- " + tok, StringComparison.Ordinal))) allKnown = false;
+
+            int idx = trimmed.IndexOf("target_settlement: ", StringComparison.Ordinal);
+
+            if (idx < 0) continue;
+
+            string name = trimmed.Substring(idx + "target_settlement: ".Length);
+            name = name.Substring(0, name.IndexOf(')') is var p and >= 0
+               ? p
+               : name.Length);
+            if (!Settlement.All.Any(s => string.Equals(s?.Name?.ToString(), name, StringComparison.OrdinalIgnoreCase)))
+               settlementsResolve = false;
+         }
+
+         t.Expect("allTypeTokensKnown", allKnown, true);
+         t.Expect("settlementTargetsResolve", settlementsResolve, true);
+
+         return t.Line();
+      }
+
       private static string TestRecruit(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("recruit");
@@ -4449,6 +4195,49 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Note($"{lord.Name}: {oldClan} -> {lord.Clan?.Name?.ToString() ?? "—"}");
          t.Expect("joinedYourClan", lord.Clan == playerClan, true);
+
+         return t.Line();
+      }
+
+      // ── give_troops / spend_influence (04/07/2026 — reciprocal of lend_troops / give_influence) ──
+
+      private static string TestRpGiveTroops(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("rp_give_troops");
+
+         (Hero lord, NpcProfile profile, int expected)? seed = SeedGiveTroopsEligible(behavior);
+
+         if (t.Skip(seed == null, "no lord leading a genuinely under-strength party nearby, even after forcing relation")) return t.Line();
+         (Hero lord, NpcProfile profile, int expected) = seed.Value;
+
+         MobileParty npcParty = lord.PartyBelongedTo;
+         MobileParty playerParty = MobileParty.MainParty;
+
+         if (t.Abort(npcParty == null || playerParty == null, "a party vanished between eligibility check and execution")) return t.Line();
+
+         int npcBefore = npcParty.MemberRoster.TotalManCount;
+         int playerBefore = playerParty.MemberRoster.TotalManCount;
+         var today = (int) CampaignTime.Now.ToDays;
+
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "give_troops"}, lord, new ActionContext(profile, null));
+
+         int npcAfter = npcParty.MemberRoster.TotalManCount;
+         int playerAfter = playerParty.MemberRoster.TotalManCount;
+         NpcProfile after = behavior.Store.Get(lord.StringId);
+         bool marked = after != null &&
+                       after.Events.Any(e =>
+                          !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.GiveTroopsMarker, StringComparison.Ordinal) >= 0);
+
+         IReadOnlyList<Appreciation> appreciations = AppreciationBehavior.Instance?.AppreciationsFor(lord.StringId) ?? Array.Empty<Appreciation>();
+         bool appreciationPlanted = appreciations.Any(a => a.Source == AppreciationSource.TroopsOrInfluenceSpentForThem && a.EventDay == today);
+
+         t.Note($"lord={lord.Name} expected={expected}, npcTroops {npcBefore}->{npcAfter}, playerTroops {playerBefore}->{playerAfter}");
+         t.Expect("outcomePositive", outcome?.IsPositive, true);
+         t.Expect("npcGained", npcAfter - npcBefore, expected);
+         t.Expect("playerLost", playerBefore - playerAfter, expected);
+         t.Expect("markerStamped", marked, true);
+         t.Expect("appreciationPlanted", appreciationPlanted, true);
 
          return t.Line();
       }
@@ -4516,6 +4305,49 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("outcomePositive", outcome?.IsPositive, true);
          t.Expect("noLongerPrisoner", !victim.IsPrisoner, true);
          t.Expect("relationBumped", relAfter - relBefore, CourtActionPolicy.ReleasePrisonerRelationBump);
+
+         return t.Line();
+      }
+
+      private static string TestRpSpendInfluence(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("rp_spend_influence");
+
+         (Hero npc, NpcProfile profile, int amount)? seed = SeedSpendInfluenceEligible(behavior);
+
+         if (t.Skip(seed == null, "no live lord of another clan eligible to receive influence, even after forcing relation + need + player reserve")) return t.Line();
+         (Hero npc, NpcProfile profile, int amount) = seed.Value;
+
+         float npcBefore = npc.Clan.Influence;
+         float playerBefore = Clan.PlayerClan.Influence;
+         var today = (int) CampaignTime.Now.ToDays;
+
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "spend_influence"}, npc, new ActionContext(profile, null));
+
+         float npcAfter = npc.Clan.Influence;
+         float playerAfter = Clan.PlayerClan.Influence;
+         NpcProfile after = behavior.Store.Get(npc.StringId);
+         bool marked = after != null &&
+                       after.Events.Any(e =>
+                          !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.SpendInfluenceMarker, StringComparison.Ordinal) >= 0);
+
+         IReadOnlyList<Appreciation> appreciations = AppreciationBehavior.Instance?.AppreciationsFor(npc.StringId) ?? Array.Empty<Appreciation>();
+         bool appreciationPlanted = appreciations.Any(a => a.Source == AppreciationSource.TroopsOrInfluenceSpentForThem && a.EventDay == today);
+
+         // Same day, right after stamping the marker — the cooldown must refuse a repeat.
+         ActionOutcome again = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "spend_influence"}, npc, new ActionContext(after, null));
+         bool stillEligible = CourtActionResolver.TrySpendInfluence(npc, after, out _);
+
+         t.Note($"npc={npc.Name} amount={amount}, playerInfluence {playerBefore:0}->{playerAfter:0}, npcInfluence {npcBefore:0}->{npcAfter:0}");
+         t.Expect("outcomePositive", outcome?.IsPositive, true);
+         t.Expect("npcRose", npcAfter - npcBefore, (float) amount);
+         t.Expect("playerFell", playerBefore - playerAfter, (float) amount);
+         t.Expect("markerStamped", marked, true);
+         t.Expect("appreciationPlanted", appreciationPlanted, true);
+         t.Expect("secondRefused", again == null || !again.IsPositive, true);
+         t.Expect("resolverNowIneligible", !stillEligible, true);
 
          return t.Line();
       }
@@ -4608,92 +4440,6 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("npcLost", npcBefore - npcAfter, expected);
          t.Expect("noHeroesMoved", playerHeroesAfter, playerHeroesBefore);
          t.Expect("markerStamped", marked, true);
-
-         return t.Line();
-      }
-
-      // ── give_troops / spend_influence (04/07/2026 — reciprocal of lend_troops / give_influence) ──
-
-      private static string TestRpGiveTroops(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("rp_give_troops");
-
-         (Hero lord, NpcProfile profile, int expected)? seed = SeedGiveTroopsEligible(behavior);
-
-         if (t.Skip(seed == null, "no lord leading a genuinely under-strength party nearby, even after forcing relation")) return t.Line();
-         (Hero lord, NpcProfile profile, int expected) = seed.Value;
-
-         MobileParty npcParty = lord.PartyBelongedTo;
-         MobileParty playerParty = MobileParty.MainParty;
-
-         if (t.Abort(npcParty == null || playerParty == null, "a party vanished between eligibility check and execution")) return t.Line();
-
-         int npcBefore = npcParty.MemberRoster.TotalManCount;
-         int playerBefore = playerParty.MemberRoster.TotalManCount;
-         var today = (int) CampaignTime.Now.ToDays;
-
-         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
-            new GameAction {Type = "give_troops"}, lord, new ActionContext(profile, null));
-
-         int npcAfter = npcParty.MemberRoster.TotalManCount;
-         int playerAfter = playerParty.MemberRoster.TotalManCount;
-         NpcProfile after = behavior.Store.Get(lord.StringId);
-         bool marked = after != null &&
-                       after.Events.Any(e =>
-                          !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.GiveTroopsMarker, StringComparison.Ordinal) >= 0);
-
-         IReadOnlyList<Appreciation> appreciations = AppreciationBehavior.Instance?.AppreciationsFor(lord.StringId) ?? Array.Empty<Appreciation>();
-         bool appreciationPlanted = appreciations.Any(a => a.Source == AppreciationSource.TroopsOrInfluenceSpentForThem && a.EventDay == today);
-
-         t.Note($"lord={lord.Name} expected={expected}, npcTroops {npcBefore}->{npcAfter}, playerTroops {playerBefore}->{playerAfter}");
-         t.Expect("outcomePositive", outcome?.IsPositive, true);
-         t.Expect("npcGained", npcAfter - npcBefore, expected);
-         t.Expect("playerLost", playerBefore - playerAfter, expected);
-         t.Expect("markerStamped", marked, true);
-         t.Expect("appreciationPlanted", appreciationPlanted, true);
-
-         return t.Line();
-      }
-
-      private static string TestRpSpendInfluence(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("rp_spend_influence");
-
-         (Hero npc, NpcProfile profile, int amount)? seed = SeedSpendInfluenceEligible(behavior);
-
-         if (t.Skip(seed == null, "no live lord of another clan eligible to receive influence, even after forcing relation + need + player reserve")) return t.Line();
-         (Hero npc, NpcProfile profile, int amount) = seed.Value;
-
-         float npcBefore = npc.Clan.Influence;
-         float playerBefore = Clan.PlayerClan.Influence;
-         var today = (int) CampaignTime.Now.ToDays;
-
-         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
-            new GameAction {Type = "spend_influence"}, npc, new ActionContext(profile, null));
-
-         float npcAfter = npc.Clan.Influence;
-         float playerAfter = Clan.PlayerClan.Influence;
-         NpcProfile after = behavior.Store.Get(npc.StringId);
-         bool marked = after != null &&
-                       after.Events.Any(e =>
-                          !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.SpendInfluenceMarker, StringComparison.Ordinal) >= 0);
-
-         IReadOnlyList<Appreciation> appreciations = AppreciationBehavior.Instance?.AppreciationsFor(npc.StringId) ?? Array.Empty<Appreciation>();
-         bool appreciationPlanted = appreciations.Any(a => a.Source == AppreciationSource.TroopsOrInfluenceSpentForThem && a.EventDay == today);
-
-         // Same day, right after stamping the marker — the cooldown must refuse a repeat.
-         ActionOutcome again = behavior.GameStateBridge.ExecuteAction(
-            new GameAction {Type = "spend_influence"}, npc, new ActionContext(after, null));
-         bool stillEligible = CourtActionResolver.TrySpendInfluence(npc, after, out _);
-
-         t.Note($"npc={npc.Name} amount={amount}, playerInfluence {playerBefore:0}->{playerAfter:0}, npcInfluence {npcBefore:0}->{npcAfter:0}");
-         t.Expect("outcomePositive", outcome?.IsPositive, true);
-         t.Expect("npcRose", npcAfter - npcBefore, (float) amount);
-         t.Expect("playerFell", playerBefore - playerAfter, (float) amount);
-         t.Expect("markerStamped", marked, true);
-         t.Expect("appreciationPlanted", appreciationPlanted, true);
-         t.Expect("secondRefused", again == null || !again.IsPositive, true);
-         t.Expect("resolverNowIneligible", !stillEligible, true);
 
          return t.Line();
       }
@@ -4797,6 +4543,203 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      // ── DIVORCE, Phase 2b: the player's OWN spouse demands the divorce ────────────────────────────
+
+      /// <summary>
+      ///   Scenario A (accept): marries the player to a test spouse when unmarried (reuses the real
+      ///   marriage if the campaign already has one), force-demands, then exercises accept_divorce through
+      ///   the real bridge path — asserts the marriage dissolved, neither party left clanless, and the
+      ///   demand flag cleared. Scenario B (decline): marries the player to a SECOND test spouse (freed up
+      ///   by Scenario A's dissolution), force-demands, exercises decline_divorce — asserts the demand flag
+      ///   cleared (so it can resurface) and a GrudgeSource.Divorce grudge planted on the refused spouse.
+      ///   Best-effort: either scenario is skipped, with a note, on a barren campaign (no eligible test
+      ///   spouse to seed), without failing the other.
+      /// </summary>
+      private static string TestSpouseDivorceDemand(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("spouse_divorce");
+
+         if (t.Abort(SpouseDivorceDemandBehavior.Instance == null, "SpouseDivorceDemandBehavior not active")) return t.Line();
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+
+         var demands = SpouseDivorceDemandBehavior.Instance;
+
+         // ── Scenario A: ACCEPT ───────────────────────────────────────────────────────────────────
+         Hero spouseA = Hero.MainHero.Spouse;
+
+         if (spouseA == null)
+         {
+            spouseA = FindTestSpouseForPlayer();
+
+            if (t.Skip(spouseA == null, "no eligible test spouse found to marry the player (scenario A)")) return t.Line();
+
+            MarriageAction.Apply(Hero.MainHero, spouseA);
+
+            // The native marriage does not always take from a console context (a clan-leader player the model
+            // will not relocate, etc.). Seeding is best-effort: skip cleanly rather than mis-report the demand
+            // path as broken. The path itself is exercised in full whenever the player already has a spouse.
+            if (t.Skip(Hero.MainHero.Spouse != spouseA,
+                   "could not seed a marriage on this campaign (native MarriageAction did not take); demand path unchanged")) return t.Line();
+         }
+
+         NpcProfile profileA = GetOrCreate(behavior, spouseA);
+         ArrangeCleanNpc(behavior, profileA, spouseA);
+
+         demands.ForceDemand();
+         bool demandingBeforeAccept = demands.IsDemanding(spouseA.StringId);
+
+         if (t.Abort(!demandingBeforeAccept, "force-demand did not set the flag (scenario A)")) return t.Line();
+
+         ActionOutcome acceptOutcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "accept_divorce"}, spouseA, new ActionContext(profileA, null));
+
+         bool dissolved = Hero.MainHero.Spouse == null;
+         bool neitherClanless = Hero.MainHero.Clan != null && spouseA.Clan != null;
+         bool flagClearedAfterAccept = !demands.IsDemanding(spouseA.StringId);
+
+         t.Note($"scenario A (accept) spouse={spouseA.Name}: outcome={(acceptOutcome != null ? acceptOutcome.IsPositive.ToString() : "null")}");
+         t.Expect("acceptOutcomePositive", acceptOutcome is {IsPositive: true}, true);
+         t.Expect("dissolvedAfterAccept", dissolved, true);
+         t.Expect("neitherClanlessAfterAccept", neitherClanless, true);
+         t.Expect("demandFlagClearedAfterAccept", flagClearedAfterAccept, true);
+
+         // ── Scenario B: DECLINE — a second, distinct test spouse (the player is free again after A) ──
+         Hero spouseB = FindTestSpouseForPlayer(spouseA);
+
+         if (t.Skip(spouseB == null, "no second eligible test spouse found for the decline scenario")) return t.Line();
+
+         MarriageAction.Apply(Hero.MainHero, spouseB);
+
+         if (t.Skip(Hero.MainHero.Spouse != spouseB,
+                "could not seed the second marriage on this campaign (native MarriageAction did not take); decline path unexercised")) return t.Line();
+
+         NpcProfile profileB = GetOrCreate(behavior, spouseB);
+         ArrangeCleanNpc(behavior, profileB, spouseB);
+
+         demands.ForceDemand();
+         bool demandingBeforeDecline = demands.IsDemanding(spouseB.StringId);
+
+         if (t.Abort(!demandingBeforeDecline, "force-demand did not set the flag (scenario B)")) return t.Line();
+
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         ActionOutcome declineOutcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "decline_divorce"}, spouseB, new ActionContext(profileB, null));
+
+         bool stillMarriedAfterDecline = Hero.MainHero.Spouse == spouseB;
+         bool flagClearedAfterDecline = !demands.IsDemanding(spouseB.StringId);
+         bool refusalGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(spouseB.StringId)
+                                                   .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == today);
+
+         t.Note($"scenario B (decline) spouse={spouseB.Name}: outcome={(declineOutcome != null ? declineOutcome.IsPositive.ToString() : "null")}");
+         t.Expect("stillMarriedAfterDecline", stillMarriedAfterDecline, true);
+         t.Expect("demandFlagClearedAfterDecline", flagClearedAfterDecline, true);
+         t.Expect("refusalGrudgePlanted", refusalGrudgePlanted, true);
+
+         return t.Line();
+      }
+
+      // ── DIVORCE ESCALATION: a refused-enough, still-miserable spouse begins ending it themselves ──
+
+      /// <summary>
+      ///   Scenario A (walk-out): marries the player to a test spouse when unmarried, force-escalates
+      ///   (bypassing the natural refusal-count gate), then force-moves the deadline to TODAY so the sweep
+      ///   walks out immediately rather than waiting the real estrangement length — asserts the marriage
+      ///   dissolved, neither party left clanless, a spouse-side Divorce grudge planted, and the escalation
+      ///   record cleared. Scenario B (reconciliation): marries the player to a SECOND test spouse
+      ///   (freed up by Scenario A's dissolution), force-escalates, then raises the relation ABOVE
+      ///   <see cref="SpouseDivorceDemandPolicy.ReconciliationThreshold" /> BEFORE ticking — asserts the
+      ///   marriage SURVIVES and the escalation record is cleared. Best-effort: either scenario is skipped,
+      ///   with a note, on a barren campaign (no eligible test spouse to seed), without failing the other.
+      /// </summary>
+      private static string TestSpouseEstrangement(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("spouse_estrangement");
+
+         if (t.Abort(SpouseDivorceDemandBehavior.Instance == null, "SpouseDivorceDemandBehavior not active")) return t.Line();
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+         var demands = SpouseDivorceDemandBehavior.Instance;
+
+         // ── Scenario A: WALK-OUT ─────────────────────────────────────────────────────────────────
+         Hero spouseA = Hero.MainHero.Spouse;
+
+         if (spouseA == null)
+         {
+            spouseA = FindTestSpouseForPlayer();
+
+            if (t.Skip(spouseA == null, "no eligible test spouse found to marry the player (scenario A)")) return t.Line();
+
+            MarriageAction.Apply(Hero.MainHero, spouseA);
+
+            if (t.Skip(Hero.MainHero.Spouse != spouseA,
+                   "could not seed a marriage on this campaign (native MarriageAction did not take); walk-out path unexercised")) return t.Line();
+         }
+
+         NpcProfile profileA = GetOrCreate(behavior, spouseA);
+         ArrangeCleanNpc(behavior, profileA, spouseA); // neutral relation — comfortably below the reconciliation bar
+
+         (bool forcedA, string forceMessageA) = demands.ForceEscalate();
+         bool estrangingBeforeTick = demands.IsEstranging(spouseA.StringId);
+
+         if (t.Abort(!forcedA || !estrangingBeforeTick, $"force-escalate did not set the record (scenario A): {forceMessageA}")) return t.Line();
+
+         int todayA = behavior.GameStateBridge.GetCurrentGameDay();
+         demands.DebugForceEscalationDeadline(spouseA.StringId, todayA); // skip the 15-day wait for this test
+
+         int worldEventsBefore = WorldEventStore.Instance.Count;
+
+         demands.RunTick();
+
+         bool dissolvedA = Hero.MainHero.Spouse == null;
+         bool neitherClanlessA = Hero.MainHero.Clan != null && spouseA.Clan != null;
+         bool escalationClearedAfterWalkOut = !demands.IsEstranging(spouseA.StringId);
+         bool walkOutGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(spouseA.StringId)
+                                                   .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == todayA);
+         bool worldEventRecorded = WorldEventStore.Instance.Count > worldEventsBefore;
+
+         t.Note($"scenario A (walk-out) spouse={spouseA.Name}");
+         t.Expect("dissolvedAfterWalkOut", dissolvedA, true);
+         t.Expect("neitherClanlessAfterWalkOut", neitherClanlessA, true);
+         t.Expect("escalationClearedAfterWalkOut", escalationClearedAfterWalkOut, true);
+         t.Expect("walkOutGrudgePlanted", walkOutGrudgePlanted, true);
+         t.Expect("walkOutWorldEventRecorded", worldEventRecorded, true);
+
+         // ── Scenario B: RECONCILIATION — a second, distinct test spouse (the player is free again after A) ──
+         Hero spouseB = FindTestSpouseForPlayer(spouseA);
+
+         if (t.Skip(spouseB == null, "no second eligible test spouse found for the reconciliation scenario")) return t.Line();
+
+         MarriageAction.Apply(Hero.MainHero, spouseB);
+
+         if (t.Skip(Hero.MainHero.Spouse != spouseB,
+                "could not seed the second marriage on this campaign (native MarriageAction did not take); reconciliation path unexercised")) return t.Line();
+
+         NpcProfile profileB = GetOrCreate(behavior, spouseB);
+         ArrangeCleanNpc(behavior, profileB, spouseB);
+
+         (bool forcedB, string forceMessageB) = demands.ForceEscalate();
+
+         if (t.Abort(!forcedB, $"force-escalate did not set the record (scenario B): {forceMessageB}")) return t.Line();
+
+         int reconciledRelation = SpouseDivorceDemandPolicy.ReconciliationThreshold + 5; // comfortably above the bar
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouseB, Hero.MainHero, reconciledRelation - spouseB.GetRelation(Hero.MainHero), false);
+
+         // Deadline is left far in the future (set by ForceEscalate itself) — reconciliation must win on its
+         // own merits, checked BEFORE the deadline, not because the deadline happened to be reached too.
+         demands.RunTick();
+
+         bool stillMarriedAfterReconciliation = Hero.MainHero.Spouse == spouseB;
+         bool escalationClearedAfterReconciliation = !demands.IsEstranging(spouseB.StringId);
+
+         t.Note($"scenario B (reconciliation) spouse={spouseB.Name}");
+         t.Expect("stillMarriedAfterReconciliation", stillMarriedAfterReconciliation, true);
+         t.Expect("escalationClearedAfterReconciliation", escalationClearedAfterReconciliation, true);
+
+         return t.Line();
+      }
+
       private static string TestStanceDeed(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("stance_deed");
@@ -4819,74 +4762,33 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
-      private static string TestStanceLetter(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("stance_letter");
-
-         Hero npc = ConversationNpc();
-
-         if (t.Skip(npc == null, "no NPC to take the stance")) return t.Line();
-         if (t.Skip(npc.Clan == Clan.PlayerClan, "NPC is in the player's own clan — no stance letters")) return t.Line();
-
-         NpcProfile profile = GetOrCreate(behavior, npc);
-         int before = profile.SentLetters.Count(l => l.Reason == LetterReason.StanceHostility);
-         profile.ReputationWithPlayer = -50; // real hostility (above lethal) -> an open-enmity Threat letter
-         profile.StanceLastConsequenceDay = 0; // cooldown elapsed
-         behavior.Store.Set(profile);
-
-         bool fired = StanceConsequenceBehavior.DebugEvaluate(npc);
-
-         NpcProfile after = behavior.Store.Get(npc.StringId);
-         int afterCount = after?.SentLetters.Count(l => l.Reason == LetterReason.StanceHostility) ?? 0;
-
-         t.Note($"{npc.Name}: rep -50 -> fired={fired}, StanceHostility letters {before}->{afterCount}, cooldownStamped={after?.StanceLastConsequenceDay}");
-         t.Expect("letterFired", fired, true);
-         t.Expect("hostilityLetterQueued", afterCount, before + 1);
-
-         return t.Line();
-      }
-
       /// <summary>
-      ///   "Stance with teeth" increment 2: the Plot verdict must fire a REAL scheme against the player
-      ///   (SchemeStore.ForcePlot), never a letter. StanceConsequencePolicy gates Plot on the lord's own
-      ///   traits (dishonourable + calculating), which the self-test cannot rely on any given campaign
-      ///   handing it, so it forces the trait levels deterministically (mirrors CharacterLoreBehavior's
-      ///   own use of Hero.SetTraitLevel) rather than hunting for a naturally-matching lord.
+      ///   Stance mechanical layer (deterministic, no LLM): the Trust delegated-risk gate BITES. A lord with a
+      ///   healthy party teaches lend_troops when Trust is earned (StanceTrust 25, via the seed), and STOPS
+      ///   teaching it once Trust, clan relation and personal regard are all zeroed. Proves the flagship stance
+      ///   work actually gates a verb, not just colours the prompt.
       /// </summary>
-      private static string TestStancePlot(NpcMemoryCampaignBehavior behavior)
+      private static string TestStanceGate(NpcMemoryCampaignBehavior behavior)
       {
-         var t = new TestRun("stance_plot");
+         var t = new TestRun("stance_gate");
 
-         if (t.Abort(SchemeStore.Instance == null, "SchemeStore not active")) return t.Line();
+         (Hero lord, NpcProfile profile, int count)? seed = SeedTroopsEligible(behavior); // seeds StanceTrust=25
 
-         Hero plotter = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsLord && h.Clan != Clan.PlayerClan &&
-            !SchemeStore.Instance.Active.Any(s => s.PlotterId == h.StringId && s.TargetId == Hero.MainHero.StringId));
+         if (t.Skip(seed == null, "no lord leading a healthy party to test the Trust gate")) return t.Line();
+         (Hero lord, NpcProfile profile, int _) = seed.Value;
 
-         if (t.Skip(plotter == null, "no lord free to plot against the player")) return t.Line();
+         EncounterContext open = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "Lend me some soldiers for the road.");
+         bool taughtWhenTrusted = open.ExtraActionTeachings?.IndexOf("lend_troops", StringComparison.OrdinalIgnoreCase) >= 0;
+         t.Expect("lendTaughtWhenTrusted", taughtWhenTrusted, true);
 
-         // Dishonourable + calculating, but not so merciless (mercy <= -1) that the policy would pick
-         // Assassinate instead of Plot.
-         plotter.SetTraitLevel(DefaultTraits.Honor, -1);
-         plotter.SetTraitLevel(DefaultTraits.Calculating, 1);
-         plotter.SetTraitLevel(DefaultTraits.Mercy, 0);
+         profile.StanceTrust = 0;
+         profile.ClanRelationWithPlayer = 0;
+         profile.ReputationWithPlayer = 0;
+         EncounterContext closed = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "Lend me some soldiers for the road.");
+         bool taughtWhenUntrusted = closed.ExtraActionTeachings?.IndexOf("lend_troops", StringComparison.OrdinalIgnoreCase) >= 0;
+         t.Expect("lendRefusedWhenUntrusted", taughtWhenUntrusted, false);
 
-         NpcProfile profile = GetOrCreate(behavior, plotter);
-         int lettersBefore = profile.SentLetters.Count;
-         profile.ReputationWithPlayer = -80; // real hatred, past the lethal-hatred floor
-         profile.StanceLastConsequenceDay = 0; // cooldown elapsed
-         behavior.Store.Set(profile);
-
-         bool fired = StanceConsequenceBehavior.DebugEvaluate(plotter);
-
-         NpcProfile after = behavior.Store.Get(plotter.StringId);
-         bool schemePlanted = SchemeStore.Instance.Active.Any(s => s.PlotterId == plotter.StringId && s.TargetId == Hero.MainHero.StringId);
-         int lettersAfter = after?.SentLetters.Count ?? lettersBefore;
-
-         t.Note($"{plotter.Name}: fired={fired}, schemeAgainstPlayer={schemePlanted}, letters {lettersBefore}->{lettersAfter}");
-         t.Expect("fired", fired, true);
-         t.Expect("schemePlantedAgainstPlayer", schemePlanted, true);
-         t.Expect("noLetterWritten", lettersAfter, lettersBefore);
+         t.Note($"Trust gate on {lord.Name}: taught at Trust 25, refused at Trust/relation/regard 0. The stance layer bites.");
 
          return t.Line();
       }
@@ -4937,6 +4839,80 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      private static string TestStanceLetter(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("stance_letter");
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC to take the stance")) return t.Line();
+         if (t.Skip(npc.Clan == Clan.PlayerClan, "NPC is in the player's own clan — no stance letters")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         int before = profile.SentLetters.Count(l => l.Reason == LetterReason.StanceHostility);
+         profile.ReputationWithPlayer = -50; // real hostility (above lethal) -> an open-enmity Threat letter
+         profile.StanceLastConsequenceDay = 0; // cooldown elapsed
+         behavior.Store.Set(profile);
+
+         bool fired = StanceConsequenceBehavior.DebugEvaluate(npc);
+
+         NpcProfile after = behavior.Store.Get(npc.StringId);
+         int afterCount = after?.SentLetters.Count(l => l.Reason == LetterReason.StanceHostility) ?? 0;
+
+         t.Note($"{npc.Name}: rep -50 -> fired={fired}, StanceHostility letters {before}->{afterCount}, cooldownStamped={after?.StanceLastConsequenceDay}");
+         t.Expect("letterFired", fired, true);
+         t.Expect("hostilityLetterQueued", afterCount, before + 1);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   "Stance with teeth" increment 2: the Plot verdict must fire a REAL scheme against the player
+      ///   (SchemeStore.ForcePlot), never a letter. StanceConsequencePolicy gates Plot on the lord's own
+      ///   traits (dishonourable + calculating), which the self-test cannot rely on any given campaign
+      ///   handing it, so it forces the trait levels deterministically (mirrors CharacterLoreBehavior's
+      ///   own use of Hero.SetTraitLevel) rather than hunting for a naturally-matching lord.
+      /// </summary>
+      private static string TestStancePlot(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("stance_plot");
+
+         if (t.Abort(SchemeStore.Instance == null, "SchemeStore not active")) return t.Line();
+
+         Hero plotter = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero &&
+            h.IsLord &&
+            h.Clan != Clan.PlayerClan &&
+            !SchemeStore.Instance.Active.Any(s => s.PlotterId == h.StringId && s.TargetId == Hero.MainHero.StringId));
+
+         if (t.Skip(plotter == null, "no lord free to plot against the player")) return t.Line();
+
+         // Dishonourable + calculating, but not so merciless (mercy <= -1) that the policy would pick
+         // Assassinate instead of Plot.
+         plotter.SetTraitLevel(DefaultTraits.Honor, -1);
+         plotter.SetTraitLevel(DefaultTraits.Calculating, 1);
+         plotter.SetTraitLevel(DefaultTraits.Mercy, 0);
+
+         NpcProfile profile = GetOrCreate(behavior, plotter);
+         int lettersBefore = profile.SentLetters.Count;
+         profile.ReputationWithPlayer = -80; // real hatred, past the lethal-hatred floor
+         profile.StanceLastConsequenceDay = 0; // cooldown elapsed
+         behavior.Store.Set(profile);
+
+         bool fired = StanceConsequenceBehavior.DebugEvaluate(plotter);
+
+         NpcProfile after = behavior.Store.Get(plotter.StringId);
+         bool schemePlanted = SchemeStore.Instance.Active.Any(s => s.PlotterId == plotter.StringId && s.TargetId == Hero.MainHero.StringId);
+         int lettersAfter = after?.SentLetters.Count ?? lettersBefore;
+
+         t.Note($"{plotter.Name}: fired={fired}, schemeAgainstPlayer={schemePlanted}, letters {lettersBefore}->{lettersAfter}");
+         t.Expect("fired", fired, true);
+         t.Expect("schemePlantedAgainstPlayer", schemePlanted, true);
+         t.Expect("noLetterWritten", lettersAfter, lettersBefore);
+
+         return t.Line();
+      }
+
       /// <summary>
       ///   "Stance with teeth" increment 2, the friendly-ladder payoff: when a real secret scheme targets
       ///   the player, the Warning letter must NAME the plotter (not just speak generic warmth). Reads the
@@ -4951,7 +4927,9 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Abort(SchemeStore.Instance == null, "SchemeStore not active")) return t.Line();
 
          Hero plotter = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsLord && h.Clan != Clan.PlayerClan &&
+            h != Hero.MainHero &&
+            h.IsLord &&
+            h.Clan != Clan.PlayerClan &&
             !SchemeStore.Instance.Active.Any(s => s.PlotterId == h.StringId && s.TargetId == Hero.MainHero.StringId));
          Hero friend = ConversationNpc();
 
@@ -5022,6 +5000,80 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("privateDropped", privateAfter == 0, true);
          t.Expect("publicKept", publicAfter == publicBefore && publicAfter >= 1, true);
          t.Expect("inheritedSet", after.InheritedFromName == predName, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Personal supply quest (ProvideGoods) end-to-end: a bad-category proposal is refused by the real
+      ///   issuance pipeline (nothing grounded), a grain proposal is issued through QuestService.ApplyResponse
+      ///   and grounds a real category+count, and a real hand-over through SettleSupplyQuest takes exactly the
+      ///   required count, closes the quest (Completed), and pays the reward. Leaves the roster as it found it.
+      /// </summary>
+      private static string TestSupplyQuest(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("supply_quest");
+
+         if (t.Abort(Hero.MainHero == null || MobileParty.MainParty?.ItemRoster == null, "no player party")) return t.Line();
+
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+
+         if (t.Skip(giver == null, "no live lord to stand as the supply-asking giver")) return t.Line();
+
+         var grain = MBObjectManager.Instance?.GetObject<ItemObject>("grain");
+
+         if (t.Skip(grain == null || !SupplyItemMatcher.Matches(grain, ProvideGoodsPolicy.Grain), "no grain item to test the hand-over")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         ArrangeCleanNpc(behavior, profile, giver); // clean slate so the one-task-at-a-time gate cannot block issuance
+         int day = behavior.GameStateBridge.GetCurrentGameDay();
+
+         // Refusal branch: an unrecognized goods category grounds no quest at all.
+         QuestService.ApplyResponse(profile, giver,
+            new ParsedResponse {Dialogue = "", QuestGiven = new QuestProposal {Type = QuestType.ProvideGoods, Category = "swords", RequiredCount = 5}},
+            day, behavior.GameStateBridge, behavior.Store, null);
+         bool refused = behavior.Store.Get(giver.StringId).ActiveQuests.All(q => q.Type != QuestType.ProvideGoods);
+         t.Expect("badCategoryRefused", refused, true);
+
+         // Issue a real grain supply task through the pipeline (grounds category + count).
+         const int need = 3;
+         QuestService.ApplyResponse(profile, giver,
+            new ParsedResponse {
+               Dialogue = "",
+               QuestGiven = new QuestProposal {
+                  Type = QuestType.ProvideGoods, Category = "grain", RequiredCount = need,
+                  RewardGold = 150, RewardRelation = 3, Description = $"[SELFTEST] {giver.Name} needs grain for the host."
+               }
+            },
+            day, behavior.GameStateBridge, behavior.Store, null);
+
+         profile = behavior.Store.Get(giver.StringId);
+         InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.ProvideGoods && q.IsOutstanding);
+
+         if (t.Abort(quest == null, $"the pipeline seeded no ProvideGoods quest for {giver.Name}")) return t.Line();
+         t.Expect("groundedCategory", quest.RequiredItemCategory, ProvideGoodsPolicy.Grain);
+         t.Expect("groundedCount", quest.RequiredItemCount, need);
+
+         // Hand over the grain through the real bridge settlement.
+         int held0 = CountItemInParty(grain);
+         MobileParty.MainParty.ItemRoster.AddToCounts(grain, need);
+         int regardBefore = profile.ReputationWithPlayer;
+
+         var offers = new List<ItemOffer> {new ItemOffer(grain.StringId, CountItemInParty(grain))};
+         ActionOutcome outcome = behavior.GameStateBridge.SettleSupplyQuest(profile, giver, quest, offers);
+
+         InformalQuest after = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.ProvideGoods);
+         int taken = held0 + need - CountItemInParty(grain);
+
+         t.Note($"giver={giver.Name}, grain={grain.Name}: grounded {quest.RequiredItemCount} {quest.RequiredItemCategory}, status={after?.Status}, taken={taken}/{need}, regard {regardBefore}->{profile.ReputationWithPlayer}");
+         t.Expect("handOverSettled", outcome?.IsPositive, true);
+         t.Expect("questCompleted", after?.Status, QuestStatus.Completed);
+         t.Expect("tookExactlyRequired", taken, need);
+         t.Expect("goodwillPaid", profile.ReputationWithPlayer > regardBefore, true);
+
+         // Restore the roster: drop any surplus grain the test added.
+         int surplus = CountItemInParty(grain) - held0;
+         if (surplus > 0) MobileParty.MainParty.ItemRoster.AddToCounts(grain, -surplus);
 
          return t.Line();
       }

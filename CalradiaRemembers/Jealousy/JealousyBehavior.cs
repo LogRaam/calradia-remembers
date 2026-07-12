@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 20/06/2026.
+// Code written by Gabriel Mailhot, 10/07/2026.
 
 #region
 
@@ -47,6 +47,7 @@ namespace CalradiaRemembers.Jealousy
       private const int CompetitionRelationDecay = 2; // mild cooling each reaction
       private const int EstrangeNeglectDays = 30; // a high-hierarchy senior withdraws after this
       private const int EstrangeRelationHit = 10;
+      private const string LegacySaveKey = "CalradiaRemembers_Jealousy_v1";
 
       // Don't let the same party stew over the same courted NPC more than once per this window.
       private const int ReactionCooldownDays = 20;
@@ -56,7 +57,6 @@ namespace CalradiaRemembers.Jealousy
       // this behavior switched over (Bannerlord's native string serializer corrupts a save once
       // the blob grows past roughly 65,535 characters).
       private const string SaveKey = "CalradiaRemembers_Jealousy_v2bytes";
-      private const string LegacySaveKey = "CalradiaRemembers_Jealousy_v1";
 
       // A witnessed act is telegraphed — high chance the jealous party hears and reacts.
       private const float WitnessedReactionChance = 0.75f;
@@ -304,11 +304,11 @@ namespace CalradiaRemembers.Jealousy
          // a discreet letter, never a grudge that hardens into a grievance arc).
          if (stake != JealousStake.SecretLover)
             GrudgeBehavior.Instance?.TryPlant(party, Hero.MainHero, GrudgeSource.Jealousy, grievance,
-               GrudgeBackfillRules.JealousyMagnitude, knownToPlayer: true, today);
+               GrudgeBackfillRules.JealousyMagnitude, true, today);
 
          // A threatening/confronting letter, unless they are beside the player (same party, army, or
          // settlement), in which case they would say it to the player's face rather than send a courier.
-         bool withPlayer = Letters.HeroProximity.IsNearPlayer(party);
+         bool withPlayer = HeroProximity.IsNearPlayer(party);
 
          if (!pj.WithLetter || withPlayer) return;
          string context = JealousyReaction.BuildLetterContext(
