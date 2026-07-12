@@ -10,6 +10,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ### Added
 - New `cr.backstory_test [name]` console command injects a strong named persona (a Kratos-style warrior) onto a chosen character at runtime, without editing character_overrides.json, so the authored-backstory path can be checked end to end in one command. It targets the named character (an exact name match wins over a partial one, so "Mina" is not swallowed by "Vamina") or the current conversation NPC, turns custom traits on for the session, and logs what it did.
 
+### Changed
+- Characters are a little more reliable about actually doing what they say when you run a weaker or smaller AI model. The rules that tell the model how to signal a real change (coin moving, a deal struck, a farewell, a discovery) are now also restated briefly at the very end of its prompt, where an instruction carries the most weight, so a model that tends to answer with dialogue only is nudged to still emit those signals and let the mechanics fire. Strong models are unaffected. This is a best-effort nudge, not a guarantee: some models follow structure better than others, and for a prose-only model a two-model "composed" mode remains the deterministic answer.
+
 ## v1.30.7.. 2026-07-11
 
 ### Fixed
