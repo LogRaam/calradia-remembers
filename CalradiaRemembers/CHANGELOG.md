@@ -2,6 +2,11 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.11.. 2026-07-12
+
+### Fixed
+- When you address a companion or witness by name at the end of a line, they now answer in their own voice. Speaking to someone present with a tag like "isn't that right, Tezzeret?" (even without the comma) hands the turn to that character, so they reply under their own portrait instead of the main speaker answering for them. A plain mention of someone ("what do you make of Tezzeret?") still stays with whoever you were talking to, as before.
+
 ## v1.30.10.. 2026-07-12
 
 ### Fixed

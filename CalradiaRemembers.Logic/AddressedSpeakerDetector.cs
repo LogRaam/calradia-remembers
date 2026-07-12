@@ -45,6 +45,16 @@ namespace CalradiaRemembers.Logic
         private static readonly HashSet<string> StageDirectionCues =
             new(StringComparer.OrdinalIgnoreCase) { "to", "addresses", "asks", "faces" };
 
+        // Vocative tag words: a confirmation/tag that in ordinary speech precedes a tacked-on direct
+        // address, usually with the comma dropped ("isn't that right Tezzeret?", "we ride at dawn aye
+        // Olaf?"). A participant name immediately after one of these reads as an address. Kept small and
+        // specific so a preposition or verb of mention ("of Tezzeret", "make of Tezzeret", "seen Tezzeret")
+        // never qualifies, and an ordinary reference to an absent third is not stolen.
+        private static readonly HashSet<string> VocativeTagWords =
+            new(StringComparer.OrdinalIgnoreCase) {
+                "right", "eh", "yeah", "aye", "yes", "no", "huh", "correct", "agreed", "hey", "okay", "ok"
+            };
+
         /// <summary>
         ///   Returns the id of the participant the player is addressing, or null when
         ///   none is explicitly addressed (caller keeps the sticky addressee).
@@ -149,6 +159,7 @@ namespace CalradiaRemembers.Logic
                 bool cue =
                     words[i].EndsWith(",")                                             // "Martira, ..."
                  || i > 0 && words[i - 1].EndsWith(",")                                 // "..., Martira, ..." / "..., Martira?"
+                 || i > 0 && VocativeTagWords.Contains(BareWord(words[i - 1]))          // "... right Tezzeret?" (comma dropped)
                  || i + 1 < words.Length && BareWord(words[i + 1]) == "you"             // "Martira you ..."
                  || wholeMessageIsOneWord;                                             // "Martira?" alone
 

@@ -94,6 +94,31 @@ namespace CalradiaRemembers.Tests
                 .Should().Be(WitnessId);
         }
 
+        // ── Comma-dropped tag vocative (player report: "Isn't that right Tezzeret?") ──
+
+        [Test]
+        public void GIVEN_a_tag_vocative_with_the_comma_dropped_WHEN_detected_THEN_routes_to_the_named_witness()
+        {
+            AddressedSpeakerDetector.Detect(
+                    "Those Sturgians don't know what's coming for 'em. Isn't that right Martira?", Participants())
+                .Should().Be(WitnessId);
+        }
+
+        [Test]
+        public void GIVEN_another_tag_word_before_the_name_WHEN_detected_THEN_routes_to_the_named_witness()
+        {
+            AddressedSpeakerDetector.Detect("We ride at dawn aye Martira?", Participants())
+                .Should().Be(WitnessId);
+        }
+
+        [Test]
+        public void GIVEN_a_verb_of_mention_before_the_name_not_a_tag_WHEN_detected_THEN_does_not_route()
+        {
+            // A preposition or verb of mention before the name is never a tag, so this stays a mention.
+            AddressedSpeakerDetector.Detect("Have you seen Martira?", Participants())
+                .Should().BeNull();
+        }
+
         // ── Must NOT route: bare mentions ABOUT the witness ────────────────────
 
         [Test]
