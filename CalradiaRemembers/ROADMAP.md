@@ -243,6 +243,21 @@ courier's `MobileParty` is created with those 5 troops in its roster (so a wayla
 real skirmish the escort usually wins, instead of the abstract `TravelingParty.Destroy` loss); tune the escort
 troop tier/count and the win odds. Standard couriers keep the current behaviour untouched.
 
+## WISHED (player request, ProudSeal + AbbaDF 2026-07-12): an in-game NPC profile editor ("character card")
+
+The `character_overrides.json` format confuses some players (the "uncomment the example, but there is also an
+empty `[]` below" trap: uncommenting the example while leaving the `[]` yields two arrays and invalid JSON).
+Two players asked for a friendlier way to author an NPC's traits and backstory. Idea: an in-game Gauntlet popup
+(a "character card") to view and edit an NPC's override, reusing the v1.29.0 editable-appearance popup pattern
+(the player-only Encyclopedia editor). Reachable from the chat portrait dossier or the NPC's Encyclopedia page.
+
+IMPORTANT constraint (Gabriel 2026-07-12): the JSON files MUST STAY, alongside the editor, never replaced by
+it. They are CR's moddability and extension surface: a CR sub-mod author ships their own
+`character_overrides.json` and publishes it, and that has to keep working. The editor writes to the same file
+(or an author-owned one); it is a convenience layer ON TOP of the files, never a substitute. In the meantime,
+v1.30.10 rewrote the shipped file so the "two arrays" trap is gone (the example now sits commented inside the
+single `[]`).
+
 ## ✅ Shipped & built
 
 Live on Nexus, or built + committed awaiting upload. **(untested)** = built green and committed but its

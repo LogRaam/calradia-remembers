@@ -437,9 +437,14 @@ namespace CalradiaRemembers.WorldEvents
                   RecordDefection(oldKingdom, newKingdom);
 
                   break;
-               case ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom:
                case ChangeKingdomAction.ChangeKingdomActionDetail.LeaveAsMercenary:
+                  ModLog.Info($"[WORLD] player clan left {oldKingdom?.Name} (detail={detail}); CR observed this vanilla event, it did not initiate it.");
+                  RecordMercenaryContractEnd(oldKingdom);
+
+                  break;
+               case ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom:
                case ChangeKingdomAction.ChangeKingdomActionDetail.LeaveWithRebellion:
+                  ModLog.Info($"[WORLD] player clan left {oldKingdom?.Name} (detail={detail}); CR observed this vanilla event, it did not initiate it.");
                   RecordDeparture(oldKingdom);
 
                   break;
@@ -496,6 +501,26 @@ namespace CalradiaRemembers.WorldEvents
             ActorIds = Ids(Hero.MainHero),
             FactionIds = new List<string> {kingdom.StringId},
             ChronicleLine = $"{PlayerName} forsook {kingdom.Name}, and the oath was broken"
+         });
+      }
+
+      /// <summary>
+      ///   A mercenary contract simply ran its course and ended (LeaveAsMercenary), as opposed to the player
+      ///   breaking an oath of fealty: no "forsook"/"oath broken" language, and a lower magnitude, since CR
+      ///   only OBSERVES this vanilla event and did not cause the contract to end.
+      /// </summary>
+      private void RecordMercenaryContractEnd(Kingdom kingdom)
+      {
+         if (kingdom == null) return;
+         Store.Record(new WorldEvent {
+            Type = WorldEventType.PlayerFeat,
+            Day = Today,
+            Magnitude = 30,
+            InvolvesPlayer = true,
+            Summary = $"{PlayerName}'s mercenary contract with {kingdom.Name} came to an end.",
+            ActorIds = Ids(Hero.MainHero),
+            FactionIds = new List<string> {kingdom.StringId},
+            ChronicleLine = $"{PlayerName}'s hired service to {kingdom.Name} ran its course and ended"
          });
       }
 

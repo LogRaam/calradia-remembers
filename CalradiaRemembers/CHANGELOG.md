@@ -2,6 +2,15 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.10.. 2026-07-12
+
+### Fixed
+- People no longer talk about horses and roads while you are sailing the open sea. When a conversation happens aboard your ship out on the water, the character now knows they are at sea, with no roads, inns, or farms in sight, and speaks and acts accordingly.
+- A mercenary contract that simply runs its course is no longer narrated as if you had betrayed an oath. When your hired service to a kingdom ends (a vanilla outcome the mod only reports, never causes), the chronicle now says your contract came to an end, instead of the harsher "you forsook them and the oath was broken" wording that was meant for a vassal who abandons their liege. A diagnostic line is also written to the log so it is clear the mod only observed the change.
+
+### Changed
+- character_overrides.json is clearer about how to add a character. The file confused some players: the example was commented out above a separate empty list, so uncommenting it left two lists and broke the file. It now has numbered steps and a single list with the example commented inside it, so you just remove the // from the example, edit it, and save.
+
 ## v1.30.9.. 2026-07-12
 
 ### Fixed
