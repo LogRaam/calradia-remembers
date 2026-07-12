@@ -190,7 +190,7 @@ namespace CalradiaRemembers.Witnesses
       ///   there" dissonance. Empty when no mission is loaded (Talk) or no companion
       ///   followed the player within <see cref="FollowRadiusMeters" />.
       /// </summary>
-      public static List<WitnessEntry> ResolveSceneCompanions()
+      public static List<WitnessEntry> ResolveSceneCompanions(Hero conversationNpc = null)
       {
          var result = new List<WitnessEntry>();
          try
@@ -209,6 +209,8 @@ namespace CalradiaRemembers.Witnesses
                Hero h = (agent.Character as CharacterObject)?.HeroObject;
 
                if (h == null || h == Hero.MainHero || !h.IsAlive) continue;
+               // A companion who IS the conversation NPC does not witness their own conversation.
+               if (conversationNpc != null && h.StringId == conversationNpc.StringId) continue;
                if (h.PartyBelongedTo != MobileParty.MainParty) continue;
 
                if ((agent.Position - playerAgent.Position).LengthSquared > FollowRadiusMeters * FollowRadiusMeters) continue;
@@ -242,17 +244,17 @@ namespace CalradiaRemembers.Witnesses
       ///   Skipped when companions are already physically present in the scene
       ///   (see <see cref="ResolveSceneCompanions" /> — the caller decides).
       /// </summary>
-      public static void ShowCompanionPickerIfNeeded(Action<WitnessEntry> onCompanionJoins)
+      public static void ShowCompanionPickerIfNeeded(Hero conversationNpc, Action<WitnessEntry> onCompanionJoins)
       {
          if (onCompanionJoins == null) return;
          try
          {
-            // A prisoner faces their captor alone — no companions, ever. The captive
+            // A prisoner faces their captor alone, no companions, ever. The captive
             // chat path never calls this, but the guarantee belongs here, not to a
             // code-path accident.
             if (Hero.MainHero?.IsPrisoner == true) return;
 
-            List<Hero> companions = GetPlayerCompanions();
+            List<Hero> companions = GetPlayerCompanions(conversationNpc);
             if (companions.Count == 0)
             {
                ModLog.Info("[WitnessResolver] Companion picker skipped — no companions or clan members in the player's party.");
@@ -424,7 +426,7 @@ namespace CalradiaRemembers.Witnesses
          }
       }
 
-      private static List<Hero> GetPlayerCompanions()
+      private static List<Hero> GetPlayerCompanions(Hero conversationNpc = null)
       {
          var companions = new List<Hero>();
          try
@@ -435,8 +437,12 @@ namespace CalradiaRemembers.Witnesses
                Hero h = element.Character?.HeroObject;
 
                if (h == null || h == Hero.MainHero || !h.IsAlive) continue;
-               // Any hero travelling in the player's party qualifies — tavern
-               // companions (Wanderer) AND clan family (spouse, siblings — they
+               // Never offer the NPC you are actually talking to as a companion to bring: a party member
+               // (a married-in spouse, a sibling) who IS the conversation partner would otherwise witness
+               // their own conversation, and in a round table take a second turn as themselves.
+               if (conversationNpc != null && h.StringId == conversationNpc.StringId) continue;
+               // Any hero travelling in the player's party qualifies: tavern
+               // companions (Wanderer) AND clan family (spouse, siblings, they
                // carry Occupation.Lord). Bringing your spouse or brother to a
                // meeting is exactly the point of the picker.
                companions.Add(h);

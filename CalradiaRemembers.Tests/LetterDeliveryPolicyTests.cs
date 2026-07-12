@@ -105,5 +105,62 @@ namespace CalradiaRemembers.Tests
         {
             LetterDeliveryPolicy.ShouldDeferDelivery(LetterReason.BirthAnnouncement, true).Should().BeFalse();
         }
+
+        // ── Intention re-validation: a letter must never outlive the intent that wrote it ────────────
+
+        [TestCase(LetterReason.SpouseDivorceDemand)]
+        [TestCase(LetterReason.SpouseDivorceEscalation)]
+        [TestCase(LetterReason.StanceHostility)]
+        [TestCase(LetterReason.ReinforcementRequest)]
+        [TestCase(LetterReason.MarriageProposal)]
+        [TestCase(LetterReason.StanceFavor)]
+        [TestCase(LetterReason.JealousThreat)]
+        [TestCase(LetterReason.CorruptionAttempt)]
+        [TestCase(LetterReason.Blackmail)]
+        public void GIVEN_a_reason_whose_intention_can_lapse_WHEN_checking_intention_bearing_THEN_it_is_true(LetterReason reason)
+        {
+            LetterDeliveryPolicy.IsIntentionBearing(reason).Should().BeTrue();
+        }
+
+        [TestCase(LetterReason.BirthAnnouncement)]
+        [TestCase(LetterReason.TournamentVictory)]
+        [TestCase(LetterReason.CompanionFarewell)]
+        [TestCase(LetterReason.PlayerLetterReply)]
+        [TestCase(LetterReason.SpouseCorrespondence)]
+        [TestCase(LetterReason.QuestUpdate)]
+        public void GIVEN_a_factual_or_proximity_only_reason_WHEN_checking_intention_bearing_THEN_it_is_false(LetterReason reason)
+        {
+            LetterDeliveryPolicy.IsIntentionBearing(reason).Should().BeFalse();
+        }
+
+        [Test]
+        public void GIVEN_a_divorce_demand_whose_intention_has_lapsed_WHEN_checking_stale_THEN_it_is_dropped()
+        {
+            // The spouse reconciled and no longer wants a divorce: the queued demand must never be delivered.
+            LetterDeliveryPolicy.ShouldDropAsStale(LetterReason.SpouseDivorceDemand, intentionStillHolds: false)
+                .Should().BeTrue();
+        }
+
+        [Test]
+        public void GIVEN_a_war_threat_whose_sender_made_peace_WHEN_checking_stale_THEN_it_is_dropped()
+        {
+            LetterDeliveryPolicy.ShouldDropAsStale(LetterReason.StanceHostility, intentionStillHolds: false)
+                .Should().BeTrue();
+        }
+
+        [Test]
+        public void GIVEN_a_divorce_demand_whose_intention_still_holds_WHEN_checking_stale_THEN_it_is_kept()
+        {
+            LetterDeliveryPolicy.ShouldDropAsStale(LetterReason.SpouseDivorceDemand, intentionStillHolds: true)
+                .Should().BeFalse();
+        }
+
+        [Test]
+        public void GIVEN_a_factual_announcement_WHEN_its_intention_is_reported_gone_THEN_it_is_never_dropped_as_stale()
+        {
+            // A birth happened; there is no intention to lapse, so this gate must never swallow it.
+            LetterDeliveryPolicy.ShouldDropAsStale(LetterReason.BirthAnnouncement, intentionStillHolds: false)
+                .Should().BeFalse();
+        }
     }
 }

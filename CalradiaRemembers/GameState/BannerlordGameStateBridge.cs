@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 24/06/2026.
+// Code written by Gabriel Mailhot, 10/07/2026.
 
 #region
 
@@ -6,16 +6,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Appreciations;
+using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Grudges;
+using CalradiaRemembers.Items;
+using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
+using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Storage;
@@ -54,9 +58,6 @@ namespace CalradiaRemembers.GameState
       private const int MaxInfluenceLoss = 18;
       private const int MaxRenownLoss = 12;
 
-      /// <summary>Appreciations pillar: the fixed formation magnitude for a RansomedOrFreed plant (free_prisoner / release_prisoner) — comparable to Tier2GrudgeRules.DeliveredPrisonerBaseMagnitude, being freed weighing roughly as much as delivering a prisoner does on the other side of the ledger.</summary>
-      private const int RansomedOrFreedMagnitude = 35;
-
       /// <summary>
       ///   harm_prisoner: a captor inflicts real physical harm on the player during a captive
       ///   scene — a beating, a cut, a maiming, or the bruising toll of being taken by force.
@@ -69,6 +70,13 @@ namespace CalradiaRemembers.GameState
       // weak model emits harm_prisoner every single turn. Two guards: a per-scene cap on the number
       // of wounds that bite, and a HP floor well above death. Both reset at each scene's start.
       private const int MinSceneHitPoints = 15; // a scene never drives the player below this
+
+      /// <summary>
+      ///   Appreciations pillar: the fixed formation magnitude for a RansomedOrFreed plant (free_prisoner /
+      ///   release_prisoner) — comparable to Tier2GrudgeRules.DeliveredPrisonerBaseMagnitude, being freed weighing roughly as
+      ///   much as delivering a prisoner does on the other side of the ledger.
+      /// </summary>
+      private const int RansomedOrFreedMagnitude = 35;
 
       // ── Sprint 17: public humiliation standing penalty ────────────────────
       private const int RenownLossPerWitness = 2;
@@ -135,6 +143,32 @@ namespace CalradiaRemembers.GameState
          _pendingEscape = false;
          _pendingRelease = false;
          _pendingReleaseCaptor = null;
+      }
+
+      /// <inheritdoc />
+      public bool CommitCaptorRelease(Hero captor)
+      {
+         try
+         {
+            if (captor == null) return false;
+
+            // The prompt only PROPOSES; the bridge is the law. Re-validate the same gate the teaching used.
+            CaptorReleaseVerdict verdict = ResolveCaptorReleaseVerdict(captor);
+
+            if (!verdict.AllowsPersuasion) return false;
+
+            _pendingRelease = true;
+            _pendingReleaseCaptor = captor;
+            ModLog.Info($"[RELEASE] {captor.Name} agreed to free the player (applied at scene close).");
+
+            return true;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"CommitCaptorRelease failed: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
       }
       // ── Sprint 10: action execution ───────────────────────────────────────
 
@@ -242,6 +276,26 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ESCAPE] freeing failed: {ex.Message}");
+         }
+      }
+
+      /// <inheritdoc />
+      public void FinalizePendingRelease()
+      {
+         if (!_pendingRelease) return;
+         _pendingRelease = false;
+
+         Hero captor = _pendingReleaseCaptor;
+         _pendingReleaseCaptor = null;
+
+         try
+         {
+            EndCaptivityAction.ApplyByReleasedByChoice(Hero.MainHero, captor);
+            ModLog.Info("[RELEASE] EndCaptivityAction.ApplyByReleasedByChoice applied — the captor freed the player.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"FinalizePendingRelease failed: {ex.GetType().Name}: {ex.Message}");
          }
       }
 
@@ -499,7 +553,8 @@ namespace CalradiaRemembers.GameState
 
          // Against a nemesis captor the chance DECAYS with each recapture (he grows more careful, never a
          // perfect cage); an ordinary captor keeps the flat chance.
-         double chance = Nemesis.NemesisBehavior.Instance?.ActiveNemesisEscapeChance() ?? EscapeChance;
+         double chance = NemesisBehavior.Instance?.ActiveNemesisEscapeChance() ?? EscapeChance;
+
          if (!force && MBRandom.RandomFloat >= chance) return false;
 
          // Commit the outcome NOW (irreversible), but defer the actual campaign action to scene
@@ -508,78 +563,6 @@ namespace CalradiaRemembers.GameState
          ModLog.Info("[ESCAPE] attempt SUCCEEDED — freeing committed (applied at scene close).");
 
          return true;
-      }
-
-      /// <inheritdoc />
-      public bool CommitCaptorRelease(Hero captor)
-      {
-         try
-         {
-            if (captor == null) return false;
-
-            // The prompt only PROPOSES; the bridge is the law. Re-validate the same gate the teaching used.
-            CaptorReleaseVerdict verdict = ResolveCaptorReleaseVerdict(captor);
-            if (!verdict.AllowsPersuasion) return false;
-
-            _pendingRelease = true;
-            _pendingReleaseCaptor = captor;
-            ModLog.Info($"[RELEASE] {captor.Name} agreed to free the player (applied at scene close).");
-
-            return true;
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"CommitCaptorRelease failed: {ex.GetType().Name}: {ex.Message}");
-
-            return false;
-         }
-      }
-
-      /// <inheritdoc />
-      public void FinalizePendingRelease()
-      {
-         if (!_pendingRelease) return;
-         _pendingRelease = false;
-
-         Hero captor = _pendingReleaseCaptor;
-         _pendingReleaseCaptor = null;
-
-         try
-         {
-            EndCaptivityAction.ApplyByReleasedByChoice(Hero.MainHero, captor);
-            ModLog.Info("[RELEASE] EndCaptivityAction.ApplyByReleasedByChoice applied — the captor freed the player.");
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"FinalizePendingRelease failed: {ex.GetType().Name}: {ex.Message}");
-         }
-      }
-
-      /// <summary>
-      ///   Re-validates a captor's willingness to free the player via the pure <see cref="CaptorReleasePolicy" />,
-      ///   reading the captor's Mercy and the heaviest live grudge they hold against the player. Mirrors the
-      ///   advice-side gate in <c>EncounterContextBuilder</c> so the prompt and the bridge cannot disagree.
-      /// </summary>
-      private static CaptorReleaseVerdict ResolveCaptorReleaseVerdict(Hero captor)
-      {
-         int mercy = TraitLevelOf(captor, DefaultTraits.Mercy);
-         int grudge = HeaviestGrudgeAgainstPlayer(captor);
-
-         return CaptorReleasePolicy.Resolve(mercy, grudge, isNemesisVendetta: false);
-      }
-
-      /// <summary>The magnitude of the heaviest LIVE grudge this hero holds against the player, or 0 when none.</summary>
-      private static int HeaviestGrudgeAgainstPlayer(Hero hero)
-      {
-         var grudges = GrudgeBehavior.Instance?.GrudgesFor(hero?.StringId);
-         if (grudges == null) return 0;
-
-         string playerId = Hero.MainHero?.StringId;
-         int max = 0;
-         foreach (var g in grudges)
-            if (!g.IsResolved && g.TargetId == playerId && g.Magnitude > max) max = g.Magnitude;
-
-         return max;
       }
 
       public ActionOutcome SettleItemBargain(NpcProfile giver,
@@ -651,10 +634,11 @@ namespace CalradiaRemembers.GameState
             if (giver == null || Hero.MainHero == null || offered == null || offered.Count == 0) return null;
 
             ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+
             if (roster == null) return null;
 
             string categoryKey = quest.RequiredItemCategory;
-            string label = Items.SupplyItemMatcher.Label(categoryKey);
+            string label = SupplyItemMatcher.Label(categoryKey);
 
             var toRemove = new List<(ItemObject item, int count)>();
             var count = 0;
@@ -663,7 +647,7 @@ namespace CalradiaRemembers.GameState
                if (string.IsNullOrEmpty(offer.ItemId) || offer.Count <= 0) continue;
                ItemObject item = FindRosterItem(roster, offer.ItemId, out int available);
 
-               if (item == null || available <= 0 || !Items.SupplyItemMatcher.Matches(item, categoryKey)) continue;
+               if (item == null || available <= 0 || !SupplyItemMatcher.Matches(item, categoryKey)) continue;
                int take = Math.Min(offer.Count, available);
                count += take;
                toRemove.Add((item, take));
@@ -689,8 +673,8 @@ namespace CalradiaRemembers.GameState
 
             ActionOutcome reward = GrantQuestReward(giverHero, giver, quest.RewardGold, quest.RewardRelation);
             giver.Events.Add(new NotableEvent(day, NotableEventType.Collaboration, $"The player brought the {quest.RequiredItemCount} {label} I needed."));
-            Quests.QuestJournalBridge.CloseAsCompleted(quest, giverHero);
-            Stance.StanceService.OnPromiseKept(giver);
+            QuestJournalBridge.CloseAsCompleted(quest, giverHero);
+            StanceService.OnPromiseKept(giver);
             NpcMemoryCampaignBehavior.Instance?.Store?.Set(giver);
 
             ModLog.Info($"[QUEST] ProvideGoods completed: {giverHero?.Name} received {quest.RequiredItemCount} {label}.");
@@ -709,6 +693,49 @@ namespace CalradiaRemembers.GameState
 
       private static int ClampInt(int value, int min, int max)
          => value < min ? min : value > max ? max : value;
+
+      /// <summary>
+      ///   Satisfies AND COMPLETES an outstanding <see cref="QuestType.ProvideGold" /> quest (a support demand,
+      ///   e.g. child support) the moment the player gives its giver any gold. The payment is made DIRECTLY to
+      ///   the very person who asked, so there is nothing to "return and collect": completing it here, rather
+      ///   than only stamping the deed done and waiting for the giver to emit [QUEST_COMPLETE] (which the model
+      ///   rarely did), fixes a player report of the quest staying stuck "done, return for your reward" forever.
+      ///   The goodwill reward is paid here too, straight to the personal score (verified deed bypasses the gate).
+      /// </summary>
+      private static void CompleteProvideGoldOnPayment(Hero npcHero, int amountGiven)
+      {
+         BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+
+         if (store == null || npcHero == null || Hero.MainHero == null) return;
+
+         NpcProfile profile = store.Get(npcHero.StringId);
+
+         InformalQuest quest = profile?.ActiveQuests.FirstOrDefault(q =>
+            q.Type == QuestType.ProvideGold && q.IsOutstanding);
+
+         if (quest == null) return;
+
+         var day = (int) CampaignTime.Now.ToDays;
+         quest.SatisfiedOnDay = day;
+         quest.Evidence = $"Player provided {amountGiven} denars on day {day}.";
+
+         if (quest.RewardRelation > 0)
+         {
+            int before = profile.ReputationWithPlayer;
+            profile.ReputationWithPlayer = ClampInt(before + quest.RewardRelation, -100, 100);
+            profile.LastRelationGainHour = CampaignTime.Now.ToHours;
+         }
+
+         quest.Status = QuestStatus.Completed;
+         profile.Events.Add(new NotableEvent(day, NotableEventType.Collaboration,
+            $"The player gave {amountGiven} denars toward the support I asked of them."));
+         QuestJournalBridge.CloseAsCompleted(quest, npcHero);
+         StanceService.OnPromiseKept(profile);
+         store.Set(profile);
+
+         MBInformationManager.AddQuickInformation(new TextObject($"{npcHero.Name} is grateful for the support."), 0, npcHero.CharacterObject);
+         ModLog.Info($"[QUEST] ProvideGold completed: {npcHero.Name} received {amountGiven} denars (quest closed).");
+      }
 
       /// <summary>
       ///   Performs the actual hire — the native actions shared by the cash hire and the
@@ -738,12 +765,274 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
+      ///   Divorce, Phase 2b (+ its escalation follow-up): accept_divorce — the player's OWN spouse has
+      ///   been pressing a divorce demand in conversation (see <see cref="Mapping.EncounterContextBuilder" />'s
+      ///   SpouseDivorceDemandNote), OR has since stopped waiting and begun an outright estrangement of
+      ///   their own (SpouseEstrangementNote) — either way, the player consents in free text (no button).
+      ///   Dissolves the marriage via <see cref="MarriageDissolutionService.TryDissolvePlayerMarriage" />,
+      ///   whose own live re-validation (already-dissolved, no longer married) is what stops this from ever
+      ///   double-dissolving against the weekly estrangement sweep. Mutual consent (this was the spouse's
+      ///   own wish either way): the consequences are deliberately SOFT, a modest personal-regard settling
+      ///   at most, never the full repudiated-divorce grudge matrix
+      ///   <see cref="Marriage.DivorceProcessBehavior" /> applies to the NPC-NPC case.
+      /// </summary>
+      private static ActionOutcome ExecuteAcceptDivorce(Hero npcHero)
+      {
+         try
+         {
+            var player = Hero.MainHero;
+
+            if (player == null || npcHero == null || npcHero != player.Spouse)
+               return new ActionOutcome("(There is no marriage between you and this person to end.)", false);
+
+            var demands = SpouseDivorceDemandBehavior.Instance;
+            bool demanding = demands?.IsDemanding(npcHero.StringId) == true;
+            bool estranging = demands?.IsEstranging(npcHero.StringId) == true;
+
+            if (demands == null || !demanding && !estranging)
+               return new ActionOutcome($"({npcHero.Name} has not pressed you to end the marriage.)", false);
+
+            int spouseVsPlayerBefore = npcHero.GetRelation(player);
+
+            if (!MarriageDissolutionService.TryDissolvePlayerMarriage(npcHero, out string reason))
+               return new ActionOutcome($"(The marriage could not be ended: {reason}.)", false);
+
+            demands.Accept(npcHero.StringId);
+            demands.CancelEstrangement(npcHero.StringId);
+
+            var today = (int) CampaignTime.Now.ToDays;
+
+            // Mutual consent (this was THEIR wish): SET the target relation from the pre-dissolution
+            // baseline plus the same soft mutual-consent hit DivorcePolicy already uses for the NPC-NPC
+            // case, correcting for whatever hidden penalty the engine's own Hero.Spouse = null applies.
+            int target = spouseVsPlayerBefore + DivorcePolicy.MutualExSpousePlayerRelationHit;
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npcHero, player, target - npcHero.GetRelation(player), false);
+
+            NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
+
+            if (profile != null)
+            {
+               // The same small relief nudge DivorceConsequencePolicy gives a mutual-consent spouse in the
+               // NPC-NPC case, applied to the CR-internal reputation ledger, not the vanilla relation above.
+               ProfileMutator.ApplyReputationDelta(profile, DivorceConsequencePolicy.SpouseMutualReliefRelationNudge);
+               profile.Events.Add(new NotableEvent(today, NotableEventType.Agreement,
+                  "The marriage ended, by mutual agreement, at my own asking."));
+               NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
+            }
+
+            try
+            {
+               WorldEventStore.Instance?.Record(new WorldEvent {
+                  Type = WorldEventType.Other,
+                  Day = today,
+                  Magnitude = 20,
+                  InvolvesPlayer = true,
+                  ActorIds = new List<string> {player.StringId, npcHero.StringId},
+                  Summary = $"{player.Name} and {npcHero.Name} have parted ways, their marriage dissolved by mutual accord.",
+                  ChronicleLine = $"my marriage to {npcHero.Name} ended quietly, by mutual accord, and we parted without rancour"
+               });
+            }
+            catch (Exception ex) { ModLog.Error($"[ACTION] accept_divorce world-event record failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
+
+            ModLog.Info($"[ACTION] accept_divorce: player and {npcHero.Name} are no longer wed (mutual consent).");
+
+            return new ActionOutcome(
+               $"You and {npcHero.Name} part ways: the marriage is dissolved, by mutual accord.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] accept_divorce failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Divorce, Phase 2b: decline_divorce — the player has firmly and explicitly refused their
+      ///   spouse's divorce demand in this very exchange. An OPTIONAL, faster path alongside the primary
+      ///   refusal mechanism (<see cref="SpouseDivorceDemandBehavior" />'s grace-period timeout sweep): the
+      ///   LLM need not emit this for a refusal to eventually register, but a clear in-character refusal
+      ///   registers it right away instead of waiting out the grace period.
+      /// </summary>
+      private static ActionOutcome ExecuteDeclineDivorce(Hero npcHero)
+      {
+         try
+         {
+            var player = Hero.MainHero;
+
+            if (player == null || npcHero == null || npcHero != player.Spouse) return null;
+
+            var demands = SpouseDivorceDemandBehavior.Instance;
+
+            if (demands == null || !demands.IsDemanding(npcHero.StringId)) return null;
+
+            demands.RegisterRefusal(npcHero, (int) CampaignTime.Now.ToDays);
+            ModLog.Info($"[ACTION] decline_divorce: player refused {npcHero.Name}'s divorce demand.");
+
+            return new ActionOutcome($"{npcHero.Name} takes your refusal hard; the wound between you deepens.", false);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] decline_divorce failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Divorce, Phase 2a: end_own_marriage — the PLAYER themselves, in free text, chooses to end their
+      ///   OWN marriage (see <see cref="Mapping.EncounterContextBuilder" />'s PlayerEndOwnMarriageNote for
+      ///   the conditional teaching, taught only when speaking to the player's own living spouse). Dissolves
+      ///   IMMEDIATELY via <see cref="MarriageDissolutionService.TryDissolvePlayerMarriage" />: no multi-day
+      ///   estrangement process, unlike the NPC-NPC Phase 1 case (the player's own resolve needs no
+      ///   resistance window). Mutual-vs-repudiated is decided live by
+      ///   <see cref="PlayerDivorceConsentPolicy.SpouseConsents" />: the spouse's own pending Phase 2b
+      ///   demand, or their relation with the player already reading unhappy by the same bar
+      ///   <see cref="DivorcePolicy.UnhappyThreshold" /> uses for the NPC-NPC case. Either way, consequences
+      ///   flow through <see cref="DivorceProcessBehavior.ApplyDivorceConsequences" />, the SAME tiered
+      ///   engine the NPC-NPC case shares — mutual consent naturally resolves to soft Relief/None verdicts,
+      ///   repudiation to the full grudge matrix (spouse + immediate family + three best friends), with no
+      ///   parallel reimplementation here.
+      /// </summary>
+      private static ActionOutcome ExecuteEndOwnMarriage(Hero npcHero)
+      {
+         try
+         {
+            var player = Hero.MainHero;
+
+            if (player == null || npcHero == null || npcHero != player.Spouse)
+               return new ActionOutcome("(There is no marriage between you and this person to end.)", false);
+
+            var demands = SpouseDivorceDemandBehavior.Instance;
+            bool spouseWasDemanding = demands?.IsDemanding(npcHero.StringId) == true;
+            bool spouseWasEstranging = demands?.IsEstranging(npcHero.StringId) == true;
+
+            int spouseVsPlayerBefore = npcHero.GetRelation(player);
+
+            // An estrangement already under way is at least as clear a "they too want this" signal as a
+            // pending Phase 2b demand — the spouse had already stopped merely asking.
+            bool mutualConsent = PlayerDivorceConsentPolicy.SpouseConsents(new PlayerDivorceConsentFacts {
+               SpouseHasPendingDemand = spouseWasDemanding || spouseWasEstranging,
+               SpouseRelationWithPlayer = spouseVsPlayerBefore
+            });
+
+            if (!MarriageDissolutionService.TryDissolvePlayerMarriage(npcHero, out string reason))
+               return new ActionOutcome($"(The marriage could not be ended: {reason}.)", false);
+
+            if (spouseWasDemanding) demands.Accept(npcHero.StringId);
+            if (spouseWasEstranging) demands.CancelEstrangement(npcHero.StringId);
+
+            var today = (int) CampaignTime.Now.ToDays;
+            const string cause = "The marriage was ended by the player's own choice.";
+
+            // The shared tiered engine (Phase 1's own consequence application, exposed for reuse): divorcer
+            // and player are the SAME hero here, so this collapses to a single relation channel rather
+            // than the NPC-NPC case's separate divorcer/player-blame split — there is no third party to
+            // blame when the player is the one who acted.
+            SafeRun.Step($"BannerlordGameStateBridge.ExecuteEndOwnMarriage.ApplyDivorceConsequences({npcHero.StringId})",
+               () => DivorceProcessBehavior.Instance?.ApplyDivorceConsequences(
+                  player, npcHero, mutualConsent, spouseVsPlayerBefore, spouseVsPlayerBefore, cause, today));
+
+            NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
+
+            if (profile != null)
+            {
+               profile.Events.Add(new NotableEvent(today,
+                  mutualConsent
+                     ? NotableEventType.Agreement
+                     : NotableEventType.Betrayal,
+                  mutualConsent
+                     ? "The marriage ended, by mutual agreement, when the player chose to end it."
+                     : "Was set aside by the player, who chose to end our marriage."));
+               NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
+            }
+
+            try
+            {
+               WorldEventStore.Instance?.Record(new WorldEvent {
+                  Type = mutualConsent
+                     ? WorldEventType.Other
+                     : WorldEventType.Scandal,
+                  Day = today,
+                  Magnitude = mutualConsent
+                     ? 20
+                     : DivorcePolicy.ScaledScandalMagnitude(npcHero.Culture?.StringId),
+                  InvolvesPlayer = true,
+                  ActorIds = new List<string> {player.StringId, npcHero.StringId},
+                  FactionIds = new List<string>(new[] {player.MapFaction?.StringId, npcHero.MapFaction?.StringId}.Where(id => !string.IsNullOrEmpty(id))),
+                  Summary = mutualConsent
+                     ? $"{player.Name} and {npcHero.Name} have parted ways, their marriage dissolved by mutual accord."
+                     : $"Word spreads that {player.Name} has set aside {npcHero.Name}, dissolving their marriage.",
+                  ChronicleLine = mutualConsent
+                     ? $"my marriage to {npcHero.Name} ended quietly, by mutual accord, and we parted without rancour"
+                     : $"at my own choosing, I set aside {npcHero.Name} and ended our marriage, to both our houses' outrage"
+               });
+            }
+            catch (Exception ex) { ModLog.Error($"[ACTION] end_own_marriage world-event record failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
+
+            ModLog.Info($"[ACTION] end_own_marriage: player and {npcHero.Name} are no longer wed" +
+                        $"{(mutualConsent ? " (mutual consent)" : " (repudiated)")}.");
+
+            // A mutual parting cues the positive (green) system line; a repudiation cues the negative (red)
+            // one, since the player has just wronged a spouse who did not want this and set a grudge storm
+            // (spouse + their family + friends) against themselves. The deed succeeded either way; the cue
+            // reflects its human weight, not its mechanical success.
+            return new ActionOutcome(
+               mutualConsent
+                  ? $"You and {npcHero.Name} part ways: the marriage is dissolved, by mutual accord."
+                  : $"You set aside {npcHero.Name}: the marriage is ended, at your own choosing.",
+               mutualConsent);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] end_own_marriage failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   execute_prisoner: the player, mid PLAYER-AS-CAPTOR scene (the mod's <c>ChatViewModel.ActivateCaptorSceneMode</c>),
+      ///   states a real, final killing act against the prisoner they hold, and the LLM recognized it (see
+      ///   the SDK's <c>PromptBuilder.AppendPlayerCaptorSceneRules</c>). Guarded exactly like free_prisoner:
+      ///   the prompt is advice, the bridge is law, so only a hero the player ACTUALLY holds prisoner right
+      ///   now is executed; a stray or premature emission never kills the wrong person. Runs the same real
+      ///   vanilla <see cref="KillCharacterAction.ApplyByExecution" /> the old map-popup entry point used,
+      ///   which raises <see cref="CampaignEvents.HeroKilledEvent" /> with detail Executed: existing
+      ///   listeners fire off that same event without any special-casing here. For a tracked nemesis,
+      ///   <see cref="Nemesis.NemesisResolutionBehavior" /> records the closure deed; for any other captured
+      ///   lord, <see cref="Grudges.ExecutedKinGrudgeBehavior" /> plants a vendetta on their living kin,
+      ///   exactly as it already does for any other execution in the game.
+      /// </summary>
+      private static ActionOutcome ExecuteExecutePrisoner(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null) return null;
+            if (!npcHero.IsPrisoner || npcHero.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero)
+               return new ActionOutcome($"({npcHero.Name} is not yours to execute.)", false);
+
+            string name = npcHero.Name?.ToString() ?? "the prisoner";
+            KillCharacterAction.ApplyByExecution(npcHero, Hero.MainHero);
+            ModLog.Info($"[ACTION] execute_prisoner: player executed {name}.");
+
+            return new ActionOutcome($"{name} is executed at your hand.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] execute_prisoner failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
       ///   free_prisoner: a captive lord the PLAYER holds has struck a bargain for their freedom and the
       ///   player agreed — release them. The reward they promised (goodwill, a ransom, or service) rides
       ///   alongside as the LLM's own change_relation / give_gold / join_clan actions. Guarded: only a
       ///   hero the player actually holds prisoner is freed, so a stray emission can never let one escape.
       ///   Stance mechanical behaviour-gating (increment 1, Fear): re-validated here, never trusted from
-      ///   the LLM's own framing of the bargain — <see cref="StanceGatePolicy.ResolveCoercion"/> reads the
+      ///   the LLM's own framing of the bargain — <see cref="StanceGatePolicy.ResolveCoercion" /> reads the
       ///   captive's live Fear/Respect and traits and can refuse the bargain outright (a captive too
       ///   unafraid and too contemptuous to be moved) or mark it as fear-coerced (softer terms for the
       ///   player, but a HIDDEN grudge instead of open regard).
@@ -758,12 +1047,10 @@ namespace CalradiaRemembers.GameState
 
             CoercionResult coercion = ResolveFreePrisonerCoercion(npcHero, context);
 
-            if (coercion.Outcome == CoercionOutcome.RefusesFlat)
-            {
-               ModLog.Info($"[ACTION] free_prisoner refused: {npcHero.Name} is unafraid and unmoved by the bargain.");
-
-               return new ActionOutcome($"{npcHero.Name} is not afraid enough to bargain, and refuses to be swayed.", false);
-            }
+            // A captor can ALWAYS free their own prisoner unconditionally: the captive's Fear/Respect
+            // only shapes the AFTERMATH of a coerced bargain (see YieldsSofterTerms below), never whether
+            // the release itself happens. RefusesFlat therefore no longer blocks: it now just means no
+            // fear-coercion took place, so the release proceeds as a plain mercy release below.
 
             EndCaptivityAction.ApplyByReleasedByChoice(npcHero, Hero.MainHero);
             StanceService.OnGiftReceived(npcHero); // freedom is a gift — a little trust is earned
@@ -773,7 +1060,7 @@ namespace CalradiaRemembers.GameState
             // own right, a channel separate from the trust bump above.
             var today = (int) CampaignTime.Now.ToDays;
             AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, AppreciationSource.RansomedOrFreed,
-               "The player gave me back my freedom.", RansomedOrFreedMagnitude, knownToPlayer: true, today);
+               "The player gave me back my freedom.", RansomedOrFreedMagnitude, true, today);
 
             // Grudges pillar (Deed gesture): freeing them is a verified real favour toward npcHero, a
             // channel separate from the trust bump and the appreciation plant above.
@@ -794,7 +1081,9 @@ namespace CalradiaRemembers.GameState
             // Chronicle: a third, independent channel from the trust bump and the appreciation plant above.
             try
             {
-               string pronoun = npcHero.IsFemale ? "her" : "his";
+               string pronoun = npcHero.IsFemale
+                  ? "her"
+                  : "his";
                WorldEventStore.Instance?.Record(new WorldEvent {
                   Type = WorldEventType.PlayerFeat,
                   Day = today,
@@ -817,176 +1106,6 @@ namespace CalradiaRemembers.GameState
             ModLog.Error($"[ACTION] free_prisoner failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
-         }
-      }
-
-      /// <summary>
-      ///   execute_prisoner: the player, mid PLAYER-AS-CAPTOR scene (the mod's <c>ChatViewModel.ActivateCaptorSceneMode</c>),
-      ///   states a real, final killing act against the prisoner they hold, and the LLM recognized it (see
-      ///   the SDK's <c>PromptBuilder.AppendPlayerCaptorSceneRules</c>). Guarded exactly like free_prisoner:
-      ///   the prompt is advice, the bridge is law, so only a hero the player ACTUALLY holds prisoner right
-      ///   now is executed; a stray or premature emission never kills the wrong person. Runs the same real
-      ///   vanilla <see cref="KillCharacterAction.ApplyByExecution"/> the old map-popup entry point used,
-      ///   which raises <see cref="CampaignEvents.HeroKilledEvent"/> with detail Executed: existing
-      ///   listeners fire off that same event without any special-casing here. For a tracked nemesis,
-      ///   <see cref="Nemesis.NemesisResolutionBehavior"/> records the closure deed; for any other captured
-      ///   lord, <see cref="Grudges.ExecutedKinGrudgeBehavior"/> plants a vendetta on their living kin,
-      ///   exactly as it already does for any other execution in the game.
-      /// </summary>
-      private static ActionOutcome ExecuteExecutePrisoner(Hero npcHero)
-      {
-         try
-         {
-            if (npcHero == null) return null;
-            if (!npcHero.IsPrisoner || npcHero.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero)
-               return new ActionOutcome($"({npcHero.Name} is not yours to execute.)", false);
-
-            string name = npcHero.Name?.ToString() ?? "the prisoner";
-            KillCharacterAction.ApplyByExecution(npcHero, Hero.MainHero, true);
-            ModLog.Info($"[ACTION] execute_prisoner: player executed {name}.");
-
-            return new ActionOutcome($"{name} is executed at your hand.", true);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[ACTION] execute_prisoner failed: {ex.GetType().Name}: {ex.Message}");
-
-            return null;
-         }
-      }
-
-      /// <summary>
-      ///   turn_nemesis (Nemesis pillar increment 4, SPARE + TURN): mid a captor scene the player offers to
-      ///   spare a tracked nemesis they hold prisoner and take him into their service, and the LLM recognized a
-      ///   genuine acceptance. The prompt is advice, the bridge is law: this re-validates that the NPC really is
-      ///   the nemesis the PLAYER currently holds, then re-runs the RATIFIED turn gate
-      ///   (<see cref="NemesisTurnPolicy" />) on his live Fear/Respect, his grudge against the player, and his
-      ///   traits. A refusal (fears you too little, respects you too little, too defiant, or hates you too
-      ///   deeply) is honoured in character and changes nothing. On a genuine turn he is freed, sworn into the
-      ///   player's clan and party, his vendetta closed, and the identity marked turned (never recurs as an
-      ///   enemy captor) with a closure deed recorded (<see cref="Nemesis.NemesisResolutionBehavior.Turn" />).
-      /// </summary>
-      private static ActionOutcome ExecuteTurnNemesis(Hero npcHero, NpcProfile profile)
-      {
-         try
-         {
-            if (npcHero == null || Hero.MainHero == null) return null;
-
-            Hero held = Nemesis.NemesisBehavior.Instance?.PlayerHeldNemesisPrisoner();
-            if (held == null || held != npcHero)
-               return new ActionOutcome($"({npcHero.Name} is not a nemesis you hold prisoner to turn.)", false);
-
-            NpcProfile p = profile ?? Behaviors.NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
-            if (p == null)
-               return new ActionOutcome($"({npcHero.Name} cannot be read well enough to judge whether he would turn.)", false);
-
-            NpcStance stance = StanceService.ToStance(p);
-            int honor = TraitLevelOf(npcHero, DefaultTraits.Honor);
-            int valor = TraitLevelOf(npcHero, DefaultTraits.Valor);
-            int calculating = TraitLevelOf(npcHero, DefaultTraits.Calculating);
-            int grudge = NemesisGrudgeAgainstPlayer(npcHero);
-
-            NemesisTurnVerdict verdict = NemesisTurnPolicy.Resolve(
-               new NemesisTurnFacts(stance.Fear, stance.Respect, grudge, honor, valor, calculating));
-
-            if (!verdict.CanTurn)
-               return new ActionOutcome($"({npcHero.Name} refuses to bend: he {TurnRefusalPhrase(verdict.Refusal)}.)", false);
-
-            // He turns. Free him, swear him into the player's clan and party, and close the vendetta.
-            Clan oldClan = npcHero.Clan;
-            EndCaptivityAction.ApplyByReleasedByChoice(npcHero, Hero.MainHero);
-            npcHero.Clan = Clan.PlayerClan;
-            if (MobileParty.MainParty != null) AddHeroToPartyAction.Apply(npcHero, MobileParty.MainParty);
-
-            // Identity + chronicle side (marks TurnedDay, clears his grudge against the player, records the deed).
-            Nemesis.NemesisResolutionBehavior.Turn(npcHero);
-
-            ModLog.Info($"[ACTION] turn_nemesis: {npcHero.Name} spared and turned (left {oldClan?.StringId ?? "?"}, sworn to the player's clan).");
-
-            return new ActionOutcome(
-               $"{npcHero.Name} bends the knee and swears himself to you. The hunter now rides at your side.", true);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[ACTION] turn_nemesis failed: {ex.GetType().Name}: {ex.Message}");
-
-            return null;
-         }
-      }
-
-      /// <summary>The deepest grudge the nemesis holds specifically against the player (0..100), or 0 when none.</summary>
-      private static int NemesisGrudgeAgainstPlayer(Hero nemesis)
-      {
-         try
-         {
-            var grudges = Grudges.GrudgeBehavior.Instance?.GrudgesFor(nemesis.StringId);
-            if (grudges == null) return 0;
-
-            var max = 0;
-            foreach (var g in grudges)
-               if (g != null && string.Equals(g.TargetId, Hero.MainHero?.StringId, StringComparison.Ordinal) && g.Magnitude > max)
-                  max = g.Magnitude;
-
-            return max;
-         }
-         catch { return 0; }
-      }
-
-      /// <summary>Maps a turn refusal to a short in-character phrase for the outcome line.</summary>
-      private static string TurnRefusalPhrase(NemesisTurnRefusal reason) => reason switch {
-         NemesisTurnRefusal.FearsYouTooLittle => "does not fear you enough to bend",
-         NemesisTurnRefusal.RespectsYouTooLittle => "sees no honour in serving the likes of you",
-         NemesisTurnRefusal.TooDefiant => "would sooner die free than serve his captor",
-         NemesisTurnRefusal.HatesYouTooMuch => "hates you far too deeply to ever serve you",
-         _ => "will not turn"
-      };
-
-      /// <summary>
-      ///   Stance mechanical behaviour-gating (increment 1, Fear): reads the captive's LIVE Fear/Respect
-      ///   from the persisted profile and traits from the live Hero, then resolves
-      ///   <see cref="StanceGatePolicy.ResolveCoercion"/>. A MISSING profile (no stance data at all —
-      ///   the console self-test seam, or a captive the mod has never tracked) deliberately skips the
-      ///   gate (<see cref="CoercionOutcome.Neutral" />, unchanged bargain): defaulting an untracked
-      ///   captive's Fear/Respect to 0/0 would otherwise satisfy the RefusesFlat thresholds by construction
-      ///   and block every ordinary release the gate has no real basis to judge.
-      /// </summary>
-      private static CoercionResult ResolveFreePrisonerCoercion(Hero npcHero, ActionContext context)
-      {
-         NpcProfile profile = context?.Profile;
-         if (profile == null) return new CoercionResult(CoercionOutcome.Neutral, 1.0, 0);
-
-         NpcStance stance = StanceService.ToStance(profile);
-
-         int honor = TraitLevelOf(npcHero, DefaultTraits.Honor);
-         int valor = TraitLevelOf(npcHero, DefaultTraits.Valor);
-         int calculating = TraitLevelOf(npcHero, DefaultTraits.Calculating);
-
-         return StanceGatePolicy.ResolveCoercion(stance.Fear, stance.Respect, honor, valor, calculating);
-      }
-
-      /// <summary>A hero's trait level, or 0 when the hero or the trait cannot be read (never throws).</summary>
-      private static int TraitLevelOf(Hero hero, TraitObject trait)
-      {
-         try { return hero?.GetTraitLevel(trait) ?? 0; }
-         catch { return 0; }
-      }
-
-      /// <summary>
-      ///   Stance mechanical behaviour-gating (increment 1, Fear): plants a HIDDEN grudge against the
-      ///   player for a fear-coerced release — resentment instead of open regard, per the ratified
-      ///   axis→domain design (Fear → coercion). Never lets a plant failure break the release that
-      ///   already succeeded.
-      /// </summary>
-      private static void TryPlantCoercedGrudge(Hero npcHero, int magnitude, int today)
-      {
-         try
-         {
-            GrudgeBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, GrudgeSource.CoercedRelease,
-               "They cowed me into freeing them out of fear, not goodwill.", magnitude, knownToPlayer: false, today);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[STANCE] coerced-release grudge plant failed: {ex.GetType().Name}: {ex.Message}");
          }
       }
 
@@ -1091,7 +1210,9 @@ namespace CalradiaRemembers.GameState
 
             // Grudges pillar (Gift gesture): the same item may also soften or mend a grudge npcHero holds
             // against the player, a channel separate from the trust bump above.
-            string grudgeTail = npcHero != null ? TryGrudgeGiftTail(npcHero, value) : "";
+            string grudgeTail = npcHero != null
+               ? TryGrudgeGiftTail(npcHero, value)
+               : "";
 
             return new ActionOutcome($"You give {actualName} to {npcHero?.Name}.{grudgeTail}", false);
          }
@@ -1427,233 +1548,6 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
-      ///   Divorce, Phase 2b (+ its escalation follow-up): accept_divorce — the player's OWN spouse has
-      ///   been pressing a divorce demand in conversation (see <see cref="Mapping.EncounterContextBuilder" />'s
-      ///   SpouseDivorceDemandNote), OR has since stopped waiting and begun an outright estrangement of
-      ///   their own (SpouseEstrangementNote) — either way, the player consents in free text (no button).
-      ///   Dissolves the marriage via <see cref="MarriageDissolutionService.TryDissolvePlayerMarriage" />,
-      ///   whose own live re-validation (already-dissolved, no longer married) is what stops this from ever
-      ///   double-dissolving against the weekly estrangement sweep. Mutual consent (this was the spouse's
-      ///   own wish either way): the consequences are deliberately SOFT, a modest personal-regard settling
-      ///   at most, never the full repudiated-divorce grudge matrix
-      ///   <see cref="Marriage.DivorceProcessBehavior" /> applies to the NPC-NPC case.
-      /// </summary>
-      private static ActionOutcome ExecuteAcceptDivorce(Hero npcHero)
-      {
-         try
-         {
-            Hero player = Hero.MainHero;
-
-            if (player == null || npcHero == null || npcHero != player.Spouse)
-               return new ActionOutcome("(There is no marriage between you and this person to end.)", false);
-
-            var demands = SpouseDivorceDemandBehavior.Instance;
-            bool demanding = demands?.IsDemanding(npcHero.StringId) == true;
-            bool estranging = demands?.IsEstranging(npcHero.StringId) == true;
-
-            if (demands == null || (!demanding && !estranging))
-               return new ActionOutcome($"({npcHero.Name} has not pressed you to end the marriage.)", false);
-
-            int spouseVsPlayerBefore = npcHero.GetRelation(player);
-
-            if (!MarriageDissolutionService.TryDissolvePlayerMarriage(npcHero, out string reason))
-               return new ActionOutcome($"(The marriage could not be ended: {reason}.)", false);
-
-            demands.Accept(npcHero.StringId);
-            demands.CancelEstrangement(npcHero.StringId);
-
-            var today = (int) CampaignTime.Now.ToDays;
-
-            // Mutual consent (this was THEIR wish): SET the target relation from the pre-dissolution
-            // baseline plus the same soft mutual-consent hit DivorcePolicy already uses for the NPC-NPC
-            // case, correcting for whatever hidden penalty the engine's own Hero.Spouse = null applies.
-            int target = spouseVsPlayerBefore + DivorcePolicy.MutualExSpousePlayerRelationHit;
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npcHero, player, target - npcHero.GetRelation(player), false);
-
-            NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
-
-            if (profile != null)
-            {
-               // The same small relief nudge DivorceConsequencePolicy gives a mutual-consent spouse in the
-               // NPC-NPC case, applied to the CR-internal reputation ledger, not the vanilla relation above.
-               ProfileMutator.ApplyReputationDelta(profile, DivorceConsequencePolicy.SpouseMutualReliefRelationNudge);
-               profile.Events.Add(new NotableEvent(today, NotableEventType.Agreement,
-                  "The marriage ended, by mutual agreement, at my own asking."));
-               NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
-            }
-
-            try
-            {
-               WorldEventStore.Instance?.Record(new WorldEvent {
-                  Type = WorldEventType.Other,
-                  Day = today,
-                  Magnitude = 20,
-                  InvolvesPlayer = true,
-                  ActorIds = new List<string> {player.StringId, npcHero.StringId},
-                  Summary = $"{player.Name} and {npcHero.Name} have parted ways, their marriage dissolved by mutual accord.",
-                  ChronicleLine = $"my marriage to {npcHero.Name} ended quietly, by mutual accord, and we parted without rancour"
-               });
-            }
-            catch (Exception ex) { ModLog.Error($"[ACTION] accept_divorce world-event record failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
-
-            ModLog.Info($"[ACTION] accept_divorce: player and {npcHero.Name} are no longer wed (mutual consent).");
-
-            return new ActionOutcome(
-               $"You and {npcHero.Name} part ways: the marriage is dissolved, by mutual accord.", true);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[ACTION] accept_divorce failed: {ex.GetType().Name}: {ex.Message}");
-
-            return null;
-         }
-      }
-
-      /// <summary>
-      ///   Divorce, Phase 2b: decline_divorce — the player has firmly and explicitly refused their
-      ///   spouse's divorce demand in this very exchange. An OPTIONAL, faster path alongside the primary
-      ///   refusal mechanism (<see cref="SpouseDivorceDemandBehavior" />'s grace-period timeout sweep): the
-      ///   LLM need not emit this for a refusal to eventually register, but a clear in-character refusal
-      ///   registers it right away instead of waiting out the grace period.
-      /// </summary>
-      private static ActionOutcome ExecuteDeclineDivorce(Hero npcHero)
-      {
-         try
-         {
-            Hero player = Hero.MainHero;
-
-            if (player == null || npcHero == null || npcHero != player.Spouse) return null;
-
-            var demands = SpouseDivorceDemandBehavior.Instance;
-
-            if (demands == null || !demands.IsDemanding(npcHero.StringId)) return null;
-
-            demands.RegisterRefusal(npcHero, (int) CampaignTime.Now.ToDays);
-            ModLog.Info($"[ACTION] decline_divorce: player refused {npcHero.Name}'s divorce demand.");
-
-            return new ActionOutcome($"{npcHero.Name} takes your refusal hard; the wound between you deepens.", false);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[ACTION] decline_divorce failed: {ex.GetType().Name}: {ex.Message}");
-
-            return null;
-         }
-      }
-
-      /// <summary>
-      ///   Divorce, Phase 2a: end_own_marriage — the PLAYER themselves, in free text, chooses to end their
-      ///   OWN marriage (see <see cref="Mapping.EncounterContextBuilder" />'s PlayerEndOwnMarriageNote for
-      ///   the conditional teaching, taught only when speaking to the player's own living spouse). Dissolves
-      ///   IMMEDIATELY via <see cref="MarriageDissolutionService.TryDissolvePlayerMarriage" />: no multi-day
-      ///   estrangement process, unlike the NPC-NPC Phase 1 case (the player's own resolve needs no
-      ///   resistance window). Mutual-vs-repudiated is decided live by
-      ///   <see cref="PlayerDivorceConsentPolicy.SpouseConsents" />: the spouse's own pending Phase 2b
-      ///   demand, or their relation with the player already reading unhappy by the same bar
-      ///   <see cref="DivorcePolicy.UnhappyThreshold" /> uses for the NPC-NPC case. Either way, consequences
-      ///   flow through <see cref="DivorceProcessBehavior.ApplyDivorceConsequences" />, the SAME tiered
-      ///   engine the NPC-NPC case shares — mutual consent naturally resolves to soft Relief/None verdicts,
-      ///   repudiation to the full grudge matrix (spouse + immediate family + three best friends), with no
-      ///   parallel reimplementation here.
-      /// </summary>
-      private static ActionOutcome ExecuteEndOwnMarriage(Hero npcHero)
-      {
-         try
-         {
-            Hero player = Hero.MainHero;
-
-            if (player == null || npcHero == null || npcHero != player.Spouse)
-               return new ActionOutcome("(There is no marriage between you and this person to end.)", false);
-
-            var demands = SpouseDivorceDemandBehavior.Instance;
-            bool spouseWasDemanding = demands?.IsDemanding(npcHero.StringId) == true;
-            bool spouseWasEstranging = demands?.IsEstranging(npcHero.StringId) == true;
-
-            int spouseVsPlayerBefore = npcHero.GetRelation(player);
-
-            // An estrangement already under way is at least as clear a "they too want this" signal as a
-            // pending Phase 2b demand — the spouse had already stopped merely asking.
-            bool mutualConsent = PlayerDivorceConsentPolicy.SpouseConsents(new PlayerDivorceConsentFacts {
-               SpouseHasPendingDemand = spouseWasDemanding || spouseWasEstranging,
-               SpouseRelationWithPlayer = spouseVsPlayerBefore
-            });
-
-            if (!MarriageDissolutionService.TryDissolvePlayerMarriage(npcHero, out string reason))
-               return new ActionOutcome($"(The marriage could not be ended: {reason}.)", false);
-
-            if (spouseWasDemanding) demands.Accept(npcHero.StringId);
-            if (spouseWasEstranging) demands.CancelEstrangement(npcHero.StringId);
-
-            var today = (int) CampaignTime.Now.ToDays;
-            const string cause = "The marriage was ended by the player's own choice.";
-
-            // The shared tiered engine (Phase 1's own consequence application, exposed for reuse): divorcer
-            // and player are the SAME hero here, so this collapses to a single relation channel rather
-            // than the NPC-NPC case's separate divorcer/player-blame split — there is no third party to
-            // blame when the player is the one who acted.
-            SafeRun.Step($"BannerlordGameStateBridge.ExecuteEndOwnMarriage.ApplyDivorceConsequences({npcHero.StringId})",
-               () => DivorceProcessBehavior.Instance?.ApplyDivorceConsequences(
-                  player, npcHero, mutualConsent, spouseVsPlayerBefore, spouseVsPlayerBefore, cause, today));
-
-            NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
-
-            if (profile != null)
-            {
-               profile.Events.Add(new NotableEvent(today,
-                  mutualConsent
-                     ? NotableEventType.Agreement
-                     : NotableEventType.Betrayal,
-                  mutualConsent
-                     ? "The marriage ended, by mutual agreement, when the player chose to end it."
-                     : "Was set aside by the player, who chose to end our marriage."));
-               NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
-            }
-
-            try
-            {
-               WorldEventStore.Instance?.Record(new WorldEvent {
-                  Type = mutualConsent
-                     ? WorldEventType.Other
-                     : WorldEventType.Scandal,
-                  Day = today,
-                  Magnitude = mutualConsent
-                     ? 20
-                     : DivorcePolicy.ScaledScandalMagnitude(npcHero.Culture?.StringId),
-                  InvolvesPlayer = true,
-                  ActorIds = new List<string> {player.StringId, npcHero.StringId},
-                  FactionIds = new List<string>(new[] {player.MapFaction?.StringId, npcHero.MapFaction?.StringId}.Where(id => !string.IsNullOrEmpty(id))),
-                  Summary = mutualConsent
-                     ? $"{player.Name} and {npcHero.Name} have parted ways, their marriage dissolved by mutual accord."
-                     : $"Word spreads that {player.Name} has set aside {npcHero.Name}, dissolving their marriage.",
-                  ChronicleLine = mutualConsent
-                     ? $"my marriage to {npcHero.Name} ended quietly, by mutual accord, and we parted without rancour"
-                     : $"at my own choosing, I set aside {npcHero.Name} and ended our marriage, to both our houses' outrage"
-               });
-            }
-            catch (Exception ex) { ModLog.Error($"[ACTION] end_own_marriage world-event record failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
-
-            ModLog.Info($"[ACTION] end_own_marriage: player and {npcHero.Name} are no longer wed" +
-                        $"{(mutualConsent ? " (mutual consent)" : " (repudiated)")}.");
-
-            // A mutual parting cues the positive (green) system line; a repudiation cues the negative (red)
-            // one, since the player has just wronged a spouse who did not want this and set a grudge storm
-            // (spouse + their family + friends) against themselves. The deed succeeded either way; the cue
-            // reflects its human weight, not its mechanical success.
-            return new ActionOutcome(
-               mutualConsent
-                  ? $"You and {npcHero.Name} part ways: the marriage is dissolved, by mutual accord."
-                  : $"You set aside {npcHero.Name}: the marriage is ended, at your own choosing.",
-               mutualConsent);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[ACTION] end_own_marriage failed: {ex.GetType().Name}: {ex.Message}");
-
-            return null;
-         }
-      }
-
-      /// <summary>
       ///   pledge_against (RP with teeth, increment 2): a lord, moved by genuine and standing enmity, vows
       ///   to move against a named rival. This is a POLITICAL commitment ONLY — it launches a real scheme
       ///   (slander or sabotage) via <see cref="WorldEvents.SchemeStore" /> and records a
@@ -1867,7 +1761,7 @@ namespace CalradiaRemembers.GameState
             // Openly taking a consort is the most public romantic commitment short of marriage: it rouses a
             // staked party AT THE ACT (an existing spouse above all), not only through the later daily
             // competition loop (jealousy audit 2026-07-10). Treated as witnessed, marriage-tier.
-            Jealousy.JealousyBehavior.Instance?.OnRomanticAct(
+            JealousyBehavior.Instance?.OnRomanticAct(
                npcHero, RomanticActTier.Marriage, true, (int) CampaignTime.Now.ToDays);
 
             return new ActionOutcome(
@@ -1939,7 +1833,7 @@ namespace CalradiaRemembers.GameState
             CompleteProvideGoldOnPayment(npcHero, amount); // any payment satisfies AND closes a ProvideGold quest
 
             // Paying a scheming bastard-mother her demand IS settling the blackmail (buys her silence).
-            bool silenced = Bastards.BastardBehavior.Instance?.SettleByPayment(npcHero, amount) == true;
+            bool silenced = BastardBehavior.Instance?.SettleByPayment(npcHero, amount) == true;
             ModLog.Info($"[ACTION] take_gold: player → {npcHero.Name} {amount} gold{(silenced ? " (bastard silence bought)" : "")}");
 
             // Appreciations pillar: a payment is also a remembered kindness, a channel separate from the
@@ -1967,52 +1861,63 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
-      ///   Appreciations pillar: plants a GiftReceived/GoldReceived appreciation on <paramref name="npcHero" />
-      ///   scaled from a denar value via <see cref="AppreciationValueScaling.FromValue" />. KnownToPlayer is
-      ///   always true — the player performed (or plainly witnessed) the hand-off themselves. Never throws —
-      ///   a failure here must never break the gift/payment transfer that already succeeded.
+      ///   turn_nemesis (Nemesis pillar increment 4, SPARE + TURN): mid a captor scene the player offers to
+      ///   spare a tracked nemesis they hold prisoner and take him into their service, and the LLM recognized a
+      ///   genuine acceptance. The prompt is advice, the bridge is law: this re-validates that the NPC really is
+      ///   the nemesis the PLAYER currently holds, then re-runs the RATIFIED turn gate
+      ///   (<see cref="NemesisTurnPolicy" />) on his live Fear/Respect, his grudge against the player, and his
+      ///   traits. A refusal (fears you too little, respects you too little, too defiant, or hates you too
+      ///   deeply) is honoured in character and changes nothing. On a genuine turn he is freed, sworn into the
+      ///   player's clan and party, his vendetta closed, and the identity marked turned (never recurs as an
+      ///   enemy captor) with a closure deed recorded (<see cref="Nemesis.NemesisResolutionBehavior.Turn" />).
       /// </summary>
-      private static void TryPlantValueAppreciation(Hero npcHero, AppreciationSource source, int value, string cause)
+      private static ActionOutcome ExecuteTurnNemesis(Hero npcHero, NpcProfile profile)
       {
          try
          {
-            if (npcHero == null) return;
+            if (npcHero == null || Hero.MainHero == null) return null;
 
-            var today = (int) CampaignTime.Now.ToDays;
-            int magnitude = AppreciationValueScaling.FromValue(value);
-            AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, source, cause, magnitude, knownToPlayer: true, today);
+            Hero held = NemesisBehavior.Instance?.PlayerHeldNemesisPrisoner();
+
+            if (held == null || held != npcHero)
+               return new ActionOutcome($"({npcHero.Name} is not a nemesis you hold prisoner to turn.)", false);
+
+            NpcProfile p = profile ?? NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
+
+            if (p == null)
+               return new ActionOutcome($"({npcHero.Name} cannot be read well enough to judge whether he would turn.)", false);
+
+            NpcStance stance = StanceService.ToStance(p);
+            int honor = TraitLevelOf(npcHero, DefaultTraits.Honor);
+            int valor = TraitLevelOf(npcHero, DefaultTraits.Valor);
+            int calculating = TraitLevelOf(npcHero, DefaultTraits.Calculating);
+            int grudge = NemesisGrudgeAgainstPlayer(npcHero);
+
+            NemesisTurnVerdict verdict = NemesisTurnPolicy.Resolve(
+               new NemesisTurnFacts(stance.Fear, stance.Respect, grudge, honor, valor, calculating));
+
+            if (!verdict.CanTurn)
+               return new ActionOutcome($"({npcHero.Name} refuses to bend: he {TurnRefusalPhrase(verdict.Refusal)}.)", false);
+
+            // He turns. Free him, swear him into the player's clan and party, and close the vendetta.
+            Clan oldClan = npcHero.Clan;
+            EndCaptivityAction.ApplyByReleasedByChoice(npcHero, Hero.MainHero);
+            npcHero.Clan = Clan.PlayerClan;
+            if (MobileParty.MainParty != null) AddHeroToPartyAction.Apply(npcHero, MobileParty.MainParty);
+
+            // Identity + chronicle side (marks TurnedDay, clears his grudge against the player, records the deed).
+            NemesisResolutionBehavior.Turn(npcHero);
+
+            ModLog.Info($"[ACTION] turn_nemesis: {npcHero.Name} spared and turned (left {oldClan?.StringId ?? "?"}, sworn to the player's clan).");
+
+            return new ActionOutcome(
+               $"{npcHero.Name} bends the knee and swears himself to you. The hunter now rides at your side.", true);
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[APPRECIATION] value-scaled plant failed: {ex.GetType().Name}: {ex.Message}");
-         }
-      }
+            ModLog.Error($"[ACTION] turn_nemesis failed: {ex.GetType().Name}: {ex.Message}");
 
-      /// <summary>
-      ///   Grudges pillar (Gift gesture): routes a gold payment or an item's value, offered to
-      ///   <paramref name="npcHero" />, through <see cref="GrudgeResolutionService.TryResolveDominant" />,
-      ///   returning a short clause to append to the caller's own outcome message when it actually moved a
-      ///   grudge, or an empty string otherwise. Never throws — a resolution failure must never break the
-      ///   gift transfer that already succeeded.
-      /// </summary>
-      private static string TryGrudgeGiftTail(Hero npcHero, int giftValue)
-      {
-         try
-         {
-            var today = (int) CampaignTime.Now.ToDays;
-            GrudgeResolutionAttemptResult result = GrudgeResolutionService.TryResolveDominant(npcHero, GrudgeGesture.Gift, giftValue, today);
-
-            if (!result.Changed) return "";
-
-            return result.Outcome == GrudgeResolutionOutcome.Resolved
-               ? " It also mends an old grievance between you."
-               : " It also softens an old grievance between you.";
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[GRUDGE] gift routing failed: {ex.GetType().Name}: {ex.Message}");
-
-            return "";
+            return null;
          }
       }
 
@@ -2090,6 +1995,22 @@ namespace CalradiaRemembers.GameState
             $"{npcHero.Name} gives their blessing — you have earned {spouse.Name}'s hand. Their house stands with you.", true);
       }
 
+      /// <summary>The magnitude of the heaviest LIVE grudge this hero holds against the player, or 0 when none.</summary>
+      private static int HeaviestGrudgeAgainstPlayer(Hero hero)
+      {
+         IReadOnlyList<Grudge> grudges = GrudgeBehavior.Instance?.GrudgesFor(hero?.StringId);
+
+         if (grudges == null) return 0;
+
+         string playerId = Hero.MainHero?.StringId;
+         var max = 0;
+         foreach (Grudge g in grudges)
+            if (!g.IsResolved && g.TargetId == playerId && g.Magnitude > max)
+               max = g.Magnitude;
+
+         return max;
+      }
+
       /// <summary>Maps the LLM's 'errand' keyword to a mission type; anything unrecognized falls back to news.</summary>
       private static CompanionMissionType MapErrand(string errand)
       {
@@ -2103,6 +2024,25 @@ namespace CalradiaRemembers.GameState
             case "envoy": return CompanionMissionType.Envoy;
             default: return CompanionMissionType.GatherNews;
          }
+      }
+
+      /// <summary>The deepest grudge the nemesis holds specifically against the player (0..100), or 0 when none.</summary>
+      private static int NemesisGrudgeAgainstPlayer(Hero nemesis)
+      {
+         try
+         {
+            IReadOnlyList<Grudge> grudges = GrudgeBehavior.Instance?.GrudgesFor(nemesis.StringId);
+
+            if (grudges == null) return 0;
+
+            var max = 0;
+            foreach (Grudge g in grudges)
+               if (g != null && string.Equals(g.TargetId, Hero.MainHero?.StringId, StringComparison.Ordinal) && g.Magnitude > max)
+                  max = g.Magnitude;
+
+            return max;
+         }
+         catch { return 0; }
       }
 
       private static void PlaySound(string eventPath)
@@ -2121,6 +2061,43 @@ namespace CalradiaRemembers.GameState
          }
       }
 
+      /// <summary>
+      ///   Re-validates a captor's willingness to free the player via the pure <see cref="CaptorReleasePolicy" />,
+      ///   reading the captor's Mercy and the heaviest live grudge they hold against the player. Mirrors the
+      ///   advice-side gate in <c>EncounterContextBuilder</c> so the prompt and the bridge cannot disagree.
+      /// </summary>
+      private static CaptorReleaseVerdict ResolveCaptorReleaseVerdict(Hero captor)
+      {
+         int mercy = TraitLevelOf(captor, DefaultTraits.Mercy);
+         int grudge = HeaviestGrudgeAgainstPlayer(captor);
+
+         return CaptorReleasePolicy.Resolve(mercy, grudge, false);
+      }
+
+      /// <summary>
+      ///   Stance mechanical behaviour-gating (increment 1, Fear): reads the captive's LIVE Fear/Respect
+      ///   from the persisted profile and traits from the live Hero, then resolves
+      ///   <see cref="StanceGatePolicy.ResolveCoercion" />. A MISSING profile (no stance data at all —
+      ///   the console self-test seam, or a captive the mod has never tracked) deliberately skips the
+      ///   gate (<see cref="CoercionOutcome.Neutral" />, unchanged bargain): defaulting an untracked
+      ///   captive's Fear/Respect to 0/0 would otherwise satisfy the RefusesFlat thresholds by construction
+      ///   and block every ordinary release the gate has no real basis to judge.
+      /// </summary>
+      private static CoercionResult ResolveFreePrisonerCoercion(Hero npcHero, ActionContext context)
+      {
+         NpcProfile profile = context?.Profile;
+
+         if (profile == null) return new CoercionResult(CoercionOutcome.Neutral, 1.0, 0);
+
+         NpcStance stance = StanceService.ToStance(profile);
+
+         int honor = TraitLevelOf(npcHero, DefaultTraits.Honor);
+         int valor = TraitLevelOf(npcHero, DefaultTraits.Valor);
+         int calculating = TraitLevelOf(npcHero, DefaultTraits.Calculating);
+
+         return StanceGatePolicy.ResolveCoercion(stance.Fear, stance.Respect, honor, valor, calculating);
+      }
+
       private static List<Kingdom> RetrieveAllKingdoms()
       {
          var kingdoms = new List<Kingdom>();
@@ -2131,47 +2108,11 @@ namespace CalradiaRemembers.GameState
          return kingdoms;
       }
 
-      /// <summary>
-      ///   Satisfies AND COMPLETES an outstanding <see cref="QuestType.ProvideGold" /> quest (a support demand,
-      ///   e.g. child support) the moment the player gives its giver any gold. The payment is made DIRECTLY to
-      ///   the very person who asked, so there is nothing to "return and collect": completing it here, rather
-      ///   than only stamping the deed done and waiting for the giver to emit [QUEST_COMPLETE] (which the model
-      ///   rarely did), fixes a player report of the quest staying stuck "done, return for your reward" forever.
-      ///   The goodwill reward is paid here too, straight to the personal score (verified deed bypasses the gate).
-      /// </summary>
-      private static void CompleteProvideGoldOnPayment(Hero npcHero, int amountGiven)
+      /// <summary>A hero's trait level, or 0 when the hero or the trait cannot be read (never throws).</summary>
+      private static int TraitLevelOf(Hero hero, TraitObject trait)
       {
-         BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
-
-         if (store == null || npcHero == null || Hero.MainHero == null) return;
-
-         NpcProfile profile = store.Get(npcHero.StringId);
-
-         InformalQuest quest = profile?.ActiveQuests.FirstOrDefault(q =>
-            q.Type == QuestType.ProvideGold && q.IsOutstanding);
-
-         if (quest == null) return;
-
-         var day = (int) CampaignTime.Now.ToDays;
-         quest.SatisfiedOnDay = day;
-         quest.Evidence = $"Player provided {amountGiven} denars on day {day}.";
-
-         if (quest.RewardRelation > 0)
-         {
-            int before = profile.ReputationWithPlayer;
-            profile.ReputationWithPlayer = ClampInt(before + quest.RewardRelation, -100, 100);
-            profile.LastRelationGainHour = CampaignTime.Now.ToHours;
-         }
-
-         quest.Status = QuestStatus.Completed;
-         profile.Events.Add(new NotableEvent(day, NotableEventType.Collaboration,
-            $"The player gave {amountGiven} denars toward the support I asked of them."));
-         QuestJournalBridge.CloseAsCompleted(quest, npcHero);
-         Stance.StanceService.OnPromiseKept(profile);
-         store.Set(profile);
-
-         MBInformationManager.AddQuickInformation(new TextObject($"{npcHero.Name} is grateful for the support."), 0, npcHero.CharacterObject);
-         ModLog.Info($"[QUEST] ProvideGold completed: {npcHero.Name} received {amountGiven} denars (quest closed).");
+         try { return hero?.GetTraitLevel(trait) ?? 0; }
+         catch { return 0; }
       }
 
       private static bool TryGetInt(IReadOnlyDictionary<string, string> parameters, string key, out int value)
@@ -2180,6 +2121,84 @@ namespace CalradiaRemembers.GameState
 
          return parameters.TryGetValue(key, out string raw) && int.TryParse(raw, out value);
       }
+
+      /// <summary>
+      ///   Grudges pillar (Gift gesture): routes a gold payment or an item's value, offered to
+      ///   <paramref name="npcHero" />, through <see cref="GrudgeResolutionService.TryResolveDominant" />,
+      ///   returning a short clause to append to the caller's own outcome message when it actually moved a
+      ///   grudge, or an empty string otherwise. Never throws — a resolution failure must never break the
+      ///   gift transfer that already succeeded.
+      /// </summary>
+      private static string TryGrudgeGiftTail(Hero npcHero, int giftValue)
+      {
+         try
+         {
+            var today = (int) CampaignTime.Now.ToDays;
+            GrudgeResolutionAttemptResult result = GrudgeResolutionService.TryResolveDominant(npcHero, GrudgeGesture.Gift, giftValue, today);
+
+            if (!result.Changed) return "";
+
+            return result.Outcome == GrudgeResolutionOutcome.Resolved
+               ? " It also mends an old grievance between you."
+               : " It also softens an old grievance between you.";
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[GRUDGE] gift routing failed: {ex.GetType().Name}: {ex.Message}");
+
+            return "";
+         }
+      }
+
+      /// <summary>
+      ///   Stance mechanical behaviour-gating (increment 1, Fear): plants a HIDDEN grudge against the
+      ///   player for a fear-coerced release — resentment instead of open regard, per the ratified
+      ///   axis→domain design (Fear → coercion). Never lets a plant failure break the release that
+      ///   already succeeded.
+      /// </summary>
+      private static void TryPlantCoercedGrudge(Hero npcHero, int magnitude, int today)
+      {
+         try
+         {
+            GrudgeBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, GrudgeSource.CoercedRelease,
+               "They cowed me into freeing them out of fear, not goodwill.", magnitude, false, today);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[STANCE] coerced-release grudge plant failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Appreciations pillar: plants a GiftReceived/GoldReceived appreciation on <paramref name="npcHero" />
+      ///   scaled from a denar value via <see cref="AppreciationValueScaling.FromValue" />. KnownToPlayer is
+      ///   always true — the player performed (or plainly witnessed) the hand-off themselves. Never throws —
+      ///   a failure here must never break the gift/payment transfer that already succeeded.
+      /// </summary>
+      private static void TryPlantValueAppreciation(Hero npcHero, AppreciationSource source, int value, string cause)
+      {
+         try
+         {
+            if (npcHero == null) return;
+
+            var today = (int) CampaignTime.Now.ToDays;
+            int magnitude = AppreciationValueScaling.FromValue(value);
+            AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, source, cause, magnitude, true, today);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[APPRECIATION] value-scaled plant failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>Maps a turn refusal to a short in-character phrase for the outcome line.</summary>
+      private static string TurnRefusalPhrase(NemesisTurnRefusal reason) => reason switch {
+         NemesisTurnRefusal.FearsYouTooLittle => "does not fear you enough to bend",
+         NemesisTurnRefusal.RespectsYouTooLittle => "sees no honour in serving the likes of you",
+         NemesisTurnRefusal.TooDefiant => "would sooner die free than serve his captor",
+         NemesisTurnRefusal.HatesYouTooMuch => "hates you far too deeply to ever serve you",
+         _ => "will not turn"
+      };
 
       private ActionOutcome ExecuteChangeRelation(GameAction action, Hero npcHero, ActionContext context)
       {
@@ -2268,7 +2287,9 @@ namespace CalradiaRemembers.GameState
 
             // Captured BEFORE the transfer, per the rule's own "prior regard" framing (mirrors
             // DivorceFacts.SpouseRegardForPlayer's low-regard-nurses-harder read).
-            int captiveRegardForPlayer = Hero.MainHero != null ? prisonerHero.GetRelation(Hero.MainHero) : 0;
+            int captiveRegardForPlayer = Hero.MainHero != null
+               ? prisonerHero.GetRelation(Hero.MainHero)
+               : 0;
 
             // Hand the captive to the lord's party; if they ride with none, take them off the player's hands.
             PartyBase dest = npcHero.PartyBelongedTo?.Party;
@@ -2295,7 +2316,8 @@ namespace CalradiaRemembers.GameState
             // succeeded above.
             try
             {
-               bool toEnemy = prisonerHero.MapFaction != null && npcHero.MapFaction != null &&
+               bool toEnemy = prisonerHero.MapFaction != null &&
+                              npcHero.MapFaction != null &&
                               FactionManager.IsAtWarAgainstFaction(prisonerHero.MapFaction, npcHero.MapFaction);
 
                var facts = new DeliveredPrisonerFacts {

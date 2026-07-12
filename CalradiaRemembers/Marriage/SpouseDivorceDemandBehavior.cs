@@ -405,6 +405,54 @@ namespace CalradiaRemembers.Marriage
          }
 
          ModLog.Info($"[SPOUSE_DIVORCE] {spouse.Name}'s estrangement is called off — the marriage is reconciled.");
+
+         // Belt on top of the delivery-time safety net (LetterIntentionResolver): a reconciled spouse no longer
+         // wants a divorce, so their own already-queued divorce letters are purged right away rather than left
+         // to be caught only when they would otherwise be delivered.
+         PurgeStaleDivorceLetters(profile);
+      }
+
+      /// <summary>
+      ///   Removes every pending <see cref="LetterReason.SpouseDivorceDemand" />/
+      ///   <see cref="LetterReason.SpouseDivorceEscalation" /> letter from <paramref name="profile" />'s own
+      ///   <see cref="NpcProfile.SentLetters" />, since the reconciliation just called off means the spouse
+      ///   no longer wants a divorce. Fail-soft: this is a proactive cleanup on top of the delivery-time
+      ///   <see cref="Letters.LetterIntentionResolver" /> guard, never the sole line of defense, so any problem
+      ///   here is logged and swallowed rather than thrown.
+      /// </summary>
+      private static void PurgeStaleDivorceLetters(NpcProfile profile)
+      {
+         try
+         {
+            if (profile?.SentLetters == null) return;
+
+            List<PendingLetter> stale = profile.SentLetters
+               .Where(l => l.Reason == LetterReason.SpouseDivorceDemand || l.Reason == LetterReason.SpouseDivorceEscalation)
+               .ToList();
+
+            if (stale.Count == 0) return;
+
+            var inFlight = 0;
+            foreach (PendingLetter letter in stale)
+            {
+               if (!string.IsNullOrEmpty(letter.CourierPartyId)) inFlight++;
+               profile.SentLetters.Remove(letter);
+            }
+
+            NpcMemoryCampaignBehavior.Instance?.Store?.Set(profile);
+
+            // No known API cleanly recalls/destroys an in-flight reply courier by id from here (CourierService's
+            // own destroy/waylay paths mark the letter lost AND surface a player-visible "courier waylaid"
+            // notification, which would be a confusing leak of its own): an in-flight courier is simply left to
+            // arrive, where CourierService's own LetterIntentionResolver check silently drops it on arrival.
+            ModLog.Info(inFlight > 0
+               ? $"[SPOUSE_DIVORCE] purged {stale.Count} stale divorce letter(s) for {profile.Name} on reconciliation ({inFlight} still in flight by courier, left to the delivery-time safety net)."
+               : $"[SPOUSE_DIVORCE] purged {stale.Count} stale divorce letter(s) for {profile.Name} on reconciliation.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SPOUSE_DIVORCE] stale divorce letter purge failed (non-fatal): {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       /// <summary>

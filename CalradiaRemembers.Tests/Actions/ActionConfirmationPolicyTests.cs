@@ -15,7 +15,9 @@ namespace CalradiaRemembers.Tests.Actions
     {
         [TestCase("take_gold")]
         [TestCase("join_party")]
+        [TestCase("free_prisoner")]
         [TestCase("Take_Gold")]
+        [TestCase("Free_Prisoner")]
         public void GIVEN_an_action_the_player_spends_or_commits_on_WHEN_checked_THEN_it_requires_confirmation(string actionType)
         {
             ActionConfirmationPolicy.RequiresConfirmation(actionType).Should().BeTrue();
@@ -95,6 +97,14 @@ namespace CalradiaRemembers.Tests.Actions
             string question = ActionConfirmationPolicy.BuildQuestion("join_party", "Fercread the Pinder", 500);
 
             question.Should().Be("Let Fercread the Pinder take service in your party for 500 coins?");
+        }
+
+        [Test]
+        public void GIVEN_free_prisoner_WHEN_building_the_question_THEN_it_asks_whether_to_set_the_prisoner_free_ignoring_amount()
+        {
+            string question = ActionConfirmationPolicy.BuildQuestion("free_prisoner", "Garios", 0);
+
+            question.Should().Be("Set Garios free?");
         }
 
         [Test]

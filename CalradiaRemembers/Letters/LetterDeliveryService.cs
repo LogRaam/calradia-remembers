@@ -41,12 +41,35 @@ namespace CalradiaRemembers.Letters
                 // Never deliver a blank letter: an in-flight placeholder whose LLM call failed or was
                 // interrupted mid-session keeps Content null, and delivering it showed the player
                 // "(The letter is blank.)". A letter with no body is not ready, so it is not due.
-                PendingLetter due = profile.SentLetters
-                    .FirstOrDefault(l => !l.IsDelivered && !l.IsLost
-                                      && !string.IsNullOrWhiteSpace(l.Content)
-                                      && string.IsNullOrEmpty(l.CourierPartyId)
-                                      && l.DeliveryDay <= today
-                                      && !LetterDeliveryPolicy.ShouldDeferDelivery(l.Reason, near));
+                var candidates = profile.SentLetters
+                    .Where(l => !l.IsDelivered && !l.IsLost
+                             && !string.IsNullOrWhiteSpace(l.Content)
+                             && string.IsNullOrEmpty(l.CourierPartyId)
+                             && l.DeliveryDay <= today
+                             && !LetterDeliveryPolicy.ShouldDeferDelivery(l.Reason, near))
+                    .ToList();
+
+                if (candidates.Count == 0) continue;
+
+                PendingLetter due = null;
+                foreach (PendingLetter candidate in candidates)
+                {
+                    // A letter must never outlive the intent that wrote it: re-validate against the sender's
+                    // CURRENT intention here and drop it silently if that intention has lapsed (a reconciled
+                    // spouse no longer wants a divorce; a lord who made peace no longer threatens war).
+                    if (LetterIntentionResolver.ShouldDrop(candidate, sender))
+                    {
+                        profile.SentLetters.Remove(candidate);
+                        store.Set(profile);
+                        ModLog.Info($"[LETTER] dropped (sender's intention lapsed): {profile.Name} -> player (reason={candidate.Reason}).");
+
+                        continue;
+                    }
+
+                    due = candidate;
+
+                    break;
+                }
 
                 if (due == null) continue;
 

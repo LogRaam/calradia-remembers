@@ -50,5 +50,47 @@ namespace CalradiaRemembers.Logic
         {
             return senderNearPlayer && ShouldDeferWhenNear(reason);
         }
+
+        /// <summary>
+        ///   True for a letter reason whose motivating intention can LAPSE before the letter is delivered:
+        ///   the sender may change their mind between writing and delivery (a spouse reconciles and no longer
+        ///   wants a divorce; a lord makes peace and no longer threatens war). Such a letter must be
+        ///   re-validated against the sender's CURRENT intention at delivery time, because a letter must never
+        ///   outlive the intent that wrote it (an autonomous letter that no longer reflects its sender only
+        ///   confuses the player). Factual announcements (a birth, a victory, a farewell, a reply) carry no
+        ///   lapsing intention and are never dropped on this basis.
+        /// </summary>
+        public static bool IsIntentionBearing(LetterReason reason)
+        {
+            switch (reason)
+            {
+                case LetterReason.SpouseDivorceDemand:
+                case LetterReason.SpouseDivorceEscalation:
+                case LetterReason.StanceHostility:
+                case LetterReason.ReinforcementRequest:
+                case LetterReason.MarriageProposal:
+                case LetterReason.StanceFavor:
+                case LetterReason.JealousThreat:
+                case LetterReason.CorruptionAttempt:
+                case LetterReason.Blackmail:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        ///   The staleness gate: true when a letter should be DROPPED (destroyed, never delivered) because its
+        ///   sender's motivating intention no longer holds. Only an intention-bearing reason
+        ///   (<see cref="IsIntentionBearing" />) can go stale; a reason that carries no lapsing intention is
+        ///   never dropped here. <paramref name="intentionStillHolds" /> is resolved by the host from live
+        ///   game state (is the divorce still wanted, is the war still on, is the match still viable) and
+        ///   defaults to true for a reason the host cannot yet assess, so an unknown case is delivered, never
+        ///   silently swallowed.
+        /// </summary>
+        public static bool ShouldDropAsStale(LetterReason reason, bool intentionStillHolds)
+        {
+            return IsIntentionBearing(reason) && !intentionStillHolds;
+        }
     }
 }

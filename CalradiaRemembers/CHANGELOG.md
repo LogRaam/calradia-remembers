@@ -2,6 +2,16 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.9.. 2026-07-12
+
+### Fixed
+- You can free a prisoner again by telling them so. Telling a prisoner you hold that they are free to go now actually releases them. A recent change had let a defiant, unafraid captive "refuse to be swayed" and quietly blocked the release even though freeing a prisoner is the captor's choice to make, while still leaving the NPC with the memory of being let go. A captor can always free their own prisoner.
+- A companion you are talking to is no longer offered, or brought in, as a witness to their own conversation. When you chat with someone travelling in your party (a married-in spouse, a sibling), the "bring companions" picker and the automatic join no longer list them, so they cannot end up witnessing, or in a round table taking a second turn as, themselves. This was behind the "there seem to be two of my wife" reports; it was never a duplicated character.
+- Letters no longer outlive the intent that wrote them. A letter is re-checked against its sender's current intention the moment it would reach you, and dropped (never delivered) if that intention is gone: a spouse who reconciles and no longer wants a divorce has her pending divorce letters cleared and never sent, and a lord who makes peace before his war letter arrives has it quietly discarded on arrival. An autonomous letter that no longer reflects its sender only caused confusion.
+
+### Added
+- Freeing a prisoner now asks you to confirm first, in chat ("Set NAME free? [Y/n]"), just like paying coin or hiring, so a character can never give away a prisoner you meant to keep without your say-so. Press Enter or y to free them, n to keep them.
+
 ## v1.30.8.. 2026-07-12
 
 ### Fixed

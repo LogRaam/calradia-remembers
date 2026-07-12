@@ -44,8 +44,8 @@ namespace CalradiaRemembers.Chat
       /// <summary>
       ///   Preprocesses a coin/commit action before the loop would run it. An identical action already resolved
       ///   this conversation is dropped (<see cref="ActionDisposition.Skip" />), taming the LLM re-emitting the
-      ///   same transfer every turn. A player-outgoing spend (take_gold, join_party) is queued for confirmation
-      ///   (<see cref="ActionDisposition.Queued" />). Everything else, including give_gold (the NPC's own gift to
+      ///   same transfer every turn. A player-outgoing spend or commitment (take_gold, join_party, free_prisoner)
+      ///   is queued for confirmation (<see cref="ActionDisposition.Queued" />). Everything else, including give_gold (the NPC's own gift to
       ///   the player) and consequences like change_relation, runs inline as before.
       /// </summary>
       public ActionDisposition Preprocess(GameAction action, Hero npc, NpcProfile profile, ActionContext context)
@@ -55,7 +55,8 @@ namespace CalradiaRemembers.Chat
          string type = action.Type ?? "";
          bool tracked = type.Equals("give_gold", StringComparison.OrdinalIgnoreCase)
                         || type.Equals("take_gold", StringComparison.OrdinalIgnoreCase)
-                        || type.Equals("join_party", StringComparison.OrdinalIgnoreCase);
+                        || type.Equals("join_party", StringComparison.OrdinalIgnoreCase)
+                        || type.Equals("free_prisoner", StringComparison.OrdinalIgnoreCase);
          if (!tracked) return ActionDisposition.ExecuteInline; // change_relation, execute_prisoner, etc.: untouched
 
          int amount = ExtractAmount(action);
@@ -176,7 +177,7 @@ namespace CalradiaRemembers.Chat
       private void DeclineAction(IActionConfirmationHost host, PendingConfirmation p)
       {
          host.AppendOoc($"» Declined. \"{p.Question}\" was not carried out.");
-         string note = $"(Out of character: I declined the offer \"{p.Question}\" It did not happen, no coins or service changed hands. Do not treat it as done.)";
+         string note = $"(Out of character: I declined the offer \"{p.Question}\" It did not happen, nothing was carried out. Do not treat it as done.)";
          try { host.RecordTranscriptLine(true, "You", Hero.MainHero?.StringId, note); }
          catch (Exception ex) { ModLog.Error($"[CONFIRM] decline note failed: {ex.GetType().Name}: {ex.Message}"); }
          ModLog.Info($"[CONFIRM] player declined {p.Action?.Type} ({p.Amount}).");

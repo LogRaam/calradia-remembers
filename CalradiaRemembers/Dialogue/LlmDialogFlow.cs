@@ -445,12 +445,12 @@ namespace CalradiaRemembers.Dialogue
                // alone) the picker offers to summon up to two, or go alone.
                // The player can later dismiss a companion in conversation — the
                // witness_leaves action handles it.
-               List<WitnessEntry> sceneCompanions = WitnessResolver.ResolveSceneCompanions();
+               List<WitnessEntry> sceneCompanions = WitnessResolver.ResolveSceneCompanions(hero);
                if (sceneCompanions.Count > 0)
                   foreach (WitnessEntry companion in sceneCompanions)
                      vm.AddWitness(companion);
                else
-                  WitnessResolver.ShowCompanionPickerIfNeeded(vm.AddWitness);
+                  WitnessResolver.ShowCompanionPickerIfNeeded(hero, vm.AddWitness);
                // ─────────────────────────────────────────────────────────
             }
 

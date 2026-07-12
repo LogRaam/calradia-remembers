@@ -37,7 +37,8 @@ namespace CalradiaRemembers.Logic.Actions
     {
         /// <summary>
         ///   True only for the action types the PLAYER spends or commits on, so those alone are confirmed:
-        ///   "take_gold" (the player pays) and "join_party" (the player hires and pays). Case-insensitive.
+        ///   "take_gold" (the player pays), "join_party" (the player hires and pays), and "free_prisoner"
+        ///   (the player gives up a prisoner they hold, an irreversible commitment). Case-insensitive.
         ///   False for everything else, including "give_gold" (the NPC gives the player coin, which is the
         ///   NPC's initiative, not the player's, so it is never gated), null, and empty. Consequences the
         ///   player must not be able to veto (relation changes, grudges, and so on) are never routed here.
@@ -50,7 +51,8 @@ namespace CalradiaRemembers.Logic.Actions
             }
 
             return string.Equals(actionType, "take_gold", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(actionType, "join_party", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(actionType, "join_party", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(actionType, "free_prisoner", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -85,9 +87,9 @@ namespace CalradiaRemembers.Logic.Actions
 
         /// <summary>
         ///   The plain-language confirmation question shown in chat for the pending action.
-        ///   <paramref name="amount" /> is the coin count; <paramref name="npcName" /> is the NPC's
-        ///   display name. Case-insensitive on <paramref name="actionType" />; anything other than
-        ///   "give_gold", "take_gold", or "join_party" falls back to a generic confirmation line.
+        ///   <paramref name="amount" /> is the coin count (ignored for actions that carry no amount, such as
+        ///   "free_prisoner"); <paramref name="npcName" /> is the NPC's display name. Case-insensitive on
+        ///   <paramref name="actionType" />; anything unrecognised falls back to a generic confirmation line.
         /// </summary>
         public static string BuildQuestion(string actionType, string npcName, int amount)
         {
@@ -104,6 +106,11 @@ namespace CalradiaRemembers.Logic.Actions
             if (string.Equals(actionType, "join_party", StringComparison.OrdinalIgnoreCase))
             {
                 return $"Let {npcName} take service in your party for {amount} coins?";
+            }
+
+            if (string.Equals(actionType, "free_prisoner", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"Set {npcName} free?";
             }
 
             return $"Confirm this with {npcName}?";

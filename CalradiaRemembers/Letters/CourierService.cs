@@ -659,9 +659,22 @@ namespace CalradiaRemembers.Letters
                letter.CourierPartyId = null;
                ActiveCourierIds.Remove(courier.StringId);
                Disband(courier);
-               store.Set(profile);
-               LetterPopupManager.Show(letter, profile);
-               ModLog.Info($"[COURIER-REPLY] delivered from {profile.Name} to player.");
+
+               // A letter must never outlive the intent that wrote it: re-validate against the sender's
+               // CURRENT intention on arrival too, so a divorce or war-threat letter still on the road when
+               // its sender's intention lapses is dropped rather than sprung on the player.
+               if (LetterIntentionResolver.ShouldDrop(letter, sender))
+               {
+                  letter.IsDelivered = true;
+                  store.Set(profile);
+                  ModLog.Info($"[LETTER] dropped on arrival (intention lapsed): reason={letter.Reason}.");
+               }
+               else
+               {
+                  store.Set(profile);
+                  LetterPopupManager.Show(letter, profile);
+                  ModLog.Info($"[COURIER-REPLY] delivered from {profile.Name} to player.");
+               }
             }
             else
             {
