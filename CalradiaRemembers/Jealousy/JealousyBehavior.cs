@@ -14,6 +14,7 @@ using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Social;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
@@ -308,7 +309,7 @@ namespace CalradiaRemembers.Jealousy
 
          // A threatening/confronting letter, unless they are beside the player (same party, army, or
          // settlement), in which case they would say it to the player's face rather than send a courier.
-         bool withPlayer = HeroProximity.IsNearPlayer(party);
+         bool withPlayer = PlayerPresenceResolver.IsBeside(party);
 
          if (!pj.WithLetter || withPlayer) return;
          string context = JealousyReaction.BuildLetterContext(
@@ -318,16 +319,12 @@ namespace CalradiaRemembers.Jealousy
             behavior.LlmServices, behavior.Store, today);
       }
 
-      private static bool IsWithPlayer(Hero hero)
-      {
-         if (hero == null) return false;
-         MobileParty main = MobileParty.MainParty;
-
-         if (main == null) return false;
-         MobileParty hp = hero.PartyBelongedTo;
-
-         return hp == main || hp?.LeaderHero == Hero.MainHero;
-      }
+      /// <summary>
+      ///   Whether a partner is beside the player right now (party, army, or settlement), via the single
+      ///   presence authority. A partner riding with the player is never neglected. Widened from the old
+      ///   party-only check so the jealousy system reads the same truth as the letter and chat systems.
+      /// </summary>
+      private static bool IsWithPlayer(Hero hero) => PlayerPresenceResolver.IsBeside(hero);
 
       private static string Lookup(Dictionary<string, string> map, string key)
          => map != null && key != null && map.TryGetValue(key, out string v)

@@ -16,10 +16,12 @@ using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Social;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
+using CalradiaRemembers.Social;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
@@ -110,11 +112,23 @@ namespace CalradiaRemembers.Mapping
          bool npcIsPrisonerOfAnother = IsPrisonerOfAnother(hero);
          PlayerStatusVsNpc playerStatus = playerStatusOverride ?? ResolvePlayerStatus(hero, profile, bridge);
 
+         // Live presence: how this NPC is at the player's side right now. It suppresses the elapsed-gap note for
+         // co-travellers (a companion riding with the player no longer sounds abandoned) and adds a present-tense
+         // "you are with the player like THIS" line to the prompt.
+         PresenceTier presence = PlayerPresenceResolver.Resolve(hero);
+         string presencePlace = presence == PresenceTier.SamePlace
+            ? Hero.MainHero?.CurrentSettlement?.Name?.ToString()
+            : null;
+         bool atSea = MobileParty.MainParty?.IsCurrentlyAtSea ?? false;
+
          return new() {
             PlayerStatus = playerStatus,
             WarStatus = bridge.GetDiplomaticStatus(hero),
             DaysSinceLastMeeting = daysSinceLastMeeting,
-            MeetingGapNote = MeetingGapDescriber.Describe(daysSinceLastMeeting),
+            MeetingGapNote = PresenceDescriber.ShowsElapsedGap(presence)
+               ? MeetingGapDescriber.Describe(daysSinceLastMeeting)
+               : null,
+            PresenceNote = PresenceDescriber.Describe(presence, presencePlace, atSea),
             Scene = bridge.GetCurrentScene(),
             ContextualNames = string.IsNullOrWhiteSpace(playerMessage)
                ? null
@@ -123,7 +137,7 @@ namespace CalradiaRemembers.Mapping
             NpcCurrentActivity = bridge.GetCurrentActivity(hero),
             CurrentLocationNote = BuildLocationNote(hero),
             GeographyNote = SettlementContextResolver.Resolve(hero, playerMessage),
-            AtSea = MobileParty.MainParty?.IsCurrentlyAtSea ?? false,
+            AtSea = atSea,
             OpeningDisposition = FirstImpressionResolver.Resolve(hero, profile, bridge),
             PlayerSpouseName = Hero.MainHero?.Spouse?.IsAlive == true
                ? Hero.MainHero.Spouse.Name?.ToString()
