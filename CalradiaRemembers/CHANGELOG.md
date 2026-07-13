@@ -2,6 +2,13 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.12.. 2026-07-12
+
+### Fixed
+- A companion who is already present is no longer listed twice when you bring them into a conversation. Speaking with one companion and using "Bring" to add another who is already there (or auto-included) used to show their name twice in the Present line; the witness list now recognises the same person and keeps a single entry.
+- The main speaker no longer answers or narrates in a present companion's voice. Building on the fix that lets you address a companion by name, the prompt now firmly forbids the main character from putting spoken words in another present character's mouth: a witness's words appear only in their own reaction, never woven into the main speaker's lines.
+- More kinds of letters are dropped when the reason behind them has passed, not just divorce and war letters. A marriage proposal is dropped once you have married; a jealous threat once the jealousy has been resolved; an enemy's bribe once they are no longer hostile; a blackmail once there is no longer both a spouse and a secret lover to expose. A letter never outlives the intent that wrote it.
+
 ## v1.30.11.. 2026-07-12
 
 ### Fixed

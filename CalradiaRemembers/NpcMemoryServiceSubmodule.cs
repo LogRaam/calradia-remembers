@@ -220,6 +220,10 @@ namespace CalradiaRemembers
          // facts) renders THE PLAYER'S APPEARANCE and each NPC's own appearance in the prompt, replacing the old
          // static player_description.txt. Console: cr.appearance.
          campaignStarter.AddBehavior(new AppearanceProseBehavior());
+         // ASSEMBLY pillar, Inc 0 (state layer): holds the single pending assembly (host, initiator, invited
+         // roster, deadline) and persists it save-safely. Passive for now (no events); the convening/travel and
+         // round-table session wiring land in later increments. Pure decisions live in Logic.Assemblies.
+         campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.AssemblyBehavior());
          Log($"{ModName} campaign behavior registered.");
       }
 

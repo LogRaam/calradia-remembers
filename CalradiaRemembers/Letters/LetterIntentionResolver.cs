@@ -1,14 +1,16 @@
 // Code written by Gabriel Mailhot, 12/07/2026.
-// A letter must never outlive the intent that wrote it: at delivery time each pending letter is re-validated
-// against its sender's CURRENT intention, and dropped (never shown) if that intention has lapsed (a reconciled
-// spouse no longer wants a divorce; a lord who made peace no longer threatens war). The pure keep/drop RULE
-// lives in LetterDeliveryPolicy; this thin resolver only reads live game state into the one boolean it needs.
+// A letter must never outlive the intent that wrote it. This reads the live campaign through the
+// ILetterIntentionWorld seam and hands the per-reason keep/drop rule to the pure LetterIntentionPolicy, so
+// the rules stay unit-tested against a stub while the actual game reads live in the private CampaignWorld.
 
 #region
 
 using System;
+using System.Collections.Generic;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Stance;
 using NpcMemoryService.Core.Models;
@@ -20,87 +22,134 @@ using TaleWorlds.CampaignSystem.CharacterDevelopment;
 namespace CalradiaRemembers.Letters
 {
     /// <summary>
-    ///   Decides whether a pending letter should be dropped as stale (its sender's motivating intention has
-    ///   lapsed) rather than delivered. Combines the pure <see cref="LetterDeliveryPolicy.ShouldDropAsStale" />
-    ///   rule with a live read of game state. A reason it does not yet assess is treated as "intention still
-    ///   holds", so an unknown case is delivered rather than silently swallowed.
+    ///   Decides whether a pending letter should be dropped as stale. Delegates the per-reason decision to the
+    ///   pure <see cref="LetterIntentionPolicy" /> (fed by the <see cref="CampaignWorld" /> reads), then gates
+    ///   it on <see cref="LetterDeliveryPolicy.ShouldDropAsStale" />. Fail-safe: any fault keeps the letter.
     /// </summary>
     public static class LetterIntentionResolver
     {
+        private static readonly ILetterIntentionWorld World = new CampaignWorld();
+
         /// <summary>True when <paramref name="letter" /> should be DROPPED (never delivered) because its sender's intention is gone.</summary>
         public static bool ShouldDrop(PendingLetter letter, Hero sender)
-            => letter != null && LetterDeliveryPolicy.ShouldDropAsStale(letter.Reason, StillHolds(letter, sender));
-
-        /// <summary>True when the intention that motivated the letter still holds (so it may still be delivered).</summary>
-        public static bool StillHolds(PendingLetter letter, Hero sender)
         {
-            if (letter == null) return true;
-            if (!LetterDeliveryPolicy.IsIntentionBearing(letter.Reason)) return true;
+            if (letter == null) return false;
             try
             {
-                switch (letter.Reason)
-                {
-                    case LetterReason.SpouseDivorceDemand:
-                        return SpouseDivorceDemandBehavior.Instance?.IsDemanding(sender?.StringId) ?? true;
+                bool holds = LetterIntentionPolicy.StillHolds(letter.Reason, sender?.StringId, World);
 
-                    case LetterReason.SpouseDivorceEscalation:
-                        return SpouseDivorceDemandBehavior.Instance?.IsEstranging(sender?.StringId) ?? true;
-
-                    case LetterReason.ReinforcementRequest:
-                        return StillAtWarWithPlayer(sender);
-
-                    case LetterReason.StanceHostility:
-                    {
-                        StanceConsequence? v = CurrentVerdict(sender);
-                        return v == null || IsHostile(v.Value); // cannot assess -> keep
-                    }
-
-                    case LetterReason.StanceFavor:
-                    {
-                        StanceConsequence? v = CurrentVerdict(sender);
-                        return v == null || IsFriendly(v.Value);
-                    }
-
-                    default:
-                        // MarriageProposal / JealousThreat / CorruptionAttempt / Blackmail: assessed in a later increment.
-                        return true;
-                }
+                return LetterDeliveryPolicy.ShouldDropAsStale(letter.Reason, holds);
             }
             catch (Exception ex)
             {
                 ModLog.Error($"[LETTER] intention resolve failed ({letter.Reason}): {ex.Message}");
-                return true; // fail-safe: deliver rather than wrongly swallow
+
+                return false; // fail-safe: deliver rather than wrongly swallow
             }
         }
 
-        private static bool StillAtWarWithPlayer(Hero sender)
+        /// <summary>
+        ///   The real campaign reads behind <see cref="ILetterIntentionWorld" />. Every read is fail-safe:
+        ///   when a source cannot be read it returns "intention still holds", so a letter is never dropped on
+        ///   a missing signal.
+        /// </summary>
+        private sealed class CampaignWorld : ILetterIntentionWorld
         {
-            IFaction s = sender?.MapFaction;
-            IFaction p = Hero.MainHero?.MapFaction;
-            return s == null || p == null || s.IsAtWarWith(p);
+            public bool PlayerIsMarried => Hero.MainHero?.Spouse != null;
+
+            public bool PlayerHasSecretLover
+            {
+                get
+                {
+                    var store = NpcMemoryCampaignBehavior.Instance?.Store;
+                    if (store == null) return true; // cannot assess -> keep
+                    foreach (string id in store.ListIds())
+                        if (store.Get(id)?.Romantic?.IsSecretLover == true)
+                            return true;
+
+                    return false;
+                }
+            }
+
+            public bool SpouseStillDemandsDivorce(string senderId)
+                => SpouseDivorceDemandBehavior.Instance?.IsDemanding(senderId) ?? true;
+
+            public bool SpouseStillEstranging(string senderId)
+                => SpouseDivorceDemandBehavior.Instance?.IsEstranging(senderId) ?? true;
+
+            public bool SenderStillAtWarWithPlayer(string senderId) => StillAtWar(HeroById(senderId));
+
+            public bool SenderStanceStillHostile(string senderId)
+            {
+                StanceConsequence? v = Verdict(HeroById(senderId));
+
+                return v == null || IsHostile(v.Value); // cannot assess -> keep
+            }
+
+            public bool SenderStanceStillFriendly(string senderId)
+            {
+                StanceConsequence? v = Verdict(HeroById(senderId));
+
+                return v == null || IsFriendly(v.Value);
+            }
+
+            public bool SenderHasLiveJealousyGrudge(string senderId)
+            {
+                Hero sender = HeroById(senderId);
+                if (sender == null || Hero.MainHero == null) return true;
+                IReadOnlyList<Grudge> grudges =
+                    GrudgeBehavior.Instance?.LiveGrudgesFor(sender, (int) CampaignTime.Now.ToDays);
+                if (grudges == null) return true;
+                foreach (Grudge g in grudges)
+                    if (g.Source == GrudgeSource.Jealousy && g.TargetId == Hero.MainHero.StringId)
+                        return true;
+
+                return false;
+            }
+
+            public bool SenderStillAdverseToPlayer(string senderId)
+            {
+                Hero sender = HeroById(senderId);
+                if (sender == null) return true;
+                if (StillAtWar(sender)) return true;
+                int regard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(senderId)?.ReputationWithPlayer ?? 0;
+
+                return regard < 0;
+            }
+
+            private static Hero HeroById(string id)
+                => string.IsNullOrEmpty(id) ? null : Hero.FindFirst(h => h != null && h.StringId == id);
+
+            private static bool StillAtWar(Hero sender)
+            {
+                IFaction s = sender?.MapFaction;
+                IFaction p = Hero.MainHero?.MapFaction;
+
+                return s == null || p == null || s.IsAtWarWith(p);
+            }
+
+            private static StanceConsequence? Verdict(Hero sender)
+            {
+                if (sender == null) return null;
+                NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(sender.StringId);
+                if (profile == null) return null;
+
+                return StanceConsequencePolicy.Resolve(
+                    StanceService.ToStance(profile),
+                    sender.GetTraitLevel(DefaultTraits.Honor),
+                    sender.GetTraitLevel(DefaultTraits.Valor),
+                    sender.GetTraitLevel(DefaultTraits.Mercy),
+                    sender.GetTraitLevel(DefaultTraits.Calculating));
+            }
+
+            private static bool IsHostile(StanceConsequence v)
+                => v == StanceConsequence.ColdShoulder || v == StanceConsequence.Threat
+                   || v == StanceConsequence.Plot || v == StanceConsequence.Intercept
+                   || v == StanceConsequence.Assassinate;
+
+            private static bool IsFriendly(StanceConsequence v)
+                => v == StanceConsequence.WarmWelcome || v == StanceConsequence.Favor
+                   || v == StanceConsequence.Warning;
         }
-
-        private static StanceConsequence? CurrentVerdict(Hero sender)
-        {
-            if (sender == null) return null;
-            NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(sender.StringId);
-            if (profile == null) return null;
-
-            return StanceConsequencePolicy.Resolve(
-                StanceService.ToStance(profile),
-                sender.GetTraitLevel(DefaultTraits.Honor),
-                sender.GetTraitLevel(DefaultTraits.Valor),
-                sender.GetTraitLevel(DefaultTraits.Mercy),
-                sender.GetTraitLevel(DefaultTraits.Calculating));
-        }
-
-        private static bool IsHostile(StanceConsequence v)
-            => v == StanceConsequence.ColdShoulder || v == StanceConsequence.Threat
-               || v == StanceConsequence.Plot || v == StanceConsequence.Intercept
-               || v == StanceConsequence.Assassinate;
-
-        private static bool IsFriendly(StanceConsequence v)
-            => v == StanceConsequence.WarmWelcome || v == StanceConsequence.Favor
-               || v == StanceConsequence.Warning;
     }
 }

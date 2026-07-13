@@ -942,12 +942,18 @@ namespace CalradiaRemembers.Chat
       /// <summary>Adds a single witness to the session. Used by the console command for testing.</summary>
       public void AddWitness(WitnessEntry entry)
       {
-         if (entry == null) return;
+         // Never list the same witness twice: a companion who is already present (an auto-resolved witness, or
+         // a scene companion) and is then also picked via "Bring" would otherwise appear duplicated (player report).
+         if (entry == null || AlreadyPresent(entry)) return;
          _witnesses.Add(entry);
          _witnessColors[entry.Name] = ColorForWitness(entry);
          RefreshWitnessUi();
          ModLog.Info($"[WITNESSES] added: {entry.Name} ({entry.RelationToNpc}) color={_witnessColors[entry.Name]}");
       }
+
+      /// <summary>True when an entry for the same witness (same hero id, or same name for a heroless bystander) is already present.</summary>
+      private bool AlreadyPresent(WitnessEntry entry)
+         => entry != null && _witnesses.Exists(w => WitnessDedup.IsSame(w, entry));
 
       /// <summary>
       ///   Displays a scene-narration line (second-person prose, no portrait) and mirrors
@@ -1809,6 +1815,7 @@ namespace CalradiaRemembers.Chat
          if (witnesses != null)
             foreach (WitnessEntry w in witnesses)
             {
+               if (w == null || AlreadyPresent(w)) continue; // dedupe within the incoming set too
                _witnesses.Add(w);
                _witnessColors[w.Name] = ColorForWitness(w);
             }

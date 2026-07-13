@@ -91,6 +91,26 @@ as v1.31.0 (a shippable feature on its own, and the assembly's engine).
 ### Reuse (not from scratch)
 CR letters/couriers (summons + replies), the courier pattern (visible movement + guaranteed arrival/ambassador), settlement game menus, the ROUND TABLE engine (session), `QuestFactory`/viable-quest referential (missions), and the interception 3D-conversation staging (VRAM-safe) for the meeting.
 
+### STATUS: Inc 0 BUILT 2026-07-12 (autonomous, uncommitted, unit-tested; NOT play-tested)
+Pure `.Logic/Assemblies` (all tested), plus the mod state layer:
+- `AssemblyRsvpPolicy.Decide(AssemblyInvitationFacts)` -> `RsvpOutcome` (Accept/Decline + reason). Order: companion-shortcut, availability (dead/prisoner/occupied), enemy-owned host (neutral-ground constraint emerges), willingness (a lower regard floor for a parley than for an ally), relevance (far + lukewarm). Tuning constants: `HeedRegardFloor -20`, `ParleyRegardFloor -60`, `FarDistanceTier 3`, `WorthTravelRegard 10` (all TUNABLE, exhaustively tested by decision SHAPE not exact numbers).
+- `AssemblyArrivalPolicy.ResolveArrival(etaDays, daysUntilDeadline)` -> InPerson/Ambassador (the fragile-movement fallback made narrative).
+- `AssemblyProgress.From(statuses)` -> present/inTransit/declined/awaiting + `AllResolved` (the "X of N present" counter + "stop waiting?" check).
+- `AssemblyDistanceTiers.Of(mapDistance)` -> tier 0..3 (TUNABLE thresholds).
+- Enums `RsvpDecision/RsvpReason/ArrivalMode/AssemblyInviteeStatus`, struct `AssemblyInvitationFacts`.
+- Mod `Assemblies.AssemblyBehavior : CampaignBehaviorBase` (registered): holds one `AssemblyRecord` (host/initiator/deadline/invitees), save-safe byte[] JSON SyncData (additive, idempotent, survives save/load), API `Begin/SetStatus/Progress/Cancel`. Passive (no events yet). Added `IsExternalInit.cs` polyfill to the Logic project. NOTE: namespace is `Assemblies` (plural) to avoid clashing with `System.Reflection.Assembly`.
+
+### Inc 1 wiring plan (outward-facing, NOT done, needs Gabriel + in-game iteration)
+The facts-gatherer maps the campaign into `AssemblyInvitationFacts` (untestable engine reads; confirm each API at build):
+- `IsAlive` = `hero.IsAlive`; `IsPrisoner` = `hero.IsPrisoner`.
+- `IsOccupied` = the invitee's party is in a `MapEvent` (battle) or its settlement is under siege.
+- `HostOwnedByInviteesEnemy` = `hero.MapFaction.IsAtWarWith(host.OwnerClan.MapFaction)`.
+- `RegardToInitiator` = when the initiator is the player, the mod `Store.Get(hero.StringId)?.ReputationWithPlayer`; else vanilla `hero.GetRelation(initiator)`.
+- `InitiatorAtWarWithInvitee` = `initiator.MapFaction.IsAtWarWith(hero.MapFaction)`.
+- `DistanceTier` = `AssemblyDistanceTiers.Of(hero.PartyBelongedTo.Position2D.Distance(host.Position2D))`.
+- `IsCompanionOfInitiator` = the hero travels in the initiator's own party (MainParty for the player).
+Then: settlement menu "Summon an assembly" (invitee picker, filtered to eligible lords + companions) -> `AssemblyBehavior.Begin` -> summons via CR letters -> RSVP resolved by the policy, reply letters -> accepted lords `SetMoveGoToSettlement` (courier-pattern tick) with `AssemblyArrivalPolicy` re-evaluated -> presence on `OnSettlementEntered` -> live "X of N present" menu text from `AssemblyProgress` -> leave-guard popup cancels. All player-visible, so intentionally left for a supervised build.
+
 ---
 
 ## SHIPPED v1.30.5 (player request, SuperGraham339 2026-07-11): RESCUE AWARENESS + Enter-to-send
