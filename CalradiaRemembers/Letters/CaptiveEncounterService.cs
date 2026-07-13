@@ -28,9 +28,9 @@ namespace CalradiaRemembers.Letters
    ///   probability check to see whether their captor initiates an encounter.
    ///   When triggered, a popup warns the player, then opens the chat window with
    ///   the captor as main NPC and optional witnesses (lords, soldiers, or collective).
-   ///   Probability: 5 % × days in captivity (cap 40 %) + kink bonuses.
-   ///   Delay: minimum 2 days before first trigger.
-   ///   Cooldown: 3 days between encounters.
+   ///   Probability: 15 % × days in captivity (cap 60 %) + kink bonuses (CaptiveEncounterPolicy).
+   ///   Delay: minimum 1 day before the first trigger.
+   ///   Cooldown: 1 day between encounters.
    ///   Level requirement: Hardcore only.
    /// </summary>
    public static class CaptiveEncounterService
