@@ -48,6 +48,39 @@ namespace CalradiaRemembers
       public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
 
       /// <summary>
+      ///   The OpenRouter providers the player has pinned (comma-separated slugs), or blank for OpenRouter's own
+      ///   routing. Read live from the MCM menu. Lets a player avoid providers that moderate their own output
+      ///   and cut a reply mid-sentence.
+      /// </summary>
+      public static string OpenRouterProviderPin => CrSettings.Instance?.ProviderPin?.Trim() ?? "";
+
+      /// <summary>
+      ///   Whether a pinned OpenRouter request may still fall back to providers outside the pin. Off by default,
+      ///   so pinning actually forces. Read live from the MCM menu.
+      /// </summary>
+      public static bool AllowOpenRouterProviderFallbacks => CrSettings.Instance?.AllowProviderFallbacks ?? false;
+
+      /// <summary>
+      ///   How readily companions recover from a grievance: the player's own taste. Read live from the MCM menu;
+      ///   Balanced when MCM has not loaded. Affects the recovery half of the loop only, never what a slight
+      ///   costs, and no setting lets mere idleness carry a companion out of your service.
+      /// </summary>
+      public static ContentmentPacing CompanionPacing
+      {
+         get
+         {
+            string v = CrSettings.Instance?.ContentmentPacing?.SelectedValue;
+
+            switch (v)
+            {
+               case "Forgiving": return ContentmentPacing.Forgiving;
+               case "Exacting": return ContentmentPacing.Exacting;
+               default: return ContentmentPacing.Balanced;
+            }
+         }
+      }
+
+      /// <summary>
       ///   How the OpenAI-Compatible endpoint shapes its sampling parameters. Read live from the MCM menu;
       ///   falls back to <c>Auto</c> (detect reasoning models from the id) when MCM has not loaded. Lets a
       ///   player force the classic or reasoning contract for a strict endpoint (e.g. api.openai.com on a

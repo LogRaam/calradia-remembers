@@ -42,12 +42,40 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public string ApiKey { get; set; } = "";
 
+      [SettingPropertyText("Pin Providers (advanced)", RequireRestart = false, Order = 4,
+         HintText = "Leave BLANK unless you know you need this. OpenRouter serves the same model from many " +
+                    "providers, and some of them moderate their own output: generation stops the moment " +
+                    "profanity appears, so a reply arrives cut mid-sentence. Enter provider slugs, separated " +
+                    "by commas, to route only through the ones you trust (for example: deepinfra, together). " +
+                    "The order you write is the order OpenRouter tries. Applies immediately.")]
+      [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
+      public string ProviderPin { get; set; } = "";
+
+      [SettingPropertyBool("Allow provider fallbacks", RequireRestart = false, Order = 5,
+         HintText = "Only matters when you have pinned providers above. OFF (the default) makes the pin a hard " +
+                    "rule: the request goes to your providers or it fails, which is the point of pinning one " +
+                    "that does not censor. ON treats the pin as a preference and lets OpenRouter fall back to " +
+                    "others when yours are unavailable.")]
+      [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
+      public bool AllowProviderFallbacks { get; set; } = false;
+
       [SettingPropertyBool("Companion contentment", RequireRestart = false, Order = 0,
          HintText = "When ON, companions left idle slowly grow restless; an unhappy one asks for an audience, and " +
                     "if you keep refusing it they eventually leave by farewell letter (never silently). Turn OFF " +
                     "to disable companion contentment entirely — no restlessness, no audiences, no departures.")]
       [SettingPropertyGroup("Companions", GroupOrder = 6)]
       public bool CompanionContentment { get; set; } = true;
+
+      [SettingPropertyDropdown("Contentment Pacing", RequireRestart = false, Order = 1,
+         HintText = "How quickly companions get over things. A philosophy, not a difficulty. Forgiving: they take " +
+                    "much in stride, and a grievance fades almost as fast as it forms. Balanced: a real, ignored " +
+                    "grievance sours them over seasons. Exacting: grudges linger, and a lord must truly tend his " +
+                    "people. In EVERY setting, a companion left merely idle never leaves you: only a real and " +
+                    "unaddressed grievance can. Affects recovery only, never what a slight costs. " +
+                    "Applies from the next week.")]
+      [SettingPropertyGroup("Companions", GroupOrder = 6)]
+      public Dropdown<string> ContentmentPacing { get; set; } =
+         new(new[] {"Forgiving", "Balanced", "Exacting"}, 1); // default: Balanced
 
       [SettingPropertyText("API Key (optional)", RequireRestart = false, Order = 0,
          HintText = "API key for the endpoint — leave blank for keyless local servers like LM Studio or Ollama " +

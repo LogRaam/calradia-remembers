@@ -192,7 +192,9 @@ namespace CalradiaRemembers.Services
                UseSystemPromptCachingProvider = ResolveUseSystemPromptCaching,
                ReasoningProvider = ResolveReasoning,
                TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
-               ParameterOptionsProvider = ResolveParameterOptions
+               ParameterOptionsProvider = ResolveParameterOptions,
+               ProviderSlugsProvider = ResolveProviderPin,
+               AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
             };
             LlmClient = new OpenRouterClient(_httpClient, config);
 
@@ -391,6 +393,16 @@ namespace CalradiaRemembers.Services
 
          return new ChatParameterOptions(p.UseMaxCompletionTokens, p.IncludeTemperature);
       }
+
+      /// <summary>
+      ///   The OpenRouter providers the player pinned, and ONLY when OpenRouter is the active provider: the
+      ///   field is meaningless to NanoGPT or a local OpenAI-compatible server, so they must never receive it.
+      ///   Read live per request.
+      /// </summary>
+      private static string ResolveProviderPin()
+         => ResolveProvider() == ProviderOpenRouter
+            ? ModSettings.OpenRouterProviderPin
+            : "";
 
       /// <summary>Resolves the active provider's OpenAI-compatible base URL. Read live per request.</summary>
       private static string ResolveBaseUrl()
