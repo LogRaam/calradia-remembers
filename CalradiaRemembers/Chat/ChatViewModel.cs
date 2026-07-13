@@ -1203,7 +1203,10 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public void ExecuteOpenGameMenu()
       {
-         if (!GameMenuOpener.TryOpenEscapeMenu())
+         // Pass the chat's real host screen (the naval map under War Sails, or the land map) so the menu opens
+         // on the VISIBLE screen rather than the fixed land MapScreen.Instance, which sat hidden behind the naval
+         // map for players on the water (the "log says opened but no menu appears" report).
+         if (!GameMenuOpener.TryOpenEscapeMenu(ChatManager.HostScreen))
             ModLog.Info("[MENU] the options menu could not be opened from the chat this time.");
       }
 

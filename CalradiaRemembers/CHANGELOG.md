@@ -2,6 +2,11 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.13.. 2026-07-12
+
+### Fixed
+- The chat "Options" button now opens the mod options menu even while you are at sea. It was opening the menu on the land map, which sits hidden behind the naval map while you sail, so nothing appeared for players on the water (the button looked dead even though the log said it opened). It now opens the menu on whichever map the chat is actually over, and logs more detail if it still cannot.
+
 ## v1.30.12.. 2026-07-12
 
 ### Fixed

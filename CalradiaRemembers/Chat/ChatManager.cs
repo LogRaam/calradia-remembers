@@ -54,6 +54,9 @@ namespace CalradiaRemembers.Chat
       private static ChatScreen _chatScreen;
       private static ScreenBase _hostScreen;
 
+      /// <summary>The screen the chat overlay currently sits over (the naval map under War Sails, or the land map). Null when closed.</summary>
+      internal static ScreenBase HostScreen => _hostScreen;
+
       // Heartbeat VRAM diagnostic: sample at most once every VramTickSeconds while the chat is open, so an idle
       // scene (no LLM responses to trigger the per-turn read) still leaves a VRAM trend in the log.
       private static DateTime _lastVramTick = DateTime.MinValue;
