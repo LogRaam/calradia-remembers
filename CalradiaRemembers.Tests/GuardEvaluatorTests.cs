@@ -23,6 +23,9 @@ namespace CalradiaRemembers.Tests
             return list.ToArray();
         }
 
+        // Per GuardEvaluator's own doc, guards are optional and most authored rules will have none at all.
+        // If empty/null guards failed instead of passing, every unguarded rule in every pack would become
+        // silently unselectable, breaking the majority of the scripted-scenarios engine's content.
         [Test]
         public void GIVEN_no_guards_WHEN_evaluating_THEN_it_passes()
         {
@@ -30,6 +33,9 @@ namespace CalradiaRemembers.Tests
             GuardEvaluator.AllPass(Guards(), _ => false).Should().BeTrue();
         }
 
+        // The baseline AND-combination: a rule authored with several guards (e.g. the shipped Rhagaea pack's
+        // IF_PLAYER_INVOLVED + IF_HERO_IS:Rhagaea) must have ALL of them hold, not just one, before it is
+        // eligible.
         [Test]
         public void GIVEN_all_guards_resolve_true_WHEN_evaluating_THEN_it_passes()
         {
@@ -37,6 +43,9 @@ namespace CalradiaRemembers.Tests
                 .Should().BeTrue();
         }
 
+        // One failing guard among several must veto the whole rule (AND, not OR/majority): this is what stops
+        // e.g. the Rhagaea "two_crowns" outcome from firing just because its other guards happen to hold when
+        // the player does not actually rule a kingdom.
         [Test]
         public void GIVEN_one_guard_resolves_false_WHEN_evaluating_THEN_it_fails()
         {
@@ -46,6 +55,9 @@ namespace CalradiaRemembers.Tests
                 .Should().BeFalse();
         }
 
+        // Guards resolve against live game state (Hero.MainHero, faction lookups) via the engine resolver, so
+        // needless further lookups are wasted work once one guard has already failed. Pins the short-circuit
+        // (per GuardEvaluator's own doc) so a change to the loop cannot silently start resolving every guard.
         [Test]
         public void GIVEN_a_failing_guard_first_WHEN_evaluating_THEN_it_short_circuits_and_skips_the_rest()
         {

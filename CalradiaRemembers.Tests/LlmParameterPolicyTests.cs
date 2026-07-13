@@ -17,6 +17,8 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class LlmParameterPolicyTests
     {
+        // Reproduces the exact bug report: this model/endpoint pairing must resolve to the reasoning contract,
+        // or the player is back to the HTTP 400 "max_tokens is not supported with this model" crash.
         [Test]
         public void GIVEN_the_reported_model_in_auto_WHEN_resolving_THEN_it_uses_the_reasoning_contract()
         {
@@ -27,6 +29,8 @@ namespace CalradiaRemembers.Tests
             p.IncludeTemperature.Should().BeFalse();
         }
 
+        // Pins the whole reasoning-family id list; drop any one of these from the detector and that model
+        // silently keeps sending max_tokens/temperature, reproducing the same crash on a different id.
         [Test]
         public void GIVEN_various_reasoning_ids_in_auto_WHEN_detecting_THEN_each_is_recognized()
         {
@@ -40,6 +44,8 @@ namespace CalradiaRemembers.Tests
             LlmParameterPolicy.IsOpenAiReasoningModel("openai/gpt-5.4-mini").Should().BeTrue();
         }
 
+        // Guards against over-matching: gpt-4o must stay on the classic contract, or a too-broad "gpt-" style
+        // rule would misfire on every OpenAI model, not just the actual reasoning families.
         [Test]
         public void GIVEN_a_non_reasoning_id_in_auto_WHEN_resolving_THEN_it_keeps_the_classic_contract()
         {
@@ -50,6 +56,9 @@ namespace CalradiaRemembers.Tests
             p.IncludeTemperature.Should().BeTrue();
         }
 
+        // Pins the false-positive guards named in the policy's own docs (gpt-4o/gpt-4o-mini vs. gpt-5*, olmo/
+        // openchat vs. the o-series): a naive substring match would misclassify these and send the wrong
+        // parameter shape to models that never asked for it.
         [Test]
         public void GIVEN_ids_that_merely_look_similar_WHEN_detecting_THEN_they_are_not_reasoning_models()
         {
@@ -61,6 +70,8 @@ namespace CalradiaRemembers.Tests
             LlmParameterPolicy.IsOpenAiReasoningModel("openchat-3.5").Should().BeFalse();
         }
 
+        // Fail-safe for a missing/unset model id (e.g. before the player finishes configuring the OpenAI-
+        // Compatible endpoint): must not accidentally trip the reasoning contract on nothing.
         [Test]
         public void GIVEN_an_empty_or_null_id_WHEN_detecting_THEN_it_is_never_a_reasoning_model()
         {
@@ -69,6 +80,8 @@ namespace CalradiaRemembers.Tests
             LlmParameterPolicy.IsOpenAiReasoningModel("   ").Should().BeFalse();
         }
 
+        // The manual override exists for an endpoint the heuristic gets wrong (e.g. a proxy in front of a
+        // reasoning id that still accepts max_tokens); this pins that the override actually beats auto-detection.
         [Test]
         public void GIVEN_standard_mode_WHEN_resolving_a_reasoning_id_THEN_the_override_forces_the_classic_contract()
         {
@@ -79,6 +92,8 @@ namespace CalradiaRemembers.Tests
             p.IncludeTemperature.Should().BeTrue();
         }
 
+        // The symmetric escape hatch: a strict endpoint whose model id the auto heuristic does not recognize
+        // (a newer/unlisted reasoning model) would otherwise leave the player stuck until the id list is updated.
         [Test]
         public void GIVEN_reasoning_mode_WHEN_resolving_a_classic_id_THEN_the_override_forces_the_reasoning_contract()
         {

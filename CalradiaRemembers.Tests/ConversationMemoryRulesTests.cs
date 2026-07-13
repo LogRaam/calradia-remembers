@@ -1,6 +1,10 @@
 // Code written by Gabriel Mailhot, 03/07/2026.
 // Documents when a closing conversation earns a fallback memory: two turns always, one turn only when the
 // player's words carried substance (the reported "NPC forgot our one-exchange conversation" fault).
+// Feeds ChatViewModel.FinalizeConversationMemory, the fallback fired only when the LLM's own [EVENT] never
+// emitted (it mostly emits one on a formal farewell, so closing the window mid-exchange left NO memory at
+// all). Get this too strict and a real, substantial exchange is silently forgotten; get it too loose and
+// every "hello" then leave spams a memory.
 
 #region
 
@@ -15,6 +19,8 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class ConversationMemoryRulesTests
     {
+        // The safety-net floor: a genuine back-and-forth must never be dropped just because the LLM forgot
+        // to emit its own [EVENT] on close.
         [Test]
         public void GIVEN_two_completed_turns_WHEN_closing_THEN_a_fallback_memory_is_deserved()
         {
@@ -40,6 +46,8 @@ namespace CalradiaRemembers.Tests
             ConversationMemoryRules.DeservesFallbackMemory(1, 0).Should().BeFalse();
         }
 
+        // A conversation that never got a completed player turn has nothing to remember; recording here
+        // would be a memory of an exchange that never actually happened.
         [Test]
         public void GIVEN_no_completed_turn_WHEN_closing_THEN_nothing_is_recorded()
         {

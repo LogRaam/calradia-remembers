@@ -1,4 +1,6 @@
 // Code written by Gabriel Mailhot, 21/06/2026.
+// Test helper: a deterministic IRandomSource so a probability-driven policy (roll-based branches, chance
+// thresholds) can be exercised and asserted without flakiness from a real RNG.
 
 #region
 

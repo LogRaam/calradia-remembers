@@ -16,6 +16,9 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class ScenarioRuleTests
     {
+        // This is exactly what ScenarioPackLoader does to every rule in every modder's JSON file. If Parse
+        // mis-wires which raw string list becomes which field, an authored rule could run its guards as
+        // consequences (or vice versa), executing the wrong keywords against real game state.
         [Test]
         public void GIVEN_raw_dsl_strings_WHEN_parsing_a_rule_THEN_trigger_guards_and_consequences_become_tokens()
         {
@@ -34,6 +37,9 @@ namespace CalradiaRemembers.Tests
             rule.Message.Should().Be("Two thrones are joined.");
         }
 
+        // GuardEvaluator and the runtime foreach over Guards/Consequences without a null check. Guards are
+        // documented optional, so most authored rules omit them entirely: a null instead of empty here would
+        // NullReferenceException on the majority of rules a modder would ever write.
         [Test]
         public void GIVEN_no_guards_or_consequences_WHEN_parsing_THEN_they_default_to_empty_not_null()
         {
@@ -44,6 +50,9 @@ namespace CalradiaRemembers.Tests
             rule.Message.Should().Be("msg");
         }
 
+        // A hand-edited or composer-exported pack can carry stray blank lines. They must be dropped silently,
+        // not turned into a bogus empty-verb consequence that then logs "unknown consequence" noise or is
+        // executed as a meaningless no-op.
         [Test]
         public void GIVEN_blank_lines_among_consequences_WHEN_parsing_THEN_they_are_skipped()
         {
@@ -54,6 +63,9 @@ namespace CalradiaRemembers.Tests
             rule.Consequences.Should().ContainSingle().Which.Verb.Should().Be("DECLARE_WAR");
         }
 
+        // ScenarioSelector sums Weight into an RNG upper bound for the weighted draw. A zero or negative
+        // authored weight would corrupt that math (a zero-width or negative slot), so the constructor's own
+        // defensive clamp (per its inline comment: "non-positive is meaningless") is pinned here.
         [Test]
         public void GIVEN_a_non_positive_weight_WHEN_building_a_rule_THEN_it_is_clamped_to_one()
         {
@@ -62,6 +74,9 @@ namespace CalradiaRemembers.Tests
             ScenarioRule.Parse("c", "T", null, null, "m", weight: 3).Weight.Should().Be(3);
         }
 
+        // Pins the default shape a rule takes when a modder omits fireOnce/weight in JSON: repeatable, uniform
+        // weight. Getting either default wrong would make every plainly-authored rule silently one-shot or
+        // unequally weighted without the modder ever asking for that.
         [Test]
         public void GIVEN_defaults_WHEN_building_a_rule_THEN_it_is_repeatable_with_weight_one()
         {

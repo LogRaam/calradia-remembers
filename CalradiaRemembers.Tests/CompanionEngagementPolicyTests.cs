@@ -23,6 +23,8 @@ namespace CalradiaRemembers.Tests
                 .Should().BeFalse();
         }
 
+        // Same principle as the governor case: a party of your clan to lead is a charge in your service, so it
+        // must count as employment even though the companion is never sent on one of the mod's own errands.
         [Test]
         public void GIVEN_a_companion_leading_a_party_of_your_clan_WHEN_asked_THEN_they_are_NOT_idle()
         {
@@ -30,6 +32,8 @@ namespace CalradiaRemembers.Tests
                 .Should().BeFalse();
         }
 
+        // The ORIGINAL definition of employment, kept as a baseline: this must stay true, or the fix for the
+        // governor/party cases would have silently broken the one case the old rule already got right.
         [Test]
         public void GIVEN_a_companion_away_on_an_errand_WHEN_asked_THEN_they_are_NOT_idle()
         {
@@ -37,6 +41,8 @@ namespace CalradiaRemembers.Tests
                 .Should().BeFalse();
         }
 
+        // The negative case: with none of the three charges, the companion IS idle and should take the (small,
+        // CompanionHappiness.Idle) ennui penalty. Without this, IsIdle could degrade into always returning false.
         [Test]
         public void GIVEN_a_companion_with_no_charge_at_all_WHEN_asked_THEN_they_are_idle()
         {

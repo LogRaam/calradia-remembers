@@ -16,6 +16,8 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class RecruitIntentDetectorTests
     {
+        // Miss this exact line and the fix does not fix the reported bug: this is the literal shape of the
+        // screenshot that prompted the feature (typo and all), the case the whole detector exists to catch.
         [Test]
         public void GIVEN_the_reported_line_WHEN_detecting_THEN_it_reads_as_a_recruiting_question()
         {
@@ -24,6 +26,9 @@ namespace CalradiaRemembers.Tests
                 .Should().BeTrue();
         }
 
+        // The vocabulary is deliberately broad (per the production header, false positives only cost a small
+        // grounded prompt block, so it leans toward catching the ask). This pins the breadth actually holds
+        // across the phrasings a player is likely to use, not just the one reported line.
         [Test]
         public void GIVEN_various_recruiting_phrasings_WHEN_detecting_THEN_each_is_caught()
         {
@@ -33,6 +38,8 @@ namespace CalradiaRemembers.Tests
             RecruitIntentDetector.Detect("Who might join my party?").Should().BeTrue();
         }
 
+        // The gate must not fire on every line: a false positive here would waste tokens injecting the
+        // grounded wanderer block into an ordinary conversation that never asked for one.
         [Test]
         public void GIVEN_an_ordinary_message_WHEN_detecting_THEN_it_is_not_a_recruiting_question()
         {
@@ -40,6 +47,7 @@ namespace CalradiaRemembers.Tests
                 .Should().BeFalse();
         }
 
+        // Fail safe on missing input: a null/empty/blank message must never be read as a recruiting question.
         [Test]
         public void GIVEN_empty_or_whitespace_WHEN_detecting_THEN_it_is_never_a_match()
         {
@@ -48,6 +56,8 @@ namespace CalradiaRemembers.Tests
             RecruitIntentDetector.Detect("   ").Should().BeFalse();
         }
 
+        // Player input casing is not a contract the mod controls; the match is lower-invariant internally, so
+        // shouting the question must catch it exactly as reliably as typing it normally.
         [Test]
         public void GIVEN_mixed_casing_WHEN_detecting_THEN_the_match_is_case_insensitive()
         {

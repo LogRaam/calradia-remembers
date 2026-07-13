@@ -3,6 +3,12 @@
 // and deep hatred turns to a plot / an open challenge / an assassination ONLY for the character that fits —
 // honour stays a lord's hand from murder and scheming, and terror of the player rules out striking in person.
 // The friendly ladder mirrors it: warmth, then a boon, then a trusted friend's warning of a plot.
+//
+// Feeds two consumers (StanceConsequenceBehavior): the CONVERSATION hint (StanceConsequenceHint colours
+// how the NPC acts this meeting) and the WEEKLY proactive sweep (a hardened verdict becomes an unbidden
+// letter, a real scheme via SchemeStore, an InterceptionBehavior pursuit, or an armed town ambush). Secret
+// hatred (Plot/Assassinate) deliberately sends no letter: it would tip its own hand; get a verdict wrong
+// and either a merely rude lord ends up plotting murder, or a genuinely murderous one stays undetected.
 
 #region
 
@@ -19,6 +25,8 @@ namespace CalradiaRemembers.Tests
     {
         // Trait order: honor, valor, mercy, calculating (authored −2..+2).
 
+        // Baseline no-op guard: a neutral relationship must never provoke an unwarranted letter, scheme,
+        // or ambush.
         [Test]
         public void GIVEN_a_neutral_stance_WHEN_resolving_THEN_nothing_is_warranted()
         {
@@ -27,6 +35,8 @@ namespace CalradiaRemembers.Tests
             StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.None);
         }
 
+        // HostileFloor: where the hostile ladder starts. ColdShoulder is conversation-only (no letter,
+        // per StanceConsequenceBehavior): mild dislike should colour a meeting, not trigger outward action.
         [Test]
         public void GIVEN_mild_dislike_WHEN_resolving_THEN_a_cold_shoulder()
         {
@@ -35,6 +45,8 @@ namespace CalradiaRemembers.Tests
             StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.ColdShoulder);
         }
 
+        // ThreatFloor: past this point the weekly sweep DOES send a cold/menacing letter. Pins that real
+        // hostility escalates past mere coldness without yet needing any particular trait combination.
         [Test]
         public void GIVEN_real_hostility_WHEN_resolving_THEN_a_threat()
         {
@@ -43,6 +55,9 @@ namespace CalradiaRemembers.Tests
             StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.Threat);
         }
 
+        // The rarest, most dangerous verdict: arms a real town ambush (StanceAmbushArmedDay). ALL of
+        // dishonourable + calculating + cruel (mercy<=-1) + undeterred by fear must hold together, drop
+        // any one and a merely rude lord must never end up arming an assassination attempt.
         [Test]
         public void GIVEN_deep_hatred_in_a_cold_cruel_schemer_WHEN_resolving_THEN_an_assassination()
         {
@@ -53,6 +68,9 @@ namespace CalradiaRemembers.Tests
                 .Should().Be(StanceConsequence.Assassinate);
         }
 
+        // The exact "scruple" line: a schemer without mercy<=-1 stops short of literal murder and plots
+        // (a real SchemeStore scheme) instead: pins that mercy, not calculating alone, is what tips a
+        // plotter into a killer.
         [Test]
         public void GIVEN_deep_hatred_in_a_cold_schemer_with_a_scruple_WHEN_resolving_THEN_a_plot_not_murder()
         {
@@ -63,6 +81,8 @@ namespace CalradiaRemembers.Tests
                 .Should().Be(StanceConsequence.Plot);
         }
 
+        // A bold, valorous character rides out openly (InterceptionBehavior) rather than schemes or kills
+        // in secret: the character-consistency rule, valour prefers a real fight to a hidden blow.
         [Test]
         public void GIVEN_deep_hatred_in_a_bold_warrior_WHEN_resolving_THEN_an_open_challenge()
         {
@@ -73,6 +93,9 @@ namespace CalradiaRemembers.Tests
                 .Should().Be(StanceConsequence.Intercept);
         }
 
+        // BoldFearCeiling: even a bold, murderous-inclined lord will not strike the player IN PERSON while
+        // terrified of them (Fear>=60): hatred turns indirect (a plot) or, absent a scheming bent, to mere
+        // words. Without this carve-out a cowed enemy would still ride out to challenge the player.
         [Test]
         public void GIVEN_deep_hatred_but_terror_of_the_player_WHEN_resolving_THEN_no_strike_in_person()
         {
@@ -83,6 +106,9 @@ namespace CalradiaRemembers.Tests
                 .Should().Be(StanceConsequence.Threat);
         }
 
+        // The single most important character guard: Honor stays a lord's hand from murder AND scheming
+        // regardless of every other trait pointing at it. Break this and an "honourable" lord could still
+        // plot or assassinate, contradicting the whole design's WHO-dares-WHAT premise.
         [Test]
         public void GIVEN_deep_hatred_in_an_honourable_lord_WHEN_resolving_THEN_he_will_not_scheme_or_murder()
         {
@@ -93,6 +119,8 @@ namespace CalradiaRemembers.Tests
                 .Should().Be(StanceConsequence.Threat);
         }
 
+        // FriendlyFloor: mirrors HostileFloor on the warm side. WarmWelcome is conversation-only, the
+        // friendly ladder's own baseline.
         [Test]
         public void GIVEN_mild_warmth_WHEN_resolving_THEN_a_warm_welcome()
         {
@@ -101,6 +129,8 @@ namespace CalradiaRemembers.Tests
             StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.WarmWelcome);
         }
 
+        // FavorFloor + FavorRespect: a real boon (gift/discount) wants genuine esteem, not just fondness
+        // alone (StanceConsequencePolicy's own comment): pure warmth without Respect must stay a WarmWelcome.
         [Test]
         public void GIVEN_strong_warmth_and_respect_WHEN_resolving_THEN_a_favor()
         {
@@ -109,6 +139,9 @@ namespace CalradiaRemembers.Tests
             StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.Favor);
         }
 
+        // WarningTrust takes PRIORITY over Favor in ResolveFriendly's own ordering: a deeply trusted friend
+        // must be checked first, or they'd be downgraded to a mere boon instead of naming a real threat
+        // (SchemeStore.GetSecretSchemerAgainst), a materially more valuable consequence to the player.
         [Test]
         public void GIVEN_strong_warmth_and_deep_trust_WHEN_resolving_THEN_a_warning_of_a_plot()
         {

@@ -2,6 +2,10 @@
 // Protects how a stance reads in the prompt — per-axis tiers, and that believable COMBINATIONS compose
 // correctly (the whole point of the multi-axis system). A drift would have NPCs misread their own
 // posture, or voice a neutral feeling as a strong one.
+//
+// SECOND PERSON is load-bearing, not stylistic (StanceDescriptor's own header): a third-person phrasing
+// was observed to make the model FLIP the feeling onto the player ("a feared lord told the player THEY
+// looked afraid"). Every phrase this file pins must stay "You are/warm to/trust/fear the player."
 
 #region
 
@@ -16,6 +20,9 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class StanceDescriptorTests
     {
+        // AffectionPhrase itself is no longer wired into Summarize (P0.2 fixed the double-voiced-regard
+        // bug below), but is kept as documented, still-public phrasing: this is the only test left that
+        // would catch a regression if it is ever reused.
         [Test]
         public void GIVEN_warmth_across_the_range_WHEN_phrasing_affection_THEN_each_tier_reads_right()
         {
@@ -26,6 +33,8 @@ namespace CalradiaRemembers.Tests
             StanceDescriptor.AffectionPhrase(-50).Should().Be("You bear the player real hatred.");
         }
 
+        // Pins the 5-tier Trust ladder (Strong/Mild each pole + neutral gap) that DOES feed Summarize:
+        // wrong here changes what every NPC actually says about the player's trustworthiness.
         [Test]
         public void GIVEN_trust_across_the_range_WHEN_phrasing_THEN_each_tier_reads_right()
         {
@@ -36,6 +45,7 @@ namespace CalradiaRemembers.Tests
             StanceDescriptor.TrustPhrase(-40).Should().Be("You deeply distrust the player.");
         }
 
+        // Pins the 5-tier Respect ladder, same threshold discipline as Trust.
         [Test]
         public void GIVEN_respect_across_the_range_WHEN_phrasing_THEN_each_tier_reads_right()
         {
@@ -46,6 +56,9 @@ namespace CalradiaRemembers.Tests
             StanceDescriptor.RespectPhrase(-45).Should().Be("You hold the player in open contempt.");
         }
 
+        // Fear is voiced as VISIBLE CONDUCT, not a private feeling (StanceDescriptor's own doc): each tier
+        // must actually escalate the NPC's described behaviour (defers -> yields ground -> capitulates),
+        // or a terrified NPC would read no differently from a merely wary one.
         [Test]
         public void GIVEN_fear_across_the_range_WHEN_phrasing_THEN_it_is_unipolar()
         {
@@ -62,12 +75,17 @@ namespace CalradiaRemembers.Tests
             StanceDescriptor.FearPhrase(0).Should().BeNull();
         }
 
+        // A wholly neutral NPC must produce NO posture block at all (null, not an empty one), otherwise
+        // every conversation would carry a pointless blank section in the prompt.
         [Test]
         public void GIVEN_a_wholly_neutral_npc_WHEN_summarizing_THEN_the_block_is_skipped()
         {
             StanceDescriptor.Summarize(new NpcStance()).Should().BeNull();
         }
 
+        // The P0.2 fix pinned directly: Affection must NEVER appear here even when non-neutral, because
+        // the CURRENT STANCE line already states that exact number in words once
+        // (PromptBuilder.DescribePersonalRegard): voicing it again here was the bug this reform closed.
         [Test]
         public void GIVEN_a_mixed_stance_WHEN_summarizing_THEN_only_the_axes_that_matter_are_voiced()
         {
@@ -85,6 +103,9 @@ namespace CalradiaRemembers.Tests
 
         // ── Believable combinations (the point of the multi-axis system) ───────
 
+        // The multi-axis system's whole point: a defeated foe can respect AND fear the player while still
+        // hating them: Summarize must compose that believable combination without restating the hatred
+        // itself (already said once, elsewhere).
         [Test]
         public void GIVEN_a_beaten_rival_WHEN_summarizing_THEN_respect_and_fear_coexist_without_restating_affection()
         {
@@ -101,6 +122,8 @@ namespace CalradiaRemembers.Tests
             block.Should().NotContain("trust"); // trust is neutral, so it is left unsaid
         }
 
+        // Another believable combination guard: fondness plus distrust is not a contradiction the composer
+        // should collapse or garble, and warmth still must not leak in from AffectionPhrase.
         [Test]
         public void GIVEN_a_charming_rogue_the_lord_likes_but_cannot_trust_WHEN_summarizing_THEN_distrust_and_respect_show_without_restating_warmth()
         {
@@ -116,6 +139,8 @@ namespace CalradiaRemembers.Tests
             block.Should().Contain("respect the player's worth");
         }
 
+        // Cowed deference with zero personal warmth: pins that Fear/Respect alone can carry a full posture
+        // block with nothing implying affection either way.
         [Test]
         public void GIVEN_a_feared_but_unloved_overlord_WHEN_summarizing_THEN_fear_and_respect_carry_without_warmth()
         {

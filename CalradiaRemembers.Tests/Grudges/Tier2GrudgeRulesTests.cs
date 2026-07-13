@@ -1,6 +1,13 @@
 // Code written by Gabriel Mailhot, 04/07/2026.
 // Grudges pillar, Tier 2 source catalog: one behaviour per test, Gabriel reads these as the design
 // documentation for DeliveredPrisoner / CaptiveAbuse / SwayExposed / UnblessedMarriage formation.
+// These are the ROADMAP's "new detections, high value" sources: NOT migration backfill, only ever
+// live-planted from the wiring increment on. Each rule only decides Forms/Magnitude/KnownToPlayer; the
+// GrudgeProposal feeds GrudgePolicy.ShouldForm downstream (attributability + trait-modulated floor) before
+// a grudge is actually planted, and KnownToPlayer decides whether the Encyclopedia grievance panel and the
+// prompt's concealment instructions ever show it. Get Forms wrong and a betrayal the player should answer
+// for goes silently unresented; get KnownToPlayer wrong and either a hidden grudge leaks (breaking the
+// stance-assassin surprise pattern) or a plainly-caused one wrongly hides from the player.
 
 #region
 
@@ -17,6 +24,9 @@ namespace CalradiaRemembers.Tests.Grudges
     {
         // ── DeliveredPrisoner ────────────────────────────────────────────────
 
+        // The headline Tier 2 case ("you sold me to my enemy", give_prisoner). If this failed to form, the
+        // player could hand a captive lord to his own bitter foe with zero narrative consequence, undermining
+        // the whole point of adding this source to the catalog.
         [Test]
         public void GIVEN_a_captive_delivered_to_their_own_enemy_WHEN_evaluating_THEN_a_grudge_forms_known_to_the_player()
         {
@@ -29,6 +39,10 @@ namespace CalradiaRemembers.Tests.Grudges
             proposal.Magnitude.Should().Be(Tier2GrudgeRules.DeliveredPrisonerToEnemyMagnitude);
         }
 
+        // Design judgment call (see the rule's own doc comment): unlike CaptiveAbuse, even a "gentle" delivery
+        // to an ally is still a betrayal of the captor-captive trust the player was supposed to protect, so
+        // this rule deliberately never returns None. Without it, handing a captive to a friendly party would
+        // read as consequence-free.
         [Test]
         public void GIVEN_a_captive_delivered_to_a_neutral_or_allied_party_WHEN_evaluating_THEN_a_grudge_still_forms_but_lighter()
         {
@@ -43,6 +57,9 @@ namespace CalradiaRemembers.Tests.Grudges
             neutralProposal.Magnitude.Should().Be(Tier2GrudgeRules.DeliveredPrisonerBaseMagnitude);
         }
 
+        // Mirrors DivorceConsequencePolicy.SpouseGrudgeLowRegardBonus's own low-regard-nurses-harder pattern:
+        // a captive who already resented the player takes the betrayal harder, not milder, than one who was
+        // neutral toward them.
         [Test]
         public void GIVEN_a_captive_who_already_disliked_the_player_WHEN_delivered_THEN_the_magnitude_is_bumped()
         {
@@ -55,6 +72,8 @@ namespace CalradiaRemembers.Tests.Grudges
             lowRegardMagnitude.Should().Be(neutralMagnitude + Tier2GrudgeRules.DeliveredPrisonerLowRegardBonus);
         }
 
+        // Fail-safe default: a missing facts object (e.g. an upstream lookup failure) must degrade to "no
+        // grudge", never crash or silently default to Forms=true.
         [Test]
         public void GIVEN_null_facts_WHEN_evaluating_delivered_prisoner_THEN_nothing_forms()
         {
@@ -63,6 +82,9 @@ namespace CalradiaRemembers.Tests.Grudges
 
         // ── CaptiveAbuse ─────────────────────────────────────────────────────
 
+        // Pins the engine-side CaptiveSceneIntent-to-severity mapping: Reward and Interrogation must map to
+        // Severity 0 and never plant a grudge, or every benign or even positive captive scene would start
+        // accruing resentment it never earned.
         [TestCase(0)]
         public void GIVEN_a_benign_captive_scene_severity_zero_WHEN_evaluating_THEN_nothing_forms(int severity)
         {
@@ -71,6 +93,9 @@ namespace CalradiaRemembers.Tests.Grudges
             Tier2GrudgeRules.CaptiveAbuseGrudge(facts).Forms.Should().BeFalse("Reward/Interrogation register as benign, Severity 0");
         }
 
+        // Pins the formation floor (CaptiveAbuseFormationSeverity=1): anything mild or worse must register.
+        // KnownToPlayer is always true here, unlike SwayExposed below, because the victim lived the scene
+        // firsthand, so there is nothing left to later discover or conceal.
         [TestCase(1)]
         [TestCase(2)]
         [TestCase(3)]
@@ -84,6 +109,8 @@ namespace CalradiaRemembers.Tests.Grudges
             proposal.KnownToPlayer.Should().BeTrue("the victim lived the scene firsthand");
         }
 
+        // Deliberately steep per the rule's own doc comment: this is the deepest grudge class, a VICTIM's
+        // grudge, so a torture scene must always outweigh a rough interrogation, never read as comparable.
         [Test]
         public void GIVEN_rising_severity_WHEN_evaluating_THEN_magnitude_climbs_steeply()
         {
@@ -95,6 +122,9 @@ namespace CalradiaRemembers.Tests.Grudges
             moderate.Should().BeLessThan(grievous);
         }
 
+        // Distinguishes the player's OWN cruelty from merely being present for a captor's act (e.g. the
+        // player's own captivity, or witnessing a companion-victim scene): directly doing it must weigh more
+        // than standing by while someone else does.
         [Test]
         public void GIVEN_the_player_as_direct_perpetrator_WHEN_evaluating_THEN_the_magnitude_is_heaviest_at_any_given_severity()
         {
@@ -107,6 +137,10 @@ namespace CalradiaRemembers.Tests.Grudges
             perpetratorMagnitude.Should().Be(bystanderMagnitude + Tier2GrudgeRules.CaptiveAbusePlayerPerpetratorBonus);
         }
 
+        // The worst possible CaptiveAbuse case must still, in principle, be forgivable at high regard: only
+        // GrudgeSource.ExecutedKin is unforgivable BY CONSTRUCTION (GrudgePolicy.RigidityAt's own design
+        // rule). If this ceiling ever crept high enough to compute Vendetta-level rigidity on its own, even a
+        // player who tortured a captive could never be reconciled with, contradicting that rule.
         [Test]
         public void GIVEN_grievous_severity_with_the_player_as_perpetrator_WHEN_evaluating_THEN_the_magnitude_peaks_but_is_not_a_forced_vendetta()
         {
@@ -125,6 +159,7 @@ namespace CalradiaRemembers.Tests.Grudges
             rigidityAtHighRegard.Should().BeLessThan(GrudgePolicy.VendettaRigidity);
         }
 
+        // Fail-safe default, same reasoning as DeliveredPrisoner's null case above.
         [Test]
         public void GIVEN_null_facts_WHEN_evaluating_captive_abuse_THEN_nothing_forms()
         {
@@ -133,6 +168,9 @@ namespace CalradiaRemembers.Tests.Grudges
 
         // ── SwayExposed ──────────────────────────────────────────────────────
 
+        // The rumour reaching the target, not the sway's own strength, is this rule's real gate (per the
+        // rule's own doc comment). A sway that never propagated must not plant a grudge for something the
+        // target never learned of, however hard the sway itself hit.
         [Test]
         public void GIVEN_the_rumour_never_reached_the_target_WHEN_evaluating_THEN_nothing_forms()
         {
@@ -141,6 +179,10 @@ namespace CalradiaRemembers.Tests.Grudges
             Tier2GrudgeRules.SwayExposedGrudge(facts).Forms.Should().BeFalse("an unheard sway leaves nothing to resent");
         }
 
+        // KnownToPlayer is false BY DESIGN, mirroring the concealment already modelled for scheme-warned/
+        // scheme-abetted grudges (ROADMAP's knowledge-gating). If this defaulted to known, the target would
+        // openly confront the player over a sway they were never told they got caught doing, breaking the
+        // "smooth until unmasked" surprise the assassin-register concealment relies on.
         [Test]
         public void GIVEN_the_rumour_reached_the_target_WHEN_evaluating_THEN_a_grudge_forms_hidden_from_the_player()
         {
@@ -152,6 +194,8 @@ namespace CalradiaRemembers.Tests.Grudges
             proposal.KnownToPlayer.Should().BeFalse("the target resents quietly until the grudge surfaces some other way, mirroring scheme-warned concealment");
         }
 
+        // Pins the proportional scaling (half the sway's own strength, on top of a small base): a harder sway
+        // should read as a deeper wound than a light one, not a flat magnitude regardless of severity.
         [Test]
         public void GIVEN_a_harder_sway_WHEN_evaluating_THEN_the_grudge_magnitude_tracks_the_sway_strength()
         {
@@ -164,6 +208,7 @@ namespace CalradiaRemembers.Tests.Grudges
             heavyMagnitude.Should().BeGreaterThan(lightMagnitude);
         }
 
+        // Fail-safe default, same reasoning as the other rules' null cases.
         [Test]
         public void GIVEN_null_facts_WHEN_evaluating_sway_exposed_THEN_nothing_forms()
         {
@@ -172,6 +217,10 @@ namespace CalradiaRemembers.Tests.Grudges
 
         // ── UnblessedMarriage ────────────────────────────────────────────────
 
+        // Per the ROADMAP's 2026-07-06 resolution, only the PLAYER's OWN unblessed marriages ever plant this
+        // source (NPC-NPC marriages default to blessed, since those weddings happen off-screen and a hidden
+        // grudge there would be noise the player never perceives). KnownToPlayer is always true: the family
+        // "made their disapproval plain" (ROADMAP wording), so there is nothing hidden to conceal.
         [Test]
         public void GIVEN_an_unblessed_marriage_still_standing_WHEN_evaluating_THEN_a_grudge_forms_known_to_the_player()
         {
@@ -184,6 +233,9 @@ namespace CalradiaRemembers.Tests.Grudges
             proposal.Magnitude.Should().Be(Tier2GrudgeRules.UnblessedMarriageMagnitude);
         }
 
+        // MarriageIsUnblessed is the real gate, not StillMarried alone: a family that DID bless the union must
+        // never accrue a grudge just because the marriage persists, or "still married" would be wrongly read
+        // as "still disapproving".
         [Test]
         public void GIVEN_a_blessed_marriage_WHEN_evaluating_THEN_nothing_forms_even_if_still_married()
         {
@@ -192,6 +244,10 @@ namespace CalradiaRemembers.Tests.Grudges
             Tier2GrudgeRules.UnblessedMarriageGrudge(facts).Forms.Should().BeFalse();
         }
 
+        // Without this StillMarried gate, a family whose disapproved marriage just ended, and whose reaction
+        // DivorceConsequencePolicy.ResolveUnblessedFamilyReaction just flipped to Gratitude, would keep
+        // re-proposing a live UnblessedMarriage grudge every tick, contradicting the very Gratitude nudge the
+        // divorce was supposed to deliver.
         [Test]
         public void GIVEN_an_unblessed_marriage_that_has_ended_WHEN_evaluating_THEN_nothing_forms_because_this_grudge_is_meant_to_clear_on_divorce()
         {
@@ -204,6 +260,7 @@ namespace CalradiaRemembers.Tests.Grudges
             Tier2GrudgeRules.UnblessedMarriageGrudge(facts).Forms.Should().BeFalse();
         }
 
+        // Fail-safe default, same reasoning as the other rules' null cases.
         [Test]
         public void GIVEN_null_facts_WHEN_evaluating_unblessed_marriage_THEN_nothing_forms()
         {
@@ -212,6 +269,10 @@ namespace CalradiaRemembers.Tests.Grudges
 
         // ── Cross-cutting: every formed magnitude clears the formation floor ──
 
+        // The anti-noise guardrail (ROADMAP: "a magnitude floor... never a bookkeeper's ledger") lives in
+        // GrudgePolicy.ShouldForm, one hop downstream of these rules. If any Tier 2 rule's OWN lightest
+        // forming case ever dipped below GrudgePolicy.MagnitudeFloor, that rule would report Forms=true here
+        // yet be silently refused at the real formation gate, making it dead code in practice.
         [Test]
         public void GIVEN_every_tier_2_rules_lightest_forming_case_WHEN_evaluating_THEN_the_magnitude_clears_the_formation_floor()
         {

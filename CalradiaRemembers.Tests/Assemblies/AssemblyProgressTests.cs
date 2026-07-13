@@ -16,6 +16,8 @@ namespace CalradiaRemembers.Tests.Assemblies
     [TestFixture]
     public sealed class AssemblyProgressTests
     {
+        // Feeds the settlement menu's live "X of N present" counter (AssemblyBehavior.Progress). A status
+        // miscounted into the wrong bucket would make the counter lie about who has actually arrived.
         [Test]
         public void GIVEN_a_mixed_roster_WHEN_tallied_THEN_each_bucket_counts_the_right_statuses()
         {
@@ -37,6 +39,9 @@ namespace CalradiaRemembers.Tests.Assemblies
             p.Awaiting.Should().Be(1);
         }
 
+        // AllResolved is what tells the player it is safe to stop waiting. Both a still-pending reply and a
+        // party still on the road must keep it false, or the assembly could open before everyone has landed on
+        // an outcome.
         [Test]
         public void GIVEN_someone_still_awaiting_or_in_transit_WHEN_asked_THEN_the_roster_is_not_all_resolved()
         {
@@ -46,6 +51,8 @@ namespace CalradiaRemembers.Tests.Assemblies
                 .AllResolved.Should().BeFalse();
         }
 
+        // The counterpart to the test above: Declined counts as a landed outcome too, not a blocker, so the
+        // player is not stuck waiting on invitees who already said no.
         [Test]
         public void GIVEN_everyone_has_landed_on_a_final_outcome_WHEN_asked_THEN_the_roster_is_all_resolved()
         {
@@ -54,6 +61,8 @@ namespace CalradiaRemembers.Tests.Assemblies
             }).AllResolved.Should().BeTrue();
         }
 
+        // Defensive: AssemblyBehavior.Progress calls this even "when nothing is convened" (its own doc comment),
+        // so a null or empty roster must not throw and must read as trivially resolved, not stuck waiting forever.
         [Test]
         public void GIVEN_an_empty_or_null_roster_WHEN_tallied_THEN_it_is_zeroed_and_trivially_resolved()
         {

@@ -17,6 +17,9 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class NemesisNameGeneratorTests
     {
+        // The core determinism guarantee (file header): the identity is re-derived from a persisted seed, not
+        // stored as text, so if the same seed ever minted a different name the nemesis's name could drift
+        // silently across sessions or after a save reload.
         [Test]
         public void GIVEN_the_same_culture_and_seed_WHEN_generating_twice_THEN_the_result_is_identical()
         {
@@ -27,6 +30,8 @@ namespace CalradiaRemembers.Tests
             first.Epithet.Should().Be(second.Epithet);
         }
 
+        // Guards a modder's custom bandit clan: an unrecognized culture key must never crash nemesis minting,
+        // only fall back to a generic pool.
         [Test]
         public void GIVEN_an_unknown_band_culture_WHEN_generating_THEN_it_falls_back_to_the_generic_pool_without_throwing()
         {
@@ -37,6 +42,8 @@ namespace CalradiaRemembers.Tests
             result.Epithet.Should().NotBeNullOrWhiteSpace();
         }
 
+        // Determinism must not collapse into monotony: different bosses need to actually look different, or
+        // every nemesis of a culture would end up sharing one name.
         [Test]
         public void GIVEN_two_different_seeds_WHEN_generating_for_the_same_culture_THEN_at_least_one_of_them_differs_across_a_spread_of_seeds()
         {
@@ -49,6 +56,9 @@ namespace CalradiaRemembers.Tests
             names.Count.Should().BeGreaterThan(1);
         }
 
+        // Per the doc comment, name and epithet indices are derived "independently of each other so a name
+        // and epithet don't always change in lockstep"; without a separate seed transform for the epithet,
+        // every nemesis with the same name would also share the same byname.
         [Test]
         public void GIVEN_two_different_seeds_WHEN_generating_THEN_the_epithet_can_also_vary_independently_of_the_name()
         {
@@ -60,6 +70,8 @@ namespace CalradiaRemembers.Tests
             epithets.Count.Should().BeGreaterThan(1);
         }
 
+        // Every vanilla bandit-clan culture key listed in the file header must actually mint something: a
+        // silently empty pool for one culture would produce a nameless nemesis whenever that band captures the player.
         [TestCase("looters")]
         [TestCase("forest_bandits")]
         [TestCase("mountain_bandits")]
@@ -74,6 +86,9 @@ namespace CalradiaRemembers.Tests
             result.Epithet.Should().NotBeNullOrWhiteSpace();
         }
 
+        // The flavour promise ("his culture/flavour matches whichever band took the player prisoner", file
+        // header) depends on the pools staying disjoint; if a steppe boss could draw a sea-raider name, a
+        // Norse-flavoured name would show up on a supposedly Mongol-flavoured captor.
         [Test]
         public void GIVEN_a_culture_WHEN_generating_across_many_seeds_THEN_every_name_comes_from_that_cultures_own_pool_not_another_cultures()
         {
@@ -89,6 +104,9 @@ namespace CalradiaRemembers.Tests
             steppeNames.Intersect(seaRaiderNames).Should().BeEmpty();
         }
 
+        // Defensive: whatever hash the caller derives a seed from (e.g. a stable hash of NemesisIdentity.Id,
+        // per the class doc comment) could land negative; the % operator's sign behaviour must not crash or
+        // index out of bounds via PositiveMod.
         [Test]
         public void GIVEN_a_negative_seed_WHEN_generating_THEN_it_still_resolves_to_a_valid_name_without_throwing()
         {
@@ -98,6 +116,8 @@ namespace CalradiaRemembers.Tests
             result.Epithet.Should().NotBeNullOrWhiteSpace();
         }
 
+        // Pins the display format any UI/text consumer of FullName relies on ("Ranulf the Faceless Fox"),
+        // so a formatting change elsewhere can't silently drop the space or reorder name and epithet.
         [Test]
         public void GIVEN_a_result_WHEN_reading_the_full_display_name_THEN_it_joins_name_and_epithet_with_a_space()
         {

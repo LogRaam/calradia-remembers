@@ -2,6 +2,12 @@
 // Documents the dual-model selection rules: explicit scenes open on the NSFW model and ordinary conversations on
 // the roleplay model; a blank (or whitespace-only) NSFW model always falls back to the roleplay model; and the
 // in-chat toggle button shows only when an NSFW model is configured AND adult content is enabled.
+//
+// WHY IT MATTERS: NSFW mode exists because a lower reasoning effort measurably cuts moralizing refusals on
+// consensual adult fiction (ModelModePolicy.ResolveReasoningEffort). Get DefaultForScene or ResolveModelId wrong
+// and an explicit scene opens on the roleplay model instead (stock refusals), or an ordinary chat silently burns
+// the NSFW model for nothing. A wrong fallback (blank/unconfigured NSFW model not caught) sends an empty model
+// id straight to the API.
 
 #region
 
@@ -16,18 +22,25 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class ModelModePolicyTests
     {
+        // An ordinary chat must not silently spend the NSFW model (a separate, differently-tuned configuration)
+        // on content that never needed it.
         [Test]
         public void GIVEN_an_ordinary_conversation_WHEN_choosing_the_default_mode_THEN_the_roleplay_model_is_used()
         {
             ModelModePolicy.DefaultForScene(isExplicitScene: false).Should().Be(ModelMode.Roleplay);
         }
 
+        // Captive, player-as-captor, and companion-victim scenes default here specifically so they land on the
+        // model tuned to not moralize-refuse consensual adult fiction; if this flips, explicit scenes open on
+        // the roleplay model and hit its stock refusals instead.
         [Test]
         public void GIVEN_an_explicit_scene_WHEN_choosing_the_default_mode_THEN_the_nsfw_model_is_used()
         {
             ModelModePolicy.DefaultForScene(isExplicitScene: true).Should().Be(ModelMode.Nsfw);
         }
 
+        // The whole point of configuring a second model: once NSFW mode is active it must actually be used,
+        // not silently ignored in favour of the roleplay model.
         [Test]
         public void GIVEN_nsfw_mode_with_a_configured_nsfw_model_WHEN_resolving_THEN_the_nsfw_model_wins()
         {
@@ -35,6 +48,8 @@ namespace CalradiaRemembers.Tests
                 .Should().Be("thedrummer/anubis-70b");
         }
 
+        // An MCM textbox is easy to copy-paste with leading/trailing spaces; an untrimmed id sent to the API
+        // can be rejected as an unknown model.
         [Test]
         public void GIVEN_nsfw_mode_with_a_padded_nsfw_model_WHEN_resolving_THEN_the_id_is_trimmed()
         {
@@ -42,6 +57,8 @@ namespace CalradiaRemembers.Tests
                 .Should().Be("thedrummer/anubis-70b");
         }
 
+        // A player who enabled NSFW mode but never configured a second model must not end up sending an
+        // empty model id to the API; the fallback keeps the request valid.
         [Test]
         public void GIVEN_nsfw_mode_but_a_blank_nsfw_model_WHEN_resolving_THEN_it_falls_back_to_the_roleplay_model()
         {
@@ -49,12 +66,16 @@ namespace CalradiaRemembers.Tests
             ModelModePolicy.ResolveModelId(ModelMode.Nsfw, "x-ai/grok-4.20", null).Should().Be("x-ai/grok-4.20");
         }
 
+        // A field left as spaces (not truly empty) must be treated the same as unconfigured, or the blank-model
+        // fallback above only half-works and an all-whitespace id still reaches the API.
         [Test]
         public void GIVEN_nsfw_mode_but_a_whitespace_only_nsfw_model_WHEN_resolving_THEN_it_counts_as_blank()
         {
             ModelModePolicy.ResolveModelId(ModelMode.Nsfw, "x-ai/grok-4.20", "   ").Should().Be("x-ai/grok-4.20");
         }
 
+        // Having an NSFW model configured must not leak into ordinary conversations; only the active mode
+        // decides, never mere availability of a second model.
         [Test]
         public void GIVEN_roleplay_mode_WHEN_resolving_THEN_the_roleplay_model_is_used_even_if_an_nsfw_model_exists()
         {
@@ -62,42 +83,55 @@ namespace CalradiaRemembers.Tests
                 .Should().Be("x-ai/grok-4.20");
         }
 
+        // The player needs the button precisely when there is a real second model to switch to and adult
+        // content is actually allowed.
         [Test]
         public void GIVEN_an_nsfw_model_and_adult_content_on_WHEN_gating_the_button_THEN_the_toggle_is_visible()
         {
             ModelModePolicy.ToggleVisible(nsfwModelConfigured: true, adultContentOn: true).Should().BeTrue();
         }
 
+        // Showing a mode toggle with nothing to toggle to would just confuse the player: ResolveModelId would
+        // resolve back to the same roleplay model either way.
         [Test]
         public void GIVEN_no_nsfw_model_WHEN_gating_the_button_THEN_the_toggle_is_hidden()
         {
             ModelModePolicy.ToggleVisible(nsfwModelConfigured: false, adultContentOn: true).Should().BeFalse();
         }
 
+        // The toggle must not offer an NSFW mode when adult content itself is disabled at the mod level.
         [Test]
         public void GIVEN_adult_content_off_WHEN_gating_the_button_THEN_the_toggle_is_hidden()
         {
             ModelModePolicy.ToggleVisible(nsfwModelConfigured: true, adultContentOn: false).Should().BeFalse();
         }
 
+        // Roleplay conversations must keep their own reasoning effort regardless of whatever the player set for
+        // NSFW, or tuning the NSFW effort would silently change ordinary chat too.
         [Test]
         public void GIVEN_roleplay_mode_WHEN_resolving_the_reasoning_effort_THEN_the_roleplay_effort_is_used_whatever_the_nsfw_setting()
         {
             ModelModePolicy.ResolveReasoningEffort(ModelMode.Roleplay, "High", "Off").Should().Be("High");
         }
 
+        // The actual lever behind the reported effect: a lower reasoning effort measurably cuts moralizing
+        // refusals on consensual adult fiction, so an explicit NSFW effort override must actually take hold.
         [Test]
         public void GIVEN_nsfw_mode_with_its_own_effort_WHEN_resolving_THEN_the_nsfw_effort_wins()
         {
             ModelModePolicy.ResolveReasoningEffort(ModelMode.Nsfw, "High", "Off").Should().Be("Off");
         }
 
+        // The sentinel is the default dropdown value, so an existing config that never touched this setting
+        // must keep behaving exactly as before (roleplay effort everywhere), not silently pick some other value.
         [Test]
         public void GIVEN_nsfw_mode_left_on_the_same_as_roleplay_sentinel_WHEN_resolving_THEN_the_roleplay_effort_is_reused()
         {
             ModelModePolicy.ResolveReasoningEffort(ModelMode.Nsfw, "Medium", ModelModePolicy.SameAsRoleplay).Should().Be("Medium");
         }
 
+        // A blank field (as opposed to the explicit sentinel) must fall back the same way, or an unset dropdown
+        // could resolve to an empty reasoning-effort parameter sent to the API.
         [Test]
         public void GIVEN_nsfw_mode_with_a_blank_effort_WHEN_resolving_THEN_the_roleplay_effort_is_reused()
         {

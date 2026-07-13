@@ -15,18 +15,25 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class BattleNotabilityTests
     {
+        // A siege must always be recorded regardless of army composition (many sieges involve a garrison,
+        // not a formal "army" on either side); miss this and sieges silently drop out of the chronicle and
+        // every present lord's memory.
         [Test]
         public void GIVEN_a_siege_WHEN_judging_THEN_it_is_notable_whatever_the_armies()
         {
             BattleNotability.IsNotable(isSiege: true, attackerHasArmy: false, defenderHasArmy: false).Should().BeTrue();
         }
 
+        // The other half of the bar: two real armies clashing is exactly what lords and the chronicle
+        // should remember. Pins that BOTH sides are required, not just one.
         [Test]
         public void GIVEN_a_clash_of_two_armies_WHEN_judging_THEN_it_is_notable()
         {
             BattleNotability.IsNotable(isSiege: false, attackerHasArmy: true, defenderHasArmy: true).Should().BeTrue();
         }
 
+        // Guards against a full army crushing a lone party being logged as a real battle: it would flood
+        // every present lord's memory and the world-event log with what is really a curb-stomp.
         [Test]
         public void GIVEN_only_one_side_fields_an_army_WHEN_judging_THEN_it_is_not_notable()
         {
@@ -35,12 +42,17 @@ namespace CalradiaRemembers.Tests
             BattleNotability.IsNotable(isSiege: false, attackerHasArmy: false, defenderHasArmy: true).Should().BeFalse();
         }
 
+        // The base noise floor: without it, every minor field scrap (a bandit chase, a small patrol clash)
+        // would bloat the save, which is the exact failure this policy exists to bound.
         [Test]
         public void GIVEN_a_plain_field_skirmish_WHEN_judging_THEN_it_is_not_notable()
         {
             BattleNotability.IsNotable(isSiege: false, attackerHasArmy: false, defenderHasArmy: false).Should().BeFalse();
         }
 
+        // The 04/07 addendum: a big scrap the player personally led deserves a chronicle line even when
+        // neither side was a formal army. Without this bypass, some of the player's own most memorable
+        // fights would go unrecorded.
         [Test]
         public void GIVEN_a_player_battle_at_or_above_the_size_threshold_WHEN_judging_THEN_it_is_notable_without_armies()
         {
@@ -48,6 +60,8 @@ namespace CalradiaRemembers.Tests
                 totalCombatants: BattleNotability.PlayerBattleSizeThreshold).Should().BeTrue();
         }
 
+        // Pins the floor of the size bypass: one combatant under threshold and it reverts to the normal
+        // siege/army rule, so a small player skirmish cannot sneak into the chronicle on size alone.
         [Test]
         public void GIVEN_a_player_battle_below_the_size_threshold_WHEN_judging_THEN_it_is_not_notable()
         {
@@ -55,6 +69,8 @@ namespace CalradiaRemembers.Tests
                 totalCombatants: BattleNotability.PlayerBattleSizeThreshold - 1).Should().BeFalse();
         }
 
+        // Confirms the size threshold is an ADDITIONAL bypass for field battles, never a requirement: a
+        // small player siege must still be recorded through the plain siege rule regardless of headcount.
         [Test]
         public void GIVEN_a_player_siege_below_the_size_threshold_WHEN_judging_THEN_it_is_still_notable()
         {

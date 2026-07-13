@@ -34,6 +34,9 @@ namespace CalradiaRemembers.Tests.Social
                 .Should().Be("You sail at the player's side, sharing deck and voyage day after day.");
         }
 
+        // A separate party marching alongside in the player's army sees them daily too, just not shoulder to
+        // shoulder on the same road; it earns the same gap suppression as InPlayerParty so an allied lord in
+        // the army column is never made to sound like a stranger returning after a season.
         [Test]
         public void GIVEN_a_party_marching_in_the_players_army_on_land_WHEN_describing_THEN_an_army_line_and_no_gap()
         {
@@ -42,6 +45,8 @@ namespace CalradiaRemembers.Tests.Social
             PresenceDescriber.ShowsElapsedGap(PresenceTier.InPlayerArmy).Should().BeFalse();
         }
 
+        // Same fix as the InPlayerParty sea case, for the other co-travel tier: an allied party sailing in the
+        // player's fleet must not be phrased as marching a road that does not exist at sea.
         [Test]
         public void GIVEN_a_party_in_the_players_army_at_sea_WHEN_describing_THEN_a_fleet_line()
         {
@@ -61,6 +66,8 @@ namespace CalradiaRemembers.Tests.Social
             PresenceDescriber.ShowsElapsedGap(PresenceTier.SamePlace).Should().BeTrue();
         }
 
+        // A caller that cannot resolve a settlement name (or passes whitespace) must still get a coherent line
+        // rather than "both in  just now" or a null the host would have to special-case.
         [Test]
         public void GIVEN_a_shared_settlement_with_no_place_name_WHEN_describing_THEN_a_generic_here_now_line()
         {
@@ -70,6 +77,8 @@ namespace CalradiaRemembers.Tests.Social
                 .Should().Be("You and the player are in the same place just now.");
         }
 
+        // The default tier: nothing spatial to say, so PresenceDescriber stays silent and hands off entirely to
+        // MeetingGapDescriber, which is where the actual elapsed-time wording and threshold live.
         [Test]
         public void GIVEN_an_npc_away_WHEN_describing_THEN_no_spatial_line_but_the_gap_note_is_allowed()
         {

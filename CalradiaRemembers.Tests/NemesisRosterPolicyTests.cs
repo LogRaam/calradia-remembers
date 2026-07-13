@@ -19,6 +19,8 @@ namespace CalradiaRemembers.Tests
     {
         // ── Basic match / no-match ────────────────────────────────────────────
 
+        // The core "you recross Ranulf" behaviour the whole pillar is named for: without this match, no
+        // nemesis ever recurs, and every capture would mint a brand new faceless boss instead of a rivalry.
         [Test]
         public void GIVEN_a_living_nemesis_of_the_same_band_and_region_WHEN_finding_a_recurring_nemesis_THEN_he_is_returned()
         {
@@ -28,12 +30,16 @@ namespace CalradiaRemembers.Tests
             NemesisRosterPolicy.FindRecurring(roster, "forest_bandits", "region_north").Should().BeSameAs(ranulf);
         }
 
+        // Null is the engine's signal to mint a fresh identity (see file header: minting is the caller's job,
+        // not this policy's). An empty roster must fall through to that path, not throw or misfire a false match.
         [Test]
         public void GIVEN_an_empty_roster_WHEN_finding_a_recurring_nemesis_THEN_null_signals_mint_a_new_one()
         {
             NemesisRosterPolicy.FindRecurring(new List<NemesisIdentity>(), "forest_bandits", "region_north").Should().BeNull();
         }
 
+        // Defensive: an uninitialized or not-yet-loaded roster (e.g. very first capture of a save) must never
+        // crash the capture hook, only fall back to minting.
         [Test]
         public void GIVEN_a_null_roster_WHEN_finding_a_recurring_nemesis_THEN_null_is_returned_without_throwing()
         {
@@ -42,6 +48,8 @@ namespace CalradiaRemembers.Tests
 
         // ── Filters ───────────────────────────────────────────────────────────
 
+        // Per the doc comment, "dead identities never match": a killed nemesis must never be handed back as
+        // the recurring captor, or a slain boss would keep taking the player prisoner from beyond the grave.
         [Test]
         public void GIVEN_the_only_matching_identity_is_dead_WHEN_finding_a_recurring_nemesis_THEN_he_is_ignored_and_null_is_returned()
         {
@@ -63,6 +71,8 @@ namespace CalradiaRemembers.Tests
             NemesisRosterPolicy.FindRecurring(roster, "forest_bandits", "region_north").Should().BeNull();
         }
 
+        // The roster is REGIONAL by design (file header): the same band culture can have a different living
+        // nemesis per region, so a boss anchored to the south must never surface as the north's recurring captor.
         [Test]
         public void GIVEN_a_living_nemesis_in_a_different_region_WHEN_finding_a_recurring_nemesis_THEN_he_is_ignored()
         {
@@ -72,6 +82,8 @@ namespace CalradiaRemembers.Tests
             NemesisRosterPolicy.FindRecurring(roster, "forest_bandits", "region_north").Should().BeNull();
         }
 
+        // A nemesis's culture is his flavour (the vanilla bandit-clan StringId his band belongs to). Matching
+        // the wrong culture would put a sea raider boss behind an unrelated forest-bandit capture.
         [Test]
         public void GIVEN_a_living_nemesis_of_a_different_band_culture_WHEN_finding_a_recurring_nemesis_THEN_he_is_ignored()
         {
@@ -83,6 +95,9 @@ namespace CalradiaRemembers.Tests
 
         // ── Tie-break ─────────────────────────────────────────────────────────
 
+        // Per the doc comment this should not happen in normal play (one nemesis per band+region at a time),
+        // but if it ever does, the most-ESTABLISHED identity must win so the player's actual rival stays the
+        // one they keep meeting, not whichever entry happened to sort first in an unordered collection.
         [Test]
         public void GIVEN_two_qualifying_identities_WHEN_one_has_been_encountered_more_THEN_the_more_encountered_one_wins()
         {
@@ -109,6 +124,9 @@ namespace CalradiaRemembers.Tests
 
         // ── Respawn cooldown after a kill (no identical new boss on the next capture) ──
 
+        // Gabriel's ratified fix (2026-07-08) for the "kill him, get captured, immediately face an identical
+        // new boss" churn: within the cooldown, the same bandits take the player as a faceless captor instead
+        // of an instant replacement nemesis, so a kill actually feels like closure for a while.
         [Test]
         public void GIVEN_a_recently_killed_nemesis_still_in_cooldown_WHEN_checking_the_culture_THEN_a_fresh_mint_is_blocked()
         {
@@ -120,6 +138,8 @@ namespace CalradiaRemembers.Tests
                 .Should().BeTrue();
         }
 
+        // Boundary is INCLUSIVE at the cooldown's end day (production check is "today < RespawnBlockedUntilDay",
+        // so today == that day is already unblocked): pins the exact day a new nemesis of this culture can rise.
         [Test]
         public void GIVEN_the_cooldown_has_elapsed_WHEN_checking_the_culture_THEN_a_fresh_mint_is_allowed()
         {
@@ -130,6 +150,8 @@ namespace CalradiaRemembers.Tests
                 .Should().BeFalse();
         }
 
+        // Ratified as region-agnostic but CULTURE-specific ("another nemesis of the same type"): killing a
+        // forest-bandit boss must never suppress a fresh sea-raider nemesis from rising elsewhere.
         [Test]
         public void GIVEN_the_cooldown_is_for_a_DIFFERENT_culture_WHEN_checking_THEN_this_culture_is_not_blocked()
         {
@@ -140,6 +162,8 @@ namespace CalradiaRemembers.Tests
                 .Should().BeFalse();
         }
 
+        // A living identity has no death cooldown to enforce; this guards against a bug that reads
+        // RespawnBlockedUntilDay off the wrong record and blocks minting when nobody of that culture has died.
         [Test]
         public void GIVEN_a_living_nemesis_with_no_death_cooldown_WHEN_checking_THEN_nothing_is_blocked()
         {

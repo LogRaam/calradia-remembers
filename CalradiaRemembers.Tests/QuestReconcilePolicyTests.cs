@@ -1,4 +1,12 @@
 // Code written by Gabriel Mailhot, 07/07/2026.
+// The pure decision behind QuestJournalBridge.ReconcileOnSessionLaunch, which runs on every save load and can
+// close a player's active quest-journal entries. The rule exists because of a repeatedly-reported bug: a false
+// cancel on load destroyed a valid, often already-completed quest ("my quest auto-failed on load"). So Decide
+// only ever closes a mirror on POSITIVE proof (a confirmed-dead giver, or a matching quest found terminal); any
+// ambiguity (unresolved reference, unloaded profile, id drift after an update) resolves to Keep, because a
+// lingering entry is a far smaller harm than a destroyed completed quest. ShouldRestoreMirror runs the healing
+// direction: it re-creates a mirror the old bug destroyed while the quest itself survived in the store, without
+// ever duplicating an entry that is already open.
 
 #region
 
@@ -13,6 +21,8 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class QuestReconcilePolicyTests
     {
+        // Baseline: the mirror's whole reason to exist is a live matching quest, so this must never be
+        // second-guessed into a close.
         [Test]
         public void GIVEN_a_matching_live_quest_WHEN_deciding_THEN_the_mirror_is_kept()
         {
@@ -29,6 +39,8 @@ namespace CalradiaRemembers.Tests
                 .Should().Be(MirrorReconcileDecision.Keep);
         }
 
+        // A dead giver can never be reported to or paid, so this is the one case a positive close is safe
+        // and expected, not the false-cancel bug this policy exists to prevent.
         [Test]
         public void GIVEN_the_giver_is_confirmed_dead_WHEN_deciding_THEN_the_mirror_is_closed_as_giver_gone()
         {
@@ -44,6 +56,8 @@ namespace CalradiaRemembers.Tests
                 .Should().Be(MirrorReconcileDecision.CloseGiverGone);
         }
 
+        // The other POSITIVE-proof case: the quest genuinely finished, so closing the mirror here is a
+        // safe, proven close, not a guess made on missing or stale data.
         [Test]
         public void GIVEN_a_matching_terminal_quest_WHEN_deciding_THEN_the_mirror_is_closed_as_terminal()
         {
@@ -51,6 +65,8 @@ namespace CalradiaRemembers.Tests
                 .Should().Be(MirrorReconcileDecision.CloseTerminal);
         }
 
+        // Live must out-rank terminal: Decide checks hasLiveMatch first, so a quest that is genuinely active
+        // again is never wrongly closed just because an old terminal-state duplicate also matches.
         [Test]
         public void GIVEN_both_a_live_and_a_terminal_match_WHEN_deciding_THEN_the_live_one_wins_and_it_is_kept()
         {
@@ -76,6 +92,8 @@ namespace CalradiaRemembers.Tests
                 .Should().BeFalse();
         }
 
+        // A finished quest deserves no mirror at all; restoring one here would resurrect a task the player
+        // already saw close out.
         [Test]
         public void GIVEN_a_terminal_quest_WHEN_checking_THEN_no_mirror_is_restored()
         {
@@ -83,6 +101,9 @@ namespace CalradiaRemembers.Tests
                 .Should().BeFalse();
         }
 
+        // Restoring blind, without a live resolved giver, would recreate a mirror pointing at a giver who
+        // may be dead or simply not yet loaded, the very failure mode Decide's own giver-death check exists
+        // to avoid.
         [Test]
         public void GIVEN_a_dead_or_unresolved_giver_WHEN_checking_THEN_no_mirror_is_restored()
         {

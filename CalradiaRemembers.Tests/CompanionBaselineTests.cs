@@ -15,6 +15,8 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class CompanionBaselineTests
     {
+        // The floor of the scale: even a companion of a clan with NO standing must rest at Content, not Restless
+        // or worse, so a fresh, unestablished player is never punished by the baseline alone.
         [Test]
         public void GIVEN_a_clan_with_no_standing_WHEN_resting_THEN_the_companion_settles_barely_content()
         {
@@ -30,6 +32,8 @@ namespace CalradiaRemembers.Tests
             CompanionHappiness.Band(CompanionBaseline.From(6)).Should().Be(HappinessBand.Devoted);
         }
 
+        // Monotonic ordering, not just the two endpoints: every intermediate tier must also lift the baseline, or
+        // a player's growing clan could plateau or dip on its way from NoStanding to a great house.
         [Test]
         public void GIVEN_rising_clan_tiers_WHEN_resting_THEN_each_tier_lifts_the_resting_happiness()
         {

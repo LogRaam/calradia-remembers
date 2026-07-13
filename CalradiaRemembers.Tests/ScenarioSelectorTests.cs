@@ -24,6 +24,9 @@ namespace CalradiaRemembers.Tests
 
         // ── Trigger matching ───────────────────────────────────────────────────
 
+        // Authored packs are hand-typed JSON; a modder capitalizing "on_death" instead of "ON_DEATH" (or
+        // vice versa) must still arm the rule, or trigger matching would silently depend on exact casing
+        // nobody documents.
         [Test]
         public void GIVEN_same_verb_and_payload_WHEN_matching_THEN_it_matches_case_insensitively()
         {
@@ -31,6 +34,9 @@ namespace CalradiaRemembers.Tests
                 .Should().BeTrue();
         }
 
+        // The wildcard payload (empty or "*") is how a modder writes one catch-all rule ("any death") instead
+        // of enumerating every hero by name. If wildcard matching broke, every catch-all rule in a pack would
+        // silently never fire.
         [Test]
         public void GIVEN_a_wildcard_rule_payload_WHEN_matching_any_payload_of_the_same_verb_THEN_it_matches()
         {
@@ -40,6 +46,8 @@ namespace CalradiaRemembers.Tests
                 .Should().BeTrue();
         }
 
+        // Without this, a rule authored for a specific named hero (e.g. Rhagaea) could fire on any hero's
+        // death, misapplying content written for one character to whoever happened to die.
         [Test]
         public void GIVEN_a_different_payload_WHEN_matching_THEN_it_does_not_match()
         {
@@ -49,6 +57,8 @@ namespace CalradiaRemembers.Tests
 
         // ── Selection: filtering ───────────────────────────────────────────────
 
+        // ScenarioRuntime.Fire calls Select on every relevant CampaignEvent; the common case is that nothing
+        // authored matches. It must return null cleanly rather than throw or pick something unrelated.
         [Test]
         public void GIVEN_no_rule_matches_the_event_WHEN_selecting_THEN_it_returns_null()
         {
@@ -58,6 +68,9 @@ namespace CalradiaRemembers.Tests
                 .Should().BeNull();
         }
 
+        // Anti-save-scum: FireOnce rules seal into a persisted fired-id set (ScenarioBehavior). If this
+        // filter broke, a one-shot flavor rule (e.g. one of the four Rhagaea-marriage outcomes) could refire
+        // on a reload or a later matching event, breaking the "sealed once drawn" guarantee.
         [Test]
         public void GIVEN_a_spent_one_shot_WHEN_selecting_THEN_it_is_excluded()
         {
@@ -68,6 +81,9 @@ namespace CalradiaRemembers.Tests
                 .Should().BeNull();
         }
 
+        // A failing guard must remove the rule from the pool entirely, not merely deprioritize it: else a
+        // rule authored to require a precondition (e.g. IF_PLAYER_RULES) could still be drawn and its
+        // consequence could fire on a player who does not meet it.
         [Test]
         public void GIVEN_a_guard_that_fails_WHEN_selecting_THEN_the_rule_is_excluded()
         {
@@ -77,6 +93,9 @@ namespace CalradiaRemembers.Tests
                 .Should().BeNull();
         }
 
+        // The overwhelmingly common case (one rule per trigger) must stay fully deterministic and never touch
+        // the injected RNG at all, both to keep single-rule content predictable and to catch a Select that
+        // wastefully or incorrectly rolls even when there is nothing to choose between.
         [Test]
         public void GIVEN_a_single_eligible_rule_WHEN_selecting_THEN_it_is_returned_without_consulting_the_rng()
         {
@@ -93,6 +112,9 @@ namespace CalradiaRemembers.Tests
 
         // ── Selection: the weighted random pool ────────────────────────────────
 
+        // Pins the mapping between an injected RNG roll and which of several equal-weight rules is drawn:
+        // the exact mechanism that lets several rules share a trigger (e.g. the four Rhagaea outcomes) and
+        // still resolve deterministically for a given roll, keeping the whole engine testable end to end.
         [Test]
         public void GIVEN_three_equal_weight_rules_WHEN_the_rng_points_at_each_slot_THEN_that_rule_is_drawn()
         {
@@ -107,6 +129,9 @@ namespace CalradiaRemembers.Tests
             ScenarioSelector.Select(evt, rules, null, null, _ => 2).Id.Should().Be("c");
         }
 
+        // Weight is the modder's one dial for biasing which of several rules on a shared trigger tends to
+        // fire (per ScenarioRule's doc, default uniform). If the slot math were off, an authored "weight: 2"
+        // would not actually double a rule's odds relative to its siblings.
         [Test]
         public void GIVEN_weighted_rules_WHEN_drawing_THEN_the_weight_widens_a_rules_slot_range()
         {
@@ -121,6 +146,9 @@ namespace CalradiaRemembers.Tests
 
         // ── The flagship: the Rhagaea marriage as four rules on one trigger ─────
 
+        // This is the actual shipped content pack (ModuleData/scenarios/rhagaea_marriage.json, v1.14.0): four
+        // outcomes on ON_MARRIAGE, one guarded by IF_PLAYER_RULES. A regression here would silently break the
+        // shipped "two thrones" outcome, the proof case the whole guards-then-random-draw mechanism was built for.
         [Test]
         public void GIVEN_the_four_rhagaea_marriage_rules_WHEN_the_player_does_not_rule_THEN_the_two_crowns_rule_is_filtered_out()
         {
@@ -137,6 +165,9 @@ namespace CalradiaRemembers.Tests
             eligible.Should().NotContain(r => r.Id == "two_crowns");
         }
 
+        // Confirms the complementary case of the flagship above: once the guard passes, ALL four outcomes
+        // enter the pool (not just the newly-unlocked one), and the weighted draw still resolves to a single
+        // named winner for a given roll, end to end.
         [Test]
         public void GIVEN_the_four_rhagaea_marriage_rules_WHEN_the_player_rules_THEN_all_four_are_eligible_and_one_is_drawn()
         {

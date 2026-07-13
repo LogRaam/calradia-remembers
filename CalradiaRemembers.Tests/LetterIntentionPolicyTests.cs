@@ -25,6 +25,8 @@ namespace CalradiaRemembers.Tests
 
         // ── Divorce ─────────────────────────────────────────────────────────
 
+        // The reconciliation case (CHANGELOG v1.30.11): a spouse who mended things must have her stale demand
+        // drop, or an already-resolved divorce would still be announced by courier days later.
         [Test]
         public void GIVEN_a_divorce_demand_WHEN_the_spouse_no_longer_demands_it_THEN_the_intention_does_not_hold()
         {
@@ -32,6 +34,8 @@ namespace CalradiaRemembers.Tests
             Holds(LetterReason.SpouseDivorceDemand, new StubWorld {DivorceDemand = false}).Should().BeFalse();
         }
 
+        // The escalation letter carries the same reconciliation check as the initial demand: an ultimatum must
+        // not still land once the estrangement itself has been resolved.
         [Test]
         public void GIVEN_a_divorce_escalation_WHEN_the_spouse_is_no_longer_estranging_THEN_the_intention_does_not_hold()
         {
@@ -41,6 +45,8 @@ namespace CalradiaRemembers.Tests
 
         // ── War / stance ────────────────────────────────────────────────────
 
+        // A war letter's whole premise is the war: once the sender has made peace with the player, a
+        // reinforcement plea still arriving would misrepresent a relationship that has already moved on.
         [Test]
         public void GIVEN_a_reinforcement_request_WHEN_the_sender_made_peace_THEN_the_intention_does_not_hold()
         {
@@ -48,6 +54,8 @@ namespace CalradiaRemembers.Tests
             Holds(LetterReason.ReinforcementRequest, new StubWorld {AtWar = false}).Should().BeFalse();
         }
 
+        // A hostility letter announces an open threat; if the sender's posture has already cooled, delivering it
+        // anyway would read as a threat that was never withdrawn.
         [Test]
         public void GIVEN_an_open_enmity_letter_WHEN_the_sender_is_no_longer_hostile_THEN_the_intention_does_not_hold()
         {
@@ -55,6 +63,8 @@ namespace CalradiaRemembers.Tests
             Holds(LetterReason.StanceHostility, new StubWorld {StanceHostile = false}).Should().BeFalse();
         }
 
+        // The mirror case: a warm-favor letter must not arrive once the sender has since soured on the player,
+        // or a friendly overture would misrepresent a bond that no longer exists.
         [Test]
         public void GIVEN_a_friendship_letter_WHEN_the_sender_soured_THEN_the_intention_does_not_hold()
         {
@@ -63,7 +73,10 @@ namespace CalradiaRemembers.Tests
         }
 
         // ── Marriage / jealousy / corruption / blackmail (2nd lot) ──────────
+        // CHANGELOG v1.30.12: "letters 2nd-lot resolvers (marriage/jealousy/corruption/blackmail drop stale)".
 
+        // Proposing to match a child to the player is moot the instant he marries someone else; an unanswered
+        // proposal arriving after the fact would read as ignorant of news the player already knows.
         [Test]
         public void GIVEN_a_marriage_proposal_WHEN_the_player_is_now_married_THEN_the_intention_does_not_hold()
         {
@@ -71,6 +84,8 @@ namespace CalradiaRemembers.Tests
             Holds(LetterReason.MarriageProposal, new StubWorld {PlayerIsMarried = true}).Should().BeFalse();
         }
 
+        // A jealous threat stands only while its grudge is still live; once resolved (JealousyBehavior clears
+        // it), the threat has no basis left and must not still arrive as if the grievance were current.
         [Test]
         public void GIVEN_a_jealous_threat_WHEN_no_live_jealousy_grudge_remains_THEN_the_intention_does_not_hold()
         {
@@ -78,6 +93,8 @@ namespace CalradiaRemembers.Tests
             Holds(LetterReason.JealousThreat, new StubWorld {JealousyGrudge = false}).Should().BeFalse();
         }
 
+        // A bribe or pressure letter only makes sense from someone still working against the player; once that
+        // adversity is gone, the coercion attempt has lost its point and must not still land.
         [Test]
         public void GIVEN_a_corruption_attempt_WHEN_the_sender_is_no_longer_adverse_THEN_the_intention_does_not_hold()
         {
@@ -85,6 +102,9 @@ namespace CalradiaRemembers.Tests
             Holds(LetterReason.CorruptionAttempt, new StubWorld {Adverse = false}).Should().BeFalse();
         }
 
+        // Blackmail's leverage IS the hidden affair (production doc): it takes both a spouse to hide it from
+        // AND a secret lover to expose, so losing either one alone must already drop the threat, covering both
+        // ways the leverage can vanish rather than just the obvious one.
         [Test]
         public void GIVEN_a_blackmail_WHEN_either_the_spouse_or_the_secret_lover_is_gone_THEN_the_intention_does_not_hold()
         {
@@ -98,6 +118,8 @@ namespace CalradiaRemembers.Tests
 
         // ── Safety ──────────────────────────────────────────────────────────
 
+        // A factual reason has no per-reason case in the switch and must fall to the default true: it must
+        // never be readable as stale, since it carries no intention to lapse in the first place.
         [Test]
         public void GIVEN_a_reason_that_carries_no_lapsing_intent_WHEN_asked_THEN_it_always_holds()
         {
@@ -105,6 +127,9 @@ namespace CalradiaRemembers.Tests
             Holds(LetterReason.TournamentVictory, new StubWorld()).Should().BeTrue();
         }
 
+        // Fail safe, never silently lenient in the dangerous direction: if the host cannot yet supply live world
+        // state, the letter must be delivered, never dropped, so a wiring gap can only ever over-deliver, not
+        // erase a letter the player was owed.
         [Test]
         public void GIVEN_a_null_world_WHEN_asked_THEN_it_holds_so_nothing_is_swallowed()
         {

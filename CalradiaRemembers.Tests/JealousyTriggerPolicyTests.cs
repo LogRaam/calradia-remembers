@@ -1,4 +1,12 @@
 // Code written by Gabriel Mailhot, 09/07/2026.
+// Guards JealousyTriggerPolicy.IsPlausibleCourtship, the gate ChatViewModel.Exchanges consults before
+// ever calling JealousyBehavior.OnRomanticAct. Player report (v1.29.0): a male player did a male lord
+// a service and the lord's WIFE sent jealous threats over a pair that could never be a courtship.
+// Two independent guards fix it: pair plausibility (the courted NPC's authored orientation, never a
+// flat same-sex-is-never-jealous rule now orientation is authorable) and act-tier plausibility
+// (spoken flirtation counts only once it forms a pattern, never on the same turn as a quest reward,
+// since the model tends to mislabel gratitude as flirting). Get either wrong and jealousy either
+// fires on an impossible pairing again, or a real courtship goes unnoticed.
 
 #region
 
@@ -13,6 +21,9 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class JealousyTriggerPolicyTests
     {
+        // The exact v1.29.0 player report this policy was built to fix: a male lord's wife should
+        // never be read as a rival to a man she cannot romantically compete with. Without this gate,
+        // jealousy fires on a pairing the mod's own romance model says cannot exist.
         [Test]
         public void GIVEN_an_implausible_pair_WHEN_evaluating_courtship_THEN_no_jealousy_ever_fires()
         {
@@ -24,6 +35,10 @@ namespace CalradiaRemembers.Tests
                                  .Should().BeFalse();
         }
 
+        // Fixes the v1.29.1 gate's blind spot (ROADMAP): the old rule judged rivalry by raw sex, so a
+        // deliberately enabled same-sex romance (via authored orientation) was invisible to spouses
+        // and rivals. isPlausiblePair now follows the courted NPC's real orientation, not a hardcoded
+        // opposite-sex assumption.
         [Test]
         public void GIVEN_an_orientation_sanctioned_same_sex_pair_WHEN_evaluating_THEN_it_counts_like_any_courtship()
         {
@@ -33,6 +48,8 @@ namespace CalradiaRemembers.Tests
                                  .Should().BeTrue("an enabled same-sex romance is a real courtship");
         }
 
+        // "Words nudge, deeds prove" (production doc): a single warm word is not yet courtship, so a
+        // one-off pleasantry must not be able to rouse a jealous party on its own.
         [Test]
         public void GIVEN_a_first_ever_flirt_WHEN_evaluating_courtship_THEN_no_jealousy_fires()
         {
@@ -40,6 +57,9 @@ namespace CalradiaRemembers.Tests
                                  .Should().BeFalse("one warm word is a pleasantry, not courtship");
         }
 
+        // Pins the exact boundary of FlirtPatternMinimum (2): once flirtation repeats, it stops
+        // reading as a pleasantry and becomes the pattern that makes it real courtship worth a
+        // jealous reaction.
         [Test]
         public void GIVEN_a_repeated_flirtation_pattern_WHEN_evaluating_THEN_jealousy_may_fire()
         {
@@ -47,6 +67,9 @@ namespace CalradiaRemembers.Tests
                                  .Should().BeTrue();
         }
 
+        // The other half of the v1.29.0 root cause: the model sometimes stamps warm thanks at a
+        // reward hand-over as an [EVENT] flirt. Without this guard, completing a quest for someone
+        // could itself provoke their jealous spouse, the exact bug the player reported.
         [Test]
         public void GIVEN_a_flirt_stamped_on_a_quest_turn_in_WHEN_evaluating_THEN_it_is_read_as_gratitude_never_courtship()
         {
@@ -54,6 +77,8 @@ namespace CalradiaRemembers.Tests
                                  .Should().BeFalse("the model mislabels thanks at a reward hand-over as flirtation");
         }
 
+        // Intimacy is a deed, not spoken words, so it must never wait for a "pattern" the way flirt
+        // does: a single real act is already enough to provoke a plausible jealous party.
         [Test]
         public void GIVEN_an_intimacy_deed_WHEN_evaluating_THEN_it_always_counts_even_on_a_first_event()
         {
@@ -61,6 +86,9 @@ namespace CalradiaRemembers.Tests
                                  .Should().BeTrue("intimacy is a deed, not words");
         }
 
+        // The quest-turn-in exemption exists only to excuse mislabeled GRATITUDE (words); it must
+        // never extend to a genuine deed. Confirms the two guards (pair, and flirt-vs-quest) are
+        // independent and the quest check does not leak into the intimacy branch.
         [Test]
         public void GIVEN_an_intimacy_deed_on_a_quest_turn_in_WHEN_evaluating_THEN_it_still_counts()
         {

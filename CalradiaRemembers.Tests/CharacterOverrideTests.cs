@@ -2,6 +2,11 @@
 // Guards player-authored character data: traits clamp to the engine band and unset ones are left alone,
 // and resolution never hands one hero another's authored personality (id wins; an id-less homonym is
 // refused, not guessed).
+//
+// WHY IT MATTERS: this is the moddability surface (character_overrides.json, hand-edited by a non-programmer)
+// that CharacterOverrideLoader reads every turn to feed Hero.SetTraitLevel (traits, derived nature, the campaign
+// AI) and the live prompt (backstory, orientation). A wrong Resolve() hands one lord's authored persona to
+// another lord entirely; an unclamped or falsely-authored value leaks a value the player never actually set.
 
 #region
 
@@ -19,6 +24,10 @@ namespace CalradiaRemembers.Tests
     {
         // ── Trait clamping / selection ──────────────────────────────────────
 
+        // Hero.SetTraitLevel clamps to −2..+2 too, but ClampedTraitLevels is what the mod's own derived-nature
+        // and prompt logic actually reads. A hand-typed JSON value like "5" is easy for a non-programmer author
+        // to write; if this clamp drifted, that raw out-of-band value would leak into logic the engine's own
+        // clamp never touches.
         [Test]
         public void GIVEN_out_of_band_traits_WHEN_clamping_THEN_each_is_pinned_to_minus2_to_plus2()
         {
@@ -30,6 +39,9 @@ namespace CalradiaRemembers.Tests
             levels[AuthoredTrait.Mercy].Should().Be(1);
         }
 
+        // Only traits the author actually set may reach Hero.SetTraitLevel. If an unset (null) trait were
+        // listed anyway, every authored NPC would have their untouched, vanilla-rolled traits silently forced
+        // to a default, erasing personality diversity the player never asked to touch.
         [Test]
         public void GIVEN_unset_traits_WHEN_listing_THEN_only_the_authored_ones_appear()
         {
@@ -38,6 +50,9 @@ namespace CalradiaRemembers.Tests
             o.HasTraits.Should().BeTrue();
         }
 
+        // An override authored for backstory alone (no traits) must not touch the NPC's personality at all.
+        // HasTraits is the gate the mod checks before calling SetTraitLevel; a false positive here would force
+        // trait values onto a hero the author never meant to touch.
         [Test]
         public void GIVEN_no_traits_WHEN_asked_THEN_HasTraits_is_false_and_the_list_is_empty()
         {
@@ -47,6 +62,9 @@ namespace CalradiaRemembers.Tests
             o.HasBackstory.Should().BeTrue();
         }
 
+        // CharacterOverrideLoader.BackstoryFor only forwards the string to the live prompt when HasBackstory is
+        // true. A whitespace-only value (an author who left the JSON's example field blank) must read as
+        // unauthored, or the prompt would inject an empty backstory section instead of skipping it.
         [Test]
         public void GIVEN_blank_backstory_WHEN_asked_THEN_HasBackstory_is_false()
         {
@@ -55,6 +73,9 @@ namespace CalradiaRemembers.Tests
 
         // ── Resolution ──────────────────────────────────────────────────────
 
+        // The rule that "id wins" is the one thing standing between a typo and a wrong hero getting someone
+        // else's authored persona. Two authored entries can plausibly share a display name; without id taking
+        // priority, name matching alone could resolve to the wrong lord even when an id was actually supplied.
         [Test]
         public void GIVEN_an_id_match_WHEN_resolving_THEN_id_wins_even_if_the_name_differs()
         {
@@ -67,6 +88,9 @@ namespace CalradiaRemembers.Tests
             set.Resolve(heroId: "lord_1", heroName: "Derthert").Hero.Should().Be("Someone Else");
         }
 
+        // Most hand-authored entries will never carry an id (the file's basic example doesn't ask for one), so
+        // plain name matching has to work on its own, and case-insensitively: an author typing "derthert" for
+        // "Derthert" should not silently fail to apply the override they just wrote.
         [Test]
         public void GIVEN_no_id_match_WHEN_resolving_THEN_a_single_name_match_is_used()
         {
@@ -74,6 +98,9 @@ namespace CalradiaRemembers.Tests
             set.Resolve(heroId: "lord_99", heroName: "derthert").Should().NotBeNull(); // case-insensitive
         }
 
+        // Most heroes in a campaign have no authored entry at all, which is the normal case, not an error. A
+        // miss has to fall through to null (and vanilla behavior) cleanly, never throw or fabricate a default
+        // override for a hero the author never wrote about.
         [Test]
         public void GIVEN_no_match_at_all_WHEN_resolving_THEN_it_returns_null()
         {
@@ -81,6 +108,9 @@ namespace CalradiaRemembers.Tests
             set.Resolve("x", "Caladog").Should().BeNull();
         }
 
+        // Two hand-authored characters can innocently share a display name. Guessing which one applies would
+        // silently hand one lord's traits or backstory to the wrong lord; refusing (null) instead is the signal
+        // that tells the author to add an id, per CharacterOverrideSet.Resolve's own contract.
         [Test]
         public void GIVEN_two_entries_with_the_same_name_and_no_id_WHEN_resolving_THEN_it_refuses_rather_than_guess()
         {
@@ -93,6 +123,8 @@ namespace CalradiaRemembers.Tests
             set.Resolve(heroId: null, heroName: "Aria").Should().BeNull();
         }
 
+        // Confirms the refuse-on-ambiguity rule above doesn't over-refuse: once the author actually adds ids to
+        // tell two same-named characters apart, resolution must use them correctly, not keep returning null.
         [Test]
         public void GIVEN_homonyms_disambiguated_by_id_WHEN_resolving_THEN_the_right_one_wins()
         {
@@ -107,6 +139,10 @@ namespace CalradiaRemembers.Tests
 
         // ── Runtime injection (With): the console backstory-test path ───────────
 
+        // This is what cr.backstory_test relies on: injecting a strong named persona onto a hero at runtime,
+        // without touching character_overrides.json, so the authored-backstory path can be checked end to end
+        // in one command. If the injected entry never actually resolved, that console command would prove
+        // nothing.
         [Test]
         public void GIVEN_an_injected_override_WHEN_resolving_by_id_THEN_the_injected_backstory_is_returned()
         {
@@ -116,6 +152,9 @@ namespace CalradiaRemembers.Tests
             set.Resolve("lord_1", "Derthert").Backstory.Should().Be("A rage-forged warrior.");
         }
 
+        // A live console test has to override the file-backed entry for that one NPC, not sit alongside it. If
+        // it merely added a second entry instead of replacing the first, the two would become an unresolvable
+        // same-id ambiguity and the console command would break the very hero it targeted.
         [Test]
         public void GIVEN_an_injection_for_a_hero_that_already_has_a_file_entry_WHEN_resolving_THEN_the_injection_wins_by_id()
         {
@@ -126,6 +165,9 @@ namespace CalradiaRemembers.Tests
             set.Count.Should().Be(1); // replaced, not duplicated
         }
 
+        // Injecting a one-off runtime test override must not wipe out the rest of the campaign's authored file.
+        // A console command meant to test one NPC's backstory should never be able to silently blank out every
+        // other player-authored character for the rest of the session.
         [Test]
         public void GIVEN_an_injection_for_one_hero_WHEN_resolving_others_THEN_the_rest_of_the_set_is_preserved()
         {
@@ -136,6 +178,8 @@ namespace CalradiaRemembers.Tests
             set.Resolve("lord_1", "Derthert").Backstory.Should().Be("injected");
         }
 
+        // Defensive null-safety for callers of With(): InjectRuntimeOverride already guards this at the call
+        // site, but the set itself must not corrupt or crash on a null addition if that guard is ever bypassed.
         [Test]
         public void GIVEN_a_null_override_WHEN_added_THEN_the_set_is_unchanged()
         {

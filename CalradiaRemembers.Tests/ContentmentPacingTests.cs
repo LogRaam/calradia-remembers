@@ -40,6 +40,9 @@ namespace CalradiaRemembers.Tests
                         $"idleness must never win under {pacing}");
         }
 
+        // The single-tick inequality above played out over the long run, across every pacing including the
+        // tightened Exacting one: the core guarantee (idleness alone never reaches WantsToLeave) must survive
+        // the whole MCM range, not just the default Balanced setting.
         [Test]
         public void GIVEN_ANY_pacing_WHEN_two_years_of_idleness_pass_THEN_the_companion_never_wants_to_leave()
         {
@@ -58,6 +61,8 @@ namespace CalradiaRemembers.Tests
             }
         }
 
+        // The slider must actually order Forgiving > Balanced > Exacting in recovery speed, or the MCM option
+        // would not mean what its own enum documentation (and the player-facing labels) claim it means.
         [Test]
         public void GIVEN_the_three_pacings_WHEN_compared_THEN_forgiveness_comes_faster_the_gentler_the_setting()
         {
@@ -67,6 +72,8 @@ namespace CalradiaRemembers.Tests
                 .Should().BeGreaterThan(ContentmentPacingRules.DriftStepFor(ContentmentPacing.Exacting));
         }
 
+        // Balanced must stay wired to CompanionHappiness.WeeklyDriftStep itself, not a separately-tuned copy of
+        // the same number, or the two constants could silently drift apart on a future retune.
         [Test]
         public void GIVEN_the_default_WHEN_asked_THEN_it_is_the_balance_the_rebalance_was_tuned_around()
         {
@@ -88,6 +95,8 @@ namespace CalradiaRemembers.Tests
             }
         }
 
+        // This is the tension SuperGraham339 said he wanted back: Exacting must give up on an unaddressed real
+        // grievance sooner than Balanced, while still taking a bound number of weeks, never a handful of days.
         [Test]
         public void GIVEN_an_EXACTING_lord_WHEN_a_real_grievance_is_never_addressed_THEN_they_leave_SOONER_than_at_balanced()
         {

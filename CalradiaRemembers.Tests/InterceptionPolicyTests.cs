@@ -1,4 +1,12 @@
 // Code written by Gabriel Mailhot, 21/06/2026.
+// NPC-initiated interceptions: this policy decides TWO things a lord's own AI cannot judge on its own.
+// Choose() picks WHETHER a lord rides out to force a meeting, and WHY (territorial challenge vs reacting
+// to news) - the answer becomes InterceptionBehavior.BeginPursuit, which physically moves the lord's party
+// and, once caught, opens the CR chat AUTOMATICALLY with no vanilla menu the player could back out of.
+// ShouldAbandonChase() decides when a pursuer gives up. Get either wrong and the player either never sees
+// the feature fire, or gets harassed relentlessly (a lord who never gives up, or who is sent again the
+// moment the last chase ends): the guards here (per-lord cooldown, one pursuer at a time, notoriety floor,
+// outrun/timeout release) are what keeps "lords ride out to meet you" from reading as being hunted.
 
 #region
 
@@ -15,6 +23,9 @@ namespace CalradiaRemembers.Tests
    {
       // ── ShouldAbandonChase ─────────────────────────────────────────────────
 
+      // Pins MaxPursuitDays as a hard stop: without it a lord who never physically catches the player
+      // (a moving target on a big map) would chase indefinitely, which is exactly the "being hunted"
+      // feel the guards in this policy exist to avoid.
       [Test]
       public void GIVEN_a_chase_past_the_timeout_WHEN_judging_THEN_it_is_abandoned()
       {
@@ -22,6 +33,8 @@ namespace CalradiaRemembers.Tests
             InterceptionPolicy.MaxPursuitDays).Should().BeTrue();
       }
 
+      // A hostile lord has no standing to challenge you outside their own land: TerritorialPatrol reads
+      // "crossing their lands", so PlayerInOwnTerritory is load-bearing, not just FactionHostileToPlayer.
       [Test]
       public void GIVEN_a_hostile_realm_but_the_player_is_elsewhere_WHEN_choosing_THEN_no_patrol()
       {
@@ -29,12 +42,18 @@ namespace CalradiaRemembers.Tests
                            .Should().Be(InterceptionTrigger.None);
       }
 
+      // The other half of the feature besides territorial challenge: a lord who heard of the player's
+      // deeds rides out to react "while it is fresh" (see HeardOfDeed's own doc). No hostility or
+      // territory needed - news alone is a full trigger.
       [Test]
       public void GIVEN_a_lord_who_has_heard_of_a_recent_deed_WHEN_choosing_THEN_they_ride_out_to_react()
       {
          InterceptionPolicy.Choose(Facts(heardDeed: true)).Should().Be(InterceptionTrigger.HeardOfDeed);
       }
 
+      // NotorietyThreshold exists because "a traveller of at least this notoriety is worth a hostile
+      // lord's challenge" (see the constant's own doc): an unknown nobody should be able to cross
+      // hostile territory unmolested. One point below the floor.
       [Test]
       public void GIVEN_a_nobody_in_hostile_land_WHEN_choosing_THEN_no_one_bothers()
       {
@@ -43,6 +62,8 @@ namespace CalradiaRemembers.Tests
                            .Should().Be(InterceptionTrigger.None);
       }
 
+      // Notoriety and territory alone are not enough: without actual hostility a lord at peace with the
+      // player has no reason to challenge them, however famous or deep in their land they are.
       [Test]
       public void GIVEN_a_notorious_player_in_hostile_land_but_the_realm_is_at_peace_WHEN_choosing_THEN_no_patrol()
       {
@@ -50,6 +71,9 @@ namespace CalradiaRemembers.Tests
                            .Should().Be(InterceptionTrigger.None);
       }
 
+      // The positive case: all three TerritorialPatrol conditions (hostility, territory, notoriety)
+      // together are what the CHANGELOG describes as "a hostile realm's lord challenging a notorious
+      // traveller crossing their land" - this pins that the trigger actually fires when they align.
       [Test]
       public void GIVEN_a_notorious_player_in_hostile_land_WHEN_choosing_THEN_a_territorial_patrol_rides_out()
       {
@@ -57,6 +81,9 @@ namespace CalradiaRemembers.Tests
                            .Should().Be(InterceptionTrigger.TerritorialPatrol);
       }
 
+      // AbandonMinDistance is checked FIRST, before the timeout: giving up right as the pursuer is about
+      // to physically connect would be the most visible, most frustrating way this policy could fail -
+      // a chase that ends one step from succeeding.
       [Test]
       public void GIVEN_almost_caught_even_past_the_timeout_WHEN_judging_THEN_the_pursuer_still_presses_on()
       {
@@ -65,6 +92,8 @@ namespace CalradiaRemembers.Tests
             InterceptionPolicy.MaxPursuitDays + 3).Should().BeFalse();
       }
 
+      // "One interception at a time" per the class doc: without this guard several lords could converge
+      // on the player simultaneously, which is the harassment feel the whole policy is built to avoid.
       [Test]
       public void GIVEN_another_pursuer_is_already_active_WHEN_choosing_THEN_no_second_interception_starts()
       {
@@ -72,6 +101,9 @@ namespace CalradiaRemembers.Tests
                            .Should().Be(InterceptionTrigger.None);
       }
 
+      // Pins the ordering in Choose(): the class doc says "a hostile territorial challenge outranks
+      // merely reacting to news" - this locks that priority so a future reordering of the two checks
+      // would be caught here rather than silently changing which opener the player gets.
       [Test]
       public void GIVEN_both_a_territorial_challenge_and_recent_news_WHEN_choosing_THEN_the_patrol_takes_priority()
       {
@@ -79,6 +111,8 @@ namespace CalradiaRemembers.Tests
                            .Should().Be(InterceptionTrigger.TerritorialPatrol);
       }
 
+      // The baseline: with every fact false/zero, nothing should fire. Also pins WouldIntercept as a
+      // faithful mirror of Choose() (None both ways), since callers use the bool convenience form too.
       [Test]
       public void GIVEN_nothing_applies_WHEN_choosing_THEN_the_lord_stays_their_course()
       {
@@ -86,6 +120,9 @@ namespace CalradiaRemembers.Tests
          InterceptionPolicy.WouldIntercept(Facts()).Should().BeFalse();
       }
 
+      // The far side of the same boundary as the nobody-in-hostile-land test above: the floor is
+      // INCLUSIVE (>=), so a player exactly at NotorietyThreshold is already worth a challenge, not
+      // one point shy of it.
       [Test]
       public void GIVEN_notoriety_exactly_at_the_floor_WHEN_choosing_THEN_it_still_triggers()
       {
@@ -93,12 +130,16 @@ namespace CalradiaRemembers.Tests
                            .Should().Be(InterceptionTrigger.TerritorialPatrol);
       }
 
+      // Fail safe: a missing facts object must resolve to None, never throw and never accidentally
+      // trigger a pursuit the caller did not ask for.
       [Test]
       public void GIVEN_null_facts_WHEN_choosing_THEN_it_is_a_safe_none()
       {
          InterceptionPolicy.Choose(null).Should().Be(InterceptionTrigger.None);
       }
 
+      // The "hopeless chase" case named in ShouldAbandonChase's own doc: a pursuer who plainly cannot
+      // force the meeting should stop trying rather than trail the player pointlessly across the map.
       [Test]
       public void GIVEN_the_player_clearly_faster_and_well_clear_WHEN_judging_THEN_the_hopeless_chase_is_given_up()
       {
@@ -107,6 +148,8 @@ namespace CalradiaRemembers.Tests
                            .Should().BeTrue();
       }
 
+      // Same AbandonMinDistance override as the timeout case above, but against the speed check this
+      // time: proximity beats speed too, since the encounter is imminent whatever the speed gap.
       [Test]
       public void GIVEN_the_player_faster_but_almost_caught_WHEN_judging_THEN_the_pursuer_keeps_pressing()
       {
@@ -115,6 +158,8 @@ namespace CalradiaRemembers.Tests
                            .Should().BeFalse();
       }
 
+      // Pins the OutrunSpeedRatio boundary itself (1.15): a slight speed edge must NOT read as
+      // "uncatchable", or a pursuer would give up on a chase it could still plausibly win.
       [Test]
       public void GIVEN_the_player_only_marginally_faster_WHEN_judging_THEN_the_chase_continues()
       {
@@ -123,6 +168,8 @@ namespace CalradiaRemembers.Tests
                            .Should().BeFalse();
       }
 
+      // A pursuer as fast as or faster than the player can never be "outrun", so this branch of
+      // ShouldAbandonChase should never trip regardless of distance or days pursued.
       [Test]
       public void GIVEN_the_pursuer_at_least_as_fast_as_the_player_WHEN_judging_THEN_they_press_on()
       {
@@ -130,6 +177,9 @@ namespace CalradiaRemembers.Tests
                            .Should().BeFalse();
       }
 
+      // The per-lord cooldown is checked before any trigger, absolute: this is the other half of "won't
+      // pester you" (CHANGELOG) alongside the single-pursuer guard - a lord who just intercepted the
+      // player cannot be sent right back out even if every other condition still screams for it.
       [Test]
       public void GIVEN_this_lord_is_on_cooldown_WHEN_choosing_THEN_nothing_fires_however_strong_the_trigger()
       {

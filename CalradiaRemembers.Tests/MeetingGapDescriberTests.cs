@@ -23,6 +23,9 @@ namespace CalradiaRemembers.Tests
             MeetingGapDescriber.Describe(4).Should().BeNull();
         }
 
+        // A negative gap means "never met" or unresolved (the caller has no real count), so it must fail safe to
+        // silence rather than surface a nonsensical "-1 days" note; 0 and 1 are the same-day case and equally
+        // too fresh to remark on.
         [Test]
         public void GIVEN_an_unknown_or_same_day_gap_WHEN_describing_THEN_nothing_is_surfaced()
         {
@@ -31,18 +34,25 @@ namespace CalradiaRemembers.Tests
             MeetingGapDescriber.Describe(1).Should().BeNull();
         }
 
+        // Pins RemarkThresholdDays as INCLUSIVE: exactly a week must still stay silent, or a future retune that
+        // only moved the constant without checking the comparison operator could start surfacing the very
+        // "four days since we last spoke" nagging the reported bug was about.
         [Test]
         public void GIVEN_a_gap_at_the_one_week_threshold_WHEN_describing_THEN_it_is_still_not_surfaced()
         {
             MeetingGapDescriber.Describe(MeetingGapDescriber.RemarkThresholdDays).Should().BeNull(); // 7 days
         }
 
+        // The far side of that same boundary: one day past the threshold is the first gap worth mentioning,
+        // and below the season band it is phrased as a plain day count.
         [Test]
         public void GIVEN_a_gap_just_past_a_week_WHEN_describing_THEN_it_is_surfaced_in_days()
         {
             MeetingGapDescriber.Describe(8).Should().Be("It has been roughly 8 days since you last saw the player.");
         }
 
+        // Pins the Calradian-calendar phrasing (SeasonDays=21) an NPC would actually use: a singular "a season"
+        // rather than "1 seasons", and the day count switches to season units once it crosses into that band.
         [Test]
         public void GIVEN_a_gap_of_a_season_WHEN_describing_THEN_it_is_phrased_in_seasons()
         {
@@ -50,6 +60,8 @@ namespace CalradiaRemembers.Tests
             MeetingGapDescriber.Describe(50).Should().Be("It has been roughly 2 seasons since you last saw the player.");
         }
 
+        // Same singular/plural care at the year band (YearDays=84): a gap of exactly one Calradian year reads
+        // as "a year", not the season-based day math bleeding through as an odd number of seasons.
         [Test]
         public void GIVEN_a_gap_of_years_WHEN_describing_THEN_it_is_phrased_in_years()
         {

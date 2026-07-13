@@ -45,6 +45,9 @@ namespace CalradiaRemembers.Tests
                 .Should().BeGreaterThan(-CompanionHappiness.DeltaFor(HappinessDriver.Idle));
         }
 
+        // The flagship guarantee, played out over the long run rather than one week: two full years of pure
+        // idleness, with no other grievance, must never once cross WantsToLeave. This is the exact scenario
+        // SuperGraham339 reported (idle companions sliding toward the door regardless).
         [Test]
         public void GIVEN_a_merely_idle_companion_WHEN_two_years_pass_THEN_they_rest_at_their_clans_baseline_and_never_want_to_leave()
         {
@@ -61,6 +64,8 @@ namespace CalradiaRemembers.Tests
             CompanionHappiness.Band(score).Should().Be(HappinessBand.Content);
         }
 
+        // Same idle scenario against the other end of CompanionBaseline: a tier-6 clan's companion must settle
+        // Devoted with ZERO courting, because serving a great house is the honour, not the player's attention.
         [Test]
         public void GIVEN_an_idle_companion_of_a_great_house_WHEN_two_years_pass_THEN_they_rest_DEVOTED()
         {
@@ -116,6 +121,8 @@ namespace CalradiaRemembers.Tests
             CompanionHappiness.Band(score).Should().Be(HappinessBand.Content);
         }
 
+        // A one-off Mistreated hit (a broken promise, a slight) must fade within a handful of weeks of ordinary
+        // idle drift, not linger indefinitely: only a REPEATED, unaddressed grievance should carry any weight.
         [Test]
         public void GIVEN_a_single_slight_WHEN_time_passes_THEN_it_is_forgiven_within_weeks()
         {

@@ -18,6 +18,9 @@ namespace CalradiaRemembers.Tests
     {
         // ── The deeds of ordinary play ─────────────────────────────────────────
 
+        // Before this driver existed, a companion could win the player's wars at their side and it counted for
+        // nothing (CHANGELOG v1.30.14, player request): only the mod's own errands ever moved happiness. Pins
+        // the basic direction so a shared victory can never read as neutral or, worse, as a defeat.
         [Test]
         public void GIVEN_a_battle_fought_at_your_side_WHEN_it_is_won_or_lost_THEN_the_companion_shares_the_outcome()
         {
@@ -68,6 +71,8 @@ namespace CalradiaRemembers.Tests
 
         // ── The camp's morale ──────────────────────────────────────────────────
 
+        // Per PartyMoraleMood's own header: morale is something the player already manages (food, wages,
+        // victories), so a well-kept camp should feel rewarded without becoming a new chore of its own.
         [Test]
         public void GIVEN_a_camp_in_good_spirits_WHEN_the_week_turns_THEN_the_mood_lifts_the_companions()
         {
@@ -75,6 +80,8 @@ namespace CalradiaRemembers.Tests
             PartyMoraleMood.DriverFor(95f).Should().Be(HappinessDriver.HighMorale);
         }
 
+        // The mirror case: neglecting the camp (starving, unpaid) must dull spirits, not stay silent, so poor
+        // camp-keeping has a real, if light, cost through this same channel.
         [Test]
         public void GIVEN_a_sullen_hungry_camp_WHEN_the_week_turns_THEN_the_mood_dulls_the_companions()
         {
@@ -82,6 +89,8 @@ namespace CalradiaRemembers.Tests
             PartyMoraleMood.DriverFor(5f).Should().Be(HappinessDriver.LowMorale);
         }
 
+        // Per PartyMoraleMood's header, this is a deliberately LIGHT touch: the broad middle band of ordinary
+        // morale must stay a no-op, or the weekly nudge would fire constantly instead of only at the extremes.
         [Test]
         public void GIVEN_an_unremarkable_camp_WHEN_the_week_turns_THEN_the_mood_says_nothing_at_all()
         {
@@ -90,6 +99,8 @@ namespace CalradiaRemembers.Tests
 
         // ── Being heard ────────────────────────────────────────────────────────
 
+        // CHANGELOG v1.30.14: "actually sitting down and talking with them" now counts. A companion who has
+        // never been heard must always qualify, so this driver can never be permanently unreachable for them.
         [Test]
         public void GIVEN_a_companion_never_talked_to_WHEN_the_player_sits_with_them_THEN_it_lifts_their_spirits()
         {
@@ -104,6 +115,8 @@ namespace CalradiaRemembers.Tests
             CompanionConversationPacing.LiftsSpirits(lastHeardDay: 42, today: 45).Should().BeFalse();
         }
 
+        // The cooldown must actually release once HeardOutCooldownDays has passed, or "being heard" would only
+        // ever fire once per companion for the whole campaign instead of periodically as intended.
         [Test]
         public void GIVEN_the_cooldown_fully_elapsed_WHEN_the_player_sits_with_them_again_THEN_it_lifts_them_again()
         {

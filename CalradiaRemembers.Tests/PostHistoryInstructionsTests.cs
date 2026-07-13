@@ -22,6 +22,9 @@ namespace CalradiaRemembers.Tests
         private static NpcProfile MinimalNpc() => new() {Id = "lord_test_1", Name = "Test Lord", Clan = "Test Clan", Faction = "Test Faction"};
         private static WorldState World() => new() {CurrentDay = 100};
 
+        // PromptBuilder deliberately calls AppendFormatReminder before AppendPostHistoryInstructions so this
+        // stays the literal last text the model reads. Break that ordering and a modder's RP-framing or
+        // censorship-bypass field loses the strongest-steer position it depends on to actually work.
         [Test]
         public void GIVEN_post_history_text_WHEN_building_the_prompt_THEN_it_appears_at_the_very_end()
         {
@@ -34,6 +37,8 @@ namespace CalradiaRemembers.Tests
             prompt.TrimEnd().Should().EndWith(Marker);
         }
 
+        // An unmodified install ships post_history_instructions.txt empty; this pins that the prompt stays
+        // byte-for-byte unchanged for every install that never opted into the hook.
         [Test]
         public void GIVEN_no_post_history_text_WHEN_building_the_prompt_THEN_nothing_is_added_and_the_marker_is_absent()
         {
@@ -45,6 +50,9 @@ namespace CalradiaRemembers.Tests
             prompt.TrimEnd().Should().NotEndWith(Marker);
         }
 
+        // BuildCommonerSystemPrompt is a separate code path with its own section list (commoner rumors, take-
+        // gold, etc.); this guards it from drifting away from the named-NPC builder and silently losing the
+        // last-word guarantee for commoner conversations.
         [Test]
         public void GIVEN_post_history_text_WHEN_building_the_commoner_prompt_THEN_it_also_ends_with_it()
         {

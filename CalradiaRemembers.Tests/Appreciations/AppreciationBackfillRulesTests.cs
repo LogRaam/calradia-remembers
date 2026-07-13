@@ -1,4 +1,11 @@
 // Code written by Gabriel Mailhot, 04/07/2026.
+// AppreciationBackfillRules decides which persisted markers in an EXISTING save (before this pillar
+// existed) can be safely read back as a felt kindness, feeding AppreciationMigration so old saves gain
+// Kindnesses without a new game. Conservative by construction, mirroring GrudgeBackfillRules: recognizes
+// ONLY the two exact markers documented in the production file's header (a Completed InformalQuest, a
+// persisted Intimacy NotableEvent) and returns null for anything else, per the project's hard save-
+// migration rule (never guess). Too eager here fabricates a kindness the player never earned; too strict
+// silently drops a real one. These tests pin exactly which markers convert and which are skipped.
 
 #region
 
@@ -18,6 +25,10 @@ namespace CalradiaRemembers.Tests.Appreciations
 
       // ── Rule 2: QuestDoneForThem (structured InformalQuest Completed status) ──
 
+      // Stake: Rule 2 is the ONE confirmed, structured marker for this pillar (the production file's header:
+      // "a real, structured, unambiguous marker"); anchoring on the wrong day would make an old completed
+      // quest look freshly done, since AppreciationPolicy.EffectiveMagnitude decays from EventDay on every
+      // read, overstating how warmly the NPC should currently feel.
       [Test]
       public void GIVEN_a_completed_quest_WHEN_mapping_THEN_a_quest_done_for_them_candidate_anchors_on_the_satisfied_day()
       {
@@ -39,6 +50,9 @@ namespace CalradiaRemembers.Tests.Appreciations
          candidate.Summary.Should().Contain("clear bandits near Aldrok");
       }
 
+      // Stake: SatisfiedOnDay is not always recorded; without this fallback the anchor day would default
+      // to 0, mis-dating the deed to the dawn of time and leaving the migrated kindness fully decayed
+      // (invisible) instead of correctly aged from when the quest was actually issued.
       [Test]
       public void GIVEN_a_completed_quest_with_no_satisfied_day_WHEN_mapping_THEN_it_anchors_on_the_issued_day()
       {
@@ -50,6 +64,9 @@ namespace CalradiaRemembers.Tests.Appreciations
          candidate.EventDay.Should().Be(50);
       }
 
+      // Stake: the conservative-by-construction rule (this file's header, mirroring GrudgeBackfillRules):
+      // recognizing anything beyond the exact Intimacy ordinal would risk fabricating an appreciation for
+      // an unrelated recorded event (here, a Conflict), a false kindness the player never actually earned.
       [Test]
       public void GIVEN_a_non_intimacy_event_WHEN_mapping_THEN_nothing_is_produced()
       {
@@ -58,6 +75,9 @@ namespace CalradiaRemembers.Tests.Appreciations
          AppreciationBackfillRules.FromProfileEvent(facts, PlayerId, PlainTraits()).Should().BeNull();
       }
 
+      // Stake: a missing HolderId means the engine-side scan could not attribute the event to any NPC;
+      // forming a candidate anyway would hand AppreciationMigration a StringId-less kindness attached to
+      // nobody, the exact half-match the hard save-migration rule says to skip rather than guess at.
       [Test]
       public void GIVEN_a_profile_event_with_no_holder_id_WHEN_mapping_THEN_it_is_conservatively_skipped()
       {
@@ -66,6 +86,8 @@ namespace CalradiaRemembers.Tests.Appreciations
          AppreciationBackfillRules.FromProfileEvent(facts, PlayerId, PlainTraits()).Should().BeNull();
       }
 
+      // Stake: same guard on the quest path; a missing GiverId means there is no NPC to hold the felt
+      // kindness, so the candidate must be dropped rather than synthesized with a blank or guessed holder.
       [Test]
       public void GIVEN_a_quest_outcome_with_no_giver_id_WHEN_mapping_THEN_it_is_conservatively_skipped()
       {
@@ -74,6 +96,10 @@ namespace CalradiaRemembers.Tests.Appreciations
          AppreciationBackfillRules.FromQuestOutcome(facts, PlayerId, PlainTraits()).Should().BeNull();
       }
 
+      // Stake: Rule 2 must fire ONLY on "Completed" (this file's header: "the ONLY marker converted").
+      // Expired/Abandoned are precisely the statuses GrudgeBackfillRules reads as a FAILED quest on the
+      // Grudges side; if this rule were sloppy, the same broken promise could plant a REWARD instead of
+      // (or alongside) the grievance it should actually cause.
       [TestCase("Active")]
       [TestCase("Expired")]
       [TestCase("Abandoned")]
@@ -85,6 +111,9 @@ namespace CalradiaRemembers.Tests.Appreciations
          AppreciationBackfillRules.FromQuestOutcome(facts, PlayerId, PlainTraits()).Should().BeNull();
       }
 
+      // Stake: below the truncation cap the exact wording must survive untouched, since this Summary text
+      // doubles as the CauseSummary later injected into both the LLM prompt and the encyclopedia line; any
+      // unintended mutation on the happy path would show the player a subtly altered account of the deed.
       [Test]
       public void GIVEN_a_short_summary_WHEN_mapping_THEN_it_is_carried_verbatim()
       {
@@ -95,6 +124,9 @@ namespace CalradiaRemembers.Tests.Appreciations
 
       // ── Truncation ───────────────────────────────────────────────────────
 
+      // Stake: MaxCauseLength keeps this "chronicler prose, not a data dump" (the constant's own doc); an
+      // untruncated summary could bloat the LLM prompt budget and spill an unreadably long line into the
+      // encyclopedia's Kindnesses section.
       [Test]
       public void GIVEN_a_summary_longer_than_the_cap_WHEN_mapping_THEN_the_cause_is_truncated()
       {
@@ -109,6 +141,10 @@ namespace CalradiaRemembers.Tests.Appreciations
 
       // ── Rule 1: KindnessInScene (Intimacy NotableEvent) ─────────────────
 
+      // Stake: pins Rule 1's output shape. Note this file's own header flags Intimacy as PLACEHOLDER-GRADE,
+      // not a confirmed-exclusive marker like Jealousy is for Grudges (Intimacy also feeds pregnancy and
+      // jealousy downstream), so treating every persisted Intimacy event as a felt kindness is an
+      // UNCONFIRMED heuristic the production code itself calls out for Gabriel's review before going live.
       [Test]
       public void GIVEN_an_intimacy_ordinal_event_WHEN_mapping_THEN_a_kindness_in_scene_candidate_is_produced()
       {

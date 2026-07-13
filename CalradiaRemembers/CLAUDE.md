@@ -28,7 +28,7 @@ Bannerlord: v1.3.15, Default Public (Mar 2026).
 
 ## Code style (non-negotiable)
 
-- **Indentation**: 4 spaces in mod, 3 spaces in SDK Core
+- **Indentation**: SDK Core is 3 spaces throughout. The mod, `.Logic` and `.Tests` are MIXED per file (3-space: `EncounterContextBuilder`, `ChatManager`, `JealousyBehavior`, `PlayerDivorceConsentPolicyTests`; 4-space: `CompanionHappinessService`, `MeetingGapDescriber`, `MeetingGapDescriberTests`). **ALWAYS look at the file you are editing and match it. Never assume from the project.**
 - **Braces**: Allman style
 - **Usings**: wrapped in `#region` / `#endregion` at top of every file
 - **Docs**: triple-slash XML (`///`) on all public types and methods
@@ -36,6 +36,14 @@ Bannerlord: v1.3.15, Default Public (Mar 2026).
 - **Naming**: PascalCase methods/properties, `_camelCase` private fields
 - **C# net472**: no `Nullable enable`, no `record` types; use polyfill `IsExternalInit.cs` for `init` setters
 - **File header**: `// Code written by Gabriel Mailhot, DD/MM/YYYY.` (first line, sprint note on 2nd if relevant)
+
+### Unit tests carry their WHY (non-negotiable)
+
+Gabriel reads the unit tests to validate the logic himself. The Gherkin name says WHAT the rule is; it never says why it exists or why it matters. So:
+
+- **Every test file** opens (after the author line) with a header rationale: what this policy decides, what its answer feeds into, what breaks if it is wrong.
+- **Every `[Test]`** carries a comment above it giving the **STAKE**: what concretely goes wrong without this rule, which player report or design call it guards, why a boundary sits exactly where it sits. Lead with the stake. Never write "This test verifies that…" (that only paraphrases the name).
+- **NEVER INVENT A RATIONALE.** A plausible-but-wrong "why" is worse than no comment: Gabriel would read it and validate false reasoning. Derive it from the production code's own header/`///` docs, from who CONSUMES the result, from CHANGELOG.md or ROADMAP.md. If it is genuinely not derivable, write a plain factual note about what the boundary pins, and say so.
 
 ---
 

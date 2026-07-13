@@ -1,4 +1,12 @@
 // Code written by Gabriel Mailhot, 20/06/2026.
+// PowerBalance.DescribeFor turns the raw military/political facts (fief counts, war state, captivity, a
+// recent battlefield defeat) into the POWER BALANCE prompt note that colours a lord's candor - how
+// deferential, wary, or defiant they sound. Per the CHANGELOG this is meant to read as "calculated, wary
+// deference rather than blind defiance or empty submission": too strong a note and every lord becomes a
+// doormat regardless of standing; too weak (or silent when it shouldn't be) and a captive, or a lord
+// losing a war, keeps talking as if nothing were at stake. Captivity always overrides territory (rank
+// stops mattering the moment you are the player's prisoner); the thresholds below pin exactly how big an
+// asymmetry has to be before a lord finds it worth remarking on at all.
 
 #region
 
@@ -13,6 +21,9 @@ namespace CalradiaRemembers.Tests
    [TestFixture]
    public sealed class PowerBalanceTests
    {
+      // Captivity dominance is the load-bearing rule of the whole policy (see DescribeFor's own comment):
+      // without it, a mighty lord held prisoner would still get to boast about their kingdom's fiefs,
+      // undercutting the entire point of "a captive measures every word".
       [Test]
       public void GIVEN_a_captive_lord_of_a_strong_kingdom_WHEN_describing_THEN_captivity_overrides_territory()
       {
@@ -28,6 +39,9 @@ namespace CalradiaRemembers.Tests
          note.Should().NotContain("fiefs");
       }
 
+      // DescribeFor returns on the captivity branch before the defeat clause is even built: piling "you
+      // lost to me AND you're my prisoner" on top of each other would be redundant kicking of someone
+      // whose situation is already fully told by captivity alone.
       [Test]
       public void GIVEN_a_captive_who_also_lost_recently_WHEN_describing_THEN_only_captivity_is_spoken()
       {
@@ -38,6 +52,9 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().NotContain("bested");
       }
 
+      // The defeat clause must stand on its own when no kingdom comparison applies (a landless or
+      // kingdomless lord): otherwise a lord freshly humbled on the field would get NO note at all just
+      // because they have no fiefs to compare, losing the "that defeat is still fresh" tempering entirely.
       [Test]
       public void GIVEN_a_lord_with_no_realm_standing_who_lost_to_the_player_recently_WHEN_describing_THEN_the_defeat_is_spoken()
       {
@@ -48,6 +65,9 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().Contain("bested you on the field");
       }
 
+      // Pins Combine(): unlike the captivity case, a territorial verdict and a recent defeat are
+      // INDEPENDENT stresses and both should land in the note - dropping either one would understate
+      // just how cornered this lord actually is.
       [Test]
       public void GIVEN_a_precarious_position_compounded_by_a_recent_defeat_WHEN_describing_THEN_both_are_voiced()
       {
@@ -63,6 +83,8 @@ namespace CalradiaRemembers.Tests
          note.Should().Contain("bested you on the field");
       }
 
+      // Peacetime asymmetry, NPC side: pins that being the stronger realm at peace still colours a lord's
+      // confidence, even with no war to make the imbalance urgent.
       [Test]
       public void GIVEN_at_peace_and_the_npc_is_markedly_stronger_WHEN_describing_THEN_they_hold_the_stronger_position()
       {
@@ -73,6 +95,9 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().Contain("stronger position");
       }
 
+      // At peace the note cites the actual fief counts, not just a qualitative verdict (unlike the
+      // wartime notes below): pins that specificity so a future refactor cannot quietly drop the
+      // real numbers a wary lord would surely have counted for themselves.
       [Test]
       public void GIVEN_at_peace_and_the_player_is_markedly_stronger_WHEN_describing_THEN_the_fief_disparity_is_named()
       {
@@ -88,6 +113,9 @@ namespace CalradiaRemembers.Tests
          note.Should().Contain("more powerful");
       }
 
+      // The playerFiefs >= 3 floor guards against a lord solemnly remarking on the balance of power over
+      // 2 fiefs vs 1: a ratio of "twice as many" is statistically loud but substantively trivial, and
+      // narrating it as a real disparity would read as absurd, self-important dialogue.
       [Test]
       public void GIVEN_at_peace_but_below_the_fief_floor_WHEN_describing_THEN_the_thin_asymmetry_is_left_unspoken()
       {
@@ -99,6 +127,9 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().BeNull();
       }
 
+      // Guards the ratio's divide-by-zero special case (DescribeStanding's own comment): npcFiefs == 0
+      // must not throw or silently misclassify a rout as "uncertain" - a fief-holding player against a
+      // fief-less kingdom is the most lopsided case the policy has to describe correctly.
       [Test]
       public void GIVEN_at_war_against_a_fiefless_kingdom_WHEN_describing_THEN_the_rout_reads_as_precarious()
       {
@@ -109,6 +140,9 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().Contain("precarious");
       }
 
+      // Pins the wartime ratio boundary (0.5, i.e. the NPC holds >= 2x the player's fiefs): at war the
+      // note must read as confident, not merely "stronger", since defiance in wartime carries real
+      // military backing behind it.
       [Test]
       public void GIVEN_at_war_and_the_npc_holds_twice_the_territory_WHEN_describing_THEN_they_hold_a_clear_advantage()
       {
@@ -119,6 +153,9 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().Contain("clear advantage");
       }
 
+      // The reciprocal of the same 2x boundary, player side: this is the case the CHANGELOG names
+      // directly ("when a lord's realm is far weaker than yours... it now colours how they speak") -
+      // wary deference rather than blind defiance when the odds are visibly against them.
       [Test]
       public void GIVEN_at_war_and_the_player_holds_twice_the_territory_WHEN_describing_THEN_the_position_is_precarious()
       {
@@ -129,6 +166,9 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().Contain("precarious");
       }
 
+      // Between the two 2x/0.5x boundaries a lord at war should sound neither confident nor cowed: an
+      // evenly matched war is genuinely uncertain, and the note must not manufacture false confidence
+      // or false despair out of a roughly balanced fief count.
       [Test]
       public void GIVEN_at_war_with_evenly_matched_realms_WHEN_describing_THEN_the_outcome_is_uncertain()
       {
@@ -139,6 +179,9 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().Contain("uncertain");
       }
 
+      // The quiet baseline: when kingdoms are even AND both clans personally hold land, there is
+      // genuinely nothing worth a lord remarking on - a note here would be noise, colouring dialogue
+      // that should read as ordinary and unremarkable.
       [Test]
       public void GIVEN_evenly_matched_realms_and_both_clans_hold_land_WHEN_describing_THEN_nothing_is_remarked()
       {
@@ -150,6 +193,9 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().BeNull();
       }
 
+      // The clan-level fallback layer: even when the KINGDOMS are roughly even, this lord's own clan
+      // personally holding nothing is a real, personal standing gap that the kingdom-level ratio alone
+      // would miss - without this layer a landless lord would sound as secure as a landed one.
       [Test]
       public void GIVEN_evenly_matched_realms_but_the_npc_clan_holds_no_fiefs_WHEN_describing_THEN_the_clan_gap_is_noted()
       {
@@ -161,6 +207,9 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().Contain("no fiefs");
       }
 
+      // Guards DescribeStanding's own entry check: "a territorial comparison means nothing unless at
+      // least one side belongs to a kingdom" - two landless wanderer-adjacent lords have no realm
+      // standing to compare at all, so forcing a note here would be fabricating stakes that do not exist.
       [Test]
       public void GIVEN_neither_side_is_in_a_kingdom_and_nothing_else_weighs_WHEN_describing_THEN_no_note()
       {
@@ -171,6 +220,9 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().BeNull();
       }
 
+      // "Only lords carry kingdom/clan standing worth weighing" (PowerBalanceFacts.NpcIsLord doc): a
+      // wanderer or notable has no realm stake, so even amid what would otherwise be a rout, they get
+      // no power-balance note at all - putting one in their mouth would misattribute standing they lack.
       [Test]
       public void GIVEN_the_npc_is_not_a_lord_WHEN_describing_THEN_no_note_is_issued()
       {
@@ -181,6 +233,8 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().BeNull();
       }
 
+      // The baseline positive case for the dominance rule pinned above: captivity alone, with no other
+      // facts set, must still produce the "you are currently a prisoner" note.
       [Test]
       public void GIVEN_the_npc_is_the_players_prisoner_WHEN_describing_THEN_captivity_is_named()
       {
