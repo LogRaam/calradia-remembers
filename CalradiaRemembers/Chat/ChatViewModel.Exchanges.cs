@@ -242,6 +242,7 @@ namespace CalradiaRemembers.Chat
             if (_commonerProfile == null || _commonerSession == null)
             {
                ReplacePlaceholder(placeholder, "(Seems this stranger has nothing to say...)", null);
+               RestoreInputAfterFailedTurn(playerMessage);
 
                return;
             }
@@ -274,6 +275,7 @@ namespace CalradiaRemembers.Chat
                ReplacePlaceholder(placeholder, "(My words escape me...)", null);
                ModLog.Error($"[COMMONER] LLM call failed: {result.ErrorMessage}");
                NotifyLlmFailure();
+               RestoreInputAfterFailedTurn(playerMessage);
 
                return;
             }
@@ -430,6 +432,22 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      /// <summary>
+      ///   Puts the player's just-sent text back into the input box after a turn that produced NO reply (a
+      ///   request timeout, a network error, or the AI services being unavailable), so a message lost to a
+      ///   provider hiccup can be resent with one click instead of retyped (player request, ApocalyptikGreen
+      ///   2026-07-13). A no-op for a synthetic scene cue (suppressPlayerLine), and it never clobbers text the
+      ///   player has already begun typing while the call was in flight.
+      /// </summary>
+      private void RestoreInputAfterFailedTurn(string playerMessage, bool suppressPlayerLine = false)
+      {
+         if (suppressPlayerLine || string.IsNullOrWhiteSpace(playerMessage)) return;
+         if (!string.IsNullOrWhiteSpace(InputText)) return; // the player already began a new message, so leave it
+
+         InputText = playerMessage;
+         AppendOocMessage("Your message did not reach the AI. It has been restored below. Press Send to try again.");
+      }
+
       private async Task RunLlmExchangeAsync(string playerMessage,
                                              ChatSpeaker speaker,
                                              ChatMessageViewModel placeholder,
@@ -457,6 +475,7 @@ namespace CalradiaRemembers.Chat
             {
                ReplacePlaceholder(placeholder, "(I can't seem to gather my thoughts...)", speaker);
                ModLog.Error("LLM pipeline: behavior/profile/session not initialized.");
+               RestoreInputAfterFailedTurn(playerMessage, suppressPlayerLine);
 
                return;
             }
@@ -504,6 +523,7 @@ namespace CalradiaRemembers.Chat
                ReplacePlaceholder(placeholder,
                   behavior.LlmServices?.DescribeUnavailability() ?? "(The AI services are not available — check CalradiaRemembers.log.)", speaker);
                ModLog.Error("LLM pipeline: LLM services unavailable (no API key or model?).");
+               RestoreInputAfterFailedTurn(playerMessage, suppressPlayerLine);
 
                return;
             }
@@ -592,6 +612,7 @@ namespace CalradiaRemembers.Chat
                ReplacePlaceholder(placeholder, "(My words escape me...)", speaker);
                ModLog.Error($"LLM call failed in {elapsedMs} ms: {result.ErrorMessage}");
                NotifyLlmFailure();
+               RestoreInputAfterFailedTurn(playerMessage, suppressPlayerLine);
 
                return;
             }
