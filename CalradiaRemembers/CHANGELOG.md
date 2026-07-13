@@ -2,6 +2,22 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.14.. 2026-07-13
+
+### Added
+- **Pin an OpenRouter provider.** Several of OpenRouter's providers moderate their own output and stop generating the moment profanity appears, so the reply arrives cut mid-sentence and reads as though the mod were censoring you. You can now name the providers you trust (Mod Options, OpenRouter, "Pin Providers"), comma separated, and the request goes only to them. Leave it blank to keep OpenRouter's normal routing.
+- **Contentment Pacing** (Mod Options, Companions): choose how quickly companions get over things. Forgiving, Balanced (the default), or Exacting. It changes how fast a grievance fades, never what a slight costs, and in no setting can a companion who is merely idle ever leave you.
+- **Companions know how they stand beside you.** Someone riding in your party, marching in your army, or sharing a town with you now speaks as a person who is there with you, on land or at sea, rather than as someone you met once, long ago.
+- **The deeds of ordinary play now count toward companion contentment**: a battle won at your side, the mood of the camp, a governorship handed over, and actually sitting down and talking with them.
+
+### Changed
+- **Companion contentment rebalanced.** A companion with nothing to do no longer slides inexorably toward the door. They settle at a resting contentment set by the standing of your clan, because serving a great house is an honour in itself: a tier-6 clan keeps its people devoted with no courting at all. Only a real, ignored grievance can still carry someone away, and it now takes seasons rather than days. You have a realm to run; you should not have to spend your evenings nursing morale.
+
+### Fixed
+- **A governor is not idle.** A companion you appointed governor, or gave a party to lead, was still counted as kicking their heels and soured week after week. Any post you hand them is employment now, and the appointment itself is a mark of trust that lifts their spirits.
+- **Companions riding with you no longer act abandoned.** A crew member sailing at your side between two ports could open a conversation as if you had ignored them for a season, because the mod measured the time since your last CONVERSATION rather than since you last actually saw each other.
+- **A message lost to a timeout is no longer lost.** When the AI does not answer (a provider hiccup, a timed-out request), your message is put back in the input box so you can press Send again instead of typing it all a second time.
+
 ## v1.30.13.. 2026-07-12
 
 ### Fixed
