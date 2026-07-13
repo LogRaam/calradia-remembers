@@ -155,6 +155,7 @@ namespace CalradiaRemembers.Chat
             SafeStep(() => ActiveViewModel?.FinalizeCaptorSceneMemory(), "FinalizeCaptorSceneMemory");
             SafeStep(() => ActiveViewModel?.FinalizeCompanionAudience(), "FinalizeCompanionAudience");
             SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
+            SafeStep(() => ActiveViewModel?.NoteCompanionHeard(), "NoteCompanionHeard");
             SafeStep(() => ActiveViewModel?.FinalizeWitnessMemories(), "FinalizeWitnessMemories");
 
             // Free every character tableau (GPU render-target) before releasing the movie, so no portrait

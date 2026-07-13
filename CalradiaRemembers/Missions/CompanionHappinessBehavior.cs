@@ -15,6 +15,9 @@ using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.MapEvents;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -31,13 +34,17 @@ namespace CalradiaRemembers.Missions
    {
       private const int DeliveryDays = 3; // courier time for a farewell letter
 
-      // Tuning (flagged — Gabriel adjusts by feel).
-      private const int DriftStep = 1; // weekly easing toward the baseline
+      // The weekly easing toward the clan's resting happiness now lives with the model it must outweigh
+      // (CompanionHappiness.WeeklyDriftStep > the idle penalty), so the balance invariant stays testable.
       private const string FarewellSaveKey = "CalradiaRemembers_CompanionFarewellDay_v1";
+
+      // Additive save key: absent in older saves, which simply read as "never heard" and lift on the next talk.
+      private const string HeardSaveKey = "CalradiaRemembers_CompanionHeardDay_v1";
 
       private const string RefusalsSaveKey = "CalradiaRemembers_CompanionRefusals_v1";
       public static CompanionHappinessBehavior Instance;
       private Dictionary<string, int> _farewellDay = new(); // companion id → day the farewell arrives (they leave then)
+      private Dictionary<string, int> _heardDay = new();    // companion id → day the player last truly heard them
 
       private Dictionary<string, int> _refusals = new(); // companion id → refused audiences so far
 
@@ -52,6 +59,32 @@ namespace CalradiaRemembers.Missions
       {
          CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+
+         // The deeds of ordinary play now count: a battle won at your side, a post handed over. Before this,
+         // only the mod's own errands ever lifted a companion, so a player who fought and governed with them
+         // still watched them sour (player report, SuperGraham339).
+         CampaignEvents.OnPlayerBattleEndEvent.AddNonSerializedListener(this, OnPlayerBattleEnd);
+         CampaignEvents.OnGovernorChangedEvent.AddNonSerializedListener(this, OnGovernorChanged);
+      }
+
+      /// <summary>
+      ///   The player sat and talked with this companion: being heard lifts their spirits. Rate-limited by
+      ///   <see cref="CompanionConversationPacing" /> so reopening the chat window cannot be farmed into devotion.
+      ///   Called from the chat as it closes.
+      /// </summary>
+      public void NoteHeardOut(Hero companion)
+      {
+         if (!ModSettings.CompanionContentment) return;
+         if (companion is not {IsAlive: true, IsPlayerCompanion: true}) return;
+
+         int last = _heardDay.TryGetValue(companion.StringId, out int d)
+            ? d
+            : CompanionConversationPacing.NeverHeard;
+
+         if (!CompanionConversationPacing.LiftsSpirits(last, Today)) return;
+
+         _heardDay[companion.StringId] = Today;
+         CompanionHappinessService.ApplyDriver(companion, HappinessDriver.HeardOut);
       }
 
       /// <summary>Runs a happiness tick on demand (console test path).</summary>
@@ -61,6 +94,7 @@ namespace CalradiaRemembers.Missions
       {
          SyncDict(dataStore, RefusalsSaveKey, ref _refusals);
          SyncDict(dataStore, FarewellSaveKey, ref _farewellDay);
+         SyncDict(dataStore, HeardSaveKey, ref _heardDay);
       }
 
       #region private
@@ -159,9 +193,70 @@ namespace CalradiaRemembers.Missions
          }
       }
 
+      /// <summary>
+      ///   True when the companion holds no charge at all in your service. A governorship, a party of your clan
+      ///   to lead, or an errand abroad are all employment: only a companion with none of them is kicking their
+      ///   heels (the old rule counted only the errand, so a governor still soured week after week).
+      /// </summary>
+      private static bool IsIdle(Hero h)
+      {
+         bool onErrand = CompanionMissionBehavior.Instance?.IsAway(h.StringId) == true;
+         bool isGovernor = h.GovernorOf != null;
+         bool leadsAParty = h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h;
+
+         return CompanionEngagementPolicy.IsIdle(onErrand, isGovernor, leadsAParty);
+      }
+
+      /// <summary>
+      ///   A post handed to a companion is the plainest mark of trust the player can give. The reported case:
+      ///   a companion was made governor and soured anyway, because the old model saw a governorship as nothing
+      ///   at all (SuperGraham339).
+      /// </summary>
+      private void OnGovernorChanged(Town town, Hero oldGovernor, Hero newGovernor)
+      {
+         if (!ModSettings.CompanionContentment) return;
+         if (newGovernor is not {IsAlive: true, IsPlayerCompanion: true}) return;
+
+         CompanionHappinessService.ApplyDriver(newGovernor, HappinessDriver.Appointed);
+      }
+
+      /// <summary>
+      ///   A battle is SHARED by those who stood in the line: the elation of the win, or the sting of the rout.
+      ///   The defeat is deliberately light (one week's drift erases it), so a hard campaign never spirals into
+      ///   a wave of departures.
+      /// </summary>
+      private void OnPlayerBattleEnd(MapEvent mapEvent)
+      {
+         if (!ModSettings.CompanionContentment || mapEvent is not {HasWinner: true}) return;
+
+         HappinessDriver driver = mapEvent.WinningSide == mapEvent.PlayerSide
+            ? HappinessDriver.SharedVictory
+            : HappinessDriver.SharedDefeat;
+
+         foreach (Hero h in Companions())
+         {
+            if (h.PartyBelongedTo != MobileParty.MainParty) continue; // only those who actually stood with you
+            Hero companion = h;
+            SafeRun.Step($"CompanionHappinessBehavior.OnPlayerBattleEnd({companion.Name})",
+               () => CompanionHappinessService.ApplyDriver(companion, driver));
+         }
+      }
+
       private void OnWeeklyTick()
       {
          if (!ModSettings.CompanionContentment) return;
+
+         // Serving a great house is an HONOUR: the happiness companions come to rest at rises with the standing
+         // of the clan they serve, so an established player never has to nurse morale. The weekly drift home is
+         // deliberately stronger than the ennui of idleness, so idleness ALONE can never carry anyone to the door.
+         int baseline = CompanionBaseline.From(Clan.PlayerClan?.Tier ?? 0);
+
+         // The camp's mood, which the player already tends (food, wages, victories), colours those who march in it.
+         HappinessDriver? mood = PartyMoraleMood.DriverFor(MobileParty.MainParty?.Morale ?? 50f);
+
+         // How readily they get over things is the player's own taste (MCM). It never drops below the ennui of
+         // idleness, so no setting can make a merely-unoccupied companion walk out.
+         int driftStep = ContentmentPacingRules.DriftStepFor(ModSettings.CompanionPacing);
 
          foreach (Hero h in Companions())
          {
@@ -169,14 +264,16 @@ namespace CalradiaRemembers.Missions
             // One companion's weekly pass throwing must not skip the rest of the roster.
             SafeRun.Step($"CompanionHappinessBehavior.OnWeeklyTick({companion.Name})", () =>
             {
-               bool away = CompanionMissionBehavior.Instance?.IsAway(companion.StringId) == true;
-               if (!away) // an employed companion is not idle this week
+               if (IsIdle(companion)) // a companion with a charge to keep takes no ennui, and no grievance either
                {
                   CompanionHappinessService.ApplyDriver(companion, HappinessDriver.Idle);
                   if (IsKeptFromLovedOne(companion)) CompanionHappinessService.ApplyDriver(companion, HappinessDriver.KeptFromLovedOne);
                }
 
-               CompanionHappinessService.Drift(companion, DriftStep); // gentle recovery toward baseline
+               if (mood.HasValue && companion.PartyBelongedTo == MobileParty.MainParty)
+                  CompanionHappinessService.ApplyDriver(companion, mood.Value);
+
+               CompanionHappinessService.Drift(companion, driftStep, baseline);
                RunRetention(companion);
             });
          }

@@ -37,7 +37,18 @@ namespace CalradiaRemembers.Logic
         Idle,              // left kicking their heels (applied on an idle tick)
         KeptFromLovedOne,  // a spouse / lover is not with them (applied on a tick)
         WellTreated,       // a gift, a kept promise, a kindness
-        Mistreated         // a slight, a broken word
+        Mistreated,        // a slight, a broken word
+
+        // The deeds of ordinary play, which used to count for nothing: a companion could win you a war and
+        // govern your city and still sour, because only the mod's own errands ever lifted them (player request,
+        // SuperGraham339: "victories, party morale, conversations, appointments would all have an impact").
+        // Appended at the end so no persisted ordinal shifts.
+        SharedVictory,     // they fought at your side and you won
+        SharedDefeat,      // they fought at your side and you lost
+        HighMorale,        // the camp is in good spirits (applied on a tick)
+        LowMorale,         // the camp is sullen and hungry (applied on a tick)
+        Appointed,         // handed a post: a governorship, a party to lead. A mark of trust.
+        HeardOut           // the player actually sat and talked with them (rate-limited)
     }
 
     /// <summary>
@@ -59,6 +70,14 @@ namespace CalradiaRemembers.Logic
         /// <summary>At or below this, the companion means to leave your service.</summary>
         public const int LeaveThreshold = 15;
 
+        /// <summary>
+        ///   How far the score eases back toward the clan's baseline each week. Deliberately LARGER than the
+        ///   ennui of idleness, so a companion who is merely unoccupied always comes home to rest and can never
+        ///   be carried to the leaving floor by idleness alone. Only a real, repeated, unaddressed grievance
+        ///   can outrun this. Tunable.
+        /// </summary>
+        public const int WeeklyDriftStep = 2;
+
         public static int Clamp(int score)
         {
             if (score < Min) return Min;
@@ -76,11 +95,22 @@ namespace CalradiaRemembers.Logic
         ///   Eases the score toward <see cref="Default"/> by at most <paramref name="step"/> (recovery /
         ///   relaxation over time), without overshooting. A no-op once already at baseline.
         /// </summary>
-        public static int DriftToBaseline(int score, int step)
+        public static int DriftToBaseline(int score, int step) => DriftToBaseline(score, step, Default);
+
+        /// <summary>
+        ///   Eases the score toward a GIVEN baseline (the resting happiness of the clan they serve, see
+        ///   <see cref="CompanionBaseline" />) by at most <paramref name="step"/>, without overshooting. This is
+        ///   the recovery half of the loop, and it is deliberately stronger than the idle penalty: a companion
+        ///   who is merely unoccupied comes back to rest rather than sliding away, so only a real and repeated
+        ///   grievance can ever carry them to the leaving floor.
+        /// </summary>
+        public static int DriftToBaseline(int score, int step, int baseline)
         {
-            if (step <= 0 || score == Default) return Clamp(score);
-            if (score > Default) return Clamp(score - System.Math.Min(step, score - Default));
-            return Clamp(score + System.Math.Min(step, Default - score));
+            baseline = Clamp(baseline);
+            if (step <= 0 || score == baseline) return Clamp(score);
+            if (score > baseline) return Clamp(score - System.Math.Min(step, score - baseline));
+
+            return Clamp(score + System.Math.Min(step, baseline - score));
         }
 
         public static HappinessBand Band(int score)
@@ -120,10 +150,24 @@ namespace CalradiaRemembers.Logic
                 case HappinessDriver.Captured:         return -12;
                 case HappinessDriver.Freed:            return  3;
                 case HappinessDriver.Paid:             return  5;
-                case HappinessDriver.Idle:             return -3;
+                // Being unoccupied is a mild ennui, not a wound: it must stay SMALLER than the weekly drift back
+                // to baseline, so an idle companion comes to rest at their clan's standing instead of sliding
+                // toward the door. The player has a realm to run; they should not have to nurse morale weekly.
+                case HappinessDriver.Idle:             return -1;
                 case HappinessDriver.KeptFromLovedOne: return -3;
                 case HappinessDriver.WellTreated:      return  4;
                 case HappinessDriver.Mistreated:       return -8;
+
+                // The deeds of ordinary play. Kept modest on purpose: they are LIFTS ABOVE the clan's resting
+                // point, which the weekly drift then eases back down, so a winning, well-led warlord carries
+                // devoted companions while a quiet season simply returns them to rest. A defeat is forgiven in
+                // a single week's drift.
+                case HappinessDriver.SharedVictory:    return  2;
+                case HappinessDriver.SharedDefeat:     return -2;
+                case HappinessDriver.HighMorale:       return  1;
+                case HappinessDriver.LowMorale:        return -1;
+                case HappinessDriver.Appointed:        return  5;
+                case HappinessDriver.HeardOut:         return  3;
                 default:                               return  0;
             }
         }

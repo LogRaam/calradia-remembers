@@ -233,6 +233,7 @@ namespace CalradiaRemembers.Chat
       // Total player text length this session — feeds the one-substantial-turn fallback-memory rule.
       private int _playerCharsThisSession;
 
+      private bool _companionHeardNoted; // the closing "you heard them out" lift, applied at most once per window
       private int _playerTurnsThisSession; // completed player→NPC exchanges
       private string _portraitPanelTitle = "Portrait";
 
@@ -1585,6 +1586,23 @@ namespace CalradiaRemembers.Chat
          if (string.IsNullOrWhiteSpace(transcript) || behavior.LlmServices?.LlmClient == null) return;
 
          _ = ConversationSummaryService.GenerateAndApplyConversationSummaryAsync(behavior, profile.Id, baseEvent, transcript, player);
+      }
+
+      /// <summary>
+      ///   The player actually sat and talked with a companion: being heard lifts their spirits (player request,
+      ///   SuperGraham339, who wanted conversations to count toward contentment). Rate-limited inside the
+      ///   happiness behaviour, so reopening the window cannot be farmed. Called once as the chat closes; a no-op
+      ///   for anyone who is not a companion, and for a window the player never actually spoke in.
+      /// </summary>
+      public void NoteCompanionHeard()
+      {
+         if (_companionHeardNoted || _mode != ChatMode.Conversation) return;
+         _companionHeardNoted = true;
+
+         if (_playerTurnsThisSession < 1) return;
+         if (_npcHero is not {IsAlive: true, IsPlayerCompanion: true}) return;
+
+         CompanionHappinessBehavior.Instance?.NoteHeardOut(_npcHero);
       }
 
       /// <summary>

@@ -36,13 +36,20 @@ namespace CalradiaRemembers.Missions
             ModLog.Info($"[HAPPINESS] {hero.Name}: {before}→{p.Happiness} ({driver}).");
         }
 
-        /// <summary>Eases the companion's happiness toward the baseline by one step (idle/relaxation tick).</summary>
-        public static void Drift(Hero hero, int step)
+        /// <summary>Eases the companion's happiness toward the neutral baseline by one step (idle/relaxation tick).</summary>
+        public static void Drift(Hero hero, int step) => Drift(hero, step, CompanionHappiness.Default);
+
+        /// <summary>
+        ///   Eases the companion's happiness toward the resting point set by the CLAN THEY SERVE (see
+        ///   <see cref="CompanionBaseline" />). Belonging to a great house is its own contentment, so a proud
+        ///   clan holds its people high without the player having to court them week after week.
+        /// </summary>
+        public static void Drift(Hero hero, int step, int baseline)
         {
             NpcProfile p = ProfileOf(hero);
             if (p == null) return;
 
-            int after = CompanionHappiness.DriftToBaseline(p.Happiness, step);
+            int after = CompanionHappiness.DriftToBaseline(p.Happiness, step, baseline);
             if (after == p.Happiness) return;
             p.Happiness = after;
             Store?.Set(p);
