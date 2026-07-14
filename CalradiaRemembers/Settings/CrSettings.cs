@@ -15,7 +15,7 @@ namespace CalradiaRemembers.Settings
 {
    /// <summary>
    ///   MCM (Mod Configuration Menu) global settings for Calradia Remembers.
-   ///   Stored per-machine under <c>Configs/ModSettings/Global</c> — deliberately NOT
+   ///   Stored per-machine under <c>Configs/ModSettings/Global</c>, deliberately NOT
    ///   in the save file, so a shared save never carries the player's API key.
    ///   Read through the <see cref="ModSettings" /> façade, which falls back to safe
    ///   defaults when MCM has not yet loaded.
@@ -37,67 +37,53 @@ namespace CalradiaRemembers.Settings
          new(new[] {"Off", "Mature", "Explicit", "Hardcore"}, 1); // default: Mature
 
       [SettingPropertyText("OpenRouter API Key", RequireRestart = false, Order = 0,
-         HintText = "Paste your OpenRouter API key from openrouter.ai/keys. Stored locally on this machine " +
-                    "only — never share your config file or a screenshot of this field. Applies immediately.")]
+         HintText = "Paste your key from openrouter.ai/keys. Stored locally on this machine only. NEVER share your " +
+                    "config file or a screenshot of this field. Applies immediately.")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public string ApiKey { get; set; } = "";
 
+      // Hints must stay SHORT: a long one overflows the MCM control and its first line is cut off the top
+      // (Gabriel, screenshot 2026-07-13). Two or three lines, no more. Say the stake, not the essay.
       [SettingPropertyText("Pin Providers (advanced)", RequireRestart = false, Order = 4,
-         HintText = "Leave BLANK unless you know you need this. OpenRouter serves the same model from many " +
-                    "providers, and some of them moderate their own output: generation stops the moment " +
-                    "profanity appears, so a reply arrives cut mid-sentence. Enter provider slugs, separated " +
-                    "by commas, to route only through the ones you trust (for example: deepinfra, together). " +
-                    "The order you write is the order OpenRouter tries. Applies immediately.")]
+         HintText = "Leave blank unless you need it. Some OpenRouter providers censor their own output, cutting " +
+                    "replies mid-sentence. Enter trusted provider slugs, comma separated (e.g. deepinfra, together).")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public string ProviderPin { get; set; } = "";
 
       [SettingPropertyBool("Allow provider fallbacks", RequireRestart = false, Order = 5,
-         HintText = "Only matters when you have pinned providers above. OFF (the default) makes the pin a hard " +
-                    "rule: the request goes to your providers or it fails, which is the point of pinning one " +
-                    "that does not censor. ON treats the pin as a preference and lets OpenRouter fall back to " +
-                    "others when yours are unavailable.")]
+         HintText = "Only matters with providers pinned above. OFF (default) makes the pin a hard rule. ON lets " +
+                    "OpenRouter fall back to others when yours are unavailable.")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public bool AllowProviderFallbacks { get; set; } = false;
 
       [SettingPropertyBool("Companion contentment", RequireRestart = false, Order = 0,
-         HintText = "When ON, companions left idle slowly grow restless; an unhappy one asks for an audience, and " +
-                    "if you keep refusing it they eventually leave by farewell letter (never silently). Turn OFF " +
-                    "to disable companion contentment entirely — no restlessness, no audiences, no departures.")]
+         HintText = "When ON, a neglected companion grows restless, asks for an audience, and if you keep refusing " +
+                    "it, eventually leaves by letter (never silently). OFF disables the system entirely.")]
       [SettingPropertyGroup("Companions", GroupOrder = 6)]
       public bool CompanionContentment { get; set; } = true;
 
       [SettingPropertyDropdown("Contentment Pacing", RequireRestart = false, Order = 1,
-         HintText = "How quickly companions get over things. A philosophy, not a difficulty. Forgiving: they take " +
-                    "much in stride, and a grievance fades almost as fast as it forms. Balanced: a real, ignored " +
-                    "grievance sours them over seasons. Exacting: grudges linger, and a lord must truly tend his " +
-                    "people. In EVERY setting, a companion left merely idle never leaves you: only a real and " +
-                    "unaddressed grievance can. Affects recovery only, never what a slight costs. " +
-                    "Applies from the next week.")]
+         HintText = "How fast companions get over a grievance: Forgiving, Balanced (default), or Exacting. In every " +
+                    "setting, a companion left merely idle NEVER leaves you.")]
       [SettingPropertyGroup("Companions", GroupOrder = 6)]
       public Dropdown<string> ContentmentPacing { get; set; } =
          new(new[] {"Forgiving", "Balanced", "Exacting"}, 1); // default: Balanced
 
       [SettingPropertyText("API Key (optional)", RequireRestart = false, Order = 0,
-         HintText = "API key for the endpoint — leave blank for keyless local servers like LM Studio or Ollama " +
-                    "(their default config requires no authentication). Fill it in only if your server is " +
-                    "configured to require one. Applies immediately.")]
+         HintText = "Leave blank for keyless local servers like LM Studio or Ollama. Fill it in only if your server " +
+                    "requires one. Applies immediately.")]
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
       public string CustomApiKey { get; set; } = "";
 
       [SettingPropertyText("Endpoint URL", RequireRestart = false, Order = 1,
-         HintText = "Base URL of your local OpenAI-compatible server, including the /v1 path " +
-                    "(e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama, " +
-                    "http://localhost:8000/v1 for vLLM). The mod appends /chat/completions automatically. " +
-                    "Used only when Provider is set to OpenAI-Compatible. Applies immediately.")]
+         HintText = "Base URL of your local server, including /v1 (e.g. http://localhost:1234/v1 for LM Studio, " +
+                    "http://localhost:11434/v1 for Ollama). Used only when Provider is OpenAI-Compatible.")]
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
       public string CustomEndpointUrl { get; set; } = "";
 
       [SettingPropertyDropdown("Parameter Compatibility", RequireRestart = false, Order = 2,
-         HintText = "Which sampling parameters the request sends. Auto detects OpenAI reasoning models " +
-                    "(gpt-5*, o1/o3/o4*) and switches them to 'max_completion_tokens' with no temperature — " +
-                    "they reject the classic 'max_tokens'. Standard forces the classic shape (max_tokens + " +
-                    "temperature); Reasoning forces the reasoning shape. Leave on Auto unless your endpoint " +
-                    "rejects a field. Used only when Provider is set to OpenAI-Compatible. Applies immediately.")]
+         HintText = "Which sampling parameters to send. Auto detects OpenAI reasoning models (gpt-5, o1/o3/o4), which " +
+                    "reject the classic max_tokens. Leave on Auto unless your endpoint rejects a field.")]
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
       public Dropdown<string> CustomParameterCompatibility { get; set; } =
          new(new[] {"Auto", "Standard", "Reasoning"}, 0); // default: Auto
@@ -105,8 +91,8 @@ namespace CalradiaRemembers.Settings
       public override string DisplayName => "Calradia Remembers";
 
       [SettingPropertyBool("Enable Logging", RequireRestart = false, Order = 0,
-         HintText = "Master switch for all mod logging — both the on-screen messages and the " +
-                    "CalradiaRemembers.log file. Off by default; turn on only to capture a bug report.")]
+         HintText = "Master switch for all mod logging, both the on-screen messages and CalradiaRemembers.log. " +
+                    "Off by default; turn on only to capture a bug report.")]
       [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
       public bool EnableLogging { get; set; } = false;
 
@@ -115,124 +101,99 @@ namespace CalradiaRemembers.Settings
       public override string Id => "CalradiaRemembers";
 
       [SettingPropertyBool("Compact prompt for small models", RequireRestart = false, Order = 4,
-         HintText = "Trims the system prompt so it fits a SMALL / short-context model (roughly 4k-8k tokens, e.g. a " +
-                    "little local model in LM Studio / Ollama). Turn ON if the AI stays silent or you see '(My words " +
-                    "escape me…)' — the full prompt is overflowing your model's context. It drops the heavy flavour " +
-                    "sections (relationships, world lore, cultural background, long behaviour guidelines) and keeps " +
-                    "less memory, so replies are a little less richly grounded. Leave OFF for large / cloud models. " +
-                    "Applies on your next conversation.")]
+         HintText = "Trims the prompt to fit a SMALL, short-context model (4k to 8k). Turn ON if the AI stays silent: " +
+                    "the full prompt is overflowing it. Replies grow less richly grounded. Leave OFF for cloud models.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public bool LeanPrompt { get; set; } = false;
 
       [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 3,
-         HintText = "How long to wait for the AI to reply before giving up, in seconds (default 120). Raise it " +
-                    "if you run a slow local model or a reasoning model and see 'the model did not respond' on " +
-                    "longer messages; lower it if you prefer to fail fast. Applies immediately.")]
+         HintText = "How long to wait for a reply, in seconds (default 120). Raise it for a slow local or reasoning " +
+                    "model; lower it to fail fast. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public int LlmTimeoutSeconds { get; set; } = 120;
 
       [SettingPropertyText("Model (roleplay)", RequireRestart = false, Order = 1,
-         HintText = "Model id used for ordinary conversations, in the ACTIVE provider's own format: " +
-                    "OpenRouter e.g. x-ai/grok-4.20 (browse openrouter.ai/models); NanoGPT e.g. " +
-                    "deepseek-ai/DeepSeek-V3 (browse nano-gpt.com/models); LM Studio e.g. " +
-                    "lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF; Ollama e.g. llama3.1:8b. " +
-                    "Applies immediately.")]
+         HintText = "Model id for ordinary conversations, in the ACTIVE provider's own format (OpenRouter: " +
+                    "x-ai/grok-4.20; NanoGPT: deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string Model { get; set; } = "x-ai/grok-4.20";
 
       [SettingPropertyText("NanoGPT API Key", RequireRestart = false, Order = 0,
-         HintText = "Paste your NanoGPT API key from nano-gpt.com. Stored locally on this machine only — " +
-                    "never share your config file or a screenshot of this field. Used only when Provider " +
-                    "is set to NanoGPT. Applies immediately.")]
+         HintText = "Paste your key from nano-gpt.com. Stored locally on this machine only. NEVER share your config " +
+                    "file or a screenshot of this field.")]
       [SettingPropertyGroup("NanoGPT", GroupOrder = 2)]
       public string NanoGptApiKey { get; set; } = "";
 
       [SettingPropertyText("NSFW model (optional)", RequireRestart = false, Order = 2,
-         HintText = "Model id used automatically in captive and other explicit scenes, and whenever you flip " +
-                    "the in-chat mode button to NSFW (for example, a consensual scene that escalates). Same " +
-                    "format as the roleplay model above, same provider. Leave empty to always use the " +
-                    "roleplay model. Applies immediately.")]
+         HintText = "Model id used automatically in explicit scenes, and when you flip the in-chat NSFW button. Same " +
+                    "provider as above. Leave empty to always use the roleplay model.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string NsfwModel { get; set; } = "";
 
       [SettingPropertyDropdown("Reasoning Effort (NSFW)", RequireRestart = false, Order = 2,
-         HintText = "Reasoning effort used while the chat is in NSFW mode. Lower or Off makes reasoning models " +
-                    "markedly less prone to moralizing refusals on adult/CNC content, and speeds up scene " +
-                    "beats. 'Same as roleplay' (the default) reuses the setting above. OpenRouter only. " +
-                    "Applies immediately.")]
+         HintText = "Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less " +
+                    "prone to moralizing refusals, and speeds up scenes. OpenRouter only.")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public Dropdown<string> NsfwReasoningEffort { get; set; } =
          new(new[] {ModelModePolicy.SameAsRoleplay, "Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Same as roleplay
 
       [SettingPropertyDropdown("LLM Provider", RequireRestart = false, Order = 0,
-         HintText = "Which OpenAI-compatible service to send requests to. The model fields below are shared: " +
-                    "paste ids in the active provider's format. Each provider keeps its own API key and " +
-                    "connection settings in its section further down. Applies immediately.")]
+         HintText = "Which OpenAI-compatible service to send requests to. The model fields are shared; each provider " +
+                    "keeps its own key further down. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public Dropdown<string> Provider { get; set; } =
          new(new[] {"OpenRouter", "NanoGPT", "OpenAI-Compatible"}, 0); // default: OpenRouter
 
       [SettingPropertyDropdown("Reasoning Effort (roleplay)", RequireRestart = false, Order = 1,
-         HintText = "How hard a reasoning model 'thinks' before replying, for ordinary conversations (the " +
-                    "roleplay model). Default leaves it to the model; Off disables reasoning; " +
-                    "Minimal/Low/Medium/High set the effort. Higher can mean finer dialogue but slower " +
-                    "replies. OpenRouter only. Applies immediately.")]
+         HintText = "How hard a reasoning model thinks before replying. Higher can mean finer dialogue but slower " +
+                    "replies. Default leaves it to the model. OpenRouter only.")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public Dropdown<string> ReasoningEffort { get; set; } =
          new(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 3); // default: Low
 
       [SettingPropertyDropdown("Relationship Pacing", RequireRestart = false, Order = 1,
-         HintText = "How relationships grow through conversation — a philosophy, not a difficulty. " +
-                    "Grounded keeps the core game's feel: trust is earned slowly, mostly by deeds; " +
-                    "flattery rarely moves a lord. Warm lets good company — humor, sympathy, sincere " +
-                    "praise — earn small gains more often. Storyteller is a roleplay-first experience: " +
-                    "personal moments, narrative effort and real connection move hearts readily. " +
-                    "Affects only positive regard — insults cost the same everywhere. " +
-                    "Applies on your next conversation.")]
+         HintText = "How relationships grow through conversation: a philosophy, not a difficulty. Grounded keeps the " +
+                    "core game's feel; Warm rewards good company; Storyteller is roleplay-first. Insults cost the " +
+                    "same everywhere.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public Dropdown<string> RelationshipWarmth { get; set; } =
          new(new[] {"Grounded", "Warm", "Storyteller"}, 0); // default: Grounded (= Normal)
 
       [SettingPropertyBool("Story Log", RequireRestart = false, Order = 2,
          HintText = "Writes a clean narrative transcript of every conversation and letter to " +
-                    "CalradiaRemembers_story.log in your Bannerlord Logs folder. " +
-                    "No timestamps or technical noise — reads like a novel.")]
+                    "CalradiaRemembers_story.log in your Logs folder. No timestamps, no noise: it reads like a novel.")]
       [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
       public bool StoryLogging { get; set; } = false;
 
       [SettingPropertyButton("Test Connection", RequireRestart = false, Order = 3,
-         HintText = "Checks your API key AND every configured model from the LLM Provider section: validates " +
-                    "the key, then sends a one-token test prompt to the roleplay model and, if set, the NSFW " +
-                    "model, reporting any error (e.g. a misspelled model id). Costs a fraction of a cent.",
+         HintText = "Validates your key, then sends a one-token test to the roleplay model and, if set, the NSFW " +
+                    "model, reporting any error. Costs a fraction of a cent.",
          Content = "Test")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public Action TestConnection { get; set; } = ApiKeyTester.Run;
 
       [SettingPropertyButton("Test Endpoint", RequireRestart = false, Order = 3,
-         HintText = "Sends a one-token test completion to your endpoint with the roleplay model and, if set, " +
-                    "the NSFW model from the LLM Provider section. The server must be running — the test makes " +
-                    "no external calls. Used only when Provider is set to OpenAI-Compatible.",
+         HintText = "Sends a one-token test to your endpoint with the roleplay model and, if set, the NSFW model. " +
+                    "Your server must be running. OpenAI-Compatible only.",
          Content = "Test")]
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
       public Action TestCustomConnection { get; set; } = ApiKeyTester.RunCustom;
 
       [SettingPropertyButton("Test NanoGPT Connection", RequireRestart = false, Order = 1,
-         HintText = "Checks your NanoGPT key against nano-gpt.com without starting a conversation — no tokens spent.",
+         HintText = "Checks your NanoGPT key against nano-gpt.com without starting a conversation. No tokens spent.",
          Content = "Test")]
       [SettingPropertyGroup("NanoGPT", GroupOrder = 2)]
       public Action TestNanoGptConnection { get; set; } = ApiKeyTester.RunNanoGpt;
 
       [SettingPropertyBool("Use custom traits", RequireRestart = false, Order = 0,
-         HintText = "Apply the hand-authored personalities from ModuleData/character_overrides.json. " +
-                    "When on, an authored NPC's five personality traits replace their vanilla ones " +
-                    "(driving the prompt, derived features, and the campaign AI alike). Turn off to " +
-                    "restore the vanilla traits. Edits to the file load on the next campaign or via cr.reload_lore.")]
+         HintText = "Applies the hand-authored personalities from ModuleData/character_overrides.json, replacing an " +
+                    "authored NPC's five vanilla traits. Edits load on the next campaign, or via cr.reload_lore.")]
       [SettingPropertyGroup("Character", GroupOrder = 5)]
       public bool UseCustomTraits { get; set; } = false;
 
       [SettingPropertyBool("Verbose Logging", RequireRestart = false, Order = 1,
-         HintText = "Logs the full system prompt and NPC response to the mod log on every exchange. " +
-                    "Turn on only when capturing a bug report — it floods the log. Requires Enable Logging.")]
+         HintText = "Logs the full system prompt and NPC reply on every exchange. Turn on only to capture a bug " +
+                    "report: it floods the log. Requires Enable Logging.")]
       [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
       public bool VerboseLogging { get; set; } = false;
    }
