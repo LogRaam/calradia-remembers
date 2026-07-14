@@ -400,9 +400,10 @@ namespace CalradiaRemembers.Nemesis
       ///   (name bound, memory profile registered). Returns the Hero, or null if minting failed. Shared by
       ///   the capture hook and the self-test harness so the mint path can be validated without a real capture.
       /// </summary>
-      public Hero MintCaptorFor(string bandCultureKey, string regionId, int today)
+      /// <param name="ignoreRespawnCooldown">Diagnostics only (the self-test harness); see <see cref="FindOrMint" />. Never set in play.</param>
+      public Hero MintCaptorFor(string bandCultureKey, string regionId, int today, bool ignoreRespawnCooldown = false)
       {
-         NemesisIdentity nem = FindOrMint(bandCultureKey, regionId, today);
+         NemesisIdentity nem = FindOrMint(bandCultureKey, regionId, today, ignoreRespawnCooldown);
 
          return ResolveOrMintHero(nem, today);
       }
@@ -501,14 +502,19 @@ namespace CalradiaRemembers.Nemesis
       ///   man ("Wick the Cutthroat", a player report). Randomness is safe because the minted name/epithet
       ///   are PERSISTED on the identity and never re-derived from the seed.
       /// </summary>
-      public NemesisIdentity FindOrMint(string bandCultureKey, string regionId, int today)
+      /// <param name="ignoreRespawnCooldown">
+      ///   Diagnostics only (the self-test harness). The respawn cooldown is a rule about the PACE of the game,
+      ///   not about correctness, and it made every nemesis self-test after the first one fail: killing the test
+      ///   nemesis bought the usual quiet years, and the next test could then mint nobody. Never set in play.
+      /// </param>
+      public NemesisIdentity FindOrMint(string bandCultureKey, string regionId, int today, bool ignoreRespawnCooldown = false)
       {
          NemesisIdentity existing = FindRecurring(bandCultureKey, regionId);
          if (existing != null) return existing;
 
          // Respawn cooldown: a nemesis of this culture died recently, so no new one rises yet (the capture
          // then degrades to a faceless bandit scene). Gabriel 2026-07-08: killing him buys 1..3 quiet years.
-         if (NemesisRosterPolicy.IsCultureRespawnBlocked(_roster.Nemeses, bandCultureKey, today))
+         if (!ignoreRespawnCooldown && NemesisRosterPolicy.IsCultureRespawnBlocked(_roster.Nemeses, bandCultureKey, today))
          {
             ModLog.Info($"[NEMESIS] no new {bandCultureKey} nemesis: the last one's respawn cooldown has not passed.");
 

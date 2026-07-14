@@ -24,6 +24,7 @@ using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Social;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
@@ -31,6 +32,7 @@ using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Scenarios;
 using CalradiaRemembers.Services;
+using CalradiaRemembers.Social;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Travel;
 using CalradiaRemembers.Verbs;
@@ -100,6 +102,9 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
          new SelfTest("free_prisoner", Severity.Heavy, "capture -> free_prisoner -> assert released", TestFreePrisoner),
          new SelfTest("give_item", Severity.Light, "pick a player item -> give_item -> assert it left the inventory", TestGiveItem),
+         new SelfTest("presence", Severity.Light, "Mechanical: a companion riding in your party is told they travel at your side and is NEVER told how long since they last saw you, even with a 60-day-stale memory (the 'crew acts abandoned between two ports' report); a lord genuinely away STILL hears the time apart. BORROWS a companion into your party if none is riding along, and puts them back", TestPresence),
+         new SelfTest("presence_gate", Severity.Light, "Mechanical: the ONE behaviour v1.30.14 changed, guarded across the WHOLE living roster with no preconditions. The letter system's facade and the single presence authority must give the same answer for every hero alive (before this, letters asked a wide question and jealousy a party-only one), and beside/away must be exact opposites. If they ever disagree again, the systems have drifted apart and this fires", TestPresenceGate),
+         new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
          new SelfTest("stance_letter", Severity.Heavy, "hostile stance -> weekly eval -> assert a cold StanceHostility letter is queued", TestStanceLetter),
          new SelfTest("stance_plot", Severity.Heavy, "stance with teeth increment 2: force a Plot-verdict lord (traits forced dishonourable+calculating) -> weekly eval -> assert a real scheme is planted against the player, no letter written", TestStancePlot),
@@ -646,7 +651,7 @@ namespace CalradiaRemembers.Diagnostics
 
          if (string.IsNullOrEmpty(regionId)) return (null, null, null);
 
-         Hero nemesisHero = NemesisBehavior.Instance?.MintCaptorFor("looters", regionId, today);
+         Hero nemesisHero = NemesisBehavior.Instance?.MintCaptorFor("looters", regionId, today, true);
 
          if (nemesisHero == null) return (giver, null, null);
 
@@ -664,7 +669,7 @@ namespace CalradiaRemembers.Diagnostics
       /// </summary>
       private static (Hero Hero, NemesisIdentity Identity) MintSelfTestNemesis(string regionId, int today)
       {
-         Hero hero = NemesisBehavior.Instance?.MintCaptorFor("looters", regionId, today);
+         Hero hero = NemesisBehavior.Instance?.MintCaptorFor("looters", regionId, today, true);
 
          if (hero == null) return (null, null);
 
@@ -3445,7 +3450,7 @@ namespace CalradiaRemembers.Diagnostics
          (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today);
 
          if (t.Skip(giver == null, "no lord with a resolvable region available to hold the bounty")) return t.Line();
-         if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+         if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
 
          t.Expect("eligibleBeforeIssue", NemesisBountyDialogFlow.FindEligibleNemesisFor(giver) == nem, true);
 
@@ -3487,7 +3492,7 @@ namespace CalradiaRemembers.Diagnostics
          (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today);
 
          if (t.Skip(giver == null, "no lord with a resolvable region available to hold the bounty")) return t.Line();
-         if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+         if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
 
          int expectedGold = NemesisBountyRewardPolicy.ComputeGold(nem.RecaptureCount, nem.TimesEncountered);
          int expectedRelation = NemesisBountyRewardPolicy.ComputeRelation(nem.RecaptureCount);
@@ -3533,7 +3538,7 @@ namespace CalradiaRemembers.Diagnostics
          var today = (int) CampaignTime.Now.ToDays;
          (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_execute", today);
 
-         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
 
          NemesisResolutionBehavior.Resolve(hero, Hero.MainHero, true);
 
@@ -3574,7 +3579,7 @@ namespace CalradiaRemembers.Diagnostics
          var today = (int) CampaignTime.Now.ToDays;
          (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_execute_prisoner", today);
 
-         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
 
          t.Expect("notHeldBeforeCapture", NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() == hero, false);
 
@@ -3663,7 +3668,7 @@ namespace CalradiaRemembers.Diagnostics
          var today = (int) CampaignTime.Now.ToDays;
          (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_battle", today);
 
-         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
 
          NemesisResolutionBehavior.Resolve(hero, Hero.MainHero, false);
 
@@ -3694,16 +3699,16 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(nb == null, "NemesisBehavior not available")) return t.Line();
 
          var today = (int) CampaignTime.Now.ToDays;
-         Hero h1 = nb.MintCaptorFor("looters", "selftest_region", today);
+         Hero h1 = nb.MintCaptorFor("looters", "selftest_region", today, true);
 
-         if (t.Abort(h1 == null, "mint returned no Hero (bandit clan/template unavailable?)")) return t.Line();
+         if (t.Abort(h1 == null, "mint returned no Hero (check the log: bandit clan/template unavailable, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
 
          t.Expect("nemesisHeroHasMemoryProfile", behavior.Store?.Get(h1.StringId) != null, true);
 
-         Hero h2 = nb.MintCaptorFor("looters", "selftest_region", today);
+         Hero h2 = nb.MintCaptorFor("looters", "selftest_region", today, true);
          t.Expect("sameRegionReusesSameHero", h2 == h1, true);
 
-         Hero h3 = nb.MintCaptorFor("looters", "selftest_other_region", today);
+         Hero h3 = nb.MintCaptorFor("looters", "selftest_other_region", today, true);
          t.Expect("differentRegionMintsDistinctHero", h3 != h1, true);
 
          t.Note($"minted nemesis {h1.Name}: profile registered, reused in-region, distinct across regions. Plants test nemeses (reload after the sweep).");
@@ -3728,7 +3733,7 @@ namespace CalradiaRemembers.Diagnostics
          var today = (int) CampaignTime.Now.ToDays;
          (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_turn", today);
 
-         if (t.Abort(hero == null || nem == null, "MintCaptorFor failed to produce a tracked nemesis (no bandit template available in this campaign)")) return t.Line();
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
 
          TakePrisonerAction.Apply(PartyBase.MainParty, hero);
 
@@ -3969,9 +3974,9 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("providegold");
 
-         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+         Hero giver = FreeQuestGiver(behavior);
 
-         if (t.Skip(giver == null, "no live lords in this campaign")) return t.Line();
+         if (t.Skip(giver == null, "every live lord already holds an outstanding task, so none can be given a new one")) return t.Line();
 
          NpcProfile profile = GetOrCreate(behavior, giver);
          QuestService.ApplyResponse(
@@ -4076,9 +4081,9 @@ namespace CalradiaRemembers.Diagnostics
          }
 
 
-         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+         Hero giver = FreeQuestGiver(behavior);
 
-         if (t.Skip(giver == null, "no live lords in this campaign")) return t.Line();
+         if (t.Skip(giver == null, "every live lord already holds an outstanding task, so none can be given a new one")) return t.Line();
 
          // Pick a town that actually has an infested lair in range, so the real pipeline can bind one and the
          // assertions are meaningful. A slightly tighter radius than QuestFactory's guarantees it will also find it.
@@ -4138,9 +4143,11 @@ namespace CalradiaRemembers.Diagnostics
          if (string.IsNullOrWhiteSpace(menu)) return t.Line();
 
          // Every line must open with a known type token, and a settlement target must truly resolve.
+         // This list must be grown whenever ViableQuestScanner learns to offer a new kind of task, or the test
+         // cries wolf over a perfectly good menu (provide_goods shipped in v1.29.0 and sat here unrecognised).
          var knownTokens = new[] {
             "bandit_hideout", "bandit_clear", "attack_lord", "capture_prisoner", "attack_faction",
-            "raid_village", "scout_army", "rescue_prisoner", "deliver_letter"
+            "raid_village", "scout_army", "rescue_prisoner", "deliver_letter", "provide_goods"
          };
          var allKnown = true;
          var settlementsResolve = true;
@@ -4736,6 +4743,277 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"scenario B (reconciliation) spouse={spouseB.Name}");
          t.Expect("stillMarriedAfterReconciliation", stillMarriedAfterReconciliation, true);
          t.Expect("escalationClearedAfterReconciliation", escalationClearedAfterReconciliation, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   A lord who can actually BE GIVEN a quest: one with no outstanding task already on their plate. The
+      ///   pipeline correctly refuses a second one ("offered a task while one is outstanding"), so a test that
+      ///   simply grabbed the first lord it found would fail on a perfectly legitimate refusal and blame the
+      ///   pipeline for it. Null when every lord is already busy.
+      /// </summary>
+      private static Hero FreeQuestGiver(NpcMemoryCampaignBehavior behavior)
+         => Hero.AllAliveHeroes.FirstOrDefault(
+            h => h != null && h != Hero.MainHero && h.IsAlive && h.IsLord && !HasOutstandingQuest(behavior, h));
+
+      /// <summary>True when this hero already holds a task the player has not settled, which bars a new one.</summary>
+      private static bool HasOutstandingQuest(NpcMemoryCampaignBehavior behavior, Hero hero)
+      {
+         NpcProfile p = behavior?.Store?.Get(hero.StringId);
+
+         return p != null && p.ActiveQuests.Any(q => q.IsOutstanding);
+      }
+
+      /// <summary>
+      ///   A THROWAWAY profile for a hero whose only memory is sixty days stale, so the elapsed-gap note would
+      ///   certainly fire. Never stored, so it mutates nothing. Built fresh rather than aged in place, because
+      ///   the gap is measured from the NEWEST memory: adding an old event to a live profile that already holds
+      ///   a fresher one changes nothing at all, and the assertion would then pass for the wrong reason.
+      /// </summary>
+      private static NpcProfile AgedProfile(Hero hero, int today)
+      {
+         NpcProfile p = HeroProfileMapper.FromHero(hero);
+         p.Events.Add(new NotableEvent(today - 60, NotableEventType.Other, "(selftest) a memory sixty days stale"));
+
+         return p;
+      }
+
+      /// <summary>
+      ///   PRESENCE, against the live engine. A companion riding in the player's party must be told they travel
+      ///   at the player's side, and must NOT be told how long it has been since they last saw them, even when
+      ///   their newest memory is two months stale. That elapsed-gap note is exactly what made a crew member
+      ///   sailing between two ports open a conversation as though abandoned for a season (player report). The
+      ///   contrast half of the test matters just as much: a lord who is genuinely away must STILL hear the time
+      ///   apart, or the fix would have silenced the feature instead of correcting it.
+      /// </summary>
+      private static string TestPresence(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("presence");
+
+         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(
+            h => h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && h.PartyBelongedTo == MobileParty.MainParty);
+
+         // A test that only runs when the campaign happens to be arranged just so is a test that never runs. If no
+         // companion is riding along, BORROW one for the assertion and put them back afterwards, the way the rest
+         // of this harness seeds the state it needs.
+         MobileParty borrowedFrom = null;
+         var borrowed = false;
+
+         if (companion == null)
+         {
+            Hero spare = Hero.AllAliveHeroes.FirstOrDefault(
+               h => h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner);
+
+            if (t.Skip(spare == null || MobileParty.MainParty == null, "the player has no companion at all to place at their side")) return t.Line();
+
+            borrowedFrom = spare.PartyBelongedTo;
+            borrowed = true;
+            AddHeroToPartyAction.Apply(spare, MobileParty.MainParty, false);
+            companion = spare;
+            t.Note($"(borrowed {spare.Name} into the player's party for this test)");
+         }
+
+         PresenceTier tier = PlayerPresenceResolver.Resolve(companion);
+         t.Note($"{companion.Name}: tier={tier}");
+         t.Expect("aCompanionInYourPartyReadsAsInParty", tier, PresenceTier.InPlayerParty);
+         t.Expect("aCompanionInYourPartyIsBesideYou", PlayerPresenceResolver.IsBeside(companion), true);
+
+         // Age their memory to sixty days, using a THROWAWAY profile rather than the stored one. Adding an old
+         // event to the live profile proves nothing: the gap is measured from the NEWEST memory, so any fresher
+         // event (and the tests that ran before this one plant plenty) would still win and the gap would read
+         // zero, making the assertion below pass for the wrong reason. This also leaves the save untouched.
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+         NpcProfile aged = AgedProfile(companion, today);
+
+         EncounterContext ctx = EncounterContextBuilder.Build(companion, aged, behavior.GameStateBridge, "hello");
+         t.Note($"presenceNote='{ctx.PresenceNote}'");
+
+         // Prove the test is not passing trivially: the gap really IS long enough that the note would have fired.
+         t.Expect("theGapWouldOtherwiseHaveFired", ctx.DaysSinceLastMeeting > MeetingGapDescriber.RemarkThresholdDays, true);
+
+         t.Expect("theyAreToldHowTheyStandBesideYou", !string.IsNullOrWhiteSpace(ctx.PresenceNote), true);
+         t.Expect("andItSaysAtYourSide", ctx.PresenceNote?.Contains("at the player's side") == true, true);
+
+         // The fix itself: someone who rides with you is never told how long since they last saw you.
+         t.Expect("noAbandonedNoteForSomeoneRidingWithYou", ctx.MeetingGapNote, null);
+
+         // The other half of the rule: a lord genuinely away STILL feels the time apart. Without this, the "fix"
+         // could simply have silenced the feature everywhere instead of correcting who it applies to.
+         Hero away = Hero.AllAliveHeroes.FirstOrDefault(
+            h => h != Hero.MainHero && h.IsAlive && h.IsLord && !h.IsPlayerCompanion
+                 && PlayerPresenceResolver.Resolve(h) == PresenceTier.Away);
+
+         if (away != null)
+         {
+            EncounterContext actx = EncounterContextBuilder.Build(away, AgedProfile(away, today), behavior.GameStateBridge, "hello");
+            t.Note($"{away.Name} (away): gapNote='{actx.MeetingGapNote}'");
+            t.Expect("anAwayLordStillHearsTheTimeApart", !string.IsNullOrWhiteSpace(actx.MeetingGapNote), true);
+            t.Expect("anAwayLordGetsNoPresenceLine", actx.PresenceNote, null);
+         }
+         else t.Note("no away lord to contrast against");
+
+         // Put the borrowed companion back where they were, so the test does not quietly conscript someone.
+         if (borrowed)
+         {
+            if (borrowedFrom != null && borrowedFrom != MobileParty.MainParty)
+            {
+               AddHeroToPartyAction.Apply(companion, borrowedFrom, false);
+               t.Note($"(returned {companion.Name} to their party)");
+            }
+            else t.Note($"(NOTE: {companion.Name} had no party to return to and remains in yours; reload to discard)");
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The ONE behaviour v1.30.14 actually changed, so the one worth guarding. Jealousy used to ask a
+      ///   party-only question ("is this hero in my party?") while the letter system asked a wider one (party,
+      ///   army, OR the same settlement). Both now go through the single PlayerPresenceResolver, which means an
+      ///   NPC standing in the same town as the player counts as beside them: they will not post a courier to say
+      ///   what they could say to your face, and they are not counted as neglected. This pins that on the live map,
+      ///   and pins that the letter system's own façade genuinely delegates to the same authority.
+      /// </summary>
+      private static string TestPresenceGate(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("presence_gate");
+
+         List<Hero> roster = Hero.AllAliveHeroes.Where(h => h != null && h != Hero.MainHero && h.IsAlive).ToList();
+
+         if (t.Abort(roster.Count == 0, "no living hero to judge presence against")) return t.Line();
+
+         // THE consolidation, asserted across the ENTIRE living roster and needing no particular campaign state:
+         // the letter system's facade and the single presence authority must give the SAME answer for every hero
+         // alive. Before this release they could not: letters asked a wide question (party, army, or the same
+         // settlement) while jealousy asked a narrow, party-only one. If these two ever disagree again, the three
+         // systems have drifted apart once more and this test is the alarm.
+         var disagreements = 0;
+         foreach (Hero h in roster)
+            if (HeroProximity.IsNearPlayer(h) != PlayerPresenceResolver.IsBeside(h))
+               disagreements++;
+
+         t.Note($"{roster.Count} living heroes judged");
+         t.Expect("theLetterFacadeAndThePresenceAuthorityNEVERDisagree", disagreements, 0);
+
+         // The tiers must also be a partition: beside == not away, for everyone, with no third state.
+         var besideButAway = 0;
+         var awayButBeside = 0;
+
+         foreach (Hero h in roster)
+         {
+            bool beside = PlayerPresenceResolver.IsBeside(h);
+            bool away = PlayerPresenceResolver.Resolve(h) == PresenceTier.Away;
+
+            if (beside && away) besideButAway++;
+            if (!beside && !away) awayButBeside++;
+         }
+
+         t.Expect("besideAndAwayAreExactOpposites", besideButAway + awayButBeside, 0);
+
+         int inParty = roster.Count(h => PlayerPresenceResolver.Resolve(h) == PresenceTier.InPlayerParty);
+         int inArmy = roster.Count(h => PlayerPresenceResolver.Resolve(h) == PresenceTier.InPlayerArmy);
+         int samePlace = roster.Count(h => PlayerPresenceResolver.Resolve(h) == PresenceTier.SamePlace);
+         t.Note($"tiers: party={inParty}, army={inArmy}, samePlace={samePlace}, away={roster.Count - inParty - inArmy - samePlace}");
+
+         // The widened rule itself, when the live map offers it: sharing a roof IS being beside them, so they
+         // would speak rather than post a courier, and they are not counted as neglected.
+         Settlement here = Hero.MainHero?.CurrentSettlement;
+         Hero roommate = here == null
+            ? null
+            : roster.FirstOrDefault(h => h.CurrentSettlement == here && h.PartyBelongedTo != MobileParty.MainParty);
+
+         if (roommate != null)
+         {
+            t.Note($"{roommate.Name} shares {here.Name} with you");
+            t.Expect("sharingASettlementReadsAsSamePlace", PlayerPresenceResolver.Resolve(roommate), PresenceTier.SamePlace);
+            t.Expect("sharingASettlementIsBesideYou", PlayerPresenceResolver.IsBeside(roommate), true);
+            t.Expect("soTheyWouldSpeakNotPostALetter", HeroProximity.IsNearPlayer(roommate), true);
+         }
+         else t.Note("you share no settlement with anyone right now, so the SamePlace tier is UNPROVEN here (walk into a town)");
+
+         // And the gate must not have swallowed the world: someone genuinely away is still away, in BOTH systems.
+         Hero far = roster.FirstOrDefault(h => PlayerPresenceResolver.Resolve(h) == PresenceTier.Away);
+
+         if (far != null)
+         {
+            t.Note($"{far.Name} is away");
+            t.Expect("aDistantHeroIsNotBesideYou", PlayerPresenceResolver.IsBeside(far), false);
+            t.Expect("theLetterSystemAgreesTheyAreFar", HeroProximity.IsNearPlayer(far), false);
+         }
+         else t.Note("no distant hero to contrast against");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   COMPANION CONTENTMENT, through the real weekly tick. Pins the guarantee the rebalance rests on, the one
+      ///   a tester had to switch the whole system off to escape: a companion who is merely unoccupied is HEALED by
+      ///   the passing of a week, not driven one step closer to the door. Before the rebalance the very same pass
+      ///   took them DOWN, every week, until they left, whatever the player promised. Also checks the reported
+      ///   governor case: a companion holding a post is not kicking their heels.
+      /// </summary>
+      private static string TestContentment(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("contentment");
+
+         if (t.Skip(CompanionHappinessBehavior.Instance == null, "the contentment behaviour is not registered")) return t.Line();
+         if (t.Skip(!ModSettings.CompanionContentment, "companion contentment is switched OFF in Mod Options")) return t.Line();
+
+         // Pick a companion who is NOT kept from a spouse, so this pass exercises idleness alone (a separated
+         // spouse is a real grievance and is DESIGNED to sour them slowly, which would confound the reading).
+         Hero subject = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner
+            && (h.Spouse == null || !h.Spouse.IsAlive || h.Spouse == Hero.MainHero
+                || h.Spouse.PartyBelongedTo == h.PartyBelongedTo));
+
+         if (t.Skip(subject == null, "no companion free of a separated spouse to run an idleness pass on")) return t.Line();
+
+         GetOrCreate(behavior, subject);
+
+         int clanTier = Clan.PlayerClan?.Tier ?? 0;
+         int baseline = CompanionBaseline.From(clanTier);
+         t.Note($"{subject.Name}: clan tier {clanTier} -> resting happiness {baseline}");
+
+         // The camp's real mood is part of the weekly pass, and a sullen camp legitimately dulls spirits. Read it
+         // first, so the reading below is judged against the world as it actually is rather than an assumed one.
+         HappinessDriver? mood = PartyMoraleMood.DriverFor(MobileParty.MainParty?.Morale ?? 50f);
+         t.Note($"party morale {MobileParty.MainParty?.Morale ?? 50f:0} -> {mood?.ToString() ?? "unremarkable"}");
+
+         // The fix, end to end: sour them almost to the leaving floor, then let one REAL week pass.
+         CompanionHappinessService.Set(subject, 20);
+         CompanionHappinessBehavior.Instance.RunTick();
+         int after = CompanionHappinessService.Get(subject);
+         t.Note($"soured 20 -> {after} after one real weekly pass");
+
+         // THE guarantee, and the one that must hold whatever the camp's mood: being left idle can never carry a
+         // companion DOWN, so it can never carry them out. Before the rebalance this same pass took them lower
+         // every single week until they left, no matter what the player promised.
+         t.Expect("anIdleCompanionNEVERSlides", after >= 20, true);
+         t.Expect("stillMeansToLeave", CompanionHappiness.WantsToLeave(after), false);
+
+         // And when the camp is not actively miserable, they must actually HEAL: doing nothing in particular now
+         // brings a soured companion back rather than finishing them off.
+         if (mood != HappinessDriver.LowMorale)
+            t.Expect("anIdleSouredCompanionCLIMBS", after > 20, true);
+         else
+            t.Note("the camp is sullen (LowMorale fired), which legitimately offsets the recovery this week, so CLIMBS is not asserted; feed and pay your troops and it will");
+
+         // The reported governor case: a post handed to a companion IS employment. Only provable when the player
+         // actually has one governing, so it reports honestly rather than passing on an empty check.
+         Hero governor = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsAlive && h.IsPlayerCompanion && h.GovernorOf != null);
+
+         if (governor != null)
+         {
+            bool onErrand = CompanionMissionBehavior.Instance?.IsAway(governor.StringId) == true;
+            bool leadsAParty = governor.PartyBelongedTo != null && governor.PartyBelongedTo.LeaderHero == governor;
+            t.Note($"{governor.Name} governs {governor.GovernorOf.Name}");
+            t.Expect("aGovernorIsNotIdle", CompanionEngagementPolicy.IsIdle(onErrand, true, leadsAParty), false);
+         }
+         else t.Note("no companion governs a town right now, so the governor case is UNPROVEN here");
+
+         // Leave them where their clan's standing places them, rather than artificially soured.
+         CompanionHappinessService.Set(subject, baseline);
 
          return t.Line();
       }
