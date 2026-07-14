@@ -45,6 +45,21 @@ namespace CalradiaRemembers.Logic
         public string Backstory { get; set; }
 
         /// <summary>
+        ///   What this character holds to be TRUE, and therefore what they pursue. The one authored field that
+        ///   crosses the line <see cref="Backstory" /> deliberately refuses to cross: the backstory prompt tells
+        ///   the model, in as many words, that it shapes "HOW you speak and WHO you are, NOT what you decide".
+        ///   So a player who wrote "he believes he is secretly a necromancer" into a backstory got a character
+        ///   who SAID so with great colour and then behaved exactly as before. The belief was a costume.
+        ///   <para>
+        ///     A conviction is a motive, not a costume. It may be false, and that is the point (a player asked for
+        ///     a lord "who believes they were pulling the strings of my clan behind the scenes": Thoragoros1,
+        ///     2026-07-12). It gives no powers and imports no lore. It cannot reach past the bridge: it may make
+        ///     an NPC WANT to plot, never make a plot exist. The prompt proposes, the bridge rules.
+        ///   </para>
+        /// </summary>
+        public string Conviction { get; set; }
+
+        /// <summary>
         ///   Optional authored sexual orientation (a human word: straight, bi, gay/lesbian, pan, asexual...).
         ///   Overrides the NPC's rolled orientation, e.g. to enable a same-sex romance the roll blocked.
         /// </summary>
@@ -56,6 +71,9 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>True when the backstory carries authored flavor.</summary>
         public bool HasBackstory => !string.IsNullOrWhiteSpace(Backstory);
+
+        /// <summary>True when the author gave this character something they hold to be true.</summary>
+        public bool HasConviction => !string.IsNullOrWhiteSpace(Conviction);
 
         /// <summary>The authored orientation parsed to an enum, or null when unset/unrecognized.</summary>
         public SexualOrientation? ParsedOrientation => OrientationParser.Parse(Orientation);

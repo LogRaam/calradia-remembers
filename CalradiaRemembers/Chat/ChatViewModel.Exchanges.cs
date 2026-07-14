@@ -550,9 +550,11 @@ namespace CalradiaRemembers.Chat
             // RefreshPersonality reached it, or seeded wrong) would otherwise make the NPC mis-gender itself.
             profile.IsFemale = speaker.Hero.IsFemale;
 
-            // Sync the player-authored backstory (flavor only) from the overrides file each turn,
-            // so it is never persisted stale and reflects edits + the MCM toggle live.
+            // Sync the player-authored backstory (voice only) and conviction (what they hold true, and therefore
+            // pursue) from the overrides file each turn, so neither is ever persisted stale and both reflect a
+            // live edit + the MCM toggle.
             profile.AuthoredBackstory = CharacterOverrideLoader.BackstoryFor(speaker.Hero);
+            profile.AuthoredConviction = CharacterOverrideLoader.ConvictionFor(speaker.Hero);
 
             // Sync an authored orientation override (player request: enable e.g. a female-female romance the
             // rolled "heterosexual" blocked). Applied live each turn so an edit takes effect without a reload.

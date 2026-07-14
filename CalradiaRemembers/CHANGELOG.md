@@ -2,6 +2,23 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## Unreleased
+
+### Added
+- **Write what a character BELIEVES, not just how they sound.** `character_overrides.json` takes a new
+  `"conviction"` field beside `"backstory"`. The backstory colours only how an NPC SPEAKS; a conviction moves
+  what they WANT and what they pursue, and it may be perfectly false: a lord convinced your clan is plotting to
+  unseat him, a companion convinced she is secretly a necromancer. They act on it, and if it would ruin them
+  were it known, they hide it, and the hiding becomes a motive of its own. Three limits keep it honest: it grants
+  no powers (he may hoard bones, he may not raise the dead), it imports no lore from outside the world you are
+  playing, and it cannot bend the world to suit it. A belief can make a character want a thing. Only deeds decide
+  whether they get it.
+
+### Changed
+- **The prompt no longer assumes the world is Calradia.** A total-conversion mod that replaces the setting was
+  still telling every NPC to import no lore from outside Calradia, and the chronicle still called your lords
+  "lords of Calradia". Every such sentence now names the world the mod actually declares.
+
 ## v1.30.14.. 2026-07-13
 
 ### Added

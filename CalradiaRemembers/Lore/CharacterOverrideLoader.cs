@@ -39,6 +39,21 @@ namespace CalradiaRemembers.Lore
       }
 
       /// <summary>
+      ///   The authored CONVICTION for this hero: what they hold to be true, and therefore what they pursue.
+      ///   Null when unset or when custom traits are off, exactly like the backstory it sits beside. Unlike the
+      ///   backstory (voice only), this one reaches the prompt as a MOTIVE, so it is synced per turn the same way.
+      /// </summary>
+      public static string ConvictionFor(Hero hero)
+      {
+         if (!ModSettings.UseCustomTraits) return null;
+         CharacterOverride ov = For(hero);
+
+         return ov is {HasConviction: true}
+            ? ov.Conviction
+            : null;
+      }
+
+      /// <summary>
       ///   The authored sexual orientation for <paramref name="hero" /> when custom data is enabled and set,
       ///   else null. Synced onto the NPC's RomanticProfile before each prompt so an edit takes effect live.
       /// </summary>

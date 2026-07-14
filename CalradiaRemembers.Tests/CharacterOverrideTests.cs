@@ -71,6 +71,29 @@ namespace CalradiaRemembers.Tests
             new CharacterOverride { Backstory = "   " }.HasBackstory.Should().BeFalse();
         }
 
+        // Same contract for the conviction, and the same trap: CharacterOverrideLoader.ConvictionFor gates on
+        // HasConviction, and an empty section in the prompt is worse than no section (it spends tokens teaching
+        // the model that the character holds nothing in particular to be true).
+        [Test]
+        public void GIVEN_blank_conviction_WHEN_asked_THEN_HasConviction_is_false()
+        {
+            new CharacterOverride { Conviction = "   " }.HasConviction.Should().BeFalse();
+            new CharacterOverride().HasConviction.Should().BeFalse();
+        }
+
+        // Backstory and conviction are two DIFFERENT levers and must be independently authorable: the backstory
+        // colours only HOW a character speaks (the prompt says so in as many words: not what they decide), while
+        // the conviction moves what they WANT and pursue. A player may want one without the other, so neither
+        // flag may be inferred from the other.
+        [Test]
+        public void GIVEN_a_conviction_and_no_backstory_WHEN_asked_THEN_only_HasConviction_is_true()
+        {
+            var o = new CharacterOverride { Conviction = "He believes the player's clan means to unseat him." };
+
+            o.HasConviction.Should().BeTrue();
+            o.HasBackstory.Should().BeFalse();
+        }
+
         // ── Resolution ──────────────────────────────────────────────────────
 
         // The rule that "id wins" is the one thing standing between a typo and a wrong hero getting someone

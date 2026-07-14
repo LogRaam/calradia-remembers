@@ -278,6 +278,22 @@ it. They are CR's moddability and extension surface: a CR sub-mod author ships t
 v1.30.10 rewrote the shipped file so the "two arrays" trap is gone (the example now sits commented inside the
 single `[]`).
 
+DESIGN (Gabriel + Claude, 2026-07-13), TWO LAYERS, the save WINS:
+- `character_overrides.json` = MODDER-owned, global, read-only from in game. A CR sub-mod ships it; every
+  campaign sees it. This is the extension surface and it never moves.
+- The NpcProfile IN THE SAVE = PLAYER-owned, per-campaign, edited from the Encyclopedia page (same custom
+  Gauntlet popup as the v1.29.0 player-appearance editor, but on any hero's page). Where both speak, the SAVE
+  wins: the player's own campaign is the last word, and a modder's default never silently overwrites what the
+  player wrote in their game.
+- An **"Export to JSON"** button turns the in-game editor into the AUTHORING TOOL for CR sub-mods: author a cast
+  comfortably in game, export, ship the file. The two layers stop competing and start feeding each other.
+- Gate the whole thing behind the existing `UseCustomTraits` MCM toggle (already the switch that decides whether
+  authored data reaches the prompt at all).
+
+STATUS: the DATA side landed first. `conviction` (2026-07-13) is authored today in the JSON: what an NPC holds
+true, and therefore what they pursue, as opposed to `backstory` which only colours their voice. The editor gives
+the player a face for these fields; it does not need new fields to be worth building.
+
 ## WISHED (player request, Fakade 2026-07-13): an AUDIENCE in a fief, from NPCs who have no party
 
 > *"Is it possible for this to happen with NPCs that do not have a party? If I enter a fief, an NPC may want a

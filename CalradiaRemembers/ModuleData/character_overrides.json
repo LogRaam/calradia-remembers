@@ -15,7 +15,16 @@
 //   "hero"        display name to match (case-insensitive)
 //   "id"          OPTIONAL StringId, to tell apart two NPCs who share a name
 //   "valor", "honor", "mercy", "generosity", "calculating"   each -2..+2; omit one to keep its vanilla value
-//   "backstory"   OPTIONAL free text (roleplay flavour only: colour, not behaviour; conduct still follows traits)
+//   "backstory"   OPTIONAL. WHO THEY ARE AND HOW THEY SOUND: voice, temperament, manner, speech quirks.
+//                 It colours how they SPEAK. It does not decide what they DO: conduct follows their traits.
+//   "conviction"  OPTIONAL. WHAT THEY HOLD TRUE, AND THEREFORE WHAT THEY WANT. This one moves what they
+//                 DECIDE, not just how they talk. It may be FALSE, and that is the point: a lord who believes
+//                 he pulls the strings of your clan, a companion who believes she is secretly a necromancer.
+//                 They act on it. If it would ruin them were it known, they hide it, and hiding it becomes a
+//                 motive of its own.
+//                 Three limits: it grants no powers (he may hoard bones, he may not raise the dead), it
+//                 imports no lore from outside the world you are playing, and it cannot bend the world to
+//                 suit it. A belief can make them WANT a thing. Only deeds decide whether they get it.
 //
 [
   // {
@@ -23,6 +32,7 @@
   //   "valor": 1,
   //   "honor": -1,
   //   "calculating": 2,
-  //   "backstory": "A Vlandian king who trusts ledgers more than men, and remembers every debt."
+  //   "backstory": "A Vlandian king who trusts ledgers more than men, and remembers every debt.",
+  //   "conviction": "He is convinced the player's clan is quietly plotting to unseat him, and reads every kindness as a move in that game."
   // }
 ]
