@@ -48,6 +48,27 @@ namespace CalradiaRemembers
       public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
 
       /// <summary>
+      ///   How readily lords ride out to have a word with the player on the road (player request, Fakade). Read
+      ///   live from the MCM menu; Occasionally (the shipped feel) when MCM has not loaded, so nothing changes for
+      ///   a player who never touches it.
+      /// </summary>
+      public static InterceptionPacing LordsApproaching
+      {
+         get
+         {
+            string v = CrSettings.Instance?.InterceptionPacing?.SelectedValue;
+
+            switch (v)
+            {
+               case "Never": return InterceptionPacing.Never;
+               case "Rarely": return InterceptionPacing.Rarely;
+               case "Often": return InterceptionPacing.Often;
+               default: return InterceptionPacing.Occasionally;
+            }
+         }
+      }
+
+      /// <summary>
       ///   The OpenRouter providers the player has pinned (comma-separated slugs), or blank for OpenRouter's own
       ///   routing. Read live from the MCM menu. Lets a player avoid providers that moderate their own output
       ///   and cut a reply mid-sentence.

@@ -159,6 +159,13 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> RelationshipWarmth { get; set; } =
          new(new[] {"Grounded", "Warm", "Storyteller"}, 0); // default: Grounded (= Normal)
 
+      [SettingPropertyDropdown("Lords Approaching You", RequireRestart = false, Order = 2,
+         HintText = "How often a lord rides out to have a word with you on the road. Never switches it off " +
+                    "entirely. Occasionally is the shipped feel.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public Dropdown<string> InterceptionPacing { get; set; } =
+         new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's behaviour)
+
       [SettingPropertyBool("Story Log", RequireRestart = false, Order = 2,
          HintText = "Writes a clean narrative transcript of every conversation and letter to " +
                     "CalradiaRemembers_story.log in your Logs folder. No timestamps, no noise: it reads like a novel.")]

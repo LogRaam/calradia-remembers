@@ -31,10 +31,15 @@ namespace CalradiaRemembers.Interception
    /// </summary>
    public sealed class InterceptionBehavior : CampaignBehaviorBase
    {
-      private const int CooldownDays = 30; // a given lord intercepts the player rarely
-
       private const string CooldownSaveKey = "CalradiaRemembers_Intercept_v1bytes";
-      private const int DailyInterceptChancePercent = 25;
+
+      // How often lords ride out is the PLAYER's taste, not ours to fix (Fakade asked for the dial, and named
+      // both reasons in one breath: he likes being approached, and he does not want to be forced into a string of
+      // conversations). Read live from the MCM menu, so a change applies from the next day with no reload. The
+      // default resolves to exactly the shipped numbers, so nothing moves for a player who never touches it.
+      private static int CooldownDays => InterceptionPacingRules.CooldownDays(ModSettings.LordsApproaching);
+
+      private static int DailyInterceptChancePercent => InterceptionPacingRules.DailyChancePercent(ModSettings.LordsApproaching);
 
       private const float InterceptRange = 40f; // a lord this close can plausibly ride out
 
@@ -348,8 +353,12 @@ namespace CalradiaRemembers.Interception
          try
          {
             var today = (int) CampaignTime.Now.ToDays;
+
+            // A chase already under way is still released even when the player has since switched the feature
+            // off, so nobody is left trailing them (or, worse, standing in a field) by a change of mind.
             ReleaseStalePursuit(today);
 
+            if (InterceptionPacingRules.IsOff(ModSettings.LordsApproaching)) return; // the road is theirs alone
             if (_activePursuerId != null) return; // one interception at a time
             if (MBRandom.RandomInt(100) >= DailyInterceptChancePercent) return;
             TryStartInterception(today);

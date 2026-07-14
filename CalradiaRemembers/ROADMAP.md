@@ -278,6 +278,32 @@ it. They are CR's moddability and extension surface: a CR sub-mod author ships t
 v1.30.10 rewrote the shipped file so the "two arrays" trap is gone (the example now sits commented inside the
 single `[]`).
 
+## WISHED (player request, Fakade 2026-07-13): an AUDIENCE in a fief, from NPCs who have no party
+
+> *"Is it possible for this to happen with NPCs that do not have a party? If I enter a fief, an NPC may want a
+> word with me. Maybe get an option box where the player can choose to accept or decline the interaction? I don't
+> want to be forced into a bunch of conversations, but it would be cool to see the NPCs hanging out in a fief get
+> their chance as well."*
+
+Today a lord can only ride out to meet the player on the ROAD (`InterceptionBehavior`, which needs a party to
+move). That silently excludes everyone who has no field party: ladies, notables, garrisoned lords, the very
+people who are standing around in a fief with something to say. They never get a turn.
+
+The natural shape: when the player ENTERS a settlement, an NPC there who has a live reason to speak (a grudge, a
+kindness owed, a pending letter's subject, an outstanding quest, a stance verdict) may ask for a word. This is
+the same "does this NPC have something to say to me right now" question the interception triggers already
+answer, so it should reuse `InterceptionPolicy.Choose` rather than grow a second, diverging one.
+
+Two constraints the player named himself, and both are load-bearing:
+- **Never forced.** An inquiry with Accept / Decline, not a conversation that simply opens. Declining must cost
+  nothing.
+- **Rate-limited.** It rides the same "Lords Approaching You" MCM pacing shipped in v1.30.14 (Never / Rarely /
+  Occasionally / Often), including a per-NPC cooldown, or entering a busy town would open a queue of audiences.
+
+Reuse, not from scratch: `PlayerPresenceResolver` (v1.30.14) already answers "who is in this settlement with the
+player" as `PresenceTier.SamePlace`, which is exactly the candidate list. `InterceptionPacingRules` already owns
+the frequency dial. `CompanionHappinessBehavior.RequestAudience` already shows the Accept/Decline inquiry shape.
+
 ## ✅ Shipped & built
 
 Live on Nexus, or built + committed awaiting upload. **(untested)** = built green and committed but its
