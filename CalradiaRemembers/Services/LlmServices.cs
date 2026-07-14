@@ -397,11 +397,13 @@ namespace CalradiaRemembers.Services
       /// <summary>
       ///   The OpenRouter providers the player pinned, and ONLY when OpenRouter is the active provider: the
       ///   field is meaningless to NanoGPT or a local OpenAI-compatible server, so they must never receive it.
-      ///   Read live per request.
+      ///   Mode-aware like the model id and the reasoning effort: NSFW mode can pin a different (typically
+      ///   uncensored) provider than roleplay via <see cref="ModelModePolicy.ResolveProviderPin" />. Read live
+      ///   per request, so flipping the mode mid-conversation just works.
       /// </summary>
       private static string ResolveProviderPin()
          => ResolveProvider() == ProviderOpenRouter
-            ? ModSettings.OpenRouterProviderPin
+            ? ModelModePolicy.ResolveProviderPin(ActiveModelMode, ModSettings.OpenRouterProviderPin, ModSettings.OpenRouterNsfwProviderPin)
             : "";
 
       /// <summary>Resolves the active provider's OpenAI-compatible base URL. Read live per request.</summary>

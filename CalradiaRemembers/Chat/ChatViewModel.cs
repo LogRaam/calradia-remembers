@@ -433,13 +433,15 @@ namespace CalradiaRemembers.Chat
       public bool IsMemoryToggleVisible => _npcHero != null && !_isMemoryPanelOpen;
 
       /// <summary>
-      ///   True when the mode button should be shown: only when an NSFW model is configured in the MCM
-      ///   menu (otherwise the toggle would change nothing) and adult content is enabled at all.
+      ///   True when the mode button should be shown: adult content must be on, and the flip must actually
+      ///   change something, which an NSFW model OR an NSFW provider pin both do (a player may keep one model
+      ///   and merely route explicit scenes to an uncensored provider).
       /// </summary>
       [DataSourceProperty]
       public bool IsModelModeToggleVisible =>
          ModelModePolicy.ToggleVisible(
             !string.IsNullOrWhiteSpace(ModSettings.NsfwModel),
+            !string.IsNullOrWhiteSpace(ModSettings.OpenRouterNsfwProviderPin),
             ModSettings.AdultContentLevel != AdultContentLevel.Off);
 
       /// <summary>Inverse of <see cref="IsScenePaused" /> — drives the normal InputBox + SendButton.</summary>

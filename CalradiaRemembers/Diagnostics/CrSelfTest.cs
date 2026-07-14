@@ -109,6 +109,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("presence_gate", Severity.Light, "Mechanical: the ONE behaviour v1.30.14 changed, guarded across the WHOLE living roster with no preconditions. The letter system's facade and the single presence authority must give the same answer for every hero alive (before this, letters asked a wide question and jealousy a party-only one), and beside/away must be exact opposites. If they ever disagree again, the systems have drifted apart and this fires", TestPresenceGate),
          new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
+         new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
          new SelfTest("stance_letter", Severity.Heavy, "hostile stance -> weekly eval -> assert a cold StanceHostility letter is queued", TestStanceLetter),
@@ -4834,6 +4835,38 @@ namespace CalradiaRemembers.Diagnostics
          p.Events.Add(new NotableEvent(today - 60, NotableEventType.Other, "(selftest) a memory sixty days stale"));
 
          return p;
+      }
+
+      /// <summary>
+      ///   The in-chat Options button, which a player reported dead across three versions (SuperGraham339, still
+      ///   reproducing in v1.30.14). It reaches the vanilla escape menu entirely by REFLECTION, so a TaleWorlds
+      ///   rename does not throw: the button just goes quiet, and the log even claims success. That is the exact
+      ///   shape of the bug he lived with. The game answers ESC with TWO different mechanisms (a mission view
+      ///   while a scene is loaded, a navigation handler on the map) and the mod must find BOTH, because whichever
+      ///   one it fails to find is a screen on which the player's menu will never appear. This asserts they still
+      ///   resolve on the running game version, and says which path is live right now.
+      /// </summary>
+      private static string TestMenu(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("menu");
+
+         var (missionMechanism, mapMechanism, missionRunning, escapeViewPresent, detail) = GameMenuOpener.Probe();
+
+         t.Note(detail);
+
+         // The mission mechanism is the one that was MISSING until now: the chat can be hosted by a MissionScreen
+         // (a settlement, a conversation, a naval scene), which carries no navigation handler at all, so the menu
+         // was being opened on the map hidden behind the scene.
+         t.Expect("theMissionEscapeMechanismStillExists", missionMechanism, true);
+
+         // And the map one must survive too, or the button dies on the ordinary campaign map instead.
+         t.Expect("theMapEscapeMechanismStillExists", mapMechanism, true);
+
+         // Only assertable when a scene happens to be loaded; on the bare map there is no mission to carry a view.
+         if (missionRunning) t.Expect("aRunningMissionCarriesItsEscapeView", escapeViewPresent, true);
+         else t.Note("no mission running during the test, so the mission-side view could not be inspected live: open the chat inside a settlement and click Options to confirm by eye");
+
+         return t.Line();
       }
 
       /// <summary>

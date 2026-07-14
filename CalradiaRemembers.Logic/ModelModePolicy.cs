@@ -44,12 +44,16 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
-        ///   True when the in-chat mode toggle button should be shown: only when an NSFW model is configured
-        ///   (otherwise the toggle would change nothing) and adult content is enabled at all.
+        ///   True when the in-chat mode toggle button should be shown: adult content must be on, and the flip
+        ///   must actually CHANGE something. Either an NSFW model or an NSFW provider pin is enough, and the
+        ///   pin alone is a real case: a player may want the same model for everything and merely route explicit
+        ///   scenes to an uncensored provider (providers of the same model charge different rates, and some
+        ///   moderate their own output). Gating on the model alone would have hidden the button from exactly
+        ///   that player, leaving them no way to flip a conversation that turns explicit on its own.
         /// </summary>
-        public static bool ToggleVisible(bool nsfwModelConfigured, bool adultContentOn)
+        public static bool ToggleVisible(bool nsfwModelConfigured, bool nsfwProviderPinConfigured, bool adultContentOn)
         {
-            return nsfwModelConfigured && adultContentOn;
+            return (nsfwModelConfigured || nsfwProviderPinConfigured) && adultContentOn;
         }
 
         /// <summary>
@@ -71,6 +75,23 @@ namespace CalradiaRemembers.Logic
             if (string.Equals(nsfwEffort.Trim(), SameAsRoleplay, System.StringComparison.OrdinalIgnoreCase)) return roleplayEffort;
 
             return nsfwEffort.Trim();
+        }
+
+        /// <summary>
+        ///   The OpenRouter provider pin a mode resolves to. Providers charge different rates, so a player
+        ///   typically wants the cheapest routing for ordinary roleplay (a `:floor` model id with NO pin at
+        ///   all, leaving OpenRouter free to pick) and a specific uncensored provider pinned for explicit
+        ///   scenes. Mirrors <see cref="ResolveReasoningEffort"/>, but this field is free text (not a
+        ///   dropdown), so blank already means "same as roleplay" and there is no sentinel to check. A blank
+        ///   NSFW pin falls back to the roleplay pin so a player who already set one pin keeps it on both
+        ///   modes, and existing single-pin configs are unchanged.
+        /// </summary>
+        public static string ResolveProviderPin(ModelMode mode, string roleplayPin, string nsfwPin)
+        {
+            if (mode != ModelMode.Nsfw) return roleplayPin;
+            if (string.IsNullOrWhiteSpace(nsfwPin)) return roleplayPin;
+
+            return nsfwPin.Trim();
         }
     }
 }

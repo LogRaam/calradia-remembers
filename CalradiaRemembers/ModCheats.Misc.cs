@@ -221,8 +221,9 @@ namespace CalradiaRemembers
                : ModelMode.Nsfw;
 
          bool nsfwConfigured = !string.IsNullOrWhiteSpace(ModSettings.NsfwModel);
+         bool nsfwPinConfigured = !string.IsNullOrWhiteSpace(ModSettings.OpenRouterNsfwProviderPin);
          bool toggleVisible = ModelModePolicy.ToggleVisible(
-            nsfwConfigured, ModSettings.AdultContentLevel != AdultContentLevel.Off);
+            nsfwConfigured, nsfwPinConfigured, ModSettings.AdultContentLevel != AdultContentLevel.Off);
 
          string nsfwPart = nsfwConfigured
             ? $"NSFW model configured ('{ModSettings.NsfwModel.Trim()}')"
@@ -231,9 +232,18 @@ namespace CalradiaRemembers
          string effort = ModelModePolicy.ResolveReasoningEffort(
             LlmServices.ActiveModelMode, ModSettings.ReasoningEffort, ModSettings.NsfwReasoningEffort);
 
+         // The provider the request would actually go to, which the mode now moves as well as the model: a
+         // player routing ordinary chat to the cheapest provider and explicit scenes to an uncensored one has
+         // no other way to see WHICH of the two a flip just selected.
+         string pin = ModelModePolicy.ResolveProviderPin(
+            LlmServices.ActiveModelMode, ModSettings.OpenRouterProviderPin, ModSettings.OpenRouterNsfwProviderPin);
+         string pinPart = string.IsNullOrWhiteSpace(pin)
+            ? "No provider pinned for this mode (OpenRouter routes freely, so a ':floor' model id can pick the cheapest)"
+            : $"Providers pinned for this mode: {pin}";
+
          return $"Model mode = {LlmServices.ActiveModelMode}, resolves to '{LlmServices.ActiveModelId}', " +
                 $"reasoning effort {effort}. " +
-                $"{nsfwPart}. In-chat mode button {(toggleVisible ? "visible" : "hidden")}. " +
+                $"{nsfwPart}. {pinPart}. In-chat mode button {(toggleVisible ? "visible" : "hidden")}. " +
                 "Use 'cr.model toggle' to flip the mode.";
       }
 

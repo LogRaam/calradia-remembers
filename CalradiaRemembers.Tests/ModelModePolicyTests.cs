@@ -88,22 +88,39 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_nsfw_model_and_adult_content_on_WHEN_gating_the_button_THEN_the_toggle_is_visible()
         {
-            ModelModePolicy.ToggleVisible(nsfwModelConfigured: true, adultContentOn: true).Should().BeTrue();
+            ModelModePolicy.ToggleVisible(nsfwModelConfigured: true, nsfwProviderPinConfigured: false, adultContentOn: true)
+                .Should().BeTrue();
         }
 
-        // Showing a mode toggle with nothing to toggle to would just confuse the player: ResolveModelId would
-        // resolve back to the same roleplay model either way.
+        // A pin with no second model is a REAL configuration, not an oversight: the player keeps one model for
+        // everything and merely routes explicit scenes to an uncensored provider (the same model costs different
+        // rates at different providers, and some of them moderate their own output). Gating the button on the
+        // MODEL alone would hide it from exactly that player, leaving them no way to flip a conversation that
+        // turns explicit on its own, which is the one moment the toggle exists for.
         [Test]
-        public void GIVEN_no_nsfw_model_WHEN_gating_the_button_THEN_the_toggle_is_hidden()
+        public void GIVEN_only_an_nsfw_provider_pin_WHEN_gating_the_button_THEN_the_toggle_is_still_visible()
         {
-            ModelModePolicy.ToggleVisible(nsfwModelConfigured: false, adultContentOn: true).Should().BeFalse();
+            ModelModePolicy.ToggleVisible(nsfwModelConfigured: false, nsfwProviderPinConfigured: true, adultContentOn: true)
+                .Should().BeTrue();
         }
 
-        // The toggle must not offer an NSFW mode when adult content itself is disabled at the mod level.
+        // Showing a mode toggle with nothing to toggle to would just confuse the player: with neither a model
+        // nor a pin, both ResolveModelId and ResolveProviderPin resolve back to the roleplay values either way,
+        // so the button would be a lie.
+        [Test]
+        public void GIVEN_neither_an_nsfw_model_nor_a_pin_WHEN_gating_the_button_THEN_the_toggle_is_hidden()
+        {
+            ModelModePolicy.ToggleVisible(nsfwModelConfigured: false, nsfwProviderPinConfigured: false, adultContentOn: true)
+                .Should().BeFalse();
+        }
+
+        // The toggle must not offer an NSFW mode when adult content itself is disabled at the mod level. This
+        // outranks any NSFW setting: a configured model or pin does not reopen a door the player closed.
         [Test]
         public void GIVEN_adult_content_off_WHEN_gating_the_button_THEN_the_toggle_is_hidden()
         {
-            ModelModePolicy.ToggleVisible(nsfwModelConfigured: true, adultContentOn: false).Should().BeFalse();
+            ModelModePolicy.ToggleVisible(nsfwModelConfigured: true, nsfwProviderPinConfigured: true, adultContentOn: false)
+                .Should().BeFalse();
         }
 
         // Roleplay conversations must keep their own reasoning effort regardless of whatever the player set for
@@ -136,6 +153,44 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_nsfw_mode_with_a_blank_effort_WHEN_resolving_THEN_the_roleplay_effort_is_reused()
         {
             ModelModePolicy.ResolveReasoningEffort(ModelMode.Nsfw, "Low", "  ").Should().Be("Low");
+        }
+
+        // An explicit-scene provider must never be billed for ordinary chatter, which is the whole point of
+        // pinning a cheap :floor route for roleplay and a specific uncensored provider only for NSFW.
+        [Test]
+        public void GIVEN_roleplay_mode_WHEN_resolving_the_provider_pin_THEN_the_roleplay_pin_is_used_even_if_an_nsfw_pin_exists()
+        {
+            ModelModePolicy.ResolveProviderPin(ModelMode.Roleplay, "openai", "chutes/uncensored")
+                .Should().Be("openai");
+        }
+
+        // SAVE-MIGRATION: every player who already pinned one provider must keep that exact behaviour on both
+        // modes after this ships; a blank field must not silently un-pin their explicit scenes and reintroduce
+        // the mid-sentence censoring cut that pinning was built to fix.
+        [Test]
+        public void GIVEN_nsfw_mode_but_a_blank_nsfw_pin_WHEN_resolving_THEN_it_falls_back_to_the_roleplay_pin()
+        {
+            ModelModePolicy.ResolveProviderPin(ModelMode.Nsfw, "chutes/uncensored", "").Should().Be("chutes/uncensored");
+            ModelModePolicy.ResolveProviderPin(ModelMode.Nsfw, "chutes/uncensored", null).Should().Be("chutes/uncensored");
+            ModelModePolicy.ResolveProviderPin(ModelMode.Nsfw, "chutes/uncensored", "   ").Should().Be("chutes/uncensored");
+        }
+
+        // The whole point of configuring a second pin: once NSFW mode is active it must actually route to the
+        // specific uncensored provider, not silently fall back to the cheap roleplay routing.
+        [Test]
+        public void GIVEN_nsfw_mode_with_a_configured_nsfw_pin_WHEN_resolving_THEN_the_nsfw_pin_wins_trimmed()
+        {
+            ModelModePolicy.ResolveProviderPin(ModelMode.Nsfw, "openai", "  chutes/uncensored  ")
+                .Should().Be("chutes/uncensored");
+        }
+
+        // An empty pin sends NO provider block at all, which is what lets a :floor model id find the cheapest
+        // provider; if the policy ever substituted something for blank, the player's cost optimisation would be
+        // silently disabled.
+        [Test]
+        public void GIVEN_a_blank_roleplay_pin_WHEN_resolving_in_roleplay_mode_THEN_it_stays_blank()
+        {
+            ModelModePolicy.ResolveProviderPin(ModelMode.Roleplay, "", "chutes/uncensored").Should().Be("");
         }
     }
 }

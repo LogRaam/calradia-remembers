@@ -76,6 +76,13 @@ namespace CalradiaRemembers
       public static string OpenRouterProviderPin => CrSettings.Instance?.ProviderPin?.Trim() ?? "";
 
       /// <summary>
+      ///   The OpenRouter providers pinned for NSFW mode specifically, or blank to reuse
+      ///   <see cref="OpenRouterProviderPin" />. Read live from the MCM menu. Lets a player route ordinary
+      ///   roleplay to the cheapest provider while pinning a specific uncensored provider for explicit scenes.
+      /// </summary>
+      public static string OpenRouterNsfwProviderPin => CrSettings.Instance?.NsfwProviderPin?.Trim() ?? "";
+
+      /// <summary>
       ///   Whether a pinned OpenRouter request may still fall back to providers outside the pin. Off by default,
       ///   so pinning actually forces. Read live from the MCM menu.
       /// </summary>

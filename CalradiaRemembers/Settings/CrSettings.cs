@@ -44,13 +44,20 @@ namespace CalradiaRemembers.Settings
 
       // Hints must stay SHORT: a long one overflows the MCM control and its first line is cut off the top
       // (Gabriel, screenshot 2026-07-13). Two or three lines, no more. Say the stake, not the essay.
+      // ProviderPin and NsfwProviderPin are resolved per model mode by ModelModePolicy.ResolveProviderPin.
       [SettingPropertyText("Pin Providers (advanced)", RequireRestart = false, Order = 4,
          HintText = "Leave blank unless you need it. Some OpenRouter providers censor their own output, cutting " +
                     "replies mid-sentence. Enter trusted provider slugs, comma separated (e.g. deepinfra, together).")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public string ProviderPin { get; set; } = "";
 
-      [SettingPropertyBool("Allow provider fallbacks", RequireRestart = false, Order = 5,
+      [SettingPropertyText("Pin Providers (NSFW)", RequireRestart = false, Order = 5,
+         HintText = "Blank reuses the pin above. Set a different provider only for explicit scenes, e.g. " +
+                    "cheapest routing for chat and an uncensored provider for scenes.")]
+      [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
+      public string NsfwProviderPin { get; set; } = "";
+
+      [SettingPropertyBool("Allow provider fallbacks", RequireRestart = false, Order = 6,
          HintText = "Only matters with providers pinned above. OFF (default) makes the pin a hard rule. ON lets " +
                     "OpenRouter fall back to others when yours are unavailable.")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]

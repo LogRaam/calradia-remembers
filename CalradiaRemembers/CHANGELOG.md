@@ -2,9 +2,15 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## Unreleased
+## v1.30.15.. 2026-07-14
 
 ### Added
+- **Pin a different OpenRouter provider for explicit scenes.** The same model costs different rates at different
+  providers, and only some of them moderate their own output. You can now leave the ordinary roleplay pin blank,
+  so OpenRouter routes freely (which is what lets a `:floor` model id find the cheapest provider), and pin a
+  trusted provider only for explicit scenes. The switch is automatic: an explicit scene already changes model, it
+  now changes provider with it. Leave the new field blank and nothing changes: your existing pin keeps applying
+  to everything, exactly as before.
 - **Write what a character BELIEVES, not just how they sound.** `character_overrides.json` takes a new
   `"conviction"` field beside `"backstory"`. The backstory colours only how an NPC SPEAKS; a conviction moves
   what they WANT and what they pursue, and it may be perfectly false: a lord convinced your clan is plotting to
@@ -13,6 +19,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   no powers (he may hoard bones, he may not raise the dead), it imports no lore from outside the world you are
   playing, and it cannot bend the world to suit it. A belief can make a character want a thing. Only deeds decide
   whether they get it.
+
+### Fixed
+- **The chat's Options button now opens the menu where you can actually see it.** If you opened the chat inside a
+  scene (a settlement, a conversation, a naval deck), the menu really did open, on the campaign map hidden behind
+  the scene. The log said "opened" and you saw nothing. The game answers ESC with two different mechanisms
+  depending on where you are, and the mod only knew one of them.
 
 ### Changed
 - **The prompt no longer assumes the world is Calradia.** A total-conversion mod that replaces the setting was
