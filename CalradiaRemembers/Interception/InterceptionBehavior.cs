@@ -119,11 +119,66 @@ namespace CalradiaRemembers.Interception
       }
 
       /// <summary>
-      ///   Self-heal on every load. The active pursuit is transient (never persisted), so a normal reload
-      ///   already lets a pursuer's AI return to its plans. This is the belt-and-suspenders pass: if the
-      ///   player is a SUBORDINATE inside an army (the state the game cannot resolve an encounter in, and
-      ///   crashes on), stand down any party still bearing directly on the player's own party, so a chase
-      ///   left over from before the army-crash fix cannot fire the crash on the first tick after loading.
+      ///   Hands a party back to its OWN AI, which is the whole point and the thing we used to get wrong.
+      ///   <para>
+      ///     <see cref="MobileParty.SetMoveModeHold" /> does not mean "resume your life", it means "stand here".
+      ///     It leaves the party on <c>AiBehavior.Hold</c> with a behaviour it considers perfectly valid, so its
+      ///     AI never reconsiders and it simply stays put. A player watched an intercepting clan party stand on
+      ///     one spot until its food ran out and it starved (Fakade, 2026-07-13). Dropping our order is only half
+      ///     the job: the party must also be TOLD to think again, which is what RethinkAtNextHourlyTick does.
+      ///   </para>
+      /// </summary>
+      internal static void ReleaseToVanillaAi(MobileParty party)
+      {
+         if (party == null) return;
+
+         try
+         {
+            party.SetMoveModeHold();                    // drop OUR engage order, so it stops bearing on the player
+            party.Ai.SetDoNotMakeNewDecisions(false);   // nothing of ours is holding its decisions shut
+            party.Ai.RethinkAtNextHourlyTick = true;    // and MAKE it decide afresh within the hour
+         }
+         catch (Exception ex) { ModLog.Error($"[INTERCEPT] could not release {party.Name} to its own AI: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Tells every lord party idling on <c>Hold</c> out in the open field to think again, and returns how many
+      ///   were nudged. This is what rescues a campaign already broken by the old bug: without it, a party stranded
+      ///   by an earlier version stays stranded for good, however well the cause is fixed. Safe by construction, a
+      ///   party that genuinely means to hold will simply choose to hold again on its next think.
+      /// </summary>
+      internal static int RescueHeldParties()
+      {
+         MobileParty main = MobileParty.MainParty;
+         var freed = 0;
+
+         foreach (MobileParty p in MobileParty.All)
+         {
+            if (p == null || p == main) continue;
+            if (p.LeaderHero == null || p.CurrentSettlement != null || p.Army != null) continue;
+            if (p.DefaultBehavior != AiBehavior.Hold || p.Ai.RethinkAtNextHourlyTick) continue;
+
+            p.Ai.RethinkAtNextHourlyTick = true;
+            freed++;
+         }
+
+         return freed;
+      }
+
+      /// <summary>
+      ///   Self-heal on every load, and it now heals something real. Two passes:
+      ///   <list type="number">
+      ///     <item>
+      ///       RESCUE parties frozen by the old bug. Any lord party standing on <c>Hold</c> out on the open map
+      ///       is told to think again. This is safe by construction: a party that genuinely wants to hold will
+      ///       simply choose to hold once more. Without it, every party already stranded by an earlier version
+      ///       stays stranded for the rest of that campaign, however well we fix the cause.
+      ///     </item>
+      ///     <item>
+      ///       The original guard: if the player is a SUBORDINATE inside an army (the state the game cannot
+      ///       resolve an encounter in, and crashes on), stand down anything still bearing on their party.
+      ///     </item>
+      ///   </list>
       /// </summary>
       private void OnSessionLaunched(CampaignGameStarter starter)
       {
@@ -131,15 +186,25 @@ namespace CalradiaRemembers.Interception
          {
             MobileParty main = MobileParty.MainParty;
 
-            if (main == null || !PlayerIsSubordinateInArmy()) return;
+            if (main == null) return;
 
+            // Pass 1: rescue anyone left standing on Hold in the open field by the old bug.
+            int freed = RescueHeldParties();
+
+            // Pass 2: the army-crash guard, now standing them down for real rather than freezing them.
             var stood = 0;
-            foreach (MobileParty p in MobileParty.All)
-            {
-               if (p == null || p == main || p.TargetParty != main) continue;
-               p.SetMoveModeHold();
-               stood++;
-            }
+
+            if (PlayerIsSubordinateInArmy())
+               foreach (MobileParty p in MobileParty.All)
+               {
+                  if (p == null || p == main || p.TargetParty != main) continue;
+
+                  ReleaseToVanillaAi(p);
+                  stood++;
+               }
+
+            if (freed > 0)
+               ModLog.Info($"[INTERCEPT] on load, told {freed} party(ies) idling on Hold to think again (rescues anyone stranded by the old stand-down bug).");
 
             if (stood > 0)
                ModLog.Info($"[INTERCEPT] on load, stood down {stood} party(ies) bearing on the player: the player is inside an army and cannot be safely encountered.");
@@ -331,10 +396,11 @@ namespace CalradiaRemembers.Interception
          // ConsumeInterceptionReason), colouring the lord's first words.
          _meetingOpened = true;
 
-         // The lord has arrived and the meeting is opening: END the engage now. Clearing only our tracking left
-         // the vanilla SetMoveEngageParty in place, so once the conversation ended the lord kept shadowing the
-         // player forever. Standing him down hands him back to his own AI (same primitive as the on-load heal).
-         pursuerParty.SetMoveModeHold();
+         // The lord has arrived and the meeting is opening: END the engage now and hand him back to his own AI.
+         // Clearing only our tracking left the vanilla SetMoveEngageParty in place and he kept shadowing the
+         // player; but merely holding him was worse, because Hold is not a release, it is a command to stand
+         // still, and he obeyed it until he starved (Fakade, 2026-07-13). He must be told to think again.
+         ReleaseToVanillaAi(pursuerParty);
 
          CaptiveSceneStager.StagePlainConversation(pursuer);
          ModLog.Info($"[INTERCEPT] {pursuer.Name} reached the player, forcing the meeting open.");
@@ -383,8 +449,9 @@ namespace CalradiaRemembers.Interception
          if (giveUp) ModLog.Info($"[INTERCEPT] {pursuer.Name} gives up the chase.");
 
          // End the engage on any abandoned chase too, so a lord who timed out or was outrun stops bearing on the
-         // player instead of trailing them indefinitely. Null when the pursuer died (nothing to stand down).
-         pursuerParty?.SetMoveModeHold();
+         // player instead of trailing them indefinitely, and RESUMES his own plans rather than standing in the
+         // field. Null when the pursuer died (nothing to release).
+         ReleaseToVanillaAi(pursuerParty);
 
          _activePursuerId = null;
          _activePursuerSince = -1;

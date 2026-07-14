@@ -105,6 +105,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("presence", Severity.Light, "Mechanical: a companion riding in your party is told they travel at your side and is NEVER told how long since they last saw you, even with a 60-day-stale memory (the 'crew acts abandoned between two ports' report); a lord genuinely away STILL hears the time apart. BORROWS a companion into your party if none is riding along, and puts them back", TestPresence),
          new SelfTest("presence_gate", Severity.Light, "Mechanical: the ONE behaviour v1.30.14 changed, guarded across the WHOLE living roster with no preconditions. The letter system's facade and the single presence authority must give the same answer for every hero alive (before this, letters asked a wide question and jealousy a party-only one), and beside/away must be exact opposites. If they ever disagree again, the systems have drifted apart and this fires", TestPresenceGate),
          new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
+         new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
          new SelfTest("stance_letter", Severity.Heavy, "hostile stance -> weekly eval -> assert a cold StanceHostility letter is queued", TestStanceLetter),
          new SelfTest("stance_plot", Severity.Heavy, "stance with teeth increment 2: force a Plot-verdict lord (traits forced dishonourable+calculating) -> weekly eval -> assert a real scheme is planted against the player, no letter written", TestStancePlot),
@@ -4743,6 +4744,57 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"scenario B (reconciliation) spouse={spouseB.Name}");
          t.Expect("stillMarriedAfterReconciliation", stillMarriedAfterReconciliation, true);
          t.Expect("escalationClearedAfterReconciliation", escalationClearedAfterReconciliation, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The STARVING LORD bug, reproduced and then proven fixed against the live engine. A player watched a
+      ///   clan party that had intercepted him stand on one spot until its food ran out and it starved (Fakade,
+      ///   2026-07-13). The cause: we ended the chase with SetMoveModeHold, believing it handed the lord back to
+      ///   his own AI. It does the opposite. Hold is not a release, it is an ORDER to stand still, and the party's
+      ///   AI, seeing a behaviour it considers perfectly valid, never reconsidered it. He obeyed until he died.
+      ///   <para>
+      ///     This freezes a real lord party exactly as the old code did, proves it looks frozen, then proves both
+      ///     halves of the fix: the release hands a party back, and the on-load rescue frees one already stranded
+      ///     by an earlier version (without which a broken campaign stays broken forever).
+      ///   </para>
+      /// </summary>
+      private static string TestPartyRelease(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("party_release");
+
+         MobileParty victim = MobileParty.All.FirstOrDefault(
+            p => p != null && p != MobileParty.MainParty && p.LeaderHero != null
+                 && p.CurrentSettlement == null && p.Army == null && p.MapEvent == null);
+
+         if (t.Skip(victim == null, "no free lord party in the open field to release")) return t.Line();
+
+         AiBehavior wasDoing = victim.DefaultBehavior;
+         t.Note($"{victim.Name}: was {wasDoing}");
+
+         // Freeze it EXACTLY as the old code did, and prove that this alone is what stranded the party: it sits
+         // on Hold with nothing telling it to think again, which is precisely how a lord starved in place.
+         victim.SetMoveModeHold();
+         victim.Ai.RethinkAtNextHourlyTick = false;
+
+         t.Expect("theOldStandDownLeavesItHolding", victim.DefaultBehavior, AiBehavior.Hold);
+         t.Expect("andWithNothingTellingItToThinkAgain", victim.Ai.RethinkAtNextHourlyTick, false);
+
+         // The fix: releasing it must actually hand it back, which means MAKING it decide afresh.
+         InterceptionBehavior.ReleaseToVanillaAi(victim);
+         t.Expect("theReleaseMakesItThinkAgain", victim.Ai.RethinkAtNextHourlyTick, true);
+         t.Expect("andNothingOfOursHoldsItsDecisionsShut", victim.Ai.DoNotMakeNewDecisions, false);
+
+         // The rescue: a campaign already broken by an earlier version must heal on load, or the stranded party
+         // starves anyway however well we fixed the cause.
+         victim.SetMoveModeHold();
+         victim.Ai.RethinkAtNextHourlyTick = false;
+         int freed = InterceptionBehavior.RescueHeldParties();
+
+         t.Note($"on-load rescue nudged {freed} held party(ies)");
+         t.Expect("theOnLoadRescueFreesAnAlreadyStrandedParty", victim.Ai.RethinkAtNextHourlyTick, true);
+         t.Expect("andItFoundAtLeastTheOneWeStranded", freed >= 1, true);
 
          return t.Line();
       }
