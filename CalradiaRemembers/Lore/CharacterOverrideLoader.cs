@@ -54,6 +54,23 @@ namespace CalradiaRemembers.Lore
       }
 
       /// <summary>
+      ///   Copies the two authored PROSE fields (voice, and what the hero holds true) onto the profile that is
+      ///   about to be sent to the model. Called on EVERY turn, never persisted deliberately: a stale copy would
+      ///   survive a file edit or the MCM toggle being turned off, and the NPC would keep an authored persona the
+      ///   player had already withdrawn. Both fields go to null when custom data is off, which erases any copy an
+      ///   earlier turn left on the profile.
+      ///   Shared with the self-test harness on purpose: <c>cr.test conviction</c> exercises THIS method, so the
+      ///   test fails if the chat's per-turn sync is ever dropped, instead of quietly passing on a parallel path.
+      /// </summary>
+      public static void SyncAuthoredProse(NpcMemoryService.Core.Models.NpcProfile profile, Hero hero)
+      {
+         if (profile == null || hero == null) return;
+
+         profile.AuthoredBackstory = BackstoryFor(hero);
+         profile.AuthoredConviction = ConvictionFor(hero);
+      }
+
+      /// <summary>
       ///   The authored sexual orientation for <paramref name="hero" /> when custom data is enabled and set,
       ///   else null. Synced onto the NPC's RomanticProfile before each prompt so an edit takes effect live.
       /// </summary>

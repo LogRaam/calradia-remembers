@@ -552,9 +552,8 @@ namespace CalradiaRemembers.Chat
 
             // Sync the player-authored backstory (voice only) and conviction (what they hold true, and therefore
             // pursue) from the overrides file each turn, so neither is ever persisted stale and both reflect a
-            // live edit + the MCM toggle.
-            profile.AuthoredBackstory = CharacterOverrideLoader.BackstoryFor(speaker.Hero);
-            profile.AuthoredConviction = CharacterOverrideLoader.ConvictionFor(speaker.Hero);
+            // live edit + the MCM toggle. cr.test conviction runs this same call, so dropping it fails the test.
+            CharacterOverrideLoader.SyncAuthoredProse(profile, speaker.Hero);
 
             // Sync an authored orientation override (player request: enable e.g. a female-female romance the
             // rolled "heterosexual" blocked). Applied live each turn so an edit takes effect without a reload.

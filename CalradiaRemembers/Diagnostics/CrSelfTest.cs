@@ -25,6 +25,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Social;
+using CalradiaRemembers.Lore;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
@@ -32,12 +33,14 @@ using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Scenarios;
 using CalradiaRemembers.Services;
+using CalradiaRemembers.Settings;
 using CalradiaRemembers.Social;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Travel;
 using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -106,6 +109,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("presence_gate", Severity.Light, "Mechanical: the ONE behaviour v1.30.14 changed, guarded across the WHOLE living roster with no preconditions. The letter system's facade and the single presence authority must give the same answer for every hero alive (before this, letters asked a wide question and jealousy a party-only one), and beside/away must be exact opposites. If they ever disagree again, the systems have drifted apart and this fires", TestPresenceGate),
          new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
+         new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
          new SelfTest("stance_letter", Severity.Heavy, "hostile stance -> weekly eval -> assert a cold StanceHostility letter is queued", TestStanceLetter),
          new SelfTest("stance_plot", Severity.Heavy, "stance with teeth increment 2: force a Plot-verdict lord (traits forced dishonourable+calculating) -> weekly eval -> assert a real scheme is planted against the player, no letter written", TestStancePlot),
@@ -161,6 +165,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_memory", Severity.Light, "LLM: seed a shared history -> ask about it -> does the reply reference it?", TestChatMemory, true),
          new SelfTest("chat_stance", Severity.Light, "LLM: set a distinctive stance (fear/distrust) -> ask -> does the tone match?", TestChatStance, true),
          new SelfTest("chat_hearsay", Severity.Light, "LLM: ask about another lord -> does the NPC answer from their own vantage?", TestChatHearsay, true),
+         new SelfTest("chat_conviction", Severity.Light, "LLM: give an NPC a false, ruinous belief (your clan plots against him), then offer him free grain -> does he weigh the KINDNESS as a move in the game he thinks is afoot, instead of merely thanking you, and still keep the suspicion to himself? The proof that a conviction moves conduct and not just voice", TestChatConviction, true),
          new SelfTest("chat_bastard_mother", Severity.Light, "LLM: force a mercenary bastard-mother context -> does she raise/extort the child?", TestChatBastardMother, true),
          new SelfTest("chat_worldevent", Severity.Light, "LLM: Feed a fresh event -> ask for news -> does the NPC surface it?", TestChatWorldEvent, true),
          new SelfTest("chat_recruit_companion", Severity.Light, "LLM: ask where to find a companion -> assert the gate fired + REAL wanderers gathered, judge the reply names one (never invents)", TestChatRecruitCompanion, true),
@@ -4829,6 +4834,184 @@ namespace CalradiaRemembers.Diagnostics
          p.Events.Add(new NotableEvent(today - 60, NotableEventType.Other, "(selftest) a memory sixty days stale"));
 
          return p;
+      }
+
+      /// <summary>
+      ///   The system prompt the LIVE pipeline would send for this hero, so a test can read what the model is
+      ///   actually about to be told. Prefers the configured builder (the very one the chat uses); falls back to
+      ///   a fresh one when no LLM is configured, so a mechanical test never has to be skipped for want of a key.
+      /// </summary>
+      private static string SystemPromptFor(NpcMemoryCampaignBehavior behavior, Hero npc, NpcProfile profile)
+      {
+         try
+         {
+            IPromptBuilder builder = behavior.LlmServices?.ChatService?.PromptBuilder ?? new PromptBuilder();
+            var world = new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()};
+            EncounterContext ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, "hello");
+
+            return builder.BuildSystemPrompt(profile, world, ctx);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SELFTEST] could not build the system prompt: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   CONVICTION, end to end against the live prompt. A player asked to author what a character BELIEVES
+      ///   rather than merely how they sound, and the existing backstory could not deliver it: its own prompt
+      ///   section tells the model, in as many words, that it shapes how you SPEAK and not what you DECIDE. So a
+      ///   belief written there was a costume. This test injects a conviction at runtime (no file edit), then
+      ///   follows it along every link of the real chain: the loader hands it back, the chat's own per-turn sync
+      ///   carries it onto the profile, and the section lands in the system prompt the model would actually
+      ///   receive, saying that it moves what the NPC decides and carrying the three limits that keep it inside
+      ///   the bridge (no powers, no imported lore, cannot bend the world). Finally it proves the MCM gate: turn
+      ///   custom data off and the belief must leave the prompt entirely, not linger on a stale profile.
+      ///   Deliberately calls <see cref="CharacterOverrideLoader.SyncAuthoredProse" />, the same method the chat
+      ///   calls each turn, so removing that call from the chat breaks this test instead of passing beside it.
+      /// </summary>
+      private static string TestConviction(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("conviction");
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC to author a conviction on")) return t.Line();
+         if (t.Skip(CrSettings.Instance == null, "MCM settings unavailable, cannot toggle custom character data")) return t.Line();
+
+         const string belief =
+            "[SELFTEST] He is convinced the player's clan is quietly plotting to unseat him, and reads every " +
+            "kindness as a move in that game. He has told no one, and never will.";
+
+         bool wasEnabled = ModSettings.UseCustomTraits;
+         NpcProfile profile = GetOrCreate(behavior, npc);
+
+         try
+         {
+            CrSettings.Instance.UseCustomTraits = true;
+
+            CharacterOverrideLoader.InjectRuntimeOverride(new CharacterOverride {
+               Id = npc.StringId,
+               Hero = npc.Name?.ToString(),
+               Conviction = belief
+            });
+
+            t.Note($"authored a conviction on {npc.Name} ({npc.StringId}) at runtime; character_overrides.json untouched");
+            t.Expect("theLoaderHandsBackWhatWasAuthored", CharacterOverrideLoader.ConvictionFor(npc), belief);
+
+            // The chat's own per-turn sync, called here exactly as ChatViewModel calls it.
+            CharacterOverrideLoader.SyncAuthoredProse(profile, npc);
+            t.Expect("thePerTurnSyncCarriesItOntoTheProfile", profile.AuthoredConviction, belief);
+
+            string prompt = SystemPromptFor(behavior, npc, profile);
+
+            if (t.Abort(prompt == null, "could not build the live system prompt")) return t.Line();
+
+            t.Expect("itReachesTheSystemPromptTheModelWouldGet", prompt.Contains(belief), true);
+            t.Expect("underItsOwnSection", prompt.Contains("WHAT YOU HOLD TRUE"), true);
+
+            // The whole reason this field exists rather than a longer backstory: it must be taught as a MOTIVE.
+            t.Expect("andItSaysHeACTSOnIt", prompt.Contains("you ACT on it"), true);
+            t.Expect("andThatItMovesWhatHeDECIDES", prompt.Contains("moves what"), true);
+
+            // The three limits. A belief a player types into a text box may not become a licence to rewrite the
+            // world's rules, so each one is pinned individually: losing any single limit is a distinct failure.
+            t.Expect("limitItGrantsNoPowers", prompt.Contains("NO powers"), true);
+            t.Expect("limitItImportsNoOutsideLore", prompt.Contains("imports no lore"), true);
+            t.Expect("limitItCannotBendTheWorld", prompt.Contains("does not bend the world"), true);
+
+            // The MCM gate, and the reason the sync runs every turn instead of being persisted: switching custom
+            // data off must ERASE the belief from the next prompt, not leave it stranded on the stored profile.
+            CrSettings.Instance.UseCustomTraits = false;
+            CharacterOverrideLoader.SyncAuthoredProse(profile, npc);
+            t.Expect("switchingCustomDataOffErasesItFromTheProfile", profile.AuthoredConviction, null);
+
+            string without = SystemPromptFor(behavior, npc, profile);
+            t.Expect("andTheSectionLeavesThePromptEntirely", without != null && !without.Contains("WHAT YOU HOLD TRUE"), true);
+         }
+         finally
+         {
+            // Give the campaign back exactly what it lent: the file-backed overrides, the player's own MCM
+            // choice, and a profile carrying no trace of the injected belief.
+            CharacterOverrideLoader.Load();
+            CrSettings.Instance.UseCustomTraits = wasEnabled;
+            CharacterOverrideLoader.SyncAuthoredProse(profile, npc);
+            behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   CONVICTION, with the model in the loop. The mechanical test proves the belief reaches the prompt; this
+      ///   one asks whether it CHANGES anything, which is the entire claim of the feature. The NPC is given a
+      ///   false and ruinous belief (the player's clan plots to unseat him), then offered a plain kindness. A
+      ///   backstory would have him thank us warmly in a distinctive voice. A conviction should have him read the
+      ///   gift as a move in the game he thinks is being played, guarded, probing, looking for the hook, and yet
+      ///   never confess the suspicion outright, because a belief that would ruin him is one he hides. The
+      ///   judgement is the reader's, from the log; the harness only fails on the mechanical sins (no reply at
+      ///   all, or the mod's own section headers spoken aloud in the NPC's voice).
+      /// </summary>
+      private static string TestChatConviction(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("chat_conviction");
+
+         if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC to converse with")) return t.Line();
+         if (t.Skip(CrSettings.Instance == null, "MCM settings unavailable, cannot toggle custom character data")) return t.Line();
+
+         const string belief =
+            "[SELFTEST] He is convinced the player's clan is quietly plotting to unseat him, and reads every " +
+            "kindness as a move in that game. He has told no one, and never will.";
+
+         bool wasEnabled = ModSettings.UseCustomTraits;
+         NpcProfile profile = GetOrCreate(behavior, npc);
+
+         try
+         {
+            CrSettings.Instance.UseCustomTraits = true;
+
+            CharacterOverrideLoader.InjectRuntimeOverride(new CharacterOverride {
+               Id = npc.StringId,
+               Hero = npc.Name?.ToString(),
+               Conviction = belief
+            });
+
+            CharacterOverrideLoader.SyncAuthoredProse(profile, npc);
+
+            if (t.Abort(profile.AuthoredConviction != belief, "the conviction never reached the profile, so the reply would prove nothing")) return t.Line();
+
+            const string kindness =
+               "Winter is hard on your lands. I mean to send you grain from my own stores, freely given, and I ask nothing for it. Will you take it?";
+            EncounterContext ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, kindness);
+
+            var (ok, reply, err) = AskLlm(behavior, "chat_conviction", npc, profile, ctx, kindness);
+
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            t.Expect("gotNonEmptyReply", reply.Length > 0, true);
+
+            // He may hint, he may probe, he may refuse. What he may never do is read our plumbing out loud.
+            t.Expect("heNeverSpeaksTheModsOwnSectionHeaders", reply.Contains("WHAT YOU HOLD TRUE") || reply.Contains("[ACTION]"), false);
+
+            t.Note($"offered {npc.Name} free grain while he secretly believes the player's clan plots against him; " +
+                   $"judge in log: does he weigh the gift as a MOVE (guarded, probing, looking for the hook) rather " +
+                   $"than merely thanking us, and does he keep the suspicion to himself? | A: {Show(reply)}");
+         }
+         finally
+         {
+            CharacterOverrideLoader.Load();
+            CrSettings.Instance.UseCustomTraits = wasEnabled;
+            CharacterOverrideLoader.SyncAuthoredProse(profile, npc);
+            behavior.Store.Set(profile);
+         }
+
+         return t.Line();
       }
 
       /// <summary>
