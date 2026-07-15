@@ -320,6 +320,73 @@ Reuse, not from scratch: `PlayerPresenceResolver` (v1.30.14) already answers "wh
 player" as `PresenceTier.SamePlace`, which is exactly the candidate list. `InterceptionPacingRules` already owns
 the frequency dial. `CompanionHappinessBehavior.RequestAudience` already shows the Accept/Decline inquiry shape.
 
+## NEW PILLAR (player request, multiple, 2026-07-14): DUELS AND COMBAT FROM CHAT
+
+Players asked for two things: an NPC that decides to ATTACK the player from a conversation (opening a combat
+encounter), and an NPC that offers or accepts a DUEL (the player and the NPC crossing blades before witnesses).
+These are NOT the same feature and must not be conflated.
+
+### The war-declaration line still holds
+A lord AT PEACE who attacks the player commits an act of war, and war in CR is strategic, leader-only, NEVER a
+conversation trigger (see the war-declaration constraint). So the two requests split cleanly:
+- **Already at war / bandit / nemesis / outlaw**: hostile ATTACK is legitimate, and the machinery mostly exists
+  (`NemesisBehavior` brackets MapEvents; `InterceptionBehavior` engages a party). This is a LATER increment.
+- **At peace**: the honest channel is a DUEL, never an army. Steel between two people, not two realms.
+
+### We already own ~90% of the plumbing (verified against the engine + our own ambush code, 2026-07-14)
+The captive-ambush pillar already runs a REAL 3D fight and everything a duel needs sits around it:
+- `MissionFightHandler.StartCustomFight(playerSide, opponentSide, dropWeapons, isItemUseDisabled, onFightEnd,
+  minEndTime)` is the core, and there is also `StartFistFight` for an unarmed bout. `onFightEnd(isPlayerSideWon)`
+  hands back the winner; `OnAgentRemoved` on the MainAgent already catches the player going down.
+- Spawning a REAL hero (not a troop) into a scene is done today by `TownAmbushBehavior.CreateAlly` (a `Hero` with
+  their own face and battle gear). A duel just puts that hero on the ENEMY side, alone.
+- Opening the fight scene in a settlement: `PlayerEncounter.LocationEncounter.CreateAndOpenMissionController(
+  GetLocationWithId("center"))`; the driver is attached by a Harmony postfix on `Mission.AfterStart`
+  (`AmbushMissionStartPatch` / `AttachBrawlIfPending`).
+- Non-lethal is native: `Agent.SetMortalityState(Invulnerable)` is already used on fleeing bystanders, and
+  `StartFistFight` / the mission mode give a knock-out bout.
+
+### Ambush -> duel: what actually changes
+One opponent (the real hero, not chief + cutthroats); CONSENTED (challenge + acceptance) instead of an ambush;
+NON-LETHAL knock-out; witnesses STAY and watch (we simply do not call `SendBystandersFleeing`, the crowd IS the
+audience); companions are spectators, not combatants; defeat costs honour / renown / regard / a real stake,
+never captivity.
+
+### Ratified decisions (Gabriel, 2026-07-14)
+1. **Non-lethal by default.** The loser is knocked unconscious. A duel to the death would let a chat delete a
+   named hero forever. A later MCM "duels to the death" toggle is possible, not assumed.
+2. **Location follows the chat encounter, no arena required** (Gabriel's key insight, this is what frees the duel
+   from a town's arena):
+   - IN TOWN -> reuse the ambush town-centre path (low risk).
+   - IN A KEEP -> stage it AT THE TOWN GATES (same settlement mechanism, different location).
+   - IN THE WILDERNESS -> generate a matching FIELD scene. This is the ONE engine unknown: outside a settlement
+     there is no `LocationComplex` / `center` location, so the ambush launch path does not apply. It must be
+     de-risked by a `cr.duel_here` spike (a field scene that opens AND closes with no VRAM leak) BEFORE Inc 1
+     commits to it. If the spike fails, town + gates still ships and the wilderness waits.
+3. **Real stakes from Inc 1.** Honour always moves (relation, renown, Fear/Respect, a grudge settled or
+   hardened), and a concrete wager is on the table from the first increment: gold, or a prisoner's freedom. This
+   is pure policy, so it lives entirely in Inc 0 and is tested before touching the engine.
+
+### The bridge is law
+The LLM emits `challenge_duel`; the mod re-validates everything (same place, a peer not a commoner, not a
+prisoner, cooldown, traits: Valor/Honour accept, a fearful Calculating slips out of it, an affronted grudge-holder
+demands it). A refusal must COST (renown / honour before witnesses) or no one ever fights and the feature is dead.
+
+### Increments
+- **Inc 0 (PURE, no engine, Opus, design):** `DuelChallengePolicy` (who may challenge / be challenged, when),
+  `DuelAcceptancePolicy` (traits + stance + grudge -> accept / refuse / set terms), `DuelStakesPolicy` (honour +
+  gold + prisoner freedom, and what a forfeit costs), `DuelOutcomePolicy` (winner/loser -> relation, renown,
+  Fear/Respect, grudge settled or hardened, stake transferred). All unit-tested; Gabriel reads the tests as the
+  spec before a line touches the engine.
+- **Inc 1 (Sonnet, ambush pattern):** a `cr.duel_here` WILDERNESS SPIKE first (de-risk the field scene), then the
+  `challenge_duel` action + bridge guard, spawn the opponent hero, `StartFistFight` non-lethal, witnesses stay,
+  the real stake changing hands, the world-event + chronicle. Locations: town + gates + wilderness if the spike
+  passed. `cr.duel` to test.
+- **Inc 2:** the grudge duel as a first-class resolution verb ("let us settle this with steel"); richer stakes (a
+  courted lady's hand, an abandoned suit); the post-duel conversation ("you spared me").
+- **Inc 3 (SEPARATE, guarded):** the hostile ATTACK, restricted to already-at-war / bandit / nemesis, reusing the
+  existing MapEvent brackets. NEVER a peace-time conversation opening a battle.
+
 ## ✅ Shipped & built
 
 Live on Nexus, or built + committed awaiting upload. **(untested)** = built green and committed but its
