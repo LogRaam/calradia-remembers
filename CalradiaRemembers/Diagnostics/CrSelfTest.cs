@@ -109,6 +109,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("presence_gate", Severity.Light, "Mechanical: the ONE behaviour v1.30.14 changed, guarded across the WHOLE living roster with no preconditions. The letter system's facade and the single presence authority must give the same answer for every hero alive (before this, letters asked a wide question and jealousy a party-only one), and beside/away must be exact opposites. If they ever disagree again, the systems have drifted apart and this fires", TestPresenceGate),
          new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
+         new SelfTest("reasoning_scrub", Severity.Light, "Mechanical: the inline <think> leak (tthheerroocckk, nemotron on High reasoning). The save/load itself is STUBBED: corrupted memories are written straight into the store as an old save would carry them (a trace before real prose, a memory that is ONLY a truncated trace, a corrupted background paragraph) -> the REAL session-launch scrub runs -> assert the prose is recovered, the all-trace memory becomes the honest 'faded' line (never invented content), the background returns to null, and a second pass is a no-op. Removes its seeds afterwards", TestReasoningScrub),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
@@ -2923,6 +2924,58 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("jealousyGrudgeFormed", jealousyGrudgeExists, true);
          t.Expect("secondPassFormsNothingNew", formed2, 0);
          t.Expect("noDuplicateForThisEvent", countAfterBoth, 1);
+
+         return t.Line();
+      }
+
+      // ── Reasoning-trace scrub: the save-healing half of the inline <think> fix (the parse-time strip ──
+      // ── stops NEW leaks; this heals what an old save already stores). The save/load round trip is ──
+      // ── STUBBED: corrupted summaries are written straight into the live store, exactly the state a ──
+      // ── pre-fix save would deserialize into, then the REAL session-launch step runs against it. ──────
+
+      private static string TestReasoningScrub(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("reasoning_scrub");
+
+         Hero npc = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+
+         if (t.Skip(npc == null, "no live lord to seed a profile on")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         int day = behavior.GameStateBridge.GetCurrentGameDay();
+         string originalBackground = profile.BackgroundContext;
+
+         // The two reported shapes, seeded exactly as an old save would carry them: real prose hidden
+         // behind a closed trace, and the screenshot case (a memory that is ONLY a truncated trace).
+         const string recoverable = "[SELFTEST] a real memory recovered from behind the trace";
+         profile.Events.Add(new NotableEvent(day, NotableEventType.Collaboration,
+            "<think>The user wants me to write a memory line.</think>" + recoverable));
+         profile.Events.Add(new NotableEvent(day, NotableEventType.Collaboration,
+            "<think>Let me summarize what happened: 1. Huan Yi"));
+         profile.BackgroundContext = "<think>I need to compress these older events";
+         behavior.Store.Set(profile);
+
+         // The REAL launch step: the exact code OnSessionLaunched runs against every loaded save.
+         behavior.ScrubLeakedReasoningTraces();
+
+         NpcProfile healed = behavior.Store.Get(npc.StringId);
+         NotableEvent recovered = healed.Events[healed.Events.Count - 2];
+         NotableEvent faded = healed.Events[healed.Events.Count - 1];
+
+         t.Note($"npc={npc.Name}: recovered='{recovered.summary}', faded='{faded.summary}', background={healed.BackgroundContext ?? "null"}");
+         t.Expect("proseRecovered", recovered.summary, recoverable);
+         t.Expect("allTraceBecomesFadedLine", faded.summary, ReasoningTraceBackfill.LostMemoryLine);
+         t.Expect("backgroundReturnsToNull", healed.BackgroundContext == null, true);
+
+         // Idempotence is the property that makes running this on EVERY launch safe (no version
+         // marker): a second pass over the just-healed profile must report nothing to change.
+         t.Expect("secondPassIsNoOp", ReasoningTraceBackfill.Scrub(healed), false);
+
+         // Cleanup: the seeds were appended last and healed IN PLACE, so they are still the last two.
+         healed.Events.RemoveAt(healed.Events.Count - 1);
+         healed.Events.RemoveAt(healed.Events.Count - 1);
+         healed.BackgroundContext = originalBackground;
+         behavior.Store.Set(healed);
 
          return t.Line();
       }

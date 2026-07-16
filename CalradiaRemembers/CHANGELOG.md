@@ -2,6 +2,18 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.30.16.. 2026-07-15
+
+### Fixed
+- **A reasoning model's private thoughts no longer bleed into the conversation or its memories.** Some models
+  (Nemotron and similar, especially with Reasoning Effort set high) write their step-by-step thinking inside the
+  reply itself. The game hid the surrounding tags and showed only the bare thinking, so an NPC could end up
+  "remembering" something like "The user wants me to write a memory line from their perspective..." instead of
+  the actual memory. Those stray thoughts are now removed from every reply before it reaches you, and any
+  memories a previous version already saved this way are cleaned up automatically the next time you load a save
+  (a memory that was nothing but leaked thinking becomes a plain note that the details have faded, rather than
+  vanishing or being invented).
+
 ## v1.30.15.. 2026-07-14
 
 ### Added

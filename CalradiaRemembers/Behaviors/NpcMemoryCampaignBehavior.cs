@@ -22,6 +22,7 @@ using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
@@ -223,6 +224,10 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.CaptiveEncounterService.ResetOnSessionLaunch", CaptiveEncounterService.ResetOnSessionLaunch);
          SafeRun.Step("OnSessionLaunched.DisplayLoadedProfiles", DisplayLoadedProfiles);
          SafeRun.Step("OnSessionLaunched.UpgradeLegacyProfiles", UpgradeLegacyProfiles);
+         // Heals saves made before the inline chain-of-thought fix (ReasoningTraceStripper): stored
+         // memories that ARE the model's leaked reasoning are scrubbed or replaced by a "faded" line.
+         // Idempotent by construction, so it simply runs on every launch (a clean profile is a no-op).
+         SafeRun.Step("OnSessionLaunched.ScrubLeakedReasoningTraces", ScrubLeakedReasoningTraces);
          SafeRun.Step("OnSessionLaunched.RefreshRelationships", RefreshRelationships);
          SafeRun.Step("OnSessionLaunched.RumorStore.Clear", RumorStore.Clear);
          SafeRun.Step("OnSessionLaunched.DialogFlow.Register", () => DialogFlow.Register(campaignGameStarter));
@@ -324,6 +329,30 @@ namespace CalradiaRemembers.Behaviors
                profile.SentLetters.Remove(orphan);
             Store.Set(profile);
          }
+      }
+
+      /// <summary>
+      ///   One pass over every stored profile through <see cref="ReasoningTraceBackfill" />: memories that
+      ///   are really a reasoning model's leaked chain-of-thought (saves made before the parse-time strip)
+      ///   are healed in place. Only profiles that actually changed are re-persisted. Public so the
+      ///   reasoning_scrub self-test can drive the exact launch step against a seeded store.
+      /// </summary>
+      public void ScrubLeakedReasoningTraces()
+      {
+         var scrubbed = 0;
+         foreach (string id in Store.ListIds())
+         {
+            NpcProfile profile = Store.Get(id);
+
+            if (profile == null) continue;
+            if (!ReasoningTraceBackfill.Scrub(profile)) continue;
+
+            Store.Set(profile);
+            scrubbed++;
+         }
+
+         if (scrubbed > 0)
+            ModLog.Info($"Scrubbed leaked reasoning traces from {scrubbed} profile(s).");
       }
 
       /// <summary>
