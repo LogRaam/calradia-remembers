@@ -359,10 +359,23 @@ never captivity.
    from a town's arena):
    - IN TOWN -> reuse the ambush town-centre path (low risk).
    - IN A KEEP -> stage it AT THE TOWN GATES (same settlement mechanism, different location).
-   - IN THE WILDERNESS -> generate a matching FIELD scene. This is the ONE engine unknown: outside a settlement
-     there is no `LocationComplex` / `center` location, so the ambush launch path does not apply. It must be
-     de-risked by a `cr.duel_here` spike (a field scene that opens AND closes with no VRAM leak) BEFORE Inc 1
-     commits to it. If the spike fails, town + gates still ships and the wilderness waits.
+   - IN THE WILDERNESS -> generate a matching FIELD scene. This WAS the ONE engine unknown (no `LocationComplex` /
+     `center` outside a settlement, so the ambush launch path does not apply). **DE-RISKED and VALIDATED in game
+     2026-07-15 via the `cr.duel_here` spike (mod `d3de0db`): the wilderness is VIABLE via CUSTOM placement, no
+     battle-MapEvent machinery needed.** The proven recipe:
+     1. Build the record with `SandBoxMissions.CreateSandBoxMissionInitializerRecord(scene, "", false,
+        DecalAtlasGroup.Battle)` (fills AtmosphereOnCampaign / TerrainType / difficulty; building it by hand
+        left no atmosphere and the scene hung on the loading screen forever).
+     2. Scene from `GameSceneDataManager.Instance.SingleplayerBattleScenes` (first non-naval, e.g. `battle_terrain_a`).
+     3. `MissionState.OpenNew(name, rec, initBehaviors, addDefaultMissionBehaviors:true, needsMemoryCleanup:true)`;
+        VRAM returns clean between cycles (no render-target leak).
+     4. Spawn on the scene's NAVIGABLE centre (bounding-box mid + `GetGroundHeightAtPosition`; `(0,0,0)` is the
+        off-navmesh corner). Player agent `Controller = Player`.
+     5. `Mission.SetMissionMode(MissionMode.Battle)` is what frees WALKING + weapon switching.
+     6. Opponent engages with `AgentHumanAILogic` in the mission + the foe set `Agent.WatchState.Alarmed` (the
+        arena duel's 1v1 pattern; NO formation, NO MapEvent). Everything runs on the battlefield navmesh.
+     (Gotcha found in testing: the RGL console keeps keyboard focus after the command, so click into the scene
+     before judging movement.)
 3. **Real stakes from Inc 1.** Honour always moves (relation, renown, Fear/Respect, a grudge settled or
    hardened), and a concrete wager is on the table from the first increment: gold, or a prisoner's freedom. This
    is pure policy, so it lives entirely in Inc 0 and is tested before touching the engine.
@@ -378,10 +391,13 @@ demands it). A refusal must COST (renown / honour before witnesses) or no one ev
   gold + prisoner freedom, and what a forfeit costs), `DuelOutcomePolicy` (winner/loser -> relation, renown,
   Fear/Respect, grudge settled or hardened, stake transferred). All unit-tested; Gabriel reads the tests as the
   spec before a line touches the engine.
-- **Inc 1 (Sonnet, ambush pattern):** a `cr.duel_here` WILDERNESS SPIKE first (de-risk the field scene), then the
-  `challenge_duel` action + bridge guard, spawn the opponent hero, `StartFistFight` non-lethal, witnesses stay,
-  the real stake changing hands, the world-event + chronicle. Locations: town + gates + wilderness if the spike
-  passed. `cr.duel` to test.
+- **Inc 1 (Sonnet, ambush pattern):** WILDERNESS SPIKE ✅ DONE + validated (mod `d3de0db`, recipe above). Remaining:
+  the `challenge_duel` action + bridge guard, spawn the opponent hero, NON-LETHAL knock-out (invulnerable / KO,
+  not a kill), witnesses STAY (do not flee), the real stake changing hands (wire `DuelStakesPolicy` /
+  `DuelOutcomePolicy` from Inc 0), the world-event + chronicle. Locations: town + gates + WILDERNESS (all three
+  now unblocked). `cr.duel` to test. NOTE the spike is a throwaway diagnostic (`DuelSceneSpike` /
+  `DuelSpikeMissionLogic` / `cr.duel_here`); Inc 1 builds the real duel mission from its proven recipe, and the
+  spike files can be retired once the real one lands.
 - **Inc 2:** the grudge duel as a first-class resolution verb ("let us settle this with steel"); richer stakes (a
   courted lady's hand, an abandoned suit); the post-duel conversation ("you spared me").
 - **Inc 3 (SEPARATE, guarded):** the hostile ATTACK, restricted to already-at-war / bandit / nemesis, reusing the
