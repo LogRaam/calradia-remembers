@@ -15,9 +15,11 @@
 using System;
 using System.Collections.Generic;
 using CalradiaRemembers.Diagnostics;
+using SandBox;
 using SandBox.Missions.MissionLogics;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
+using TaleWorlds.Engine;
 using TaleWorlds.MountAndBlade;
 
 #endregion
@@ -31,8 +33,25 @@ namespace CalradiaRemembers.Duels
    /// </summary>
    public static class DuelSceneSpike
    {
-      private static bool _awaitingReturnMeasure;
+      /// <summary>How long the launch may sit on a loading screen before the spike calls it a failed open.</summary>
+      private const float OpenTimeoutSeconds = 90f;
+
+      private static SpikeState _state = SpikeState.Idle;
       private static string _baseline;
+      private static float _elapsedInState;
+
+      /// <summary>
+      ///   Where the spike is in the open -> in-scene -> back-on-map cycle. MissionState.OpenNew is ASYNC (the
+      ///   scene loads behind a loading screen), so the return measurement must wait until the mission has
+      ///   actually gone live; treating the still-null Mission.Current right after the call as "already closed"
+      ///   is the bug that produced a same-second, meaningless before/after in the first run.
+      /// </summary>
+      private enum SpikeState
+      {
+         Idle,     // no spike running
+         Opening,  // OpenNew called, waiting for the scene to load (Mission.Current still null)
+         InScene   // the mission is live; now watch for the return to the map
+      }
 
       /// <summary>
       ///   Opens the spike field duel against <paramref name="opponent" />. Must be called from the campaign
@@ -52,24 +71,26 @@ namespace CalradiaRemembers.Duels
 
          try
          {
-            var rec = new MissionInitializerRecord(scene) {
-               PlayingInCampaignMode = true,
-               DoNotUseLoadingScreen = false,
-               SceneLevels = string.Empty,
-               NeedsRandomTerrain = false
-            };
+            // Build the record through the game's OWN helper, not by hand: it fills the fields a field scene
+            // cannot load without (AtmosphereOnCampaign from the live map weather at the party's position, the
+            // map-face TerrainType, the difficulty multipliers). The first run built the record by hand and set
+            // none of these, so the scene hung on its loading screen forever. DecalAtlasGroup.Battle is the
+            // field-battle atlas (Town is what the settlement paths pass).
+            MissionInitializerRecord rec =
+               SandBoxMissions.CreateSandBoxMissionInitializerRecord(scene, string.Empty, false, DecalAtlasGroup.Battle);
 
-            _awaitingReturnMeasure = true;
+            _state = SpikeState.Opening;
+            _elapsedInState = 0f;
 
             MissionState.OpenNew(
                "CalradiaRemembersDuelSpike",
                rec,
-               // MissionFightHandler is CR's own proven combat trigger (the town ambush drives its brawl through
-               // StartCustomFight on it); adding it here lets the spike start a real fight in the field scene. It
-               // is the only extra behaviour added, to keep the untested surface small: DuelSpikeMissionLogic
-               // spawns the two fighters and drives the auto-close timer.
+               // AgentHumanAILogic is the engine's human-combat AI: without it a field-spawned opponent just
+               // stands there (a field agent has no civilian navigator, so the settlement-brawl helper does not
+               // apply). With it, plus the opponent set to Alarmed by DuelSpikeMissionLogic, the AI engages on
+               // the navmesh, no formation or MapEvent needed, matching the arena duel's own 1v1 pattern.
                mission => new List<MissionBehavior> {
-                  new MissionFightHandler(),
+                  new AgentHumanAILogic(),
                   new DuelSpikeMissionLogic(opponent)
                },
                true,   // add the engine's default mission behaviors (camera, agent locator, and so on)
@@ -80,7 +101,7 @@ namespace CalradiaRemembers.Duels
          }
          catch (Exception ex)
          {
-            _awaitingReturnMeasure = false;
+            _state = SpikeState.Idle;
             ModLog.Error($"[DUELSPIKE] OpenNew failed: {ex.GetType().Name}: {ex.Message}");
 
             return $"Could not open the field scene: {ex.GetType().Name}: {ex.Message} (see the log).";
@@ -88,16 +109,44 @@ namespace CalradiaRemembers.Duels
       }
 
       /// <summary>
-      ///   Pumped every frame from the submodule. Once the spike mission has ended and we are back on the map,
-      ///   samples VRAM again and logs the before/after so a leak (or its absence) is visible without any
-      ///   in-mission hook surviving teardown. One-shot per spike.
+      ///   Pumped every frame from the submodule (including during the loading screen, since it rides the
+      ///   application tick, not the mission tick). Drives the open -> in-scene -> back-on-map state machine and,
+      ///   on the return, logs the VRAM before/after so a render-target leak (or its absence) is visible without
+      ///   any in-mission hook surviving teardown.
       /// </summary>
-      public static void Tick()
+      public static void Tick(float dt)
       {
-         if (!_awaitingReturnMeasure) return;
-         if (Mission.Current != null) return; // still in the scene
+         if (_state == SpikeState.Idle) return;
 
-         _awaitingReturnMeasure = false;
+         _elapsedInState += dt;
+
+         if (_state == SpikeState.Opening)
+         {
+            if (Mission.Current != null)
+            {
+               _state = SpikeState.InScene;
+               _elapsedInState = 0f;
+               ModLog.Info("[DUELSPIKE] the field scene opened (the mission is live). Now watching for the return to the map.");
+
+               return;
+            }
+
+            // Still on the loading screen. If the mission never goes live, the raw field launch does not work
+            // from here: say so once and stand down (a stuck loading screen is itself the spike's answer).
+            if (_elapsedInState > OpenTimeoutSeconds)
+            {
+               _state = SpikeState.Idle;
+               ModLog.Error($"[DUELSPIKE] the mission never went live after {OpenTimeoutSeconds:0}s: the field scene did not open " +
+                            "(a stuck loading screen). Spike FAILURE for this launch path.");
+            }
+
+            return;
+         }
+
+         // InScene: the mission was live; the first frame it is gone, we are back on the map.
+         if (Mission.Current != null) return;
+
+         _state = SpikeState.Idle;
          string after = VramProbe.Describe();
          ModLog.Info($"[DUELSPIKE] back on the map after the field scene closed. VRAM before | {_baseline}");
          ModLog.Info($"[DUELSPIKE] back on the map after the field scene closed. VRAM after  | {after}");

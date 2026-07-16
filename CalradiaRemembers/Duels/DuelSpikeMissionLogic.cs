@@ -10,13 +10,10 @@
 #region
 
 using System;
-using System.Collections.Generic;
 using CalradiaRemembers.Diagnostics;
-using SandBox;
-using SandBox.Missions.AgentBehaviors;
-using SandBox.Missions.MissionLogics;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
+using TaleWorlds.Engine;
 using TaleWorlds.Library;
 using TaleWorlds.MountAndBlade;
 
@@ -46,6 +43,19 @@ namespace CalradiaRemembers.Duels
          {
             ModLog.Info("[DUELSPIKE] mission AfterStart: the field scene is live. Spawning the two fighters.");
             SpawnFighters();
+
+            // Movement and weapon-switching are gated by the mission MODE, not just the navmesh: a scene opened
+            // with no explicit mode leaves the player able to look and swing but not walk. Battle mode is the
+            // one a real fight runs in. If this frees movement on the (confirmed) navmesh, custom field placement
+            // is viable; if it does not, the field needs the combat mission behaviours (MissionAgentHandler,
+            // AgentHumanAILogic, ...) a bare OpenNew does not install, and the wilderness duel goes through the
+            // battle-mission path instead.
+            try
+            {
+               Mission.SetMissionMode(MissionMode.Battle, false);
+               ModLog.Info("[DUELSPIKE] mission mode set to Battle. Try to WALK and switch weapons now.");
+            }
+            catch (Exception ex) { ModLog.Error($"[DUELSPIKE] SetMissionMode(Battle) threw: {ex.GetType().Name}: {ex.Message}"); }
          }
          catch (Exception ex)
          {
@@ -85,97 +95,62 @@ namespace CalradiaRemembers.Duels
          Mission.PlayerTeam = playerTeam;
          playerTeam.SetIsEnemyOf(enemyTeam, true);
 
-         Vec3 centre = Mission.GetRandomPositionAroundPoint(new Vec3(0f, 0f, 0f), 6f, 0f, true);
+         // The first run spawned at (0,0,0), which is the scene CORNER (off the navmesh), so the player was
+         // pinned and could only turn in place. Place the fighters on the scene's navigable ground instead,
+         // and report whether that point is actually on a navmesh: that is the binary answer to whether custom
+         // placement (like the town ambush, but in a field) is viable, or whether the wilderness duel needs the
+         // full battle-spawn system.
+         Vec3 centre = FindNavigableCentre();
 
          Agent player = SpawnOne(CharacterObject.PlayerCharacter, playerTeam, centre, new Vec2(0f, 1f));
          if (player != null)
          {
             player.Controller = AgentControllerType.Player;
-            ModLog.Info($"[DUELSPIKE] player agent spawned at {centre} (MainAgent now {(Mission.MainAgent != null ? "set" : "still null")}).");
+            ModLog.Info($"[DUELSPIKE] player agent spawned at {centre} (MainAgent now {(Mission.MainAgent != null ? "set" : "still null")}). " +
+                        "Try to WALK: if you can move here, custom field placement works.");
          }
 
          CharacterObject foe = _opponent?.CharacterObject ?? CharacterObject.PlayerCharacter;
          Vec3 foePos = centre + new Vec3(4f, 0f, 0f);
          Agent opponent = SpawnOne(foe, enemyTeam, foePos, new Vec2(0f, -1f));
-         if (opponent != null) ModLog.Info($"[DUELSPIKE] opponent agent ({foe.StringId}) spawned at {foePos}.");
-
-         StartTheFight(player, opponent);
+         if (opponent != null)
+         {
+            // The one thing that makes a field-spawned opponent actually engage, straight from the arena duel's
+            // 1v1 setup: put the AI agent on alert. Combined with the mission's AgentHumanAILogic, it charges and
+            // fights on the navmesh, no formation or MapEvent required. (Defensiveness 1 keeps it from turtling.)
+            opponent.SetWatchState(Agent.WatchState.Alarmed);
+            opponent.Defensiveness = 1f;
+            ModLog.Info($"[DUELSPIKE] opponent agent ({foe.StringId}) spawned at {foePos}, set Alarmed. It should now advance and fight.");
+         }
       }
 
       /// <summary>
-      ///   Puts the mission in Battle mode and starts CR's own custom fight (the same MissionFightHandler.
-      ///   StartCustomFight the town ambush uses) between the two agents. Every step is guarded on its own: if
-      ///   the combat never engages (a field-spawned agent may lack the settlement navigator the fight behaviour
-      ///   leans on), the opponent simply stands there and the scene/VRAM/return measurement, the real point of
-      ///   the spike, is untouched. The fighters are invulnerable, so the fight never resolves on its own; the
-      ///   timer is what closes the scene.
+      ///   A point on the scene's navigable ground, near the centre of its bounding box. Logs whether the point
+      ///   resolved to a navmesh face, which is the datum that decides the wilderness approach.
       /// </summary>
-      private void StartTheFight(Agent player, Agent opponent)
+      private Vec3 FindNavigableCentre()
       {
-         if (player == null || opponent == null)
-         {
-            ModLog.Info("[DUELSPIKE] a fighter is missing, so no fight is started (the scene still opens and closes for the VRAM test).");
-
-            return;
-         }
-
-         try { Mission.SetMissionMode(MissionMode.Battle, false); }
-         catch (Exception ex) { ModLog.Error($"[DUELSPIKE] SetMissionMode(Battle) threw: {ex.GetType().Name}: {ex.Message}"); }
-
-         TryGiveFightBehaviors(player);
-         TryGiveFightBehaviors(opponent);
-
          try
          {
-            var handler = Mission.GetMissionBehavior<MissionFightHandler>();
-            if (handler == null)
-            {
-               ModLog.Info("[DUELSPIKE] no MissionFightHandler in the mission, so the opponent will not engage (scene test still valid).");
+            Scene scene = Mission.Scene;
+            scene.GetBoundingBox(out Vec3 min, out Vec3 max);
+            var midXy = new Vec3((min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f, max.z + 10f);
+            float groundZ = scene.GetGroundHeightAtPosition(midXy);
+            var ground = new Vec3(midXy.x, midXy.y, groundZ);
 
-               return;
-            }
+            UIntPtr navFace = scene.GetNavigationMeshForPosition(in ground);
+            ModLog.Info($"[DUELSPIKE] scene bounds min={min} max={max}; navigable centre candidate={ground}; " +
+                        $"navmesh at that point = {(navFace != UIntPtr.Zero ? "PRESENT (custom placement viable)" : "ABSENT (needs the battle-spawn system)")}.");
 
-            handler.StartCustomFight(
-               new List<Agent> {player},
-               new List<Agent> {opponent},
-               false, // do not drop weapons
-               false, // item use enabled
-               OnDuelEnd,
-               0f);
-            ModLog.Info("[DUELSPIKE] custom fight started between the player and the opponent.");
+            return ground;
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[DUELSPIKE] StartCustomFight threw (scene test still valid): {ex.GetType().Name}: {ex.Message}");
+            ModLog.Error($"[DUELSPIKE] finding a navigable centre failed, falling back to origin: {ex.GetType().Name}: {ex.Message}");
+
+            return new Vec3(0f, 0f, 0f);
          }
       }
-
-      /// <summary>
-      ///   Best-effort: gives an agent the settlement behaviour groups the custom fight relies on, IF it has a
-      ///   navigator. A field-spawned agent may have none (battle agents are driven by team AI, not the civilian
-      ///   navigator), which is not a failure, just a note that the fight may not engage.
-      /// </summary>
-      private static void TryGiveFightBehaviors(Agent agent)
-      {
-         try
-         {
-            AgentNavigator nav = agent?.GetComponent<CampaignAgentComponent>()?.AgentNavigator;
-            if (nav == null)
-            {
-               ModLog.Info($"[DUELSPIKE] agent {(agent != null ? "has no navigator (field-spawned)" : "is null")}; relying on team AI for engagement.");
-
-               return;
-            }
-
-            nav.AddBehaviorGroup<DailyBehaviorGroup>();
-            nav.AddBehaviorGroup<AlarmedBehaviorGroup>();
-         }
-         catch (Exception ex) { ModLog.Error($"[DUELSPIKE] giving fight behaviors failed: {ex.GetType().Name}: {ex.Message}"); }
-      }
-
-      /// <summary>The custom fight reporting an end. With invulnerable fighters this is unlikely; the timer is the real close.</summary>
-      private void OnDuelEnd(bool playerWon)
-         => ModLog.Info($"[DUELSPIKE] the custom fight reported an end (playerWon={playerWon}).");
 
       /// <summary>Builds and spawns one invulnerable, dismounted fighter, or logs and returns null on failure.</summary>
       private Agent SpawnOne(CharacterObject character, Team team, Vec3 position, Vec2 direction)
