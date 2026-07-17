@@ -74,6 +74,19 @@ namespace CalradiaRemembers.Marriage
       /// </summary>
       public DivorceProcess Create(string npcId, string spouseId, int issuedDay)
       {
+         // M-D3: lock by the PAIR (see DivorceProcess.PairAlreadyEngaged), not the requester alone. If either
+         // party is already in a live process, return THAT one instead of opening a second crossed process that
+         // would resolve on a false "household closed ranks" and dock the player's relation. The caller's
+         // HasActive(requester) gate does not catch this, since the second persuasion has a different requester.
+         if (DivorceProcess.PairAlreadyEngaged(_active, npcId, spouseId))
+         {
+            DivorceProcess existing = _active.First(p => p.State == DivorceProcessState.Active
+               && (p.NpcId == npcId || p.SpouseId == npcId || p.NpcId == spouseId || p.SpouseId == spouseId));
+            ModLog.Info($"[DIVORCE] a process already involves {npcId} or {spouseId}; not opening a second (pair lock).");
+
+            return existing;
+         }
+
          var process = new DivorceProcess {
             Id = Guid.NewGuid().ToString("N"),
             NpcId = npcId,
@@ -548,6 +561,19 @@ namespace CalradiaRemembers.Marriage
 
          if (!MarriageDissolutionService.TryDissolve(npc, spouse, out string failReason))
          {
+            // M-D6: a pregnancy or captivity in play is TRANSIENT, not the household resisting; the marriage
+            // simply cannot dissolve yet. Defer and retry once it clears (birth, release, or death; a death is
+            // caught by Advance's alive-guard, so this never loops forever) instead of a false "closed ranks"
+            // abort that would cost the player an unearned relation hit. A conception early in a 15-30 day
+            // process would otherwise GUARANTEE that false failure, since a pregnancy runs far longer.
+            if (MarriageDissolutionService.ClassifyBlock(npc, spouse) == DivorceBlock.Transient)
+            {
+               process.EndDay = DivorcePolicy.ExtendEndDay(process.EndDay);
+               ModLog.Info($"[DIVORCE] {npc.Name} / {spouse.Name}: dissolution deferred ({failReason}); end day pushed to {process.EndDay}, no penalty.");
+
+               return;
+            }
+
             ModLog.Info($"[DIVORCE] dissolution at deadline failed for {npc.Name} / {spouse.Name}: {failReason}.");
             TerminateAborted(process, npc, spouse);
 

@@ -788,6 +788,9 @@ namespace CalradiaRemembers.Chat
                var actionContext = new ActionContext(profile, response.NewEventData?.Type) {
                   OfferedItemId = _offer.OfferedItemId
                };
+               // B2 (quest audit): at most one change_relation applies per turn, so a weak model that emits
+               // several negative blocks cannot pile the RelationGate's per-call -15 floor into -75.
+               var relationChangedThisTurn = false;
                foreach (GameAction action in response.Actions)
                {
                   // request_privacy, end_conversation and witness_leaves are
@@ -831,8 +834,33 @@ namespace CalradiaRemembers.Chat
 
                   if (disposition != ActionDisposition.ExecuteInline) continue;
 
-                  ActionOutcome outcome =
-                     behavior.GameStateBridge.ExecuteAction(action, speaker.Hero, actionContext);
+                  // B2: the first regard change this turn wins; extras are dropped (see relationChangedThisTurn).
+                  if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase))
+                  {
+                     if (relationChangedThisTurn)
+                     {
+                        ModLog.Info("[ACTION] change_relation dropped: at most one regard change applies per turn.");
+
+                        continue;
+                     }
+
+                     relationChangedThisTurn = true;
+                  }
+
+                  // B3 (quest audit): an executor that throws must not abort the whole turn (skipping the
+                  // remaining actions AND the Store.Set that persists this turn's mutations). Isolate each call.
+                  ActionOutcome outcome;
+                  try
+                  {
+                     outcome = behavior.GameStateBridge.ExecuteAction(action, speaker.Hero, actionContext);
+                  }
+                  catch (Exception ex)
+                  {
+                     ModLog.Error($"[ACTION] '{action.Type}' threw and was skipped so the rest of the turn still applies: {ex.GetType().Name}: {ex.Message}");
+
+                     continue;
+                  }
+
                   if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);
 
                   // execute_prisoner (Nemesis pillar, R2): the prisoner is dead, so the scene locks

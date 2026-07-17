@@ -184,6 +184,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteGiveGold(action, npcHero);
             case "take_gold":
                return ExecuteTakeGold(action, npcHero);
+            case "pay_blackmail":
+               return ExecutePayBlackmail(npcHero);
             case "join_party":
                return ExecuteJoinParty(action, npcHero);
             case "join_as_mercenary":
@@ -389,6 +391,13 @@ namespace CalradiaRemembers.GameState
 
          return SceneType.Outdoor;
       }
+
+      /// <summary>True when <paramref name="npc" />'s faction is on the opposite side of an active war from the
+      /// player's (romance audit M-B3/M-B5 guards). False when either side has no map faction (nothing to be at
+      /// war over).</summary>
+      private static bool IsAtWarWithPlayer(Hero npc)
+         => npc?.MapFaction != null && Hero.MainHero?.MapFaction != null
+            && FactionManager.IsAtWarAgainstFaction(npc.MapFaction, Hero.MainHero.MapFaction);
 
       public DiplomaticStatus GetDiplomaticStatus(Hero npc)
       {
@@ -1152,10 +1161,25 @@ namespace CalradiaRemembers.GameState
 
       private static ActionOutcome ExecuteGiveGold(GameAction action, Hero npcHero)
       {
-         if (!TryGetInt(action.Parameters, "amount", out int amount)) return null;
+         if (!TryGetInt(action.Parameters, "amount", out int amount))
+         {
+            ModLog.Info($"[ACTION] give_gold from {npcHero?.Name} had no parsable amount: ignored.");
+
+            return null;
+         }
          if (amount <= 0 || npcHero == null || Hero.MainHero == null) return null;
 
-         amount = ClampInt(amount, 1, 10000);
+         // Solvency: an NPC cannot give gold it does not hold. Clamp to the giver's real purse so a hallucinated
+         // "10000" from a lord carrying 40 denars neither conjures coin nor drives the giver's purse negative.
+         int payable = npcHero.Gold < 10000 ? npcHero.Gold : 10000;
+         if (payable < 1)
+         {
+            ModLog.Info($"[ACTION] give_gold: {npcHero.Name} has no gold to give: ignored.");
+
+            return null;
+         }
+
+         amount = ClampInt(amount, 1, payable);
          GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, amount);
          ModLog.Info($"[ACTION] give_gold: {npcHero.Name} → player {amount} gold");
 
@@ -1251,6 +1275,14 @@ namespace CalradiaRemembers.GameState
             if (!MarriageProspectResolver.IsMarriageable(Hero.MainHero, spouse))
                return new ActionOutcome($"({spouse.Name} is not free to be matched with you.)", false);
 
+            // M-B3: a blessing from a dead, imprisoned, at-war, or openly hostile lord is not a blessing. The
+            // regard read is the mod's own personal ledger (the number the player builds in chat), per the two-
+            // ledger rule, not the vanilla clan relation.
+            int blesserRegard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId)?.ReputationWithPlayer
+                                ?? npcHero.GetRelation(Hero.MainHero);
+            if (!MarriageGuardPolicy.BlessingAllowed(npcHero.IsAlive, npcHero.IsPrisoner, IsAtWarWithPlayer(npcHero), blesserRegard))
+               return new ActionOutcome($"({npcHero.Name} is in no position to bless a match with you now.)", false);
+
             var day = (int) CampaignTime.Now.ToDays;
             MarriageApprovalBehavior.Instance.Grant(spouse, npcHero, day);
 
@@ -1330,6 +1362,17 @@ namespace CalradiaRemembers.GameState
          var player = Hero.MainHero;
 
          if (npcHero == null || player == null) return null;
+
+         // M-G1: impregnation_risk is only ever TAUGHT at Explicit or above, so re-validate that bar here (the
+         // prompt is advice, the bridge is law). Without this a hallucinated emission at Off/Mature, the one
+         // consequential action left un-revalidated, could conceive a child from a scene the content level never
+         // permitted. The fertility split itself is still owned by ConceptionResolver below.
+         if (!ConceptionActionGate.PermitsConception(ModSettings.AdultContentLevel))
+         {
+            ModLog.Info("[ACTION] impregnation_risk ignored: content level does not permit conception (M-G1 guard).");
+
+            return null;
+         }
 
          ConceptionRole role = ConceptionResolver.Resolve(
             player.IsFemale, player.IsAlive, player.Age,
@@ -1525,6 +1568,12 @@ namespace CalradiaRemembers.GameState
                return new ActionOutcome(
                   $"({npcHero.Name} cannot be wed to you under the laws of Calradia.)", false);
 
+            // M-B5: vanilla blocks a marriage across an active war or with a captive at its own screen; a chat
+            // marriage must honour the same law (the prompt is advice, the bridge is law).
+            if (!MarriageGuardPolicy.MarriageAllowed(npcHero.IsPrisoner, player.IsPrisoner, IsAtWarWithPlayer(npcHero)))
+               return new ActionOutcome(
+                  $"(A marriage with {npcHero.Name} cannot be sealed now: not across a war, nor from captivity.)", false);
+
             int reputation = context?.Profile?.ReputationWithPlayer ?? 0;
             int vanillaRelation = npcHero.GetRelation(player);
 
@@ -1534,10 +1583,23 @@ namespace CalradiaRemembers.GameState
                   $"({npcHero.Name} does not yet hold you dear enough to take this step.)", false);
 
             MarriageAction.Apply(player, npcHero);
+
+            // C3: marriage to the player is an OPEN, legitimate bond, so pin the romantic status to Committed
+            // (persisted by the post-action Store.Set, like take_as_consort). Without this the profile kept its
+            // pre-wedding status and the next intimacy [EVENT] flipped a real spouse to SecretLover ("married to
+            // another, clandestine"), froze them there for life, and made jealousy read the marriage as an affair.
+            // Any clandestine flag from the courtship that preceded the vow is cleared for the same reason.
+            NpcProfile marriedProfile = context?.Profile;
+            if (marriedProfile?.Romantic != null)
+            {
+               marriedProfile.Romantic.Status = RomanticStatus.Committed;
+               marriedProfile.Romantic.IsSecretLover = false;
+            }
+
             ModLog.Info($"[ACTION] marry: player wed {npcHero.Name}.");
 
             return new ActionOutcome(
-               $"You and {npcHero.Name} are joined in marriage — bound together before Calradia.", true);
+               $"You and {npcHero.Name} are joined in marriage, bound together before Calradia.", true);
          }
          catch (Exception ex)
          {
@@ -1729,7 +1791,9 @@ namespace CalradiaRemembers.GameState
             if (profile.Romantic == null)
                return new ActionOutcome($"({npcHero.Name} has no romantic connection to build upon.)", false);
 
-            if (profile.Romantic.Status < RomanticStatus.Intimate)
+            // M-R1: an ACTIVE intimate bond, not a raw ordinal test. Estranged/Broken sort after Intimate in the
+            // enum, so "< Intimate" let a dead romance be taken as consort; IsIntimateOrDeeper excludes them.
+            if (!profile.Romantic.Status.IsIntimateOrDeeper())
                return new ActionOutcome($"({npcHero.Name} is not yet close enough to you for this bond.)", false);
 
             if (profile.Romantic.IsConsort || profile.Romantic.Status == RomanticStatus.Committed)
@@ -1846,9 +1910,16 @@ namespace CalradiaRemembers.GameState
             // resolution failure break the gold transfer itself.
             string grudgeTail = TryGrudgeGiftTail(npcHero, amount);
 
+            // Romance audit C4: if she held a demand this payment did NOT meet, say so, so the coin is never
+            // silently pocketed while the secret still leaks (MaxDemand is now capped to a single payable take,
+            // so this only fires when the player chose to underpay, not when the demand was impayable).
+            int owed = silenced ? 0 : (BastardBehavior.Instance?.OutstandingDemand(npcHero) ?? 0);
+
             string tail = silenced
-               ? " Her silence is bought — for now."
-               : grudgeTail;
+               ? " Her silence is bought, for now."
+               : owed > amount
+                  ? $" It is not enough: she wants {owed} denars for her silence."
+                  : grudgeTail;
 
             return new ActionOutcome($"You give {npcHero.Name} {amount} denars (purse: {Hero.MainHero.Gold}).{tail}", false);
          }
@@ -1858,6 +1929,34 @@ namespace CalradiaRemembers.GameState
          ModLog.Info($"[ACTION] take_gold: {amount} gold extorted (no hero recipient).");
 
          return new ActionOutcome($"They take {amount} denars from you (purse: {Hero.MainHero.Gold}).", false);
+      }
+
+      /// <summary>
+      ///   pay_blackmail (romance audit M-G5): the player agrees, in conversation, to buy a bastard-mother's
+      ///   silence. A DETERMINISTIC settlement: the bridge itself looks up her exact outstanding demand and pays
+      ///   it in full, so the outcome never depends on the LLM narrating a payment it forgot to enact (the player
+      ///   thinks they paid while the secret still leaks) nor on it guessing the right number. Pays nothing and
+      ///   settles nothing when she holds no demand, or when the player cannot cover it, telling them plainly.
+      /// </summary>
+      private static ActionOutcome ExecutePayBlackmail(Hero npcHero)
+      {
+         if (npcHero == null || Hero.MainHero == null || BastardBehavior.Instance == null) return null;
+
+         int owed = BastardBehavior.Instance.OutstandingDemand(npcHero);
+
+         if (owed <= 0)
+            return new ActionOutcome($"({npcHero.Name} holds no demand over you to settle.)", false);
+
+         if (Hero.MainHero.Gold < owed)
+            return new ActionOutcome($"You cannot cover the {owed} denars {npcHero.Name} demands for her silence.", false);
+
+         GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, owed);
+         bool silenced = BastardBehavior.Instance.SettleByPayment(npcHero, owed);
+         ModLog.Info($"[ACTION] pay_blackmail: player paid {npcHero.Name} {owed} gold{(silenced ? " (silence bought)" : " (no demand settled)")}.");
+
+         return new ActionOutcome(
+            $"You pay {npcHero.Name} {owed} denars for her silence (purse: {Hero.MainHero.Gold}).{(silenced ? " Her silence is bought, for now." : "")}",
+            false);
       }
 
       /// <summary>
@@ -1986,6 +2085,17 @@ namespace CalradiaRemembers.GameState
 
          if (spouse == null)
             return new ActionOutcome($"({npcHero.Name}: the match can no longer be honored.)", false);
+
+         // M-B4: the quest may complete long after it was issued. Re-validate at the deed, not just at issue, so a
+         // blessing is never recorded on a spouse who has since died or wed another, nor from a blesser who has
+         // since died, been captured, or gone to war. The regard read is the mod's own personal ledger.
+         if (!MarriageProspectResolver.IsMarriageable(Hero.MainHero, spouse))
+            return new ActionOutcome($"({spouse.Name} can no longer be wed to you.)", false);
+
+         int blesserRegard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId)?.ReputationWithPlayer
+                             ?? npcHero.GetRelation(Hero.MainHero);
+         if (!MarriageGuardPolicy.BlessingAllowed(npcHero.IsAlive, npcHero.IsPrisoner, IsAtWarWithPlayer(npcHero), blesserRegard))
+            return new ActionOutcome($"({npcHero.Name} can no longer give that blessing.)", false);
 
          var day = (int) CampaignTime.Now.ToDays;
          MarriageApprovalBehavior.Instance.Grant(spouse, npcHero, day);

@@ -5,7 +5,12 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic;
+using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.Party;
 
 #endregion
 
@@ -125,6 +130,7 @@ namespace CalradiaRemembers.Marriage
             npc.Spouse = null; // self-cleaning: nulls both sides, appends each to the other's ExSpouses
 
             TryClearRomanticState(npc, spouse);
+            ClearPlayerConsortFlag(npc, spouse);
 
             reason = null;
 
@@ -137,6 +143,100 @@ namespace CalradiaRemembers.Marriage
 
             return false;
          }
+      }
+
+      /// <summary>
+      ///   Why a <see cref="TryDissolve" /> refusal happened, read LIVE from the same facts the guards test
+      ///   (romance audit M-D2/M-D6). The host uses this to react honestly: a
+      ///   <see cref="DivorceBlock.Transient" /> pregnancy/captivity must be deferred (no penalty, no false
+      ///   "resisted" record), while a <see cref="DivorceBlock.Structural" /> role must be released before a
+      ///   retry can ever succeed. Deliberately mirrors the guard order inside <see cref="TryDissolve" /> so the
+      ///   two never drift apart. Returns <see cref="DivorceBlock.None" /> for a clean pair (any refusal was
+      ///   genuine spousal resistance, not one of these mechanical blocks).
+      /// </summary>
+      public static DivorceBlock ClassifyBlock(Hero npc, Hero spouse)
+      {
+         if (npc == null || spouse == null) return DivorceBlock.None;
+
+         Hero leaving = DivorceEligibilityResolver.ResolveLeavingSpouse(npc, spouse);
+
+         return DivorceBlockPolicy.Classify(
+            npc.IsPregnant || spouse.IsPregnant,
+            npc.IsPrisoner || spouse.IsPrisoner,
+            leaving != null && leaving.IsClanLeader,
+            leaving?.PartyBelongedTo != null && leaving.PartyBelongedTo.LeaderHero == leaving,
+            leaving?.GovernorOf != null);
+      }
+
+      /// <summary>
+      ///   Best-effort release of the STRUCTURAL posts that keep a leaving spouse from ever departing (romance
+      ///   audit M-D2): a governorship is vacated at once (<see cref="ChangeGovernorAction.RemoveGovernorOf" />),
+      ///   and a party they lead is set to disband (<see cref="DisbandPartyAction.StartDisband" /> is idempotent,
+      ///   so the daily walk-out retry may call this again harmlessly until the party is gone and the retry
+      ///   succeeds). This is what closes the "hand your spouse a party to freeze the divorce forever" exploit.
+      ///   The MAIN party is never touched. A spouse who heads their OWN clan cannot be relocated by any of this
+      ///   and is left to the caller's retry, by design: that is a rare setup, not the exploit. Fully guarded so a
+      ///   partial engine failure never throws into the walk-out.
+      /// </summary>
+      public static void ReleaseStructuralRoles(Hero leaving)
+      {
+         if (leaving == null) return;
+
+         try
+         {
+            if (leaving.GovernorOf != null)
+            {
+               ChangeGovernorAction.RemoveGovernorOf(leaving);
+               ModLog.Info($"[DIVORCE] released {leaving.Name} from their governorship so the estrangement can complete.");
+            }
+         }
+         catch (Exception ex) { ModLog.Error($"[DIVORCE] governor release failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
+
+         try
+         {
+            MobileParty party = leaving.PartyBelongedTo;
+
+            if (party != null && party.LeaderHero == leaving && party != MobileParty.MainParty && !party.IsDisbanding)
+            {
+               DisbandPartyAction.StartDisband(party);
+               ModLog.Info($"[DIVORCE] {leaving.Name} leads a party; began disbanding it so the estrangement can complete.");
+            }
+         }
+         catch (Exception ex) { ModLog.Error($"[DIVORCE] party disband failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Romance audit M-R6: a divorce ends the bond, so clear a stale <c>IsConsort</c> flag on the player's
+      ///   ex-partner. Nothing anywhere else ever reset it (verified by grep), so an ex "consort" stayed one for
+      ///   life, skewing the jealousy senior-retire recourse and divorce eligibility. Only fires when the player
+      ///   is one of the pair (an NPC-NPC dissolution has no player consort to clear). Best-effort and guarded so
+      ///   a store hiccup never breaks a dissolution that has already legally completed.
+      /// </summary>
+      private static void ClearPlayerConsortFlag(Hero a, Hero b)
+      {
+         Hero player = Hero.MainHero;
+         if (player == null) return;
+
+         Hero other = a == player
+            ? b
+            : b == player
+               ? a
+               : null;
+
+         if (other == null) return; // NPC-NPC divorce: no player consort involved
+
+         try
+         {
+            var store = NpcMemoryCampaignBehavior.Instance?.Store;
+            NpcProfile profile = store?.Get(other.StringId);
+
+            if (profile?.Romantic == null || !profile.Romantic.IsConsort) return;
+
+            profile.Romantic.IsConsort = false;
+            store.Set(profile);
+            ModLog.Info($"[DIVORCE] cleared stale consort flag on {other.Name} at divorce (M-R6).");
+         }
+         catch (Exception ex) { ModLog.Error($"[DIVORCE] consort-flag clear failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
       }
 
       #region private

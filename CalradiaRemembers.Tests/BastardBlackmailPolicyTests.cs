@@ -85,6 +85,26 @@ namespace CalradiaRemembers.Tests
             BastardBlackmailPolicy.DemandAmount(1_000_000).Should().Be(BastardBlackmailPolicy.MaxDemand);
         }
 
+        // Romance audit C4: the ONLY wired way to settle blackmail is a take_gold payment that MEETS the demand
+        // in one transfer, and that transfer is clamped to MaxSinglePaymentSettlement. A demand above it was
+        // therefore structurally impayable: the player's gold moved, the secret still leaked, no message said so.
+        // This invariant locks the two constants together so no future tuning can reopen the impayable demand.
+        [Test]
+        public void GIVEN_the_settlement_cap_WHEN_checking_the_ceiling_THEN_no_demand_is_impayable_in_one_payment()
+        {
+            BastardBlackmailPolicy.MaxDemand
+                .Should().BeLessThanOrEqualTo(BastardBlackmailPolicy.MaxSinglePaymentSettlement);
+        }
+
+        // Even the richest player's capped demand must itself be settleable in one payment, closing C4 end to
+        // end: DemandAmount can never return a figure a single payment cannot meet.
+        [Test]
+        public void GIVEN_a_fabulously_rich_player_WHEN_demanding_THEN_the_demand_is_settleable_in_one_payment()
+        {
+            BastardBlackmailPolicy.DemandAmount(1_000_000)
+                .Should().BeLessThanOrEqualTo(BastardBlackmailPolicy.MaxSinglePaymentSettlement);
+        }
+
         // Defensive: a caller could pass a corrupted or unread gold figure. Negative wealth must never subtract
         // from the demand or produce a negative gold ask, it floors like any other poor-player case.
         [Test]

@@ -5,9 +5,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
+using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.Core;
@@ -89,6 +94,66 @@ namespace CalradiaRemembers.Marriage
          // BeforeHeroesMarried fires while the spouse is still in their birth clan — the
          // right moment to read the family the consequence should fall on.
          CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, OnBeforeHeroesMarried);
+
+         // C3 save-heal: fix a player's spouse whose romantic status predates the marriage-sets-Committed fix.
+         CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
+      }
+
+      /// <summary>
+      ///   Romance audit C3 (save migration): the player's own spouse must sit at
+      ///   <see cref="RomanticStatus.Committed" />, but marriage never set it, so a save made before this fix
+      ///   carries a spouse stuck at a pre-marriage status or corrupted to
+      ///   <see cref="RomanticStatus.SecretLover" /> ("married to another, clandestine"). Heals that one profile
+      ///   on load, idempotently: a spouse already Committed, or one deliberately Estranged/Broken, is left
+      ///   untouched (<see cref="ProfileMutator.SpouseStatusNeedsHeal" />). Additive and self-limiting: no new
+      ///   save key, touches only the current <see cref="Hero.MainHero" />'s spouse.
+      /// </summary>
+      private void OnSessionLaunched(CampaignGameStarter starter)
+      {
+         SafeRun.Step("MarriageApprovalBehavior.HealPlayerSpouseStatus", HealPlayerSpouseStatus);
+         SafeRun.Step("MarriageApprovalBehavior.SweepStaleApprovals", SweepStaleApprovals);
+      }
+
+      /// <summary>
+      ///   Romance audit M-B2: the approval registry had no cleanup, so a blessing outlived the match it was for.
+      ///   A candidate who has since died or wed another leaves an orphan record forever, and a widow remarrying
+      ///   the player years later could arrive carrying a dead relative's blessing. Purge on load any record
+      ///   whose spouse can no longer be wed to the player (gone, dead, or already married), idempotently and
+      ///   without a new save key. The clan-identity check at the wedding (M-B1) is the belt to this braces.
+      /// </summary>
+      private void SweepStaleApprovals()
+      {
+         if (_approvals.Count == 0) return;
+
+         var removed = 0;
+         foreach (string spouseId in _approvals.Keys.ToList())
+         {
+            Hero spouse = Hero.FindFirst(h => h != null && h.StringId == spouseId);
+
+            if (spouse is {IsAlive: true, Spouse: null}) continue; // still a valid, marriageable candidate
+
+            _approvals.Remove(spouseId);
+            removed++;
+         }
+
+         if (removed > 0) ModLog.Info($"[MARRIAGE] swept {removed} stale marriage blessing(s) (M-B2).");
+      }
+
+      private static void HealPlayerSpouseStatus()
+      {
+         Hero spouse = Hero.MainHero?.Spouse;
+         if (spouse == null) return;
+
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouse.StringId);
+         if (profile?.Romantic == null) return;
+
+         if (!ProfileMutator.SpouseStatusNeedsHeal(profile.Romantic.Status)) return;
+
+         RomanticStatus before = profile.Romantic.Status;
+         profile.Romantic.Status = RomanticStatus.Committed;
+         profile.Romantic.IsSecretLover = false;
+         NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
+         ModLog.Info($"[MARRIAGE] healed player-spouse {spouse.Name} romantic status {before} to Committed (C3 save migration).");
       }
 
       /// <summary>Removes a blessing (test / cleanup). Returns true when one was present.</summary>
@@ -208,7 +273,10 @@ namespace CalradiaRemembers.Marriage
 
          Clan family = spouse.Clan;
 
-         bool approved = IsApproved(spouse.StringId);
+         // M-B1: read the RECORD, not just a bare "is there a blessing" flag, so the +40 warm swing only lands on
+         // the family that actually blessed. A spouse who changed clans since the blessing (or whose blessing
+         // clan was destroyed) would otherwise turn an unrelated family warm on a blessing it never gave.
+         MarriageApprovalRecord record = GetRecord(spouse.StringId);
          _approvals.Remove(spouse.StringId); // consumed whether or not the family was external
 
          if (family == null || family == Clan.PlayerClan)
@@ -218,6 +286,7 @@ namespace CalradiaRemembers.Marriage
             return;
          }
 
+         bool approved = MarriageGuardPolicy.BlessingHonoursFamily(record != null, record?.ClanId, family.StringId);
          int baseDelta = approved
             ? ApprovedRelationBonus
             : UnapprovedRelationPenalty;

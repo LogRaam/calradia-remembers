@@ -63,6 +63,8 @@ namespace CalradiaRemembers.Quests
          {
             ModLog.Info($"[QUEST] {giver.Name} emitted a [QUEST] block that could not be parsed; nothing recorded.");
             notify?.Invoke("No task was recorded: the offer came through garbled. Ask them to state it plainly again.", false);
+            // C5 feedback loop: tell the MODEL next turn too, so it does not keep speaking of a task never recorded.
+            LlmFeedbackNotes.Set(giver.Id, "Your last task offer could not be registered (it came through garbled, or named a target I could not place).");
          }
 
          if (response.QuestGiven != null)
@@ -70,6 +72,11 @@ namespace CalradiaRemembers.Quests
 
          if (response.QuestCompleted != null)
             CompleteQuest(giver, giverHero, response.QuestCompleted, gameDay, bridge, store, notify);
+         else
+            // B1 reward net: the model claimed no completion this turn, so pay any reward the giver still OWES
+            // for a deed the game has already verified. Without this, a weak model that never emits
+            // [QUEST_COMPLETE] leaves the player's "Done" quest paying out never.
+            SettleUnclaimedRewards(giver, giverHero, gameDay, bridge, store, notify);
 
          if (response.QuestAbandoned != null)
             AbandonQuest(giver, response.QuestAbandoned, gameDay, store, notify);
@@ -327,6 +334,16 @@ namespace CalradiaRemembers.Quests
                                        BannerlordNpcMemoryStore store,
                                        Action<string, bool> notify)
       {
+         // A block that NAMED a type the parser could not recognise is a hallucination, not a wildcard: ignoring
+         // it protects the player from a garbage token abandoning the wrong quest (a false -regard + grudge).
+         // A claim with no type at all (TypeUnrecognized false) still legitimately targets the single quest.
+         if (claim.TypeUnrecognized)
+         {
+            ModLog.Info($"[QUEST] {giver.Name} acknowledged an abandonment naming an unrecognized type: ignored (not applied to any quest).");
+
+            return;
+         }
+
          // Only an outstanding (not-yet-done) quest can be abandoned — a finished one is done.
          InformalQuest quest = giver.ActiveQuests.FirstOrDefault(q =>
             q.IsOutstanding && (claim.Type == null || q.Type == claim.Type.Value));
@@ -378,6 +395,15 @@ namespace CalradiaRemembers.Quests
                                         BannerlordNpcMemoryStore store,
                                         Action<string, bool> notify)
       {
+         // A named-but-unrecognized type must not pay out the first awaiting-reward quest by accident: ignore it.
+         // A claim with no type (TypeUnrecognized false) still targets the single satisfied quest as before.
+         if (claim.TypeUnrecognized)
+         {
+            ModLog.Info($"[QUEST] {giver.Name} claimed completion naming an unrecognized type: ignored (not paid out).");
+
+            return;
+         }
+
          InformalQuest quest = giver.ActiveQuests.FirstOrDefault(q =>
             q.IsAwaitingReward && (claim.Type == null || q.Type == claim.Type.Value));
 
@@ -388,6 +414,26 @@ namespace CalradiaRemembers.Quests
             return;
          }
 
+         SettleQuest(giver, giverHero, quest, gameDay, bridge, store, notify, null);
+      }
+
+      /// <summary>
+      ///   Pays a VERIFIED-done quest and closes it: the reward, the completed event / journal, the trust bump,
+      ///   the appreciation and grudge-deed channels, and the chat line. Shared by <see cref="CompleteQuest" />
+      ///   (the LLM's [QUEST_COMPLETE]) and the reward-safety-net (<see cref="SettleUnclaimedRewards" />). Safe
+      ///   to call only on an <c>IsAwaitingReward</c> quest: that state already means a real game event proved
+      ///   the deed, so this never pays for unfinished work. An optional <paramref name="netLine" /> overrides
+      ///   the chat line for the net path (a plain "they pay what they owe", since the NPC did not narrate it).
+      /// </summary>
+      private static void SettleQuest(NpcProfile giver,
+                                      Hero giverHero,
+                                      InformalQuest quest,
+                                      int gameDay,
+                                      IGameStateBridge bridge,
+                                      BannerlordNpcMemoryStore store,
+                                      Action<string, bool> notify,
+                                      string netLine)
+      {
          ActionOutcome reward = bridge?.GrantQuestReward(giverHero, giver, quest.RewardGold, quest.RewardRelation);
 
          // Negotiation framework: a bargain whose reward is a favor (join the party, etc.)
@@ -420,9 +466,36 @@ namespace CalradiaRemembers.Quests
          // resolution failure break the reward already granted.
          string grudgeTail = GrudgeResolutionService.TryGrudgeDeedTail(giverHero, gameDay);
 
-         if (grant != null) notify?.Invoke(grant.Message + grudgeTail, grant.IsPositive);
+         if (netLine != null) notify?.Invoke(netLine + grudgeTail, true);
+         else if (grant != null) notify?.Invoke(grant.Message + grudgeTail, grant.IsPositive);
          else if (reward != null) notify?.Invoke(reward.Message + grudgeTail, true);
          else notify?.Invoke($"{giver.Name} thanks you for {Describe(quest)}.{grudgeTail}", true);
+      }
+
+      /// <summary>
+      ///   The reward SAFETY NET (quest audit B1): a giver may hold a quest whose deed the game has already
+      ///   verified (<c>IsAwaitingReward</c>) yet the model never emits [QUEST_COMPLETE], so the player has
+      ///   "Done" in the journal, returns, and nothing happens. When the player is in conversation with that
+      ///   giver and no completion was claimed this turn, settle any still-owed reward here, with a plain system
+      ///   line. SAFE because IsAwaitingReward means the work is proven done; this never pays for unfinished work,
+      ///   and once paid the quest is Completed so it never fires twice. Generalises the ProvideGold-on-payment fix.
+      /// </summary>
+      private static void SettleUnclaimedRewards(NpcProfile giver,
+                                                 Hero giverHero,
+                                                 int gameDay,
+                                                 IGameStateBridge bridge,
+                                                 BannerlordNpcMemoryStore store,
+                                                 Action<string, bool> notify)
+      {
+         // Snapshot: SettleQuest mutates the quest's status, so iterate a copy.
+         var owed = giver.ActiveQuests.Where(q => q.IsAwaitingReward).ToList();
+
+         foreach (InformalQuest quest in owed)
+         {
+            ModLog.Info($"[QUEST] reward net: {giver.Name} owed for '{quest.Type}' but no [QUEST_COMPLETE] emitted; settling it.");
+            SettleQuest(giver, giverHero, quest, gameDay, bridge, store, notify,
+               $"{giver.Name} makes good on what they owe you for {Describe(quest)}.");
+         }
       }
 
       /// <summary>One short clause describing the task, for chat lines and memory events.</summary>

@@ -15,6 +15,7 @@ using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Commitments;
+using CalradiaRemembers.Duels;
 using CalradiaRemembers.Dynasty;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
@@ -23,6 +24,7 @@ using CalradiaRemembers.Items;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
+using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Social;
 using CalradiaRemembers.Lore;
@@ -110,6 +112,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
          new SelfTest("reasoning_scrub", Severity.Light, "Mechanical: the inline <think> leak (tthheerroocckk, nemotron on High reasoning). The save/load itself is STUBBED: corrupted memories are written straight into the store as an old save would carry them (a trace before real prose, a memory that is ONLY a truncated trace, a corrupted background paragraph) -> the REAL session-launch scrub runs -> assert the prose is recovered, the all-trace memory becomes the honest 'faded' line (never invented content), the background returns to null, and a second pass is a no-op. Removes its seeds afterwards", TestReasoningScrub),
+         new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
@@ -150,6 +153,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("appearance", Severity.Light, "extract the player's body facts -> compose the appearance block in Subject (3rd person, read by an NPC) and Self (2nd person) voices, with authored prose -> assert the facts extract, the authored prose is carried, and the Self voice reads in the second person", TestAppearance),
          new SelfTest("quest_menu", Severity.Light, "viable-quest referential: scan a live lord's grounded quest menu -> assert it is non-empty (there is always something to do), every line carries a known type token, and a named settlement target truly resolves (so QuestFactory will ground the offer by construction)", TestQuestMenu),
          new SelfTest("provide_gold", Severity.Heavy, "child-support fix: seed a ProvideGold quest -> real take_gold via the bridge (player pays the giver) -> assert the quest is CLOSED (Completed, not stuck 'awaiting reward') and the goodwill regard was paid, since the payment IS the completion (no [QUEST_COMPLETE] needed). Restores gold so the economy is unchanged", TestProvideGoldCompletes),
+         new SelfTest("reward_net", Severity.Heavy, "quest audit B1: the reward SAFETY NET. Seed a quest the game already VERIFIED as done (IsAwaitingReward, as if a lair was cleared days ago) but that the LLM never closed with [QUEST_COMPLETE] -> run the REAL QuestService.ApplyResponse with NO completion claim -> assert the net settles it anyway (Completed, no longer awaiting) and pays the owed reward (gold or regard moves), so the player's 'Done' quest never pays out never. Restores the seed + gold", TestRewardNet),
          new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster", TestSupplyQuest),
          new SelfTest("courier_waylay", Severity.Heavy, "waylaid-letter resend: a waylaid letter keeps its typed text, and the Resend path re-queues a FRESH non-lost letter carrying the SAME content, so a waylaid letter never has to be retyped. Cleans up its test letters + courier (no popup)", TestCourierWaylayResend),
          new SelfTest("prisoner_trade", Severity.Heavy, "prisoner trade: take a real lord captive into the player's party -> real buy_prisoner via the bridge (an NPC lord buys him) -> assert the player was PAID (price clamped around the ransom anchor) and the captive left the player's custody -> cleanup frees him", TestPrisonerTrade),
@@ -2928,6 +2932,61 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      // ── Duel consequences: the applier is engine glue (renown, stance, attraction, world-event) that no ──
+      // ── dotnet unit test can reach; the pure policies it calls ARE unit-tested, so this proves only the ──
+      // ── WIRING, that the applier moves the right live state by the right (policy-owned) amounts. ──────────
+
+      private static string TestDuelConsequence(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("duel_consequence");
+
+         if (t.Abort(Hero.MainHero?.Clan == null, "no player clan to read renown from")) return t.Line();
+
+         Hero rival = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.IsAlive && !h.IsPrisoner && !h.IsFemale);
+
+         if (t.Skip(rival == null, "no live male lord to stand as the rival")) return t.Line();
+
+         Hero lady = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != rival && h.IsFemale && h.IsAlive
+                                                          && GetOrCreate(behavior, h)?.Romantic != null);
+
+         if (t.Skip(lady == null, "no female hero with a romantic profile to court")) return t.Line();
+
+         // Seed a known attraction baseline so the deltas are read cleanly (0 keeps every step inside [-100,100]).
+         NpcProfile ladyProfile = GetOrCreate(behavior, lady);
+         int originalAttraction = ladyProfile.Romantic.AttractionToPlayer;
+         ladyProfile.Romantic.AttractionToPlayer = 0;
+         behavior.Store.Set(ladyProfile);
+
+         int eventsBefore = WorldEventStore.Instance?.Count ?? 0;
+         int renownBefore = (int) Hero.MainHero.Clan.Renown;
+
+         // WIN: her attraction rises by exactly the policy's AdmirationOnWin, and the player's renown lifts.
+         DuelOutcomeApplier.Apply(DuelReason.CourtshipRivalry, DuelResolution.PlayerWon, rival, lady, witnessCount: 0);
+         int afterWin = behavior.Store.Get(lady.StringId).Romantic.AttractionToPlayer;
+         int renownAfterWin = (int) Hero.MainHero.Clan.Renown;
+
+         // REFUSE (from the post-win value): dropping by CowardiceOnRefuse proves the forfeit path AND that
+         // walking away costs more of her regard than an honest defeat would.
+         DuelOutcomeApplier.Apply(DuelReason.CourtshipRivalry, DuelResolution.PlayerForfeited, rival, lady, witnessCount: 0);
+         int afterRefuse = behavior.Store.Get(lady.StringId).Romantic.AttractionToPlayer;
+
+         int eventsAfter = WorldEventStore.Instance?.Count ?? 0;
+
+         t.Note($"rival={rival.Name}, lady={lady.Name}: attraction 0 -> {afterWin} (win) -> {afterRefuse} (refuse); " +
+                $"renown {renownBefore}->{renownAfterWin}; world-events {eventsBefore}->{eventsAfter}");
+         t.Expect("winRaisesAttractionByAdmiration", afterWin, CourtshipDuelPolicy.AdmirationOnWin);
+         t.Expect("refuseDropsAttractionByCowardice", afterRefuse, afterWin + CourtshipDuelPolicy.CowardiceOnRefuse);
+         t.Expect("winLiftedPlayerRenown", renownAfterWin > renownBefore, true);
+         t.Expect("bothDuelsRecordedAWorldEvent", eventsAfter - eventsBefore >= 2, true);
+
+         // Restore the one thing we explicitly seeded; renown/world-events are left as the harness warns (reload to discard).
+         NpcProfile restore = behavior.Store.Get(lady.StringId);
+         restore.Romantic.AttractionToPlayer = originalAttraction;
+         behavior.Store.Set(restore);
+
+         return t.Line();
+      }
+
       // ── Reasoning-trace scrub: the save-healing half of the inline <think> fix (the parse-time strip ──
       // ── stops NEW leaks; this heals what an old save already stores). The save/load round trip is ──
       // ── STUBBED: corrupted summaries are written straight into the live store, exactly the state a ──
@@ -4079,6 +4138,64 @@ namespace CalradiaRemembers.Diagnostics
       ///   the real take_gold bridge action, and asserts the quest is Completed with its goodwill paid. Leaves
       ///   the economy as it found it (returns the gold to the player, removes it from the giver).
       /// </summary>
+      // ── The reward safety net (quest audit B1): a deed the game VERIFIED (IsAwaitingReward) must still pay ──
+      // ── out even when the model never emits [QUEST_COMPLETE], or the player's "Done" quest pays out never. ──
+
+      private static string TestRewardNet(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("reward_net");
+
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+
+         if (t.Skip(giver == null, "no live lord to stand as the giver")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         var today = (int) CampaignTime.Now.ToDays;
+
+         // Seed a quest the game has already VERIFIED as done: SatisfiedOnDay set (deed proven) + still Active =
+         // IsAwaitingReward. This is the state a cleared lair sits in while it waits for the giver to pay out.
+         var quest = new InformalQuest {
+            Type = QuestType.BanditClear,
+            Description = "[SELFTEST] clear the bandits by the ford.",
+            IssuedOnDay = today,
+            SatisfiedOnDay = today,
+            RewardGold = 300,
+            RewardRelation = 4,
+            Status = QuestStatus.Active
+         };
+         profile.ActiveQuests.Add(quest);
+         QuestJournalBridge.OpenMirror(quest, giver);
+         behavior.Store.Set(profile);
+
+         int regardBefore = profile.ReputationWithPlayer;
+         int playerGoldBefore = Hero.MainHero.Gold;
+
+         // The model replied with NO [QUEST_COMPLETE] (QuestCompleted null): the net must pay the owed reward.
+         QuestService.ApplyResponse(profile, giver, new ParsedResponse {Dialogue = ""}, today,
+            behavior.GameStateBridge, behavior.Store, (_, _) => { });
+
+         NpcProfile reread = behavior.Store.Get(giver.StringId);
+         InformalQuest after = reread?.ActiveQuests.FirstOrDefault(q => q.Description == "[SELFTEST] clear the bandits by the ford.");
+         bool rewardPaid = Hero.MainHero.Gold > playerGoldBefore || (reread != null && reread.ReputationWithPlayer > regardBefore);
+
+         t.Note($"giver={giver.Name}: status={after?.Status}, awaitingReward={after?.IsAwaitingReward}, " +
+                $"regard {regardBefore}->{reread?.ReputationWithPlayer}, gold +{Hero.MainHero.Gold - playerGoldBefore}");
+         t.Expect("netSettledTheQuest", after?.Status, QuestStatus.Completed);
+         t.Expect("noLongerAwaitingReward", after?.IsAwaitingReward, false);
+         t.Expect("owedRewardWasPaid", rewardPaid, true);
+
+         // Cleanup: drop the seeded quest and return whatever gold the reward moved.
+         NpcProfile clean = behavior.Store.Get(giver.StringId);
+         clean.ActiveQuests.RemoveAll(q => q.Description == "[SELFTEST] clear the bandits by the ford.");
+         behavior.Store.Set(clean);
+         int goldMoved = Hero.MainHero.Gold - playerGoldBefore;
+         if (goldMoved > 0) Hero.MainHero.ChangeHeroGold(-goldMoved);
+
+         return t.Line();
+      }
+
       private static string TestProvideGoldCompletes(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("provide_gold");
@@ -4657,8 +4774,21 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Abort(!demandingBeforeAccept, "force-demand did not set the flag (scenario A)")) return t.Line();
 
+         // M-R6: a divorce must clear a stale IsConsort flag on the ex-partner (nothing else ever reset it). Seed
+         // one so the accept path (which flows through MarriageDissolutionService.TryDissolve) is proven to clear it.
+         bool consortSeeded = profileA.Romantic != null;
+         if (consortSeeded)
+         {
+            profileA.Romantic.IsConsort = true;
+            behavior.Store.Set(profileA);
+         }
+
          ActionOutcome acceptOutcome = behavior.GameStateBridge.ExecuteAction(
             new GameAction {Type = "accept_divorce"}, spouseA, new ActionContext(profileA, null));
+
+         bool consortClearedAfterDivorce = !consortSeeded
+                                           || behavior.Store.Get(spouseA.StringId)?.Romantic?.IsConsort != true;
+         t.Expect("consortFlagClearedAfterDivorce", consortClearedAfterDivorce, true);
 
          bool dissolved = Hero.MainHero.Spouse == null;
          bool neitherClanless = Hero.MainHero.Clan != null && spouseA.Clan != null;
@@ -4689,6 +4819,7 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Abort(!demandingBeforeDecline, "force-demand did not set the flag (scenario B)")) return t.Line();
 
          int today = behavior.GameStateBridge.GetCurrentGameDay();
+         int relBeforeDecline = spouseB.GetRelation(Hero.MainHero); // ~0 (ArrangeCleanNpc neutralised it)
 
          ActionOutcome declineOutcome = behavior.GameStateBridge.ExecuteAction(
             new GameAction {Type = "decline_divorce"}, spouseB, new ActionContext(profileB, null));
@@ -4697,11 +4828,28 @@ namespace CalradiaRemembers.Diagnostics
          bool flagClearedAfterDecline = !demands.IsDemanding(spouseB.StringId);
          bool refusalGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(spouseB.StringId)
                                                    .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == today);
+         // M-D4 guard: each refusal must also cost a little vanilla relation, or a grudge-triggered demand loops
+         // forever (nothing lowers the relation ShouldEscalate gates on). The drip must be visible here.
+         bool refusalDroppedRelation = spouseB.GetRelation(Hero.MainHero) < relBeforeDecline;
 
-         t.Note($"scenario B (decline) spouse={spouseB.Name}: outcome={(declineOutcome != null ? declineOutcome.IsPositive.ToString() : "null")}");
+         t.Note($"scenario B (decline) spouse={spouseB.Name}: outcome={(declineOutcome != null ? declineOutcome.IsPositive.ToString() : "null")}, relation {relBeforeDecline}->{spouseB.GetRelation(Hero.MainHero)}");
          t.Expect("stillMarriedAfterDecline", stillMarriedAfterDecline, true);
          t.Expect("demandFlagClearedAfterDecline", flagClearedAfterDecline, true);
          t.Expect("refusalGrudgePlanted", refusalGrudgePlanted, true);
+         t.Expect("refusalDroppedRelation", refusalDroppedRelation, true);
+
+         // ── Scenario C (M-D5): DEMAND-PHASE RECONCILIATION on the still-married spouseB ──
+         // Re-open a demand, warm the player's PERSONAL regard above the reconciliation bar, tick: the demand
+         // must be WITHDRAWN (not ground into another refusal), mirroring the escalation-phase reconciliation.
+         demands.ForceDemand();
+         bool demandingBeforeReconcile = demands.IsDemanding(spouseB.StringId);
+         profileB.ReputationWithPlayer = SpouseDivorceDemandPolicy.ReconciliationThreshold + 5;
+         behavior.Store.Set(profileB);
+         demands.RunTick();
+
+         bool demandWithdrawnOnReconcile = demandingBeforeReconcile && !demands.IsDemanding(spouseB.StringId) && Hero.MainHero.Spouse == spouseB;
+         t.Note($"scenario C (demand-phase reconciliation) spouse={spouseB.Name}: withdrawn={demandWithdrawnOnReconcile}");
+         t.Expect("demandWithdrawnOnReconciliation", demandWithdrawnOnReconcile, true);
 
          return t.Line();
       }
@@ -4756,6 +4904,7 @@ namespace CalradiaRemembers.Diagnostics
          demands.DebugForceEscalationDeadline(spouseA.StringId, todayA); // skip the 15-day wait for this test
 
          int worldEventsBefore = WorldEventStore.Instance.Count;
+         int relBeforeWalkOut = spouseA.GetRelation(Hero.MainHero); // baseline (ArrangeCleanNpc neutralised it to ~0)
 
          demands.RunTick();
 
@@ -4765,13 +4914,19 @@ namespace CalradiaRemembers.Diagnostics
          bool walkOutGrudgePlanted = GrudgeBehavior.Instance.GrudgesFor(spouseA.StringId)
                                                    .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == todayA);
          bool worldEventRecorded = WorldEventStore.Instance.Count > worldEventsBefore;
+         // M-D1 guard: the walk-out must SET the relation from the pre-dissolution baseline (a moderate hit),
+         // never leave the engine's hidden dissolution penalty (observed crashing to -100) standing. A moderate
+         // result stays well clear of that crash; without the SET this assertion fails.
+         int relAfterWalkOut = spouseA.GetRelation(Hero.MainHero);
+         bool walkOutRelationModerate = relAfterWalkOut > -50;
 
-         t.Note($"scenario A (walk-out) spouse={spouseA.Name}");
+         t.Note($"scenario A (walk-out) spouse={spouseA.Name}, relation {relBeforeWalkOut}->{relAfterWalkOut}");
          t.Expect("dissolvedAfterWalkOut", dissolvedA, true);
          t.Expect("neitherClanlessAfterWalkOut", neitherClanlessA, true);
          t.Expect("escalationClearedAfterWalkOut", escalationClearedAfterWalkOut, true);
          t.Expect("walkOutGrudgePlanted", walkOutGrudgePlanted, true);
          t.Expect("walkOutWorldEventRecorded", worldEventRecorded, true);
+         t.Expect("walkOutRelationModerateNotCrashed", walkOutRelationModerate, true);
 
          // ── Scenario B: RECONCILIATION — a second, distinct test spouse (the player is free again after A) ──
          Hero spouseB = FindTestSpouseForPlayer(spouseA);
@@ -4790,8 +4945,11 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Abort(!forcedB, $"force-escalate did not set the record (scenario B): {forceMessageB}")) return t.Line();
 
-         int reconciledRelation = SpouseDivorceDemandPolicy.ReconciliationThreshold + 5; // comfortably above the bar
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouseB, Hero.MainHero, reconciledRelation - spouseB.GetRelation(Hero.MainHero), false);
+         // Reconciliation is read from the mod's PERSONAL regard (ReputationWithPlayer), the number the player
+         // warms through conversation, NOT the vanilla clan relation (SweepEscalations reads exactly that). Set
+         // THAT signal above the bar, or the sweep never sees the reconciliation this scenario is meant to prove.
+         profileB.ReputationWithPlayer = SpouseDivorceDemandPolicy.ReconciliationThreshold + 5; // comfortably above the bar
+         behavior.Store.Set(profileB);
 
          // Deadline is left far in the future (set by ForceEscalate itself) — reconciliation must win on its
          // own merits, checked BEFORE the deadline, not because the deadline happened to be reached too.

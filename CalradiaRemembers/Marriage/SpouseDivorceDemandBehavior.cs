@@ -25,6 +25,9 @@ using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.Core;
+using TaleWorlds.Localization;
 
 #endregion
 
@@ -51,6 +54,9 @@ namespace CalradiaRemembers.Marriage
       /// <summary>Tuning: the grudge magnitude planted on the spouse when their divorce demand is refused.</summary>
       private const int RefusalGrudgeMagnitude = 40;
 
+      /// <summary>Small vanilla-relation cost applied on each refusal (romance audit M-D4), so a grudge-triggered demand loop converges toward an escalation that resolves rather than spamming refusals forever.</summary>
+      private const int RefusalRelationHit = 5;
+
       /// <summary>
       ///   Tuning: the grudge magnitude planted on the spouse when they actually WALK OUT at the end of an
       ///   estrangement (see <see cref="ResolveWalkOut" />) — a touch heavier than a single refusal's
@@ -59,6 +65,9 @@ namespace CalradiaRemembers.Marriage
       /// </summary>
       private const int EstrangementWalkOutGrudgeMagnitude = 45;
 
+      /// <summary>Moderate relation hit the spouse's regard takes on walking out (romance audit M-D1), applied as a SET from the pre-dissolution baseline so it neutralises the engine's hidden penalty rather than stacking on it. Moderate on purpose: the spouse chose to leave, not the tiered storm a player-initiated repudiation earns.</summary>
+      private const int WalkOutRelationHit = -20;
+
       private const string SaveKey = "CalradiaRemembers_SpouseDivorceDemand_v1";
 
       /// <summary>Additive save key for the escalation's per-spouse refusal count (old saves load with none).</summary>
@@ -66,6 +75,12 @@ namespace CalradiaRemembers.Marriage
 
       /// <summary>Additive save key for the escalation's per-spouse deadline day (old saves load with none).</summary>
       private const string EscalationSaveKey = "CalradiaRemembers_SpouseDivorceEscalation_v1";
+
+      /// <summary>Additive save key for the announce phase's per-spouse cycle-begin day (romance audit C1/C2; old saves load with none).</summary>
+      private const string AnnounceCycleSaveKey = "CalradiaRemembers_SpouseDivorceAnnounceCycle_v1";
+
+      /// <summary>Additive save key for the announce phase's per-spouse re-announce count (romance audit C1; old saves load with none).</summary>
+      private const string AnnounceRetriesSaveKey = "CalradiaRemembers_SpouseDivorceAnnounceRetries_v1";
 
       public static SpouseDivorceDemandBehavior Instance;
 
@@ -77,6 +92,14 @@ namespace CalradiaRemembers.Marriage
 
       // spouseId -> the day their active estrangement's deadline falls (absent key = not currently estranging).
       private Dictionary<string, int> _escalationDeadlineDay = new();
+
+      // Announce phase (romance audit C1/C2): spouseId -> the day the CURRENT announcing letter was queued. Bounds
+      // the delivery window and lets DemandLetterDelivered ignore a stale letter from a previous demand cycle.
+      private Dictionary<string, int> _demandCycleBeginDay = new();
+
+      // Announce phase (romance audit C1): spouseId -> how many times the announcing letter has been re-queued
+      // after a lapsed window, so a persistently-undeliverable letter escapes to a forced notice instead of looping.
+      private Dictionary<string, int> _announceRetries = new();
 
       public SpouseDivorceDemandBehavior()
       {
@@ -90,9 +113,23 @@ namespace CalradiaRemembers.Marriage
       {
          if (!string.IsNullOrEmpty(spouseId))
          {
-            _demandStartDay.Remove(spouseId);
+            ClearDemandCycle(spouseId);
             _refusalCount.Remove(spouseId);
          }
+      }
+
+      /// <summary>
+      ///   Clears every per-demand-cycle entry for a spouse (romance audit C1/C2): the refusal-clock/sentinel
+      ///   day AND the announce-phase state (cycle-begin day, re-announce count). Used wherever a demand ends or
+      ///   transitions, so the announce dictionaries never outlive the demand they describe. The refusal COUNT is
+      ///   deliberately NOT touched here: it survives across the demand-to-escalation transition and is reset only
+      ///   by an explicit resolution (<see cref="Accept" />, <see cref="CancelEstrangement" />).
+      /// </summary>
+      private void ClearDemandCycle(string spouseId)
+      {
+         _demandStartDay.Remove(spouseId);
+         _demandCycleBeginDay.Remove(spouseId);
+         _announceRetries.Remove(spouseId);
       }
 
       /// <summary>
@@ -192,7 +229,7 @@ namespace CalradiaRemembers.Marriage
       {
          if (spouse == null || Hero.MainHero == null) return;
 
-         _demandStartDay.Remove(spouse.StringId);
+         ClearDemandCycle(spouse.StringId);
 
          int refusals = IncrementRefusalCount(spouse.StringId);
 
@@ -200,6 +237,13 @@ namespace CalradiaRemembers.Marriage
             "Begged the player to end our marriage, and was refused.", RefusalGrudgeMagnitude, true, today);
 
          ModLog.Info($"[SPOUSE_DIVORCE] {spouse.Name}'s divorce demand was refused (refusal #{refusals}) — resentment deepens.");
+
+         // M-D4: each refusal also costs a little vanilla relation. Otherwise a grudge-triggered demand can loop
+         // forever (demand, timeout, refusal, grudge, demand...) because ShouldEscalate gates on the vanilla
+         // relation being low, which nothing else on this path lowers. A steady drip converges the loop to an
+         // escalation that actually resolves. Applied BEFORE the escalation facts below, so a refusal that crosses
+         // the threshold can escalate on the same tick.
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouse, Hero.MainHero, -RefusalRelationHit, false);
 
          int regard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouse.StringId)?.ReputationWithPlayer ?? 0;
 
@@ -223,6 +267,8 @@ namespace CalradiaRemembers.Marriage
          _demandStartDay = SyncDictionary(dataStore, SaveKey, _demandStartDay, "demand(s)");
          _refusalCount = SyncDictionary(dataStore, RefusalCountSaveKey, _refusalCount, "refusal count(s)");
          _escalationDeadlineDay = SyncDictionary(dataStore, EscalationSaveKey, _escalationDeadlineDay, "active estrangement(s)");
+         _demandCycleBeginDay = SyncDictionary(dataStore, AnnounceCycleSaveKey, _demandCycleBeginDay, "announce cycle(s)");
+         _announceRetries = SyncDictionary(dataStore, AnnounceRetriesSaveKey, _announceRetries, "announce retry count(s)");
       }
 
       #region private
@@ -235,9 +281,15 @@ namespace CalradiaRemembers.Marriage
       /// </summary>
       private void BeginEstrangement(Hero spouse, int today)
       {
-         _demandStartDay.Remove(spouse.StringId);
+         ClearDemandCycle(spouse.StringId);
          int deadline = today + DivorcePolicy.ProcessDurationDays;
          _escalationDeadlineDay[spouse.StringId] = deadline;
+
+         // C1 (aggravated variant): the estrangement sets its walk-out deadline HERE, so a guaranteed in-person
+         // notice must fire alongside the LLM letter below. Otherwise a failed or intercepted letter would let the
+         // spouse walk out with no warning ever received, exactly the blindside the CHANGELOG promise forbids.
+         ForceDeliveredNotice(spouse,
+            $"{spouse.Name} has resolved to end your marriage, and will not wait much longer to be free of it.");
 
          var behavior = NpcMemoryCampaignBehavior.Instance;
          NpcProfile profile = behavior?.Store?.Get(spouse.StringId);
@@ -266,15 +318,33 @@ namespace CalradiaRemembers.Marriage
          // into a refusal, so a deferred or in-flight letter cannot silently escalate to a divorce.
          _demandStartDay[spouse.StringId] = DivorceDemandTimeoutPolicy.ClockNotStarted;
 
-         var behavior = NpcMemoryCampaignBehavior.Instance;
-         NpcProfile profile = behavior?.Store?.Get(spouse.StringId);
+         // Open the announce phase (romance audit C1/C2): remember the day this cycle's letter is queued so a
+         // stale letter from a previous cycle cannot start the clock, and so a lapsed window can re-announce.
+         _demandCycleBeginDay[spouse.StringId] = today;
+         _announceRetries[spouse.StringId] = 0;
 
-         if (behavior?.LlmServices == null || profile == null)
+         if (!QueueDemandLetter(spouse, today))
          {
-            ModLog.Info($"[SPOUSE_DIVORCE] {spouse.Name}'s demand begins (no profile/LLM available — no letter queued).");
+            ModLog.Info($"[SPOUSE_DIVORCE] {spouse.Name}'s demand begins (no profile/LLM available; the announce phase will fall back to a notice).");
 
             return;
          }
+
+         ModLog.Info($"[SPOUSE_DIVORCE] {spouse.Name}'s demand begins, announcing letter queued.");
+      }
+
+      /// <summary>
+      ///   Queues the spouse's divorce-demand announcing letter, in their own voice. Returns false when there is
+      ///   no profile or LLM to write it (so the caller knows the announce phase must fall back to a forced
+      ///   notice, romance audit C1). Shared by <see cref="Begin" /> and the re-announce path so a lapsed letter
+      ///   is re-queued exactly as the first was.
+      /// </summary>
+      private static bool QueueDemandLetter(Hero spouse, int today)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+         NpcProfile profile = behavior?.Store?.Get(spouse.StringId);
+
+         if (behavior?.LlmServices == null || profile == null) return false;
 
          const string context = "You have grown truly, deeply unhappy in this marriage and have resolved that it must " +
                                  "end. You are writing to announce this before you press the matter in person.";
@@ -282,7 +352,18 @@ namespace CalradiaRemembers.Marriage
          LetterGenerationService.QueueInitialLetter(
             profile, spouse, LetterReason.SpouseDivorceDemand, context, behavior.LlmServices, behavior.Store, today);
 
-         ModLog.Info($"[SPOUSE_DIVORCE] {spouse.Name}'s demand begins — announcing letter queued.");
+         return true;
+      }
+
+      /// <summary>
+      ///   A guaranteed, courier-free in-person notice (romance audit C1): the last resort when the letter path
+      ///   cannot reach the player, so the demand/estrangement arc always informs them and never blindsides. Uses
+      ///   the vanilla quick-information banner, which cannot be lost or deferred. Never throws.
+      /// </summary>
+      private static void ForceDeliveredNotice(Hero spouse, string message)
+      {
+         try { MBInformationManager.AddQuickInformation(new TextObject(message)); }
+         catch (Exception ex) { ModLog.Error($"[SPOUSE_DIVORCE] forced notice failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
       }
 
       /// <summary>Every fact <see cref="SpouseDivorceDemandPolicy.ShouldDemand" /> needs, gathered live for the player's current spouse.</summary>
@@ -470,14 +551,32 @@ namespace CalradiaRemembers.Marriage
          Hero player = Hero.MainHero;
          if (player == null) return;
 
+         // M-D1: capture the PRE-dissolution baseline before dissolving, so the SET below can neutralise the
+         // engine's own hidden relation penalty (observed crashing to -100) the way every other dissolution path
+         // does. Without this SET the "deliberately moderate" walk-out was in practice the most violent path.
+         int spouseVsPlayerBefore = spouse.GetRelation(player);
+
          if (!MarriageDissolutionService.TryDissolvePlayerMarriage(spouse, out string reason))
          {
+            // M-D2: a TRANSIENT block (pregnancy/captivity) clears on its own, so a silent daily retry is
+            // correct. A STRUCTURAL block (the spouse commands a party or governs a fief) never clears by
+            // itself: left alone it froze the walk-out forever and let a player freeze ANY divorce just by
+            // handing their spouse a party. Release what can be released so tomorrow's retry can succeed.
+            if (MarriageDissolutionService.ClassifyBlock(player, spouse) == DivorceBlock.Structural)
+               MarriageDissolutionService.ReleaseStructuralRoles(spouse);
+
             ModLog.Info($"[SPOUSE_DIVORCE] {spouse.Name}'s estrangement deadline passed but the walk-out could not complete ({reason}) — will retry.");
 
             return;
          }
 
          CancelEstrangement(spouse.StringId);
+
+         // Set the spouse's regard for the player from the baseline plus a MODERATE hit, correcting for whatever
+         // the engine applied during the dissolution itself, so CR owns the emotional outcome rather than a raw
+         // engine crash to -100.
+         int walkOutTarget = spouseVsPlayerBefore + WalkOutRelationHit;
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouse, player, walkOutTarget - spouse.GetRelation(player), false);
 
          GrudgeBehavior.Instance?.TryPlant(spouse, player, GrudgeSource.Divorce,
             "Waited long enough to be heard, was refused too many times, and finally ended our marriage myself.",
@@ -534,16 +633,34 @@ namespace CalradiaRemembers.Marriage
 
             if (spouse is not {IsAlive: true} || spouse != Hero.MainHero?.Spouse)
             {
-               _demandStartDay.Remove(spouseId); // stale — no longer a live demand against the player
+               ClearDemandCycle(spouseId); // stale: no longer a live demand against the player
 
                continue;
             }
 
-            // Start the refusal clock only once the announcing letter has actually reached the player. Until then
-            // the demand cannot time out, so a demand the player never saw never becomes a refusal.
+            // Reconciliation during the DEMAND phase (romance audit M-D5): a spouse the player has genuinely
+            // warmed calls the demand off, mirroring SweepEscalations, instead of grinding on to a timeout that
+            // stamps a refusal + grudge on a marriage the player has actually mended. Read the mod's PERSONAL
+            // regard (the number conversation moves), not the lagging vanilla relation; a resolved demand earns a
+            // fresh start (refusal count reset), like every other resolution path.
+            int reconcileRegard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouseId)?.ReputationWithPlayer
+                                  ?? spouse.GetRelation(Hero.MainHero);
+            if (SpouseDivorceDemandPolicy.IsReconciled(reconcileRegard))
+            {
+               ClearDemandCycle(spouseId);
+               _refusalCount.Remove(spouseId);
+               ModLog.Info($"[DIVORCE] {spouse.Name} reconciled during the demand phase; the demand is withdrawn.");
+
+               continue;
+            }
+
+            // Announce phase (romance audit C1/C2): the refusal clock starts only once THIS cycle's announcing
+            // letter has actually reached the player. A stale letter from a previous cycle can never start it
+            // (the cycle-begin filter), and a letter that never arrives re-announces and, failing that, forces a
+            // guaranteed notice, so the arc neither soft-locks nor blindsides.
             if (_demandStartDay[spouseId] == DivorceDemandTimeoutPolicy.ClockNotStarted)
             {
-               if (DemandLetterDelivered(spouse)) _demandStartDay[spouseId] = today;
+               AdvanceAnnouncePhase(spouse, spouseId, today);
 
                continue; // never time out on the same tick the clock starts
             }
@@ -557,17 +674,56 @@ namespace CalradiaRemembers.Marriage
       }
 
       /// <summary>
-      ///   True once the spouse's CURRENT divorce-demand letter (the most recently sent one) has actually been
-      ///   delivered to the player. Until it has, the refusal clock does not start, so an undelivered or deferred
-      ///   demand can never become a refusal.
+      ///   Drives one tick of the announce phase for a demand whose clock has not started (romance audit C1/C2),
+      ///   via the pure <see cref="DivorceAnnouncePolicy" />: start the clock once the CURRENT cycle's letter is
+      ///   delivered; wait while it is still in flight; re-announce a lapsed one; and, after
+      ///   <see cref="DivorceAnnouncePolicy.MaxReannounces" /> lapses, give a guaranteed in-person notice and
+      ///   start the clock so the arc can never dead-lock or blindside.
       /// </summary>
-      private static bool DemandLetterDelivered(Hero spouse)
+      private void AdvanceAnnouncePhase(Hero spouse, string spouseId, int today)
+      {
+         int cycleBegin = _demandCycleBeginDay.TryGetValue(spouseId, out int begin) ? begin : today;
+         _announceRetries.TryGetValue(spouseId, out int retries);
+         bool delivered = DemandLetterDelivered(spouse, cycleBegin);
+
+         switch (DivorceAnnouncePolicy.Resolve(delivered, today, cycleBegin, retries))
+         {
+            case DivorceAnnounceStep.StartClock:
+               _demandStartDay[spouseId] = today;
+               break;
+
+            case DivorceAnnounceStep.Reannounce:
+               _announceRetries[spouseId] = retries + 1;
+               _demandCycleBeginDay[spouseId] = today; // a fresh delivery window for the re-queued letter
+               QueueDemandLetter(spouse, today);
+               ModLog.Info($"[SPOUSE_DIVORCE] {spouse.Name}'s divorce announcement went undelivered; re-announcing (attempt {retries + 1}).");
+               break;
+
+            case DivorceAnnounceStep.ForceNotice:
+               ForceDeliveredNotice(spouse,
+                  $"Word reaches you at last: {spouse.Name} means to end your marriage, and has grown weary of waiting to be heard.");
+               _demandStartDay[spouseId] = today; // the player has now been told, so the grace clock may run
+               ModLog.Info($"[SPOUSE_DIVORCE] {spouse.Name}'s divorce announcement could not be delivered after {retries} re-announces; forced an in-person notice and started the grace clock.");
+               break;
+
+            // Wait: the letter is still within its delivery window; do nothing this tick.
+         }
+      }
+
+      /// <summary>
+      ///   True once the spouse's divorce-demand letter FROM THE CURRENT CYCLE (sent on or after
+      ///   <paramref name="sinceDay" />, the day this demand cycle's letter was queued) has actually been
+      ///   delivered to the player. The cycle filter is romance audit C2: without it a stale, still-delivered
+      ///   letter from a PREVIOUS cycle would falsely start the clock, stamping a refusal for a demand the player
+      ///   never saw this time. Until a current-cycle letter lands, the clock does not start.
+      /// </summary>
+      private static bool DemandLetterDelivered(Hero spouse, int sinceDay)
       {
          NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouse.StringId);
          if (profile?.SentLetters == null) return false;
 
          PendingLetter demand = profile.SentLetters
-            .Where(l => l.Reason == LetterReason.SpouseDivorceDemand)
+            .Where(l => l.Reason == LetterReason.SpouseDivorceDemand && l.SentOnDay >= sinceDay)
             .OrderByDescending(l => l.SentOnDay)
             .FirstOrDefault();
 

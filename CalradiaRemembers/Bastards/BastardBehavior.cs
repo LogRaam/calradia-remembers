@@ -254,6 +254,31 @@ namespace CalradiaRemembers.Bastards
          => BastardPrestigePolicy.Resolve(ClanPrestige(bastard?.Clan), ClanPrestige(Hero.MainHero?.Clan));
 
       /// <summary>
+      ///   The largest OUTSTANDING blackmail demand this mother currently holds against the player (0 when she
+      ///   holds none). Romance audit C4: a payment that falls short of an active demand still moves the gold
+      ///   but buys nothing, so the caller must be able to tell the player how much short they were rather than
+      ///   silently pocketing the coin. Reads the same demand state <see cref="SettleByPayment" /> settles on.
+      /// </summary>
+      public int OutstandingDemand(Hero mother)
+      {
+         if (mother == null || Hero.MainHero == null) return 0;
+
+         var max = 0;
+         foreach (string childId in _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).ToList())
+         {
+            Hero child = FindHero(childId);
+
+            if (child?.Mother != mother) continue;
+
+            BlackmailState bs = GetBlackmail(childId);
+
+            if (bs.DemandSeason >= 0 && bs.DemandAmount > max) max = bs.DemandAmount;
+         }
+
+         return max;
+      }
+
+      /// <summary>
       ///   When the player gives a mercenary bastard-mother at least her standing demand (e.g. via the Give Gold
       ///   button), buy her silence for the grace period — no extra transfer, the gold already moved. Returns
       ///   true when a demand was settled. Called from the gold-payment path so paying her IS settling the secret.
@@ -350,7 +375,8 @@ namespace CalradiaRemembers.Bastards
          }
       }
 
-      /// <summary>A player-parented child whose OTHER parent is not the player's spouse — born outside the marriage.</summary>
+      /// <summary>A player-parented child born outside any marriage (romance audit M-G2: a posthumous heir of a
+      /// marriage the spouse died out of is NOT a bastard, even though the player's Spouse now reads null).</summary>
       private static bool IsPlayersBastard(Hero child)
       {
          var player = Hero.MainHero;
@@ -362,7 +388,11 @@ namespace CalradiaRemembers.Bastards
             ? child.Mother
             : child.Father;
 
-         return otherParent != null && otherParent != player.Spouse;
+         bool formerSpouse = otherParent != null && (player.ExSpouses?.Contains(otherParent) ?? false);
+
+         return BastardLegitimacyPolicy.IsPlayersBastard(
+            true, otherParent != null, otherParent == player.Spouse, formerSpouse,
+            otherParent != null && otherParent.IsAlive);
       }
 
       private static string MotherNoteContent(Hero child, BastardMotherDisposition disposition)
@@ -460,9 +490,11 @@ namespace CalradiaRemembers.Bastards
             SenderId = mother.StringId,
             SenderName = mother.Name?.ToString(),
             Reason = LetterReason.Blackmail,
+            // M-G6: the deadline in the prose must match the real mechanic (DemandDeadlineSeasons), not a vague
+            // "by season's end" that undersold the actual window and blindsided the player when it did not lapse then.
             Content = $"You have not forgotten {child.Name}, I think — the child we made between us. The realm does not yet know whose " +
                       $"it is, and need not, so long as you are generous. Send me {demand} denars and my tongue stays still. " +
-                      $"Disappoint me, and all of Calradia will know the truth by season's end.",
+                      $"Disappoint me, and before {BastardBlackmailPolicy.DemandDeadlineSeasons} seasons are out, all of Calradia will know the truth.",
             SentOnDay = today,
             DeliveryDay = today + DemandLetterDeliveryDays,
             IsDelivered = false
@@ -529,7 +561,10 @@ namespace CalradiaRemembers.Bastards
       {
          Hero mother = child.Mother;
 
-         if (mother is not {IsAlive: true} || mother == Hero.MainHero?.Spouse) return;
+         // M-G3: the player can never blackmail themselves. A player-mother is normally caught by the MainParty
+         // guard below, but a CAPTIVE player-mother is not in MainParty, so she slipped through and "sent herself"
+         // a blackmail letter revealing her own secret. Guard the player's own identity directly, captive or not.
+         if (mother is not {IsAlive: true} || mother == Hero.MainHero || mother == Hero.MainHero?.Spouse) return;
 
          // A mother who is in the player's OWN party is at his side, not apart: the whole bastard thread
          // (a secret held from a distance, "come to us", "you are never here", a blackmail by courier) makes

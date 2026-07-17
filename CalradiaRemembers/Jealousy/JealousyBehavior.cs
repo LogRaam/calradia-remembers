@@ -173,17 +173,21 @@ namespace CalradiaRemembers.Jealousy
 
             if (res.Stake == JealousStake.RivalSuitor)
                _state.RivalLocks[courted.StringId] = res.Party.StringId; // keep the same rival across the arc
-            _state.LastReactionDay[pairKey] = today;
 
             if (hadWitnesses)
             {
-               // Telegraphed: word travels fast. React soon (probabilistic — not every flirt).
-               if (MBRandom.RandomFloat > WitnessedReactionChance) return;
+               // M-J2: a marriage-tier act (public wedding, consort openly taken) ALWAYS wakes the jealous party;
+               // only lesser witnessed acts are probabilistic ("not every flirt travels"). M-J1: consume the
+               // pairing cooldown ONLY when the act actually reacts, so a failed flirt roll no longer swallows a
+               // real marriage that happens days later within the cooldown window.
+               if (!JealousyReactionPolicy.WitnessedActReacts(tier, MBRandom.RandomFloat, WitnessedReactionChance)) return;
+               _state.LastReactionDay[pairKey] = today;
                SchedulePendingReaction(res, courted, tier, 1 + MBRandom.RandomInt(3), today);
                ModLog.Info($"[JEALOUSY] scheduled (witnessed): {res.Party.Name} ({res.Stake}) over {courted.Name}.");
             }
             else
             {
+               _state.LastReactionDay[pairKey] = today; // awareness now pending: this pairing is registered
                // No witnesses: the act is private. Lay down a faint liaison rumour and let it
                // travel — the jealous party reacts only if/when word actually reaches them
                // (proximity, faction, recency), not on a flat dice roll. Closes the v1 stub.
@@ -309,9 +313,10 @@ namespace CalradiaRemembers.Jealousy
 
          // A threatening/confronting letter, unless they are beside the player (same party, army, or
          // settlement), in which case they would say it to the player's face rather than send a courier.
+         // M-J7: a prisoner sends no couriers from a cell, so a captive jealous party never writes a threat.
          bool withPlayer = PlayerPresenceResolver.IsBeside(party);
 
-         if (!pj.WithLetter || withPlayer) return;
+         if (!pj.WithLetter || withPlayer || party.IsPrisoner) return;
          string context = JealousyReaction.BuildLetterContext(
             stake, competition, party.Name?.ToString(), pj.CourtedName, culture);
          LetterGenerationService.QueueInitialLetter(
@@ -335,11 +340,24 @@ namespace CalradiaRemembers.Jealousy
       private static int NeglectDays(Hero h, NpcMemoryCampaignBehavior behavior, int today)
       {
          if (IsWithPlayer(h)) return 0;
+         // M-J7: a captive partner is in irons, not being slighted; the competition loop must not read their
+         // captivity as the player neglecting them (they cannot be "attended to" from a cell either way).
+         if (h.IsPrisoner) return 0;
          NpcProfile p = behavior.Store.Get(h.StringId);
 
          if (p == null || p.Events.Count == 0) return CompetitionSelector.NeglectThresholdDays; // present but unrecorded — don't over-punish
 
-         return today - p.Events.Max(e => e.gameDay);
+         // M-J4: measure days since the last genuine ATTENTION, not the last event of any kind. Otherwise a
+         // jealousy reaction the system itself planted, or a received letter, reset the neglect clock, so the
+         // competition/estrangement loop could never actually reach a partner who was truly being ignored.
+         int lastAttentionDay = int.MinValue;
+         foreach (NotableEvent e in p.Events)
+            if (JealousyAttentionPolicy.CountsAsAttention(e.type) && e.gameDay > lastAttentionDay)
+               lastAttentionDay = e.gameDay;
+
+         if (lastAttentionDay == int.MinValue) return CompetitionSelector.NeglectThresholdDays; // recorded, but never truly attended to
+
+         return today - lastAttentionDay;
       }
 
       private static void QueueCompetitionLetter(

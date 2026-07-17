@@ -156,7 +156,14 @@ namespace CalradiaRemembers.GameState
                ? father
                : mother;
 
-            if (partner == Hero.MainHero || !partner.IsLord) return;
+            if (partner == Hero.MainHero) return;
+
+            // Romance audit C5: only a LEGITIMATE conception (the partner IS the player's spouse) is a public
+            // heir worth chronicling. An adulterous conception is the seed of a HIDDEN bastard; recording it as a
+            // public PlayerFeat (which feeds NPC knowledge, tavern rumours, and the spouse's own awareness) would
+            // break the bastard pillar's premise that the secret holds until a seasonal discovery roll, and would
+            // falsely call a bastard "an heir". Leave it silent; the bastard pillar owns its eventual reveal.
+            if (!ConceptionChroniclePolicy.IsPublicHeir(Hero.MainHero.Spouse == partner, partner.IsLord)) return;
 
             WorldEventStore store = WorldEventStore.Instance;
             if (store == null) return;

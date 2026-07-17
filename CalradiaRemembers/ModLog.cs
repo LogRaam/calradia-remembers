@@ -28,6 +28,7 @@ namespace CalradiaRemembers
          "CalradiaRemembers.log");
 
       private static readonly HashSet<string> SeenCompat = new();
+      private static readonly HashSet<string> SeenConfigError = new();
 
       static ModLog()
       {
@@ -76,6 +77,36 @@ namespace CalradiaRemembers
          {
             InformationManager.DisplayMessage(
                new InformationMessage($"[{Tag}] compatibility notice: {message}", Colors.Yellow));
+         }
+         catch
+         {
+            /* a UI call before the manager is ready must never crash startup */
+         }
+      }
+
+      /// <summary>
+      ///   A player-authored config file (e.g. character_overrides.json) could not be read. ALWAYS recorded,
+      ///   even when the MCM logging switch is off (its default on Nexus): the mod's own diagnostics
+      ///   (Info/Error) are gated by that switch, so without this channel a player who typos their JSON gets
+      ///   zero signal that their edit silently did nothing. Deduplicated per distinct message per session,
+      ///   same pattern as <see cref="Compat" />, so a fault on a hot path cannot spam the log or the screen.
+      /// </summary>
+      internal static void ConfigError(string message)
+      {
+         lock (SeenConfigError)
+         {
+            if (!SeenConfigError.Add(message)) return;
+         }
+
+         var line = $"[{DateTime.Now:HH:mm:ss}] [CONFIG] [{Tag}] {message}";
+
+         try { File.AppendAllText(LogPath, line + Environment.NewLine); }
+         catch { }
+
+         try
+         {
+            InformationManager.DisplayMessage(
+               new InformationMessage($"[{Tag}] config error: {message}", Colors.Red));
          }
          catch
          {

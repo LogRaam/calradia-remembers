@@ -24,8 +24,20 @@ namespace CalradiaRemembers.Logic
         /// <summary>A floor so even a poor lord pays something for silence. Tuning.</summary>
         public const int MinDemand = 500;
 
-        /// <summary>A ceiling so the demand never becomes ruinous in one stroke. Tuning.</summary>
-        public const int MaxDemand = 20000;
+        /// <summary>
+        ///   The largest single payment the wired settlement path can carry: the take_gold action clamps one
+        ///   transfer to this, and <c>BastardBehavior.SettleByPayment</c> only buys silence when the payment
+        ///   MEETS the demand in one go. Romance audit C4: a demand above this was structurally impayable, so
+        ///   the player's gold was taken with no silence bought and no message; <see cref="MaxDemand" /> must
+        ///   never exceed it. Kept here as a named constant so the coupling is explicit and test-guarded.
+        /// </summary>
+        public const int MaxSinglePaymentSettlement = 10000;
+
+        /// <summary>
+        ///   A ceiling so the demand never becomes ruinous in one stroke AND stays settleable in a single
+        ///   payment (romance audit C4: never above <see cref="MaxSinglePaymentSettlement" />). Tuning.
+        /// </summary>
+        public const int MaxDemand = MaxSinglePaymentSettlement;
 
         /// <summary>Seasons of silence a payment buys before she may demand again. Tuning.</summary>
         public const int GraceSeasons = 4;

@@ -25,6 +25,9 @@ namespace CalradiaRemembers.Logic
 
         public int Count => _overrides.Count;
 
+        /// <summary>All authored entries, in load order. Lets a diagnostic enumerate what was authored.</summary>
+        public IReadOnlyList<CharacterOverride> All => _overrides;
+
         /// <summary>
         ///   The override for a hero, or null when none applies. A matching <paramref name="heroId"/>
         ///   (StringId) always wins — the unambiguous key. Otherwise the first case-insensitive match on

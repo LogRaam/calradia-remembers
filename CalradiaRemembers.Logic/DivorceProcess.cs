@@ -5,6 +5,13 @@
 // (deadline math, the resistance roll, consequence magnitudes) lives in DivorcePolicy; the host
 // (CalradiaRemembers.Marriage.DivorceProcessBehavior) persists this and advances it on the daily tick.
 
+#region
+
+using System.Collections.Generic;
+using System.Linq;
+
+#endregion
+
 namespace CalradiaRemembers.Logic
 {
     /// <summary>The lifecycle of a divorce process. Active is the only non-terminal state.</summary>
@@ -48,5 +55,17 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>Where the process currently stands.</summary>
         public DivorceProcessState State { get; set; } = DivorceProcessState.Active;
+
+        /// <summary>
+        ///   True when EITHER hero (romance audit M-D3) is already in an ACTIVE process among
+        ///   <paramref name="active" />, whether as the requester or the spouse. The host must lock a new
+        ///   process by the PAIR, not the requester alone: persuading spouse A then spouse B of the SAME
+        ///   marriage (two different requesters, so a requester-only lock lets the second through) would
+        ///   otherwise open two crossed processes, the second resolving with a false "household closed ranks"
+        ///   and an unearned relation hit on the player. Pure so this lock is unit-tested, not only observed in game.
+        /// </summary>
+        public static bool PairAlreadyEngaged(IEnumerable<DivorceProcess> active, string npcId, string spouseId)
+            => active != null && active.Any(p => p != null && p.State == DivorceProcessState.Active
+                   && (p.NpcId == npcId || p.SpouseId == npcId || p.NpcId == spouseId || p.SpouseId == spouseId));
     }
 }

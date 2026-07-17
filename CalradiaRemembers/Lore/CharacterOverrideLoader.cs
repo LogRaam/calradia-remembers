@@ -23,6 +23,22 @@ namespace CalradiaRemembers.Lore
       /// <summary>The current authored overrides; never null once <see cref="Load" /> has run.</summary>
       public static CharacterOverrideSet Set { get; private set; } = new(null);
 
+      /// <summary>The path the last <see cref="Load" /> looked at, for the diagnostic console command.</summary>
+      public static string LastLoadPath { get; private set; }
+
+      /// <summary>Whether character_overrides.json existed at the last <see cref="Load" />.</summary>
+      public static bool LastLoadFileExisted { get; private set; }
+
+      /// <summary>How many overrides the last <see cref="Load" /> produced.</summary>
+      public static int LastLoadCount { get; private set; }
+
+      /// <summary>
+      ///   Null when the last <see cref="Load" /> was clean (file missing, or parsed OK); set to the
+      ///   parse exception's message when the file exists but is malformed, so a player-facing diagnostic
+      ///   (cr.lore_status) can report the exact reason without needing the logging toggle on.
+      /// </summary>
+      public static string LastLoadError { get; private set; }
+
       /// <summary>
       ///   The authored backstory for <paramref name="hero" /> when custom data is enabled, else null.
       ///   Used to sync <see cref="NpcMemoryService.Core.Models.NpcProfile.AuthoredBackstory" /> before
@@ -100,13 +116,20 @@ namespace CalradiaRemembers.Lore
             BasePath.Name, "Modules", "CalradiaRemembers",
             "ModuleData", "character_overrides.json");
 
+         LastLoadPath = path;
+
          if (!File.Exists(path))
          {
             Set = new CharacterOverrideSet(null);
+            LastLoadFileExisted = false;
+            LastLoadCount = 0;
+            LastLoadError = null;
             ModLog.Info($"  character_overrides.json not found — no authored characters. (looked in: {path})");
 
             return;
          }
+
+         LastLoadFileExisted = true;
 
          try
          {
@@ -114,12 +137,17 @@ namespace CalradiaRemembers.Lore
             List<CharacterOverride> entries =
                JsonConvert.DeserializeObject<List<CharacterOverride>>(json) ?? new List<CharacterOverride>();
             Set = new CharacterOverrideSet(entries);
+            LastLoadCount = Set.Count;
+            LastLoadError = null;
             ModLog.Info($"  Loaded {Set.Count} authored character override(s) from ModuleData.");
          }
          catch (Exception ex)
          {
             Set = new CharacterOverrideSet(null);
+            LastLoadCount = 0;
+            LastLoadError = ex.Message;
             ModLog.Error($"  character_overrides.json failed to parse — authored characters disabled: {ex.Message}");
+            ModLog.ConfigError($"character_overrides.json failed to parse ({ex.Message}). Authored characters are disabled until it is fixed.");
          }
       }
    }

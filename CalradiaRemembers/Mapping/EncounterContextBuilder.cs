@@ -211,6 +211,11 @@ namespace CalradiaRemembers.Mapping
             InterceptionReason = resolveInterception
                ? ResolveInterceptionReason(hero)
                : null,
+            // C5 feedback loop: consumed on read like InterceptionReason, so only pull it on a real LLM turn,
+            // never on the dead open-time build (which would swallow the nudge before the model ever sees it).
+            LlmFormatFeedbackNote = resolveInterception
+               ? LlmFeedbackNotes.ConsumeFor(hero?.StringId)
+               : null,
             StanceNote = StanceService.Describe(profile),
             StanceConsequenceHint = ResolveStanceConsequenceHint(hero, profile),
             GrudgeNote = ResolveGrudgeNote(hero, profile),
@@ -775,7 +780,9 @@ namespace CalradiaRemembers.Mapping
          if (profile.Romantic.IsConsort) return false; // already a consort
          RomanticStatus status = profile.Romantic.Status;
 
-         if (status < RomanticStatus.Intimate) return false;
+         // M-R1: require an ACTIVE intimate bond, not a raw ordinal test. Estranged/Broken sort after Intimate in
+         // the enum, so "< Intimate" wrongly let a dead romance qualify for a consort offer.
+         if (!status.IsIntimateOrDeeper()) return false;
          if (status == RomanticStatus.Committed) return false;
 
          return profile.ReputationWithPlayer >= 60;

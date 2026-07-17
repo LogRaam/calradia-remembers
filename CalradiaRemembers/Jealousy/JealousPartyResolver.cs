@@ -153,7 +153,7 @@ namespace CalradiaRemembers.Jealousy
          {
             Hero locked = Hero.FindFirst(h => h.StringId == lockedRivalId);
 
-            if (locked is {IsAlive: true} && MarriageProspectResolver.IsMarriageable(courted, locked))
+            if (locked is {IsAlive: true} && MarriageProspectResolver.IsMarriageable(courted, locked) && !IsCloseKin(courted, locked))
                return locked;
          }
 
@@ -163,6 +163,10 @@ namespace CalradiaRemembers.Jealousy
          {
             if (h == courted || h == Hero.MainHero) continue;
             if (!MarriageProspectResolver.IsMarriageable(courted, h)) continue; // unwed, adult, opposite sex to X, age gap
+            // M-J3: a rival SUITOR schemes to marry the courted NPC, so their own close kin (parent, child,
+            // sibling) can never be one; without this an opposite-sex parent or sibling could be picked and write
+            // an incestuous "I intend to marry {courted}".
+            if (IsCloseKin(courted, h)) continue;
             int rel = h.GetRelation(courted);
 
             if (rel <= bestRelation) continue;
@@ -171,6 +175,21 @@ namespace CalradiaRemembers.Jealousy
          }
 
          return best;
+      }
+
+      /// <summary>True when <paramref name="a" /> and <paramref name="b" /> are close blood kin (parent/child or
+      /// siblings), who can never court or marry each other (romance audit M-J3).</summary>
+      private static bool IsCloseKin(Hero a, Hero b)
+      {
+         if (a == null || b == null) return false;
+         if (a.Father == b || a.Mother == b || b.Father == a || b.Mother == a) return true;
+
+         if (a.Siblings != null)
+            foreach (Hero sibling in a.Siblings)
+               if (sibling == b)
+                  return true;
+
+         return false;
       }
 
       private static Hero ResolveSpurnedAdmirer(Hero courted, Func<string, NpcProfile> getProfile)

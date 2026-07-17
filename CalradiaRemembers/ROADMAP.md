@@ -113,6 +113,96 @@ Then: settlement menu "Summon an assembly" (invitee picker, filtered to eligible
 
 ---
 
+## DESIGN RATIFIED (Gabriel 2026-07-17): the COUNCIL as NEGOTIATION — consigned resolutions
+
+Born from the Round Table audit (`AUDIT-ROUND-TABLE.md`, root workspace): the lap's central defect (C1) is that
+council speech is consequence-free while the prompt teaches every action. Two answers were rejected — apply
+everything immediately (fictionally absurd: a lord does not have his troops in the room; mechanically
+dangerous) and apply nothing (theatre: the council teaches the player that words do not bind). The ratified
+third way: **a council is a NEGOTIATION. Free speech stays free of immediate effect; exactly one structure
+binds — the `[PLEDGE]`, which is CONSIGNED, not executed. Execution is deferred to the coming days and
+verified against real campaign events. The other participants are recorded as WITNESSES, which is what
+makes a breach socially expensive** — the unique value of a council over 1v1: an engagement taken in front
+of witnesses costs more to break.
+
+This is NOT a new mechanism: it is the existing `CommitmentBehavior` pattern (consign -> deferred
+execution -> verification -> consequence) applied to a new producer, with an execution layer for verbs the
+vanilla AI will never perform on its own.
+
+### Locked design decisions (Gabriel 2026-07-17)
+1. **Resolutions are bounded to the verifiable** (the mod's founding rule: magnitude is bounded by what the
+   game can verify). `send_gold`, `send_troops`, `release_prisoner`, `move_against` are verifiable by real
+   campaign events. `change_relation`, "support my claim" are not — excluded from the pledge vocabulary,
+   else we recreate hollow promises. The v1 list is 4 verbs; each ships with its own event verifier.
+2. **Individual pledges, no group consensus.** A "council consensus" is mechanically fragile (who verifies?
+   who is punished on breach?). Each NPC emits his OWN pledge (actions stay per-speaker); the other
+   participants are recorded as WITNESSES of the engagement (a heroId list on the resolution).
+3. **Player consent stays explicit.** Anything costing the player (gold, troops, his own sword) passes the
+   existing `ActionConfirmationController` Y/n gate. Negotiation is text; the engagement seals code-side.
+4. **Guards re-validated at deferred execution, not only at pledge time.** A lord may pledge in council then
+   be captured, die, or change faction before the deadline. The bridge re-checks eligibility when the
+   execution falls due ("the bridge is law", applied over time), with a clean narrative outcome when
+   execution has become impossible ("Derthert cannot honor his word — he is in chains").
+5. **One simple block, taught only in council turns.** `[PLEDGE] type / target / amount / days [/PLEDGE]`,
+   4-5 fields, tolerant parsing (the parser hardening in progress applies directly). Taught ONLY when
+   `IsRoundTableTurn` — a 1v1 conversation cannot produce a council resolution (the existing
+   `pledge_against` action keeps its own path; it predates and is orthogonal).
+6. **Two classes of council outcomes.** Engagements (verifiable, deadline, breach) via the new mechanism;
+   sentiments (the debate genuinely moved regard) via the ordinary gated `change_relation`. Only class one
+   is new.
+
+### The v1 resolution verbs (execution + verification)
+| Verb | Deferred execution | Verified by |
+|---|---|---|
+| `send_gold` | a real courier party carries the gold (CourierService — visible, waylayable; the amount is escrowed from the promisor's stock) | courier arrival (existing delivery path) |
+| `send_troops` | a small party of the promisor's culture spawns and travels to join the player (courier pattern) | party arrival / merge |
+| `release_prisoner` | at the deadline, if the named captive is still held by the promisor's side | `HeroPrisonerReleased` (already listened elsewhere) |
+| `move_against` | ALREADY EXISTS — `CommitmentBehavior` (scheme or organic battle) | `OnSchemeResolved` / `OnMapEventEnded` |
+
+(v2, not v1: `marry`/`grant_blessing` — requires both parties present, resolution honored at the next
+meeting; `declare_war` — faction leaders only, needs its own political gate.)
+
+### Reuse (not from scratch)
+`TrackedCommitment` model (`Logic/TrackedCommitment.cs`: Id/PromisorId/TargetId/Kind/IssuedDay/DeadlineDay/
+State Active->Fulfilled|Breached — generalize `CommitmentKind`), the `CommitmentBehavior` engine (daily
+breach sweep, fulfillment-by-event, SafeRun per item, byte[] JSON persistence with frozen-snapshot
+anti-race + graceful degradation), `CommitmentPolicy` (pure, tested: `DeadlineDays 21`,
+`FulfilledRelationBonus +6`, `BreachedRelationPenalty -12`), `CommitmentJournalBridge` (vanilla journal
+mirror), `StanceService.OnPromiseKept/OnPromiseBroken` (+15 Trust / -18), `WorldEventStore` (fulfilled/
+breached records — the public shame), `CourierService` (visible execution of send_gold/send_troops),
+`ActionConfirmationController` (player consent), the bridge's `ExecutePledgeAgainst` re-validation pattern.
+
+### Increment breakdown
+- **R0 — PREREQUISITE: Round Table audit Phase 0** (`AUDIT-ROUND-TABLE.md`): the 10 low-effort fixes before
+  flipping `RoundTableController.Enabled` (witness-hallucination filter — already live in 15C, per-turn
+  presence re-check, per-speaker relations, unified framing, confirmation handoff, intent-detector word
+  boundaries, kill-switch guard, `cr.roundtable` test command + token logging). Without R0 the council
+  engine itself is untrusted; building negotiations on it would stack defects.
+- **R1 — the engine.** Generalize `CommitmentKind` (SendGold/SendTroops/ReleasePrisoner alongside
+  MoveAgainst); add `WitnessIds` to the resolution; `[PLEDGE]` block in the SDK parser + PromptBuilder
+  (taught only on `IsRoundTableTurn`); honored in the lap alongside `end_conversation`/`witness_leaves`
+  (the ONLY effect a council turn may produce — everything else stays theatre); `send_gold` executor via
+  CourierService; `release_prisoner` executor at deadline; event verifiers; breach = existing penalty +
+  a WorldEvent naming the witnesses (the social sting).
+- **R2 — follow-through.** `send_troops` party; "YOUR OUTSTANDING RESOLUTIONS" injected in the promisor's
+  prompt (he remembers what he vowed, and the player can call him on it); narrative outcomes when execution
+  became impossible (promisor dead/captured/faction-flipped); resolution recall at next meeting.
+- **R3 — council politics.** `marry`/blessing honored at next meeting; `declare_war` for faction leaders;
+  assembly integration (Inc 4's "mission distribution" becomes consigned resolutions taken before
+  witnesses — ambassadors pledge in their lord's name).
+
+### Risks (flagged)
+- **LLM format is the weak link** (quests audit): keep the block at 4-5 fields, one worked example in the
+  prompt, and tolerate the council producing ZERO pledges — a debate with no outcome is a valid outcome.
+- **Cost**: a resolution adds no LLM call (execution is out-of-chat), but each pledge later surfaces in the
+  promisor's prompt — bounded by "one pledge in flight per promisor" (existing `HasActive` rule).
+- **Double counting**: a fulfilled pledge pays its reward ONCE (fulfillment path), never re-credited by the
+  ordinary deed feeds — same discipline as the quest/commitment dedup.
+
+### STATUS: RATIFIED 2026-07-17, NOT started. Prerequisite = R0 (Round Table audit Phase 0).
+
+---
+
 ## SHIPPED v1.30.5 (player request, SuperGraham339 2026-07-11): RESCUE AWARENESS + Enter-to-send
 
 Freeing a captive lord by force is now remembered and ripples outward. Trigger: the player wins the battle/siege
@@ -385,6 +475,36 @@ The LLM emits `challenge_duel`; the mod re-validates everything (same place, a p
 prisoner, cooldown, traits: Valor/Honour accept, a fearful Calculating slips out of it, an affronted grudge-holder
 demands it). A refusal must COST (renown / honour before witnesses) or no one ever fights and the feature is dead.
 
+### Reason-driven consequences (ratified 2026-07-16): the duel is a convergence point, not a generic renown swap
+A duel carries a REASON, and the consequence flows from it. TWO reasons only (both "soft": they move perception,
+never the strategic board, so a chat-triggered duel can never be an exploit):
+- **HonourAffront** (an insulted lord demands satisfaction): renown + the opponent's stance, and a driving grudge
+  settled/hardened. Already ~80% covered by the existing `DuelOutcomePolicy`.
+- **CourtshipRivalry** (a rival suitor for a hero the player courts): the NEW work. Outcome moves the courted
+  hero's `RomanticProfile.AttractionToPlayer` (the stat ALREADY EXISTS, clamp [-100,100], deliberately distinct
+  from ReputationWithPlayer and from stance). WIN -> AttractionToPlayer up (admiration) + player honour safe;
+  LOSE -> AttractionToPlayer down (she doubts his worth) + honour safe (he fought); REFUSE -> reputation/renown
+  damaged (cowardice before witnesses, `DuelStakesPolicy.ForfeitRenownCost`). The rival's fall in her eyes is
+  NARRATIVE ONLY (a world-event she learns of; the LLM can reference it): CR has no hero-to-hero attraction
+  stat, and the player's rise already tilts the triangle. She need NOT be present; she learns of the outcome.
+- **VENDETTA / capture-the-loser: DROPPED (2026-07-16).** Real exploit risk (talk the Vlandian king into a duel
+  and capture him, bypassing armies/sieges) and it violates the no-chat-strategic-exploit / bridge-is-law
+  principle. Vengeance already resolves through nemesis/assassination and war.
+
+Flow (CourtshipRivalry, Inc 1 = RIVAL-INITIATED only): the rival comes to the player; a chat opens where he says
+he loves her, knows the player is also drawn to her, and wants it settled with steel (varied LLM intros for
+context). Approach reuses existing plumbing: ON THE LAND MAP -> `InterceptionBehavior` (a lord rides out to meet
+you) + its cadence/cooldown dial to avoid spam, duel in the WILDERNESS; IN A SETTLEMENT -> audience -> duel AT
+THE TOWN GATES (the ambush settlement-scene path). NO sea duel: defer until the player is ashore.
+
+- **Inc A (PURE Logic, test-first): `DuelReason` enum + a reason-consequence layer** on top of `DuelOutcomePolicy`
+  (CourtshipRivalry: CourtedAttractionDelta win/lose + player renown/honour + refuse cost); a
+  `CourtshipRivalryEligibility` (is there a real triangle: player courts L, R desires L, R bold enough); a
+  location classifier (settlement -> gates / land -> wilderness / sea -> no duel). Read as the spec first.
+- **Inc B (engine glue): the approach behavior** (specialise `InterceptionBehavior`), the chat intro (contextual
+  prompt block + variants), the gates/wilderness launch, and applying the outcome to the live systems
+  (`AttractionToPlayer`, renown, stance) + the world-event.
+
 ### Increments
 - **Inc 0 (PURE, no engine, Opus, design):** `DuelChallengePolicy` (who may challenge / be challenged, when),
   `DuelAcceptancePolicy` (traits + stance + grudge -> accept / refuse / set terms), `DuelStakesPolicy` (honour +
@@ -402,6 +522,87 @@ demands it). A refusal must COST (renown / honour before witnesses) or no one ev
   courted lady's hand, an abandoned suit); the post-duel conversation ("you spared me").
 - **Inc 3 (SEPARATE, guarded):** the hostile ATTACK, restricted to already-at-war / bandit / nemesis, reusing the
   existing MapEvent brackets. NEVER a peace-time conversation opening a battle.
+
+## WITNESS LIVELINESS (player report 2026-07-15, ratified 2026-07-16): witnesses participate when concerned
+
+A player reported a sharp decline in witnesses addressing each other / interjecting "since the last two
+versions". Diagnosis (verified in code, not the parser: ParseWitnessReactions reads the FULL raw text, so the
+v1.30.14 machinery strip never eats witness blocks): the v1.30.12 "Scene discipline" tightening opens the
+final format block, at maximum recency, with "You are the ONLY character speaking" plus a wall of NEVERs, and
+it is emitted UNCONDITIONALLY, even when witnesses are present. The early WITNESSES PRESENT teaching encourages
+proactive reactions, but the last thing the model reads before generating forbids them in spirit. Recency wins.
+
+Gabriel's ratified direction: witnesses must be able to PARTICIPATE when the talk concerns them, and that makes
+the world alive. They may react physically (present and attentive), but they may also SPEAK and ASK QUESTIONS.
+
+- **Inc 1 (Fable, prompt-only, SDK): 🔨 built 2026-07-16.** SCENE DISCIPLINE becomes witness-aware: without
+  witnesses it keeps the strict "only character speaking" wall (that bug fix stays); with witnesses present it
+  says the NPC is the scene's ANCHOR but not alone, keeps the core prohibition (never compose another's words
+  in YOUR blocks; a witness's words live in THEIR [WITNESS_REACTION]), and ENDS on an active invitation to let
+  a concerned witness step in THIS turn (the invitation now sits at recency, where the restriction used to).
+  The witness teaching drops "One sentence in their voice, no more": a CONCERNED witness may ask the player or
+  the main NPC a pointed question, object, or press a point (2-3 sentences), while the main NPC stays the
+  anchor (witnesses interject, they never take over).
+- **Inc 2 (designed, not built): questions that get answered.** A field on WitnessReaction marking "this
+  witness addresses the PLAYER (a question)" (parsed, pure/testable); the player's next message then routes to
+  that witness automatically (15B addressing, but witness-initiated). A question aimed at the main NPC gets a
+  real answer through the 15C loop.
+- **Inc 3 (designed, not built): pacing dial + anti-hijack.** MCM "Witnesses" dial (Quiet / Balanced / Lively)
+  tuning the 15C exchange cap + eagerness to step in; hard caps so the main NPC remains the conversation's
+  anchor.
+
+## QUEST/ACTION PARSER HARDENING (kimi audit, ratified 2026-07-17): make weak LLMs safe at the form frontier
+
+An audit found the multi-LLM risk concentrates at the "form frontier" between a weak model's text and the parser,
+plus one confirmed correctness bug. Phased by impact/effort (parser first, it is where weak models fail).
+
+- **Phase A (SDK parser, PURE, test-first): DONE 2026-07-17 (uncommitted, SDK 344 tests green).**
+  - **A5 (CONFIRMED BUG):** an invalid `type` in [QUEST_ABANDON]/[QUEST_COMPLETE] parsed to null,
+    indistinguishable from "no type", so QuestService WILDCARDED it onto the first quest, landing a false
+    (-regard + grudge) on the wrong task. Fixed: a `TypeUnrecognized` flag on both claim models; QuestService
+    ignores a named-but-unknown type instead of wildcarding.
+  - **A1 (silent loss):** a [QUEST]/[ACTION] cut off by max-tokens (no close tag) was dropped silently. Now
+    tolerated (`ExtractSectionTolerant` for the QUEST family + a trailing-unclosed [ACTION] catch); a truncated
+    but unparseable quest trips QuestBlockMalformed so the player is told.
+  - **A2/A3/A6:** lexical robustness (quoted / backtick values, markdown-bulleted lines, spaced keys folded to
+    the canonical underscore, "500 denars" / "1,000" numbers, deadline capped at 90 days).
+  - **A7:** an [ACTION] a model writes INSIDE its [DIALOGUE] (explaining the format) is no longer executed; the
+    invented-tag change_relation recovery still scans the FULL text (the Fakade in-dialogue [RELATION CHANGE]
+    case is the opposite intent and must still recover).
+  - **A8:** the parser comment that wrongly claimed truncation was covered is now accurate.
+  - **A4 DEFERRED (needs verification):** action-verb aliases / normalization needs confirming how the mod
+    bridge matches action types (case sensitivity, canonical names, `give_money` is used in existing tests)
+    before touching the dispatch.
+- **Phase B (game-side nets, mod): 5 of 6 DONE 2026-07-17 (uncommitted, mod compiles; validate in game).**
+  - **B1 reward net ✅** (`QuestService.SettleUnclaimedRewards`, fired from `ApplyResponse` when the model
+    claims no completion): pays any `IsAwaitingReward` quest the LLM never closed with [QUEST_COMPLETE]. SAFE
+    because `IsAwaitingReward` = the deed was already verified by a real event, so it never pays for unfinished
+    work; once paid it is Completed so it never fires twice. Generalises the ProvideGold-on-payment fix. Shared
+    completion core extracted to `SettleQuest`. Guarded by `cr.test reward_net`.
+  - **B2 ✅** at most ONE `change_relation` applies per turn (a weak model's several negative blocks can no
+    longer pile the RelationGate's per-call -15 floor into -75). `relationChangedThisTurn` in the dispatch loop.
+  - **B3 ✅** each `ExecuteAction` is isolated in try/catch, so one executor throwing no longer aborts the rest
+    of the turn or the `Store.Set` that persists it.
+  - **B4 ✅** (partial) `give_gold` logs a missing/unparsable amount instead of returning silently.
+  - **B6 ✅** `give_gold` is clamped to the giver's real purse (no conjuring coin, no negative purse).
+  - **B5 DEFERRED:** `end_conversation` only when `speaker.IsMain` needs tracing all exchange paths (main / 15B
+    routed witness / 15C / captive) before guarding, or a legitimate end could break. Low value, nuanced.
+- **Phase C (prompt, multi-LLM): DONE 2026-07-17 (SDK 352 tests green).**
+  - **C1 ✅** a fully-FILLED [QUEST] example (real type / verbatim target / rewards / description / close tag)
+    after the placeholder template in `AppendQuestInstructions`, and a filled [ACTION] example in
+    `AppendActionInstructions`. Weak models copy a concrete example far better than a placeholder.
+  - **C2 ✅** the Lean contract now SHOWS the `[QUEST_COMPLETE]` skeleton (gated on EnableQuests), not just asks
+    for completion.
+  - **C3 ✅** an explicit lexical rule in the Full format contract: labels are UPPERCASE, opened `[LABEL]` and
+    closed `[/LABEL]` on their own lines.
+  - **C4 ✅** the FORMAT REMINDER ends on a literal bracketed skeleton, so the last thing the model reads is the
+    exact shape, not "as taught above".
+  - **C5 ✅** a feedback note injected the turn AFTER a [QUEST] block was refused (QuestBlockMalformed):
+    `EncounterContext.LlmFormatFeedbackNote` + a transient per-hero `LlmFeedbackNotes` store (set by
+    `QuestService`, consumed once by `EncounterContextBuilder` on the next real LLM turn), rendered as a "NOTE ON
+    YOUR LAST REPLY" block so the MODEL learns of the refusal, not just the player. (Action-refusal feedback,
+    from the bridge default case, is a natural later extension.)
+- **Phase D (per-model conformance telemetry): DEFERRED (highest effort, lowest immediate value; audit agrees, last).**
 
 ## ✅ Shipped & built
 

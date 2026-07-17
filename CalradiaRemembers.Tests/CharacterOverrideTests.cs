@@ -160,6 +160,19 @@ namespace CalradiaRemembers.Tests
             set.Resolve(heroId: "aria_south", heroName: "Aria").Honor.Should().Be(-2);
         }
 
+        // cr.lore_status (the diagnostic the player-feedback loop needs) enumerates every authored entry to
+        // report which ones matched a live hero and which didn't. If All ever returned an empty or wrong
+        // list, that diagnostic would tell a player their file loaded nothing when it actually loaded fine.
+        [Test]
+        public void GIVEN_a_set_with_entries_WHEN_reading_All_THEN_the_constructed_entries_are_returned()
+        {
+            var derthert = new CharacterOverride { Hero = "Derthert", Valor = 1 };
+            var aria = new CharacterOverride { Hero = "Aria", Id = "aria_north", Honor = 2 };
+            var set = new CharacterOverrideSet(new[] { derthert, aria });
+
+            set.All.Should().BeEquivalentTo(new[] { derthert, aria });
+        }
+
         // ── Runtime injection (With): the console backstory-test path ───────────
 
         // This is what cr.backstory_test relies on: injecting a strong named persona onto a hero at runtime,

@@ -343,6 +343,61 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.lore_status
+      ///   On-demand diagnosis for character_overrides.json, independent of the "Enable Logging" MCM toggle
+      ///   (that switch gates ModLog.Info/Error, so a player editing the file with logging off otherwise gets
+      ///   zero feedback). Reports whether custom traits are on, which path the loader looked at and whether
+      ///   it existed, how many entries loaded and the last parse error (if any), and for each authored entry
+      ///   whether it currently resolves to a live hero, so a typo in "hero" or "id" is visible immediately.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("lore_status", "cr")]
+      public static string LoreStatus(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         var sb = new StringBuilder();
+
+         sb.AppendLine($"Use custom traits: {(ModSettings.UseCustomTraits ? "ON" : "OFF")}");
+         sb.AppendLine($"File: {CharacterOverrideLoader.LastLoadPath}  (exists: {(CharacterOverrideLoader.LastLoadFileExisted ? "yes" : "no")})");
+         sb.AppendLine($"Loaded: {CharacterOverrideLoader.LastLoadCount} override(s)");
+         sb.AppendLine($"Last parse error: {CharacterOverrideLoader.LastLoadError ?? "none"}");
+         sb.AppendLine("Resolution:");
+
+         IReadOnlyList<CharacterOverride> entries = CharacterOverrideLoader.Set?.All;
+
+         if (entries == null || entries.Count == 0)
+         {
+            sb.Append("  (no authored entries loaded)");
+
+            return sb.ToString();
+         }
+
+         foreach (CharacterOverride entry in entries)
+         {
+            string label = !string.IsNullOrWhiteSpace(entry?.Hero) ? entry.Hero : entry?.Id ?? "(unnamed entry)";
+
+            bool matched = false;
+            try
+            {
+               matched = Hero.AllAliveHeroes.Any(h =>
+                  h != null &&
+                  ((!string.IsNullOrWhiteSpace(entry?.Id) && string.Equals(h.StringId, entry.Id, StringComparison.OrdinalIgnoreCase)) ||
+                   (!string.IsNullOrWhiteSpace(entry?.Hero) && string.Equals(h.Name?.ToString(), entry.Hero, StringComparison.OrdinalIgnoreCase))));
+            }
+            catch
+            {
+               /* diagnostic only, never throw */
+            }
+
+            sb.AppendLine(matched
+               ? $"  {label} -> matched"
+               : $"  {label} -> NO MATCH (check the exact in-game name, or add an \"id\")");
+         }
+
+         return sb.ToString().TrimEnd();
+      }
+
+      /// <summary>
       ///   cr.orientation &lt;straight|bi|gay|lesbian|pan|asexual&gt; [name]
       ///   Changes an NPC's sexual orientation (player request: enable e.g. a female-female romance the rolled
       ///   orientation blocked). Persists on the profile; for a permanent change add "orientation" to that NPC's

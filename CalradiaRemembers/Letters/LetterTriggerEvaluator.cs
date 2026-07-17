@@ -148,7 +148,8 @@ namespace CalradiaRemembers.Letters
             NpcProfile profile = store.Get(id);
 
             if (profile?.Romantic == null) continue;
-            if (profile.Romantic.Status < RomanticStatus.Courting) continue;
+            // M-R1: an ACTIVE romance (courting or deeper); Estranged/Broken must not draw romantic letters.
+            if (!profile.Romantic.Status.IsCourtingOrDeeper()) continue;
             if (profile.ReputationWithPlayer < 15) continue;
 
             Hero hero = Hero.FindFirst(h => h.StringId == id);
@@ -286,7 +287,8 @@ namespace CalradiaRemembers.Letters
             NpcProfile profile = store.Get(id);
 
             if (profile?.Romantic == null) continue;
-            if (profile.Romantic.Status < RomanticStatus.Courting) continue;
+            // M-R1: an ACTIVE romance (courting or deeper); Estranged/Broken must not draw romantic letters.
+            if (!profile.Romantic.Status.IsCourtingOrDeeper()) continue;
             if (profile.ReputationWithPlayer < 15) continue;
 
             Hero hero = Hero.FindFirst(h => h.StringId == id);

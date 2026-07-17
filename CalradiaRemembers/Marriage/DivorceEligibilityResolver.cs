@@ -33,8 +33,10 @@ namespace CalradiaRemembers.Marriage
         {
             NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npc.StringId);
 
+            // M-R1: an ACTIVE romance (courting or deeper), not a raw ordinal test. Estranged/Broken sort after
+            // Courting in the enum, so ">= Courting" wrongly counted a dead romance as a reason to leave a marriage.
             return profile?.Romantic != null
-                   && (profile.Romantic.Status >= RomanticStatus.Courting || profile.Romantic.IsConsort);
+                   && (profile.Romantic.Status.IsCourtingOrDeeper() || profile.Romantic.IsConsort);
         }
 
         /// <summary>Builds the pure eligibility facts for <paramref name="npc" /> from live game state.</summary>
