@@ -33,6 +33,10 @@ namespace CalradiaRemembers.Bastards
       public int DemandAmount { get; set; }
       public int DemandSeason { get; set; } = -1;
       public int SilentUntil { get; set; } = -1;
+
+      /// <summary>Day the current demand's letter was queued (romance audit M-G6b): the clock starts only once a
+      /// Blackmail letter sent on or after this day has actually reached the player. -1 when no demand is in flight.</summary>
+      public int DemandLetterSentDay { get; set; } = -1;
    }
 
    /// <summary>
@@ -244,6 +248,45 @@ namespace CalradiaRemembers.Bastards
          CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
          CampaignEvents.HeroComesOfAgeEvent.AddNonSerializedListener(this, OnHeroComesOfAge);
          CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
+         CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, OnBeforeHeroesMarried);
+      }
+
+      /// <summary>
+      ///   M-G4: when the player marries the other parent of a still-concealed bastard, that child is legitimated
+      ///   by the marriage, so it is no longer a secret to be discovered nor leverage to be sold. Drops it from
+      ///   the bastard register and clears any blackmail over it. Fires while the spouse is still resolvable as
+      ///   the parent (BeforeHeroesMarried); only the player's own marriages matter here.
+      /// </summary>
+      private void OnBeforeHeroesMarried(Hero firstHero, Hero secondHero, bool showNotification)
+      {
+         Hero player = Hero.MainHero;
+         if (player == null) return;
+
+         Hero newSpouse = firstHero == player
+            ? secondHero
+            : secondHero == player
+               ? firstHero
+               : null;
+
+         if (newSpouse == null) return; // not the player's own marriage
+
+         foreach (string childId in _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).ToList())
+         {
+            Hero child = FindHero(childId);
+            if (child == null) continue;
+
+            Hero otherParent = child.Father == player
+               ? child.Mother
+               : child.Mother == player
+                  ? child.Father
+                  : null;
+
+            if (otherParent == null || otherParent != newSpouse) continue; // the parent being wed is not this child's other parent
+
+            _bastards.Remove(childId);
+            _blackmail.Remove(childId);
+            ModLog.Info($"[BASTARD] {child.Name} is legitimated by the player's marriage to {newSpouse.Name}; no longer a concealed bastard (M-G4).");
+         }
       }
 
       /// <summary>
@@ -361,6 +404,25 @@ namespace CalradiaRemembers.Bastards
          => string.IsNullOrEmpty(id)
             ? null
             : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == id);
+
+      /// <summary>
+      ///   True once a blackmail-demand letter from <paramref name="mother" /> sent on or after
+      ///   <paramref name="sinceDay" /> (this demand's own letter) has actually reached the player, and was not
+      ///   lost (romance audit M-G6b). The sinceDay filter is the C2 lesson: a stale delivered letter from a
+      ///   previous demand cycle must not count as the current one arriving.
+      /// </summary>
+      private static bool BlackmailLetterDelivered(Hero mother, int sinceDay)
+      {
+         if (mother == null) return false;
+
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(mother.StringId);
+         if (profile?.SentLetters == null) return false;
+
+         return profile.SentLetters.Any(l => l.Reason == LetterReason.Blackmail
+                                              && l.SentOnDay >= sinceDay
+                                              && l.IsDelivered
+                                              && !l.IsLost);
+      }
 
       private static T FromBytes<T>(byte[] bytes) where T : new()
       {
@@ -586,10 +648,23 @@ namespace CalradiaRemembers.Bastards
             return;
          }
 
-         // Mercenary: an unmet demand past its deadline → she carries out her threat and leaks the secret.
+         // Mercenary: an unmet demand past its deadline → she carries out her threat and leaks the secret. M-G6b:
+         // but only if the demand LETTER actually reached the player. If the courier was intercepted and it never
+         // arrived, the player was never given the threat, so the secret does NOT leak (no blindside); the demand
+         // is dropped so she may raise a fresh one instead of a threat they never saw ticking down in silence.
          if (BastardBlackmailPolicy.DemandHasLapsed(season, bs.DemandSeason))
          {
+            bool wasDelivered = BlackmailLetterDelivered(mother, bs.DemandLetterSentDay);
             bs.DemandSeason = -1;
+            bs.DemandLetterSentDay = -1;
+
+            if (!wasDelivered)
+            {
+               ModLog.Info($"[BASTARD] {mother.Name}'s blackmail over {child.Name} lapsed but never reached the player (courier lost); the secret holds, she may demand again.");
+
+               return;
+            }
+
             ModLog.Info($"[BASTARD] {mother.Name}'s blackmail over {child.Name} went unmet — she leaks the secret.");
             Discover(child);
 
@@ -600,6 +675,7 @@ namespace CalradiaRemembers.Bastards
          if (!BastardBlackmailPolicy.CanRaiseDemand(season, bs.SilentUntil, bs.DemandSeason >= 0)) return;
 
          bs.DemandSeason = season;
+         bs.DemandLetterSentDay = (int) CampaignTime.Now.ToDays; // M-G6b: anchor delivery detection to this demand's letter
          bs.DemandAmount = BastardBlackmailPolicy.DemandAmount(Hero.MainHero?.Gold ?? 0);
          ModLog.Info($"[BASTARD] {mother.Name} raises a blackmail demand over {child.Name}: ~{bs.DemandAmount} denars for silence " +
                      $"(pay within {BastardBlackmailPolicy.DemandDeadlineSeasons} seasons).");
@@ -654,7 +730,19 @@ namespace CalradiaRemembers.Bastards
          {
             if (child == null || !IsPlayersBastard(child) || _bastards.ContainsKey(child.StringId)) continue;
 
-            _bastards[child.StringId] = false; // concealed
+            // M-G4: a bastard born into the player's OWN clan (a female player's child, or a companion-mother's
+            // child raised in the household) lives publicly from birth, so there is NO secret to "discover" later.
+            // It is never a concealed bastard: no seasonal discovery roll, no scandal, no blackmail leverage. Its
+            // standing is an open matter of the house, not a hidden one, and the coming-of-age path already
+            // refuses a claim to a child of the player's own clan.
+            if (child.Clan == Hero.MainHero.Clan)
+            {
+               ModLog.Info($"[BASTARD] {child.Name} is born into the player's own house: an open child of the family, not a concealed bastard.");
+
+               continue;
+            }
+
+            _bastards[child.StringId] = false; // concealed (raised in the mother's external house)
             ModLog.Info($"[BASTARD] a hidden child is born: {child.Name} (parents {child.Mother?.Name}/{child.Father?.Name}).");
          }
       }

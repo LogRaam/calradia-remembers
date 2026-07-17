@@ -296,6 +296,18 @@ namespace CalradiaRemembers.Jealousy
          if (delta < 0)
             ProfileMutator.ApplyReputationDelta(profile, delta);
 
+         // M-J5: a betrayal wounds the BOND, not just the regard. The player's own betrayed partner (their
+         // primary partner, or their secret lover) sees their romantic status fall to Estranged (recoverable),
+         // instead of staying "Intimate"/"Committed" as if nothing happened. A third-party jealousy (the courted
+         // NPC's spouse, a rival, a spurned admirer) has no player-bond to wound, so it is left untouched.
+         if ((stake == JealousStake.PlayerPartner || stake == JealousStake.SecretLover) && profile.Romantic != null)
+         {
+            RomanticStatus woundedFrom = profile.Romantic.Status;
+            profile.Romantic.Status = RomanticWoundPolicy.AfterJealousyWound(woundedFrom);
+            if (profile.Romantic.Status != woundedFrom)
+               ModLog.Info($"[JEALOUSY] {party.Name}'s bond wounded by betrayal: {woundedFrom} -> {profile.Romantic.Status}.");
+         }
+
          string grievance = JealousyReaction.BuildGrievance(stake, competition, pj.CourtedName);
          profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy, grievance));
          behavior.Store.Set(profile);

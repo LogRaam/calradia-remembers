@@ -110,7 +110,23 @@ namespace CalradiaRemembers.Mapping
 
          if (!needsRomantic) return;
 
+         // M-R4: a regeneration (an orientation fix, or a missing profile being built) rebuilds the STATIC parts
+         // of the romantic profile, but must NEVER wipe the MUTABLE relationship state the player has built. The
+         // orientation-conflict path can fire on every single load (a Heterosexual NPC given a same-sex spouse by
+         // another mod), so a naive rebuild silently reset Status/attraction/consort/secret-lover to a stranger
+         // indefinitely. Carry that state across the rebuild.
+         RomanticProfile previous = profile.Romantic;
+
          profile.Romantic = RomanticProfileBuilder.Build(hero, currentArchetype);
+
+         if (previous != null)
+         {
+            profile.Romantic.Status = previous.Status;
+            profile.Romantic.AttractionToPlayer = previous.AttractionToPlayer;
+            profile.Romantic.IsConsort = previous.IsConsort;
+            profile.Romantic.IsSecretLover = previous.IsSecretLover;
+         }
+
          ModLog.Info($"  Generated missing RomanticProfile for {profile.Name}: " +
                      $"Orientation={profile.Romantic?.Orientation}, " +
                      $"IsFemale={profile.Romantic?.IsFemale}, " +

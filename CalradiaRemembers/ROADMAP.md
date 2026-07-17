@@ -40,13 +40,13 @@ multi-party session orchestrates the meeting, and missions may be distributed. E
 a war-council of all his allies to talk strategy. The pillar = the conversational ENGINE (already built, see
 below) + a convening/travel/presence layer + a session layer + a mission-distribution layer.
 
-**FOUNDATION ALREADY BUILT (2026-07-10, uncommitted, in-game test pending): the ROUND TABLE.** A deterministic
+**FOUNDATION ALREADY BUILT (2026-07-10, committed + GATED OFF `RoundTableController.Enabled = false`, never play-tested): the ROUND TABLE.** A deterministic
 group-turn driver, the model-independent answer to a player report (weak LLMs never volunteer witness
 reactions, so witnesses stay mute unless singled out; the existing Sprint 15C back-and-forth is model-driven).
 Trigger = a "Round Table" chat button OR a free-text intent ("what do you all think?"). It gives each present
 participant a deterministic turn (they may address one another), told to speak at more length. Files: pure
 `RoundTableIntentDetector` + `RoundTablePolicy` (Logic, tested), `EncounterContext.IsRoundTableTurn` + SDK
-`PromptBuilder` "ROUND TABLE" directive, mod `ChatViewModel.RunRoundTableAsync`/`ExecuteRoundTable` (reuses the
+`PromptBuilder` "ROUND TABLE" directive, mod `RoundTableController.RunAsync`/`ChatViewModel.ExecuteRoundTable` (reuses the
 15B/15C per-speaker machinery: `SpeakerForWitness`/`BuildSessionFor`/`RenderNpcTurn`), a prefab button. In the
 chat it caps at 3 turns per burst; the ASSEMBLY lifts that cap (full round of present participants). Ship this
 as v1.31.0 (a shippable feature on its own, and the assembly's engine).
@@ -79,7 +79,7 @@ as v1.31.0 (a shippable feature on its own, and the assembly's engine).
 - **Inc 1: convene + presence (no session yet).** Settlement menu options via `AddGameMenuOption` (CR already touches game menus): "Summon an assembly" (picker), dynamic "X of N present" text, "Open the assembly". Summons via the letter system; RSVP + reply letters. Accepted lords move via `SetMoveGoToSettlement` refreshed on tick (courier pattern); presence marked on `OnSettlementEntered` when the party enters the host. Deadline -> ambassador. Leave-guard: intercept the settlement Leave menu -> "Cancel assembly?" popup -> cleanup. Deliverable: summon, watch them converge, counter rises, cancel works. No dialogue yet.
 - **Inc 2: the assembly session** = the round-table engine over the present roster (2-companion cap lifted, full round with no 3-cap, a "host" framing in the prompt, ambassadors speak for their lord).
 - **Inc 3: lord-summons-player** (summons letter -> player travels to the lord's settlement -> on arrival the menu opens the assembly, lord = host).
-- **Inc 4: mission distribution** during the session (reuse `QuestFactory` / the viable-quest referential; a mission "distributed" to an ambassador's seat goes to the lord's house).
+- **Inc 4: mission distribution** during the session — SUPERSEDED by the COUNCIL-as-NEGOTIATION design (next section): missions distributed in assembly become CONSIGNED RESOLUTIONS taken before witnesses (ambassadors pledge in their lord's name), not ordinary quests.
 - **UI:** first reuse the existing chat window (functional); a bespoke multi-portrait assembly window is later polish.
 
 ### Technical risks (flagged, not blocking)

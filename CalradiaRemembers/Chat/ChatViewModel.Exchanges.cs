@@ -712,7 +712,14 @@ namespace CalradiaRemembers.Chat
             }
 
             int gameDay = behavior.GameStateBridge.GetCurrentGameDay();
-            ProfileMutator.Apply(profile, response, gameDay);
+            // M-R3: the romantic arc may only advance when the romance system is enabled (it is entirely gated off
+            // at content Off), so a hallucinated intimacy [EVENT] at Off never accrues hidden romantic state.
+            // M-R2: POSITIVE advancement also requires an orientation-plausible pair, the same filter jealousy
+            // uses, so the recorded status stays coherent with whether a jealous party would ever react.
+            bool orientationCompatible = profile.Romantic?.IsCompatibleWith(Hero.MainHero?.IsFemale ?? false) ?? true;
+            ProfileMutator.Apply(profile, response, gameDay,
+               romanticContentEnabled: ModSettings.AdultContentLevel != AdultContentLevel.Off,
+               orientationCompatible: orientationCompatible);
 
             // Stance: the LLM's spoken nudges to trust/respect/fear — capped hard and rate-limited
             // (words only colour; deeds prove). Persisted by the Store.Set below after actions run.
@@ -785,7 +792,14 @@ namespace CalradiaRemembers.Chat
                bool hasJoinParty = response.Actions.Any(a =>
                   string.Equals(a.Type, "join_party", StringComparison.OrdinalIgnoreCase));
 
-               var actionContext = new ActionContext(profile, response.NewEventData?.Type) {
+               // M-R3: at content Off an intimacy [EVENT] is a hallucination (the romance system is disabled), so
+               // it must not grant the RelationGate's intimacy-tier boost (+3, cooldown bypassed). Downgrade it so
+               // change_relation is gated as a routine gain, matching the status arc being frozen off above.
+               NotableEventType? emittedForGate = response.NewEventData?.Type;
+               if (emittedForGate == NotableEventType.Intimacy && ModSettings.AdultContentLevel == AdultContentLevel.Off)
+                  emittedForGate = null;
+
+               var actionContext = new ActionContext(profile, emittedForGate) {
                   OfferedItemId = _offer.OfferedItemId
                };
                // B2 (quest audit): at most one change_relation applies per turn, so a weak model that emits

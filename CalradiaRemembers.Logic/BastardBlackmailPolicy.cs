@@ -48,7 +48,8 @@ namespace CalradiaRemembers.Logic
         /// <summary>The season until which a payment made now buys her silence (recurring — she returns after).</summary>
         public static int SilenceUntil(int currentSeason) => currentSeason + GraceSeasons;
 
-        /// <summary>True when an unmet demand has gone past its deadline, so she leaks the secret.</summary>
+        /// <summary>True when an unmet demand has gone past its deadline. The caller ALSO requires the demand's
+        /// letter to have reached the player before leaking (romance audit M-G6b), so a lost letter never leaks.</summary>
         public static bool DemandHasLapsed(int currentSeason, int demandSeason)
             => demandSeason >= 0 && currentSeason - demandSeason >= DemandDeadlineSeasons;
 
