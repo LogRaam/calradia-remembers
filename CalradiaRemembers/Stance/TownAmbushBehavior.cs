@@ -366,7 +366,21 @@ namespace CalradiaRemembers.Stance
 
             Hero h = Hero.FindFirst(x => x != null && x.StringId == id);
 
-            if (h is {IsAlive: true}) return h;
+            if (h is not {IsAlive: true}) continue;
+
+            // C4: an armed attempt is not a one-way latch. A captor cannot send killers from his own cell, and a
+            // lord the player has since won back must not have his months-old knife spring at the next town visit
+            // while the prompt now says he is "genuinely glad to see you". Re-run the arming policy against his
+            // CURRENT stance; if murder is no longer his verdict (or he is now the player's prisoner), disarm.
+            if (h.IsPrisoner || !StanceConsequenceBehavior.IsMurderousNow(h, p))
+            {
+               Disarm(store, h);
+               ModLog.Info($"[STANCE] {h.Name}'s armed attempt on the player lapses ({(h.IsPrisoner ? "now a prisoner" : "cooled off / reconciled")}).");
+
+               continue;
+            }
+
+            return h;
          }
 
          return null;

@@ -124,6 +124,17 @@ namespace CalradiaRemembers.Quests
             entries.Add(new QuestMenuEntry("raid_village", "target_settlement", village.Name?.ToString(),
                $"put one of {enemyName}'s villages to the torch"));
 
+         // The "come take a castle with us" errand, absent from the grounded menu before (player report
+         // 2026-07-17: a lord substituted a generic attack-faction quest for a siege the player asked for).
+         // Prefer a stronghold already under siege so the deed is achievable now, else any enemy fortification.
+         // Same predicate BindSettlement(requireFortification) grounds, so a named target always registers.
+         Settlement fortress =
+            Settlement.All?.FirstOrDefault(s => (s?.IsTown == true || s?.IsCastle == true) && s.MapFaction == enemy && s.SiegeEvent != null)
+            ?? Settlement.All?.FirstOrDefault(s => (s?.IsTown == true || s?.IsCastle == true) && s.MapFaction == enemy);
+         if (fortress != null)
+            entries.Add(new QuestMenuEntry("siege", "target_settlement", fortress.Name?.ToString(),
+               $"help take one of {enemyName}'s strongholds"));
+
          // The bounty-hunting loop: any enemy lord brought to the giver in chains, for a promised price.
          entries.Add(new QuestMenuEntry("deliver_prisoner", "target_faction", enemyName,
             "bring me any of their lords in chains and be paid for the man"));

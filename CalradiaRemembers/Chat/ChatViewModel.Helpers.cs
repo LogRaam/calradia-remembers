@@ -668,10 +668,15 @@ namespace CalradiaRemembers.Chat
          ParsedResponse response)
       {
          // Show the captor's start-of-struggle reaction (it was told to stop before the outcome).
+         // A narration-led turn keeps its emitted order: narration before the spoken line, in the
+         // bubbles as in the transcript/story entries AppendNarration writes.
+         bool narrationFirst = response?.NarrationBeforeDialogue == true && !string.IsNullOrWhiteSpace(response.Narration);
+         if (narrationFirst)
+            AppendNarration(response.Narration, placeholder);
          ReplacePlaceholder(placeholder, npcLine, speaker);
          RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
          StoryLog.WriteNpcLine(speaker.Name, npcLine);
-         if (!string.IsNullOrWhiteSpace(response?.Narration))
+         if (!narrationFirst && !string.IsNullOrWhiteSpace(response?.Narration))
             AppendNarration(response.Narration);
 
          bool freed = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.ResolvePlayerEscapeAttempt(false) ?? false;
@@ -693,10 +698,13 @@ namespace CalradiaRemembers.Chat
          string npcLine,
          ParsedResponse response)
       {
+         bool narrationFirst = response?.NarrationBeforeDialogue == true && !string.IsNullOrWhiteSpace(response.Narration);
+         if (narrationFirst)
+            AppendNarration(response.Narration, placeholder);
          ReplacePlaceholder(placeholder, npcLine, speaker);
          RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
          StoryLog.WriteNpcLine(speaker.Name, npcLine);
-         if (!string.IsNullOrWhiteSpace(response?.Narration))
+         if (!narrationFirst && !string.IsNullOrWhiteSpace(response?.Narration))
             AppendNarration(response.Narration);
 
          bool freed = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.CommitCaptorRelease(speaker.Hero) ?? false;

@@ -6,6 +6,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
 
 #endregion
@@ -14,8 +15,10 @@ namespace CalradiaRemembers.Stance
 {
    /// <summary>
    ///   The single place stance is read from / written to an <see cref="NpcProfile" />. Affection
-   ///   mirrors <see cref="NpcProfile.ReputationWithPlayer" /> and is NEVER written back here (it lives
-   ///   on the change_relation / RelationGate path); only Trust/Respect/Fear and the word-cooldown are.
+   ///   mirrors <see cref="NpcProfile.ReputationWithPlayer" />: the word/deed STANCE writes here only ever move
+   ///   Trust/Respect/Fear and the word-cooldown. An Affection-axis DEED is routed to the regard ledger
+   ///   (<see cref="ProfileMutator.ApplyReputationDelta" />, regard audit C3) rather than dropped, so a duel or
+   ///   companion-abuse swing lands; conversational Affection still flows through change_relation / RelationGate.
    /// </summary>
    public static class StanceService
    {
@@ -23,6 +26,19 @@ namespace CalradiaRemembers.Stance
       public static void ApplyDeed(NpcProfile p, StanceAxis axis, int delta)
       {
          if (p == null || delta == 0) return;
+
+         // C3 (regard audit): Affection is not a moveable stance axis, it mirrors ReputationWithPlayer. A deed
+         // targeting it was computed into the transient NpcStance and then silently dropped by Write, so a duel's
+         // affection swing and a companion-abuse crater never landed. Route it to the regard ledger instead (a
+         // proven deed, so it bypasses the conversational gate exactly as a quest reward does). Trust/Respect/Fear
+         // still flow through StanceGate below.
+         if (axis == StanceAxis.Affection)
+         {
+            ProfileMutator.ApplyReputationDelta(p, delta);
+
+            return;
+         }
+
          NpcStance s = ToStance(p);
          StanceGate.ApplyDeed(s, axis, delta);
          Write(p, s);

@@ -127,6 +127,13 @@ namespace CalradiaRemembers.Chat
                   continue;
                }
 
+               // A turn the model LED with its narration keeps that order at render (and in the
+               // transcript/story entries AppendNarration writes ahead of the spoken line's).
+               bool narrationFirst = result.Response?.NarrationBeforeDialogue == true
+                                     && !string.IsNullOrWhiteSpace(result.Response.Narration);
+               if (narrationFirst)
+                  host.AppendNarration(result.Response.Narration, placeholder);
+
                string reply = host.RenderTurn(placeholder, speaker, result.Response);
                if (!string.IsNullOrEmpty(reply))
                {
@@ -134,7 +141,7 @@ namespace CalradiaRemembers.Chat
                   StoryLog.WriteNpcLine(speaker.Name, reply);
                }
 
-               if (!string.IsNullOrWhiteSpace(result.Response?.Narration))
+               if (!narrationFirst && !string.IsNullOrWhiteSpace(result.Response?.Narration))
                   host.AppendNarration(result.Response.Narration);
 
                ModLog.Info($"[ROUNDTABLE] {speaker.Name}: \"{reply}\"");

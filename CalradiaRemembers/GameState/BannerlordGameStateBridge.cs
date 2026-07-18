@@ -2338,9 +2338,21 @@ namespace CalradiaRemembers.GameState
          if (npcHero == null || Hero.MainHero == null || context?.Profile == null) return null;
 
          bool captive = GetPlayerStatus(npcHero) == PlayerStatusVsNpc.NpcIsCaptive;
+
+         // C1: an intimacy [EVENT] earns the big cooldown-bypassing bonus ONLY for a legitimate moment: adult
+         // content on, an orientation-compatible pair, and an active romance already underway (Curious or deeper,
+         // never a terminal Estranged/Broken). Otherwise RelationGate demotes it to a routine +1, so a model that
+         // spams the intimacy tag cannot farm relation. The prompt is advice; this is the law.
+         RomanticProfile romantic = context.Profile.Romantic;
+         bool intimacyAllowed =
+            ModSettings.AdultContentLevel != AdultContentLevel.Off
+            && romantic != null
+            && romantic.Status.IsCuriousOrDeeper()
+            && romantic.IsCompatibleWith(Hero.MainHero?.IsFemale ?? false);
+
          int delta = RelationGate.Resolve(
             proposed, context.Profile, context.EmittedEvent, CampaignTime.Now.ToHours, captive,
-            ModSettings.RelationWarmth);
+            intimacyAllowed, ModSettings.RelationWarmth);
 
          if (delta == 0)
          {

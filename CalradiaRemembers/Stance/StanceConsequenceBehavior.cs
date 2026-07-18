@@ -88,6 +88,23 @@ namespace CalradiaRemembers.Stance
          return true;
       }
 
+      /// <summary>
+      ///   C4 (regard audit): does this hero's CURRENT stance STILL resolve to murder, by the exact policy that
+      ///   armed the ambush? The town-ambush behavior calls this before springing an armed attempt, so a lord who
+      ///   has since reconciled (regard/stance recovered) does not have his months-old knife spring regardless.
+      /// </summary>
+      public static bool IsMurderousNow(Hero hero, NpcProfile profile)
+      {
+         if (hero == null || profile == null) return false;
+
+         return StanceConsequencePolicy.Resolve(
+            StanceService.ToStance(profile),
+            TraitLevel(hero, DefaultTraits.Honor),
+            TraitLevel(hero, DefaultTraits.Valor),
+            TraitLevel(hero, DefaultTraits.Mercy),
+            TraitLevel(hero, DefaultTraits.Calculating)) == StanceConsequence.Assassinate;
+      }
+
       private static bool TryWrite(BannerlordNpcMemoryStore store, NpcProfile profile, Hero hero, int today, bool ignoreCooldown)
       {
          if (!ignoreCooldown && today - profile.StanceLastConsequenceDay < LetterCooldownDays) return false;

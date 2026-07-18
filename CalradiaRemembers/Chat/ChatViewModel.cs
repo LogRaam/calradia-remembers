@@ -41,8 +41,8 @@ namespace CalradiaRemembers.Chat
       private const string OocColor = "#8fb8c8FF"; // muted slate-cyan, clearly out-of-character (terminal prompts)
       private const string PlaceholderText = "(considering...)";
 
-      // Scene narration (second-person prose during captive/CNC scenes): pale violet,
-      // distinct from dialogue, no portrait — reads like a novel's narration.
+      // Scene narration (neutral third-person narrator prose during captive/CNC scenes):
+      // pale violet, distinct from dialogue, no portrait — reads like a novel's narration.
       private const string SceneNarrationColor = "#c0a8d0FF";
 
       // System notification line colors (relation/gold outcomes shown inline in chat).
@@ -959,17 +959,25 @@ namespace CalradiaRemembers.Chat
          => entry != null && _witnesses.Exists(w => WitnessDedup.IsSame(w, entry));
 
       /// <summary>
-      ///   Displays a scene-narration line (second-person prose, no portrait) and mirrors
+      ///   Displays a scene-narration line (neutral-narrator prose, no portrait) and mirrors
       ///   it to the story log and attributed transcript. Used for [NARRATION] blocks in
       ///   captive/CNC scenes. Recorded as a "Scene" statement so the speaker's next
       ///   rebuilt session sees what physically happened.
+      ///   When <paramref name="insertBefore" /> is given, the line is inserted ahead of that
+      ///   message (the pending speaker placeholder) instead of appended — used when the model
+      ///   LED its turn with the narration, so the emitted order survives at render.
       /// </summary>
-      public void AppendNarration(string text)
+      public void AppendNarration(string text, ChatMessageViewModel insertBefore = null)
       {
          if (string.IsNullOrWhiteSpace(text)) return;
          try
          {
-            _messages.Add(new ChatMessageViewModel(text, SceneNarrationColor));
+            var message = new ChatMessageViewModel(text, SceneNarrationColor);
+            int insertAt = insertBefore != null ? _messages.IndexOf(insertBefore) : -1;
+            if (insertAt >= 0)
+               _messages.Insert(insertAt, message);
+            else
+               _messages.Add(message);
             ChatManager.ScrollToBottom();
             StoryLog.WriteNarration(text);
             if (IsLiveConversation)

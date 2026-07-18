@@ -84,7 +84,29 @@ namespace CalradiaRemembers.Grudges
                 IReadOnlyList<Grudge> live = GrudgeBehavior.Instance.LiveGrudgesFor(holder, today);
                 Grudge grudge = live?.FirstOrDefault(g => GrudgePolicy.IsResolvable(g) && g.TargetId == player.StringId);
 
-                if (grudge == null) return new GrudgeResolutionAttemptResult();
+                return TryResolve(holder, grudge, gesture, giftValue, today);
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[GRUDGE] TryResolveDominant failed: {ex.GetType().Name}: {ex.Message}");
+
+                return new GrudgeResolutionAttemptResult();
+            }
+        }
+
+        /// <summary>
+        ///   C5 (regard audit): resolves ONE SPECIFIC grudge with the given gesture, instead of re-picking "the
+        ///   dominant live grudge". The targeted verbs (make_amends, grudge_terms) pass the exact grudge they
+        ///   taught the player, their dominant KNOWN grudge, so a sincere apology can never silently mend a heavier
+        ///   HIDDEN grudge while the prompt and the "grievance mended" banner both speak of the known one. A null
+        ///   grudge yields a no-op result; never throws (called from the conversation action path).
+        /// </summary>
+        public static GrudgeResolutionAttemptResult TryResolve(Hero holder, Grudge grudge, GrudgeGesture gesture, int giftValue, int today)
+        {
+            try
+            {
+                if (holder == null || grudge == null || GrudgeBehavior.Instance == null)
+                    return new GrudgeResolutionAttemptResult();
 
                 TraitFacts traits = GrudgeBridge.BuildTraitFacts(holder);
                 int effectiveMagnitude = GrudgePolicy.EffectiveMagnitude(grudge, today, traits);
@@ -129,7 +151,7 @@ namespace CalradiaRemembers.Grudges
             }
             catch (Exception ex)
             {
-                ModLog.Error($"[GRUDGE] TryResolveDominant failed: {ex.GetType().Name}: {ex.Message}");
+                ModLog.Error($"[GRUDGE] TryResolve failed: {ex.GetType().Name}: {ex.Message}");
 
                 return new GrudgeResolutionAttemptResult();
             }

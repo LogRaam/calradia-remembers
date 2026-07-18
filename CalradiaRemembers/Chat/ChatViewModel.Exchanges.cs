@@ -139,6 +139,13 @@ namespace CalradiaRemembers.Chat
             }
 
             // Render the beat: dialogue bubble, or a narration-only turn (no empty bubble).
+            // A beat the model LED with its narration keeps that order at render (and in the
+            // transcript/story log, which AppendNarration writes ahead of the spoken line's).
+            bool narrationFirst = result.Response?.NarrationBeforeDialogue == true
+                                  && !string.IsNullOrWhiteSpace(result.Response.Narration);
+            if (narrationFirst)
+               AppendNarration(result.Response.Narration, placeholder);
+
             npcLine = RenderNpcTurn(placeholder, speaker, result.Response);
             _captiveBeatCount++;
             if (!string.IsNullOrEmpty(npcLine))
@@ -147,7 +154,7 @@ namespace CalradiaRemembers.Chat
                StoryLog.WriteNpcLine(speaker.Name, npcLine);
             }
 
-            if (!string.IsNullOrWhiteSpace(result.Response?.Narration))
+            if (!narrationFirst && !string.IsNullOrWhiteSpace(result.Response?.Narration))
                AppendNarration(result.Response.Narration);
 
             // Witness reactions during a Continue beat — chiefly the captive companion's OWN voice (a sob, a
@@ -657,6 +664,13 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
+            // Scene narration emitted BEFORE the dialogue keeps its emitted order at render:
+            // it lands ahead of the speaker's bubble, and its transcript/story entries are
+            // written before the spoken line's below (AppendNarration records all three).
+            bool narrationFirst = response.NarrationBeforeDialogue && !string.IsNullOrWhiteSpace(response.Narration);
+            if (narrationFirst)
+               AppendNarration(response.Narration, placeholder);
+
             // Render the turn: dialogue bubble, or a narration-only turn (no empty bubble), or
             // a "(silence...)" fallback. npcLine is empty for a narration-only turn.
             npcLine = RenderNpcTurn(placeholder, speaker, response);
@@ -694,9 +708,10 @@ namespace CalradiaRemembers.Chat
                if (!string.IsNullOrEmpty(npcLine)) StoryLog.WriteNpcLine(speaker.Name, npcLine);
             }
 
-            // Scene narration ([NARRATION]) — explicit second-person physical action,
-            // shown after the speaker's dialogue. Recorded to transcript + story log.
-            if (!string.IsNullOrWhiteSpace(response.Narration))
+            // Scene narration ([NARRATION]) — neutral-narrator physical action,
+            // shown after the speaker's dialogue unless the model led with it
+            // (handled above). Recorded to transcript + story log.
+            if (!narrationFirst && !string.IsNullOrWhiteSpace(response.Narration))
                AppendNarration(response.Narration);
 
             // Witness reactions — displayed immediately after the speaker's line.
@@ -719,7 +734,8 @@ namespace CalradiaRemembers.Chat
             bool orientationCompatible = profile.Romantic?.IsCompatibleWith(Hero.MainHero?.IsFemale ?? false) ?? true;
             ProfileMutator.Apply(profile, response, gameDay,
                romanticContentEnabled: ModSettings.AdultContentLevel != AdultContentLevel.Off,
-               orientationCompatible: orientationCompatible);
+               orientationCompatible: orientationCompatible,
+               applyReputation: false); // C2: [REPUTATION] is disabled in the mod; never apply a block the model emitted unprompted.
 
             // Stance: the LLM's spoken nudges to trust/respect/fear — capped hard and rate-limited
             // (words only colour; deeds prove). Persisted by the Store.Set below after actions run.
@@ -1400,7 +1416,8 @@ namespace CalradiaRemembers.Chat
       void IRoundTableHost.RecordTranscriptLine(bool isPlayer, string name, string heroId, string text)
          => RecordTranscript(isPlayer, name, heroId, text);
 
-      void IRoundTableHost.AppendNarration(string narration) => AppendNarration(narration);
+      void IRoundTableHost.AppendNarration(string narration, ChatMessageViewModel insertBefore)
+         => AppendNarration(narration, insertBefore);
 
       void IRoundTableHost.HandleWitnessLeaves(ParsedResponse response) => HandleWitnessLeaves(response);
 

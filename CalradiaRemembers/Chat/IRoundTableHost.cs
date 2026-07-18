@@ -40,8 +40,12 @@ namespace CalradiaRemembers.Chat
       /// <summary>Appends one attributed line to the running transcript.</summary>
       void RecordTranscriptLine(bool isPlayer, string name, string heroId, string text);
 
-      /// <summary>Displays a scene-narration line and mirrors it to the story log and transcript.</summary>
-      void AppendNarration(string narration);
+      /// <summary>
+      ///   Displays a scene-narration line and mirrors it to the story log and transcript. When
+      ///   <paramref name="insertBefore" /> is given (the speaker's pending placeholder), the line is
+      ///   inserted ahead of it — used when the model led its turn with the narration.
+      /// </summary>
+      void AppendNarration(string narration, ChatMessageViewModel insertBefore = null);
 
       /// <summary>Honors any witness_leaves actions in the response (a player companion stepping out).</summary>
       void HandleWitnessLeaves(ParsedResponse response);

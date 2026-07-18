@@ -59,8 +59,15 @@ namespace CalradiaRemembers.Logic
         public static int RoutineCapFor(RelationWarmth warmth)
             => warmth == RelationWarmth.VeryEasy ? 2 : DefaultPositiveCap;
 
-        /// <summary>Cap for a self-evident significant moment (intimacy). Bypasses cooldown.</summary>
+        /// <summary>Cap for a self-evident significant moment (intimacy). Bypasses the ROUTINE cooldown.</summary>
         private const int IntimacyCap = 3;
+
+        /// <summary>
+        ///   The intimacy bonus's OWN cooldown (regard audit C1). It bypasses the routine throttle, but not this:
+        ///   without a dedicated window a model tagging every reply "intimacy" farmed +3 per turn (+100 in ~34
+        ///   turns), the very "talk your way to max relation" exploit the gate exists to stop.
+        /// </summary>
+        public const double IntimacyCooldownHours = 24.0;
 
         /// <summary>Deepest a single negative may go in ordinary conversation.</summary>
         private const int ConversationalFloor = -15;
@@ -79,18 +86,25 @@ namespace CalradiaRemembers.Logic
         /// <param name="emittedEvent">The event type emitted this exchange, if any.</param>
         /// <param name="currentHour"><c>CampaignTime.Now.ToHours</c> at this moment.</param>
         /// <param name="npcIsCaptive">True if the NPC is currently the player's captive.</param>
+        /// <param name="intimacyAllowed">
+        ///   Regard audit C1: whether the caller has confirmed an intimacy [EVENT] is legitimate this turn (adult
+        ///   content enabled, orientation-compatible, an active romance underway). Only then may an intimacy tag
+        ///   earn the larger, cooldown-bypassing bonus; otherwise it is treated as a routine gain, so the tag can
+        ///   never be spammed to farm regard. The prompt is advice, this gate is the law.
+        /// </param>
         public static int Resolve(
             int proposed,
             NpcProfile profile,
             NotableEventType? emittedEvent,
             double currentHour,
             bool npcIsCaptive,
+            bool intimacyAllowed,
             RelationWarmth warmth = RelationWarmth.Normal)
         {
             if (proposed == 0 || profile == null) return 0;
 
             if (proposed > 0)
-                return ResolvePositive(proposed, profile, emittedEvent, currentHour, warmth);
+                return ResolvePositive(proposed, profile, emittedEvent, currentHour, warmth, intimacyAllowed);
 
             // ── Negative: not rate-limited; depth bounded by verifiable context ──
             // Warmth never softens negatives — insults and betrayals cost the same at every level.
@@ -105,12 +119,19 @@ namespace CalradiaRemembers.Logic
             NpcProfile profile,
             NotableEventType? emittedEvent,
             double currentHour,
-            RelationWarmth warmth)
+            RelationWarmth warmth,
+            bool intimacyAllowed)
         {
-            bool isSignificant = emittedEvent == NotableEventType.Intimacy;
+            // C1: the intimacy bonus is a GUARDED door. It counts as significant (bigger cap, routine cooldown
+            // bypassed) ONLY when the caller vouched the moment is legitimate AND its own dedicated cooldown has
+            // elapsed. A tag that fails either test is demoted to a routine gain, so it can never farm +3 per turn.
+            bool isSignificant = emittedEvent == NotableEventType.Intimacy
+                                 && intimacyAllowed
+                                 && (!profile.LastIntimacyGainHour.HasValue
+                                     || currentHour - profile.LastIntimacyGainHour.Value >= IntimacyCooldownHours);
 
             // Routine gains are rate-limited (window depends on warmth); a significant
-            // moment bypasses the cooldown entirely.
+            // moment bypasses that routine cooldown entirely.
             if (!isSignificant
                 && profile.LastRelationGainHour.HasValue
                 && currentHour - profile.LastRelationGainHour.Value < CooldownHoursFor(warmth))
@@ -119,7 +140,12 @@ namespace CalradiaRemembers.Logic
             int cap = isSignificant ? IntimacyCap : RoutineCapFor(warmth);
             int granted = proposed < cap ? proposed : cap;
 
-            if (granted > 0) profile.LastRelationGainHour = currentHour;
+            if (granted > 0)
+            {
+                profile.LastRelationGainHour = currentHour;
+                if (isSignificant) profile.LastIntimacyGainHour = currentHour;
+            }
+
             return granted;
         }
 

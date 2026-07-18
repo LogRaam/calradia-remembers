@@ -206,9 +206,13 @@ namespace CalradiaRemembers.Quests
                QuestJournalBridge.CloseAsFailed(quest, giverHero, $"You did not complete this task in time. {profile.Name} is disappointed.");
                ModLog.Info($"[QUEST] expired for {profile.Name}: {Describe(quest)} (-{DeadlineFailurePenalty} regard).");
                // Grudges pillar: adds RESOLVABILITY on top of the regard hit above, never a second penalty.
+               // C6: anchor the grudge on the SAME day the backfill uses (DeadlineDay ?? IssuedOnDay), not the
+               // detection day, so the holder+source+day dedup matches and a future MigrationVersion bump cannot
+               // plant a SECOND FailedQuest grudge for this same lapse. (A future EventDay reads as full magnitude
+               // until it passes, per GrudgePolicy.EffectiveMagnitude, so this is safe.)
                GrudgeBehavior.Instance?.TryPlant(giverHero, Hero.MainHero, GrudgeSource.FailedQuest,
                   $"The player let the deadline lapse on the task to {Describe(quest)}.", GrudgeBackfillRules.FailedQuestMagnitude,
-                  knownToPlayer: true, gameDay);
+                  knownToPlayer: true, quest.DeadlineDay ?? quest.IssuedOnDay);
                changed = true;
             }
 
@@ -368,9 +372,11 @@ namespace CalradiaRemembers.Quests
          store.Set(giver);
 
          // Grudges pillar: adds RESOLVABILITY on top of the regard hit above, never a second penalty.
+         // C6: same day anchor as the backfill (DeadlineDay ?? IssuedOnDay), so a later migration does not plant a
+         // duplicate of this same abandonment.
          GrudgeBehavior.Instance?.TryPlant(giverHero, Hero.MainHero, GrudgeSource.FailedQuest,
             $"The player gave up the task to {Describe(quest)}.", AbandonedQuestGrudgeMagnitude,
-            knownToPlayer: true, gameDay);
+            knownToPlayer: true, quest.DeadlineDay ?? quest.IssuedOnDay);
 
          ModLog.Info($"[QUEST] {giver.Name}: player abandoned '{quest.Type}' (-{AbandonPenalty} regard).");
          notify?.Invoke($"You abandoned {giver.Name}'s task ({Describe(quest)}). −{AbandonPenalty} regard.", false);

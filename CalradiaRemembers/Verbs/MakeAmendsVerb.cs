@@ -66,11 +66,15 @@ namespace CalradiaRemembers.Verbs
             {
                 Hero npc = ctx?.Npc;
                 if (npc == null || Hero.MainHero == null) return null;
-                if (DominantKnownGrudge(npc) == null)
+
+                // C5: resolve the SAME grudge the player was shown (the dominant KNOWN one), not whatever the
+                // dominant LIVE grudge happens to be, so an apology can never silently mend a heavier hidden grudge.
+                Grudge grudge = DominantKnownGrudge(npc);
+                if (grudge == null)
                     return new ActionOutcome($"({npc.Name} has no such grievance to mend right now.)", false);
 
                 var today = (int) CampaignTime.Now.ToDays;
-                GrudgeResolutionAttemptResult result = GrudgeResolutionService.TryResolveDominant(npc, GrudgeGesture.Amends, 0, today);
+                GrudgeResolutionAttemptResult result = GrudgeResolutionService.TryResolve(npc, grudge, GrudgeGesture.Amends, 0, today);
 
                 if (!result.HadResolvableGrudge) return null; // eligibility guaranteed one a moment ago — defensive only
 
