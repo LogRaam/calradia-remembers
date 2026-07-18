@@ -38,10 +38,11 @@ namespace CalradiaRemembers.GameState
     /// </summary>
     public sealed class ActionOutcome
     {
-        public ActionOutcome(string message, bool isPositive)
+        public ActionOutcome(string message, bool isPositive, int? appliedRelationDelta = null)
         {
             Message = message;
             IsPositive = isPositive;
+            AppliedRelationDelta = appliedRelationDelta;
         }
 
         /// <summary>Short, in-character-adjacent description, e.g. "Martira regards you more warmly. (+1)".</summary>
@@ -49,5 +50,14 @@ namespace CalradiaRemembers.GameState
 
         /// <summary>True if the outcome is favorable to the player (drives the chat line color).</summary>
         public bool IsPositive { get; }
+
+        /// <summary>
+        ///   Regard audit 2.1: for a change_relation action, the regard actually APPLIED after gating and clamping
+        ///   (which may be 0, or smaller in magnitude than the LLM proposed). Null for every other action. The
+        ///   StoryLog and the public-affront rumor read THIS, not the raw proposed delta, so all three channels
+        ///   (score, journal, gossip) tell one truth: a gain gated to 0 leaves no "seems to appreciate you" line,
+        ///   and an affront that never applied never becomes a rumor.
+        /// </summary>
+        public int? AppliedRelationDelta { get; }
     }
 }

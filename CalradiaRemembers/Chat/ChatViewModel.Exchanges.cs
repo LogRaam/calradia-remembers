@@ -827,6 +827,7 @@ namespace CalradiaRemembers.Chat
                // B2 (quest audit): at most one change_relation applies per turn, so a weak model that emits
                // several negative blocks cannot pile the RelationGate's per-call -15 floor into -75.
                var relationChangedThisTurn = false;
+               var worstAppliedRelation = 0; // 2.1: the steepest regard change actually applied this turn, for the affront rumor.
                foreach (GameAction action in response.Actions)
                {
                   // request_privacy, end_conversation and witness_leaves are
@@ -873,6 +874,20 @@ namespace CalradiaRemembers.Chat
                   // B2: the first regard change this turn wins; extras are dropped (see relationChangedThisTurn).
                   if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase))
                   {
+                     // M-R3 (regard audit): a quest completed this turn already pays its fixed, verified
+                     // RewardRelation. A POSITIVE change_relation the model also emits for "completing the task"
+                     // would double-count the same deed, so drop it on a quest-completion turn. Negatives still
+                     // apply: an offense given during a turn-in is real.
+                     if (response.QuestCompleted != null
+                         && action.Parameters != null
+                         && action.Parameters.TryGetValue("delta", out string qds)
+                         && int.TryParse(qds, out int qdv) && qdv > 0)
+                     {
+                        ModLog.Info("[ACTION] change_relation (positive) dropped: the quest reward this turn already covers the goodwill (M-R3).");
+
+                        continue;
+                     }
+
                      if (relationChangedThisTurn)
                      {
                         ModLog.Info("[ACTION] change_relation dropped: at most one regard change applies per turn.");
@@ -916,8 +931,13 @@ namespace CalradiaRemembers.Chat
                   // Story log: narrative description of game-world consequences.
                   if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase))
                   {
-                     if (action.Parameters.TryGetValue("delta", out string ds) && int.TryParse(ds, out int d))
-                        StoryLog.WriteRelationChange(profile.Name, d);
+                     // 2.1: log the regard ACTUALLY applied (from the outcome), never the raw proposal. A change
+                     // gated to 0 returns a null outcome, so it leaves no "seems to appreciate your words" line.
+                     if (outcome?.AppliedRelationDelta is int applied && applied != 0)
+                     {
+                        StoryLog.WriteRelationChange(profile.Name, applied);
+                        if (applied < worstAppliedRelation) worstAppliedRelation = applied;
+                     }
                   }
                   else if (string.Equals(action.Type, "give_gold", StringComparison.OrdinalIgnoreCase))
                   {
@@ -939,7 +959,7 @@ namespace CalradiaRemembers.Chat
                // Conversation-outcome rumor (v1.2): a steep affront before witnesses spreads
                // as gossip through the world-event store instead of evaporating at close.
                if (speaker.IsMain && _witnesses.Count > 0)
-                  ConversationEventFeeder.RecordPublicAffront(speaker.Hero, response, _witnesses.Count);
+                  ConversationEventFeeder.RecordPublicAffront(speaker.Hero, worstAppliedRelation, _witnesses.Count);
             }
 
             // ── Companion dismissal (witness_leaves) ──────────────────────

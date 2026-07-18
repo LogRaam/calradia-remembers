@@ -794,13 +794,26 @@ namespace CalradiaRemembers.Mapping
       /// </summary>
       private static int ResolveDominantLiveGrudgeMagnitude(Hero hero)
       {
-         IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, (int) CampaignTime.Now.ToDays);
+         var today = (int) CampaignTime.Now.ToDays;
+         IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today);
 
          if (live == null || live.Count == 0) return 0;
 
+         // M-A1 (regard audit): only a grudge held against the PLAYER may sour an appreciation TOWARD the player.
+         // A freed captive's CaptorCruelty grudge is held against their captor, not their rescuer; without this
+         // filter it tarnished the player's kindness to zero ("will remember your kindness" then lied).
+         string playerId = Hero.MainHero?.StringId;
          TraitFacts traits = GrudgeBridge.BuildTraitFacts(hero);
 
-         return GrudgePolicy.EffectiveMagnitude(live[0], (int) CampaignTime.Now.ToDays, traits);
+         var max = 0;
+         foreach (Grudge g in live)
+         {
+            if (g == null || g.TargetId != playerId) continue;
+            int m = GrudgePolicy.EffectiveMagnitude(g, today, traits);
+            if (m > max) max = m;
+         }
+
+         return max;
       }
 
       /// <summary>
@@ -894,9 +907,20 @@ namespace CalradiaRemembers.Mapping
             if (hero == null) return null;
 
             var today = (int) CampaignTime.Now.ToDays;
-            IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today);
+            IReadOnlyList<Grudge> allLive = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today);
 
-            if (live == null || live.Count == 0) return null;
+            if (allLive == null || allLive.Count == 0) return null;
+
+            // M-A1 (regard audit): only grudges the NPC holds against the PLAYER may colour how they treat the
+            // player this turn. A grudge against a third party is their business with that person, not a lens on
+            // the player, so it must neither be voiced here nor drive the tone ruling toward the player.
+            string playerId = Hero.MainHero?.StringId;
+            var live = new List<Grudge>();
+            foreach (Grudge g in allLive)
+               if (g != null && g.TargetId == playerId)
+                  live.Add(g); // order preserved: allLive is already ranked, so live[0] is the dominant player-targeted grudge.
+
+            if (live.Count == 0) return null;
 
             TraitFacts traits = GrudgeBridge.BuildTraitFacts(hero);
             var lines = new List<string>();

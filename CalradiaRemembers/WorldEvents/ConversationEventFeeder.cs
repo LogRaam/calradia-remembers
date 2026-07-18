@@ -21,20 +21,15 @@ namespace CalradiaRemembers.WorldEvents
         /// <summary>
         ///   When the player affronts an NPC steeply enough in front of witnesses, record it as a
         ///   rumor (spreads by awareness, ages out, NOT chronicle material). No-op for minor turns.
+        ///   2.1: the caller passes the regard change ACTUALLY applied this turn (after gating, and after B2's
+        ///   "only the first change_relation applies" rule), not a raw proposal, so an affront gated to 0 or
+        ///   dropped by B2 never spawns a rumor of an offense that did not land.
         /// </summary>
-        public static void RecordPublicAffront(Hero npc, ParsedResponse response, int witnessCount)
+        public static void RecordPublicAffront(Hero npc, int appliedRelationDelta, int witnessCount)
         {
-            if (npc == null || response?.Actions == null || witnessCount <= 0 || WorldEventStore.Instance == null) return;
+            if (npc == null || witnessCount <= 0 || WorldEventStore.Instance == null) return;
 
-            int worst = 0;
-            foreach (GameAction a in response.Actions)
-                if (string.Equals(a.Type, "change_relation", StringComparison.OrdinalIgnoreCase)
-                    && a.Parameters != null
-                    && a.Parameters.TryGetValue("delta", out string ds)
-                    && int.TryParse(ds, out int d) && d < worst)
-                    worst = d;
-
-            if (!Logic.PublicAffrontPolicy.IsAffront(worst, witnessCount)) return; // not a real public affront
+            if (!Logic.PublicAffrontPolicy.IsAffront(appliedRelationDelta, witnessCount)) return; // not a real public affront
 
             Hero player = Hero.MainHero;
             Settlement place = player?.CurrentSettlement ?? npc.CurrentSettlement;

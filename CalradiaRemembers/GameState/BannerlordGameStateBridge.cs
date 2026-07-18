@@ -1088,10 +1088,14 @@ namespace CalradiaRemembers.GameState
             ModLog.Info($"[ACTION] free_prisoner: player released {npcHero.Name} from captivity.");
 
             // Appreciations pillar: being handed back one's own freedom is a remembered kindness in its
-            // own right, a channel separate from the trust bump above.
+            // own right, a channel separate from the trust bump above. M-A2 (regard audit): only a MERCY release
+            // earns it. A fear-COERCED yield plants its own hidden CoercedRelease grudge below instead; planting
+            // the gratitude too made the tarnish cancel it to ~0, so the "kindness" was invisible the very next
+            // conversation and, being hidden, the player could not tell why. Coercion earns resentment, not thanks.
             var today = (int) CampaignTime.Now.ToDays;
-            AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, AppreciationSource.RansomedOrFreed,
-               "The player gave me back my freedom.", RansomedOrFreedMagnitude, true, today);
+            if (coercion.Outcome != CoercionOutcome.YieldsSofterTerms)
+               AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, AppreciationSource.RansomedOrFreed,
+                  "The player gave me back my freedom.", RansomedOrFreedMagnitude, true, today);
 
             // Grudges pillar (Deed gesture): freeing them is a verified real favour toward npcHero, a
             // channel separate from the trust bump and the appreciation plant above.
@@ -1922,20 +1926,24 @@ namespace CalradiaRemembers.GameState
             bool silenced = BastardBehavior.Instance?.SettleByPayment(npcHero, amount) == true;
             ModLog.Info($"[ACTION] take_gold: player → {npcHero.Name} {amount} gold{(silenced ? " (bastard silence bought)" : "")}");
 
-            // Appreciations pillar: a payment is also a remembered kindness, a channel separate from the
-            // relation bump above and from the grudge-softening tail below (a payment can soften a wound
-            // AND be remembered as a kindness — both are correct).
-            TryPlantValueAppreciation(npcHero, AppreciationSource.GoldReceived, amount, "The player gave me gold.");
+            // Romance audit C4: if she held a demand this payment did NOT meet, say so, so the coin is never
+            // silently pocketed while the secret still leaks (MaxDemand is now capped to a single payable take,
+            // so this only fires when the player chose to underpay, not when the demand was impayable).
+            int owed = silenced ? 0 : (BastardBehavior.Instance?.OutstandingDemand(npcHero) ?? 0);
+
+            // M-A3 (regard audit): a payment that bought (or went toward) blackmail silence is EXTORTION, not a
+            // gift. Planting a "genuine gratitude" appreciation for it made the venal blackmailer's very next
+            // prompt read "you feel a debt of gratitude", the exact opposite of the dynamic. A freely given
+            // payment (no demand of any kind) is still a remembered kindness, a channel separate from the relation
+            // bump above and the grudge-softening tail below.
+            bool coercedPayment = silenced || owed > 0;
+            if (!coercedPayment)
+               TryPlantValueAppreciation(npcHero, AppreciationSource.GoldReceived, amount, "The player gave me gold.");
 
             // Grudges pillar (Gift gesture): a payment to the NPC may also soften or mend a grudge they
             // hold against the player, a channel separate from the relation bump above — never lets a
             // resolution failure break the gold transfer itself.
             string grudgeTail = TryGrudgeGiftTail(npcHero, amount);
-
-            // Romance audit C4: if she held a demand this payment did NOT meet, say so, so the coin is never
-            // silently pocketed while the secret still leaks (MaxDemand is now capped to a single payable take,
-            // so this only fires when the player chose to underpay, not when the demand was impayable).
-            int owed = silenced ? 0 : (BastardBehavior.Instance?.OutstandingDemand(npcHero) ?? 0);
 
             string tail = silenced
                ? " Her silence is bought, for now."
@@ -2386,7 +2394,9 @@ namespace CalradiaRemembers.GameState
             : ModSettings.RelationDecreaseSound;
          PlaySound(soundPath);
 
-         return new ActionOutcome(message, delta > 0);
+         // 2.1: report the delta ACTUALLY applied (after gate + clamp), so the StoryLog and the affront rumor
+         // read the real change rather than the raw proposal.
+         return new ActionOutcome(message, delta > 0, appliedRelationDelta: after - before);
       }
 
       /// <summary>
