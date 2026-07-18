@@ -229,6 +229,19 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         // Never ask the engine for a conversation scene while the player is at sea. A map conversation is
+         // placed on the terrain under the party, and there is no scene for open water: the load never
+         // completes and the game sits on a loading screen forever (two player reports on v1.30.16). The
+         // direct overlay needs no scene at all, and stays VRAM-safe because ChatManager suspends the map
+         // scene on every open, staged or not. This is the choke point, so it covers every staged path.
+         if (MobileParty.MainParty?.IsCurrentlyAtSea == true)
+         {
+            ModLog.Info($"[{logTag}] the player is at sea, where no conversation scene can load, opening directly on the map.");
+            OpenDirect(pending);
+
+            return;
+         }
+
          try
          {
             var playerData = new ConversationCharacterData(CharacterObject.PlayerCharacter, PartyBase.MainParty);

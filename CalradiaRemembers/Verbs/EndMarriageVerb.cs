@@ -33,7 +33,7 @@ namespace CalradiaRemembers.Verbs
 
             if (npcHero == null || profile == null) return null;
             if (!DivorceEligibilityResolver.IsEligible(npcHero, out string reason))
-               return new ActionOutcome($"({npcHero.Name} cannot begin this: {reason}.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} cannot begin this: {reason}.)");
 
             Hero spouse = npcHero.Spouse;
 

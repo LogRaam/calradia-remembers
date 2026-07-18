@@ -914,6 +914,21 @@ namespace CalradiaRemembers.Chat
 
                   if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);
 
+                  // The bridge REFUSED the action (an active war, a captivity, a gate the prompt let
+                  // through): the refusal must reach the TRANSCRIPT, not only the UI line — otherwise the
+                  // model never learns the marriage/transfer it just celebrated never happened, believes
+                  // it did, and the next turns build on the lie. Same OOC pattern as a declined
+                  // confirmation (ActionConfirmationController.DeclineAction).
+                  if (outcome is {WasRefused: true})
+                  {
+                     try
+                     {
+                        RecordTranscript(true, "You", Hero.MainHero?.StringId,
+                           $"(Out of character: the game refused that — {outcome.Message} It did not happen. Do not treat it as done.)");
+                     }
+                     catch (Exception ex) { ModLog.Error($"[ACTION] refusal note failed: {ex.GetType().Name}: {ex.Message}"); }
+                  }
+
                   // execute_prisoner (Nemesis pillar, R2): the prisoner is dead, so the scene locks
                   // afterward exactly like a normal end_conversation. The bridge already re-validated
                   // custody, so IsPositive true here means the killing genuinely happened.

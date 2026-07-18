@@ -105,6 +105,25 @@ namespace CalradiaRemembers.Tests
             LetterDeliveryPolicy.ShouldDeferWhenNear(LetterReason.TournamentVictory).Should().BeFalse();
         }
 
+        // ── The sea gate: never deliver while the player sails ───────────────────────────────────────
+
+        // Courier audit (island report): no courier can meet a ship, so while the player is at sea every
+        // delivery — courier or date fallback alike — must be held back. Missing this guard is what let
+        // letters "deliver" in the middle of a crossing.
+        [Test]
+        public void GIVEN_the_player_is_at_sea_WHEN_checking_the_sea_gate_THEN_delivery_is_held_back()
+        {
+            LetterDeliveryPolicy.ShouldHoldDeliveryAtSea(true).Should().BeTrue();
+        }
+
+        // The other half of the rule: once the player is ashore the gate must release immediately, or a due
+        // letter would stay stuck after landfall instead of landing on the first daily tick.
+        [Test]
+        public void GIVEN_the_player_is_ashore_WHEN_checking_the_sea_gate_THEN_delivery_is_not_held_back()
+        {
+            LetterDeliveryPolicy.ShouldHoldDeliveryAtSea(false).Should().BeFalse();
+        }
+
         // A birth is likewise a factual announcement, not a longing note, so it must never be held back for
         // proximity even though BirthLetterPolicy separately decides not to send it at all when she is present.
         [Test]

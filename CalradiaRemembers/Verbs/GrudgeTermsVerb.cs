@@ -70,7 +70,7 @@ namespace CalradiaRemembers.Verbs
 
                 Grudge grudge = DominantUndiscoveredGrudge(npc);
                 if (grudge == null)
-                    return new ActionOutcome($"(There is nothing new to learn from {npc.Name} about this right now.)", false);
+                    return ActionOutcome.Refused($"(There is nothing new to learn from {npc.Name} about this right now.)");
 
                 grudge.ResolutionHintDiscovered = true;
 

@@ -68,10 +68,10 @@ namespace CalradiaRemembers.Verbs
                 Hero target = CourtActionResolver.ResolveSwayTarget(targetName, npcHero);
 
                 if (target == null)
-                    return new ActionOutcome("(No one by that name is known to sway an opinion of.)", false);
+                    return ActionOutcome.Refused("(No one by that name is known to sway an opinion of.)");
 
                 if (!CourtActionResolver.SwayCooldownElapsed(profile, target.StringId))
-                    return new ActionOutcome($"({npcHero.Name}'s opinion of {target.Name} was only just moved; give it time.)", false);
+                    return ActionOutcome.Refused($"({npcHero.Name}'s opinion of {target.Name} was only just moved; give it time.)");
 
                 action.Parameters.TryGetValue("stance", out string stanceRaw);
                 bool against = !string.Equals(stanceRaw?.Trim(), "for", StringComparison.OrdinalIgnoreCase);

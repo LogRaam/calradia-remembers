@@ -383,6 +383,20 @@ namespace CalradiaRemembers.Quests
 
          if (!byPlayer) return;
 
+         StampCaptureQuests(prisoner);
+      }
+
+      /// <summary>
+      ///   Stamps any outstanding CapturePrisoner/NemesisBounty quest targeting <paramref name="prisoner" />
+      ///   as satisfied. Called from the capture hook above (real battle captures) and directly by
+      ///   <c>SellPrisonerVerb</c>: buying a captive moves custody via TransferPrisonerAction, which raises
+      ///   no HeroPrisonerTaken — and dispatching that event by hand would also fire the stance, chronicle,
+      ///   companion-mission and nemesis listeners, all tuned for a real capture, not a purchase.
+      /// </summary>
+      public void StampCaptureQuests(Hero prisoner)
+      {
+         if (prisoner == null) return;
+
          int day = CurrentDay();
          ForEachOutstandingQuest((profile, quest) =>
          {

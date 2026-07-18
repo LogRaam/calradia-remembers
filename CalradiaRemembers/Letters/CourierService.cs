@@ -10,6 +10,7 @@ using CalradiaRemembers.Storage;
 using CalradiaRemembers.Travel;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -531,6 +532,23 @@ namespace CalradiaRemembers.Letters
                }
 
 
+               // Courier audit (island report): a courier with NO land route left to its recipient (an
+               // island across the water) can only starve on a shore — abandon TODAY and clear the id, so
+               // the letter returns to the date fallback instead of waiting out the deadline (which stays
+               // as the safety net). A recipient AT SEA is exempt: the courier waits at their landfall (M5),
+               // it is not stuck.
+               if (!RecipientAtSea(recipient) &&
+                   !LandPathExists(courier.GetPosition2D, CourierDestinationPoint(recipient, courier.GetPosition2D)))
+               {
+                  Disband(courier);
+                  letter.CourierPartyId = null;
+                  changed = true;
+                  ModLog.Info($"[COURIER] courier to {letter.RecipientName} has no land route left; handed to date-based delivery.");
+
+                  continue;
+               }
+
+
                changed = ResumeCourier(today, courier, recipient, letter, changed, store, profile);
             }
 
@@ -546,7 +564,8 @@ namespace CalradiaRemembers.Letters
       ///   pending FOREVER: the date-based fallback in <see cref="LetterDeliveryService" /> explicitly skips any
       ///   letter that still carries a <see cref="PendingLetter.CourierPartyId" /> (the orphan-party bug documented
       ///   as "NOT fixed"). Here we stop waiting on the physical courier past the grace deadline and clear the id,
-      ///   so the fallback (a popup, which reaches the player anywhere, at sea included) delivers on the next tick.
+      ///   so the fallback (a popup, which reaches the player anywhere on land) delivers on the next tick
+      ///   the player is ashore — the fallback itself never delivers at sea.
       /// </summary>
       public static void TickReplyCouriers(BannerlordNpcMemoryStore store, int today)
       {
@@ -572,6 +591,24 @@ namespace CalradiaRemembers.Letters
                   Disband(FindCourier(letter.CourierPartyId));
                   letter.CourierPartyId = null;
                   changed = true;
+
+                  continue;
+               }
+
+               // Courier audit (island report): a courier with NO land route left to the player (the player
+               // sailed away, or the road was never there) would otherwise ride in place until the deadline.
+               // Give up TODAY: disband it and clear the id, so the letter returns to the date fallback —
+               // which never delivers at sea, but lands on the first tick the player is ashore past the
+               // delivery day. The deadline below stays as the safety net.
+               MobileParty courier = FindCourier(letter.CourierPartyId);
+               MobileParty playerParty = MobileParty.MainParty;
+               if (courier is {IsActive: true} && playerParty != null &&
+                   (playerParty.IsCurrentlyAtSea || !LandPathExists(courier.GetPosition2D, playerParty.GetPosition2D)))
+               {
+                  Disband(courier);
+                  letter.CourierPartyId = null;
+                  changed = true;
+                  ModLog.Info($"[COURIER-REPLY] {profile.Name}'s courier has no land route to the player; handed to date-based delivery.");
 
                   continue;
                }
@@ -631,6 +668,18 @@ namespace CalradiaRemembers.Letters
                                ? TravelingParty.NearestLandfall(player.GetPosition2D)
                                : player.CurrentSettlement?.GatePosition.ToVec2() ?? player.GetPosition2D);
 
+            // Courier audit (island report): a courier rides overland (NavigationType.Default), so when NO
+            // land route exists from the spawn point to where it must go (a recipient on an island, a
+            // landfall across the water), it would spawn only to starve on the shore. Refuse the spawn:
+            // the letter keeps its date-based fallback instead.
+            Vec2 destination = CourierDestinationPoint(recipient, spawnPos);
+            if (!LandPathExists(spawnPos, destination))
+            {
+               ModLog.Info($"[COURIER] no land route to {recipient.Name} — courier not spawned, letter stays on date-based delivery.");
+
+               return false;
+            }
+
             MobileParty courier = TravelingParty.Spawn(spawnPos, home, name, speed, recipient.Culture, avoidHostile);
 
             if (courier == null) return false;
@@ -667,7 +716,26 @@ namespace CalradiaRemembers.Letters
 
             if (playerParty == null) return false;
 
+            // Courier audit (island report): a courier rides overland and can never meet the player on the
+            // water — and the date fallback never delivers at sea either — so do not spawn until the player
+            // is ashore. And when NO land route exists from the sender to the player (an island across the
+            // water), the courier would spawn only to starve on the shore: refuse, the letter keeps its
+            // date-based fallback.
+            if (playerParty.IsCurrentlyAtSea)
+            {
+               ModLog.Info($"[COURIER-REPLY] player at sea — courier from {sender.Name} not spawned yet, letter stays on date-based delivery.");
+
+               return false;
+            }
+
             Vec2 spawnPos = spawnOverride ?? GetSenderPosition(sender);
+            if (!LandPathExists(spawnPos, playerParty.GetPosition2D))
+            {
+               ModLog.Info($"[COURIER-REPLY] no land route from {sender.Name} to the player — courier not spawned, letter stays on date-based delivery.");
+
+               return false;
+            }
+
             Settlement home = sender.HomeSettlement ?? sender.CurrentSettlement ?? Hero.MainHero?.HomeSettlement;
             var name = new TextObject($"Letter from {sender.Name}");
 
@@ -809,6 +877,48 @@ namespace CalradiaRemembers.Letters
       /// <summary>M5 (courier audit): the recipient is sailing, so a land courier cannot reach them where they float.</summary>
       private static bool RecipientAtSea(Hero recipient)
          => recipient?.PartyBelongedTo is {IsCurrentlyAtSea: true};
+
+      /// <summary>
+      ///   Courier audit (island report): true when an overland route exists between two map points for a
+      ///   NavigationType.Default party (couriers ride, they never sail). Fails OPEN on any engine hiccup —
+      ///   a letter must never be muted by a pathing query failure, only by a confirmed absence of road.
+      /// </summary>
+      private static bool LandPathExists(Vec2 from, Vec2 to)
+      {
+         try
+         {
+            MapDistanceModel model = Campaign.Current?.Models?.MapDistanceModel;
+            if (model == null) return true;
+
+            return model.PathExistBetweenPoints(new CampaignVec2(from, true), new CampaignVec2(to, true), MobileParty.NavigationType.Default);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COURIER] land-path check failed: {ex.GetType().Name}: {ex.Message}");
+
+            return true;
+         }
+      }
+
+      /// <summary>
+      ///   Where a courier must actually ride to reach <paramref name="recipient" /> today: their landfall
+      ///   when they sail (the courier waits there, M5), their party or settlement otherwise. Used by the
+      ///   land-route checks, so a recipient at sea is judged by the shore the courier heads for, not by
+      ///   the water they float on. <paramref name="fallback" /> when no target resolves (a path from a
+      ///   point to itself always exists, so an unresolvable target never trips the island guard).
+      /// </summary>
+      private static Vec2 CourierDestinationPoint(Hero recipient, Vec2 fallback)
+      {
+         if (RecipientAtSea(recipient))
+            return TravelingParty.NearestLandfall(recipient.PartyBelongedTo.GetPosition2D);
+
+         switch (ResolveCourierTarget(recipient))
+         {
+            case Settlement settlement: return settlement.GatePosition.ToVec2();
+            case MobileParty party: return party.GetPosition2D;
+            default: return fallback;
+         }
+      }
 
       private static void DirectCourierToRecipient(MobileParty courier, Hero recipient)
       {

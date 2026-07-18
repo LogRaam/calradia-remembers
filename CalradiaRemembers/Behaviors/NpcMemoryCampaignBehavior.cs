@@ -14,6 +14,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Nemesis;
@@ -387,6 +388,11 @@ namespace CalradiaRemembers.Behaviors
             NpcProfile profile = Store.Get(id);
 
             if (profile?.SentLetters == null) continue;
+
+            // Courier audit (island report): ONE courier in flight per sender. Without this, every queued
+            // letter dispatched its own courier and slow or stuck couriers snowballed into a pack riding
+            // from the same NPC. The queued letters wait; each spawns its courier once the road is clear.
+            if (CourierDispatchPolicy.HasCourierInFlight(profile.SentLetters)) continue;
 
             var changed = false;
 

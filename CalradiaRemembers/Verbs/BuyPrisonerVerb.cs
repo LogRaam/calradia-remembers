@@ -77,7 +77,7 @@ namespace CalradiaRemembers.Verbs
                 Hero captive = ResolvePlayerHeldPrisonerByName(targetName);
 
                 if (captive == null)
-                    return new ActionOutcome("(You hold no such captive to sell.)", false);
+                    return ActionOutcome.Refused("(You hold no such captive to sell.)");
 
                 action.Parameters.TryGetValue("price", out string priceStr);
                 int.TryParse(priceStr?.Trim(), out int proposed);

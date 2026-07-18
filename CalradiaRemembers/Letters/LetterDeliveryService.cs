@@ -8,6 +8,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 
 #endregion
 
@@ -29,6 +30,11 @@ namespace CalradiaRemembers.Letters
             // unreachable past the deadline) so its letter falls through to the date-based delivery below, instead
             // of hanging on a stuck CourierPartyId forever. Symmetric to TickCouriers for the player->NPC direction.
             CourierService.TickReplyCouriers(store, today);
+
+            // Courier audit (island report): NEVER deliver while the player is at sea — no courier can meet
+            // a ship, so the date fallback must not pretend one did. Nothing is marked: every due letter
+            // stays a candidate and lands on the first daily tick the player is ashore past its delivery day.
+            if (LetterDeliveryPolicy.ShouldHoldDeliveryAtSea(MobileParty.MainParty?.IsCurrentlyAtSea == true)) return;
 
             foreach (string id in store.ListIds())
             {

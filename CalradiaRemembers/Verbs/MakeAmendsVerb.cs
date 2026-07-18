@@ -71,7 +71,7 @@ namespace CalradiaRemembers.Verbs
                 // dominant LIVE grudge happens to be, so an apology can never silently mend a heavier hidden grudge.
                 Grudge grudge = DominantKnownGrudge(npc);
                 if (grudge == null)
-                    return new ActionOutcome($"({npc.Name} has no such grievance to mend right now.)", false);
+                    return ActionOutcome.Refused($"({npc.Name} has no such grievance to mend right now.)");
 
                 var today = (int) CampaignTime.Now.ToDays;
                 GrudgeResolutionAttemptResult result = GrudgeResolutionService.TryResolve(npc, grudge, GrudgeGesture.Amends, 0, today);

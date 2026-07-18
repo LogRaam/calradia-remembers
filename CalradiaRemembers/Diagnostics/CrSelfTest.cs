@@ -3884,9 +3884,10 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
-      ///   Party troop-count wiring (deterministic, no LLM): a companion physically in the player's party
-      ///   sees the real troop count in context, so it stops hallucinating the army size. Skips when the
-      ///   player has no party companion to speak for.
+      ///   Party troop-count wiring (deterministic, no LLM): an interlocutor sees the force at the
+      ///   player's back in context (any face-to-face speaker now receives it, rendered as a qualitative
+      ///   band in the prompt), so NPCs stop calling an army-leading player "alone". Exercised through a
+      ///   party companion; skips when the player has none to speak for.
       /// </summary>
       private static string TestPartyTroopCount(NpcMemoryCampaignBehavior behavior)
       {
@@ -3902,7 +3903,7 @@ namespace CalradiaRemembers.Diagnostics
             member, profile, behavior.GameStateBridge, "How many soldiers do we have?");
 
          t.Expect("partyMemberSeesTroopCount", ctx.PlayerPartyTroopCount > 0, true);
-         t.Note($"party member {member.Name} sees troop count {ctx.PlayerPartyTroopCount} (surfaced to party companions, hidden from non-party NPCs).");
+         t.Note($"party member {member.Name} sees troop count {ctx.PlayerPartyTroopCount} (surfaced to every face-to-face interlocutor, hidden only from a captive player's scenes).");
 
          return t.Line();
       }

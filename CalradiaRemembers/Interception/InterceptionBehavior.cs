@@ -396,6 +396,13 @@ namespace CalradiaRemembers.Interception
          if (pursuerParty.GetPosition2D.Distance(main.GetPosition2D) > ArrivalRange) return;
          if (!PlayerIsFreeOnMap()) return;
 
+         // The sea guard, and the one that matters most: staging the meeting asks the engine for a
+         // conversation scene on the terrain under the party, and there is none for open water, so the
+         // load never completes and the game sits on an endless loading screen (two player reports on
+         // v1.30.16, both while sailing). Nothing is lost by waiting: the meeting opens on the first
+         // frame both are ashore, and the daily release stands the chase down if the player keeps sailing.
+         if (!InterceptionPolicy.CanMeetOnLand(main.IsCurrentlyAtSea, pursuerParty.IsCurrentlyAtSea)) return;
+
          // Same army guard as BeginPursuit: forcing an encounter/conversation while the player is a subordinate
          // inside an army crashes deep in the engine.
          if (PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(pursuerParty)) return;
@@ -446,8 +453,14 @@ namespace CalradiaRemembers.Interception
          // gives up a stale chase (timeout) or a hopeless one (the player is well clear and faster).
          // Also release the moment the player is no longer freely interceptable: if they joined the pursuer's
          // army (or any army as a subordinate) mid-chase, the pending engagement would crash on contact.
+         // A chase across water is not merely slow, it is impossible: a land party cannot come alongside a
+         // ship, and the meeting could never be staged there anyway. Stand it down rather than leave the
+         // lord trailing a sail he can never catch until the timeout notices.
+         bool atSea = main != null && pursuerParty != null
+                      && !InterceptionPolicy.CanMeetOnLand(main.IsCurrentlyAtSea, pursuerParty.IsCurrentlyAtSea);
+
          bool invalid = pursuer is not {IsAlive: true} || pursuerParty == null || main == null
-                        || PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(pursuerParty);
+                        || PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(pursuerParty) || atSea;
          bool giveUp = !invalid &&
                        InterceptionPolicy.ShouldAbandonChase(
                           pursuerParty.Speed, main.Speed,
@@ -455,7 +468,8 @@ namespace CalradiaRemembers.Interception
                           today - _activePursuerSince);
 
          if (!invalid && !giveUp) return;
-         if (giveUp) ModLog.Info($"[INTERCEPT] {pursuer.Name} gives up the chase.");
+         if (atSea) ModLog.Info($"[INTERCEPT] {pursuer?.Name} stands down: the chase has gone to sea, where no meeting can be held.");
+         else if (giveUp) ModLog.Info($"[INTERCEPT] {pursuer.Name} gives up the chase.");
 
          // End the engage on any abandoned chase too, so a lord who timed out or was outrun stops bearing on the
          // player instead of trailing them indefinitely, and RESUMES his own plans rather than standing in the
@@ -474,6 +488,7 @@ namespace CalradiaRemembers.Interception
 
          if (main == null || Hero.MainHero == null) return;
          if (PlayerIsSubordinateInArmy()) return; // never intercept a player attached inside another lord's army
+         if (main.IsCurrentlyAtSea) return;       // no one rides out to a ship (see InterceptionPolicy.CanMeetOnLand)
 
          Vec2 playerPos = main.GetPosition2D;
          IFaction territory = NearestSettlementFaction(playerPos);

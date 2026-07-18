@@ -65,10 +65,10 @@ namespace CalradiaRemembers.Verbs
                 // Stance mechanical behaviour-gating (increment 2, Trust): re-validated here, never
                 // trusted from the LLM's own framing of the offer.
                 if (!StanceGatePolicy.WillDelegateRisk(StanceService.ToStance(profile).Trust, profile.ClanRelationWithPlayer ?? 0, profile.ReputationWithPlayer))
-                    return new ActionOutcome($"{npcHero.Name} does not yet trust you enough to risk their own men on your word. Prove yourself first.", false);
+                    return ActionOutcome.Refused($"{npcHero.Name} does not yet trust you enough to risk their own men on your word. Prove yourself first.");
 
                 if (!CourtActionResolver.TryLendTroops(npcHero, profile, out int count))
-                    return new ActionOutcome($"({npcHero.Name} has no soldiers to spare you just now.)", false);
+                    return ActionOutcome.Refused($"({npcHero.Name} has no soldiers to spare you just now.)");
 
                 MobileParty npcParty = npcHero.PartyBelongedTo;
                 MobileParty playerParty = MobileParty.MainParty;
@@ -77,7 +77,7 @@ namespace CalradiaRemembers.Verbs
 
                 int moved = CourtActionResolver.MoveLowestTierTroops(npcParty, playerParty, count);
 
-                if (moved <= 0) return new ActionOutcome($"({npcHero.Name} has no soldiers to spare you just now.)", false);
+                if (moved <= 0) return ActionOutcome.Refused($"({npcHero.Name} has no soldiers to spare you just now.)");
 
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,

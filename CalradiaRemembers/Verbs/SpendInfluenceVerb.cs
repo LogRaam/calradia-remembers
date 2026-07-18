@@ -59,7 +59,7 @@ namespace CalradiaRemembers.Verbs
 
                 if (npcHero == null || profile == null) return null;
                 if (!CourtActionResolver.TrySpendInfluence(npcHero, profile, out int amount))
-                    return new ActionOutcome($"({npcHero.Name}'s clan has no need of your influence just now.)", false);
+                    return ActionOutcome.Refused($"({npcHero.Name}'s clan has no need of your influence just now.)");
 
                 Clan receiver = npcHero.Clan;
                 if (receiver == null) return null;

@@ -61,6 +61,16 @@ namespace CalradiaRemembers.Logic
         public const float AbandonMinDistance = 5f;
 
         /// <summary>
+        ///   Whether a forced meeting can physically happen right now. A land party cannot ride out to a
+        ///   ship, and, far more dangerously, the engine has no conversation scene to place over open
+        ///   water: staging one there leaves the game on a loading screen that never resolves (reported
+        ///   twice against v1.30.16, both while sailing). So neither side may be at sea, whichever of the
+        ///   two took to the water. Callers use this to refuse to start such a pursuit, to hold the
+        ///   meeting closed until both are ashore, and to stand a pursuit down when the player sails.
+        /// </summary>
+        public static bool CanMeetOnLand(bool playerAtSea, bool pursuerAtSea) => !playerAtSea && !pursuerAtSea;
+
+        /// <summary>
         ///   Whether a lord gives up the chase. A pursuer right on top of the player keeps pressing no
         ///   matter what — the encounter is about to happen, so neither the timeout nor a speed gap
         ///   matters. Otherwise a stale pursuit (past <see cref="MaxPursuitDays"/>) is abandoned, and

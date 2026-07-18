@@ -40,6 +40,18 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
+        ///   The sea gate: true when every delivery must be held back because the PLAYER is currently at sea.
+        ///   No courier can meet a ship, so neither the physical courier nor the date-based fallback may
+        ///   deliver while the player sails (player report: letters "delivered" in the middle of a crossing).
+        ///   The letter stays a candidate and lands on the first daily tick the player is ashore past its
+        ///   delivery day.
+        /// </summary>
+        public static bool ShouldHoldDeliveryAtSea(bool playerAtSea)
+        {
+            return playerAtSea;
+        }
+
+        /// <summary>
         ///   The delivery gate: true when the letter should be held back rather than delivered right now,
         ///   that is, the sender is currently near the player AND this reason is one that reads wrong up
         ///   close (<see cref="ShouldDeferWhenNear" />). Guaranteed-delivery reasons

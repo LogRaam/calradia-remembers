@@ -47,6 +47,11 @@ namespace CalradiaRemembers.Verbs
             sb.AppendLine("You currently hold these captives, and the player might persuade you to set one free:");
             foreach (Hero captive in heldPrisoners)
                 sb.AppendLine($"- {captive.Name}");
+            sb.AppendLine("Freeing means they WALK FREE and go their own way — the player does NOT take");
+            sb.AppendLine("them into custody. If the player instead asks you to HAND a captive over INTO");
+            sb.AppendLine("THEIR OWN custody (to march them off as the player's prisoner), that is NOT");
+            sb.AppendLine("release_prisoner: use sell_prisoner with an agreed price (a token sum if you");
+            sb.AppendLine("are feeling generous).");
             sb.AppendLine("When you have genuinely agreed to free one of them, and only then, emit:");
             sb.AppendLine("[ACTION]");
             sb.AppendLine("type: release_prisoner");
@@ -70,7 +75,7 @@ namespace CalradiaRemembers.Verbs
                 Hero target = CourtActionResolver.ResolveHeldPrisonerByName(targetName, npcHero);
 
                 if (target == null || !CourtActionResolver.CanRelease(target, npcHero))
-                    return new ActionOutcome($"({npcHero.Name} holds no such captive to free.)", false);
+                    return ActionOutcome.Refused($"({npcHero.Name} holds no such captive to free.)");
 
                 EndCaptivityAction.ApplyByReleasedByChoice(target, npcHero);
                 ChangeRelationAction.ApplyRelationChangeBetweenHeroes(

@@ -33,6 +33,35 @@ namespace CalradiaRemembers.Tests
             InterceptionPolicy.MaxPursuitDays).Should().BeTrue();
       }
 
+      // ── CanMeetOnLand ──────────────────────────────────────────────────────
+
+      // The baseline the whole guard exists to permit: with both parties ashore the meeting must still
+      // be allowed to open, or the sea fix would silently kill the feature everywhere.
+      [Test]
+      public void GIVEN_both_parties_ashore_WHEN_judging_reachability_THEN_the_meeting_may_be_held()
+      {
+         InterceptionPolicy.CanMeetOnLand(false, false).Should().BeTrue();
+      }
+
+      // The freeze itself: two players reported an endless loading screen on v1.30.16 when a lord who had
+      // announced he was riding out reached them while they were sailing. Staging the meeting asks the
+      // engine for a conversation scene on the terrain under the party, and open water has none, so the
+      // load never completes. The player being at sea must block the meeting outright.
+      [Test]
+      public void GIVEN_the_player_is_at_sea_WHEN_judging_reachability_THEN_no_meeting_may_be_staged()
+      {
+         InterceptionPolicy.CanMeetOnLand(true, false).Should().BeFalse();
+      }
+
+      // The mirror case, which is also plain fiction: a lord aboard a ship cannot ride out to anyone, and
+      // a meeting staged from his side would hit the same missing scene. Blocked whichever of the two
+      // took to the water, not just the player.
+      [Test]
+      public void GIVEN_the_pursuer_is_at_sea_WHEN_judging_reachability_THEN_no_meeting_may_be_staged()
+      {
+         InterceptionPolicy.CanMeetOnLand(false, true).Should().BeFalse();
+      }
+
       // A hostile lord has no standing to challenge you outside their own land: TerritorialPatrol reads
       // "crossing their lands", so PlayerInOwnTerritory is load-bearing, not just FactionHostileToPlayer.
       [Test]

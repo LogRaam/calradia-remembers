@@ -1069,7 +1069,11 @@ namespace CalradiaRemembers.Mapping
       ///   profile field), so relation built the ordinary way (gifts, favors, quests) counts toward a
       ///   match, not only the mod's own hidden ledger. The prompt then teaches the <c>marry</c> action;
       ///   the bridge re-validates with the SAME threshold before executing
-      ///   (<see cref="GameState.BannerlordGameStateBridge.ExecuteMarry" />).
+      ///   (<see cref="GameState.BannerlordGameStateBridge.ExecuteMarry" />). The live-state guards the
+      ///   bridge enforces (<see cref="MarriageGuardPolicy.MarriageAllowed" />: no captive on either
+      ///   side, no active war between the two) are checked HERE too, so the action is never taught in a
+      ///   state where the bridge would refuse it — a taught-then-refused marriage left the NPC
+      ///   believing the wedding had happened.
       /// </summary>
       private static bool ResolveLoveMatchEligible(Hero hero, NpcProfile profile)
       {
@@ -1077,6 +1081,11 @@ namespace CalradiaRemembers.Mapping
          if (Hero.MainHero.Spouse != null) return false; // player already wed
          if (hero.Clan == Clan.PlayerClan) return false; // can't marry own clan
          if (!MarriageProspectResolver.IsMarriageable(Hero.MainHero, hero)) return false;
+
+         bool atWar = hero.MapFaction != null && Hero.MainHero.MapFaction != null &&
+                      FactionManager.IsAtWarAgainstFaction(hero.MapFaction, Hero.MainHero.MapFaction);
+         if (!MarriageGuardPolicy.MarriageAllowed(hero.IsPrisoner, Hero.MainHero.IsPrisoner, atWar))
+            return false;
 
          return (profile?.ReputationWithPlayer ?? 0) >= MarriageEligibility.MarriageEligibilityThreshold ||
                 Hero.MainHero.GetRelation(hero) >= MarriageEligibility.MarriageEligibilityThreshold;
@@ -1194,22 +1203,30 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
-      ///   The player's own party troop count, fed ONLY when <paramref name="hero" /> would plausibly know
-      ///   it: one of the player's own companions or clan-family members, physically present in
-      ///   <see cref="MobileParty.MainParty" /> right now (<c>hero.PartyBelongedTo == MobileParty.MainParty</c>,
-      ///   the same "party membership" predicate <see cref="ResolveCanGatherNews" /> and
-      ///   <see cref="ResolveCompanionOnErrand" /> already use elsewhere in this builder). Any other NPC
-      ///   (a stranger, an enemy lord, a bandit) has no plausible way to know the exact figure, so they get 0
-      ///   ("not provided") and the prompt stays silent on it rather than handing out a metagame number.
+      ///   The player's own party troop count, fed to ANY interlocutor: every caller of <see cref="Build" />
+      ///   is a physical, face-to-face conversation (chat view, dialog flow, round table), where the force
+      ///   riding at the player's back is a VISIBLE fact, not a metagame number. The exact figure never
+      ///   reaches the prompt — the SDK renders it as a coarse qualitative band — so a stranger or an
+      ///   enemy may safely receive it. Excluded: a captive player (<c>Hero.MainHero.IsPrisoner</c> — the
+      ///   party no longer follows them into their cell, and the "force at their back" would be a lie).
+      ///   When the player LEADS an army, what stands behind them is the whole army, not their own party.
       /// </summary>
       private static int ResolvePlayerPartyTroopCount(Hero hero)
       {
          try
          {
             if (hero == null || hero == Hero.MainHero || !hero.IsAlive) return 0;
-            if (hero.PartyBelongedTo != MobileParty.MainParty) return 0;
 
-            return MobileParty.MainParty?.MemberRoster?.TotalManCount ?? 0;
+            MobileParty main = MobileParty.MainParty;
+            if (main == null) return 0;
+
+            bool leadsArmy = main.Army != null && main.Army.LeaderParty == main;
+
+            return PlayerForcePolicy.Resolve(
+               Hero.MainHero?.IsPrisoner == true,
+               main.MemberRoster?.TotalManCount ?? 0,
+               leadsArmy,
+               leadsArmy ? main.Army.Parties.Sum(p => p?.MemberRoster?.TotalManCount ?? 0) : 0);
          }
          catch { return 0; }
       }

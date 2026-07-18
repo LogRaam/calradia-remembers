@@ -60,7 +60,7 @@ namespace CalradiaRemembers.Verbs
 
                 if (npcHero == null || profile == null) return null;
                 if (!CourtActionResolver.TryGiveTroops(npcHero, profile, out int count))
-                    return new ActionOutcome($"({npcHero.Name} has no room or need for more soldiers just now.)", false);
+                    return ActionOutcome.Refused($"({npcHero.Name} has no room or need for more soldiers just now.)");
 
                 MobileParty npcParty = npcHero.PartyBelongedTo;
                 MobileParty playerParty = MobileParty.MainParty;
@@ -69,7 +69,7 @@ namespace CalradiaRemembers.Verbs
 
                 int moved = CourtActionResolver.MoveLowestTierTroops(playerParty, npcParty, count);
 
-                if (moved <= 0) return new ActionOutcome($"({npcHero.Name} has no room or need for more soldiers just now.)", false);
+                if (moved <= 0) return ActionOutcome.Refused($"({npcHero.Name} has no room or need for more soldiers just now.)");
 
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,

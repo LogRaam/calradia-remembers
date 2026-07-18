@@ -46,9 +46,14 @@ namespace CalradiaRemembers.Verbs
 
          ActionResult result = _contract.Execute(request);
 
+         // A third-party verb reporting failure did NOT do the thing, so it is a refusal, not merely bad
+         // news: the chat owes the model an out-of-character note saying so, or it will build the next
+         // turns on a deed the host mod declined to perform.
          return result == null
             ? null
-            : new ActionOutcome(result.Message, result.Success);
+            : result.Success
+               ? new ActionOutcome(result.Message, true)
+               : ActionOutcome.Refused(result.Message);
       }
 
       public bool IsEligible(VerbContext ctx)

@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
@@ -72,14 +73,14 @@ namespace CalradiaRemembers.Verbs
                 Hero captive = CourtActionResolver.ResolveHeldPrisonerByName(targetName, npcHero);
 
                 if (captive == null || !CourtActionResolver.CanRelease(captive, npcHero))
-                    return new ActionOutcome($"({npcHero.Name} holds no such captive to sell.)", false);
+                    return ActionOutcome.Refused($"({npcHero.Name} holds no such captive to sell.)");
 
                 action.Parameters.TryGetValue("price", out string priceStr);
                 int.TryParse(priceStr?.Trim(), out int proposed);
                 int price = PrisonerTradePolicy.ClampPrice(proposed, BuyPrisonerVerb.RansomAnchor(captive));
 
                 if (Hero.MainHero.Gold < price)
-                    return new ActionOutcome($"(You cannot pay the {price} denars {npcHero.Name} asks for {captive.Name}.)", false);
+                    return ActionOutcome.Refused($"(You cannot pay the {price} denars {npcHero.Name} asks for {captive.Name}.)");
 
                 // The gold, then the man: the player pays, and the captive changes custody into the
                 // player's own prison roster.
@@ -88,6 +89,14 @@ namespace CalradiaRemembers.Verbs
                 PartyBase from = captive.PartyBelongedToAsPrisoner;
                 if (from != null) TransferPrisonerAction.Apply(captiveChar, from, MobileParty.MainParty.Party);
                 else TakePrisonerAction.Apply(MobileParty.MainParty.Party, captive);
+
+                // A purchase is a custody handoff, not a battle capture: TransferPrisonerAction raises no
+                // HeroPrisonerTaken, so capture quests would never stamp. We do NOT dispatch that event by
+                // hand — its other listeners (stance fear, world chronicle, companion missions, nemesis)
+                // are tuned for a real capture and would misfire on a sale. Stamp the quests directly
+                // instead; harmless on the TakePrisoner path, where the native hook already stamped them
+                // (Stamp only ever touches outstanding quests).
+                NpcMemoryCampaignBehavior.Instance?.QuestTracker?.StampCaptureQuests(captive);
 
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,

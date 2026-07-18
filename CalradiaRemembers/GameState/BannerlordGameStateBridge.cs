@@ -502,7 +502,7 @@ namespace CalradiaRemembers.GameState
                case RewardGrant.ReleasePrisoner:
                   ModLog.Info($"[GRANT] '{quest.Reward}' not yet supported — declined for {npcHero.Name}.");
 
-                  return new ActionOutcome($"({npcHero.Name} cannot honor that kind of bargain yet.)", false);
+                  return ActionOutcome.Refused($"({npcHero.Name} cannot honor that kind of bargain yet.)");
 
                default:
                   return null;
@@ -606,8 +606,8 @@ namespace CalradiaRemembers.GameState
             }
 
             if (total < quest.RequiredItemValue)
-               return new ActionOutcome(
-                  $"({giverHero?.Name}: these goods are worth about {total} denars — I asked for " + $"{quest.RequiredItemValue}. Bring more.)", false);
+               return ActionOutcome.Refused(
+                  $"({giverHero?.Name}: these goods are worth about {total} denars — I asked for " + $"{quest.RequiredItemValue}. Bring more.)");
 
             // Value met: hand the goods over, then honor the favor.
             foreach ((ItemObject item, int count) in toRemove)
@@ -665,7 +665,7 @@ namespace CalradiaRemembers.GameState
             }
 
             if (count < quest.RequiredItemCount)
-               return new ActionOutcome($"({giverHero?.Name}: that is only {count} of the {quest.RequiredItemCount} {label} I asked for. Bring more.)", false);
+               return ActionOutcome.Refused($"({giverHero?.Name}: that is only {count} of the {quest.RequiredItemCount} {label} I asked for. Bring more.)");
 
             // Count met: hand over exactly the required number (never take more than asked).
             int remaining = quest.RequiredItemCount;
@@ -780,7 +780,7 @@ namespace CalradiaRemembers.GameState
       private static ActionOutcome DoJoin(Hero npcHero, int price, string logDetail)
       {
          if (!RecruitmentPricing.IsRecruitable(npcHero))
-            return new ActionOutcome($"({npcHero?.Name} is not free to take service.)", false);
+            return ActionOutcome.Refused($"({npcHero?.Name} is not free to take service.)");
 
          var clan = Clan.PlayerClan;
          int goldBefore = Hero.MainHero.Gold;
@@ -816,19 +816,19 @@ namespace CalradiaRemembers.GameState
             var player = Hero.MainHero;
 
             if (player == null || npcHero == null || npcHero != player.Spouse)
-               return new ActionOutcome("(There is no marriage between you and this person to end.)", false);
+               return ActionOutcome.Refused("(There is no marriage between you and this person to end.)");
 
             var demands = SpouseDivorceDemandBehavior.Instance;
             bool demanding = demands?.IsDemanding(npcHero.StringId) == true;
             bool estranging = demands?.IsEstranging(npcHero.StringId) == true;
 
             if (demands == null || !demanding && !estranging)
-               return new ActionOutcome($"({npcHero.Name} has not pressed you to end the marriage.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} has not pressed you to end the marriage.)");
 
             int spouseVsPlayerBefore = npcHero.GetRelation(player);
 
             if (!MarriageDissolutionService.TryDissolvePlayerMarriage(npcHero, out string reason))
-               return new ActionOutcome($"(The marriage could not be ended: {reason}.)", false);
+               return ActionOutcome.Refused($"(The marriage could not be ended: {reason}.)");
 
             demands.Accept(npcHero.StringId);
             demands.CancelEstrangement(npcHero.StringId);
@@ -934,7 +934,7 @@ namespace CalradiaRemembers.GameState
             var player = Hero.MainHero;
 
             if (player == null || npcHero == null || npcHero != player.Spouse)
-               return new ActionOutcome("(There is no marriage between you and this person to end.)", false);
+               return ActionOutcome.Refused("(There is no marriage between you and this person to end.)");
 
             var demands = SpouseDivorceDemandBehavior.Instance;
             bool spouseWasDemanding = demands?.IsDemanding(npcHero.StringId) == true;
@@ -950,7 +950,7 @@ namespace CalradiaRemembers.GameState
             });
 
             if (!MarriageDissolutionService.TryDissolvePlayerMarriage(npcHero, out string reason))
-               return new ActionOutcome($"(The marriage could not be ended: {reason}.)", false);
+               return ActionOutcome.Refused($"(The marriage could not be ended: {reason}.)");
 
             if (spouseWasDemanding) demands.Accept(npcHero.StringId);
             if (spouseWasEstranging) demands.CancelEstrangement(npcHero.StringId);
@@ -1043,7 +1043,7 @@ namespace CalradiaRemembers.GameState
          {
             if (npcHero == null) return null;
             if (!npcHero.IsPrisoner || npcHero.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero)
-               return new ActionOutcome($"({npcHero.Name} is not yours to execute.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} is not yours to execute.)");
 
             string name = npcHero.Name?.ToString() ?? "the prisoner";
             KillCharacterAction.ApplyByExecution(npcHero, Hero.MainHero);
@@ -1076,7 +1076,7 @@ namespace CalradiaRemembers.GameState
          {
             if (npcHero == null) return null;
             if (!npcHero.IsPrisoner || npcHero.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero)
-               return new ActionOutcome($"({npcHero.Name} is not yours to set free.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} is not yours to set free.)");
 
             CoercionResult coercion = ResolveFreePrisonerCoercion(npcHero, context);
 
@@ -1245,7 +1245,7 @@ namespace CalradiaRemembers.GameState
                   ? itemName
                   : itemId;
 
-               return new ActionOutcome($"(You don't seem to have '{label}' to give.)", false);
+               return ActionOutcome.Refused($"(You don't seem to have '{label}' to give.)");
             }
 
             MobileParty.MainParty.ItemRoster.AddToCounts(found.EquipmentElement, -1);
@@ -1288,20 +1288,20 @@ namespace CalradiaRemembers.GameState
          {
             if (MarriageApprovalBehavior.Instance == null || npcHero == null) return null;
             if (Hero.MainHero?.Spouse != null)
-               return new ActionOutcome("(You are already wed — the blessing cannot apply.)", false);
+               return ActionOutcome.Refused("(You are already wed — the blessing cannot apply.)");
 
             if (!action.Parameters.TryGetValue("hero", out string spouseName) || string.IsNullOrWhiteSpace(spouseName)) return null;
 
             Hero spouse = MarriageProspectResolver.ResolveCandidate(npcHero, spouseName);
 
             if (spouse == null)
-               return new ActionOutcome($"({npcHero.Name} names no one of their house by '{spouseName}'.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} names no one of their house by '{spouseName}'.)");
 
             if (!MarriageProspectResolver.HasAuthority(npcHero, spouse))
-               return new ActionOutcome($"({npcHero.Name} has no authority to bless that match.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} has no authority to bless that match.)");
 
             if (!MarriageProspectResolver.IsMarriageable(Hero.MainHero, spouse))
-               return new ActionOutcome($"({spouse.Name} is not free to be matched with you.)", false);
+               return ActionOutcome.Refused($"({spouse.Name} is not free to be matched with you.)");
 
             // M-B3: a blessing from a dead, imprisoned, at-war, or openly hostile lord is not a blessing. The
             // regard read is the mod's own personal ledger (the number the player builds in chat), per the two-
@@ -1309,7 +1309,7 @@ namespace CalradiaRemembers.GameState
             int blesserRegard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId)?.ReputationWithPlayer
                                 ?? npcHero.GetRelation(Hero.MainHero);
             if (!MarriageGuardPolicy.BlessingAllowed(npcHero.IsAlive, npcHero.IsPrisoner, IsAtWarWithPlayer(npcHero), blesserRegard))
-               return new ActionOutcome($"({npcHero.Name} is in no position to bless a match with you now.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} is in no position to bless a match with you now.)");
 
             var day = (int) CampaignTime.Now.ToDays;
             MarriageApprovalBehavior.Instance.Grant(spouse, npcHero, day);
@@ -1437,15 +1437,15 @@ namespace CalradiaRemembers.GameState
             Kingdom kingdom = npcHero.Clan?.Kingdom;
 
             if (kingdom == null)
-               return new ActionOutcome($"({npcHero.Name} does not belong to a kingdom.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} does not belong to a kingdom.)");
 
             var playerClan = Clan.PlayerClan;
 
             if (playerClan == null) return null;
 
             if (playerClan.Kingdom != null)
-               return new ActionOutcome(
-                  $"(Your clan is already sworn to {playerClan.Kingdom.Name}. " + "Settle that obligation first.)", false);
+               return ActionOutcome.Refused(
+                  $"(Your clan is already sworn to {playerClan.Kingdom.Name}. " + "Settle that obligation first.)");
 
             // shouldStayInKingdomUntil = Now (no forced lock-in beyond the standard contract logic)
             // awardMultiplier = 1 (standard mercenary wage)
@@ -1491,17 +1491,17 @@ namespace CalradiaRemembers.GameState
             LordRecruitmentFacts facts = LordRecruitmentFactsBuilder.Build(npcHero);
 
             if (facts == null || !LordRecruitment.IsEligible(facts))
-               return new ActionOutcome($"({npcHero.Name} will not leave their house to join yours — not yet.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} will not leave their house to join yours — not yet.)");
 
             if (profile != null && !StanceGatePolicy.CommandsRespectToJoinClan(StanceService.ToStance(profile).Respect, profile.ClanRelationWithPlayer ?? 0))
-               return new ActionOutcome($"({npcHero.Name} does not respect you enough to throw in their lot with you. Earn their esteem first.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} does not respect you enough to throw in their lot with you. Earn their esteem first.)");
 
             Clan oldClan = npcHero.Clan;
 
             // Pull them out of any kingdom obligation first, then move them under the player's banner.
             if (oldClan?.Kingdom != null && oldClan.Leader == npcHero && oldClan.Kingdom != playerClan.Kingdom)
-               return new ActionOutcome(
-                  $"({npcHero.Name} leads a clan sworn to {oldClan.Kingdom.Name}; such a defection cannot be sealed in mere conversation.)", false);
+               return ActionOutcome.Refused(
+                  $"({npcHero.Name} leads a clan sworn to {oldClan.Kingdom.Name}; such a defection cannot be sealed in mere conversation.)");
 
             npcHero.Clan = playerClan;
 
@@ -1535,14 +1535,14 @@ namespace CalradiaRemembers.GameState
             if (npcHero == null || Hero.MainHero == null) return null;
 
             if (!npcHero.IsAlive || npcHero.IsPrisoner || npcHero.Occupation != Occupation.Wanderer || npcHero.CompanionOf != null || npcHero.PartyBelongedTo != null)
-               return new ActionOutcome($"({npcHero.Name} is not free to take service.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} is not free to take service.)");
 
             var clan = Clan.PlayerClan;
 
             if (clan == null) return null;
             if (clan.Companions.Count >= clan.CompanionLimit)
-               return new ActionOutcome(
-                  $"(Your clan cannot support another companion — limit {clan.CompanionLimit}.)", false);
+               return ActionOutcome.Refused(
+                  $"(Your clan cannot support another companion — limit {clan.CompanionLimit}.)");
 
             int asking = Campaign.Current.Models.CompanionHiringPriceCalculationModel
                                  .GetCompanionHiringPrice(npcHero);
@@ -1553,7 +1553,7 @@ namespace CalradiaRemembers.GameState
             int price = ClampInt(proposed, (int) (asking * 0.75f), Math.Max(1, (int) (asking * 1.25f)));
 
             if (Hero.MainHero.Gold < price)
-               return new ActionOutcome($"(You cannot afford the agreed {price} denars.)", false);
+               return ActionOutcome.Refused($"(You cannot afford the agreed {price} denars.)");
 
             return DoJoin(npcHero, price,
                $"hired for {price} denars (proposed {proposed}, vanilla asking {asking})");
@@ -1585,30 +1585,30 @@ namespace CalradiaRemembers.GameState
             if (player == null || npcHero == null) return null;
 
             if (player.Spouse != null)
-               return new ActionOutcome(
-                  "(You are already wed — no second marriage can be sealed in law.)", false);
+               return ActionOutcome.Refused(
+                  "(You are already wed — no second marriage can be sealed in law.)");
 
             if (npcHero.Clan == Clan.PlayerClan)
-               return new ActionOutcome(
-                  $"({npcHero.Name} belongs to your own clan — custom forbids it.)", false);
+               return ActionOutcome.Refused(
+                  $"({npcHero.Name} belongs to your own clan — custom forbids it.)");
 
             if (!MarriageProspectResolver.IsMarriageable(player, npcHero))
-               return new ActionOutcome(
-                  $"({npcHero.Name} cannot be wed to you under the laws of Calradia.)", false);
+               return ActionOutcome.Refused(
+                  $"({npcHero.Name} cannot be wed to you under the laws of Calradia.)");
 
             // M-B5: vanilla blocks a marriage across an active war or with a captive at its own screen; a chat
             // marriage must honour the same law (the prompt is advice, the bridge is law).
             if (!MarriageGuardPolicy.MarriageAllowed(npcHero.IsPrisoner, player.IsPrisoner, IsAtWarWithPlayer(npcHero)))
-               return new ActionOutcome(
-                  $"(A marriage with {npcHero.Name} cannot be sealed now: not across a war, nor from captivity.)", false);
+               return ActionOutcome.Refused(
+                  $"(A marriage with {npcHero.Name} cannot be sealed now: not across a war, nor from captivity.)");
 
             int reputation = context?.Profile?.ReputationWithPlayer ?? 0;
             int vanillaRelation = npcHero.GetRelation(player);
 
             if (reputation < MarriageEligibility.MarriageEligibilityThreshold &&
                 vanillaRelation < MarriageEligibility.MarriageEligibilityThreshold)
-               return new ActionOutcome(
-                  $"({npcHero.Name} does not yet hold you dear enough to take this step.)", false);
+               return ActionOutcome.Refused(
+                  $"({npcHero.Name} does not yet hold you dear enough to take this step.)");
 
             MarriageAction.Apply(player, npcHero);
 
@@ -1662,16 +1662,16 @@ namespace CalradiaRemembers.GameState
             if (behavior == null) return null;
 
             if (behavior.HasActive(npcHero.StringId))
-               return new ActionOutcome($"({npcHero.Name} already has a pledge outstanding — one vow at a time.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} already has a pledge outstanding — one vow at a time.)");
 
             action.Parameters.TryGetValue("target", out string targetName);
             Hero target = CourtActionResolver.ResolvePledgeTarget(targetName, npcHero);
 
             if (target == null)
-               return new ActionOutcome("(No rival by that name is known to pledge against.)", false);
+               return ActionOutcome.Refused("(No rival by that name is known to pledge against.)");
 
             if (CourtActionResolver.IsCloseKin(npcHero, target))
-               return new ActionOutcome($"({npcHero.Name} will not move against their own kin.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} will not move against their own kin.)");
 
             // A calculating lord favours quiet sabotage; others reach for slander. Never a war action —
             // the scheme is the whole of what a pledge sets in motion.
@@ -1754,7 +1754,7 @@ namespace CalradiaRemembers.GameState
             string result = SchemeStore.Instance?.PlayerAssists(npcHero);
 
             if (string.IsNullOrEmpty(result))
-               return new ActionOutcome("(There is no plot of theirs you could help with just now.)", false);
+               return ActionOutcome.Refused("(There is no plot of theirs you could help with just now.)");
 
             // Throwing in together warms the plotter toward the player.
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npcHero, Hero.MainHero, 3, false);
@@ -1785,7 +1785,7 @@ namespace CalradiaRemembers.GameState
             string result = SchemeStore.Instance?.TargetHeeds(npcHero);
 
             if (string.IsNullOrEmpty(result))
-               return new ActionOutcome("(There is no plot against them you could warn of just now.)", false);
+               return ActionOutcome.Refused("(There is no plot against them you could warn of just now.)");
 
             // Gratitude for the warning warms the target toward the player.
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npcHero, Hero.MainHero, 4, false);
@@ -1817,15 +1817,15 @@ namespace CalradiaRemembers.GameState
             NpcProfile profile = context.Profile;
 
             if (profile.Romantic == null)
-               return new ActionOutcome($"({npcHero.Name} has no romantic connection to build upon.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} has no romantic connection to build upon.)");
 
             // M-R1: an ACTIVE intimate bond, not a raw ordinal test. Estranged/Broken sort after Intimate in the
             // enum, so "< Intimate" let a dead romance be taken as consort; IsIntimateOrDeeper excludes them.
             if (!profile.Romantic.Status.IsIntimateOrDeeper())
-               return new ActionOutcome($"({npcHero.Name} is not yet close enough to you for this bond.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} is not yet close enough to you for this bond.)");
 
             if (profile.Romantic.IsConsort || profile.Romantic.Status == RomanticStatus.Committed)
-               return new ActionOutcome($"(You and {npcHero.Name} are already bound as consorts.)", false);
+               return ActionOutcome.Refused($"(You and {npcHero.Name} are already bound as consorts.)");
 
             profile.Romantic.Status = RomanticStatus.Committed;
             profile.Romantic.IsConsort = true;
@@ -1883,15 +1883,15 @@ namespace CalradiaRemembers.GameState
             NpcProfile profile = context.Profile;
 
             if (profile.Romantic == null)
-               return new ActionOutcome($"({npcHero.Name} has no romantic connection to build upon.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} has no romantic connection to build upon.)");
             if (!npcHero.IsPlayerCompanion)
-               return new ActionOutcome($"({npcHero.Name} is not one of your own companions.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} is not one of your own companions.)");
             if (!profile.Romantic.IsCompatibleWith(Hero.MainHero.IsFemale))
-               return new ActionOutcome($"(There is no such spark between you and {npcHero.Name}.)", false);
+               return ActionOutcome.Refused($"(There is no such spark between you and {npcHero.Name}.)");
             if (profile.Romantic.IsConsort || profile.Romantic.IsSecretLover || npcHero == Hero.MainHero.Spouse)
-               return new ActionOutcome($"(You and {npcHero.Name} are already bound.)", false);
+               return ActionOutcome.Refused($"(You and {npcHero.Name} are already bound.)");
             if (profile.ReputationWithPlayer < 50)
-               return new ActionOutcome($"({npcHero.Name} is not yet close enough to you for this.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} is not yet close enough to you for this.)");
 
             profile.Romantic.Status = RomanticStatus.SecretLover;
             profile.Romantic.IsSecretLover = true;
@@ -1977,10 +1977,10 @@ namespace CalradiaRemembers.GameState
          int owed = BastardBehavior.Instance.OutstandingDemand(npcHero);
 
          if (owed <= 0)
-            return new ActionOutcome($"({npcHero.Name} holds no demand over you to settle.)", false);
+            return ActionOutcome.Refused($"({npcHero.Name} holds no demand over you to settle.)");
 
          if (Hero.MainHero.Gold < owed)
-            return new ActionOutcome($"You cannot cover the {owed} denars {npcHero.Name} demands for her silence.", false);
+            return ActionOutcome.Refused($"You cannot cover the {owed} denars {npcHero.Name} demands for her silence.");
 
          GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, owed);
          bool silenced = BastardBehavior.Instance.SettleByPayment(npcHero, owed);
@@ -2011,12 +2011,12 @@ namespace CalradiaRemembers.GameState
             Hero held = NemesisBehavior.Instance?.PlayerHeldNemesisPrisoner();
 
             if (held == null || held != npcHero)
-               return new ActionOutcome($"({npcHero.Name} is not a nemesis you hold prisoner to turn.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} is not a nemesis you hold prisoner to turn.)");
 
             NpcProfile p = profile ?? NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
 
             if (p == null)
-               return new ActionOutcome($"({npcHero.Name} cannot be read well enough to judge whether he would turn.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} cannot be read well enough to judge whether he would turn.)");
 
             NpcStance stance = StanceService.ToStance(p);
             int honor = TraitLevelOf(npcHero, DefaultTraits.Honor);
@@ -2028,7 +2028,7 @@ namespace CalradiaRemembers.GameState
                new NemesisTurnFacts(stance.Fear, stance.Respect, grudge, honor, valor, calculating));
 
             if (!verdict.CanTurn)
-               return new ActionOutcome($"({npcHero.Name} refuses to bend: he {TurnRefusalPhrase(verdict.Refusal)}.)", false);
+               return ActionOutcome.Refused($"({npcHero.Name} refuses to bend: he {TurnRefusalPhrase(verdict.Refusal)}.)");
 
             // He turns. Free him, swear him into the player's clan and party, and close the vendetta.
             Clan oldClan = npcHero.Clan;
@@ -2109,25 +2109,25 @@ namespace CalradiaRemembers.GameState
       private static ActionOutcome GrantMarriageConsent(Hero npcHero, InformalQuest quest)
       {
          if (MarriageApprovalBehavior.Instance == null)
-            return new ActionOutcome($"({npcHero.Name} cannot formalize the betrothal just now.)", false);
+            return ActionOutcome.Refused($"({npcHero.Name} cannot formalize the betrothal just now.)");
 
          Hero spouse = string.IsNullOrEmpty(quest.MarriageSpouseId)
             ? null
             : Hero.FindFirst(h => h.StringId == quest.MarriageSpouseId);
 
          if (spouse == null)
-            return new ActionOutcome($"({npcHero.Name}: the match can no longer be honored.)", false);
+            return ActionOutcome.Refused($"({npcHero.Name}: the match can no longer be honored.)");
 
          // M-B4: the quest may complete long after it was issued. Re-validate at the deed, not just at issue, so a
          // blessing is never recorded on a spouse who has since died or wed another, nor from a blesser who has
          // since died, been captured, or gone to war. The regard read is the mod's own personal ledger.
          if (!MarriageProspectResolver.IsMarriageable(Hero.MainHero, spouse))
-            return new ActionOutcome($"({spouse.Name} can no longer be wed to you.)", false);
+            return ActionOutcome.Refused($"({spouse.Name} can no longer be wed to you.)");
 
          int blesserRegard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId)?.ReputationWithPlayer
                              ?? npcHero.GetRelation(Hero.MainHero);
          if (!MarriageGuardPolicy.BlessingAllowed(npcHero.IsAlive, npcHero.IsPrisoner, IsAtWarWithPlayer(npcHero), blesserRegard))
-            return new ActionOutcome($"({npcHero.Name} can no longer give that blessing.)", false);
+            return ActionOutcome.Refused($"({npcHero.Name} can no longer give that blessing.)");
 
          var day = (int) CampaignTime.Now.ToDays;
          MarriageApprovalBehavior.Instance.Grant(spouse, npcHero, day);
@@ -2441,7 +2441,7 @@ namespace CalradiaRemembers.GameState
                }
 
             if (prisonerChar == null)
-               return new ActionOutcome($"(You do not hold {quest.TargetHeroName ?? "the captive"} I asked for.)", false);
+               return ActionOutcome.Refused($"(You do not hold {quest.TargetHeroName ?? "the captive"} I asked for.)");
 
             // Captured BEFORE the transfer, per the rule's own "prior regard" framing (mirrors
             // DivorceFacts.SpouseRegardForPlayer's low-regard-nurses-harder read).

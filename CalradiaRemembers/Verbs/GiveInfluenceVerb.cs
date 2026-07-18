@@ -65,10 +65,10 @@ namespace CalradiaRemembers.Verbs
                 // Stance mechanical behaviour-gating (increment 2, Trust): re-validated here, never
                 // trusted from the LLM's own framing of the offer.
                 if (!StanceGatePolicy.WillDelegateRisk(StanceService.ToStance(profile).Trust, profile.ClanRelationWithPlayer ?? 0, profile.ReputationWithPlayer))
-                    return new ActionOutcome($"{npcHero.Name} does not yet trust you enough to risk their own standing on your word. Prove yourself first.", false);
+                    return ActionOutcome.Refused($"{npcHero.Name} does not yet trust you enough to risk their own standing on your word. Prove yourself first.");
 
                 if (!CourtActionResolver.TryGiveInfluence(npcHero, profile, out int amount))
-                    return new ActionOutcome($"({npcHero.Name} has no influence to spare you just now.)", false);
+                    return ActionOutcome.Refused($"({npcHero.Name} has no influence to spare you just now.)");
 
                 Clan giver = npcHero.Clan;
                 ChangeClanInfluenceAction.Apply(giver, -amount);
