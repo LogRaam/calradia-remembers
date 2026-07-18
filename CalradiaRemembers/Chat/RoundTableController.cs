@@ -30,7 +30,14 @@ namespace CalradiaRemembers.Chat
       // free-text "open the floor" never triggers, so the feature is inert (committed but disabled) until it has
       // been play-tested. Flip to true (one line) to re-enable it. static readonly, not const, so the guards below
       // are not folded into unreachable code.
-      internal static readonly bool Enabled = false;
+      /// <summary>
+      ///   The kill-switch: the council ships OFF and stays off until it has been play-tested. Settable only
+      ///   so <c>cr.roundtable on</c> can arm it for a single session (audit 0.10): the glue has no unit tests
+      ///   (net10 tests cannot reference the net472 mod) and no way to run at all without a rebuild, which
+      ///   made "play-test it before flipping" circular. Never persisted, so a save can never carry it on, and
+      ///   every entry point checks it (audit D6), not merely the button's visibility.
+      /// </summary>
+      internal static bool Enabled { get; set; } = false;
 
       private readonly RoundTableGate _gate = new RoundTableGate();
 
@@ -162,6 +169,12 @@ namespace CalradiaRemembers.Chat
                   host.AppendNarration(result.Response.Narration);
 
                ModLog.Info($"[ROUNDTABLE] {speaker.Name}: \"{reply}\"");
+               // Round-table audit 0.10: the lap costs one FULL prompt per speaker (identity sits in the
+               // cached prefix, so nothing is shared between participants) and logged nothing, which made a
+               // council's real price invisible. Mirrors the [15C TOKENS] line so both bursts are comparable.
+               if (result.Usage != null)
+                  ModLog.Info($"  [ROUNDTABLE TOKENS] {speaker.Name}: prompt={result.Usage.PromptTokens} "
+                            + $"(cached:{result.Usage.CachedPromptTokens ?? 0}) | completion={result.Usage.CompletionTokens}");
                host.LogVram("roundtable");
 
                if (result.Response?.Actions != null)

@@ -357,6 +357,68 @@ namespace CalradiaRemembers.Witnesses
          }
       }
 
+      /// <summary>
+      ///   Re-describes <paramref name="entry" /> from <paramref name="observer" />'s point of view, which is
+      ///   what <see cref="WitnessEntry.RelationToNpc" /> has always claimed to be ("from the NPC's
+      ///   perspective") and was not once several people speak in turn.
+      ///   <para>
+      ///     Round-table audit D2: entries are built once, from the HOST's angle, and were then handed
+      ///     unchanged to every other speaker. At a council hosted by king Derthert with his vassal Aldric
+      ///     and the rival Boyd present, Boyd's own prompt read "Aldric (your vassal)". Aldric is Derthert's
+      ///     vassal, not Boyd's, so a lord could get his own liege wrong in the middle of a council.
+      ///   </para>
+      ///   Returns the entry unchanged when there is nothing to re-describe: a synthetic flavour witness (an
+      ///   enforcer, an apprentice) has no hero to reason about, and an entry carrying a fixed role (the
+      ///   player's companion, a captive victim) means the same thing to everyone in the room.
+      /// </summary>
+      public static WitnessEntry ForObserver(WitnessEntry entry, Hero observer, BannerlordNpcMemoryStore store)
+      {
+         if (entry == null || observer == null) return entry;
+         if (string.IsNullOrEmpty(entry.HeroStringId)) return entry;
+         if (entry.IsPlayerCompanion || entry.IsCaptiveVictim) return entry;
+         if (entry.HeroStringId == observer.StringId) return entry;
+
+         try
+         {
+            Hero subject = Hero.FindFirst(h => h != null && h.StringId == entry.HeroStringId);
+
+            if (subject == null) return entry;
+
+            return new WitnessEntry {
+               Name = entry.Name,
+               HeroStringId = entry.HeroStringId,
+               IsPlayerCompanion = entry.IsPlayerCompanion,
+               IsCaptiveVictim = entry.IsCaptiveVictim,
+               Persona = entry.Persona,
+               RelationToNpc = DescribeWitnessRelation(observer, subject)
+            };
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[WITNESS] could not re-describe {entry.Name} for {observer.Name}: {ex.GetType().Name}: {ex.Message}");
+
+            return entry;
+         }
+      }
+
+      /// <summary>Builds the entry for the conversation HOST as seen by another speaker: a real relation, plus their role.</summary>
+      public static WitnessEntry HostForObserver(Hero host, Hero observer, BannerlordNpcMemoryStore store)
+      {
+         if (host == null) return null;
+
+         string relation = observer != null && observer != host
+            ? $"{DescribeWitnessRelation(observer, host)}, and the host of this gathering"
+            : "the host of this conversation, standing beside you";
+
+         return new WitnessEntry {
+            Name = host.Name?.ToString() ?? "",
+            HeroStringId = host.StringId,
+            RelationToNpc = relation,
+            IsPlayerCompanion = false,
+            Persona = ResolvePersona(host, store)
+         };
+      }
+
       private static WitnessEntry BuildEntry(Hero h, Hero npcHero, BannerlordNpcMemoryStore store) => new() {
          Name = h.Name.ToString(),
          RelationToNpc = DescribeWitnessRelation(npcHero, h),

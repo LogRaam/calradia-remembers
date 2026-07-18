@@ -12,6 +12,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Quests;
+using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
@@ -130,24 +131,31 @@ namespace CalradiaRemembers.Chat
                ? _witnesses.AsReadOnly()
                : null;
 
+         // Round-table audit D2: entries were built once from the HOST's angle and handed unchanged to every
+         // other speaker, so a participant read the room through someone else's eyes ("Aldric (your vassal)"
+         // in the prompt of a lord who is not Aldric's liege). Each speaker now gets the room described from
+         // THEIR side, which is what WitnessEntry.RelationToNpc always claimed to be.
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
          var list = new List<WitnessEntry>();
+
          foreach (WitnessEntry w in _witnesses)
             if (w.HeroStringId != speaker.Hero?.StringId)
-               list.Add(w);
+               list.Add(WitnessResolver.ForObserver(w, speaker.Hero, store));
 
-         if (_npcHero != null)
-            list.Add(new WitnessEntry {
-               Name = _npcName,
-               RelationToNpc = "the host of this conversation, standing beside you",
-               HeroStringId = _npcHero.StringId,
-               IsPlayerCompanion = false,
-               Persona = null
-            });
+         WitnessEntry host = WitnessResolver.HostForObserver(_npcHero, speaker.Hero, store);
+         if (host != null) list.Add(host);
 
          return list.Count > 0
             ? list
             : null;
       }
+
+      /// <summary>Diagnostics (cr.roundtable): the names currently in the room, in display order.</summary>
+      internal IReadOnlyList<string> DebugWitnessNames()
+         => _witnesses.Select(w => w.Name).ToList();
+
+      /// <summary>Diagnostics (cr.roundtable): who hosts this conversation.</summary>
+      internal string DebugMainSpeakerName() => _npcName ?? "(unknown)";
 
       /// <summary>
       ///   Renders the attributed transcript as plain text for a summarizer.
