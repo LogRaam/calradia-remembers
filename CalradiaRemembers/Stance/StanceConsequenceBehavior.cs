@@ -161,7 +161,14 @@ namespace CalradiaRemembers.Stance
             ModLog.Info($"[STANCE] {hero.Name} {(rode ? "rides out to" : "means to")} intercept the player.");
          }
 
-         string content = LetterFor(verdict, out LetterReason reason);
+         // M-S3 (regard audit): rotate the letter template by how many stance-hostility letters this NPC has
+         // already sent, so a lasting enmity does not mail the player the SAME threat word for word every cycle.
+         var variant = 0;
+         foreach (PendingLetter l in profile.SentLetters)
+            if (l.Reason == LetterReason.StanceHostility)
+               variant++;
+
+         string content = LetterFor(verdict, variant, out LetterReason reason);
 
          if (content == null) return false; // nothing warranted (neutral, mild, or a secret hatred biding its time)
 
@@ -182,22 +189,42 @@ namespace CalradiaRemembers.Stance
          return true;
       }
 
+      /// <summary>M-S3: threat-letter templates, rotated by send count so a lasting enmity varies its word.</summary>
+      private static readonly string[] ThreatLetters =
+      {
+         "Word of you reaches me, and none of it warms me. I have not forgotten what you are, nor will I. " +
+         "Keep from my path: cross me again and you will find I am no friend to trifle with.",
+         "You have made an enemy of me, and I am not one who forgets. Do not mistake my silence for peace; it is " +
+         "only patience. Give me cause once more, and I will give you reason to rue it.",
+         "I have heard enough of your doings to take your measure. Stay well clear of what is mine and what is " +
+         "dear to me. Should our paths cross on an ill day, do not look to me for mercy."
+      };
+
+      /// <summary>M-S3: intercept-letter templates, rotated by send count.</summary>
+      private static readonly string[] InterceptLetters =
+      {
+         "You and I have a reckoning owed between us, and I am not one to let such a debt sit. Ride where " +
+         "you will: our paths will cross, and when they do, I mean to settle it blade to blade.",
+         "There is a matter unsettled between us, and I will not rest until it is answered. Look over your " +
+         "shoulder as you ride, for I am coming, and I do not turn back.",
+         "You thought distance would keep you safe from me. It will not. I am riding to find you, and when I " +
+         "do, we will finish what you began."
+      };
+
       /// <summary>The letter content for a verdict, and its reason; null when no letter is warranted.</summary>
-      private static string LetterFor(StanceConsequence verdict, out LetterReason reason)
+      private static string LetterFor(StanceConsequence verdict, int variant, out LetterReason reason)
       {
          switch (verdict)
          {
             case StanceConsequence.Threat:
                reason = LetterReason.StanceHostility;
 
-               return "Word of you reaches me, and none of it warms me. I have not forgotten what you are, nor will I. " +
-                      "Keep from my path — cross me again and you will find I am no friend to trifle with.";
+               return ThreatLetters[Math.Abs(variant) % ThreatLetters.Length];
 
             case StanceConsequence.Intercept:
                reason = LetterReason.StanceHostility;
 
-               return "You and I have a reckoning owed between us, and I am not one to let such a debt sit. Ride where " +
-                      "you will — our paths will cross, and when they do, I mean to settle it blade to blade.";
+               return InterceptLetters[Math.Abs(variant) % InterceptLetters.Length];
 
             case StanceConsequence.Warning:
                reason = LetterReason.StanceFavor;

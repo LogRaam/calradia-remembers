@@ -150,5 +150,30 @@ namespace CalradiaRemembers.Tests
 
             StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.Warning);
         }
+
+        // M-S1 (regard audit): fondness alone must not warrant a WARM welcome when trust has collapsed. Without
+        // this, a friendly-affection stance whose Trust is deeply negative produced a "genuinely glad to see you"
+        // hint printed right beside the "you deeply distrust the player" axis line, the perception system openly
+        // contradicting itself. Deep distrust withholds the warm hint (None); the axis lines still speak.
+        [Test]
+        public void GIVEN_warm_affection_but_collapsed_trust_WHEN_resolving_THEN_no_warm_welcome()
+        {
+            //Arrange: fond (Affection 50) yet deeply distrustful (Trust -80); no clean warm hint fits.
+            var stance = new NpcStance { Affection = 50, Trust = -80 };
+
+            StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.None);
+        }
+
+        // The boundary is inclusive at -40: trust exactly at the floor still withholds the warm welcome, but a
+        // touch above it (a wary but not collapsed trust) still allows the fondness to read as warmth.
+        [Test]
+        public void GIVEN_warm_affection_with_trust_just_above_the_floor_WHEN_resolving_THEN_still_a_warm_welcome()
+        {
+            var atFloor = new NpcStance { Affection = 50, Trust = -40 };
+            var aboveFloor = new NpcStance { Affection = 50, Trust = -39 };
+
+            StanceConsequencePolicy.Resolve(atFloor, 0, 0, 0, 0).Should().Be(StanceConsequence.None);
+            StanceConsequencePolicy.Resolve(aboveFloor, 0, 0, 0, 0).Should().Be(StanceConsequence.WarmWelcome);
+        }
     }
 }

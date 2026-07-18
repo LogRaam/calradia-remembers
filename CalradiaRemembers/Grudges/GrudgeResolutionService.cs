@@ -142,6 +142,18 @@ namespace CalradiaRemembers.Grudges
                         break;
                 }
 
+                // M-G1 (regard audit): a gesture that actually MOVED a hidden grudge has revealed it. The player
+                // watched the NPC soften over "an old grievance", so it is no longer secret: flip it to known. This
+                // turns the old information LEAK into a genuine revelation, and, crucially, unblocks the
+                // hidden -> known -> mended loop: the targeted verbs (make_amends/grudge_terms) can now finish what
+                // an untargeted gift began, instead of a hidden grudge staying forever beyond every resolution path.
+                if (!grudge.KnownToPlayer
+                    && verdict.Outcome is GrudgeResolutionOutcome.Softened or GrudgeResolutionOutcome.Resolved)
+                {
+                    grudge.KnownToPlayer = true;
+                    ModLog.Info($"[GRUDGE] {holder.Name}'s {grudge.Source} grudge is now known to the player (revealed by softening it).");
+                }
+
                 return new GrudgeResolutionAttemptResult {
                     HadResolvableGrudge = true,
                     Outcome = verdict.Outcome,

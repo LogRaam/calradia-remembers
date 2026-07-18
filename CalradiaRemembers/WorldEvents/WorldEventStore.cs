@@ -33,6 +33,12 @@ namespace CalradiaRemembers.WorldEvents
       // must stay here is the geo bonus — it reads map distance, which is engine-specific.
       private const int GeoBonusMax = 25; // proximity bonus when the event happened on the doorstep
 
+      // M-G6 (regard audit): the SUBJECT of an event (named in its ActorIds) is far likelier to catch wind of it
+      // than a distant bystander. Without this bonus, the target of a sway scored no higher than a stranger, so a
+      // cross-faction target (no faction bonus) never crossed the awareness threshold and SwayExposed's Tier-2
+      // teeth almost never bit. A concerned party gets a fixed lift.
+      private const int ConcernedPartyBonus = 25;
+
       private const string SaveKey = "CalradiaRemembers_WorldEvents_v1bytes";
       public static WorldEventStore Instance;
 
@@ -118,7 +124,7 @@ namespace CalradiaRemembers.WorldEvents
 
       /// <summary>True when <paramref name="observer" /> would by now have heard of <paramref name="e" />.</summary>
       public bool IsAwareOf(Hero observer, WorldEvent e, int today)
-         => observer != null && e != null && RumorAwareness.Knows(AwarenessScore(e, today, ObserverPosition(observer), observer.MapFaction?.StringId));
+         => observer != null && e != null && RumorAwareness.Knows(AwarenessScore(e, today, ObserverPosition(observer), observer.MapFaction?.StringId, observer.StringId));
 
       // ── Recording ─────────────────────────────────────────────────────────
 
@@ -211,11 +217,17 @@ namespace CalradiaRemembers.WorldEvents
 
       // Engine glue: gather the facts (faction match, geo bonus from map distance, age) and let the
       // pure RumorAwareness model score them.
-      private int AwarenessScore(WorldEvent e, int today, Vec2? obsPos, string factionId)
+      private int AwarenessScore(WorldEvent e, int today, Vec2? obsPos, string factionId, string observerId = null)
       {
          bool factionMatches = factionId != null && e.FactionIds != null && e.FactionIds.Contains(factionId);
+         int score = RumorAwareness.Score(e.Magnitude, factionMatches, GeoProximityBonus(obsPos, e.PlaceId), today - e.Day);
 
-         return RumorAwareness.Score(e.Magnitude, factionMatches, GeoProximityBonus(obsPos, e.PlaceId), today - e.Day);
+         // M-G6: a concerned party (the event names them in ActorIds) is much likelier to hear of it. Optional, so
+         // the general prompt-awareness paths (GetKnown) that pass no observer id keep their existing scoring.
+         if (observerId != null && e.ActorIds != null && e.ActorIds.Contains(observerId))
+            score += ConcernedPartyBonus;
+
+         return score;
       }
 
       private IReadOnlyList<WorldEvent> GetKnown(Vec2? pos, string factionId, int today, int max)

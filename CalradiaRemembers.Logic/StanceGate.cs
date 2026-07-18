@@ -83,7 +83,30 @@ namespace CalradiaRemembers.Logic
             stance.Fear = ClampAxis(StanceAxis.Fear, stance.Fear - FearDecayPerDay * daysElapsed);
         }
 
+        /// <summary>
+        ///   M-S2 (regard audit): fades Trust and Respect ONE step toward zero (both directions). Without any
+        ///   fade, a standing earned or lost once became a permanent switch, a five-year-old favour opening troop
+        ///   delegation (Trust >= 20) forever. Deliberately far gentler than fear: the host calls this only on a
+        ///   multi-day interval, so a standing lingers for YEARS of neglect before it lapses, and any deed renews
+        ///   it in full. Returns true when it actually moved. To disable, the host simply never calls it.
+        /// </summary>
+        public static bool ApplyStandingDecay(NpcStance stance)
+        {
+            if (stance == null) return false;
+
+            int trust = StepTowardZero(stance.Trust);
+            int respect = StepTowardZero(stance.Respect);
+            bool changed = trust != stance.Trust || respect != stance.Respect;
+
+            stance.Trust = trust;
+            stance.Respect = respect;
+
+            return changed;
+        }
+
         #region private
+
+        private static int StepTowardZero(int v) => v > 0 ? v - 1 : v < 0 ? v + 1 : 0;
 
         private static int GetAxis(NpcStance s, StanceAxis axis)
         {

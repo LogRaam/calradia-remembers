@@ -182,6 +182,32 @@ namespace CalradiaRemembers.Tests
          afraid.Fear.Should().Be(40);
       }
 
+      // M-S2 (regard audit): Trust and Respect must FADE toward zero without renewal, or a standing earned once
+      // is a permanent gate. Both a positive and a negative axis step one toward zero, so an old favour AND an old
+      // slight both lapse over time; a zero axis stays put (no drift into the negative).
+      [Test]
+      public void GIVEN_standing_on_both_sides_of_zero_WHEN_decaying_THEN_each_steps_one_toward_zero()
+      {
+         var s = new NpcStance {Trust = 40, Respect = -30, Fear = 50};
+
+         bool moved = StanceGate.ApplyStandingDecay(s);
+
+         moved.Should().BeTrue();
+         s.Trust.Should().Be(39, "a positive standing fades one step toward zero");
+         s.Respect.Should().Be(-29, "a negative standing also fades one step toward zero");
+         s.Fear.Should().Be(50, "standing decay never touches fear (fear has its own, faster fade)");
+      }
+
+      // Guards the return value the daily sweep relies on to persist only what changed: a stance already at zero
+      // on both standing axes must report no movement, so a neutral NPC is not re-serialized every interval.
+      [Test]
+      public void GIVEN_trust_and_respect_already_zero_WHEN_decaying_THEN_nothing_moves()
+      {
+         var s = new NpcStance {Trust = 0, Respect = 0, Fear = 20};
+
+         StanceGate.ApplyStandingDecay(s).Should().BeFalse();
+      }
+
       // The other side of the cooldown gate (pairs with the refused-within-cooldown test above): confirms
       // the window actually reopens and LastWordInfluenceHour is restamped on the accepted round. A stale
       // stamp here would either permanently lock out future word rounds or let them fire every tick.

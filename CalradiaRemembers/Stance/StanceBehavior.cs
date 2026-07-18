@@ -20,6 +20,13 @@ namespace CalradiaRemembers.Stance
    /// </summary>
    public sealed class StanceBehavior : CampaignBehaviorBase
    {
+      /// <summary>
+      ///   M-S2 (regard audit): how often (in days) Trust/Respect fade one step toward zero. Tuning: 6 days means
+      ///   a maxed standing lingers ~7 Calradian years before fully fading and stays above the delegation/respect
+      ///   gates (20) for ~5 years of neglect, so it is a slow lapse, never a reset. Raise to soften further.
+      /// </summary>
+      private const int StandingDecayIntervalDays = 6;
+
       public override void RegisterEvents()
       {
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
@@ -45,15 +52,23 @@ namespace CalradiaRemembers.Stance
                if (h?.StringId != null)
                   aliveIds.Add(h.StringId);
 
+            // M-S2 (regard audit): Trust/Respect fade far slower than fear, only every few days, so a standing
+            // lingers for years of neglect before a gate lapses (any deed renews it in full). Set the interval
+            // large to make the fade negligible, or remove the DecayStanding call to disable it entirely.
+            var today = (int) CampaignTime.Now.ToDays;
+            bool decayStanding = today % StandingDecayIntervalDays == 0;
+
             foreach (string id in store.ListIds())
             {
                if (!aliveIds.Contains(id)) continue;
 
                NpcProfile p = store.Get(id);
+               if (p == null) continue;
 
-               if (!StanceService.DecayFear(p, 1)) continue;
-               if (p != null)
-                  store.Set(p);
+               bool changed = StanceService.DecayFear(p, 1);
+               if (decayStanding && StanceService.DecayStanding(p)) changed = true;
+
+               if (changed) store.Set(p);
             }
          }
          catch (Exception ex) { ModLog.Error($"[STANCE] fear decay failed: {ex.GetType().Name}: {ex.Message}"); }

@@ -89,6 +89,22 @@ namespace CalradiaRemembers.Stance
          return true;
       }
 
+      /// <summary>
+      ///   M-S2 (regard audit): fades Trust and Respect one step toward zero in place, so neither becomes a
+      ///   permanent gate. Returns true only when it actually moved, so a daily sweep persists just the profiles
+      ///   that changed. The host calls this on a multi-day interval, never every day (deeds prove; memory of them
+      ///   fades slowly).
+      /// </summary>
+      public static bool DecayStanding(NpcProfile p)
+      {
+         if (p == null) return false;
+         NpcStance s = ToStance(p);
+         if (!StanceGate.ApplyStandingDecay(s)) return false;
+         Write(p, s);
+
+         return true;
+      }
+
       /// <summary>The posture block for the prompt, or null when the NPC is wholly neutral.</summary>
       public static string Describe(NpcProfile p)
          => p == null

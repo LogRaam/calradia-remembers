@@ -7,8 +7,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
@@ -499,9 +501,10 @@ namespace CalradiaRemembers.Bastards
          if (Hero.MainHero.MapFaction != null) factions.Add(Hero.MainHero.MapFaction.StringId);
          if (bastard.MapFaction != null) factions.Add(bastard.MapFaction.StringId);
 
+         var today = (int) CampaignTime.Now.ToDays;
          store.Record(new WorldEvent {
             Type = WorldEventType.Scandal,
-            Day = (int) CampaignTime.Now.ToDays,
+            Day = today,
             Magnitude = ClaimMagnitude,
             InvolvesPlayer = true,
             ActorIds = actors,
@@ -509,6 +512,14 @@ namespace CalradiaRemembers.Bastards
             Summary = $"{bastard.Name}, natural-born child of {parent}, has come of age and presses a claim against their house.",
             ChronicleLine = $"{bastard.Name}, my own natural child, came of age and turned against my house, pressing a claim upon it"
          });
+
+         // M-G5 (regard audit): plant the BastardClaim grudge LIVE too. Before, only claims recovered by the
+         // one-shot backfill ever formed one, so a claim pressed TODAY left the bastard with no grudge, the system
+         // blind to one of its most charged events. Anchored on the SAME day as the WorldEvent above, so the
+         // backfill (which reads that event) cannot double-count it (holder+source+day dedup).
+         GrudgeBehavior.Instance?.TryPlant(bastard, Hero.MainHero, GrudgeSource.BastardClaim,
+            $"{bastard.Name}, natural-born child of {parent}, pressed a claim against their house.",
+            GrudgeBackfillRules.BastardClaimMagnitude, knownToPlayer: true, today);
       }
 
       private static void RecordScandal(Hero child)

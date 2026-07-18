@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Grudges;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Storage;
@@ -256,11 +258,23 @@ namespace CalradiaRemembers.Dialogue
 
          if (hero == null || NpcMemoryCampaignBehavior.Instance == null) return GreetingMood.Neutral;
 
+         // M-C1 (regard audit): a dominant live VENDETTA against the player forces a cold greeting, whatever the
+         // regard number reads. Otherwise a hidden vendetta beside a mildly positive regard produced a WARM
+         // opening line, flatly contradicting the very prompt that says whatever warmth is shown is a mask.
+         var today = (int) CampaignTime.Now.ToDays;
+         IReadOnlyList<Grudge> grudges = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today);
+         if (grudges != null)
+            foreach (Grudge g in grudges)
+               if (g != null && g.Rigidity >= GrudgePolicy.VendettaRigidity && g.TargetId == Hero.MainHero?.StringId)
+                  return GreetingMood.Cold;
+
          NpcProfile profile = NpcMemoryCampaignBehavior.Instance.Store.Get(hero.StringId);
          int personal = profile?.ReputationWithPlayer ?? 0;
 
-         if (personal >= 10) return GreetingMood.Warm;
-         if (personal <= -10) return GreetingMood.Cold;
+         // M-C1: align the coarse greeting to RegardBands. Genuine warmth begins at "genuine regard" (>= 15); a
+         // merely "cordial" +5..14 and neutral read as a Neutral greeting, not the warm one the old +10 band gave.
+         if (personal >= 15) return GreetingMood.Warm;
+         if (personal <= -20) return GreetingMood.Cold;
 
          return GreetingMood.Neutral;
       }

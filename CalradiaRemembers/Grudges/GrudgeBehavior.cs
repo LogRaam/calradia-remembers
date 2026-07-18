@@ -355,7 +355,7 @@ namespace CalradiaRemembers.Grudges
                                          && g.EventDay == today && !g.IsResolved))
                return false;
 
-            int regard = holder.GetRelation(target);
+            int regard = RigidityRegard(holder, target);
             int rigidity = GrudgePolicy.RigidityAt(regard, facts);
             int effectiveMagnitude = GrudgePolicy.EffectiveFormationMagnitude(facts);
 
@@ -427,6 +427,25 @@ namespace CalradiaRemembers.Grudges
       ///   <see cref="GrudgeBackfillRules" />, resolving each holder's LIVE regard/traits at migration
       ///   time via <see cref="GrudgeBridge" />.
       /// </summary>
+      /// <summary>
+      ///   M-G4 (regard audit): the regard that decides a grudge's RIGIDITY, read from the SAME source the tone
+      ///   arbiter later modulates with. For a grudge against the player that is the mod's personal
+      ///   <see cref="NpcProfile.ReputationWithPlayer" /> (fallback to vanilla relation when no profile exists);
+      ///   for an NPC-vs-NPC grudge there is no personal ledger, so it is vanilla relation. Without this a lord at
+      ///   vanilla -80 / mod +60 earned a near-vendetta rigidity for a minor slight, then a tone that let warmth
+      ///   dominate: the perception system contradicting itself.
+      /// </summary>
+      private static int RigidityRegard(Hero holder, Hero target)
+      {
+         if (target != null && target == Hero.MainHero)
+         {
+            NpcProfile p = NpcMemoryCampaignBehavior.Instance?.Store?.Get(holder.StringId);
+            if (p != null) return p.ReputationWithPlayer;
+         }
+
+         return holder.GetRelation(target);
+      }
+
       private static List<MigrationCandidate> ScanCandidates(BannerlordNpcMemoryStore store)
       {
          var candidates = new List<MigrationCandidate>();
@@ -446,7 +465,9 @@ namespace CalradiaRemembers.Grudges
             // nurse a grievance, and such an entry would be a permanent, irresolvable cemetery grudge.
             if (holder is not {IsAlive: true}) continue;
 
-            int regard = Hero.MainHero != null ? holder.GetRelation(Hero.MainHero) : 0;
+            // M-G4: rigidity reads the mod's personal regard (these backfill candidates are all vs the player),
+            // the same source the tone arbiter modulates with, not vanilla clan relation.
+            int regard = profile.ReputationWithPlayer;
             TraitFacts traits = GrudgeBridge.BuildTraitFacts(holder);
             bool possessive = GrudgeBridge.HasPossessiveAmplifier(profile);
 

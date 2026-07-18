@@ -61,6 +61,7 @@ namespace CalradiaRemembers.Logic
         private const int FavorFloor = 40;    // a real boon rather than a warm word
         private const int FavorRespect = 30;  // a boon also wants genuine esteem, not just fondness
         private const int WarningTrust = 40;  // tipping you off to a plot takes deep faith in your word
+        private const int WarmWelcomeTrustFloor = -40; // M-S1: deep distrust undercuts a warm welcome
 
         /// <summary>
         ///   The single consequence this posture warrants, or <see cref="StanceConsequence.None" />. Traits are
@@ -104,6 +105,12 @@ namespace CalradiaRemembers.Logic
                 if (stance.Trust >= WarningTrust) return StanceConsequence.Warning; // a trusted friend tips you off
                 if (stance.Respect >= FavorRespect) return StanceConsequence.Favor;
             }
+
+            // M-S1 (regard audit): fondness alone does not warrant a WARM welcome when trust has collapsed. A
+            // "genuinely glad to see you" hint printed alongside a "you deeply distrust the player" axis line read
+            // as the perception system contradicting itself, with nothing arbitrating the two. Deep distrust
+            // withholds the warm hint; the axis lines still speak for themselves.
+            if (stance.Trust <= WarmWelcomeTrustFloor) return StanceConsequence.None;
 
             return StanceConsequence.WarmWelcome;
         }
