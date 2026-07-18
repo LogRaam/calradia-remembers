@@ -29,8 +29,10 @@ namespace CalradiaRemembers.Logic
         {
             if (profile?.SentLetters == null || profile.SentLetters.Count == 0) return true;
 
-            // Block while a letter is still on its way — never stack mail in transit.
-            bool inTransit = profile.SentLetters.Any(l => !l.IsDelivered && l.DeliveryDay > today);
+            // Block while a letter is still on its way; never stack mail in transit. 1.9 (courier audit): a LOST
+            // letter never delivers, so it must NOT count as in transit, or a single waylaid courier would gag the
+            // NPC's correspondence forever.
+            bool inTransit = profile.SentLetters.Any(l => !l.IsDelivered && !l.IsLost && l.DeliveryDay > today);
             if (inTransit) return false;
 
             // Otherwise enforce the cooldown from the most recently sent letter.

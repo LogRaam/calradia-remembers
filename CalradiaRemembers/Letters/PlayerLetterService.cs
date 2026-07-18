@@ -65,7 +65,12 @@ namespace CalradiaRemembers.Letters
       ///   appends it to the recipient's profile, persists, and returns the delivery
       ///   day count for use in the player notification.
       /// </summary>
-      public static int CreateAndQueue(NpcProfile recipientProfile,
+      /// <summary>
+      ///   Queues a player letter. Returns whether it is DELIVERABLE (false when the recipient is dead, captured,
+      ///   or absent, in which case it is recorded lost and no courier is spawned) and the estimated delivery days
+      ///   (1.7 courier audit: the caller charges the fee only when Deliverable is true).
+      /// </summary>
+      public static (bool Deliverable, int DeliveryDays) CreateAndQueue(NpcProfile recipientProfile,
                                        string content,
                                        int today,
                                        BannerlordNpcMemoryStore store)
@@ -90,7 +95,7 @@ namespace CalradiaRemembers.Letters
             store.Set(recipientProfile);
             ModLog.Info($"[PLAYER LETTER] {recipientProfile.Name} cannot receive letters " + $"(dead/captured/absent) — marked undeliverable.");
 
-            return deliveryDays;
+            return (false, deliveryDays);
          }
 
          // If the recipient is one of the player's OWN companions currently away on an errand, a letter is how
@@ -110,7 +115,7 @@ namespace CalradiaRemembers.Letters
          store.Set(recipientProfile);
          ModLog.Info($"[PLAYER LETTER] queued to {recipientProfile.Name} — " + $"delivery day {today + deliveryDays} ({deliveryDays}d), " + $"courier={letter.CourierPartyId ?? "none"}.");
 
-         return deliveryDays;
+         return (true, deliveryDays);
       }
 
       /// <summary>

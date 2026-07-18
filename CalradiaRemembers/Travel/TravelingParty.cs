@@ -33,6 +33,11 @@ namespace CalradiaRemembers.Travel
       // Extra sumpter horses on top of the escort, to hold max map speed even with foot-bound troops.
       private const int SumpterExtra = 2;
 
+      // Courier audit C3: grain stocked at spawn so a small escort stays fed across a long journey. Without any
+      // food the engine starves and destroys a long-blocked courier, which CR then misreports as "waylaid by
+      // bandits". 100 units is many weeks for so small a party, covering any normal (or slow) delivery.
+      private const int CourierRationUnits = 100;
+
       /// <summary>Disbands the party out of the world (the caller drops its id tracking first).</summary>
       public static void Destroy(MobileParty party)
       {
@@ -119,6 +124,10 @@ namespace CalradiaRemembers.Travel
 
          var sumpter = Game.Current.ObjectManager.GetObject<ItemObject>("sumpter_horse");
          if (sumpter != null) party.ItemRoster.AddToCounts(sumpter, EscortSize + SumpterExtra);
+
+         // C3: feed the escort so a long or stalled trip never starves the party into a false "bandit waylay".
+         var grain = Game.Current.ObjectManager.GetObject<ItemObject>("grain");
+         if (grain != null) party.ItemRoster.AddToCounts(grain, CourierRationUnits);
 
          return party;
       }

@@ -32,20 +32,49 @@ namespace CalradiaRemembers.Letters
       {
          if (!IsOpen) return;
 
-         _layer.IsFocusLayer = false;
-         _layer.InputRestrictions.ResetInputRestrictions();
-         _vm?.ReleasePortrait(); // free the correspondent tableau before the movie teardown
-         _layer.ReleaseMovie(_movieId);
-         _host?.RemoveLayer(_layer);
+         // C4: after a save-load or campaign-end the engine objects behind these fields may already be dead. Tear
+         // down defensively so a late Close never crashes on a destroyed layer/movie, and ALWAYS null the fields
+         // (finally) so a failed teardown can never leave a zombie window that blocks every future letter.
+         try
+         {
+            _layer.IsFocusLayer = false;
+            _layer.InputRestrictions.ResetInputRestrictions();
+            _vm?.ReleasePortrait(); // free the correspondent tableau before the movie teardown
+            _layer.ReleaseMovie(_movieId);
+            _host?.RemoveLayer(_layer);
 
-         if (Campaign.Current != null) Campaign.Current.TimeControlMode = _previousTimeControlMode;
+            // Restore time only if WE still hold it at Stop (4.6): never yank the player out of a speed they set
+            // themselves after the window opened.
+            if (Campaign.Current != null && Campaign.Current.TimeControlMode == CampaignTimeControlMode.Stop)
+               Campaign.Current.TimeControlMode = _previousTimeControlMode;
+         }
+         catch (System.Exception ex)
+         {
+            ModLog.Error($"[LETTER] window teardown failed (non-fatal, fields cleared anyway): {ex.GetType().Name}: {ex.Message}");
+         }
+         finally
+         {
+            _layer = null;
+            _movieId = null;
+            _host = null;
+            _vm = null;
+         }
 
+         ModLog.Info("Courier window closed.");
+      }
+
+      /// <summary>
+      ///   C4: nulls the statics WITHOUT touching any engine object (they belong to a screen torn down by a
+      ///   previous session or load). Called at session launch so a dead layer reference from before can never
+      ///   leave <see cref="IsOpen" /> stuck true, which would send every subsequent letter into the
+      ///   never-shown-and-lost path.
+      /// </summary>
+      public static void ResetForSession()
+      {
          _layer = null;
          _movieId = null;
          _host = null;
          _vm = null;
-
-         ModLog.Info("Courier window closed.");
       }
 
       /// <summary>Opens a blank parchment to compose a new letter to <paramref name="recipientProfile" />.</summary>
@@ -92,7 +121,32 @@ namespace CalradiaRemembers.Letters
 
          _layer = new GauntletLayer("CalradiaRemembersLetter", 11000);
          _layer.InputRestrictions.SetInputRestrictions();
-         _movieId = _layer.LoadMovie(PrefabName, _vm);
+
+         // C4: the movie can fail to load (a missing/broken prefab). If it does, a blank focused layer with
+         // restricted input and paused time is a SOFT-LOCK (only ALT+F4 escapes). Validate the load and, on any
+         // failure, roll the layer back completely BEFORE we grab focus or pause time, then refuse to open.
+         try
+         {
+            _movieId = _layer.LoadMovie(PrefabName, _vm);
+         }
+         catch (System.Exception ex)
+         {
+            ModLog.Error($"[LETTER] LoadMovie threw; rolling back (no window opened): {ex.GetType().Name}: {ex.Message}");
+            _movieId = null;
+         }
+
+         if (_movieId == null)
+         {
+            ModLog.Error("LetterWindowManager.Open: the parchment movie failed to load; rolling back rather than trapping the player.");
+            try { _layer.InputRestrictions.ResetInputRestrictions(); }
+            catch (System.Exception ex) { ModLog.Error($"[LETTER] rollback reset failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
+            _layer = null;
+            _movieId = null;
+            _vm = null;
+            _host = null;
+
+            return false;
+         }
 
          _host.AddLayer(_layer);
          _layer.IsFocusLayer = true;

@@ -110,7 +110,7 @@ namespace CalradiaRemembers
 
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
          int today = behavior.GameStateBridge.GetCurrentGameDay();
-         int days = PlayerLetterService.CreateAndQueue(
+         (bool _, int days) = PlayerLetterService.CreateAndQueue(
             profile, "A test message carried by courier.", today, behavior.Store);
 
          PlayerLetter letter = profile.ReceivedPlayerLetters.LastOrDefault();

@@ -387,22 +387,34 @@ namespace CalradiaRemembers.Letters
          }
 
          // Refuse if the player cannot pay the courier — keep the window open so the words aren't lost.
-         if (_courierCost > 0)
+         if (_courierCost > 0 && Hero.MainHero.Gold < _courierCost)
          {
-            if (Hero.MainHero.Gold < _courierCost)
-            {
-               MBInformationManager.AddQuickInformation(new TextObject(
-                  $"You cannot afford the courier ({_courierCost} denars)."));
+            MBInformationManager.AddQuickInformation(new TextObject(
+               $"You cannot afford the courier ({_courierCost} denars)."));
 
-               return;
-            }
-
-            Hero.MainHero.ChangeHeroGold(-_courierCost);
-            ModLog.Info($"[PLAYER LETTER] courier fee charged: {_courierCost} denars.");
+            return;
          }
 
          int today = behavior.GameStateBridge.GetCurrentGameDay();
-         int deliveryDays = PlayerLetterService.CreateAndQueue(_profile, content, today, behavior.Store);
+
+         // 1.7 (courier audit): queue FIRST, then charge only if the letter is actually on its way. A recipient who
+         // is dead, captured, or absent cannot receive it, so the player is told honestly and no coin is taken.
+         (bool deliverable, int deliveryDays) = PlayerLetterService.CreateAndQueue(_profile, content, today, behavior.Store);
+
+         if (!deliverable)
+         {
+            MBInformationManager.AddQuickInformation(new TextObject(
+               $"{_profile.Name} cannot receive a letter right now; your courier stands down and no fee is charged."));
+            OnCloseRequested?.Invoke();
+
+            return;
+         }
+
+         if (_courierCost > 0)
+         {
+            Hero.MainHero.ChangeHeroGold(-_courierCost);
+            ModLog.Info($"[PLAYER LETTER] courier fee charged: {_courierCost} denars.");
+         }
 
          string days = deliveryDays == 1
             ? "1 day"

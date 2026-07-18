@@ -201,7 +201,11 @@ namespace CalradiaRemembers.Behaviors
       /// </summary>
       private void OnMobilePartyDestroyed(MobileParty destroyed, PartyBase destroyer)
       {
-         CourierService.HandlePartyDestroyed(destroyed, Store);
+         // 1.10: pass the destroyer so a non-bandit loss is not misreported as a bandit waylay. 1.11: guard so a
+         // failure here never breaks the engine's own party-destruction pipeline.
+         if (destroyed == null) return;
+         SafeRun.Step("OnMobilePartyDestroyed.HandlePartyDestroyed",
+            () => CourierService.HandlePartyDestroyed(destroyed, Store, destroyer));
       }
 
       /// <summary>Restores the in-flight couriers the pre-save despawn removed.</summary>
@@ -222,6 +226,7 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.LlmServices.Invalidate", LlmServices.Invalidate); // rebuild PromptBuilder with fresh file content
          SafeRun.Step("OnSessionLaunched.StoryLog.WriteSessionHeader", StoryLog.WriteSessionHeader);
          SafeRun.Step("OnSessionLaunched.CaptiveEncounterService.ResetOnSessionLaunch", CaptiveEncounterService.ResetOnSessionLaunch);
+         SafeRun.Step("OnSessionLaunched.LetterWindowManager.ResetForSession", Letters.LetterWindowManager.ResetForSession); // C4: never inherit a dead window from a prior session
          SafeRun.Step("OnSessionLaunched.DisplayLoadedProfiles", DisplayLoadedProfiles);
          SafeRun.Step("OnSessionLaunched.UpgradeLegacyProfiles", UpgradeLegacyProfiles);
          // Heals saves made before the inline chain-of-thought fix (ReasoningTraceStripper): stored
@@ -450,12 +455,15 @@ namespace CalradiaRemembers.Behaviors
             foreach (PlayerLetter letter in profile.ReceivedPlayerLetters)
             {
                if (!letter.IsDelivered || letter.IsLost || letter.HasTriggeredReply) continue;
+
+               // 1.8 (courier audit): resolve the hero BEFORE consuming the trigger. Marking HasTriggeredReply
+               // first meant a hero who has since gone/died had their reply silently swallowed (flagged triggered,
+               // never generated). A vanished hero simply leaves the letter un-triggered, free to trigger later.
+               Hero hero = Hero.FindFirst(h => h.StringId == profile.Id);
+               if (hero is not {IsAlive: true}) continue;
+
                letter.HasTriggeredReply = true;
                changed = true;
-
-               Hero hero = Hero.FindFirst(h => h.StringId == profile.Id);
-
-               if (hero == null) continue;
 
                LetterGenerationService.QueueReplyToPlayerLetter(
                   profile, hero, letter, LlmServices, Store, today);

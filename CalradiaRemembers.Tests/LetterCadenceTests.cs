@@ -34,6 +34,19 @@ namespace CalradiaRemembers.Tests
          LetterCadence.CanSendLetter(p, 100, 15).Should().BeFalse();
       }
 
+      // 1.9 (courier audit): a LOST letter never arrives, so it must NOT count as "in transit". A single waylaid
+      // courier used to leave an undelivered-forever letter on file that gagged the correspondent's mail for good.
+      [Test]
+      public void GIVEN_an_undelivered_but_LOST_letter_WHEN_checking_THEN_a_new_letter_may_still_be_sent()
+      {
+         //Arrange: a lost letter, still !IsDelivered with a future DeliveryDay, must not block; today clears the cooldown.
+         NpcProfile p = Profile();
+         p.SentLetters.Add(new PendingLetter {SentOnDay = 98, DeliveryDay = 105, IsDelivered = false, IsLost = true});
+
+         //Act/Assert
+         LetterCadence.CanSendLetter(p, 130, 15).Should().BeTrue();
+      }
+
       // Fails OPEN, the opposite direction from a defensive default: a missing profile reads the same as
       // "never written before", so a not-yet-tracked NPC's very first letter is not silently swallowed by a
       // lookup miss.

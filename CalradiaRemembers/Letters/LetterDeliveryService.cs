@@ -35,7 +35,21 @@ namespace CalradiaRemembers.Letters
                 // otherwise delivered it regardless of proximity, defeating the courier deferral. A divorce letter
                 // is always delivered, near or not, so the player is never blindsided by an unfolding divorce.
                 Hero sender = Hero.FindFirst(h => h != null && h.StringId == id);
-                bool near = sender != null && HeroProximity.IsNearPlayer(sender);
+
+                // 1.3 (courier audit): the date-based fallback must honour the same "a letter dies with its
+                // author" rule the courier dispatch does. A letter whose sender has since died is marked lost, not
+                // delivered as though written from beyond the grave.
+                if (sender is not {IsAlive: true})
+                {
+                    var lostAny = false;
+                    foreach (PendingLetter l in profile.SentLetters)
+                        if (!l.IsDelivered && !l.IsLost) { l.IsLost = true; lostAny = true; }
+                    if (lostAny) store.Set(profile);
+
+                    continue;
+                }
+
+                bool near = HeroProximity.IsNearPlayer(sender);
 
                 // Skip letters that have an active reply courier — the courier handles delivery.
                 // Never deliver a blank letter: an in-flight placeholder whose LLM call failed or was

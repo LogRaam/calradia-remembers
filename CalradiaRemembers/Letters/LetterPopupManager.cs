@@ -23,10 +23,25 @@ namespace CalradiaRemembers.Letters
     /// </summary>
     public static class LetterPopupManager
     {
-        /// <summary>Presents the letter. Safe to call from the daily/courier tick (main thread).</summary>
-        public static void Show(PendingLetter letter, NpcProfile senderProfile)
+        /// <summary>
+        ///   Presents the letter. Safe to call from the daily/courier tick (main thread). Returns true when the
+        ///   letter was actually shown (and marked received); false when it was DEFERRED because a window is
+        ///   already open, in which case nothing is marked and the caller must leave the letter (and its courier)
+        ///   to retry next tick.
+        /// </summary>
+        public static bool Show(PendingLetter letter, NpcProfile senderProfile)
         {
-            if (letter == null || senderProfile == null) return;
+            if (letter == null || senderProfile == null) return false;
+
+            // C1: never mark a letter received while a window is already open. OpenRead would SILENTLY refuse, and
+            // the letter, now flagged IsDelivered, would be filtered out (!IsDelivered) forever and lost, quest
+            // and all. Defer instead: mark nothing, keep it candidate, and tell the caller it was not shown.
+            if (LetterWindowManager.IsOpen)
+            {
+                ModLog.Info($"[LETTER] deferred (a letter window is already open): {letter.SenderName}'s letter waits for the next tick.");
+
+                return false;
+            }
 
             int today = (int)CampaignTime.Now.ToDays;
             string content = letter.Content ?? "(The letter is blank.)";
@@ -34,6 +49,8 @@ namespace CalradiaRemembers.Letters
 
             MarkReceived(letter, senderProfile, today);
             LetterWindowManager.OpenRead(letter, senderProfile);
+
+            return true;
         }
 
         // ── Bookkeeping ────────────────────────────────────────────────────
