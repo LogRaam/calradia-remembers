@@ -251,6 +251,82 @@ first increment rather than shipped hollow.
 
 ---
 
+## TEST ARCHITECTURE RATIFIED (Gabriel 2026-07-18): three lanes, and what each is actually for
+
+Born from a cost question ("can cr.testall be shortened by removing redundancy?") whose premise turned out to
+be wrong, and worth writing down because the measurement reverses the intuition.
+
+**The measurement** (from a full `cr.testall` run, 2026-07-18): 76 tests, 583.7s. **13 LLM tests = 583.2s
+(99.9%). The other 63 mechanical tests = 0.5s TOTAL.** Removing every "redundant" mechanical test would save
+half a second out of thirteen minutes. All the cost is real LLM calls, so that is the only place cost can be cut.
+
+### The three lanes
+
+| Lane | Question it answers | Where it lives | Cost |
+|---|---|---|---|
+| **A** | Does the prompt INSTRUCT / INCLUDE X for this config? | `NpcMemoryServiceTests` (headless) | free, auto-runs |
+| **B** | Given a response R, does the mod DO the right thing? | **unit tests, on extracted `.Logic` rules** | free, auto-runs |
+| **C** | Does the model actually BEHAVE well? | `NpcMemoryService.LiveLlmTests`, opt-in | tokens |
+
+**Lane B needs no mock LLM client and no console command** (a wrong turn taken and corrected on 2026-07-18).
+`ParsedResponse` is an SDK type: a unit test constructs one by hand and feeds it to a pure rule. What was
+blocking was never the LLM, it was that these decisions sat inside `ChatViewModel`, and the mod is net472
+while the test project is net10. The fix is the project's OWN documented pattern: decision in `.Logic`, thin
+controller in the mod.
+
+### Trigger vs consequence (Gabriel's framing, and the rule that follows)
+
+The same fact is testable two ways, and the distinction decides the lane: a value can be a TRIGGER (feed it
+in as a stub input, unit test) or a CONSEQUENCE (let real play produce it, in-game test).
+
+The grudge saturation regression of 2026-07-18 is the case study, because BOTH halves were already unit
+tested and it shipped anyway:
+
+- `RigidityAt(-100, facts).Should().Be(100)` pinned the trigger, and asserted the BUG as correct behaviour.
+- `IsResolvable(grudge)` pinned the consequence, but always on a rigidity the TEST invented
+  (`NewGrudge(rigidity: 50)`), never on one `RigidityAt` had actually produced.
+
+**RULE: when the output of one pure function feeds the threshold of another, test the CHAIN, not just each
+end.** A test that fabricates the next stage's input can never see a mismatch at the boundary, and the
+boundary is where that bug lived. The in-game test caught it only because it necessarily chained them on real
+campaign data (a lord at regard -80 that no developer would have thought to write down).
+
+**Which is the irreducible value of the in-game suite**: not assertion power, but running on input
+combinations nobody planned. That justifies keeping the 63 mechanical tests (0.5s, real campaign objects) and
+condemns the LLM showcases, which explore nothing: they replay five framings written in advance.
+
+### The showcase finding
+
+The five captor variants (`chat_captor_cnc`, `_break`, `_group`, `_torture`, `_cnc_mf`) cost **232 seconds**
+and assert exactly ONE thing each: `t.Expect("threeBeatsReplied", replied, true)`. Everything else is "judge
+in log", i.e. a human reading the transcript. They are prompt-iteration TOOLS, not regression tests.
+
+### The split to build
+
+- `cr.testall` = regression: the 63 mechanical + lane B as it grows. Seconds, free.
+- `cr.testchatall` (new) = conversation quality: the 13 real-LLM tests, on demand.
+- Keep ONE captor variant in the sweep as a canary for total generation failure (which is exactly what
+  `chat_captor_scene` caught on 2026-07-18: an empty beat 2 after the client's own retry).
+- The mechanism is half-built already: `SelfTest.CallsLlm`, `cr.test chat`, `cr.test mech` all exist.
+
+### Extraction backlog (lane B)
+
+Decisions written straight into `ChatViewModel` and therefore untestable. Each one guards a fault found by
+the 2026-07-18 audits:
+
+| Rule | Where | Status |
+|---|---|---|
+| Witness reaction presence/self/repeat filter (D1) | `CollectWitnessReactions` | DONE: `WitnessReactionGate` + 11 tests |
+| Assistant-turn recomposition (C4) | `BuildSessionFor` | TODO |
+| Refusal note from a bridge outcome | `ChatViewModel.Exchanges` | TODO |
+| Dropping ventriloquized reactions when the floor opens (D7) | `ChatViewModel.Exchanges` | TODO |
+
+The first extraction immediately caught a real defect that had been invisible in the controller: the last-line
+lookup used the name the MODEL wrote while the store is keyed by the CANONICAL name, so a casing difference
+silently defeated the anti-repeat rule. That is the boundary rule above, again.
+
+---
+
 ## SHIPPED v1.30.5 (player request, SuperGraham339 2026-07-11): RESCUE AWARENESS + Enter-to-send
 
 Freeing a captive lord by force is now remembered and ripples outward. Trigger: the player wins the battle/siege

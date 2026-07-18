@@ -263,60 +263,26 @@ namespace CalradiaRemembers.Chat
          // the room: with the witnesses gone, a smaller model may still emit witness lines.
          if (_witnesses == null || _witnesses.Count == 0) return result;
 
+         // Which lines may be voiced is a decision, and it now lives in WitnessReactionGate where a net10
+         // test can reach it: everything below is engine plumbing (who is present, what each was last heard
+         // saying, resolving the hero id) around that one call.
+         List<string> presentNames = _witnesses.Select(w => w.Name).ToList();
+
          foreach (WitnessReaction wr in response.WitnessReactions)
          {
-            if (string.IsNullOrWhiteSpace(wr.Text)) continue;
+            WitnessReactionDecision decision =
+               WitnessReactionGate.Decide(wr.Name, wr.Text, _npcName, presentNames, _lastWitnessReaction);
 
-            // The LLM sometimes copies the whole prompt label ("A soldier (one of your
-            // men…)") into the name. Strip any parenthetical role so we match — and
-            // DISPLAY — only the canonical short name, never the POV-NPC role text.
-            string emitted = DialogueHeuristics.StripWitnessRole(wr.Name);
-
-            // A "reaction" attributed to the MAIN NPC is the NPC reacting to itself — drop it.
-            // Their own words are the [DIALOGUE]; they are never one of their own witnesses.
-            if (string.Equals(emitted, _npcName, StringComparison.OrdinalIgnoreCase))
+            if (!decision.IsKept)
             {
-               ModLog.Info($"[WITNESS] dropped a self-attributed reaction from {_npcName}.");
+               if (decision.Verdict != WitnessReactionVerdict.DropBlank)
+                  ModLog.Info($"[WITNESS] dropped a reaction from '{decision.CanonicalName}': {decision.Verdict}.");
 
                continue;
             }
 
-            string heroId = null;
-            string canonicalName = emitted;
-            var isPresent = false;
-
-            foreach (WitnessEntry we in _witnesses)
-               if (string.Equals(we.Name, emitted, StringComparison.OrdinalIgnoreCase))
-               {
-                  heroId = we.HeroStringId;
-                  canonicalName = we.Name; // canonical casing/spelling
-                  isPresent = true;
-
-                  break;
-               }
-
-            // Round-table audit D1: a reaction attributed to someone who is NOT in the room is a plain
-            // hallucination, and it used to be displayed, written to the story log AND committed to the
-            // transcript, which meant it was replayed into every rebuilt prompt afterwards. The invention
-            // then fed itself: a lady who was never here "spoke", so the model kept her talking. Matching on
-            // NAME rather than hero id on purpose, because a synthetic flavour witness (a gang enforcer, an
-            // apprentice) legitimately has no hero id but is genuinely present.
-            if (!isPresent)
-            {
-               ModLog.Info($"[WITNESS] dropped a reaction attributed to '{emitted}', who is not present.");
-
-               continue;
-            }
-
-            // Mechanical anti-repeat: drop a witness's line when it matches the last one we
-            // showed for them (trimmed, case-insensitive). Kills the verbatim looping the
-            // model otherwise produces despite the prompt's "do not repeat" rule.
-            if (_lastWitnessReaction.TryGetValue(canonicalName, out string previous) && string.Equals(previous.Trim(), wr.Text.Trim(), StringComparison.OrdinalIgnoreCase))
-            {
-               ModLog.Info($"[WITNESS] dropped a repeated line from {canonicalName}.");
-
-               continue;
-            }
+            string canonicalName = decision.CanonicalName;
+            string heroId = _witnesses.FirstOrDefault(w => string.Equals(w.Name, canonicalName, StringComparison.OrdinalIgnoreCase))?.HeroStringId;
 
             _lastWitnessReaction[canonicalName] = wr.Text;
 
