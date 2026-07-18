@@ -82,6 +82,7 @@ namespace CalradiaRemembers.Verbs
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
                     $"Lent the player {moved} soldiers for the road. {CourtActionResolver.TroopsMarker}"));
+                CourtActionResolver.RecordCourtAction(profile, CourtActionResolver.TroopsMarker, today); // M-B6
 
                 ModLog.Info($"[ACTION] lend_troops: {npcHero.Name} lent the player {moved} troops.");
 

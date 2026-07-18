@@ -57,6 +57,13 @@ namespace CalradiaRemembers.Marriage
       // Keyed by the intended spouse's hero id. Presence == the family blessed this match.
       private Dictionary<string, MarriageApprovalRecord> _approvals = new();
 
+      /// <summary>Additive save key for the per-marriage family-swing ledger (minor 3; old saves load with none).</summary>
+      private const string AppliedSwingsSaveKey = "CalradiaRemembers_MarriageAppliedSwings_v1";
+
+      // Minor 3: spouseId -> (family memberId -> the relation delta the marriage swing applied), so a divorce can
+      // revert exactly what the wedding moved. Absent entry = nothing to revert (old save, or a swing already reverted).
+      private Dictionary<string, Dictionary<string, int>> _appliedSwings = new();
+
       public MarriageApprovalBehavior()
       {
          Instance = this;
@@ -97,6 +104,30 @@ namespace CalradiaRemembers.Marriage
 
          // C3 save-heal: fix a player's spouse whose romantic status predates the marriage-sets-Committed fix.
          CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
+
+         // Minor 5: widowhood ends the marriage just as a divorce does, so it must clear the same in-law grudges.
+         CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
+      }
+
+      /// <summary>
+      ///   Minor 5 (romance audit): the player's UnblessedMarriage in-law grudges are cleared when the marriage
+      ///   ends by DIVORCE, but were left standing at WIDOWHOOD. A marriage ended by the spouse's death is over
+      ///   just the same, so the same grudges resolve here too. Death nulls the Spouse link and moves the pair
+      ///   into each other's ExSpouses, so the dead spouse is recognised there. Idempotent (a no-op when no such
+      ///   grudge stands). The family-swing (minor 3) is deliberately NOT reverted at death: the family lost their
+      ///   kin, they are grieving, not returned to indifference, so their marriage-born warmth or chill stands.
+      /// </summary>
+      private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
+      {
+         Hero player = Hero.MainHero;
+         if (victim == null || player == null) return;
+
+         bool wasPlayerSpouse = victim == player.Spouse || (player.ExSpouses?.Contains(victim) ?? false);
+         if (!wasPlayerSpouse) return;
+
+         int today = (int) CampaignTime.Now.ToDays;
+         SafeRun.Step("MarriageApprovalBehavior.WidowhoodGrudgePurge",
+            () => GrudgeBehavior.Instance?.ResolveUnblessedMarriageGrudgesAgainst(player.StringId, today));
       }
 
       /// <summary>
@@ -165,9 +196,39 @@ namespace CalradiaRemembers.Marriage
          // Same save-safety contract as the profile store: never brick a save/load over our own
          // blob, degrade to "no blessings this pass" instead.
          if (dataStore.IsSaving)
+         {
             JsonCampaignState.Save(dataStore, SaveKey, _approvals);
+            JsonCampaignState.Save(dataStore, AppliedSwingsSaveKey, _appliedSwings);
+         }
          else
+         {
             _approvals = JsonCampaignState.Load(dataStore, SaveKey, LegacySaveKey, () => new Dictionary<string, MarriageApprovalRecord>());
+            _appliedSwings = JsonCampaignState.Load(dataStore, AppliedSwingsSaveKey, AppliedSwingsSaveKey, () => new Dictionary<string, Dictionary<string, int>>());
+         }
+      }
+
+      /// <summary>
+      ///   Minor 3 (romance audit): reverts the family relation swing this spouse's marriage applied, so the
+      ///   wedding's ripple does not persist forever after a divorce, and never stacks across remarriages into the
+      ///   same house. Applies the exact negative of each recorded per-member delta (skipping any who have since
+      ///   died), then clears the ledger. A no-op when nothing was recorded (an older save, or already reverted).
+      /// </summary>
+      public void RevertFamilySwing(string spouseId)
+      {
+         if (string.IsNullOrEmpty(spouseId) || !_appliedSwings.TryGetValue(spouseId, out Dictionary<string, int> deltas)) return;
+
+         var reverted = 0;
+         foreach (KeyValuePair<string, int> kv in deltas)
+         {
+            Hero member = Hero.FindFirst(h => h != null && h.StringId == kv.Key);
+            if (member is not {IsAlive: true} || kv.Value == 0) continue;
+
+            ChangeRelationAction.ApplyPlayerRelation(member, -kv.Value, false, false);
+            reverted++;
+         }
+
+         _appliedSwings.Remove(spouseId);
+         if (reverted > 0) ModLog.Info($"[MARRIAGE] reverted the family swing of the ended marriage to {spouseId} ({reverted} kin) (minor 3).");
       }
 
       #region private
@@ -181,12 +242,13 @@ namespace CalradiaRemembers.Marriage
       ///   Grudges-pillar grievance on exactly the same kin this swing already chilled, never on
       ///   one who warmed to it despite the family's own verdict.
       /// </summary>
-      private static (int affected, int warmed, int cooled, List<Hero> disapproving) ApplyToFamily(Clan family, Hero spouse, int baseDelta)
+      private static (int affected, int warmed, int cooled, List<Hero> disapproving, Dictionary<string, int> appliedDeltas) ApplyToFamily(Clan family, Hero spouse, int baseDelta)
       {
          int affected = 0,
              warmed = 0,
              cooled = 0;
          var disapproving = new List<Hero>();
+         var appliedDeltas = new Dictionary<string, int>(); // minor 3: per-member ledger, so the swing can be reverted at divorce
          foreach (Hero member in family.Heroes.ToList())
          {
             if (member is not {IsAlive: true}) continue;
@@ -199,6 +261,7 @@ namespace CalradiaRemembers.Marriage
 
             ChangeRelationAction.ApplyPlayerRelation(
                member, delta, false, false);
+            appliedDeltas[member.StringId] = delta;
             affected++;
             if (delta > 0) warmed++;
             else
@@ -208,7 +271,7 @@ namespace CalradiaRemembers.Marriage
             }
          }
 
-         return (affected, warmed, cooled, disapproving);
+         return (affected, warmed, cooled, disapproving, appliedDeltas);
       }
 
       private static int Clamp(int v, int min, int max) => v < min ? min : v > max ? max : v;
@@ -290,8 +353,13 @@ namespace CalradiaRemembers.Marriage
          int baseDelta = approved
             ? ApprovedRelationBonus
             : UnapprovedRelationPenalty;
-         (int affected, int warmed, int cooled, List<Hero> disapproving) = ApplyToFamily(family, spouse, baseDelta);
+         (int affected, int warmed, int cooled, List<Hero> disapproving, Dictionary<string, int> appliedDeltas) = ApplyToFamily(family, spouse, baseDelta);
          string clan = family.Name?.ToString() ?? "their family";
+
+         // Minor 3 (romance audit): record the exact per-member swing so a later divorce can REVERT it, so the
+         // family's marriage reaction does not persist forever (and never stacks +80 across remarriages into the
+         // same house). Keyed by the spouse, whose marriage the swing belongs to.
+         if (appliedDeltas.Count > 0) _appliedSwings[spouse.StringId] = appliedDeltas;
 
          // Grudges pillar, Tier 2 (UnblessedMarriage): ONLY the player's own marriages ever plant this
          // source (NPC-NPC weddings happen off-screen, so a hidden grudge there is noise the player never

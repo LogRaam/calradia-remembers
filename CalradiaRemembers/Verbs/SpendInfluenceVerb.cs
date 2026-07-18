@@ -70,6 +70,7 @@ namespace CalradiaRemembers.Verbs
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
                     $"Accepted {amount} points of the player's influence to back their clan at court. {CourtActionResolver.SpendInfluenceMarker}"));
+                CourtActionResolver.RecordCourtAction(profile, CourtActionResolver.SpendInfluenceMarker, today); // M-B6
 
                 AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, AppreciationSource.TroopsOrInfluenceSpentForThem,
                     $"The player spent {amount} points of their own influence to back {npcHero.Name}'s clan at court.",

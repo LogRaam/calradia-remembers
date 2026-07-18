@@ -402,11 +402,35 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
-      ///   The most recent in-game day the NPC's own memory events carry the given marker, or null when
-      ///   never — the cooldown clock. Deliberately reads the PERSISTED <see cref="NpcProfile.Events" />
-      ///   list rather than a new field: the action itself stamps the marker into its own recorded summary.
+      ///   Stamps a court action's cooldown clock in the STRUCTURED store (romance audit M-B6), the source of
+      ///   truth memory compaction cannot rewrite. Every court-action verb calls this when it fires, alongside
+      ///   the human-readable event it records. Safe to call with a null profile/marker (no-op).
+      /// </summary>
+      public static void RecordCourtAction(NpcProfile profile, string marker, int day)
+      {
+         if (profile?.CourtActionCooldowns == null || string.IsNullOrEmpty(marker)) return;
+
+         profile.CourtActionCooldowns[marker] = day;
+      }
+
+      /// <summary>
+      ///   The most recent in-game day the given court action fired, or null when never, the cooldown clock.
+      ///   Romance audit M-B6: reads the STRUCTURED <see cref="NpcProfile.CourtActionCooldowns" /> store first
+      ///   (compaction-proof), falling back to scanning the free-text event summaries only for older saves that
+      ///   predate the store. Once any action stamps the store, the fragile text scan is never consulted again.
       /// </summary>
       private static int? LastMarkerDay(NpcProfile profile, string marker)
+      {
+         if (profile == null) return null;
+
+         if (profile.CourtActionCooldowns != null && profile.CourtActionCooldowns.TryGetValue(marker, out int day))
+            return day;
+
+         return ScanEventsForMarker(profile, marker);
+      }
+
+      /// <summary>Legacy cooldown source: the most recent event summary carrying the marker (pre-M-B6 saves only).</summary>
+      private static int? ScanEventsForMarker(NpcProfile profile, string marker)
       {
          if (profile?.Events == null || profile.Events.Count == 0) return null;
 

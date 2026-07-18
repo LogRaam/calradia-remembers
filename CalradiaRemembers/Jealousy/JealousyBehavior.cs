@@ -61,6 +61,13 @@ namespace CalradiaRemembers.Jealousy
 
       // A witnessed act is telegraphed — high chance the jealous party hears and reacts.
       private const float WitnessedReactionChance = 0.75f;
+
+      // M-J6: how far/fast the liaison rumour spreads (WorldEventStore.IsAwareOf reads Magnitude). A PRIVATE act
+      // leaves a faint rumour that travels slowly; a WITNESSED one spreads far faster and more surely, because
+      // witnesses carry the tale. Neither is instant: word must still reach the jealous party (proximity/faction).
+      private const int PrivateRumorMagnitude = 18;
+      private const int WitnessedRumorMagnitude = 40;
+
       public static JealousyBehavior Instance;
 
       private JealousyState _state = new();
@@ -101,7 +108,7 @@ namespace CalradiaRemembers.Jealousy
          foreach (Hero h in partners)
          {
             JealousyCulture c = JealousyCultureLoader.GetCulture(h.Culture?.Name?.ToString());
-            sb.AppendLine($"  {h.Name} [{h.Culture?.Name}] tolerant={c.ToleratesSharedPartners(h.Clan?.Tier ?? 0)} " +
+            sb.AppendLine($"  {h.Name} [{h.Culture?.Name}] tolerant={c.ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0)} " +
                           $"neglect={NeglectDays(h, behavior, today)}d");
             _state.CompetitionCooldown.Remove(h.StringId); // clear cooldown so the forced pass can react
          }
@@ -174,36 +181,43 @@ namespace CalradiaRemembers.Jealousy
             if (res.Stake == JealousStake.RivalSuitor)
                _state.RivalLocks[courted.StringId] = res.Party.StringId; // keep the same rival across the arc
 
-            if (hadWitnesses)
+            // M-J2: a marriage-tier act (public wedding, consort openly taken) ALWAYS wakes the jealous party;
+            // only lesser WITNESSED acts are probabilistic ("not every flirt travels"). M-J1: consume the pairing
+            // cooldown ONLY when the act actually reacts, so a failed flirt roll no longer swallows a real
+            // marriage that happens days later within the cooldown window.
+            if (hadWitnesses && !JealousyReactionPolicy.WitnessedActReacts(tier, MBRandom.RandomFloat, WitnessedReactionChance)) return;
+
+            _state.LastReactionDay[pairKey] = today;
+
+            // M-J6: a witnessed act is NOT telepathy. Word must still TRAVEL to the jealous party (proximity,
+            // faction, recency) through the awareness mechanism, exactly like a private act, so a jealous party on
+            // the far side of the world does not learn of it instantly. A witnessed act only spreads FASTER and
+            // more surely (a stronger rumour), because witnesses carry the tale.
+            int rumorMagnitude = hadWitnesses
+               ? WitnessedRumorMagnitude
+               : PrivateRumorMagnitude;
+            string liaisonId = RecordLiaisonRumor(courted, today, rumorMagnitude);
+
+            if (liaisonId == null)
             {
-               // M-J2: a marriage-tier act (public wedding, consort openly taken) ALWAYS wakes the jealous party;
-               // only lesser witnessed acts are probabilistic ("not every flirt travels"). M-J1: consume the
-               // pairing cooldown ONLY when the act actually reacts, so a failed flirt roll no longer swallows a
-               // real marriage that happens days later within the cooldown window.
-               if (!JealousyReactionPolicy.WitnessedActReacts(tier, MBRandom.RandomFloat, WitnessedReactionChance)) return;
-               _state.LastReactionDay[pairKey] = today;
-               SchedulePendingReaction(res, courted, tier, 1 + MBRandom.RandomInt(3), today);
-               ModLog.Info($"[JEALOUSY] scheduled (witnessed): {res.Party.Name} ({res.Stake}) over {courted.Name}.");
+               // No world-event store to carry the rumour: a witnessed act still reacts (fall back to a direct
+               // schedule so it is never silently lost); a private act has no channel to travel without a rumour.
+               if (hadWitnesses) SchedulePendingReaction(res, courted, tier, 1 + MBRandom.RandomInt(3), today);
+
+               return;
             }
-            else
-            {
-               _state.LastReactionDay[pairKey] = today; // awareness now pending: this pairing is registered
-               // No witnesses: the act is private. Lay down a faint liaison rumour and let it
-               // travel — the jealous party reacts only if/when word actually reaches them
-               // (proximity, faction, recency), not on a flat dice roll. Closes the v1 stub.
-               string liaisonId = RecordLiaisonRumor(courted, today);
-               _state.PendingAwareness.Add(new PendingAwareness {
-                  PartyId = res.Party.StringId,
-                  Stake = (int) res.Stake,
-                  CourtedId = courted.StringId,
-                  CourtedName = courted.Name?.ToString() ?? "another",
-                  OtherId = res.Other?.StringId,
-                  Tier = (int) tier,
-                  LiaisonEventId = liaisonId,
-                  CreatedDay = today
-               });
-               ModLog.Info($"[JEALOUSY] {res.Party.Name} ({res.Stake}) may grow jealous over {courted.Name} — awaiting word to travel.");
-            }
+
+            _state.PendingAwareness.Add(new PendingAwareness {
+               PartyId = res.Party.StringId,
+               Stake = (int) res.Stake,
+               CourtedId = courted.StringId,
+               CourtedName = courted.Name?.ToString() ?? "another",
+               OtherId = res.Other?.StringId,
+               Tier = (int) tier,
+               LiaisonEventId = liaisonId,
+               CreatedDay = today
+            });
+            ModLog.Info($"[JEALOUSY] {res.Party.Name} ({res.Stake}) over {courted.Name}: word {(hadWitnesses ? "spreads fast (witnessed)" : "must travel (private)")} to reach them.");
          }
          catch (Exception ex)
          {
@@ -286,7 +300,10 @@ namespace CalradiaRemembers.Jealousy
          var stake = (JealousStake) pj.Stake;
          var tier = (RomanticActTier) pj.Tier;
          JealousyCulture culture = JealousyCultureLoader.GetCulture(party.Culture?.Name?.ToString());
-         bool competition = stake == JealousStake.PlayerPartner && culture.ToleratesSharedPartners(party.Clan?.Tier ?? 0);
+         // Minor (romance audit): polygamy is the PLAYER's elite privilege, so the sharing tolerance is gated on
+         // the PLAYER's clan tier, not the jealous party's (a low-tier player is not "grand enough to keep consorts"
+         // however high-born their partner, and vice versa).
+         bool competition = stake == JealousStake.PlayerPartner && culture.ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0);
 
          NpcProfile profile = behavior.Store.Get(pj.PartyId) ?? HeroProfileMapper.FromHero(party);
 
@@ -397,7 +414,7 @@ namespace CalradiaRemembers.Jealousy
       ///   returns its id. Low magnitude — it reaches only those near or of the right faction, and
       ///   ages out. Never the heroic chronicle (InvolvesPlayer false).
       /// </summary>
-      private static string RecordLiaisonRumor(Hero courted, int today)
+      private static string RecordLiaisonRumor(Hero courted, int today, int magnitude)
       {
          var store = WorldEventStore.Instance;
 
@@ -418,7 +435,7 @@ namespace CalradiaRemembers.Jealousy
             Day = today,
             PlaceId = place?.StringId,
             InvolvesPlayer = false,
-            Magnitude = 18,
+            Magnitude = magnitude,
             Summary = $"{player?.Name?.ToString() ?? "the player"} has been keeping close company with {courted.Name}.",
             ActorIds = new List<string> {player?.StringId, courted.StringId}.Where(s => s != null).ToList(),
             FactionIds = factions
@@ -525,7 +542,7 @@ namespace CalradiaRemembers.Jealousy
                bool onCooldown = _state.CompetitionCooldown.TryGetValue(h.StringId, out int last) && today - last < CompetitionCooldownDays;
                standings.Add(new PartnerStanding {
                   PartnerId = h.StringId,
-                  ToleratesSharing = c.ToleratesSharedPartners(h.Clan?.Tier ?? 0),
+                  ToleratesSharing = c.ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0),
                   NeglectDays = NeglectDays(h, behavior, today),
                   OnCooldown = onCooldown
                });

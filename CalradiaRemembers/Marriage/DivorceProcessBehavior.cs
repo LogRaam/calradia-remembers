@@ -557,7 +557,7 @@ namespace CalradiaRemembers.Marriage
          int spouseVsPlayerBefore = Hero.MainHero != null
             ? spouse.GetRelation(Hero.MainHero)
             : 0;
-         bool mutualConsent = DivorcePolicy.IsMutualConsent(process.CumulativeDelayDays);
+         bool mutualConsent = DivorcePolicy.IsMutualConsent(process.CumulativeDelayDays, spouseVsPlayerBefore);
 
          if (!MarriageDissolutionService.TryDissolve(npc, spouse, out string failReason))
          {

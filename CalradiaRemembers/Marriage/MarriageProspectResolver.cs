@@ -114,7 +114,17 @@ namespace CalradiaRemembers.Marriage
          if (npc.Children != null)
             pool.AddRange(npc.Children.Where(h => h is {IsAlive: true} && !pool.Contains(h)));
 
-         return pool.FirstOrDefault(h => string.Equals(h.Name?.ToString(), name, StringComparison.OrdinalIgnoreCase)) ?? pool.FirstOrDefault(h => h.Name != null && h.Name.ToString().IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0);
+         Hero exact = pool.FirstOrDefault(h => string.Equals(h.Name?.ToString(), name, StringComparison.OrdinalIgnoreCase));
+         if (exact != null) return exact;
+
+         // Minor (romance audit): a substring fallback ("Ana" -> "Anastasia") is useful, but when SEVERAL of the
+         // house match it the old code silently blessed the first, i.e. the wrong child. An ambiguous partial now
+         // resolves to no one rather than a guess, so a blessing never lands on a sibling by accident.
+         List<Hero> partial = pool.Where(h => h.Name != null && h.Name.ToString().IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+
+         return partial.Count == 1
+            ? partial[0]
+            : null;
       }
 
       #region private

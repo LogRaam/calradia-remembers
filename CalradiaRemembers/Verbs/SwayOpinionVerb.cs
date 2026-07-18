@@ -83,6 +83,7 @@ namespace CalradiaRemembers.Verbs
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
                     $"At the player's word, {verb} {target.Name}. {CourtActionResolver.SwayMarker(target.StringId)}"));
+                CourtActionResolver.RecordCourtAction(profile, CourtActionResolver.SwayMarker(target.StringId), today); // M-B6
 
                 // Ambient gossip: bad blood (or a reconciliation) between two lords, third-party rumor fodder,
                 // mirroring ConversationEventFeeder.RecordPublicAffront / SchemeStore's own Rivalry recordings.

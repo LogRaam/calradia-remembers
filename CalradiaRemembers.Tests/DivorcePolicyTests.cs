@@ -168,17 +168,25 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_spouse_who_fought_the_estrangement_WHEN_reading_consent_THEN_they_were_repudiated()
       {
-         DivorcePolicy.IsMutualConsent(3).Should().BeFalse();
+         DivorcePolicy.IsMutualConsent(3, spouseRegardForPlayer: 20).Should().BeFalse();
       }
 
-      // The other half of that same signal: zero accumulated delay days is read as acquiescence. Get this
-      // backwards and a spouse who quietly let the marriage end would be repudiated (full grudge storm) for a
-      // split they never fought.
+      // The other half of that same signal: zero accumulated delay days from a spouse who does not resent the
+      // player is read as acquiescence. Get this backwards and a spouse who quietly let the marriage end would be
+      // repudiated (full grudge storm) for a split they never fought.
       [Test]
-      public void GIVEN_a_spouse_who_never_resisted_WHEN_reading_consent_THEN_the_divorce_is_mutual()
+      public void GIVEN_a_spouse_who_never_resisted_and_bears_no_grudge_WHEN_reading_consent_THEN_the_divorce_is_mutual()
       {
-         // Engine relations are symmetric per pair, so acquiescence (no delay days) is the honest signal.
-         DivorcePolicy.IsMutualConsent(0).Should().BeTrue();
+         DivorcePolicy.IsMutualConsent(0, spouseRegardForPlayer: 20).Should().BeTrue();
+      }
+
+      // Romance audit minor: resistance is a probabilistic roll, so a genuinely HATEFUL spouse can happen to roll
+      // zero delays. Without the regard gate they would earn the amicable, low-grudge "mutual consent" outcome
+      // they never deserved (~21% of hateful spouses). A spouse who resents the player is never a mutual split.
+      [Test]
+      public void GIVEN_a_hateful_spouse_who_happened_not_to_resist_WHEN_reading_consent_THEN_it_is_not_mutual()
+      {
+         DivorcePolicy.IsMutualConsent(0, spouseRegardForPlayer: -1).Should().BeFalse();
       }
 
       // ── Deadline / delay math ────────────────────────────────────────────

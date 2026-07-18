@@ -2632,7 +2632,7 @@ namespace CalradiaRemembers.Diagnostics
          // The consequences SET target relations from the pre-dissolution baselines (CR corrects for the
          // engine's own hidden penalty during the act), signed by mutual consent, which the behavior reads
          // from the spouse's RESISTANCE (no delay days = acquiescence). Read it now, matching the behavior.
-         bool mutualConsent = DivorcePolicy.IsMutualConsent(process.CumulativeDelayDays);
+         bool mutualConsent = DivorcePolicy.IsMutualConsent(process.CumulativeDelayDays, spouseVsPlayerBefore);
 
          processes.DebugRunDailyAdvance();
 

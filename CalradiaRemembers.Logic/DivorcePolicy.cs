@@ -308,8 +308,17 @@ namespace CalradiaRemembers.Logic
       ///   SYMMETRIC per pair (both sides share one number, so "the spouse was unhappy too" cannot be read
       ///   from relation). A spouse who fought the process, however briefly, was repudiated, not willing.
       /// </summary>
-      public static bool IsMutualConsent(int cumulativeDelayDays)
-         => cumulativeDelayDays == 0;
+      /// <summary>Regard at or above which a non-resisting spouse is read as genuinely acquiescing rather than merely not having rolled a resistance delay (romance audit minor: ~21% of hateful spouses falsely "consented"). Tuning.</summary>
+      public const int MutualConsentMinRegard = 0;
+
+      /// <summary>
+      ///   True when the set-aside spouse genuinely acquiesced: they never once resisted the estrangement AND
+      ///   they do not actively resent the player (romance audit minor). Resistance is probabilistic, so a
+      ///   hateful spouse could roll zero delays by chance; without the regard gate they earned the amicable,
+      ///   low-grudge "mutual consent" consequence they never deserved.
+      /// </summary>
+      public static bool IsMutualConsent(int cumulativeDelayDays, int spouseRegardForPlayer)
+         => cumulativeDelayDays == 0 && spouseRegardForPlayer >= MutualConsentMinRegard;
 
       /// <summary>
       ///   The player-bond an NPC needs before agreeing to end their marriage, SLIDING with how miserable

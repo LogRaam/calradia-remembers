@@ -52,6 +52,7 @@ namespace CalradiaRemembers.Bastards
 
       private const string SaveKey = "CalradiaRemembers_Bastards_v1bytes";
       private const string SaveKeyBlackmail = "CalradiaRemembers_BastardsBlackmail_v1bytes";
+      private const string LastSeasonSaveKey = "CalradiaRemembers_BastardLastSeason_v1"; // minor: persist to avoid a double seasonal roll on reload
 
       private const int ScandalInfluenceLoss = 10; // the political cost at court
 
@@ -224,12 +225,13 @@ namespace CalradiaRemembers.Bastards
             int amount = bs.DemandAmount > 0
                ? bs.DemandAmount
                : BastardBlackmailPolicy.DemandAmount(Hero.MainHero.Gold);
-            if (Hero.MainHero.Gold >= amount)
-            {
-               GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, mother, amount);
-               gold += amount;
-            }
+            // Minor 13 (romance audit): only a demand actually PAID buys silence. The settlement used to fire even
+            // when the player could not afford it, clearing the demand for free; now an unaffordable demand simply
+            // stays outstanding.
+            if (Hero.MainHero.Gold < amount) continue;
 
+            GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, mother, amount);
+            gold += amount;
             bs.DemandSeason = -1;
             bs.DemandAmount = 0;
             bs.SilentUntil = BastardBlackmailPolicy.SilenceUntil(season);
@@ -386,6 +388,12 @@ namespace CalradiaRemembers.Bastards
             _bastards = FromBytes<Dictionary<string, bool>>(a);
             _blackmail = FromBytes<Dictionary<string, BlackmailState>>(b);
          }
+
+         // Minor (romance audit): persist the last-evaluated season so a save/load does not reset it to -1 and
+         // re-run the same season's discovery/blackmail pass (a double roll on reload). Additive key: an older
+         // save simply lacks it and keeps -1 (one harmless re-eval on its first load after this fix).
+         try { dataStore.SyncData(LastSeasonSaveKey, ref _lastEvaluatedSeason); }
+         catch { /* key absent in older saves */ }
       }
 
       #region private
@@ -697,6 +705,11 @@ namespace CalradiaRemembers.Bastards
 
             if (child is not {IsAlive: true}) continue;
 
+            // Minor 16 (romance audit): after the MainHero dies and an heir takes over, `Hero.MainHero` is the
+            // heir, who did NOT father/bear these children. Their scandal and blackmail belong to the dead parent,
+            // not the heir, so a bastard no longer parented by the CURRENT player is left alone (never "inherited").
+            if (!IsPlayersBastard(child)) continue;
+
             // (a) the ambient, age-keyed risk the secret simply surfaces.
             if (MBRandom.RandomInt(100) < BastardDiscoveryPolicy.DiscoveryChancePercent((int) child.Age))
             {
@@ -729,6 +742,16 @@ namespace CalradiaRemembers.Bastards
          foreach (Hero child in aliveChildren)
          {
             if (child == null || !IsPlayersBastard(child) || _bastards.ContainsKey(child.StringId)) continue;
+
+            // Minor 14 (romance audit): a child of a clanless wanderer mother has no house to hide a secret in, to
+            // scandalise, or to press a dynastic claim from. The whole concealed-bastard arc presumes a maternal
+            // house, so a clanless child is simply not tracked (no crash, no phantom claimant).
+            if (child.Clan == null)
+            {
+               ModLog.Info($"[BASTARD] {child.Name} is born to a clanless mother; no maternal house to conceal a bastard in, not tracked.");
+
+               continue;
+            }
 
             // M-G4: a bastard born into the player's OWN clan (a female player's child, or a companion-mother's
             // child raised in the household) lives publicly from birth, so there is NO secret to "discover" later.

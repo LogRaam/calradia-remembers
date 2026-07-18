@@ -132,6 +132,16 @@ namespace CalradiaRemembers.Marriage
             TryClearRomanticState(npc, spouse);
             ClearPlayerConsortFlag(npc, spouse);
 
+            // Minor 3 (romance audit): revert the family relation swing the wedding applied. Only the party who
+            // married INTO the other's house had their birth family swung (never the player's own clan), so revert
+            // the non-player spouse's ledger when the player's marriage ends.
+            Hero exSpouse = npc == Hero.MainHero
+               ? spouse
+               : spouse == Hero.MainHero
+                  ? npc
+                  : null;
+            if (exSpouse != null) MarriageApprovalBehavior.Instance?.RevertFamilySwing(exSpouse.StringId);
+
             reason = null;
 
             return true;
