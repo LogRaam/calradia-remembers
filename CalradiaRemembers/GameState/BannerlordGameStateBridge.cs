@@ -2342,6 +2342,45 @@ namespace CalradiaRemembers.GameState
          _ => "will not turn"
       };
 
+      /// <summary>
+      ///   Whether the intimacy consent bar permits intimacy to COUNT with <paramref name="npcHero" /> right
+      ///   now (audit M3). The single answer both enforcement points read: the intimacy relation bonus here
+      ///   in the bridge, and the romantic arc in <c>ProfileMutator</c>. Fail-safe: an unknown pair is a no.
+      /// </summary>
+      public bool PermitsIntimacyWith(Hero npcHero, NpcProfile profile)
+      {
+         try { return IntimacyThresholdPolicy.PermitsIntimacy(BuildConsentFacts(npcHero, profile)); }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[M3] consent check failed, refusing: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
+      }
+
+      /// <summary>
+      ///   Gathers the engine-side facts the intimacy consent bar rests on (audit M3), so the bridge asks the
+      ///   SAME pure question the prompt printed a verdict for. Building them here rather than in the policy
+      ///   is what keeps the two from drifting: one rule, two callers.
+      /// </summary>
+      private static IntimacyConsentFacts BuildConsentFacts(Hero npcHero, NpcProfile profile)
+      {
+         RomanticProfile romantic = profile?.Romantic;
+         bool marriedAtAll = npcHero?.Spouse != null;
+
+         return new IntimacyConsentFacts {
+            NpcIsPlayerSpouse = marriedAtAll && npcHero.Spouse == Hero.MainHero,
+            NpcIsMarriedToAnother = marriedAtAll && npcHero.Spouse != Hero.MainHero,
+            PrefersCasual = romantic?.Preferences?.Contains(RomanticPreference.Casual) == true,
+            PrefersIntense = romantic?.Preferences?.Contains(RomanticPreference.Intense) == true,
+            RegardWithPlayer = profile?.ReputationWithPlayer ?? 0,
+            // Never consulted by PermitsIntimacy; carried so a caller that wants the VOICE of the refusal
+            // gets the same verdict the prompt did.
+            HasSharedIntimacyBefore = romantic?.Status.IsIntimateOrDeeper() == true,
+            ThresholdRelief = IntimacyPacingRules.Relief(ModSettings.RelationWarmth)
+         };
+      }
+
       private ActionOutcome ExecuteChangeRelation(GameAction action, Hero npcHero, ActionContext context)
       {
          if (!TryGetInt(action.Parameters, "delta", out int proposed)) return null;
@@ -2358,7 +2397,12 @@ namespace CalradiaRemembers.GameState
             ModSettings.AdultContentLevel != AdultContentLevel.Off
             && romantic != null
             && romantic.Status.IsCuriousOrDeeper()
-            && romantic.IsCompatibleWith(Hero.MainHero?.IsFemale ?? false);
+            && romantic.IsCompatibleWith(Hero.MainHero?.IsFemale ?? false)
+            // Audit M3: the consent bar the prompt states is now also LAW. Without this the thresholds were
+            // prose a persistent player could simply argue past, and the model's yes still paid the full
+            // intimacy bonus. Deliberately blind to a past affair (see IntimacyThresholdPolicy): a history
+            // softens how the refusal is voiced, it never buys a standing mechanical exemption.
+            && IntimacyThresholdPolicy.PermitsIntimacy(BuildConsentFacts(npcHero, context.Profile));
 
          int delta = RelationGate.Resolve(
             proposed, context.Profile, context.EmittedEvent, CampaignTime.Now.ToHours, captive,

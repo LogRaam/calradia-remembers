@@ -107,6 +107,16 @@ namespace CalradiaRemembers.GameState
         int GetPlayerRelation(Hero npc);
 
         /// <summary>
+        ///   Whether the intimacy consent bar permits intimacy to COUNT with <paramref name="npc"/> right now
+        ///   (adult-prompt audit M3). The thresholds used to be prose in the prompt that nothing enforced;
+        ///   this is the single mechanical answer, read both by the intimacy relation bonus and by the
+        ///   romantic arc, so the verdict the model was shown and the rule that runs cannot drift apart.
+        ///   Deliberately blind to a past affair: a shared history softens how a refusal is VOICED, it never
+        ///   buys a standing exemption. Returns false when the pair cannot be resolved.
+        /// </summary>
+        bool PermitsIntimacyWith(Hero npc, NpcProfile profile);
+
+        /// <summary>
         ///   Executes a game action emitted by the LLM in an [ACTION] block and
         ///   returns a short outcome to surface in the chat, or null when the action
         ///   changed nothing (unknown type, gated out, invalid parameters).

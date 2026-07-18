@@ -39,6 +39,26 @@ namespace CalradiaRemembers.Tests
             ModelModePolicy.DefaultForScene(isExplicitScene: true).Should().Be(ModelMode.Nsfw);
         }
 
+        // Adult-prompt audit M10: the "never switch at Off" guard lived only in the UI, which decided whether
+        // the toggle BUTTON was visible. Every automatic flip bypassed it, so a player who had turned adult
+        // content off could still be moved silently onto the specialised NSFW model, changing their cost and
+        // their censorship with no visible button to change it back. The content dial is the authority.
+        [Test]
+        public void GIVEN_adult_content_is_off_WHEN_an_explicit_scene_opens_THEN_the_model_never_switches()
+        {
+            ModelModePolicy.DefaultForScene(isExplicitScene: true, adultContentEnabled: false)
+                           .Should().Be(ModelMode.Roleplay);
+        }
+
+        // The same scene with the dial on must still reach the NSFW model, or the guard would simply disable
+        // the feature for everyone.
+        [Test]
+        public void GIVEN_adult_content_is_on_WHEN_an_explicit_scene_opens_THEN_the_nsfw_model_is_chosen()
+        {
+            ModelModePolicy.DefaultForScene(isExplicitScene: true, adultContentEnabled: true)
+                           .Should().Be(ModelMode.Nsfw);
+        }
+
         // The whole point of configuring a second model: once NSFW mode is active it must actually be used,
         // not silently ignored in favour of the roleplay model.
         [Test]

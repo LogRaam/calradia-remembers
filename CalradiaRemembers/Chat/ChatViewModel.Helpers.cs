@@ -184,15 +184,55 @@ namespace CalradiaRemembers.Chat
          string speakerId = speaker.Hero?.StringId;
          int limit = Math.Max(0, _transcript.Count - excludeLastN);
 
+         bool IsOwnLine(TranscriptEntry entry)
+            => !entry.IsPlayer && !string.IsNullOrEmpty(speakerId) && entry.SpeakerHeroId == speakerId;
+
          for (var i = 0; i < limit; i++)
          {
             TranscriptEntry e = _transcript[i];
             if (e.IsPlayer)
+            {
                session.AddPlayerMessage(e.Text);
-            else if (!string.IsNullOrEmpty(speakerId) && e.SpeakerHeroId == speakerId)
-               session.AddNpcMessage(e.Text); // this speaker's own prior line
-            else
+
+               continue;
+            }
+
+            if (!IsOwnLine(e))
+            {
                session.AddWitnessStatement(e.SpeakerName, e.Text); // anyone else, attributed
+
+               continue;
+            }
+
+            // Audit C4: a run of this speaker's own consecutive entries is replayed as ONE assistant turn.
+            // When any of them is narration, the whole turn is rebuilt in the emitted [DIALOGUE]/[NARRATION]
+            // shape, so the model reads its own past output in the very format it is asked to produce. A run
+            // with no narration is left exactly as it was (plain text, one message per entry): ordinary
+            // conversations are the overwhelming majority and must not have their history reshaped.
+            int runEnd = i;
+            var hasNarration = false;
+
+            while (runEnd < limit && IsOwnLine(_transcript[runEnd]))
+            {
+               hasNarration |= _transcript[runEnd].IsNarration;
+               runEnd++;
+            }
+
+            if (!hasNarration)
+            {
+               session.AddNpcMessage(e.Text); // this speaker's own prior line
+
+               continue;
+            }
+
+            var turn = new StringBuilder();
+            for (int k = i; k < runEnd; k++)
+               turn.Append(_transcript[k].IsNarration
+                  ? $"[NARRATION]{_transcript[k].Text}[/NARRATION]"
+                  : $"[DIALOGUE]{_transcript[k].Text}[/DIALOGUE]");
+
+            session.AddNpcMessage(turn.ToString());
+            i = runEnd - 1;
          }
 
          return session;
@@ -499,13 +539,14 @@ namespace CalradiaRemembers.Chat
 
       // ── Sprint 15B helpers ────────────────────────────────────────────────
 
-      private void RecordTranscript(bool isPlayer, string name, string heroId, string text)
+      private void RecordTranscript(bool isPlayer, string name, string heroId, string text, bool isNarration = false)
       {
          if (string.IsNullOrWhiteSpace(text)) return;
          _transcript.Add(new TranscriptEntry {
             IsPlayer = isPlayer,
             SpeakerName = name,
             SpeakerHeroId = heroId,
+            IsNarration = isNarration,
             Text = text
          });
       }

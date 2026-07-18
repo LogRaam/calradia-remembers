@@ -483,6 +483,19 @@ namespace CalradiaRemembers.Services
       private static bool ResolveUseSystemPromptCaching() =>
          ResolveProvider() == ProviderOpenRouter;
 
+      /// <summary>
+      ///   TUNE. Adult-prompt audit M13: the mod's anti-repetition rested entirely on prompt text, which is
+      ///   exactly what a weaker model ignores, so intimate and captive scenes reused the same gestures and
+      ///   phrases turn after turn. A sampling penalty is the only lever that also reaches those models.
+      ///   <para>
+      ///     Deliberately modest. The penalty is blunt: it discourages every token already used, and in
+      ///     roleplay the tokens that recur most are the character and place NAMES. Raising this buys variety
+      ///     at the cost of the model drifting off its own cast, so it wants play-testing before it moves.
+      ///     Set to 0 to send nothing at all and restore the exact previous payload.
+      ///   </para>
+      /// </summary>
+      private const float ScenePresencePenalty = 0.3f;
+
       private NpcChatService BuildChatService()
       {
          var promptBuilder = new PromptBuilder {
@@ -498,6 +511,9 @@ namespace CalradiaRemembers.Services
             BehaviorGuidelinesOverride = NarrativeLoader.BehaviorGuidelines,
             PostHistoryInstructions = NarrativeLoader.PostHistoryInstructions,
             ActionVocabulary = BuildActionVocabulary(ModSettings.RelationWarmth),
+            // The intimacy consent bar follows the same Relationship Pacing dial as every other gate; the
+            // SDK owns the bar, the mod owns how far the player's dial lowers it (audit M3).
+            IntimacyThresholdRelief = IntimacyPacingRules.Relief(ModSettings.RelationWarmth),
             // The NPC's standing is the live game relation (synced each turn),
             // moved only through the gated change_relation action — so the LLM
             // does not write a parallel reputation score.
@@ -516,7 +532,15 @@ namespace CalradiaRemembers.Services
          return new NpcChatService(
             LlmClient,
             new SectionResponseParser(),
-            promptBuilder);
+            promptBuilder) {
+            // Audit M13. The MaxTokens/Creativity values restate the SDK defaults deliberately: the whole
+            // generation shape is one decision, and splitting it across two projects is how it drifts.
+            ChatParameters = new LlmParameters {
+               MaxTokens = 1500,
+               Creativity = 0.7f,
+               PresencePenalty = ScenePresencePenalty
+            }
+         };
       }
 
       #endregion

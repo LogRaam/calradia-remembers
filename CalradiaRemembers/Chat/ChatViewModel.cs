@@ -593,10 +593,16 @@ namespace CalradiaRemembers.Chat
       ///   Clicking the button flips it (see <see cref="ExecuteToggleModelMode" />).
       /// </summary>
       [DataSourceProperty]
+      /// <summary>
+      ///   Adult-prompt audit M12: says MODEL, not "Mode". The button only ever switched which model and
+      ///   provider serve the request; the content level stays whatever Mod Options says, and the prompt is
+      ///   built from that. Labelled "Mode: NSFW" it read as a content switch, so a player at Mature clicked
+      ///   it, got the same chaste writing the Mature prompt asks for, and concluded the button was broken.
+      /// </summary>
       public string ModelModeText =>
          LlmServices.ActiveModelMode == ModelMode.Nsfw
-            ? "Mode: NSFW"
-            : "Mode: Roleplay";
+            ? "Model: NSFW"
+            : "Model: Roleplay";
 
       public Action OnCloseRequested { get; set; }
 
@@ -760,9 +766,13 @@ namespace CalradiaRemembers.Chat
          _mode = ChatMode.CaptiveEncounter;
          OnPropertyChanged(nameof(IsOfferItemVisible));
 
-         // A structurally-explicit scene: open on the NSFW model (falls back to the
-         // roleplay model when none is configured). The player can still flip it back.
-         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(true);
+         // A structurally-explicit scene: open on the NSFW model (falls back to the roleplay model when none
+         // is configured). The player can still flip it back. Audit M10/M11: "captive" is not "sexual", and
+         // the adult dial has the last word, so a ransom, an intimidation, or any scene at all with adult
+         // content Off is no longer served by the specialised erotic model behind the player's back.
+         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(
+            CaptiveSceneIntentRules.IsSexual(intent),
+            ModSettings.AdultContentLevel != AdultContentLevel.Off);
          OnPropertyChanged(nameof(ModelModeText));
 
          _captiveEncounterProfile = captorProfile;
@@ -811,10 +821,7 @@ namespace CalradiaRemembers.Chat
 
          // The randomized scene SETUP carries sexual "foci"; a lord reckoning (and the bandit menace intents) are
          // non-sexual confrontations, so they take only their own opener — never the sexual setup.
-         bool nonSexual = intent is CaptiveSceneIntent.Reckoning
-            or CaptiveSceneIntent.Extortion
-            or CaptiveSceneIntent.Intimidation
-            or CaptiveSceneIntent.Revenge;
+         bool nonSexual = !CaptiveSceneIntentRules.IsSexual(intent);
          _lastSceneFocusIndex = -1; // a fresh scene resets the avoid-repeat memory
          string opener = CaptiveSceneText.BuildCaptiveOpener(isCollective, intent) +
                          (nonSexual
@@ -833,9 +840,13 @@ namespace CalradiaRemembers.Chat
       {
          _mode = ChatMode.Conversation;
 
-         // A structurally-explicit scene: open on the NSFW model (falls back to the
-         // roleplay model when none is configured). The player can still flip it back.
-         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(true);
+         // A structurally-explicit scene: open on the NSFW model (falls back to the roleplay model when none
+         // is configured). The player can still flip it back. Audit M10/M11: "captive" is not "sexual", and
+         // the adult dial has the last word, so a ransom, an intimidation, or any scene at all with adult
+         // content Off is no longer served by the specialised erotic model behind the player's back.
+         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(
+            CaptiveSceneIntentRules.IsSexual(intent),
+            ModSettings.AdultContentLevel != AdultContentLevel.Off);
          OnPropertyChanged(nameof(ModelModeText));
 
          _captorScene = true;
@@ -980,8 +991,14 @@ namespace CalradiaRemembers.Chat
                _messages.Add(message);
             ChatManager.ScrollToBottom();
             StoryLog.WriteNarration(text);
+            // Adult-prompt audit C4: attributed to the SPEAKING NPC, not to a nameless third party. The
+            // narration is that NPC's own output, and recording it with no hero id made the rebuild replay
+            // it as a USER message ("[Scene]: ..."), so the model never saw [NARRATION] in its own assistant
+            // history: on a long Continue sequence a weak model imitates the history over the system prompt,
+            // and the inversion also taught it that the PLAYER writes the narration. The display name stays
+            // "Scene" so the summarizer transcript still reads as a neutral narrator.
             if (IsLiveConversation)
-               RecordTranscript(false, "Scene", null, text);
+               RecordTranscript(false, "Scene", _npcHero?.StringId, text, true);
          }
          catch (Exception ex)
          {
@@ -1863,6 +1880,14 @@ namespace CalradiaRemembers.Chat
       private sealed class TranscriptEntry
       {
          public bool IsPlayer;
+
+         /// <summary>
+         ///   This entry is a [NARRATION] block rather than a spoken line (audit C4). It is replayed to its
+         ///   own speaker inside their assistant turn, tagged, so the model sees the format exemplified in
+         ///   its own past output instead of learning it only from the system prompt.
+         /// </summary>
+         public bool IsNarration;
+
          public string SpeakerHeroId;
          public string SpeakerName;
          public string Text;

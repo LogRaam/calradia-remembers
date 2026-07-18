@@ -732,10 +732,14 @@ namespace CalradiaRemembers.Chat
             // M-R2: POSITIVE advancement also requires an orientation-plausible pair, the same filter jealousy
             // uses, so the recorded status stays coherent with whether a jealous party would ever react.
             bool orientationCompatible = profile.Romantic?.IsCompatibleWith(Hero.MainHero?.IsFemale ?? false) ?? true;
+            // M3: the consent bar the prompt printed a verdict for also governs the ARC, so an intimacy below
+            // it cannot mint an "Intimate" status the player never earned (and which would then colour every
+            // later refusal as a former lover's).
             ProfileMutator.Apply(profile, response, gameDay,
                romanticContentEnabled: ModSettings.AdultContentLevel != AdultContentLevel.Off,
                orientationCompatible: orientationCompatible,
-               applyReputation: false); // C2: [REPUTATION] is disabled in the mod; never apply a block the model emitted unprompted.
+               applyReputation: false, // C2: [REPUTATION] is disabled in the mod; never apply a block the model emitted unprompted.
+               intimacyPermitted: behavior.GameStateBridge.PermitsIntimacyWith(_npcHero, profile));
 
             // Stance: the LLM's spoken nudges to trust/respect/fear — capped hard and rate-limited
             // (words only colour; deeds prove). Persisted by the Store.Set below after actions run.

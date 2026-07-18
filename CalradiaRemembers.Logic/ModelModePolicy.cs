@@ -30,6 +30,20 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
+        ///   The mode a scene starts in, with the adult-content setting honoured (adult-prompt audit M10).
+        ///   The "never switch at Off" guard lived only in the UI, which decided whether the toggle BUTTON
+        ///   was visible: every automatic flip bypassed it, so a player who had turned adult content off
+        ///   could still be moved silently onto the specialised NSFW model, changing their cost and their
+        ///   censorship with no button in sight to change it back. The content dial is the authority.
+        /// </summary>
+        /// <param name="isExplicitScene">This scene is a sexual one (see the intent rules, not merely "captive").</param>
+        /// <param name="adultContentEnabled">The player's adult-content setting is anything other than Off.</param>
+        public static ModelMode DefaultForScene(bool isExplicitScene, bool adultContentEnabled)
+        {
+            return isExplicitScene && adultContentEnabled ? ModelMode.Nsfw : ModelMode.Roleplay;
+        }
+
+        /// <summary>
         ///   The model id a mode resolves to: the NSFW model only when the mode asks for it AND the player
         ///   actually configured one (blank or whitespace counts as not configured); the roleplay model otherwise.
         /// </summary>

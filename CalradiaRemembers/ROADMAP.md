@@ -1721,9 +1721,11 @@ A player asked whether three things are realistic to even want. Feasibility read
   (normal conversation path = full memory/actions, flagged), `ChatManager.OpenForCaptorScene`, console `cr.captor_scene
   [intent] [name]`. Intents/variants validated via self-tests (cr.test chat_captor_*): proud vs craven (Trait-driven),
   torture (breaks under the lash), CNC, male-captor/female-prisoner, and a GROUP CNC (player + companions, collective
-  branch in the prompt). **OPEN — the in-game entry point (NOT playable yet, console-only):** a "talk to your prisoner"
-  button on the party/prisoner screen to open the scene, AND a companion SELECTOR (like the captive-encounter witness
-  picker) to bring 1-2 allies into a collective scene. Plus NPC standing effects (the inverse of public humiliation).
+  branch in the prompt). **PARTLY PLAYABLE IN GAME:** a held NEMESIS opens the scene from his own prisoner dialogue
+  (`NemesisPrisonerDialogFlow.OpenCaptorScene`, riding the live conversation the party-screen Talk already started).
+  **STILL OPEN:** the same entry for ANY prisoner (a "talk to your prisoner" option beyond the nemesis case), AND a
+  companion SELECTOR (like the captive-encounter witness picker) to bring 1-2 allies into a collective scene. Plus NPC
+  standing effects (the inverse of public humiliation).
 
 ### Conception from any vaginal act — consensual scenes + female NPCs *(wished 2026-06-24 — ✅ BUILT, in the live pregnancy system)*
 
