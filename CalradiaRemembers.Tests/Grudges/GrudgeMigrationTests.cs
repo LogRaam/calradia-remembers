@@ -299,6 +299,20 @@ namespace CalradiaRemembers.Tests.Grudges
          second.Grudges.Should().BeEquivalentTo(first.Grudges, "a deterministic composite id makes migration fully reproducible");
       }
 
+      // 3.2 (regard audit): a candidate whose grudge would already have decayed to nothing by today is stillborn.
+      // When the host supplies today (the live backfill), it is skipped rather than planted as a dead-on-arrival,
+      // immediately-invisible ledger entry. The pure formation tests, which omit today, are deliberately unaffected.
+      [Test]
+      public void GIVEN_a_candidate_already_decayed_to_zero_by_today_WHEN_today_is_supplied_THEN_it_is_skipped()
+      {
+         MigrationCandidate old = Candidate(eventDay: 100, magnitude: 30);
+
+         // 400 days on, a magnitude-30 grievance at the default (~0.4/day) decay is long gone.
+         GrudgeMigration.SynthesizeGrudges(new[] {old}, null, 0, today: 500).Grudges.Should().BeEmpty();
+         // The same candidate with no today still forms (formation is decay-agnostic by design).
+         GrudgeMigration.SynthesizeGrudges(new[] {old}, null, 0).Grudges.Should().NotBeEmpty();
+      }
+
       #region private
 
       private static MigrationCandidate Candidate(

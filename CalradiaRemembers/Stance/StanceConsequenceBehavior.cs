@@ -8,6 +8,7 @@
 #region
 
 using System;
+using System.Collections.Generic;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
@@ -60,12 +61,19 @@ namespace CalradiaRemembers.Stance
 
             int today = (int) CampaignTime.Now.ToDays;
 
+            // 3.4 (regard audit): resolve alive heroes ONCE into a dictionary (O(1) lookup, skips the dead),
+            // instead of a per-profile Hero.FindFirst that made this weekly sweep O(n^2) and ran on corpses.
+            var aliveById = new Dictionary<string, Hero>();
+            foreach (Hero h in Hero.AllAliveHeroes)
+               if (h?.StringId != null)
+                  aliveById[h.StringId] = h;
+
             foreach (string id in store.ListIds())
             {
+               if (!aliveById.TryGetValue(id, out Hero hero)) continue;
+
                NpcProfile profile = store.Get(id);
                if (profile == null) continue;
-
-               Hero hero = Hero.FindFirst(h => h != null && h.StringId == id);
                if (!CanWrite(hero)) continue;
 
                TryWrite(store, profile, hero, today, ignoreCooldown: false);

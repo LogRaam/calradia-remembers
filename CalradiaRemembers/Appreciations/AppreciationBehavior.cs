@@ -126,10 +126,40 @@ namespace CalradiaRemembers.Appreciations
          }
       }
 
+      /// <summary>
+      ///   3.3 (regard audit): drops fully-faded appreciations (effective magnitude 0, pure ledger noise that no
+      ///   query ever surfaces) and any held by a dead or vanished holder, at save, so the ledger and the save do
+      ///   not grow without bound. A still-felt memory (a generous soul's lingering gratitude) is kept. Main-thread
+      ///   (save); never throws.
+      /// </summary>
+      private void PruneFadedOrOrphaned()
+      {
+         try
+         {
+            if (_ledger?.Appreciations == null) return;
+
+            var today = (int) CampaignTime.Now.ToDays;
+            var aliveById = new Dictionary<string, Hero>();
+            foreach (Hero h in Hero.AllAliveHeroes)
+               if (h?.StringId != null)
+                  aliveById[h.StringId] = h;
+
+            int removed = _ledger.Appreciations.RemoveAll(a =>
+               a == null
+               || !aliveById.TryGetValue(a.HolderId, out Hero holder)
+               || AppreciationPolicy.EffectiveMagnitude(a, today, AppreciationBridge.BuildTraitFacts(holder)) <= 0);
+
+            if (removed > 0) ModLog.Info($"[APPRECIATION] pruned {removed} faded/orphaned appreciation(s) at save.");
+         }
+         catch (Exception ex) { ModLog.Error($"[APPRECIATION] prune failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
+      }
+
       public override void SyncData(IDataStore dataStore)
       {
          if (dataStore.IsSaving)
          {
+            PruneFadedOrOrphaned(); // 3.3: bound ledger growth before persisting.
+
             byte[] bytes;
             try
             {
@@ -276,6 +306,9 @@ namespace CalradiaRemembers.Appreciations
             if (profile == null) continue;
 
             Hero holder = FindHero(id);
+            // 3.2 (regard audit): a dead (or vanished) holder cannot hold a fond memory; never backfill one.
+            if (holder is not {IsAlive: true}) continue;
+
             TraitFacts traits = AppreciationBridge.BuildTraitFacts(holder);
 
             foreach (NotableEvent ev in profile.Events ?? Enumerable.Empty<NotableEvent>())

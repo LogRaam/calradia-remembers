@@ -13,6 +13,7 @@ using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
 
@@ -177,8 +178,44 @@ namespace CalradiaRemembers.Grudges
 
       public override void RegisterEvents()
       {
-         // Intentionally empty: no daily tick. Decay is computed live on every read
-         // (GrudgePolicy.EffectiveMagnitude); the ledger itself only grows via TryPlant/backfill.
+         // No daily tick (decay is computed live on every read). But a death must retire the grudges that
+         // involve the dead (M-G2): a slain holder can nurse nothing, and a grudge targeting a dead hero can
+         // never be resolved. Left live, both were permanent cemetery entries that grew the ledger and every
+         // save without bound. They are RESOLVED, not deleted, so the record survives for future dynastic
+         // inheritance rather than vanishing.
+         CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
+      }
+
+      /// <summary>
+      ///   M-G2 (regard audit): retires every grudge held BY or AGAINST the newly dead hero. Marks them resolved
+      ///   (including vendettas, which no living resolution path could ever clear) so they drop out of every live
+      ///   query, while the record itself persists. Never throws into the engine's death pipeline.
+      /// </summary>
+      private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
+      {
+         try
+         {
+            if (victim?.StringId == null || _ledger?.Grudges == null) return;
+
+            var today = (int) CampaignTime.Now.ToDays;
+            var retired = 0;
+            foreach (Grudge g in _ledger.Grudges)
+            {
+               if (g == null || g.IsResolved) continue;
+               if (g.HolderId != victim.StringId && g.TargetId != victim.StringId) continue;
+
+               g.IsResolved = true;
+               g.ResolvedDay = today;
+               retired++;
+            }
+
+            if (retired > 0)
+               ModLog.Info($"[GRUDGE] {victim.Name} died; retired {retired} grudge(s) held by or against them.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[GRUDGE] OnHeroKilled purge failed (non-fatal): {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       // ── One-shot backfill ────────────────────────────────────────────────
@@ -196,7 +233,8 @@ namespace CalradiaRemembers.Grudges
             if (_ledger.MigrationVersion >= GrudgeMigration.MigrationVersion) return (0, 0);
 
             List<MigrationCandidate> candidates = ScanCandidates(store);
-            GrudgeMigrationResult result = GrudgeMigration.SynthesizeGrudges(candidates, _ledger.Grudges, _ledger.MigrationVersion);
+            GrudgeMigrationResult result = GrudgeMigration.SynthesizeGrudges(
+               candidates, _ledger.Grudges, _ledger.MigrationVersion, (int) CampaignTime.Now.ToDays);
 
             if (result.Grudges.Count > 0) _ledger.Grudges.AddRange(result.Grudges);
             _ledger.MigrationVersion = result.MigrationVersion;
@@ -213,10 +251,36 @@ namespace CalradiaRemembers.Grudges
          }
       }
 
+      /// <summary>
+      ///   3.3 (regard audit): how long a RESOLVED grudge is kept before it is pruned at save. Generous (about
+      ///   two Calradian years of 84 days) so a recently-mended grievance still colours a few conversations and
+      ///   survives near-term dynastic inheritance, while ancient closed history stops growing the ledger and the
+      ///   save without bound.
+      /// </summary>
+      private const int ResolvedGrudgeRetentionDays = 168;
+
+      /// <summary>Drops grudges resolved longer ago than <see cref="ResolvedGrudgeRetentionDays" />. Main-thread (save); never throws.</summary>
+      private void PruneLongResolved()
+      {
+         try
+         {
+            if (_ledger?.Grudges == null) return;
+
+            var today = (int) CampaignTime.Now.ToDays;
+            int removed = _ledger.Grudges.RemoveAll(g =>
+               g is {IsResolved: true} && g.ResolvedDay >= 0 && today - g.ResolvedDay > ResolvedGrudgeRetentionDays);
+
+            if (removed > 0) ModLog.Info($"[GRUDGE] pruned {removed} long-resolved grudge(s) at save.");
+         }
+         catch (Exception ex) { ModLog.Error($"[GRUDGE] prune failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
+      }
+
       public override void SyncData(IDataStore dataStore)
       {
          if (dataStore.IsSaving)
          {
+            PruneLongResolved(); // 3.3: bound ledger growth before persisting.
+
             byte[] bytes;
             try
             {
@@ -378,9 +442,11 @@ namespace CalradiaRemembers.Grudges
             if (profile == null) continue;
 
             Hero holder = FindHero(id);
-            int regard = holder != null && Hero.MainHero != null
-               ? holder.GetRelation(Hero.MainHero)
-               : 0;
+            // 3.2 (regard audit): never backfill a grudge onto a dead (or vanished) holder. A corpse cannot
+            // nurse a grievance, and such an entry would be a permanent, irresolvable cemetery grudge.
+            if (holder is not {IsAlive: true}) continue;
+
+            int regard = Hero.MainHero != null ? holder.GetRelation(Hero.MainHero) : 0;
             TraitFacts traits = GrudgeBridge.BuildTraitFacts(holder);
             bool possessive = GrudgeBridge.HasPossessiveAmplifier(profile);
 

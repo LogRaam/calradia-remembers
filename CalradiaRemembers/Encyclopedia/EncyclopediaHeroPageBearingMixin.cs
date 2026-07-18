@@ -79,7 +79,9 @@ namespace CalradiaRemembers.Encyclopedia
         private void Refresh()
         {
             var hero = HeroField?.GetValue(ViewModel) as Hero;
-            if (hero == null || hero == Hero.MainHero)
+            // 3.4 (regard audit): a dead hero holds no living bearing toward the player; do not voice one
+            // posthumously on their encyclopedia page.
+            if (hero == null || hero == Hero.MainHero || !hero.IsAlive)
             {
                 Clear();
 

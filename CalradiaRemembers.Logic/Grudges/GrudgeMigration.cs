@@ -140,7 +140,8 @@ namespace CalradiaRemembers.Logic.Grudges
       public static GrudgeMigrationResult SynthesizeGrudges(
          IEnumerable<MigrationCandidate> candidates,
          IEnumerable<Grudge> existingGrudges,
-         int alreadyMigratedStamp)
+         int alreadyMigratedStamp,
+         int? today = null)
       {
          var result = new GrudgeMigrationResult {MigrationVersion = MigrationVersion};
 
@@ -218,6 +219,17 @@ namespace CalradiaRemembers.Logic.Grudges
                IsResolved = false,
                ResolvedDay = -1
             };
+
+            // 3.2 (regard audit): a grudge whose decay has already reduced it to nothing by today is stillborn,
+            // never worth planting (it would sit resolved-in-effect yet unresolved in the ledger, pure growth).
+            // The host supplies today; the pure formation tests omit it and are unaffected. A vendetta or a
+            // never-decaying Calculating holder reads full magnitude here, so it is never wrongly skipped.
+            if (today.HasValue && GrudgePolicy.EffectiveMagnitude(grudge, today.Value, candidate.Traits) <= 0)
+            {
+               result.Skipped.Add(candidate);
+
+               continue;
+            }
 
             result.Grudges.Add(grudge);
 
