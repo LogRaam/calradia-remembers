@@ -199,7 +199,55 @@ breached records — the public shame), `CourierService` (visible execution of s
 - **Double counting**: a fulfilled pledge pays its reward ONCE (fulfillment path), never re-credited by the
   ordinary deed feeds — same discipline as the quest/commitment dedup.
 
-### STATUS: RATIFIED 2026-07-17, NOT started. Prerequisite = R0 (Round Table audit Phase 0).
+### EVOLUTION RATIFIED (Gabriel 2026-07-18): STANDING accords, not only one-shot pledges
+
+R1 as ratified above consigns a pledge that resolves ONCE (issued -> deadline -> Fulfilled|Breached). Gabriel's
+addition: a council also produces engagements that **run**, and those are what a treaty actually is. Worked
+example: a lord pledges a rent of 1000 denars a month to support the player's war, and to move against the
+enemy's trade through his lands. That record needs four fields the one-shot model has no room for:
+
+1. **Delay before it takes effect** (an accord struck today may start next week).
+2. **Frequency** (monthly, seasonal) and therefore a NEXT-DUE day that rolls forward on each honoring.
+3. **Expiry** (an accord ends; a permanent income negotiated with an LLM is a balance hole).
+4. **A holding condition**: the state of the world that must remain true for the collaboration to continue.
+   A war, a capture, a faction change, a collapse of regard BREAKS the accord in fiction rather than silently
+   ending it. This is the part that makes an accord fragile in an interesting way, and it reuses
+   `WorldEventStore` + the grudge/stance feeds that already exist.
+
+**Shape (decided): NOT an orchestrator object per NPC.** Every comparable system in the mod is ONE campaign
+behavior holding records keyed by hero id (`CommitmentBehavior`, `GrudgeBehavior`, `SchemeStore`,
+`AppreciationBehavior`). A per-NPC object would add a new persistence shape and multiply save state for no
+gain: one `PoliticalAccordBehavior`, one record per accord, keyed by promisor.
+
+**Surface (decided): dashboard for the STATE, quest only for the player's own SIDE.** A monthly rent is not a
+task the player can finish, so putting it in the quest journal clutters a list built around completion. The
+accord's state (in force since, next due, expires, holding condition) belongs in a panel; the
+`CR_Hero*` Encyclopedia family (`CR_HeroBearing`, `CR_HeroChronicle`, `CR_HeroGrievances`,
+`CR_HeroKindnesses`) is the proven home. A quest is generated only for what the player must actually DO.
+
+**The catalogue is extensible BY CONSTRUCTION (Gabriel 2026-07-18).** Decision 1 above still governs: an
+accord kind may only exist if the mod can either EXECUTE it (pay the gold, send the party, launch a scheme) or
+OBSERVE it (`QuestDeedTracker` sees battles, sieges, raids, hideouts). But that bound moves outward every time
+the mod gains a new executable action, so the accord catalogue must be written to grow rather than as a fixed
+list. Clauses the engine cannot see today (interdicting enemy caravans) are NOT excluded on principle: they
+wait for an executable form (e.g. a mod-launched scheme against the target's trade), and are kept out of the
+first increment rather than shipped hollow.
+
+### STATUS
+
+- **R0 (prerequisite) — LARGELY DONE 2026-07-18 (mod `6f013e1`, SDK `ab9322d`), NOT play-tested.** Delivered:
+  the witness-hallucination filter (D1, the only item that was already reaching players through 15C), the
+  kill-switch guard on the action (D6), intent-detector word boundaries (D8), per-turn presence re-check
+  (D3), no double witness voice on the triggering turn (D7), confirmation handoff after the lap (D10), and
+  the unified council framing + attributed-transcript teaching (D5). **STILL OPEN in R0:** per-speaker
+  witness relations (D2/0.5 — at Boyd's turn his prompt still calls Aldric "your vassal" when Aldric is the
+  HOST's vassal) and `cr.roundtable` + per-turn token logging (0.10), which is what unblocks the play-test.
+- **R1 onward — NOT started.** Note for whoever starts it: the interim prompt text shipped with R0 says
+  "NOTHING IS SEALED AT THIS TABLE", which is deliberately one of the two answers this design REJECTED. It
+  exists only so the council does not promise what the code cannot yet honor. R1 MUST replace it with the
+  `[PLEDGE]` teaching and the "what is agreed here takes effect in the days that follow" framing, in the same
+  commit that makes the mechanism real. Shipping the new framing before the mechanism would only trade one
+  empty promise for a more specific one.
 
 ---
 
