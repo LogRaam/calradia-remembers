@@ -240,11 +240,18 @@ namespace CalradiaRemembers.Letters
          SetupReply(_letter, _profile, npcHero);
       }
 
+      /// <summary>4.1: an upper bound on a composed/replied letter, so a pathological paste cannot bloat the save blob or the generation prompt. Generous for real prose.</summary>
+      private const int MaxLetterLength = 2000;
+
       public void ExecuteSend()
       {
          string text = (InputText ?? "").Trim();
 
          if (string.IsNullOrEmpty(text) || !IsSendEnabled) return;
+
+         // 4.1: clamp before it is stored or sent. Rare in practice (real letters are short); guards against a
+         // pathological paste that would otherwise be serialised in full on the profile and re-injected each turn.
+         if (text.Length > MaxLetterLength) text = text.Substring(0, MaxLetterLength);
 
          if (_state.Mode == LetterWindowMode.Compose)
          {

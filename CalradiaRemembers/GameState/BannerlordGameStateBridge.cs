@@ -725,6 +725,28 @@ namespace CalradiaRemembers.GameState
          if (quest == null) return;
 
          var day = (int) CampaignTime.Now.ToDays;
+
+         // M14: a demand with a set total (child support) must actually be MET, not closed by a single denar.
+         // Partial payments accumulate toward RequiredGold; the quest stays open, and the giver acknowledges the
+         // instalment, until the total is reached. RequiredGold == 0 (old saves, or an open-ended ProvideGold)
+         // keeps the legacy "any payment closes it" behaviour.
+         if (quest.RequiredGold > 0)
+         {
+            quest.PaidGold += amountGiven;
+            if (quest.PaidGold < quest.RequiredGold)
+            {
+               profile.Events.Add(new NotableEvent(day, NotableEventType.Collaboration,
+                  $"The player paid {amountGiven} denars toward the {quest.RequiredGold} I asked ({quest.PaidGold} so far)."));
+               store.Set(profile);
+               MBInformationManager.AddQuickInformation(
+                  new TextObject($"{npcHero.Name} accepts {amountGiven} denars ({quest.PaidGold}/{quest.RequiredGold})."),
+                  0, npcHero.CharacterObject);
+               ModLog.Info($"[QUEST] ProvideGold partial: {npcHero.Name} received {amountGiven} ({quest.PaidGold}/{quest.RequiredGold}); quest stays open.");
+
+               return;
+            }
+         }
+
          quest.SatisfiedOnDay = day;
          quest.Evidence = $"Player provided {amountGiven} denars on day {day}.";
 

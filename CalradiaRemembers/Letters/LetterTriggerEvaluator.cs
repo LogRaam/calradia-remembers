@@ -31,8 +31,9 @@ namespace CalradiaRemembers.Letters
    /// </summary>
    public sealed class LetterTriggerEvaluator
    {
-      // Fixed gold amount requested for child support.
-      private const int ChildSupportAmount = 750;
+      // Fixed gold amount requested for child support. Public so the quest opened on delivery (LetterPopupManager)
+      // records it as the amount that must actually be paid to close the demand (courier audit M14).
+      public const int ChildSupportAmount = 750;
 
       // Days after birth before the child-support request letter is sent.
       private const int ChildSupportDelayDays = 7;
@@ -49,21 +50,127 @@ namespace CalradiaRemembers.Letters
       private const int MaxLettersPerEvent = 2;
       private int _lastDailyLetterDay = -1;
 
+      // M12 (courier audit): rotates which correspondence category gets first pick each tick. The four categories
+      // share ONE letter-per-global-window budget, and a fixed || order let an always-active romance permanently
+      // starve spouse/follow-up/marriage letters. Rotating the start gives each category its turn over time.
+      private int _evaluatorStart;
+
       // ── Daily evaluation (called from OnDailyTick) ────────────────────────
 
       public void EvaluateDaily(BannerlordNpcMemoryStore store, LlmServices llmServices, int today)
       {
+         // 2.5: committed obligations (child support) are written on their due day with bounded retry, BEFORE the
+         // global anti-flood cooldown gate below: a pension the NPC already committed to must never be throttled
+         // (or lost) by the spontaneous-correspondence budget.
+         ProcessScheduledLetters(store, llmServices, today);
+
          if (!LetterCadence.CanSendGlobally(_lastDailyLetterDay < 0
                    ? null
                    : _lastDailyLetterDay,
                 today, GlobalLetterCooldownDays))
             return;
 
-         // At most one daily-correspondence letter per tick (the || short-circuits after the first
-         // that fires), and only once per global window.
-         bool queued = EvaluateRomanticCorrespondence(store, llmServices, today) || EvaluateAwaitingReplies(store, llmServices, today) || EvaluateSpouseCorrespondence(store, llmServices, today) || EvaluateMarriageSolicitations(store, llmServices, today);
+         // At most one daily-correspondence letter per tick, and only once per global window. M12: the starting
+         // category rotates each tick (round-robin) so no single always-eligible category monopolises the budget.
+         Func<bool>[] evaluators =
+         {
+            () => EvaluateRomanticCorrespondence(store, llmServices, today),
+            () => EvaluateAwaitingReplies(store, llmServices, today),
+            () => EvaluateSpouseCorrespondence(store, llmServices, today),
+            () => EvaluateMarriageSolicitations(store, llmServices, today)
+         };
+
+         var queued = false;
+         for (var i = 0; i < evaluators.Length; i++)
+            if (evaluators[(_evaluatorStart + i) % evaluators.Length]())
+            {
+               queued = true;
+
+               break;
+            }
+
+         _evaluatorStart = (_evaluatorStart + 1) % evaluators.Length;
 
          if (queued) _lastDailyLetterDay = today;
+      }
+
+      /// <summary>
+      ///   2.5 (courier audit): writes each committed-but-unwritten <see cref="ScheduledLetter" /> on its due day
+      ///   with a bounded retry (<see cref="ScheduledLetterPolicy" />), so a transient LLM failure never loses the
+      ///   pension and its quest. The intent lives on the sender's persisted profile, so it survives reloads; it is
+      ///   dropped once the letter is confirmed written, once the sender dies, or after too many failed attempts.
+      /// </summary>
+      private void ProcessScheduledLetters(BannerlordNpcMemoryStore store, LlmServices llmServices, int today)
+      {
+         if (store == null || llmServices?.ChatService == null) return;
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile?.ScheduledLetters == null || profile.ScheduledLetters.Count == 0) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+            if (hero == null) continue; // transient: the profile is here but the hero is not resolvable this tick.
+
+            var toRemove = new List<ScheduledLetter>();
+            var changed = false;
+
+            foreach (ScheduledLetter scheduled in profile.ScheduledLetters)
+            {
+               // A committed letter dies with its author, exactly as an in-flight one does.
+               if (!hero.IsAlive)
+               {
+                  toRemove.Add(scheduled);
+                  changed = true;
+
+                  continue;
+               }
+
+               // fulfilled: a real letter of this reason, generated on or after the due day, now exists (an earlier
+               // attempt succeeded). in-flight: a blank placeholder of that reason is mid-generation right now.
+               var fulfilled = false;
+               var inFlight = false;
+               foreach (PendingLetter l in profile.SentLetters)
+               {
+                  if (l.Reason != scheduled.Reason) continue;
+                  if (!string.IsNullOrEmpty(l.Content)) { if (l.SentOnDay >= scheduled.SendDay) fulfilled = true; }
+                  else if (!l.IsLost) inFlight = true;
+               }
+
+               switch (ScheduledLetterPolicy.Decide(scheduled.SendDay, today, scheduled.Attempts, fulfilled, inFlight))
+               {
+                  case ScheduledLetterAction.Fulfilled:
+                     toRemove.Add(scheduled);
+                     changed = true;
+
+                     break;
+
+                  case ScheduledLetterAction.GiveUp:
+                     toRemove.Add(scheduled);
+                     changed = true;
+                     ModLog.Info($"[LETTER] scheduled {scheduled.Reason} for {profile.Name} abandoned after {scheduled.Attempts} attempt(s).");
+
+                     break;
+
+                  case ScheduledLetterAction.Generate:
+                     scheduled.Attempts++;
+                     changed = true;
+                     LetterGenerationService.QueueInitialLetter(
+                        profile, hero, scheduled.Reason, scheduled.Context ?? "", llmServices, store, today);
+                     ModLog.Info($"[LETTER] writing scheduled {scheduled.Reason} for {profile.Name} (attempt {scheduled.Attempts}, due day {scheduled.SendDay}).");
+
+                     break;
+
+                  case ScheduledLetterAction.Wait:
+                  default:
+                     break;
+               }
+            }
+
+            foreach (ScheduledLetter r in toRemove) profile.ScheduledLetters.Remove(r);
+            if (changed) store.Set(profile);
+         }
       }
 
       public void Subscribe()
@@ -90,6 +197,11 @@ namespace CalradiaRemembers.Letters
          // instant the player stepped out for grain. Proximity decides this, not a stale "days since we talked".
          Hero hero = Hero.FindFirst(h => h != null && h.StringId == profile.Id);
          if (hero != null && IsSenderPresentWithPlayer(hero)) return false;
+
+         // M15 (courier audit): a prisoner cannot hire a courier. A lover held in an enemy dungeon must not keep
+         // mailing the player. This is the shared cadence gate for every unprompted letter type, so the guard sits
+         // here once rather than in each trigger.
+         if (hero is {IsPrisoner: true}) return false;
 
          return LetterCadence.CanSendLetter(profile, today, cooldownDays);
       }
@@ -155,6 +267,7 @@ namespace CalradiaRemembers.Letters
             Hero hero = Hero.FindFirst(h => h.StringId == id);
 
             if (hero is not {IsAlive: true}) continue;
+            if (hero.IsPrisoner) continue; // M15: this follow-up bypasses the shared cadence gate, so guard the prisoner case here too.
             if (IsWithPlayer(hero)) continue;
 
             // Find a delivered romantic letter with no player reply after 5 days.
@@ -164,7 +277,10 @@ namespace CalradiaRemembers.Letters
                if (l.Reason != LetterReason.RomanticCorrespondence) continue;
                if (!l.IsDelivered) continue;
                if (!string.IsNullOrWhiteSpace(l.PlayerReply)) continue;
-               if (today - l.DeliveryDay < 5) continue;
+               // 2.3: measure the silence from the REAL delivery day (a slow courier used to make "your silence
+               // weighs on me" fire the day after a late arrival). EffectiveDeliveredDay falls back to DeliveryDay
+               // on old saves.
+               if (today - l.EffectiveDeliveredDay < 5) continue;
 
                unanswered = l;
 
@@ -196,7 +312,7 @@ namespace CalradiaRemembers.Letters
                continue;
             }
 
-            int daysSince = today - unanswered.DeliveryDay;
+            int daysSince = today - unanswered.EffectiveDeliveredDay;
             string context = $"You wrote a letter {daysSince} days ago expressing your feelings. " +
                              $"The player has not replied. Their silence weighs on you.";
 
@@ -465,14 +581,21 @@ namespace CalradiaRemembers.Letters
                profile, mother, LetterReason.BirthAnnouncement, context,
                behavior.LlmServices, behavior.Store, today);
 
-         // Child support request: sent a week later, quest opens on delivery. The player's own spouse never duns
+         // Child support request: due a week later, quest opens on delivery. The player's own spouse never duns
          // him for their shared child, and a mother travelling with him writes nothing (player report 2026-07-10).
+         // 2.5 (courier audit): SCHEDULE the intent rather than generate it now with a future-dated stamp. The
+         // content is written on the due day with bounded retry (ProcessScheduledLetters), so an LLM outage at the
+         // birth no longer loses the pension and its quest forever, and SentOnDay is never a future day.
          if (BirthLetterPolicy.ShouldRequestChildSupport(motherWithPlayer, isLegitimate))
          {
             string supportContext = context + $" She is now asking the player for {ChildSupportAmount} denars to help raise the child.";
-            LetterGenerationService.QueueInitialLetter(
-               profile, mother, LetterReason.ChildSupportRequest, supportContext,
-               behavior.LlmServices, behavior.Store, today + ChildSupportDelayDays);
+            profile.ScheduledLetters.Add(new ScheduledLetter {
+               Reason  = LetterReason.ChildSupportRequest,
+               SendDay = today + ChildSupportDelayDays,
+               Context = supportContext,
+               Attempts = 0
+            });
+            behavior.Store.Set(profile);
          }
 
          ModLog.Info($"[LETTER] birth letters evaluated: {mother.Name} → player ({childDesc}, {(isLegitimate ? "legitimate" : "illegitimate")}, withPlayer={motherWithPlayer}).");

@@ -31,13 +31,19 @@ namespace CalradiaRemembers.Storage
 
       private readonly Dictionary<string, NpcProfile> _profiles = new();
 
+      // Courier audit 3.2 (thread race): the LLM letter-generation continuations resume on the thread pool and
+      // call Set here, while the main thread enumerates via ListIds/Get and snapshots for save. A plain Dictionary
+      // under concurrent access throws "Collection was modified" (swallowed by SafeRun, aborting the daily pass)
+      // or corrupts. Every access to _profiles goes through this gate.
+      private readonly object _gate = new();
+
       public Task CommitAsync(CancellationToken ct = default)
          => Task.CompletedTask;
 
       public NpcProfile Get(string npcId)
-         => _profiles.TryGetValue(npcId, out NpcProfile profile)
-            ? profile
-            : null;
+      {
+         lock (_gate) return _profiles.TryGetValue(npcId, out NpcProfile profile) ? profile : null;
+      }
 
       // ── INpcMemoryStore ───────────────────────────────────────────────────
 
@@ -45,13 +51,20 @@ namespace CalradiaRemembers.Storage
          => Task.CompletedTask;
 
       public IReadOnlyList<string> ListIds()
-         => new List<string>(_profiles.Keys);
+      {
+         lock (_gate) return new List<string>(_profiles.Keys);
+      }
 
       public void Remove(string npcId)
-         => _profiles.Remove(npcId);
+      {
+         lock (_gate) _profiles.Remove(npcId);
+      }
 
       public void Set(NpcProfile profile)
-         => _profiles[profile.Id] = profile;
+      {
+         if (profile?.Id == null) return;
+         lock (_gate) _profiles[profile.Id] = profile;
+      }
 
       // ── TaleWorlds save/load bridge ───────────────────────────────────────
 
@@ -89,8 +102,8 @@ namespace CalradiaRemembers.Storage
                try { DeserializeProfiles(json); }
                catch (Exception ex)
                {
-                  _profiles.Clear();
-                  ModLog.Error($"[STORE] profile load failed — CR memory dropped for this load so the campaign can still open. {ex.GetType().Name}: {ex.Message}");
+                  lock (_gate) _profiles.Clear();
+                  ModLog.Error($"[STORE] profile load failed; CR memory dropped for this load so the campaign can still open. {ex.GetType().Name}: {ex.Message}");
                }
 
             ModLog.Info($"Loaded {_profiles.Count} NPC profile(s) from save.");
@@ -141,9 +154,12 @@ namespace CalradiaRemembers.Storage
                          $"{ex.GetType().Name}: {ex.Message}");
          });
 
-         _profiles.Clear();
-         foreach (KeyValuePair<string, NpcProfile> kvp in loaded)
-            _profiles[kvp.Key] = kvp.Value;
+         lock (_gate)
+         {
+            _profiles.Clear();
+            foreach (KeyValuePair<string, NpcProfile> kvp in loaded)
+               _profiles[kvp.Key] = kvp.Value;
+         }
 
          if (dropped > 0)
             ModLog.Info($"[STORE] {dropped} profile(s) skipped on load; {_profiles.Count} loaded.");
@@ -159,11 +175,12 @@ namespace CalradiaRemembers.Storage
       /// </summary>
       private string SerializeProfiles()
       {
-         // Freeze the dictionary structure before serializing: an autosave can run while the main thread is
-         // landing an async LLM continuation that adds a newly-met NPC, and a dictionary mutated mid-enumeration
-         // would throw and drop the WHOLE profile blob this save. (Per-profile failures are still isolated by
-         // the resilient bundle; this guards only the outer enumeration.)
-         var snapshot = new Dictionary<string, NpcProfile>(_profiles);
+         // Freeze the dictionary structure before serializing: an autosave can run while an async LLM continuation
+         // is landing a Set on the thread pool, and a dictionary copied mid-mutation would throw and drop the
+         // WHOLE profile blob this save. 3.2: take the same gate every mutation uses, so the copy is atomic. (Per-
+         // profile failures are still isolated by the resilient bundle; this guards only the outer enumeration.)
+         Dictionary<string, NpcProfile> snapshot;
+         lock (_gate) snapshot = new Dictionary<string, NpcProfile>(_profiles);
 
          return ResilientProfileBundle.Serialize(snapshot, (id, name, ex) =>
             ModLog.Error($"[STORE] profile '{id}' ({name}) cannot be persisted — " +

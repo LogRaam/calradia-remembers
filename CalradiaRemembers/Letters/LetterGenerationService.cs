@@ -5,6 +5,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
 using Newtonsoft.Json;
@@ -356,20 +357,29 @@ namespace CalradiaRemembers.Letters
 
          string content = await CallLlmForLetterAsync(llmServices, profile, message);
 
+         // 3.1: we are now on a thread-pool continuation. Marshal every SentLetters/store mutation onto the main
+         // thread so it never races the daily/courier ticks that enumerate these same lists.
          if (string.IsNullOrWhiteSpace(content))
          {
-            // LLM failed — remove placeholder so the next evaluation can retry.
-            profile.SentLetters.Remove(placeholder);
-            store.Set(profile);
+            // LLM failed: remove placeholder so the next evaluation can retry.
+            LetterMutationQueue.Post(() =>
+            {
+               profile.SentLetters.Remove(placeholder);
+               store.Set(profile);
+            });
+
             return;
          }
 
          int deliveryDays = ComputeDeliveryDays(giverHero);
-         placeholder.Content = content;
-         placeholder.DispatchDay = today;           // courier departs as soon as letter is written
-         placeholder.DeliveryDay = today + deliveryDays; // fallback if courier not yet spawned on load
-         store.Set(profile);
-         ModLog.Info($"[LETTER] queued from {profile.Name} ({reason}), courier dispatches day {today}.");
+         LetterMutationQueue.Post(() =>
+         {
+            placeholder.Content = content;
+            placeholder.DispatchDay = today;               // courier departs as soon as letter is written
+            placeholder.DeliveryDay = today + deliveryDays; // fallback if courier not yet spawned on load
+            store.Set(profile);
+            ModLog.Info($"[LETTER] queued from {profile.Name} ({reason}), courier dispatches day {today}.");
+         });
       }
 
       private static async Task GeneratePlayerLetterReplyAsync(
@@ -391,45 +401,22 @@ namespace CalradiaRemembers.Letters
 
          if (string.IsNullOrWhiteSpace(rawDecision)) return;
 
-         // Parse PASS vs DELAY:N + letter body. Tolerant: default delay on bad format.
-         string trimmed = rawDecision.Trim();
-         if (trimmed.StartsWith("PASS", StringComparison.OrdinalIgnoreCase)
-             || trimmed.Equals("no reply", StringComparison.OrdinalIgnoreCase)
-             || trimmed.Equals("no", StringComparison.OrdinalIgnoreCase))
+         // 5.1: PASS-vs-DELAY:N parsing lives in the pure, unit-tested LetterReplyDecisionParser now.
+         LetterReplyDecision decision = LetterReplyDecisionParser.Parse(rawDecision);
+         if (decision.Kind == LetterReplyKind.Pass)
          {
-            // Log the LLM's reason (everything after "PASS:" on the first line).
-            var reason = string.Empty;
-            int colon = trimmed.IndexOf(':');
-            if (colon >= 0 && colon < trimmed.Length - 1)
-               reason = trimmed.Substring(colon + 1).Split('\n')[0].Trim();
-            string reasonSuffix = string.IsNullOrEmpty(reason)
+            string reasonSuffix = string.IsNullOrEmpty(decision.PassReason)
                ? ""
-               : $" — {reason}";
+               : $", {decision.PassReason}";
             ModLog.Info($"[LETTER] {profile.Name} chose not to reply{reasonSuffix}");
 
             return;
          }
 
-         var delayDays = 2;
-         string letterBody = trimmed;
-
-         int firstNewline = trimmed.IndexOf('\n');
-         string firstLine = firstNewline > 0
-            ? trimmed.Substring(0, firstNewline).Trim()
-            : trimmed;
-
-         if (firstLine.StartsWith("DELAY:", StringComparison.OrdinalIgnoreCase))
-         {
-            string delayStr = firstLine.Substring("DELAY:".Length).Trim();
-            if (int.TryParse(delayStr, out int parsed) && parsed is >= 1 and <= 14) delayDays = parsed;
-            letterBody = firstNewline > 0
-               ? trimmed.Substring(firstNewline).Trim()
-               : string.Empty;
-         }
-
+         string letterBody = decision.Body;
          if (string.IsNullOrWhiteSpace(letterBody)) return;
 
-         int dispatchDay = today + delayDays;
+         int dispatchDay = today + decision.DelayDays;
          int travelDays = ComputeDeliveryDays(senderHero);
 
          var reply = new PendingLetter {
@@ -443,9 +430,13 @@ namespace CalradiaRemembers.Letters
             IsDelivered = false
          };
 
-         profile.SentLetters.Add(reply);
-         store.Set(profile);
-         ModLog.Info($"[LETTER] {profile.Name} will reply to player's letter — courier departs day {dispatchDay} ({delayDays}d delay).");
+         // 3.1: thread-pool continuation; apply the list/store mutation on the main thread.
+         LetterMutationQueue.Post(() =>
+         {
+            profile.SentLetters.Add(reply);
+            store.Set(profile);
+            ModLog.Info($"[LETTER] {profile.Name} will reply to player's letter, courier departs day {dispatchDay} ({decision.DelayDays}d delay).");
+         });
       }
 
       private static async Task GenerateReplyAsync(
@@ -478,9 +469,13 @@ namespace CalradiaRemembers.Letters
             IsDelivered = false
          };
 
-         profile.SentLetters.Add(reply);
-         store.Set(profile);
-         ModLog.Info($"[LETTER] reply queued from {profile.Name}, courier dispatches day {today}.");
+         // 3.1: thread-pool continuation; apply the list/store mutation on the main thread.
+         LetterMutationQueue.Post(() =>
+         {
+            profile.SentLetters.Add(reply);
+            store.Set(profile);
+            ModLog.Info($"[LETTER] reply queued from {profile.Name}, courier dispatches day {today}.");
+         });
       }
 
       #endregion

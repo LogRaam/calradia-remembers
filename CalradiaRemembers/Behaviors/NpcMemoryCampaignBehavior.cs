@@ -98,6 +98,11 @@ namespace CalradiaRemembers.Behaviors
          // instead of waiting up to 1 game day for the daily tick.
          CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(
             this, OnHourlyTickParty);
+         // Courier audit 3.1: drain the letter-mutation queue on the main thread. The LLM letter generators
+         // resume on the thread pool and only ENQUEUE their SentLetters/store mutations; this applies them
+         // here, in the single-threaded world the daily/courier ticks enumerate.
+         CampaignEvents.HourlyTickEvent.AddNonSerializedListener(
+            this, OnHourlyTick);
          // Save safety: keep courier parties out of the .sav (a mod party in an odd state
          // can corrupt the native load). Despawn before the save, respawn once it is over.
          CampaignEvents.OnBeforeSaveEvent.AddNonSerializedListener(
@@ -196,6 +201,15 @@ namespace CalradiaRemembers.Behaviors
       }
 
       /// <summary>
+      ///   Applies any letter-generation mutations the LLM continuations queued off-thread (courier audit 3.1).
+      ///   Runs on the main thread, so the SentLetters/store writes never race the ticks that read them.
+      /// </summary>
+      private void OnHourlyTick()
+      {
+         SafeRun.Step("OnHourlyTick.LetterMutationQueue.Drain", Letters.LetterMutationQueue.DrainOnMainThread);
+      }
+
+      /// <summary>
       ///   When any mobile party is destroyed, check whether it was a letter courier
       ///   and, if so, mark the carried letter lost (handled in CourierService).
       /// </summary>
@@ -227,6 +241,7 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.StoryLog.WriteSessionHeader", StoryLog.WriteSessionHeader);
          SafeRun.Step("OnSessionLaunched.CaptiveEncounterService.ResetOnSessionLaunch", CaptiveEncounterService.ResetOnSessionLaunch);
          SafeRun.Step("OnSessionLaunched.LetterWindowManager.ResetForSession", Letters.LetterWindowManager.ResetForSession); // C4: never inherit a dead window from a prior session
+         SafeRun.Step("OnSessionLaunched.LetterMutationQueue.Clear", Letters.LetterMutationQueue.Clear); // 3.1: drop closures captured against a prior campaign's objects
          SafeRun.Step("OnSessionLaunched.DisplayLoadedProfiles", DisplayLoadedProfiles);
          SafeRun.Step("OnSessionLaunched.UpgradeLegacyProfiles", UpgradeLegacyProfiles);
          // Heals saves made before the inline chain-of-thought fix (ReasoningTraceStripper): stored
@@ -256,6 +271,7 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.TaverneLetterBehavior.Register", () => new TaverneLetterBehavior().Register(campaignGameStarter));
          SafeRun.Step("OnSessionLaunched.CommonsDialogBehavior.Register", () => new CommonsDialogBehavior().Register(campaignGameStarter));
          SafeRun.Step("OnSessionLaunched.CourierService.RebuildActiveCourierSet", () => CourierService.RebuildActiveCourierSet(Store));
+         SafeRun.Step("OnSessionLaunched.CourierService.WarnIfSpeedModelReplaced", CourierService.WarnIfSpeedModelReplaced); // M8: flag a foreign speed model that would disable the courier floor
          // Couriers were kept out of the save (despawned pre-save). Don't respawn a fragile
          // party during session launch: instead hand any orphaned in-flight letter back to
          // its date-based delivery, so it still arrives even though the courier is gone.

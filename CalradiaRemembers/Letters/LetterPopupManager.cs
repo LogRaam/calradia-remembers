@@ -63,6 +63,7 @@ namespace CalradiaRemembers.Letters
         private static void MarkReceived(PendingLetter letter, NpcProfile profile, int today)
         {
             letter.IsDelivered = true;
+            letter.DeliveredOnDay = today; // 2.3: anchor the romantic follow-up on the REAL arrival, not the frozen due day.
             profile.Events.Add(new NotableEvent(today, NotableEventType.Other,
                 $"Received a letter from {profile.Name} ({letter.Reason})."));
 
@@ -93,6 +94,7 @@ namespace CalradiaRemembers.Letters
                 Description = $"Provide financial support for your child with {profile.Name}.",
                 IssuedOnDay = today,
                 DeadlineDay = today + 30,
+                RequiredGold   = LetterTriggerEvaluator.ChildSupportAmount, // M14: the demand must actually be met to close it.
                 RewardGold     = 0,
                 RewardRelation = 5,
                 Status         = QuestStatus.Active

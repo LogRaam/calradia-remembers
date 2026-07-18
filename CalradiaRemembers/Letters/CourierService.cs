@@ -10,6 +10,7 @@ using CalradiaRemembers.Storage;
 using CalradiaRemembers.Travel;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
@@ -25,12 +26,16 @@ namespace CalradiaRemembers.Letters
    ///   <see cref="PlayerLetter" /> from the player to its recipient. The courier is a
    ///   fast, lightly-escorted custom party that avoids picking fights but can still be
    ///   waylaid by bandits — if it is destroyed in transit, the letter is lost.
-   ///   Lifecycle:
+   ///   Lifecycle (player -> NPC direction):
    ///   - <see cref="TrySpawnCourier" /> at send time, stamping the party id on the letter.
    ///   - <see cref="TickCouriers" /> daily: delivers on arrival, force-delivers past the
    ///   safety deadline, and prunes couriers whose party has vanished.
    ///   - <see cref="HandlePartyDestroyed" /> on the MobilePartyDestroyed event: marks the
    ///   letter lost when its courier is killed.
+   ///   The NPC -> player reply direction mirrors this: <see cref="TrySpawnReplyCourier" /> spawns,
+   ///   <see cref="CheckReplyCourierArrival" /> (hourly) delivers, and <see cref="TickReplyCouriers" />
+   ///   (daily, courier audit 2.1) is the safety net that releases an orphaned reply courier so its
+   ///   letter never hangs undelivered forever.
    /// </summary>
    public static class CourierService
    {
@@ -351,9 +356,32 @@ namespace CalradiaRemembers.Letters
       ///   save/load. Call once at session launch so the speed patch keeps working
       ///   for couriers that were in flight when the game was saved.
       /// </summary>
+      /// <summary>
+      ///   M8 (courier audit): the courier speed floor is a Harmony postfix on
+      ///   <see cref="DefaultPartySpeedCalculatingModel" />.<c>CalculateFinalSpeed</c>. Any mod that REPLACES the
+      ///   party-speed model with its own type silently disables that postfix, so couriers crawl at the vanilla
+      ///   small-party speed, starve, and miss deadlines with no visible cause. This logs a single warning at
+      ///   launch so the failure is diagnosable from the log instead of looking like a CR bug.
+      /// </summary>
+      public static void WarnIfSpeedModelReplaced()
+      {
+         try
+         {
+            var model = Campaign.Current?.Models?.PartySpeedCalculatingModel;
+            if (model != null && model is not DefaultPartySpeedCalculatingModel)
+               ModLog.Info($"[COURIER] WARNING: another mod replaced the party-speed model ({model.GetType().Name}); " +
+                           "the courier speed floor is inactive, so couriers may crawl, starve, and miss deadlines.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COURIER] speed-model check failed (non-fatal): {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
       public static void RebuildActiveCourierSet(BannerlordNpcMemoryStore store)
       {
          ActiveCourierIds.Clear();
+         RolledBandits.Clear(); // 4.6: a static keyed by courier id, never purged, leaked slowly across campaigns in one process.
 
          if (store == null) return;
 
@@ -495,7 +523,7 @@ namespace CalradiaRemembers.Letters
                {
                   if (today >= letter.DeliveryDay + ForceDeliveryGraceDays)
                   {
-                     MarkUndeliverable(letter, $"the courier to {letter.RecipientName} never arrived");
+                     MarkUndeliverable(letter, $"the courier to {letter.RecipientName} never arrived", store, profile);
                      changed = true;
                   }
 
@@ -503,7 +531,63 @@ namespace CalradiaRemembers.Letters
                }
 
 
-               changed = ResumeCourier(today, courier, recipient, letter, changed);
+               changed = ResumeCourier(today, courier, recipient, letter, changed, store, profile);
+            }
+
+            if (changed) store.Set(profile);
+         }
+      }
+
+      /// <summary>
+      ///   Courier audit 2.1: the daily safety net for the NPC->player direction, symmetric to
+      ///   <see cref="TickCouriers" />. The reply courier is normally delivered by the hourly
+      ///   <see cref="CheckReplyCourierArrival" />, but a courier that vanishes without a destruction event, or a
+      ///   player who stays unreachable (long sea crossing) well past the deadline, used to leave the letter
+      ///   pending FOREVER: the date-based fallback in <see cref="LetterDeliveryService" /> explicitly skips any
+      ///   letter that still carries a <see cref="PendingLetter.CourierPartyId" /> (the orphan-party bug documented
+      ///   as "NOT fixed"). Here we stop waiting on the physical courier past the grace deadline and clear the id,
+      ///   so the fallback (a popup, which reaches the player anywhere, at sea included) delivers on the next tick.
+      /// </summary>
+      public static void TickReplyCouriers(BannerlordNpcMemoryStore store, int today)
+      {
+         if (store == null) return;
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile?.SentLetters == null || profile.SentLetters.Count == 0) continue;
+
+            var changed = false;
+            foreach (PendingLetter letter in profile.SentLetters)
+            {
+               if (letter.IsDelivered || letter.IsLost) continue;
+               if (string.IsNullOrEmpty(letter.CourierPartyId)) continue; // no reply courier; date fallback owns it
+
+               // The sender died with the letter on the road: it dies with its author (same rule as arrival).
+               Hero sender = Hero.FindFirst(h => h != null && h.StringId == profile.Id);
+               if (sender is not {IsAlive: true})
+               {
+                  letter.IsLost = true;
+                  Disband(FindCourier(letter.CourierPartyId));
+                  letter.CourierPartyId = null;
+                  changed = true;
+
+                  continue;
+               }
+
+               // Only intervene once past the safety deadline, so a just-spawned or briefly-missing courier
+               // (e.g. mid save/load) is never cut short.
+               if (today < letter.DeliveryDay + ForceDeliveryGraceDays) continue;
+
+               // Past the deadline: stop chasing. A blank placeholder (LLM never filled it) is dropped so the
+               // correspondent is not muted forever; a real letter has its courier released to the date fallback.
+               if (string.IsNullOrWhiteSpace(letter.Content)) letter.IsLost = true;
+               Disband(FindCourier(letter.CourierPartyId));
+               letter.CourierPartyId = null;
+               changed = true;
+               ModLog.Info($"[COURIER-REPLY] {profile.Name}'s reply courier gave up past the deadline; " +
+                           (letter.IsLost ? "blank letter dropped." : "handed to date-based delivery."));
             }
 
             if (changed) store.Set(profile);
@@ -722,8 +806,21 @@ namespace CalradiaRemembers.Letters
          ModLog.Info($"[COURIER] delivered to {letter.RecipientName} " + $"(courierGone={courierGone}).");
       }
 
+      /// <summary>M5 (courier audit): the recipient is sailing, so a land courier cannot reach them where they float.</summary>
+      private static bool RecipientAtSea(Hero recipient)
+         => recipient?.PartyBelongedTo is {IsCurrentlyAtSea: true};
+
       private static void DirectCourierToRecipient(MobileParty courier, Hero recipient)
       {
+         // M5: a recipient at sea cannot be met on the water. Head for the nearest landfall and hold there; when
+         // they make port and move inland, ResolveCourierTarget returns their party again and the pursuit resumes.
+         if (RecipientAtSea(recipient))
+         {
+            TravelingParty.DirectToMovingPoint(courier, TravelingParty.NearestLandfall(recipient.PartyBelongedTo.GetPosition2D));
+
+            return;
+         }
+
          object target = ResolveCourierTarget(recipient);
          switch (target)
          {
@@ -794,6 +891,8 @@ namespace CalradiaRemembers.Letters
 
       private static bool HasArrived(MobileParty courier, Hero recipient)
       {
+         if (RecipientAtSea(recipient)) return false; // M5: never "arrive" on a recipient still at sea; wait for landfall.
+
          object target = ResolveCourierTarget(recipient);
          switch (target)
          {
@@ -813,14 +912,22 @@ namespace CalradiaRemembers.Letters
       ///   captured, or unreachable). Flags <see cref="PlayerLetter.IsLost" /> so it is
       ///   never delivered nor injected into a prompt, and tells the player.
       /// </summary>
-      private static void MarkUndeliverable(PlayerLetter letter, string reason)
+      private static void MarkUndeliverable(PlayerLetter letter, string reason,
+                                            BannerlordNpcMemoryStore resendStore = null, NpcProfile resendProfile = null)
       {
          letter.IsLost = true;
          letter.CourierPartyId = null;
 
          MBInformationManager.AddQuickInformation(new TextObject(
-            $"Your letter could not be delivered — {reason}."));
+            $"Your letter could not be delivered: {reason}."));
          ModLog.Info($"[COURIER] undeliverable to {letter.RecipientName}: {reason}.");
+
+         // 4.6: when the courier (not the recipient) is what failed, the recipient can still receive a fresh one,
+         // so the player's typed text should not be lost without recourse: offer the same one-click resend an
+         // interception does. Only the courier-failed sites pass the store/profile; the "recipient dead/gone"
+         // sites leave them null, where a resend would be pointless.
+         if (resendStore != null && resendProfile != null)
+            OfferResend(resendStore, resendProfile, letter, byBandit: false);
       }
 
       private static bool NpcToPlayerReplyCourierLost(BannerlordNpcMemoryStore store, NpcProfile profile, string partyId, bool byBandit)
@@ -948,7 +1055,8 @@ namespace CalradiaRemembers.Letters
          return null;
       }
 
-      private static bool ResumeCourier(int today, MobileParty courier, Hero recipient, PlayerLetter letter, bool changed)
+      private static bool ResumeCourier(int today, MobileParty courier, Hero recipient, PlayerLetter letter, bool changed,
+                                        BannerlordNpcMemoryStore store, NpcProfile profile)
       {
          if (HasArrived(courier, recipient))
          {
@@ -964,7 +1072,7 @@ namespace CalradiaRemembers.Letters
             // Stuck past the deadline — give up WITHOUT delivering. A courier
             // that cannot reach the recipient should not leave an idle party on
             // the map; it abandons the errand and the letter is lost.
-            MarkUndeliverable(letter, $"the courier could not reach {letter.RecipientName} in time");
+            MarkUndeliverable(letter, $"the courier could not reach {letter.RecipientName} in time", store, profile);
             Disband(courier);
             changed = true;
          }

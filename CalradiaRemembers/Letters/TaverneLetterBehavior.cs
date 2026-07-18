@@ -45,7 +45,8 @@ namespace CalradiaRemembers.Letters
                 $"I need to hire a courier to send a letter. ({CourierHireCost} denars)",
                 CanHireCourier,
                 null,
-                110);
+                110,
+                CourierHireClickable);
 
             starter.AddDialogLine(
                 "cr_hire_courier_confirm_line",
@@ -70,6 +71,25 @@ namespace CalradiaRemembers.Letters
                 Hero h = Hero.FindFirst(x => x.StringId == id);
                 return h != null && h != Hero.MainHero && CourierService.CanReceiveLetter(h);
             });
+        }
+
+        /// <summary>
+        ///   M17 (courier audit): the option stays visible so the player knows the service exists, but greys out
+        ///   WITH an explanation when they cannot pay the fee, instead of the old silent block (the Send button
+        ///   greyed with no reason only after the player had already composed the letter).
+        /// </summary>
+        private static bool CourierHireClickable(out TextObject explanation)
+        {
+            if ((Hero.MainHero?.Gold ?? 0) < CourierHireCost)
+            {
+                explanation = new TextObject($"You cannot afford the courier ({CourierHireCost} denars).");
+
+                return false;
+            }
+
+            explanation = new TextObject("");
+
+            return true;
         }
 
         // ── Consequences ──────────────────────────────────────────────────────

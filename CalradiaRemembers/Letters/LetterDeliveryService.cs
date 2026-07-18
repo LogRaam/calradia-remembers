@@ -25,6 +25,11 @@ namespace CalradiaRemembers.Letters
         {
             if (store == null) return;
 
+            // 2.1 (courier audit): release any orphaned NPC->player reply courier (vanished party, or a player
+            // unreachable past the deadline) so its letter falls through to the date-based delivery below, instead
+            // of hanging on a stuck CourierPartyId forever. Symmetric to TickCouriers for the player->NPC direction.
+            CourierService.TickReplyCouriers(store, today);
+
             foreach (string id in store.ListIds())
             {
                 NpcProfile profile = store.Get(id);
