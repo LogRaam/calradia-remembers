@@ -322,7 +322,39 @@ namespace CalradiaRemembers.Grudges
                _ledger = new GrudgeLedger();
 
             ModLog.Info($"[GRUDGE] loaded {_ledger.Grudges.Count} grudge(s), migration version {_ledger.MigrationVersion}.");
+            HealSaturatedVendettas();
          }
+      }
+
+      /// <summary>
+      ///   Frees grudges that an older build froze by SATURATION rather than by deed. Rigidity was clamped to
+      ///   the same value that marks a vendetta, so any grudge held by someone whose regard had collapsed
+      ///   became permanently unresolvable and non-decaying. A campaign carrying those would keep them for
+      ///   good however well the formation rule is fixed, so they are healed on load. Idempotent, and a true
+      ///   ExecutedKin vendetta is never touched: it earned its 100.
+      /// </summary>
+      private void HealSaturatedVendettas()
+      {
+         try
+         {
+            var healed = 0;
+
+            foreach (Grudge g in _ledger.Grudges)
+            {
+               if (g == null) continue;
+
+               int corrected = GrudgePolicy.HealSaturatedRigidity(g.Source, g.Rigidity);
+
+               if (corrected == g.Rigidity) continue;
+
+               g.Rigidity = corrected;
+               healed++;
+            }
+
+            if (healed > 0)
+               ModLog.Info($"[GRUDGE] healed {healed} grudge(s) frozen as vendettas by saturation; they can be mended again.");
+         }
+         catch (Exception ex) { ModLog.Error($"[GRUDGE] saturation heal failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
       // ── Live API (tier-1 sources call this) ─────────────────────────────────

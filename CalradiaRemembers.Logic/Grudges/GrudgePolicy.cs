@@ -113,10 +113,27 @@ namespace CalradiaRemembers.Logic.Grudges
         public const int VendettaRigidity = 100;
 
         /// <summary>
+        ///   The hardest a grudge can become through REGARD AND TRAITS alone: one short of a vendetta.
+        ///   <para>
+        ///     A vendetta is something you earn by a DEED (putting someone's kin to death), not by being
+        ///     disliked enough. The two were indistinguishable while the clamp ceiling and
+        ///     <see cref="VendettaRigidity" /> were the same number: any grudge that SATURATED became
+        ///     unforgivable, and six separate rules downstream read rigidity 100 as "vendetta" (never
+        ///     resolvable, never decays, narrated as unforgivable, every gesture rejected, the greeting
+        ///     forced cold). It went unnoticed only because rigidity used to be computed from the vanilla
+        ///     clan relation, where the required regard (about -84 at neutral traits) is nearly unreachable.
+        ///     Once it read the mod's own ledger, whose captive floor is -100, an NPC at -80 turned every
+        ///     grudge they held into a permanent one: the whole resolution pillar became unreachable for
+        ///     precisely the people worth reconciling with.
+        ///   </para>
+        /// </summary>
+        public const int MaxEarnedRigidity = VendettaRigidity - 1;
+
+        /// <summary>
         ///   Rigidity at formation: high regard for the target softens it (reconcilable), negative
         ///   regard hardens it. <see cref="GrudgeSource.ExecutedKin" /> is always maximum rigidity
-        ///   regardless of regard or traits (a vendetta). Calculating pushes rigidity up; Mercy pulls
-        ///   it down. Clamped 0..100.
+        ///   regardless of regard or traits (a vendetta), and is the ONLY way to reach it. Calculating
+        ///   pushes rigidity up; Mercy pulls it down. Clamped 0..<see cref="MaxEarnedRigidity" />.
         /// </summary>
         public static int RigidityAt(int regardForTarget, GrudgeCandidateFacts facts)
         {
@@ -131,8 +148,21 @@ namespace CalradiaRemembers.Logic.Grudges
             rigidity += calculating * CalculatingRigidityPerLevel;
             rigidity -= mercy * MercyRigidityReliefPerLevel;
 
-            return Clamp((int) Math.Round(rigidity), 0, 100);
+            return Clamp((int) Math.Round(rigidity), 0, MaxEarnedRigidity);
         }
+
+        /// <summary>
+        ///   Save migration for the saturation bug above: a grudge that is NOT a true vendetta but was
+        ///   stamped at <see cref="VendettaRigidity" /> is frozen forever (unresolvable and non-decaying),
+        ///   so old saves would carry the defect for the rest of the campaign however well it is fixed at
+        ///   formation. Returns the rigidity this grudge should now hold. Idempotent: a value already at or
+        ///   below <see cref="MaxEarnedRigidity" /> is returned untouched, and a real ExecutedKin vendetta
+        ///   keeps its 100.
+        /// </summary>
+        public static int HealSaturatedRigidity(GrudgeSource source, int rigidity)
+            => source != GrudgeSource.ExecutedKin && rigidity >= VendettaRigidity
+                ? MaxEarnedRigidity
+                : rigidity;
 
         // ── Decay ────────────────────────────────────────────────────────────
 

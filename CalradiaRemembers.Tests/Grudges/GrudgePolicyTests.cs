@@ -297,15 +297,74 @@ namespace CalradiaRemembers.Tests.Grudges
          GrudgePolicy.EffectiveMagnitude(grudge, 100000, PlainTraits()).Should().Be(0);
       }
 
-      // RigidityAt's doc promises a 0..100 clamp. VendettaRigidity IS 100, and IsResolvable/
-      // ResolutionKindFor both compare against that exact constant; an unclamped rigidity drifting past
-      // 100 from stacked negative regard and high Calculating would silently misbehave against those checks.
+      // The bug this boundary exists to prevent, found by cr.testall in a live campaign (2026-07-18): the
+      // clamp ceiling used to BE VendettaRigidity, so a grudge that merely saturated became indistinguishable
+      // from one earned by putting someone's kin to death. Six rules downstream read rigidity 100 as
+      // "vendetta": never resolvable, never decaying, narrated as unforgivable, every gesture rejected, the
+      // greeting forced cold. It stayed hidden while rigidity came from the vanilla clan relation (about -84
+      // is nearly unreachable there); the moment it read the mod's own ledger, whose captive floor is -100, a
+      // lord at -80 had EVERY grudge he held frozen for the rest of the campaign. A vendetta is earned by a
+      // deed, never by being disliked enough.
       [Test]
-      public void GIVEN_extreme_negative_regard_and_high_calculating_WHEN_computing_rigidity_THEN_it_clamps_at_one_hundred()
+      public void GIVEN_extreme_negative_regard_and_high_calculating_WHEN_computing_rigidity_THEN_it_stops_one_short_of_a_vendetta()
       {
          GrudgeCandidateFacts facts = Candidate(traits: new TraitFacts {Calculating = 2});
 
-         GrudgePolicy.RigidityAt(-100, facts).Should().Be(100);
+         GrudgePolicy.RigidityAt(-100, facts).Should().Be(GrudgePolicy.MaxEarnedRigidity);
+         GrudgePolicy.RigidityAt(-100, facts).Should().BeLessThan(GrudgePolicy.VendettaRigidity);
+      }
+
+      // The consequence that actually reaches the player, pinned end to end: a grudge formed at the very
+      // worst regard must still be MENDABLE, and must still resolve through its own source's path
+      // (DeliveredPrisoner is a Deed grudge whatever the rigidity). This is the exact assertion the live
+      // self-test failed on, one layer down.
+      [Test]
+      public void GIVEN_a_grudge_formed_at_the_worst_possible_regard_WHEN_judging_it_THEN_it_can_still_be_mended()
+      {
+         int rigidity = GrudgePolicy.RigidityAt(-100, Candidate(traits: new TraitFacts {Calculating = 2}));
+
+         GrudgePolicy.IsResolvable(NewGrudge(rigidity: rigidity)).Should().BeTrue();
+         GrudgePolicy.ResolutionKindFor(GrudgeSource.DeliveredPrisoner, rigidity)
+                     .Should().Be(GrudgeResolutionKind.Deed);
+      }
+
+      // The other side of the same rule: executing someone's kin is still a true vendetta, reached by the
+      // source alone and immune to regard or traits. Removing the saturation route must not soften it.
+      [Test]
+      public void GIVEN_an_executed_kin_grudge_WHEN_computing_rigidity_THEN_it_is_still_a_full_vendetta()
+      {
+         GrudgeCandidateFacts facts = Candidate(source: GrudgeSource.ExecutedKin, traits: new TraitFacts {Mercy = 2});
+
+         GrudgePolicy.RigidityAt(100, facts).Should().Be(GrudgePolicy.VendettaRigidity);
+         GrudgePolicy.ResolutionKindFor(GrudgeSource.ExecutedKin, GrudgePolicy.VendettaRigidity)
+                     .Should().Be(GrudgeResolutionKind.Unforgivable);
+      }
+
+      // The save migration. A campaign carrying grudges stamped 100 by the old formation rule would keep
+      // them frozen for good however well formation is fixed, because rigidity is persisted, not recomputed.
+      [Test]
+      public void GIVEN_a_grudge_frozen_by_the_old_saturation_WHEN_healing_THEN_it_becomes_mendable_again()
+      {
+         GrudgePolicy.HealSaturatedRigidity(GrudgeSource.UnblessedMarriage, GrudgePolicy.VendettaRigidity)
+                     .Should().Be(GrudgePolicy.MaxEarnedRigidity);
+      }
+
+      // A real vendetta in an old save must survive the migration untouched: it was never the bug.
+      [Test]
+      public void GIVEN_a_true_vendetta_WHEN_healing_THEN_it_keeps_its_full_rigidity()
+      {
+         GrudgePolicy.HealSaturatedRigidity(GrudgeSource.ExecutedKin, GrudgePolicy.VendettaRigidity)
+                     .Should().Be(GrudgePolicy.VendettaRigidity);
+      }
+
+      // Idempotence, which the save rule requires: the heal runs on every load, so a second pass over an
+      // already-healed ledger must change nothing.
+      [Test]
+      public void GIVEN_an_already_healed_or_ordinary_grudge_WHEN_healing_again_THEN_nothing_moves()
+      {
+         GrudgePolicy.HealSaturatedRigidity(GrudgeSource.FailedQuest, GrudgePolicy.MaxEarnedRigidity)
+                     .Should().Be(GrudgePolicy.MaxEarnedRigidity);
+         GrudgePolicy.HealSaturatedRigidity(GrudgeSource.FailedQuest, 42).Should().Be(42);
       }
 
       // Mirrors the upper clamp at the opposite extreme: stacked high regard and high Mercy could
