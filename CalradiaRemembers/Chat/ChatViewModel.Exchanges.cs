@@ -719,13 +719,13 @@ namespace CalradiaRemembers.Chat
             // RunNpcWitnessExchangeAsync AFTER the auto-reply, so they are not
             // double-counted in the session that feeds the follow-up LLM call.
             // The normal (no 15C) path commits them explicitly below.
-            // Round-table audit D7: when the player has opened the floor, the lap below is about to give each
-            // of these people a real turn in their OWN voice. Showing the main NPC's ventriloquized version
-            // first made a witness speak twice in a row, and since the two lines come from two different
-            // model calls the second could flatly contradict the first. The lap is the better voice: drop
-            // these. (Read without consuming; TryConsumeForMainReply below still owns the request.)
+            // Round-table audit D7: when the player has opened the floor, the lap below gives each of these
+            // people a real turn in their OWN voice, so the main NPC's ventriloquized version of them is
+            // dropped. The rule itself lives in VentriloquizedReactionPolicy where a net10 test can reach it.
+            // (IsRequestPending reads without consuming; TryConsumeForMainReply below still owns the request.)
             List<(string name, string heroId, string text)> witnessReactions =
-               _roundTable.IsRequestPending && speaker.IsMain && !IsCaptiveEncounter && !_conversationEnded
+               VentriloquizedReactionPolicy.DropsReactions(_roundTable.IsRequestPending, speaker.IsMain,
+                  IsCaptiveEncounter, _conversationEnded)
                   ? new List<(string name, string heroId, string text)>()
                   : CollectWitnessReactions(response);
 
@@ -932,13 +932,10 @@ namespace CalradiaRemembers.Chat
                   // model never learns the marriage/transfer it just celebrated never happened, believes
                   // it did, and the next turns build on the lie. Same OOC pattern as a declined
                   // confirmation (ActionConfirmationController.DeclineAction).
-                  if (outcome is {WasRefused: true})
+                  string refusalNote = ActionRefusalNote.For(outcome?.WasRefused == true, outcome?.Message);
+                  if (refusalNote != null)
                   {
-                     try
-                     {
-                        RecordTranscript(true, "You", Hero.MainHero?.StringId,
-                           $"(Out of character: the game refused that — {outcome.Message} It did not happen. Do not treat it as done.)");
-                     }
+                     try { RecordTranscript(true, "You", Hero.MainHero?.StringId, refusalNote); }
                      catch (Exception ex) { ModLog.Error($"[ACTION] refusal note failed: {ex.GetType().Name}: {ex.Message}"); }
                   }
 

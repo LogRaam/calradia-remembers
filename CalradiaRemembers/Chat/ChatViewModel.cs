@@ -122,7 +122,7 @@ namespace CalradiaRemembers.Chat
       // each speaker's ChatSession per turn (their own lines as assistant, everyone
       // else's as "[Name]: …" user lines). Kept in lockstep with the displayed
       // conversational messages (player, main NPC, witnesses); system lines excluded.
-      private readonly List<TranscriptEntry> _transcript = new();
+      private readonly ConversationTranscript _transcript = new();
       private readonly Dictionary<string, string> _witnessColors = new();
 
       // ── Multi-NPC witnesses ───────────────────────────────────────────────
@@ -1873,28 +1873,6 @@ namespace CalradiaRemembers.Chat
             }
 
          RefreshWitnessUi();
-      }
-
-      /// <summary>
-      ///   Resolved identity of whoever speaks this turn — the main NPC by default,
-      ///   or a witness the player addressed. Carries the profile/hero/colour needed
-      ///   to route the LLM call and render the reply under the right portrait.
-      /// </summary>
-      /// <summary>One attributed line of conversation history.</summary>
-      private sealed class TranscriptEntry
-      {
-         public bool IsPlayer;
-
-         /// <summary>
-         ///   This entry is a [NARRATION] block rather than a spoken line (audit C4). It is replayed to its
-         ///   own speaker inside their assistant turn, tagged, so the model sees the format exemplified in
-         ///   its own past output instead of learning it only from the system prompt.
-         /// </summary>
-         public bool IsNarration;
-
-         public string SpeakerHeroId;
-         public string SpeakerName;
-         public string Text;
       }
 
       #region private

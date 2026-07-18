@@ -1,0 +1,125 @@
+// Code written by Gabriel Mailhot, 18/07/2026.
+// The transcript is the conversation's single source of truth, and both things read from it are
+// load-bearing: every participant's ChatSession is rebuilt from it before every LLM call, and the memory
+// summarizer is handed a rendering of it to write what the NPC will remember FOREVER. It was a raw List of
+// a class nested privately inside ChatViewModel, so none of it could be tested (the mod is net472, this
+// project is net10) even though not one line of it touches the engine.
+//
+// The composition rules themselves are pinned in SessionHistoryComposerTests; what is pinned here is the
+// transcript's own invariants and its plain-text rendering.
+
+#region
+
+using System;
+using CalradiaRemembers.Logic;
+using FluentAssertions;
+using NUnit.Framework;
+
+#endregion
+
+namespace CalradiaRemembers.Tests
+{
+   [TestFixture]
+   public sealed class ConversationTranscriptTests
+   {
+      // The ordinary case, so the guards below cannot be satisfied by recording nothing at all.
+      [Test]
+      public void GIVEN_a_spoken_line_WHEN_recording_THEN_it_is_kept_attributed_as_given()
+      {
+         var transcript = new ConversationTranscript();
+
+         transcript.Record(false, "Derthert", "lord_derthert", "You may rise.");
+
+         transcript.Count.Should().Be(1);
+         transcript.Lines[0].IsPlayer.Should().BeFalse();
+         transcript.Lines[0].SpeakerName.Should().Be("Derthert");
+         transcript.Lines[0].SpeakerHeroId.Should().Be("lord_derthert");
+         transcript.Lines[0].Text.Should().Be("You may rise.");
+         transcript.Lines[0].IsNarration.Should().BeFalse();
+      }
+
+      // The invariant that belongs to the transcript rather than to each caller. A blank line is not merely
+      // useless: it would take a slot in every prompt rebuilt afterwards, and an empty assistant turn teaches
+      // the model that saying nothing is a valid reply. A narration-only turn legitimately produces an empty
+      // spoken line, so this path is reached in normal play, not only on a malformed response.
+      [TestCase("")]
+      [TestCase("   ")]
+      [TestCase(null)]
+      public void GIVEN_nothing_was_actually_said_WHEN_recording_THEN_no_line_is_kept(string text)
+      {
+         var transcript = new ConversationTranscript();
+
+         transcript.Record(false, "Derthert", "lord_derthert", text);
+
+         transcript.Count.Should().Be(0);
+      }
+
+      // A narration entry must stay distinguishable from a spoken one, because that flag is what decides
+      // whether the speaker's run is replayed rebuilt in the tagged [DIALOGUE]/[NARRATION] shape (audit C4).
+      [Test]
+      public void GIVEN_a_narration_line_WHEN_recording_THEN_it_is_marked_as_narration()
+      {
+         var transcript = new ConversationTranscript();
+
+         transcript.Record(false, "Derthert", "lord_derthert", "He circles the prisoner slowly.", true);
+
+         transcript.Lines[0].IsNarration.Should().BeTrue();
+      }
+
+      // What the memory summarizer is handed. Every line is attributed by name so the summary it writes can
+      // say who did what; an unattributed dump would make the NPC remember someone else's words as their own.
+      [Test]
+      public void GIVEN_an_exchange_WHEN_rendering_to_text_THEN_every_line_is_attributed_by_name()
+      {
+         string nl = Environment.NewLine;
+
+         Exchange().ToPlainText("Gabriel").Should()
+                   .Be($"Gabriel: Are you with me?{nl}Derthert: I am.{nl}Olaf: And I.{nl}");
+      }
+
+      // The player's label is a PARAMETER because the same rendering serves a captive scene ("Prisoner") and
+      // an ordinary talk (their own name). Hard-coding either one would have the summarizer write the wrong
+      // register into a permanent memory.
+      [Test]
+      public void GIVEN_a_captive_scene_label_WHEN_rendering_to_text_THEN_the_players_lines_carry_it()
+      {
+         Exchange().ToPlainText("Prisoner").Should().Contain("Prisoner: Are you with me?");
+      }
+
+      // Fail safe: a conversation closed before anyone spoke still asks for its summary. Empty text is the
+      // signal the summarizer needs; a stray newline would read as a transcript with one blank exchange.
+      [Test]
+      public void GIVEN_nothing_was_said_WHEN_rendering_to_text_THEN_the_result_is_empty()
+      {
+         new ConversationTranscript().ToPlainText("Gabriel").Should().BeEmpty();
+      }
+
+      // The transcript answers each participant with THEIR view of the conversation: their own lines as their
+      // assistant turns, everyone else's attributed. Pinned here at the seam the controller actually calls,
+      // so the two halves cannot drift apart (the composer's own rules are pinned in its fixture).
+      [Test]
+      public void GIVEN_an_exchange_WHEN_composing_for_one_speaker_THEN_they_receive_their_own_view_of_it()
+      {
+         var turns = Exchange().ComposeSessionFor("lord_derthert");
+
+         turns.Should().HaveCount(3);
+         turns[0].Role.Should().Be(SessionTurnRole.Player);
+         turns[1].Role.Should().Be(SessionTurnRole.Speaker); // his own line
+         turns[2].Role.Should().Be(SessionTurnRole.Witness); // Olaf's, attributed
+      }
+
+      #region private
+
+      private static ConversationTranscript Exchange()
+      {
+         var transcript = new ConversationTranscript();
+         transcript.Record(true, "You", "player", "Are you with me?");
+         transcript.Record(false, "Derthert", "lord_derthert", "I am.");
+         transcript.Record(false, "Olaf", "lord_olaf", "And I.");
+
+         return transcript;
+      }
+
+      #endregion
+   }
+}

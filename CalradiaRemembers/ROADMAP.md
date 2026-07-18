@@ -317,13 +317,31 @@ the 2026-07-18 audits:
 | Rule | Where | Status |
 |---|---|---|
 | Witness reaction presence/self/repeat filter (D1) | `CollectWitnessReactions` | DONE: `WitnessReactionGate` + 11 tests |
-| Assistant-turn recomposition (C4) | `BuildSessionFor` | TODO |
-| Refusal note from a bridge outcome | `ChatViewModel.Exchanges` | TODO |
-| Dropping ventriloquized reactions when the floor opens (D7) | `ChatViewModel.Exchanges` | TODO |
+| Assistant-turn recomposition (C4) | `BuildSessionFor` | DONE: `SessionHistoryComposer` + 13 tests |
+| Refusal note from a bridge outcome | `ChatViewModel.Exchanges` | DONE: `ActionRefusalNote` + 5 tests |
+| Dropping ventriloquized reactions when the floor opens (D7) | `ChatViewModel.Exchanges` | DONE: `VentriloquizedReactionPolicy` + 5 tests |
 
-The first extraction immediately caught a real defect that had been invisible in the controller: the last-line
-lookup used the name the MODEL wrote while the store is keyed by the CANONICAL name, so a casing difference
-silently defeated the anti-repeat rule. That is the boundary rule above, again.
+Backlog cleared 2026-07-18. Mod builds 0 warning, tests 1952 PASS / 0 FAIL. UNTESTED IN GAME.
+
+**The transcript itself moved to Logic in the same batch** (`ConversationTranscript` + `TranscriptLine`), which
+is what makes the C4 extraction structural rather than cosmetic. It had been a raw `List<TranscriptEntry>` of
+a class nested privately in `ChatViewModel`, so the conversation's single source of truth was unreachable by
+any test even though not one line of it touches the engine. It is written in ONE place and read in TWO, both
+load-bearing (every rebuilt ChatSession; the text the memory summarizer turns into a permanent memory), so it
+now owns its own invariant (a blank line is never recorded) instead of trusting each caller. The controller's
+three entry points are one-line delegations. Any future pure transcript rule has an obvious tested home, and
+`TranscriptLine` is immutable so no participant's view can be rewritten after the model has been shown it.
+
+Each extraction is behavior-preserving except one deliberate fix, and both of the defects found were at a
+BOUNDARY, which is the rule above proving itself twice more:
+
+- D1: the last-line lookup used the name the MODEL wrote while the store is keyed by the CANONICAL name, so a
+  casing difference silently defeated the anti-repeat rule.
+- The refusal note interpolated `outcome.Message` unconditionally, so a refusal the bridge did not explain
+  produced a note trailing a dangling separator into the prompt. `ActionRefusalNote` now emits a clean
+  reasonless denial in that case (the only behavior change in the batch).
+- C4's own boundary is now pinned: an entry trimmed by `excludeLastN` can no longer be pulled back into the
+  preceding run and smuggled, tagged as already said, into the very turn it was withheld from.
 
 ---
 
