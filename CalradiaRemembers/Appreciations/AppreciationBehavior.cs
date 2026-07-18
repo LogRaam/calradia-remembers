@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Logic.Appreciations;
+using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Storage;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
@@ -227,9 +228,17 @@ namespace CalradiaRemembers.Appreciations
 
             if (!AppreciationPolicy.ShouldForm(facts)) return false;
 
+            // 5.3 (regard audit): same-day dedup, mirroring grudges' holder+source+day rule. Five gifts in one
+            // day should not stack five identical "the player gave me gold" lines in the NPC's prompt.
+            if (_ledger.Appreciations.Any(a => a.HolderId == holder.StringId && a.Source == source && a.EventDay == today))
+               return false;
+
             List<Appreciation> live = _ledger.Appreciations.Where(a => a.HolderId == holder.StringId).ToList();
 
-            if (!AppreciationPolicy.TryAdmit(live, magnitude, today, facts.Traits, out Appreciation toEvict)) return false;
+            // 5.3: clamp the stored magnitude to its documented 0..100 range at the single plant site.
+            int clampedMagnitude = magnitude < 0 ? 0 : magnitude > 100 ? 100 : magnitude;
+
+            if (!AppreciationPolicy.TryAdmit(live, clampedMagnitude, today, facts.Traits, out Appreciation toEvict)) return false;
 
             if (toEvict != null) _ledger.Appreciations.Remove(toEvict);
 
@@ -240,12 +249,12 @@ namespace CalradiaRemembers.Appreciations
                Source = source,
                CauseSummary = Truncate(cause),
                EventDay = today,
-               Magnitude = magnitude,
+               Magnitude = clampedMagnitude,
                KnownToPlayer = knownToPlayer
             };
 
             _ledger.Appreciations.Add(appreciation);
-            ModLog.Info($"[APPRECIATION] planted: {holder.Name} toward {target.Name} ({source}, magnitude {magnitude}, " +
+            ModLog.Info($"[APPRECIATION] planted: {holder.Name} toward {target.Name} ({source}, magnitude {clampedMagnitude}, " +
                         $"known={knownToPlayer}{(toEvict != null ? ", evicted weakest" : "")}).");
 
             if (knownToPlayer) NotifyFormed(holder);
@@ -313,6 +322,15 @@ namespace CalradiaRemembers.Appreciations
 
             foreach (NotableEvent ev in profile.Events ?? Enumerable.Empty<NotableEvent>())
             {
+               // M-A4 (regard audit): the pure backfill rule cannot see the runtime adult setting nor the
+               // exploiter dynamic, so apply the SAME guards the live plant uses here, at the engine boundary. An
+               // Intimacy event backfills a "kindness" ONLY when adult content is on AND the holder is not the
+               // exploiter pressing leverage; otherwise every historical intimacy became a fond memory the live
+               // rule would have refused. (The rule was flagged "PLACEHOLDER-GRADE, review before shipping".)
+               if (ev.type == NotableEventType.Intimacy
+                   && (ModSettings.AdultContentLevel == AdultContentLevel.Off || IntimacyBargainEligibility.IsEligible(holder)))
+                  continue;
+
                var facts = new ProfileEventFacts {
                   HolderId = id, EventTypeOrdinal = (int) ev.type, Summary = ev.summary, GameDay = ev.gameDay
                };

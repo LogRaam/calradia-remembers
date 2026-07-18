@@ -82,7 +82,7 @@ namespace CalradiaRemembers.Grudges
         ///   that direction. A null/empty <paramref name="rumourEventId" /> (e.g. WorldEventStore inactive)
         ///   is a safe no-op: there is nothing to watch for.
         /// </summary>
-        public void QueueExposure(Hero target, string rumourEventId, int swayMagnitude, int today)
+        public void QueueExposure(Hero target, string rumourEventId, int swayMagnitude, int today, string swayedName = null)
         {
             if (target == null || string.IsNullOrEmpty(rumourEventId)) return;
 
@@ -90,7 +90,8 @@ namespace CalradiaRemembers.Grudges
                 TargetId = target.StringId,
                 RumourEventId = rumourEventId,
                 SwayMagnitude = swayMagnitude,
-                CreatedDay = today
+                CreatedDay = today,
+                SwayedName = swayedName // 5.6: named in the grudge cause when it forms
             });
         }
 
@@ -152,6 +153,9 @@ namespace CalradiaRemembers.Grudges
             public string RumourEventId { get; set; }
             public int SwayMagnitude { get; set; }
             public string TargetId { get; set; }
+
+            /// <summary>5.6 (regard audit): the name of the NPC the player swayed, so the grudge cause names them instead of "someone". Null on old saves.</summary>
+            public string SwayedName { get; set; }
         }
 
         #region private
@@ -211,8 +215,10 @@ namespace CalradiaRemembers.Grudges
 
             if (!proposal.Forms) return false;
 
+            // 5.6: name the swayed party when we recorded it (old saves fall back to "someone").
+            string swayed = string.IsNullOrWhiteSpace(pending.SwayedName) ? "someone" : pending.SwayedName;
             bool planted = GrudgeBehavior.Instance.TryPlant(target, Hero.MainHero, GrudgeSource.SwayExposed,
-                "Word reached them that the player had turned someone's opinion against them.",
+                $"Word reached them that the player had turned {swayed}'s opinion against them.",
                 proposal.Magnitude, proposal.KnownToPlayer, today);
 
             if (planted)

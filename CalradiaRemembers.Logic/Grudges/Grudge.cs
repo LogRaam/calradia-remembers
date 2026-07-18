@@ -32,7 +32,12 @@ namespace CalradiaRemembers.Logic.Grudges
         /// <summary>In-game day the triggering event occurred. Decay and knownness reasoning both anchor on this.</summary>
         public int EventDay { get; set; }
 
-        /// <summary>Intensity at formation, 0..100. Softens over time via <see cref="GrudgePolicy.EffectiveMagnitude" />; this stored value never changes once set.</summary>
+        /// <summary>
+        ///   Intensity, 0..100. Set at formation and read through <see cref="GrudgePolicy.EffectiveMagnitude" />,
+        ///   which applies time decay on top. 5.7 (regard audit) doc fix: this stored value IS mutated, a partial
+        ///   resolution (a Softened outcome in GrudgeResolutionService) subtracts from it directly; the old note
+        ///   claiming it "never changes once set" was false.
+        /// </summary>
         public int Magnitude { get; set; }
 
         /// <summary>How hard resolution is, 0..100, computed once at formation from the holder's regard for the target. 100 = vendetta/unforgivable.</summary>

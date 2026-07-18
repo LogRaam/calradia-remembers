@@ -531,12 +531,14 @@ namespace CalradiaRemembers.GameState
 
          if (relation > 0)
          {
-            // Verified reward: applied straight to the personal score, bypassing the
-            // RelationGate cooldown/cap — the deed was confirmed by real game events.
+            // Verified reward: applied straight to the personal score, bypassing the RelationGate cooldown/cap
+            // (the deed was confirmed by real game events). 5.1: through the single clamp path ApplyReputationDelta.
+            // 5.8 / M-C3 (regard audit): it does NOT stamp LastRelationGainHour. That stamp is the CONVERSATIONAL
+            // cooldown; a verified reward is a separate channel, and stamping it silently gated a warm chat's +1 to
+            // 0 for 8h after a turn-in. Reward and conversation are independent, so the reward leaves the clock be.
             int before = profile.ReputationWithPlayer;
-            int after = ClampInt(before + relation, -100, 100);
-            profile.ReputationWithPlayer = after;
-            profile.LastRelationGainHour = CampaignTime.Now.ToHours;
+            ProfileMutator.ApplyReputationDelta(profile, relation);
+            int after = profile.ReputationWithPlayer;
             if (after != before) parts.Add($"+{after - before} regard");
             ModLog.Info($"[QUEST] reward relation: {npcHero.Name} {before}→{after} (+{relation} promised)");
          }
@@ -2374,9 +2376,11 @@ namespace CalradiaRemembers.GameState
          // collapses all clan members to the clan leader), so writing it spreads the
          // change across the whole clan. The personal score lives per-hero on the
          // profile — no spread — and drives the prompt's personal regard + greeting mood.
+         // 5.1: single clamp/stamp path. The gating (cooldown/cap/stamp) already happened in RelationGate above;
+         // ApplyReputationDelta only clamps to [-100, 100], the one place that mutation is bounded.
          int before = context.Profile.ReputationWithPlayer;
-         int after = ClampInt(before + delta, -100, 100);
-         context.Profile.ReputationWithPlayer = after;
+         ProfileMutator.ApplyReputationDelta(context.Profile, delta);
+         int after = context.Profile.ReputationWithPlayer;
          ModLog.Info($"[ACTION] change_relation (personal): {npcHero.Name} {before}→{after} (delta {delta:+#;-#;0}, proposed {proposed:+#;-#;0})");
 
          string message = delta > 0

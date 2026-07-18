@@ -12,6 +12,7 @@ using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
 
 #endregion
@@ -360,10 +361,7 @@ namespace CalradiaRemembers.Quests
          }
 
          quest.Status = QuestStatus.Abandoned;
-         int after = giver.ReputationWithPlayer - AbandonPenalty;
-         giver.ReputationWithPlayer = after < -100
-            ? -100
-            : after;
+         ProfileMutator.ApplyReputationDelta(giver, -AbandonPenalty); // 5.1: single clamp path.
          AddEvent(giver, gameDay, NotableEventType.Conflict,
             $"The player gave up the task to {Describe(quest)} — a broken word, however honest.");
          Hero giverHero = FindGiverHero(giver);
@@ -385,13 +383,8 @@ namespace CalradiaRemembers.Quests
       private static void AddEvent(NpcProfile profile, int gameDay, NotableEventType type, string summary)
          => profile.Events.Add(new NotableEvent(gameDay, type, summary));
 
-      private static void ApplyPenalty(NpcProfile profile)
-      {
-         int after = profile.ReputationWithPlayer - DeadlineFailurePenalty;
-         profile.ReputationWithPlayer = after < -100
-            ? -100
-            : after;
-      }
+      private static void ApplyPenalty(NpcProfile profile) // 5.1: single clamp path (ApplyReputationDelta clamps to [-100, 100]).
+         => ProfileMutator.ApplyReputationDelta(profile, -DeadlineFailurePenalty);
 
       private static void CompleteQuest(NpcProfile giver,
                                         Hero giverHero,

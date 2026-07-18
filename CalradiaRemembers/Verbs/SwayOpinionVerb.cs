@@ -107,7 +107,7 @@ namespace CalradiaRemembers.Verbs
                 // WorldEventStore's own awareness model, reusing the existing rumour-spread mechanism
                 // rather than inventing a new one (mirrors JealousyBehavior's own PendingAwareness gate).
                 if (against)
-                    SwayExposureBehavior.Instance?.QueueExposure(target, rumour.Id, Math.Abs(delta), today);
+                    SwayExposureBehavior.Instance?.QueueExposure(target, rumour.Id, Math.Abs(delta), today, npcHero.Name?.ToString());
 
                 ModLog.Info($"[ACTION] sway_opinion: {npcHero.Name} {verb} {target.Name} ({delta:+#;-#;0}).");
 
