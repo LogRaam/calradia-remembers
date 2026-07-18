@@ -235,14 +235,14 @@ first increment rather than shipped hollow.
 
 ### STATUS
 
-- **R0 (prerequisite) — LARGELY DONE 2026-07-18 (mod `6f013e1`, SDK `ab9322d`), NOT play-tested.** Delivered:
+- **R0 (prerequisite): LARGELY DONE 2026-07-18 (mod `6f013e1`, SDK `ab9322d`), NOT play-tested.** Delivered:
   the witness-hallucination filter (D1, the only item that was already reaching players through 15C), the
   kill-switch guard on the action (D6), intent-detector word boundaries (D8), per-turn presence re-check
   (D3), no double witness voice on the triggering turn (D7), confirmation handoff after the lap (D10), and
   the unified council framing + attributed-transcript teaching (D5). **STILL OPEN in R0:** per-speaker
-  witness relations (D2/0.5 — at Boyd's turn his prompt still calls Aldric "your vassal" when Aldric is the
+  witness relations (D2/0.5, at Boyd's turn his prompt still calls Aldric "your vassal" when Aldric is the
   HOST's vassal) and `cr.roundtable` + per-turn token logging (0.10), which is what unblocks the play-test.
-- **R1 onward — NOT started.** Note for whoever starts it: the interim prompt text shipped with R0 says
+- **R1 onward: NOT started.** Note for whoever starts it: the interim prompt text shipped with R0 says
   "NOTHING IS SEALED AT THIS TABLE", which is deliberately one of the two answers this design REJECTED. It
   exists only so the council does not promise what the code cannot yet honor. R1 MUST replace it with the
   `[PLEDGE]` teaching and the "what is agreed here takes effect in the days that follow" framing, in the same
