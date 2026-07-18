@@ -719,7 +719,16 @@ namespace CalradiaRemembers.Chat
             // RunNpcWitnessExchangeAsync AFTER the auto-reply, so they are not
             // double-counted in the session that feeds the follow-up LLM call.
             // The normal (no 15C) path commits them explicitly below.
-            List<(string name, string heroId, string text)> witnessReactions = CollectWitnessReactions(response);
+            // Round-table audit D7: when the player has opened the floor, the lap below is about to give each
+            // of these people a real turn in their OWN voice. Showing the main NPC's ventriloquized version
+            // first made a witness speak twice in a row, and since the two lines come from two different
+            // model calls the second could flatly contradict the first. The lap is the better voice: drop
+            // these. (Read without consuming; TryConsumeForMainReply below still owns the request.)
+            List<(string name, string heroId, string text)> witnessReactions =
+               _roundTable.IsRequestPending && speaker.IsMain && !IsCaptiveEncounter && !_conversationEnded
+                  ? new List<(string name, string heroId, string text)>()
+                  : CollectWitnessReactions(response);
+
             foreach (var (wn, _, wt) in witnessReactions)
             {
                AppendWitnessReaction(wn, wt, false);
@@ -1423,6 +1432,11 @@ namespace CalradiaRemembers.Chat
             _npcWitnessExchangePending = false;
             IsSendEnabled = !_conversationEnded;
             RefreshWitnessUi();
+            // Round-table audit D10: the 15C lap raises a deferred confirmation here and this one did not, so
+            // a take_gold emitted by the triggering turn was not put to the player until AFTER the next full
+            // exchange, by which time the model had already carried on as though it had been paid.
+            if (_confirmation.HasPending && !_confirmation.IsAwaiting && !_isScenePaused && !_sceneContinuationPending)
+               _confirmation.PromptNext(this);
          }
       }
 
@@ -1433,6 +1447,18 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>True while this view model is still the active chat (guards a stale async continuation).</summary>
       bool IRoundTableHost.IsStillActiveView => ReferenceEquals(ChatManager.ActiveViewModel, this);
+
+      bool IRoundTableHost.IsStillPresent(ChatSpeaker speaker)
+      {
+         if (speaker == null) return false;
+         if (speaker.IsMain) return true; // the host of the conversation never "leaves" their own room
+
+         string id = speaker.Hero?.StringId;
+
+         return !string.IsNullOrEmpty(id)
+            ? _witnesses.Any(w => w.HeroStringId == id)
+            : _witnesses.Any(w => string.Equals(w.Name, speaker.Name, StringComparison.OrdinalIgnoreCase));
+      }
 
       ChatSession IRoundTableHost.BuildSession(ChatSpeaker speaker) => BuildSessionFor(speaker);
 

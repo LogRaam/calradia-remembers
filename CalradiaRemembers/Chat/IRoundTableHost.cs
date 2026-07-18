@@ -22,6 +22,14 @@ namespace CalradiaRemembers.Chat
       /// <summary>True while this view model is still the active chat (guards a stale async continuation).</summary>
       bool IsStillActiveView { get; }
 
+      /// <summary>
+      ///   True when <paramref name="speaker"/> is STILL in the room. The lap walks a snapshot taken when the
+      ///   floor opened, so a participant who leaves mid-lap (an honoured <c>witness_leaves</c>) would
+      ///   otherwise speak again on the wrap-around while everyone else's prompt already describes them as
+      ///   gone (round-table audit D3). The main NPC is always present: they host the conversation.
+      /// </summary>
+      bool IsStillPresent(ChatSpeaker speaker);
+
       /// <summary>Rebuilds the given speaker's attributed ChatSession from the running transcript.</summary>
       ChatSession BuildSession(ChatSpeaker speaker);
 

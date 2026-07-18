@@ -275,14 +275,30 @@ namespace CalradiaRemembers.Chat
 
             string heroId = null;
             string canonicalName = emitted;
+            var isPresent = false;
+
             foreach (WitnessEntry we in _witnesses)
                if (string.Equals(we.Name, emitted, StringComparison.OrdinalIgnoreCase))
                {
                   heroId = we.HeroStringId;
                   canonicalName = we.Name; // canonical casing/spelling
+                  isPresent = true;
 
                   break;
                }
+
+            // Round-table audit D1: a reaction attributed to someone who is NOT in the room is a plain
+            // hallucination, and it used to be displayed, written to the story log AND committed to the
+            // transcript, which meant it was replayed into every rebuilt prompt afterwards. The invention
+            // then fed itself: a lady who was never here "spoke", so the model kept her talking. Matching on
+            // NAME rather than hero id on purpose, because a synthetic flavour witness (a gang enforcer, an
+            // apprentice) legitimately has no hero id but is genuinely present.
+            if (!isPresent)
+            {
+               ModLog.Info($"[WITNESS] dropped a reaction attributed to '{emitted}', who is not present.");
+
+               continue;
+            }
 
             // Mechanical anti-repeat: drop a witness's line when it matches the last one we
             // showed for them (trimmed, case-insensitive). Kills the verbatim looping the

@@ -81,11 +81,41 @@ namespace CalradiaRemembers.Logic
             return ContainsAny(lowered, GroupTokens) && ContainsAny(lowered, SolicitationCues);
         }
 
+        /// <summary>
+        ///   True when any needle appears as a WHOLE WORD (or whole phrase) in the haystack. Round-table
+        ///   audit D8: plain substring matching fired on words that merely contain a cue, and every false
+        ///   positive costs a burst of up to three extra LLM calls. "Everyone says the roads are dangerous"
+        ///   matched the group token "everyone" plus the cue "say" hiding inside "says", and in French
+        ///   "la direction du camp" matched "dire" inside "direction". A cue must be a word the player
+        ///   actually used, not a fragment of another one.
+        /// </summary>
         private static bool ContainsAny(string haystack, string[] needles)
         {
             for (var i = 0; i < needles.Length; i++)
-                if (haystack.IndexOf(needles[i], StringComparison.Ordinal) >= 0)
+                if (ContainsWord(haystack, needles[i]))
                     return true;
+
+            return false;
+        }
+
+        private static bool ContainsWord(string haystack, string needle)
+        {
+            if (string.IsNullOrEmpty(needle)) return false;
+
+            int from = 0;
+            while (from <= haystack.Length - needle.Length)
+            {
+                int at = haystack.IndexOf(needle, from, StringComparison.Ordinal);
+                if (at < 0) return false;
+
+                bool leftClear = at == 0 || !char.IsLetterOrDigit(haystack[at - 1]);
+                int after = at + needle.Length;
+                bool rightClear = after >= haystack.Length || !char.IsLetterOrDigit(haystack[after]);
+
+                if (leftClear && rightClear) return true;
+
+                from = at + 1;
+            }
 
             return false;
         }

@@ -1324,6 +1324,10 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public void ExecuteRoundTable()
       {
+         // Round-table audit D6: the kill-switch was enforced only by the BUTTON's visibility, so any other
+         // invocation (a future hotkey, the planned assembly "Open the assembly" entry) would have run a
+         // feature that ships deliberately disabled and un-play-tested. The switch belongs on the action.
+         if (!RoundTableController.Enabled) return;
          if (_npcWitnessExchangePending || _conversationEnded || IsCaptiveEncounter) return;
          if (_witnesses.Count == 0 || !IsSendEnabled) return;
 

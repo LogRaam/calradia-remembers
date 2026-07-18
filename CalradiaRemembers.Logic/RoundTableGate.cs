@@ -34,6 +34,15 @@ namespace CalradiaRemembers.Logic
             => _requested = witnessCount > 0 && !isCaptiveEncounter && RoundTableIntentDetector.Detects(text);
 
         /// <summary>
+        ///   True while a request to open the floor is pending, WITHOUT consuming it. The host reads this to
+        ///   suppress the main NPC's ventriloquized [WITNESS_REACTION]s on the triggering turn: the lap is
+        ///   about to give those same people a real turn in their own voice, and letting both happen made a
+        ///   witness speak twice in a row, the second time possibly contradicting the first (round-table
+        ///   audit D7, since the two lines come from two different model calls).
+        /// </summary>
+        public bool IsRequestPending => _requested;
+
+        /// <summary>
         ///   Consumes a pending "open the floor" request after the main NPC's reply: returns true (and clears the
         ///   request, so it fires at most once) when a request is pending, the main NPC just spoke, the scene is not
         ///   a captive encounter, and the conversation is still open; false otherwise.

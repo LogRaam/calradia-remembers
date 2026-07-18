@@ -49,6 +49,12 @@ namespace CalradiaRemembers.Chat
          => _gate.TryConsumeForMainReply(speakerIsMain, isCaptiveEncounter, conversationEnded);
 
       /// <summary>
+      ///   True while an "open the floor" request is pending, without consuming it: the host reads it to drop
+      ///   the main NPC's ventriloquized witness reactions on the triggering turn (round-table audit D7).
+      /// </summary>
+      public bool IsRequestPending => Enabled && _gate.IsRequestPending;
+
+      /// <summary>
       ///   Round-table group mode: gives each of <paramref name="participants" /> a deterministic turn (round robin
       ///   from the gate's rotation start, capped by <see cref="RoundTablePolicy.DefaultCap" />), each told it is a
       ///   round-table turn (speak more, may address the others), then advances the rotation. The running transcript
@@ -87,6 +93,17 @@ namespace CalradiaRemembers.Chat
                NpcProfile profile = speaker.Profile;
 
                if (profile == null) continue;
+
+               // Round-table audit D3: the lap walks a SNAPSHOT taken when the floor opened. A participant
+               // who left mid-lap (a witness_leaves honoured during someone else's turn) was removed from the
+               // room but not from the snapshot, so with the wrap-around they spoke again afterwards, while
+               // the other speakers' prompts already described them as gone. Re-check presence each turn.
+               if (!host.IsStillPresent(speaker))
+               {
+                  ModLog.Info($"[ROUNDTABLE] skipping {speaker.Name}: they have left the conversation.");
+
+                  continue;
+               }
 
                ChatSession session = host.BuildSession(speaker);
                const string stimulus = "(The floor is open to the group. Take your turn in the discussion now.)";
