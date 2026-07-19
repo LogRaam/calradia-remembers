@@ -32,6 +32,48 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## WISHED (Gabriel 2026-07-19): a FEATURES section in MCM, one toggle per pillar plus its thresholds
+
+**The ask:** a new MCM section ("Calradia Remembers Features" or similar) giving the player a toggle for
+each of the mod's systems (marriage, assassinations, jealousy, bastards, letters, duels, nemesis, captivity,
+interception, quests...) and, per section, the threshold values that govern it, editable rather than baked in.
+
+**Why it is worth doing:** the mod is now large enough that no two players want the same one. Someone here
+for lordly politics does not want bastards; someone here for romance does not want a nemesis hunting them.
+Today the only dials are `Adult Content Level`, `Relationship Pacing` and `Lords Approaching You`, and each
+was added because a player asked. That is the pattern arriving one request at a time, and it should be a
+structure instead.
+
+**Existing MCM groups**, which the new section must sit beside without duplicating: LLM Provider, OpenRouter,
+NanoGPT, OpenAI-Compatible, Content, Character, Companions, Diagnostics. The three dials above already live
+in Content/Character; decide whether they MOVE into Features or stay where a player already found them
+(moving a setting a player has already configured is not free, MCM keys are how the value is persisted).
+
+**The three problems to solve before writing any toggle:**
+
+1. **A toggle is not an erase, and must not be.** Turning marriage off while the player IS married cannot
+   unmake the marriage: the save holds it, other systems reference it (jealousy, bastards, succession,
+   grudges), and stripping it would leave dangling references across the ledger. The contract has to be
+   "stop GENERATING new ones, honour what exists". That has to be stated once and applied uniformly, or every
+   pillar will answer it differently and the player will not be able to predict any of them.
+2. **Exposing a threshold changes the tested layer.** 63 constants are already marked TUNE in
+   `CalradiaRemembers.Logic` and they are `const` today, which is what makes the pure policies pure. Making
+   them player-editable means threading a settings carrier into those policies. Doable and still testable
+   (pass the value, test the boundary), but it is a broad, mechanical refactor and the tests that pin
+   boundaries by literal number will need to pin them by the injected value instead.
+3. **Player-facing dial or modder-facing JSON?** Not every knob belongs in MCM. The project already puts
+   `jealousy_cultures.json` and the narrative files in editable JSON precisely so a total conversion can
+   change them without a recompile. A rough split to ratify: MCM for what a player tunes to taste (frequency,
+   severity, on/off), JSON for what a MODDER redefines (catalogues, cultural rules, vocabularies). Putting a
+   catalogue in MCM would be unusable; putting a frequency in JSON would be unfindable.
+
+**Also worth deciding:** a toggled-off pillar should stop costing TOKENS too, not merely stop firing. Most
+pillars own a prompt section, so an off switch that still ships its teaching text is a silent tax on every
+request. The `LeanPromptPolicy` seam already gates sections by level and is the natural place.
+
+**Not scoped yet.** Needs a pass to enumerate the actual pillar list and, for each, which thresholds are worth
+exposing (most of the 63 are not: an internal cooldown nobody can reason about is noise in a menu).
+
 ## NEXT PILLAR (near-term): the ASSEMBLY (multi-party gatherings)
 
 Ratified with Gabriel 2026-07-10. NOT started yet, scheduled "very soon". A player (or a lord) convenes an
