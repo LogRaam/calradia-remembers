@@ -1,0 +1,62 @@
+[size=4]v1.31.0.. the stabilization release[/size]
+
+Six systematic audits (how characters perceive you, letters and couriers, romance and marriage, the adult prompts, the council groundwork, and the test suite itself) plus the bug reports you sent in.
+
+[b]Your saves carry over untouched.[/b] Everything here loads an existing campaign as it stands, and several fixes actively repair damage an older version left behind (frozen grievances, a marriage a character had stopped recognising).
+
+[size=3][b]New[/b][/size]
+[list]
+[*][b]Characters now set the scene.[/b] The first reply of a conversation opens with a short passage of narration in its own colour: where you are standing, the light, the sound of the room around you. After that it becomes occasional, appearing when a moment earns it rather than every turn. A character's own gestures stay woven into their speech, where they belong.
+[*][b]A conversation that ends now says so[/b], instead of the window quietly going dead.
+[/list]
+
+[size=3][b]Bugs you reported[/b][/size]
+[list]
+[*][b]A faction leader could think you ruled their kingdom.[/b] After you swore to a realm, its ruler could be told that YOU were the one they served, and would deny their own throne while calling you "my liege".
+[*][b]Meeting a lord at sea hung the game on an endless loading screen.[/b] Lords now wait until you are ashore, and a chase that follows you to sea stands down.
+[*][b]A character could fail to recognise being married to you.[/b] Existing saves are healed on load.
+[*][b]Asking a lord to hand over a prisoner set that prisoner free instead.[/b]
+[*][b]Couriers could not leave islands[/b], starved on long journeys (reported to you as a bandit ambush that never happened), or delivered letters written by the dead.
+[*][b]Lords misjudged the force you lead[/b], counting an army you merely travelled inside as your own.
+[*][b]Characters recited the game's plumbing.[/b] Some models answer with a function call instead of the format the mod teaches; nothing read it, so the regard never moved, and nothing removed it, so the character said it out loud. Both halves are fixed.
+[*][b]An endless procession of lords who never speak.[/b] If a meeting's conversation failed to start, the mod waited for it forever, and that wait blocked every later meeting.
+[/list]
+
+[size=3][b]Letters and couriers[/b][/size]
+[list]
+[*]A letter could be received and never shown to you, then lost for good.
+[*]The letter window could trap you with no way out but closing the game.
+[*]The 500-denar fee is charged only when the letter is truly on its way, with an honest message when your recipient cannot be reached.
+[*]One waylaid letter no longer silences a correspondent for a fortnight, and a reply that lost its courier still reaches you.
+[*]"Your silence weighs on me" no longer arrives the day after you replied.
+[*]A child-support demand can no longer be lost forever if the service was unreachable at the birth.
+[*]An active romance no longer starves your spouse, follow-up and marriage letters.
+[/list]
+
+[size=3][b]Romance, marriage and family[/b][/size]
+[list]
+[*]A marriage no longer resets on reload, and a divorce demand no longer soft-locks.
+[*]Marriage is refused across a war or with a captive; whoever blesses it must be alive, free, at peace and not hostile to you.
+[*]A betrayal now wounds a bond rather than ending it outright, leaving room to repair what you broke.
+[*]Jealousy is more discerning: a close relative is no longer a rival suitor, and a captive sends no threats.
+[*]A child born inside your own clan is an open child of the house, not a scandal to conceal.
+[/list]
+
+[size=3][b]How characters see you[/b][/size]
+[list]
+[*][b]Riding alone now means riding alone.[/b] A party of one counts you yourself, and that was being reported as "a handful of companions ride with them", so characters spoke, and narrated, as though you had an escort you did not have.
+[*][b]Eye colour is described correctly again.[/b] Amber eyes were being called green, and the whole middle of the range was off by a similar margin. The table was rebuilt from eighteen measured samples.
+[*][b]A tavern is now a tavern[/b], not a keep.
+[*]Hired swords are no longer mistaken for sworn vassals, mercenaries you employ know they are paid rather than sworn, and lords of your own kingdom know you serve the same crown.
+[*]Whoever broke your captivity open is remembered for it, and the account stays honest: you got yourself out, and they are the reason you could.
+[*]A grievance can be mended again. One could quietly harden to the level reserved for having your kin executed, which nothing could ever resolve; lords frozen that way are healed when you load.
+[*]Warmth is withheld when trust has collapsed, standing earned once drifts slowly back toward neutral, and a lasting enmity stops mailing you the identical threat.
+[/list]
+
+[size=3][b]Under the surface[/b][/size]
+[list]
+[*]The intimacy threshold is now enforced rather than merely stated, and it follows your Relationship Pacing setting.. a Grounded campaign keeps exactly the behaviour it had.
+[*]The adult-content setting has the last word on which model is used: with adult content off, nothing can silently move you onto the NSFW model. A captive scene is no longer treated as a sexual one by default.
+[*]The "Mode" button now reads "Model", which is all it ever changed.
+[*]A background task could abort a day's letter handling halfway through, with a risk to your save. All of it is now handed back to the main thread.
+[/list]
