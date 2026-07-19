@@ -2,9 +2,162 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## Unreleased
+## v1.31.0.. 2026-07-19
 
-### Fixed
+The stabilization release. Six systematic audits (how NPCs perceive you, couriers, romance and
+marriage, adult prompts, the council groundwork, and the test architecture itself) plus the bug reports
+you sent in. Your saves carry over untouched: everything here loads an existing campaign as it stands.
+
+### Added
+- **Characters now set the scene.** The first reply of every conversation opens with a short passage of
+  narration, shown in its own colour: where you are standing, the light, the sound of the room around
+  you. After that opening it becomes occasional, appearing when the moment earns it rather than every
+  turn. An NPC's own gestures stay woven into their speech where they belong.
+- **A conversation that ends now says so.** When a character takes their leave, a line tells you plainly
+  instead of the window simply going quiet.
+
+### Fixed: letters and couriers
+- **A letter could be received and never shown to you, then lost for good.** If a letter arrived while
+  another was already open on screen, it was marked as read without ever being displayed and then filtered
+  out forever. It now waits its turn and arrives properly.
+- **The letter window could trap you with no way out but closing the game.** A failed window is now rolled
+  back instead of leaving a blank panel holding your input and freezing time.
+- **Couriers starved on long journeys, and the mod blamed bandits.** They carry provisions now, and you no
+  longer hear tales of a waylaying that never happened.
+- **Letters from the dead are no longer delivered.** A hero who died before their letter arrived no longer
+  writes to you from beyond the grave, nor sends replies.
+- **The 500-denar courier fee is charged only when the letter is truly on its way,** with an honest
+  message when your recipient cannot be reached, instead of a cheerful "your courier departs" and no
+  letter.
+- **One waylaid letter no longer silences a correspondent for a fortnight.** A lost letter was still
+  counted as in transit, so the sender waited on a delivery date that would never come.
+- **A reply that lost its courier now still reaches you.** Orphaned reply couriers are released so the
+  letter arrives by the ordinary route rather than hanging forever.
+- **"Your silence weighs on me" no longer arrives the day after you replied.** Romantic follow-ups are
+  measured from when a letter actually reached you, not from the day it was due.
+- **A letter for someone at sea now waits for landfall** instead of counting as delivered to open water,
+  and the courier resumes the chase when they make port.
+- **A child-support demand can no longer be lost forever.** If the service was unreachable at the moment
+  of the birth, the pension letter (and its quest) used to vanish permanently; it is now scheduled and
+  retried.
+- **An active romance no longer starves the rest of your mail.** Spouse, follow-up and marriage letters
+  were being crowded out indefinitely; the four kinds now take turns.
+- **A courier who reached a town or port is not ambushed inside it.**
+
+### Fixed: romance, marriage and family
+- **A character now recognises being married to you.** A new spouse was not pinned as committed, so the
+  bond could read as though the marriage had not happened. Existing saves are healed on load.
+- **A marriage no longer resets on reload.** Romantic state (status, attraction, secret-lover and consort
+  flags) survives a profile refresh instead of quietly reverting.
+- **A divorce demand no longer soft-locks.** A lost or failed letter re-announces and then forces a
+  notice, rather than leaving the process silently stuck; persuading both spouses opens one process, not
+  two; a pregnancy or captivity defers it without penalty instead of retrying forever.
+- **Marriage is refused across a war or with a captive,** and whoever blesses it must be alive, free, at
+  peace, and not hostile to you. Stale approvals are swept when you load.
+- **A betrayal now wounds a bond rather than ending it outright,** leaving room to repair what you broke.
+- **Jealousy is more discerning:** a close relative is no longer treated as a rival suitor, neglect counts
+  only genuine attention, a captive sends no threats, and a marriage always registers with anyone who had
+  a stake.
+- **Bastard handling corrected:** a child born inside your own clan is an open child of the house rather
+  than a scandal to conceal, a posthumous child of a marriage is not tagged a bastard, marrying the other
+  parent legitimates a concealed child, and you can no longer blackmail yourself.
+- **An adulterous conception is no longer announced to the world** as public news.
+
+### Fixed: conversations and how characters see you
+- **Characters no longer recite the game's plumbing.** Some models answer with a function call, `{"name":
+  "change_relation", ...}`, instead of the format the mod teaches. Nothing read it, so the regard never
+  moved, and nothing removed it, so the character said it out loud. Both halves are fixed: the intent is now
+  honoured (still capped and rate-limited as always) and the raw text never reaches the conversation.
+- **No more endless procession of lords who never speak.** If a meeting's conversation failed to start, the
+  mod waited for it forever, and that wait blocked every later meeting: lord after lord would ride up to you
+  and nothing would happen. The failure is now detected the moment it happens, and the conversation opens
+  directly instead.
+- **A ruler no longer mistakes you for their own liege.** After you swore to a kingdom, its ruler could
+  be told that YOU were the one they served, and would talk accordingly: denying their own throne,
+  speaking of their title as if it belonged to somebody else, and calling you "my liege" while
+  correctly noting you had only just taken your oath. Reported with the Aserai.
+- **Meeting a lord at sea no longer hangs on an endless loading screen.** A lord who rode out to find
+  you could reach you while you were sailing, and the game asked for a conversation scene on open water,
+  where there is none. Lords now wait until you are ashore, and a chase that follows you out to sea
+  stands down instead. Two reports.
+- **Hired swords are no longer mistaken for sworn vassals.** Under a mercenary contract your clan was
+  described to that kingdom's lords as oath-bound to them. They now know the difference: you fight for
+  pay, the contract ends, and no loyalty is owed.
+- **Lords of your own kingdom now know you serve the same crown.** Two vassals of one realm, neither
+  ruling the other, previously met with nothing said about the bond at all.
+- **Mercenaries you employ know they are paid, not sworn.** When your own realm hires a clan, its lords
+  were told you were their liege.
+- **Riding alone now means riding alone.** A party of one counts you yourself, and that was being reported
+  to characters as "a handful of companions ride with them", so they spoke, and narrated, as though you had
+  an escort you did not have. Your solitude is now stated plainly instead of left unsaid, and characters are
+  told not to furnish you with riders, guards or servants.
+- **Lords now judge the force you actually lead.** An army you merely travel inside is not your host,
+  and a captive commands nothing; both used to colour how a lord sized you up.
+- **Asking a lord to hand over a prisoner no longer sets that prisoner free.** Freeing someone and
+  transferring them into your custody had become the same request.
+- **Couriers no longer strand themselves.** A letter is not sent when no road exists between sender and
+  recipient (across water, for instance), a courier whose route becomes impossible turns back, a letter
+  is never delivered at sea but waits for your first day ashore, and one sender keeps one courier in
+  flight at a time.
+- **A character can no longer celebrate something the game refused.** When an action is declined (a
+  marriage that cannot happen, a transfer that is not allowed), the refusal now reaches the character,
+  who used to carry on as though it had gone through and call you "husband" the following turn.
+- **Whoever broke your captivity open is now remembered for it.** When a lord fell upon the band holding
+  you and you slipped away in the confusion, the world recorded only that you "won free of captivity",
+  naming nobody. Thank him for it and he would answer, quite correctly, that you had freed yourself.
+- **A character can now tell when a claim about rank is wrong.** The note that places you also names who
+  rules which realm, so a ruler told something that contradicts their own title has the facts in hand
+  instead of inventing a way to reconcile it.
+- **Characters describe eye colour correctly again.** The Empress Rhagaea's amber eyes were being called
+  green, and every face in the middle of the range was off by roughly the same margin: greys were called
+  deep blue, and the greens ran too late. The table was rebuilt from eighteen measured samples across the
+  full range.
+- **A tavern is now a tavern.** Conversations inside a town were described as taking place in a keep,
+  because in Bannerlord a town counts as a fortification and that check came first.
+- **A grievance can be mended again.** A grudge could quietly saturate to the level reserved for having
+  someone's kin put to death, which no living path can ever resolve: never forgiven, never fading, every
+  gesture refused. Lords already frozen this way are healed when you load your save.
+- **Grudges no longer pile up forever.** Grievances held by or against someone who has died are now
+  retired instead of accumulating in your save for the rest of the campaign.
+- **A hidden grievance can be discovered and then mended.** Softening one now brings it into the open,
+  which unblocks the whole path from hidden, to known, to settled.
+- **A character no longer greets you warmly while distrusting you.** Warmth is withheld when trust has
+  collapsed, and a live vendetta forces a cold greeting whatever the relationship number says.
+- **Standing earned once no longer lasts forever.** Trust and respect drift slowly back toward neutral,
+  and any deed renews them in full.
+- **The same threat is no longer mailed to you repeatedly.** A lasting enmity rotates its letters.
+- **Repeated gifts no longer stack identical lines** in what a character knows about you.
+- **A completed task's reward no longer silences a warm conversation.** Turning in a quest used to
+  consume the conversational goodwill timer for the next several hours.
+- **The intimacy threshold is now enforced rather than merely stated.** A persistent player could argue
+  past a bar that nothing checked. It follows your Relationship Pacing setting, so a Grounded campaign
+  keeps exactly the behaviour it had.
+- **The adult-content setting has the last word on which model is used.** With adult content off, an
+  automatic switch could still move you onto the NSFW model, changing your cost and your filtering with
+  no visible button. A captive scene is also no longer treated as a sexual one by default: an
+  interrogation or a reckoning is not.
+- **The model switch button now reads "Model" rather than "Mode",** which is all it ever changed.
+- **Characters repeat themselves less** (a small generation adjustment), and a scene's narration is now
+  replayed to the character as their own words, so a long scene no longer teaches them that YOU are the
+  one narrating it.
+- **A witness who is not in the room can no longer speak.** An invented bystander used to be shown,
+  logged, and then remembered, so the invention fed itself for the rest of the conversation.
+- **Saving no longer risks an error from the courier system**, and if one ever occurs the log now says
+  exactly where.
+
+### Fixed: stability
+- **A daily pass could abort halfway through, silently.** Letter generation finished on a background
+  thread and edited the same records the game was reading, which could throw mid-pass (couriers not sent,
+  deliveries skipped that day) and carried a risk of a corrupted save. All of it is now handed back to the
+  main thread, and the profile store is guarded.
+- **A warning at launch when another mod has replaced the party-speed model,** which would silently
+  disable the courier speed floor and leave your letters crawling.
+
+### Changed
+- Internal: the conversation's own record, and the rules that decide what each character is shown, moved
+  into the tested layer. Roughly 2,500 automated tests now cover the mod and its service.
+- Groundwork only, switched off and not yet playable: the council (several characters at one table) and
+  the duel field.
 - **A ruler no longer mistakes you for their own liege.** After you swore to a kingdom, its ruler could be
   told that YOU were the one they served. They would then talk accordingly: denying their own throne,
   speaking of their title as if it belonged to somebody else, and addressing you as "my liege" while

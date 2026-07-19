@@ -251,6 +251,53 @@ first increment rather than shipped hollow.
 
 ---
 
+## PILLAR: DELIBERATE RESCUE (ratified Gabriel 2026-07-18/19): Inc 0 BUILT overnight, PASSIVE, wired to NOTHING
+
+**Where it came from:** a lord fell upon the bandits holding Gabriel's character; she slipped away in the
+confusion of the fight and thanked him for a rescue. It was an accident of vanilla AI, and CR had no part
+in it (the log settled that, after two wrong readings). His call: make it DELIBERATE.
+
+**The three paths, ratified:**
+
+| Path | Trigger | Behaviour |
+|---|---|---|
+| **CR rescue** | explicit, rationed | the lord rides FOR the player; intent is genuinely known |
+| **Vanilla incident** | the AI hunts bandits on its own | the lord DISCOVERS the player was held by that band |
+| **Interception while captive** | CR | **blocked outright** |
+
+The vanilla-incident path is DONE and shipped in v1.31.0 (`CaptivityReleaseNarrator`). The other two are
+the work.
+
+**Gabriel's rules, all of them load-bearing:**
+- The gate is the captivity having been **LIVED** (its event played), NOT a number of days. A rescue that
+  can fire on day one cancels the captivity instead of ending it, and being a prisoner stops costing
+  anything.
+- A lord with **no interest** does not come, and the interception is stopped rather than quietly turned
+  into something it is not.
+- Eligibility is **not** "who likes the player enough". The transcript wrote the rule: that lord framed it
+  as DUTY, not affection. So an honourable stranger is a legitimate rescuer.
+- If the player gets free before the rescuer arrives, he **calls it off**.
+
+**Inc 0 (BUILT 2026-07-19, overnight, wired to NOTHING):** `LordRescueFacts` + `LordRescuePolicy` with 21
+tests. Six motives (Kinship, Devotion, Vendetta, Fealty, Regard, Duty), five hard gates, and the
+abandon rule. The motive is returned beside the verdict on purpose: when CR dispatches the rescuer the
+intent is finally KNOWN, which is the one case where the chronicle may honestly say he came for the player.
+
+**AWAITING GABRIEL'S RATIFICATION (tuning, all flagged in code):**
+- `RegardRidesThreshold = 25` (personal regard at which a lord rides for the player's own sake)
+- `DutyHonorThreshold = 1` and `DutyMercyThreshold = 2` (kept as SEPARATE paths, not a sum: principle and
+  pity are different reasons and a lord may have either)
+- Scope call to confirm: increment 1 is **bandit captors only**. A lord captor can only be attacked where a
+  war already exists, which is a different rule with a diplomatic consequence.
+
+**Inc 1 (next, needs his eyes, NOT overnight work):** the `IsPrisoner` guard in `InterceptionBehavior`
+becoming the switch (eligible rescue, he rides; otherwise nothing at all), the dispatch itself on the
+proven `AmbushCaptivityBehavior.TryRescueRoll` pattern, and the captivity-event trigger/scene split so the
+"lived" gate exists below Hardcore (today the captive encounter is Hardcore-only, so keying eligibility to
+it as-is would silently make rescue a Hardcore feature). **Also still open: `CalculateProbability` in
+`CaptiveEncounterService` has NO callers, so the documented "15% per day, cap 60%" rationing of the
+captivity event was never actually wired and it fires every day past the first.**
+
 ## NEXT PILLAR: TROOP LOANS (ratified Gabriel 2026-07-18): Inc 0 BUILT, PASSIVE, untested in game
 
 **The report:** Mina gave the player a hideout quest and offered to send some of her men along. Nothing

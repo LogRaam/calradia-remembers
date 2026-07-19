@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
@@ -31,6 +32,27 @@ namespace CalradiaRemembers
          // Re-read colours fresh so the readout reflects the current character (e.g. after editing in the V menu).
          FaceColorReader.ClearCache();
          AppearanceFacts facts = AppearanceFactsExtractor.Extract(player);
+
+         // Calibration on somebody else: "cr.appearance who <name>" reports the colour offsets the reader
+         // derives for that NPC. Added 2026-07-19 because the model called Rhagaea's amber eyes green and
+         // there was no way to tell a mis-classified offset from an invented colour without the number.
+         if (args is {Count: >= 2} && args[0].Equals("who", StringComparison.OrdinalIgnoreCase))
+         {
+            Hero target = ResolveHero(args.Skip(1));
+
+            if (target == null) return $"No hero found matching '{string.Join(" ", args.Skip(1))}'.";
+
+            FaceColorReader.ClearCache();
+            FaceColors tc = FaceColorReader.Read(target);
+            string block = AppearanceComposer.Compose(
+               AppearanceFactsExtractor.Extract(target),
+               AppearanceProseBehavior.Instance.Get(target.StringId),
+               AppearanceVoice.Subject);
+
+            return $"{target.Name} appearance (as another sees them): \"{block}\"\n" +
+                   $"Colour readout (calibration): hair={tc.Hair ?? "?"} (offset {tc.HairOffset:0.00}), " +
+                   $"skin={tc.Skin ?? "?"} (offset {tc.SkinOffset:0.00}), eyes={tc.Eye ?? "?"} (offset {tc.EyeOffset:0.00}, banded).";
+         }
 
          if (args == null || args.Count == 0)
          {

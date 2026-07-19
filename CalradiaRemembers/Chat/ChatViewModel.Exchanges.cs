@@ -523,7 +523,11 @@ namespace CalradiaRemembers.Chat
                playerCoercedAgainstCompanion: IsCaptiveEncounter && _captivePlayerCoerced,
                captiveVictimIsFemale: IsCaptiveEncounter && _captiveVictimIsFemale,
                companionAudience: _audienceReason,
-               audienceRetirementIsLanded: _audienceLanded);
+               audienceRetirementIsLanded: _audienceLanded,
+               // The scene has not been established yet, so this turn sets it (Gabriel 2026-07-19: an
+               // opening narration, then sporadic). Counted BEFORE the exchange increments it, so the very
+               // first reply of a conversation is the one that opens on the room.
+               isConversationOpening: _playerTurnsThisSession == 0);
 
             if (behavior.LlmServices is not {IsAvailable: true})
             {

@@ -34,6 +34,7 @@ using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.Settlements.Locations;
 using TaleWorlds.Core;
 using TaleWorlds.Engine;
 using TaleWorlds.Localization;
@@ -383,13 +384,42 @@ namespace CalradiaRemembers.GameState
          if (settlement == null)
             return SceneType.Outdoor;
 
-         if (settlement.IsCastle || settlement.IsFortification)
+         // The ROOM the player actually stands in outranks the settlement's type: a tavern is a tavern
+         // whether it sits in a town or a castle, and the narration opens on that room (Gabriel 2026-07-19:
+         // talking to a wanderer in a tavern, the scene was set in a keep). Same LocationComplex read the
+         // witness filter already relies on.
+         if (CurrentLocationId() == "tavern") return SceneType.Tavern;
+
+         // ORDER MATTERS, and getting it wrong is what shipped: in Bannerlord a TOWN is also a fortification,
+         // so testing IsFortification first swallowed every town into Keep and left SceneType.Settlement
+         // unreachable for them. Castle first, by its own flag, then the rest.
+         if (settlement.IsCastle)
             return SceneType.Keep;
 
          if (settlement.IsTown || settlement.IsVillage)
             return SceneType.Settlement;
 
+         if (settlement.IsFortification)
+            return SceneType.Keep;
+
          return SceneType.Outdoor;
+      }
+
+      /// <summary>
+      ///   The LocationComplex room the player is assigned to ("tavern", "lordshall", "center"), or null when
+      ///   the complex is unavailable (on the map, mid-transition). Fail-soft: an unknown room simply falls
+      ///   back to the settlement's own type.
+      /// </summary>
+      private static string CurrentLocationId()
+      {
+         try
+         {
+            LocationComplex complex = LocationComplex.Current;
+            if (complex == null || Hero.MainHero == null) return null;
+
+            return complex.GetLocationOfCharacter(Hero.MainHero)?.StringId;
+         }
+         catch { return null; }
       }
 
       /// <summary>True when <paramref name="npc" />'s faction is on the opposite side of an active war from the

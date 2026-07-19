@@ -28,6 +28,23 @@ namespace CalradiaRemembers.Chat
       // the conversation has been live this long. ~1 second at 60 fps.
       private const int FallbackFrames = 60;
 
+      /// <summary>
+      ///   Grace given to <c>OpenMapConversation</c> to register its conversation before we conclude it did
+      ///   nothing. This is NOT a timeout on the scene load: it is the shortest wait that lets a successful
+      ///   call be observed, because a successful one sets <c>Hero.OneToOneConversationHero</c> at once and
+      ///   only then loads a scene. A few frames, not seconds.
+      ///   <para>
+      ///     Player report (Nexus, 2026-07-19): "getting stuck in the loop of someone approaching me, but the
+      ///     dialogue doesn't trigger, so it's an endless chain of them trying to talk to me." The fallback
+      ///     below only runs once a conversation IS active, so a call that started none left the staging armed
+      ///     forever, and because <see cref="IsStaging" /> gates InterceptionBehavior.PlayerIsFreeOnMap,
+      ///     NOTHING could open again: not this meeting, not the next lord's, not a captive scene.
+      ///   </para>
+      /// </summary>
+      private const int ConversationRegistrationFrames = 10;
+
+      private static int _armedFrames;
+
       // Frames to let the conversation scene render after our intercept line fires, so the chat opens over a
       // fully set-up mission screen rather than mid-transition.
       private const int SettleFrames = 3;
@@ -192,6 +209,21 @@ namespace CalradiaRemembers.Chat
          // start line may have won the token. Open anyway after a grace period so the encounter is never lost.
          bool conversationActive = Hero.OneToOneConversationHero != null || Mission.Current != null;
 
+         // The STATE that says the call failed, checked before the conversation-active guard below: a
+         // successful OpenMapConversation registers its conversation immediately and only then loads a
+         // scene, so "the call returned and no conversation exists" IS the failure, not a slow load. React
+         // to that rather than to a stopwatch: it fires in a fraction of a second instead of ten, and it
+         // cannot mistake a slow scene load on a tired machine for a failure, because a slow load has
+         // already set the conversation by this point.
+         if (!conversationActive && ++_armedFrames >= ConversationRegistrationFrames)
+         {
+            ModLog.Error("[STAGE] OpenMapConversation registered no conversation; opening directly so the "
+                       + "staging cannot jam every later meeting.");
+            OpenPending("no conversation was registered");
+
+            return;
+         }
+
          if (!conversationActive) return;
          if (++_fallbackFrames < FallbackFrames) return;
          OpenPending("fallback (intercept line never fired)");
@@ -251,6 +283,7 @@ namespace CalradiaRemembers.Chat
             _lineReached = false;
             _settleFrames = 0;
             _fallbackFrames = 0;
+            _armedFrames = 0;
             Campaign.Current.ConversationManager.OpenMapConversation(playerData, partnerData);
             ModLog.Info($"[{logTag}] conversation started with {partner.StringId}; awaiting the scene to load.");
          }
@@ -299,6 +332,7 @@ namespace CalradiaRemembers.Chat
          _lineReached = false;
          _settleFrames = 0;
          _fallbackFrames = 0;
+         _armedFrames = 0;
 
          try
          {

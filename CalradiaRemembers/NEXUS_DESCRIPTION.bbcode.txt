@@ -271,6 +271,28 @@ Name a kingdom in the text and its people are likeliest to have heard it. This i
 
 [quote]💡 A note on the console: most of the [b]cr.[/b] commands you'll see are developer / regression tests, [b]not gameplay features[/b] (running one won't break anything, but it isn't how you play). The genuinely player-useful ones are the memory commands above, [b]cr.world_event[/b], and the gold/relation cheats. The mod ships a full [b]CONSOLE_COMMANDS_GUIDE.md[/b] (in the CalradiaRemembers module folder) that sorts every command into "cheats & player tools" vs "developer tests", with examples.. and in game, [b]cr.help[/b] lists them all.[/quote]
 [line]
+[size=4]What's new in v1.31.0.. the stabilization release[/size]
+
+This one is mostly about making what already exists behave. Six systematic audits (how characters perceive you, letters and couriers, romance and marriage, the adult prompts, the council groundwork, and the test suite itself) plus the bug reports you sent in. [b]Your saves carry over untouched[/b].. everything here loads an existing campaign as it stands, and a few of the fixes actively repair damage an older version left behind.
+
+[b]The one thing you will see immediately:[/b] characters now [b]set the scene[/b]. The first reply of a conversation opens with a short passage of narration in its own colour.. where you are standing, the light, the sound of the room around you. After that opening it becomes occasional, appearing when a moment earns it rather than every turn.
+
+[b]Bugs you reported, now fixed:[/b]
+[list]
+[*]A faction leader could be told that [i]you[/i] ruled their kingdom, and would deny their own throne while calling you "my liege".
+[*]Meeting a lord while sailing hung the game on a loading screen that never resolved.
+[*]A character could fail to recognise being married to you. Existing saves are healed on load.
+[*]Asking a lord to hand over a prisoner set that prisoner free instead.
+[*]Couriers could not leave islands, starved on long journeys (reported to you as a bandit ambush that never happened), or delivered letters written by the dead.
+[*]Lords misjudged the force you lead, counting an army you merely travelled inside as your own.
+[/list]
+
+[b]Also fixed, among many others:[/b] a letter could arrive and never be shown to you, then be lost for good; the letter window could trap you with no way out but closing the game; the courier fee was charged even when the letter never left; one waylaid letter silenced a correspondent for a fortnight; a grievance could harden to the level reserved for having your kin executed, which nothing could ever mend (lords frozen that way are healed when you load); and a background task could abort a day's letter handling halfway through, with a risk to your save.
+
+[b]Under the surface:[/b] the intimacy threshold is now enforced rather than merely stated, and it follows your Relationship Pacing setting.. a Grounded campaign keeps exactly the behaviour it had. The adult-content setting now has the last word on which model is used: with adult content off, nothing can silently move you onto the NSFW model.
+
+Full details are in the changelog.
+
 [size=4]Where the mod is at[/size]
 
 Calradia Remembers is young and moving fast. The core loop is solid, but it is not seamless yet: now and then the AI records something wrong and you will want the console commands above to fix a memory, and rough edges do surface. If you enjoy being part of a mod's formative stage.. updates ship quickly and player feedback genuinely shapes the design.. you will feel at home. If you would rather wait for a fully polished experience, watch this page and come back soon.

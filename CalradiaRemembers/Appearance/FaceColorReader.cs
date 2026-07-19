@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.MountAndBlade;
@@ -149,26 +150,12 @@ namespace CalradiaRemembers.Appearance
         }
 
         /// <summary>
-        ///   A plain eye-colour word (the composer appends " eyes"), banded from the raw 0..1 offset. There is no
-        ///   eye-colour palette in the engine to resolve a true RGB, so the bands were CALIBRATED empirically
-        ///   (2026-07-07) against the face editor's Eye Color slider across its full travel: the ramp runs
-        ///   blue (pale to deep) -> pale steel grey -> green (pale to deep) -> hazel -> dark brown, each gamut
-        ///   blending into the next. Screenshots anchored: ~0.00 pale grey-blue, ~0.10 blue, ~0.25 deep blue,
-        ///   ~0.35 pale grey, ~0.50 green, ~0.65 deep green, ~0.80 hazel, ~1.00 near-black brown.
+        ///   A plain eye-colour word (the composer appends " eyes"), banded from the raw 0..1 offset. There is
+        ///   no eye-colour palette in the engine to resolve a true RGB, so the bands are calibrated against
+        ///   photographs of the face editor's slider. The table itself lives in
+        ///   <see cref="EyeColorBands" /> so it can be tested: it sat here, private and in net472, while it
+        ///   drifted far enough to call Rhagaea's amber eyes green.
         /// </summary>
-        private static string ClassifyEye(float offset)
-        {
-            if (offset < 0) return null;
-
-            if (offset < 0.05f) return "grey-blue";
-            if (offset < 0.20f) return "blue";
-            if (offset < 0.30f) return "deep blue";
-            if (offset < 0.44f) return "grey";
-            if (offset < 0.60f) return "green";
-            if (offset < 0.72f) return "deep green";
-            if (offset < 0.88f) return "hazel";
-
-            return "dark brown";
-        }
+        private static string ClassifyEye(float offset) => EyeColorBands.Describe(offset);
     }
 }
