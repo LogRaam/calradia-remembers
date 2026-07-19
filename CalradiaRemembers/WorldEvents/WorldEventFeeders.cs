@@ -38,6 +38,18 @@ namespace CalradiaRemembers.WorldEvents
       private const int RivalryThreshold = -30; // mutual relation at/below = bitter rivals
 
       private readonly Dictionary<string, int> _rivalryGossipDay = new();
+
+      // The party that held the player when a battle set them loose. Buffered because the engine reports the
+      // release BEFORE the map event that caused it, so the liberator is not knowable yet at release time
+      // (the same ordering RescueBehavior relies on). Cleared by the next map event either way: resolved
+      // into a named liberator, or flushed as the anonymous wording, because losing the chronicle entry
+      // outright would be worse than keeping it nameless.
+      private PartyBase _pendingPlayerCaptor;
+      private bool _playerReleaseAwaitingBattle;
+
+      // The player got out DURING the fight rather than being cut loose by its winner, which is what the
+      // engine reports for "you slipped away in the confusion". Changes the wording, not the credit.
+      private bool _playerBrokeFree;
       private static string PlayerName => Hero.MainHero?.Name?.ToString() ?? "the player";
 
       private static WorldEventStore Store => WorldEventStore.Instance;
@@ -256,6 +268,10 @@ namespace CalradiaRemembers.WorldEvents
          try
          {
             if (mapEvent.WinningSide == BattleSideEnum.None) return;
+
+            // Before the notability gate: a lord riding down a bandit band never clears it, and that is
+            // exactly the battle that frees a captive player.
+            ResolvePendingPlayerRelease(mapEvent);
 
             bool playerAttacker = mapEvent.AttackerSide?.IsMainPartyAmongParties() == true;
             bool playerDefender = mapEvent.DefenderSide?.IsMainPartyAmongParties() == true;
@@ -660,22 +676,98 @@ namespace CalradiaRemembers.WorldEvents
       {
          if (prisoner != Hero.MainHero || Store == null) return;
          if (detail == EndCaptivityDetail.Death) return; // no chronicle for this — nothing to come back to
+
+         // Somebody fell upon the captors, so the chronicle must be able to say who. Gating this on
+         // ReleasedAfterBattle alone was WRONG and missed the common case (Gabriel, 2026-07-18): a lord
+         // engaged the band holding him, the game offered him the confusion of the fight, and the engine
+         // reported a plain ESCAPE. The attacker still caused it. So the real signal is that the captors
+         // are IN a battle at the moment the player gets out, whatever label the engine puts on it.
+         bool captorInBattle = party?.MapEvent != null;
+
+         if (detail == EndCaptivityDetail.ReleasedAfterBattle || captorInBattle)
+         {
+            _pendingPlayerCaptor = party;
+            _playerReleaseAwaitingBattle = true;
+            // An escape during the fight is not the winner cutting the player loose, and the wording says so.
+            _playerBrokeFree = detail != EndCaptivityDetail.ReleasedAfterBattle;
+
+            return;
+         }
+
+         RecordPlayerFreed(null);
+      }
+
+      /// <summary>
+      ///   Writes the end of the player's captivity. <paramref name="liberator" /> null keeps the original
+      ///   "won free" wording, which is right for an escape or a ransom and is the honest fallback when a
+      ///   battle freed the player but no leader could be named.
+      /// </summary>
+      private void RecordPlayerFreed(Hero liberator, bool brokeFree = false)
+      {
          try
          {
             string pronoun = Hero.MainHero.IsFemale ? "her" : "his";
+            string liberatorName = liberator?.Name?.ToString();
             Store.Record(new WorldEvent {
                Type = WorldEventType.PlayerFeat,
                Day = Today,
                Magnitude = 45,
                InvolvesPlayer = true,
                Status = "player_freed",
-               Summary = $"{PlayerName} won free of captivity.",
-               ActorIds = Ids(Hero.MainHero),
-               FactionIds = FactionIds(Hero.MainHero),
-               ChronicleLine = $"after captivity, {PlayerName} won free again, and came back to {pronoun} own"
+               Summary = CaptivityReleaseNarrator.Summary(PlayerName, liberatorName, brokeFree),
+               // The liberator joins the actors so the deed reaches THEM: this is the whole point of naming
+               // them, and it is what stops a lord denying a rescue the player is thanking him for.
+               ActorIds = liberator != null
+                  ? Ids(Hero.MainHero, liberator)
+                  : Ids(Hero.MainHero),
+               FactionIds = liberator != null
+                  ? FactionIds(Hero.MainHero, liberator)
+                  : FactionIds(Hero.MainHero),
+               ChronicleLine = CaptivityReleaseNarrator.ChronicleLine(PlayerName, pronoun, liberatorName, brokeFree)
             });
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] prisoner-released feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Resolves a buffered "freed by battle" against the map event that caused it. Runs BEFORE the
+      ///   notability gate below on purpose: a lord riding down a bandit band is never a notable battle, and
+      ///   that is precisely the case this exists for.
+      /// </summary>
+      private void ResolvePendingPlayerRelease(MapEvent mapEvent)
+      {
+         if (!_playerReleaseAwaitingBattle) return;
+
+         try
+         {
+            BattleSideEnum losing = mapEvent.WinningSide == BattleSideEnum.Attacker
+               ? BattleSideEnum.Defender
+               : BattleSideEnum.Attacker;
+
+            // The captors merely have to be IN this battle, on either side: the player slipping away in the
+            // confusion is caused by the attack itself, not by who eventually won it.
+            Hero winner = SideLeader(mapEvent, mapEvent.WinningSide);
+            bool captorEngaged = _pendingPlayerCaptor != null
+                              && (mapEvent.PartiesOnSide(losing).Any(p => p.Party == _pendingPlayerCaptor)
+                               || mapEvent.PartiesOnSide(mapEvent.WinningSide).Any(p => p.Party == _pendingPlayerCaptor));
+
+            RecordPlayerFreed(CaptivityReleaseNarrator.CreditsLiberator(
+                                 captorEngaged, winner != null, winner != null && winner == _pendingPlayerCaptor?.LeaderHero)
+                                 ? winner
+                                 : null,
+                              _playerBrokeFree);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[WORLD] player-release resolve failed: {ex.GetType().Name}: {ex.Message}");
+            RecordPlayerFreed(null); // never lose the entry
+         }
+         finally
+         {
+            _playerReleaseAwaitingBattle = false;
+            _pendingPlayerCaptor = null;
+            _playerBrokeFree = false;
+         }
       }
 
       private static WorldEvent LastChronicleEntry()

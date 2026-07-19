@@ -1072,6 +1072,25 @@ namespace CalradiaRemembers.Chat
       ///   Adds a system notification line to the chat (relation change, gold
       ///   transfer). Color-coded by whether the outcome favors the player.
       /// </summary>
+      /// <summary>
+      ///   A neutral out-of-character notice, for a state change the player must SEE rather than infer.
+      ///   Distinct from <see cref="AppendSystemMessage" />, whose green/red both carry a verdict: a
+      ///   cordial parting is neither a gain nor a loss, and red would read as a rebuff.
+      /// </summary>
+      public void AppendSystemNotice(string text)
+      {
+         if (string.IsNullOrWhiteSpace(text)) return;
+         try
+         {
+            _messages.Add(new ChatMessageViewModel(text, OocColor));
+            ChatManager.ScrollToBottom();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"AppendSystemNotice threw {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
       public void AppendSystemMessage(string text, bool isPositive)
       {
          if (string.IsNullOrWhiteSpace(text)) return;

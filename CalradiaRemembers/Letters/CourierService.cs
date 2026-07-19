@@ -330,7 +330,9 @@ namespace CalradiaRemembers.Letters
          {
             NpcProfile profile = store.Get(id);
 
-            PlayerLetter letter = profile?.ReceivedPlayerLetters.FirstOrDefault(l => l.CourierPartyId == partyId && !l.IsDelivered && !l.IsLost);
+            // Both links need the null-conditional: "profile?.List.First()" guards the profile and then
+            // dereferences the list regardless, which is the shape that crashes on a save whose list is null.
+            PlayerLetter letter = profile?.ReceivedPlayerLetters?.FirstOrDefault(l => l.CourierPartyId == partyId && !l.IsDelivered && !l.IsLost);
 
             if (letter == null) continue;
 
@@ -474,7 +476,11 @@ namespace CalradiaRemembers.Letters
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[COURIER] RespawnInFlight failed — couriers left to date-based delivery, save unaffected. {ex.GetType().Name}: {ex.Message}");
+            // The stack trace matters more here than anywhere else: this catch protects a SAVE, so it must
+            // swallow everything, and a bare type+message ("NullReferenceException: Object reference not set")
+            // says nothing about which of the dozen dereferences in this pass gave way. Gabriel hit exactly
+            // that on 2026-07-18 and the report could not be localised from the log alone.
+            ModLog.Error($"[COURIER] RespawnInFlight failed, couriers left to date-based delivery, save unaffected. {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
          }
 
          DespawnPositions.Clear();

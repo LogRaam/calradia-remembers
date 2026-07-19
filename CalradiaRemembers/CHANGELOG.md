@@ -2,6 +2,34 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## Unreleased
+
+### Fixed
+- **A ruler no longer mistakes you for their own liege.** After you swore to a kingdom, its ruler could be
+  told that YOU were the one they served. They would then talk accordingly: denying their own throne,
+  speaking of their title as if it belonged to somebody else, and addressing you as "my liege" while
+  correctly noting you had only just taken your oath. The two directions of the bond were reversed, so a
+  king read as a vassal and a vassal as a king. Reported by JoshGray700 with the Aserai.
+- **A character can now tell when a claim about rank is wrong.** The note that places you now also names who
+  rules which realm, so a ruler told something that contradicts their own title has the facts in hand instead
+  of inventing a way to reconcile it.
+- **Whoever broke your captivity open is now remembered for it.** When a lord fell upon the band holding
+  you and you slipped away in the confusion of the fight, the world recorded only that you "won free of
+  captivity", naming nobody. Thank him for it and he would answer, quite correctly, that you had freed
+  yourself. The chronicle now names whoever set upon your captors, and it keeps the distinction honest: it
+  says you got yourself out, and that he is the reason you could. An escape or a ransom with no one else
+  involved reads exactly as it always did.
+- **Hired swords are no longer mistaken for sworn vassals.** While under a mercenary contract, your clan was
+  described to that kingdom's lords as oath-bound to them. They now know the difference: you fight for pay,
+  the contract ends, and no loyalty is owed. Expect a ruler to weigh your word accordingly.
+- **Lords of your own kingdom now know you serve the same crown.** Two vassals of one realm, neither ruling
+  the other, previously met with nothing said about the bond at all, so a comrade sworn to the same king
+  treated you as a stranger of no particular standing.
+- **Mercenaries you employ know they are paid, not sworn.** When your own realm hires a clan, its lords were
+  told you were their liege. They now treat you as a paymaster whose contract runs out, which is a rather
+  different conversation. A hired band serving a realm you merely belong to is likewise no longer greeted as
+  a sworn comrade.
+
 ## v1.30.16.. 2026-07-15
 
 ### Fixed

@@ -123,6 +123,7 @@ namespace CalradiaRemembers.Mapping
 
          return new() {
             PlayerStatus = playerStatus,
+            SharedRealmName = bridge.GetSharedRealmName(hero),
             WarStatus = bridge.GetDiplomaticStatus(hero),
             DaysSinceLastMeeting = daysSinceLastMeeting,
             MeetingGapNote = PresenceDescriber.ShowsElapsedGap(presence)

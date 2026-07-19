@@ -33,6 +33,14 @@ namespace CalradiaRemembers.GameState
         /// <summary>The player's structural standing vis-à-vis this NPC (free, captive, vassal, etc.).</summary>
         PlayerStatusVsNpc GetPlayerStatus(Hero npc);
 
+        /// <summary>
+        ///   The realm binding the two when one of them RULES it, which grounds the feudal note in the
+        ///   prompt. Null when neither rules the other's kingdom. Lives beside
+        ///   <see cref="GetPlayerStatus" /> on purpose: resolving it in the caller instead would duplicate
+        ///   the "who rules whose realm" test that the two of them share.
+        /// </summary>
+        string GetSharedRealmName(Hero npc);
+
         /// <summary>The kind of scene the player is currently in (outdoor, settlement, keep, etc.).</summary>
         SceneType GetCurrentScene();
 

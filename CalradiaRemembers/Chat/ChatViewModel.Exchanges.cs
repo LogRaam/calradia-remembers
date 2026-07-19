@@ -1065,6 +1065,12 @@ namespace CalradiaRemembers.Chat
                IsPrivateRequestVisible = false;
                CloseButtonText = "Leave";
                OnPropertyChanged(nameof(IsOfferItemVisible));
+               // The lock used to be silent, on the reasoning that the NPC had just said goodbye in
+               // character. In play it reads as the chat going dead: Gabriel reported having to leave a
+               // conversation Mina HAD already closed (2026-07-18), because a greyed input and a changed
+               // button caption are easy to miss at the end of a long reply. An explicit parting NOTICE
+               // (never the red loss colour: she took her leave, she did not rebuff him) states it.
+               AppendSystemNotice($"{profile.Name} has taken their leave. You may close the conversation.");
                ModLog.Info("[CONVERSATION] farewell event — input locked.");
             }
 

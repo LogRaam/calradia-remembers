@@ -251,6 +251,41 @@ first increment rather than shipped hollow.
 
 ---
 
+## NEXT PILLAR: TROOP LOANS (ratified Gabriel 2026-07-18): Inc 0 BUILT, PASSIVE, untested in game
+
+**The report:** Mina gave the player a hideout quest and offered to send some of her men along. Nothing
+happened. `lend_troops` was never eligible (it wants relation >= 20; she was a stranger at 0), so the offer
+was pure fiction, and the anti-empty-promise rule did not catch it because the promise rode in the QUEST
+TEXT, which no rule polices.
+
+**What scoping it turned up, and it is the bigger fault:** `lend_troops` calls `MoveLowestTierTroops` one
+way and keeps NO ledger. What the verb calls a loan has always been a permanent GIFT. A player repeating it
+every 14 days (the cooldown) accumulates free soldiers for life.
+
+**The design, every boundary Gabriel's call:**
+
+- **A LOAN is bound to a quest.** No quest means no way to know when the men go home, so that case is a GIFT
+  instead, and a gift keeps no ledger at all. This removes the whole "return after N days" machinery.
+- **Two verbs, and here a second verb IS justified** (the criterion being execution, not gating): a loan
+  comes back and a gift does not. `lend_troops` becomes a true loan; the permanent NPC-to-player gift needs
+  its own verb (`give_troops` is already taken, it is the reciprocal player-to-NPC direction).
+- **Casualties carry NO consequence**, even if every man dies. The quest's own success or failure is the
+  consequence; the lender does not also grieve the arithmetic. Whatever survives goes back.
+- **The loan closes when the DEED is done** (the hideout falls), NOT when the player walks back to collect
+  the reward. That is exactly `InformalQuest.IsOutstanding` going false, a distinction the model already
+  documents ("an Active quest can already be satisfied and awaiting the player's report back").
+- **Every resolution returns them, not just success.** If the men only came home on success, FAILING a quest
+  would be the way to keep them permanently. Same flag covers expired, abandoned and cancelled, with no
+  penalty attached.
+- The men leave silently, with a message telling the player they are returning to their banner.
+
+**Inc 0 (BUILT 2026-07-18, wired to NOTHING):** SDK `TroopLoan` + `NpcProfile.TroopLoans` (additive, an old
+save loads empty, migration test first-class); pure `TroopLoanPolicy` (`ShouldReturn`, `ReturnableCounts`,
+`LoansToReturn`) with 11 tests. `lend_troops` keeps its current behaviour until Inc 1.
+
+**Inc 1:** wire the quest escort (its own gate, LOWER than relation 20 since the task is the justification,
+but requiring the quest to exist). **Inc 2:** the gift verb, and retro-fit `lend_troops` onto the ledger.
+
 ## TEST ARCHITECTURE RATIFIED (Gabriel 2026-07-18): three lanes, and what each is actually for
 
 Born from a cost question ("can cr.testall be shortened by removing redundancy?") whose premise turned out to
@@ -308,6 +343,68 @@ in log", i.e. a human reading the transcript. They are prompt-iteration TOOLS, n
 - Keep ONE captor variant in the sweep as a canary for total generation failure (which is exactly what
   `chat_captor_scene` caught on 2026-07-18: an empty beat 2 after the client's own retry).
 - The mechanism is half-built already: `SelfTest.CallsLlm`, `cr.test chat`, `cr.test mech` all exist.
+
+### The lane B thesis, proven by a shipped bug (2026-07-18)
+
+`BannerlordGameStateBridge.GetPlayerStatus` mapped engine state to `PlayerStatusVsNpc` with **vassal and
+liege inverted**, and it reached a player (JoshGray700, Nexus, v1.30.16, Grok low reasoning). The Aserai
+Sultan was told "The player is your liege lord.", and played it straight: he denied being Sultan, invented a
+third-party Sultan to reconcile the clash with his own "Holds royal authority over a kingdom." rank line, and
+called his brand-new vassal "my liege".
+
+Three lessons, all of which the architecture above had already predicted:
+
+1. **The naming trap.** `PlayerStatusVsNpc` describes THE PLAYER's standing. Read from the call site's own
+   point of view ("this NPC is my liege") the values look swapped. The bridge's comment said "Player is a
+   vassal" and the line beneath it returned `Liege`. A comment is not a test.
+2. **Test the CHAIN, not the enum.** A test asserting `Resolve(...) == PlayerStatusVsNpc.Liege` would have
+   restated the convention rather than checked it, and would have declared the bug correct, exactly as the
+   grudge saturation tests did. `PlayerStandingPolicyTests` therefore asserts the **rendered sentence**, the
+   thing the model actually reads.
+3. **A bare conclusion is unfalsifiable.** The prompt asserted a rank the model could not check, while
+   another section contradicted it, and the model resolved the clash the wrong way. The feudal note now
+   states WHO RULES WHAT alongside the verdict (`EncounterContext.SharedRealmName`).
+
+Fixed with the house facts pattern (`AppearanceFacts` / `AppearanceComposer`): `PlayerStandingFacts` (plain,
+engine-agnostic) to `PlayerStandingPolicy` (pure, tested) to prose. `GetPlayerStatus` was the one place that
+had skipped that pipeline and jumped straight from engine state to a conclusion.
+
+**Gabriel's question, and why the answer was not JSON** (2026-07-18): the proposal was to ship raw game state
+as JSON so the prompt could never misrepresent the game. It would NOT have caught this bug: the bridge would
+have emitted `"player_status": "liege"`, the same inverted value, and harder to spot than an absurd English
+sentence. The defect was in the mapping, not the format. Shipping raw facts would also move the derivation
+from lane B (deterministic, free, testable) into the model itself (lane C only), which is the wrong direction
+for a mod that must run on weak, cheap models: multi-hop inference is exactly what they fail at, and this
+report came from Grok low reasoning. The valuable half of the idea (facts, not conclusions) is what the facts
+pattern above already delivers, in tested code. Structured data stays where it belongs: the machine-to-machine
+seams (`VerbFacts`, `ExternalVerbContract`, `ActionRequest`).
+
+**Two further gaps found while fixing it, both now CLOSED (same day):**
+
+- **The mercenary trap, and it was the same bug wearing another hat.** `PlayerStatusVsNpc.Mercenary` was
+  never returned at all, and that was not merely a missing sentence: the engine records a mercenary contract
+  by setting the clan's `Kingdom` exactly as it does for a sworn vassal, so once the fix above was in, a
+  hired-sword player read as an OATH-BOUND vassal to the employing king. CR's own `join_as_mercenary` action
+  creates that state. `PlayerIsMercenaryOfNpcRealm` is therefore asked BEFORE either feudal fact, and the
+  order is load-bearing. The note says pay and not fealty, because everything that follows (no loyalty owed,
+  the contract ends, they may take the enemy's coin next) follows from that.
+- **Fellow vassals rendered as silence.** Two lords of one crown, neither ruling, resolved to `Free`, so the
+  prompt said nothing and a comrade sworn to the same king met the player as a stranger of no standing. New
+  `PlayerStatusVsNpc.SameRealm` (appended last), and the note states equality explicitly ("neither commanding
+  the other") so the model cannot invent a rank between two lords who have none over each other.
+
+**The mirror, also closed the same day, and scoping it turned up TWO situations rather than one:**
+
+- The player's own crown rents this NPC's sword. Reported as `Liege`, claiming a fealty a contract does not
+  buy. New `PlayerStatusVsNpc.Employer` (appended last): paymaster, not liege, and the contract will end.
+- A hired band in a realm the player merely SERVES. This one is subtler and is why the fix needed its own
+  fact rather than a tweak to the liege branch: it would otherwise have fallen through to `SameRealm` and
+  been called a comrade of the same oath. They took the same coin, not the same vow, so the policy
+  deliberately says NOTHING there. Saying nothing beats saying something false.
+
+The whole family now rests on one principle worth keeping: **the engine stores a contract and an oath
+identically, so every status that reads `Clan.Kingdom` must ask about mercenary service FIRST, in both
+directions.** Four of the five bugs in this cluster were that one ambiguity wearing different hats.
 
 ### Extraction backlog (lane B)
 

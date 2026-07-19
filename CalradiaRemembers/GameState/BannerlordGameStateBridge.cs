@@ -426,31 +426,45 @@ namespace CalradiaRemembers.GameState
       }
 
       public PlayerStatusVsNpc GetPlayerStatus(Hero npc)
+         => PlayerStandingPolicy.Resolve(BuildStandingFacts(npc));
+
+      /// <summary>
+      ///   The realm that binds the player and this NPC when one of them rules it, for
+      ///   <see cref="EncounterContext.SharedRealmName" />. Null when neither rules the other's kingdom.
+      /// </summary>
+      public string GetSharedRealmName(Hero npc)
       {
-         if (npc == null || Hero.MainHero == null)
-            return PlayerStatusVsNpc.Unknown;
+         if (npc == null || Hero.MainHero == null) return null;
 
-         // Player is the NPC's captive
-         if (Hero.MainHero.IsPrisoner && Hero.MainHero.PartyBelongedToAsPrisoner?.LeaderHero == npc)
-            return PlayerStatusVsNpc.Captive;
+         // One rule serves every bond the status can report: whoever rules it, and whether the player is
+         // sworn to it or merely hired by it, the realm that grounds the note is the one they BOTH belong to.
+         Kingdom playerRealm = Hero.MainHero.Clan?.Kingdom;
 
-         // NPC is the player's captive
-         if (npc.IsPrisoner && npc.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero)
-            return PlayerStatusVsNpc.NpcIsCaptive;
+         return playerRealm != null && npc.Clan?.Kingdom == playerRealm
+            ? playerRealm.Name?.ToString()
+            : null;
+      }
 
-         // Same clan
-         if (npc.Clan != null && npc.Clan == Clan.PlayerClan)
-            return PlayerStatusVsNpc.ClanMember;
+      /// <summary>
+      ///   Reads the engine for the facts that place the player beside this NPC. The VERDICT is
+      ///   <see cref="PlayerStandingPolicy" />'s: this method must not decide anything, only report.
+      /// </summary>
+      private static PlayerStandingFacts BuildStandingFacts(Hero npc)
+      {
+         if (npc == null || Hero.MainHero == null) return null;
 
-         // Player is a vassal of the NPC's kingdom (and NPC leads it)
-         if (Hero.MainHero.Clan?.Kingdom?.Leader == npc && npc != Hero.MainHero)
-            return PlayerStatusVsNpc.Liege;
+         Kingdom playerRealm = Clan.PlayerClan?.Kingdom;
+         bool sharesRealm = playerRealm != null && npc.Clan?.Kingdom == playerRealm;
 
-         // NPC is a vassal of the player's kingdom (player leads it)
-         if (npc.Clan?.Kingdom?.Leader == Hero.MainHero && Hero.MainHero.Clan?.Kingdom != null)
-            return PlayerStatusVsNpc.Vassal;
-
-         return PlayerStatusVsNpc.Free;
+         return new PlayerStandingFacts(
+            Hero.MainHero.IsPrisoner && Hero.MainHero.PartyBelongedToAsPrisoner?.LeaderHero == npc,
+            npc.IsPrisoner && npc.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero,
+            npc.Clan != null && npc.Clan == Clan.PlayerClan,
+            Hero.MainHero.Clan?.Kingdom?.Leader == npc && npc != Hero.MainHero,
+            npc.Clan?.Kingdom?.Leader == Hero.MainHero && Hero.MainHero.Clan?.Kingdom != null,
+            sharesRealm && (Clan.PlayerClan?.IsUnderMercenaryService ?? false),
+            sharesRealm,
+            sharesRealm && (npc.Clan?.IsUnderMercenaryService ?? false));
       }
 
       public string GetSeasonName()
