@@ -2,6 +2,28 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.1.. 2026-07-19
+
+A same-day follow-up to v1.31.0, from what players reported within hours of it going up.
+
+### Fixed
+- **Characters no longer recite the game's plumbing.** Some models answer with a function call, `{"name":
+  "change_relation", ...}`, instead of the format the mod teaches. Nothing read it, so the regard never
+  moved, and nothing removed it, so the character said it out loud. Both halves are fixed: the intent is now
+  honoured (still capped and rate-limited as always) and the raw text never reaches the conversation.
+- **No more endless procession of lords who never speak.** If a meeting's conversation failed to start, the
+  mod waited for it forever, and that wait blocked every later meeting: lord after lord would ride up to you
+  and nothing would happen. The failure is now detected the moment it happens, and the conversation opens
+  directly instead.
+- **Riding alone now means riding alone.** A party of one counts you yourself, and that was being reported
+  to characters as "a handful of companions ride with them", so they spoke, and narrated, as though you had
+  an escort you did not have. Your solitude is now stated plainly instead of left unsaid, and characters are
+  told not to furnish you with riders, guards or servants.
+- **Characters describe eye colour correctly again.** The Empress Rhagaea's amber eyes were being called
+  green, and every face in the middle of the range was off by roughly the same margin: greys were called
+  deep blue, and the greens ran too late. The table was rebuilt from eighteen measured samples across the
+  full range.
+
 ## v1.31.0.. 2026-07-19
 
 The stabilization release. Six systematic audits (how NPCs perceive you, couriers, romance and
@@ -64,14 +86,6 @@ you sent in. Your saves carry over untouched: everything here loads an existing 
 - **An adulterous conception is no longer announced to the world** as public news.
 
 ### Fixed: conversations and how characters see you
-- **Characters no longer recite the game's plumbing.** Some models answer with a function call, `{"name":
-  "change_relation", ...}`, instead of the format the mod teaches. Nothing read it, so the regard never
-  moved, and nothing removed it, so the character said it out loud. Both halves are fixed: the intent is now
-  honoured (still capped and rate-limited as always) and the raw text never reaches the conversation.
-- **No more endless procession of lords who never speak.** If a meeting's conversation failed to start, the
-  mod waited for it forever, and that wait blocked every later meeting: lord after lord would ride up to you
-  and nothing would happen. The failure is now detected the moment it happens, and the conversation opens
-  directly instead.
 - **A ruler no longer mistakes you for their own liege.** After you swore to a kingdom, its ruler could
   be told that YOU were the one they served, and would talk accordingly: denying their own throne,
   speaking of their title as if it belonged to somebody else, and calling you "my liege" while
@@ -87,10 +101,6 @@ you sent in. Your saves carry over untouched: everything here loads an existing 
   ruling the other, previously met with nothing said about the bond at all.
 - **Mercenaries you employ know they are paid, not sworn.** When your own realm hires a clan, its lords
   were told you were their liege.
-- **Riding alone now means riding alone.** A party of one counts you yourself, and that was being reported
-  to characters as "a handful of companions ride with them", so they spoke, and narrated, as though you had
-  an escort you did not have. Your solitude is now stated plainly instead of left unsaid, and characters are
-  told not to furnish you with riders, guards or servants.
 - **Lords now judge the force you actually lead.** An army you merely travel inside is not your host,
   and a captive commands nothing; both used to colour how a lord sized you up.
 - **Asking a lord to hand over a prisoner no longer sets that prisoner free.** Freeing someone and
@@ -108,10 +118,6 @@ you sent in. Your saves carry over untouched: everything here loads an existing 
 - **A character can now tell when a claim about rank is wrong.** The note that places you also names who
   rules which realm, so a ruler told something that contradicts their own title has the facts in hand
   instead of inventing a way to reconcile it.
-- **Characters describe eye colour correctly again.** The Empress Rhagaea's amber eyes were being called
-  green, and every face in the middle of the range was off by roughly the same margin: greys were called
-  deep blue, and the greens ran too late. The table was rebuilt from eighteen measured samples across the
-  full range.
 - **A tavern is now a tavern.** Conversations inside a town were described as taking place in a keep,
   because in Bannerlord a town counts as a fortification and that check came first.
 - **A grievance can be mended again.** A grudge could quietly saturate to the level reserved for having
