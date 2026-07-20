@@ -158,5 +158,36 @@ namespace CalradiaRemembers
 
          return $"{rival.Name} challenges you over {lady.Name}. Answer the inquiry.";
       }
+
+      /// <summary>
+      ///   cr.escape_test [n]
+      ///   Captivity-escape spike (W1): stand on the OPEN map and stage the 1-vs-N escape scene, you UNARMED in
+      ///   civilian clothes against n aggressors (default 2, clamp 1..3) each with a Knobbed Club. Knock them all
+      ///   down OR run to the edge of the scene to "escape"; get knocked out and you are "recaptured". Everyone
+      ///   falls unconscious, never dies. This is plumbing only: the real release / lost gear+horse / nemesis
+      ///   memory ride the reported outcome (shown here as a message), not yet wired to captivity.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("escape_test", "cr")]
+      public static string ForceEscapeTest(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         if (Settlement.CurrentSettlement != null)
+            return "You are inside a settlement. Leave to the open map to stage the wilderness escape scene.";
+
+         var foes = 2;
+         if (args != null && args.Count > 0 && int.TryParse(args[0], out int parsed)) foes = parsed;
+
+         return CaptiveEscapeMissionLauncher.StartEscape(foes, outcome =>
+         {
+            string line = outcome switch {
+               EscapeOutcome.BeatThemAll => "You beat them all down and fought free. (Real release + lost gear/horse comes next.)",
+               EscapeOutcome.Fled => "You broke away and reached the edge. (Real release + lost gear/horse comes next.)",
+               _ => "You were overpowered and go back to the map still a prisoner. (Nemesis memory of the attempt comes next.)"
+            };
+            ModLog.Info($"[ESCAPE] outcome: {outcome}");
+            InformationManager.DisplayMessage(new InformationMessage(line));
+         });
+      }
    }
 }
