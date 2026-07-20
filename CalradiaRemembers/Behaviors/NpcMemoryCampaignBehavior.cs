@@ -267,6 +267,9 @@ namespace CalradiaRemembers.Behaviors
 
          SafeRun.Step("OnSessionLaunched.DialogueRecorder.Subscribe", DialogueRecorder.Subscribe);
          SafeRun.Step("OnSessionLaunched.QuestTracker.Subscribe", QuestTracker.Subscribe);
+         // Save-repair: credit any outstanding capture/attack quest whose target the player already holds
+         // prisoner (e.g. a save from a build that did not stamp AttackLord on capture). See the method's doc.
+         SafeRun.Step("OnSessionLaunched.QuestTracker.ReconcileHeldTargetsOnLoad", QuestTracker.ReconcileHeldTargetsOnLoad);
          SafeRun.Step("OnSessionLaunched.LetterEvaluator.Subscribe", LetterEvaluator.Subscribe);
          SafeRun.Step("OnSessionLaunched.WorldFeeders.Subscribe", WorldFeeders.Subscribe);
          SafeRun.Step("OnSessionLaunched.TaverneLetterBehavior.Register", () => new TaverneLetterBehavior().Register(campaignGameStarter));

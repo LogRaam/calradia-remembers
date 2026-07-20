@@ -1,0 +1,9 @@
+[size=4]v1.31.3[/size]
+
+A small fix for a quest that would not advance. Saves carry over untouched, and a quest already stuck by this repairs itself on load.
+
+[size=3][b]For everyone[/b][/size]
+[list]
+[*][b]Capturing a lord now advances an "attack" quest.[/b] When a lord asked you to attack a rival and you took that rival prisoner rather than only beating them in the field, the quest failed to notice, because taking a captive is a stronger outcome than the defeat it was watching for. A capture now counts. (Thanks to tthheerroocckk for the report.)
+[*][b]A quest already stuck by this repairs itself on load.[/b] If you are still holding the target prisoner, the quest is credited the next time you load the save; no need to recapture.
+[/list]

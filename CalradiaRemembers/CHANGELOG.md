@@ -2,6 +2,19 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.3.. 2026-07-20
+
+A small fix for a quest that would not advance. Your saves carry over, and a stuck quest of this kind repairs
+itself on load.
+
+### Fixed (everyone)
+- **Capturing a lord now advances an "attack" quest.** When a lord asked you to attack a rival and you took
+  that rival prisoner instead of only beating them in the field, the quest failed to notice, because taking a
+  captive is a stronger outcome than the defeat it was watching for. A capture now counts. (Report:
+  tthheerroocckk, Nexus.)
+- **A quest already stuck by this repairs itself on load.** If you are still holding the target prisoner, the
+  quest is credited the next time you load the save, no need to recapture.
+
 ## v1.31.2.. 2026-07-20
 
 A stability fix everyone needs, plus a long round of captive-scene work from a full evening of play-testing.

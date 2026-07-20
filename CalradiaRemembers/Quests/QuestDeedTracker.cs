@@ -400,11 +400,49 @@ namespace CalradiaRemembers.Quests
          int day = CurrentDay();
          ForEachOutstandingQuest((profile, quest) =>
          {
+            if (!string.Equals(quest.TargetHeroId, prisoner.StringId, StringComparison.Ordinal)) return;
+
             // Nemesis pillar increment 3 (bounty missions): see the matching comment in OnHeroKilled, a
             // capture satisfies a NemesisBounty quest exactly like an ordinary CapturePrisoner one.
-            if ((quest.Type == QuestType.CapturePrisoner || quest.Type == QuestType.NemesisBounty)
-                && string.Equals(quest.TargetHeroId, prisoner.StringId, StringComparison.Ordinal))
+            if (quest.Type == QuestType.CapturePrisoner || quest.Type == QuestType.NemesisBounty)
                Stamp(profile, quest, $"Captured {prisoner.Name} on day {day}", day);
+
+            // Capturing the target ALSO satisfies an AttackLord quest: you cannot take a lord prisoner
+            // without defeating them, so a capture is a stronger outcome than the "defeat in battle" the
+            // quest asks for. Player report (tthheerroocckk, Nexus 2026-07-19): given an attack_lord quest for
+            // Decantia, captured her, and it never advanced, because AttackLord only matched the LEADER of a
+            // losing party (DefeatedHeroIds) and missed a lord taken as an army MEMBER. Capture closes that gap.
+            else if (quest.Type == QuestType.AttackLord)
+               Stamp(profile, quest, $"Defeated and captured {prisoner.Name} on day {day}", day);
+         });
+      }
+
+      /// <summary>
+      ///   Save-repair pass, run once at session launch. A capture/attack quest is normally stamped by the
+      ///   live HeroPrisonerTaken hook when the deed happens. But a save made on a build that did NOT stamp
+      ///   AttackLord (or where the event was missed) leaves the quest stuck even though the target is sitting
+      ///   in the player's dungeon. This scans every outstanding CapturePrisoner/NemesisBounty/AttackLord quest
+      ///   and stamps it if the player CURRENTLY holds the target prisoner, so the deed is credited on load.
+      ///   Idempotent (Stamp only touches outstanding quests) and evidence-based (the target really IS held).
+      /// </summary>
+      public void ReconcileHeldTargetsOnLoad()
+      {
+         int day = CurrentDay();
+         ForEachOutstandingQuest((profile, quest) =>
+         {
+            if (quest.Type != QuestType.CapturePrisoner
+                && quest.Type != QuestType.NemesisBounty
+                && quest.Type != QuestType.AttackLord) return;
+            if (string.IsNullOrEmpty(quest.TargetHeroId)) return;
+
+            Hero target = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+
+            // The proof we require: the target is a prisoner AND the party holding them is the player's.
+            if (target == null || !target.IsPrisoner) return;
+            if (target.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero) return;
+
+            string verb = quest.Type == QuestType.AttackLord ? "Defeated and captured" : "Captured";
+            Stamp(profile, quest, $"{verb} {target.Name} (held prisoner) on day {day}", day);
          });
       }
 
