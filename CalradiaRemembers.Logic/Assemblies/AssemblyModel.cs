@@ -4,6 +4,66 @@
 
 namespace CalradiaRemembers.Logic.Assemblies
 {
+    /// <summary>
+    ///   The kind of gathering the player convenes. Each drives a different roster, session tone, and set of
+    ///   resolutions. Only <see cref="Council" /> is built first (its three roster variants live in
+    ///   <see cref="CouncilScope" />); the other four are the pillar's planned modes.
+    /// </summary>
+    public enum AssemblyType
+    {
+        /// <summary>Invited external lords deliberate policy (tribute, war support, patrols). Sovereign-gated.</summary>
+        Political,
+
+        /// <summary>Lords of the player's own army plan operations (missions, sieges, raids).</summary>
+        WarCouncil,
+
+        /// <summary>The player gathers his own house (companions, family, or clan lords). See <see cref="CouncilScope" />.</summary>
+        Council,
+
+        /// <summary>The player's held prisoners are judged before a jury (prison, torture, execution).</summary>
+        Tribunal,
+
+        /// <summary>Merchants and commoners petition the player, whose rulings shift the world.</summary>
+        Audience
+    }
+
+    /// <summary>Which of the player's own people a <see cref="AssemblyType.Council" /> gathers.</summary>
+    public enum CouncilScope
+    {
+        /// <summary>The player's hired companions (non-noble wanderers of his clan).</summary>
+        Companions,
+
+        /// <summary>The dynastic inner circle: spouse, siblings, and adult children.</summary>
+        Family,
+
+        /// <summary>Every hero-lord who belongs to the player's clan.</summary>
+        ClanLords
+    }
+
+    /// <summary>
+    ///   The lifecycle of one motion taken in an assembly. Decisions are PROVISIONAL during the session: a motion
+    ///   is only <see cref="Agreed" /> until the assembly is LIFTED, at which point agreed motions commit
+    ///   (<see cref="Applied" /> or <see cref="Failed" />). Because nothing touches the world before the lift, a
+    ///   <see cref="Reversed" /> motion costs nothing to undo. See <see cref="ResolutionLifecycle" />.
+    /// </summary>
+    public enum ResolutionStatus
+    {
+        /// <summary>Put on the table, not yet consented to.</summary>
+        Proposed,
+
+        /// <summary>Consented to; this is the status that commits when the assembly is lifted.</summary>
+        Agreed,
+
+        /// <summary>Withdrawn during the session before the lift; it will never commit. Terminal.</summary>
+        Reversed,
+
+        /// <summary>Committed at the lift and the bridge applied the real effect. Terminal.</summary>
+        Applied,
+
+        /// <summary>Committed at the lift but the bridge could not apply it (reason recorded). Terminal.</summary>
+        Failed
+    }
+
     /// <summary>Whether an invited hero agrees to attend an assembly.</summary>
     public enum RsvpDecision
     {
