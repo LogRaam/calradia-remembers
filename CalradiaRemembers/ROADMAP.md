@@ -336,9 +336,10 @@ intent is finally KNOWN, which is the one case where the chronicle may honestly 
 becoming the switch (eligible rescue, he rides; otherwise nothing at all), the dispatch itself on the
 proven `AmbushCaptivityBehavior.TryRescueRoll` pattern, and the captivity-event trigger/scene split so the
 "lived" gate exists below Hardcore (today the captive encounter is Hardcore-only, so keying eligibility to
-it as-is would silently make rescue a Hardcore feature). **Also still open: `CalculateProbability` in
-`CaptiveEncounterService` has NO callers, so the documented "15% per day, cap 60%" rationing of the
-captivity event was never actually wired and it fires every day past the first.**
+it as-is would silently make rescue a Hardcore feature). **CORRECTION (2026-07-19): an earlier note here claimed `CalculateProbability` had no callers. That was
+wrong, found while reading the bandit path: it IS applied, at `CaptiveEncounterService` line 249, so the
+documented "15% per day, cap 60%" rationing does gate the BANDIT captor scene. Whether the LORD path applies
+it too has not been checked.**
 
 ## NEXT PILLAR: TROOP LOANS (ratified Gabriel 2026-07-18): Inc 0 BUILT, PASSIVE, untested in game
 

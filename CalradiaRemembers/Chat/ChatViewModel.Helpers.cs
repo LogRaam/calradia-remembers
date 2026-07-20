@@ -485,6 +485,25 @@ namespace CalradiaRemembers.Chat
       private void RecordTranscript(bool isPlayer, string name, string heroId, string text, bool isNarration = false)
          => _transcript.Record(isPlayer, name, heroId, text, isNarration);
 
+      /// <summary>
+      ///   A brigand captor learns the player's name only if the prisoner gives it up (a brigand has no
+      ///   register). When the player's line names them, record it on the captor's profile so the scene, and
+      ///   a recurring nemesis across later captures, may use it (Gabriel 2026-07-19). Only for a brigand
+      ///   captor: a lord already knows the name, and only once (idempotent). The Store.Set persists it for a
+      ///   nemesis; an ephemeral synthesized bandit is never saved, which is fine (the name lives only for
+      ///   this scene, where the conversation history carries it anyway).
+      /// </summary>
+      private void MaybeLearnPlayerNameFromCaptive(string playerMessage)
+      {
+         if (!IsCaptiveEncounter || !_captiveEncounterIsBandit) return;
+         if (_captiveEncounterProfile is not {CaptorLearnedPlayerName: false}) return;
+         if (!PlayerNameRevealPolicy.MentionsOwnName(playerMessage, Hero.MainHero?.Name?.ToString())) return;
+
+         _captiveEncounterProfile.CaptorLearnedPlayerName = true;
+         NpcMemoryCampaignBehavior.Instance?.Store?.Set(_captiveEncounterProfile);
+         ModLog.Info($"[CAPTIVE] {_captiveEncounterProfile.Name} learned the player's name from the prisoner.");
+      }
+
       private void RefreshWitnessUi()
       {
          bool any = _witnesses.Count > 0;

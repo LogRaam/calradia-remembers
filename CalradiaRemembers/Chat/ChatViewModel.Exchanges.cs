@@ -522,12 +522,16 @@ namespace CalradiaRemembers.Chat
                   : null,
                playerCoercedAgainstCompanion: IsCaptiveEncounter && _captivePlayerCoerced,
                captiveVictimIsFemale: IsCaptiveEncounter && _captiveVictimIsFemale,
+               captiveSceneFocus: IsCaptiveEncounter
+                  ? _captiveSceneFocus
+                  : null,
                companionAudience: _audienceReason,
                audienceRetirementIsLanded: _audienceLanded,
                // The scene has not been established yet, so this turn sets it (Gabriel 2026-07-19: an
-               // opening narration, then sporadic). Counted BEFORE the exchange increments it, so the very
-               // first reply of a conversation is the one that opens on the room.
-               isConversationOpening: _playerTurnsThisSession == 0);
+               // opening narration, then sporadic). Consumed ONCE per conversation rather than derived from
+               // the turn counter: a captor's opening turn carries suppressPlayerLine and so never
+               // increments it, which asked for the opening narration twice in every captive scene.
+               isConversationOpening: ConsumeOpeningNarration());
 
             if (behavior.LlmServices is not {IsAvailable: true})
             {
@@ -559,7 +563,10 @@ namespace CalradiaRemembers.Chat
             // Re-sync the speaker's sex from the live hero every turn: the identity/pronoun lines of the
             // prompt read profile.IsFemale, and a profile whose sex went stale (created before the load-time
             // RefreshPersonality reached it, or seeded wrong) would otherwise make the NPC mis-gender itself.
-            profile.IsFemale = speaker.Hero.IsFemale;
+            // A faceless synthesized bandit captor has NO hero (Gabriel, in play 2026-07-19: a NullReference
+            // crashed the whole scene on the first such captor); its profile already carries the right sex
+            // from BuildBanditCaptor, so there is simply nothing to re-sync.
+            if (speaker.Hero != null) profile.IsFemale = speaker.Hero.IsFemale;
 
             // Sync the player-authored backstory (voice only) and conviction (what they hold true, and therefore
             // pursue) from the overrides file each turn, so neither is ever persisted stale and both reflect a
@@ -699,6 +706,7 @@ namespace CalradiaRemembers.Chat
             {
                _playerTurnsThisSession++;
                _playerCharsThisSession += playerMessage?.Trim().Length ?? 0;
+               MaybeLearnPlayerNameFromCaptive(playerMessage);
             }
 
             if (response.NewEventData != null && !string.IsNullOrWhiteSpace(response.NewEventData.Summary))
@@ -1311,7 +1319,10 @@ namespace CalradiaRemembers.Chat
                      ? _captiveVictimName
                      : null,
                   playerCoercedAgainstCompanion: IsCaptiveEncounter && _captivePlayerCoerced,
-                  captiveVictimIsFemale: IsCaptiveEncounter && _captiveVictimIsFemale);
+                  captiveVictimIsFemale: IsCaptiveEncounter && _captiveVictimIsFemale,
+                  captiveSceneFocus: IsCaptiveEncounter
+                     ? _captiveSceneFocus
+                     : null);
                // (15C witness exchange is gated off for captive scenes, so no stage is fed here.)
 
                ChatMessageViewModel placeholder = MakeSpeakerMessage(mainSpeaker, PlaceholderText);

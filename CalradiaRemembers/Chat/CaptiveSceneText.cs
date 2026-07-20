@@ -168,13 +168,23 @@ namespace CalradiaRemembers.Chat
       ///   Shared with the quality self-test so the test exercises the exact runtime stimulus, never a
       ///   drifting copy.
       /// </summary>
+      // The "Continue" button is a DIRECTOR cue, not a player turn: it means "carry the scene onward",
+      // nothing more. The opener must NOT read as the prisoner doing something (Gabriel 2026-07-19: the old
+      // "*The moment stretches in silence*" made the captor react to the prisoner CHOOSING silence, when the
+      // player merely clicked Continue). The short diegetic line stays only because a bare wall of
+      // meta-instructions makes reasoning models return no text (MiMo, GLM); it is now neutral time-passing,
+      // attributed to no one, and the cue explicitly forbids reading it as the prisoner's silence or choice.
+      // A player who WANTS to be silent in-fiction says so via "Try something else".
       public static string BuildContinuationStimulus()
-         => "*The moment stretches in silence, waiting for what comes next.* " +
-            "[Continue: play only this turn's beat, moving FORWARD from the last thing that happened. No restart, " +
-            "no recap of your history, grievances, or reasons; never reuse an image, phrase, or gesture from " +
-            "earlier in the scene. Respect what is already established: if the prisoner is already bound, " +
-            "kneeling, or stripped, do not stage it again, build onward from that state. Fresh, specific " +
-            "physical detail in [NARRATION].]";
+         => "*Time moves; the scene carries on.* " +
+            "[Continue: this is a director cue to move YOUR action forward, NOT a turn by the prisoner. The " +
+            "prisoner has neither spoken nor acted this beat: do NOT treat this as their silence, submission, " +
+            "defiance, or any choice on their part, and do not react to a non-existent action from them. Simply " +
+            "carry your own action onward from the last thing that happened. No restart, no recap of your " +
+            "history, grievances, or reasons; never reuse an image, phrase, or gesture from earlier in the " +
+            "scene. Respect what is already established: if the prisoner is already bound, kneeling, or " +
+            "stripped, do not stage it again, build onward from that state. Fresh, specific physical detail " +
+            "in [NARRATION].]";
 
       public static string BuildResumeOpener()
          => "[You are NOT finished with this prisoner. The scene resumes — same prisoner, same place — and " +
@@ -191,11 +201,15 @@ namespace CalradiaRemembers.Chat
       // lastFocusIndex tracks the previously-chosen index (caller state, e.g. ChatViewModel) so
       // SceneFocusSelector can avoid picking the same focus two rounds running.
       public static string BuildResumeSetup(CaptiveSceneIntent intent, ref int lastFocusIndex)
+         => BuildResumeSetup(intent, ref lastFocusIndex, out _);
+
+      /// <summary>As the other overload, also exposing the new round's <paramref name="focus" /> to persist.</summary>
+      public static string BuildResumeSetup(CaptiveSceneIntent intent, ref int lastFocusIndex, out string focus)
       {
          string[] pool = FociPoolFor(intent);
          int index = SceneFocusSelector.PickIndex(pool.Length, lastFocusIndex, MBRandom.RandomInt);
          lastFocusIndex = index;
-         string focus = pool[index];
+         focus = pool[index];
 
          return $" [A NEW ROUND with the same prisoner. What drives you THIS time is {focus}. Take it somewhere " +
                 "genuinely NEW, a different act, a different angle, and render it with fresh sensory description. " +
@@ -203,6 +217,15 @@ namespace CalradiaRemembers.Chat
       }
 
       public static string BuildSceneSetup(CaptiveSceneIntent intent, ref int lastFocusIndex)
+         => BuildSceneSetup(intent, ref lastFocusIndex, out _);
+
+      /// <summary>
+      ///   As <see cref="BuildSceneSetup(CaptiveSceneIntent, ref int)" />, also handing back the chosen
+      ///   <paramref name="focus" /> so the caller can persist it into every later turn's context (the scene
+      ///   throughline). The text embeds the focus for the OPENER; the out param is that same string, for the
+      ///   ongoing prompt.
+      /// </summary>
+      public static string BuildSceneSetup(CaptiveSceneIntent intent, ref int lastFocusIndex, out string focus)
       {
          Settlement held = ResolveHoldingSettlement();
 
@@ -223,7 +246,7 @@ namespace CalradiaRemembers.Chat
          string[] pool = FociPoolFor(intent);
          int index = SceneFocusSelector.PickIndex(pool.Length, lastFocusIndex, MBRandom.RandomInt);
          lastFocusIndex = index;
-         string focus = pool[index];
+         focus = pool[index];
 
          return $" [THIS SCENE'S SETTING, make the opening unique to it: it happens {locale}; you are {state}; " + $"the prisoner is {pres}. What drives you tonight is {focus}. Open from THIS specific situation in " + "your own fresh words, never a generic, reused capture opener. Ground the opening in a [NARRATION] " + "block of vivid, specific physical detail. Let this scene be its own distinct " + "story, not a repeat of any other.]";
       }

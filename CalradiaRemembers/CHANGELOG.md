@@ -2,11 +2,61 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.2.. 2026-07-20
+
+A stability fix everyone needs, plus a long round of captive-scene work from a full evening of play-testing.
+Your saves carry over untouched.
+
+### Fixed (everyone)
+- **Conversations could stop working entirely.** A certain kind of bandit captor (a faceless raider with no
+  named leader) hit an error that broke the chat for the whole scene. Fixed.
+- **A bandit chief no longer greets you by name.** Brigands live apart from lords and their registers, so a
+  captor you have never spoken to should not know who you are. He now sees a captive he cannot name, and
+  sizes up your bearing and gear for whether you are worth a ransom. If you TELL him your name, he remembers
+  it, and a recurring one keeps it. A returning captor still knows your face and your history.
+- **A recurring captor survives a save and reload.** Saving while held prisoner and reloading could turn
+  your named captor into a generic bandit; the mod now restores who is holding you on load.
+- **A lord no longer agrees to a surrender that never happens.** Told to surrender instead of fight, a lord
+  would agree and then simply keep his army and ride off, because there is no mechanic behind it. He now
+  declines or names his terms rather than promising something the game cannot carry out.
+
+### Changed (adult content, Explicit / Hardcore tiers)
+A round of work on the captive scenes, aimed at variety and immersion. All of it is behind the adult-content
+setting and applies only at the Explicit or Hardcore tiers.
+- **Scenes follow their own thread now.** Each scene is given a driving focus (interrogation, a war of
+  wills, dread, corruption, and many more), and that focus shapes the WHOLE scene rather than fading after
+  the first line. A psychological scene can stay psychological and resolve as one, or build toward the
+  physical when it genuinely leads there. Nothing is on a fixed track any more, which is meant to make
+  captivity worth replaying.
+- **A scene is an experience that moves.** A captor who wants something and does not get it no longer loops
+  the same demand forever; the scene escalates, makes good on a threat, or ends.
+- **The escalation is paced.** The gravest acts are reached by degrees, held long enough to land, with your
+  answer between them, rather than arriving all at once.
+- **Accompanying soldiers actually take part** in a group scene, each acting and speaking in his own right,
+  so you feel outnumbered rather than alone with one captor while the rest watch.
+- **The captor's own body, and richer physical description.** What the aggressor feels and does with his own
+  body is now part of the scene, brute force (a blow, a shove) sits alongside the rest, and intimate detail
+  is written more fully.
+- **The "Continue" button no longer reads as you staying silent.** It simply carries the scene onward; if
+  you want to be silent in the fiction, say so with "Try something else".
+- **A scene ends with you still a prisoner**, taken back to wherever your captor holds you, not untied.
+
+### Under the hood
+- Passive groundwork, switched off and not yet playable: a troop-loan ledger and a deliberate-rescue system.
+- Roughly 2,600 automated tests now cover the mod and its service.
+
 ## v1.31.1.. 2026-07-19
 
 A same-day follow-up to v1.31.0, from what players reported within hours of it going up.
 
 ### Fixed
+- **A bandit chief no longer greets you by name.** A named brigand (one the mod has raised into a recurring
+  nemesis) was being treated as a lord, so his prompt handed him your name, your house and your station on
+  a first meeting. He now sees what a brigand can see: a captive whose name he does not know, and whose
+  bearing and gear may or may not suggest someone worth ransoming. If he has held you before, he still
+  knows exactly who he has. As a consequence, an abasement at a named brigand's hands no longer costs you
+  renown at court, which matches how the mod already treated faceless ones: word of it does not reach the
+  courts.
 - **Characters no longer recite the game's plumbing.** Some models answer with a function call, `{"name":
   "change_relation", ...}`, instead of the format the mod teaches. Nothing read it, so the regard never
   moved, and nothing removed it, so the character said it out loud. Both halves are fixed: the intent is now

@@ -211,6 +211,10 @@ namespace CalradiaRemembers.Chat
       // SceneFocusSelector never repeats the same driving focus two rounds running. -1 = no prior round.
       private int _lastSceneFocusIndex = -1;
 
+      // The driving focus STRING of the current captive round, carried into every turn's context so it
+      // governs the whole scene (B, Gabriel 2026-07-19), not just the opener that first named it.
+      private string _captiveSceneFocus;
+
       // ── Shared-memories panel (read-only) ─────────────────────────────────
       // A left panel mirroring cr.memory: what this NPC remembers of the player.
       // Rebuilt from the persisted profile each time it opens.
@@ -235,6 +239,22 @@ namespace CalradiaRemembers.Chat
 
       private bool _companionHeardNoted; // the closing "you heard them out" lift, applied at most once per window
       private int _playerTurnsThisSession; // completed player→NPC exchanges
+
+      /// <summary>
+      ///   False once the opening scene-setting narration has been asked for. A dedicated latch rather than
+      ///   a read of <see cref="_playerTurnsThisSession" />, because a captor's opening turn is sent with
+      ///   suppressPlayerLine and never counts as a turn, so the counter reported "still the opening" twice.
+      /// </summary>
+      private bool _openingNarrationPending = true;
+
+      /// <summary>True exactly once per conversation: this is the turn that establishes the scene.</summary>
+      private bool ConsumeOpeningNarration()
+      {
+         if (!_openingNarrationPending) return false;
+         _openingNarrationPending = false;
+
+         return true;
+      }
       private string _portraitPanelTitle = "Portrait";
 
       // Set when the player clicks "Request Private" — injected once, then cleared.
@@ -823,10 +843,11 @@ namespace CalradiaRemembers.Chat
          // non-sexual confrontations, so they take only their own opener — never the sexual setup.
          bool nonSexual = !CaptiveSceneIntentRules.IsSexual(intent);
          _lastSceneFocusIndex = -1; // a fresh scene resets the avoid-repeat memory
-         string opener = CaptiveSceneText.BuildCaptiveOpener(isCollective, intent) +
-                         (nonSexual
-                            ? ""
-                            : CaptiveSceneText.BuildSceneSetup(intent, ref _lastSceneFocusIndex));
+         _captiveSceneFocus = null;
+         string setup = nonSexual
+            ? ""
+            : CaptiveSceneText.BuildSceneSetup(intent, ref _lastSceneFocusIndex, out _captiveSceneFocus);
+         string opener = CaptiveSceneText.BuildCaptiveOpener(isCollective, intent) + setup;
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, captor, placeholder, true);
       }
@@ -1295,10 +1316,10 @@ namespace CalradiaRemembers.Chat
             or CaptiveSceneIntent.Extortion
             or CaptiveSceneIntent.Intimidation
             or CaptiveSceneIntent.Revenge;
-         string opener = CaptiveSceneText.BuildResumeOpener() +
-                         (nonSexual
-                            ? ""
-                            : CaptiveSceneText.BuildResumeSetup(_captiveEncounterIntent, ref _lastSceneFocusIndex));
+         string resumeSetup = nonSexual
+            ? ""
+            : CaptiveSceneText.BuildResumeSetup(_captiveEncounterIntent, ref _lastSceneFocusIndex, out _captiveSceneFocus);
+         string opener = CaptiveSceneText.BuildResumeOpener() + resumeSetup;
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, captor, placeholder, true);
       }

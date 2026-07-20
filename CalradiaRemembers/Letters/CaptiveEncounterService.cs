@@ -157,11 +157,20 @@ namespace CalradiaRemembers.Letters
 
          var player = Hero.MainHero;
 
-         if (player is not {IsPrisoner: true}) return;
+         if (player is not {IsPrisoner: true})
+         {
+            // Freed: end THIS captivity's clock so a later capture starts its own. Without this the
+            // day-in-captivity counter (which drives the scene probability) kept measuring from the FIRST
+            // capture of the session across an escape and recapture, inflating the odds of the next one.
+            _captiveSinceDay = -1;
+            _lastEncounterDay = -1;
+
+            return;
+         }
 
          var today = (int) CampaignTime.Now.ToDays;
 
-         // Track first day of captivity
+         // Track first day of THIS captivity
          if (_captiveSinceDay < 0) _captiveSinceDay = today;
 
          int daysInCaptivity = today - _captiveSinceDay;
@@ -213,7 +222,7 @@ namespace CalradiaRemembers.Letters
 
             if (!captorProfile.Romantic.IsCompatibleWith(playerIsFemale)) return;
 
-            if (MBRandom.RandomFloat > CalculateProbability(daysInCaptivity, captorProfile)) return;
+            if (!RollFires(daysInCaptivity, captorProfile, "lord")) return;
 
             // Companion-victim scene (Phase 3 auto-fire): with companions held alongside, the captor may work on
             // one of THEM before the player, instead of on the player. Pure gate in CompanionScenePolicy; the
@@ -246,7 +255,7 @@ namespace CalradiaRemembers.Letters
          CharacterObject banditFace = ResolveBanditTroop(captorParty);
          NpcProfile banditProfile = BuildBanditCaptor(captorParty, banditFace?.IsFemale);
 
-         if (MBRandom.RandomFloat > CalculateProbability(daysInCaptivity, banditProfile)) return;
+         if (!RollFires(daysInCaptivity, banditProfile, "bandit")) return;
 
          _lastEncounterDay = today;
          CaptiveSceneIntent banditIntent = SelectBanditIntent(playerIsFemale, banditProfile);
@@ -465,6 +474,22 @@ namespace CalradiaRemembers.Letters
          => CaptiveEncounterPolicy.EncounterProbability(daysInCaptivity, captorProfile.Romantic?.Kinks);
 
       /// <summary>
+      ///   The daily roll, logged. Gabriel reported the cadence FEELS fixed (an event on day 3, then day 6);
+      ///   the code is probabilistic on both paths, but the roll was invisible, so this makes the ground
+      ///   truth readable: day of captivity, the computed chance, the die, and whether it fired. Behaviour is
+      ///   unchanged: same RandomFloat, same comparison. Returns true when the scene should fire this tick.
+      /// </summary>
+      private static bool RollFires(int daysInCaptivity, NpcProfile captorProfile, string pathTag)
+      {
+         float chance = CalculateProbability(daysInCaptivity, captorProfile);
+         float roll = MBRandom.RandomFloat;
+         bool fires = roll <= chance;
+         ModLog.Info($"[CAPTIVE ROLL] {pathTag}: dayInCaptivity={daysInCaptivity}, chance={chance:0.00}, roll={roll:0.00} -> {(fires ? "FIRES" : "skip")}.");
+
+         return fires;
+      }
+
+      /// <summary>
       ///   How many fighters the capturing band actually has — the ceiling on how many can
       ///   appear in a collective scene. Prevents a 3-bandit gang-scene when only two raiders
       ///   survived the fight (a vanilla-consistency break the tester caught).
@@ -583,8 +608,12 @@ namespace CalradiaRemembers.Letters
             case 1: // Other lords present
                return (ResolveLordWitnesses(captorParty, captor, store), false);
 
-            case 2: // Generic soldiers
-               return (BuildSoldierWitnesses(), false);
+            case 2: // The captor's own soldiers present, and INVOLVED. Gabriel 2026-07-19: a captor's men
+                    // standing at a sexual captive scene are not furniture; if they are there, they take part.
+                    // This used to return collective=false, so the soldiers were present but passive and the
+                    // nemesis did everything alone (the reported regression). Their PRESENCE now makes the
+                    // scene collective, which is what routes them the participation rules.
+               return (BuildSoldierWitnesses(), true);
 
             case 3: // Collective — lords if available, else soldiers
             {

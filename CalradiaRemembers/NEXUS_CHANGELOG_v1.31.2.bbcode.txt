@@ -1,0 +1,25 @@
+[size=4]v1.31.2[/size]
+
+A stability fix everyone should take, plus a long round of captive-scene work from an evening of play-testing. Saves carry over untouched.
+
+[size=3][b]For everyone[/b][/size]
+[list]
+[*][b]Conversations could stop working entirely.[/b] A faceless bandit captor (a raider with no named leader) hit an error that broke the chat for the whole scene. Fixed.
+[*][b]A bandit chief no longer greets you by name.[/b] Brigands live apart from lords and their registers, so a captor you have never spoken to should not know who you are. He sizes up your bearing and gear for a ransom instead. Tell him your name and he remembers it; a recurring one keeps it, and still knows your face and your history.
+[*][b]A recurring captor survives a save and reload.[/b] Saving while held prisoner and reloading could turn your named captor into a generic bandit; the mod now restores who is holding you.
+[*][b]A lord no longer agrees to a surrender that never happens.[/b] Told to surrender instead of fight, a lord would agree and then keep his army and ride off. He now declines or names his terms rather than promising something the game cannot carry out.
+[/list]
+
+[size=3][b]Adult content (Explicit / Hardcore tiers only)[/b][/size]
+A round of work on the captive scenes, aimed at variety and immersion. All of it is behind the adult-content setting.
+[list]
+[*][b]Scenes follow their own thread.[/b] Each is given a driving focus that shapes the WHOLE scene rather than fading after the first line. A psychological scene can stay psychological and resolve as one, or build toward the physical when it genuinely leads there. Nothing is on a fixed track, which is meant to make captivity worth replaying.
+[*][b]A scene is an experience that moves.[/b] A captor who wants something and does not get it no longer loops the same demand forever; the scene escalates, makes good on a threat, or ends.
+[*][b]The escalation is paced[/b] rather than arriving all at once, with your answer between the beats.
+[*][b]Accompanying soldiers actually take part[/b] in a group scene, each acting and speaking in his own right, so you feel outnumbered rather than alone with one captor while the rest watch.
+[*][b]The captor's own body, richer physical description, and brute force[/b] all have more room now.
+[*][b]The "Continue" button no longer reads as you staying silent[/b]; it simply carries the scene onward. Use "Try something else" if you want to be silent in the fiction.
+[*][b]A scene ends with you still a prisoner[/b], taken back to where your captor holds you, not untied and freed.
+[/list]
+
+Roughly 2,600 automated tests now cover the mod and its service.

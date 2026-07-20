@@ -72,6 +72,36 @@ namespace CalradiaRemembers.Nemesis
          // band (start) and to detach him back to latent when the fight ends without his death/capture (end).
          CampaignEvents.MapEventStarted.AddNonSerializedListener(this, OnMapEventStarted);
          CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
+         CampaignEvents.OnGameLoadFinishedEvent.AddNonSerializedListener(this, ReestablishActiveCaptorOnLoad);
+      }
+
+      /// <summary>
+      ///   The active nemesis-holds-the-player mapping (<see cref="_activeNemesisHero" /> /
+      ///   <see cref="_activeCaptorParty" />) is TRANSIENT: it is set at capture and never serialized. So a
+      ///   save made while captive, then reloaded, comes back with it null, and the captive scene no longer
+      ///   recognises the nemesis holding the player, degrading him to a faceless bandit (Gabriel, in play
+      ///   2026-07-19: saved captive of Harker, reloaded, and the captor came back a generic looter). This
+      ///   rebuilds the mapping after a load: if the player is a prisoner of a party whose leader is a known
+      ///   nemesis, that nemesis is made active again.
+      /// </summary>
+      private void ReestablishActiveCaptorOnLoad()
+      {
+         try
+         {
+            if (Hero.MainHero?.IsPrisoner != true) return;
+
+            MobileParty captorParty = Hero.MainHero.PartyBelongedToAsPrisoner?.MobileParty;
+            Hero leader = captorParty?.LeaderHero;
+            if (leader == null || GetByHero(leader.StringId) == null) return;
+
+            _activeCaptorParty = captorParty;
+            _activeNemesisHero = leader;
+            ModLog.Info($"[NEMESIS] on load, restored {leader.Name} as the nemesis holding the player captive.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[NEMESIS] ReestablishActiveCaptorOnLoad failed: {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       /// <summary>

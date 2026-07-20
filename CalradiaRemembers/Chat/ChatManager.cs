@@ -310,8 +310,12 @@ namespace CalradiaRemembers.Chat
 
          if (witnesses is {Count: > 0}) ActiveViewModel.SetWitnesses(witnesses);
 
-         // A faceless brigand captor has no Hero — that absence is exactly the bandit signal.
-         bool captorIsBandit = captorHero == null;
+         // What the captor IS, not whether we happen to hold a Hero for them. Absence of a Hero was the
+         // original signal, and it broke the moment the Nemesis pillar began MINTING a persistent Hero for a
+         // bandit boss: a named brigand chief then took the lord path, so the prompt handed him the player's
+         // name, house and station (Gabriel, in play 2026-07-19: a deserter chief greeted a first-time captive
+         // by name). A bandit is a bandit whether or not his band's leader has a name.
+         bool captorIsBandit = captorHero == null || captorHero.MapFaction?.IsBanditFaction == true;
          ActiveViewModel.ActivateCaptiveEncounterMode(captorProfile, isCollective, intent, captorIsBandit, victimName, playerCoerced, victimIsFemale);
       }
 
