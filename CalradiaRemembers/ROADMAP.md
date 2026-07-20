@@ -670,6 +670,129 @@ DEFERRED gaps (audit findings, to build later):
 - Already-tracked (existing ROADMAP entries): the duel/scheming escalation, love-triangle tie-in, trait-modulated
   susceptibility (Possessive/MonogamousStrict).
 
+## RATIFIED (Gabriel 2026-07-20): courier robustness batch, inspired by the Realistic Courier mod
+
+### STATUS: items 1/2/4/5/6 BUILT 2026-07-20 (uncommitted, NOT play-tested); item 3 (honest ETA) NOT started
+Reality found at build time was better than the audit assumed: rations were already stocked at spawn
+(TravelingParty, audit C3) so item 2 became a top-up for the M5 landfall wait; a generic failure notification
+already existed (MarkUndeliverable) so item 1 became the SPECIFIC reason (pure `UndeliverableReasonDescriber`
+in Logic + 4 tests: dead outranks captured, vanished stays generic). Item 4 = `CourierIsStuck` position-delta
+watchdog (2 days, TUNE) in both daily ticks, exempting the legitimate landfall wait; letter reverts to the
+date fallback instead of being lost. Item 5 = `cr.couriers` + `cr.couriers_recall` (public
+`DescribeActiveCouriers`/`RecallAll`). Item 6 audit CONFIRMED the gap and fixed it: `Hero.MainHero.IsPrisoner`
+guards in TrySpawnReplyCourier (no spawn), TickReplyCouriers (reclaim in-flight), CheckReplyCourierArrival
+(no hourly chase/delivery); the letter waits on date-based delivery until the player is free.
+
+Gabriel had the "Realistic Courier" Nexus mod decompiled and reviewed for ideas (analysis notes kept in
+Claude's memory: `project_realistic_courier_analysis`). Ratified: everything below. Explicitly REJECTED:
+real naval couriers (granting the courier party a War Sails ship). The letter already always arrives via the
+date-based fallback, so a visible sailing courier is cosmetic polish bought with a big fragility surface
+(naval pathfinding, a `Ship` owned by a party we despawn before every save, dual DLC/no-DLC code paths); the
+landfall-spawn + date-fallback stays CR's answer. The one salvaged piece is the pathfinding distance test,
+which feeds the honest ETA below without ever granting a ship.
+
+1. **Failure report to the player.** `CanReceiveLetter` already detects a dead/imprisoned recipient
+   mid-flight but silently sets `letter.IsLost`; the player never learns. Add a returned-courier notification
+   (or counter-letter) saying WHY ("Lord X was taken prisoner before your letter could reach him"). Cheap,
+   big immersion win; turns a mute frustration into story.
+2. **Anti-starvation top-up.** Hourly: a courier party with `TotalFoodAtInventory == 0` receives a few units
+   of food. Three lines; removes the "courier starves on a long road" failure mode for good.
+3. **Honest ETA.** Recipient picker shows "Name (~N days)" and the date-based fallback delay is grounded on
+   real pathfinding distance (sea-aware) instead of straight-line. APIs (from the decompile):
+   `DistanceHelper.FindClosestDistanceFromMobilePartyToSettlement/ToMobileParty(main, target, navType)` +
+   `CampaignUIHelper.GetPartyDistanceByTimeTextAbbreviated(distance, speed)`; land-reachability via
+   `PartyNavigationModel.GetInvalidTerrainTypesForNavigationType` + `MapSceneWrapper.GetPathDistanceBetweenAIFaces`
+   (confirm each at build time).
+4. **Stuck watchdog by position.** Daily: record each courier's position; "has not moved in N days" (position
+   delta, not date) triggers CR's answer: silent despawn + hand the letter to date-based delivery, with a log
+   line. NOT the source mod's "teleport?" player popup (silent robustness + narrative cover is the CR way).
+   Complements the existing DeliveryDay grace-days force-deliver.
+5. **Console fixers.** `cr.couriers` (diagnostic: in-flight couriers, position, days since last movement) and
+   `cr.couriers_recall` (despawn all, letters revert to date-based delivery). Support tools for player reports.
+6. **AUDIT: reply courier vs captive player.** The source mod's returning messenger waits at the nearest
+   non-hostile settlement when the player is a prisoner; check what CR's NPC-to-player reply courier does when
+   the player is captive inside a captor's party (it currently tracks the player's position).
+
+## WISHED (Gabriel 2026-07-20): a bespoke visual identity for CR's own windows
+
+Gabriel saw a screenshot of AI Influence's "Book of Memory" (КНИГА ПАМЯТИ): a full-screen bespoke window with
+a real visual identity: dark ornate outer frame, warm parchment panels, serif headers, a master/detail layout
+(a scrollable list of memories left with title + "day: N", a large detail panel right with the entry text and
+a per-entry illustration, a "AlIANA . DAY: 65" footer, Back/Next pagination "4 of 10"). CR's windows are
+FUNCTIONAL but plain by comparison (chat, chronicle, the RP dossier, the letter parchment, and the assembly
+window still to come). This is a real competitive gap worth closing: a consistent, recognisable CR look that
+makes the mod feel like a crafted product, not a debug panel.
+
+Scope / ruling:
+- **CR's OWN style, not a copy.** Study how AI Influence builds its custom Gauntlet windows for TECHNIQUE
+  (ornate brush frames, panelled backgrounds, serif brushes, master/detail scroll, pagination), then give CR a
+  distinct identity. We already own most of the machinery: named brushes, `AutoHideRichTextWidget`,
+  `NavigatableListPanel` scroll lists, the runtime JPG/PNG-in-widget recipe (VRAM-flat), custom prefabs +
+  UIExtenderEx (see the Bannerlord UI patterns note in Claude's memory). The gap is a deliberate visual
+  language (a shared brush set / frame prefab) applied across all CR windows, not new tech.
+- **First candidate = the Chronicle / memory view** (the direct analogue of their Book of Memory), then the
+  chat window and the dossier, then the new ASSEMBLY window (whose "bespoke multi-portrait window" was already
+  flagged as later polish, line ~125). Do it as ONE shared style pass so the windows look like a family.
+- **NOT the AI-generated illustrations.** Their per-entry scene images are AI image-gen, which CR deliberately
+  PARKED as a separate-mod concern (Claude memory `project_parked_generated_portraits`); CR uses real
+  portraits from BodyProperties. A richer illustrated panel using the player's actual character portrait (which
+  CR can already render in-widget) is in scope; generating scenes is not.
+- Cost: pure cosmetic/UX, no logic; slower iteration loop (a prefab edit needs a build + a game restart, the
+  GauntletUI prefab cache). Best done as a focused polish sprint, not folded into a feature.
+
+### Concrete target (Gabriel 2026-07-20): a redesigned CHAT window (mockup "Better Layout CHAT.png")
+A two-column, gold-on-dark manuscript design: LEFT a large parchment narrative scroll under a branded
+"Calradia Remembers" header + crest; RIGHT the live chat: a header (NPC portrait, name in gold serif, "House X
+. Clan Tier N", a "Mode: Roleplay" pill, a ? help), then message CARDS (small portrait + coloured speaker name
+[NPC gold / You blue] + text + a timestamp, a faction icon on some), then an input row (icon toolbar quill /
+book / crown, a "Write your message..." field with a `0 / 1500` counter and a send arrow), then an ornate
+"End Conversation" button.
+- **Architectural win, not just polish:** the card layout puts the speaker NAME and the message TEXT in
+  SEPARATE widgets, so each is coloured whole (name gold, text cream) WITHOUT ever colouring part of a line,
+  which is the exact Gauntlet limit CR cannot cross (see `project_inline_colour_impossible` in Claude memory).
+  Narration becomes its own card style (full-width, no portrait), matching the "[NARRATION] as a separate
+  block" rule already in place.
+- **Cheap / data already present:** speaker colours (existing), House + `Clan.Tier` (Hero.Clan), the length cap
+  (existing), the mode pill (the Roleplay/Lean model mode). Only TWO portraits recur (NPC + You), reused across
+  cards, so VRAM is a non-issue (unlike the assembly roster's many faces).
+- **The real cost is ART** (ornate gold frame / lozenge-ornament sprites) and the slow prefab iteration loop,
+  NOT code. Toolbar icons need a mapping to existing actions (quill = compose a letter, book = memory/dossier,
+  crown = round-table?), to confirm.
+- **The left panel = the player's OWN long-message expander** (clarified Gabriel 2026-07-20; the mockup shows
+  the full text there with the small box left empty). The 1500-char cap makes a long message unreadable in the
+  narrow input box, so a click (the quill icon) opens a roomy panel to see the whole text. NO new FPS risk: a
+  read-only preview is a plain RichText (the O(n^2) bug was in EDITABLE selection-update, not display); an
+  editable panel would be an EditableText, already covered by the existing Harmony prefix fix. DECIDED
+  (Gabriel 2026-07-20): PREVIEW-ONLY, keeping the current behaviour (type in the box, the panel mirrors the
+  full text). No two-way sync to build. (This is distinct from the Chronicle/Book-of-Memory redesign, which
+  stays the first candidate for the shared-style pass above.)
+
+**Scope ruling (Gabriel 2026-07-20):** this chat redesign is primarily a REORGANISATION + a different SKIN,
+plus the chat upgrading to coloured message CARDS. NO new logic: the long-text panel stays preview-only as it
+is today, the data all already exists. So the work is prefab/XML layout + a shared brush/frame style + art
+assets, on the slow prefab-iteration loop, exactly the "focused polish sprint" this section calls for.
+
+### Second reference mockup (Gabriel 2026-07-20): "Better Layout 2.png" - dossier-left variant
+A warmer, house-coloured variant. Gabriel will PICK the final SKIN when he builds the prefab; both mockups are
+references. DECIDED so far: the MESSAGE BLOCKS follow mockup 1 (distinct bordered cards per message: portrait +
+coloured name + text + timestamp), NOT this mockup's flowier multi-paragraph body. What this mockup contributes
+is its LEFT panel and header content, all mapping onto EXISTING CR data (no new logic):
+- LEFT panel = the RP DOSSIER made permanent (house crest, Culture/Age/Role, **both regard ledgers shown
+  side by side**: "Relation: 0" = vanilla clan relation vs "Personal regard: neutral (0)" = `ReputationWithPlayer`;
+  echoed in the chat header "Clan 0 . Personal 0"), Background text, the real portrait, "View in Encyclopedia".
+  This is CR's KEY two-ledger arch gotcha made visible and legible, a genuinely good idea to keep.
+- Chat header "Present: Mina . Colambea" = witnesses + location; "Request Private" + lock as today.
+- Footer buttons "Memories" (the chronicle / Book-of-Memory view) + "Encyclopedia".
+- A single NPC card mixes grey stage-direction/narration paragraphs with cream dialogue: this works ONLY
+  because they are SEPARATE blocks rendered as SEPARATE whole-coloured widgets, which is exactly what the
+  `[DIALOGUE]`/`[NARRATION]` parser already produces. Inline stage-direction colouring inside a dialogue
+  sentence stays impossible (`project_inline_colour_impossible`); the design sidesteps it by structure, so keep
+  emitting narration as its own block (already the rule).
+- **Left-panel divergence to reconcile:** mockup 1's left panel is the long-message compose PREVIEW; this
+  one's is the permanent DOSSIER. Both keep the quill (expand) icon in the input row. Likely reconciliation:
+  the left shows the dossier by default and SWAPS to the compose preview when the quill is clicked on a long
+  message. Decide at prefab time.
+
 ## WISHED (Gabriel 2026-07-10): an ESCORTED courier option at the tavernkeeper
 
 Player report (enivicivokke, and others): couriers still get intercepted too often for some players, worse with
