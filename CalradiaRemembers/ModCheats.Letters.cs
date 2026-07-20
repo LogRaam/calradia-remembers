@@ -22,6 +22,40 @@ namespace CalradiaRemembers
    public static partial class ModCheats
    {
       /// <summary>
+      ///   cr.couriers
+      ///   Lists every in-flight courier: what it carries, its position, food, and how long it has sat still.
+      ///   Robustness batch (ROADMAP 2026-07-20): reads a player report of a wandering courier off the console.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("couriers", "cr")]
+      public static string ListCouriers(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         return CourierService.DescribeActiveCouriers(behavior.Store, today);
+      }
+
+      /// <summary>
+      ///   cr.couriers_recall
+      ///   Recalls every in-flight courier: parties despawn, and each letter reverts to date-based delivery so
+      ///   nothing is lost. The support valve for "a courier is stuck / wandering" reports.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("couriers_recall", "cr")]
+      public static string RecallCouriers(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         int recalled = CourierService.RecallAll(behavior.Store);
+
+         return recalled == 0
+            ? "No couriers in flight."
+            : $"{recalled} courier(s) recalled; their letters revert to date-based delivery and still arrive.";
+      }
+
+      /// <summary>
       ///   cr.letter_compose [name]
       ///   Opens the dedicated parchment courier window in COMPOSE mode for the given NPC — write a
       ///   fresh letter and seal it, without a tavernkeeper conversation. (Was cr.compose, in chat.)

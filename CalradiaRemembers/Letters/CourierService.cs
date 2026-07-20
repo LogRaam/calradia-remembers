@@ -61,6 +61,24 @@ namespace CalradiaRemembers.Letters
       // Grace days past DeliveryDay before we force-deliver a stuck courier (anti-soft-lock).
       private const int ForceDeliveryGraceDays = 4;
 
+      // ── Courier robustness batch (ROADMAP 2026-07-20, from the Realistic Courier decompile) ──
+      // The DECISIONS live in tested Logic policies (CourierStuckPolicy, ReplyCourierGatePolicy,
+      // CourierRationPolicy); this class only reads the engine and executes what they decide.
+
+      // Grain units granted when a courier has eaten through its spawn rations (the M5 landfall wait for a
+      // sailing recipient can outlast any fixed stock). How MUCH is an engine detail; WHEN is policy. TUNE.
+      private const int RationTopUpUnits = 20;
+
+      // Courier id -> position and day of the last DAILY tick that saw it actually move. Runtime-only, like
+      // RolledBandits: couriers never survive a save, so there is nothing to persist.
+      private static readonly Dictionary<string, StuckRecord> LastMovements = new();
+
+      private struct StuckRecord
+      {
+         public Vec2 Position;
+         public int Day;
+      }
+
       // StringIds of all active couriers. Used by CourierSpeedPatch for O(1) identity
       // checks on every party every tick — avoids display-string allocations on the hot path.
       // Rebuilt from live letters on session launch to survive save/load cycles.
@@ -96,6 +114,7 @@ namespace CalradiaRemembers.Letters
          if (!IsCourier(courier?.StringId)) return;
          if (store == null) return;
 
+         TopUpRations(courier); // a long errand (the M5 landfall wait) can outlast the spawn rations
          ScanForWaylayers(courier); // some bandit bands nearby may decide to give chase this hour
          if (CheckPlayerLetterCourierArrival(courier, store)) return;
 
@@ -157,10 +176,12 @@ namespace CalradiaRemembers.Letters
          }
       }
 
-      /// <summary>Drops a courier's per-band roll memory once it is delivered or destroyed.</summary>
+      /// <summary>Drops a courier's per-band roll memory and movement record once it is delivered or destroyed.</summary>
       private static void ForgetWaylayRolls(string courierId)
       {
-         if (!string.IsNullOrEmpty(courierId)) RolledBandits.Remove(courierId);
+         if (string.IsNullOrEmpty(courierId)) return;
+         RolledBandits.Remove(courierId);
+         LastMovements.Remove(courierId);
       }
 
       /// <summary>
@@ -190,6 +211,100 @@ namespace CalradiaRemembers.Letters
       /// </summary>
       internal static void ResendWaylaidLetterForTest(BannerlordNpcMemoryStore store, NpcProfile profile, PlayerLetter letter)
          => ResendWaylaidLetter(store, profile, letter);
+
+      /// <summary>
+      ///   Diagnostic (cr.couriers): one line per in-flight courier: direction, letter, position, and how long
+      ///   it has sat still, so a player report of a wandering courier can be read straight off the console.
+      /// </summary>
+      public static string DescribeActiveCouriers(BannerlordNpcMemoryStore store, int today)
+      {
+         if (ActiveCourierIds.Count == 0) return "No couriers in flight.";
+
+         var lines = new List<string>();
+         foreach (string partyId in ActiveCourierIds.ToList())
+         {
+            MobileParty courier = FindCourier(partyId);
+            string what = DescribeCourierErrand(store, partyId);
+
+            if (courier is not {IsActive: true})
+            {
+               lines.Add($"{partyId}: {what}: party MISSING (daily tick will reclaim it).");
+
+               continue;
+            }
+
+            string still = LastMovements.TryGetValue(partyId, out StuckRecord rec) && today > rec.Day
+               ? $", still for {today - rec.Day}d (fallback at {CourierStuckPolicy.StuckDaysBeforeFallback}d)"
+               : "";
+            lines.Add($"{partyId}: {what} at ({courier.GetPosition2D.x:F0}, {courier.GetPosition2D.y:F0})" +
+                      $", food {courier.TotalFoodAtInventory}{still}.");
+         }
+
+         return string.Join("\n", lines);
+      }
+
+      /// <summary>
+      ///   Support valve (cr.couriers_recall): despawns every in-flight courier and clears the letters' party
+      ///   ids so each letter reverts to date-based delivery (nothing is lost, the road is simply abandoned).
+      ///   Returns how many couriers were recalled.
+      /// </summary>
+      public static int RecallAll(BannerlordNpcMemoryStore store)
+      {
+         var recalled = 0;
+         if (store == null) return recalled;
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile == null) continue;
+
+            var changed = false;
+
+            foreach (PlayerLetter letter in profile.ReceivedPlayerLetters)
+               if (!letter.IsDelivered && !letter.IsLost && !string.IsNullOrEmpty(letter.CourierPartyId))
+               {
+                  Disband(FindCourier(letter.CourierPartyId));
+                  letter.CourierPartyId = null;
+                  recalled++;
+                  changed = true;
+               }
+
+            foreach (PendingLetter letter in profile.SentLetters)
+               if (!letter.IsDelivered && !letter.IsLost && !string.IsNullOrEmpty(letter.CourierPartyId))
+               {
+                  Disband(FindCourier(letter.CourierPartyId));
+                  letter.CourierPartyId = null;
+                  recalled++;
+                  changed = true;
+               }
+
+            if (changed) store.Set(profile);
+         }
+
+         ModLog.Info($"[COURIER] recall: {recalled} courier(s) recalled, letters reverted to date-based delivery.");
+
+         return recalled;
+      }
+
+      /// <summary>What a courier id is carrying, resolved from the store: direction plus the correspondent.</summary>
+      private static string DescribeCourierErrand(BannerlordNpcMemoryStore store, string partyId)
+      {
+         if (store == null) return "unknown errand";
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile == null) continue;
+            if (profile.ReceivedPlayerLetters?.Any(l => l.CourierPartyId == partyId && !l.IsDelivered && !l.IsLost) == true)
+               return $"letter to {profile.Name}";
+            if (profile.SentLetters?.Any(l => l.CourierPartyId == partyId && !l.IsDelivered && !l.IsLost) == true)
+               return $"reply from {profile.Name}";
+         }
+
+         return "unknown errand";
+      }
 
       /// <summary>
       ///   After a load, in-flight letters carry a courier id pointing to a party that was
@@ -358,6 +473,7 @@ namespace CalradiaRemembers.Letters
       {
          ActiveCourierIds.Clear();
          RolledBandits.Clear(); // 4.6: a static keyed by courier id, never purged, leaked slowly across campaigns in one process.
+         LastMovements.Clear(); // same lesson: runtime cache keyed by courier id, reset with the set it shadows.
 
          if (store == null) return;
 
@@ -487,10 +603,11 @@ namespace CalradiaRemembers.Letters
                Hero recipient = Hero.FindFirst(h => h.StringId == letter.RecipientId);
                MobileParty courier = FindCourier(letter.CourierPartyId);
 
-               // Recipient died, was captured, or vanished → undeliverable. Despawn.
+               // Recipient died, was captured, or vanished → undeliverable. Despawn. The reason is SPECIFIC
+               // (dead / captured / vanished): the courier's report is how the player learns the recipient's fate.
                if (!CanReceiveLetter(recipient))
                {
-                  MarkUndeliverable(letter, $"{letter.RecipientName} could not be reached");
+                  MarkUndeliverable(letter, UndeliverableReason(recipient, letter.RecipientName));
                   Disband(courier);
                   changed = true;
 
@@ -527,6 +644,18 @@ namespace CalradiaRemembers.Letters
                   continue;
                }
 
+               // Robustness batch: a LIVE courier jammed on the same spot for days is going nowhere. Give the
+               // letter back to date-based delivery NOW instead of burning the grace window and losing it.
+               // (A courier waiting at a landfall for a sailing recipient is exempt: waiting is its job.)
+               if (!RecipientAtSea(recipient) && CourierIsStuck(courier, today))
+               {
+                  Disband(courier);
+                  letter.CourierPartyId = null;
+                  changed = true;
+                  ModLog.Info($"[COURIER] courier to {letter.RecipientName} has not moved for {CourierStuckPolicy.StuckDaysBeforeFallback} days; handed to date-based delivery.");
+
+                  continue;
+               }
 
                changed = ResumeCourier(today, courier, recipient, letter, changed, store, profile);
             }
@@ -579,15 +708,36 @@ namespace CalradiaRemembers.Letters
                // Give up TODAY: disband it and clear the id, so the letter returns to the date fallback —
                // which never delivers at sea, but lands on the first tick the player is ashore past the
                // delivery day. The deadline below stays as the safety net.
+               // Robustness batch: the SAME tested gate as the spawn site decides whether the road to the
+               // player is still open for a courier already in flight: at sea, captive player, or no land
+               // route left, and any block reclaims the courier while the letter reverts to the date fallback.
                MobileParty courier = FindCourier(letter.CourierPartyId);
                MobileParty playerParty = MobileParty.MainParty;
-               if (courier is {IsActive: true} && playerParty != null &&
-                   (playerParty.IsCurrentlyAtSea || !LandPathExists(courier.GetPosition2D, playerParty.GetPosition2D)))
+               if (courier is {IsActive: true} && playerParty != null)
+               {
+                  ReplyCourierBlock block = ReplyCourierGatePolicy.Decide(
+                     playerParty.IsCurrentlyAtSea,
+                     Hero.MainHero.IsPrisoner,
+                     LandPathExists(courier.GetPosition2D, playerParty.GetPosition2D));
+                  if (block != ReplyCourierBlock.None)
+                  {
+                     Disband(courier);
+                     letter.CourierPartyId = null;
+                     changed = true;
+                     ModLog.Info($"[COURIER-REPLY] {DescribeReplyBlock(block, profile.Name)}, courier reclaimed, letter handed to date-based delivery.");
+
+                     continue;
+                  }
+               }
+
+               // Robustness batch: a LIVE reply courier jammed on the same spot for days is going nowhere;
+               // give the letter back to date-based delivery now rather than waiting out the deadline.
+               if (courier is {IsActive: true} && CourierIsStuck(courier, today))
                {
                   Disband(courier);
                   letter.CourierPartyId = null;
                   changed = true;
-                  ModLog.Info($"[COURIER-REPLY] {profile.Name}'s courier has no land route to the player; handed to date-based delivery.");
+                  ModLog.Info($"[COURIER-REPLY] {profile.Name}'s courier has not moved for {CourierStuckPolicy.StuckDaysBeforeFallback} days; handed to date-based delivery.");
 
                   continue;
                }
@@ -695,22 +845,19 @@ namespace CalradiaRemembers.Letters
 
             if (playerParty == null) return false;
 
-            // Courier audit (island report): a courier rides overland and can never meet the player on the
-            // water — and the date fallback never delivers at sea either — so do not spawn until the player
-            // is ashore. And when NO land route exists from the sender to the player (an island across the
-            // water), the courier would spawn only to starve on the shore: refuse, the letter keeps its
-            // date-based fallback.
-            if (playerParty.IsCurrentlyAtSea)
-            {
-               ModLog.Info($"[COURIER-REPLY] player at sea — courier from {sender.Name} not spawned yet, letter stays on date-based delivery.");
-
-               return false;
-            }
-
+            // Robustness batch: ONE tested gate (ReplyCourierGatePolicy) decides whether a rider can be on the
+            // road to the player at all: at sea (a land courier cannot meet them on the water, and the date
+            // fallback never delivers at sea either), a captive player (the rider would chase the captor's own
+            // party), or no overland route (an island: the courier would spawn only to starve on the shore).
+            // Every blocked case is safe: the letter keeps its date-based fallback.
             Vec2 spawnPos = spawnOverride ?? GetSenderPosition(sender);
-            if (!LandPathExists(spawnPos, playerParty.GetPosition2D))
+            ReplyCourierBlock block = ReplyCourierGatePolicy.Decide(
+               playerParty.IsCurrentlyAtSea,
+               Hero.MainHero.IsPrisoner,
+               LandPathExists(spawnPos, playerParty.GetPosition2D));
+            if (block != ReplyCourierBlock.None)
             {
-               ModLog.Info($"[COURIER-REPLY] no land route from {sender.Name} to the player — courier not spawned, letter stays on date-based delivery.");
+               ModLog.Info($"[COURIER-REPLY] {DescribeReplyBlock(block, sender.Name.ToString())}, letter stays on date-based delivery.");
 
                return false;
             }
@@ -754,7 +901,7 @@ namespace CalradiaRemembers.Letters
             Hero recipient = Hero.FindFirst(h => h.StringId == letter.RecipientId);
             if (!CanReceiveLetter(recipient))
             {
-               MarkUndeliverable(letter, $"{letter.RecipientName} could not be reached");
+               MarkUndeliverable(letter, UndeliverableReason(recipient, letter.RecipientName));
                Disband(courier);
                store.Set(profile);
 
@@ -800,6 +947,10 @@ namespace CalradiaRemembers.Letters
             MobileParty playerParty = MobileParty.MainParty;
 
             if (playerParty == null) return;
+
+            // Robustness batch: never deliver to (or keep chasing) a captive player this hour; the daily
+            // TickReplyCouriers reclaims the courier and the letter returns to date-based delivery.
+            if (Hero.MainHero.IsPrisoner) return;
 
             float dist = courier.GetPosition2D.Distance(playerParty.GetPosition2D);
             if (dist < ArrivalDistance)
@@ -939,12 +1090,76 @@ namespace CalradiaRemembers.Letters
          {
             if (courier == null) return;
             ActiveCourierIds.Remove(courier.StringId);
+            LastMovements.Remove(courier.StringId);
             TravelingParty.Destroy(courier);
          }
          catch (Exception ex)
          {
             ModLog.Error($"[COURIER] Disband failed: {ex.Message}");
          }
+      }
+
+      /// <summary>
+      ///   The specific reason a letter could not reach its recipient, for the player's report: a death and a
+      ///   capture are different stories, and the courier's report is the only channel that tells them.
+      ///   Wording rules live in <see cref="UndeliverableReasonDescriber" /> (pure, tested).
+      /// </summary>
+      private static string UndeliverableReason(Hero recipient, string recipientName)
+         => UndeliverableReasonDescriber.Describe(
+            UndeliverableReasonDescriber.Resolve(recipient is {IsAlive: false}, recipient is {IsPrisoner: true}),
+            recipientName);
+
+      /// <summary>Log wording for each road-gate block, so the log tells the accurate story per reason.</summary>
+      private static string DescribeReplyBlock(ReplyCourierBlock block, string senderName)
+      {
+         switch (block)
+         {
+            case ReplyCourierBlock.PlayerAtSea: return $"player at sea, no rider from {senderName}";
+            case ReplyCourierBlock.PlayerIsPrisoner: return $"player is a prisoner, no rider from {senderName}";
+            default: return $"no land route from {senderName} to the player";
+         }
+      }
+
+      /// <summary>
+      ///   Robustness batch: refills a courier that has eaten through its spawn grain (TravelingParty stocks
+      ///   100 units, but the M5 wait at a landfall for a sailing recipient can outlast any fixed stock).
+      ///   Without food the engine starves and destroys the party, which reads to the player as a lost letter.
+      ///   WHEN is <see cref="CourierRationPolicy" /> (tested); how much is the constant above.
+      /// </summary>
+      private static void TopUpRations(MobileParty courier)
+      {
+         try
+         {
+            if (courier == null || !CourierRationPolicy.ShouldTopUp((int) courier.TotalFoodAtInventory)) return;
+
+            var grain = Game.Current.ObjectManager.GetObject<ItemObject>("grain");
+            if (grain != null) courier.ItemRoster.AddToCounts(grain, RationTopUpUnits);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COURIER] TopUpRations failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Robustness batch: true when this LIVE courier has sat within <see cref="StuckEpsilon" /> of the same
+      ///   spot for <see cref="StuckDaysBeforeFallback" /> daily ticks. Movement resets the clock. The record
+      ///   is pruned on disband/destroy and cleared with the other runtime caches at session launch.
+      /// </summary>
+      private static bool CourierIsStuck(MobileParty courier, int today)
+      {
+         if (courier?.StringId == null) return false;
+
+         Vec2 pos = courier.GetPosition2D;
+         if (!LastMovements.TryGetValue(courier.StringId, out StuckRecord last) ||
+             CourierStuckPolicy.HasMoved(pos.Distance(last.Position)))
+         {
+            LastMovements[courier.StringId] = new StuckRecord {Position = pos, Day = today};
+
+            return false;
+         }
+
+         return CourierStuckPolicy.IsStuck(today, last.Day);
       }
 
       private static MobileParty FindCourier(string partyId)
