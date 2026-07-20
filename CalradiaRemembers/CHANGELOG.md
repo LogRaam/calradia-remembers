@@ -2,6 +2,18 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.4.. 2026-07-20
+
+A fix for letter-carriers under the War Sails DLC. Your saves carry over untouched.
+
+### Fixed (everyone, matters if you have War Sails)
+- **Couriers no longer crawl when War Sails is installed.** The naval DLC swaps the game's party-speed model,
+  and the mod's courier speed boost was attached only to the base model, so with War Sails a letter-carrier
+  could be slowed to a crawl and its small party could starve on the road. The boost now attaches to whatever
+  speed model the game is running, so couriers keep their pace. (Letters already arrived on time regardless,
+  through a date-based fallback; this fixes the courier parties themselves.) Thanks to the player who spotted
+  the warning in the log.
+
 ## v1.31.3.. 2026-07-20
 
 A small fix for a quest that would not advance. Your saves carry over, and a stuck quest of this kind repairs

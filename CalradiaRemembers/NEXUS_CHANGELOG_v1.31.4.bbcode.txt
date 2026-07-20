@@ -1,0 +1,8 @@
+[size=4]v1.31.4[/size]
+
+A fix for letter-carriers under the War Sails DLC. Saves carry over untouched.
+
+[size=3][b]For everyone (matters if you have War Sails)[/b][/size]
+[list]
+[*][b]Couriers no longer crawl when War Sails is installed.[/b] The naval DLC swaps the game's party-speed model, and the mod's courier speed boost was attached only to the base model, so with War Sails a letter-carrier could be slowed to a crawl and its small party could starve on the road. The boost now attaches to whatever speed model the game is running, so couriers keep their pace. Letters already arrived on time regardless, through a date-based fallback; this fixes the courier parties themselves. Thanks to the player who spotted the warning in the log.
+[/list]

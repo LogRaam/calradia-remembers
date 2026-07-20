@@ -354,33 +354,6 @@ namespace CalradiaRemembers.Letters
       public static bool IsCourier(string partyId)
          => !string.IsNullOrEmpty(partyId) && ActiveCourierIds.Contains(partyId);
 
-      /// <summary>
-      ///   Rebuilds the in-memory courier id set from the persisted store after a
-      ///   save/load. Call once at session launch so the speed patch keeps working
-      ///   for couriers that were in flight when the game was saved.
-      /// </summary>
-      /// <summary>
-      ///   M8 (courier audit): the courier speed floor is a Harmony postfix on
-      ///   <see cref="DefaultPartySpeedCalculatingModel" />.<c>CalculateFinalSpeed</c>. Any mod that REPLACES the
-      ///   party-speed model with its own type silently disables that postfix, so couriers crawl at the vanilla
-      ///   small-party speed, starve, and miss deadlines with no visible cause. This logs a single warning at
-      ///   launch so the failure is diagnosable from the log instead of looking like a CR bug.
-      /// </summary>
-      public static void WarnIfSpeedModelReplaced()
-      {
-         try
-         {
-            var model = Campaign.Current?.Models?.PartySpeedCalculatingModel;
-            if (model != null && model is not DefaultPartySpeedCalculatingModel)
-               ModLog.Info($"[COURIER] WARNING: another mod replaced the party-speed model ({model.GetType().Name}); " +
-                           "the courier speed floor is inactive, so couriers may crawl, starve, and miss deadlines.");
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[COURIER] speed-model check failed (non-fatal): {ex.GetType().Name}: {ex.Message}");
-         }
-      }
-
       public static void RebuildActiveCourierSet(BannerlordNpcMemoryStore store)
       {
          ActiveCourierIds.Clear();

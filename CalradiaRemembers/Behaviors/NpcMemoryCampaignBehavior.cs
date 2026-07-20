@@ -275,7 +275,7 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.TaverneLetterBehavior.Register", () => new TaverneLetterBehavior().Register(campaignGameStarter));
          SafeRun.Step("OnSessionLaunched.CommonsDialogBehavior.Register", () => new CommonsDialogBehavior().Register(campaignGameStarter));
          SafeRun.Step("OnSessionLaunched.CourierService.RebuildActiveCourierSet", () => CourierService.RebuildActiveCourierSet(Store));
-         SafeRun.Step("OnSessionLaunched.CourierService.WarnIfSpeedModelReplaced", CourierService.WarnIfSpeedModelReplaced); // M8: flag a foreign speed model that would disable the courier floor
+         SafeRun.Step("OnSessionLaunched.CourierSpeedPatch.EnsureFloorOnActiveModel", CourierSpeedPatch.EnsureFloorOnActiveModel); // attach the courier speed floor to the live model (works under War Sails), warn only if truly unreachable
          // Couriers were kept out of the save (despawned pre-save). Don't respawn a fragile
          // party during session launch: instead hand any orphaned in-flight letter back to
          // its date-based delivery, so it still arrives even though the courier is gone.

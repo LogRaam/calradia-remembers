@@ -271,7 +271,9 @@ Name a kingdom in the text and its people are likeliest to have heard it. This i
 
 [quote]💡 A note on the console: most of the [b]cr.[/b] commands you'll see are developer / regression tests, [b]not gameplay features[/b] (running one won't break anything, but it isn't how you play). The genuinely player-useful ones are the memory commands above, [b]cr.world_event[/b], and the gold/relation cheats. The mod ships a full [b]CONSOLE_COMMANDS_GUIDE.md[/b] (in the CalradiaRemembers module folder) that sorts every command into "cheats & player tools" vs "developer tests", with examples.. and in game, [b]cr.help[/b] lists them all.[/quote]
 [line]
-[size=4]What's new in v1.31.0 to v1.31.3.. the stabilization release[/size]
+[size=4]What's new in v1.31.0 to v1.31.4.. the stabilization release[/size]
+
+[b]v1.31.4[/b] fixes letter-carriers for players who have the War Sails DLC: the naval DLC swaps the game's party-speed model, and the courier speed boost was attached only to the base model, so a courier could be slowed to a crawl and its party starve on the road. The boost now attaches to whatever speed model the game is running. Letters always arrived on time through a date-based fallback; this fixes the courier parties themselves.
 
 [b]v1.31.3[/b] fixes a quest that would not advance: when a lord asked you to attack a rival and you took that rival prisoner instead of only beating them in the field, the quest failed to notice, because a capture is a stronger outcome than the defeat it was watching for. A capture now counts, and a quest already stuck by this repairs itself the next time you load, as long as you are still holding the target prisoner.
 
