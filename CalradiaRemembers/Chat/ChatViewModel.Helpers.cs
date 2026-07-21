@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.Duels;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
@@ -649,6 +650,30 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Draws THIS turn's verdict for whatever the captive player physically attempts. The model is told
+      ///   the answer and narrates it; it never gets to decide, because a model judging the struggle it is
+      ///   also writing always sides with the scene it meant to tell. Null outside a captive scene, and on a
+      ///   synthetic scene cue (no player line, so nothing to adjudicate).
+      /// </summary>
+      private bool? RollCaptiveAttemptVerdict(bool suppressPlayerLine)
+      {
+         if (!IsCaptiveEncounter || suppressPlayerLine) return null;
+
+         Hero player = Hero.MainHero;
+         if (player == null) return null;
+
+         int health = player.MaxHitPoints > 0
+            ? player.HitPoints * 100 / player.MaxHitPoints
+            : 100;
+         int roll = MBRandom.RandomInt(100);
+         bool succeeds = CaptiveActionOutcomePolicy.Succeeds(roll, health);
+         ModLog.Info($"[AGENCY] captive attempt verdict: roll {roll} vs {CaptiveActionOutcomePolicy.SuccessChance(health)}% "
+                   + $"(health {health}%) -> {(succeeds ? "SUCCEEDS" : "FAILS")}");
+
+         return succeeds;
+      }
+
+      /// <summary>
       ///   Resolves a captive escape attempt. The captor's already-written line shows the START
       ///   of the scuffle; the OUTCOME is fate's: the bridge rolls and (on success) commits the
       ///   freeing, then a tightly-constrained beat narrates the captor losing the prisoner (or,
@@ -673,11 +698,58 @@ namespace CalradiaRemembers.Chat
          if (!narrationFirst && !string.IsNullOrWhiteSpace(response?.Narration))
             AppendNarration(response.Narration);
 
-         bool freed = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.ResolvePlayerEscapeAttempt(false) ?? false;
-         ModLog.Info($"[ESCAPE] attempt resolved: {(freed ? "SUCCESS — player freed" : "failure — captor holds")}.");
+         // ONE escape attempt per captivity event (Gabriel 2026-07-20). Once this event's attempt is spent, a
+         // further bid is absorbed by the fiction: the captor's line above already answers it, and we arm
+         // NOTHING, so the scene carries on instead of looping back into the fight.
+         if (CaptiveEscapeCoordinator.EscapeAlreadySpent)
+         {
+            IsSendEnabled = !_conversationEnded;
+            ModLog.Info("[ESCAPE] a further break was refused: this captivity event's one attempt is already spent.");
 
+            return;
+         }
+
+         // 2026-07-20: the escape is no longer a narrated roll. It becomes a REAL fight-or-flee encounter, staged
+         // after this chat closes (see CaptiveEscapeCoordinator). Build the roster: the real captor FIRST so the
+         // player faces HIM in the flesh, then a bandit filler per present witness, capped at three. The OUTCOME
+         // of the fight, not the LLM, decides freedom; nothing is freed here.
+         var roster = new List<CharacterObject> {speaker.Hero?.CharacterObject};
+         foreach (WitnessEntry w in _witnesses)
+         {
+            if (roster.Count >= 3) break;             // captor + up to two others
+            if (w.IsPlayerCompanion) continue;         // your own people never fight you
+            Hero wh = string.IsNullOrEmpty(w.HeroStringId)
+               ? null
+               : Hero.FindFirst(h => h != null && h.StringId == w.HeroStringId);
+            roster.Add(wh?.CharacterObject);           // a real hero as himself, a synthetic man as a bandit filler
+         }
+
+         // If the player LOSES the fight, the scene RESUMES: reopen the captive chat with the captor reacting to
+         // the beaten-back prisoner. Capture the scene's data now, as values (the VM is torn down at chat close).
+         Hero captorHero = speaker.Hero;
+         NpcProfile captorProfile = _captiveEncounterProfile;
+         var witnessesForResume = new List<WitnessEntry>(_witnesses);
+         CaptiveSceneIntent resumeIntent = _captiveEncounterIntent;
+         bool resumeCollective = _captiveEncounterIsCollective;
+
+         void ResumeOnLoss() => ChatManager.OpenForCaptiveEncounter(
+            captorHero, captorProfile, witnessesForResume, resumeCollective, resumeIntent,
+            openingOverride: CaptiveEscapeCoordinator.ResumeAfterLostEscapeCue);
+
+         CaptiveEscapeCoordinator.Arm(roster, speaker.Hero, ResumeOnLoss);
+
+         // Deliberate transition: lock input and leave only the close button. Clicking it closes the chat, and the
+         // coordinator stages the encounter on the next tick, on the live map (we never return to the chat).
+         _conversationEnded = true;
+         _sceneContinuations = 0;
+         IsScenePaused = false;
+         IsPrivateRequestVisible = false;
+         IsPleaseContinueVisible = false;
          IsSendEnabled = false;
-         _ = RunEscapeOutcomeAsync(speaker, freed);
+         CloseButtonText = "Break for it";
+         OnPropertyChanged(nameof(IsOfferItemVisible));
+         AppendSystemMessage("You steel yourself, and make your break for it...", false);
+         ModLog.Info($"[ESCAPE] armed from chat; captor={speaker.Name}, {roster.Count} aggressor(s). Awaiting the 'Break for it' click.");
       }
 
       /// <summary>

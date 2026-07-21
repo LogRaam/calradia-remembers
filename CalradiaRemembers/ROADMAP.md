@@ -793,6 +793,30 @@ is its LEFT panel and header content, all mapping onto EXISTING CR data (no new 
   the left shows the dossier by default and SWAPS to the compose preview when the quill is clicked on a long
   message. Decide at prefab time.
 
+## WISHED (player feedback SuperGraham339 2026-07-20 + Gabriel): nemesis discoverability + lord bounties
+
+Player report (SuperGraham339, Nexus): captured and tortured by the nemesis "Coll the Unbroken", escaped,
+killed the party, later ran into Coll AGAIN in another looter party = "an incredible moment" (the pillar's
+exact designed payoff). BUT: "I was sad that he escaped, and tried to look him up in the encyclopedia but
+didn't see any mention." A player forms a real attachment to a nemesis and wants to TRACK / REMEMBER / HUNT
+him, and today has no surface for it. Two converging pieces (they solve each other):
+
+1. **Discoverability of an ENCOUNTERED nemesis.** Keep the "hidden until materialised" design for un-met ones,
+   but a nemesis the player has already tangled with is no longer secret TO HIM: give THAT one a post-encounter
+   record. Options: an Encyclopedia entry that appears once encountered, OR a dedicated nemesis dossier page (a
+   strong first candidate for the UI polish sprint / a "Book of Memory" nemesis variant). It shows who he is,
+   his culture + region, and your shared history (captures, torture, your escape, your victories). Plus the
+   rumour layer already flagged OPEN in the nemesis pillar (a tavern / lord hint "Coll raids near X").
+
+2. **Lord bounties to clear a nemesis (Gabriel 2026-07-20).** Lords who want a nemesis GONE from their kingdom
+   post a bounty for a bounty-hunter (the player) to capture or kill him. This EXPANDS the EXISTING system, do
+   NOT duplicate it: `NemesisBountyDialogFlow` + pure `NemesisBountyPolicy` (region eligibility) +
+   `NemesisBountyRewardPolicy` (reward math), shipped v1.25.0, offered at `hero_main_options` when the lord you
+   talk to has a nemesis in his region. The expansion = make it PROACTIVE / DISCOVERABLE: a lord seeks the
+   player out, or the bounty is surfaced so the player learns WHERE a nemesis operates. The bounty then doubles
+   as the discoverability signal AND the hunt reward, closing SuperGraham's gap in-fiction ("here is a nemesis
+   plaguing my region, go end him"). Pairs with the captive-escape memory (a nemesis you escaped remembers it).
+
 ## WISHED (Gabriel 2026-07-10): an ESCORTED courier option at the tavernkeeper
 
 Player report (enivicivokke, and others): couriers still get intercepted too often for some players, worse with

@@ -450,6 +450,15 @@ namespace CalradiaRemembers.Letters
          => BuildBanditCaptor($"bandit_captor_{party.StringId}", party.StringId.GetHashCode(),
             party.MapFaction?.Name?.ToString() ?? "Brigands", leaderIsFemale);
 
+      /// <summary>
+      ///   The captor's own men for a collective scene, by KIND: a bandit chief (or a nemesis, who is a bandit
+      ///   chief) is attended by BRIGANDS with their own appetites who drive the scene; a lord by his soldiers.
+      /// </summary>
+      private static List<WitnessEntry> ChiefsMen(MobileParty captorParty, Hero captor)
+         => captorParty?.IsBandit == true || captor?.MapFaction?.IsBanditFaction == true
+            ? BuildBanditWitnesses()
+            : BuildSoldierWitnesses();
+
       private static List<WitnessEntry> BuildSoldierWitnesses()
          => new() {
             new WitnessEntry {
@@ -608,20 +617,20 @@ namespace CalradiaRemembers.Letters
             case 1: // Other lords present
                return (ResolveLordWitnesses(captorParty, captor, store), false);
 
-            case 2: // The captor's own soldiers present, and INVOLVED. Gabriel 2026-07-19: a captor's men
-                    // standing at a sexual captive scene are not furniture; if they are there, they take part.
-                    // This used to return collective=false, so the soldiers were present but passive and the
-                    // nemesis did everything alone (the reported regression). Their PRESENCE now makes the
-                    // scene collective, which is what routes them the participation rules.
-               return (BuildSoldierWitnesses(), true);
+            case 2: // The captor's own men present, and INVOLVED. Gabriel 2026-07-19: a captor's men standing at
+                    // a sexual captive scene are not furniture; if they are there, they take part (collective).
+                    // Gabriel 2026-07-20: a BANDIT chief's men are brigands with their own appetites (they argue,
+                    // demand a turn, grab, grumble), NOT the passive "silent, obedient" soldiers of a lord. A
+                    // nemesis is a bandit chief, so his men used to read as flat, repetitive guards; route by kind.
+               return (ChiefsMen(captorParty, captor), true);
 
-            case 3: // Collective — lords if available, else soldiers
+            case 3: // Collective: lords if available, else the captor's own men (brigands or soldiers)
             {
                List<WitnessEntry> lords = ResolveLordWitnesses(captorParty, captor, store);
 
                return (lords.Count > 0
                   ? lords
-                  : BuildSoldierWitnesses(), true);
+                  : ChiefsMen(captorParty, captor), true);
             }
 
             default:

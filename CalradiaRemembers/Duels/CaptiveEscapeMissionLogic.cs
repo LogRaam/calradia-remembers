@@ -71,6 +71,7 @@ namespace CalradiaRemembers.Duels
 
       private readonly Action<EscapeOutcome> _onEnd;
       private readonly int _foeCount;
+      private readonly IReadOnlyList<CharacterObject> _foes; // requested aggressors; a null entry falls back to a bandit
       private readonly List<Agent> _foeAgents = new List<Agent>();
 
       private Agent _playerAgent;
@@ -85,9 +86,10 @@ namespace CalradiaRemembers.Duels
       private float _speedTimer;       // seconds since the last speed drop
       private int _intervalsElapsed;   // how many drops have been applied
 
-      public CaptiveEscapeMissionLogic(int foeCount, Action<EscapeOutcome> onEnd)
+      public CaptiveEscapeMissionLogic(IReadOnlyList<CharacterObject> foes, Action<EscapeOutcome> onEnd)
       {
-         _foeCount = Math.Max(1, Math.Min(foeCount, 3));
+         _foes = foes;
+         _foeCount = Math.Max(1, Math.Min(foes?.Count ?? 1, 3));
          _onEnd = onEnd;
       }
 
@@ -225,13 +227,14 @@ namespace CalradiaRemembers.Duels
          }
 
          // The aggressors stand in a short line opposite, each with a Knobbed Club, and charge once Alarmed.
-         // Draw each aggressor from a DIFFERENT bandit culture (Looters, Forest/Sea/Steppe/Mountain/Desert
-         // Bandits) so the three do not look like triplets; cycled if there are fewer cultures than foes.
+         // Each aggressor is a REQUESTED character (the real captor, so you face him in the flesh) where one was
+         // given; a null falls back to a DIFFERENT bandit culture (Looters, Forest/Sea/Steppe/Mountain/Desert)
+         // so mook fillers do not look like triplets.
          List<CharacterObject> pool = BanditTroopPool();
          float startX = -FoeSpread * (_foeCount - 1) * 0.5f;
          for (var i = 0; i < _foeCount; i++)
          {
-            CharacterObject foeChar = pool[i % pool.Count];
+            CharacterObject foeChar = _foes != null && i < _foes.Count && _foes[i] != null ? _foes[i] : pool[i % pool.Count];
             Vec3 pos = GroundAt(new Vec3(centre.x + startX + i * FoeSpread, centre.y + Separation * 0.5f, centre.z));
             Agent foe = SpawnFighter(foeChar, enemyTeam, pos, new Vec2(0f, -1f), AggressorEquipment(foeChar), club: AggressorsArmed);
             if (foe == null) continue;
@@ -299,10 +302,15 @@ namespace CalradiaRemembers.Duels
          return pool;
       }
 
-      /// <summary>An aggressor's civilian outfit disarmed, then given a Knobbed Club only when armed (else bare-handed).</summary>
+      /// <summary>
+      ///   An aggressor's outfit, disarmed. A HERO foe (the real captor) wears his own LIVE gear so he looks
+      ///   exactly like himself in the fight; a plain troop uses its template. Weapons are stripped either way (a
+      ///   bare-handed brawl); a Knobbed Club is added back only when the aggressors are armed. The source is
+      ///   cloned first, so a hero's real equipment is never touched.
+      /// </summary>
       private static Equipment AggressorEquipment(CharacterObject foe)
       {
-         Equipment src = foe.FirstBattleEquipment ?? foe.FirstCivilianEquipment;
+         Equipment src = foe.HeroObject?.BattleEquipment ?? foe.FirstBattleEquipment ?? foe.FirstCivilianEquipment;
          Equipment eq = StripWeapons(src?.Clone()) ?? new Equipment();
 
          if (AggressorsArmed)

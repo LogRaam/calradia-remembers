@@ -274,8 +274,14 @@ namespace CalradiaRemembers.Chat
          CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation,
          CharacterObject portraitCharacter = null,
          Hero victimCompanionHero = null,
-         bool playerCoerced = false)
+         bool playerCoerced = false,
+         string openingOverride = null)
       {
+         // ONE escape attempt per captivity event. A FRESH scene (no opening override) grants the player a new
+         // chance; the scene RESUMED after a lost escape carries an override and is the SAME event, so it must
+         // NOT hand back another attempt (that is what let the fight loop).
+         if (string.IsNullOrEmpty(openingOverride)) Duels.CaptiveEscapeCoordinator.NoteNewCaptiveScene();
+
          Open(captorHero?.Name?.ToString() ?? captorProfile?.Name);
 
          if (ActiveViewModel == null) return;
@@ -316,7 +322,7 @@ namespace CalradiaRemembers.Chat
          // name, house and station (Gabriel, in play 2026-07-19: a deserter chief greeted a first-time captive
          // by name). A bandit is a bandit whether or not his band's leader has a name.
          bool captorIsBandit = captorHero == null || captorHero.MapFaction?.IsBanditFaction == true;
-         ActiveViewModel.ActivateCaptiveEncounterMode(captorProfile, isCollective, intent, captorIsBandit, victimName, playerCoerced, victimIsFemale);
+         ActiveViewModel.ActivateCaptiveEncounterMode(captorProfile, isCollective, intent, captorIsBandit, victimName, playerCoerced, victimIsFemale, openingOverride);
       }
 
       /// <summary>

@@ -531,7 +531,14 @@ namespace CalradiaRemembers.Chat
                // opening narration, then sporadic). Consumed ONCE per conversation rather than derived from
                // the turn counter: a captor's opening turn carries suppressPlayerLine and so never
                // increments it, which asked for the opening narration twice in every captive scene.
-               isConversationOpening: ConsumeOpeningNarration());
+               isConversationOpening: ConsumeOpeningNarration(),
+               // Assembly spike: when armed by cr.council_test, a normal player turn takes the COUNCIL framing,
+               // so this single call yields the anchor's reply + a [WITNESS_REACTION] per present member.
+               isRoundTableTurn: RoundTableController.CouncilTurnsForced,
+               // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
+               // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic
+               // scene cue has no attempt to judge.
+               playerAttemptSucceeds: RollCaptiveAttemptVerdict(suppressPlayerLine));
 
             if (behavior.LlmServices is not {IsAvailable: true})
             {
@@ -658,7 +665,12 @@ namespace CalradiaRemembers.Chat
             // The captor flagged the player trying to break free. The OUTCOME is fate's,
             // not the LLM's: the mod rolls it, frees the player on success, and owns the
             // resolution narration so the captor can never "win" the escape by narration.
-            if (IsCaptiveEncounter && DialogueHeuristics.HasAction(response, "escape_attempt"))
+            // An escape is a PLAYER deed: it may only be armed on a turn the player actually spoke. A synthetic
+            // scene cue (any captor-led opener, and above all the one that RESUMES the scene after a LOST escape,
+            // which necessarily narrates the failed break) must never re-arm it. Without this guard the resume
+            // opener made the captor emit escape_attempt again and the scene looped straight back into the fight
+            // (Gabriel, in play 2026-07-20: the "Break for it" button and its line came back on the resumed scene).
+            if (IsCaptiveEncounter && !suppressPlayerLine && DialogueHeuristics.HasAction(response, "escape_attempt"))
             {
                ResolveEscapeAttempt(placeholder, speaker, profile, npcLine, response);
 

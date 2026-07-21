@@ -99,6 +99,10 @@ namespace CalradiaRemembers.Behaviors
          // instead of waiting up to 1 game day for the daily tick.
          CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(
             this, OnHourlyTickParty);
+         // Captivity escape: after the captive chat closes on a "break for it", stage the real escape mission
+         // on the next frame (a mission cannot open from inside the chat screen). Per-frame, cheap when idle.
+         CampaignEvents.TickEvent.AddNonSerializedListener(
+            this, Duels.CaptiveEscapeCoordinator.OnTick);
          // Courier audit 3.1: drain the letter-mutation queue on the main thread. The LLM letter generators
          // resume on the thread pool and only ENQUEUE their SentLetters/store mutations; this applies them
          // here, in the single-threaded world the daily/courier ticks enumerate.

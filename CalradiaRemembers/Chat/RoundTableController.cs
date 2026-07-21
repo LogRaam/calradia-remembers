@@ -39,6 +39,15 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       internal static bool Enabled { get; set; } = false;
 
+      /// <summary>
+      ///   Assembly spike flag (2026-07-20): when armed (via <c>cr.council_test</c>), EVERY normal player turn is
+      ///   built with the COUNCIL framing (`IsRoundTableTurn`), so ONE LLM call produces the anchor's reply plus a
+      ///   [WITNESS_REACTION] from each present member who speaks or gestures, others silent, the whole-table
+      ///   single-call model. This is distinct from <see cref="Enabled" /> (which drives the per-NPC round-table
+      ///   LAP). Never persisted; a test/validation switch, not a shipped path.
+      /// </summary>
+      internal static bool CouncilTurnsForced { get; set; } = false;
+
       private readonly RoundTableGate _gate = new RoundTableGate();
 
       /// <summary>True when the round-table button/UI should be shown (a group is present, not captive, not ended), and the feature is enabled.</summary>

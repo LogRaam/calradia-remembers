@@ -108,7 +108,8 @@ namespace CalradiaRemembers.Mapping
          CompanionAudienceReason companionAudience = CompanionAudienceReason.None,
          bool audienceRetirementIsLanded = false,
          bool resolveInterception = true,
-         bool isRoundTableTurn = false)
+         bool isRoundTableTurn = false,
+         bool? playerAttemptSucceeds = null)
       {
          int daysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge);
          bool npcIsPrisonerOfAnother = IsPrisonerOfAnother(hero);
@@ -157,6 +158,9 @@ namespace CalradiaRemembers.Mapping
             IsConversationOpening = isConversationOpening,
             IsLastWitnessExchange = isLastWitnessExchange,
             IsRoundTableTurn = isRoundTableTurn,
+            // This turn's pre-drawn verdict for a captive player's physical attempt: the mod decides, the model
+            // narrates (an LLM judging the struggle it is also writing always sides with its own story).
+            PlayerAttemptSucceeds = playerAttemptSucceeds,
             IsCollectiveCaptiveScene = isCollectiveCaptiveScene,
             IsCaptorScene = isCaptorScene,
             CaptiveFearCoerced = ResolveCaptiveFearCoerced(hero, profile, playerStatus),

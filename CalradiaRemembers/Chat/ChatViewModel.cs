@@ -781,7 +781,8 @@ namespace CalradiaRemembers.Chat
          bool captorIsBandit = false,
          string victimCompanionName = null,
          bool playerCoerced = false,
-         bool victimIsFemale = false)
+         bool victimIsFemale = false,
+         string openingOverride = null)
       {
          _mode = ChatMode.CaptiveEncounter;
          OnPropertyChanged(nameof(IsOfferItemVisible));
@@ -847,7 +848,11 @@ namespace CalradiaRemembers.Chat
          string setup = nonSexual
             ? ""
             : CaptiveSceneText.BuildSceneSetup(intent, ref _lastSceneFocusIndex, out _captiveSceneFocus);
-         string opener = CaptiveSceneText.BuildCaptiveOpener(isCollective, intent) + setup;
+         // An openingOverride replaces the intent-based opener with a supplied stage cue: used when the scene
+         // RESUMES after a lost escape encounter, so the captor opens on the recapture instead of a fresh intent.
+         string opener = string.IsNullOrEmpty(openingOverride)
+            ? CaptiveSceneText.BuildCaptiveOpener(isCollective, intent) + setup
+            : openingOverride;
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, captor, placeholder, true);
       }

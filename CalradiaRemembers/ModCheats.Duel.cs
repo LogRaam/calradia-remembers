@@ -178,7 +178,10 @@ namespace CalradiaRemembers
          var foes = 2;
          if (args != null && args.Count > 0 && int.TryParse(args[0], out int parsed)) foes = parsed;
 
-         return CaptiveEscapeMissionLauncher.StartEscape(foes, outcome =>
+         // All-null list = the requested count of bandit fillers (no real captor in the standalone test path).
+         var roster = new CharacterObject[foes < 1 ? 1 : foes > 3 ? 3 : foes];
+
+         return CaptiveEscapeMissionLauncher.StartEscape(roster, outcome =>
          {
             string line = outcome switch {
                EscapeOutcome.BeatThemAll => "You beat them all down and fought free. (Real release + lost gear/horse comes next.)",

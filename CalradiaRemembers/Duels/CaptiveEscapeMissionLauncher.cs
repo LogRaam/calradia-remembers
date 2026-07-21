@@ -7,6 +7,7 @@
 #region
 
 using System;
+using System.Collections.Generic;
 using CalradiaRemembers.Diagnostics;
 using SandBox;
 using TaleWorlds.CampaignSystem;
@@ -22,11 +23,12 @@ namespace CalradiaRemembers.Duels
    public static class CaptiveEscapeMissionLauncher
    {
       /// <summary>
-      ///   Stages the escape encounter against <paramref name="foeCount" /> aggressors (clamped 1..3). Must be
+      ///   Stages the escape encounter against <paramref name="foes" /> (clamped 1..3; a null entry becomes a
+      ///   bandit filler, so pass the real captor as the first entry to make the player face him). Must be
       ///   called from the campaign map (no mission running). <paramref name="onEnd" /> fires once with the
       ///   outcome just before the return to the map. Returns a human line; null-safe throughout.
       /// </summary>
-      public static string StartEscape(int foeCount, Action<EscapeOutcome> onEnd)
+      public static string StartEscape(IReadOnlyList<CharacterObject> foes, Action<EscapeOutcome> onEnd)
       {
          if (Campaign.Current == null) return "No campaign is running.";
          if (Mission.Current != null) return "A mission is already running. Return to the open map and try again.";
@@ -34,7 +36,7 @@ namespace CalradiaRemembers.Duels
          string scene = FirstLandBattleScene();
          if (string.IsNullOrEmpty(scene)) return "Found no field scene to stage the escape in (see the log).";
 
-         int foes = Math.Max(1, Math.Min(foeCount, 3));
+         int count = Math.Max(1, Math.Min(foes?.Count ?? 1, 3));
 
          try
          {
@@ -51,9 +53,9 @@ namespace CalradiaRemembers.Duels
                true,
                true);
 
-            ModLog.Info($"[ESCAPE] opening an escape scene in '{scene}' vs {foes} aggressor(s).");
+            ModLog.Info($"[ESCAPE] opening an escape scene in '{scene}' vs {count} aggressor(s).");
 
-            return $"An escape is set against {foes} club-armed aggressor(s). Knock them all down OR run to the edge; " +
+            return $"An escape is set against {count} aggressor(s). Knock them all down OR run to the edge; " +
                    "get knocked out yourself and you stay a prisoner.";
          }
          catch (Exception ex)
