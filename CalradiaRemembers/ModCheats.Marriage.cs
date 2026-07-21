@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
@@ -27,6 +28,10 @@ namespace CalradiaRemembers
       ///   Forces a native marriage between the player and the named hero so the
       ///   consequence resolver (warm/hostile family) can be tested end to end. Pair with
       ///   cr.marriage_approve / cr.marriage_revoke to test both outcomes.
+      ///   Also the player's REPAIR PATH for the marriage-memory bug (Nexus, v1.31.4): a chat that
+      ///   narrated and recorded a wedding ExecuteMarry actually refused can be sealed for real here,
+      ///   deliberately bypassing the guards cr.marry_check reports on (run that first to see WHY the
+      ///   chat version never happened).
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("marry", "cr")]
       public static string ForceMarry(List<string> args)
@@ -37,10 +42,146 @@ namespace CalradiaRemembers
          if (Hero.MainHero.Spouse != null) return $"You are already married to {Hero.MainHero.Spouse.Name}.";
          if (hero.Spouse != null) return $"{hero.Name} is already married to {hero.Spouse.Name}.";
 
-         MarriageAction.Apply(Hero.MainHero, hero);
+         try
+         {
+            MarriageAction.Apply(Hero.MainHero, hero);
+         }
+         catch (Exception ex)
+         {
+            return $"Marriage to {hero.Name} failed: {ex.GetType().Name}: {ex.Message}";
+         }
+
+         if (hero.Spouse != Hero.MainHero)
+            return $"MarriageAction.Apply ran, but {hero.Name} is still not recorded as your spouse: nothing was sealed.";
+
+         PinRomanticStatusToCommitted(hero);
 
          return $"Married {hero.Name}. Check the quick-notice for the family's reaction (and cr.info on a kin).";
       }
+
+      /// <summary>
+      ///   cr.marry_check [name] (read-only diagnostic). Runs every guard
+      ///   <see cref="BannerlordGameStateBridge" />'s ExecuteMarry checks, in the SAME order, and reports a
+      ///   pass/fail line for each with the specific blocker named. Mutates nothing.
+      ///   Built after a player report (Nexus, v1.31.4): the chat and letters narrated a complete wedding
+      ///   and recorded it as an [EVENT] ("Mesui and Huan Yi married under Khuzait law..."), but the engine
+      ///   never married anyone (cr.marriage_status showed the spouse still free). Either the marry action was
+      ///   never emitted at all, or ExecuteMarry refused it and the model narrated straight over the refusal.
+      ///   This command names exactly WHICH guard blocks a marriage the fiction promised. (The age gap that
+      ///   was the prime suspect in that report is no longer a guard: it was removed 2026-07-21, since a
+      ///   marriage is a contract between two adults.)
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("marry_check", "cr")]
+      public static string MarryCheck(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero npc = ResolveHero(args);
+         if (npc == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         Hero player = Hero.MainHero;
+         var sb = new StringBuilder();
+         sb.AppendLine($"{npc.Name}: cr.marry_check (read-only, same guards as ExecuteMarry, in the same order):");
+
+         // Guard 1: the player is not already wed.
+         bool playerAlreadyWed = player.Spouse != null;
+         sb.AppendLine(playerAlreadyWed
+            ? $"  [FAIL] player already wed: you are married to {player.Spouse.Name}."
+            : "  [PASS] player is not already wed.");
+
+         // Guard 2: the NPC does not belong to the player's own clan.
+         bool sameClan = npc.Clan != null && npc.Clan == Clan.PlayerClan;
+         sb.AppendLine(sameClan
+            ? $"  [FAIL] same clan: {npc.Name} belongs to your own clan (custom forbids it)."
+            : "  [PASS] not a member of your own clan.");
+
+         // Guard 3: MarriageProspectResolver.IsMarriageable, broken down so the exact reason (age, sex,
+         // an existing spouse, deceased) surfaces instead of one opaque bool.
+         bool candidateAlive = npc.IsAlive;
+         bool candidateHasSpouse = npc.Spouse != null;
+         bool sameSex = npc.IsFemale == player.IsFemale;
+         float candidateAge = npc.Age;
+         float playerAge = player.Age;
+         bool tooYoung = candidateAge < MarriageEligibility.MinMarriageAge;
+         bool marriageable = MarriageProspectResolver.IsMarriageable(player, npc);
+
+         sb.AppendLine(marriageable
+            ? $"  [PASS] marriageable: age {(int) candidateAge} vs your {(int) playerAge} (a gap is no bar to a marriage)."
+            : "  [FAIL] not marriageable: " + (!candidateAlive
+                 ? "deceased"
+                 : candidateHasSpouse
+                    ? $"already wed to {npc.Spouse.Name}"
+                    : sameSex
+                       ? "same sex as you (the engine marries opposite-sex only)"
+                       : tooYoung
+                          ? $"under the minimum marriage age (age {(int) candidateAge}, needs >= {(int) MarriageEligibility.MinMarriageAge})"
+                          : "ineligible") + ".");
+
+         // Not a guard on the marriage itself, reported because it explains a DIFFERENT puzzle a player may
+         // bring: why a clan head never OFFERED this kin unprompted. A house aims its own proposals at the
+         // young (MarriageProspectPolicy); the player asking for an older hand is not blocked by it.
+         if (marriageable && candidateAge > MarriageProspectPolicy.MaxProspectAge)
+            sb.AppendLine($"  [note] past {MarriageProspectPolicy.MaxProspectAge:0}, so their house would not "
+                        + "offer them to you unprompted, but you may still ask for them.");
+
+         // Guard 4: MarriageGuardPolicy.MarriageAllowed (M-B5): neither party a prisoner, no active war.
+         bool atWar = IsAtWarWithPlayerForCheck(npc);
+         bool guardAllowed = MarriageGuardPolicy.MarriageAllowed(npc.IsPrisoner, player.IsPrisoner, atWar);
+         sb.AppendLine(guardAllowed
+            ? "  [PASS] not a prisoner (either side), and not at war."
+            : "  [FAIL] blocked: " + (npc.IsPrisoner
+                 ? $"{npc.Name} is a prisoner"
+                 : player.IsPrisoner
+                    ? "you are a prisoner"
+                    : $"at war with {npc.MapFaction?.Name?.ToString() ?? "their faction"}") + ".");
+
+         // Guard 5: the regard threshold, met by EITHER ledger (personal ReputationWithPlayer or vanilla
+         // Hero.GetRelation). Reads the profile without creating one, so this stays read-only.
+         NpcProfile profile = behavior.Store.Get(npc.StringId);
+         int reputation = profile?.ReputationWithPlayer ?? 0;
+         int vanillaRelation = npc.GetRelation(player);
+         bool regardEnough = reputation >= MarriageEligibility.MarriageEligibilityThreshold ||
+                              vanillaRelation >= MarriageEligibility.MarriageEligibilityThreshold;
+         sb.AppendLine(regardEnough
+            ? $"  [PASS] regard: personal {reputation}, vanilla relation {vanillaRelation} (needs >= {MarriageEligibility.MarriageEligibilityThreshold} on either)."
+            : $"  [FAIL] regard too low: personal {reputation}, vanilla relation {vanillaRelation} (needs >= {MarriageEligibility.MarriageEligibilityThreshold} on either).");
+
+         bool eligible = !playerAlreadyWed && !sameClan && marriageable && guardAllowed && regardEnough;
+         sb.AppendLine(eligible
+            ? "VERDICT: ExecuteMarry would ACCEPT this marriage right now."
+            : "VERDICT: ExecuteMarry would REFUSE this marriage right now (see the FAIL line(s) above). " +
+              $"cr.marry {npc.Name} seals it anyway for testing, bypassing these guards.");
+
+         return sb.ToString();
+      }
+
+      /// <summary>
+      ///   Does for cr.marry what ExecuteMarry's own C3 block does for a chat marriage: pins the profile to
+      ///   Committed and clears any clandestine flag left over from the courtship. Without it a marriage
+      ///   sealed here keeps its pre-wedding status, and the next intimacy [EVENT] flips a REAL spouse to
+      ///   SecretLover, freezes them there for life, and makes jealousy read the marriage as an affair. That
+      ///   matters most on this path, which is the repair route for a wedding the chat only pretended to hold.
+      ///   Silent when the player has never spoken to the hero (no profile exists to pin).
+      /// </summary>
+      private static void PinRomanticStatusToCommitted(Hero hero)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string _)) return;
+
+         NpcProfile profile = behavior.Store.Get(hero.StringId);
+
+         if (profile?.Romantic == null) return;
+         profile.Romantic.Status = RomanticStatus.Committed;
+         profile.Romantic.IsSecretLover = false;
+         behavior.Store.Set(profile);
+      }
+
+      /// <summary>
+      ///   Mirrors <c>BannerlordGameStateBridge.IsAtWarWithPlayer</c> exactly (that one is private to the
+      ///   bridge): true when the NPC's faction is on the opposite side of an active war from the player's.
+      /// </summary>
+      private static bool IsAtWarWithPlayerForCheck(Hero npc)
+         => npc?.MapFaction != null && Hero.MainHero?.MapFaction != null
+            && FactionManager.IsAtWarAgainstFaction(npc.MapFaction, Hero.MainHero.MapFaction);
 
       /// <summary>
       ///   cr.marriage_approve [name]

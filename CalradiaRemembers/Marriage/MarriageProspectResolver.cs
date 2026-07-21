@@ -35,17 +35,21 @@ namespace CalradiaRemembers.Marriage
             // The clan's HEAD may bless any eligible kin of an external house.
             bool isLeader = npc.Clan != null && npc.Clan.Leader == npc && npc.Clan != Clan.PlayerClan;
 
+            // Offered kin are filtered by IsOfferableProspect, NOT the bare legality: a house puts forward
+            // its YOUNG of its own accord (ratified 2026-07-21), because the alliance it seeks is a long
+            // one. A player who wants the hand of someone older is not blocked; they ask, and the lawful
+            // rule alone answers them (see ResolveCandidate and the bridge's marry re-validation).
             var candidates = new List<Hero>();
             if (isLeader)
                foreach (Hero member in npc.Clan.Heroes.ToList())
-                  if (member is {IsAlive: true} && IsMarriageable(player, member))
+                  if (member is {IsAlive: true} && IsOfferableProspect(player, member))
                      candidates.Add(member);
 
             // A PARENT may bless their OWN child even when they do not head the clan — the
             // natural person a player approaches for a daughter's or son's hand.
             if (npc.Children != null)
                foreach (Hero child in npc.Children)
-                  if (child is {IsAlive: true} && child.Clan != Clan.PlayerClan && IsMarriageable(player, child) && !candidates.Contains(child))
+                  if (child is {IsAlive: true} && child.Clan != Clan.PlayerClan && IsOfferableProspect(player, child) && !candidates.Contains(child))
                      candidates.Add(child);
 
             if (candidates.Count == 0) return null;
@@ -97,6 +101,20 @@ namespace CalradiaRemembers.Marriage
          if (player == null || candidate == null) return false;
 
          return MarriageEligibility.IsMarriageable(
+            candidate.IsAlive, candidate.Spouse != null, candidate.IsFemale,
+            player.IsFemale, candidate.Age, player.Age);
+      }
+
+      /// <summary>
+      ///   Whether a house would name this kin as a prospect UNPROMPTED: lawful to wed, and young enough
+      ///   for the long alliance the match is meant to buy. Narrower than <see cref="IsMarriageable" /> on
+      ///   purpose, and used only to build the offer list, never to judge a marriage the player asks for.
+      /// </summary>
+      public static bool IsOfferableProspect(Hero player, Hero candidate)
+      {
+         if (player == null || candidate == null) return false;
+
+         return MarriageProspectPolicy.IsOfferableProspect(
             candidate.IsAlive, candidate.Spouse != null, candidate.IsFemale,
             player.IsFemale, candidate.Age, player.Age);
       }

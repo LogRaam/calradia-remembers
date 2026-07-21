@@ -455,6 +455,31 @@ namespace CalradiaRemembers.Chat
          AppendOocMessage("Your message did not reach the AI. It has been restored below. Press Send to try again.");
       }
 
+      /// <summary>
+      ///   Marriage-memory audit: a shallow copy of <paramref name="source" /> with
+      ///   <see cref="ParsedResponse.NewEventData" /> cleared. Used to run <see cref="ProfileMutator.Apply" />
+      ///   for every OTHER effect of the turn (discovery, reputation gate, stance) without letting it store or
+      ///   advance the romantic arc on an [EVENT] this turn withheld pending confirmation against real engine
+      ///   state (<c>Hero.Spouse</c>). Every other field is passed through untouched, so a field ADDED to
+      ///   <see cref="ParsedResponse" /> must be added here too, or this turn would silently drop it.
+      /// </summary>
+      private static ParsedResponse WithoutEventData(ParsedResponse source) => new() {
+         Dialogue = source.Dialogue,
+         Narration = source.Narration,
+         NarrationBeforeDialogue = source.NarrationBeforeDialogue,
+         Memory = source.Memory,
+         NewEventData = null,
+         Reputation = source.Reputation,
+         StanceShift = source.StanceShift,
+         Actions = source.Actions,
+         Discovery = source.Discovery,
+         QuestGiven = source.QuestGiven,
+         QuestBlockMalformed = source.QuestBlockMalformed,
+         QuestCompleted = source.QuestCompleted,
+         QuestAbandoned = source.QuestAbandoned,
+         WitnessReactions = source.WitnessReactions
+      };
+
       private async Task RunLlmExchangeAsync(string playerMessage,
                                              ChatSpeaker speaker,
                                              ChatMessageViewModel placeholder,
@@ -768,7 +793,26 @@ namespace CalradiaRemembers.Chat
             // M3: the consent bar the prompt printed a verdict for also governs the ARC, so an intimacy below
             // it cannot mint an "Intimate" status the player never earned (and which would then colour every
             // later refusal as a former lover's).
-            ProfileMutator.Apply(profile, response, gameDay,
+            //
+            // Marriage-memory audit (player report, Nexus, v1.31.4): the model can narrate and EMIT an [EVENT]
+            // claiming a completed wedding ("Mesui and Huan Yi married under Khuzait law...") whatever
+            // BannerlordGameStateBridge.ExecuteMarry actually decided (the prompt is advice, the bridge is
+            // law), but ProfileMutator.Apply stored ANY [EVENT] unconditionally and also let it advance the
+            // romantic arc (AdvanceRomanticStatus) off the same unbacked claim. A withheld claim is stashed
+            // here and only committed once the action loop below has run and Hero.Spouse can be checked for
+            // real (see the confirm/drop block right after that loop).
+            ParsedEventData withheldMarriageClaim = null;
+            ParsedResponse responseForMutator = response;
+            if (response.NewEventData != null &&
+                MarriageClaimPolicy.ClaimsMarriageWithPlayer(
+                   response.NewEventData.Summary, profile.Name, Hero.MainHero?.Name?.ToString()))
+            {
+               withheldMarriageClaim = response.NewEventData;
+               responseForMutator = WithoutEventData(response);
+               ModLog.Info($"[EVENT] withheld a marriage claim from {profile.Name} pending Hero.Spouse confirmation: \"{withheldMarriageClaim.Summary}\"");
+            }
+
+            ProfileMutator.Apply(profile, responseForMutator, gameDay,
                romanticContentEnabled: ModSettings.AdultContentLevel != AdultContentLevel.Off,
                orientationCompatible: orientationCompatible,
                applyReputation: false, // C2: [REPUTATION] is disabled in the mod; never apply a block the model emitted unprompted.
@@ -1009,6 +1053,29 @@ namespace CalradiaRemembers.Chat
                // as gossip through the world-event store instead of evaporating at close.
                if (speaker.IsMain && _witnesses.Count > 0)
                   ConversationEventFeeder.RecordPublicAffront(speaker.Hero, worstAppliedRelation, _witnesses.Count);
+            }
+
+            // ── Marriage-memory audit: confirm or drop a withheld wedding claim ──
+            // The action loop above just had its one chance to run a real [ACTION] type: marry
+            // (BannerlordGameStateBridge.ExecuteMarry re-validates every guard before calling
+            // MarriageAction.Apply), so Hero.Spouse now tells the truth whatever the model narrated.
+            if (withheldMarriageClaim != null)
+            {
+               bool actuallyMarried = speaker.Hero != null &&
+                  (speaker.Hero.Spouse == Hero.MainHero || Hero.MainHero?.Spouse == speaker.Hero);
+
+               if (actuallyMarried)
+               {
+                  ProfileMutator.ApplyNotableEvent(profile, withheldMarriageClaim.Type, withheldMarriageClaim.Summary, gameDay);
+                  ModLog.Info($"[EVENT] marriage claim confirmed by Hero.Spouse, recorded for {profile.Name}.");
+               }
+               else
+               {
+                  ModLog.Info($"[EVENT] marriage claim from {profile.Name} refused as unbacked (Hero.Spouse does not confirm it): \"{withheldMarriageClaim.Summary}\"");
+                  AppendSystemMessage(
+                     $"({profile.Name} spoke of a marriage that was never actually sealed, no wedding took place. " +
+                     $"Run cr.marry_check {profile.Name} to see why.)", false);
+               }
             }
 
             // ── Companion dismissal (witness_leaves) ──────────────────────
