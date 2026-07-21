@@ -2,6 +2,31 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.6.. 2026-07-21
+
+A marriage fix, from a report by tthheerroocckk. Your saves carry over, and a marriage the game never
+performed can now be repaired from the console.
+
+### Fixed (everyone)
+- **A wedding is only remembered if the game actually held it.** Characters could narrate a complete
+  marriage, and record it in their memory as something that happened, while the game never married anyone:
+  the courtship read as finished, but no spouse was ever assigned. A wedding memory is now kept only when
+  you are truly wed, and if the wedding did not take place you are told so in the conversation itself,
+  right away, instead of discovering it much later.
+- **Age no longer prevents a marriage.** A marriage is a contract between two adults, and it was being
+  refused when the two were more than 25 years apart, silently, so a long courtship could never be sealed.
+  That limit is gone. Age still governs the two things it should: who can bear a child, and who a noble
+  house puts forward for a match of its own accord (a house offers its young, since it is seeking a long
+  alliance, but you remain free to ask for an older hand yourself).
+
+### Added: console
+- **`cr.marry_check [name]`** walks every rule the game checks before a wedding and tells you which one is
+  blocking, changing nothing. Use it when a marriage the conversation promised does not happen.
+- **`cr.marry [name]`** now reports its failures instead of going quiet, confirms the marriage afterwards,
+  and correctly records the bond, so it is a safe way to seal a wedding your campaign was already told had
+  happened. To clear a memory that turned out to be false, `cr.memory [name]` lists them with an index and
+  `cr.forget <index> [name]` removes one. Save the game afterwards.
+
 ## v1.31.5.. 2026-07-21
 
 A real escape encounter for captive scenes, a fairer physical-agency system to go with it, a courier
