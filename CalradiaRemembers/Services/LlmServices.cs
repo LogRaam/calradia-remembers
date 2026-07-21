@@ -51,6 +51,7 @@ namespace CalradiaRemembers.Services
       private const string ProviderOpenRouter = "OpenRouter";
       private AdultContentLevel _builtAdultLevel;
       private RelationWarmth _builtWarmth;
+      private string _builtReplyLanguage;
       private NpcChatService _chatService;
 
       private HttpClient _httpClient;
@@ -65,9 +66,9 @@ namespace CalradiaRemembers.Services
 
       /// <summary>
       ///   Lazily-constructed chat service. The PromptBuilder and action vocabulary
-      ///   inside are built on first access — and rebuilt whenever the adult-content
-      ///   level or relationship-warmth setting changes — so options edits apply
-      ///   without a restart.
+      ///   inside are built on first access, and rebuilt whenever the adult-content
+      ///   level, relationship-warmth, or reply-language setting changes, so options
+      ///   edits apply without a restart.
       /// </summary>
       public NpcChatService ChatService
       {
@@ -76,11 +77,15 @@ namespace CalradiaRemembers.Services
             if (!IsAvailable) return null;
             AdultContentLevel current = ModSettings.AdultContentLevel;
             RelationWarmth warmth = ModSettings.RelationWarmth;
+            string replyLanguage = ModSettings.ReplyLanguage;
 
-            if (_chatService != null && _builtAdultLevel == current && _builtWarmth == warmth) return _chatService;
+            if (_chatService != null && _builtAdultLevel == current && _builtWarmth == warmth
+                                      && _builtReplyLanguage == replyLanguage)
+               return _chatService;
             _chatService = BuildChatService();
             _builtAdultLevel = current;
             _builtWarmth = warmth;
+            _builtReplyLanguage = replyLanguage;
 
             return _chatService;
          }
@@ -510,6 +515,7 @@ namespace CalradiaRemembers.Services
             PlayerDescription = NarrativeLoader.PlayerDescription,
             BehaviorGuidelinesOverride = NarrativeLoader.BehaviorGuidelines,
             PostHistoryInstructions = NarrativeLoader.PostHistoryInstructions,
+            ReplyLanguage = ModSettings.ReplyLanguage,
             ActionVocabulary = BuildActionVocabulary(ModSettings.RelationWarmth),
             // The intimacy consent bar follows the same Relationship Pacing dial as every other gate; the
             // SDK owns the bar, the mod owns how far the player's dial lowers it (audit M3).

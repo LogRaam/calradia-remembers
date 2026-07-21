@@ -32,6 +32,35 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## BUILT (player report, Nexus 2026-07-21): explicit Reply Language setting, untested in game
+
+A Spanish-speaking player on DeepSeek V3 always got English back, even though he wrote in Spanish; Gabriel's
+own French always mirrors correctly. Diagnosis: `PromptBuilder.AppendLanguageMirror`'s auto-detect rule only
+names English/French/German/Ukrainian as worked examples, and an abstract "reply in the same language"
+instruction is exactly what a weaker model, or a language outside that list, ignores when the rest of a long
+English prompt outweighs it. Two real gaps found along the way: unprompted NPC-initiated letters (tournament,
+romantic, spouse, birth) had NO language rule at all, since there is no player message to mirror; and the
+async memory summarizers (captive scene, conversation fallback) inferred the language from the transcript
+with no explicit instruction.
+
+- `PromptBuilder.ReplyLanguage` (string, blank = today's auto-detect mirror unchanged). When set, states the
+  language as a fixed fact instead of something to detect ("Always write your reply in Spanish... regardless
+  of what language any instruction, letter, or context elsewhere in this prompt is written in"), still keeps
+  section labels/action keywords in English. Wired at both prompt call sites (main + commoner); reaches
+  letters for free since they share the same builder through `NpcChatService.ChatAsync`.
+- `CaptiveSceneSummarizer` / `ConversationSummarizer`: optional `replyLanguage` param, defaults to "match the
+  transcript" (today's implicit behaviour) when unset.
+- MCM "Reply Language" (free text, Content group): blank = auto-detect (default, no change for existing
+  players); a named language pins everything. `LlmServices.ChatService` rebuilds when it changes, like the
+  other live settings.
+- 4 new SDK lane-A tests (`ReplyLanguagePromptTests`): default mirror unchanged, explicit pin overrides it,
+  section labels/action keywords still English, commoner prompt (separate call site) honors it too.
+
+**Not fixed by this pass**: an unprompted letter in AUTO mode (no Reply Language set) still has no signal to
+detect a language from, so it still ships in English regardless of the player's language, unless they set the
+explicit setting. `ChronicleIlluminator` untouched (its input deed list is host-templated English text, a
+different concern from player-language mirroring).
+
 ## WISHED (Gabriel 2026-07-19): a FEATURES section in MCM, one toggle per pillar plus its thresholds
 
 **The ask:** a new MCM section ("Calradia Remembers Features" or similar) giving the player a toggle for

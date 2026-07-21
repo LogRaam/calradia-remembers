@@ -40,7 +40,7 @@ namespace CalradiaRemembers.Chat
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
             {
                rich = await Task.Run(() => summarizer.SummarizeAsync(
-                                   captor, transcript, intentVerb, playerIsFemale, cts.Token))
+                                   captor, transcript, intentVerb, playerIsFemale, ModSettings.ReplyLanguage, cts.Token))
                                 .ConfigureAwait(false);
             }
 
@@ -83,7 +83,7 @@ namespace CalradiaRemembers.Chat
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
             {
                rich = await Task.Run(() => summarizer.SummarizeAsync(
-                                   npc, transcript, playerName, cts.Token))
+                                   npc, transcript, playerName, ModSettings.ReplyLanguage, cts.Token))
                                 .ConfigureAwait(false);
             }
 

@@ -166,6 +166,12 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> RelationshipWarmth { get; set; } =
          new(new[] {"Grounded", "Warm", "Storyteller"}, 0); // default: Grounded (= Normal)
 
+      [SettingPropertyText("Reply Language", RequireRestart = false, Order = 3,
+         HintText = "Leave blank to auto-detect and mirror whatever language you write in. Name a language " +
+                    "(e.g. Spanish) to force every reply, letter, and memory into it, no matter what you write.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public string ReplyLanguage { get; set; } = "";
+
       [SettingPropertyDropdown("Lords Approaching You", RequireRestart = false, Order = 2,
          HintText = "How often a lord rides out to have a word with you on the road. Never switches it off " +
                     "entirely. Occasionally is the shipped feel.")]

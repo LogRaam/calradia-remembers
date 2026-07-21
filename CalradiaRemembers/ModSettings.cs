@@ -183,6 +183,14 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   Explicit reply language name (e.g. "Spanish"), or blank for the auto-detect mirror. Read live from
+      ///   the MCM menu. A player report (2026-07-21, Spanish + DeepSeek V3) showed the mirror's abstract rule
+      ///   goes unfollowed by a weaker model, or a language absent from its worked examples, when the rest of
+      ///   an English prompt outweighs it, so naming the language explicitly removes the guesswork.
+      /// </summary>
+      public static string ReplyLanguage => CrSettings.Instance?.ReplyLanguage?.Trim() ?? "";
+
+      /// <summary>
       ///   Sound event path played when a negative relation change occurs.
       ///   Vanilla fallback — replace with "event:/CR_Negative" once the custom
       ///   soundbank strings-loading issue is resolved in FMOD Studio.
