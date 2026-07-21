@@ -2,6 +2,48 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.5.. 2026-07-21
+
+A real escape encounter for captive scenes, a fairer physical-agency system to go with it, a courier
+robustness batch, and a Reply Language option. Your saves carry over untouched.
+
+### New (adult content, Hardcore tier, while held captive)
+- **Trying to escape a captor is now a real fight, not a line the AI decides for you.** Break for it and you
+  face up to three bandits bare-handed, spawned close so a straight run bares your back. Knock them all down,
+  or reach the edge of the scene, and you go free, though you lose your weapons and your mount. Lose the
+  fight and you are back in the captor's hands, the conversation picks back up rather than ending. Only one
+  escape attempt per captivity: you cannot keep trying until the dice favor you.
+- **Physical attempts in a captive scene now have a real, fair outcome, not the AI's own judgment.** Resisting,
+  breaking a hold, snatching something: the game itself rolls the outcome (a floor chance plus your remaining
+  health), and the AI is told the result rather than deciding it. A wound the captor gives you quietly lowers
+  your odds on your next attempt, so being worn down costs you something real.
+- **Bandit and nemesis captors' men now act like people in the scene, not furniture.** Their witnesses carry
+  their own reactions instead of the passive, generic ones used for a lord's own retinue.
+- **Less description, more action.** Captive-scene narration was leaning on exhaustive description at the
+  expense of what was actually happening; the action now leads. A repetitive "grabs your chin" opening move
+  is gone.
+- **The escape trigger is narrower.** An ordinary struggle, a headbutt, or plain defiance stays an in-character
+  beat; only a genuine bid to get away starts the encounter.
+
+### Improved: couriers
+- **A failed letter now tells you why, specifically.** Dead, captured, or simply vanished, instead of one
+  generic "could not be reached" line.
+- **A courier stuck in one place for two days now falls back to date-based delivery** instead of losing the
+  letter to a burned grace window.
+- **A reply courier can no longer be routed into your captor's own party**, or chase you out to sea.
+- Ration top-ups only happen when a courier's larder is truly empty.
+- Console: `cr.couriers` (diagnostic), `cr.couriers_recall` (revert all to date-based delivery).
+
+### New: Reply Language
+- **A "Reply Language" option in Mod Options.** Left blank (the default), replies keep auto-matching whatever
+  language you write in, unchanged. Name a language explicitly and every reply, letter, and generated memory
+  is written in it regardless, which fixes reports of the AI answering in English despite the player writing
+  in another language, most often on a weaker or non-default model.
+
+### Under the hood
+- Groundwork only, switched off and not yet playable: an Assembly Council foundation (roster, consent,
+  resolution lifecycle) for a future multi-character gathering system.
+
 ## v1.31.4.. 2026-07-20
 
 A fix for letter-carriers under the War Sails DLC. Your saves carry over untouched.
