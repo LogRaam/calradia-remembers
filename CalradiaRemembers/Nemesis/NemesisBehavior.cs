@@ -438,6 +438,25 @@ namespace CalradiaRemembers.Nemesis
          return ResolveOrMintHero(nem, today);
       }
 
+      /// <summary>
+      ///   Captive-escape gear consequence (ratified 2026-07-2x): when the player FLEES a bandit band's
+      ///   hold, the taken gear goes to that region's nemesis "in fiction, the looters of one region form a
+      ///   network" even if no nemesis of that band has been REVEALED yet (a faceless captor during a
+      ///   respawn-cooldown window still has somewhere for the loot to land). Reuses the exact band-culture
+      ///   and region resolution the capture hook uses, then mints/reuses that region's nemesis
+      ///   UNCONDITIONALLY (<c>ignoreRespawnCooldown: true</c>) so gear is never left without a holder.
+      ///   This does not affect whether that nemesis is REVEALED in conversation, only who keeps the loot.
+      /// </summary>
+      public Hero ResolveGearHolderForBand(MobileParty band, int today)
+      {
+         if (band == null) return null;
+
+         string bandKey = ResolveBandCultureKey(band);
+         string regionId = ResolveRegionId(band);
+
+         return MintCaptorFor(bandKey, regionId, today, ignoreRespawnCooldown: true);
+      }
+
       #region private
 
       /// <summary>The vanilla bandit-clan StringId of the capturing band (looters / forest_bandits / ...), or a fallback.</summary>

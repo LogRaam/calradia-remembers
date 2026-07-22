@@ -532,7 +532,13 @@ namespace CalradiaRemembers.Quests
             ? null
             : Hero.FindFirst(h => h.StringId == profile.Id);
 
-      private static void IssueQuest(NpcProfile giver,
+      /// <summary>
+      ///   Widened from private to <c>internal</c> for the ASSEMBLY pillar's council lift (ChatViewModel's
+      ///   <c>FinalizeCouncilResolutions</c>): a resolution's "quest" kind is grounded and issued through this
+      ///   exact same path a conversational [QUEST] block already uses, giver/one-at-a-time rule included,
+      ///   rather than a second, parallel issuance path.
+      /// </summary>
+      internal static void IssueQuest(NpcProfile giver,
                                      Hero giverHero,
                                      QuestProposal proposal,
                                      int gameDay,

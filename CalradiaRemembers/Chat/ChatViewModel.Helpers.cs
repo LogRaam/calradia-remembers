@@ -11,6 +11,7 @@ using CalradiaRemembers.Duels;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Models;
@@ -736,7 +737,7 @@ namespace CalradiaRemembers.Chat
             captorHero, captorProfile, witnessesForResume, resumeCollective, resumeIntent,
             openingOverride: CaptiveEscapeCoordinator.ResumeAfterLostEscapeCue);
 
-         CaptiveEscapeCoordinator.Arm(roster, speaker.Hero, ResumeOnLoss);
+         CaptiveEscapeCoordinator.Arm(roster, speaker.Hero, _captiveEncounterIsBandit, ResumeOnLoss);
 
          // Deliberate transition: lock input and leave only the close button. Clicking it closes the chat, and the
          // coordinator stages the encounter on the next tick, on the live map (we never return to the chat).
@@ -811,6 +812,93 @@ namespace CalradiaRemembers.Chat
          }
 
          return (null, WitnessPalette[0], null);
+      }
+
+      /// <summary>
+      ///   Resolves which seated council member an [ACTION]'s optional "actor" parameter names, so a deed a
+      ///   NON-anchor member commits to (a gift, a task, a vow) executes against THEM rather than always the
+      ///   anchor/routed speaker who happens to carry the turn's spoken reply. No "actor" parameter keeps
+      ///   today's behaviour exactly: <paramref name="fallbackHero" />/<paramref name="fallbackProfile" /> pass
+      ///   through unchanged, so an ordinary (non-council) conversation is never affected: the prompt only
+      ///   ever teaches "actor:" on a council/round-table turn. An actor that resolves to nobody seated, or
+      ///   ambiguously to more than one seat, returns false: the caller must DROP the action rather than
+      ///   misattribute it (silently taking the wrong hero's gold, or marrying the wrong person, is worse than
+      ///   the deed never landing).
+      /// </summary>
+      /// <summary>
+      ///   The seated members of the CURRENT council/round-table turn: the anchor (this window's main NPC)
+      ///   first, then every present witness carrying a real hero (stable regardless of who is currently
+      ///   carrying THIS turn's spoken reply). Shared by <see cref="TryResolveActionActor" /> (an [ACTION]'s
+      ///   "actor" field) and the [RESOLUTION] actor attribution (<see cref="ProcessCouncilResolutions" />), so
+      ///   both channels resolve a name against the exact same seat list.
+      /// </summary>
+      private (List<string> Names, List<string> HeroIds) SeatedMembers()
+      {
+         var names = new List<string> {_npcName};
+         var heroIds = new List<string> {_npcHero?.StringId};
+
+         foreach (WitnessEntry w in _witnesses)
+            if (!string.IsNullOrEmpty(w.HeroStringId))
+            {
+               names.Add(w.Name);
+               heroIds.Add(w.HeroStringId);
+            }
+
+         return (names, heroIds);
+      }
+
+      private bool TryResolveActionActor(
+         GameAction action,
+         Hero fallbackHero,
+         NpcProfile fallbackProfile,
+         NpcMemoryCampaignBehavior behavior,
+         out Hero actorHero,
+         out NpcProfile actorProfile)
+      {
+         actorHero = fallbackHero;
+         actorProfile = fallbackProfile;
+
+         if (action?.Parameters == null
+             || !action.Parameters.TryGetValue("actor", out string actorName)
+             || string.IsNullOrWhiteSpace(actorName))
+            return true; // no actor named: today's behaviour, unchanged
+
+         (List<string> seatedNames, List<string> seatedHeroIds) = SeatedMembers();
+
+         int idx = CouncilActorPolicy.ResolveActor(actorName, seatedNames);
+
+         if (idx < 0)
+         {
+            ModLog.Error($"[ACTION] '{action.Type}' named actor '{actorName}' who could not be resolved among "
+                       + $"the seated members ({string.Join(", ", seatedNames)}), dropped rather than misattributed.");
+            actorHero = null;
+            actorProfile = null;
+
+            return false;
+         }
+
+         string heroId = seatedHeroIds[idx];
+
+         if (heroId == fallbackHero?.StringId)
+            return true; // the named actor IS whoever this turn's dispatch already targets
+
+         Hero hero = Hero.FindFirst(h => h.StringId == heroId);
+         NpcProfile prof = behavior?.Store?.Get(heroId);
+
+         if (hero == null || prof == null)
+         {
+            ModLog.Error($"[ACTION] '{action.Type}' named actor '{actorName}' resolved to seated member "
+                       + $"'{seatedNames[idx]}' whose hero/profile could not be loaded, dropped.");
+            actorHero = null;
+            actorProfile = null;
+
+            return false;
+         }
+
+         actorHero = hero;
+         actorProfile = prof;
+
+         return true;
       }
 
       private ChatSpeaker SpeakerForCurrent()

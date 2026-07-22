@@ -72,12 +72,20 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>
       ///   Round-table group mode: gives each of <paramref name="participants" /> a deterministic turn (round robin
-      ///   from the gate's rotation start, capped by <see cref="RoundTablePolicy.DefaultCap" />), each told it is a
-      ///   round-table turn (speak more, may address the others), then advances the rotation. The running transcript
-      ///   carries what everyone said, so each speaker can respond to the previous ones. The caller (the host's
-      ///   wrapper) owns re-enabling player input in its finally, mirroring the original method.
+      ///   from the gate's rotation start, capped by <paramref name="cap" />, or <see cref="RoundTablePolicy.DefaultCap" />
+      ///   when null), each told it is a round-table turn (speak more, may address the others), then advances the
+      ///   rotation. The running transcript carries what everyone said, so each speaker can respond to the previous
+      ///   ones. The caller (the host's wrapper) owns re-enabling player input in its finally, mirroring the
+      ///   original method.
       /// </summary>
-      public async Task RunAsync(IRoundTableHost host, List<ChatSpeaker> participants)
+      /// <param name="host">The chat view model, through the seam.</param>
+      /// <param name="participants">Everyone present, main speaker first.</param>
+      /// <param name="cap">
+      ///   Max turns this burst. Null keeps the in-chat button's deliberate 3-speaker cap
+      ///   (<see cref="RoundTablePolicy.DefaultCap" />); a council passes <c>participants.Count</c> so the FULL
+      ///   seated roster speaks every turn, uncapped: a real council has no "some of the table" concept.
+      /// </param>
+      public async Task RunAsync(IRoundTableHost host, List<ChatSpeaker> participants, int? cap = null)
       {
          try
          {
@@ -94,8 +102,9 @@ namespace CalradiaRemembers.Chat
                Rumors = ""
             };
 
+            int effectiveCap = cap ?? RoundTablePolicy.DefaultCap;
             IReadOnlyList<int> order = RoundTablePolicy.SpeakerOrder(
-               participants.Count, _gate.Start, RoundTablePolicy.DefaultCap);
+               participants.Count, _gate.Start, effectiveCap);
 
             foreach (int idx in order)
             {

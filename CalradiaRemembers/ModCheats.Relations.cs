@@ -258,6 +258,90 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.discoveries [name]
+      ///   Lists all real DiscoveredTraits recorded on an NPC's profile, each prefixed by its
+      ///   0-based index so a polluted entry (Encyclopedia audit: an entry recording a fact about
+      ///   the PLAYER instead of the NPC) can be identified and removed with cr.discover_forget.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("discoveries", "cr")]
+      public static string ListDiscoveries(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+
+         if (profile.DiscoveredTraits.Count == 0)
+            return $"{hero.Name} has no recorded discoveries.";
+
+         IEnumerable<string> lines = profile.DiscoveredTraits.Select((t, i) =>
+            $"  [{i}] {DescribeDay(t.GameDay)} | {t.Key} | {t.Description}");
+
+         return $"{hero.Name} discoveries ({profile.DiscoveredTraits.Count}):\n" + string.Join("\n", lines);
+      }
+
+      /// <summary>
+      ///   cr.discover_forget &lt;index&gt; [name]
+      ///   Removes the discovered trait at the given 0-based index (see cr.discoveries). The repair
+      ///   path for a player report (Nexus): a profile already carrying a discovery about the PLAYER
+      ///   instead of the NPC can be cleaned up entry-by-entry without wiping the rest.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("discover_forget", "cr")]
+      public static string ForgetDiscovery(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         if (args == null || args.Count == 0 || !int.TryParse(args[0], out int index))
+            return "Usage: cr.discover_forget <index> [name]  (use cr.discoveries to see indices)";
+
+         List<string> nameArgs = args.Count > 1
+            ? args.GetRange(1, args.Count - 1)
+            : new List<string>();
+         Hero hero = ResolveHero(nameArgs);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+
+         if (index < 0 || index >= profile.DiscoveredTraits.Count)
+            return $"Index {index} out of range, {hero.Name} has {profile.DiscoveredTraits.Count} discoverie(s). Use cr.discoveries to see them.";
+
+         DiscoveredTrait removed = profile.DiscoveredTraits[index];
+         profile.DiscoveredTraits.RemoveAt(index);
+         behavior.Store.Set(profile);
+
+         return $"{hero.Name}: removed discovery [{index}] ({removed.Key}): \"{removed.Description}\".\n" + $"{profile.DiscoveredTraits.Count} discoverie(s) remain.";
+      }
+
+      /// <summary>
+      ///   cr.discover_forget_all [name]
+      ///   Clears every discovered trait recorded on an NPC's profile. Use when a profile has
+      ///   accumulated enough polluted entries that clearing individually is not worth it.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("discover_forget_all", "cr")]
+      public static string ForgetAllDiscoveries(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         int count = profile.DiscoveredTraits.Count;
+         profile.DiscoveredTraits.Clear();
+         behavior.Store.Set(profile);
+
+         return $"{hero.Name}: all {count} discoverie(s) cleared.";
+      }
+
+      /// <summary>
       ///   cr.stance [name]
       ///   Shows an NPC's posture toward the player (Affection/Trust/Respect/Fear) and the prompt block.
       /// </summary>

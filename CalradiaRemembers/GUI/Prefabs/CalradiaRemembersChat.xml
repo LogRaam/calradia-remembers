@@ -131,6 +131,35 @@
                             Text="Round Table" />
               </Children>
             </ButtonWidget>
+            <!-- Council-only: flips the CURRENT council between one call for the whole table (cohesive, the
+                 other members voiced from little more than a name) and one call per seated member (their real
+                 memory/quests/regard, at the cost of a round-trip per member). Visible only while a council is
+                 open (IsCouncilVoiceToggleVisible); the label itself names the live state (CouncilVoiceModeText)
+                 so the player always reads it at a glance. -->
+            <ButtonWidget Id="CouncilVoiceButton"
+                          WidthSizePolicy="Fixed"
+                          HeightSizePolicy="Fixed"
+                          SuggestedWidth="180"
+                          SuggestedHeight="22"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Bottom"
+                          MarginBottom="6"
+                          MarginRight="266"
+                          IsVisible="@IsCouncilVoiceToggleVisible"
+                          DoNotPassEventsToChildren="true"
+                          Brush="ButtonBrush1"
+                          UpdateChildrenStates="true"
+                          Command.Click="ExecuteToggleCouncilVoiceMode">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Brush="Popup.Button.Text"
+                            Brush.FontSize="14"
+                            Text="@CouncilVoiceModeText" />
+              </Children>
+            </ButtonWidget>
           </Children>
         </Widget>
 

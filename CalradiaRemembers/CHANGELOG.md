@@ -2,6 +2,44 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.7.. 2026-07-21
+
+An important fix to what characters believe about themselves, plus the first slice of the council. Your saves
+carry over untouched, but see the repair note below if your characters already picked up wrong beliefs.
+
+### Fixed (everyone, please read)
+- **Characters no longer record facts about YOU as facts about THEMSELVES.** The "discoveries" a character
+  gathers are meant to be what you have learned about THEM, and that is what the encyclopedia shows. A
+  character could instead write down something about you and file it in the same place. This was worse than a
+  strange line on a page: those notes are read back to the character in every later conversation, under the
+  heading of what you know about them, so a character could slowly build a false picture of itself out of
+  facts that describe someone else. The wording that caused it is fixed, and a guard now refuses the clearest
+  cases outright. (Report: a player on Nexus.)
+- **Repairing a character who already picked this up.** Existing notes do not clean themselves, so until you
+  remove them the character keeps being told those things. Three new console commands do it:
+  `cr.discoveries [name]` lists what a character has recorded, each with an index;
+  `cr.discover_forget <index> [name]` removes one; `cr.discover_forget_all [name]` clears them all. Save the
+  game afterwards. There is a step-by-step guide on the mod page.
+
+### Changed (only if you use the escape encounter)
+- **Escaping now treats fighting and fleeing differently.** Putting every captor down means you take your
+  equipment back off them, and you keep it. Slipping away to the edge of the scene still frees you, but your
+  captor's side keeps your gear, and from then on it is held by the bandit chief of that region (or by the
+  lord who held you). Beat or capture them later and it comes back to you, so nothing is ever lost for good.
+  Being knocked out costs you nothing at all: you are simply still a prisoner.
+- **Freeing yourself now teaches you something.** Escaping grants Roguery, and outrunning your pursuers also
+  grants Athletics.
+- **Characters notice how you are dressed.** Turning up in rags, or in nothing at all, no longer goes without
+  comment. Ordinary clothing and armour pass without remark, as they should.
+
+### Added (console only, groundwork)
+- **The clan council**, first slice, reachable only with `cr.council [companions|family|lords]`. It seats your
+  real companions, family, or clan lords, and one message puts the question to the whole table: one of them
+  answers and the others react. Members can pledge to do things, those pledges can be renegotiated at the
+  table, and nothing is settled until the council rises, at which point each pledge is checked against the
+  world and either carried out or refused with a plain reason. A button in the window switches between one
+  reply for the whole table and one reply per member. This is early work, offered for the curious.
+
 ## v1.31.6.. 2026-07-21
 
 A marriage fix, from a report by tthheerroocckk. Your saves carry over, and a marriage the game never

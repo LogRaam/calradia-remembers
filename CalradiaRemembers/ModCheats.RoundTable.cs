@@ -10,8 +10,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Assemblies;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
@@ -64,6 +66,56 @@ namespace CalradiaRemembers
                  + $"of {speakers} (cap {RoundTablePolicy.DefaultCap}), one full LLM call each.";
          }
          catch (Exception ex) { return $"cr.roundtable failed: {ex.GetType().Name}: {ex.Message}"; }
+      }
+
+      /// <summary>
+      ///   cr.council [companions|family|lords]
+      ///   Opens a REAL council of the player's own house (default: companions). Unlike cr.council_test, which
+      ///   bolts synthetic members onto whatever chat is already open, this seats the actual roster the scope
+      ///   gathers, gives the spoken reply to the member who regards the player best, and carries the
+      ///   whole-table framing for the WHOLE session (it ends with the window, nothing global is armed).
+      ///   Each turn is ONE call: the anchor answers and every other member may speak or merely gesture.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("council", "cr")]
+      public static string Council(List<string> args)
+      {
+         try
+         {
+            string which = args is {Count: > 0} ? args[0].ToLowerInvariant() : "companions";
+
+            CouncilScope scope;
+            switch (which)
+            {
+               case "family":
+                  scope = CouncilScope.Family;
+
+                  break;
+               case "lords":
+               case "clanlords":
+                  scope = CouncilScope.ClanLords;
+
+                  break;
+               case "companions":
+                  scope = CouncilScope.Companions;
+
+                  break;
+               default:
+                  return $"Unknown council '{which}'. Use: companions | family | lords.";
+            }
+
+            // The refusals are worth showing: "nobody is seated" is a very different report from "your two
+            // companions are both held prisoner", and only the roster knows which.
+            List<CouncilSeat> roster = CouncilRosterResolver.Resolve(scope);
+            string opened = ChatManager.OpenForCouncil(scope);
+            string refused = string.Join(", ", roster
+                                              .Where(s => !s.Seated && s.Reason != CouncilExclusionReason.NotOfThisCouncil)
+                                              .Select(s => $"{s.Hero?.Name} ({s.Reason})"));
+
+            return string.IsNullOrEmpty(refused)
+               ? opened
+               : opened + $"\nNot seated: {refused}.";
+         }
+         catch (Exception ex) { return $"cr.council failed: {ex.GetType().Name}: {ex.Message}"; }
       }
 
       /// <summary>

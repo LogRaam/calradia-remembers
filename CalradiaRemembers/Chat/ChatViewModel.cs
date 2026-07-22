@@ -12,6 +12,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Lore;
 using CalradiaRemembers.Missions;
@@ -223,6 +224,32 @@ namespace CalradiaRemembers.Chat
       private MBBindingList<ChatMessageViewModel> _messages;
 
       private ChatMode _mode = ChatMode.Conversation;
+
+      /// <summary>
+      ///   Set while this window is a COUNCIL (the player presides over a seated roster). Null for an ordinary
+      ///   conversation. Session state, not persisted and not global: it dies with the window.
+      /// </summary>
+      private CouncilScope? _councilScope;
+
+      /// <summary>
+      ///   How the CURRENT council speaks (whole-table single call, or one call per seated member). Seeded from
+      ///   <see cref="ModSettings.DefaultCouncilVoiceMode" /> when the council opens (<see cref="ActivateCouncil" />),
+      ///   then flipped live by the in-window toggle (<see cref="ExecuteToggleCouncilVoiceMode" />): session
+      ///   state only, never written back to the MCM default. Meaningless outside a council.
+      /// </summary>
+      private CouncilVoiceMode _councilVoiceMode = CouncilVoiceMode.WholeTable;
+      private bool _isCouncilVoiceToggleVisible;
+      private string _councilVoiceModeText = "";
+
+      /// <summary>
+      ///   The current council's [RESOLUTION] ledger: every pledge recorded or withdrawn this session, settled
+      ///   only at the lift (<see cref="FinalizeCouncilResolutions" />). Session state like <see cref="_councilScope" />
+      ///   itself: never persisted, dies with the window. Harmless (and unused) outside a council.
+      /// </summary>
+      private readonly AssemblyLedger _councilLedger = new AssemblyLedger();
+
+      /// <summary>Idempotency guard for <see cref="FinalizeCouncilResolutions" />, mirroring every other Finalize* flag.</summary>
+      private bool _councilResolutionsFinalized;
       private Hero _npcHero;
       private string _npcName = "the lord";
 
@@ -508,6 +535,35 @@ namespace CalradiaRemembers.Chat
          {
             if (_isPortraitPanelOpen == value) return;
             _isPortraitPanelOpen = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>
+      ///   True only while a council is open: shows the in-window control that flips between whole-table and
+      ///   per-member voices. Set by <see cref="ActivateCouncil" />; an ordinary conversation never shows it.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsCouncilVoiceToggleVisible
+      {
+         get => _isCouncilVoiceToggleVisible;
+         set
+         {
+            if (_isCouncilVoiceToggleVisible == value) return;
+            _isCouncilVoiceToggleVisible = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>Label naming the CURRENT council voice mode, so the player can always read the live state at a glance.</summary>
+      [DataSourceProperty]
+      public string CouncilVoiceModeText
+      {
+         get => _councilVoiceModeText;
+         set
+         {
+            if (_councilVoiceModeText == value) return;
+            _councilVoiceModeText = value;
             OnPropertyChangedWithValue(value);
          }
       }
@@ -909,6 +965,55 @@ namespace CalradiaRemembers.Chat
       ///   why they came; full memory and actions like any conversation. For a retirement the player can grant
       ///   their leave (the companion emits the <c>retire</c> action, executed at close) or persuade them to stay.
       /// </summary>
+      /// <summary>
+      ///   Opens a COUNCIL over an already-seated roster: the player presides, so every turn from here on is
+      ///   built with the whole-table framing (one call yields the anchor's spoken reply plus a reaction from
+      ///   each member who speaks or merely gestures) unless the player flips to per-member voices with the
+      ///   in-window toggle. Carried as SESSION state rather than the spike's global switch, so closing the
+      ///   window ends council mode and a later ordinary chat is unaffected. The voice mode is seeded from the
+      ///   MCM default (<see cref="ModSettings.DefaultCouncilVoiceMode" />) and never writes back to it.
+      /// </summary>
+      public void ActivateCouncil(CouncilScope scope)
+      {
+         _mode = ChatMode.Conversation;
+         _councilScope = scope;
+         _councilVoiceMode = ModSettings.DefaultCouncilVoiceMode;
+         CouncilVoiceModeText = DescribeCouncilVoiceMode(_councilVoiceMode);
+         IsCouncilVoiceToggleVisible = true;
+
+         ChatSpeaker speaker = MainSpeaker();
+         if (speaker.Profile == null)
+         {
+            ModLog.Error("[COUNCIL] no profile on the anchor: cannot open the council.");
+
+            return;
+         }
+
+         ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+         _messages.Add(placeholder);
+         IsSendEnabled = false;
+
+         // The table opens itself: the player called this council, so the anchor acknowledges the summons and
+         // the room settles. A synthetic cue, never shown or logged as a player line.
+         string opener = scope switch {
+            CouncilScope.Family =>
+               "[The player has called their own household together: you and their closest kin are gathered at their " +
+               "word. Open the meeting yourself, briefly, in your own voice: acknowledge that they have summoned the " +
+               "family and ask what they would put before it. The others are present and listening.]",
+            CouncilScope.ClanLords =>
+               "[The player has called the lords of their clan to council: you and your fellow clan lords are gathered " +
+               "at their word. Open the meeting yourself, briefly, in your own voice: acknowledge the summons and ask " +
+               "what business they lay before the clan. The others are present and listening.]",
+            _ =>
+               "[The player has called their companions together: you and the others in their service are gathered at " +
+               "their word. Open the meeting yourself, briefly, in your own voice: acknowledge the summons and ask what " +
+               "they would have of you all. The others are present and listening.]"
+         };
+
+         MarkOpenerPending();
+         _ = RunLlmExchangeAsync(opener, speaker, placeholder, true);
+      }
+
       public void ActivateCompanionAudience(NpcProfile profile, CompanionAudienceReason reason, bool landed)
       {
          _mode = ChatMode.Conversation;
@@ -1386,6 +1491,32 @@ namespace CalradiaRemembers.Chat
          _ = RunRoundTableLapAsync(AllPresentSpeakers());
       }
 
+      /// <summary>
+      ///   The in-window "Voices" control: flips the CURRENT council between one call for the whole table
+      ///   (cohesive, but the other members are voiced from little more than a name) and one call per seated
+      ///   member (their real memory/quests/regard, at the cost of a round-trip per member and no shared view
+      ///   of the same instant). Deliberately NOT gated by <see cref="RoundTableController.Enabled" />: that
+      ///   switch is the in-chat round-table button's kill-switch, a different entry point from the council.
+      ///   Session-only: takes effect on the player's NEXT turn and never disturbs one already in flight, and
+      ///   never writes back to the MCM default.
+      /// </summary>
+      public void ExecuteToggleCouncilVoiceMode()
+      {
+         if (_councilScope == null) return;
+
+         _councilVoiceMode = _councilVoiceMode == CouncilVoiceMode.WholeTable
+            ? CouncilVoiceMode.PerMember
+            : CouncilVoiceMode.WholeTable;
+
+         CouncilVoiceModeText = DescribeCouncilVoiceMode(_councilVoiceMode);
+         ModLog.Info($"[COUNCIL] voice mode switched to {_councilVoiceMode} (takes effect on the next turn).");
+      }
+
+      private static string DescribeCouncilVoiceMode(CouncilVoiceMode mode)
+         => mode == CouncilVoiceMode.PerMember
+            ? "Voices: each member"
+            : "Voices: whole table";
+
       public void ExecuteSendMessage()
       {
          // While a consequential action awaits confirmation, this input is the Y/n answer, not an LLM turn.
@@ -1412,16 +1543,29 @@ namespace CalradiaRemembers.Chat
          // Display only — the player line is committed to the transcript after the call
          // so BuildSessionFor doesn't double-count it (ChatAsync adds it itself).
          AppendPlayerMessage(text, false);
-         ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
-         _messages.Add(placeholder);
          IsSendEnabled = false;
          InputText = "";
          if (_isComposeOpen) IsComposeOpen = false; // sending closes the review panel
          _witnessExchangesThisRound = 0; // reset the 15C cap for this new player turn
          _sceneContinuations = 0; // reset scene-continuation count for this new player turn
+
+         // ASSEMBLY council, per-member voice mode: each seated member gets their OWN full-profile turn
+         // INSTEAD OF the single anchor-plus-reactions call. Only when a real table exists (>=2 seated): a
+         // council of one is identical either way, so it falls through to the ordinary single call below.
+         if (_councilScope != null && _councilVoiceMode == CouncilVoiceMode.PerMember && _witnesses.Count > 0)
+         {
+            List<ChatSpeaker> roster = AllPresentSpeakers();
+            _npcWitnessExchangePending = true; // reuse the existing "a lap is in flight" guard
+            _ = RunRoundTableLapAsync(roster, text, roster.Count); // uncapped: the WHOLE seated roster speaks
+
+            return;
+         }
+
          // The player may open the floor to the group in their own words ("what do you all think?"); consumed
          // after the main NPC's reply to run a round-table lap. Only outside captive scenes, with a group present.
          _roundTable.OnPlayerSend(text, _witnesses.Count, IsCaptiveEncounter);
+         ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+         _messages.Add(placeholder);
          _ = RunLlmExchangeAsync(text, speaker, placeholder);
       }
 

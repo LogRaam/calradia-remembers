@@ -173,6 +173,12 @@ namespace CalradiaRemembers
          // when the player dealt the death. Registered right after NemesisBehavior (this listener only
          // ever reads/mutates its roster); no SyncData of its own. Console: cr.nemesis_kill / cr.nemesis_execute.
          campaignStarter.AddBehavior(new NemesisResolutionBehavior());
+         // Captive-escape gear consequence (ratified 2026-07-2x): the mod-side ledger of gear a nemesis or
+         // lord holder has accumulated from the player's Fled escapes, and the recovery routes (capture the
+         // holder alive, or defeat him in a battle the player wins). Registered after NemesisBehavior (a
+         // Fled escape from a bandit hold calls NemesisBehavior.Instance.ResolveGearHolderForBand). Console:
+         // cr.gear_stock / cr.gear_recover / cr.gear_test.
+         campaignStarter.AddBehavior(new Duels.CaptiveGearBehavior());
          // Appreciations (the positive mirror of Grudges): a lingering felt kindness, coexisting with regard
          // instead of being folded into it. Registered AFTER GrudgeBehavior (its prompt-note tarnish reads
          // the holder's dominant live grudge) and after WorldEventStore/Bastards/DivorceProcessBehavior (its

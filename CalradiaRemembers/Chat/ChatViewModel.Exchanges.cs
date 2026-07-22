@@ -21,6 +21,7 @@ using CalradiaRemembers.Services;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Parsing;
 using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
@@ -559,7 +560,9 @@ namespace CalradiaRemembers.Chat
                isConversationOpening: ConsumeOpeningNarration(),
                // Assembly spike: when armed by cr.council_test, a normal player turn takes the COUNCIL framing,
                // so this single call yields the anchor's reply + a [WITNESS_REACTION] per present member.
-               isRoundTableTurn: RoundTableController.CouncilTurnsForced,
+               // A real council carries the whole-table framing for its WHOLE session (_councilScope); the
+               // console spike arms the same framing globally on an ordinary chat, for validation only.
+               isRoundTableTurn: RoundTableController.CouncilTurnsForced || _councilScope != null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic
                // scene cue has no attempt to judge.
@@ -812,11 +815,24 @@ namespace CalradiaRemembers.Chat
                ModLog.Info($"[EVENT] withheld a marriage claim from {profile.Name} pending Hero.Spouse confirmation: \"{withheldMarriageClaim.Summary}\"");
             }
 
+            // Discovery-subject audit (player report, Nexus): the Encyclopedia's discovery section is
+            // meant to hold ONLY what the player learned ABOUT the NPC. ProfileMutator.Apply drops any
+            // [DISCOVERY] DiscoverySubjectGuard flags as being about the player instead, but that drop is
+            // silent to the player, so it is logged here (same treatment as the withheld marriage claim
+            // above) to keep a future report diagnosable.
+            string playerName = Hero.MainHero?.Name?.ToString();
+            if (responseForMutator.Discovery != null &&
+                DiscoverySubjectGuard.IsAboutPlayer(responseForMutator.Discovery.Key, responseForMutator.Discovery.Description, playerName))
+            {
+               ModLog.Info($"[DISCOVERY] dropped a player-subject entry from {profile.Name}: key=\"{responseForMutator.Discovery.Key}\" description=\"{responseForMutator.Discovery.Description}\"");
+            }
+
             ProfileMutator.Apply(profile, responseForMutator, gameDay,
                romanticContentEnabled: ModSettings.AdultContentLevel != AdultContentLevel.Off,
                orientationCompatible: orientationCompatible,
                applyReputation: false, // C2: [REPUTATION] is disabled in the mod; never apply a block the model emitted unprompted.
-               intimacyPermitted: behavior.GameStateBridge.PermitsIntimacyWith(_npcHero, profile));
+               intimacyPermitted: behavior.GameStateBridge.PermitsIntimacyWith(_npcHero, profile),
+               playerName: playerName);
 
             // Stance: the LLM's spoken nudges to trust/respect/fear — capped hard and rate-limited
             // (words only colour; deeds prove). Persisted by the Store.Set below after actions run.
@@ -944,11 +960,23 @@ namespace CalradiaRemembers.Chat
                      continue;
                   }
 
+                  // Council actor attribution: an [ACTION] carrying "actor: Name" belongs to that SEATED
+                  // member, not to whoever carries this turn's spoken reply. No "actor" parameter (every
+                  // ordinary, non-council conversation) resolves to the fallback unchanged, so this is a no-op
+                  // outside a council. An actor the mod cannot place (unknown or ambiguous) drops the action
+                  // outright rather than ever guessing (see TryResolveActionActor).
+                  if (!TryResolveActionActor(action, speaker.Hero, profile, behavior, out Hero actorHero, out NpcProfile actorProfile))
+                     continue;
+
+                  ActionContext actorActionContext = ReferenceEquals(actorProfile, profile)
+                     ? actionContext
+                     : new ActionContext(actorProfile, emittedForGate) {OfferedItemId = _offer.OfferedItemId};
+
                   // Coin/commit actions are preprocessed: a repeat of one already resolved this conversation is
                   // dropped (the LLM re-emitting the same transfer), and a player-outgoing spend (take_gold /
                   // join_party) is queued for in-chat confirmation. give_gold and everything else run inline.
                   ActionDisposition disposition =
-                     _confirmation.Preprocess(action, speaker.Hero, profile, actionContext);
+                     _confirmation.Preprocess(action, actorHero, actorProfile, actorActionContext);
 
                   if (disposition != ActionDisposition.ExecuteInline) continue;
 
@@ -984,7 +1012,7 @@ namespace CalradiaRemembers.Chat
                   ActionOutcome outcome;
                   try
                   {
-                     outcome = behavior.GameStateBridge.ExecuteAction(action, speaker.Hero, actionContext);
+                     outcome = behavior.GameStateBridge.ExecuteAction(action, actorHero, actorActionContext);
                   }
                   catch (Exception ex)
                   {
@@ -1021,26 +1049,27 @@ namespace CalradiaRemembers.Chat
                       outcome?.IsPositive == true)
                      nemesisTurned = true;
 
-                  // Story log: narrative description of game-world consequences.
+                  // Story log: narrative description of game-world consequences. Attributed to the ACTOR
+                  // (which is the anchor's own profile when no "actor" was named, see actorProfile above).
                   if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase))
                   {
                      // 2.1: log the regard ACTUALLY applied (from the outcome), never the raw proposal. A change
                      // gated to 0 returns a null outcome, so it leaves no "seems to appreciate your words" line.
                      if (outcome?.AppliedRelationDelta is int applied && applied != 0)
                      {
-                        StoryLog.WriteRelationChange(profile.Name, applied);
+                        StoryLog.WriteRelationChange(actorProfile.Name, applied);
                         if (applied < worstAppliedRelation) worstAppliedRelation = applied;
                      }
                   }
                   else if (string.Equals(action.Type, "give_gold", StringComparison.OrdinalIgnoreCase))
                   {
                      if (action.Parameters.TryGetValue("amount", out string ags) && int.TryParse(ags, out int ag))
-                        StoryLog.WriteGoldTransfer(profile.Name, ag, true);
+                        StoryLog.WriteGoldTransfer(actorProfile.Name, ag, true);
                   }
                   else if (string.Equals(action.Type, "take_gold", StringComparison.OrdinalIgnoreCase))
                   {
                      if (action.Parameters.TryGetValue("amount", out string ats) && int.TryParse(ats, out int at))
-                        StoryLog.WriteGoldTransfer(profile.Name, at, false);
+                        StoryLog.WriteGoldTransfer(actorProfile.Name, at, false);
                   }
                }
 
@@ -1188,6 +1217,11 @@ namespace CalradiaRemembers.Chat
                (text, positive) => AppendSystemMessage(text, positive));
 
             behavior.Store.Set(profile);
+
+            // ── Council resolutions: record or withdraw what the table decided this turn ──
+            // A no-op outside a council (ProcessCouncilResolutions itself gates on _councilScope), settled
+            // only at the lift (ChatManager.Close -> FinalizeCouncilResolutions), never here.
+            ProcessCouncilResolutions(response);
 
             // Mark any delivered player letters read now that the NPC has responded.
             PlayerLetterService.MarkLettersRead(profile, behavior.Store);
@@ -1518,11 +1552,23 @@ namespace CalradiaRemembers.Chat
       ///   original RunRoundTableAsync's finally exactly (clears the witness-exchange guard, re-enables send unless
       ///   the conversation ended, and refreshes the witness UI).
       /// </summary>
-      private async Task RunRoundTableLapAsync(List<ChatSpeaker> participants)
+      /// <param name="participants">Everyone present, main speaker first.</param>
+      /// <param name="playerMessageToRecord">
+      ///   Council per-member mode replaces the single anchor call outright rather than layering on top of it
+      ///   (unlike the button/free-text "open the floor" lap, which always follows an anchor turn that already
+      ///   committed the player's line), so THIS caller must record the player's current message to the
+      ///   transcript itself, exactly once, before any participant's session is built. Null for the ordinary
+      ///   layered lap, which already has it.
+      /// </param>
+      /// <param name="cap">Forwarded to <see cref="RoundTableController.RunAsync" />, null keeps the button's 3-speaker cap.</param>
+      private async Task RunRoundTableLapAsync(List<ChatSpeaker> participants, string playerMessageToRecord = null, int? cap = null)
       {
          try
          {
-            await _roundTable.RunAsync(this, participants);
+            if (!string.IsNullOrEmpty(playerMessageToRecord))
+               RecordTranscript(true, "You", Hero.MainHero?.StringId, playerMessageToRecord);
+
+            await _roundTable.RunAsync(this, participants, cap);
          }
          finally
          {

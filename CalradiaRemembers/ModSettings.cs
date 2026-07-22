@@ -69,6 +69,25 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   The PERSISTED DEFAULT for how a NEWLY opened council speaks: <see cref="CouncilVoiceMode.WholeTable" />
+      ///   (one call, cohesive, other members voiced from little more than a name) or
+      ///   <see cref="CouncilVoiceMode.PerMember" /> (each seated member's own full dossier, at the cost of one
+      ///   round-trip per member). Read live from the MCM menu; WholeTable when MCM has not loaded. The
+      ///   in-window toggle on an open council is session state and never writes back to this setting.
+      /// </summary>
+      public static CouncilVoiceMode DefaultCouncilVoiceMode
+      {
+         get
+         {
+            string v = CrSettings.Instance?.CouncilVoices?.SelectedValue;
+
+            return v == "One call per member"
+               ? CouncilVoiceMode.PerMember
+               : CouncilVoiceMode.WholeTable;
+         }
+      }
+
+      /// <summary>
       ///   The OpenRouter providers the player has pinned (comma-separated slugs), or blank for OpenRouter's own
       ///   routing. Read live from the MCM menu. Lets a player avoid providers that moderate their own output
       ///   and cut a reply mid-sentence.

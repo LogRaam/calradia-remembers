@@ -4,9 +4,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using CalradiaRemembers.Assemblies;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.GUI;
+using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Services;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -157,6 +161,9 @@ namespace CalradiaRemembers.Chat
             SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
             SafeStep(() => ActiveViewModel?.NoteCompanionHeard(), "NoteCompanionHeard");
             SafeStep(() => ActiveViewModel?.FinalizeWitnessMemories(), "FinalizeWitnessMemories");
+            // The council's LIFT: re-validates and executes every surviving [RESOLUTION] against the world as
+            // it stands NOW. A no-op outside a council (or one with nothing agreed), see FinalizeCouncilResolutions.
+            SafeStep(() => ActiveViewModel?.FinalizeCouncilResolutions(), "FinalizeCouncilResolutions");
 
             // Free every character tableau (GPU render-target) before releasing the movie, so no portrait
             // survives the close regardless of engine teardown timing.
@@ -375,6 +382,60 @@ namespace CalradiaRemembers.Chat
          ActiveViewModel.SetNpcHero(companion);
          ActiveViewModel.ActivateCompanionAudience(profile, reason, landed);
       }
+
+      /// <summary>
+      ///   Opens a COUNCIL of the player's own house: seats everyone the scope gathers, gives the spoken reply
+      ///   to the member who regards the player best (<see cref="CouncilAnchorPolicy" />), and seats the rest as
+      ///   present members who may speak or merely gesture on each turn. Returns a line describing what was
+      ///   opened, or why it could not be, so a caller can report it to the player.
+      /// </summary>
+      public static string OpenForCouncil(CouncilScope scope)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (behavior == null) return "No campaign is running.";
+
+         List<Hero> seated = CouncilRosterResolver.Seated(scope);
+
+         if (seated.Count == 0)
+            return $"Nobody is seated for a {scope} council right now (nobody available, or nobody of that house).";
+
+         // The anchor is chosen on the mod's OWN personal regard ledger, the one the player actually builds in
+         // conversation, not the vanilla clan relation.
+         var facts = seated
+                    .Select(h => new CouncilSeatFacts(h.StringId, behavior.Store.Get(h.StringId)?.ReputationWithPlayer ?? 0))
+                    .ToList();
+         int anchorIndex = CouncilAnchorPolicy.SelectAnchor(facts);
+
+         if (anchorIndex < 0) return "Could not seat an anchor for the council.";
+         Hero anchor = seated[anchorIndex];
+
+         Open(anchor.Name?.ToString());
+
+         if (ActiveViewModel == null) return "The chat window could not be opened.";
+         ActiveViewModel.SetNpcHero(anchor);
+
+         foreach (Hero member in seated.Where(h => h != anchor))
+            ActiveViewModel.AddWitness(new WitnessEntry {
+               Name = member.Name?.ToString(),
+               HeroStringId = member.StringId,
+               IsPlayerCompanion = member.IsPlayerCompanion,
+               RelationToNpc = DescribeCouncilSeat(scope)
+            });
+
+         ActiveViewModel.ActivateCouncil(scope);
+         ModLog.Info($"[COUNCIL] opened {scope} with {seated.Count} seated, anchor {anchor.Name}.");
+
+         return $"Council ({scope}) opened with {seated.Count} seated. {anchor.Name} speaks for the table; "
+              + "the others react each turn.";
+      }
+
+      private static string DescribeCouncilSeat(CouncilScope scope)
+         => scope switch {
+            CouncilScope.Family => "kin of the player's house, seated at this council",
+            CouncilScope.ClanLords => "a lord of the player's clan, seated at this council",
+            _ => "a companion in the player's service, seated at this council"
+         };
 
       /// <summary>
       ///   Requests the chat to scroll to its newest message on the next frame.

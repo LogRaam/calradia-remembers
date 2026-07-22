@@ -63,6 +63,16 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public bool AllowProviderFallbacks { get; set; } = false;
 
+      [SettingPropertyDropdown("Council Voices", RequireRestart = false, Order = 4,
+         HintText = "Default for a NEWLY opened council (flip it anytime with the button in the council window " +
+                    "itself). One call for the table keeps the scene cohesive, everyone reacts inside the same " +
+                    "completion, but the other members are voiced from little more than a name. One call per " +
+                    "member gives each their real memory, quests, and regard, at the cost of one round-trip per " +
+                    "member and no shared view of the same instant.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public Dropdown<string> CouncilVoices { get; set; } =
+         new(new[] {"One call for the table", "One call per member"}, 0); // default: whole table
+
       [SettingPropertyBool("Companion contentment", RequireRestart = false, Order = 0,
          HintText = "When ON, a neglected companion grows restless, asks for an audience, and if you keep refusing " +
                     "it, eventually leaves by letter (never silently). OFF disables the system entirely.")]

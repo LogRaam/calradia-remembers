@@ -32,6 +32,13 @@ namespace CalradiaRemembers.Logic.Assemblies
         /// <summary>Fuller description of what was decided.</summary>
         public string Detail { get; set; }
 
+        /// <summary>
+        ///   Kind-specific grounding data the lift executor needs beyond <see cref="Detail" /> (e.g. a named
+        ///   settlement for a "quest" pledge, so a bandit-clear task can be grounded the same way an ordinary
+        ///   [QUEST] block would be). Null when the kind needs none, or none was given.
+        /// </summary>
+        public string TargetHint { get; set; }
+
         public ResolutionStatus Status { get; set; }
 
         /// <summary>The player turn on which the motion was raised.</summary>

@@ -142,6 +142,10 @@ namespace CalradiaRemembers.Mapping
             CurrentLocationNote = BuildLocationNote(hero),
             GeographyNote = SettlementContextResolver.Resolve(hero, playerMessage),
             AtSea = atSea,
+            // Perception layer (2026-07-21): how the player is dressed, so an NPC can notice it. The mod-side
+            // reader classifies from the live equipment (CalradiaRemembers.Logic.PlayerDressPolicy); mapped
+            // 1:1 onto the SDK's own PlayerDressState (that project cannot reference CalradiaRemembers.Logic).
+            PlayerDress = MapDressState(PlayerDressResolver.Resolve()),
             OpeningDisposition = FirstImpressionResolver.Resolve(hero, profile, bridge),
             PlayerSpouseName = Hero.MainHero?.Spouse?.IsAlive == true
                ? Hero.MainHero.Spouse.Name?.ToString()
@@ -405,6 +409,18 @@ namespace CalradiaRemembers.Mapping
          return parent.IsAlive
             ? name
             : $"the late {name}";
+      }
+
+      /// <summary>Maps the mod's own pure <see cref="PlayerDressBand" /> onto the SDK's local <see cref="PlayerDressState" />.</summary>
+      private static PlayerDressState MapDressState(PlayerDressBand band)
+      {
+         switch (band)
+         {
+            case PlayerDressBand.Naked: return PlayerDressState.Naked;
+            case PlayerDressBand.Rags: return PlayerDressState.Rags;
+            case PlayerDressBand.Armoured: return PlayerDressState.Armoured;
+            default: return PlayerDressState.Civilian;
+         }
       }
 
       /// <summary>The magnitude of the heaviest LIVE grudge this hero holds against the player, or 0 when none.</summary>
