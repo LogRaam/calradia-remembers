@@ -1,0 +1,49 @@
+[size=4]Repairing a character who learned the wrong things about itself[/size]
+
+[b]Who needs this:[/b] anyone who has seen, on a character's encyclopedia page or in the in-chat panel, a "discovery" that describes YOU rather than the character. If you have never seen one, you have nothing to fix.
+
+[b]Why it is worth five minutes.[/b] Those notes are not only shown to you. They are read back to the character at the start of every later conversation, under the heading of what you already know about them. So a note that actually describes YOU is handed to the character as a fact about ITSELF, and it keeps building on that false picture until the note is gone. Updating the mod stops new ones being written. It cannot remove what is already saved in your campaign.
+
+[line]
+
+[size=3]Step 1. Open the console[/size]
+
+Press [b]Alt + `[/b] (the key above Tab). Type a command, press Enter.
+
+[code]cr.help[/code]
+
+lists everything the mod offers, if you want to look around.
+
+[size=3]Step 2. See what a character has recorded[/size]
+
+[code]cr.discoveries Ira[/code]
+
+Each line comes with an index in brackets, its key, and its text. Read them and pick out the ones that describe YOU instead of the character.
+
+[quote]💡 If you already have a conversation open with that character, you can leave the name out entirely.[/quote]
+
+[size=3]Step 3. Remove the wrong ones[/size]
+
+[code]cr.discover_forget 2 Ira[/code]
+
+[b]Work from the HIGHEST index down to the lowest.[/b] Removing an entry renumbers everything after it, so deleting index 0 first shifts the rest up by one and your next command hits the wrong line. Run [color=#93c47d]cr.discoveries[/color] again any time you are unsure.
+
+To wipe them all and start clean instead:
+
+[code]cr.discover_forget_all Ira[/code]
+
+This removes the good ones too. The character will simply rediscover things about itself as you talk again, so it costs you nothing but a little time.
+
+[size=3]Step 4. Save the game[/size]
+
+This is the step people miss. Everything characters remember lives inside your save file, so a repair you do not save is a repair you did not make.
+
+[line]
+
+[size=3]How do I know it worked?[/size]
+
+Run [color=#93c47d]cr.discoveries Ira[/color] once more, or open her encyclopedia page. What remains should read as things about HER, in the third person, for example [i]"She seems drawn to plain speaking."[/i] Anything describing you does not belong there.
+
+[size=3]One came back[/size]
+
+The guard added in v1.31.7 catches the clearest cases, but it is deliberately cautious: it would rather let an odd line through than silently delete a real discovery you earned. If one slips past, remove it the same way, and please post the [b]exact text[/b] on the bug tab. The wording is what lets me tighten it.
