@@ -228,8 +228,8 @@ Each trait runs [b]−2…+2[/b]. Traits set the [i]pool[/i] of a character's le
 [b][color=#6aa84f]ChatPortraits\ (hand-made chat portraits)[/color][/b]: give any character.. or yourself.. a painted portrait in the chat window instead of the small in-game 3D head. Drop image files into a [b]ChatPortraits[/b] folder inside [b]ModuleData\[/b]. The mod creates that folder for you, with a short README inside, the first time you launch a campaign, so you always have a ready place to put them.
 
 [list]
-[*][b]Your own portrait[/b]: name the file [b][color=#ffe599]player.png[/color][/b].
-[*][b]An NPC's portrait[/b]: name it after the character.. e.g. [b][color=#ffe599]rhagaea.png[/color][/b] (their name in lowercase, spaces as underscores), or after their internal id for a match that survives a rename. Not sure of the exact name? While talking to a character, run [b][color=#93c47d]cr.portrait_id [name][/color][/b] in the console.. it prints the precise file name(s) to use for them, and tells you whether one is already found.
+[*][b]Your own portrait[/b]: name the file [b][color=#ffe599]player.png[/color][/b].[/*]
+[*][b]An NPC's portrait[/b]: name it after the character.. e.g. [b][color=#ffe599]rhagaea.png[/color][/b] (their name in lowercase, spaces as underscores), or after their internal id for a match that survives a rename. Not sure of the exact name? While talking to a character, run [b][color=#93c47d]cr.portrait_id [name][/color][/b] in the console.. it prints the precise file name(s) to use for them, and tells you whether one is already found.[/*]
 [/list]
 
 [b]Format:[/b] a [b]PNG[/b] or [b]JPG[/b], ideally around 512×512 or larger (a bigger image downscales cleanly; a tiny one looks soft). Any shape is fine.. the portrait frame adapts to your image's proportions without stretching it, and the conversation text stays neatly aligned whatever the shape. Only the characters you make art for change; everyone else keeps the ordinary render, so you can give portraits to just your favourites.. no file, no change.
@@ -271,49 +271,54 @@ Name a kingdom in the text and its people are likeliest to have heard it. This i
 
 [quote]💡 A note on the console: most of the [b]cr.[/b] commands you'll see are developer / regression tests, [b]not gameplay features[/b] (running one won't break anything, but it isn't how you play). The genuinely player-useful ones are the memory commands above, [b]cr.world_event[/b], and the gold/relation cheats. The mod ships a full [b]CONSOLE_COMMANDS_GUIDE.md[/b] (in the CalradiaRemembers module folder) that sorts every command into "cheats & player tools" vs "developer tests", with examples.. and in game, [b]cr.help[/b] lists them all.[/quote]
 [line]
-[size=4]What's new in v1.31.0 to v1.31.7.. the stabilization release[/size]
+[size=4]Repairing a character who learned the wrong things about itself[/size]
 
-[b]v1.31.7[/b] fixes something worth reading about. The "discoveries" a character gathers are meant to be what YOU have learned about THEM, and that is what the encyclopedia shows. A character could instead write down a fact about you and file it in the same place. That is worse than an odd line on a page: those notes are read back to the character in every later conversation as things you know about them, so a character could slowly build a false picture of itself out of facts describing someone else. Fixed going forward, and a guard now refuses the clearest cases. [b]Existing notes do not clean themselves[/b], so if your characters already picked some up, see the repair guide on this page: [b]cr.discoveries [name][/b] lists them with an index, [b]cr.discover_forget <index> [name][/b] removes one, [b]cr.discover_forget_all [name][/b] clears them, then save.
+[b]Who needs this:[/b] anyone who has seen, on a character's encyclopedia page or in the in-chat panel, a "discovery" that describes YOU rather than the character. If you have never seen one, you have nothing to fix.
 
-Also in this version, escaping captivity now separates fighting from fleeing: put every captor down and you take your gear back off them, slip away instead and your captor's side keeps it, held by that region's bandit chief (or the lord who held you) until you beat or capture them, so nothing is lost for good. Getting knocked out costs you nothing. Freeing yourself grants Roguery, and outrunning pursuers grants Athletics. Characters also notice if you turn up in rags or in nothing at all. And for the curious, a first slice of the clan council is in, reachable with [b]cr.council [companions|family|lords][/b].
+[b]Why it is worth five minutes.[/b] Those notes are not only shown to you. They are read back to the character at the start of every later conversation, under the heading of what you already know about them. So a note that actually describes YOU is handed to the character as a fact about ITSELF, and it keeps building on that false picture until the note is gone. Updating the mod stops new ones being written. It cannot remove what is already saved in your campaign.
 
-[b]v1.31.6[/b] fixes marriage (report: tthheerroocckk). Characters could narrate a whole wedding and record it in memory as something that happened while the game never married anyone, leaving a finished-looking courtship with no spouse to show for it. A wedding memory is now only kept if you are truly wed, and if the wedding did not take place the conversation tells you so on the spot instead of leaving you to find out weeks later. Age also no longer prevents a marriage: a marriage is a contract between two adults, and it was being refused whenever the two were more than 25 years apart, which is what stopped some long courtships from ever sealing. Age still governs who can bear a child, and which of its own a noble house puts forward unprompted (a house offers its young, seeking a long alliance, but you may still ask for an older hand). For a campaign already affected, [b]cr.marry_check [name][/b] names the rule that is blocking and [b]cr.marry [name][/b] seals the wedding for real.
+Step 1. Open the console
 
-[b]v1.31.5[/b] gives captivity (Hardcore tier) a real escape encounter: breaking for it now puts you in an actual fight, bare-handed against up to three bandits spawned close by, and knocking them all down or reaching the edge of the scene sets you free (though you lose your weapons and mount).. lose the fight and the conversation picks back up instead of ending. Physical attempts during a captive scene (resisting, breaking a hold) now get a fair, game-rolled outcome instead of the AI's own judgment, with your remaining health as the deciding factor, so being worn down actually costs you something. It also adds a "Reply Language" option in Mod Options (leave blank to keep auto-matching whatever language you write in, or name a language explicitly), and a courier robustness batch: failed letters now say why specifically, a stuck courier falls back to date-based delivery instead of losing the letter, and a reply courier can no longer chase you into your own captor's party or out to sea.
+Press [b]Alt + `[/b] (the key above Tab). Type a command, press Enter.
 
-[b]v1.31.4[/b] fixes letter-carriers for players who have the War Sails DLC: the naval DLC swaps the game's party-speed model, and the courier speed boost was attached only to the base model, so a courier could be slowed to a crawl and its party starve on the road. The boost now attaches to whatever speed model the game is running. Letters always arrived on time through a date-based fallback; this fixes the courier parties themselves.
+[code]cr.help[/code]
 
-[b]v1.31.3[/b] fixes a quest that would not advance: when a lord asked you to attack a rival and you took that rival prisoner instead of only beating them in the field, the quest failed to notice, because a capture is a stronger outcome than the defeat it was watching for. A capture now counts, and a quest already stuck by this repairs itself the next time you load, as long as you are still holding the target prisoner.
+lists everything the mod offers, if you want to look around.
 
-[b]v1.31.2[/b] fixes a bug that could stop conversations working entirely (a certain faceless bandit captor broke the chat), stops a bandit chief from greeting you by name he could not know, keeps your named captor from turning into a generic bandit across a save and reload, and stops a lord from agreeing to a surrender the game cannot carry out. It also carries a long round of captive-scene work (Explicit/Hardcore tiers only): scenes now follow their own driving thread and can stay psychological or turn physical rather than always ending the same way, accompanying soldiers actually take part, and the pacing and description are richer. Full details in the changelog tab.
+Step 2. See what a character has recorded
 
-[b]v1.31.1[/b] is a same-day follow-up to the release below, from what you reported within hours of it going up: characters no longer recite the mod's plumbing when a model answers with a function call instead of the taught format (and the regard it meant to change now actually changes); a meeting whose conversation failed to start no longer blocks every later one, which was producing an endless procession of lords who rode up and never spoke; riding alone is no longer described to characters as riding with a handful of companions; and eye colour is described correctly again after the colour table was rebuilt from eighteen measured samples.
+[code]cr.discoveries Ira[/code]
 
+Each line comes with an index in brackets, its key, and its text. Read them and pick out the ones that describe YOU instead of the character.
 
-This one is mostly about making what already exists behave. Six systematic audits (how characters perceive you, letters and couriers, romance and marriage, the adult prompts, the council groundwork, and the test suite itself) plus the bug reports you sent in. [b]Your saves carry over untouched[/b].. everything here loads an existing campaign as it stands, and a few of the fixes actively repair damage an older version left behind.
+[quote]💡 If you already have a conversation open with that character, you can leave the name out entirely.[/quote]
 
-[b]The one thing you will see immediately:[/b] characters now [b]set the scene[/b]. The first reply of a conversation opens with a short passage of narration in its own colour.. where you are standing, the light, the sound of the room around you. After that opening it becomes occasional, appearing when a moment earns it rather than every turn.
+Step 3. Remove the wrong ones
 
-[b]Bugs you reported, now fixed:[/b]
-[list]
-[*]A faction leader could be told that [i]you[/i] ruled their kingdom, and would deny their own throne while calling you "my liege".
-[*]Meeting a lord while sailing hung the game on a loading screen that never resolved.
-[*]A character could fail to recognise being married to you. Existing saves are healed on load.
-[*]Asking a lord to hand over a prisoner set that prisoner free instead.
-[*]Couriers could not leave islands, starved on long journeys (reported to you as a bandit ambush that never happened), or delivered letters written by the dead.
-[*]Lords misjudged the force you lead, counting an army you merely travelled inside as your own.
-[/list]
+[code]cr.discover_forget 2 Ira[/code]
 
-[b]Also fixed, among many others:[/b] a letter could arrive and never be shown to you, then be lost for good; the letter window could trap you with no way out but closing the game; the courier fee was charged even when the letter never left; one waylaid letter silenced a correspondent for a fortnight; a grievance could harden to the level reserved for having your kin executed, which nothing could ever mend (lords frozen that way are healed when you load); and a background task could abort a day's letter handling halfway through, with a risk to your save.
+[b]Work from the HIGHEST index down to the lowest.[/b] Removing an entry renumbers everything after it, so deleting index 0 first shifts the rest up by one and your next command hits the wrong line. Run [color=#93c47d]cr.discoveries[/color] again any time you are unsure.
 
-[b]Under the surface:[/b] the intimacy threshold is now enforced rather than merely stated, and it follows your Relationship Pacing setting.. a Grounded campaign keeps exactly the behaviour it had. The adult-content setting now has the last word on which model is used: with adult content off, nothing can silently move you onto the NSFW model.
+To wipe them all and start clean instead:
 
-Full details are in the changelog.
+[code]cr.discover_forget_all Ira[/code]
 
-[size=4]Where the mod is at[/size]
+This removes the good ones too. The character will simply rediscover things about itself as you talk again, so it costs you nothing but a little time.
 
-Calradia Remembers is young and moving fast. The core loop is solid, but it is not seamless yet: now and then the AI records something wrong and you will want the console commands above to fix a memory, and rough edges do surface. If you enjoy being part of a mod's formative stage.. updates ship quickly and player feedback genuinely shapes the design.. you will feel at home. If you would rather wait for a fully polished experience, watch this page and come back soon.
+Step 4. Save the game
+
+This is the step people miss. Everything characters remember lives inside your save file, so a repair you do not save is a repair you did not make.
+
+How do I know it worked?
+
+Run [color=#93c47d]cr.discoveries Ira[/color] once more, or open her encyclopedia page. What remains should read as things about HER, in the third person, for example [i]"She seems drawn to plain speaking."[/i] Anything describing you does not belong there.
+
+One came back
+
+The guard added in v1.31.7 catches the clearest cases, but it is deliberately cautious: it would rather let an odd line through than silently delete a real discovery you earned. If one slips past, remove it the same way, and please post the [b]exact text[/b] on the bug tab. The wording is what lets me tighten it.
+
 [line]
+
 [size=5]How to configure[/size]
 
 [b]CHOOSE A BACKEND[/b]. The mod supports three backends: [b]OpenRouter[/b] (default, broadest cloud model catalog), [b]NanoGPT[/b] (alternative cloud provider), and [b]OpenAI-Compatible[/b] (any local server on your machine.. LM Studio, Ollama, vLLM). You only need one. Each keeps its own API key/endpoint, and you switch between them in one click with the "LLM Provider" dropdown.. the Model field itself is shared across all three, so you only set it once.
@@ -538,6 +543,7 @@ A heartfelt thank-you to [b][color=#93c47d]ProudSeal[/color][/b], who volunteere
 
 [line]
 [i]Built from scratch, with care, for everyone who ever wished Calradia's characters would remember them.[/i]
+
 
 
 
