@@ -49,12 +49,26 @@ namespace CalradiaRemembers.Appreciations
             : _ledger.Appreciations.Where(a => a.HolderId == holderId).ToList();
 
       /// <summary>
-      ///   Force-reruns the backfill scan regardless of the stamped version (cr.appreciation_backfill
-      ///   testing). Still idempotent — the deterministic id dedups against anything already in the
-      ///   ledger, so a second call in the same session forms nothing new.
+      ///   Force-reruns the backfill regardless of the stamped version (cr.appreciation_backfill testing).
+      ///   Still idempotent, but in two different ways depending on the ledger's state: on a ledger that has
+      ///   never been fully migrated it replays the whole scan (the deterministic holder+source+day key
+      ///   dedups against what is already there), while on a fully-migrated one it re-runs the CONSOLIDATION
+      ///   ONLY. Replaying the scan there would re-create the per-day records consolidation has already
+      ///   absorbed into one counted appreciation, and the fold that follows would add their counts on top,
+      ///   letting a console command silently inflate the player's tally (see the HAZARD note on
+      ///   <see cref="AppreciationMigration.MigrationVersion" />).
       /// </summary>
       public (int Formed, int Skipped) DebugForceBackfill(BannerlordNpcMemoryStore store)
       {
+         if (_ledger.MigrationVersion >= AppreciationMigration.MigrationVersion)
+         {
+            int before = _ledger.Appreciations.Count;
+            _ledger.Appreciations = AppreciationMigration.ConsolidateRepeats(_ledger.Appreciations);
+            ModLog.Info($"[APPRECIATION] forced consolidation only (already migrated): {before - _ledger.Appreciations.Count} twin(s) folded.");
+
+            return (0, 0);
+         }
+
          _ledger.MigrationVersion = 0;
 
          return RunBackfillIfNeeded(store);
@@ -109,15 +123,33 @@ namespace CalradiaRemembers.Appreciations
          {
             if (_ledger.MigrationVersion >= AppreciationMigration.MigrationVersion) return (0, 0);
 
-            List<MigrationCandidate> candidates = ScanCandidates(store);
-            AppreciationMigrationResult result = AppreciationMigration.SynthesizeAppreciations(candidates, _ledger.Appreciations, _ledger.MigrationVersion);
+            // The SCAN runs only on a ledger that has never been scanned. Consolidation collapses several
+            // days into one surviving record, so re-scanning an already-consolidated ledger would re-create
+            // the absorbed days as fresh twins and inflate their tally on the next pass (see the HAZARD note
+            // on AppreciationMigration.MigrationVersion). Consolidation itself is idempotent and runs on
+            // every version bump.
+            var formed = 0;
+            var skipped = 0;
 
-            if (result.Appreciations.Count > 0) _ledger.Appreciations.AddRange(result.Appreciations);
-            _ledger.MigrationVersion = result.MigrationVersion;
+            if (_ledger.MigrationVersion <= 0)
+            {
+               List<MigrationCandidate> candidates = ScanCandidates(store);
+               AppreciationMigrationResult result = AppreciationMigration.SynthesizeAppreciations(candidates, _ledger.Appreciations, 0);
 
-            ModLog.Info($"[APPRECIATION] backfill: {result.Appreciations.Count} formed, {result.Skipped.Count} skipped.");
+               if (result.Appreciations.Count > 0) _ledger.Appreciations.AddRange(result.Appreciations);
+               formed = result.Appreciations.Count;
+               skipped = result.Skipped.Count;
+            }
 
-            return (result.Appreciations.Count, result.Skipped.Count);
+            int before = _ledger.Appreciations.Count;
+            _ledger.Appreciations = AppreciationMigration.ConsolidateRepeats(_ledger.Appreciations);
+            int folded = before - _ledger.Appreciations.Count;
+
+            _ledger.MigrationVersion = AppreciationMigration.MigrationVersion;
+
+            ModLog.Info($"[APPRECIATION] backfill: {formed} formed, {skipped} skipped, {folded} twin record(s) folded into counted appreciations.");
+
+            return (formed, skipped);
          }
          catch (Exception ex)
          {
@@ -233,10 +265,35 @@ namespace CalradiaRemembers.Appreciations
             if (_ledger.Appreciations.Any(a => a.HolderId == holder.StringId && a.Source == source && a.EventDay == today))
                return false;
 
-            List<Appreciation> live = _ledger.Appreciations.Where(a => a.HolderId == holder.StringId).ToList();
-
-            // 5.3: clamp the stored magnitude to its documented 0..100 range at the single plant site.
+            // 5.3: clamp the stored magnitude to its documented 0..100 range at the single plant site. Hoisted
+            // above the twin check so a deepened appreciation is clamped exactly as a fresh one is.
             int clampedMagnitude = magnitude < 0 ? 0 : magnitude > 100 ? 100 : magnitude;
+
+            // The SAME kindness, done again on a later day, is not a second memory: it deepens the one that is
+            // already there. Before counting, three tender moments on three days became three byte-identical
+            // records that filled the whole PerNpcCap, crowding out genuinely different kindnesses (a gift, a
+            // rescue) and telling the LLM the same fact three times over. Renewing EventDay is what makes the
+            // repetition felt: decay runs from that day, so a kindness kept up stays warm.
+            Appreciation twin = _ledger.Appreciations.FirstOrDefault(a =>
+               a.HolderId == holder.StringId
+               && a.Source == source
+               && string.Equals((a.CauseSummary ?? string.Empty).Trim(), Truncate(cause)?.Trim() ?? string.Empty,
+                                StringComparison.OrdinalIgnoreCase));
+
+            if (twin != null)
+            {
+               twin.Occurrences = AppreciationPolicy.OccurrenceCount(twin) + 1;
+               twin.EventDay = today;
+               if (clampedMagnitude > twin.Magnitude) twin.Magnitude = clampedMagnitude;
+               if (knownToPlayer) twin.KnownToPlayer = true;
+
+               ModLog.Info($"[APPRECIATION] deepened: {holder.Name} toward {target.Name} ({source}, now {twin.Occurrences} time(s)).");
+               if (knownToPlayer) NotifyFormed(holder);
+
+               return true;
+            }
+
+            List<Appreciation> live = _ledger.Appreciations.Where(a => a.HolderId == holder.StringId).ToList();
 
             if (!AppreciationPolicy.TryAdmit(live, clampedMagnitude, today, facts.Traits, out Appreciation toEvict)) return false;
 
@@ -250,7 +307,8 @@ namespace CalradiaRemembers.Appreciations
                CauseSummary = Truncate(cause),
                EventDay = today,
                Magnitude = clampedMagnitude,
-               KnownToPlayer = knownToPlayer
+               KnownToPlayer = knownToPlayer,
+               Occurrences = 1
             };
 
             _ledger.Appreciations.Add(appreciation);

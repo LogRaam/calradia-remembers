@@ -85,8 +85,15 @@ namespace CalradiaRemembers.Logic.Appreciations
       /// <summary>
       ///   The current migration version. Bump when the backfill logic changes in a way that should re-run against
       ///   already-migrated ledgers.
+      ///   Version 2 adds <see cref="ConsolidateRepeats" />, which folds already-saved twin records into one
+      ///   counted appreciation. HAZARD for whoever bumps this next: the candidate SCAN must not run again on a
+      ///   ledger that has already been consolidated. Consolidation collapses several days into the surviving
+      ///   record's newest day, so a re-scan would re-create the absorbed days as fresh twins and the next
+      ///   consolidation would add their counts on top, inflating the tally. The host
+      ///   (<c>AppreciationBehavior.RunBackfillIfNeeded</c>) is what enforces this: it scans only on a ledger
+      ///   that has NEVER been scanned, while consolidation is idempotent and may run on every bump.
       /// </summary>
-      public const int MigrationVersion = 1;
+      public const int MigrationVersion = 2;
 
       /// <summary>
       ///   Sources whose kindness is inherently visible to the player at formation, because the player
@@ -207,6 +214,52 @@ namespace CalradiaRemembers.Logic.Appreciations
          }
 
          return result;
+      }
+
+      /// <summary>
+      ///   Folds twin records into one counted appreciation, for ledgers saved before
+      ///   <see cref="Appreciation.Occurrences" /> existed. Two records are twins when the same holder felt
+      ///   the same SOURCE for the same CAUSE text (case and surrounding space ignored): the only dedup the
+      ///   ledger ever had was same-holder-same-source-same-DAY, so a kindness repeated on three different
+      ///   days became three byte-identical entries, which then filled the entire
+      ///   <see cref="AppreciationPolicy.PerNpcCap" /> and told the LLM the same fact three times over.
+      ///   A different cause text is a genuinely different memory and is never merged.
+      ///   The survivor is the one with the NEWEST <see cref="Appreciation.EventDay" /> (the warmth is felt
+      ///   from the latest occasion), keeping the strongest magnitude, known to the player if ANY of them
+      ///   was, and carrying the total count. Nothing is lost: the tally is what the merged records were.
+      ///   IDEMPOTENT: a second pass over its own output changes nothing, since every group is then a single
+      ///   record whose count is already correct. Order is preserved (first appearance wins), so a
+      ///   consolidated ledger stays stable across saves.
+      /// </summary>
+      public static List<Appreciation> ConsolidateRepeats(IEnumerable<Appreciation> appreciations)
+      {
+         var merged = new List<Appreciation>();
+
+         if (appreciations == null) return merged;
+
+         var byKey = new Dictionary<string, Appreciation>(StringComparer.OrdinalIgnoreCase);
+
+         foreach (Appreciation a in appreciations)
+         {
+            if (a == null) continue;
+
+            string key = $"{a.HolderId}|{(int) a.Source}|{(a.CauseSummary ?? string.Empty).Trim()}";
+
+            if (!byKey.TryGetValue(key, out Appreciation kept))
+            {
+               byKey[key] = a;
+               merged.Add(a);
+
+               continue;
+            }
+
+            kept.Occurrences = AppreciationPolicy.OccurrenceCount(kept) + AppreciationPolicy.OccurrenceCount(a);
+            if (a.Magnitude > kept.Magnitude) kept.Magnitude = a.Magnitude;
+            if (a.EventDay > kept.EventDay) kept.EventDay = a.EventDay;
+            if (a.KnownToPlayer) kept.KnownToPlayer = true;
+         }
+
+         return merged;
       }
 
       #region private

@@ -99,18 +99,63 @@ namespace CalradiaRemembers.Logic.Appreciations
         /// <summary>Tuning: the decay rate never drops below this floor — even the warmest holder's memory of a kindness still drifts eventually. No never-decay case exists here (unlike a grudge vendetta): an appreciation, by design, always eventually fades.</summary>
         public const double MinDecayPerDay = 0.05;
 
+        // ── Repetition (a kindness done again WEIGHS more) ───────────────────
+
+        /// <summary>Tuning: magnitude added by the SECOND occurrence of the same kindness. Each further repeat adds half of the one before, so the series saturates quickly.</summary>
+        public const int RepeatBonus = 8;
+
+        /// <summary>Tuning: the most any amount of repetition can add. A single relationship repeating one kindness must never be able to dominate a holder's whole ledger, which is what an uncapped sum would do.</summary>
+        public const int MaxRepeatBonus = 15;
+
+        /// <summary>
+        ///   How many times this kindness happened, reading 0 (an old record saved before the field existed)
+        ///   and 1 alike as ONCE. Every reader must go through this rather than the raw field.
+        /// </summary>
+        public static int OccurrenceCount(Appreciation appreciation)
+        {
+            if (appreciation == null) return 0;
+
+            return appreciation.Occurrences < 1 ? 1 : appreciation.Occurrences;
+        }
+
+        /// <summary>
+        ///   The magnitude a repeated kindness earns on top of its base. Deliberately DIMINISHING and capped:
+        ///   the second time genuinely means something, the fifth barely adds to the fourth. A flat per-repeat
+        ///   bonus would turn any repeatable source into a farm, letting one relationship's single repeated
+        ///   kindness outrank every other NPC's real deeds. Once (or an unknown count) earns nothing.
+        /// </summary>
+        public static int RepeatMagnitudeBonus(int occurrences)
+        {
+            if (occurrences <= 1) return 0;
+
+            var bonus = 0;
+            int step = RepeatBonus;
+
+            for (int i = 2; i <= occurrences && step >= 1; i++)
+            {
+                bonus += step;
+                step /= 2;
+            }
+
+            return bonus > MaxRepeatBonus ? MaxRepeatBonus : bonus;
+        }
+
         /// <summary>
         ///   The appreciation's live intensity today: a live, idempotent read from
         ///   <see cref="Appreciation.EventDay" />, decaying linearly, slower with higher Generosity/Mercy
         ///   (down to <see cref="MinDecayPerDay" />). The stored <see cref="Appreciation.Magnitude" /> is
         ///   never mutated.
+        ///   Repetition is folded into the BASE, before decay (<see cref="RepeatMagnitudeBonus" />), so a
+        ///   kindness done several times is both felt more warmly and takes longer to fade to nothing. That
+        ///   is the whole point of counting rather than merely displaying a number.
         /// </summary>
         public static int EffectiveMagnitude(Appreciation appreciation, int today, TraitFacts traits)
         {
             if (appreciation == null) return 0;
 
+            int baseMagnitude = Clamp(appreciation.Magnitude + RepeatMagnitudeBonus(OccurrenceCount(appreciation)), 0, 100);
             int daysElapsed = today - appreciation.EventDay;
-            if (daysElapsed <= 0) return Clamp(appreciation.Magnitude, 0, 100);
+            if (daysElapsed <= 0) return baseMagnitude;
 
             double generosity = traits?.Generosity ?? 0;
             double mercy = traits?.Mercy ?? 0;
@@ -121,7 +166,7 @@ namespace CalradiaRemembers.Logic.Appreciations
 
             if (decayPerDay < MinDecayPerDay) decayPerDay = MinDecayPerDay;
 
-            double effective = appreciation.Magnitude - decayPerDay * daysElapsed;
+            double effective = baseMagnitude - decayPerDay * daysElapsed;
 
             return effective <= 0 ? 0 : (int) Math.Floor(effective);
         }

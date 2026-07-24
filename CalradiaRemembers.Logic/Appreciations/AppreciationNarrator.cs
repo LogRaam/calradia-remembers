@@ -49,11 +49,38 @@ namespace CalradiaRemembers.Logic.Appreciations
             if (appreciation == null || effectiveMagnitude <= 0) return null;
 
             string word = WarmthWord(effectiveMagnitude);
-            string cause = string.IsNullOrWhiteSpace(appreciation.CauseSummary) ? FallbackCause : appreciation.CauseSummary;
+            string cause = EmbedCause(appreciation.CauseSummary, FallbackCause)
+                         + RepetitionClause(AppreciationPolicy.OccurrenceCount(appreciation));
 
             return knownToPlayer
                 ? $"You feel {word} toward them for {cause}, and you may name it openly if the moment calls for it."
                 : $"You privately feel {word} toward them for {cause}; you have said nothing of it, but it warms how you treat them all the same.";
+        }
+
+        // ── Repetition ───────────────────────────────────────────────────────
+
+        /// <summary>Tuning: past this many occurrences the exact count stops being told apart and reads simply as "many".</summary>
+        public const int ManyTimesThreshold = 6;
+
+        /// <summary>
+        ///   The clause naming how often the same kindness happened, appended after the cause ("a tender
+        ///   moment you shared, three times over"). Empty for a single occurrence, so an ordinary kindness
+        ///   reads exactly as it always did. Spelled in WORDS, never digits: this pillar's prose discipline
+        ///   (see this file's header) is that the encyclopedia and the prompt both speak in words.
+        /// </summary>
+        public static string RepetitionClause(int occurrences)
+        {
+            if (occurrences <= 1) return string.Empty;
+            if (occurrences > ManyTimesThreshold) return ", many times over";
+
+            switch (occurrences)
+            {
+                case 2:  return ", twice over";
+                case 3:  return ", three times over";
+                case 4:  return ", four times over";
+                case 5:  return ", five times over";
+                default: return ", six times over";
+            }
         }
 
         // ── Display line (encyclopedia, third person) ───────────────────────
@@ -77,11 +104,45 @@ namespace CalradiaRemembers.Logic.Appreciations
             string word = WarmthWord(effectiveMagnitude);
             string verb = DisplayVerbFor(word);
             string target = targetIsPlayer ? "you" : (string.IsNullOrWhiteSpace(targetName) ? "them" : targetName);
-            string cause = string.IsNullOrWhiteSpace(appreciation.CauseSummary)
-                ? DisplayFallbackCause
-                : appreciation.CauseSummary.Trim().TrimEnd('.', '!', '?');
+            string cause = EmbedCause(appreciation.CauseSummary, DisplayFallbackCause)
+                         + RepetitionClause(AppreciationPolicy.OccurrenceCount(appreciation));
 
             return $"{verb} {word} toward {target}, for {cause}.";
+        }
+
+        // ── Embedding a stored cause mid-sentence ────────────────────────────
+
+        /// <summary>
+        ///   Leading words that are never a name, so lowering their case can only ever be correct. Anything
+        ///   outside this list keeps the author's capital: turning "Gabriel's men freed me" into "gabriel's"
+        ///   would be a worse bug than the one this fixes.
+        /// </summary>
+        private static readonly System.Collections.Generic.HashSet<string> SafeToLowerLeadingWords =
+            new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal) {
+                "A", "An", "The", "My", "Our", "Your", "Their", "His", "Her", "Its", "You", "They", "We", "When", "What", "That", "This", "Being", "Having", "Standing", "Coming", "Going"
+            };
+
+        /// <summary>
+        ///   Prepares a stored cause for embedding mid-sentence. Causes are authored as complete first-person
+        ///   sentences because they double as prompt text ("A tender moment we shared."), so pasting one after
+        ///   "for" produced a capital letter in the middle of a sentence, plainly visible to players in the
+        ///   encyclopedia. Trailing punctuation is trimmed (the host sentence supplies its own) and the first
+        ///   word is lowered ONLY when it is one that can never be a name.
+        /// </summary>
+        private static string EmbedCause(string cause, string fallback)
+        {
+            if (string.IsNullOrWhiteSpace(cause)) return fallback;
+
+            string trimmed = cause.Trim().TrimEnd('.', '!', '?');
+
+            if (trimmed.Length == 0) return fallback;
+
+            int end = trimmed.IndexOf(' ');
+            string firstWord = end < 0 ? trimmed : trimmed.Substring(0, end);
+
+            if (!SafeToLowerLeadingWords.Contains(firstWord)) return trimmed;
+
+            return char.ToLowerInvariant(trimmed[0]) + trimmed.Substring(1);
         }
 
         /// <summary>A verb keyed to the warmth band, so the sentence reads naturally at every band.</summary>

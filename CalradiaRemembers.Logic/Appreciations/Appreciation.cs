@@ -39,5 +39,18 @@ namespace CalradiaRemembers.Logic.Appreciations
 
         /// <summary>True once the player has learned of this appreciation (the NPC has voiced it, or it formed from a plainly visible deed). Drives both encyclopedia surfacing and the prompt's naming-vs-quiet-warmth instruction.</summary>
         public bool KnownToPlayer { get; set; }
+
+        /// <summary>
+        ///   How many times this same kindness has happened. A repeat does NOT create a twin record: it
+        ///   raises this count, renews <see cref="EventDay" /> (so the warmth is felt from the latest
+        ///   occasion) and keeps the strongest magnitude. Without it, three tender moments on three days
+        ///   became three byte-identical entries that filled the whole
+        ///   <see cref="AppreciationPolicy.PerNpcCap" />, crowding out genuinely different kindnesses and
+        ///   telling the LLM the same fact three times over.
+        ///   Additive save field: absent on old records, where it deserializes to 0. ZERO AND ONE BOTH MEAN
+        ///   ONCE, so every reader must go through <see cref="AppreciationPolicy.OccurrenceCount" /> rather
+        ///   than trusting the raw value.
+        /// </summary>
+        public int Occurrences { get; set; }
     }
 }
