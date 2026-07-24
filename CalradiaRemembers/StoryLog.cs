@@ -118,10 +118,38 @@ namespace CalradiaRemembers
                 + $"{Environment.NewLine}{Environment.NewLine}---{Environment.NewLine}");
         }
 
+        /// <summary>
+        ///   Same player report as ModLog's (2026-07-23): Bannerlord creates
+        ///   Documents\Mount and Blade II Bannerlord, but NOT its Logs subfolder, and File.AppendAllText
+        ///   throws on a missing parent rather than creating it. With the write wrapped in an empty catch
+        ///   (correct in itself: a log must never crash the game) a player who switched Story Log on simply
+        ///   got no file, and no reason why. Creating the folder is attempted once per session, on the first
+        ///   failure only, so the ordinary path stays a single append with no extra filesystem call.
+        /// </summary>
         private static void Write(string text)
         {
-            try { File.AppendAllText(LogPath, text); }
-            catch { /* never crash over a log failure */ }
+            try
+            {
+                File.AppendAllText(LogPath, text);
+                _folderRepairTried = false;
+            }
+            catch
+            {
+                if (_folderRepairTried) return; // already tried this session; stay quiet rather than churn
+
+                _folderRepairTried = true;
+
+                try
+                {
+                    string dir = Path.GetDirectoryName(LogPath);
+                    if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                    File.AppendAllText(LogPath, text);
+                    _folderRepairTried = false;
+                }
+                catch { /* never crash over a log failure */ }
+            }
         }
+
+        private static bool _folderRepairTried;
     }
 }

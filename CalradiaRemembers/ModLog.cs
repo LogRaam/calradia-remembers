@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 04/07/2026.
+﻿// Code written by Gabriel Mailhot, 04/07/2026.
 
 #region
 
@@ -30,17 +30,33 @@ namespace CalradiaRemembers
       private static readonly HashSet<string> SeenCompat = new();
       private static readonly HashSet<string> SeenConfigError = new();
 
+      // Player report (2026-07-23): with logging switched ON, nothing was ever written. Bannerlord creates
+      // Documents\Mount and Blade II Bannerlord for saves and config, but NOT the Logs subfolder, and
+      // File.AppendAllText throws DirectoryNotFoundException rather than creating a missing parent. Every
+      // write here is wrapped in an empty catch (correctly: a log must never crash the game), so the failure
+      // was perfectly silent and cost the mod its whole diagnostic channel with players.
+      private static bool _fileChannelBroken;
+      private static bool _brokenNoticeShown;
+
       static ModLog()
       {
-         // Write a header line on each game launch so the log is easy to read.
+         // Write a header line on each game launch so the log is easy to read. Creating the folder is done
+         // here, once, rather than at each write: CreateDirectory is a no-op when it already exists, and
+         // doing it even while logging is OFF means the folder is ready the moment a player turns it on.
          try
          {
+            string dir = Path.GetDirectoryName(LogPath);
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
             File.AppendAllText(LogPath,
                $"{Environment.NewLine}=== Session started {DateTime.Now:yyyy-MM-dd HH:mm:ss} ==={Environment.NewLine}");
          }
          catch
          {
-            /* never crash the game over a log failure */
+            // Still never crash the game over a log failure, but remember that the file channel is dead so a
+            // player who deliberately enabled logging is told once, instead of hunting for a file that will
+            // never appear.
+            _fileChannelBroken = true;
          }
       }
 
@@ -70,8 +86,7 @@ namespace CalradiaRemembers
 
          var line = $"[{DateTime.Now:HH:mm:ss}] [COMPAT] [{Tag}] {message}";
 
-         try { File.AppendAllText(LogPath, line + Environment.NewLine); }
-         catch { }
+         WriteToFile(line);
 
          try
          {
@@ -100,8 +115,7 @@ namespace CalradiaRemembers
 
          var line = $"[{DateTime.Now:HH:mm:ss}] [CONFIG] [{Tag}] {message}";
 
-         try { File.AppendAllText(LogPath, line + Environment.NewLine); }
-         catch { }
+         WriteToFile(line);
 
          try
          {
@@ -125,8 +139,7 @@ namespace CalradiaRemembers
          InformationManager.DisplayMessage(
             new InformationMessage($"[{Tag}] ERROR: {message}", Colors.Red));
 
-         try { File.AppendAllText(LogPath, line + Environment.NewLine); }
-         catch { }
+         WriteToFile(line);
       }
 
       /// <summary>
@@ -158,8 +171,7 @@ namespace CalradiaRemembers
          InformationManager.DisplayMessage(new InformationMessage($"[{Tag}] {message}"));
 
          // File log (persistent, check after the session)
-         try { File.AppendAllText(LogPath, line + Environment.NewLine); }
-         catch { }
+         WriteToFile(line);
       }
 
       #region private
@@ -171,6 +183,67 @@ namespace CalradiaRemembers
       /// </summary>
       private static bool IsApiMismatch(Exception ex)
          => ex is MissingMemberException || ex is TypeLoadException || ex is EntryPointNotFoundException;
+
+      /// <summary>
+      ///   The single seam every file write goes through, so the missing-folder repair and the
+      ///   broken-channel notice cannot be forgotten at one call site out of five (which is exactly how the
+      ///   original bug stayed invisible). Retries the folder once per session on the first failure, since
+      ///   a player can delete it mid-session, then gives up quietly for the rest of the run.
+      /// </summary>
+      private static void WriteToFile(string line)
+      {
+         try
+         {
+            File.AppendAllText(LogPath, line + Environment.NewLine);
+            _fileChannelBroken = false;
+         }
+         catch
+         {
+            if (!_fileChannelBroken)
+            {
+               _fileChannelBroken = true;
+
+               try
+               {
+                  string dir = Path.GetDirectoryName(LogPath);
+                  if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                  File.AppendAllText(LogPath, line + Environment.NewLine);
+                  _fileChannelBroken = false;
+               }
+               catch
+               {
+                  /* the retry failed too; the notice below is all that is left */
+               }
+            }
+
+            NoticeFileChannelBroken();
+         }
+      }
+
+      /// <summary>
+      ///   Tells the player ONCE, on screen, that the log file cannot be written and where it was expected.
+      ///   Only ever shown while logging is switched on: a player who deliberately enabled it and then finds
+      ///   no file has no other way to learn why, and silence there is what turned a missing folder into an
+      ///   unreportable bug. Never shown when logging is off (its Nexus default), where an absent file is
+      ///   simply correct.
+      /// </summary>
+      private static void NoticeFileChannelBroken()
+      {
+         if (_brokenNoticeShown || !_fileChannelBroken || !LoggingEnabled) return;
+
+         _brokenNoticeShown = true;
+
+         try
+         {
+            InformationManager.DisplayMessage(new InformationMessage(
+               $"[{Tag}] logging is ON but the log FILE could not be written: {LogPath}. " +
+               "On-screen messages still work. Check that the folder exists and is writable.", Colors.Yellow));
+         }
+         catch
+         {
+            /* a UI call before the manager is ready must never crash startup */
+         }
+      }
 
       #endregion
    }
