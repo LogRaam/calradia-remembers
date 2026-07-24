@@ -76,10 +76,18 @@ namespace CalradiaRemembers.Logic
         ///   matters. Otherwise a stale pursuit (past <see cref="MaxPursuitDays"/>) is abandoned, and
         ///   so is a hopeless one — when the player is well clear and clearly faster, the pursuer
         ///   cannot force the meeting and stops wasting the effort.
+        ///   <paramref name="isClosing"/> overrides both of those give-ups: a player reported riding
+        ///   straight at a lord who had been announced ("I'll ride up to them and everything") only to
+        ///   have the meeting cancelled out from under them. A player who is actively closing the gap is
+        ///   doing exactly what the feature promised, so neither slowness (outrun) nor patience
+        ///   (timeout) may give up on them while that holds, save for a genuinely impossible situation
+        ///   (sea, army, death), which this method knows nothing about and the caller checks separately,
+        ///   and which still stands the chase down regardless.
         /// </summary>
-        public static bool ShouldAbandonChase(float pursuerSpeed, float playerSpeed, float distance, int daysPursuing)
+        public static bool ShouldAbandonChase(float pursuerSpeed, float playerSpeed, float distance, int daysPursuing, bool isClosing = false)
         {
             if (distance < AbandonMinDistance) return false; // about to connect — never give up now
+            if (isClosing) return false; // the player is riding straight at the meeting, so let them arrive
             if (daysPursuing >= MaxPursuitDays) return true;
             return pursuerSpeed > 0f && playerSpeed >= pursuerSpeed * OutrunSpeedRatio;
         }

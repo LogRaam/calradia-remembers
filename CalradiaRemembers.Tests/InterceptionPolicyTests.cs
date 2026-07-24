@@ -206,6 +206,39 @@ namespace CalradiaRemembers.Tests
                            .Should().BeFalse();
       }
 
+      // ── ShouldAbandonChase, isClosing (the player-report fix) ─────────────
+
+      // The bug itself: "I'll ride up to them and everything but they won't talk to me" (a player closing
+      // the gap on purpose must never be judged outrun just because their instantaneous speed looks 25%
+      // faster than the pursuer's). isClosing overrides the outrun branch outright.
+      [Test]
+      public void GIVEN_the_gap_is_closing_even_past_the_outrun_ratio_WHEN_judging_THEN_the_chase_is_not_abandoned()
+      {
+         //Arrange: player nominally 25% faster (would read as outrun on its own), but the distance is closing.
+         InterceptionPolicy.ShouldAbandonChase(4f, 5f, 20f, 1, isClosing: true)
+                           .Should().BeFalse();
+      }
+
+      // Same guard against the OTHER give-up path: a chase past MaxPursuitDays must still be given the
+      // chance to connect if the player is visibly closing the distance, rather than timing out from
+      // under someone who is actively riding to the meeting.
+      [Test]
+      public void GIVEN_the_gap_is_closing_even_past_the_timeout_WHEN_judging_THEN_the_chase_is_not_abandoned()
+      {
+         InterceptionPolicy.ShouldAbandonChase(5f, 1f, 10f, InterceptionPolicy.MaxPursuitDays, isClosing: true)
+                           .Should().BeFalse();
+      }
+
+      // The guard is opt-in (default false): every caller above passes no isClosing argument at all, and
+      // must keep behaving exactly as it did before this fix (a silent behavioural change to every other
+      // caller would be worse than the bug it fixes).
+      [Test]
+      public void GIVEN_isClosing_is_not_specified_WHEN_judging_a_stale_chase_THEN_the_default_still_abandons()
+      {
+         InterceptionPolicy.ShouldAbandonChase(5f, 1f, 10f, InterceptionPolicy.MaxPursuitDays)
+                           .Should().BeTrue();
+      }
+
       // The per-lord cooldown is checked before any trigger, absolute: this is the other half of "won't
       // pester you" (CHANGELOG) alongside the single-pursuer guard - a lord who just intercepted the
       // player cannot be sent right back out even if every other condition still screams for it.

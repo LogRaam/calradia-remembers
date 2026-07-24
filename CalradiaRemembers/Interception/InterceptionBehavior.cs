@@ -5,10 +5,14 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
+using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
@@ -43,10 +47,13 @@ namespace CalradiaRemembers.Interception
 
       private const float InterceptRange = 40f; // a lord this close can plausibly ride out
 
-      // TUNE: how close the pursuer must come before the meeting is forced open. Small (parties "meet" within
-      // well under a map unit); generous enough that a slightly faster, moving player is still hailed rather
-      // than outrunning the whole meeting. Tune in-game if a lord opens the chat while still visibly distant.
-      private const float ArrivalRange = 1.5f;
+      // TUNE: how close the pursuer must come before the meeting is forced open. Matches ArrivalDistance
+      // (2.0f) in CourierService/CompanionMissionBehavior, the codebase's own established threshold for
+      // "one party has reached another" (this used to sit tighter, at 1.5f, which is one plausible reason
+      // a player who rode right up to a lord, "I'll ride up to them and everything", never triggered the
+      // meeting). Tune further in-game if a lord still opens the chat while visibly distant, or still
+      // doesn't at point-blank range.
+      private const float ArrivalRange = 2.0f;
       private const int MaxCandidates = 12; // bound the per-day work
       private const int RecentDeedWindowDays = 6;
       public static InterceptionBehavior Instance;
@@ -55,6 +62,11 @@ namespace CalradiaRemembers.Interception
       private string _activePursuerId;
       private int _activePursuerSince = -1;
       private InterceptionTrigger _activePursuerTrigger = InterceptionTrigger.None;
+
+      // The pursuer's distance to the player as of the LAST daily check, or -1f while no baseline exists yet
+      // (the day the pursuit began). Lets ReleaseStalePursuit tell a player actively closing the gap (riding
+      // toward the meeting, as the bug report described) from one who is genuinely being outrun or stalled.
+      private float _lastPursuitDistance = -1f;
 
       // Once the meeting has been forced open for the active pursuer, this guards against re-opening it every
       // frame. Reset when a pursuit begins, is consumed by the chat, or is released.
@@ -79,6 +91,7 @@ namespace CalradiaRemembers.Interception
          _activePursuerSince = -1;
          _activePursuerTrigger = InterceptionTrigger.None;
          _meetingOpened = false;
+         _lastPursuitDistance = -1f;
 
          return trigger == InterceptionTrigger.TerritorialPatrol
             ? "It is YOU who sought this meeting: you rode out to challenge the player for crossing your realm's " +
@@ -334,6 +347,7 @@ namespace CalradiaRemembers.Interception
          _activePursuerTrigger = trigger;
          _activePursuerSince = today;
          _meetingOpened = false;
+         _lastPursuitDistance = -1f;
          _cooldown[lord.StringId] = today;
 
          string line = trigger == InterceptionTrigger.TerritorialPatrol
@@ -461,15 +475,41 @@ namespace CalradiaRemembers.Interception
 
          bool invalid = pursuer is not {IsAlive: true} || pursuerParty == null || main == null
                         || PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(pursuerParty) || atSea;
+
+         float distance = pursuerParty != null && main != null
+            ? pursuerParty.GetPosition2D.Distance(main.GetPosition2D)
+            : float.MaxValue;
+
+         // The player closing the gap ON PURPOSE ("I'll ride up to them and everything") must not read as
+         // outrun or timed out from a single day's snapshot: compare against yesterday's reading, not the
+         // raw speed ratio alone, and defer the give-up while the gap keeps shrinking.
+         bool isClosing = !invalid && _lastPursuitDistance >= 0f && distance < _lastPursuitDistance;
+
          bool giveUp = !invalid &&
                        InterceptionPolicy.ShouldAbandonChase(
-                          pursuerParty.Speed, main.Speed,
-                          pursuerParty.GetPosition2D.Distance(main.GetPosition2D),
-                          today - _activePursuerSince);
+                          pursuerParty.Speed, main.Speed, distance,
+                          today - _activePursuerSince, isClosing);
 
-         if (!invalid && !giveUp) return;
-         if (atSea) ModLog.Info($"[INTERCEPT] {pursuer?.Name} stands down: the chase has gone to sea, where no meeting can be held.");
-         else if (giveUp) ModLog.Info($"[INTERCEPT] {pursuer.Name} gives up the chase.");
+         if (!invalid && !giveUp)
+         {
+            _lastPursuitDistance = distance;
+
+            return;
+         }
+
+         InterceptionTrigger trigger = _activePursuerTrigger; // read before the fields below are cleared
+         AbandonReason reason = DetermineAbandonReason(atSea, invalid, today - _activePursuerSince);
+
+         ModLog.Info($"[INTERCEPT] {pursuer?.Name} stands down ({reason}, distance {distance:0.0}, " +
+                     $"{today - _activePursuerSince} day(s) pursued, closing={isClosing}).");
+
+         NotifyPursuitAbandoned(pursuer, reason);
+
+         // Only an ORDINARY give-up (outrun or timeout) gets the letter, never a genuinely impossible
+         // situation (sea, army, death): mirrors the assembly's ambassador fallback (narration covers the
+         // gap instead of a broken feature) rather than papering over a pursuit that could never have
+         // succeeded regardless.
+         if (reason is AbandonReason.GaveUp or AbandonReason.LostTrail) TryWriteMissedMeetingLetter(pursuer, trigger, today);
 
          // End the engage on any abandoned chase too, so a lord who timed out or was outrun stops bearing on the
          // player instead of trailing them indefinitely, and RESUMES his own plans rather than standing in the
@@ -480,6 +520,86 @@ namespace CalradiaRemembers.Interception
          _activePursuerSince = -1;
          _activePursuerTrigger = InterceptionTrigger.None;
          _meetingOpened = false;
+         _lastPursuitDistance = -1f;
+      }
+
+      /// <summary>Why an abandoned pursuit ended, purely to pick the player-facing wording and the letter gate.</summary>
+      private enum AbandonReason
+      {
+         /// <summary>The chase went to sea, where no meeting can physically be staged.</summary>
+         WentToSea,
+
+         /// <summary>The pursuer vanished from the chase (died, lost their party) or the player is now inside an army.</summary>
+         OtherBusiness,
+
+         /// <summary>The pursuit ran past <see cref="InterceptionPolicy.MaxPursuitDays" /> without connecting.</summary>
+         GaveUp,
+
+         /// <summary>The player was clearly faster and pulled well clear (the outrun branch of ShouldAbandonChase).</summary>
+         LostTrail
+      }
+
+      private static AbandonReason DetermineAbandonReason(bool atSea, bool invalid, int daysPursuing)
+      {
+         if (atSea) return AbandonReason.WentToSea;
+         if (invalid) return AbandonReason.OtherBusiness;
+
+         return daysPursuing >= InterceptionPolicy.MaxPursuitDays ? AbandonReason.GaveUp : AbandonReason.LostTrail;
+      }
+
+      /// <summary>
+      ///   Tells the player, once, that a called meeting is off: a promise silently withdrawn ("a lord rides
+      ///   toward you") is worse than no promise, and this is the honest minimum (player report: "I'll ride up
+      ///   to them and everything but they won't talk to me"). Uses the same best-effort notification
+      ///   mechanism as BeginPursuit's own announcement, so the two read as a matched pair.
+      /// </summary>
+      private static void NotifyPursuitAbandoned(Hero pursuer, AbandonReason reason)
+      {
+         if (pursuer?.Name == null) return; // nothing to honestly name, nothing to say
+
+         string line = reason switch
+         {
+            AbandonReason.WentToSea     => $"{pursuer.Name} could not follow you out to sea, and turns back.",
+            AbandonReason.OtherBusiness => $"{pursuer.Name} was drawn into other business, and the meeting will not happen after all.",
+            AbandonReason.GaveUp        => $"{pursuer.Name} gives up trying to reach you, and turns back to their own affairs.",
+            _                           => $"{pursuer.Name} cannot keep pace with you and loses your trail."
+         };
+
+         try { MBInformationManager.AddQuickInformation(new TextObject(line)); }
+         catch
+         {
+            /* notification is best-effort, same as BeginPursuit's own announcement */
+         }
+      }
+
+      /// <summary>
+      ///   When a chase is abandoned for an ORDINARY reason (never an impossible one), the lord who wanted a
+      ///   word writes instead, through the existing letter pipeline, rather than the whole thing simply
+      ///   evaporating. Reuses <see cref="InterceptionTrigger" /> for WHY he set out, exactly as the in-person
+      ///   opener does. A lord the player has never actually met has no profile to write from and is silently
+      ///   skipped; the LLM pipeline itself (checked inside <see cref="LetterGenerationService.QueueInitialLetter" />)
+      ///   is the rest of "can actually deliver". Called at most once per abandoned chase.
+      /// </summary>
+      private static void TryWriteMissedMeetingLetter(Hero pursuer, InterceptionTrigger trigger, int today)
+      {
+         try
+         {
+            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+            BannerlordNpcMemoryStore store = behavior?.Store;
+            NpcProfile profile = pursuer != null ? store?.Get(pursuer.StringId) : null;
+
+            if (profile == null || behavior.LlmServices?.ChatService == null) return;
+
+            string context = trigger == InterceptionTrigger.TerritorialPatrol
+               ? "You rode out to challenge the player for crossing your realm's lands, wary and territorial, but the chase came to nothing before you could face them."
+               : "You rode out because word of the player's recent deeds reached you and you meant to speak with them about it, but the chase came to nothing before you could catch them.";
+
+            LetterGenerationService.QueueInitialLetter(
+               profile, pursuer, LetterReason.InterceptionMissed, context, behavior.LlmServices, store, today);
+
+            ModLog.Info($"[INTERCEPT] {pursuer.Name} could not meet the player in person, writes instead ({trigger}).");
+         }
+         catch (Exception ex) { ModLog.Error($"[INTERCEPT] missed-meeting letter failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
       private void TryStartInterception(int today)
