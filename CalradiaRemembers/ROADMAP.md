@@ -32,6 +32,132 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## RATIFIED + BUILT (Gabriel 2026-07-23): FORCED MARRIAGE, the family can bind its daughter (untested in game)
+
+Born of the Ira report (below): the player had done the family's part in full and was silently barred by the
+bride's-own-regard gate. Gabriel's ruling: history sides with the family. A house that has GIVEN ITS BLESSING
+can bind its kin for political ends, so the union now PROCEEDS below the regard bar, and what the unwon heart
+buys is the bride's RESENTMENT instead of an invisible refusal.
+
+**The shape.** Regard at/above 50 (either ledger): a love match, exactly as before. Regard below 50 WITH the
+family's blessing: the wedding happens, and `ExecuteMarry` plants a `GrudgeSource.ForcedMarriage` (ordinal 16,
+appended, save-safe) whose magnitude is `ForcedMarriagePolicy.GrudgeMagnitude`: base 12 + one point per point
+of shortfall below the bar, capped at 75 (below vendetta territory ON PURPOSE: the arc must stay winnable).
+A grudge, not a flat malus, deliberately: it colours her prompt, shows on her encyclopedia page, TARNISHES her
+kindnesses, and decays/resolves. Regard below 50 and NO blessing: still refused, and the refusal now names the
+other road ("no family blessing compels them to").
+
+**The consent trap, and why this lot was not delegated.** The marital consent exemption ("none of the
+stranger-resistance trust thresholds apply: your vows already bind you") is right for a love match and would
+have been a CONSENT BYPASS for a bride wed at 10 regard. So: `EncounterContext.SpouseMarriedUnwillingly`,
+resolved LIVE from the grudge ledger each turn (no persisted flag to keep in sync), switches her to an
+unwilling-spouse branch: vows bound her STATUS, never her heart; "a wedding is not consent"; her own nature's
+thresholds print with the full verdict, exactly as if unwed; the infidelity framing (a lie in her mouth) is
+excluded. **The redemption arc is automatic:** the day the grievance fades or is resolved, the flag flips and
+the ordinary marital footing takes over by itself. `LoveMatchReluctant` does the same for the PROPOSAL: a
+blessed-but-unwon match is spoken as duty ("marrying your name, not your heart"), never as love.
+
+Tests: `ForcedMarriagePolicyTests` (mod, 5), `ForcedMarriagePromptTests` (SDK, 6, including the regression
+guard that a WILLING spouse keeps the exemption untouched). `cr.marry_info` now says which kind of marriage is
+on offer and the resentment a forced one would plant. NOT play-tested; the grudge plant itself is engine glue
+(same TryPlant seam every other source uses).
+
+## WISHED (Nexus, 2026-07-23): choose WHO comes with you, including your own PRISONERS
+
+Two players, one thread, and Gabriel answered "it's now on the roadmap".
+
+**tthheerroocckk:** *"can we choose to bring other prisoners, not just companions, when we choose to talk to a
+prisoner? Since captors can talk to you and a companion, why not the reverse? One thing I wanted to rp was
+something like using Ascyron to pressure Lucon (both prisoners in my party) to blackmail him."*
+
+**nerethi (+1):** *"i wanted to bring a specific companion to 'judge' a prisoner but could only do it after
+putting him in a dungeon cell, walk all the way to him and use the normal conversation window. would be
+convenient to be able to choose who's with me even when starting from the party screen and just on the map."*
+
+**Two separate asks, and the second is the cheaper and probably the more valuable one.**
+
+1. **WHO the picker offers.** Today the participant picker is companions only (`WitnessResolver`, cap 2, plus
+   "Go alone"; `WitnessEntry.IsPlayerCompanion`). The ask is to also offer the lords the player currently holds
+   PRISONER. The symmetry argument is sound and is already the mod's own: a captor may bring his people to a
+   scene, so the player should be able to bring his.
+2. **WHERE the picker is offered.** nerethi's actual pain is not the roster, it is the ceremony: he had to put
+   the prisoner in a dungeon cell and walk to him to get an ordinary conversation window at all. He wants to
+   pick his company when starting from the PARTY SCREEN and on the open map.
+
+**Design notes, so this is not built twice.**
+- A prisoner brought into a scene is NOT a witness in the existing sense, and must not be modelled as one. A
+  witness is a free person whose regard is at stake; a captive is present under duress, cannot leave, and
+  their "reaction" is coerced. The prompt would need its own framing, and `AppendWitnesses`'s reaction
+  machinery (PROVOKED/PROACTIVE, the candour adjustment) is written for free people.
+- The blackmail case is LEVERAGE, which CR models only in one narrow place today
+  (`IntimacyLeverageActive`/`IntimacyLeverageHeld`). Using one captive against another is a general leverage
+  mechanic and should be designed as one, not bolted onto witnesses.
+- **nerethi's "judge a prisoner" is the ASSEMBLY pillar's TRIBUNAL mode** (see the 5-mode hub). Whoever picks
+  this up must check the Tribunal design first: a companion brought to weigh a captive's fate is that feature
+  in miniature, and building it twice would leave two rival paths to the same scene.
+- Reuse: the picker itself already exists (`ShowMultiSelectionInquiry`, the "Go alone" option and the
+  present-companions auto-join), and the witness list already dedups by `HeroStringId`. The same-location
+  filter is satisfied for free by a prisoner in the player's own party.
+- Watch the power balance: `AppendPowerBalance` and the captor-scene framing both read the room. Adding a
+  second captive changes who is outnumbered, and the existing captive scenes must not start describing the
+  player's own prisoners as a threat to him.
+
+## BUILT (player report, Nexus 2026-07-23): logging wrote NOTHING when the Logs folder did not exist
+
+A player with logging switched ON got no file at all. Bannerlord creates
+`Documents\Mount and Blade II Bannerlord` for saves and config, but NOT its `Logs` subfolder, and
+`File.AppendAllText` throws `DirectoryNotFoundException` on a missing parent instead of creating it. Both
+writers were affected (`ModLog`, five call sites; `StoryLog`, one), and every write is wrapped in an empty
+catch, correctly (a log must never crash the game) but with the effect that the failure was perfectly silent.
+The cost was not the missing file: it was that the mod lost its whole diagnostic channel with players, and
+nobody could tell why. Two other writers in the codebase (`ChronicleWriter`, `ChatPortraitResolver`) always
+created their folder; only the two logs had missed it.
+
+Fixed: the folder is created once in `ModLog`'s static constructor (a no-op when it exists, and done even
+while logging is OFF so the folder is ready the moment a player turns it on), every `ModLog` write now goes
+through one `WriteToFile` seam (five duplicated try/catch blocks were how the bug stayed invisible at four of
+its five sites), and `StoryLog.Write` repairs the folder once per session on its first failure. **And the
+failure is no longer silent:** when logging is ON and the file still cannot be written, the player is told
+once, on screen, with the path it tried. Never shown when logging is off, where an absent file is correct.
+
+## BUILT (player video, 2026-07-22): an unproven CLAIM could buy real regard, untested in game
+
+A recorded playthrough on YouTube showed a whole assassination arc played out in free prose: the NPC named two
+targets (one of them, "Lykon", exists nowhere in the game's data; the other, "Nemos", collides with a real
+base-game lord, `lord_1_44`, and a real village, Amycon), the player "proved" the killings with a stage
+direction saying a bag held a severed head, and the NPC paid `change_relation` for it. Confirmed as OUR mod,
+not another: the banner text is composed by `BannerlordGameStateBridge` (`"{name} regards you more warmly."`).
+
+**The cause was in our own prompt, not in the model.** `READING WHAT THE PLAYER DOES` orders the NPC to treat
+any asterisked action as "actually HAPPENING right now, never as nonsense", and drew no line between a
+movement of the player's BODY and an assertion about the WORLD. Meanwhile the rule that would have caught it
+("words are cheap; you reward deeds, not stories", plus an explicit "no token, trophy, blade, banner, severed
+head ... to carry back") already existed, but only inside `OFFERING TASKS`, binding on `[QUEST_COMPLETE]` for a
+task already in the ledger. This arc never entered the quest system at all, so nothing bound.
+
+**Fixed (SDK only).** (1) A boundary inside the narration section: a stage direction settles the player's body,
+here, now; it never settles the world outside the room or anything already done. The act is real (they do hold
+out a bag), what it IS remains their word, and coin, goods and captives change hands only when the game says
+so. (2) A new always-on section `WHAT THEY SAY THEY HAVE DONE IS A CLAIM, NOT A FACT`, deliberately OUTSIDE the
+quest gate so it holds even with quests disabled: an unwritten deed is a story, never treat it as done, never
+reward it, and explicitly never `change_relation` on it. Feelings and intentions are exempt, so NPCs do not
+become interrogators. Both rules have SHORT forms in Lean: adding them blew the Lean token budget on the first
+attempt (that test earned its keep), and a small local model is exactly the one most likely to swallow a
+confidently narrated proof, so they are shortened there, never dropped. 9 tests in
+`UnprovenClaimPromptTests`, including a regression guard that the narration section still tells the model to
+ENGAGE with physical acts: it is what captive and intimacy scenes are built on, and an over-broad boundary
+would silence a whole pillar to close one hole.
+
+**STILL OPEN, and deliberately not built:** binding names in the NPC's own reply back to real heroes. The safe
+half (spotting heroes that DO exist, reusing `ContextualNameResolver.ExtractTokens`) would not have prevented
+this bug; the useful half (spotting a person the NPC INVENTED) is free-prose name detection, where a tavern
+name, an epithet or a place reads exactly like a person and a mis-fire would correct the model wrongly and
+damage the prose. Proposed order when it is taken up: a zero-risk DIAGNOSTIC first (log what the NPC names and
+whether it resolves), to measure how often this actually happens before deciding how hard to fight it. The
+better-targeted sibling is to SUPPLY real names (a settlement's notables, on the `KnownWanderers` pattern:
+give the real one, then forbid inventing another), since the model invents a merchant only because the prompt
+contains no merchants.
+
 ## BUILT (player report, Nexus 2026-07-21): explicit Reply Language setting, untested in game
 
 A Spanish-speaking player on DeepSeek V3 always got English back, even though he wrote in Spanish; Gabriel's
@@ -1017,12 +1143,55 @@ THE TOWN GATES (the ambush settlement-scene path). NO sea duel: defer until the 
   Fear/Respect, grudge settled or hardened, stake transferred). All unit-tested; Gabriel reads the tests as the
   spec before a line touches the engine.
 - **Inc 1 (Sonnet, ambush pattern):** WILDERNESS SPIKE ✅ DONE + validated (mod `d3de0db`, recipe above). Remaining:
-  the `challenge_duel` action + bridge guard, spawn the opponent hero, NON-LETHAL knock-out (invulnerable / KO,
-  not a kill), witnesses STAY (do not flee), the real stake changing hands (wire `DuelStakesPolicy` /
-  `DuelOutcomePolicy` from Inc 0), the world-event + chronicle. Locations: town + gates + WILDERNESS (all three
-  now unblocked). `cr.duel` to test. NOTE the spike is a throwaway diagnostic (`DuelSceneSpike` /
-  `DuelSpikeMissionLogic` / `cr.duel_here`); Inc 1 builds the real duel mission from its proven recipe, and the
-  spike files can be retired once the real one lands.
+  the real stake changing hands (`DuelStakesPolicy` wager is still honour-only), witnesses STAY (do not flee).
+  NOTE the spike is a throwaway diagnostic (`DuelSceneSpike` / `DuelSpikeMissionLogic` / `cr.duel_here`); the
+  real duel mission is built from its proven recipe, and the spike files can be retired.
+- **Inc 1b, THE CHAT WIRING ✅ BUILT 2026-07-22, UNTESTED IN GAME.** A duel can now be called for in a live
+  conversation, which is what players asked for. The chain, end to end:
+  - SDK `PromptBuilder.AppendDuelChallenge` teaches `challenge_duel` ONLY when `EncounterContext
+    .DuelChallengeAvailable` is set (conditional teaching, the `CompanionAskingPrice` contract), with the venue
+    phrase from `DuelVenueLabel`. It declares the duel non-lethal and immediate, and it STOPS THE MODEL AT THE
+    CHALLENGE: the NPC may not say whether it accepts, because that is `DuelAcceptancePolicy`'s call, not the
+    LLM's (the same split the captive escape uses). 6 prompt tests.
+  - `DuelEligibilityResolver` (mod) is the ONE gate, called twice: at prompt time by
+    `EncounterContextBuilder`, and again at COMMIT time by the chat handler, because a model can emit the
+    challenge several turns after the context was built. Facts resolved from the live heroes
+    (`PlayerPresenceResolver.IsBeside` for face to face, the `BuildStandingFacts` mirror for captivity,
+    `npc.IsLord` for peerage, `NpcProfile.LastDuelDay` for the cooldown).
+  - `DuelStagingSupport.CanStage` (pure, 3 tests): both real venues are stageable; `NotNow` (at sea) never can
+    be, since that is no ground to fight on rather than missing code.
+  - `ChatViewModel.ResolveDuelChallenge`: re-validates, reads the action's `challenger` field (a missing or
+    garbled value fails SAFE to "the NPC issued it", since guessing "player" could make a lord balk at his own
+    demand), and on a player-issued challenge runs `DuelAcceptancePolicy`. A refusal is a DEED: scene narration
+    (so the NPC's next line knows it refused) plus `NpcForfeited` consequences, and the conversation carries on.
+    On acceptance the chat locks to a single close button, exactly like the escape.
+  - `DuelCoordinator`: two-phase deferral copied from `CaptiveEscapeCoordinator` (a mission cannot open over the
+    chat screen). An NPC-issued challenge raises the accept/refuse inquiry on the map; a player-issued one goes
+    straight to the field. `cr.duel_arm [name] [npc|player]` tests the whole deferral without the LLM.
+  - `DuelOutcomeApplier` now stamps `LastDuelDay` on EVERY resolution including both forfeits: a refusal that
+    reset nothing would let the player re-challenge each turn and farm `RenownForCalledBluff`. It also now feeds
+    a real `AGrudgeDroveIt` (dominant resolvable live grudge against the player) instead of the hard-coded false.
+- **Inc 1c, THE TOWN VENUE ✅ BUILT 2026-07-22, UNTESTED IN GAME.** Duels now work where conversations actually
+  happen. No new scene was invented: `TownDuelBehavior` reuses the street ambush's proven town-centre recipe
+  (arm, open the centre exactly as the "take a walk" menu does, inject on `LocationCharactersAreReadyToSpawnEvent`,
+  attach the driver from the `Mission.AfterStart` Harmony postfix, which is the only seam where the agents exist).
+  `TownDuelMissionLogic` is the town twin of `DuelMissionLogic`: it does NOT spawn the fighters (both are already
+  in the scene), it starts the fight through `MissionFightHandler.StartCustomFight` (the arena's own pattern),
+  and it keeps the same `IAgentStateDecider` answering Unconscious, so non-lethality is unchanged. Bystanders
+  are deliberately NOT scattered (unlike the ambush): a duel is public, and the pillar says witnesses stay.
+  Decisions worth remembering: the opponent spawns NEUTRAL, not Enemy, because a consented duel is not a crime
+  and the town must not treat it as an assault; only a TOWN qualifies (a village or castle has no centre scene),
+  narrowed in `DuelEligibilityResolver` rather than in the pure `DuelVenuePolicy`, since that is engine truth,
+  not design; and the venue phrase says "in the streets" rather than naming a gate, because the fight really is
+  staged in the centre and the NPC must not promise a place the game will not open. `cr.duel_town [name]` tests
+  the scene staging in isolation; `cr.duel_arm` now resolves the venue from where the player stands.
+  - **STILL OPEN.** (a) `DuelGrudgeEffect` is computed and LOGGED but NOT applied: `GrudgePolicy.Resolve` can
+    settle a grudge, but the pillar has no API to HARDEN one, and applying only the settle half would read as
+    "a duel can only ever help a grudge". Closing this = a harden API on `GrudgePolicy` plus its tests.
+    (b) The COURTSHIP-RIVALRY duel is still console-only: the chat wires `HonourAffront` only, since
+    nothing yet fills `EncounterContext.CourtshipRivalLadyName` (that is Inc B's approach behavior).
+    (d) The inquiry path is unverified in game (known engine gotcha: an inquiry shown with `prioritize:true`
+    has been seen swallowed; the call shape mirrors `ModCheats.ForceDuelChallenge`).
 - **Inc 2:** the grudge duel as a first-class resolution verb ("let us settle this with steel"); richer stakes (a
   courted lady's hand, an abandoned suit); the post-duel conversation ("you spared me").
 - **Inc 3 (SEPARATE, guarded):** the hostile ATTACK, restricted to already-at-war / bandit / nemesis, reusing the
@@ -1457,6 +1626,21 @@ Appreciations (store, plant sites, prompt note with the tarnish, "Kindnesses" en
 P2 = the Bearing line (ruling 4), consistent formation notifications (KNOWN grudge formation notifies).
 
 ### Appreciations — event-anchored kindnesses, the positive mirror of Grudges *(wished 2026-07-04 — ✅ COMPLETE 2026-07-04)*
+
+**REPETITION (player report 2026-07-22, fixed same day).** A kindness done again does NOT create a second
+record: it deepens the one already there. Corein's page showed the same tender moment three times, because the
+only dedup was holder+source+DAY and the cause text is a constant, so three days made three identical entries
+that filled the whole `PerNpcCap` and told the LLM the same fact three times. Ratified answer (Gabriel: "c'est
+mieux quand ça compte"): COUNT rather than discard. `Appreciation.Occurrences` (additive; 0 and 1 both mean
+once, always read through `AppreciationPolicy.OccurrenceCount`), a repeat renews `EventDay` so the warmth is
+felt from the latest occasion, and the count both READS ("three times over", in words, never digits, per this
+pillar's prose discipline) and WEIGHS (`RepeatMagnitudeBonus`, folded into the base BEFORE decay so a repeated
+kindness also lingers longer). The bonus is deliberately diminishing and capped at `MaxRepeatBonus`: a flat
+per-repeat bonus would turn any repeatable source into a farm and let one relationship dominate a holder's
+whole ledger. Old saves are repaired by `AppreciationMigration.ConsolidateRepeats` (migration version 2),
+which folds existing twins into one counted record, losing nothing. HAZARD recorded at the version constant:
+the candidate SCAN must never re-run on a consolidated ledger, or the absorbed days come back as twins and the
+next fold adds their counts on top.
 
 Gabriel's idea: we have regard (a blended score) and grudges (specific wounds that tell a story); we should also
 have APPRECIATIONS, the specific KINDNESSES the player did that marked an NPC positively, told as a story the
@@ -2693,6 +2877,97 @@ stance). Each layer is standalone and shippable. See [[project-nemesis]].
   (needs an EncounterContext note); the physical band-leadership vs the virtual override (chose the override,
   lower-risk); band-culture/region keys are coarse first-pass (TUNE); the WIN/intercept chat-first side (the
   spike's one new seam) is a later increment. **The whole flow needs an in-game play-through to validate.**
+
+**PLAYER REPORT (Nexus 2026-07-23): the NO-NEMESIS captivity path is an immersion hole, evidence for closing
+the reveal-roll miss.** A player held six days by ONE bandit band got three captor scenes with NO memory
+between them ("either he starts all over, or he pretends I had escaped": the LLM confabulating to fill the
+void), the Memories button gone (it requires a real Hero), and could not reach the chief through
+character_overrides (overrides apply via SetTraitLevel on real Heroes; the synthetic `bandit_captor_*` chief
+has none and is DELIBERATELY never persisted, ChatViewModel ~line 1688). He also saw the boss's NAME change
+mid-captivity: the synthetic name is SEEDED by the band's StringId (deterministic per band), so a name change
+means a prisoner transfer between parties (he runs a bandit-overhaul mod, party churn likely) or a mid-arc
+switch to a nemesis/paymaster captor. Deeper diagnosis (code, same day): the
+capture-time attach is UNCONDITIONAL, not a roll. The real loss paths are (1) SAVE/LOAD mid-captivity:
+`ReestablishActiveCaptorOnLoad` keys on the band's LeaderHero, which the chosen VIRTUAL override leaves null,
+so the restore always degrades (nobody plays six game-days without saving); (2) prisoner TRANSFER between
+bands (reference equality on the recorded party); (3) the respawn cooldown (by design, keep).
+
+**FIX BUILT 2026-07-23 (untested in game): LAZY ATTACH AT SCENE TIME.** `NemesisBehavior.TryAttachCaptorFor`
+re-resolves the captor when a bandit captive scene is about to fire with no nemesis mapped: same mint-or-reuse
+path as the capture hook, still honouring the respawn cooldown (quiet years stay quiet), deliberately NOT
+bumping TimesEncountered/RecaptureCount (a reload is the same captivity resuming, and counting it would
+inflate the escape-decay). Wired in `CaptiveEncounterService` right after the captor resolution chain. Result:
+every scene-bearing captivity now runs with the persistent named boss (memory, encyclopedia, overrides), and
+the ephemeral chief remains only inside a slain nemesis's cooldown, which is correct.
+**FOLLOW-UP (AUDIT-NEMESIS RC1, 2026-07-24, untested in game): the lazy attach above INTRODUCED a wrong-captor
+path, now closed.** It re-resolved the captor by `FindOrMint(culture, region)` at scene time, but `ResolveRegionId`
+degenerates to culture for a wandering band, so a prisoner transferred to a hideout-anchored party (region =
+`hideout_x`) or a save/load minted a SECOND nemesis B who then inherited nemesis A's captivity memory: the exact
+"different nemeses share the same memory" player report. FIX: the captivity is now anchored to a PERSISTED
+`_activeCaptorIdentityId` (new additive SyncData key `CR_NemesisActiveCaptorId`, absent-reads-null on old saves).
+`OnHeroPrisonerTaken` sets it; `ReestablishActiveCaptorOnLoad` restores the SAME captor by id (not by the band's
+null LeaderHero, which is why the old restore was dead code for the virtual override); `TryAttachCaptorFor`
+REUSES the anchored identity, never re-resolving by region while one is set; `OnHeroPrisonerReleased` now drops
+the anchor UNCONDITIONALLY (a stale mapping used to survive a release from a different party and block future
+materialization). Also fixed alongside: **RC2** (`FinalizeConversationMemory` wrote the fallback summary to
+`DialogFlow.Profile`, a stale cache, landing a captor scene's memory on the last person chatted with; now writes
+to `MainSpeaker().Profile`, the same hardened resolution the speaker path uses), **RC3** (mint now dedups
+name+epithet against LIVING identities via `NemesisNameGenerator.GenerateDistinct`, so no two live nemeses are
+homonyms), and **M7** (`OnHeroPrisonerReleased` no longer writes "they slipped my grasp" for every non-death
+release; escape → grievance, a release the nemesis CHOSE → his own magnanimity, ransom/peace/battle → no false
+memory). Tests: 5 new on `GenerateDistinct` (RC3). **NO REGRESSION TEST for RC1/RC2 itself: the scenario needs a
+real captivity plus save/load or a prisoner transfer, which the self-test harness cannot stage.** MANUAL TEST
+(the reported bug): be captured by a wandering looter band, note the boss's name, save and reload mid-captivity,
+trigger the next captor scene, assert it is the SAME named boss and he remembers the earlier scene; then escape
+and confirm his memory says he was escaped from, not that he let you go.
+
+**M2/M3 BUILT (AUDIT-NEMESIS, ratified 2026-07-24, untested in game): bounties no longer zombie.** Gabriel's
+rules: a bounty is PAID only when the PLAYER causes the capture or death; it lives as long as the nemesis
+lives (no deadline); SEVERAL lords may each price the same head (the player collects from each); it closes
+when the nemesis dies or is turned. FIX: (M3) `FindEligibleNemesisFor` excludes turned nemeses, and its
+already-active check is now PER-GIVER (`NemesisBountyPolicy.IsEligibleIssuer` gained `nemesisTurned` and a
+per-giver flag) so multiple lords may offer, while the one-task-per-lord rule stops the same lord stacking
+two. (M2) `QuestService.CancelOutstandingBountiesOn` closes every OUTSTANDING bounty on a nemesis who dies by
+a third hand or is turned (leaving a player-earned, awaiting-reward bounty untouched to collect); called from
+`NemesisResolutionBehavior.Resolve` (third-party death only) and `Turn`. Also fixed: `QuestDeedTracker.OnHeroKilled`
+stamped a NemesisBounty regardless of who dealt the death, paying the player for a kill he did not make; it now
+requires `killer == MainHero` (an ordinary ExecuteEnemy quest stays killer-agnostic). Tests: bounty-policy
+suite updated for the new signature (turned excluded, per-giver, multiple lords).
+
+**M1 BUILT as a NEW FEATURE (AUDIT-NEMESIS, ratified 2026-07-24, untested in game): SCATTERED-LOOT RECOVERY.**
+The audit's M1 was that a fled bandit escape MINTED a nemesis (ignoreRespawnCooldown) to hold the whole stock,
+resurrecting a slain boss in his own quiet years and inflating his counters. Gabriel re-scoped the fix into a
+feature: the gear is no longer held by anyone. On a fled BANDIT escape it is SCATTERED per-item among that
+culture's bands (`ScatteredLootBehavior`, save-safe additive key), and defeating a band of the culture has a
+chance (`ScatteredLootPolicy.RecoveryChancePercent`, 55%) to return the OLDEST-lost matching piece into the
+player's inventory, drained a piece at a time across several fights ("a sword in one band, the armour in the
+next"). No world-map loot object: it materialises only on a defeat. The LORD branch is UNCHANGED (a lord holds
+his captive's gear, recovered whole by beating him, via `CaptiveGearBehavior`). `NemesisBehavior.ResolveGearHolderForBand`
+(the offending mint) is REMOVED, and `CaptiveEscapeCoordinator` scatters instead. The escape notice now tells
+the player HOW to recover (partly addressing M5's silent loot message). 6 pure tests on `ScatteredLootPolicy`
+(chance boundary, oldest-first drain, culture match incl. case, no-match). `cr.loot_stock` dumps the ledger.
+STILL OPEN from the audit: M5 discoverability (encyclopedia "your history", regional rumours), M6 spoken
+pre-battle reunion, M8 memory of reverses, T13 trait randomisation, m-level polish. Those are pillar-depth
+work, a ROADMAP decision, not defect fixes.
+**RATIFIED + BUILT same day (Gabriel 2026-07-23, untested in game): compatibility is a FILTER, not a wall.**
+The profiled-captor path used to gate ALL scenes on `Romantic.IsCompatibleWith(player sex)` with an early
+return before intent selection: a male player held by a straight male lord/nemesis (the majority pairing) got
+NO scenes for the whole captivity, an asexual captor could not even interrogate, and the lazy attach above had
+just made that path the default. The gate now lives INSIDE `CaptiveEncounterPolicy.SelectIntent`
+(`playerIsCompatible` parameter), the exact shape `SelectBanditIntent` always had: incompatible, the sexual
+intents (PersonalDesire, Domination, Torture, Training, Reward) are unreachable and the scene is an
+INTERROGATION; compatible, the weighted draw is byte-identical to before (regression-pinned). Torture stays on
+the gated side by explicit call: its Hardcore framing is sexualised, prudence wins. Side effect judged
+correct: the companion-victim branch sits after the removed wall, so a captor incompatible with the PLAYER can
+now still run a scene on a held COMPANION, which the wall used to absurdly block (the victim was never the
+player). 3 tests in `CaptiveEncounterPolicyTests`, including an every-roll scan proving a sadist incompatible
+captor can never reach Torture.
+**WISHED (modder angle, same report):** the reporting player authors character_overrides. Once revealed, a
+nemesis IS a real Hero and overrides reach him by name (the five native traits, backstory, conviction,
+orientation; file loads at session launch, so add the name then reload). What a modder cannot do is author
+AHEAD of the mint, since names are generated per campaign. Candidate: a culture-keyed template entry in
+character_overrides (e.g. Hero: "nemesis:sea_raiders") applied to every nemesis minted of that culture, which
+would let authors shape their region's boss without knowing his rolled name. Small, additive, worth doing.
 
 **INCREMENT 2 (R2 execute / R3 torture entry point), REDIRECTED 2026-07-06, mod builds 0 warning, 1271 tests:**
 a first pass built a recurring daily-tick popup menu (Torture / Execute / Leave) for a nemesis held prisoner.
