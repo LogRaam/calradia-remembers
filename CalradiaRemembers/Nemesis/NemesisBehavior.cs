@@ -44,10 +44,19 @@ namespace CalradiaRemembers.Nemesis
       private NemesisRoster _roster = new NemesisRoster();
 
       // Transient (non-serialized) active-capture mapping: which bandit party currently holds the player and
-      // the nemesis Hero who is their captor. Lost on a save/load mid-captivity (degrades to the vanilla
-      // bandit scene), re-established on the next capture; the Hero itself persists via the roster.
+      // the nemesis Hero who is their captor. The Hero/party references are process-only; the PERSISTED anchor
+      // is _activeCaptorIdentityId below, which is what survives a save/load and a prisoner transfer.
       private MobileParty _activeCaptorParty;
       private Hero _activeNemesisHero;
+
+      // The PERSISTED identity of the nemesis holding the player captive right now (nemesis audit RC1). The
+      // reported "different nemesis share the same memory" bug came from re-resolving the captor by
+      // (culture, region) at scene time (TryAttachCaptorFor -> FindOrMint): region degenerates to culture for a
+      // wandering band, so a prisoner transferred to a hideout-anchored party, or a save/load, minted a SECOND
+      // nemesis who then inherited the first one's captivity memory. Anchoring the captivity to THIS serialized
+      // id, restored by id on load and reused (never re-minted) while it is set, is what keeps one captivity to
+      // one captor. Empty/null = no nemesis currently holds the player.
+      private string _activeCaptorIdentityId;
 
       // Transient (non-serialized) ACTIVE-HUNT mapping: the nemesis Hero materialized into a bandit party the
       // player just engaged, and that party. Cleared when the engagement ends (he is detached back to latent
@@ -76,27 +85,62 @@ namespace CalradiaRemembers.Nemesis
       }
 
       /// <summary>
-      ///   The active nemesis-holds-the-player mapping (<see cref="_activeNemesisHero" /> /
-      ///   <see cref="_activeCaptorParty" />) is TRANSIENT: it is set at capture and never serialized. So a
-      ///   save made while captive, then reloaded, comes back with it null, and the captive scene no longer
-      ///   recognises the nemesis holding the player, degrading him to a faceless bandit (Gabriel, in play
-      ///   2026-07-19: saved captive of Harker, reloaded, and the captor came back a generic looter). This
-      ///   rebuilds the mapping after a load: if the player is a prisoner of a party whose leader is a known
-      ///   nemesis, that nemesis is made active again.
+      ///   Rebuilds the process-only captor mapping (<see cref="_activeNemesisHero" /> /
+      ///   <see cref="_activeCaptorParty" />) after a load, from the PERSISTED
+      ///   <see cref="_activeCaptorIdentityId" /> (nemesis audit RC1). The old version keyed on the holding
+      ///   party's <c>LeaderHero</c>, which the virtual-override design leaves null, so it always degraded to a
+      ///   faceless bandit (Gabriel, 2026-07-19: saved captive of Harker, reloaded a generic looter). Keying on
+      ///   the serialized identity restores the SAME captor by id, whatever party now holds the player, and is
+      ///   what makes a save/load mid-captivity keep one captor instead of minting a second. A stale id (the
+      ///   player is no longer a prisoner, or the identity/hero is gone) simply clears, degrading safely.
       /// </summary>
       private void ReestablishActiveCaptorOnLoad()
       {
          try
          {
-            if (Hero.MainHero?.IsPrisoner != true) return;
+            if (Hero.MainHero?.IsPrisoner != true)
+            {
+               _activeCaptorIdentityId = null; // freed while saved: no captor to restore
+               _activeNemesisHero = null;
+               _activeCaptorParty = null;
+
+               return;
+            }
 
             MobileParty captorParty = Hero.MainHero.PartyBelongedToAsPrisoner?.MobileParty;
+
+            // Preferred path: the serialized identity of the captor. Resolve his living Hero and bind the party
+            // that currently holds the player, whatever its leader (the band has no LeaderHero by design).
+            if (!string.IsNullOrEmpty(_activeCaptorIdentityId))
+            {
+               NemesisIdentity nem = _roster.Nemeses.FirstOrDefault(n => n.Id == _activeCaptorIdentityId);
+               Hero hero = nem == null || string.IsNullOrEmpty(nem.HeroStringId)
+                  ? null
+                  : Hero.FindFirst(h => h != null && h.StringId == nem.HeroStringId);
+
+               if (hero is {IsAlive: true} && captorParty != null)
+               {
+                  _activeCaptorParty = captorParty;
+                  _activeNemesisHero = hero;
+                  ModLog.Info($"[NEMESIS] on load, restored {hero.Name} (id {_activeCaptorIdentityId}) as the captor by persisted identity.");
+
+                  return;
+               }
+
+               // The persisted id no longer resolves to a living captor; drop it rather than trust it.
+               ModLog.Info($"[NEMESIS] on load, persisted captor id {_activeCaptorIdentityId} no longer resolves; clearing.");
+               _activeCaptorIdentityId = null;
+            }
+
+            // Legacy fallback for a save made before RC1 (no persisted id): the old LeaderHero path. Harmless
+            // when the band has no leader; it just finds nothing and the scene resolves a captor lazily.
             Hero leader = captorParty?.LeaderHero;
             if (leader == null || GetByHero(leader.StringId) == null) return;
 
             _activeCaptorParty = captorParty;
             _activeNemesisHero = leader;
-            ModLog.Info($"[NEMESIS] on load, restored {leader.Name} as the nemesis holding the player captive.");
+            _activeCaptorIdentityId = GetByHero(leader.StringId)?.Id;
+            ModLog.Info($"[NEMESIS] on load, restored {leader.Name} as the captor via the legacy leader path.");
          }
          catch (Exception ex)
          {
@@ -129,6 +173,7 @@ namespace CalradiaRemembers.Nemesis
 
             _activeCaptorParty = band;
             _activeNemesisHero = hero;
+            _activeCaptorIdentityId = nem.Id; // RC1: the captivity is anchored to THIS identity from here on
             nem.TimesEncountered++;
             if (existing != null) nem.RecaptureCount++; // he has caught the player before, and now again
             ModLog.Info($"[NEMESIS] {hero.Name} now holds the player captive (band {bandKey}, region {regionId}, recaptures {nem.RecaptureCount}).");
@@ -140,40 +185,70 @@ namespace CalradiaRemembers.Nemesis
       }
 
       /// <summary>
-      ///   The player has been let out of captivity. If the party that held them was the ACTIVE nemesis's band
-      ///   (an escape, or any non-death release), the nemesis REMEMBERS it: a notable event lands on his memory
-      ///   profile ("they slipped my grasp"), so a later re-crossing reflects that the player got away from him
-      ///   (a player-reported gap: escaping recorded nothing). Records for a spontaneous escape AND whatever
-      ///   release path a third-party escape mod uses, since both raise this event. Transient by design: if the
-      ///   captivity spanned a save/load the active mapping is already gone and nothing is recorded, the same
-      ///   degradation the rest of the capture layer accepts.
+      ///   The player has been let out of captivity. When it was the ACTIVE nemesis's own band that held them,
+      ///   the nemesis remembers HOW it ended, honestly (nemesis audit M7): a real ESCAPE is a grievance he
+      ///   means to collect, a release he CHOSE is his own magnanimity, and a ransom / peace / battle handover
+      ///   is neither, so it leaves no memory rather than a false one (the old code wrote "they slipped my
+      ///   grasp" for every non-death release, contradicting a scene where he had just let the player go).
+      ///   Whatever the detail, the captivity anchor is dropped UNCONDITIONALLY here (nemesis audit RC1/M4):
+      ///   the player is free now, so a stale mapping must never survive to be inherited by, or to block, a
+      ///   later captor.
       /// </summary>
       private void OnHeroPrisonerReleased(Hero prisoner, PartyBase party, IFaction faction, EndCaptivityDetail detail, bool showNotification)
       {
          try
          {
             if (prisoner != Hero.MainHero) return;
-            if (detail == EndCaptivityDetail.Death) return; // died a prisoner: nothing to remember him escaping
-            if (_activeNemesisHero == null || _activeCaptorParty == null) return;
-            if (party?.MobileParty != _activeCaptorParty) return; // freed from some other captor, not the nemesis
 
-            var store = NpcMemoryCampaignBehavior.Instance?.Store;
-            NpcProfile profile = store?.Get(_activeNemesisHero.StringId);
-            if (store != null && profile != null)
-            {
-               var day = (int) CampaignTime.Now.ToDays;
-               string playerName = Hero.MainHero?.Name?.ToString() ?? "the captive";
-               profile.Events.Add(new NotableEvent(day, NotableEventType.Conflict,
-                  $"{playerName} slipped my grasp and escaped my hold. A debt I mean to collect."));
-               store.Set(profile);
-               ModLog.Info($"[NEMESIS] {_activeNemesisHero.Name} remembers the player escaping his hold (release detail {detail}).");
-            }
+            // Memory: only when the nemesis's OWN band held the player, and never on death.
+            if (detail != EndCaptivityDetail.Death
+                && _activeNemesisHero != null && _activeCaptorParty != null
+                && party?.MobileParty == _activeCaptorParty)
+               RecordCaptivityEndMemory(detail);
 
-            // Captivity under this nemesis is over; drop the transient active mapping.
+            // The captivity is over however it ended: drop the anchor unconditionally.
             _activeNemesisHero = null;
             _activeCaptorParty = null;
+            _activeCaptorIdentityId = null;
          }
          catch (Exception ex) { ModLog.Error($"[NEMESIS] prisoner-released hook failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Writes the active nemesis's honest memory of how the captivity ended (nemesis audit M7). An ESCAPE
+      ///   is a debt he means to collect; a release he CHOSE is his own doing; every other ending
+      ///   (ransom, peace, battle, compensation) is not a story he tells himself as either escape or mercy, so
+      ///   it records nothing.
+      /// </summary>
+      private void RecordCaptivityEndMemory(EndCaptivityDetail detail)
+      {
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         NpcProfile profile = store?.Get(_activeNemesisHero.StringId);
+         if (store == null || profile == null) return;
+
+         string playerName = Hero.MainHero?.Name?.ToString() ?? "the captive";
+         string summary;
+         NotableEventType type;
+
+         switch (detail)
+         {
+            case EndCaptivityDetail.ReleasedAfterEscape:
+               summary = $"{playerName} slipped my grasp and escaped my hold. A debt I mean to collect.";
+               type = NotableEventType.Conflict;
+
+               break;
+            case EndCaptivityDetail.ReleasedByChoice:
+               summary = $"I let {playerName} walk free, of my own will. That was my choice to make, not theirs.";
+               type = NotableEventType.Other;
+
+               break;
+            default: // Ransom, ReleasedAfterPeace, ReleasedAfterBattle, ReleasedByCompensation: no false memory
+               return;
+         }
+
+         profile.Events.Add(new NotableEvent((int) CampaignTime.Now.ToDays, type, summary));
+         store.Set(profile);
+         ModLog.Info($"[NEMESIS] {_activeNemesisHero.Name} remembers the captivity ending (detail {detail}).");
       }
 
       // ── Active hunt: the nemesis materializes only in a fight the player chose to start ──
@@ -351,6 +426,78 @@ namespace CalradiaRemembers.Nemesis
       }
 
       /// <summary>
+      ///   LAZY captor attach (player report 2026-07-23: six days, three captor scenes, no memory between
+      ///   them). The capture-time hook (<see cref="OnHeroPrisonerTaken" />) attaches unconditionally, but its
+      ///   mapping is PROCESS-ONLY and does not survive the two things a multi-day captivity is full of:
+      ///   a save/load (the virtual override means the band has no LeaderHero for
+      ///   <see cref="ReestablishActiveCaptorOnLoad" /> to key on, so the restore always degrades) and a
+      ///   prisoner transfer between bands (reference equality on the recorded party). Every scene after
+      ///   either fell back to the ephemeral synthetic chief: fresh name-seed per band, never persisted, no
+      ///   memory, no encyclopedia, unreachable by character_overrides. So the captor is now (re)attached at
+      ///   SCENE time, the moment the identity starts to matter ("produce it when the player looks").
+      ///   Reuses the exact mint-or-reuse path of the capture hook, INCLUDING the respawn cooldown (a slain
+      ///   nemesis's quiet years stay quiet: during them this returns null and the faceless chief remains
+      ///   correct). Deliberately does NOT bump TimesEncountered/RecaptureCount: this is the same captivity
+      ///   resuming, not a new capture, and counting reloads would inflate the escape-decay.
+      /// </summary>
+      public Hero TryAttachCaptorFor(MobileParty band)
+      {
+         try
+         {
+            if (band == null || !band.IsBandit) return null;
+            if (Hero.MainHero?.IsPrisoner != true) return null;
+            if (Hero.MainHero.PartyBelongedToAsPrisoner?.MobileParty != band) return null;
+
+            var today = (int) CampaignTime.Now.ToDays;
+
+            // RC1: if THIS captivity already has a captor identity (set at capture, or restored on load), REUSE
+            // him, whatever party now holds the player. Re-resolving by (culture, region) here was the reported
+            // bug: a transfer to a hideout-anchored party made FindOrMint mint a SECOND nemesis who then
+            // inherited the first one's captivity memory. One captivity keeps one captor.
+            if (!string.IsNullOrEmpty(_activeCaptorIdentityId))
+            {
+               NemesisIdentity kept = _roster.Nemeses.FirstOrDefault(n => n.Id == _activeCaptorIdentityId);
+               Hero keptHero = kept == null ? null : ResolveOrMintHero(kept, today);
+
+               if (keptHero != null)
+               {
+                  _activeCaptorParty = band;
+                  _activeNemesisHero = keptHero;
+                  ModLog.Info($"[NEMESIS] scene time: reattached the SAME captor {keptHero.Name} (id {_activeCaptorIdentityId}) to the current party; not re-resolved by region.");
+
+                  return keptHero;
+               }
+
+               // The remembered identity no longer resolves; fall through and resolve a fresh one below.
+               _activeCaptorIdentityId = null;
+            }
+
+            // No captor identity yet for this captivity (the capture hook did not run, or a genuinely new
+            // holder): resolve one now, and ANCHOR it so every later scene of this captivity reuses it.
+            string bandKey = ResolveBandCultureKey(band);
+            string regionId = ResolveRegionId(band);
+
+            NemesisIdentity nem = FindOrMint(bandKey, regionId, today);
+            Hero hero = ResolveOrMintHero(nem, today);
+
+            if (hero == null) return null;
+
+            _activeCaptorParty = band;
+            _activeNemesisHero = hero;
+            _activeCaptorIdentityId = nem.Id;
+            ModLog.Info($"[NEMESIS] {hero.Name} attached at scene time as the captor (band {bandKey}, region {regionId}) and anchored (id {nem.Id}): the capture-time mapping was lost or never made.");
+
+            return hero;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[NEMESIS] lazy captor attach failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
       ///   The scene-escape chance against the ACTIVE nemesis captor, decaying with each prior recapture
       ///   (<see cref="NemesisEscapeChancePolicy" />), or null when the player's captor is not a nemesis (so
       ///   the caller keeps its ordinary flat chance). A nemesis is never a perfect cage, but he learns.
@@ -438,24 +585,10 @@ namespace CalradiaRemembers.Nemesis
          return ResolveOrMintHero(nem, today);
       }
 
-      /// <summary>
-      ///   Captive-escape gear consequence (ratified 2026-07-2x): when the player FLEES a bandit band's
-      ///   hold, the taken gear goes to that region's nemesis "in fiction, the looters of one region form a
-      ///   network" even if no nemesis of that band has been REVEALED yet (a faceless captor during a
-      ///   respawn-cooldown window still has somewhere for the loot to land). Reuses the exact band-culture
-      ///   and region resolution the capture hook uses, then mints/reuses that region's nemesis
-      ///   UNCONDITIONALLY (<c>ignoreRespawnCooldown: true</c>) so gear is never left without a holder.
-      ///   This does not affect whether that nemesis is REVEALED in conversation, only who keeps the loot.
-      /// </summary>
-      public Hero ResolveGearHolderForBand(MobileParty band, int today)
-      {
-         if (band == null) return null;
-
-         string bandKey = ResolveBandCultureKey(band);
-         string regionId = ResolveRegionId(band);
-
-         return MintCaptorFor(bandKey, regionId, today, ignoreRespawnCooldown: true);
-      }
+      // REMOVED 2026-07-24 (AUDIT-NEMESIS M1): ResolveGearHolderForBand minted a nemesis UNCONDITIONALLY
+      // (ignoreRespawnCooldown: true) to hold a fled bandit escape's loot, which resurrected a slain boss
+      // during his own quiet years and inflated his counters. Bandit escape loot is now SCATTERED by culture
+      // and recovered from defeated bands (ScatteredLootBehavior), so no nemesis is minted for loot at all.
 
       #region private
 
@@ -570,7 +703,14 @@ namespace CalradiaRemembers.Nemesis
             return null;
          }
 
-         NemesisNameResult name = NemesisNameGenerator.Generate(bandCultureKey, MBRandom.RandomInt(int.MaxValue));
+         // RC3: never mint a homonym of a LIVING nemesis (two identical names amplified the "shared memory"
+         // perception even when the profiles were distinct). GenerateDistinct re-rolls against the living set.
+         NemesisNameResult name = NemesisNameGenerator.GenerateDistinct(
+            bandCultureKey, MBRandom.RandomInt(int.MaxValue),
+            (n, e) => _roster.Nemeses.Any(x =>
+               x.IsAlive
+               && string.Equals(x.Name, n, StringComparison.OrdinalIgnoreCase)
+               && string.Equals(x.Epithet, e, StringComparison.OrdinalIgnoreCase)));
          var minted = new NemesisIdentity {
             Id = "nemesis_" + Guid.NewGuid().ToString("N"),
             Name = name.Name,
@@ -589,6 +729,13 @@ namespace CalradiaRemembers.Nemesis
 
       public override void SyncData(IDataStore dataStore)
       {
+         // RC1: the active captor's persisted identity id, additive key (absent on old saves reads as null =
+         // no captor, exactly today's degradation). Bidirectional and simple: unlike the roster it needs no
+         // frozen-copy race guard (a lone string, not a mutating list). Wrapped so a key fault never blocks
+         // the roster load below.
+         try { dataStore.SyncData("CR_NemesisActiveCaptorId", ref _activeCaptorIdentityId); }
+         catch (Exception ex) { ModLog.Error($"[NEMESIS] active-captor id sync failed (non-fatal): {ex.GetType().Name}: {ex.Message}"); }
+
          if (dataStore.IsSaving)
          {
             byte[] bytes;

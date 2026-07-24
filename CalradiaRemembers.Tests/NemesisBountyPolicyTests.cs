@@ -75,11 +75,12 @@ namespace CalradiaRemembers.Tests
 
         // ── IsEligibleIssuer ─────────────────────────────────────────────────
 
-        // Baseline positive: all three ratified conditions hold, so the offer must actually be allowed.
+        // Baseline positive: every ratified condition holds (living, not turned, this lord free of a bounty on
+        // him, region matches), so the offer must actually be allowed.
         [Test]
-        public void GIVEN_a_living_nemesis_with_no_active_bounty_and_a_matching_region_WHEN_evaluating_THEN_the_lord_is_eligible()
+        public void GIVEN_a_living_unturned_nemesis_this_lord_has_not_bountied_in_a_matching_region_WHEN_evaluating_THEN_eligible()
         {
-            NemesisBountyPolicy.IsEligibleIssuer(nemesisAlive: true, bountyAlreadyActive: false, regionMatches: true).Should().BeTrue();
+            NemesisBountyPolicy.IsEligibleIssuer(nemesisAlive: true, nemesisTurned: false, giverAlreadyBountiedHim: false, regionMatches: true).Should().BeTrue();
         }
 
         // A bounty cannot be offered on a nemesis who no longer exists to capture or kill; without this
@@ -87,23 +88,33 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_nemesis_is_already_dead_WHEN_evaluating_THEN_the_lord_is_never_eligible()
         {
-            NemesisBountyPolicy.IsEligibleIssuer(nemesisAlive: false, bountyAlreadyActive: false, regionMatches: true).Should().BeFalse();
+            NemesisBountyPolicy.IsEligibleIssuer(nemesisAlive: false, nemesisTurned: false, giverAlreadyBountiedHim: false, regionMatches: true).Should().BeFalse();
         }
 
-        // Bounties are tracked store-wide (HasActiveBountyFor per ROADMAP), so a second lord must never stack
-        // a duplicate bounty on the same nemesis, or the player could farm one nemesis for multiple rewards.
+        // Audit M3: a nemesis spared into the player's service is no longer a foe. A lord who bountied him
+        // before the turn keeps that (it closes when he turns), but a NEW bounty on a companion of the player
+        // must never be offered, or the player is handed an uncompletable quest against his own man.
         [Test]
-        public void GIVEN_a_bounty_on_him_is_already_active_somewhere_WHEN_evaluating_THEN_no_second_lord_may_offer_one()
+        public void GIVEN_the_nemesis_has_been_turned_WHEN_evaluating_THEN_no_lord_may_bounty_him()
         {
-            NemesisBountyPolicy.IsEligibleIssuer(nemesisAlive: true, bountyAlreadyActive: true, regionMatches: true).Should().BeFalse();
+            NemesisBountyPolicy.IsEligibleIssuer(nemesisAlive: true, nemesisTurned: true, giverAlreadyBountiedHim: false, regionMatches: true).Should().BeFalse();
         }
 
-        // The region gate is one of the three required conditions, not merely advisory: a lord whose lands
-        // this band never touched must not be able to offer a bounty regardless of the other two facts.
+        // Ratified 2026-07-24: several lords may each put a price on the same head (the player collects from
+        // each), so the bar is PER-GIVER, not store-wide. The same lord must not stack two on one nemesis, but
+        // another lord's existing bounty must NOT block this one.
+        [Test]
+        public void GIVEN_this_lord_already_bountied_him_WHEN_evaluating_THEN_the_same_lord_may_not_offer_a_second()
+        {
+            NemesisBountyPolicy.IsEligibleIssuer(nemesisAlive: true, nemesisTurned: false, giverAlreadyBountiedHim: true, regionMatches: true).Should().BeFalse();
+        }
+
+        // The region gate is one of the required conditions, not merely advisory: a lord whose lands this band
+        // never touched must not be able to offer a bounty regardless of the other facts.
         [Test]
         public void GIVEN_the_lords_region_does_not_match_the_nemesis_WHEN_evaluating_THEN_the_lord_is_not_eligible()
         {
-            NemesisBountyPolicy.IsEligibleIssuer(nemesisAlive: true, bountyAlreadyActive: false, regionMatches: false).Should().BeFalse();
+            NemesisBountyPolicy.IsEligibleIssuer(nemesisAlive: true, nemesisTurned: false, giverAlreadyBountiedHim: false, regionMatches: false).Should().BeFalse();
         }
     }
 }

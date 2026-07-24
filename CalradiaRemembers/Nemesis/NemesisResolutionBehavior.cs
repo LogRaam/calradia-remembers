@@ -11,9 +11,12 @@
 
 using System;
 using System.Collections.Generic;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Quests;
+using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -76,6 +79,10 @@ namespace CalradiaRemembers.Nemesis
             // the player's side won is still marked resolved above, but records no world event here.
             if (killer != Hero.MainHero)
             {
+                // Audit M2: another hand took him, so no lord's bounty on his head can ever be earned now.
+                // Close the outstanding ones (a player-earned, awaiting-reward bounty is left untouched, and
+                // never exists on this path anyway since the player did not deal the death).
+                CancelOutstandingBountiesFor(victim, $"Word comes that {displayName} is dead, by another's hand. The bounty is void.", today);
                 ModLog.Info($"[NEMESIS] {displayName} has died, not by the player's own hand; vendetta resolved, no closure deed recorded.");
 
                 return nem;
@@ -143,9 +150,30 @@ namespace CalradiaRemembers.Nemesis
                     : new List<string>()
             });
 
+            // Audit M2/M3: he now serves the player, so he can no longer be captured or slain as a foe. Any
+            // bounty on his head is void (a turn is neither the capture nor the kill a bounty asks for).
+            CancelOutstandingBountiesFor(nemesis, $"{displayName} has been turned to the player's service. The bounty on him is void.", today);
+
             ModLog.Info($"[NEMESIS] {displayName} spared and turned to the player's service; vendetta closed.");
 
             return nem;
+        }
+
+        /// <summary>
+        ///   Closes every OUTSTANDING lord's bounty on <paramref name="nemesisHero" /> (audit M2): a bounty the
+        ///   player can no longer complete (the nemesis is dead by another hand, or turned) must not linger and
+        ///   block the giver's one-task slot. A bounty the player already earned (awaiting reward) is left for
+        ///   him to collect. Static so both <see cref="Resolve" /> and <see cref="Turn" /> share one path.
+        /// </summary>
+        private static void CancelOutstandingBountiesFor(Hero nemesisHero, string closureNote, int today)
+        {
+            if (nemesisHero?.StringId == null) return;
+
+            BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+            if (store == null) return;
+
+            int n = QuestService.CancelOutstandingBountiesOn(nemesisHero.StringId, closureNote, today, store);
+            if (n > 0) ModLog.Info($"[NEMESIS] closed {n} outstanding bounty(ies) on {nemesisHero.Name}.");
         }
 
         #region private

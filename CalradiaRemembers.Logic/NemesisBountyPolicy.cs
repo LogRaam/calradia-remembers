@@ -45,11 +45,14 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
-        ///   The full offer gate: the nemesis must be a LIVING, already-manifested foe (the engine only calls
-        ///   this once a Hero is bound to the identity), no bounty already active anywhere for him, and the
-        ///   issuing lord's region must match his. All three are required.
+        ///   The full offer gate: the nemesis must be a LIVING, NOT-TURNED, already-manifested foe (the engine
+        ///   only calls this once a Hero is bound to the identity), THIS lord must not already hold a bounty on
+        ///   him, and the issuing lord's region must match his. All are required.
+        ///   Ratified 2026-07-24: <paramref name="giverAlreadyBountiedHim" /> is now PER-GIVER, not store-wide,
+        ///   so several lords may each put a price on the same head (the player collects from each). A TURNED
+        ///   nemesis (spared into the player's service) can never be bountied: he is no longer a foe (audit M3).
         /// </summary>
-        public static bool IsEligibleIssuer(bool nemesisAlive, bool bountyAlreadyActive, bool regionMatches)
-            => nemesisAlive && !bountyAlreadyActive && regionMatches;
+        public static bool IsEligibleIssuer(bool nemesisAlive, bool nemesisTurned, bool giverAlreadyBountiedHim, bool regionMatches)
+            => nemesisAlive && !nemesisTurned && !giverAlreadyBountiedHim && regionMatches;
     }
 }

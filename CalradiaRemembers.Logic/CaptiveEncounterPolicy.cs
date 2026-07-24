@@ -82,13 +82,25 @@ namespace CalradiaRemembers.Logic
       ///   weight above zero, so no valid intent is ever impossible for a given captor.
       ///   <paramref name="rollPercent" /> is called once with the total weight and expected to return a
       ///   0..(total-1) draw (mirrors <see cref="SelectBanditIntent" />'s dice).
+      ///   <para>
+      ///     <paramref name="playerIsCompatible" /> (ratified 2026-07-23): orientation compatibility used to
+      ///     be a WALL at the top of the profiled-captor path, before this method was even reached, so a male
+      ///     player held by a straight male lord (the majority captor demographic) got NO scenes at all, and
+      ///     an asexual captor could not even interrogate. It is now a FILTER here, the same shape the bandit
+      ///     path always had: incompatible, the sexual/CNC intents (PersonalDesire, Domination, Torture,
+      ///     Training, Reward) drop to zero weight and Interrogation carries the scene; compatible, nothing
+      ///     changes. Torture sits on the gated side by design: at Hardcore its framing is sexualised, so
+      ///     prudence keeps it behind the gate (Gabriel, 2026-07-23).
+      ///   </para>
       /// </summary>
-      public static CaptiveSceneIntent SelectIntent(IReadOnlyList<Kink> kinks, int relation, Func<int, int> rollPercent)
+      public static CaptiveSceneIntent SelectIntent(IReadOnlyList<Kink> kinks, int relation, Func<int, int> rollPercent, bool playerIsCompatible = true)
       {
          bool Has(Kink k)
          {
             return kinks != null && kinks.Contains(k);
          }
+
+         if (!playerIsCompatible) return CaptiveSceneIntent.Interrogation;
 
          int interrogation = IntentFloorWeight;
          int personalDesire = IntentFloorWeight;

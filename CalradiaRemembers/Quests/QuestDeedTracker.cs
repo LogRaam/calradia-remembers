@@ -365,13 +365,19 @@ namespace CalradiaRemembers.Quests
          int day = CurrentDay();
          ForEachOutstandingQuest((profile, quest) =>
          {
+            if (!string.Equals(quest.TargetHeroId, victim.StringId, StringComparison.Ordinal)) return;
+
             // Nemesis pillar increment 3 (bounty missions): a NemesisBounty quest is satisfied by EITHER
-            // this hook or OnHeroPrisonerTaken below, whichever fires first (a bounty is "capture OR
-            // execute", never both required). Any player-dealt death counts (battle or execution alike);
-            // NemesisResolutionBehavior's own HeroKilledEvent listener separately resolves the identity
-            // itself (IsAlive/DeathDay), unaffected by whether a bounty happened to be outstanding on him.
-            if ((quest.Type == QuestType.ExecuteEnemy || quest.Type == QuestType.NemesisBounty)
-                && string.Equals(quest.TargetHeroId, victim.StringId, StringComparison.Ordinal))
+            // this hook or OnHeroPrisonerTaken below, whichever fires first (a bounty is "capture OR execute",
+            // never both required). Ratified 2026-07-24 (audit M2): a bounty pays ONLY when the PLAYER is the
+            // cause, so a nemesis cut down by a third hand does not hand the player a reward he did not earn;
+            // NemesisResolutionBehavior then CANCELS that now-uncompletable bounty. NemesisResolutionBehavior's
+            // own HeroKilledEvent listener separately resolves the identity (IsAlive/DeathDay) regardless.
+            if (quest.Type == QuestType.NemesisBounty && killer == Hero.MainHero)
+               Stamp(profile, quest, $"Killed {victim.Name} on day {day}", day);
+            // An ExecuteEnemy quest (a named target the giver wanted dead) is satisfied by the target's death
+            // whoever dealt it: the giver's end is met either way. Only the paid bounty demands player causation.
+            else if (quest.Type == QuestType.ExecuteEnemy)
                Stamp(profile, quest, $"Killed {victim.Name} on day {day}", day);
          });
       }

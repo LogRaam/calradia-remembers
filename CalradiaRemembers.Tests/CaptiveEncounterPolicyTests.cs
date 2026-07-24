@@ -34,6 +34,51 @@ namespace CalradiaRemembers.Tests
                                .Should().BeApproximately(0.70f, 0.0001f);
       }
 
+      // ── Compatibility as a FILTER, not a wall (ratified 23/07/2026) ─────────
+      // Orientation compatibility used to be an early return at the TOP of the profiled-captor path,
+      // before SelectIntent was ever reached: a male player held by a straight male lord (the majority
+      // captor pairing) got NO scenes for the whole captivity, and an asexual captor could not even
+      // interrogate. The lazy nemesis attach (same day) made that path the common one and turned a
+      // corner case into the default male-player experience. The gate now lives inside SelectIntent,
+      // the exact shape SelectBanditIntent always had: incompatible only makes the SEXUAL intents
+      // unreachable; the scene itself still happens, as an interrogation.
+
+      // The heart of the ruling: an incompatible pairing still gets a scene, and it is the one intent
+      // whose framing is non-sexual. Without this, "incompatible" silently meant "captivity goes mute".
+      [Test]
+      public void GIVEN_an_incompatible_player_WHEN_selecting_intent_THEN_the_scene_is_an_interrogation()
+      {
+         CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.FreeUse, Kink.Dominance), 0, _ => 0, playerIsCompatible: false)
+                               .Should().Be(CaptiveSceneIntent.Interrogation);
+      }
+
+      // Torture stays on the GATED side by explicit design call (Gabriel 2026-07-23): at Hardcore its
+      // scene framing is sexualised, so prudence keeps it unreachable for an incompatible pairing even
+      // when the captor's own kinks (Sadism) would otherwise lean hard toward it. Every roll must land
+      // on Interrogation, whatever the dice say.
+      [Test]
+      public void GIVEN_an_incompatible_player_and_a_sadistic_captor_WHEN_scanning_every_roll_THEN_torture_is_never_drawn()
+      {
+         for (var roll = 0; roll < 100; roll++)
+         {
+            int frozen = roll;
+            CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.Sadism, Kink.ImpactPlay), -60, max => frozen % max, playerIsCompatible: false)
+                                  .Should().Be(CaptiveSceneIntent.Interrogation);
+         }
+      }
+
+      // The other half of the boundary: a COMPATIBLE pairing must be untouched by the new parameter,
+      // or this fix would quietly rewrite every existing captive scene in the game. Same kinks, same
+      // dice, same draw as before the parameter existed.
+      [Test]
+      public void GIVEN_a_compatible_player_WHEN_selecting_intent_THEN_the_weighted_draw_is_unchanged()
+      {
+         CaptiveSceneIntent before = CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.Sadism), -60, _ => 0);
+         CaptiveSceneIntent after = CaptiveEncounterPolicy.SelectIntent(Kinks(Kink.Sadism), -60, _ => 0, playerIsCompatible: true);
+
+         after.Should().Be(before);
+      }
+
       // ── Bandit captor rolls (added 01/07/2026) ──────────────────────────────
 
       // Pins the gender-weighted spoil-of-war branch: a female prisoner has a real (50%) chance of the

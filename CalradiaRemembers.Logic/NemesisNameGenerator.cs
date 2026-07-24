@@ -129,6 +129,32 @@ namespace CalradiaRemembers.Logic
             return new NemesisNameResult(namePool[nameIndex], Epithets[epithetIndex]);
         }
 
+        /// <summary>TUNE: how many re-rolls to try before accepting a name already in use. The pools give 8-10 names x 16 epithets (128-160 combos), so a free one is found almost immediately unless dozens of one culture live at once.</summary>
+        public const int DistinctMaxTries = 32;
+
+        /// <summary>TUNE: a large odd step added to the seed on each re-roll, so successive tries land on different name/epithet pairs rather than cycling (Knuth's multiplicative-hash constant 0x9E3779B1 as a signed int).</summary>
+        private const int DistinctSeedStep = -1640531535;
+
+        /// <summary>
+        ///   Nemesis audit RC3: a distinct name+epithet, avoiding any pair a LIVING identity already carries so
+        ///   two nemeses are never homonyms (which made the player believe one man and amplified the perception
+        ///   of the shared-memory bug). Re-rolls the seed up to <see cref="DistinctMaxTries" /> times against
+        ///   <paramref name="isTaken" />; if the pool is genuinely saturated (never reachable in play), it
+        ///   returns the last candidate rather than an ugly synthetic name, and the caller logs the rare
+        ///   duplicate. A null predicate degrades to the plain <see cref="Generate" />.
+        /// </summary>
+        public static NemesisNameResult GenerateDistinct(string bandCultureKey, int seed, Func<string, string, bool> isTaken)
+        {
+            NemesisNameResult candidate = Generate(bandCultureKey, seed);
+
+            if (isTaken == null) return candidate;
+
+            for (var i = 0; i < DistinctMaxTries && isTaken(candidate.Name, candidate.Epithet); i++)
+                candidate = Generate(bandCultureKey, unchecked(seed + (i + 1) * DistinctSeedStep));
+
+            return candidate;
+        }
+
         #region private
 
         private static int PositiveMod(int value, int modulus)

@@ -15,6 +15,7 @@
 #region
 
 using System;
+using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
@@ -114,14 +115,22 @@ namespace CalradiaRemembers.Nemesis
             string currentId = lord.CurrentSettlement?.StringId;
             string cultureId = lord.Culture?.StringId;
 
+            // Per-giver, not store-wide (2026-07-24): several lords may each bounty the same nemesis, so the
+            // only bar is whether THIS lord already holds one on him (which the one-task-per-lord rule at issue
+            // time also enforces). The store-wide HasActiveBountyFor stays for other callers.
+            NpcProfile giverProfile = store.Get(lord.StringId);
+
             foreach (NemesisIdentity nem in roster.All)
             {
                 if (string.IsNullOrEmpty(nem.HeroStringId)) continue; // never manifested, nothing to hunt yet
 
                 bool regionMatches = NemesisBountyPolicy.RegionMatches(homeId, currentId, cultureId, nem.RegionId);
-                bool alreadyActive = QuestService.HasActiveBountyFor(nem.HeroStringId, store);
+                bool giverAlreadyBountiedHim = giverProfile?.ActiveQuests.Any(q =>
+                    q.Type == QuestType.NemesisBounty
+                    && q.Status == QuestStatus.Active
+                    && string.Equals(q.TargetHeroId, nem.HeroStringId, StringComparison.Ordinal)) ?? false;
 
-                if (NemesisBountyPolicy.IsEligibleIssuer(nem.IsAlive, alreadyActive, regionMatches))
+                if (NemesisBountyPolicy.IsEligibleIssuer(nem.IsAlive, nem.IsTurned, giverAlreadyBountiedHim, regionMatches))
                     return nem;
             }
 

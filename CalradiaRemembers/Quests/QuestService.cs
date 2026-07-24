@@ -259,6 +259,48 @@ namespace CalradiaRemembers.Quests
       ///   a time, checked store-wide (mirrors <see cref="FindOutstandingLetterFor" />'s scan shape) so a
       ///   second lord cannot stack a duplicate bounty on the same foe.
       /// </summary>
+      /// <summary>
+      ///   Nemesis pillar (audit M2, 2026-07-24): closes every OUTSTANDING bounty on a nemesis who is now dead
+      ///   by a hand that was not the player's, or turned, so a bounty the player can no longer complete never
+      ///   lingers forever and blocks that lord's one-task slot. Deliberately touches only OUTSTANDING quests:
+      ///   a bounty the player already earned (awaiting-reward, stamped by QuestDeedTracker at the capture or
+      ///   the player-dealt kill) is his to collect and must NOT be cancelled. Records an honest closure note
+      ///   on each giver and closes its journal mirror. Returns how many were cancelled.
+      /// </summary>
+      public static int CancelOutstandingBountiesOn(string nemesisHeroId, string closureNote, int gameDay, BannerlordNpcMemoryStore store)
+      {
+         if (string.IsNullOrEmpty(nemesisHeroId) || store == null) return 0;
+
+         var cancelled = 0;
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+            if (profile == null) continue;
+
+            var changed = false;
+            foreach (InformalQuest quest in profile.ActiveQuests)
+            {
+               if (quest.Type != QuestType.NemesisBounty
+                   || !quest.IsOutstanding
+                   || !string.Equals(quest.TargetHeroId, nemesisHeroId, StringComparison.Ordinal))
+                  continue;
+
+               quest.Status = QuestStatus.Cancelled;
+               Hero giverHero = Hero.FindFirst(h => h != null && h.StringId == profile.Id);
+               QuestJournalBridge.CloseAsCancelled(quest, giverHero, closureNote);
+               AddEvent(profile, gameDay, NotableEventType.Other, closureNote);
+               changed = true;
+               cancelled++;
+               ModLog.Info($"[QUEST] bounty cancelled ({closureNote}): {profile.Name} -> {quest.TargetHeroName} (day {gameDay}).");
+            }
+
+            if (changed) store.Set(profile);
+         }
+
+         return cancelled;
+      }
+
       public static bool HasActiveBountyFor(string nemesisHeroId, BannerlordNpcMemoryStore store)
       {
          if (string.IsNullOrEmpty(nemesisHeroId) || store == null) return false;

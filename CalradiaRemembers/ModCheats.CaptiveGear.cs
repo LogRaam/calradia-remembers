@@ -21,6 +21,30 @@ namespace CalradiaRemembers
    public static partial class ModCheats
    {
       /// <summary>
+      ///   cr.loot_stock
+      ///   Dev-truth dump of the SCATTERED-loot ledger (AUDIT-NEMESIS M1): every piece of the player's gear
+      ///   scattered among bandit bands after a fled bandit escape, its culture, and the day it was lost.
+      ///   Recovery is per-battle: beat a band of a matching culture and one piece has a chance to return.
+      ///   Read-only. (Distinct from cr.gear_stock, which is the LORD holder ledger.)
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("loot_stock", "cr")]
+      public static string LootStock(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         if (ScatteredLootBehavior.Instance == null) return "Scattered-loot system not active.";
+
+         IReadOnlyList<ScatteredLootItem> all = ScatteredLootBehavior.Instance.All;
+         if (all.Count == 0) return "No player gear is currently scattered among the bandits.";
+
+         var sb = new StringBuilder();
+         sb.AppendLine($"{all.Count} scattered piece(s) awaiting recovery (recovery chance {ScatteredLootPolicy.RecoveryChancePercent}% per matching band beaten):");
+         foreach (ScatteredLootItem piece in all.OrderBy(p => p.LostDay))
+            sb.AppendLine($"  {piece.Item?.ItemStringId ?? "(unknown)"} among {piece.CultureKey} (lost day {piece.LostDay})");
+
+         return sb.ToString();
+      }
+
+      /// <summary>
       ///   cr.gear_stock [name]
       ///   With a name: reports that hero's held-gear stock (every item, tier/value, and which are
       ///   currently "worn" per CaptiveGearStockPolicy.SelectWorn). Without a name: dev-truth dump of

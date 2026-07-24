@@ -30,6 +30,70 @@ namespace CalradiaRemembers.Tests
             first.Epithet.Should().Be(second.Epithet);
         }
 
+        // ── GenerateDistinct: no living homonyms (nemesis audit RC3) ─────────
+
+        // The reason this exists: two living nemeses sharing a name made the player believe one man, which
+        // amplified the perception of the "shared memory" bug even when the profiles were distinct. Given the
+        // pair the plain Generate would have produced is already taken, GenerateDistinct must return a
+        // different pair, not the taken one.
+        [Test]
+        public void GIVEN_the_plain_result_is_already_taken_WHEN_generating_distinct_THEN_a_different_pair_is_returned()
+        {
+            NemesisNameResult plain = NemesisNameGenerator.Generate("looters", 100);
+
+            NemesisNameResult distinct = NemesisNameGenerator.GenerateDistinct("looters", 100,
+                (n, e) => n == plain.Name && e == plain.Epithet);
+
+            // Either the name or the epithet must differ: the exact taken pair must not come back.
+            (distinct.Name == plain.Name && distinct.Epithet == plain.Epithet).Should().BeFalse();
+        }
+
+        // The re-roll must dodge a whole SET of living identities, not just one, since a roster can hold several
+        // at once. Seeded across many starting points, the result must never collide with any taken pair
+        // (the pools are large enough that a free combo is always found well within the retry budget).
+        [Test]
+        public void GIVEN_several_taken_pairs_WHEN_generating_distinct_THEN_the_result_avoids_all_of_them()
+        {
+            var taken = new System.Collections.Generic.HashSet<string>();
+            for (var seed = 0; seed < 5; seed++)
+            {
+                NemesisNameResult r = NemesisNameGenerator.Generate("looters", seed);
+                taken.Add(r.Name + "|" + r.Epithet);
+            }
+
+            for (var seed = 0; seed < 40; seed++)
+            {
+                NemesisNameResult d = NemesisNameGenerator.GenerateDistinct("looters", seed,
+                    (n, e) => taken.Contains(n + "|" + e));
+
+                taken.Should().NotContain(d.Name + "|" + d.Epithet, $"seed {seed} must dodge every living homonym");
+            }
+        }
+
+        // A null predicate (the caller had no roster to check against) must degrade to plain Generate, not
+        // throw: the dedup is a safeguard, never a hard dependency.
+        [Test]
+        public void GIVEN_no_taken_predicate_WHEN_generating_distinct_THEN_it_matches_the_plain_result()
+        {
+            NemesisNameResult plain = NemesisNameGenerator.Generate("sea_raiders", 55);
+            NemesisNameResult distinct = NemesisNameGenerator.GenerateDistinct("sea_raiders", 55, null);
+
+            distinct.Name.Should().Be(plain.Name);
+            distinct.Epithet.Should().Be(plain.Epithet);
+        }
+
+        // The saturated-pool safety net (never reachable in play: >128 living nemeses of one culture): with
+        // everything "taken", it must return SOMETHING without throwing or looping, accepting the rare
+        // duplicate rather than inventing an ugly synthetic name.
+        [Test]
+        public void GIVEN_an_impossibly_saturated_pool_WHEN_generating_distinct_THEN_it_returns_without_throwing()
+        {
+            NemesisNameResult d = NemesisNameGenerator.GenerateDistinct("looters", 3, (_, _) => true);
+
+            d.Should().NotBeNull();
+            d.Name.Should().NotBeNullOrEmpty();
+        }
+
         // Guards a modder's custom bandit clan: an unrecognized culture key must never crash nemesis minting,
         // only fall back to a generic pool.
         [Test]

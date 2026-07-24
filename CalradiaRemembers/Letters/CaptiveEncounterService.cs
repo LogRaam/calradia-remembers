@@ -196,6 +196,15 @@ namespace CalradiaRemembers.Letters
          // nonexistent hero leader, so the captive scene runs with HIM and his memory (Nemesis pillar).
          Hero nemesisCaptor = Nemesis.NemesisBehavior.Instance?.NemesisCaptorFor(captorParty);
          Hero captor = ambushPaymaster ?? nemesisCaptor ?? captorParty.LeaderHero;
+
+         // Lazy re-attach (player report 2026-07-23): the capture-time nemesis mapping is process-only and a
+         // multi-day captivity loses it to the first save/load or prisoner transfer, after which every scene
+         // fell back to the ephemeral synthetic chief (no memory, no encyclopedia, no overrides: the reported
+         // "he starts all over again"). Re-resolve at SCENE time, when the identity actually matters; inside a
+         // slain nemesis's respawn cooldown this stays null and the faceless chief below remains the designed
+         // outcome.
+         if (captor == null && captorParty.IsBandit)
+            captor = Nemesis.NemesisBehavior.Instance?.TryAttachCaptorFor(captorParty);
          if (captor is {IsHumanPlayerCharacter: false})
          {
             // ── Lord captor: a profiled, named hero (existing CNC path) ──
@@ -220,7 +229,12 @@ namespace CalradiaRemembers.Letters
                ModLog.Info($"[CAPTIVE] lord encounter: built Romantic profile on-demand for {captor.Name}.");
             }
 
-            if (!captorProfile.Romantic.IsCompatibleWith(playerIsFemale)) return;
+            // Ratified 2026-07-23: compatibility is no longer a WALL here (it silenced every scene of a
+            // captivity, including plain interrogation, for a male player held by a straight male lord, the
+            // majority pairing, and got worse once the lazy nemesis attach made this path the common one).
+            // It is now a FILTER inside SelectIntent, the shape the bandit path always had: incompatible
+            // means the sexual intents are unreachable and the scene is an interrogation.
+            bool playerIsCompatible = captorProfile.Romantic.IsCompatibleWith(playerIsFemale);
 
             if (!RollFires(daysInCaptivity, captorProfile, "lord")) return;
 
@@ -238,7 +252,7 @@ namespace CalradiaRemembers.Letters
 
             _lastEncounterDay = today;
             (List<WitnessEntry> witnesses, bool isCollective) = SelectWitnesses(captorParty, captor, store);
-            CaptiveSceneIntent intent = SelectIntent(captorProfile, captorProfile.ReputationWithPlayer);
+            CaptiveSceneIntent intent = SelectIntent(captorProfile, captorProfile.ReputationWithPlayer, playerIsCompatible);
             ModLog.Info($"[CAPTIVE] lord encounter: captor={captor.Name}, intent={intent}, collective={isCollective}, witnesses={witnesses.Count}");
             ShowEncounterPopup(captor, captorProfile, witnesses, isCollective, intent);
 
@@ -600,8 +614,8 @@ namespace CalradiaRemembers.Letters
       /// <summary>The host's dice, handed to the pure policy as its randomness seam.</summary>
       private static int RollPercent(int maxExclusive) => MBRandom.RandomInt(maxExclusive);
 
-      private static CaptiveSceneIntent SelectIntent(NpcProfile captorProfile, int relation)
-         => CaptiveEncounterPolicy.SelectIntent(captorProfile.Romantic?.Kinks, relation, RollPercent);
+      private static CaptiveSceneIntent SelectIntent(NpcProfile captorProfile, int relation, bool playerIsCompatible)
+         => CaptiveEncounterPolicy.SelectIntent(captorProfile.Romantic?.Kinks, relation, RollPercent, playerIsCompatible);
 
       private static (List<WitnessEntry> witnesses, bool isCollective) SelectWitnesses(
          MobileParty captorParty,

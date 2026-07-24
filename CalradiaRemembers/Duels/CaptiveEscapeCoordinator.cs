@@ -173,13 +173,27 @@ namespace CalradiaRemembers.Duels
             {
                // Resolve BEFORE ending captivity: PartyBelongedToAsPrisoner still points at the real band.
                MobileParty band = player.PartyBelongedToAsPrisoner?.MobileParty;
-               Hero holder = ResolveGearHolder(band, captorHero, captorIsBandit);
+               var today = (int) CampaignTime.Now.ToDays;
 
-               if (holder != null && (CaptiveGearBehavior.Instance?.TransferPlayerGearTo(holder) ?? false))
-                  message = "You broke free of your captors. Your equipment and mount are lost.";
+               if (captorIsBandit)
+               {
+                  // Ratified 2026-07-24 (AUDIT-NEMESIS M1): a bandit escape SCATTERS the gear among that
+                  // culture's bands (recovered a piece at a time by beating them), instead of minting a
+                  // nemesis to hold the whole stock. Closes the resurrect-during-cooldown / counter-inflation
+                  // harm: no nemesis is minted for loot at all.
+                  string culture = BandCultureKey(band);
+                  int scattered = ScatteredLootBehavior.Instance?.ScatterPlayerGear(culture, today) ?? 0;
+                  message = scattered > 0
+                     ? "You broke free of your captors, but your gear and mount are scattered among the region's bandits. " +
+                       "Hunt down their bands to win it back, piece by piece."
+                     : "You broke free of your captors.";
+               }
+               else if (captorHero != null && (CaptiveGearBehavior.Instance?.TransferPlayerGearTo(captorHero) ?? false))
+                  // A LORD keeps his captive's gear himself (unchanged holder model): beat him to recover it whole.
+                  message = $"You broke free of your captors. Your equipment and mount are lost, held by {captorHero.Name}.";
                else
                {
-                  // Fail-safe: no holder resolved, so nothing is stripped rather than lost with nowhere to go.
+                  // Fail-safe: no lord resolved, so nothing is stripped rather than lost with nowhere to go.
                   ModLog.Error("[ESCAPE] no gear holder resolved on Fled; the player's equipment is left untouched.");
                   message = "You broke free of your captors.";
                }
@@ -223,21 +237,12 @@ namespace CalradiaRemembers.Duels
          return note;
       }
 
-      /// <summary>
-      ///   Who inherits the player's gear on a Fled outcome: a LORD keeps it himself (<paramref name="captorHero" />
-      ///   directly); a BANDIT hold's gear goes to that band's region nemesis (minted if none was ever
-      ///   revealed), resolved from the live band party when one is still available, else falling back to
-      ///   the chat's own captor Hero (already a nemesis Hero, by construction, whenever one is set).
-      /// </summary>
-      private static Hero ResolveGearHolder(MobileParty band, Hero captorHero, bool captorIsBandit)
+      /// <summary>The bandit-clan culture key of the capturing band (looters / forest_bandits / ...), for scattering the loot.</summary>
+      private static string BandCultureKey(MobileParty band)
       {
-         if (!captorIsBandit) return captorHero; // a lord keeps his own captive's gear
+         string clanId = band?.ActualClan?.StringId;
 
-         var today = (int) CampaignTime.Now.ToDays;
-
-         return band != null
-            ? NemesisBehavior.Instance?.ResolveGearHolderForBand(band, today)
-            : captorHero;
+         return string.IsNullOrEmpty(clanId) ? "looters" : clanId;
       }
    }
 }
