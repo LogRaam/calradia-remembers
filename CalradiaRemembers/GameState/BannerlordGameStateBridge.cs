@@ -422,10 +422,21 @@ namespace CalradiaRemembers.GameState
          catch { return null; }
       }
 
-      /// <summary>True when <paramref name="npc" />'s faction is on the opposite side of an active war from the
-      /// player's (romance audit M-B3/M-B5 guards). False when either side has no map faction (nothing to be at
-      /// war over).</summary>
-      private static bool IsAtWarWithPlayer(Hero npc)
+      /// <summary>
+      ///   True when <paramref name="npc" />'s faction is on the opposite side of an active war from the
+      ///   player's (romance audit M-B3/M-B5 guards). False when either side has no map faction (nothing to be
+      ///   at war over). Note it is a MAP FACTION test, not a personal or clan one: a lord who adores the
+      ///   player is still "at war" with them while their kingdoms are, which is exactly what vanilla's own
+      ///   marriage screen enforces.
+      ///   INTERNAL on purpose: <see cref="Mapping.EncounterContextBuilder" /> asks the same question when it
+      ///   decides whether to TEACH the marry action, and this bridge asks it again before SEALING one. Those
+      ///   two must never drift, the same reason
+      ///   <see cref="Logic.MarriageEligibility.MarriageEligibilityThreshold" /> is a shared constant rather
+      ///   than a number written twice. It used to be written out three times (here, in the builder, and in
+      ///   <see cref="GetDiplomaticStatus" />); identical in every copy, which is precisely how such a thing
+      ///   survives until the day one copy changes.
+      /// </summary>
+      internal static bool IsAtWarWithPlayer(Hero npc)
          => npc?.MapFaction != null && Hero.MainHero?.MapFaction != null
             && FactionManager.IsAtWarAgainstFaction(npc.MapFaction, Hero.MainHero.MapFaction);
 
@@ -438,7 +449,7 @@ namespace CalradiaRemembers.GameState
          if (npc.MapFaction == Hero.MainHero.MapFaction)
             return DiplomaticStatus.Allied;
 
-         if (FactionManager.IsAtWarAgainstFaction(npc.MapFaction, Hero.MainHero.MapFaction))
+         if (IsAtWarWithPlayer(npc))
             return DiplomaticStatus.AtWar;
 
          return DiplomaticStatus.AtPeace;
@@ -1491,12 +1502,23 @@ namespace CalradiaRemembers.GameState
                return ActionOutcome.Refused(
                   $"(Your clan is already sworn to {playerClan.Kingdom.Name}. " + "Settle that obligation first.)");
 
-            // shouldStayInKingdomUntil = Now (no forced lock-in beyond the standard contract logic)
-            // awardMultiplier = 1 (standard mercenary wage)
-            ChangeKingdomAction.ApplyByJoinFactionAsMercenary(
-               playerClan, kingdom, CampaignTime.Now, 1);
+            // The 4th argument is the clan's MercenaryAwardMultiplier: the influence-to-denars CONVERSION
+            // RATE of the contract (persisted on Clan.MercenaryAwardMultiplier), NOT a wage scalar. The engine
+            // default is 50 (confirmed by reflection against the shipped ApplyByJoinFactionAsMercenary on game
+            // build 1.3.15/1.4.7); CR hard-coded 1, so every CR-signed contract paid one denar per influence
+            // point, one fiftieth of the intended rate. Player report (Nexus 2026-07-24): "Mercenary Contract
+            // 26" where thousands were due. It surfaced on a RE-sign after Leave Kingdom because the first
+            // contract still carried a leftover multiplier of 50 on the clan (set by whatever signed it first),
+            // which CR's join then overwrote with 1 on the second. We pass the engine's own documented
+            // default rather than a computed renown factor: matching vanilla's baseline exactly, with no
+            // guessed formula, is the safe fix.
+            const int MercenaryAwardMultiplier = 50; // engine default for ApplyByJoinFactionAsMercenary
 
-            ModLog.Info($"[ACTION] join_as_mercenary: player clan joined {kingdom.Name} as mercenary.");
+            // shouldStayInKingdomUntil = Now (no forced lock-in beyond the standard contract logic)
+            ChangeKingdomAction.ApplyByJoinFactionAsMercenary(
+               playerClan, kingdom, CampaignTime.Now, MercenaryAwardMultiplier);
+
+            ModLog.Info($"[ACTION] join_as_mercenary: player clan joined {kingdom.Name} as mercenary (award multiplier {MercenaryAwardMultiplier}).");
 
             return new ActionOutcome(
                $"Your clan takes service under {kingdom.Name}'s banner as hired swords.", true);
@@ -1648,13 +1670,38 @@ namespace CalradiaRemembers.GameState
 
             int reputation = context?.Profile?.ReputationWithPlayer ?? 0;
             int vanillaRelation = npcHero.GetRelation(player);
+            int bestRegard = Math.Max(reputation, vanillaRelation);
 
-            if (reputation < MarriageEligibility.MarriageEligibilityThreshold &&
-                vanillaRelation < MarriageEligibility.MarriageEligibilityThreshold)
+            // Ratified 2026-07-23 (player report: a player earned the family's blessing through a quest, then
+            // hit the regard gate no one had ever named). History sides with the family: a house that has
+            // BLESSED the match can bind its kin for political ends, so with the blessing in hand the wedding
+            // proceeds even below the regard bar, and the unwon heart becomes a ForcedMarriage grudge instead
+            // of an invisible refusal (planted after the union is sealed, below). Without the blessing the
+            // regard bar still holds, and the refusal now names the other road.
+            bool forcedUnion = ForcedMarriagePolicy.IsForcedUnion(bestRegard);
+
+            if (forcedUnion && !(MarriageApprovalBehavior.Instance?.IsApproved(npcHero.StringId) ?? false))
                return ActionOutcome.Refused(
-                  $"({npcHero.Name} does not yet hold you dear enough to take this step.)");
+                  $"({npcHero.Name} does not yet hold you dear enough to take this step, " +
+                  "and no family blessing compels them to.)");
 
             MarriageAction.Apply(player, npcHero);
+
+            // The political match is sealed, and the bride's unwon heart takes shape as a real, visible,
+            // RESOLVABLE grievance: it colours her prompt, shows on her encyclopedia page, tarnishes her
+            // kindnesses, and fades if the marriage is lived well. Planted AFTER the union so a refused plant
+            // (a merciful nature's trait-raised floor may decline a faint one) never blocks the wedding.
+            // KnownToPlayer: a bride wed by her family's will hides nothing about how she came to the altar.
+            if (forcedUnion)
+            {
+               int resentment = ForcedMarriagePolicy.GrudgeMagnitude(bestRegard);
+               bool planted = GrudgeBehavior.Instance?.TryPlant(npcHero, player, GrudgeSource.ForcedMarriage,
+                  "Wed to them by my family's will, not my own.", resentment, true,
+                  (int) CampaignTime.Now.ToDays) ?? false;
+               ModLog.Info($"[ACTION] marry: a FORCED union (best regard {bestRegard} < " +
+                           $"{MarriageEligibility.MarriageEligibilityThreshold}); resentment {resentment} " +
+                           $"{(planted ? "planted" : "refused by the formation floor")}.");
+            }
 
             // C3: marriage to the player is an OPEN, legitimate bond, so pin the romantic status to Committed
             // (persisted by the post-action Store.Set, like take_as_consort). Without this the profile kept its

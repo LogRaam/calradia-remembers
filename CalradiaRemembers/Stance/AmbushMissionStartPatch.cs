@@ -14,10 +14,19 @@ using TaleWorlds.MountAndBlade;
 
 namespace CalradiaRemembers.Stance
 {
-   /// <summary>Starts a pending town-centre ambush brawl once the mission has fully started.</summary>
+   /// <summary>Starts a pending town-centre ambush brawl, or a pending town duel, once the mission has fully started.</summary>
    [HarmonyPatch(typeof(Mission), "AfterStart")]
    public static class AmbushMissionStartPatch
    {
-      public static void Postfix(Mission __instance) => TownAmbushBehavior.AttachBrawlIfPending(__instance);
+      /// <summary>
+      ///   Both town-scene fights hang off this one seam rather than each patching Mission.AfterStart
+      ///   separately: a second Harmony patch on the same method would work but would leave their relative
+      ///   order implicit, and each call is a no-op unless its own state is pending, so they cannot collide.
+      /// </summary>
+      public static void Postfix(Mission __instance)
+      {
+         TownAmbushBehavior.AttachBrawlIfPending(__instance);
+         Duels.TownDuelBehavior.AttachDuelIfPending(__instance);
+      }
    }
 }

@@ -10,11 +10,13 @@ using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Commitments;
+using CalradiaRemembers.Duels;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
+using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Social;
 using CalradiaRemembers.Marriage;
@@ -124,6 +126,20 @@ namespace CalradiaRemembers.Mapping
             : null;
          bool atSea = MobileParty.MainParty?.IsCurrentlyAtSea ?? false;
 
+         // Duels: conditional teaching, the exact contract ResolveCompanionAskingPrice already uses (a field set
+         // only when the game can truly honour the action). DuelEligibilityResolver is the ONE shared gate the
+         // chat action handler re-checks at commit time, so the prompt-time teaching below and the bridge's
+         // final word can never quietly diverge.
+         bool duelChallengeAvailable = DuelEligibilityResolver.CanDuelNow(hero, profile, out DuelVenue duelVenue);
+         string duelVenueLabel = duelChallengeAvailable
+            ? DuelEligibilityResolver.VenueLabel(duelVenue)
+            : null;
+
+         // Logged only on the interesting verdict (a duel IS being offered this turn): an ordinary "not
+         // eligible" would fire on nearly every conversation in the game and drown the log in noise.
+         if (duelChallengeAvailable)
+            ModLog.Info($"[DUEL] challenge_duel taught this turn vs {hero?.Name} ({duelVenueLabel}).");
+
          return new() {
             PlayerStatus = playerStatus,
             SharedRealmName = bridge.GetSharedRealmName(hero),
@@ -204,6 +220,11 @@ namespace CalradiaRemembers.Mapping
             PlayerLooksWealthy = captorIsBandit && PlayerLooksWealthy(),
             PlayerLooksImportant = captorIsBandit && PlayerLooksImportant(),
             CompanionAskingPrice = ResolveCompanionAskingPrice(hero),
+            // Same conditional-teaching contract as CompanionAskingPrice just above: the challenge_duel verb is
+            // taught exactly when DuelEligibilityResolver (the same gate the bridge re-checks at commit time)
+            // rules the game can actually stage the fight this instant.
+            DuelChallengeAvailable = duelChallengeAvailable,
+            DuelVenueLabel = duelVenueLabel,
             // The grounded quest menu (viable-quest referential): the tasks this giver can TRULY hand out,
             // pre-validated against the live world so a spoken offer always registers. Skipped for a captor
             // (quest teaching is suppressed in captive scenes anyway, no point scanning).
@@ -240,8 +261,11 @@ namespace CalradiaRemembers.Mapping
             SpouseEstrangementNote = ResolveSpouseEstrangementNote(hero),
             StationGuidelinesOverride = ResolveStationGuidelines(hero),
             LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
+            MarriageBlockedBecause = ResolveMarriageBlockReason(hero, profile),
+            LoveMatchReluctant = ResolveLoveMatchReluctant(hero, profile),
             LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
             NpcSpouseIsPlayer = hero?.Spouse == Hero.MainHero && Hero.MainHero != null,
+            SpouseMarriedUnwillingly = ResolveSpouseMarriedUnwillingly(hero),
             ConsortEligible = ResolveConsortEligible(hero, profile),
             SecretLoverEligible = ResolveSecretLoverEligible(hero, profile),
             ConceptionRisk = ResolveConceptionRisk(hero),
@@ -1102,19 +1126,70 @@ namespace CalradiaRemembers.Mapping
       ///   believing the wedding had happened.
       /// </summary>
       private static bool ResolveLoveMatchEligible(Hero hero, NpcProfile profile)
+         => ResolveMarriageBlockReason(hero, profile) == MarriageBlockReason.None;
+
+      /// <summary>
+      ///   The ONE ordered pass that decides both whether a marriage is on offer and, when it is not, WHICH
+      ///   obstacle stands in the way. Eligibility is derived from it rather than computed beside it, so the
+      ///   reason the NPC voices can never disagree with the gate the bridge enforces (player report,
+      ///   2026-07-23: a player earned the family's blessing and was told nothing about the gate he had
+      ///   actually missed). The order runs from the most absolute bar to the most temporary, so the reason
+      ///   given is the truest one: a player already wed cannot marry ANYONE, whatever else is also true.
+      ///   The war test comes from <see cref="BannerlordGameStateBridge.IsAtWarWithPlayer" />, the same helper
+      ///   the bridge itself uses when it re-validates before sealing.
+      /// </summary>
+      internal static MarriageBlockReason ResolveMarriageBlockReason(Hero hero, NpcProfile profile)
       {
-         if (hero == null || Hero.MainHero == null) return false;
-         if (Hero.MainHero.Spouse != null) return false; // player already wed
-         if (hero.Clan == Clan.PlayerClan) return false; // can't marry own clan
-         if (!MarriageProspectResolver.IsMarriageable(Hero.MainHero, hero)) return false;
+         if (hero == null || Hero.MainHero == null) return MarriageBlockReason.NotMarriageable;
+         if (Hero.MainHero.Spouse != null) return MarriageBlockReason.PlayerAlreadyWed;
+         if (hero.Clan == Clan.PlayerClan) return MarriageBlockReason.SameClan;
+         if (!MarriageProspectResolver.IsMarriageable(Hero.MainHero, hero)) return MarriageBlockReason.NotMarriageable;
 
-         bool atWar = hero.MapFaction != null && Hero.MainHero.MapFaction != null &&
-                      FactionManager.IsAtWarAgainstFaction(hero.MapFaction, Hero.MainHero.MapFaction);
+         bool atWar = BannerlordGameStateBridge.IsAtWarWithPlayer(hero);
+
+         // Captivity and war are one pure predicate (vanilla forbids both at its own marriage screen), so they
+         // are asked together and then told apart only to name the obstacle.
          if (!MarriageGuardPolicy.MarriageAllowed(hero.IsPrisoner, Hero.MainHero.IsPrisoner, atWar))
-            return false;
+            return atWar ? MarriageBlockReason.AtWar : MarriageBlockReason.Captive;
 
-         return (profile?.ReputationWithPlayer ?? 0) >= MarriageEligibility.MarriageEligibilityThreshold ||
-                Hero.MainHero.GetRelation(hero) >= MarriageEligibility.MarriageEligibilityThreshold;
+         if (RegardMeetsMarriageBar(hero, profile)) return MarriageBlockReason.None;
+
+         // Ratified 2026-07-23: the family's blessing OPENS the match even below the regard bar (a political
+         // union; the bride's unwon heart becomes a ForcedMarriage grudge at the wedding, planted by the
+         // bridge). Only a match with neither her heart nor her family behind it stays barred.
+         return ResolveLoveMatchBlessed(hero) ? MarriageBlockReason.None : MarriageBlockReason.RegardTooLow;
+      }
+
+      /// <summary>The two-sided regard read every marriage gate shares: the mod's personal ledger OR the live vanilla relation reaching the bar.</summary>
+      private static bool RegardMeetsMarriageBar(Hero hero, NpcProfile profile)
+         => (profile?.ReputationWithPlayer ?? 0) >= MarriageEligibility.MarriageEligibilityThreshold ||
+            (Hero.MainHero?.GetRelation(hero) ?? 0) >= MarriageEligibility.MarriageEligibilityThreshold;
+
+      /// <summary>
+      ///   True when marriage is on offer ONLY through the family's blessing: the match is otherwise clear but
+      ///   the NPC's own regard is still below the bar. Tells the prompt this would be a POLITICAL union, so
+      ///   the NPC may accept out of duty, coldly, and never has to pretend a love that is not there.
+      /// </summary>
+      private static bool ResolveLoveMatchReluctant(Hero hero, NpcProfile profile)
+         => ResolveMarriageBlockReason(hero, profile) == MarriageBlockReason.None
+            && !RegardMeetsMarriageBar(hero, profile);
+
+      /// <summary>
+      ///   True when this NPC is the player's spouse AND still carries a live ForcedMarriage grudge over how
+      ///   the union was sealed. Read LIVE from the grudge ledger on purpose, with no flag of its own: the
+      ///   grudge decays and can be resolved, and the moment it dies the spouse's consent rules return to the
+      ///   ordinary marital footing by themselves. That is the whole redemption arc, and a separate persisted
+      ///   flag would have to be kept in sync with it by hand.
+      /// </summary>
+      private static bool ResolveSpouseMarriedUnwillingly(Hero hero)
+      {
+         if (hero == null || Hero.MainHero == null || hero.Spouse != Hero.MainHero) return false;
+
+         var today = (int) CampaignTime.Now.ToDays;
+         IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today);
+
+         return live != null && live.Any(g =>
+            g.Source == GrudgeSource.ForcedMarriage && g.TargetId == Hero.MainHero.StringId);
       }
 
       /// <summary>

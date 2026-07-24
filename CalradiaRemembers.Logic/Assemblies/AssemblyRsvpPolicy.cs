@@ -25,13 +25,17 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         public static RsvpOutcome Decide(AssemblyInvitationFacts f)
         {
+            // Availability gates FIRST, as this file's header states: dead, imprisoned, or pinned by a siege or
+            // battle cannot attend at all. Council audit M3: this used to sit BELOW the companion shortcut, so
+            // Decide(companion: true, alive: false) returned Accept, a dead companion "attending". A companion
+            // is a normal case of being unavailable (captured out of the party, downed in the battle the party
+            // is fighting), and the whole point of an ordered gate is that the most absolute bar wins.
+            if (!f.IsAlive || f.IsPrisoner || f.IsOccupied)
+                return new RsvpOutcome(RsvpDecision.Decline, RsvpReason.DeclinedUnavailable);
+
             // A companion already in the summoner's own party is present without RSVP or travel.
             if (f.IsCompanionOfInitiator)
                 return new RsvpOutcome(RsvpDecision.Accept, RsvpReason.Accepted);
-
-            // Availability: dead, imprisoned, or pinned by a siege or battle cannot attend at all.
-            if (!f.IsAlive || f.IsPrisoner || f.IsOccupied)
-                return new RsvpOutcome(RsvpDecision.Decline, RsvpReason.DeclinedUnavailable);
 
             // Ground: no one walks into the territory of a faction they are at war with. A parley with an enemy
             // therefore requires NEUTRAL ground, a constraint that emerges here rather than being coded apart.

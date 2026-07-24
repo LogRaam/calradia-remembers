@@ -58,6 +58,14 @@ namespace CalradiaRemembers.Chat
       /// <summary>Honors any witness_leaves actions in the response (a player companion stepping out).</summary>
       void HandleWitnessLeaves(ParsedResponse response);
 
+      /// <summary>
+      ///   Records or withdraws this turn's [RESOLUTION] blocks against the seated council roster (a no-op
+      ///   outside a council). The whole-table path calls the same logic in its own turn; without this the
+      ///   PER-MEMBER lap taught the [RESOLUTION] channel and then dropped every pledge it produced, the
+      ///   silent-promise bug the whole council exists to avoid (council audit C1).
+      /// </summary>
+      void ProcessCouncilResolutions(ParsedResponse response);
+
       /// <summary>Locks the conversation the way an NPC's end_conversation does (Leave button, system line).</summary>
       void MarkConversationEndedBySpeaker(string speakerName);
 

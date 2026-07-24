@@ -8,10 +8,13 @@
 
 #region
 
+using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Duels;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
@@ -42,17 +45,29 @@ namespace CalradiaRemembers.Duels
       ///   by either side). <paramref name="courtedHero" /> is only meaningful for a
       ///   <see cref="DuelReason.CourtshipRivalry" /> duel (the third party whose regard is at stake); pass null
       ///   otherwise. Witness count feeds the renown swing (a win, or a cowardice, before a crowd travels further).
+      ///   Also stamps <see cref="NpcProfile.LastDuelDay" /> on the OPPONENT for every resolution, including both
+      ///   forfeits: the field's own SDK summary reads "the day these two last crossed blades", but it must mean
+      ///   "the day this matter was last put to steel between these two, settled or ducked". A refusal that reset
+      ///   nothing would let the player re-challenge the same lord every turn and farm
+      ///   <see cref="DuelOutcomePolicy.RenownForCalledBluff" /> (the chat handler applies NpcForfeited whenever
+      ///   the NPC balks at the player's own challenge), so the cooldown has to close on a duck exactly as it
+      ///   does on a real fight.
       /// </summary>
       public static void Apply(DuelReason reason, DuelResolution resolution, Hero opponent, Hero courtedHero, int witnessCount)
       {
          if (opponent == null || Hero.MainHero == null) return;
 
-         // 1. Generic aftermath: the player's renown and the OPPONENT's stance toward them. A courtship duel is
-         //    not grudge-driven, so no grudge is in play here; honour-affront grudge handling comes with Inc B's
-         //    challenge flow. Honour is the only stake for now (no material wager from the console path).
+         // Whether a live grudge the opponent holds against the player drove this duel, read from the same
+         // ranked source the prompt itself reads (LiveGrudgesFor), filtered to one a duel could plausibly
+         // settle: a vendetta-grade grudge (IsResolvable false) is never something steel alone answers.
+         Grudge drivingGrudge = GrudgeBehavior.Instance?.LiveGrudgesFor(opponent, (int) CampaignTime.Now.ToDays)
+            ?.FirstOrDefault(g => GrudgePolicy.IsResolvable(g) && g.TargetId == Hero.MainHero.StringId);
+
+         // 1. Generic aftermath: the player's renown and the OPPONENT's stance toward them. Honour is the only
+         //    stake for now (no material wager from the console path).
          var ctx = new DuelResolutionContext {
             Resolution = resolution,
-            AGrudgeDroveIt = false,
+            AGrudgeDroveIt = drivingGrudge != null,
             Stake = DuelStakeKind.Honour,
             WitnessCount = witnessCount
          };
@@ -66,6 +81,18 @@ namespace CalradiaRemembers.Duels
          StanceService.ApplyDeed(opponent, StanceAxis.Respect, generic.NpcRespectDelta);
          StanceService.ApplyDeed(opponent, StanceAxis.Fear, generic.NpcFearDelta);
 
+         // NOT YET APPLIED: generic.GrudgeEffect (Settled/Hardened) is computed above but never mutates
+         // drivingGrudge itself. Settling it cleanly is possible today (GrudgePolicy.Resolve), but there is no
+         // equivalent clean API anywhere in the Grudges pillar to HARDEN one (raise its Magnitude/Rigidity);
+         // only formation (GrudgeBehavior.TryPlant) and softening/resolving (GrudgeResolutionService) exist.
+         // Applying just the settle half and silently dropping the harden half would read as "duels only ever
+         // help a grudge, never worsen one", which is the opposite of what DuelOutcomePolicy's own header
+         // promises. Left unapplied on both sides rather than invented or half-wired; see the report for this
+         // increment. The stance/renown numbers above already move correctly either way (AGrudgeDroveIt feeds
+         // DuelOutcomePolicy's existing warmth bonus on a fought duel).
+         if (drivingGrudge != null && generic.GrudgeEffect != DuelGrudgeEffect.None)
+            ModLog.Info($"[DUEL] a live grudge drove this duel; computed effect {generic.GrudgeEffect} on {opponent.Name}'s grudge, NOT applied (no clean harden API).");
+
          // 2. Courtship-specific: the courted hero's attraction toward the player swings on who prevailed.
          if (reason == DuelReason.CourtshipRivalry && courtedHero != null)
          {
@@ -73,10 +100,28 @@ namespace CalradiaRemembers.Duels
             ApplyAttraction(courtedHero, courtship.CourtedAttractionDelta);
          }
 
+         StampLastDuelDay(opponent);
          RecordDuelEvent(reason, resolution, opponent, courtedHero);
       }
 
       #region private
+
+      /// <summary>
+      ///   Stamps <see cref="NpcProfile.LastDuelDay" /> on the opponent for every resolution (fought or
+      ///   forfeited by either side): see <see cref="Apply(DuelReason, DuelResolution, Hero, Hero, int)" />'s
+      ///   own doc for why a forfeit must close the cooldown exactly as a real fight does. No-op when the
+      ///   opponent has no stored profile yet.
+      /// </summary>
+      private static void StampLastDuelDay(Hero opponent)
+      {
+         BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+         NpcProfile profile = store?.Get(opponent.StringId);
+
+         if (profile == null) return;
+
+         profile.LastDuelDay = (int) CampaignTime.Now.ToDays;
+         store.Set(profile);
+      }
 
       /// <summary>Moves the courted hero's attraction toward the player, clamped, and persists it. Logs the swing so a test can see it.</summary>
       private static void ApplyAttraction(Hero hero, int delta)

@@ -11,6 +11,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
@@ -25,6 +26,50 @@ namespace CalradiaRemembers
 {
    public static partial class ModCheats
    {
+      /// <summary>
+      ///   cr.marry_info [name]
+      ///   Reports, gate by gate, whether the player could wed this hero right now and, when they could not,
+      ///   WHICH gate is shut and by how much. Written after a player report (2026-07-23) where a marriage
+      ///   "happened" in dialogue and not in law: the mod had no way to answer "why", and neither did the
+      ///   player, who had earned the family's blessing through a quest and never learned that the BRIDE's own
+      ///   regard is a separate gate (a quest's relation reward goes to the giver, not to their daughter).
+      ///   Read-only: reports the live state, changes nothing. The sibling of cr.hire_info.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("marry_info", "cr")]
+      public static string MarriageInfo(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "Usage: cr.marry_info [name] (or talk to someone first).";
+
+         NpcProfile profile = behavior.Store?.Get(hero.StringId);
+         MarriageBlockReason reason = EncounterContextBuilder.ResolveMarriageBlockReason(hero, profile);
+
+         int regard = profile?.ReputationWithPlayer ?? 0;
+         int vanilla = Hero.MainHero?.GetRelation(hero) ?? 0;
+         int need = MarriageEligibility.MarriageEligibilityThreshold;
+         bool blessed = MarriageApprovalBehavior.Instance?.IsApproved(hero.StringId) ?? false;
+
+         // Ratified 2026-07-23: a blessed match below the regard bar is ON OFFER as a POLITICAL union; the
+         // wedding then plants a ForcedMarriage grudge scaled to the shortfall, so the report says which kind
+         // of marriage the player would actually be getting.
+         bool forced = reason == MarriageBlockReason.None && ForcedMarriagePolicy.IsForcedUnion(Math.Max(regard, vanilla));
+         string verdict = reason != MarriageBlockReason.None
+            ? "blocked by " + reason
+            : forced
+               ? $"ON OFFER AS A FORCED UNION (her heart is not won: expect a resentment of {ForcedMarriagePolicy.GrudgeMagnitude(Math.Max(regard, vanilla))})"
+               : "MARRIAGE IS ON OFFER (a love match)";
+
+         return $"{hero.Name}: {verdict}. " +
+                $"Personal regard {regard}/{need}, vanilla relation {vanilla}/{need} (EITHER one suffices). " +
+                $"Family blessing: {(blessed ? "given" : "not given")}. " +
+                $"At war: {BannerlordGameStateBridge.IsAtWarWithPlayer(hero)}. " +
+                $"Prisoner: npc={hero.IsPrisoner}, player={Hero.MainHero?.IsPrisoner}. " +
+                $"Player already wed: {Hero.MainHero?.Spouse != null}.";
+      }
+
       [CommandLineFunctionality.CommandLineArgumentFunction("relation", "cr")]
       public static string SimulateRelation(List<string> args)
          => SimulateRelation(args, NotableEventType.Other, "cr.relation <delta> [name]");

@@ -435,5 +435,43 @@ namespace CalradiaRemembers
       /// <summary>The first living companion currently in the player's party (skipping any already away).</summary>
       private static Hero FirstCompanionInParty()
          => Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && (h.IsPlayerCompanion || h.Clan == Clan.PlayerClan) && h.PartyBelongedTo == MobileParty.MainParty && CompanionMissionBehavior.Instance?.IsAway(h.StringId) != true);
+
+      /// <summary>
+      ///   cr.audience_topics [name]
+      ///   Found-topic companion audiences (player feedback, Nexus): with no name, lists every companion
+      ///   travelling with you and, for each, which of the five topics (mission follow-up / companion conflict /
+      ///   practical counsel / callback / rumour report) currently qualifies and why, plus the global cooldown
+      ///   state. With a name, shows that one companion's scan only. Diagnostic only, mutates nothing.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("audience_topics", "cr")]
+      public static string ShowAudienceTopics(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (CompanionAudienceTopicBehavior.Instance == null) return "Found-topic audience system is not active.";
+
+         Hero named = ResolveHero(args);
+
+         return named != null
+            ? CompanionAudienceTopicBehavior.Instance.DescribeScan(named)
+            : CompanionAudienceTopicBehavior.Instance.DescribeRoster();
+      }
+
+      /// <summary>
+      ///   cr.audience_fire
+      ///   Force-fires the strongest found-topic audience anywhere in the party RIGHT NOW, bypassing the
+      ///   global cooldown (the roll itself has no randomness to skip, a topic either qualifies or it does
+      ///   not) and, unlike the real trigger, works from anywhere, not only on entering a settlement. Opens
+      ///   the SAME popup a real settlement-entry offer would; refusing it costs nothing. Says so when no
+      ///   companion currently has anything worth an audience (silence is the default).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("audience_fire", "cr")]
+      public static string FireAudienceTopic(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (CompanionAudienceTopicBehavior.Instance == null) return "Found-topic audience system is not active.";
+         if (!ModSettings.CompanionContentment) return "Companion contentment is OFF in Mod Options; the found-topic audiences are gated by the same switch.";
+
+         return CompanionAudienceTopicBehavior.Instance.TryForceFireBest();
+      }
    }
 }

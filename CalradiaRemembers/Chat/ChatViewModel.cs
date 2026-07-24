@@ -1014,7 +1014,7 @@ namespace CalradiaRemembers.Chat
          _ = RunLlmExchangeAsync(opener, speaker, placeholder, true);
       }
 
-      public void ActivateCompanionAudience(NpcProfile profile, CompanionAudienceReason reason, bool landed)
+      public void ActivateCompanionAudience(NpcProfile profile, CompanionAudienceReason reason, bool landed, string topicDetail = null)
       {
          _mode = ChatMode.Conversation;
          _audienceReason = reason;
@@ -1034,7 +1034,9 @@ namespace CalradiaRemembers.Chat
          _messages.Add(placeholder);
          IsSendEnabled = false;
 
-         // The companion opens (they asked for this word). A synthetic cue, never shown or logged as a player line.
+         // The companion opens (they asked for this word). A synthetic cue, never shown or logged as a player
+         // line. The found-topic reasons (Mission..RumourReport) carry the SPECIFIC thing the mod found in
+         // topicDetail: the model voices a fact the mod chose, never a generic invitation to talk.
          string opener = reason switch {
             CompanionAudienceReason.Retirement =>
                "[You asked the player for a private word. Open the conversation yourself: voice, in your own way, that " +
@@ -1044,6 +1046,21 @@ namespace CalradiaRemembers.Chat
                "[You asked the player for a private word. Open the conversation yourself: confide, in your own voice, " +
                "that serving faithfully at their side has quietly turned to something more, real affection. Broach it " +
                "with the courage and vulnerability of a comrade, tender and honest, never a demand.]",
+            CompanionAudienceReason.MissionFollowUp =>
+               "[You asked the player for a private word. Open the conversation yourself: report, in your own voice, " +
+               $"on your errand. What happened: {topicDetail}]",
+            CompanionAudienceReason.CompanionConflict =>
+               "[You asked the player for a private word. Open the conversation yourself: raise, in your own voice, " +
+               $"a grudge you carry against a fellow companion, and ask the player to hear your side: {topicDetail}]",
+            CompanionAudienceReason.PracticalCounsel =>
+               "[You asked the player for a private word. Open the conversation yourself: raise a practical concern " +
+               $"about the party that you have noticed yourself, in your own voice: {topicDetail}]",
+            CompanionAudienceReason.Callback =>
+               "[You asked the player for a private word. Open the conversation yourself: an old memory has come back " +
+               $"to you unbidden, and you want to speak of it, in your own voice: {topicDetail}]",
+            CompanionAudienceReason.RumourReport =>
+               "[You asked the player for a private word. Open the conversation yourself: you have word of the world " +
+               $"to bring the player, in your own voice: {topicDetail}]",
             _ =>
                "[You asked the player for a private word. Open the conversation yourself: raise what has been troubling " +
                "you in their service, in your own voice.]"
@@ -1785,7 +1802,14 @@ namespace CalradiaRemembers.Chat
          if (!ConversationMemoryRules.DeservesFallbackMemory(_playerTurnsThisSession, _playerCharsThisSession)) return;
 
          var behavior = NpcMemoryCampaignBehavior.Instance;
-         NpcProfile profile = behavior?.DialogFlow?.Profile;
+         // Nemesis audit RC2: this wrote to DialogFlow.Profile, a session-lifetime cache set only by an
+         // ordinary conversation's open. A player-as-captor scene (a nemesis you hold prisoner) runs in
+         // Conversation mode too but is opened WITHOUT setting it, so a captor scene that ended with no [EVENT]
+         // landed its fallback summary on the LAST person chatted with (the exact "Garios thinks he's Fercread"
+         // family, already fixed for the speaker resolution). MainSpeaker().Profile is that same hardened
+         // resolution: it follows the current scene's hero (captor-scene / captive profile first, DialogFlow
+         // only as a last resort), so the memory can never be written to the wrong character.
+         NpcProfile profile = MainSpeaker()?.Profile;
 
          if (behavior?.Store == null || profile == null) return;
 

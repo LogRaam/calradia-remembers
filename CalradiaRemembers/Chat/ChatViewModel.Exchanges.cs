@@ -13,6 +13,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Lore;
 using CalradiaRemembers.Mapping;
@@ -715,6 +716,18 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
+            // ── Duel challenge ─────────────────────────────────────────────
+            // Steel has been called for. The prompt stopped the NPC AT the challenge, so whether they take
+            // the field is decided here, from their traits and stance, never by the line they just spoke.
+            // Same "a deed is the player's" guard as escape: a synthetic cue (a captor-led opener, an
+            // interception opener) must never call a duel the player did not provoke.
+            if (!suppressPlayerLine && DialogueHeuristics.HasAction(response, "challenge_duel"))
+            {
+               ResolveDuelChallenge(placeholder, speaker, profile, npcLine, response);
+
+               return;
+            }
+
             // Scene narration emitted BEFORE the dialogue keeps its emitted order at render:
             // it lands ahead of the speaker's bubble, and its transcript/story entries are
             // written before the spoken line's below (AppendNarration records all three).
@@ -947,6 +960,20 @@ namespace CalradiaRemembers.Chat
                               ? $"{profile.Name} will step back from the field, with your blessing."
                               : $"{profile.Name} will retire from your service, with your blessing.", true);
                      }
+
+                     continue;
+                  }
+
+                  // Council: deeds are NOT sealed at the table (ratified 2026-07-24). Only PERCEPTION runs on
+                  // the spot here (change_relation): a lord you anger IS angrier at once, and that shift must
+                  // colour how he weighs every request for the rest of the sitting. World transfers and
+                  // commitments (gold, troops, prisoners, marriage, schemes, missions) are promises, recorded
+                  // through the [RESOLUTION] channel and carried out only when the council rises. Dropping them
+                  // here is what makes the prompt's "nothing is sealed at this table" TRUE in code (the bridge
+                  // is law), closing the guard gap the audit found (whole-table dispatch had none).
+                  if (_councilScope != null && !CouncilResolutionPolicy.ExecutesImmediatelyAtCouncil(action.Type))
+                  {
+                     ModLog.Info($"[COUNCIL] '{action.Type}' is not sealed at the table; deferred (only perception applies live; deeds belong to [RESOLUTION]).");
 
                      continue;
                   }
@@ -1628,6 +1655,8 @@ namespace CalradiaRemembers.Chat
          => AppendNarration(narration, insertBefore);
 
       void IRoundTableHost.HandleWitnessLeaves(ParsedResponse response) => HandleWitnessLeaves(response);
+
+      void IRoundTableHost.ProcessCouncilResolutions(ParsedResponse response) => ProcessCouncilResolutions(response);
 
       /// <summary>Locks the conversation exactly as an NPC's end_conversation does during a round-table lap.</summary>
       void IRoundTableHost.MarkConversationEndedBySpeaker(string speakerName)

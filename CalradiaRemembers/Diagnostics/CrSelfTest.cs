@@ -84,6 +84,18 @@ namespace CalradiaRemembers.Diagnostics
       /// <summary>Test-appreciation magnitude — comfortably above the formation floor.</summary>
       private const int AppreciationFlowTestMagnitude = 60;
 
+      // ── Appreciations: REPETITION (2026-07-22). The pure tests cover the arithmetic and the fold; what ──
+      // ── they cannot reach is the LIVE ledger, which is the part that can damage a real campaign: the ──
+      // ── repeat must deepen the record already persisted rather than add a twin, the same-day anti-noise ──
+      // ── rule must survive the change, and the consolidation that runs on load must not let a player's ──
+      // ── tally climb every time they reload. This is the one lot flagged as unsafe to publish untested. ──
+
+      /// <summary>The cause text this test plants under, distinct from every other self-test's, so the twin-merge assertions can only ever see its own record.</summary>
+      private const string AppreciationRepeatCause = "[SELFTEST] A kindness done more than once.";
+
+      /// <summary>Days back the FIRST occurrence is dated, so the second one lands on a different day and is a genuine repeat rather than a same-day duplicate.</summary>
+      private const int AppreciationRepeatDaysBack = 5;
+
       // ── Grudges: the resolution engine (Arrange mirrors grudge_test/grudge_tier2: plant via the ──
       // ── real TryPlant gate, resolve via the real GrudgeResolutionService seam both make_amends and ──
       // ── the gift-routing hooks share) ──────────────────────────────────────────────────────────────
@@ -158,6 +170,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("courier_waylay", Severity.Heavy, "waylaid-letter resend: a waylaid letter keeps its typed text, and the Resend path re-queues a FRESH non-lost letter carrying the SAME content, so a waylaid letter never has to be retyped. Cleans up its test letters + courier (no popup)", TestCourierWaylayResend),
          new SelfTest("prisoner_trade", Severity.Heavy, "prisoner trade: take a real lord captive into the player's party -> real buy_prisoner via the bridge (an NPC lord buys him) -> assert the player was PAID (price clamped around the ransom anchor) and the captive left the player's custody -> cleanup frees him", TestPrisonerTrade),
          new SelfTest("appreciation_flow", Severity.Light, "plant a kindness -> assert it lives -> plant a strong grudge on the same holder -> assert the tarnished effective magnitude drops -> force backfill twice -> assert the second pass is a no-op", TestAppreciationFlow),
+         new SelfTest("duel_cooldown", Severity.Light, "the duel COOLDOWN stamp (2026-07-22), unreachable by unit test since it writes to the live profile: drive the REAL applier on a FORFEITED duel (the case the anti-farm rule exists for, since a balked NPC pays the player RenownForCalledBluff) -> assert LastDuelDay closed on a DUCKED duel exactly as on a fought one, and that the policy reads the cooldown in the right direction (today blocked, the window's end clear, never-dueled never blocked). Restores the previous stamp", TestDuelCooldownStamp),
+         new SelfTest("appreciation_repeat", Severity.Light, "repetition (2026-07-22 fix): plant the SAME kindness on two different days -> assert it deepened ONE record instead of adding a twin, the tally reads twice, and the warmth actually ROSE (counting must weigh, not just show) -> assert a third plant the same day is still refused by the anti-noise rule -> run the migration twice and assert a reload cannot inflate the tally or split the record", TestAppreciationRepeat),
          new SelfTest("nemesis_kill", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(battle death) -> assert IsAlive flips false + a closure world-event is recorded", TestNemesisKilledInBattle),
          new SelfTest("nemesis_execute", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(executed) -> assert IsAlive flips false + the closure world-event reads distinctly from the battle-death flavor", TestNemesisExecuted),
          new SelfTest("nemesis_execute_prisoner", Severity.Light, "mint a fresh nemesis -> TakePrisonerAction (real capture) -> assert PlayerHeldNemesisPrisoner detects him -> BannerlordGameStateBridge.ExecuteAction(execute_prisoner) (the REAL bridge action the chat entry point's LLM emission triggers, not the Resolve harness) -> assert the existing HeroKilledEvent hook still resolves him + records the closure deed", TestNemesisExecutePrisoner),
@@ -547,8 +561,16 @@ namespace CalradiaRemembers.Diagnostics
                   yield return sibling;
       }
 
+      /// <summary>
+      ///   The stand-in interlocutor when no real conversation is open. The fallback now skips PRISONERS
+      ///   (testall 2026-07-23): the first living lord happened to be captive that day, and every flow this
+      ///   picker feeds whose bridge or policy rightly refuses a prisoner (the stance-consequence CanWrite,
+      ///   the pledge_against verb behind the commitment seeds) failed in a cluster that read as four
+      ///   separate bugs. A prisoner is also simply a bad stand-in for "someone the player casually talks
+      ///   to". Real-conversation picks are untouched.
+      /// </summary>
       private static Hero ConversationNpc()
-         => Hero.OneToOneConversationHero ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+         => Hero.OneToOneConversationHero ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
 
       /// <summary>How many of an item the player's party currently holds.</summary>
       private static int CountItemInParty(ItemObject item)
@@ -1118,6 +1140,12 @@ namespace CalradiaRemembers.Diagnostics
                Parameters = new Dictionary<string, string> {{"target", target.Name.ToString()}}
             }, npc, new ActionContext(profile, null));
 
+         // Surface the bridge's own refusal (testall 2026-07-23: two commitment tests failed with only
+         // "seed failed", and the WHY, the picked pledger being a prisoner, had to be dug out by hand).
+         if (seedOutcome is not {IsPositive: true})
+            ModLog.Info($"[SELFTEST] pledge_against seed refused for {npc.Name} -> {target.Name}: "
+                      + $"{seedOutcome?.Message ?? "(null outcome)"}");
+
          return seedOutcome is {IsPositive: true};
       }
 
@@ -1314,6 +1342,142 @@ namespace CalradiaRemembers.Diagnostics
          AppreciationBehavior.Instance.DebugForceBackfill(behavior.Store);
          (int formed2, int _) = AppreciationBehavior.Instance.DebugForceBackfill(behavior.Store);
          t.Expect("secondBackfillPassFormsNothingNew", formed2, 0);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The live-ledger half of the repetition fix (the pure tests cover the arithmetic and the fold).
+      ///   Plants the same kindness twice, on two different days, against the REAL persisted ledger, and
+      ///   asserts the four things that can only be wrong in the engine: one record rather than a twin, a
+      ///   count of two, warmth that actually rose (the owner's call: counting must WEIGH, not merely show),
+      ///   and the same-day anti-noise rule still refusing a third plant today. Then it runs the migration
+      ///   twice to prove a reload cannot inflate the tally, which is the failure that would quietly corrupt
+      ///   a player's campaign rather than merely look wrong.
+      /// </summary>
+      private static string TestAppreciationRepeat(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("appreciation_repeat");
+
+         if (t.Abort(AppreciationBehavior.Instance == null, "AppreciationBehavior not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+
+         // Any lord will do: the assertions key on this test's own cause text, so nothing another test (or
+         // the player's own campaign) has already planted can be mistaken for the record under test.
+         Hero npc = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.IsAlive);
+
+         if (t.Skip(npc == null, "no living lord to hold the kindness")) return t.Line();
+
+         Appreciation Mine() => AppreciationBehavior.Instance.AppreciationsFor(npc.StringId)
+            .FirstOrDefault(a => a.Source == AppreciationSource.KindnessInScene
+                              && string.Equals(a.CauseSummary, AppreciationRepeatCause, StringComparison.OrdinalIgnoreCase));
+
+         if (t.Skip(Mine() != null, "this test's kindness is already on the ledger from an earlier run (reload to re-test)")) return t.Line();
+
+         bool first = AppreciationBehavior.Instance.TryPlant(npc, Hero.MainHero, AppreciationSource.KindnessInScene,
+            AppreciationRepeatCause, AppreciationFlowTestMagnitude, true, today - AppreciationRepeatDaysBack);
+
+         if (t.Skip(!first, "first plant refused (anti-noise guardrail or a full, stronger house)")) return t.Line();
+
+         TraitFacts traits = AppreciationBridge.BuildTraitFacts(npc);
+         int warmthOnce = AppreciationPolicy.EffectiveMagnitude(Mine(), today, traits);
+
+         // The repeat: same holder, same source, same cause, a LATER day.
+         bool second = AppreciationBehavior.Instance.TryPlant(npc, Hero.MainHero, AppreciationSource.KindnessInScene,
+            AppreciationRepeatCause, AppreciationFlowTestMagnitude, true, today);
+
+         t.Expect("repeatWasAccepted", second, true);
+
+         int records = AppreciationBehavior.Instance.AppreciationsFor(npc.StringId)
+            .Count(a => a.Source == AppreciationSource.KindnessInScene
+                     && string.Equals(a.CauseSummary, AppreciationRepeatCause, StringComparison.OrdinalIgnoreCase));
+         t.Expect("repeatDeepensOneRecordRatherThanAddingATwin", records, 1);
+         t.Expect("theTallyReadsTwice", AppreciationPolicy.OccurrenceCount(Mine()), 2);
+
+         int warmthTwice = AppreciationPolicy.EffectiveMagnitude(Mine(), today, traits);
+         t.Note($"{npc.Name}: warmth once={warmthOnce}, warmth twice={warmthTwice}, tally={AppreciationPolicy.OccurrenceCount(Mine())}");
+         t.Expect("theSecondTimeActuallyWeighs", warmthTwice > warmthOnce, true);
+
+         // The anti-noise rule that predates this fix must survive it: several intimate beats inside ONE
+         // scene are one kindness, not a tally the player can run up in an afternoon.
+         bool sameDayAgain = AppreciationBehavior.Instance.TryPlant(npc, Hero.MainHero, AppreciationSource.KindnessInScene,
+            AppreciationRepeatCause, AppreciationFlowTestMagnitude, true, today);
+         t.Expect("aSecondPlantTheSameDayIsStillRefused", sameDayAgain, false);
+         t.Expect("theRefusedPlantLeftTheTallyAlone", AppreciationPolicy.OccurrenceCount(Mine()), 2);
+
+         // The consolidation runs on every load that finds the ledger behind the current migration version.
+         // If it ever re-counted its own output, a player's tally would climb by itself on every reload.
+         AppreciationBehavior.Instance.DebugForceBackfill(behavior.Store);
+         AppreciationBehavior.Instance.DebugForceBackfill(behavior.Store);
+         t.Expect("reloadingDoesNotInflateTheTally", AppreciationPolicy.OccurrenceCount(Mine()), 2);
+         t.Expect("reloadingDoesNotSplitTheRecord",
+                  AppreciationBehavior.Instance.AppreciationsFor(npc.StringId)
+                     .Count(a => a.Source == AppreciationSource.KindnessInScene
+                              && string.Equals(a.CauseSummary, AppreciationRepeatCause, StringComparison.OrdinalIgnoreCase)),
+                  1);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The duel COOLDOWN stamp (2026-07-22), which no unit test can reach because it writes to the live
+      ///   persisted profile. The anti-farm decision it exists for: the chat handler applies NpcForfeited when
+      ///   an NPC balks at the player's challenge, and that pays the player RenownForCalledBluff. If a refusal
+      ///   reset nothing, the player could re-challenge the same lord every turn and farm it, so the stamp has
+      ///   to land on a DUCKED duel exactly as it does on a fought one. Restores the previous value, though
+      ///   the applier's own renown/stance/world-event effects stand (as they do for duel_consequence).
+      ///   What this canNOT assert from an arbitrary map position is eligibility itself: DuelEligibilityResolver
+      ///   requires the two to be genuinely beside each other, so a lord across Calradia is refused for
+      ///   distance and a refusal here would prove nothing. That half is what cr.duel_arm covers, in person.
+      /// </summary>
+      private static string TestDuelCooldownStamp(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("duel_cooldown");
+
+         if (t.Abort(behavior?.Store == null, "no profile store")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+
+         // Needs a lord the player has actually met: the stamp lives on the stored profile, and no profile
+         // means nothing to stamp (a deliberate no-op, not a failure).
+         Hero lord = null;
+         NpcProfile profile = null;
+         foreach (string id in behavior.Store.ListIds())
+         {
+            Hero h = Hero.FindFirst(x => x != null && x.StringId == id);
+
+            if (h is not {IsAlive: true, IsLord: true} || h == Hero.MainHero) continue;
+
+            lord = h;
+            profile = behavior.Store.Get(id);
+
+            break;
+         }
+
+         if (t.Skip(lord == null || profile == null, "no met lord with a stored profile to stamp (chat with one first)")) return t.Line();
+
+         int? before = profile.LastDuelDay;
+
+         // The FORFEIT path on purpose: a fought duel obviously closes the matter, a ducked one is the case
+         // the exploit needed.
+         DuelOutcomeApplier.Apply(DuelReason.HonourAffront, DuelResolution.NpcForfeited, lord, null, 0);
+
+         NpcProfile after = behavior.Store.Get(lord.StringId);
+         t.Note($"{lord.Name}: LastDuelDay {before?.ToString() ?? "(never)"} -> {after?.LastDuelDay?.ToString() ?? "(never)"} (today {today})");
+         t.Expect("aDuckedDuelStillClosesTheCooldown", after?.LastDuelDay, today);
+
+         // The direction of the policy's own reading, so a sign error cannot silently make the cooldown
+         // permanent (nobody may ever duel again) or useless (everyone may, always).
+         t.Expect("todayIsOnCooldown", DuelChallengePolicy.IsOnCooldown(0), true);
+         t.Expect("theCooldownExpiresOnSchedule", DuelChallengePolicy.IsOnCooldown(DuelChallengePolicy.CooldownDays), false);
+         t.Expect("neverDueledIsNeverOnCooldown", DuelChallengePolicy.IsOnCooldown(null), false);
+
+         if (after != null)
+         {
+            after.LastDuelDay = before;
+            behavior.Store.Set(after);
+         }
 
          return t.Line();
       }
@@ -2826,15 +2990,20 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("free_prisoner");
 
+         // Mirror prisoner_trade's pick (testall 2026-07-23 A/B evidence: within the same second,
+         // TakePrisonerAction succeeded on an in-party lord and failed on Arcor picked without this filter,
+         // and on every partyless minted nemesis hero). A lord OFF the map (no party, at court, a governor)
+         // is not reliably capturable by the raw action on the current game build, and capturing one is not
+         // what this test exists to prove anyway.
          Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != null && h.Clan?.Leader != h);
 
-         if (t.Skip(captive == null, "no free lord to capture")) return t.Line();
+         if (t.Skip(captive == null, "no free in-party lord to capture")) return t.Line();
 
          TakePrisonerAction.Apply(PartyBase.MainParty, captive);
          bool captured = captive.IsPrisoner && captive.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
 
-         if (t.Abort(!captured, $"capture failed for {captive.Name}")) return t.Line();
+         if (t.Abort(!captured, $"capture failed for {captive.Name} (party={captive.PartyBelongedTo?.StringId ?? "none"})")) return t.Line();
 
          behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "free_prisoner"}, captive, null);
 
@@ -3588,7 +3757,7 @@ namespace CalradiaRemembers.Diagnostics
          TakePrisonerAction.Apply(PartyBase.MainParty, nemesisHero);
          bool captured = nemesisHero.IsPrisoner && nemesisHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
 
-         if (t.Abort(!captured, $"capture failed for {nemesisHero.Name}")) return t.Line();
+         if (t.Abort(!captured, $"capture failed for {nemesisHero.Name} (party={nemesisHero.PartyBelongedTo?.StringId ?? "none"}; a PARTYLESS hero may not be capturable by the raw action on this game build)")) return t.Line();
 
          InformalQuest after = behavior.Store.Get(giver.StringId)?.ActiveQuests
                                        .FirstOrDefault(q => q.Type == QuestType.NemesisBounty && q.TargetHeroId == nemesisHero.StringId);
@@ -3626,7 +3795,7 @@ namespace CalradiaRemembers.Diagnostics
          TakePrisonerAction.Apply(PartyBase.MainParty, nemesisHero);
          bool captured = nemesisHero.IsPrisoner && nemesisHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
 
-         if (t.Abort(!captured, $"capture failed for {nemesisHero.Name}")) return t.Line();
+         if (t.Abort(!captured, $"capture failed for {nemesisHero.Name} (party={nemesisHero.PartyBelongedTo?.StringId ?? "none"}; a PARTYLESS hero may not be capturable by the raw action on this game build)")) return t.Line();
 
          // The REAL bridge action a captor-scene LLM emission triggers, the same call
          // TestNemesisExecutePrisoner exercises, so both the vendetta resolution AND the bounty
@@ -3705,7 +3874,7 @@ namespace CalradiaRemembers.Diagnostics
          TakePrisonerAction.Apply(PartyBase.MainParty, hero);
          bool captured = hero.IsPrisoner && hero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
 
-         if (t.Abort(!captured, $"capture failed for {hero.Name}")) return t.Line();
+         if (t.Abort(!captured, $"capture failed for {hero.Name} (party={hero.PartyBelongedTo?.StringId ?? "none"}; a PARTYLESS hero may not be capturable by the raw action on this game build)")) return t.Line();
 
          t.Expect("detectionReturnsHeldNemesis", NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() == hero, true);
 
@@ -3856,7 +4025,7 @@ namespace CalradiaRemembers.Diagnostics
 
          TakePrisonerAction.Apply(PartyBase.MainParty, hero);
 
-         if (t.Abort(NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() != hero, $"capture/detection failed for {hero.Name}")) return t.Line();
+         if (t.Abort(NemesisBehavior.Instance.PlayerHeldNemesisPrisoner() != hero, $"capture/detection failed for {hero.Name} (prisoner={hero.IsPrisoner}, party={hero.PartyBelongedTo?.StringId ?? "none"}; a PARTYLESS hero may not be capturable by the raw action on this game build)")) return t.Line();
 
          NpcProfile profile = GetOrCreate(behavior, hero);
 
@@ -3897,6 +4066,11 @@ namespace CalradiaRemembers.Diagnostics
             h != null && h != Hero.MainHero && h.IsAlive && h.PartyBelongedTo == MobileParty.MainParty);
 
          if (t.Skip(member == null, "no companion in the player's party")) return t.Line();
+
+         // A captive player's zero is the DESIGNED answer (PlayerForcePolicy: the party does not follow
+         // them into a cell), not a wiring failure; asserting >0 there would fail the feature for doing
+         // exactly what its own doc promises. Run free to test the wiring (testall 2026-07-23).
+         if (t.Skip(Hero.MainHero?.IsPrisoner == true, "the player is a captive, whose visible force is 0 by design; run free")) return t.Line();
 
          NpcProfile profile = GetOrCreate(behavior, member);
          EncounterContext ctx = EncounterContextBuilder.Build(
@@ -4323,9 +4497,13 @@ namespace CalradiaRemembers.Diagnostics
          // Every line must open with a known type token, and a settlement target must truly resolve.
          // This list must be grown whenever ViableQuestScanner learns to offer a new kind of task, or the test
          // cries wolf over a perfectly good menu (provide_goods shipped in v1.29.0 and sat here unrecognised).
+         // The EXACT set ViableQuestScanner can emit (testall 2026-07-23: the checker had drifted two tokens
+         // behind the scanner, so a perfectly legitimate menu carrying siege + deliver_prisoner FAILED. The
+         // referee was stale, not the player-facing menu. Whoever adds a type to the scanner must add it here.)
          var knownTokens = new[] {
             "bandit_hideout", "bandit_clear", "attack_lord", "capture_prisoner", "attack_faction",
-            "raid_village", "scout_army", "rescue_prisoner", "deliver_letter", "provide_goods"
+            "raid_village", "scout_army", "rescue_prisoner", "deliver_letter", "provide_goods",
+            "siege", "deliver_prisoner"
          };
          var allKnown = true;
          var settlementsResolve = true;
@@ -5637,9 +5815,12 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Abort(SchemeStore.Instance == null, "SchemeStore not active")) return t.Line();
 
+         // !IsPrisoner (testall 2026-07-23): StanceConsequenceBehavior.CanWrite rightly refuses a captive
+         // plotter, so a pick that can land on one fails the test for a reason that is not this feature's.
          Hero plotter = Hero.AllAliveHeroes.FirstOrDefault(h =>
             h != Hero.MainHero &&
             h.IsLord &&
+            !h.IsPrisoner &&
             h.Clan != Clan.PlayerClan &&
             !SchemeStore.Instance.Active.Any(s => s.PlotterId == h.StringId && s.TargetId == Hero.MainHero.StringId));
 
@@ -5684,9 +5865,12 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Abort(SchemeStore.Instance == null, "SchemeStore not active")) return t.Line();
 
+         // !IsPrisoner (testall 2026-07-23): StanceConsequenceBehavior.CanWrite rightly refuses a captive
+         // plotter, so a pick that can land on one fails the test for a reason that is not this feature's.
          Hero plotter = Hero.AllAliveHeroes.FirstOrDefault(h =>
             h != Hero.MainHero &&
             h.IsLord &&
+            !h.IsPrisoner &&
             h.Clan != Clan.PlayerClan &&
             !SchemeStore.Instance.Active.Any(s => s.PlotterId == h.StringId && s.TargetId == Hero.MainHero.StringId));
          Hero friend = ConversationNpc();

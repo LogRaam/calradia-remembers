@@ -71,6 +71,17 @@ namespace CalradiaRemembers.Missions
          return report;
       }
 
+      /// <summary>
+      ///   Non-destructive read of a companion's waiting report, for the found-topic audience candidate scan
+      ///   (Missions/CompanionAudienceTopicResolver): unlike <see cref="ConsumeNewsReport" />, this must NOT
+      ///   clear the report merely for being considered, it is only actually consumed once the audience it
+      ///   heads is truly opened.
+      /// </summary>
+      public string PeekNewsReport(Hero npc)
+         => npc != null && _pendingReports.TryGetValue(npc.StringId, out string report)
+            ? report
+            : null;
+
       /// <summary>A one-line-per-errand summary of what is in flight.</summary>
       public string DescribeActive()
       {

@@ -175,10 +175,14 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new NemesisResolutionBehavior());
          // Captive-escape gear consequence (ratified 2026-07-2x): the mod-side ledger of gear a nemesis or
          // lord holder has accumulated from the player's Fled escapes, and the recovery routes (capture the
-         // holder alive, or defeat him in a battle the player wins). Registered after NemesisBehavior (a
-         // Fled escape from a bandit hold calls NemesisBehavior.Instance.ResolveGearHolderForBand). Console:
-         // cr.gear_stock / cr.gear_recover / cr.gear_test.
+         // holder alive, or defeat him in a battle the player wins). Now only the LORD branch uses this holder
+         // model; a bandit escape scatters loot instead (ScatteredLootBehavior below). Console: cr.gear_stock /
+         // cr.gear_recover / cr.gear_test.
          campaignStarter.AddBehavior(new Duels.CaptiveGearBehavior());
+         // Scattered-loot recovery (AUDIT-NEMESIS M1, 2026-07-24): a FLED bandit escape scatters the player's
+         // gear among that culture's bands; defeating a band of the culture has a chance to return a piece.
+         // Replaces the old "mint a nemesis to hold the whole stock" bandit path. Save-safe, additive key.
+         campaignStarter.AddBehavior(new Duels.ScatteredLootBehavior());
          // Appreciations (the positive mirror of Grudges): a lingering felt kindness, coexisting with regard
          // instead of being folded into it. Registered AFTER GrudgeBehavior (its prompt-note tarnish reads
          // the holder's dominant live grudge) and after WorldEventStore/Bastards/DivorceProcessBehavior (its
@@ -202,6 +206,10 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new TownAmbushBehavior());
          // Stance with teeth, increment 3.2a: losing the ambush -> captured and convoyed to the paymaster lord.
          campaignStarter.AddBehavior(new AmbushCaptivityBehavior());
+         // Duels in town: reuses the ambush's own town-centre injection recipe to stage a consented, non-lethal
+         // duel where most conversations actually happen. Registered next to the ambush because it listens to
+         // the same character-spawn event and shares its Mission.AfterStart seam.
+         campaignStarter.AddBehavior(new Duels.TownDuelBehavior());
          // Chronicle (v1.2): persists the LLM-illuminated chronicle prose across the campaign.
          campaignStarter.AddBehavior(new ChronicleBehavior());
          // Companion missions (first slice "bring me the news"): a dispatched companion returns after a
@@ -215,6 +223,11 @@ namespace CalradiaRemembers
          // The positive counterpart: a happy, deeply-bonded companion may ask for a private word to confide
          // affection and become the player's discreet secret lover (adult-gated). Pure model in the Logic project.
          campaignStarter.AddBehavior(new CompanionAffectionBehavior());
+         // Found-topic companion audiences (player feedback, Nexus): a companion asks for a private word only
+         // once the mod has FOUND something worth saying (mission report / party grudge / practical counsel /
+         // an old callback / a rumour), never a mood-only check-in. One shared cooldown across the whole
+         // roster. Registered after CompanionMissionBehavior/GrudgeBehavior/WorldEventStore (it reads all three).
+         campaignStarter.AddBehavior(new CompanionAudienceTopicBehavior());
          // War-weariness: wounds and captures accrue a toll on each companion (a SEPARATE axis from happiness);
          // rest eases it; a spent veteran asks for an honorable retirement — a landless one leaves, a landed one
          // (governor / party-leader) steps back from the field but stays in the clan. Pure model in Logic.

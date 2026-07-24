@@ -367,11 +367,15 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>
       ///   Opens a companion AUDIENCE the companion themselves requested from a map popup ("Let us speak of it"):
-      ///   a grievance, or a war-weary bid to retire. A normal conversation (full memory + actions) in which the
-      ///   companion speaks FIRST and voices why they came. For a retirement, granting it in the talk fires the
-      ///   companion's <c>retire</c> action; persuading them keeps them on.
+      ///   a grievance, a war-weary bid to retire, or (since the found-topic audiences) a mission report / party
+      ///   conflict / practical counsel / callback / rumour. A normal conversation (full memory + actions) in
+      ///   which the companion speaks FIRST and voices why they came. For a retirement, granting it in the talk
+      ///   fires the companion's <c>retire</c> action; persuading them keeps them on. <paramref name="topicDetail" />
+      ///   is the SPECIFIC fact the mod found (the actual rumour/memory/grudge/party condition) for the found-topic
+      ///   reasons; null for the original two reasons, which need none.
       /// </summary>
-      public static void OpenForCompanionAudience(Hero companion, NpcProfile profile, CompanionAudienceReason reason, bool landed)
+      public static void OpenForCompanionAudience(
+         Hero companion, NpcProfile profile, CompanionAudienceReason reason, bool landed, string topicDetail = null)
       {
          if (companion == null || profile == null) return;
 
@@ -380,7 +384,7 @@ namespace CalradiaRemembers.Chat
          if (ActiveViewModel == null) return;
 
          ActiveViewModel.SetNpcHero(companion);
-         ActiveViewModel.ActivateCompanionAudience(profile, reason, landed);
+         ActiveViewModel.ActivateCompanionAudience(profile, reason, landed, topicDetail);
       }
 
       /// <summary>

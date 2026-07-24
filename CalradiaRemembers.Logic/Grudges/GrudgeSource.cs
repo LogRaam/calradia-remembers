@@ -73,6 +73,19 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   and who has traced the deed back to the player. Only planted when the captor DISCOVERS the player was
         ///   responsible (see <c>CaptorGrudgePolicy</c>); a public siege is both easier to trace and openly resented.
         /// </summary>
-        PrisonerRescued = 15
+        PrisonerRescued = 15,
+
+        /// <summary>
+        ///   "My family gave me away": a spouse wed to the player through the family's blessing while their own
+        ///   regard was still below the marriage bar (ratified 2026-07-23: a political match MARRIES rather than
+        ///   refusing, and the bride's unwon heart becomes this grudge instead of an invisible gate). Magnitude
+        ///   scales with how far below the bar their regard stood (<c>ForcedMarriagePolicy</c>). Deliberately a
+        ///   grudge and not a flat relation malus: it surfaces in the prompt (the spouse knows WHY they are
+        ///   cold), in the encyclopedia (the player can see it), it tarnishes kindnesses, and it DECAYS and can
+        ///   be resolved, so a marriage begun in duty can be won over: a playable redemption arc, not a mute
+        ///   permanent penalty. The mirror of <see cref="UnblessedMarriage" /> (love without the family), as
+        ///   this is the family without love.
+        /// </summary>
+        ForcedMarriage = 16
     }
 }

@@ -205,6 +205,13 @@ namespace CalradiaRemembers.Chat
                   }
 
                host.HandleWitnessLeaves(result.Response);
+
+               // Council audit C1: the lap teaches the [RESOLUTION] channel (isRoundTableTurn -> the RECORDING
+               // block), so it must also CONSUME it, or every pledge a seated member makes in per-member voice
+               // mode is parsed and silently dropped. A no-op outside a council (the host gates on _councilScope).
+               // The whole-table path records its resolutions in RunLlmExchangeAsync; in per-member mode that
+               // path is never taken, so this is the ONLY place the non-anchor members' pledges are recorded.
+               host.ProcessCouncilResolutions(result.Response);
             }
 
             _gate.Start = RoundTablePolicy.NextStartIndex(participants.Count, _gate.Start, order.Count);

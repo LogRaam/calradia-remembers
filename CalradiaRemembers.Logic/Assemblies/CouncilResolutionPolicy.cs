@@ -29,6 +29,29 @@ namespace CalradiaRemembers.Logic.Assemblies
         public const string WithdrawKind = "withdraw";
 
         /// <summary>
+        ///   The one action verb whose effect is PERCEPTION rather than a world transfer: how the NPC regards
+        ///   the player. Ratified 2026-07-24: at a council, this alone executes on the spot, because a lord you
+        ///   anger IS angrier at once, and that shift must colour how he weighs every request for the rest of
+        ///   the sitting. World deeds (gold, troops, prisoners, marriage, schemes, missions) are NOT sealed at
+        ///   the table: they are commitments recorded as [RESOLUTION] and carried out only when the council
+        ///   rises. Held here, in the pure layer, so <see cref="ExecutesImmediatelyAtCouncil" /> is the single
+        ///   testable authority the bridge and any future caller both defer to.
+        /// </summary>
+        public const string PerceptionActionType = "change_relation";
+
+        /// <summary>
+        ///   True when an action verb the model emitted during a COUNCIL turn should execute immediately rather
+        ///   than being deferred to the lift. Only the perception verb (<see cref="PerceptionActionType" />)
+        ///   qualifies: feelings are real and immediate, deeds are promises for later. Everything else returns
+        ///   false, so the bridge drops it from immediate dispatch at a council and lets the [RESOLUTION]
+        ///   channel be the only way a real deed is committed there. Case-insensitive; a null/blank type is not
+        ///   immediate (nothing to run).
+        /// </summary>
+        public static bool ExecutesImmediatelyAtCouncil(string actionType)
+            => !string.IsNullOrWhiteSpace(actionType)
+               && string.Equals(actionType.Trim(), PerceptionActionType, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
         ///   True when a new resolution of <paramref name="kind" /> may be recorded for a member already
         ///   carrying <paramref name="existingForActor" />. False only when one of their existing entries is
         ///   the SAME kind and still provisional (not yet withdrawn or committed): a second pledge on top of a

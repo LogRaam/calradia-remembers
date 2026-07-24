@@ -2,6 +2,7 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
@@ -157,6 +158,92 @@ namespace CalradiaRemembers
             }), true);
 
          return $"{rival.Name} challenges you over {lady.Name}. Answer the inquiry.";
+      }
+
+      /// <summary>
+      ///   cr.duel_arm [name] [npc|player]
+      ///   Arms <see cref="DuelCoordinator" /> directly, the same way the chat handler does, without going
+      ///   through the LLM: stages a duel against the named lord (or the conversation NPC, or any nearby lord)
+      ///   once you close whatever window is open and no mission is running. The VENUE is resolved from where
+      ///   you stand, exactly as the real path resolves it: inside a town it stages in the town centre, on the
+      ///   open map it stages a wilderness field, and at sea it refuses. The second argument
+      ///   picks who issued the challenge: "npc" (the default) means the NPC called YOU out, so once the map is
+      ///   live you are shown the accept/refuse inquiry; "player" means you called them out and they have
+      ///   already accepted (the chat's own acceptance policy already ran), so the duel launches with no prompt.
+      ///   Close any window and watch: this is how the coordinator's deferred launch and the inquiry path are
+      ///   tested without a live LLM turn.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("duel_arm", "cr")]
+      public static string ForceDuelArm(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         var nameTokens = args != null ? new List<string>(args) : new List<string>();
+         bool npcIssuedChallenge = true;
+
+         if (nameTokens.Count > 0)
+         {
+            string last = nameTokens[nameTokens.Count - 1];
+            if (string.Equals(last, "player", StringComparison.OrdinalIgnoreCase))
+            {
+               npcIssuedChallenge = false;
+               nameTokens.RemoveAt(nameTokens.Count - 1);
+            }
+            else if (string.Equals(last, "npc", StringComparison.OrdinalIgnoreCase))
+               nameTokens.RemoveAt(nameTokens.Count - 1);
+         }
+
+         Hero opponent = ResolveHero(nameTokens)
+                      ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.IsAlive && !h.IsPrisoner);
+
+         if (opponent == null) return "No living lord found to duel.";
+
+         // Resolved from where the player stands, so the command exercises the SAME venue choice the chat does
+         // rather than a hard-coded one (a town-only bug would otherwise never show up here).
+         DuelVenue venue = Settlement.CurrentSettlement is {IsTown: true}
+            ? DuelVenue.TownGates
+            : Settlement.CurrentSettlement != null
+               ? DuelVenue.NotNow
+               : DuelVenue.Wilderness;
+
+         if (!DuelStagingSupport.CanStage(venue))
+            return "No duel can be staged where you stand (a village or castle has no scene for it; leave to the open map or enter a town).";
+
+         DuelCoordinator.Arm(opponent, DuelReason.HonourAffront, venue, npcIssuedChallenge, 0, null);
+
+         return $"Armed a {venue} duel against {opponent.Name} " +
+                $"({(npcIssuedChallenge ? "NPC issued: answer the inquiry" : "player issued: launches directly")}). " +
+                "Close any window and watch.";
+      }
+
+      /// <summary>
+      ///   cr.duel_town [name]
+      ///   Stages the TOWN duel directly, bypassing <see cref="DuelCoordinator" /> entirely: stand inside a town
+      ///   (on the town menu, not in a scene) and this opens the town-centre scene, injects the named lord among
+      ///   the crowd, and starts the non-lethal duel. Use it to isolate the SCENE staging (does he spawn, does
+      ///   the fight start, does the knockout return you to the town) from the deferral and the inquiry, which
+      ///   cr.duel_arm covers. Watch the log for the "[DUEL] injected" and "[DUEL] town duel started" lines.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("duel_town", "cr")]
+      public static string ForceTownDuel(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         if (Settlement.CurrentSettlement is not {IsTown: true})
+            return "You must be inside a TOWN (a village or castle has no town-centre scene to duel in).";
+
+         Hero opponent = ResolveHero(args)
+                      ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.IsAlive && !h.IsPrisoner);
+
+         if (opponent == null) return "No living lord found to duel.";
+
+         return TownDuelBehavior.Arm(opponent, playerWon =>
+         {
+            DuelOutcomeApplier.Apply(DuelReason.HonourAffront, playerWon, opponent, null, witnessCount: 0);
+            InformationManager.DisplayMessage(new InformationMessage(playerWon
+               ? $"You bested {opponent.Name} in the streets."
+               : $"{opponent.Name} bested you in the streets."));
+         });
       }
 
       /// <summary>

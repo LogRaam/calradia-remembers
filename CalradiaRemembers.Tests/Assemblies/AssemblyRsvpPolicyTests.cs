@@ -43,6 +43,19 @@ namespace CalradiaRemembers.Tests.Assemblies
             o.Reason.Should().Be(RsvpReason.Accepted);
         }
 
+        // The crossed case the shortcut used to swallow (council audit M3): the file header promises
+        // "availability gates first", but the companion shortcut sat ABOVE it, so a companion who is dead or
+        // captured "attended". A companion becomes unavailable in ordinary play (downed in the party's own
+        // battle, captured out of it), so availability must win over the shortcut, not the reverse. This test
+        // is the one the old suite never crossed: companion AND unavailable together.
+        [Test]
+        public void GIVEN_a_companion_who_is_dead_or_captured_WHEN_deciding_THEN_availability_wins_over_the_shortcut()
+        {
+            Decide(Facts(companion: true, alive: false)).Reason.Should().Be(RsvpReason.DeclinedUnavailable);
+            Decide(Facts(companion: true, prisoner: true)).Reason.Should().Be(RsvpReason.DeclinedUnavailable);
+            Decide(Facts(companion: true, occupied: true)).Reason.Should().Be(RsvpReason.DeclinedUnavailable);
+        }
+
         // ── Availability ────────────────────────────────────────────────────
 
         // The core design constraint: a player cannot magically summon everyone. A dead invitee is the most

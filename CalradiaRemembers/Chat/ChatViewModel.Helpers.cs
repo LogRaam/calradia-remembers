@@ -9,10 +9,13 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Duels;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Quests;
+using CalradiaRemembers.Stance;
 using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -785,6 +788,130 @@ namespace CalradiaRemembers.Chat
          IsPleaseContinueVisible = true;
          OnPropertyChanged(nameof(IsOfferItemVisible));
          AppendSystemMessage(freed ? $"{profile?.Name} has set you free." : $"{profile?.Name} has ended the conversation.", false);
+      }
+
+      /// <summary>
+      ///   Resolves a duel called for in conversation. The prompt forbids the NPC from answering its own
+      ///   challenge (it stops at the words), so everything after them is settled here: eligibility is
+      ///   re-validated against the LIVE facts, and when the PLAYER is the one calling the NPC out,
+      ///   <see cref="DuelAcceptancePolicy" /> weighs whether they take the field, from their honour, valour,
+      ///   fear and grudges. Nothing is staged from inside the chat window: a mission cannot open over it, so
+      ///   the fight is ARMED and <see cref="DuelCoordinator" /> opens it once the chat has closed, exactly as
+      ///   the captive escape does.
+      /// </summary>
+      private void ResolveDuelChallenge(
+         ChatMessageViewModel placeholder,
+         ChatSpeaker speaker,
+         NpcProfile profile,
+         string npcLine,
+         ParsedResponse response)
+      {
+         // The challenge itself was spoken: show it whatever comes of it. Narration keeps its emitted order,
+         // as in every other resolver here.
+         bool narrationFirst = response?.NarrationBeforeDialogue == true && !string.IsNullOrWhiteSpace(response.Narration);
+         if (narrationFirst)
+            AppendNarration(response.Narration, placeholder);
+         ReplacePlaceholder(placeholder, npcLine, speaker);
+         RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
+         StoryLog.WriteNpcLine(speaker.Name, npcLine);
+         if (!narrationFirst && !string.IsNullOrWhiteSpace(response?.Narration))
+            AppendNarration(response.Narration);
+
+         Hero opponent = speaker.Hero;
+
+         // The prompt is advice, the bridge is law. The verb was taught from a context built at the START of
+         // the turn, and a model can reach for it several turns later, by which time the two may have moved
+         // apart, one may have been taken prisoner, or the cooldown may have closed. An inadmissible challenge
+         // is ABSORBED by the fiction (the words stand, nothing is armed, the conversation carries on) rather
+         // than contradicted with a system line the player would read as a bug.
+         if (!DuelEligibilityResolver.CanDuelNow(opponent, profile, out DuelVenue venue))
+         {
+            IsSendEnabled = !_conversationEnded;
+            ModLog.Info($"[DUEL] {speaker.Name} called for steel, but the duel is no longer admissible at commit time; nothing armed.");
+
+            return;
+         }
+
+         bool playerIssued = ChallengerIsPlayer(response);
+
+         // The player called them out, so the NPC's answer is the policy's, not the model's. An NPC who balks
+         // does not simply go quiet: the refusal is a deed, it costs them (contempt, and renown to the player
+         // who called a bluff), and the conversation carries on from there.
+         if (playerIssued
+             && DuelAcceptancePolicy.Decide(new DuelAcceptanceContext {
+                Traits = GrudgeBridge.BuildTraitFacts(opponent),
+                Stance = StanceService.ToStance(profile),
+                AGrudgeDrivesIt = HasLiveGrudge(opponent),
+                ChallengedBeforeWitnesses = _witnesses.Count > 0
+             }) == DuelResponse.Refuse)
+         {
+            // Recorded as scene narration rather than a bare system line, so it enters the transcript and the
+            // NPC's very next reply is spoken by someone who knows they refused.
+            AppendNarration($"{profile?.Name ?? speaker.Name} lets the challenge hang, and will not take it up.");
+            DuelOutcomeApplier.Apply(DuelReason.HonourAffront, DuelResolution.NpcForfeited, opponent, null, _witnesses.Count);
+            IsSendEnabled = !_conversationEnded;
+            ModLog.Info($"[DUEL] {speaker.Name} refused the player's challenge (acceptance score below the threshold).");
+
+            return;
+         }
+
+         DuelCoordinator.Arm(opponent, DuelReason.HonourAffront, venue, !playerIssued, _witnesses.Count, null);
+
+         // Same deliberate transition as the escape: lock the input and leave only the close button. Clicking
+         // it closes the chat, and the coordinator stages the duel on the next tick, on the live map.
+         _conversationEnded = true;
+         _sceneContinuations = 0;
+         IsScenePaused = false;
+         IsPrivateRequestVisible = false;
+         IsPleaseContinueVisible = false;
+         IsSendEnabled = false;
+         CloseButtonText = playerIssued ? "Take the field" : "Answer him";
+         OnPropertyChanged(nameof(IsOfferItemVisible));
+         AppendSystemMessage(playerIssued
+            ? $"{profile?.Name ?? speaker.Name} takes up your challenge."
+            : $"{profile?.Name ?? speaker.Name} demands satisfaction of you.", false);
+         ModLog.Info($"[DUEL] armed from chat against {speaker.Name}: venue={venue}, "
+                   + $"challenger={(playerIssued ? "player" : "npc")}, {_witnesses.Count} witness(es).");
+      }
+
+      /// <summary>
+      ///   Who called for the duel, read from the action's "challenger" field. A missing or unrecognised value
+      ///   must fail SAFE, and the safe side is the NPC: treating an unknown challenger as the NPC's own demand
+      ///   only costs the player an answer they were going to give anyway, whereas guessing "player" would run
+      ///   the acceptance policy against an NPC who has ALREADY demanded satisfaction, and could have them balk
+      ///   at their own challenge.
+      /// </summary>
+      private static bool ChallengerIsPlayer(ParsedResponse response)
+      {
+         if (response?.Actions == null) return false;
+
+         foreach (GameAction action in response.Actions)
+         {
+            if (!string.Equals(action?.Type, "challenge_duel", StringComparison.OrdinalIgnoreCase)) continue;
+            if (action.Parameters == null
+                || !action.Parameters.TryGetValue("challenger", out string who)
+                || string.IsNullOrWhiteSpace(who))
+               return false;
+
+            return who.Trim().StartsWith("player", StringComparison.OrdinalIgnoreCase)
+                || who.Trim().StartsWith("them", StringComparison.OrdinalIgnoreCase);
+         }
+
+         return false;
+      }
+
+      /// <summary>
+      ///   True when this hero carries a live grudge against the player, the single strongest pull toward the
+      ///   field in <see cref="DuelAcceptancePolicy" /> (an honourable outlet for a grievance words have not
+      ///   settled). Same ranked source the prompt's own grudge note reads.
+      /// </summary>
+      private static bool HasLiveGrudge(Hero hero)
+      {
+         if (hero == null) return false;
+
+         var today = (int) CampaignTime.Now.ToDays;
+
+         return (GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today)?.Count ?? 0) > 0;
       }
 
       /// <summary>

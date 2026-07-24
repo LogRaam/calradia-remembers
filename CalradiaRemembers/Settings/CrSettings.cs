@@ -75,7 +75,9 @@ namespace CalradiaRemembers.Settings
 
       [SettingPropertyBool("Companion contentment", RequireRestart = false, Order = 0,
          HintText = "When ON, a neglected companion grows restless, asks for an audience, and if you keep refusing " +
-                    "it, eventually leaves by letter (never silently). OFF disables the system entirely.")]
+                    "it, eventually leaves by letter (never silently). Also gates the occasional found-topic " +
+                    "audience (a mission report, a party grudge, practical counsel, an old memory, or news of " +
+                    "the world). OFF disables both entirely.")]
       [SettingPropertyGroup("Companions", GroupOrder = 6)]
       public bool CompanionContentment { get; set; } = true;
 
