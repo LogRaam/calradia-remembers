@@ -1015,6 +1015,11 @@ namespace CalradiaRemembers.Chat
          // The table opens itself: the player called this council, so the anchor acknowledges the summons and
          // the room settles. A synthetic cue, never shown or logged as a player line.
          string opener = scope switch {
+            CouncilScope.Assembly =>
+               "[The player has convened an ASSEMBLY and you have answered the summons: lords, kin, companions, and " +
+               "envoys speaking for those who could not come in person are gathered in the hall at the player's word. " +
+               "Open the gathering yourself, briefly, in your own voice: acknowledge the summons and ask what matter the " +
+               "player lays before the assembly. The others are present and listening, each with their own standing and stake.]",
             CouncilScope.Family =>
                "[The player has called their own household together: you and their closest kin are gathered at their " +
                "word. Open the meeting yourself, briefly, in your own voice: acknowledge that they have summoned the " +

@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.Logic.Assemblies;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.GameMenus;
@@ -44,7 +45,9 @@ namespace CalradiaRemembers.Assemblies
             {
                 starter.AddGameMenuOption(menu, "cr_assembly_summon", "Summon an assembly",
                     SummonCondition, SummonConsequence);
-                starter.AddGameMenuOption(menu, "cr_assembly_status", "Attend the gathering assembly",
+                starter.AddGameMenuOption(menu, "cr_assembly_open", "Open the assembly",
+                    OpenCondition, OpenConsequence);
+                starter.AddGameMenuOption(menu, "cr_assembly_status", "The gathering assembly",
                     StatusCondition, StatusConsequence);
             }
         }
@@ -116,6 +119,21 @@ namespace CalradiaRemembers.Assemblies
             RefreshMenu(host);
         }
 
+        private static bool OpenCondition(MenuCallbackArgs args)
+        {
+            args.optionLeaveType = GameMenuOption.LeaveType.Conversation;
+
+            return HostedHere() && HasArrivals();
+        }
+
+        private static void OpenConsequence(MenuCallbackArgs args)
+        {
+            string result = ChatManager.OpenForAssembly();
+
+            // OpenForAssembly pushes the chat layer on success; if it could not (no arrivals, no window), surface why.
+            if (!ChatManager.IsOpen) MBInformationManager.AddQuickInformation(new TextObject(result));
+        }
+
         private static bool StatusCondition(MenuCallbackArgs args)
         {
             args.optionLeaveType = GameMenuOption.LeaveType.Submenu;
@@ -174,6 +192,11 @@ namespace CalradiaRemembers.Assemblies
 
             return b?.HasActiveAssembly == true && b.Pending?.HostSettlementId == Settlement.CurrentSettlement?.StringId;
         }
+
+        /// <summary>True when at least one invitee has reached the hall in person or sent an envoy: there is a table to open.</summary>
+        private static bool HasArrivals()
+            => AssemblyBehavior.Instance?.Pending?.Invitees?.Any(
+                i => i.Status == AssemblyInviteeStatus.Present || i.Status == AssemblyInviteeStatus.Ambassador) == true;
 
         /// <summary>The heroes worth offering in the picker: your companions, your clan, and lords you already know.</summary>
         private static IEnumerable<Hero> InvitableHeroes()

@@ -11,6 +11,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Services;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -443,6 +444,83 @@ namespace CalradiaRemembers.Chat
             CouncilScope.ClanLords => "a lord of the player's clan, seated at this council",
             _ => "a companion in the player's service, seated at this council"
          };
+
+      /// <summary>
+      ///   Opens a convened ASSEMBLY as a round-table council over whoever actually reached the hall: the Present
+      ///   participants sit in person, and each Ambassador seat speaks as an envoy for a lord who could not come.
+      ///   The anchor who opens the floor is drawn from those present, on the mod's own regard ledger. A profile
+      ///   is created for any seated hero the player has not met, so the anchor and every reaction resolve.
+      /// </summary>
+      public static string OpenForAssembly()
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (behavior == null) return "No campaign is running.";
+
+         AssemblyRecord pending = AssemblyBehavior.Instance?.Pending;
+
+         if (pending == null) return "No assembly is convened.";
+
+         List<Hero> present = SeatedByStatus(pending, AssemblyInviteeStatus.Present, behavior);
+         List<Hero> envoys = SeatedByStatus(pending, AssemblyInviteeStatus.Ambassador, behavior);
+
+         if (present.Count == 0 && envoys.Count == 0)
+            return "No one has reached the assembly yet, and no envoys have come. Wait for them, or stand it down.";
+
+         List<Hero> anchorPool = present.Count > 0
+            ? present
+            : envoys;
+         var facts = anchorPool
+                    .Select(h => new CouncilSeatFacts(h.StringId, behavior.Store.Get(h.StringId)?.ReputationWithPlayer ?? 0))
+                    .ToList();
+         int anchorIndex = CouncilAnchorPolicy.SelectAnchor(facts);
+         Hero anchor = anchorIndex >= 0
+            ? anchorPool[anchorIndex]
+            : anchorPool[0];
+
+         Open(anchor.Name?.ToString());
+
+         if (ActiveViewModel == null) return "The chat window could not be opened.";
+         ActiveViewModel.SetNpcHero(anchor);
+
+         foreach (Hero member in present.Where(h => h != anchor))
+            ActiveViewModel.AddWitness(new WitnessEntry {
+               Name = member.Name?.ToString(),
+               HeroStringId = member.StringId,
+               IsPlayerCompanion = member.IsPlayerCompanion,
+               RelationToNpc = "seated at the player's assembly, present in person"
+            });
+
+         foreach (Hero lord in envoys.Where(h => h != anchor))
+            ActiveViewModel.AddWitness(new WitnessEntry {
+               Name = lord.Name?.ToString(),
+               HeroStringId = lord.StringId,
+               IsPlayerCompanion = false,
+               RelationToNpc = $"an envoy speaking in the name of {lord.Name}, who could not attend in person"
+            });
+
+         ActiveViewModel.ActivateCouncil(CouncilScope.Assembly);
+         ModLog.Info($"[ASSEMBLY] opened as a council: {present.Count} present, {envoys.Count} by envoy, anchor {anchor.Name}.");
+
+         return $"The assembly opens: {present.Count} present, {envoys.Count} by envoy. {anchor.Name} takes the floor.";
+      }
+
+      /// <summary>The living heroes on the roster with this status, each guaranteed a memory profile.</summary>
+      private static List<Hero> SeatedByStatus(AssemblyRecord pending, AssemblyInviteeStatus status, NpcMemoryCampaignBehavior behavior)
+      {
+         var list = new List<Hero>();
+
+         foreach (AssemblyInviteeRecord inv in pending.Invitees.Where(i => i.Status == status))
+         {
+            Hero h = Hero.FindFirst(x => x.StringId == inv.HeroId);
+
+            if (h == null || !h.IsAlive) continue;
+            if (behavior.Store.Get(h.StringId) == null) behavior.Store.Set(HeroProfileMapper.FromHero(h));
+            list.Add(h);
+         }
+
+         return list;
+      }
 
       /// <summary>
       ///   Requests the chat to scroll to its newest message on the next frame.

@@ -37,7 +37,10 @@ namespace CalradiaRemembers.Logic.Assemblies
         Family,
 
         /// <summary>Every hero-lord who belongs to the player's clan.</summary>
-        ClanLords
+        ClanLords,
+
+        /// <summary>A convened ASSEMBLY: a mixed roster of whoever answered the summons and reached the hall (or sent an envoy), not one house.</summary>
+        Assembly
     }
 
     /// <summary>
