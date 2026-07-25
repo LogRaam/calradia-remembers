@@ -212,6 +212,13 @@ namespace CalradiaRemembers.Chat
       // SceneFocusSelector never repeats the same driving focus two rounds running. -1 = no prior round.
       private int _lastSceneFocusIndex = -1;
 
+      // AUDIT-CAPTIVE-STYLE T1/T2 (2026-07-24): this scene's writing lens, and the last lens drawn. The last
+      // index is STATIC on purpose (unlike the per-scene focus reset): it survives across captive scenes within
+      // a play session, so two consecutive scenes are never told through the same lens (the reported cross-scene
+      // sameness). Session-only, resets on relaunch, which is a graceful degradation not a correctness need.
+      private static int _lastCaptiveStyleIndex = -1;
+      private string _captiveSceneStyle;
+
       // The driving focus STRING of the current captive round, carried into every turn's context so it
       // governs the whole scene (B, Gabriel 2026-07-19), not just the opener that first named it.
       private string _captiveSceneFocus;
@@ -901,6 +908,10 @@ namespace CalradiaRemembers.Chat
          bool nonSexual = !CaptiveSceneIntentRules.IsSexual(intent);
          _lastSceneFocusIndex = -1; // a fresh scene resets the avoid-repeat memory
          _captiveSceneFocus = null;
+         // The writing lens (T1) is drawn for EVERY captive scene, sexual or not (a non-sexual reckoning or
+         // menace scene converges in prose just the same); its last index is static, so this scene never
+         // repeats the previous one's lens.
+         _captiveSceneStyle = CaptiveSceneText.PickStyleRegister(ref _lastCaptiveStyleIndex);
          string setup = nonSexual
             ? ""
             : CaptiveSceneText.BuildSceneSetup(intent, ref _lastSceneFocusIndex, out _captiveSceneFocus);
@@ -934,6 +945,9 @@ namespace CalradiaRemembers.Chat
          _captorScene = true;
          _captorSceneProfile = prisonerProfile;
          _captorSceneIntent = intent;
+         // Q5 (AUDIT-CAPTIVE-STYLE): a player-as-captor scene converges in prose just like a captive one, so it
+         // draws a writing lens too, never the same as the last scene's.
+         _captiveSceneStyle = CaptiveSceneText.PickStyleRegister(ref _lastCaptiveStyleIndex);
 
          TitleText = $"Calradia Remembers — {prisonerProfile?.Name ?? "your prisoner"}";
          CloseButtonText = "End";
@@ -1443,6 +1457,9 @@ namespace CalradiaRemembers.Chat
             or CaptiveSceneIntent.Extortion
             or CaptiveSceneIntent.Intimidation
             or CaptiveSceneIntent.Revenge;
+         // The resumed beat draws its own writing lens too (T1), so a scene that resumes after a lost escape
+         // is not told through whatever lens the last window happened to leave on the field.
+         _captiveSceneStyle = CaptiveSceneText.PickStyleRegister(ref _lastCaptiveStyleIndex);
          string resumeSetup = nonSexual
             ? ""
             : CaptiveSceneText.BuildResumeSetup(_captiveEncounterIntent, ref _lastSceneFocusIndex, out _captiveSceneFocus);

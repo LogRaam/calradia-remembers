@@ -23,8 +23,38 @@ namespace CalradiaRemembers.Chat
    /// <summary>Builds the opening and setting text for a captive scene. Stateless; one job: scene flavour text.</summary>
    public static class CaptiveSceneText
    {
+      // AUDIT-CAPTIVE-STYLE T1 (2026-07-24): the reported cross-scene lexical sameness came from an IDENTICAL
+      // system prompt each scene, so the model fell back on its most-probable phrasings ("sweet", "tendons of
+      // his neck"). These are contrasting WRITING LENSES, drawn once per scene: each prescribes an ANGLE (which
+      // senses, what sentence rhythm, how close the narration sits), NEVER a word list (a fixed vocabulary list
+      // is the very cause, see the audit's R2), so two scenes are told differently instead of reworded the same.
+      // Kept mod-side content like the focus pool; the pure avoid-repeat draw is SceneFocusSelector.PickIndex.
+      private static readonly string[] StyleRegisters = {
+         "cold and clinical: precise, unhurried observation, control shown through economy and detachment rather than heat, in spare exact sentences.",
+         "close and bodily: driven by the raw physical signals of the moment, in short visceral present-tense strokes.",
+         "verbal and unhurried: the menace carried by what is SAID, the captor's voice and silences; keep physical description sparse and let the words do the work.",
+         "measured and ritual: deliberate, almost ceremonious, as if each act were part of a rite, the dread in the slowness and the formality.",
+         "fragmented and reeling: broken, jolting sentences from the prisoner's frayed perception, coming in pieces with gaps and skips.",
+         "heard more than seen: rendered through sound and breath and the small noises of the place, low voices, the space between words.",
+         "hard and material: rendered through cold, texture, and the unyielding surfaces of the place, the world's indifference pressing in.",
+         "watched and cornered: distance, position, and the weight of being looked at, who stands where, the dread of the gaze more than of the touch."
+      };
+
+      /// <summary>
+      ///   Draws this scene's writing lens (AUDIT-CAPTIVE-STYLE T1), never the same one two scenes running
+      ///   (<paramref name="lastStyleIndex" /> carries the previous draw across scenes). Returns the register
+      ///   directive text for <see cref="NpcMemoryService.Core.Models.EncounterContext.CaptiveSceneStyle" />.
+      /// </summary>
+      public static string PickStyleRegister(ref int lastStyleIndex)
+      {
+         int index = SceneFocusSelector.PickIndex(StyleRegisters.Length, lastStyleIndex, MBRandom.RandomInt);
+         lastStyleIndex = index;
+
+         return StyleRegisters[index];
+      }
+
       private static readonly string[] CaptorStates = {
-         "half-drunk on stolen wine", "still bloodied from the fight that took them", "bored and itching for sport",
+         "half-drunk and loose-tongued", "still bloodied from the fight that took them", "bored and itching for sport",
          "counting the day's plunder", "in a foul mood after a lean, hungry week", "freshly woken and short-tempered",
          "flush with victory and generous with cruelty", "nursing a wound and meaner for it",
          "cold, unhurried, and entirely at ease", "restless and spoiling to break something"
@@ -90,7 +120,7 @@ namespace CalradiaRemembers.Chat
       // LLM's first response then cements it and the conversation history carries it forward.
       // These WILDERNESS locales are for a captivity on the road / in a camp (no holding settlement).
       private static readonly string[] SceneLocales = {
-         "at a muddy roadside camp", "in the mouth of a torchlit cave", "by the dying embers of a night fire",
+         "at a rough roadside camp", "in the mouth of a torchlit cave", "by the dying embers of a night fire",
          "in the shadow of a ruined watchtower", "at the edge of a reeking bog", "in the yard of a looted farmstead",
          "among the wagons of your raiding camp", "on a wind-scoured hilltop", "in a hollow thick with woodsmoke",
          "beside a cold forest stream", "in a half-collapsed barn", "at a ford strewn with old bones"

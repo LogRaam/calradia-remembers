@@ -499,7 +499,11 @@ namespace CalradiaRemembers.Services
       ///     Set to 0 to send nothing at all and restore the exact previous payload.
       ///   </para>
       /// </summary>
-      private const float ScenePresencePenalty = 0.3f;
+      // AUDIT-CAPTIVE-STYLE T5 (2026-07-24): raised 0.3 -> 0.5 to push harder against the model reusing its
+      // own recent tokens within a scene (completes AUDIT-PROMPTS-ADULTES P5.3). Not the temperature (raising
+      // that risks role incoherence). NOTE: a reasoning model (gpt-5*/o*) drops temperature AND penalty
+      // together (LlmParameterPolicy), so this only bites on ordinary sampled models.
+      private const float ScenePresencePenalty = 0.5f;
 
       private NpcChatService BuildChatService()
       {

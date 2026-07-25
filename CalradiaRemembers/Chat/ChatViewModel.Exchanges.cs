@@ -552,6 +552,9 @@ namespace CalradiaRemembers.Chat
                captiveSceneFocus: IsCaptiveEncounter
                   ? _captiveSceneFocus
                   : null,
+               // Passed whenever a scene drew a lens (captive, player-as-captor, or companion-victim); null on
+               // an ordinary chat where nothing set it (Q5: the lens is not gated to the captive-encounter path).
+               captiveSceneStyle: _captiveSceneStyle,
                companionAudience: _audienceReason,
                audienceRetirementIsLanded: _audienceLanded,
                // The scene has not been established yet, so this turn sets it (Gabriel 2026-07-19: an
@@ -1462,7 +1465,8 @@ namespace CalradiaRemembers.Chat
                   captiveVictimIsFemale: IsCaptiveEncounter && _captiveVictimIsFemale,
                   captiveSceneFocus: IsCaptiveEncounter
                      ? _captiveSceneFocus
-                     : null);
+                     : null,
+                  captiveSceneStyle: _captiveSceneStyle);
                // (15C witness exchange is gated off for captive scenes, so no stage is fed here.)
 
                ChatMessageViewModel placeholder = MakeSpeakerMessage(mainSpeaker, PlaceholderText);

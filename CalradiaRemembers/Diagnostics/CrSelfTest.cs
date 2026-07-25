@@ -41,6 +41,7 @@ using CalradiaRemembers.Stance;
 using CalradiaRemembers.Travel;
 using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
+using NpcMemoryService.Core.Captivity;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Services;
@@ -209,7 +210,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_captor_cnc_mf", Severity.Light, "LLM: CNC with a MALE captor and FEMALE prisoner (gender forced) -> in-character reactions?", TestChatCaptorCncMF, true, 3),
          new SelfTest("chat_captor_group", Severity.Light, "LLM: GROUP CNC — player + 2 companions vs a female prisoner -> does she react to being outnumbered?", TestChatCaptorGroup, true, 3),
          new SelfTest("chat_captive_continue", Severity.Light, "LLM: a captive scene OPENER + several Continue beats -> assert each beat advances, is described, and never repeats (the reported Continue-quality faults)", TestChatCaptiveContinue, true, 4),
-         new SelfTest("chat_companion_continue", Severity.Light, "LLM: a COMPANION-VICTIM scene OPENER + Continue beats -> assert the victim is voiced (own lines), correctly gendered, and beats don't repeat", TestChatCompanionContinue, true, 4)
+         new SelfTest("chat_companion_continue", Severity.Light, "LLM: a COMPANION-VICTIM scene OPENER + Continue beats -> assert the victim is voiced (own lines), correctly gendered, and beats don't repeat", TestChatCompanionContinue, true, 4),
+         new SelfTest("chat_captive_variety", Severity.Light, "LLM (T6): two scenes with the SAME captor + one with a DIFFERENT captor (fresh writing lens each) -> score cross-scene phrase reuse; logs the ratio + worst offenders, rejects only a gross echo regression", TestChatCaptiveVariety, true, 9)
       };
 
       /// <summary>The configured budget for the running test, in seconds, for the "timed out after Ns (budget Ns)" message.</summary>
@@ -831,7 +833,8 @@ namespace CalradiaRemembers.Diagnostics
          int continueBeats,
          string victimName = null,
          bool victimIsFemale = false,
-         IReadOnlyList<WitnessEntry> witnesses = null)
+         IReadOnlyList<WitnessEntry> witnesses = null,
+         string captiveSceneStyle = null)
       {
          var session = new ChatSession();
          var director = new CaptiveSceneDirector(false, 0, MBRandomSource.Instance, false, intent);
@@ -842,7 +845,7 @@ namespace CalradiaRemembers.Diagnostics
          string opener = CaptiveSceneText.BuildCaptiveOpener(false, intent) + CaptiveSceneText.BuildSceneSetup(intent, ref lastFocusIndex);
 
          if (!RunOneCaptiveBeat(behavior, $"{label}/open", npc, profile, intent, director, opener, session, beats,
-                victimName, victimIsFemale, witnesses))
+                victimName, victimIsFemale, witnesses, captiveSceneStyle))
             return (false, beats);
 
          // Continue beats — advance the director and send the shared continuation stimulus, mirroring
@@ -853,7 +856,7 @@ namespace CalradiaRemembers.Diagnostics
             string stimulus = CaptiveSceneText.BuildContinuationStimulus();
 
             if (!RunOneCaptiveBeat(behavior, $"{label}/cont{i + 1}", npc, profile, intent, director, stimulus, session, beats,
-                   victimName, victimIsFemale, witnesses))
+                   victimName, victimIsFemale, witnesses, captiveSceneStyle))
                return (false, beats);
 
             if (director.IsConcluding) break;
@@ -984,7 +987,8 @@ namespace CalradiaRemembers.Diagnostics
          List<ParsedResponse> beats,
          string victimName,
          bool victimIsFemale,
-         IReadOnlyList<WitnessEntry> witnesses)
+         IReadOnlyList<WitnessEntry> witnesses,
+         string captiveSceneStyle = null)
       {
          EncounterContext ctx = EncounterContextBuilder.Build(
             npc, profile, behavior.GameStateBridge, stimulus,
@@ -995,7 +999,8 @@ namespace CalradiaRemembers.Diagnostics
             sceneStage: director.CurrentStage,
             aggressorKind: director.CurrentAggressor,
             captiveVictimName: victimName,
-            captiveVictimIsFemale: victimIsFemale);
+            captiveVictimIsFemale: victimIsFemale,
+            captiveSceneStyle: captiveSceneStyle);
 
          var (ok, resp, err) = AskLlmParsed(behavior, label, npc, profile, ctx, stimulus, session);
          if (!ok)
@@ -1659,6 +1664,80 @@ namespace CalradiaRemembers.Diagnostics
 
          return t.Line();
       }
+
+      /// <summary>
+      ///   AUDIT-CAPTIVE-STYLE T6: the INTER-scene variety measure. TestChatCaptiveContinue judges repetition
+      ///   WITHIN one scene; this judges the reported fault ACROSS scenes (the same distinctive phrasings, "sweet",
+      ///   "the tendons of his neck", turning up scene after scene). It plays two full scenes with the SAME captor
+      ///   and, when a second lord is free, one with a DIFFERENT captor, drawing a fresh writing lens (T1) per
+      ///   scene exactly as the runtime does, then scores cross-scene phrase reuse with the pure SceneVarietyMeasure.
+      ///   The number is the point: without it T1/T3/T4 are unfalsifiable. Leads with the score and the worst
+      ///   offenders for human judgement, and rejects only a gross echo regression (the ceiling is a TUNE floor).
+      /// </summary>
+      private static string TestChatCaptiveVariety(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("chat_captive_variety");
+
+         if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC to play the captor")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         ArrangeCleanNpc(behavior, profile, npc);
+
+         var scenes = new List<string>();
+         var lastStyle = -1;
+
+         // Two scenes, SAME captor: this is where echo bites hardest, because the reinjected memory and one
+         // captor's voice pull toward the same phrasings. A fresh lens is drawn per scene (T1) so the test
+         // exercises the actual fix, not a byte-identical prompt.
+         for (var scene = 0; scene < 2; scene++)
+         {
+            string style = CaptiveSceneText.PickStyleRegister(ref lastStyle);
+            var (ran, beats) = RunCaptiveContinueBeats(
+               behavior, $"chat_captive_variety/same{scene + 1}", npc, profile, CaptiveSceneIntent.Domination, 2,
+               captiveSceneStyle: style);
+
+            if (t.Abort(!ran, "LLM call failed")) return t.Line();
+
+            scenes.Add(SceneProse(beats));
+         }
+
+         // One scene, DIFFERENT captor, when a second free lord exists: the metric wants both the same-captor
+         // and the cross-captor dimension. Optional so the test still runs on a sparse campaign.
+         Hero other = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h != npc && h.IsLord && h.IsAlive);
+         if (other != null)
+         {
+            NpcProfile otherProfile = GetOrCreate(behavior, other);
+            ArrangeCleanNpc(behavior, otherProfile, other);
+            string style = CaptiveSceneText.PickStyleRegister(ref lastStyle);
+            var (ran, beats) = RunCaptiveContinueBeats(
+               behavior, "chat_captive_variety/other", other, otherProfile, CaptiveSceneIntent.Domination, 2,
+               captiveSceneStyle: style);
+
+            if (ran) scenes.Add(SceneProse(beats));
+         }
+
+         if (t.Abort(scenes.Count < 2, "fewer than two scenes generated")) return t.Line();
+
+         SceneVarietyReport report = SceneVarietyMeasure.Measure(scenes);
+         string worst = string.Join(" | ", report.WorstOffenders(5).Select(p => $"\"{p.Phrase}\" x{p.SceneCount}"));
+
+         t.Note($"{scenes.Count} scenes, {report.NGramSize}-word phrases: crossSceneReuse={report.CrossSceneReuseCount}/" +
+                $"{report.DistinctPhraseCount} distinct (ratio={report.ReuseRatio:F3}). Worst: {(worst.Length > 0 ? worst : "none")}");
+         // TUNE 2026-07-24: no live-calibrated number yet, so the ceiling only catches a GROSS regression (two
+         // near-identical scenes). The real signal is the logged ratio + worst offenders; tighten once a few
+         // clean runs establish the normal band.
+         t.Expect("crossSceneReuseUnderCeiling", report.ReuseRatio <= 0.35, true);
+
+         return t.Line();
+      }
+
+      /// <summary>One scene's full prose (every beat's dialogue + narration), for cross-scene variety scoring.</summary>
+      private static string SceneProse(List<ParsedResponse> beats)
+         => string.Join(" ", beats.Select(b => $"{b?.Dialogue} {b?.Narration}"));
 
       /// <summary>
       ///   CONTRAST: the same scene on a CRAVEN prisoner (Trait overridden) — should crack/plead far sooner than a proud
