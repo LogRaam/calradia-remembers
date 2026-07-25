@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Appreciations;
+using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
@@ -23,6 +24,7 @@ using CalradiaRemembers.Interception;
 using CalradiaRemembers.Items;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Logic.Grudges;
@@ -203,6 +205,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("captive_fear_coerced", Severity.Light, "Mechanical: a terrified captive (high Fear) trips the freedom-bargain coercion flag, a fearless one does not (Fear-1 wiring)", TestCaptiveFearCoerced),
          new SelfTest("party_troop_count", Severity.Light, "Mechanical: a companion in the player's party sees the real troop count in context (no more hallucinated army size); skips if the player has no party companion", TestPartyTroopCount),
          new SelfTest("nemesis_mint", Severity.Light, "Mechanical: minting a nemesis creates a persistent Hero WITH a memory profile (the 'no memory' bug fixed), reuses him in-region, mints a distinct one per region; PLANTS test nemeses (reload after)", TestNemesisMint),
+         new SelfTest("assembly_convene", Severity.Light, "Mechanical (ASSEMBLY Inc 1): arranges a host town + live lords with a seeded regard, convenes through the real facts-builder + RSVP policy, asserts the regard read-back + roster + tally, then cancels and restores (no manual in-game setup needed)", TestAssemblyConvene),
          new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate),
          new SelfTest("chat_captor_break", Severity.Light, "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?", TestChatCaptorBreak, true, 3),
          new SelfTest("chat_captor_torture", Severity.Light, "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?", TestChatCaptorTorture, true, 3),
@@ -1791,6 +1794,80 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"resolved={resolved}; summary now: \"{Show(evt?.summary)}\" (judge: does it keep the plan to gather intel and report back today?)");
          t.Expect("jobResolved", resolved, true);
          t.Expect("baseEventEnriched", enriched, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   ASSEMBLY Inc 1: convene an assembly through the real seam WITHOUT any manual in-game setup. Arranges
+      ///   its own prerequisites (a host town, a handful of live lords, a seeded regard), then drives exactly the
+      ///   path the console command does: AssemblyInvitationFactsBuilder reads each hero, AssemblyRsvpPolicy
+      ///   decides, AssemblyBehavior records the roster. Asserts the load-bearing invariants: the facts-builder
+      ///   reads the seeded PERSONAL regard back (the player-summoner ledger seam), the whole roster is recorded,
+      ///   and the progress tally sums to it. Then stands the assembly down and restores the seeded regard, so the
+      ///   sweep leaves no trace. Mechanical (no LLM): the RSVP verdicts depend on the live world, so they are
+      ///   logged for judgement, not hard-asserted.
+      /// </summary>
+      private static string TestAssemblyConvene(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("assembly_convene");
+
+         if (t.Abort(AssemblyBehavior.Instance == null, "assembly system not active (load a campaign first)")) return t.Line();
+
+         Hero player = Hero.MainHero;
+         if (t.Abort(player == null, "no player hero")) return t.Line();
+
+         Settlement host = Settlement.All?.FirstOrDefault(s => s.IsTown);
+         if (t.Abort(host == null, "no town found to host an assembly")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes
+                                .Where(h => h != null && h != player && h.IsLord && !h.IsPrisoner)
+                                .Take(3)
+                                .ToList();
+         if (t.Abort(lords.Count == 0, "no alive lord to invite")) return t.Line();
+
+         // Deterministic regard seam: seed a known PERSONAL regard on one lord and prove the facts-builder reads
+         // it back (a player summoner must weigh the mod's own ledger, never the vanilla clan relation).
+         Hero probe = lords[0];
+         NpcProfile probeProfile = GetOrCreate(behavior, probe);
+         int originalRegard = probeProfile.ReputationWithPlayer;
+         probeProfile.ReputationWithPlayer = 42;
+         behavior.Store.Set(probeProfile);
+
+         AssemblyInvitationFacts probeFacts = AssemblyInvitationFactsBuilder.Build(probe, host, player);
+         t.Expect("builderReadsSeededRegard", probeFacts.RegardToInitiator, 42);
+         t.Expect("liveHeroReadsAlive", probeFacts.IsAlive, true);
+
+         int today = behavior.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
+         AssemblyBehavior.Instance.Begin(host.StringId, player.StringId, today, today + 7, lords.Select(h => h.StringId));
+
+         var decisions = new List<string>();
+         foreach (Hero h in lords)
+         {
+            AssemblyInvitationFacts facts = AssemblyInvitationFactsBuilder.Build(h, host, player);
+            RsvpOutcome rsvp = AssemblyRsvpPolicy.Decide(facts);
+            AssemblyInviteeStatus status = rsvp.Decision == RsvpDecision.Decline
+               ? AssemblyInviteeStatus.Declined
+               : facts.IsCompanionOfInitiator
+                  ? AssemblyInviteeStatus.Present
+                  : AssemblyInviteeStatus.EnRoute;
+            AssemblyBehavior.Instance.SetStatus(h.StringId, status);
+            decisions.Add($"{h.Name}:{rsvp.Decision}/{status}[regard {facts.RegardToInitiator},tier {facts.DistanceTier}]");
+         }
+
+         AssemblyProgress progress = AssemblyBehavior.Instance.Progress();
+         t.Note($"host={host.Name}; {string.Join(" | ", decisions)}; " +
+                $"present={progress.Present} enroute={progress.InTransit} declined={progress.Declined} awaiting={progress.Awaiting} of {progress.Total}");
+
+         t.Expect("rosterRecorded", AssemblyBehavior.Instance.Pending?.Invitees?.Count ?? 0, lords.Count);
+         t.Expect("progressTotalMatchesRoster", progress.Total, lords.Count);
+         t.Expect("tallySumsToTotal", progress.Present + progress.InTransit + progress.Declined + progress.Awaiting, lords.Count);
+
+         // Cleanup: stand the assembly down and restore the probe's regard so the sweep leaves nothing behind.
+         AssemblyBehavior.Instance.Cancel();
+         probeProfile.ReputationWithPlayer = originalRegard;
+         behavior.Store.Set(probeProfile);
+         t.Expect("cancelClearsAssembly", AssemblyBehavior.Instance.HasActiveAssembly, false);
 
          return t.Line();
       }
