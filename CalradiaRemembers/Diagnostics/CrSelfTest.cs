@@ -211,7 +211,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_captor_group", Severity.Light, "LLM: GROUP CNC — player + 2 companions vs a female prisoner -> does she react to being outnumbered?", TestChatCaptorGroup, true, 3),
          new SelfTest("chat_captive_continue", Severity.Light, "LLM: a captive scene OPENER + several Continue beats -> assert each beat advances, is described, and never repeats (the reported Continue-quality faults)", TestChatCaptiveContinue, true, 4),
          new SelfTest("chat_companion_continue", Severity.Light, "LLM: a COMPANION-VICTIM scene OPENER + Continue beats -> assert the victim is voiced (own lines), correctly gendered, and beats don't repeat", TestChatCompanionContinue, true, 4),
-         new SelfTest("chat_captive_variety", Severity.Light, "LLM (T6): two scenes with the SAME captor + one with a DIFFERENT captor (fresh writing lens each) -> score cross-scene phrase reuse; logs the ratio + worst offenders, rejects only a gross echo regression", TestChatCaptiveVariety, true, 9)
+         new SelfTest("chat_captive_variety", Severity.Light, "LLM (T6): two scenes with the SAME captor + one with a DIFFERENT captor (fresh writing lens each) -> score cross-scene phrase reuse; logs the ratio + worst offenders, rejects only a gross echo regression", TestChatCaptiveVariety, true, 9),
+         new SelfTest("conv_summary_queue", Severity.Light, "LLM: seed a base 'Spoke with X.' event + a job whose transcript states a PLAN, run the queue worker -> assert the event is ENRICHED by value match (a promised plan reaches durable memory, not lost)", TestConvSummaryQueueJob, true, 1)
       };
 
       /// <summary>The configured budget for the running test, in seconds, for the "timed out after Ns (budget Ns)" message.</summary>
@@ -1738,6 +1739,61 @@ namespace CalradiaRemembers.Diagnostics
       /// <summary>One scene's full prose (every beat's dialogue + narration), for cross-scene variety scoring.</summary>
       private static string SceneProse(List<ParsedResponse> beats)
          => string.Join(" ", beats.Select(b => $"{b?.Dialogue} {b?.Narration}"));
+
+      /// <summary>
+      ///   The durable conversation-summary queue's worker path, end to end. Seeds the plain base event a real
+      ///   conversation leaves ("Spoke with X."), builds a job whose transcript states a concrete PLAN, then runs
+      ///   the SAME ProcessConversationJobAsync the background drain runs and asserts the base event was ENRICHED
+      ///   (its summary replaced) by value match. This is the Nexus-reported fault's fix: a stated plan must reach
+      ///   durable memory instead of vanishing. Runs the worker directly (not via the async drain) so the check is
+      ///   deterministic. The plan-preservation wording itself is pinned headless in the SDK; here we log the
+      ///   summary for human judgement that the plan actually survived.
+      /// </summary>
+      private static string TestConvSummaryQueueJob(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("conv_summary_queue");
+
+         if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC to remember the conversation")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         ArrangeCleanNpc(behavior, profile, npc);
+
+         int day = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
+         string player = Hero.MainHero?.Name?.ToString() ?? "the player";
+         var baseEvent = new NotableEvent(day, NotableEventType.Other, $"Spoke with {player}.");
+         profile.Events.Add(baseEvent);
+         behavior.Store.Set(profile);
+
+         var job = new PendingSummaryJob {
+            ProfileId = profile.Id,
+            AnchorDay = day,
+            AnchorType = NotableEventType.Other.ToString(),
+            AnchorSummary = baseEvent.summary,
+            Transcript = $"[{player}]: Before I go, we agreed you would gather intel on marriage candidates and report back to me today.\n" +
+                         $"[{npc.Name}]: Yes. I will have a list of suitable candidates ready for you by this evening.",
+            PlayerName = player,
+            ReplyLanguage = null,
+            EnqueuedDay = day
+         };
+
+         if (t.Abort(!TryRunLlmTask(ct => ConversationSummaryService.ProcessConversationJobAsync(behavior, job, ct), out bool resolved, out string err),
+                $"LLM call failed: {err}"))
+            return t.Line();
+
+         NpcProfile fresh = behavior.Store.Get(profile.Id);
+         NotableEvent evt = fresh?.Events?.LastOrDefault(e => e.gameDay == day && e.type == NotableEventType.Other);
+         bool enriched = evt != null && !string.Equals(evt.summary, baseEvent.summary, StringComparison.Ordinal);
+
+         t.Note($"resolved={resolved}; summary now: \"{Show(evt?.summary)}\" (judge: does it keep the plan to gather intel and report back today?)");
+         t.Expect("jobResolved", resolved, true);
+         t.Expect("baseEventEnriched", enriched, true);
+
+         return t.Line();
+      }
 
       /// <summary>
       ///   CONTRAST: the same scene on a CRAVEN prisoner (Trait overridden) — should crack/plead far sooner than a proud

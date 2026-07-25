@@ -164,6 +164,9 @@ namespace CalradiaRemembers.Chat
             // The council's LIFT: re-validates and executes every surviving [RESOLUTION] against the world as
             // it stands NOW. A no-op outside a council (or one with nothing agreed), see FinalizeCouncilResolutions.
             SafeStep(() => ActiveViewModel?.FinalizeCouncilResolutions(), "FinalizeCouncilResolutions");
+            // Extension Surface: hand the attributed transcript to any third-party listener as the conversation
+            // closes. Independent of the memory finalizers above so a listener sees even a slight conversation.
+            SafeStep(() => ActiveViewModel?.RaiseConversationEndedEvent(), "RaiseConversationEndedEvent");
 
             // Free every character tableau (GPU render-target) before releasing the movie, so no portrait
             // survives the close regardless of engine teardown timing.

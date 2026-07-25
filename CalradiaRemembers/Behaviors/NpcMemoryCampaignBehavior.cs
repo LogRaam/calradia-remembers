@@ -66,6 +66,10 @@ namespace CalradiaRemembers.Behaviors
       public readonly LetterTriggerEvaluator LetterEvaluator = new();
       public readonly LlmServices LlmServices = new();
 
+      // ONE durable conversation-summary queue, owned by the behavior. Conversation recaps are enqueued here
+      // instead of fired as a detached Task, so a summary survives a save/quit/crash and is replayed on load.
+      public readonly ConversationSummaryQueueRunner ConvSummaryQueue = new();
+
       // ONE QuestDeedTracker, owned by the behavior.
       public readonly QuestDeedTracker QuestTracker = new();
       public readonly BannerlordNpcMemoryStore Store = new();
@@ -128,7 +132,12 @@ namespace CalradiaRemembers.Behaviors
       ///   We delegate entirely to the store — it handles both directions.
       /// </summary>
       public override void SyncData(IDataStore dataStore)
-         => Store.SyncData(dataStore);
+      {
+         Store.SyncData(dataStore);
+         // Additive, distinct key: the durable conversation-summary queue. Its own load degrades to empty, so a
+         // save written before this feature (no such key) opens fine.
+         ConvSummaryQueue.SyncData(dataStore);
+      }
 
       #region private
 
@@ -252,6 +261,10 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.LetterMutationQueue.Clear", Letters.LetterMutationQueue.Clear); // 3.1: drop closures captured against a prior campaign's objects
          SafeRun.Step("OnSessionLaunched.DisplayLoadedProfiles", DisplayLoadedProfiles);
          SafeRun.Step("OnSessionLaunched.UpgradeLegacyProfiles", UpgradeLegacyProfiles);
+         // Replay any conversation-summary jobs that survived the load (SyncData(load) ran first, so the queue
+         // is already rehydrated). Never clear it here: unlike the letter-mutation queue's stale closures, these
+         // are plain data loaded from THIS save and are meant to be finished.
+         SafeRun.Step("OnSessionLaunched.ConvSummaryQueue.ReplayOnLoad", ConvSummaryQueue.ReplayOnLoad);
          // Heals saves made before the inline chain-of-thought fix (ReasoningTraceStripper): stored
          // memories that ARE the model's leaked reasoning are scrubbed or replaced by a "faded" line.
          // Idempotent by construction, so it simply runs on every launch (a clean profile is a no-op).

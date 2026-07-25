@@ -179,6 +179,8 @@ namespace CalradiaRemembers.Chat
       // player can only read the farewell and leave.
       private bool _conversationEnded;
       private bool _conversationMemoryFinalized; // idempotency guard
+      private bool _conversationStartedRaised;   // Extension Surface: CrConversation.Started fired at most once
+      private bool _conversationEndedRaised;      // Extension Surface: CrConversation.Ended fired at most once
 
       // The witness the player is currently addressing (sticky). Null = main NPC.
       private string _currentSpeakerHeroId;
@@ -188,8 +190,11 @@ namespace CalradiaRemembers.Chat
       // The LLM mostly emits [EVENT] on a natural farewell; if the player closes
       // the window mid-exchange, nothing was recorded and the NPC forgets the
       // conversation ever happened (tester report). These track whether the
-      // fallback summary is needed when the chat closes.
-      private bool _eventRecordedThisSession; // any non-empty [EVENT] this session
+      // fallback recap is needed when the chat closes. Recorded REGARDLESS of
+      // whether an [EVENT] also fired: an [EVENT] captures one dramatic beat,
+      // this recap captures what was discussed/decided/promised, and a stated
+      // plan the model did not flag as an [EVENT] must not vanish (tester report:
+      // NPCs forgot a same-day stated plan one conversation later).
       private bool _hasWitnesses;
       private string _inputText = "";
       private bool _isComposeOpen;
@@ -1798,24 +1803,28 @@ namespace CalradiaRemembers.Chat
       //    when the NPC formally ended the conversation) ──────────────────────
 
       /// <summary>
-      ///   Ensures an ordinary conversation leaves a memory even when the LLM never
-      ///   emitted an [EVENT] block (player closed the window mid-exchange). Called
-      ///   once from <see cref="ChatManager.Close" />. Same two-stage pattern as
+      ///   Ensures an ordinary conversation always leaves a recap memory, whether or
+      ///   not the LLM also emitted an [EVENT] block. Called once from
+      ///   <see cref="ChatManager.Close" />. Same two-stage pattern as
       ///   <see cref="FinalizeCaptiveSceneMemory" />: a plain base event recorded
       ///   synchronously, replaced by a richer first-person transcript summary when
-      ///   the async call succeeds. No-op when an [EVENT] was already recorded, the
-      ///   exchange had no substance (pure <see cref="ConversationMemoryRules" />: two
-      ///   completed player turns, or ONE turn whose text carried real substance, a
-      ///   player-reported fault: a single-exchange conversation left no memory), or
-      ///   the chat is not in plain Conversation mode (letters keep their own records;
-      ///   captive scenes have their own finalizer).
+      ///   the async call succeeds. An [EVENT] captures one dramatic beat; this recap
+      ///   captures what was discussed, decided, or promised, and the two coexist, so
+      ///   this no longer skips when an [EVENT] fired that session (a stated plan the
+      ///   model did not flag as an [EVENT] was otherwise lost, a player-reported
+      ///   fault: NPCs forgot a same-day stated plan one conversation later). Still a
+      ///   no-op when the exchange had no substance (pure
+      ///   <see cref="ConversationMemoryRules" />: two completed player turns, or ONE
+      ///   turn whose text carried real substance, a player-reported fault: a
+      ///   single-exchange conversation left no memory), or the chat is not in plain
+      ///   Conversation mode (letters keep their own records; captive scenes have
+      ///   their own finalizer).
       /// </summary>
       public void FinalizeConversationMemory()
       {
          if (_conversationMemoryFinalized || _mode != ChatMode.Conversation) return;
          _conversationMemoryFinalized = true;
 
-         if (_eventRecordedThisSession) return;
          if (!ConversationMemoryRules.DeservesFallbackMemory(_playerTurnsThisSession, _playerCharsThisSession)) return;
 
          var behavior = NpcMemoryCampaignBehavior.Instance;
@@ -1839,14 +1848,44 @@ namespace CalradiaRemembers.Chat
             $"Spoke with {player}.");
          profile.Events.Add(baseEvent);
          behavior.Store.Set(profile);
-         ModLog.Info($"[CONV MEMORY] fallback event recorded for {profile.Name} " + $"({_playerTurnsThisSession} player turn(s), no [EVENT] emitted).");
+         ModLog.Info($"[CONV MEMORY] conversation recap recorded for {profile.Name} " + $"({_playerTurnsThisSession} player turn(s)).");
 
-         // Stage 2 — async rich summary (fire-and-forget; replaces the base on success).
+         // Stage 2, the rich summary, via a DURABLE queue instead of a detached Task: the job is persisted
+         // with the campaign, drained in the background, and replayed on load, so a plan or promise the NPC
+         // made survives a save/quit/crash instead of being lost when the fire-and-forget Task never returned.
          string transcript = BuildSceneTranscriptText(player);
 
-         if (string.IsNullOrWhiteSpace(transcript) || behavior.LlmServices?.LlmClient == null) return;
+         if (string.IsNullOrWhiteSpace(transcript)) return;
 
-         _ = ConversationSummaryService.GenerateAndApplyConversationSummaryAsync(behavior, profile.Id, baseEvent, transcript, player);
+         behavior.ConvSummaryQueue.Enqueue(new PendingSummaryJob {
+            ProfileId = profile.Id,
+            AnchorDay = baseEvent.gameDay,
+            AnchorType = baseEvent.type.ToString(),
+            AnchorSummary = baseEvent.summary,
+            Transcript = transcript,
+            PlayerName = player,
+            ReplyLanguage = ModSettings.ReplyLanguage,
+            EnqueuedDay = gameDay
+         });
+      }
+
+      /// <summary>
+      ///   Extension Surface: hands the whole attributed transcript to third-party listeners as the conversation
+      ///   closes (<see cref="CrConversation.Ended" />), including witness (third-party) and narration lines. Runs
+      ///   independently of the memory finalizer: a listener may want the transcript of a conversation CR itself
+      ///   judged too slight to record. Once per conversation, and only when the NPC was actually established.
+      ///   Called from <see cref="ChatManager.Close" />.
+      /// </summary>
+      public void RaiseConversationEndedEvent()
+      {
+         if (_conversationEndedRaised || _npcHero?.StringId == null) return;
+         _conversationEndedRaised = true;
+
+         List<CrTranscriptLine> lines = _transcript.Lines
+            .Select(l => new CrTranscriptLine(l.SpeakerHeroId, l.SpeakerName, l.IsPlayer, l.IsNarration, l.Text))
+            .ToList();
+
+         CrConversation.RaiseEnded(_npcHero.StringId, (int) CampaignTime.Now.ToDays, lines);
       }
 
       /// <summary>
@@ -2048,6 +2087,15 @@ namespace CalradiaRemembers.Chat
          TitleText = $"Calradia Remembers — {_npcName}";
          _storyIntroWritten = false;
          _storyLocation = CaptiveSceneText.BuildStoryLocation();
+
+         // Extension Surface: announce the conversation to third-party listeners now that the NPC is known and
+         // before the first exchange, so a listener can inject relevant memories in time for the first prompt.
+         // Once per conversation, and never for a nameless/null hero.
+         if (!_conversationStartedRaised && npcHero?.StringId != null)
+         {
+            _conversationStartedRaised = true;
+            CrConversation.RaiseStarted(npcHero.StringId, (int) CampaignTime.Now.ToDays);
+         }
       }
 
       public void SetNpcName(string npcName)

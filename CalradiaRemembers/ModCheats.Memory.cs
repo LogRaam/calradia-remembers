@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
@@ -209,7 +210,80 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   "Day 91078 (6 days ago)" — day numbers are absolute calendar days (the
+      ///   cr.summary_queue [drain]
+      ///   Shows the durable conversation-summary queue: rich-summary jobs waiting to enrich a base
+      ///   "Spoke with X." memory. They are persisted with the save, drained in the background, and replayed
+      ///   on load, so a promised plan's summary is not lost on save/quit/crash. 'drain' forces a pass now.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("summary_queue", "cr")]
+      public static string SummaryQueue(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         var queue = behavior.ConvSummaryQueue;
+
+         if (args != null && args.Any(a => string.Equals(a, "drain", StringComparison.OrdinalIgnoreCase)))
+         {
+            queue.DrainNow();
+
+            return $"Drain kicked. {queue.PendingCount} job(s) pending (they finish in the background).";
+         }
+
+         IReadOnlyList<PendingSummaryJob> jobs = queue.Snapshot();
+
+         if (jobs.Count == 0) return "Conversation-summary queue is empty.";
+
+         var sb = new StringBuilder();
+         sb.AppendLine($"Conversation-summary queue: {jobs.Count} pending job(s).");
+         foreach (PendingSummaryJob j in jobs)
+            sb.AppendLine($"  {j.ProfileId}: {DescribeDay(j.AnchorDay)}: \"{j.AnchorSummary}\" (attempts {j.Attempts})");
+         sb.Append("Use cr.summary_queue drain to force a pass.");
+
+         return sb.ToString();
+      }
+
+      /// <summary>
+      ///   cr.api_probe [name]
+      ///   Smoke-tests the public Extension Surface memory API: prints the API version and the loaded save's
+      ///   stable id, and, when a name resolves, injects a test memory via CrNpcMemory.AddMemory then reads it
+      ///   back via GetMemories, so a modder can confirm the read/write door works end to end.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("api_probe", "cr")]
+      public static string ApiProbe(List<string> args)
+      {
+         var sb = new StringBuilder();
+         sb.AppendLine($"CR Extension API v{CrNpcMemory.ApiVersion}.");
+         sb.AppendLine($"SaveId: {Campaign.Current?.UniqueGameId ?? "(no campaign loaded)"}");
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null)
+         {
+            sb.Append("Give an NPC name to inject a test memory and read it back: cr.api_probe <name>");
+
+            return sb.ToString();
+         }
+
+         MemoryResult result = CrNpcMemory.AddMemory(new CrMemoryEntry {
+            NpcId = hero.StringId,
+            Summary = "(api_probe) We spoke of a plan to meet again.",
+            Kind = "Agreement",
+            SourceMod = "cr.api_probe"
+         });
+         IReadOnlyList<CrMemoryRecord> memories = CrNpcMemory.GetMemories(hero.StringId);
+
+         sb.AppendLine($"AddMemory({hero.Name}) -> {result}.");
+         sb.AppendLine($"GetMemories({hero.Name}) -> {memories.Count} record(s), newest first:");
+         foreach (CrMemoryRecord m in Enumerable.Reverse(memories).Take(3))
+            sb.AppendLine($"  {DescribeDay(m.Day)}: [{m.Kind}] {m.Summary}");
+         sb.Append("(the injected line is marked '(api_probe)'.)");
+
+         return sb.ToString();
+      }
+
+      /// <summary>
+      ///   "Day 91078 (6 days ago)": day numbers are absolute calendar days (the
       ///   Calradian year is 84 days), which players read as gibberish without the
       ///   relative part (tester report: guessed '9' was the day and the rest hours).
       /// </summary>
