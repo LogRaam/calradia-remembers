@@ -244,6 +244,7 @@ namespace CalradiaRemembers
          // roster, deadline) and persists it save-safely. Passive for now (no events); the convening/travel and
          // round-table session wiring land in later increments. Pure decisions live in Logic.Assemblies.
          campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.AssemblyBehavior());
+         campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.AssemblyMenuBehavior());
          Log($"{ModName} campaign behavior registered.");
       }
 
