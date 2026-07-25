@@ -29,27 +29,32 @@ namespace CalradiaRemembers.Logic
       private readonly bool _isHeroConversation;
       private readonly bool _llmAvailable;
       private readonly string _partnerOccupation;
+      private readonly bool _townsfolkQuestActive;
 
       public CommonerChatContext(
          bool isHeroConversation,
          bool isCivilianSettlement,
          bool hasConversationPartner,
          string partnerOccupation,
-         bool llmAvailable)
+         bool llmAvailable,
+         bool townsfolkQuestActive)
       {
          _isHeroConversation = isHeroConversation;
          _isCivilianSettlement = isCivilianSettlement;
          _hasConversationPartner = hasConversationPartner;
          _partnerOccupation = partnerOccupation;
          _llmAvailable = llmAvailable;
+         _townsfolkQuestActive = townsfolkQuestActive;
       }
 
       /// <summary>
       ///   True only when ALL hold: it is not a named-Hero conversation, the place is a civilian
       ///   settlement (town/village/castle, never a hideout), there is a conversation partner, that
-      ///   partner is an anonymous townsperson/villager, and the AI is available.
+      ///   partner is an anonymous townsperson/villager, the AI is available, and no active quest
+      ///   relies on talking to townsfolk for its own clues (idle chat is withheld while such a quest
+      ///   is ongoing so it does not divert vanilla quest dialogue).
       /// </summary>
       public bool ShouldOfferIdleChat()
-         => !_isHeroConversation && _isCivilianSettlement && _hasConversationPartner && GenericTownsperson.Contains(_partnerOccupation ?? string.Empty) && _llmAvailable;
+         => !_isHeroConversation && _isCivilianSettlement && _hasConversationPartner && GenericTownsperson.Contains(_partnerOccupation ?? string.Empty) && _llmAvailable && !_townsfolkQuestActive;
    }
 }

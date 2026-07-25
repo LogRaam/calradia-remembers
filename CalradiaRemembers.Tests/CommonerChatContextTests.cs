@@ -172,6 +172,23 @@ namespace CalradiaRemembers.Tests
          offered.Should().BeFalse();
       }
 
+      // Player report: during a quest like The Spy Among Us, the player must be able to talk to random
+      // townsfolk to get the quest's clues, but CR's "What's the news here?" idle chat option was hijacking
+      // that same conversation, so the player could never see the vanilla quest dialogue. Idle chat must be
+      // withheld while such a townsfolk-dependent quest is ongoing, or the quest becomes uncompletable.
+      [Test]
+      public void GIVEN_a_townsfolk_dependent_quest_is_active_WHEN_asked_THEN_idle_chat_is_not_offered()
+      {
+         //Arrange
+         CommonerChatContext context = Context(townsfolkQuestActive: true);
+
+         //Act
+         bool offered = context.ShouldOfferIdleChat();
+
+         //Assert
+         offered.Should().BeFalse("a vanilla quest relying on townsfolk dialogue must not be diverted by CR's idle chat");
+      }
+
       #region private
 
       // The "eligible" baseline; each test overrides only the one fact it is about.
@@ -180,9 +197,10 @@ namespace CalradiaRemembers.Tests
          bool isCivilianSettlement = true,
          bool hasConversationPartner = true,
          string? partnerOccupation = "Townsfolk",
-         bool llmAvailable = true)
+         bool llmAvailable = true,
+         bool townsfolkQuestActive = false)
          => new(
-            isHeroConversation, isCivilianSettlement, hasConversationPartner, partnerOccupation, llmAvailable);
+            isHeroConversation, isCivilianSettlement, hasConversationPartner, partnerOccupation, llmAvailable, townsfolkQuestActive);
 
       #endregion
    }

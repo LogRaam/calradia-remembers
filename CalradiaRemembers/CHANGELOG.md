@@ -4,8 +4,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v1.31.10.. 2026-07-25
 
-A companion batch: three fixes so a devoted companion stops asking to leave out of nowhere, plus a new touch,
-NPCs can now wear the equipment you gift them. Your saves carry over untouched.
+A grab-bag release: three fixes so a devoted companion stops asking to leave out of nowhere, a new touch (NPCs
+can now wear the equipment you gift them), and a quest-compatibility fix. Your saves carry over untouched.
 
 ### New
 - **Gift equipment, and they may actually wear it.** When you hand an NPC a piece of equipment in conversation,
@@ -26,6 +26,12 @@ NPCs can now wear the equipment you gift them. Your saves carry over untouched.
   asking to retire is raised substantially, and real rest eases it a little faster.
 - **A companion will not ask to retire within their first two years of service.** A young recruit who has barely
   served can no longer ask to leave for war-weariness, however hard the road has been.
+
+### Fixed (quests)
+- **Townsfolk you question for a quest are no longer interrupted by the local-rumours chat.** During a quest that
+  has you ask people around a town for information (for example The Spy Among Us), CR's "talk to the locals"
+  option was diverting those conversations, so you could not get the quest's clues. That option now steps aside
+  for the length of such a quest, and returns once it is done. (Report: a player.)
 
 ## v1.31.9.. 2026-07-25
 

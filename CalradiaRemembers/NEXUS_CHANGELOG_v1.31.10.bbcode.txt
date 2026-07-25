@@ -1,6 +1,6 @@
 [size=4]v1.31.10[/size]
 
-A companion batch: three fixes so a devoted companion stops asking to leave out of nowhere, plus a new touch, NPCs can now wear the equipment you gift them. Saves carry over untouched.
+A grab-bag release: three fixes so a devoted companion stops asking to leave out of nowhere, a new touch (NPCs can now wear the equipment you gift them), and a quest-compatibility fix. Saves carry over untouched.
 
 [size=3][b]New[/b][/size]
 [list]
@@ -12,4 +12,9 @@ A companion batch: three fixes so a devoted companion stops asking to leave out 
 [*][b]A content companion no longer asks to leave out of nowhere.[/b] When a companion pulled you aside for a private word (a rumour they had heard, some practical counsel, an old memory that resurfaced), the mod could wrongly frame it as a war-weary bid to retire.. so a perfectly devoted, unwearied companion would suddenly ask to lay down the sword, then never actually leave and, asked about it later, have no memory of it. That private word now stays on its real subject. (Report: a player on Nexus.)[/*]
 [*][b]Companions are far more resilient to the toll of war.[/b] In a game built on battle, a companion should endure many more wounds and defeats before growing weary enough to want out. The weariness a companion bears before asking to retire is raised substantially, and real rest eases it a little faster.[/*]
 [*][b]A companion will not ask to retire within their first two years of service.[/b] A young recruit who has barely served can no longer ask to leave for war-weariness, however hard the road has been.[/*]
+[/list]
+
+[size=3][b]Fixed (quests)[/b][/size]
+[list]
+[*][b]Townsfolk you question for a quest are no longer interrupted by the local-rumours chat.[/b] During a quest that has you ask people around a town for information (for example The Spy Among Us), CR's "talk to the locals" option was diverting those conversations, so you could not get the quest's clues. That option now steps aside for the length of such a quest, and returns once it is done. (Report: a player.)[/*]
 [/list]

@@ -2,6 +2,7 @@
 
 #region
 
+using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Logic;
@@ -22,6 +23,11 @@ namespace CalradiaRemembers.Commoners
    /// </summary>
    public sealed class CommonsDialogBehavior
    {
+      // Vanilla quests whose clues come from talking to random townsfolk; CR's idle chat is withheld
+      // while one is ongoing so it does not divert the quest conversation. Matched by type NAME so no
+      // SandBox assembly reference is needed.
+      private static readonly System.Collections.Generic.HashSet<string> TownsfolkDependentQuests = new(System.StringComparer.Ordinal) {"TheSpyPartyIssueQuest"};
+
       /// <summary>
       ///   Registers the commoner chat option into the campaign's dialog flow.
       ///   Call from <see cref="NpcMemoryCampaignBehavior.OnSessionLaunched" />.
@@ -66,10 +72,15 @@ namespace CalradiaRemembers.Commoners
             settlement != null && (settlement.IsTown || settlement.IsVillage || settlement.IsCastle),
             partner != null,
             partner?.Occupation.ToString(),
-            NpcMemoryCampaignBehavior.Instance?.LlmServices?.IsAvailable == true);
+            NpcMemoryCampaignBehavior.Instance?.LlmServices?.IsAvailable == true,
+            TownsfolkDependentQuestActive());
 
          return context.ShouldOfferIdleChat();
       }
+
+      private static bool TownsfolkDependentQuestActive()
+         => Campaign.Current?.QuestManager?.Quests?.Any(
+               q => q != null && q.IsOngoing && TownsfolkDependentQuests.Contains(q.GetType().Name)) == true;
 
       private static void OnCommonerSelected()
       {
