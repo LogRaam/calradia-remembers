@@ -1,6 +1,11 @@
 [size=4]v1.31.10[/size]
 
-A companion fix, from a player report: a devoted companion could ask to leave out of nowhere. Three fixes to war-weariness and retirement. Saves carry over untouched.
+A companion batch: three fixes so a devoted companion stops asking to leave out of nowhere, plus a new touch, NPCs can now wear the equipment you gift them. Saves carry over untouched.
+
+[size=3][b]New[/b][/size]
+[list]
+[*][b]Gift equipment, and they may actually wear it.[/b] When you hand an NPC a piece of equipment in conversation, they may put it on then and there: give your wife a fine gown and she wears it about town, give a companion a better blade and he takes it up. An empty hand or a real upgrade is always taken; a lateral gift is worn only by someone fond of you (a spouse, a companion, a lord who holds you dear), while a rival keeps his own gear. It respects the item (a man is not put in a gown), and civilian pieces show in town while war gear is drawn on the field.[/*]
+[/list]
 
 [size=3][b]Fixed (companions)[/b][/size]
 [list]

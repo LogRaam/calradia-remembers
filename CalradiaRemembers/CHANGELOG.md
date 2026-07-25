@@ -4,8 +4,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v1.31.10.. 2026-07-25
 
-A companion fix, from a player report: a devoted companion could ask to leave out of nowhere. Three fixes to
-war-weariness and retirement. Your saves carry over untouched.
+A companion batch: three fixes so a devoted companion stops asking to leave out of nowhere, plus a new touch,
+NPCs can now wear the equipment you gift them. Your saves carry over untouched.
+
+### New
+- **Gift equipment, and they may actually wear it.** When you hand an NPC a piece of equipment in conversation,
+  they may put it on then and there: give your wife a fine gown and she wears it about town, give a companion a
+  better blade and he takes it up. An empty hand or a real upgrade is always taken; a lateral gift is worn only
+  by someone fond of you (a spouse, a companion, a lord who holds you dear), while a rival keeps his own gear.
+  It respects the item (a man is not put in a gown), and civilian pieces show in town while war gear is drawn on
+  the field.
 
 ### Fixed (companions)
 - **A content companion no longer asks to leave out of nowhere.** When a companion pulled you aside for a
