@@ -141,7 +141,13 @@ namespace CalradiaRemembers.Chat
                                 .ConfigureAwait(false);
             }
 
-            if (string.IsNullOrWhiteSpace(rich)) return true;                   // nothing to write: drop, do not spin.
+            // No text came back. This is either a transient LLM failure (a 403 / timeout / 500 the client
+            // reports as an unsuccessful response rather than a thrown exception) or a genuinely empty result;
+            // we cannot tell them apart here. For a DURABLE queue the safe default is to RETRY, so a brief API
+            // blip does not silently drop a promised plan. The base "Spoke with X." event still stands in the
+            // meantime, and the queue's own attempt cap drops a job that keeps coming back empty, so this never
+            // spins forever.
+            if (string.IsNullOrWhiteSpace(rich)) return false;
 
             NpcProfile fresh = behavior.Store.Get(job.ProfileId);
 
