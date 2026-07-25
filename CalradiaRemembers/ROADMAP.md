@@ -32,6 +32,32 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## KNOWN BUG, DEFERRED (player report, screenshot 2026-07-25): the chat does not slide aside when the escape menu opens over it
+
+A player sent a screenshot with THREE UI layers stacked at once: the town menu (left), the vanilla escape/PAUSED
+menu (centre), and the CR chat window (right), all visible together ("the UI does not refresh").
+
+Cause: the chat is an overlay layer on the map screen. `ChatManager.ArbitrateFocus` is meant to slide the chat
+off-screen and yield focus whenever a modal opens above it, but that arbiter is pumped from
+`ChatScrollablePanel.OnLateUpdate`, a widget INSIDE the chat's own layer. When the escape menu opens as a PUSHED
+screen, the engine suspends the map screen (and the chat layer), so `OnLateUpdate` stops ticking, the arbiter
+never runs, and the chat never slides aside. Chicken-and-egg: the detector lives in the layer that got suspended.
+(Same freeze would hang an in-flight LLM reply, since `MainThreadDispatcher.Pump` shares that tick.)
+
+Planned fix (LOW RISK, additive, NOT started): make the chat's "Options" button (`ChatViewModel.ExecuteOptions`)
+PROACTIVELY do the same yield the arbiter already does (slide aside + reset input + `_chatHoldsFocus=false`)
+BEFORE opening the escape menu, so the chat is out of the way even if the pump then freezes. Recovery is the
+existing reclaim branch when the menu closes and the map resumes ticking. Do NOT alter `ArbitrateFocus` itself;
+the pre-yield is a superset of current behaviour (idempotent when the menu is a mere layer).
+
+Gabriel deferred it (2026-07-25): the focus arbiter was tricky to get right across the naval map / encyclopedia /
+pushed-screen cases and has no auto-tests, so any change needs the manual regression checklist first (Options from
+a town chat; encyclopedia; naval map; captive-scene mission where Options is hidden; menu-close reclaim). Confirm
+the exact path with the player's log first (`[MENU]` + `[SCREENS] yield` lines; absence of a `yield` line = the
+pump-freeze case, which the pre-yield fixes).
+
+---
+
 ## RATIFIED + BUILT (Gabriel 2026-07-23): FORCED MARRIAGE, the family can bind its daughter (untested in game)
 
 Born of the Ira report (below): the player had done the family's part in full and was silently barred by the
