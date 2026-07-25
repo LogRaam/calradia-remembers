@@ -206,6 +206,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("party_troop_count", Severity.Light, "Mechanical: a companion in the player's party sees the real troop count in context (no more hallucinated army size); skips if the player has no party companion", TestPartyTroopCount),
          new SelfTest("nemesis_mint", Severity.Light, "Mechanical: minting a nemesis creates a persistent Hero WITH a memory profile (the 'no memory' bug fixed), reuses him in-region, mints a distinct one per region; PLANTS test nemeses (reload after)", TestNemesisMint),
          new SelfTest("assembly_convene", Severity.Light, "Mechanical (ASSEMBLY Inc 1): arranges a host town + live lords with a seeded regard, convenes through the real facts-builder + RSVP policy, asserts the regard read-back + roster + tally, then cancels and restores (no manual in-game setup needed)", TestAssemblyConvene),
+         new SelfTest("assembly_arrival", Severity.Light, "Mechanical (ASSEMBLY Inc 1 slice 2): convenes + sets two lords EnRoute, then drives the two runtime transitions: one reaches the host and seats Present, the deadline turns the other into an ambassador; cancels after (no map travel, no LLM)", TestAssemblyArrival),
          new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate),
          new SelfTest("chat_captor_break", Severity.Light, "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?", TestChatCaptorBreak, true, 3),
          new SelfTest("chat_captor_torture", Severity.Light, "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?", TestChatCaptorTorture, true, 3),
@@ -1846,11 +1847,7 @@ namespace CalradiaRemembers.Diagnostics
          {
             AssemblyInvitationFacts facts = AssemblyInvitationFactsBuilder.Build(h, host, player);
             RsvpOutcome rsvp = AssemblyRsvpPolicy.Decide(facts);
-            AssemblyInviteeStatus status = rsvp.Decision == RsvpDecision.Decline
-               ? AssemblyInviteeStatus.Declined
-               : facts.IsCompanionOfInitiator
-                  ? AssemblyInviteeStatus.Present
-                  : AssemblyInviteeStatus.EnRoute;
+            AssemblyInviteeStatus status = AssemblyConvener.InitialStatus(h, player, facts, rsvp);
             AssemblyBehavior.Instance.SetStatus(h.StringId, status);
             decisions.Add($"{h.Name}:{rsvp.Decision}/{status}[regard {facts.RegardToInitiator},tier {facts.DistanceTier}]");
          }
@@ -1863,6 +1860,12 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("progressTotalMatchesRoster", progress.Total, lords.Count);
          t.Expect("tallySumsToTotal", progress.Present + progress.InTransit + progress.Declined + progress.Awaiting, lords.Count);
 
+         // The travel-mode rule (Gabriel 2026-07-25): a lord OUTSIDE the player's clan never crosses the map in
+         // person, they send an ambassador, so only your own household is ever force-moved. Deterministic.
+         Hero foreignLord = lords.FirstOrDefault(h => h.Clan != Clan.PlayerClan);
+         if (foreignLord != null)
+            t.Expect("foreignLordNeverTravelsInPerson", AssemblyConvener.TravelsInPerson(foreignLord, player), false);
+
          // Cleanup: stand the assembly down and restore the probe's regard so the sweep leaves nothing behind.
          AssemblyBehavior.Instance.Cancel();
          probeProfile.ReputationWithPlayer = originalRegard;
@@ -1871,6 +1874,57 @@ namespace CalradiaRemembers.Diagnostics
 
          return t.Line();
       }
+
+      /// <summary>
+      ///   ASSEMBLY Inc 1 slice 2: the arrival lifecycle, driven directly so it needs no map travel and no
+      ///   waiting. Convenes, sets two lords travelling (EnRoute), then exercises both transitions the runtime
+      ///   fires: one reaches the host (NoteArrivalAtHost, what OnSettlementEntered calls) and takes their seat
+      ///   as Present; the clock reaches the deadline (AdvanceArrivals, what the daily tick calls) and the other,
+      ///   still on the road, stands in by ambassador. Mechanical, no LLM, self-arranged. Forced party movement
+      ///   (letting a lord actually ARRIVE on the map) is a later supervised slice, so it is not tested here.
+      /// </summary>
+      private static string TestAssemblyArrival(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("assembly_arrival");
+
+         if (t.Abort(AssemblyBehavior.Instance == null, "assembly system not active (load a campaign first)")) return t.Line();
+
+         Hero player = Hero.MainHero;
+         Settlement host = Settlement.All?.FirstOrDefault(s => s.IsTown);
+         if (t.Abort(player == null || host == null, "no player/town to host an assembly")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes
+                                .Where(h => h != null && h != player && h.IsLord && !h.IsPrisoner)
+                                .Take(2)
+                                .ToList();
+         if (t.Abort(lords.Count < 2, "need two alive lords for the arrival test")) return t.Line();
+
+         int today = behavior.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
+         int deadline = today + 7;
+         AssemblyBehavior.Instance.Begin(host.StringId, player.StringId, today, deadline, lords.Select(h => h.StringId));
+         // Drive the lifecycle directly, independent of the RSVP verdict (which the convene test covers): both set out.
+         AssemblyBehavior.Instance.SetStatus(lords[0].StringId, AssemblyInviteeStatus.EnRoute);
+         AssemblyBehavior.Instance.SetStatus(lords[1].StringId, AssemblyInviteeStatus.EnRoute);
+
+         bool arrived = AssemblyBehavior.Instance.NoteArrivalAtHost(lords[0].StringId);
+         AssemblyInviteeStatus afterArrival = AssemblyStatusOf(lords[0].StringId);
+
+         AssemblyBehavior.Instance.AdvanceArrivals(deadline);
+         AssemblyInviteeStatus afterDeadline = AssemblyStatusOf(lords[1].StringId);
+
+         t.Note($"host={host.Name}; {lords[0].Name} arrival -> {afterArrival}; {lords[1].Name} at deadline -> {afterDeadline}");
+         t.Expect("arrivalSeatsPresent", arrived && afterArrival == AssemblyInviteeStatus.Present, true);
+         t.Expect("deadlineMakesAmbassador", afterDeadline, AssemblyInviteeStatus.Ambassador);
+
+         AssemblyBehavior.Instance.Cancel();
+         t.Expect("cancelClears", AssemblyBehavior.Instance.HasActiveAssembly, false);
+
+         return t.Line();
+      }
+
+      private static AssemblyInviteeStatus AssemblyStatusOf(string heroId)
+         => AssemblyBehavior.Instance.Pending?.Invitees?.FirstOrDefault(i => i.HeroId == heroId)?.Status
+            ?? AssemblyInviteeStatus.Invited;
 
       /// <summary>
       ///   CONTRAST: the same scene on a CRAVEN prisoner (Trait overridden) — should crack/plead far sooner than a proud

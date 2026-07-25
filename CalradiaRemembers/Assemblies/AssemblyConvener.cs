@@ -1,0 +1,52 @@
+// Code written by Gabriel Mailhot, 25/07/2026.
+// ASSEMBLY Inc 1: who actually TRAVELS, and who sends a stand-in. Ratified (Gabriel 2026-07-25): only the
+// player's OWN house crosses the map in person, a family member, a companion, or a lord of the player's clan,
+// and when they travel they go with escort enough not to fear bandits (the escort itself lands with the
+// forced-movement slice). Every other accepted invitee, an ally and above all an ENEMY at parley, sends an
+// AMBASSADOR rather than being force-marched across hostile ground. This is the deliberate answer to CR's
+// courier scar tissue: we only ever force parties WE can support to move, never arbitrary AI lords.
+
+#region
+
+using CalradiaRemembers.Logic.Assemblies;
+using TaleWorlds.CampaignSystem;
+
+#endregion
+
+namespace CalradiaRemembers.Assemblies
+{
+    /// <summary>Turns an RSVP verdict into the invitee's opening seat, encoding who travels and who sends a stand-in.</summary>
+    public static class AssemblyConvener
+    {
+        /// <summary>
+        ///   A declined invitee sits out. A companion is already at your side, so Present at once. A member of
+        ///   your own clan (family, or a clan lord with a party) travels in person, so EnRoute. Every other
+        ///   accepted invitee, an ally or an enemy at parley, sends an Ambassador rather than crossing the map.
+        /// </summary>
+        public static AssemblyInviteeStatus InitialStatus(Hero invitee, Hero initiator, AssemblyInvitationFacts facts, RsvpOutcome rsvp)
+        {
+            if (rsvp.Decision == RsvpDecision.Decline) return AssemblyInviteeStatus.Declined;
+            if (facts.IsCompanionOfInitiator) return AssemblyInviteeStatus.Present;
+
+            return TravelsInPerson(invitee, initiator)
+                ? AssemblyInviteeStatus.EnRoute
+                : AssemblyInviteeStatus.Ambassador;
+        }
+
+        /// <summary>
+        ///   True only when the invitee belongs to the summoner's OWN household and so would cross the map in
+        ///   person: a companion, a family member, or a lord of the player's clan. Anyone else (an ally, an
+        ///   enemy at parley) sends an ambassador instead. The reverse case, a lord summoning the PLAYER, is a
+        ///   later slice and is left travelling by default.
+        /// </summary>
+        public static bool TravelsInPerson(Hero invitee, Hero initiator)
+        {
+            if (invitee == null) return false;
+            if (initiator != Hero.MainHero) return true;
+
+            Clan playerClan = Clan.PlayerClan;
+
+            return playerClan != null && invitee.Clan == playerClan;
+        }
+    }
+}

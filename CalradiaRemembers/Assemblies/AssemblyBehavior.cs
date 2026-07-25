@@ -13,6 +13,8 @@ using System.Text;
 using CalradiaRemembers.Logic.Assemblies;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 
 #endregion
 
@@ -71,18 +73,67 @@ namespace CalradiaRemembers.Assemblies
         public AssemblyProgress Progress()
             => AssemblyProgress.From(_pending?.Invitees?.Select(i => i.Status));
 
-        /// <summary>Cancels the pending assembly. Inc 1 will also stand the travellers down; here it only clears the state.</summary>
+        /// <summary>Cancels the pending assembly. The forced-movement stand-down arrives with the travel slice; here it clears the state.</summary>
         public void Cancel()
         {
             if (_pending != null) ModLog.Info("[ASSEMBLY] cancelled.");
             _pending = null;
         }
 
+        /// <summary>
+        ///   An EnRoute invitee has reached the host settlement: seat them as Present. Returns true when one
+        ///   advanced. This is the core <see cref="OnSettlementEntered" /> drives, exposed so a test can arrange
+        ///   an arrival without moving a party across the whole map.
+        /// </summary>
+        public bool NoteArrivalAtHost(string heroId)
+        {
+            AssemblyInviteeRecord inv = _pending?.Invitees?.FirstOrDefault(i => i.HeroId == heroId && i.Status == AssemblyInviteeStatus.EnRoute);
+
+            if (inv == null) return false;
+
+            inv.Status = AssemblyInviteeStatus.Present;
+            ModLog.Info($"[ASSEMBLY] {heroId} reached the host and is Present.");
+
+            return true;
+        }
+
+        /// <summary>
+        ///   At or past the deadline, an invitee still travelling stands in by AMBASSADOR: the assembly is never
+        ///   blocked waiting on a party that cannot arrive (the fragile-movement fallback made narrative, Gabriel's
+        ///   idea). Exposed so a test can advance the clock without waiting real days. The forced travel that would
+        ///   let a lord actually ARRIVE in person is a later, supervised slice (CR's courier scar tissue: forcing a
+        ///   lord's party across the map strands and starves it, so it is not switched on lightly).
+        /// </summary>
+        public void AdvanceArrivals(int today)
+        {
+            if (_pending?.Invitees == null) return;
+
+            foreach (AssemblyInviteeRecord inv in _pending.Invitees.Where(i => i.Status == AssemblyInviteeStatus.EnRoute).ToList())
+                if (today >= _pending.Deadline)
+                {
+                    inv.Status = AssemblyInviteeStatus.Ambassador;
+                    ModLog.Info($"[ASSEMBLY] {inv.HeroId} did not arrive by the deadline; an ambassador stands in.");
+                }
+        }
+
         public override void RegisterEvents()
         {
-            // Inc 0: a passive store. The daily tick (movement + arrival), OnSettlementEntered (presence), and
-            // the settlement menus arrive with Inc 1.
+            // Presence: an EnRoute invitee entering the host settlement takes their seat.
+            CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
+            // The arrival window: at the deadline, anyone still travelling becomes an ambassador.
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
         }
+
+        private void OnSettlementEntered(MobileParty party, Settlement settlement, Hero hero)
+        {
+            if (_pending == null || settlement == null || settlement.StringId != _pending.HostSettlementId) return;
+
+            Hero arriver = hero ?? party?.LeaderHero;
+
+            if (arriver != null) NoteArrivalAtHost(arriver.StringId);
+        }
+
+        private void OnDailyTick() => AdvanceArrivals((int) CampaignTime.Now.ToDays);
 
         public override void SyncData(IDataStore dataStore)
         {

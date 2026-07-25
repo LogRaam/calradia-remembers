@@ -57,7 +57,7 @@ namespace CalradiaRemembers
             {
                 AssemblyInvitationFacts facts = AssemblyInvitationFactsBuilder.Build(h, host, player);
                 RsvpOutcome rsvp = AssemblyRsvpPolicy.Decide(facts);
-                AssemblyInviteeStatus status = ResolveInitialStatus(rsvp, facts);
+                AssemblyInviteeStatus status = AssemblyConvener.InitialStatus(h, player, facts, rsvp);
                 AssemblyBehavior.Instance.SetStatus(h.StringId, status);
                 sb.AppendLine($"  {h.Name}: {rsvp.Decision} ({Describe(rsvp.Reason)}) -> {status}  [regard {facts.RegardToInitiator}, dist tier {facts.DistanceTier}]");
             }
@@ -129,20 +129,6 @@ namespace CalradiaRemembers
             }
 
             return pool.Distinct().Take(AssemblyInviteeSampleCap).ToList();
-        }
-
-        /// <summary>
-        ///   Slice 1 has no real party movement yet, so an accepted LORD is EnRoute (accepted, would travel) and
-        ///   an accepted COMPANION is Present at once (they already ride with you). A decline is Declined. When
-        ///   movement lands (slice 2), the EnRoute seats advance to Present on arrival.
-        /// </summary>
-        private static AssemblyInviteeStatus ResolveInitialStatus(RsvpOutcome rsvp, AssemblyInvitationFacts facts)
-        {
-            if (rsvp.Decision == RsvpDecision.Decline) return AssemblyInviteeStatus.Declined;
-
-            return facts.IsCompanionOfInitiator
-                ? AssemblyInviteeStatus.Present
-                : AssemblyInviteeStatus.EnRoute;
         }
 
         private static string Describe(RsvpReason reason)
