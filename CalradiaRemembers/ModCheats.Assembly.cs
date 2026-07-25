@@ -110,7 +110,7 @@ namespace CalradiaRemembers
 
         private static List<Hero> PickInvitees(string which, Hero player)
         {
-            IEnumerable<Hero> companions = Clan.PlayerClan?.Companions?.Where(h => h != null && h.IsAlive)
+            IEnumerable<Hero> companions = Clan.PlayerClan?.Companions?.Where(h => h != null && h.IsAlive && !h.IsPrisoner)
                                            ?? Enumerable.Empty<Hero>();
             IEnumerable<Hero> lords = Hero.AllAliveHeroes.Where(h => h != null && h != player && h.IsLord && !h.IsPrisoner);
 

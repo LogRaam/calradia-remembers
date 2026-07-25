@@ -207,6 +207,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("nemesis_mint", Severity.Light, "Mechanical: minting a nemesis creates a persistent Hero WITH a memory profile (the 'no memory' bug fixed), reuses him in-region, mints a distinct one per region; PLANTS test nemeses (reload after)", TestNemesisMint),
          new SelfTest("assembly_convene", Severity.Light, "Mechanical (ASSEMBLY Inc 1): arranges a host town + live lords with a seeded regard, convenes through the real facts-builder + RSVP policy, asserts the regard read-back + roster + tally, then cancels and restores (no manual in-game setup needed)", TestAssemblyConvene),
          new SelfTest("assembly_arrival", Severity.Light, "Mechanical (ASSEMBLY Inc 1 slice 2): convenes + sets two lords EnRoute, then drives the two runtime transitions: one reaches the host and seats Present, the deadline turns the other into an ambassador; cancels after (no map travel, no LLM)", TestAssemblyArrival),
+         new SelfTest("assembly_revalidate", Severity.Light, "Mechanical (ASSEMBLY Inc 1 robustness): the daily re-validation reads the live host + traveller state and leaves a healthy assembly intact (host/traveller edge combinations are pinned by the pure policy tests)", TestAssemblyRevalidate),
          new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate),
          new SelfTest("chat_captor_break", Severity.Light, "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?", TestChatCaptorBreak, true, 3),
          new SelfTest("chat_captor_torture", Severity.Light, "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?", TestChatCaptorTorture, true, 3),
@@ -1925,6 +1926,44 @@ namespace CalradiaRemembers.Diagnostics
       private static AssemblyInviteeStatus AssemblyStatusOf(string heroId)
          => AssemblyBehavior.Instance.Pending?.Invitees?.FirstOrDefault(i => i.HeroId == heroId)?.Status
             ?? AssemblyInviteeStatus.Invited;
+
+      /// <summary>
+      ///   ASSEMBLY Inc 1 robustness: the daily re-validation pass runs against the LIVE world without wrongly
+      ///   tearing down a healthy assembly. The exhaustive host/traveller combinations are pinned by the pure
+      ///   AssemblyHostValidity / AssemblyTravelOutcome tests; this is the engine-adapter smoke test, proving the
+      ///   real reads (host siege / ownership, a hero's captivity / battle / party) do not throw and leave a valid
+      ///   assembly with a healthy traveller intact. Mechanical, no LLM, self-arranged.
+      /// </summary>
+      private static string TestAssemblyRevalidate(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("assembly_revalidate");
+
+         if (t.Abort(AssemblyBehavior.Instance == null, "assembly system not active (load a campaign first)")) return t.Line();
+
+         Hero player = Hero.MainHero;
+         Settlement host = Settlement.All?.FirstOrDefault(s => s.IsTown && !s.IsUnderSiege);
+         if (t.Abort(player == null || host == null, "no peaceful town to host an assembly")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != player && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != null);
+         if (t.Abort(lord == null, "no free lord with a party to travel")) return t.Line();
+
+         int today = behavior.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
+         AssemblyBehavior.Instance.Begin(host.StringId, player.StringId, today, today + 7, new[] {lord.StringId});
+         AssemblyBehavior.Instance.SetStatus(lord.StringId, AssemblyInviteeStatus.EnRoute);
+
+         // A valid host and a healthy, free, unpinned traveller: the pass must NOT cancel and must NOT drop them.
+         AssemblyBehavior.Instance.RevalidateNow(today);
+
+         bool survived = AssemblyBehavior.Instance.HasActiveAssembly;
+         AssemblyInviteeStatus after = AssemblyStatusOf(lord.StringId);
+         t.Note($"host={host.Name}, traveller={lord.Name}: after revalidate -> assemblyActive={survived}, seat={after}");
+         t.Expect("healthyAssemblySurvives", survived, true);
+         t.Expect("healthyTravellerKeptEnRoute", after, AssemblyInviteeStatus.EnRoute);
+
+         AssemblyBehavior.Instance.Cancel();
+
+         return t.Line();
+      }
 
       /// <summary>
       ///   CONTRAST: the same scene on a CRAVEN prisoner (Trait overridden) — should crack/plead far sooner than a proud

@@ -15,6 +15,7 @@ using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Library;
 
 #endregion
 
@@ -116,11 +117,66 @@ namespace CalradiaRemembers.Assemblies
                 }
         }
 
+        /// <summary>
+        ///   Re-checks a convened assembly against the live world and repairs it (Gabriel 2026-07-25): if the
+        ///   HOST is no longer viable (razed, besieged, or turned enemy ground) the whole assembly is cancelled
+        ///   and the player told why; otherwise each traveller is re-judged by <see cref="AssemblyTravelOutcome" />,
+        ///   so a captured or pinned or unreachable member falls back to an ambassador and one who died on the road
+        ///   leaves an empty seat. The verdicts are the pure, tested policies; this only reads the campaign for
+        ///   them. Runs each day and can be called on the events that could break an assembly.
+        /// </summary>
+        public void RevalidateNow(int today)
+        {
+            if (_pending == null) return;
+
+            Settlement host = Settlement.Find(_pending.HostSettlementId);
+            Hero initiator = Hero.FindFirst(h => h.StringId == _pending.InitiatorId);
+
+            var hostFacts = new AssemblyHostFacts {
+                HostExists = host != null,
+                HostBesieged = host != null && host.IsUnderSiege,
+                HostOwnerAtWarWithInitiator = HostTurnedHostile(host, initiator)
+            };
+
+            HostValidity hostVerdict = AssemblyHostValidity.Evaluate(hostFacts);
+            if (hostVerdict != HostValidity.Valid)
+            {
+                ModLog.Info($"[ASSEMBLY] host no longer viable ({hostVerdict}); cancelling.");
+                Notify($"The assembly is called off: {HostReason(hostVerdict)}.");
+                Cancel();
+
+                return;
+            }
+
+            foreach (AssemblyInviteeRecord inv in _pending.Invitees.Where(i => i.Status == AssemblyInviteeStatus.EnRoute).ToList())
+            {
+                Hero h = Hero.FindFirst(x => x.StringId == inv.HeroId);
+                var facts = new AssemblyTravelFacts {
+                    IsAlive = h != null && h.IsAlive,
+                    IsPrisoner = h != null && h.IsPrisoner,
+                    IsOccupied = IsHeroOccupied(h),
+                    CanReachByDeadline = today < _pending.Deadline && h?.PartyBelongedTo != null
+                };
+
+                switch (AssemblyTravelOutcome.Evaluate(facts))
+                {
+                    case TravelOutcome.Fell:
+                        _pending.Invitees.RemoveAll(i => i.HeroId == inv.HeroId);
+                        ModLog.Info($"[ASSEMBLY] {inv.HeroId} fell on the road; their seat is empty.");
+                        break;
+                    case TravelOutcome.Ambassador:
+                        inv.Status = AssemblyInviteeStatus.Ambassador;
+                        break;
+                    // Arriving: still on the road, leave EnRoute.
+                }
+            }
+        }
+
         public override void RegisterEvents()
         {
             // Presence: an EnRoute invitee entering the host settlement takes their seat.
             CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
-            // The arrival window: at the deadline, anyone still travelling becomes an ambassador.
+            // The daily re-validation: host still viable? travellers still able? Repairs or cancels as needed.
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
         }
 
@@ -133,7 +189,40 @@ namespace CalradiaRemembers.Assemblies
             if (arriver != null) NoteArrivalAtHost(arriver.StringId);
         }
 
-        private void OnDailyTick() => AdvanceArrivals((int) CampaignTime.Now.ToDays);
+        private void OnDailyTick() => RevalidateNow((int) CampaignTime.Now.ToDays);
+
+        private static bool HostTurnedHostile(Settlement host, Hero initiator)
+        {
+            IFaction hostFaction = host?.OwnerClan?.MapFaction;
+            IFaction initiatorFaction = initiator?.MapFaction;
+
+            return hostFaction != null && initiatorFaction != null && hostFaction.IsAtWarWith(initiatorFaction);
+        }
+
+        private static bool IsHeroOccupied(Hero h)
+        {
+            if (h?.PartyBelongedTo?.MapEvent != null) return true;
+            Settlement s = h?.CurrentSettlement;
+
+            return s != null && s.IsUnderSiege;
+        }
+
+        private static string HostReason(HostValidity verdict)
+        {
+            switch (verdict)
+            {
+                case HostValidity.Gone: return "the host settlement is no more";
+                case HostValidity.Besieged: return "the host has fallen under siege";
+                case HostValidity.EnemyHeld: return "the host is now in enemy hands";
+                default: return "the host is no longer safe";
+            }
+        }
+
+        private static void Notify(string message)
+        {
+            try { InformationManager.DisplayMessage(new InformationMessage(message)); }
+            catch { /* no UI available (headless / a self-test): the log line already carries it */ }
+        }
 
         public override void SyncData(IDataStore dataStore)
         {
