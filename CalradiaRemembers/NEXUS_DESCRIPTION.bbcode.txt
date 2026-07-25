@@ -521,7 +521,42 @@ CalradiaRemembers.MissionBoard.Register(new ExternalMission {
 
 CR issues it as a real quest: the giver brings it up in conversation in their own voice, it mirrors into the vanilla journal, and a deadline/abandon/self-heal lifecycle keeps it tidy (no ghost quests, even from a third-party mod). The crucial line is [b]who decides it's done[/b]: YOUR mod owns the completion signal.. it calls [i]MissionBoard.Complete(id)[/i] when its own deed is truly finished (only it can know), and CR pays the gated reward when the player reports back to the giver. CR never pays on the AI's word, and never on yours alone.. the player still has to come collect. You define an arbitrary mission (a tournament series, a smuggling run, surviving a siege) without CR knowing your internals, and without weakening its "rewards only for real deeds" promise.
 
-If you would like to plug a mod into either door, get in touch.. I would love to help.
+[b][color=#e69138]…and reach into what a single character remembers[/color][/b]
+Beyond feeding the world, your mod can read and write ONE character's own memory. Ask CR what a given character already remembers (so you never inject a duplicate), and add memories it will carry into later conversations as its own recollection:
+
+[code]
+// what CR already holds for this character
+IReadOnlyList<CrMemoryRecord> known = CalradiaRemembers.CrNpcMemory.GetMemories(npcId);
+
+// give the character a memory it will treat as its own
+CalradiaRemembers.CrNpcMemory.AddMemory(new CrMemoryEntry {
+    NpcId     = npcId,                                   // a hero StringId, never a display name
+    Summary   = "We agreed to meet at the ford at dawn.",
+    Kind      = "Agreement",                             // optional; unknown/internal kinds become Other
+    DaysAgo   = 0,                                       // 0 = today, dated back from now
+    SourceMod = "MyMod"
+});[/code]
+
+A character is named by its hero StringId, never a fragile display name. An injected memory becomes an ordinary memory event, surfaced in later talks exactly like one CR recorded itself, and compacted over time by CR's own memory system. The same guard applies: the summary is bounded, and the handful of memory kinds CR relies on internally cannot be spoofed from outside.
+
+[b][color=#e69138]…and listen to the conversation itself[/color][/b]
+CR raises two events around every conversation, so your mod can act the instant one opens or closes:
+
+[code]
+// fires when a conversation OPENS, before the first line
+CalradiaRemembers.CrConversation.Started += info => {
+    // info.NpcId, info.SaveId (the campaign's stable id), info.GameDay
+};
+
+// fires when it CLOSES, with the whole attributed transcript
+CalradiaRemembers.CrConversation.Ended += log => {
+    foreach (CrTranscriptLine line in log.Lines)
+        ; // line.SpeakerId, line.SpeakerName, line.IsPlayer, line.IsNarration, line.Text
+};[/code]
+
+[i]Started[/i] hands you the character's id, the loaded save's stable id, and the in-game day the moment a conversation opens.. early enough to recall and inject the right memories before the first prompt is built. [i]Ended[/i] hands you the full transcript, every line attributed to its speaker, including the third-party witnesses who spoke up.. so who-said-what is never a guess. Every subscriber runs under a guard: a handler that throws is isolated and can never break the conversation. (Read [i]CrNpcMemory.ApiVersion[/i] first if you reach these by reflection.)
+
+If you would like to plug a mod into any of these doors, get in touch.. I would love to help.
 
 [line]
 [size=4]For modders: the NpcMemoryService SDK[/size]

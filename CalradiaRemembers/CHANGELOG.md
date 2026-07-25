@@ -2,6 +2,57 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.8.. 2026-07-24
+
+A batch release: characters stop forgetting a plan you just made with them, several player-reported fixes,
+duels and forced marriage, and a new door for other mods to read and write what a character remembers. Your
+saves carry over untouched.
+
+### Fixed (everyone, please read)
+- **Characters no longer forget a plan you just made with them.** You could agree on something with a
+  character (say, a family member offering to gather information and report back to you that same day), let a
+  little time pass, return, and find they had no memory of it, sometimes indignant that you would claim such a
+  thing. A conversation's memory used to be kept only when the model happened to flag a dramatic "event"; a
+  plan or a promise it did not flag was lost when the window closed. Now every conversation of substance
+  leaves a memory, the summary is told to keep any plan, promise, or arrangement, and it is written on a
+  durable queue that survives a save, a quit, or a crash. (Report: a player on Nexus.)
+- **A mercenary contract now pays what it should.** Signing on as a mercenary paid a fiftieth of the agreed
+  sum: a contract worth thousands handed over a few dozen denars. It now pays in full. (Report: a player.)
+- **A bandit nemesis no longer "forgets" who he is mid-captivity.** The named bandit boss who holds you could
+  seem to become a different man partway through, with no memory of what came before: a save, a reload, or a
+  prisoner transfer could quietly mint a second boss who inherited the first one's memories. He is now
+  anchored to one identity, restored intact across saves and never silently replaced. (Report: a player.)
+- **A fond memory is no longer duplicated.** A character's encyclopedia could show the same tender moment
+  three separate times. Repeats of the same moment are now COUNTED ("three times over") rather than stacked as
+  identical copies, which also stops them crowding out everything else the character remembers of you. Old
+  saves are repaired automatically. (Report: a player screenshot.)
+- **A meeting is no longer called off while you ride toward it.** Riding straight at an announced lord could
+  cancel the meeting out from under you. As long as you are actually closing the gap, it now waits for you.
+  (Report: a player.)
+- **File logging actually writes now.** Turning logging on could produce no file and no explanation, because
+  the game does not create the Logs folder the mod writes into. The folder is created now, and if a log still
+  cannot be written you are told once, on screen, with the path it tried. (Report: a player.)
+
+### New
+- **Duels, from a conversation.** You can challenge a character to a duel in chat, and a character may
+  challenge you; refusing a challenge is a real, remembered act, and it cannot be farmed. Duels can be fought
+  in the wilderness or at a town's gates. (Also `cr.duel_arm` / `cr.duel_town`.)
+- **A family can marry a daughter against a lukewarm bond.** When a match is blessed by the family but your
+  personal standing with the bride falls short, the marriage now goes ahead (the family's will prevails) and
+  the bride carries a real, mendable resentment scaled to how far it fell short, instead of the match quietly
+  failing for no visible reason.
+
+### Improved
+- **Captive scenes read less repetitively.** Each scene is now written through a rotating "lens", and the
+  prose no longer leans on the same handful of phrasings from one scene to the next.
+
+### For modders
+- **A new door onto a character's own memory, and onto conversations.** Other mods can read what a character
+  remembers, inject memories it will treat as its own, and listen for a conversation opening (with the
+  character id, the save id, and the in-game day) or closing (with the whole attributed transcript, witness
+  lines included). It joins the existing world-event and mission doors. Full example on the mod page and in
+  `EXTENSION_API.md`.
+
 ## v1.31.7.. 2026-07-21
 
 An important fix to what characters believe about themselves, plus the first slice of the council. Your saves
