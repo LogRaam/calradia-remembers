@@ -58,7 +58,12 @@ namespace CalradiaRemembers.Duels
                BothAbleToFight = BothAbleToFight(player, npc),
                IsSelfOrFamily = IsSelfOrFamily(player, npc),
                EitherHoldsOtherPrisoner = EitherHoldsOtherPrisoner(player, npc),
-               TargetIsAPeer = npc.IsLord,
+               // A lord is the obvious peer, but any NAMED hero of standing is a fair field of honour: your own
+               // sworn companion, and a settlement notable (a gang leader, a merchant, a headman). A player who
+               // wants to cross blades with one should be able to (player report: a duel negotiated with a
+               // companion was never staged, because a Wanderer companion is not IsLord, so the challenge was
+               // ruled NotAPeer and the action was never offered). Only the truly nameless commoner stays out.
+               TargetIsAPeer = npc.IsLord || npc.IsPlayerCompanion || npc.IsNotable,
                // The two ONLY share a place if they are genuinely beside one another right now: the exact
                // engine-live gate PlayerPresenceResolver already offers every other channel (chat, letters,
                // jealousy), re-checked fresh at commit time, which is what catches an NPC who walked off

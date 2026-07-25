@@ -2,6 +2,19 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.9.. 2026-07-25
+
+A duel fix, from a player report. Your saves carry over untouched.
+
+### Fixed (only if you use duels)
+- **You can now duel companions and settlement notables, not just lords.** Challenging a companion (or a gang
+  leader, a merchant, a village headman) did nothing but make the AI describe a fight in text: a real duel
+  could only be offered against a noble, so with anyone else the challenge never launched. Any named person of
+  standing is now a fair field of honour; only a nameless commoner is still turned away. (Report: a player.)
+- **The AI no longer plays out a fight it cannot actually stage.** When a real duel is not on the table, a
+  character is now told plainly never to narrate a duel, or a blow struck, as if it happened, and to say so
+  rather than acting it out. A fight the game will not run is treated as talk, not a scene.
+
 ## v1.31.8.. 2026-07-24
 
 A batch release: characters stop forgetting a plan you just made with them, several player-reported fixes,
