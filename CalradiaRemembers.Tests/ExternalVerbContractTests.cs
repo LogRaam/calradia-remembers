@@ -34,7 +34,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_contract_with_an_eligibility_callback_WHEN_invoking_it_with_facts_THEN_the_callback_runs_with_those_facts()
       {
          var facts = new VerbFacts {NpcId = "hero_1", RelationToPlayer = 25, IsLord = true};
-         VerbFacts received = null;
+         VerbFacts? received = null;
 
          var contract = new ExternalVerbContract {
             Name = "external_verb",
@@ -46,7 +46,7 @@ namespace CalradiaRemembers.Tests
             }
          };
 
-         bool eligible = contract.IsEligible(facts);
+         bool eligible = contract.IsEligible!(facts);
 
          eligible.Should().BeTrue();
          received.Should().BeSameAs(facts);
@@ -63,7 +63,7 @@ namespace CalradiaRemembers.Tests
             TeachingText = f => $"You could do something for {f.NpcId}."
          };
 
-         string text = contract.TeachingText(new VerbFacts {NpcId = "hero_2"});
+         string text = contract.TeachingText!(new VerbFacts {NpcId = "hero_2"});
 
          text.Should().Be("You could do something for hero_2.");
       }
@@ -88,7 +88,7 @@ namespace CalradiaRemembers.Tests
             Facts = new VerbFacts {NpcId = "hero_3"}
          };
 
-         ActionResult result = contract.Execute(request);
+         ActionResult result = contract.Execute!(request);
 
          result.Success.Should().BeTrue();
          result.Message.Should().Be("external_verb executed for hero_3.");
