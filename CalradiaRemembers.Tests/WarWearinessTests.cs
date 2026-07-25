@@ -77,11 +77,11 @@ namespace CalradiaRemembers.Tests
 
         // ── Valor-scaled tolerance ──────────────────────────────────────────
 
-        // Pins BaseRetireThreshold (40) as the reference point every other Valor case is measured against.
+        // Pins BaseRetireThreshold (90) as the reference point every other Valor case is measured against.
         [Test]
         public void GIVEN_a_neutral_valor_WHEN_reading_the_tolerance_THEN_it_is_the_base()
         {
-            WarWeariness.RetireThreshold(0).Should().Be(40);
+            WarWeariness.RetireThreshold(0).Should().Be(90);
         }
 
         // The whole point of the design refinement noted in ROADMAP: Valor raises the TOLERANCE rather than
@@ -133,12 +133,12 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_rising_toll_WHEN_banding_a_neutral_companion_THEN_it_climbs_fresh_to_spent()
         {
             WarWeariness.Band(0, 0).Should().Be(WearinessBand.Fresh);
-            WarWeariness.Band(9, 0).Should().Be(WearinessBand.Fresh);       // < 25% of 40
-            WarWeariness.Band(10, 0).Should().Be(WearinessBand.Seasoned);   // 25%
-            WarWeariness.Band(23, 0).Should().Be(WearinessBand.Seasoned);   // < 60%
-            WarWeariness.Band(24, 0).Should().Be(WearinessBand.Weary);      // 60%
-            WarWeariness.Band(39, 0).Should().Be(WearinessBand.Weary);      // < 100%
-            WarWeariness.Band(40, 0).Should().Be(WearinessBand.Spent);      // at tolerance
+            WarWeariness.Band(21, 0).Should().Be(WearinessBand.Fresh);      // < 25% of 90
+            WarWeariness.Band(22, 0).Should().Be(WearinessBand.Seasoned);   // 25% of 90
+            WarWeariness.Band(53, 0).Should().Be(WearinessBand.Seasoned);   // < 60% of 90
+            WarWeariness.Band(54, 0).Should().Be(WearinessBand.Weary);      // 60% of 90
+            WarWeariness.Band(89, 0).Should().Be(WearinessBand.Weary);      // < 100%
+            WarWeariness.Band(90, 0).Should().Be(WearinessBand.Spent);      // at tolerance
         }
 
         // The banding is RELATIVE to each companion's own tolerance (per the method's own doc comment), not an
@@ -146,9 +146,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_same_toll_WHEN_valor_differs_THEN_the_band_shifts_with_tolerance()
         {
-            // 40 spends a neutral companion, but a brave one is only weary at the same toll.
-            WarWeariness.Band(40, 0).Should().Be(WearinessBand.Spent);
-            WarWeariness.Band(40, 2).Should().NotBe(WearinessBand.Spent);
+            // 90 spends a neutral companion, but a brave one is only weary (or seasoned) at the same toll.
+            WarWeariness.Band(90, 0).Should().Be(WearinessBand.Spent);
+            WarWeariness.Band(90, 2).Should().NotBe(WearinessBand.Spent);
         }
 
         // ── Retirement shape by landedness ──────────────────────────────────
@@ -178,7 +178,42 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_each_band_WHEN_describing_THEN_the_reading_reflects_the_band()
         {
             WarWeariness.Describe(0, 0).Should().Contain("fresh");
-            WarWeariness.Describe(40, 0).Should().Contain("worn out");
+            WarWeariness.Describe(90, 0).Should().Contain("worn out");
+        }
+
+        // ── Minimum tenure ───────────────────────────────────────────────────
+
+        // Pins MinServiceDays at 168 (2 Calradian years of 84 days, per ChronicleCalendar.DaysPerYear): the
+        // number every tenure check below is measured against.
+        [Test]
+        public void GIVEN_the_minimum_service_days_WHEN_reading_the_constant_THEN_it_is_two_calradian_years()
+        {
+            WarWeariness.MinServiceDays.Should().Be(168); // 2 Calradian years of 84 days
+        }
+
+        // Boundary must be INCLUSIVE (>=): a companion who has served exactly 168 days has fully served their
+        // two years and may be asked to retire from that day, not one tick later.
+        [Test]
+        public void GIVEN_service_at_exactly_the_minimum_WHEN_checking_tenure_THEN_it_has_been_served_long_enough()
+        {
+            WarWeariness.HasServedLongEnough(WarWeariness.MinServiceDays).Should().BeTrue();
+        }
+
+        // Without a tenure floor, a freshly recruited companion who accrued toll (e.g. captured twice) could ask
+        // to retire in their first weeks: the player reported exactly this on 2026-07-25 (a 22-year-old
+        // companion with under a year of service asked to retire).
+        [Test]
+        public void GIVEN_service_one_day_short_of_the_minimum_WHEN_checking_tenure_THEN_it_has_not_been_served_long_enough()
+        {
+            WarWeariness.HasServedLongEnough(WarWeariness.MinServiceDays - 1).Should().BeFalse();
+        }
+
+        // A brand-new recruit (zero days served) is the sharpest case of the same stake: the tenure gate must
+        // block them outright, however hard the toll they have already suffered.
+        [Test]
+        public void GIVEN_a_brand_new_recruit_WHEN_checking_tenure_THEN_it_has_not_been_served_long_enough()
+        {
+            WarWeariness.HasServedLongEnough(0).Should().BeFalse();
         }
     }
 }

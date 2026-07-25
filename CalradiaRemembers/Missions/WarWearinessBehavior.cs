@@ -29,6 +29,7 @@ namespace CalradiaRemembers.Missions
    {
       private const string DeclinedSaveKey = "CalradiaRemembers_WearinessDeclined_v1";
       private const string ForcedBackSaveKey = "CalradiaRemembers_WearinessForcedBack_v1";
+      private const string ServedSinceSaveKey = "CalradiaRemembers_WearinessServedSince_v1";
 
       private const int ForcedBackToBreak = 3; // weeks dragged back to war before the retirement breaks
 
@@ -41,6 +42,7 @@ namespace CalradiaRemembers.Missions
       private Dictionary<string, int> _declinedUntil = new(); // companion id → day we may ask again
       private Dictionary<string, int> _forcedBack = new(); // stepped-back id → weeks dragged back to war so far
       private bool _requestOpen; // an inquiry is on screen; don't stack another
+      private Dictionary<string, int> _servedSince = new(); // companion id → game day service started (min of first-observed and earliest recorded event)
       private Dictionary<string, int> _woundCounted = new(); // companion id → 1 while their current wound is counted
 
       public WarWearinessBehavior()
@@ -90,6 +92,16 @@ namespace CalradiaRemembers.Missions
          SyncDict(dataStore, DeclinedSaveKey, ref _declinedUntil);
          SyncDict(dataStore, ForcedBackSaveKey, ref _forcedBack);
          SyncDict(dataStore, WoundCountedSaveKey, ref _woundCounted);
+         SyncDict(dataStore, ServedSinceSaveKey, ref _servedSince);
+      }
+
+      /// <summary>How many days this companion has served (since first-observed or their earliest recorded memory), for the minimum-tenure gate.</summary>
+      public int DaysServed(Hero h)
+      {
+         if (h == null) return 0;
+         StampServiceIfNew(h);
+
+         return Today - _servedSince[h.StringId];
       }
 
       #region private
@@ -131,6 +143,21 @@ namespace CalradiaRemembers.Missions
       {
          try { return h.GetTraitLevel(DefaultTraits.Valor); }
          catch { return 0; }
+      }
+
+      // Existing long-known companions get credit for time already served (their earliest memory), while a
+      // brand-new recruit starts the clock now: without this, a companion recruited before this build would be
+      // wrongly treated as a day-one recruit for the minimum-tenure gate.
+      private void StampServiceIfNew(Hero h)
+      {
+         if (_servedSince.ContainsKey(h.StringId)) return;
+
+         int earliest = Today;
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(h.StringId);
+         if (profile?.Events is {Count: > 0})
+            earliest = profile.Events.Min(e => e.gameDay);
+
+         _servedSince[h.StringId] = Math.Min(Today, earliest);
       }
 
       private bool DeclinedRecently(Hero h)
@@ -258,6 +285,7 @@ namespace CalradiaRemembers.Missions
             // One companion's weekly rest/retirement pass throwing must not skip the rest of the roster.
             SafeRun.Step($"WarWearinessBehavior.OnWeeklyTick({companion.Name})", () =>
             {
+               StampServiceIfNew(companion);
                WarWearinessService.Rest(companion, RestStep); // time and rest ease the toll; heavy fighting outruns it
 
                // A veteran who already stepped back from the field: if the player has since marched them back to
@@ -269,7 +297,10 @@ namespace CalradiaRemembers.Missions
                   return; // a stepped-back companion is not asked to retire again
                }
 
-               if (toAsk == null && WarWeariness.WantsToRetire(WarWearinessService.Get(companion), Valor(companion)) && !DeclinedRecently(companion))
+               // A companion cannot be asked to retire before 2 years of service (player report 2026-07-25):
+               // a young recruit must never ask to leave in their first two years, however hard the toll.
+               if (toAsk == null && WarWeariness.WantsToRetire(WarWearinessService.Get(companion), Valor(companion)) &&
+                   WarWeariness.HasServedLongEnough(DaysServed(companion)) && !DeclinedRecently(companion))
                   toAsk = companion;
             });
          }

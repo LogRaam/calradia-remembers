@@ -50,15 +50,25 @@ namespace CalradiaRemembers.Logic
         public const int CaptureWear = 10;
 
         /// <summary>Suggested recovery per week of real rest, for the engine's rest tick (a no-cost tuning default).</summary>
-        public const int RestStepPerWeek = 2;
+        public const int RestStepPerWeek = 3;
 
-        // Retirement tolerance: how high the score must climb before a companion wants out. Valor RAISES it — a
-        // brave, hardened soul bears far more war than a cautious one — clamped so even a coward endures some and
-        // a hero is not effectively immortal.
-        private const int BaseRetireThreshold = 40;
-        private const int ValorTolerance = 8; // per point of Valor (Bannerlord traits run -2..+2)
-        public const int MinRetireThreshold = 16;
-        public const int MaxRetireThreshold = 72;
+        // Retirement tolerance: how high the score must climb before a companion wants out. Valor RAISES it, a
+        // brave, hardened soul bears far more war than a cautious one, clamped so even a coward endures some and
+        // a hero is not effectively immortal. Raised (2026-07-25) so a companion endures many defeats/wounds and
+        // captures before wanting out: Bannerlord is combat-heavy, and the old numbers made retirement come far
+        // too easily for a game built around constant fighting.
+        private const int BaseRetireThreshold = 90;
+        private const int ValorTolerance = 14; // per point of Valor (Bannerlord traits run -2..+2)
+        public const int MinRetireThreshold = 55;
+        public const int MaxRetireThreshold = 140;
+
+        /// <summary>
+        ///   Minimum days of service (2 Calradian years, 2 * 84) before a companion may ask to retire for
+        ///   war-weariness, however high their toll: a companion who has served only briefly should never ask
+        ///   to leave in their first two years, no matter how hard the toll. Player report 2026-07-25: a
+        ///   22-year-old companion with under a year of service asked to retire.
+        /// </summary>
+        public const int MinServiceDays = 168;
 
         public static int Clamp(int score) => score < Min ? Min : score > Max ? Max : score;
 
@@ -91,6 +101,9 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>True when a companion is worn down enough to ask for retirement (score at or over their tolerance).</summary>
         public static bool WantsToRetire(int score, int valor) => score >= RetireThreshold(valor);
+
+        /// <summary>True once a companion has served at least <see cref="MinServiceDays" /> (the minimum-tenure gate).</summary>
+        public static bool HasServedLongEnough(int daysServed) => daysServed >= MinServiceDays;
 
         /// <summary>
         ///   The weariness band, read RELATIVE to this companion's own Valor-scaled tolerance — so the same raw

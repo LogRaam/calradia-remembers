@@ -49,10 +49,12 @@ namespace CalradiaRemembers
          int valor = hero.GetTraitLevel(DefaultTraits.Valor);
          int thr = WarWeariness.RetireThreshold(valor);
          bool invested = hero.GovernorOf != null || hero.PartyBelongedTo?.LeaderHero == hero;
+         int served = WarWearinessBehavior.Instance?.DaysServed(hero) ?? 0;
 
          return $"{hero.Name}: weariness={score}/{WarWeariness.Max} ({WarWeariness.Band(score, valor)}), valor={valor}, " +
                 $"tolerance={thr}, wantsToRetire={WarWeariness.WantsToRetire(score, valor)}, " +
-                $"invested={invested} → {WarWeariness.Retirement(invested)}, steppedBack={WarWearinessService.HasSteppedBack(hero)}.";
+                $"invested={invested} → {WarWeariness.Retirement(invested)}, steppedBack={WarWearinessService.HasSteppedBack(hero)}, " +
+                $"daysServed={served}, servedLongEnough={WarWeariness.HasServedLongEnough(served)}.";
       }
 
       /// <summary>cr.weary &lt;value&gt; [name] — set a companion's war-weariness directly (test path).</summary>
