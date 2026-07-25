@@ -74,11 +74,32 @@ namespace CalradiaRemembers.Assemblies
         public AssemblyProgress Progress()
             => AssemblyProgress.From(_pending?.Invitees?.Select(i => i.Status));
 
-        /// <summary>Cancels the pending assembly. The forced-movement stand-down arrives with the travel slice; here it clears the state.</summary>
+        /// <summary>
+        ///   Cancels the pending assembly and stands its travellers down: every EnRoute party is handed back to
+        ///   its own AI (RethinkAtNextHourlyTick), never left holding our stale move order (the "starving lord"
+        ///   scar). Then the state is cleared.
+        /// </summary>
         public void Cancel()
         {
-            if (_pending != null) ModLog.Info("[ASSEMBLY] cancelled.");
+            if (_pending == null) return;
+
+            foreach (AssemblyInviteeRecord inv in _pending.Invitees.Where(i => i.Status == AssemblyInviteeStatus.EnRoute))
+                ReleaseTravel(Hero.FindFirst(x => x.StringId == inv.HeroId));
+
+            ModLog.Info("[ASSEMBLY] cancelled.");
             _pending = null;
+        }
+
+        /// <summary>Orders every EnRoute traveller's party toward the host. Called once at convene and refreshed daily.</summary>
+        public void KickTravel()
+        {
+            if (_pending == null) return;
+
+            Settlement host = Settlement.Find(_pending.HostSettlementId);
+            if (host == null) return;
+
+            foreach (AssemblyInviteeRecord inv in _pending.Invitees.Where(i => i.Status == AssemblyInviteeStatus.EnRoute))
+                OrderTravel(Hero.FindFirst(x => x.StringId == inv.HeroId), host);
         }
 
         /// <summary>
@@ -93,6 +114,7 @@ namespace CalradiaRemembers.Assemblies
             if (inv == null) return false;
 
             inv.Status = AssemblyInviteeStatus.Present;
+            ReleaseTravel(Hero.FindFirst(x => x.StringId == heroId)); // arrived: hand their party back to its own AI
             ModLog.Info($"[ASSEMBLY] {heroId} reached the host and is Present.");
 
             return true;
@@ -161,13 +183,17 @@ namespace CalradiaRemembers.Assemblies
                 switch (AssemblyTravelOutcome.Evaluate(facts))
                 {
                     case TravelOutcome.Fell:
+                        ReleaseTravel(h);
                         _pending.Invitees.RemoveAll(i => i.HeroId == inv.HeroId);
                         ModLog.Info($"[ASSEMBLY] {inv.HeroId} fell on the road; their seat is empty.");
                         break;
                     case TravelOutcome.Ambassador:
+                        ReleaseTravel(h);
                         inv.Status = AssemblyInviteeStatus.Ambassador;
                         break;
-                    // Arriving: still on the road, leave EnRoute.
+                    default: // Arriving: still on the road, keep nudging their party toward the host (courier pattern).
+                        OrderTravel(h, host);
+                        break;
                 }
             }
         }
@@ -222,6 +248,33 @@ namespace CalradiaRemembers.Assemblies
         {
             try { InformationManager.DisplayMessage(new InformationMessage(message)); }
             catch { /* no UI available (headless / a self-test): the log line already carries it */ }
+        }
+
+        /// <summary>
+        ///   Nudges a traveller's party toward the host, WITHOUT freezing its AI: we only ever re-issue the goal
+        ///   (daily), never lock the party (SetDoNotMakeNewDecisions / a hold order), so it can never be stranded
+        ///   the way the "starving lord" bug did. A party too busy to obey is caught at the deadline and falls
+        ///   back to an ambassador.
+        /// </summary>
+        private static void OrderTravel(Hero h, Settlement host)
+        {
+            MobileParty party = h?.PartyBelongedTo;
+
+            if (party == null || host == null) return;
+
+            try { party.SetMoveGoToSettlement(host, MobileParty.NavigationType.Default, false); }
+            catch { /* an odd party state must never break the daily pass */ }
+        }
+
+        /// <summary>Hands a party back to its own AI, so it never keeps our stale move order after it leaves the roster.</summary>
+        private static void ReleaseTravel(Hero h)
+        {
+            MobileParty party = h?.PartyBelongedTo;
+
+            if (party?.Ai == null) return;
+
+            try { party.Ai.RethinkAtNextHourlyTick = true; }
+            catch { /* releasing is best-effort */ }
         }
 
         public override void SyncData(IDataStore dataStore)

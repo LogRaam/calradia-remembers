@@ -62,6 +62,7 @@ namespace CalradiaRemembers
                 sb.AppendLine($"  {h.Name}: {rsvp.Decision} ({Describe(rsvp.Reason)}) -> {status}  [regard {facts.RegardToInitiator}, dist tier {facts.DistanceTier}]");
             }
 
+            AssemblyBehavior.Instance.KickTravel();
             sb.Append("cr.assembly_status to review, cr.assembly_cancel to stand it down.");
 
             return sb.ToString();

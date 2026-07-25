@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Logic.Assemblies;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
 #endregion
@@ -39,6 +40,10 @@ namespace CalradiaRemembers.Assemblies
                 RsvpOutcome rsvp = AssemblyRsvpPolicy.Decide(facts);
                 AssemblyBehavior.Instance.SetStatus(h.StringId, InitialStatus(h, initiator, facts, rsvp));
             }
+
+            // Send the travellers on their way (only EnRoute clan parties; the console command sets statuses
+            // itself, so it kicks travel separately).
+            AssemblyBehavior.Instance.KickTravel();
         }
 
         /// <summary>
@@ -46,14 +51,28 @@ namespace CalradiaRemembers.Assemblies
         ///   your own clan (family, or a clan lord with a party) travels in person, so EnRoute. Every other
         ///   accepted invitee, an ally or an enemy at parley, sends an Ambassador rather than crossing the map.
         /// </summary>
+        /// <summary>The escort a traveller needs so bandits will not dare waylay them (Gabriel 2026-07-25). TUNE.</summary>
+        public const int MinEscortTroops = 20;
+
         public static AssemblyInviteeStatus InitialStatus(Hero invitee, Hero initiator, AssemblyInvitationFacts facts, RsvpOutcome rsvp)
         {
             if (rsvp.Decision == RsvpDecision.Decline) return AssemblyInviteeStatus.Declined;
             if (facts.IsCompanionOfInitiator) return AssemblyInviteeStatus.Present;
 
-            return TravelsInPerson(invitee, initiator)
+            // Only your own house travels, and only with a real warband at their back: a clan lord who leads
+            // enough troops rides in person, but a party-less or lightly-escorted member sends an ambassador
+            // rather than risking the road (Gabriel: they must not fear bandits).
+            return TravelsInPerson(invitee, initiator) && HasSufficientEscort(invitee)
                 ? AssemblyInviteeStatus.EnRoute
                 : AssemblyInviteeStatus.Ambassador;
+        }
+
+        /// <summary>True when the invitee leads their own party and it carries enough troops to travel unafraid.</summary>
+        public static bool HasSufficientEscort(Hero invitee)
+        {
+            MobileParty party = invitee?.PartyBelongedTo;
+
+            return party != null && party.LeaderHero == invitee && party.MemberRoster.TotalManCount >= MinEscortTroops;
         }
 
         /// <summary>
