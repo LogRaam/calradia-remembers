@@ -559,6 +559,19 @@ CalradiaRemembers.CrConversation.Ended += log => {
 If you would like to plug a mod into any of these doors, get in touch.. I would love to help.
 
 [line]
+[size=4]Already built on the API: CR Memory Bridge[/size]
+
+And someone already has. [b][color=#e69138]CR Memory Bridge[/color][/b], by [b][color=#93c47d]iwasajedionce[/color][/b], is a community add-on built entirely on the doors above.. and it is exactly the kind of thing I opened the API for.
+
+Where CR deliberately [i]compresses[/i] what a character recalls (fast, cheap, and the right tradeoff for most players), the Bridge keeps an [b]external long-term archive[/b]: [i]every[/i] conversation is stored in full in a local vault, and before each new talk the most relevant memories are handed back to the NPC through CR's official API.. so the character remembers them as its very own recollections. It is [b]per NPC, per save[/b] (test saves never leak into your main campaign, and two wives never confuse each other's grudges), and it runs [b]entirely offline[/b].. a tiny local model ranks which memories to recall, nothing ever leaves your PC. If you have ever had a lord forget a promise he made three sessions ago, this is the add-on for you.
+
+It is a model citizen of the open API: [b]zero CR modifications[/b] (no patched files, public API only), it [b]fails silently[/b] if its helper is not running (CR just carries on as normal), and it uninstalls clean. It requires Calradia Remembers, a local [b]Ollama[/b] backend, and is Windows-only.. see its own page for the one-time setup.
+
+[url=https://www.nexusmods.com/mountandblade2bannerlord/mods/12297]CR Memory Bridge on Nexus[/url]
+
+A heartfelt thank-you to iwasajedionce for building it, and for hosting it so the whole community can use it. This is openness working exactly as intended.
+
+[line]
 [size=4]For modders: the NpcMemoryService SDK[/size]
 
 Calradia Remembers is built on top of [b]NpcMemoryService[/b], an open SDK I designed from scratch to wire a large language model into a game so NPCs can hold real conversations and remember them across a whole campaign. The SDK is engine-agnostic (.NET Standard 2.0, no dependency on any game engine or UI toolkit), fully documented, and designed to be extended.
