@@ -2,6 +2,23 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.10.. 2026-07-25
+
+A companion fix, from a player report: a devoted companion could ask to leave out of nowhere. Three fixes to
+war-weariness and retirement. Your saves carry over untouched.
+
+### Fixed (companions)
+- **A content companion no longer asks to leave out of nowhere.** When a companion pulled you aside for a
+  private word (a rumour they had heard, some practical counsel, an old memory that resurfaced), the mod could
+  wrongly frame it as a war-weary bid to retire, so a perfectly devoted, unwearied companion would suddenly ask
+  to lay down the sword, then never actually leave and, asked about it later, have no memory of it. That private
+  word now stays on its real subject. (Report: a player on Nexus.)
+- **Companions are far more resilient to the toll of war.** In a game built on battle, a companion should endure
+  many more wounds and defeats before growing weary enough to want out. The weariness a companion bears before
+  asking to retire is raised substantially, and real rest eases it a little faster.
+- **A companion will not ask to retire within their first two years of service.** A young recruit who has barely
+  served can no longer ask to leave for war-weariness, however hard the road has been.
+
 ## v1.31.9.. 2026-07-25
 
 A duel fix, from a player report. Your saves carry over untouched.
