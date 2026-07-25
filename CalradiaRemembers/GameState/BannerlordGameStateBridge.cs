@@ -1321,7 +1321,13 @@ namespace CalradiaRemembers.GameState
                ? TryGrudgeGiftTail(npcHero, value)
                : "";
 
-            return new ActionOutcome($"You give {actualName} to {npcHero?.Name}.{grudgeTail}", false);
+            // If the gift is something they can wear or wield, they may put it on then and there: an empty slot
+            // or a real upgrade always, a lateral gift only if they are fond of you (the wife wears the gifted
+            // gown; a rival keeps his own blade). The bridge is the law, so this note claims it only when the
+            // equip actually happened.
+            string equipTail = TryEquipGift(npcHero, found.EquipmentElement.Item);
+
+            return new ActionOutcome($"You give {actualName} to {npcHero?.Name}.{grudgeTail}{equipTail}", false);
          }
          catch (Exception ex)
          {
@@ -1329,6 +1335,110 @@ namespace CalradiaRemembers.GameState
 
             return null;
          }
+      }
+
+      /// <summary>
+      ///   The "gift equipment gets worn" feature: when a give_item gift is something the NPC can wear or wield,
+      ///   decide (via the pure <see cref="GiftEquipPolicy" />) whether they equip it, and if so set the real
+      ///   equipment slot. A civilian garment goes on their town outfit, war gear on their battle set. Returns a
+      ///   short note when they equipped it (appended to the gift outcome so the model narrates the reaction),
+      ///   or "" when they merely accepted it. Gender-locked items are never forced on.
+      /// </summary>
+      private static string TryEquipGift(Hero hero, ItemObject item)
+      {
+         try
+         {
+            if (hero == null || item == null) return "";
+
+            // Respect the item's own gender lock: never force a man's harness onto a lady, or a gown onto a lord.
+            if (hero.IsFemale && item.ItemFlags.HasFlag(ItemFlags.NotUsableByFemale)) return "";
+            if (!hero.IsFemale && item.ItemFlags.HasFlag(ItemFlags.NotUsableByMale)) return "";
+
+            // A civilian piece (a gown, a fine tunic) goes on their town outfit; war gear on their battle set,
+            // so a gifted dress is seen in the streets and a gifted blade is drawn on the field.
+            Equipment equipment = item.IsCivilian ? hero.CivilianEquipment : hero.BattleEquipment;
+            if (equipment == null) return "";
+
+            if (!TryResolveEquipSlot(equipment, item, out EquipmentIndex slot)) return ""; // not wearable/wieldable
+
+            EquipmentElement current = equipment[slot];
+            int relation = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId)?.ReputationWithPlayer ?? 0;
+            bool sentimental = hero.Spouse == Hero.MainHero || hero.IsPlayerCompanion;
+
+            GiftEquipDecision decision = GiftEquipPolicy.Decide(new GiftEquipFacts(
+               isEquippable: true,
+               slotEmpty: current.Item == null,
+               giftValue: item.Value,
+               currentSlotValue: current.Item?.Value ?? 0,
+               relation: relation,
+               isSentimental: sentimental));
+
+            if (!decision.ShouldEquip) return "";
+
+            equipment[slot] = new EquipmentElement(item);
+            ModLog.Info($"[ACTION] give_item: {hero.Name} equipped '{item.Name}' ({decision.Reason}) in " +
+                        $"{(item.IsCivilian ? "civilian" : "battle")} slot {slot}.");
+
+            return " " + DescribeEquip(hero, item, decision.Reason);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] give_item equip failed: {ex.GetType().Name}: {ex.Message}");
+
+            return "";
+         }
+      }
+
+      /// <summary>
+      ///   Maps a gifted item to the single equipment slot it belongs in: armour and mount pieces to their fixed
+      ///   slot, any weapon to a weapon slot (a same-kind slot if they carry one, else an empty one). Returns
+      ///   false for a gift that is neither worn nor wielded (trade goods, a banner, an animal).
+      /// </summary>
+      private static bool TryResolveEquipSlot(Equipment equipment, ItemObject item, out EquipmentIndex slot)
+      {
+         slot = EquipmentIndex.Weapon0;
+         switch (item.ItemType)
+         {
+            case ItemObject.ItemTypeEnum.HeadArmor: slot = EquipmentIndex.Head; return true;
+            case ItemObject.ItemTypeEnum.BodyArmor:
+            case ItemObject.ItemTypeEnum.ChestArmor: slot = EquipmentIndex.Body; return true;
+            case ItemObject.ItemTypeEnum.LegArmor: slot = EquipmentIndex.Leg; return true;
+            case ItemObject.ItemTypeEnum.HandArmor: slot = EquipmentIndex.Gloves; return true;
+            case ItemObject.ItemTypeEnum.Cape: slot = EquipmentIndex.Cape; return true;
+            case ItemObject.ItemTypeEnum.Horse: slot = EquipmentIndex.Horse; return true;
+            case ItemObject.ItemTypeEnum.HorseHarness: slot = EquipmentIndex.HorseHarness; return true;
+            default:
+               if (!item.HasWeaponComponent) return false;
+               slot = SelectWeaponSlot(equipment, item);
+
+               return true;
+         }
+      }
+
+      /// <summary>
+      ///   Picks the weapon slot a gifted weapon should take: prefer replacing a weapon of the SAME kind (a
+      ///   sword for a sword, so a bow is never knocked out for a shield), then the first empty weapon slot,
+      ///   and only as a last resort the first slot.
+      /// </summary>
+      private static EquipmentIndex SelectWeaponSlot(Equipment equipment, ItemObject item)
+      {
+         for (EquipmentIndex i = EquipmentIndex.Weapon0; i <= EquipmentIndex.ExtraWeaponSlot; i++)
+            if (equipment[i].Item != null && equipment[i].Item.ItemType == item.ItemType) return i;
+
+         for (EquipmentIndex i = EquipmentIndex.Weapon0; i <= EquipmentIndex.ExtraWeaponSlot; i++)
+            if (equipment[i].Item == null) return i;
+
+         return EquipmentIndex.Weapon0;
+      }
+
+      /// <summary>A short, factual note that the NPC put the gift on, appended to the gift outcome so the model narrates it in voice.</summary>
+      private static string DescribeEquip(Hero hero, ItemObject item, GiftEquipReason reason)
+      {
+         string name = item.Name?.ToString() ?? "it";
+
+         return reason == GiftEquipReason.Affection
+            ? $"({hero.Name} wears {name} gladly, for your sake.)"
+            : $"({hero.Name} puts {name} on at once.)";
       }
 
       /// <summary>

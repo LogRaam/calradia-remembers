@@ -122,6 +122,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
          new SelfTest("free_prisoner", Severity.Heavy, "capture -> free_prisoner -> assert released", TestFreePrisoner),
          new SelfTest("give_item", Severity.Light, "pick a player item -> give_item -> assert it left the inventory", TestGiveItem),
+         new SelfTest("gift_equip", Severity.Light, "gift an equippable weapon to a companion/spouse -> assert they equipped it", TestGiftEquip),
          new SelfTest("presence", Severity.Light, "Mechanical: a companion riding in your party is told they travel at your side and is NEVER told how long since they last saw you, even with a 60-day-stale memory (the 'crew acts abandoned between two ports' report); a lord genuinely away STILL hears the time apart. BORROWS a companion into your party if none is riding along, and puts them back", TestPresence),
          new SelfTest("presence_gate", Severity.Light, "Mechanical: the ONE behaviour v1.30.14 changed, guarded across the WHOLE living roster with no preconditions. The letter system's facade and the single presence authority must give the same answer for every hero alive (before this, letters asked a wide question and jealousy a party-only one), and beside/away must be exact opposites. If they ever disagree again, the systems have drifted apart and this fires", TestPresenceGate),
          new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
@@ -3365,6 +3366,60 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("removedOne", after == before - 1, true);
 
          return t.Line();
+      }
+
+      // The "gift equipment gets worn" feature (Gabriel, 2026-07-25): a gifted weapon a companion likes should
+      // actually be EQUIPPED, not just leave the player's bag. The receiver is sentimental (a companion or the
+      // spouse), so GiftEquipPolicy equips a lateral gift regardless of value, and a weapon avoids the item
+      // gender-lock, so the only thing under test here is the bridge's equip step landing the item in a real slot.
+      private static string TestGiftEquip(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("gift_equip");
+
+         Hero receiver = Hero.AllAliveHeroes.FirstOrDefault(
+            h => h != Hero.MainHero && h.IsAlive && (h.IsPlayerCompanion || h.Spouse == Hero.MainHero));
+
+         if (t.Skip(receiver == null, "no companion or spouse (a sentimental receiver) to test the equip")) return t.Line();
+
+         ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+
+         if (t.Abort(roster == null, "no player item roster")) return t.Line();
+
+         // A weapon is the least gender-locked equippable, so the item's own flags never block the equip and the
+         // test isolates the bridge step (the policy is unit-tested separately in GiftEquipPolicyTests).
+         ItemObject weapon = MBObjectManager.Instance?.GetObjectTypeList<ItemObject>()
+                                            ?.FirstOrDefault(it => it != null && it.HasWeaponComponent
+                                                                && !it.ItemFlags.HasFlag(ItemFlags.NotUsableByFemale)
+                                                                && !it.ItemFlags.HasFlag(ItemFlags.NotUsableByMale));
+
+         if (t.Skip(weapon == null, "no gender-neutral weapon in the game data")) return t.Line();
+
+         roster.AddToCounts(weapon, 1); // give_item removes one unit again
+
+         var ctx = new ActionContext(GetOrCreate(behavior, receiver), null) {OfferedItemId = weapon.StringId};
+         behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "give_item"}, receiver, ctx);
+
+         bool equipped = HeroHasWeaponEquipped(receiver, weapon);
+         t.Note($"receiver={receiver.Name} (companion={receiver.IsPlayerCompanion}), item={weapon.Name}, equipped={equipped}");
+         t.Expect("giftEquipped", equipped, true);
+
+         return t.Line();
+      }
+
+      /// <summary>True when the hero carries the given item in any weapon slot of either equipment set.</summary>
+      private static bool HeroHasWeaponEquipped(Hero hero, ItemObject item)
+      {
+         bool InSet(Equipment eq)
+         {
+            if (eq == null) return false;
+
+            for (EquipmentIndex i = EquipmentIndex.Weapon0; i <= EquipmentIndex.ExtraWeaponSlot; i++)
+               if (eq[i].Item == item) return true;
+
+            return false;
+         }
+
+         return InSet(hero.BattleEquipment) || InSet(hero.CivilianEquipment);
       }
 
       // ── Grudges: the save-migration backfill (Arrange mirrors TestDivorceProcess: seed via the real ──
