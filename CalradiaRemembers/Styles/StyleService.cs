@@ -22,6 +22,13 @@ namespace CalradiaRemembers.Styles
         private static long _cachedStampTicks;
         private static string _selectedName;
 
+        /// <summary>
+        ///   Whether the chat window shows its style picker button. Session-only and OFF by default (the same
+        ///   posture as the round-table kill-switch): the picker is armed with <c>cr.style_ui on</c> while the
+        ///   feature is being play-tested, and the default flips once it has proven itself in a live campaign.
+        /// </summary>
+        public static bool PickerEnabled { get; set; }
+
         /// <summary>The style currently in force, resolved against the files actually present.</summary>
         public static string ActiveName => string.IsNullOrWhiteSpace(_selectedName)
             ? StyleCatalogPolicy.DefaultStyleName

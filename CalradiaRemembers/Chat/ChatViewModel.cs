@@ -19,10 +19,13 @@ using CalradiaRemembers.Missions;
 using CalradiaRemembers.Portraits;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Stance;
+using CalradiaRemembers.Styles;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.Localization;
 
 #endregion
 
@@ -252,6 +255,8 @@ namespace CalradiaRemembers.Chat
       private CouncilVoiceMode _councilVoiceMode = CouncilVoiceMode.WholeTable;
       private bool _isCouncilVoiceToggleVisible;
       private string _councilVoiceModeText = "";
+      private bool _isStylePickerVisible;
+      private string _styleButtonText = "";
 
       /// <summary>
       ///   The current council's [RESOLUTION] ledger: every pledge recorded or withdrawn this session, settled
@@ -342,6 +347,8 @@ namespace CalradiaRemembers.Chat
          // Every chat opens on the roleplay model; the explicit-scene activators
          // (captive encounter, player-as-captor) flip the mode to NSFW right after.
          LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(false);
+
+         RefreshStyleUi(); // the header's style button: hidden unless armed, labelled with the live voice
       }
 
       // ── Chat mode ─────────────────────────────────────────────────────────
@@ -576,6 +583,36 @@ namespace CalradiaRemembers.Chat
          {
             if (_councilVoiceModeText == value) return;
             _councilVoiceModeText = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>
+      ///   True when the in-window narrative-style picker is shown. Mirrors <see cref="StyleService.PickerEnabled" />
+      ///   (armed with <c>cr.style_ui on</c>), refreshed by <see cref="RefreshStyleUi" /> so arming it while a chat
+      ///   is already open takes effect at once.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsStylePickerVisible
+      {
+         get => _isStylePickerVisible;
+         set
+         {
+            if (_isStylePickerVisible == value) return;
+            _isStylePickerVisible = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>Label naming the style currently in force, so the player reads the live voice at a glance.</summary>
+      [DataSourceProperty]
+      public string StyleButtonText
+      {
+         get => _styleButtonText;
+         set
+         {
+            if (_styleButtonText == value) return;
+            _styleButtonText = value;
             OnPropertyChangedWithValue(value);
          }
       }
@@ -1560,6 +1597,65 @@ namespace CalradiaRemembers.Chat
          => mode == CouncilVoiceMode.PerMember
             ? "Voices: each member"
             : "Voices: whole table";
+
+      /// <summary>
+      ///   Re-reads the style picker's visibility and label from <see cref="StyleService" />. Called when the
+      ///   window opens and by the console toggle, so arming the picker (or picking a style from the console)
+      ///   while a chat is open updates the header instead of waiting for the next conversation.
+      /// </summary>
+      public void RefreshStyleUi()
+      {
+         IsStylePickerVisible = StyleService.PickerEnabled;
+         StyleButtonText = $"Style: {StyleService.ActiveName}";
+      }
+
+      /// <summary>
+      ///   The header's style button: lists the style files on disk and lets the player pick the writing voice
+      ///   without leaving the conversation. The pick is global and applies from the NEXT message on (the style
+      ///   rides the prompt's cacheable prefix, so it cannot change a reply already in flight). A no-op with a
+      ///   clear notice when the folder holds no styles.
+      /// </summary>
+      public void ExecuteOpenStylePicker()
+      {
+         try
+         {
+            IReadOnlyList<string> names = StyleCatalog.AvailableNames();
+
+            if (names.Count == 0)
+            {
+               MBInformationManager.AddQuickInformation(new TextObject(
+                  $"No narrative styles found. Add a .txt file to {StyleCatalog.FolderPath}."));
+
+               return;
+            }
+
+            string active = StyleService.ActiveName;
+            List<InquiryElement> options = names
+                                           .Select(n => new InquiryElement(n, string.Equals(n, active, StringComparison.OrdinalIgnoreCase)
+                                                           ? n + "   (current)"
+                                                           : n, null))
+                                           .ToList();
+
+            MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
+               "Narrative Style",
+               "How should the writing read? The style shapes the prose only, never who the characters are.",
+               options, true, 1, 1, "Use this style", "Cancel",
+               picked =>
+               {
+                  if (picked?.FirstOrDefault()?.Identifier is not string chosen) return;
+
+                  StyleService.Select(chosen);
+                  RefreshStyleUi();
+                  MBInformationManager.AddQuickInformation(new TextObject(
+                     $"Narrative style: {StyleService.ActiveName}. It applies from your next message."));
+               },
+               null));
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ExecuteOpenStylePicker threw {ex.GetType().Name}: {ex.Message}");
+         }
+      }
 
       public void ExecuteSendMessage()
       {

@@ -83,6 +83,33 @@
                         Brush.TextHorizontalAlignment="Center"
                         Text="@RelationSummary"
                         IsDisabled="true" />
+            <!-- The narrative-style picker. Sits bottom-LEFT, the free corner of the title bar, so it never
+                 crowds the right-hand stack (Request Private / Round Table / Voices) whose widths are tuned
+                 against each other by MarginRight. Hidden unless armed with cr.style_ui on. -->
+            <ButtonWidget Id="StylePickerButton"
+                          WidthSizePolicy="Fixed"
+                          HeightSizePolicy="Fixed"
+                          SuggestedWidth="170"
+                          SuggestedHeight="22"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Bottom"
+                          MarginBottom="6"
+                          MarginLeft="10"
+                          IsVisible="@IsStylePickerVisible"
+                          DoNotPassEventsToChildren="true"
+                          Brush="ButtonBrush1"
+                          UpdateChildrenStates="true"
+                          Command.Click="ExecuteOpenStylePicker">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Brush="Popup.Button.Text"
+                            Brush.FontSize="14"
+                            Text="@StyleButtonText" />
+              </Children>
+            </ButtonWidget>
             <ButtonWidget Id="RequestPrivateButton"
                           WidthSizePolicy="Fixed"
                           HeightSizePolicy="Fixed"

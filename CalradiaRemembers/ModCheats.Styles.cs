@@ -70,6 +70,28 @@ namespace CalradiaRemembers
         }
 
         /// <summary>
+        ///   cr.style_ui [on|off]: shows or hides the style picker button in the chat window's header. Off by
+        ///   default while the feature is play-tested (the same posture as the round-table kill-switch). Takes
+        ///   effect immediately, even on a chat that is already open.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("style_ui", "cr")]
+        public static string StyleUi(List<string> args)
+        {
+            try
+            {
+                if (args is {Count: > 0})
+                    StyleService.PickerEnabled = !string.Equals(args[0], "off", StringComparison.OrdinalIgnoreCase);
+
+                Chat.ChatManager.ActiveViewModel?.RefreshStyleUi();
+
+                return StyleService.PickerEnabled
+                    ? $"Style picker SHOWN in the chat header (active style: {StyleService.ActiveName}). Use cr.style_ui off to hide it."
+                    : "Style picker HIDDEN. Use cr.style_ui on to show it in the chat header.";
+            }
+            catch (Exception ex) { return $"cr.style_ui failed: {ex.GetType().Name}: {ex.Message}"; }
+        }
+
+        /// <summary>
         ///   cr.style_show: prints the beginning of the rules currently injected, straight from the live cache,
         ///   so you can confirm an edit to the .txt actually took (the lazy reload fired) before spending a call.
         /// </summary>
