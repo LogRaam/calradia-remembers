@@ -2,6 +2,19 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.11.. 2026-07-25
+
+A new feature, from a player request: you can now play matchmaker. Your saves carry over untouched.
+
+### New
+- **Arrange a marriage between your kin and another noble's house.** You can now propose a match between one of
+  your own unwed kin and an eligible noble of another clan, a marriage in which you are neither party. Speak with
+  the head of another house (or a noble parent) and, if you have unwed kin of your own, you may put the match to
+  them. They weigh your standing and the gain to their house: a family that thinks well of you agrees, and so
+  does one whose kin would marry up into a greater clan, while a stranger of no greater standing is turned away.
+  The wedding is real and follows the game's own rules of who may wed whom. (Console: cr.arrange_marriage.)
+  (Request: CarolusIV on Nexus.)
+
 ## v1.31.10.. 2026-07-25
 
 A grab-bag release: three fixes so a devoted companion stops asking to leave out of nowhere, a new touch (NPCs

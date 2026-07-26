@@ -58,7 +58,7 @@ pump-freeze case, which the pre-yield fixes).
 
 ---
 
-## RATIFIED + BUILDING (Gabriel + player CarolusIV, 2026-07-25): the MATCHMAKER, arrange a match between your kin and another clan's noble
+## RATIFIED + BUILT (Gabriel + player CarolusIV, 2026-07-25): the MATCHMAKER, arrange a match between your kin and another clan's noble (shipping v1.31.11)
 
 Player report (CarolusIV, Nexus): CR's marriage is player-only; you cannot arrange a match between a young noble
 of YOUR clan and an eligible noble of ANOTHER clan (the player is neither spouse). Gabriel: "You are right. I'll
@@ -77,7 +77,9 @@ Design (systems-first, mirrors the existing marriage philosophy, the bridge is t
   block listing the eligible kin and the arrange_marriage emission format.
 - Console cr.arrange_marriage plus a self-test for deterministic validation.
 
-STATUS: BUILDING 2026-07-25 (Sonnet policy + Opus bridge/prompt). Not for v1.31.10 (already publishing); ships next.
+STATUS: BUILT + COMMITTED + PUSHED 2026-07-25 (ArrangedMatchPolicy 7 tests + bridge arrange_marriage + prompt
+teaching, mod 2aaf283/877f679, SDK 3349eaf). Numbered v1.31.11. UNTESTED in game: console cr.arrange_marriage
+<yourKin> <theirKin> [npc] is the deterministic test path (it weds two real NPCs, use a test save).
 
 ---
 
