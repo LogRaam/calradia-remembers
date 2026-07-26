@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.Logic.Assemblies;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -107,6 +108,72 @@ namespace CalradiaRemembers
             b.Cancel();
 
             return "Assembly stood down.";
+        }
+
+        /// <summary>
+        ///   cr.assembly_test [n]
+        ///   The fast in-game harness for the SESSION: convenes an assembly at the current town/castle and seats
+        ///   N invitees as PRESENT right now (the last one as an AMBASSADOR envoy), bypassing the travel wait, so
+        ///   you can open the round-table immediately (cr.assembly_open, or the "Open the assembly" menu) and
+        ///   exercise the multi-speaker LLM session without staging the convergence by hand. Default N = 3.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("assembly_test", "cr")]
+        public static string AssemblyTest(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+            if (AssemblyBehavior.Instance == null) return "Assembly system not active (load a campaign first).";
+
+            Hero player = Hero.MainHero;
+            Settlement host = Settlement.CurrentSettlement;
+
+            if (host == null) return "Stand inside a town or castle to convene an assembly (no host settlement here).";
+            if (!host.IsTown && !host.IsCastle) return $"{host.Name} is not a town or castle; an assembly needs a hall.";
+
+            var count = 3;
+            if (args is {Count: > 0} && int.TryParse(args[0], out int n) && n > 0) count = System.Math.Min(n, 6);
+
+            List<Hero> invitees = Hero.AllAliveHeroes
+                                      .Where(h => h != null && h != player && h.IsLord && !h.IsPrisoner && h.Clan != Clan.PlayerClan)
+                                      .Take(count)
+                                      .ToList();
+
+            if (invitees.Count == 0) return "No lords available to seat. Try a livelier campaign.";
+
+            var today = (int) CampaignTime.Now.ToDays;
+            AssemblyBehavior.Instance.Begin(host.StringId, player.StringId, today, today + AssemblyDeadlineDays,
+                invitees.Select(h => h.StringId));
+
+            // Seat everyone PRESENT now, and make the last one an AMBASSADOR so the envoy seat is exercised too.
+            var envoyCount = 0;
+            for (var i = 0; i < invitees.Count; i++)
+            {
+                bool envoy = invitees.Count > 1 && i == invitees.Count - 1;
+                if (envoy) envoyCount++;
+                AssemblyBehavior.Instance.SetStatus(invitees[i].StringId,
+                    envoy ? AssemblyInviteeStatus.Ambassador : AssemblyInviteeStatus.Present);
+            }
+
+            return $"Assembly staged at {host.Name}: {invitees.Count - envoyCount} seated in person + {envoyCount} envoy(s): "
+                 + $"{string.Join(", ", invitees.Select(h => h.Name))}. "
+                 + "Now run cr.assembly_open (or use the 'Open the assembly' settlement menu) to start the round-table.";
+        }
+
+        /// <summary>
+        ///   cr.assembly_open: opens the convened assembly as the round-table LLM session (the same call the
+        ///   "Open the assembly" settlement-menu option makes), for testing the session directly from the console.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("assembly_open", "cr")]
+        public static string AssemblyOpen(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+            if (AssemblyBehavior.Instance is not {HasActiveAssembly: true})
+                return "No assembly is convened. Stage one first with cr.assembly_test.";
+
+            string result = ChatManager.OpenForAssembly();
+
+            return ChatManager.IsOpen
+                ? "Assembly session opened."
+                : $"Could not open the assembly: {result}";
         }
 
         private static List<Hero> PickInvitees(string which, Hero player)

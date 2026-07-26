@@ -240,11 +240,11 @@ namespace CalradiaRemembers
          // facts) renders THE PLAYER'S APPEARANCE and each NPC's own appearance in the prompt, replacing the old
          // static player_description.txt. Console: cr.appearance.
          campaignStarter.AddBehavior(new AppearanceProseBehavior());
-         // ASSEMBLY pillar: convene / travel / open-as-council is BUILT but not yet play-tested in a live
-         // campaign, so it is GATED OFF for the v1.31.10 release (the "Summon an assembly" settlement-menu
-         // options are withheld from players). Re-enable BOTH lines once the pillar is validated in game.
-         // campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.AssemblyBehavior());
-         // campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.AssemblyMenuBehavior());
+         // ASSEMBLY pillar: RE-ENABLED 2026-07-25 for in-game play-testing (convene / travel / open-as-council).
+         // Active in dev builds; it ships as a real feature only once validated in a live campaign. Stage a
+         // session fast with cr.assembly_test [n] then cr.assembly_open (bypasses the travel wait).
+         campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.AssemblyBehavior());
+         campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.AssemblyMenuBehavior());
          Log($"{ModName} campaign behavior registered.");
       }
 
