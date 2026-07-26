@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CalradiaRemembers.Logic.Styles;
 using TaleWorlds.Library;
 
 #endregion
@@ -39,7 +40,9 @@ namespace CalradiaRemembers.Styles
                 return Directory.Exists(FolderPath)
                     ? Directory.GetFiles(FolderPath, "*.txt")
                                .Select(Path.GetFileNameWithoutExtension)
-                               .Where(n => !string.IsNullOrWhiteSpace(n))
+                               // Documentation (README) and drafts (a leading underscore) are not styles: they
+                               // must never show up in the picker as if they were (player report 2026-07-26).
+                               .Where(StyleCatalogPolicy.IsSelectableStyleFile)
                                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
                                .ToList()
                     : new List<string>();

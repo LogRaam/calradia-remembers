@@ -70,5 +70,37 @@ namespace CalradiaRemembers.Tests.Styles
             StyleCatalogPolicy.ResolveName(null, available).Should().Be("Default");
             StyleCatalogPolicy.ResolveName("   ", available).Should().Be("Default");
         }
+
+        // STAKE: the shipped README.txt appeared in the player's style picker as if it were a style
+        // (player report 2026-07-26); it must be filtered out regardless of casing.
+        [Test]
+        public void GIVEN_the_readme_file_WHEN_checking_selectability_THEN_it_is_not_selectable()
+        {
+            StyleCatalogPolicy.IsSelectableStyleFile("README").Should().BeFalse();
+            StyleCatalogPolicy.IsSelectableStyleFile("readme").Should().BeFalse();
+        }
+
+        // STAKE: pins the documented underscore convention so a modder can park a draft or template in
+        // the folder without it polluting the picker.
+        [Test]
+        public void GIVEN_a_leading_underscore_WHEN_checking_selectability_THEN_it_is_not_selectable()
+        {
+            StyleCatalogPolicy.IsSelectableStyleFile("_WorkInProgress").Should().BeFalse();
+        }
+
+        // STAKE: the filter must not swallow real styles.
+        [Test]
+        public void GIVEN_an_ordinary_style_name_WHEN_checking_selectability_THEN_it_is_selectable()
+        {
+            StyleCatalogPolicy.IsSelectableStyleFile("Novelistic").Should().BeTrue();
+        }
+
+        // STAKE: a malformed entry must never reach the picker as a blank row.
+        [Test]
+        public void GIVEN_a_null_or_whitespace_name_WHEN_checking_selectability_THEN_it_is_not_selectable()
+        {
+            StyleCatalogPolicy.IsSelectableStyleFile(null).Should().BeFalse();
+            StyleCatalogPolicy.IsSelectableStyleFile("   ").Should().BeFalse();
+        }
     }
 }

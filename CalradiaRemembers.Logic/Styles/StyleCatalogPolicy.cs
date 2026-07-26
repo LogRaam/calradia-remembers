@@ -59,5 +59,35 @@ namespace CalradiaRemembers.Logic.Styles
 
             return defaultMatch ?? DefaultStyleName;
         }
+
+        /// <summary>
+        ///   True when a file under ModuleData/Styles is an actual selectable style rather than
+        ///   documentation. The folder ships a README.txt explaining how to write styles, and that file
+        ///   name must never appear in the picker as if it were a style (player report 2026-07-26).
+        ///   Also honours a leading underscore convention: a modder can name a draft or template file
+        ///   "_WorkInProgress" (etc.) to park it in the folder without it showing up as a selectable
+        ///   style.
+        /// </summary>
+        /// <param name="fileNameWithoutExtension">The style file's name, without its .txt extension.</param>
+        /// <returns>False for null/blank, "README" (case-insensitive), or an underscore-prefixed name; true otherwise.</returns>
+        public static bool IsSelectableStyleFile(string fileNameWithoutExtension)
+        {
+            if (string.IsNullOrWhiteSpace(fileNameWithoutExtension))
+            {
+                return false;
+            }
+
+            if (string.Equals(fileNameWithoutExtension, "README", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (fileNameWithoutExtension.StartsWith("_", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            return true;
+        }
     }
 }
