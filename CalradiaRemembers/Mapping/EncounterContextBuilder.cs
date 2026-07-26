@@ -273,6 +273,8 @@ namespace CalradiaRemembers.Mapping
             ConceptionRisk = ResolveConceptionRisk(hero),
             PowerBalanceNote = ResolvePowerBalanceNote(hero, profile),
             MarriageProspects = MarriageProspectResolver.Build(hero),
+            MatchmakerNpcKin = MatchmakerResolver.BuildNpcKin(hero),
+            MatchmakerPlayerKin = MatchmakerResolver.BuildPlayerKin(),
             WorldRumorsBlock = ResolveWorldRumors(hero),
             RealmNewsLine = ResolveRealmNews(hero),
             PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
