@@ -1815,7 +1815,7 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("assembly_convene");
 
-         if (t.Abort(AssemblyBehavior.Instance == null, "assembly system not active (load a campaign first)")) return t.Line();
+         if (t.Skip(AssemblyBehavior.Instance == null, "assembly gated off for release (re-enable the two AddBehavior lines to test)")) return t.Line();
 
          Hero player = Hero.MainHero;
          if (t.Abort(player == null, "no player hero")) return t.Line();
@@ -1889,7 +1889,7 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("assembly_arrival");
 
-         if (t.Abort(AssemblyBehavior.Instance == null, "assembly system not active (load a campaign first)")) return t.Line();
+         if (t.Skip(AssemblyBehavior.Instance == null, "assembly gated off for release (re-enable the two AddBehavior lines to test)")) return t.Line();
 
          Hero player = Hero.MainHero;
          Settlement host = Settlement.All?.FirstOrDefault(s => s.IsTown);
@@ -1939,7 +1939,7 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("assembly_revalidate");
 
-         if (t.Abort(AssemblyBehavior.Instance == null, "assembly system not active (load a campaign first)")) return t.Line();
+         if (t.Skip(AssemblyBehavior.Instance == null, "assembly gated off for release (re-enable the two AddBehavior lines to test)")) return t.Line();
 
          Hero player = Hero.MainHero;
          Settlement host = Settlement.All?.FirstOrDefault(s => s.IsTown && !s.IsUnderSiege);
