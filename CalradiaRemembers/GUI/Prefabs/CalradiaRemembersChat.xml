@@ -88,26 +88,26 @@
                  against each other by MarginRight. Two mutually exclusive buttons share the slot: the quill
                  ICON when its asset is on disk, and the wider LABELLED button as a fallback, so a missing or
                  unreadable image can never leave an empty button sitting in the header. -->
+            <!-- The art IS the whole button (a square image), so this widget carries no Brush of its own: a
+                 button background behind it would frame an already-framed image. The source is deliberately
+                 far larger than it is drawn; the widget scales it down to the title bar's button height. -->
             <ButtonWidget Id="StylePickerIconButton"
                           WidthSizePolicy="Fixed"
                           HeightSizePolicy="Fixed"
-                          SuggestedWidth="30"
-                          SuggestedHeight="22"
+                          SuggestedWidth="26"
+                          SuggestedHeight="26"
                           HorizontalAlignment="Left"
                           VerticalAlignment="Bottom"
-                          MarginBottom="6"
+                          MarginBottom="4"
                           MarginLeft="10"
                           IsVisible="@IsStyleIconVisible"
                           DoNotPassEventsToChildren="true"
-                          Brush="ButtonBrush1"
                           UpdateChildrenStates="true"
                           Command.Click="ExecuteOpenStylePicker">
               <Children>
                 <CrRuntimeImageWidget Id="StyleQuillIcon"
-                                      WidthSizePolicy="Fixed"
-                                      HeightSizePolicy="Fixed"
-                                      SuggestedWidth="18"
-                                      SuggestedHeight="18"
+                                      WidthSizePolicy="StretchToParent"
+                                      HeightSizePolicy="StretchToParent"
                                       HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
                                       ImagePath="@StyleIconPath"

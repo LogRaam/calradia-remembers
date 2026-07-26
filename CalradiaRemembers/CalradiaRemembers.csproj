@@ -172,6 +172,9 @@
       <ModAssemblies   Include="$(TargetDir)CalradiaRemembers.dll;$(TargetDir)CalradiaRemembers.Logic.dll;$(TargetDir)NpcMemoryService.Core.dll" />
       <GuiPrefabFiles  Include="$(ProjectDir)GUI\Prefabs\*.xml" />
       <GuiBrushFiles   Include="$(ProjectDir)GUI\Brushes\*.xml" />
+      <!-- UI art (the style button's quill). Without this the image ships in the repo but never reaches the
+           game, and the header silently falls back to its text button. -->
+      <GuiImageFiles   Include="$(ProjectDir)GUI\Images\*.*" />
       <!-- Recursive: ModuleData has SUBFOLDERS (Styles, scenarios) and the old flat glob silently left them
            behind, so a shipped style file never reached the game. Mirrors the Sounds pattern below. -->
       <ModuleDataFiles Include="$(ProjectDir)ModuleData\**\*.*" />
@@ -183,6 +186,7 @@
     <Copy SourceFiles="$(ProjectDir)..\SubModule.xml" DestinationFolder="$(BannerlordModuleDir)"           SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(GuiPrefabFiles)"           DestinationFolder="$(BannerlordModuleDir)\GUI\Prefabs" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(GuiBrushFiles)"            DestinationFolder="$(BannerlordModuleDir)\GUI\Brushes" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(GuiImageFiles)"            DestinationFolder="$(BannerlordModuleDir)\GUI\Images"  SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(ModuleDataFiles)"          DestinationFolder="$(BannerlordModuleDir)\ModuleData\%(RecursiveDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(SoundFiles)"               DestinationFolder="$(BannerlordModuleDir)\Sounds\%(RecursiveDir)" SkipUnchangedFiles="true" />
 
