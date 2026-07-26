@@ -2,6 +2,17 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.12.. 2026-07-26
+
+A small consistency fix, from a player report. Your saves carry over untouched.
+
+### Fixed
+- **A character's memories now keep one voice.** Some remembered moments were written in the first person ("I
+  told him...") and others in the third ("Nethor granted...", "he admits..."), so a character's memory panel
+  could read unevenly. New memories are now always written in the character's own first-person voice, matching
+  the conversation recaps. Memories already saved keep whatever voice they were written in (the mod does not
+  rewrite them). (Report: a player on Nexus.)
+
 ## v1.31.11.. 2026-07-25
 
 A new feature, from a player request: you can now play matchmaker. Your saves carry over untouched.
