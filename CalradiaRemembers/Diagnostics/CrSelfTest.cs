@@ -123,6 +123,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("free_prisoner", Severity.Heavy, "capture -> free_prisoner -> assert released", TestFreePrisoner),
          new SelfTest("give_item", Severity.Light, "pick a player item -> give_item -> assert it left the inventory", TestGiveItem),
          new SelfTest("gift_equip", Severity.Light, "gift an equippable weapon to a companion/spouse -> assert they equipped it", TestGiftEquip),
+         new SelfTest("style_reload", Severity.Light, "select a style, edit its file -> assert the next message picks the edit up", TestStyleReload),
          new SelfTest("presence", Severity.Light, "Mechanical: a companion riding in your party is told they travel at your side and is NEVER told how long since they last saw you, even with a 60-day-stale memory (the 'crew acts abandoned between two ports' report); a lord genuinely away STILL hears the time apart. BORROWS a companion into your party if none is riding along, and puts them back", TestPresence),
          new SelfTest("presence_gate", Severity.Light, "Mechanical: the ONE behaviour v1.30.14 changed, guarded across the WHOLE living roster with no preconditions. The letter system's facade and the single presence authority must give the same answer for every hero alive (before this, letters asked a wide question and jealousy a party-only one), and beside/away must be exact opposites. If they ever disagree again, the systems have drifted apart and this fires", TestPresenceGate),
          new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
@@ -3402,6 +3403,65 @@ namespace CalradiaRemembers.Diagnostics
          bool equipped = HeroHasWeaponEquipped(receiver, weapon);
          t.Note($"receiver={receiver.Name} (companion={receiver.IsPlayerCompanion}), item={weapon.Name}, equipped={equipped}");
          t.Expect("giftEquipped", equipped, true);
+
+         return t.Line();
+      }
+
+      // The injectable NARRATIVE STYLE (Gabriel, 2026-07-26). The valuable, easy-to-break half is the LAZY
+      // RELOAD: the file must be re-read when the player picks another style or edits the .txt DURING play (so a
+      // modder can fine-tune a voice without restarting), while costing nothing on an unchanged message. This
+      // drives the real StyleService against a real file on disk, so a broken cache rule is caught here rather
+      // than by a player wondering why their edit does nothing.
+      private static string TestStyleReload(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("style_reload");
+         const string probe = "__CrSelfTestStyle";
+         string path = Styles.StyleCatalog.PathOf(probe);
+         string restore = Styles.StyleService.ActiveName;
+
+         try
+         {
+            Styles.StyleCatalog.EnsureFolder();
+            System.IO.File.WriteAllText(path, "MARKER_ALPHA rules.");
+
+            string applied = Styles.StyleService.Select(probe);
+            if (t.Abort(!string.Equals(applied, probe, StringComparison.OrdinalIgnoreCase),
+                   $"could not select the probe style (got '{applied}')")) return t.Line();
+
+            string first = Styles.StyleService.CurrentRules();
+            t.Expect("selectedStyleLoaded", first.Contains("MARKER_ALPHA"), true);
+
+            // Serving the SAME unchanged file again must keep working (the cache path, no re-read).
+            t.Expect("cachedServeStillCorrect", Styles.StyleService.CurrentRules().Contains("MARKER_ALPHA"), true);
+
+            // Now the modder edits the style mid-game. The timestamp is set explicitly so the assertion never
+            // rides on file-system clock granularity.
+            System.IO.File.WriteAllText(path, "MARKER_BETA rules.");
+            System.IO.File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddSeconds(2));
+
+            string afterEdit = Styles.StyleService.CurrentRules();
+            t.Expect("editReloadedWithoutRestart", afterEdit.Contains("MARKER_BETA"), true);
+
+            // And picking another style must take effect too.
+            Styles.StyleService.Select("Default");
+            t.Expect("selectionChangeApplied", Styles.StyleService.CurrentRules().Contains("MARKER_BETA"), false);
+
+            t.Note($"probe='{probe}', folder={Styles.StyleCatalog.FolderPath}");
+         }
+         catch (Exception ex) { t.Note($"threw {ex.GetType().Name}: {ex.Message}"); }
+         finally
+         {
+            try
+            {
+               if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+            }
+            catch
+            {
+               /* best effort: a leftover probe file only shows up as one extra style in the picker */
+            }
+
+            Styles.StyleService.Select(restore);
+         }
 
          return t.Line();
       }

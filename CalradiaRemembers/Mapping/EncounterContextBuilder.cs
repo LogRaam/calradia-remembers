@@ -20,6 +20,7 @@ using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Social;
 using CalradiaRemembers.Marriage;
+using CalradiaRemembers.Styles;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
@@ -275,6 +276,8 @@ namespace CalradiaRemembers.Mapping
             MarriageProspects = MarriageProspectResolver.Build(hero),
             MatchmakerNpcKin = MatchmakerResolver.BuildNpcKin(hero),
             MatchmakerPlayerKin = MatchmakerResolver.BuildPlayerKin(),
+            // The player's chosen writing voice, served from memory unless the pick or the file changed.
+            NarrativeStyle = StyleService.CurrentRules(),
             WorldRumorsBlock = ResolveWorldRumors(hero),
             RealmNewsLine = ResolveRealmNews(hero),
             PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
