@@ -295,6 +295,49 @@ namespace CalradiaRemembers
          return $"{hero.Name}: marriage bargain seeded — clear bandits near {village} to earn the blessing for " + $"marrying {spouse.Name}. Then: cr.quest_done, cr.quest_complete, then cr.marriage_status {spouse.Name}.";
       }
 
+      /// <summary>
+      ///   cr.arrange_marriage &lt;yourKin&gt; &lt;theirKin&gt; [npc]
+      ///   The MATCHMAKER test path: weds one of YOUR clan's unwed kin to a noble of ANOTHER clan (you are
+      ///   neither spouse), with an authority NPC (the target's clan head or parent, or the target themselves)
+      ///   consenting. Drives the real arrange_marriage action through the bridge, so it runs the SAME guards
+      ///   the LLM path uses: engine legality (MarriageModel), the NPC's authority, and the consent policy.
+      ///   npc defaults to the open conversation, else the target kin's own clan leader. Note: it weds two real
+      ///   NPCs, so use it on a test save.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("arrange_marriage", "cr")]
+      public static string ArrangeMarriage(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         if (args == null || args.Count < 2)
+            return "Usage: cr.arrange_marriage <yourKin> <theirKin> [npc]  (yourKin = a member of YOUR clan; theirKin = a noble of another clan).";
+
+         string playerKin = args[0];
+         string targetKin = args[1];
+
+         Hero npc = args.Count > 2
+            ? ResolveHero(args.Skip(2).ToList())
+            : Hero.OneToOneConversationHero;
+
+         // Fall back to the target kin's own clan leader as the consenting authority.
+         if (npc == null)
+         {
+            Hero target = Hero.AllAliveHeroes.FirstOrDefault(
+               h => string.Equals(h.Name?.ToString(), targetKin, StringComparison.OrdinalIgnoreCase));
+            npc = target?.Clan?.Leader ?? target;
+         }
+
+         if (npc == null) return "No authority NPC found. Pass one as the 3rd arg, or open a conversation first.";
+
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {
+               Type = "arrange_marriage",
+               Parameters = new Dictionary<string, string> {["player_kin"] = playerKin, ["target_kin"] = targetKin}
+            }, npc, null);
+
+         return outcome?.Message
+             ?? $"arrange_marriage did nothing (see CalradiaRemembers.log). npc={npc.Name}, {playerKin} + {targetKin}.";
+      }
+
       /// <summary>First unwed, eligible kin of the NPC's house (clan + own children) the player could marry.</summary>
       private static Hero FindEligibleCandidate(Hero npc)
       {

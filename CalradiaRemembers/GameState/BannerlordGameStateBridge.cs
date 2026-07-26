@@ -215,6 +215,9 @@ namespace CalradiaRemembers.GameState
                return ExecuteTurnNemesis(npcHero, context?.Profile);
             case "grant_blessing":
                return ExecuteGrantBlessing(action, npcHero);
+
+            case "arrange_marriage":
+               return ExecuteArrangeMarriage(action, npcHero);
             case "harm_prisoner":
                return ExecuteHarmPrisoner(action);
             case "impregnation_risk":
@@ -1488,6 +1491,81 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] grant_blessing failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   arrange_marriage (the MATCHMAKER): the player weds one of their OWN clan's unwed kin (player_kin) to
+      ///   a noble of the conversation NPC's house (target_kin), a match in which the player is NEITHER spouse.
+      ///   The bridge is the law: it resolves both by name, checks the NPC's authority over their kin, defers the
+      ///   HARD eligibility (age, kinship, marital status) to the engine's own MarriageModel, then asks the pure
+      ///   consent policy (a systems decision, never the LLM's) before applying the native marriage. Consent is
+      ///   given on regard or on marrying UP; the wedding is real (MarriageAction.Apply).
+      /// </summary>
+      private static ActionOutcome ExecuteArrangeMarriage(GameAction action, Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null) return null;
+
+            action.Parameters.TryGetValue("player_kin", out string playerKinName);
+            action.Parameters.TryGetValue("target_kin", out string targetKinName);
+            if (string.IsNullOrWhiteSpace(playerKinName) || string.IsNullOrWhiteSpace(targetKinName)) return null;
+
+            // A is resolved through the player as the head of their own house; B through the conversation NPC's
+            // house (or the NPC themselves, when the player names them directly).
+            Hero a = MarriageProspectResolver.ResolveCandidate(Hero.MainHero, playerKinName);
+            Hero b = string.Equals(npcHero.Name?.ToString(), targetKinName, StringComparison.OrdinalIgnoreCase)
+               ? npcHero
+               : MarriageProspectResolver.ResolveCandidate(npcHero, targetKinName);
+
+            if (a == null || a == Hero.MainHero || a.Clan != Clan.PlayerClan)
+               return ActionOutcome.Refused($"(No unwed kin of your own clan answers to '{playerKinName}'.)");
+
+            if (b == null)
+               return ActionOutcome.Refused($"({npcHero.Name} names no one of their house by '{targetKinName}'.)");
+
+            // The NPC must be able to give B in marriage: their clan's head, or B's parent, or B themselves.
+            if (b != npcHero && !MarriageProspectResolver.HasAuthority(npcHero, b))
+               return ActionOutcome.Refused($"({npcHero.Name} has no authority to promise {b.Name} in marriage.)");
+
+            // Hard legality (age, kinship, marital status, opposite sex) is the engine's own rule, not ours.
+            if (Campaign.Current?.Models?.MarriageModel?.IsCoupleSuitableForMarriage(a, b) != true)
+               return ActionOutcome.Refused($"({a.Name} and {b.Name} cannot lawfully wed.)");
+
+            // CR consent: the target family weighs the player's standing. The regard read is the mod's own
+            // personal ledger (what the player built in chat), per the two-ledger rule, with the vanilla clan
+            // relation as a fallback only when no profile exists yet.
+            int regard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId)?.ReputationWithPlayer
+                         ?? npcHero.GetRelation(Hero.MainHero);
+
+            ArrangedMatchConsent consent = ArrangedMatchPolicy.Decide(new ArrangedMatchFacts(
+               targetIsOfAnotherClan: b.Clan != Clan.PlayerClan,
+               targetFamilyRegard: regard,
+               playerClanTier: Clan.PlayerClan?.Tier ?? 0,
+               targetClanTier: b.Clan?.Tier ?? 0));
+
+            switch (consent)
+            {
+               case ArrangedMatchConsent.NotCrossClan:
+                  return ActionOutcome.Refused($"({b.Name} is already of your own clan.)");
+               case ArrangedMatchConsent.RefusedStanding:
+                  return ActionOutcome.Refused($"({npcHero.Name} will not give {b.Name} to your house on your present standing.)");
+            }
+
+            MarriageAction.Apply(a, b);
+
+            string msg = $"{npcHero.Name} consents: {a.Name} of your clan and {b.Name} of {b.Clan?.Name} are wed.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+            ModLog.Info($"[ACTION] arrange_marriage: {a.Name} (player clan) wed {b.Name} ({b.Clan?.Name}), consent by {npcHero.Name}.");
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] arrange_marriage failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

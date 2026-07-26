@@ -58,6 +58,29 @@ pump-freeze case, which the pre-yield fixes).
 
 ---
 
+## RATIFIED + BUILDING (Gabriel + player CarolusIV, 2026-07-25): the MATCHMAKER, arrange a match between your kin and another clan's noble
+
+Player report (CarolusIV, Nexus): CR's marriage is player-only; you cannot arrange a match between a young noble
+of YOUR clan and an eligible noble of ANOTHER clan (the player is neither spouse). Gabriel: "You are right. I'll
+add this feature."
+
+Design (systems-first, mirrors the existing marriage philosophy, the bridge is the law):
+- Pure consent policy (ArrangedMatchPolicy, Logic): the target family agrees when the player is regarded well
+  enough OR their kin marries UP into a higher-standing house; refuses on poor standing; rejects a non-cross-clan
+  pairing. The HARD eligibility (age, kinship, marital status) is the engine's own
+  MarriageModel.IsCoupleSuitableForMarriage, and the wedding is the native MarriageAction.Apply(a, b).
+- Bridge action arrange_marriage (a = a player-clan member, b = the conversation noble or their kin): resolves
+  both, checks the NPC's authority over b, validates IsCoupleSuitableForMarriage plus the consent policy, then
+  applies the real marriage. The LLM's agreement is narration, not the deciding vote (a weak local model must not
+  be talkable into an impossible match).
+- Prompt teach: when the player speaks with a noble of another clan and has an unwed adult kin, teach a MATCHMAKER
+  block listing the eligible kin and the arrange_marriage emission format.
+- Console cr.arrange_marriage plus a self-test for deterministic validation.
+
+STATUS: BUILDING 2026-07-25 (Sonnet policy + Opus bridge/prompt). Not for v1.31.10 (already publishing); ships next.
+
+---
+
 ## RATIFIED + BUILT (Gabriel 2026-07-23): FORCED MARRIAGE, the family can bind its daughter (untested in game)
 
 Born of the Ira report (below): the player had done the family's part in full and was silently barred by the
