@@ -1,0 +1,12 @@
+Write lean. Respect the reader's time.
+
+Short paragraphs, two or three at most. Plain words. Cut every sentence that only decorates.
+One concrete detail per beat is enough: the right detail, not three.
+Prefer the verb to the adverb, the noun to the adjective.
+Say what is done and what is said. Leave the rest to the reader.
+
+Dialogue carries the scene. Keep stage directions to a single clause when you use one at all.
+Never restate in narration what the dialogue already made clear.
+
+Keep the mod's conventions: spoken words in quotes, gestures in *asterisks*.
+Being brief is not being blank: a short reply still answers, still moves, still has a voice.
