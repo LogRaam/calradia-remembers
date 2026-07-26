@@ -155,6 +155,14 @@ namespace CalradiaRemembers
       public static bool LeanPrompt => CrSettings.Instance?.LeanPrompt ?? false;
 
       /// <summary>
+      ///   Whether characters may compress their own old memories (folding superseded events into a background
+      ///   outline) to keep the prompt from growing without bound over a long campaign. ON by default, and
+      ///   deliberately switchable: a third-party mod that injects and curates memories itself (the extension
+      ///   API's AddMemory door) would otherwise find CR quietly dropping what it just wrote.
+      /// </summary>
+      public static bool MemoryCompression => CrSettings.Instance?.MemoryCompression ?? true;
+
+      /// <summary>
       ///   How long (seconds) to wait for an LLM reply before timing out. Read live from the MCM
       ///   menu; falls back to 120 when MCM has not loaded. Drives the per-request timeout so a slow
       ///   local/reasoning model on a long prompt no longer hits the opaque 100s HttpClient default.

@@ -125,6 +125,14 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public bool LeanPrompt { get; set; } = false;
 
+      [SettingPropertyBool("Compress old memories", RequireRestart = false, Order = 5,
+         HintText = "Lets characters fold old, superseded memories into a short background outline, so a long " +
+                    "campaign stops inflating every prompt (the usual cause of slow replies on a local model). " +
+                    "First meetings, recent events, and grave moments are never dropped. Turn OFF if another mod " +
+                    "manages this character's memory for you.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public bool MemoryCompression { get; set; } = true;
+
       [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 3,
          HintText = "How long to wait for a reply, in seconds (default 120). Raise it for a slow local or reasoning " +
                     "model; lower it to fail fast. Applies immediately.")]

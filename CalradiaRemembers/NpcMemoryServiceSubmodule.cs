@@ -240,6 +240,10 @@ namespace CalradiaRemembers
          // facts) renders THE PLAYER'S APPEARANCE and each NPC's own appearance in the prompt, replacing the old
          // static player_description.txt. Console: cr.appearance.
          campaignStarter.AddBehavior(new AppearanceProseBehavior());
+         // Keeps a long campaign from inflating every prompt: one character's superseded memories are folded
+         // into a background outline per day. Gated by the "Compress old memories" option, so a mod that
+         // curates memory itself can take over (extension API).
+         campaignStarter.AddBehavior(new CalradiaRemembers.Memory.MemoryCompressionBehavior());
          // ASSEMBLY pillar: GATED OFF for release (built, not yet play-tested in a live campaign). To test it in
          // a DEV build, UNCOMMENT the two lines below, then stage a session fast with cr.assembly_test [n] and
          // cr.assembly_open (bypasses the travel wait). It ships as a real feature only once validated.
