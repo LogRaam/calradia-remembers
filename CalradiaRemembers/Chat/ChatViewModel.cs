@@ -256,7 +256,9 @@ namespace CalradiaRemembers.Chat
       private bool _isCouncilVoiceToggleVisible;
       private string _councilVoiceModeText = "";
       private bool _isStylePickerVisible;
+      private bool _isStyleLabelVisible;
       private string _styleButtonText = "";
+      private string _styleIconPath = "";
 
       /// <summary>
       ///   The current council's [RESOLUTION] ledger: every pledge recorded or withdrawn this session, settled
@@ -600,6 +602,40 @@ namespace CalradiaRemembers.Chat
          {
             if (_isStylePickerVisible == value) return;
             _isStylePickerVisible = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>
+      ///   True when the quill asset is present, so the header shows the icon button. Mutually exclusive with
+      ///   <see cref="IsStyleLabelVisible" />: exactly one of the two style buttons is ever shown, so a missing
+      ///   asset degrades to the labelled button instead of leaving a blank one.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsStyleIconVisible => _isStylePickerVisible && !_isStyleLabelVisible;
+
+      /// <summary>True when the style button falls back to its text label (the quill asset is not on disk).</summary>
+      [DataSourceProperty]
+      public bool IsStyleLabelVisible
+      {
+         get => _isStyleLabelVisible;
+         set
+         {
+            if (_isStyleLabelVisible == value) return;
+            _isStyleLabelVisible = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>Full path of the quill image the icon button renders (empty when the asset is absent).</summary>
+      [DataSourceProperty]
+      public string StyleIconPath
+      {
+         get => _styleIconPath;
+         set
+         {
+            if (_styleIconPath == value) return;
+            _styleIconPath = value;
             OnPropertyChangedWithValue(value);
          }
       }
@@ -1606,7 +1642,12 @@ namespace CalradiaRemembers.Chat
       public void RefreshStyleUi()
       {
          IsStylePickerVisible = StyleService.PickerEnabled;
+         StyleIconPath = StyleCatalog.IconExists
+            ? StyleCatalog.IconPath
+            : "";
+         IsStyleLabelVisible = IsStylePickerVisible && string.IsNullOrEmpty(StyleIconPath);
          StyleButtonText = $"Style: {StyleService.ActiveName}";
+         OnPropertyChanged(nameof(IsStyleIconVisible)); // computed from the two flags above
       }
 
       /// <summary>

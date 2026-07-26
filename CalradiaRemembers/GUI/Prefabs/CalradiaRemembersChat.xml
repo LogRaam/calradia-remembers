@@ -85,7 +85,35 @@
                         IsDisabled="true" />
             <!-- The narrative-style picker. Sits bottom-LEFT, the free corner of the title bar, so it never
                  crowds the right-hand stack (Request Private / Round Table / Voices) whose widths are tuned
-                 against each other by MarginRight. Hidden unless armed with cr.style_ui on. -->
+                 against each other by MarginRight. Two mutually exclusive buttons share the slot: the quill
+                 ICON when its asset is on disk, and the wider LABELLED button as a fallback, so a missing or
+                 unreadable image can never leave an empty button sitting in the header. -->
+            <ButtonWidget Id="StylePickerIconButton"
+                          WidthSizePolicy="Fixed"
+                          HeightSizePolicy="Fixed"
+                          SuggestedWidth="30"
+                          SuggestedHeight="22"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Bottom"
+                          MarginBottom="6"
+                          MarginLeft="10"
+                          IsVisible="@IsStyleIconVisible"
+                          DoNotPassEventsToChildren="true"
+                          Brush="ButtonBrush1"
+                          UpdateChildrenStates="true"
+                          Command.Click="ExecuteOpenStylePicker">
+              <Children>
+                <CrRuntimeImageWidget Id="StyleQuillIcon"
+                                      WidthSizePolicy="Fixed"
+                                      HeightSizePolicy="Fixed"
+                                      SuggestedWidth="18"
+                                      SuggestedHeight="18"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      ImagePath="@StyleIconPath"
+                                      IsDisabled="true" />
+              </Children>
+            </ButtonWidget>
             <ButtonWidget Id="StylePickerButton"
                           WidthSizePolicy="Fixed"
                           HeightSizePolicy="Fixed"
@@ -95,7 +123,7 @@
                           VerticalAlignment="Bottom"
                           MarginBottom="6"
                           MarginLeft="10"
-                          IsVisible="@IsStylePickerVisible"
+                          IsVisible="@IsStyleLabelVisible"
                           DoNotPassEventsToChildren="true"
                           Brush="ButtonBrush1"
                           UpdateChildrenStates="true"

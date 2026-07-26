@@ -52,6 +52,24 @@ namespace CalradiaRemembers.Styles
             }
         }
 
+        /// <summary>
+        ///   The quill image shown on the chat's style button, shipped as a mod asset (not a player file).
+        ///   Optional by design: when it is absent the header falls back to a text button, so a missing or
+        ///   unreadable asset can never leave an empty button in the window.
+        /// </summary>
+        public static string IconPath
+            => Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData", "UI", "quill.png");
+
+        /// <summary>True when the quill asset is on disk, so the header can show the icon instead of the label.</summary>
+        public static bool IconExists
+        {
+            get
+            {
+                try { return File.Exists(IconPath); }
+                catch { return false; }
+            }
+        }
+
         /// <summary>The file path a style name maps to (never null; the file may not exist).</summary>
         public static string PathOf(string name)
             => Path.Combine(FolderPath, (name ?? string.Empty) + ".txt");

@@ -23,11 +23,11 @@ namespace CalradiaRemembers.Styles
         private static string _selectedName;
 
         /// <summary>
-        ///   Whether the chat window shows its style picker button. Session-only and OFF by default (the same
-        ///   posture as the round-table kill-switch): the picker is armed with <c>cr.style_ui on</c> while the
-        ///   feature is being play-tested, and the default flips once it has proven itself in a live campaign.
+        ///   Whether the chat window shows its style picker button. ON by default since Gabriel validated the
+        ///   picker in play (2026-07-26): it is an ordinary part of the window now, not a test switch.
+        ///   <c>cr.style_ui off</c> still hides it for a player who wants the header bare.
         /// </summary>
-        public static bool PickerEnabled { get; set; }
+        public static bool PickerEnabled { get; set; } = true;
 
         /// <summary>The style currently in force, resolved against the files actually present.</summary>
         public static string ActiveName => string.IsNullOrWhiteSpace(_selectedName)
