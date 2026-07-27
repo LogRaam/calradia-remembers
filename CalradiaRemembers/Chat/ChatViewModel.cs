@@ -1737,7 +1737,9 @@ namespace CalradiaRemembers.Chat
          {
             List<ChatSpeaker> roster = AllPresentSpeakers();
             _npcWitnessExchangePending = true; // reuse the existing "a lap is in flight" guard
-            _ = RunRoundTableLapAsync(roster, text, roster.Count); // uncapped: the WHOLE seated roster speaks
+            // M12: bound the per-turn cost. A small/medium council still speaks in full; a large one rotates
+            // (RoundTableController advances the round-robin start each turn, so everyone is heard over time).
+            _ = RunRoundTableLapAsync(roster, text, RoundTablePolicy.CouncilLapCap(roster.Count));
 
             return;
          }

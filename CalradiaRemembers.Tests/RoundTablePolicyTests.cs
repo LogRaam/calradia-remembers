@@ -76,5 +76,19 @@ namespace CalradiaRemembers.Tests
         {
             RoundTablePolicy.NextStartIndex(count, start, cap).Should().Be(expected);
         }
+
+        // Council audit M12: the per-member council used to give the whole roster a turn EVERY message (one full
+        // LLM call each), so a large clan council cost a dozen calls per line. A small/medium council still speaks
+        // in full (nothing changes there); only a large one is capped, and the round-robin start advances between
+        // turns so everyone is still heard over successive turns. Boundary at exactly the cap stays uncapped.
+        [TestCase(3, 3)]   // small council: whole table speaks
+        [TestCase(6, 6)]   // exactly at the cap: still whole table
+        [TestCase(10, 6)]  // large council: bounded to the cap
+        [TestCase(0, 0)]   // degenerate: nothing to seat
+        public void GIVEN_a_council_roster_WHEN_capping_the_lap_THEN_small_tables_speak_in_full_and_large_ones_are_bounded(
+            int rosterCount, int expected)
+        {
+            RoundTablePolicy.CouncilLapCap(rosterCount).Should().Be(expected);
+        }
     }
 }
