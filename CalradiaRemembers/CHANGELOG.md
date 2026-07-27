@@ -2,6 +2,22 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.15.. 2026-07-27
+
+Two fixes, from a player report. Your saves carry over untouched.
+
+### Fixed
+- **The chronicle now follows your chosen Reply Language.** With Reply Language set to a language (say
+  Spanish), conversations, letters, and memories obeyed it, but the illuminated chronicle kept coming out in
+  English: it is a separate piece of writing that was never told the language. Now it is, so the illuminated
+  chronicle reads in your language too. (The plain, non-illuminated chronicle still uses fixed English date
+  headings; it is the illuminated version that follows the setting.) If you want it without waiting for a
+  rewrite, you can also name the language in `chronicle_style.txt`. (Report: a player on Nexus.)
+- **A failed AI reply now tells you why.** When a reply fails, the on-screen notice used to give the same
+  generic "check your model and endpoint" no matter the cause. It now shows the actual reason when there is
+  one, so a timeout on a long prompt (raise "LLM Response Timeout" in the mod options) reads differently from an
+  endpoint or model mistake, and you are not left guessing.
+
 ## v1.31.14.. 2026-07-27
 
 A conversation fix, from a player report. Your saves carry over untouched.
