@@ -2,6 +2,18 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.14.. 2026-07-27
+
+A conversation fix, from a player report. Your saves carry over untouched.
+
+### Fixed
+- **Mentioning another character no longer hijacks the conversation.** With several NPCs present, referring
+  to one of the others in a comma-separated phrase ("I wanted to ask about your friend, Manteos", "Do you know
+  my sister, Aitheen?") wrongly switched the active speaker to the mentioned character, who then often answered
+  oddly for a line before recovering. That phrasing is a reference, not an address: the current NPC now keeps
+  the floor, and a name is treated as a direct address only when you actually address them ("Manteos, what say
+  you?"). (Report: a player on Nexus.)
+
 ## v1.31.13.. 2026-07-26
 
 Two features: choose the voice your story is told in, and a memory limit so long-lived saves stay quick.
