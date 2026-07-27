@@ -367,7 +367,7 @@ namespace CalradiaRemembers.Grudges
       ///   actually recorded. Never throws — a failure here must never break the caller's own relation
       ///   hit or memory event, which are applied independently before/after this call.
       /// </summary>
-      public bool TryPlant(Hero holder, Hero target, GrudgeSource source, string cause, int magnitude, bool knownToPlayer, int today)
+      public bool TryPlant(Hero holder, Hero target, GrudgeSource source, string cause, int magnitude, bool knownToPlayer, int today, bool notify = true)
       {
          if (holder == null || target == null || string.IsNullOrEmpty(holder.StringId)) return false;
 
@@ -417,7 +417,9 @@ namespace CalradiaRemembers.Grudges
             ModLog.Info($"[GRUDGE] planted: {holder.Name} vs {target.Name} ({source}, magnitude {effectiveMagnitude}, " +
                         $"rigidity {rigidity}, known={knownToPlayer}{(toEvict != null ? ", evicted weakest" : "")}).");
 
-            if (knownToPlayer) NotifyFormed(holder);
+            // notify=false lets a batch planter (a single execution seeding several kin) suppress the per-kin
+            // banner and raise ONE aggregated notice instead of a stack of near-identical ones (regard audit 5.6).
+            if (knownToPlayer && notify) NotifyFormed(holder);
 
             return true;
          }

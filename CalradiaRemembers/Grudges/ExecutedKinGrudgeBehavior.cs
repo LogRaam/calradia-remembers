@@ -7,11 +7,14 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic.Grudges;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.Core;
+using TaleWorlds.Localization;
 
 #endregion
 
@@ -71,13 +74,35 @@ namespace CalradiaRemembers.Grudges
 
                 if (!proposal.Forms) continue;
 
+                // notify:false: a single execution can seed several kin at once, so we suppress each per-kin
+                // banner and raise ONE aggregated notice below instead of a stack of near-identical ones (5.6).
                 bool didPlant = GrudgeBehavior.Instance.TryPlant(kin, Hero.MainHero, GrudgeSource.ExecutedKin,
-                    cause, proposal.Magnitude, knownToPlayer: true, today);
+                    cause, proposal.Magnitude, knownToPlayer: true, today, notify: false);
 
                 if (didPlant) planted++;
             }
 
+            if (planted > 0) NotifyKinGrudge(victim);
+
             return (considered, planted);
+        }
+
+        /// <summary>
+        ///   One aggregated banner for a whole execution: however many kin took up the vendetta, the player
+        ///   sees a single notice under the executed lord's portrait rather than one line per grudging relative.
+        ///   Never throws (mirrors GrudgeBehavior.NotifyFormed's own guard).
+        /// </summary>
+        private static void NotifyKinGrudge(Hero victim)
+        {
+            try
+            {
+                MBInformationManager.AddQuickInformation(
+                    new TextObject($"{victim.Name}'s kin now hold a blood grudge against you."), 0, victim.CharacterObject);
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[GRUDGE] executed-kin banner failed: {ex.GetType().Name}: {ex.Message}");
+            }
         }
 
         #region private
