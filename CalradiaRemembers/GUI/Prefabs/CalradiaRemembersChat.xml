@@ -105,13 +105,16 @@
                           UpdateChildrenStates="true"
                           Command.Click="ExecuteOpenStylePicker">
               <Children>
+                <!-- No IsDisabled here: the disabled state paints GauntletUI's cold blue-grey tint over the
+                     sprite (the gold quill went blue in game). The parent button's DoNotPassEventsToChildren
+                     already routes the click, so the icon needs no disabling. Color pinned white = no tint. -->
                 <CrRuntimeImageWidget Id="StyleQuillIcon"
                                       WidthSizePolicy="StretchToParent"
                                       HeightSizePolicy="StretchToParent"
                                       HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
                                       ImagePath="@StyleIconPath"
-                                      IsDisabled="true" />
+                                      Color="#FFFFFFFF" />
               </Children>
             </ButtonWidget>
             <ButtonWidget Id="StylePickerButton"
