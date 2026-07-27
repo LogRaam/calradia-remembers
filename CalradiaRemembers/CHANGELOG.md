@@ -2,6 +2,24 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.31.13.. 2026-07-26
+
+Two features: choose the voice your story is told in, and a memory limit so long-lived saves stay quick.
+Your saves carry over untouched.
+
+### New
+- **Choose the voice the story is told in.** A new quill button in the chat window opens a picker of writing
+  styles that change how the prose reads, never who a character is or what they will do. Fifteen ship with the
+  mod, from plain Novelistic, Terse, and Grimdark to author-anchored voices (Tolkien, Martin, Cornwell, Austen,
+  McCarthy, Dumas, Kay, Homer, Dostoevsky, Howard, and more). Your choice applies everywhere, to lords and
+  commoners alike, and to whichever model you run. Styles are plain text files under ModuleData/Styles: edit one
+  or drop in your own, even in the middle of a game, and your next line uses it. (Console: cr.styles, cr.style.)
+- **A limit on how much a character remembers, so veteran saves stay quick.** As a character piles up remembered
+  moments, the mod now folds the oldest into a short background outline instead of handing the AI a character's
+  entire history on every message. Long-lived saves keep their speed and cost in check without losing the shape
+  of a character's past. On by default, with a toggle in the mod options. (From a modder's report of a
+  conversation's context running past 20,000 tokens.)
+
 ## v1.31.12.. 2026-07-26
 
 A small consistency fix, from a player report. Your saves carry over untouched.
