@@ -288,6 +288,21 @@ multi-party session orchestrates the meeting, and missions may be distributed. E
 a war-council of all his allies to talk strategy. The pillar = the conversational ENGINE (already built, see
 below) + a convening/travel/presence layer + a session layer + a mission-distribution layer.
 
+**STATUS (2026-07-27): AUDIT-CONSEIL remediation COMPLETE (code lots), not yet play-tested. The Assembly
+convening MENU stays GATED OFF (`NpcMemoryServiceSubmodule` AddBehavior lines) pending Gabriel's in-game test;
+the council session itself (`cr.council`) is active and testable.** Re-verified against main: Inc 1/2 had
+already fixed C1 (per-member resolutions consumed), C2 (target_settlement taught), C3 (prompt contradiction +
+council action guard), M3 (RSVP order), m3 (anchor stability). Done this session: **C4** in-flight council
+persists save/load (`CouncilSessionBehavior` + shared `CouncilLift`, only AGREED pledges lift on load, no
+double-execution); **M1/M2** `OpenForCouncil` guards (`CouncilAccessPolicy`); **M4** `ResolutionCatalog` is now
+the canonical kind registry (enum<->string, only executable kinds lift); **M6/M7** `WitnessIds` + a pledge is
+remembered in every outcome (`CouncilPledgeMemory`); **M9/M11/m2** ledger hardened + `Sanitize`; **M12**
+per-member lap capped (`RoundTablePolicy.CouncilLapCap`); **m4/m5/m6/m7/m10** hardening. **M8/M10 (votes) PARKED**
+(consultative ratified). Ratified decisions (2026-07-27): **(Q2)** `change_relation` is immediate at the table,
+deed pledges are deferred; **(Q4)** persist the ledger; **(Q5)** EXTEND the `[RESOLUTION]`->quest path now,
+MIGRATE to the `[PLEDGE]`/`CommitmentBehavior` deferred-over-days design LATER (the R1 section below is the
+FUTURE path, not the current one); **(Q6)** CONSULTATIVE (a spoken pledge IS the decision, no binding votes).
+
 **FOUNDATION ALREADY BUILT (2026-07-10, committed + GATED OFF `RoundTableController.Enabled = false`, never play-tested): the ROUND TABLE.** A deterministic
 group-turn driver, the model-independent answer to a player report (weak LLMs never volunteer witness
 reactions, so witnesses stay mute unless singled out; the existing Sprint 15C back-and-forth is model-driven).

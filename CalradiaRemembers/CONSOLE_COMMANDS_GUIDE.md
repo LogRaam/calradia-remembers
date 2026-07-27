@@ -105,6 +105,17 @@ instead.
 They are safe to run but are not how you play; many only make sense to a developer. The full list is
 `cr.help`; the self-tests are `cr.test list`.
 
+### The council (experimental)
+
+Seats several of your own people, gives the floor to the one who regards you best (the others react each
+turn), and lets a member pledge a task that becomes a real quest when the council closes. The in-game entry
+(a settlement menu) is gated off pending play-testing, so for now it opens only from the console.
+
+| Command | What it does |
+|---|---|
+| `cr.council [companions\|family\|lords]` | Open a council of that part of your house (refused inside a scene, captivity, or another open chat). **(save)** |
+| `cr.roundtable [on\|off]` | Toggle the per-NPC round-table button in ordinary group chats (off by default). |
+
 ### The self-test harness
 
 One harness drives the mod's systems end to end and reports PASS / FAIL / MANUAL for each.
