@@ -37,14 +37,18 @@ namespace CalradiaRemembers.Chat
       ///   context is too short for the prompt). The exact error is in the log; this points a player who
       ///   has not enabled logging at the likely cause without spamming them every failure.
       /// </summary>
-      private static void NotifyLlmFailure()
+      private static void NotifyLlmFailure(string reason = null)
       {
          if (_llmFailureHintShown) return;
          _llmFailureHintShown = true;
+         // Surface the client's OWN reason when it has one (a timeout, a context-length or rate-limit error):
+         // it is already player-facing and tells them WHICH knob to turn, where the generic guidance alone left
+         // a player guessing "check your model and endpoint" at what was really a timeout on a long prompt.
+         string detail = string.IsNullOrWhiteSpace(reason) ? "" : $" ({reason.Trim()})";
          InformationManager.DisplayMessage(new InformationMessage(
-            "Calradia Remembers: the AI did not respond — an LLM call failed. Check your model and endpoint; " +
-            "for a small local model, raise its context length and max output tokens. Enable Logging " +
-            "(Mod Options → Calradia Remembers) for the exact error.",
+            "Calradia Remembers: the AI did not respond, an LLM call failed." + detail + " Check your model and " +
+            "endpoint; for a small local model, raise its context length and max output tokens. Enable Logging " +
+            "(Mod Options -> Calradia Remembers) for the exact error.",
             Colors.Red));
       }
 

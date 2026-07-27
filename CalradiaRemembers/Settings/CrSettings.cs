@@ -188,7 +188,8 @@ namespace CalradiaRemembers.Settings
 
       [SettingPropertyText("Reply Language", RequireRestart = false, Order = 3,
          HintText = "Leave blank to auto-detect and mirror whatever language you write in. Name a language " +
-                    "(e.g. Spanish) to force every reply, letter, and memory into it, no matter what you write.")]
+                    "(e.g. Spanish) to force every reply, letter, memory, and the illuminated chronicle into " +
+                    "it, no matter what you write.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public string ReplyLanguage { get; set; } = "";
 

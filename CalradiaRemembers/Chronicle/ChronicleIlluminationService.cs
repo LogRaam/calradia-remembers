@@ -62,6 +62,10 @@ namespace CalradiaRemembers.Chronicle
 
             string deedText = BuildDeedText(deeds, from);
             string style = LoadStyle();
+            // The chronicle is a fourth LLM output (beside chat, letters, and memory) and must obey the same
+            // Reply Language setting: a player who forced Spanish was still getting an English chronicle, since
+            // the illuminator was never told the language (player report 2026-07-26). Blank = auto (English base).
+            string language = ModSettings.ReplyLanguage;
             string player = Hero.MainHero?.Name?.ToString() ?? "the player";
             string priorTail = rewriteAll ? null : Tail(ChronicleBehavior.Instance.IlluminatedText, 600);
             int total = deeds.Count;
@@ -71,7 +75,7 @@ namespace CalradiaRemembers.Chronicle
             _ = Task.Run(async () =>
             {
                 string result = null;
-                try { result = await illuminator.IlluminateAsync(player, deedText, style, priorTail).ConfigureAwait(false); }
+                try { result = await illuminator.IlluminateAsync(player, deedText, style, priorTail, language).ConfigureAwait(false); }
                 catch (Exception ex) { ModLog.Error($"[CHRONICLE] illumination failed: {ex.GetType().Name}: {ex.Message}"); }
 
                 // State update is a plain string/int swap — safe off the main thread, and it lands even

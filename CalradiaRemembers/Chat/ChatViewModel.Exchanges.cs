@@ -285,7 +285,7 @@ namespace CalradiaRemembers.Chat
             {
                ReplacePlaceholder(placeholder, "(My words escape me...)", null);
                ModLog.Error($"[COMMONER] LLM call failed: {result.ErrorMessage}");
-               NotifyLlmFailure();
+               NotifyLlmFailure(result.ErrorMessage);
                RestoreInputAfterFailedTurn(playerMessage);
 
                return;
@@ -671,7 +671,7 @@ namespace CalradiaRemembers.Chat
             {
                ReplacePlaceholder(placeholder, "(My words escape me...)", speaker);
                ModLog.Error($"LLM call failed in {elapsedMs} ms: {result.ErrorMessage}");
-               NotifyLlmFailure();
+               NotifyLlmFailure(result.ErrorMessage);
                RestoreInputAfterFailedTurn(playerMessage, suppressPlayerLine);
 
                return;
