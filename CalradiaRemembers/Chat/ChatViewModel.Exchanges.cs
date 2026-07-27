@@ -20,6 +20,7 @@ using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Stance;
+using CalradiaRemembers.Styles;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Parsing;
@@ -263,10 +264,11 @@ namespace CalradiaRemembers.Chat
             {
                try
                {
+                  string commonerStyle = StyleService.CurrentRules();
                   result = await Task.Run(() =>
                                         behavior.LlmServices.ChatService.ChatCommonerAsync(
                                            _commonerProfile, _commonsKnowledge, _commonerSession,
-                                           playerMessage, cts.Token))
+                                           playerMessage, cts.Token, commonerStyle))
                                      .ConfigureAwait(false);
                }
                catch (Exception netEx)

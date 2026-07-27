@@ -65,6 +65,16 @@ THE HYBRID RECIPE (recommended)
 The last two lines are the important ones. The first protects the mod's format, the second is what
 keeps a strong voice from turning into a mannerism by the tenth message.
 
+TWO LIMITS TO KNOW
+
+A style is injected into the prompt exactly as you write it, so keep it about HOW the writing sounds. A
+file that tries to redefine a character, hand out secrets, or bend a scene's rules is fighting the parts
+of the prompt that decide those things, and those parts win: you will only muddy the voice, not the plot.
+
+Keep a style under about 1500 characters. A longer file is trimmed before it reaches the model (the tail
+is dropped on a line boundary), and on a small local model a bloated style can crowd out the character.
+The styles shipped here all sit well under that.
+
 A NOTE ON SHARING
 
 A writing style is not something anyone owns, so anchor your files on whichever author you like, living

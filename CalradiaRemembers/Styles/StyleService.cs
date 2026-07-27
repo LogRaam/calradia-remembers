@@ -9,6 +9,7 @@
 
 using System.Collections.Generic;
 using CalradiaRemembers.Logic.Styles;
+using NpcMemoryService.Core.Prompts;
 
 #endregion
 
@@ -21,6 +22,7 @@ namespace CalradiaRemembers.Styles
         private static string _cachedRules = string.Empty;
         private static long _cachedStampTicks;
         private static string _selectedName;
+        private static bool _activeFileMissing;
 
         /// <summary>
         ///   Whether the chat window shows its style picker button. ON by default since Gabriel validated the
@@ -61,13 +63,22 @@ namespace CalradiaRemembers.Styles
 
             long stamp = StyleCatalog.StampTicksOf(_selectedName);
 
-            // The selected file was deleted or renamed while it was in force: re-resolve once (a rare path), so
-            // the conversation degrades to the default voice instead of silently losing its style.
+            // The active file was deleted or renamed mid-play (stamp 0). Do NOT re-scan the folder on every
+            // message: the picker and console own directory scanning, never this per-message path. Hold the
+            // voice we already loaded (or nothing if we never loaded one). StampTicksOf keeps watching the same
+            // name, so if the file returns we pick it up next message without a scan. Logged once per lapse.
             if (stamp == 0L)
             {
-                Select(null);
-                stamp = StyleCatalog.StampTicksOf(_selectedName);
+                if (!_activeFileMissing)
+                {
+                    ModLog.Info($"[STYLE] active style '{_selectedName}' file is gone; holding the last-known voice.");
+                    _activeFileMissing = true;
+                }
+
+                return _cachedRules;
             }
+
+            _activeFileMissing = false;
 
             if (!StyleCachePolicy.ShouldReload(_cachedName, _selectedName, _cachedStampTicks, stamp)) return _cachedRules;
 
@@ -75,6 +86,12 @@ namespace CalradiaRemembers.Styles
             _cachedName = _selectedName;
             _cachedStampTicks = stamp;
             ModLog.Info($"[STYLE] loaded '{_selectedName}' ({_cachedRules.Length} chars) into the prompt.");
+
+            // A file over the injection ceiling is trimmed at the prompt (PromptBuilder caps it), so warn here,
+            // where the file name is known, that the tail of the voice will not reach the model. Logged only on
+            // load, so once per edit, not per message.
+            if (_cachedRules.Length > PromptBuilder.MaxNarrativeStyleChars)
+                ModLog.Info($"[STYLE] WARNING: '{_selectedName}' is {_cachedRules.Length} chars, over the {PromptBuilder.MaxNarrativeStyleChars}-char cap; it will be trimmed in the prompt.");
 
             return _cachedRules;
         }
