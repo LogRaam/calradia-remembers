@@ -8,6 +8,7 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -19,6 +20,12 @@ namespace CalradiaRemembers.Logic.Assemblies
     /// proposal time and recorded on the ledger entry; the kind selects the executor.</summary>
     public enum ResolutionKind
     {
+        /// <summary>Set a member a task in the world (ride to a town and clear the bandits raiding it). The one
+        /// kind with a live lift executor today, and UNIVERSAL to every council, so it is not a scoped menu
+        /// motion and carries no <see cref="ResolutionDefinition" />; the scoped kinds below arrive with their
+        /// variant (Q5, "extend then migrate").</summary>
+        Quest,
+
         /// <summary>Give a companion a party role (scout, surgeon, engineer, quartermaster).</summary>
         AssignPartyRole,
 
@@ -121,11 +128,72 @@ namespace CalradiaRemembers.Logic.Assemblies
                 "Grant a fief", ResolutionRequirement.TargetAvailable | ResolutionRequirement.PlayerHasVacantFief)
         };
 
-        /// <summary>The definition for one kind. Every kind in the enum has exactly one entry.</summary>
+        /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
         public static ResolutionDefinition Get(ResolutionKind kind) => All.First(d => d.Kind == kind);
 
         /// <summary>Every motion a council of the given scope may raise, before world eligibility is applied.</summary>
         public static IEnumerable<ResolutionDefinition> ForScope(CouncilScope scope)
             => All.Where(d => d.Scope == scope);
+
+        /// <summary>
+        ///   The ledger/prompt string key for a kind, and back (<see cref="TryParseKey" />). Council audit M4:
+        ///   the catalogue spoke in the <see cref="ResolutionKind" /> enum while the ledger, prompt, and lift
+        ///   spoke in free strings ("quest"), unlinked, so only the string "quest" ever did anything and every
+        ///   catalogue kind was dead. This is the one map both sides read, so they can never drift.
+        /// </summary>
+        public static string KeyOf(ResolutionKind kind)
+        {
+            switch (kind)
+            {
+                case ResolutionKind.Quest:             return "quest";
+                case ResolutionKind.AssignPartyRole:   return "assign_role";
+                case ResolutionKind.AppointGovernor:   return "appoint_governor";
+                case ResolutionKind.DispatchOnMission: return "dispatch_mission";
+                case ResolutionKind.GrantStipend:      return "grant_stipend";
+                case ResolutionKind.GrantFief:         return "grant_fief";
+                default:                               return kind.ToString().ToLowerInvariant();
+            }
+        }
+
+        /// <summary>Resolves a ledger/prompt kind string back to its <see cref="ResolutionKind" />. False (and default) for null/blank/unknown.</summary>
+        public static bool TryParseKey(string key, out ResolutionKind kind)
+        {
+            kind = default;
+            if (string.IsNullOrWhiteSpace(key)) return false;
+
+            string trimmed = key.Trim();
+            foreach (ResolutionKind candidate in (ResolutionKind[]) Enum.GetValues(typeof(ResolutionKind)))
+                if (string.Equals(KeyOf(candidate), trimmed, StringComparison.OrdinalIgnoreCase))
+                {
+                    kind = candidate;
+
+                    return true;
+                }
+
+            return false;
+        }
+
+        /// <summary>
+        ///   True when a passed motion of this kind has a LIVE lift executor. Council audit M4: today only
+        ///   <see cref="ResolutionKind.Quest" /> (a member set a task in the world) is carried out; the scoped
+        ///   menu motions are recorded but not yet executed, so they arrive with their variant (Q5). The runtime
+        ///   teaches and lifts only executable kinds, so the table never promises a deed it cannot keep.
+        /// </summary>
+        public static bool IsExecutable(ResolutionKind kind) => kind == ResolutionKind.Quest;
+
+        /// <summary>
+        ///   The string keys of the kinds a council of <paramref name="scope" /> may currently ACT on: the
+        ///   universal <see cref="ResolutionKind.Quest" /> plus any scoped menu kind whose executor has landed
+        ///   (none yet). This is the set the prompt offers, so every scope, Family included, has at least one
+        ///   deed the lift can keep, and a scoped executor appears here automatically the day it is wired.
+        /// </summary>
+        public static IEnumerable<string> ExecutableKindKeysForScope(CouncilScope scope)
+        {
+            yield return KeyOf(ResolutionKind.Quest);
+
+            foreach (ResolutionDefinition d in ForScope(scope))
+                if (IsExecutable(d.Kind))
+                    yield return KeyOf(d.Kind);
+        }
     }
 }

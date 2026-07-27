@@ -19,13 +19,16 @@ namespace CalradiaRemembers.Tests.Assemblies
     [TestFixture]
     public sealed class ResolutionCatalogTests
     {
-        // Every kind in the enum must resolve to a definition: the ledger records a motion by its kind and the
-        // executor is selected by it, so a kind with no catalogue entry would be an unraisable dead motion.
+        // Every SCOPED MENU kind must resolve to a definition: the assembly menu selects a motion by its kind, so
+        // a menu kind with no catalogue entry would be an unraisable dead motion. Quest is deliberately excluded:
+        // it is the universal free task pledge, not a scoped menu motion, so it carries no ResolutionDefinition.
         [Test]
-        public void GIVEN_every_resolution_kind_WHEN_looked_up_THEN_each_has_exactly_one_definition()
+        public void GIVEN_every_scoped_menu_kind_WHEN_looked_up_THEN_each_has_exactly_one_definition()
         {
             foreach (ResolutionKind kind in Enum.GetValues(typeof(ResolutionKind)).Cast<ResolutionKind>())
             {
+                if (kind == ResolutionKind.Quest) continue;
+
                 ResolutionDefinition def = ResolutionCatalog.Get(kind);
                 def.Kind.Should().Be(kind);
                 def.Label.Should().NotBeNullOrWhiteSpace();
@@ -63,6 +66,59 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_a_scope_with_no_motions_yet_WHEN_queried_THEN_it_returns_empty_without_throwing()
         {
             ResolutionCatalog.ForScope(CouncilScope.Family).Should().BeEmpty();
+        }
+
+        // M4: the catalogue enum and the runtime string vocabulary used to be disjoint ("quest" existed only as a
+        // free string, no enum member; the 5 enum kinds had no string). KeyOf/TryParseKey are the one bridge, so
+        // every kind round-trips to its key and back: get this wrong and the two vocabularies drift apart again.
+        [Test]
+        public void GIVEN_every_kind_WHEN_its_key_is_parsed_back_THEN_it_round_trips()
+        {
+            foreach (ResolutionKind kind in Enum.GetValues(typeof(ResolutionKind)).Cast<ResolutionKind>())
+            {
+                string key = ResolutionCatalog.KeyOf(kind);
+                key.Should().NotBeNullOrWhiteSpace();
+                ResolutionCatalog.TryParseKey(key, out ResolutionKind parsed).Should().BeTrue();
+                parsed.Should().Be(kind);
+            }
+        }
+
+        // A kind string the model never emits (garbage, or a future kind not yet mapped) must not resolve, so the
+        // lift can reject it cleanly instead of mistaking it for a real motion.
+        [Test]
+        public void GIVEN_an_unknown_key_WHEN_parsed_THEN_it_is_refused()
+        {
+            ResolutionCatalog.TryParseKey("nonsense", out _).Should().BeFalse();
+            ResolutionCatalog.TryParseKey("", out _).Should().BeFalse();
+            ResolutionCatalog.TryParseKey(null, out _).Should().BeFalse();
+        }
+
+        // M4: only a kind with a live executor is executable. Today that is Quest alone; the scoped menu motions
+        // are recorded but not yet carried out, so teaching them would promise a deed the lift silently drops
+        // (the MarkFailed "this kind of decision is not yet settled" path the audit flagged).
+        [Test]
+        public void GIVEN_the_kinds_WHEN_asked_which_execute_THEN_only_quest_does_today()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.Quest).Should().BeTrue();
+            ResolutionCatalog.IsExecutable(ResolutionKind.GrantFief).Should().BeFalse();
+            ResolutionCatalog.IsExecutable(ResolutionKind.AssignPartyRole).Should().BeFalse();
+        }
+
+        // M4 (Family had ZERO catalogue kinds): every scope, Family included, must expose at least one executable
+        // kind, or a family council could seat and debate yet never act. Quest is universal, so every scope has it.
+        [Test]
+        public void GIVEN_any_scope_WHEN_asked_for_executable_kinds_THEN_quest_is_always_offered()
+        {
+            foreach (CouncilScope scope in Enum.GetValues(typeof(CouncilScope)).Cast<CouncilScope>())
+                ResolutionCatalog.ExecutableKindKeysForScope(scope).Should().Contain("quest");
+        }
+
+        // The runtime executor keys on the literal string "quest" (CouncilResolutionPolicy.QuestKind). This pins
+        // that the catalogue's own key for Quest is exactly that string, so the two authorities can never drift.
+        [Test]
+        public void GIVEN_the_quest_kind_WHEN_keyed_THEN_it_matches_the_runtime_quest_key()
+        {
+            ResolutionCatalog.KeyOf(ResolutionKind.Quest).Should().Be(CouncilResolutionPolicy.QuestKind);
         }
     }
 }
