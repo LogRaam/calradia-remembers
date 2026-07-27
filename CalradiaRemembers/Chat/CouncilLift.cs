@@ -95,10 +95,13 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         if (!string.Equals(entry.Kind, CouncilResolutionPolicy.QuestKind, StringComparison.OrdinalIgnoreCase))
+         // B2/M4: the registry, not a magic string, decides what the table can carry out. Only executable kinds
+         // reach an executor; anything else (an unmapped kind, or a catalogue kind whose executor has not landed
+         // yet, Q5 "extend then migrate") is reported honestly instead of silently applied or dropped. Today
+         // Quest is the only executable kind, so a passing entry here is a Quest; a per-kind dispatch replaces
+         // the direct quest call below the day a second executor is wired.
+         if (!ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind kind) || !ResolutionCatalog.IsExecutable(kind))
          {
-            // Seam for future catalogue kinds: only "quest" has a lift executor this slice, so anything else is
-            // reported honestly instead of silently applied or dropped (see ResolutionCatalog.IsExecutable).
             ledger.MarkFailed(entry.Id, "This kind of decision is not yet settled by the council.");
             report?.Invoke($"{actorName}'s pledge ({entry.Detail}) was not carried out: the table cannot yet act on this kind of decision.", false);
 
