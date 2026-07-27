@@ -18,12 +18,25 @@ IN GAME
   cr.style_show       prints exactly what is being injected right now
 
 WHAT SHIPS WITH THE MOD
+
+  Descriptive styles (no author named):
   Default      the mod's ordinary voice
   Novelistic   prose like a page from a novel, other characters treated as real people
   Terse        short and fast, for players who dislike walls of text
   Grimdark     the hard, unromantic version of the world
-  Austen       wit, irony and social nuance (an author-anchored example)
-  McCarthy     spare, physical, biblical cadence (an author-anchored example)
+
+  Author-anchored styles (a named voice; see A NOTE ON SHARING below):
+  Austen       wit, irony, and social nuance
+  McCarthy     spare, physical, biblical cadence
+  Tolkien      elevated and elegiac, deep time and lineage
+  Martin       gritty feudal intrigue and sudden violence
+  Cornwell     visceral, first-person battle and shield-wall grit
+  Abercrombie  grimdark with dark comic timing
+  Kay          lyrical historical melancholy
+  Dumas        swashbuckling honor, intrigue, and duels
+  Homer        epic cadence, extended similes, honored lineage
+  Dostoevsky   feverish moral and psychological intensity
+  Howard       muscular pulp action and primal vitality
 
 WRITING YOUR OWN
 
@@ -54,6 +67,7 @@ keeps a strong voice from turning into a mannerism by the tenth message.
 
 A NOTE ON SHARING
 
-A writing style is not something anyone owns, so anchor your own files on whichever author you like.
-The styles shipped here stay descriptive or use long dead authors on purpose, since they go out to
-everyone; what you keep on your own machine is your business.
+A writing style is not something anyone owns, so anchor your files on whichever author you like, living
+or dead. The names shipped here are simply famous enough that the model has a strong voice to follow.
+If a style you enjoy sends you off to read the author it anchors on, so much the better. What you keep
+on your own machine is your business.
