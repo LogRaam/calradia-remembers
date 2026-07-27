@@ -92,26 +92,6 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Writes the member's own first-person memory of a council pledge that was NOT kept (withdrawn during
-      ///   the sitting, or failed at the lift), audit M7. The success case already leaves a quest memory, so it
-      ///   is not doubled here. Skips a dead or vanished member (no one is left to remember) and any hero with
-      ///   no stored profile. Persists, since the profile is the durable record.
-      /// </summary>
-      private static void RememberCouncilPledge(NpcMemoryCampaignBehavior behavior, string heroId, string detail, CouncilPledgeOutcome outcome, int gameDay)
-      {
-         if (behavior?.Store == null || string.IsNullOrEmpty(heroId)) return;
-
-         Hero hero = Hero.FindFirst(h => h.StringId == heroId);
-         if (hero is not {IsAlive: true}) return;
-
-         NpcProfile profile = behavior.Store.Get(heroId);
-         if (profile == null) return;
-
-         profile.Events.Add(new NotableEvent(gameDay, NotableEventType.Other, CouncilPledgeMemory.Summary(detail, outcome)));
-         behavior.Store.Set(profile);
-      }
-
-      /// <summary>
       ///   Resolves a "type: withdraw" against <paramref name="heroId" />'s own live entries via
       ///   <see cref="CouncilResolutionPolicy.SelectWithdrawTarget" />. No resolution id is ever taught to the
       ///   model (the block stays type/actor/detail), so this is the only place a withdrawal is matched to what
@@ -130,7 +110,7 @@ namespace CalradiaRemembers.Chat
          }
 
          _councilLedger.Reverse(target.Id);
-         RememberCouncilPledge(behavior, heroId, target.Detail, CouncilPledgeOutcome.Withdrawn, gameDay);
+         CouncilLift.RememberPledge(behavior, heroId, target.Detail, CouncilPledgeOutcome.Withdrawn, gameDay);
          AppendSystemNotice($"{memberName} withdraws: {target.Detail}");
          ModLog.Info($"[COUNCIL] {memberName} withdrew resolution {target.Id} ({target.Kind}).");
       }
@@ -171,105 +151,14 @@ namespace CalradiaRemembers.Chat
          ModLog.Info($"[COUNCIL] {memberName} resolution recorded ({proposal.Type}): {proposal.Detail}");
       }
 
-      /// <summary>
-      ///   At the lift: re-validates a single agreed resolution against the world as it stands NOW and executes
-      ///   it, or marks it Failed with a plain reason and reports that to the player. The re-validation order
-      ///   matters: a member who is no longer available at all (dead, captured, gone from the roster) is
-      ///   reported before the kind is even considered, since nothing about WHAT they pledged matters if THEY
-      ///   cannot carry it out anymore.
-      /// </summary>
-      private void SettleCouncilResolution(AssemblyResolutionEntry entry, CouncilScope scope, NpcMemoryCampaignBehavior behavior, int gameDay)
-      {
-         Hero actorHero = Hero.FindFirst(h => h.StringId == entry.TargetHeroId);
-         string actorName = actorHero?.Name?.ToString() ?? "One of the council";
-
-         CouncilEligibility verdict = CouncilRosterResolver.EvaluateNow(scope, actorHero);
-
-         if (actorHero == null || !verdict.Eligible)
-         {
-            string reason = DescribeCouncilUnavailability(verdict.Reason, actorHero == null);
-            _councilLedger.MarkFailed(entry.Id, reason);
-            AppendSystemMessage($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         if (!string.Equals(entry.Kind, CouncilResolutionPolicy.QuestKind, StringComparison.OrdinalIgnoreCase))
-         {
-            // Seam left open for future catalogue kinds (assign_party_role, appoint_governor, dispatch_on_mission,
-            // grant_stipend, grant_fief, see ResolutionCatalog): only "quest" has a lift executor this slice, so
-            // anything else is reported honestly instead of silently applied or silently dropped.
-            _councilLedger.MarkFailed(entry.Id, "This kind of decision is not yet settled by the council.");
-            AppendSystemMessage($"{actorName}'s pledge ({entry.Detail}) was not carried out: the table cannot yet act on this kind of decision.", false);
-
-            return;
-         }
-
-         NpcProfile giver = behavior.Store.Get(entry.TargetHeroId);
-
-         if (giver == null)
-         {
-            _councilLedger.MarkFailed(entry.Id, "No record of them could be found.");
-            AppendSystemMessage($"{actorName}'s pledge ({entry.Detail}) could not be carried out: no record of them was found.", false);
-
-            return;
-         }
-
-         // The exact path an ordinary [QUEST] block already takes (QuestFactory grounding, the one-task-at-a-
-         // time guard, the journal mirror, the persisted profile): the seated member stands in as the giver,
-         // and the free-text pledge becomes the quest's own description. QuestFactory can only ground a
-         // BanditClear deed against a real, named settlement, which is why "quest" resolutions this slice are
-         // scoped to that shape (the ratified design's own worked example: "ride to X and clear the bandits").
-         var proposal = new QuestProposal {
-            Type = QuestType.BanditClear,
-            Description = entry.Detail,
-            TargetSettlement = entry.TargetHint
-         };
-
-         var failed = false;
-         string failureMessage = null;
-
-         QuestService.IssueQuest(giver, actorHero, proposal, gameDay, behavior.Store, (text, positive) => {
-            failed = true;
-            failureMessage = text;
-         });
-
-         if (failed)
-         {
-            _councilLedger.MarkFailed(entry.Id, failureMessage ?? "This could not be carried out.");
-            AppendSystemMessage($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {failureMessage}", false);
-
-            return;
-         }
-
-         _councilLedger.MarkApplied(entry.Id);
-         AppendSystemMessage($"{actorName} makes good on the council's word: {entry.Detail}.", true);
-         ModLog.Info($"[COUNCIL] lift: {actorName}'s resolution settled as a real task ({entry.Detail}).");
-      }
-
-      private static string DescribeCouncilUnavailability(CouncilExclusionReason reason, bool heroGone)
-      {
-         if (heroGone) return "they could not be found.";
-
-         switch (reason)
-         {
-            case CouncilExclusionReason.Dead: return "they have since died.";
-            case CouncilExclusionReason.Imprisoned: return "they are now held prisoner.";
-            case CouncilExclusionReason.InBattle: return "they are caught in a battle right now.";
-            case CouncilExclusionReason.NotOfThisCouncil: return "they no longer belong to this house.";
-            default: return "they are no longer available.";
-         }
-      }
-
       #endregion
 
       /// <summary>
       ///   The council's LIFT: called once from <see cref="ChatManager.Close" />, exactly like the other
-      ///   Finalize* memory hooks (idempotent via <see cref="_councilResolutionsFinalized" />). Walks every
-      ///   AGREED resolution (<see cref="AssemblyLedger.PendingCommit" />; a merely Proposed or already
-      ///   Reversed one never reaches here) and settles each via <see cref="SettleCouncilResolution" />. A
-      ///   council with nothing agreed returns immediately: behaves exactly like today, with no extra chat
-      ///   line at all.
+      ///   Finalize* memory hooks (idempotent via <see cref="_councilResolutionsFinalized" />). Delegates to the
+      ///   shared <see cref="CouncilLift" /> (the same settlement a reloaded council runs headlessly), reporting
+      ///   through the chat window, then clears the persisted session (C4): a council closing normally has
+      ///   nothing left to recover, and any pledge left unlifted by a crash is caught on the next load instead.
       /// </summary>
       public void FinalizeCouncilResolutions()
       {
@@ -278,36 +167,14 @@ namespace CalradiaRemembers.Chat
 
          if (_councilScope == null) return;
 
-         List<AssemblyResolutionEntry> pending = _councilLedger.PendingCommit().ToList();
-
-         if (pending.Count == 0) return;
-
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
          if (behavior?.Store == null || behavior.GameStateBridge == null) return;
 
          int gameDay = behavior.GameStateBridge.GetCurrentGameDay();
-         CouncilScope scope = _councilScope.Value;
 
-         foreach (AssemblyResolutionEntry entry in pending)
-         {
-            try
-            {
-               SettleCouncilResolution(entry, scope, behavior, gameDay);
-            }
-            catch (Exception ex)
-            {
-               ModLog.Error($"[COUNCIL] lift: resolution {entry.Id} threw and was skipped: {ex.GetType().Name}: {ex.Message}");
-               _councilLedger.MarkFailed(entry.Id, "Something went wrong settling this.");
-               AppendSystemMessage("A pledge from the council could not be settled: something went wrong.", false);
-            }
-
-            // M7: a pledge that could not be kept still leaves the promiser a memory of having given their word
-            // for nothing (the KEPT case already has its own quest memory, so it is not doubled here). Skips a
-            // dead or profileless member inside the helper.
-            if (entry.Status == ResolutionStatus.Failed)
-               RememberCouncilPledge(behavior, entry.TargetHeroId, entry.Detail, CouncilPledgeOutcome.Failed, gameDay);
-         }
+         CouncilLift.Finalize(_councilLedger, _councilScope.Value, behavior, gameDay, AppendSystemMessage);
+         CouncilSessionBehavior.Instance?.EndSession();
       }
    }
 }

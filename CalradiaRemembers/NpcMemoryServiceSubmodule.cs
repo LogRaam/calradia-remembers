@@ -244,6 +244,10 @@ namespace CalradiaRemembers
          // into a background outline per day. Gated by the "Compress old memories" option, so a mod that
          // curates memory itself can take over (extension API).
          campaignStarter.AddBehavior(new CalradiaRemembers.Memory.MemoryCompressionBehavior());
+         // Council session persistence (C4): always on. It only holds state while a council (cr.council, the
+         // shipped path) is actually open, and recovers its pledges if a save was caught mid-sitting; harmless
+         // and idle otherwise, so it is not gated with the rest of the Assembly pillar below.
+         campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.CouncilSessionBehavior());
          // ASSEMBLY pillar: GATED OFF for release (built, not yet play-tested in a live campaign). To test it in
          // a DEV build, UNCOMMENT the two lines below, then stage a session fast with cr.assembly_test [n] and
          // cr.assembly_open (bypasses the travel wait). It ships as a real feature only once validated.

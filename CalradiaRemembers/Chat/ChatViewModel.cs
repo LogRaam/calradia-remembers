@@ -1073,6 +1073,10 @@ namespace CalradiaRemembers.Chat
          CouncilVoiceModeText = DescribeCouncilVoiceMode(_councilVoiceMode);
          IsCouncilVoiceToggleVisible = true;
 
+         // C4: hand the live ledger + scope to the save-safe session behavior, so a save (or crash) mid-sitting
+         // persists the pledges; a normal close clears it again in FinalizeCouncilResolutions.
+         CalradiaRemembers.Assemblies.CouncilSessionBehavior.Instance?.BeginSession(scope, _councilLedger);
+
          ChatSpeaker speaker = MainSpeaker();
          if (speaker.Profile == null)
          {
