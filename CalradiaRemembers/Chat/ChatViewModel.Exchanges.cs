@@ -1627,7 +1627,12 @@ namespace CalradiaRemembers.Chat
          if (speaker == null) return false;
          if (speaker.IsMain) return true; // the host of the conversation never "leaves" their own room
 
-         string id = speaker.Hero?.StringId;
+         // m4: a member killed or captured mid-council is no longer at the table, even though the roster snapshot
+         // still lists them; drop them from the lap now instead of letting them speak on until the lift re-checks.
+         Hero hero = speaker.Hero;
+         if (hero != null && (!hero.IsAlive || hero.IsPrisoner)) return false;
+
+         string id = hero?.StringId;
 
          return !string.IsNullOrEmpty(id)
             ? _witnesses.Any(w => w.HeroStringId == id)

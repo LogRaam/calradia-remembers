@@ -989,6 +989,11 @@ namespace CalradiaRemembers.Chat
          actorHero = fallbackHero;
          actorProfile = fallbackProfile;
 
+         // m10: "actor:" attribution is a COUNCIL concept only. In an ordinary conversation (even one with
+         // witnesses present) a hallucinated actor: must never redirect the action to a witness or drop it; it
+         // stays with this turn's speaker. Only a real council resolves an actor against the seated members.
+         if (_councilScope == null) return true;
+
          if (action?.Parameters == null
              || !action.Parameters.TryGetValue("actor", out string actorName)
              || string.IsNullOrWhiteSpace(actorName))

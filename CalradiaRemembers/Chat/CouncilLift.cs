@@ -125,6 +125,9 @@ namespace CalradiaRemembers.Chat
          string failureMessage = null;
 
          QuestService.IssueQuest(giver, actorHero, proposal, gameDay, behavior.Store, (text, positive) => {
+            // m5: only a NEGATIVE notification means the quest could not be issued. Keying "failed" off any
+            // invocation would silently flip a pledge to failed the day IssueQuest gains a success-path notice.
+            if (positive) return;
             failed = true;
             failureMessage = text;
          });
