@@ -3,6 +3,12 @@
 // so the reasons are documented by tests; the LLM only NARRATES the stance the policy already decided. The
 // gradient Gabriel asked for lives in AuthorityOf: the same stance blocks a lords' council but merely colours a
 // companions' or family council, where the clan head decides alone.
+//
+// PARKED, NOT DEAD (council audit M8/M10, ratified 2026-07-27): the council ships CONSULTATIVE ("a spoken
+// pledge IS the decision"), so nothing in the runtime calls this policy yet. It is kept, not deleted, as the
+// ready foundation for the future BINDING-vote mode. Before it is wired, Decide must gain member-IDENTITY dedup
+// (the same lord passed twice must not count twice, M10) and a quorum rule (a one-seat binding council should
+// not pass or block a motion alone); today it counts a bare stance list with neither. Do not wire it as is.
 
 namespace CalradiaRemembers.Logic.Assemblies
 {
@@ -14,8 +20,8 @@ namespace CalradiaRemembers.Logic.Assemblies
         /// <summary>At or above this regard, a member backs the player willingly even when the motion costs them.</summary>
         public const int WarmRegard = 20;
 
-        /// <summary>Below this regard, a member who is also hurt by the motion turns to open opposition.</summary>
-        public const int LoyalRegard = 0;
+        /// <summary>Below this regard, a member who is also hurt by the motion turns to open opposition (m7: a floor of DECENT regard, not a loyalty threshold).</summary>
+        public const int DecentRegardFloor = 0;
 
         /// <summary>Companions and family advise; clan lords hold binding political weight.</summary>
         public static ConsentAuthority AuthorityOf(CouncilScope scope)
@@ -25,7 +31,7 @@ namespace CalradiaRemembers.Logic.Assemblies
         {
             // Opposition needs BOTH a personal cost and a lack of goodwill: a member hurt by the motion who also
             // does not hold the player in decent regard speaks against it.
-            if (f.Stake < 0 && f.RegardToInitiator < LoyalRegard)
+            if (f.Stake < 0 && f.RegardToInitiator < DecentRegardFloor)
                 return ConsentStance.Oppose;
 
             // Support comes from self-interest (the motion helps them) OR loyalty (warm regard carries them past a

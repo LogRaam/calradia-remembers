@@ -164,5 +164,22 @@ namespace CalradiaRemembers.Tests.Assemblies
             o.Accepted.Should().BeTrue();
             o.Reason.Should().Be(RsvpReason.Accepted);
         }
+
+        // Council audit m6: an RsvpOutcome must never hold a contradictory pair. An Accept with a Decline reason
+        // (or a Decline with the Accepted reason) is a wiring bug that would make Accepted disagree with Reason,
+        // so a reply letter could read "declined" on an accepted summons. The ctor refuses the mismatch outright.
+        [Test]
+        public void GIVEN_a_decision_and_a_mismatched_reason_WHEN_constructing_an_outcome_THEN_it_is_refused()
+        {
+            System.Action acceptWithDeclineReason = () => new RsvpOutcome(RsvpDecision.Accept, RsvpReason.DeclinedHostile);
+            System.Action declineWithAcceptReason = () => new RsvpOutcome(RsvpDecision.Decline, RsvpReason.Accepted);
+            acceptWithDeclineReason.Should().Throw<System.ArgumentException>();
+            declineWithAcceptReason.Should().Throw<System.ArgumentException>();
+
+            System.Action acceptAccepted = () => new RsvpOutcome(RsvpDecision.Accept, RsvpReason.Accepted);
+            System.Action declineDeclined = () => new RsvpOutcome(RsvpDecision.Decline, RsvpReason.DeclinedUnavailable);
+            acceptAccepted.Should().NotThrow();
+            declineDeclined.Should().NotThrow();
+        }
     }
 }

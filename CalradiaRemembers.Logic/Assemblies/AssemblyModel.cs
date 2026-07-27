@@ -130,6 +130,13 @@ namespace CalradiaRemembers.Logic.Assemblies
     {
         public RsvpOutcome(RsvpDecision decision, RsvpReason reason)
         {
+            // Council audit m6: guard the pair. An Accept must carry the Accepted reason, and a Decline one of the
+            // Declined* reasons; a mismatch (e.g. Accept + DeclinedHostile) would make Accepted disagree with
+            // Reason, so a reply letter or log line reads one thing while the decision says another. Refuse it here
+            // rather than let a wiring bug flow downstream. default(RsvpOutcome) is Accept+Accepted, a valid pair.
+            if ((decision == RsvpDecision.Accept) != (reason == RsvpReason.Accepted))
+                throw new System.ArgumentException($"RSVP decision {decision} does not match reason {reason}.", nameof(reason));
+
             Decision = decision;
             Reason = reason;
         }

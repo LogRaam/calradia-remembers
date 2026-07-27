@@ -100,5 +100,24 @@ namespace CalradiaRemembers.Tests.Assemblies
             r.Carries.Should().BeTrue();
             r.Abstain.Should().Be(2);
         }
+
+        // m7 boundary: a member EXACTLY at the decent-regard floor is not cold enough to oppose, even a costly
+        // motion. The opposition gate is strictly below the floor, so at the floor he tolerates (abstains) rather
+        // than opposes; pins that the boundary sits just under the floor, not at it.
+        [Test]
+        public void GIVEN_a_costly_motion_and_a_member_exactly_at_the_decent_regard_floor_WHEN_he_takes_a_stance_THEN_he_abstains()
+        {
+            AssemblyConsentPolicy.Stance(new ConsentFacts(regardToInitiator: AssemblyConsentPolicy.DecentRegardFloor, stake: -1))
+                .Should().Be(ConsentStance.Abstain);
+        }
+
+        // m7 boundary: warm regard carries a member past a cost EXACTLY at the warm threshold, not one point above.
+        // Pins that support is inclusive at WarmRegard, so the gradient's upper boundary is exact.
+        [Test]
+        public void GIVEN_a_costly_motion_and_a_member_exactly_at_warm_regard_WHEN_he_takes_a_stance_THEN_he_favors_it()
+        {
+            AssemblyConsentPolicy.Stance(new ConsentFacts(regardToInitiator: AssemblyConsentPolicy.WarmRegard, stake: -5))
+                .Should().Be(ConsentStance.Favor);
+        }
     }
 }
