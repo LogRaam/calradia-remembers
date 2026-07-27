@@ -41,6 +41,13 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         public ResolutionStatus Status { get; set; }
 
+        /// <summary>
+        ///   StringIds of the OTHER members seated when this motion was pledged (audit M6): the witnesses to a
+        ///   public promise, recorded so a broken one can later be made socially costly. Null/empty when none
+        ///   sat, or on a save written before this field existed.
+        /// </summary>
+        public List<string> WitnessIds { get; set; }
+
         /// <summary>The player turn on which the motion was raised.</summary>
         public int Turn { get; set; }
 

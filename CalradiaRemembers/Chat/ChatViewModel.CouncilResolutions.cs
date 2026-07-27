@@ -40,6 +40,8 @@ namespace CalradiaRemembers.Chat
          if (response?.Resolutions == null || response.Resolutions.Count == 0) return;
 
          (List<string> names, List<string> heroIds) = SeatedMembers();
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+         int gameDay = behavior?.GameStateBridge?.GetCurrentGameDay() ?? 0;
 
          foreach (ResolutionProposal proposal in response.Resolutions)
          {
@@ -70,7 +72,7 @@ namespace CalradiaRemembers.Chat
 
             if (string.Equals(proposal.Type, CouncilResolutionPolicy.WithdrawKind, StringComparison.OrdinalIgnoreCase))
             {
-               WithdrawCouncilResolution(heroId, memberName, proposal.Detail);
+               WithdrawCouncilResolution(heroId, memberName, proposal.Detail, behavior, gameDay);
 
                continue;
             }
@@ -82,8 +84,31 @@ namespace CalradiaRemembers.Chat
                continue;
             }
 
-            RecordCouncilResolution(proposal, heroId, memberName);
+            // The other seated members witness this promise (audit M6): recorded so a broken pledge can be
+            // made socially costly, and so the promiser's own memory can name who heard it.
+            List<string> witnessIds = heroIds.Where(id => !string.IsNullOrEmpty(id) && id != heroId).ToList();
+            RecordCouncilResolution(proposal, heroId, memberName, witnessIds);
          }
+      }
+
+      /// <summary>
+      ///   Writes the member's own first-person memory of a council pledge that was NOT kept (withdrawn during
+      ///   the sitting, or failed at the lift), audit M7. The success case already leaves a quest memory, so it
+      ///   is not doubled here. Skips a dead or vanished member (no one is left to remember) and any hero with
+      ///   no stored profile. Persists, since the profile is the durable record.
+      /// </summary>
+      private static void RememberCouncilPledge(NpcMemoryCampaignBehavior behavior, string heroId, string detail, CouncilPledgeOutcome outcome, int gameDay)
+      {
+         if (behavior?.Store == null || string.IsNullOrEmpty(heroId)) return;
+
+         Hero hero = Hero.FindFirst(h => h.StringId == heroId);
+         if (hero is not {IsAlive: true}) return;
+
+         NpcProfile profile = behavior.Store.Get(heroId);
+         if (profile == null) return;
+
+         profile.Events.Add(new NotableEvent(gameDay, NotableEventType.Other, CouncilPledgeMemory.Summary(detail, outcome)));
+         behavior.Store.Set(profile);
       }
 
       /// <summary>
@@ -92,7 +117,7 @@ namespace CalradiaRemembers.Chat
       ///   model (the block stays type/actor/detail), so this is the only place a withdrawal is matched to what
       ///   it targets; an unmatched or ambiguous case is silently ignored rather than guessed (logged only).
       /// </summary>
-      private void WithdrawCouncilResolution(string heroId, string memberName, string detail)
+      private void WithdrawCouncilResolution(string heroId, string memberName, string detail, NpcMemoryCampaignBehavior behavior, int gameDay)
       {
          List<AssemblyResolutionEntry> entries = _councilLedger.EntriesFor(heroId).ToList();
          AssemblyResolutionEntry target = CouncilResolutionPolicy.SelectWithdrawTarget(entries, detail);
@@ -105,6 +130,7 @@ namespace CalradiaRemembers.Chat
          }
 
          _councilLedger.Reverse(target.Id);
+         RememberCouncilPledge(behavior, heroId, target.Detail, CouncilPledgeOutcome.Withdrawn, gameDay);
          AppendSystemNotice($"{memberName} withdraws: {target.Detail}");
          ModLog.Info($"[COUNCIL] {memberName} withdrew resolution {target.Id} ({target.Kind}).");
       }
@@ -117,7 +143,7 @@ namespace CalradiaRemembers.Chat
       ///   from the same member is ignored (CouncilResolutionPolicy.CanRecord), mirroring QuestService's own
       ///   one-task-at-a-time rule.
       /// </summary>
-      private void RecordCouncilResolution(ResolutionProposal proposal, string heroId, string memberName)
+      private void RecordCouncilResolution(ResolutionProposal proposal, string heroId, string memberName, List<string> witnessIds)
       {
          List<AssemblyResolutionEntry> existing = _councilLedger.EntriesFor(heroId).ToList();
 
@@ -138,6 +164,7 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         entry.WitnessIds = witnessIds; // M6: who heard this promise made
          _councilLedger.Agree(id);
 
          AppendSystemNotice($"{memberName} pledges: {proposal.Detail}");
@@ -274,6 +301,12 @@ namespace CalradiaRemembers.Chat
                _councilLedger.MarkFailed(entry.Id, "Something went wrong settling this.");
                AppendSystemMessage("A pledge from the council could not be settled: something went wrong.", false);
             }
+
+            // M7: a pledge that could not be kept still leaves the promiser a memory of having given their word
+            // for nothing (the KEPT case already has its own quest memory, so it is not doubled here). Skips a
+            // dead or profileless member inside the helper.
+            if (entry.Status == ResolutionStatus.Failed)
+               RememberCouncilPledge(behavior, entry.TargetHeroId, entry.Detail, CouncilPledgeOutcome.Failed, gameDay);
          }
       }
    }
