@@ -129,8 +129,15 @@ namespace CalradiaRemembers.Chat
          }
 
          string id = Guid.NewGuid().ToString("N");
-         AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession);
-         entry.TargetHint = proposal.TargetSettlement;
+         AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession, proposal.TargetSettlement);
+
+         if (entry == null)
+         {
+            ModLog.Info($"[COUNCIL] resolution for {memberName} was refused by the ledger (blank or duplicate id); nothing recorded.");
+
+            return;
+         }
+
          _councilLedger.Agree(id);
 
          AppendSystemNotice($"{memberName} pledges: {proposal.Detail}");

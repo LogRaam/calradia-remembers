@@ -137,5 +137,69 @@ namespace CalradiaRemembers.Tests.Assemblies
             ledger.Reverse("nope").Should().BeFalse();
             ledger.MarkFailed("nope", "reason").Should().BeFalse();
         }
+
+        // Council audit M9: a duplicate id must be refused. Find/Agree/Reverse/MarkApplied all resolve by id, so a
+        // second entry sharing an id could never be agreed or committed, yet would sit in the panel forever. The
+        // ledger refuses it (returns null) and keeps the original, so the caller learns nothing was recorded.
+        [Test]
+        public void GIVEN_an_id_already_on_the_table_WHEN_proposing_it_again_THEN_the_ledger_refuses_and_keeps_the_first()
+        {
+            var ledger = new AssemblyLedger();
+            ledger.Propose("m1", "give_gold", "hero_1", "Purse", "First", turn: 1);
+
+            AssemblyResolutionEntry second = ledger.Propose("m1", "patrol", "hero_2", "Patrol", "Second", turn: 2);
+
+            second.Should().BeNull();
+            ledger.Entries.Should().ContainSingle().Which.Detail.Should().Be("First");
+        }
+
+        // Council audit M9: a null or blank id is unusable (nothing could ever act on the motion), so it is refused
+        // outright rather than recorded as an unreachable row.
+        [Test]
+        public void GIVEN_a_blank_id_WHEN_proposing_THEN_the_ledger_refuses_and_records_nothing()
+        {
+            var ledger = new AssemblyLedger();
+
+            ledger.Propose("", "give_gold", "hero_1", "Purse", "Gold", turn: 1).Should().BeNull();
+            ledger.Propose("   ", "give_gold", "hero_1", "Purse", "Gold", turn: 1).Should().BeNull();
+            ledger.Entries.Should().BeEmpty();
+        }
+
+        // m2: the grounding hint (e.g. the settlement a quest pledge concerns) is set at proposal time, not bolted
+        // on after, so the lift executor can never read a half-built entry whose target the caller forgot to attach.
+        [Test]
+        public void GIVEN_a_target_hint_WHEN_proposed_THEN_it_is_stored_on_the_entry()
+        {
+            var ledger = new AssemblyLedger();
+
+            AssemblyResolutionEntry e = ledger.Propose("m1", "quest", "hero_1", "Clear bandits", "Ride to Pravend", turn: 1, targetHint: "Pravend");
+
+            e.TargetHint.Should().Be("Pravend");
+        }
+
+        // Council audit M11: Entries is publicly settable so the mod can round-trip the ledger through JSON SyncData,
+        // which means a corrupt or hand-edited save could restore blank-id or duplicate-id rows the lift could never
+        // resolve. Sanitize is the load-time repair: it drops the blanks and the duplicates (keeping the first) so a
+        // loaded council is as sound as a freshly built one.
+        [Test]
+        public void GIVEN_a_round_tripped_ledger_with_blank_and_duplicate_ids_WHEN_sanitized_THEN_only_sound_unique_entries_remain()
+        {
+            var ledger = new AssemblyLedger
+            {
+                Entries = new System.Collections.Generic.List<AssemblyResolutionEntry>
+                {
+                    new AssemblyResolutionEntry {Id = "m1", Detail = "Keep"},
+                    new AssemblyResolutionEntry {Id = "", Detail = "Blank, drop"},
+                    new AssemblyResolutionEntry {Id = "m1", Detail = "Duplicate, drop"},
+                    new AssemblyResolutionEntry {Id = "m2", Detail = "Keep too"}
+                }
+            };
+
+            int removed = ledger.Sanitize();
+
+            removed.Should().Be(2);
+            ledger.Entries.Select(e => e.Id).Should().Equal("m1", "m2");
+            ledger.Entries.First(e => e.Id == "m1").Detail.Should().Be("Keep");
+        }
     }
 }

@@ -54,9 +54,19 @@ namespace CalradiaRemembers.Logic.Assemblies
         /// <summary>Every motion raised this session, in the order raised.</summary>
         public List<AssemblyResolutionEntry> Entries { get; set; } = new List<AssemblyResolutionEntry>();
 
-        /// <summary>Puts a new motion on the table as Proposed and returns it.</summary>
-        public AssemblyResolutionEntry Propose(string id, string kind, string targetHeroId, string label, string detail, int turn)
+        /// <summary>
+        ///   Puts a new motion on the table as Proposed and returns it, or null if the id is unusable.
+        ///   Council audit M9: a null/blank or duplicate id is refused, because Find/Agree/Reverse/MarkApplied
+        ///   all key on the id: a blank or repeated id would leave a motion no lift call can ever reach (a
+        ///   second entry with the same id can never be agreed, committed, or reversed) while still polluting
+        ///   the roster panel. A refused proposal returns null; the caller must NOT proceed as if it recorded.
+        ///   <paramref name="targetHint" /> (m2) is set here rather than after the fact, so an executor can
+        ///   never read a half-built entry whose grounding the caller forgot to attach.
+        /// </summary>
+        public AssemblyResolutionEntry Propose(string id, string kind, string targetHeroId, string label, string detail, int turn, string targetHint = null)
         {
+            if (string.IsNullOrWhiteSpace(id) || Find(id) != null) return null;
+
             var entry = new AssemblyResolutionEntry
             {
                 Id = id,
@@ -64,11 +74,33 @@ namespace CalradiaRemembers.Logic.Assemblies
                 TargetHeroId = targetHeroId,
                 Label = label,
                 Detail = detail,
+                TargetHint = targetHint,
                 Status = ResolutionStatus.Proposed,
                 Turn = turn
             };
             Entries.Add(entry);
             return entry;
+        }
+
+        /// <summary>
+        ///   Repairs the ledger after a JSON round-trip (SyncData load, council audit M11): drops any entry
+        ///   with a null/blank id and any duplicate-id entry beyond the first, so a corrupt or hand-edited save
+        ///   can never restore an unreachable or ambiguous motion behind the lift. Returns how many were removed.
+        /// </summary>
+        public int Sanitize()
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var kept = new List<AssemblyResolutionEntry>(Entries?.Count ?? 0);
+
+            if (Entries != null)
+                foreach (AssemblyResolutionEntry e in Entries)
+                    if (e != null && !string.IsNullOrWhiteSpace(e.Id) && seen.Add(e.Id))
+                        kept.Add(e);
+
+            int removed = (Entries?.Count ?? 0) - kept.Count;
+            Entries = kept;
+
+            return removed;
         }
 
         /// <summary>Consents to a proposed motion. No-op returning false if the id is unknown or the move illegal.</summary>
