@@ -20,7 +20,9 @@ namespace CalradiaRemembers.Logic
     ///   turn from whoever is actually being spoken with. Only these count as a genuine address:
     ///   <list type="bullet">
     ///     <item>a leading vocative comma ("Martira, what do you think?")</item>
-    ///     <item>a vocative comma just before the name ("Tell me, Martira, ..." / "What say you, Martira?")</item>
+    ///     <item>a vocative comma just before the name ("Tell me, Martira, ..." / "What say you, Martira?"),
+    ///       but NOT when the word before the comma names a relationship ("your friend, Manteos" / "my
+    ///       sister, Aitheen"): that is an appositive naming a third party, a mention and not an address</item>
     ///     <item>the name directly followed by "you" ("Martira you saw it yourself")</item>
     ///     <item>the whole message is just the name ("Martira?" / "Martira!")</item>
     ///     <item>a stage direction that explicitly addresses them ("*turns to Martira*", "*addresses Martira*"),
@@ -53,6 +55,25 @@ namespace CalradiaRemembers.Logic
         private static readonly HashSet<string> VocativeTagWords =
             new(StringComparer.OrdinalIgnoreCase) {
                 "right", "eh", "yeah", "aye", "yes", "no", "huh", "correct", "agreed", "hey", "okay", "ok"
+            };
+
+        // Person-descriptor nouns that turn "..., Name" into an APPOSITIVE (a third-party reference)
+        // rather than a vocative (a direct address): "your friend, Manteos", "my sister, Aitheen", "the
+        // lord, Derthert". Here the name RENAMES the noun before the comma, so it is a mention, not an
+        // address, and must not steal the turn (player report 2026-07-27). The distinction is exactly the
+        // noun's meaning: "your friend, X" is an appositive, but "your judgment, X" ("I trust your
+        // judgment, Martira") is a vocative with an object, so only person-describing nouns belong here.
+        private static readonly HashSet<string> AppositiveDescriptorNouns =
+            new(StringComparer.OrdinalIgnoreCase) {
+                "friend", "friends", "sister", "brother", "father", "mother", "son", "daughter", "cousin",
+                "uncle", "aunt", "nephew", "niece", "wife", "husband", "kin", "kinsman", "kinswoman",
+                "sibling", "parent", "child", "children", "grandfather", "grandmother", "grandson",
+                "granddaughter", "lord", "lady", "king", "queen", "prince", "princess", "companion",
+                "ally", "enemy", "rival", "comrade", "master", "mistress", "servant", "man", "woman",
+                "lad", "lass", "girl", "boy", "neighbor", "neighbour", "liege", "vassal", "retainer",
+                "captain", "commander", "leader", "chief", "partner", "colleague", "acquaintance",
+                "guest", "host", "mentor", "apprentice", "ward", "guardian", "betrothed", "lover",
+                "beloved", "spouse", "heir", "cousins", "kinsfolk"
             };
 
         /// <summary>
@@ -159,6 +180,7 @@ namespace CalradiaRemembers.Logic
                 bool cue =
                     words[i].EndsWith(",")                                             // "Martira, ..."
                  || i > 0 && words[i - 1].EndsWith(",")                                 // "..., Martira, ..." / "..., Martira?"
+                    && !AppositiveDescriptorNouns.Contains(BareWord(words[i - 1]))      // but NOT "your friend, Manteos"
                  || i > 0 && VocativeTagWords.Contains(BareWord(words[i - 1]))          // "... right Tezzeret?" (comma dropped)
                  || i + 1 < words.Length && BareWord(words[i + 1]) == "you"             // "Martira you ..."
                  || wholeMessageIsOneWord;                                             // "Martira?" alone

@@ -191,6 +191,38 @@ namespace CalradiaRemembers.Tests
             AddressedSpeakerDetector.Detect("*Martira smiles*", Participants()).Should().BeNull();
         }
 
+        // ── Appositive reference, not a vocative (player report 2026-07-27) ────
+
+        // The reported bug: "I wanted to ask about your friend, Martira." switched the active speaker to
+        // Martira, even though she is only being referred to in the third person. The comma before her
+        // name made the old rule read it as a trailing vocative. "friend" is a person-descriptor, so the
+        // comma here joins an appositive ("your friend" IS Martira), a mention, and must not steal the turn.
+        [Test]
+        public void GIVEN_a_name_in_a_possessive_appositive_WHEN_detected_THEN_does_not_route()
+        {
+            AddressedSpeakerDetector.Detect("I wanted to ask about your friend, Martira.", Participants())
+                .Should().BeNull();
+        }
+
+        // The second reported phrasing ("Do you know my sister, Aitheen?"), here with the witness's name,
+        // proving the fix is the descriptor noun before the comma ("sister"), not the specific word "friend".
+        [Test]
+        public void GIVEN_a_kinship_appositive_before_the_name_WHEN_detected_THEN_does_not_route()
+        {
+            AddressedSpeakerDetector.Detect("Do you know my sister, Martira?", Participants())
+                .Should().BeNull();
+        }
+
+        // The precision line the fix must not cross: a possessive before the comma is NOT enough to make an
+        // appositive. "I trust your judgment, Martira." addresses Martira (judgment cannot rename a person),
+        // so it must STILL route. Suppressing on the possessive alone would have wrongly killed this vocative.
+        [Test]
+        public void GIVEN_a_possessive_object_that_is_not_a_person_before_the_name_WHEN_detected_THEN_still_routes()
+        {
+            AddressedSpeakerDetector.Detect("I trust your judgment, Martira.", Participants())
+                .Should().Be(WitnessId);
+        }
+
         // ── Safety / stickiness ─────────────────────────────────────────────────
 
         // Addressing the main NPC by name must resolve to their own id, not null or a crash; the
