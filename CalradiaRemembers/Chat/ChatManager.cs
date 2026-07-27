@@ -403,6 +403,9 @@ namespace CalradiaRemembers.Chat
 
          if (behavior == null) return "No campaign is running.";
 
+         string blocked = CouncilOpenBlockedReason();
+         if (blocked != null) return blocked;
+
          List<Hero> seated = CouncilRosterResolver.Seated(scope);
 
          if (seated.Count == 0)
@@ -438,6 +441,23 @@ namespace CalradiaRemembers.Chat
               + "the others react each turn.";
       }
 
+      /// <summary>
+      ///   Council audit M1/M2: the player-facing reason convening is refused right now, or null when it is
+      ///   safe. Maps live engine state to <see cref="CouncilAccessPolicy" /> so the rules stay unit-tested:
+      ///   an already-open chat would otherwise be hijacked (the old conversation reassigned an anchor and
+      ///   witnesses), and a council makes no sense from inside captivity or a mission scene.
+      /// </summary>
+      private static string CouncilOpenBlockedReason()
+      {
+         switch (CouncilAccessPolicy.Evaluate(IsOpen, Hero.MainHero?.IsPrisoner == true, Mission.Current != null))
+         {
+            case CouncilAccessBlock.ChatAlreadyOpen: return "A conversation is already open. Close it before convening.";
+            case CouncilAccessBlock.PlayerCaptive:   return "You cannot convene while you are held captive.";
+            case CouncilAccessBlock.InScene:         return "You cannot convene in the middle of a scene.";
+            default:                                 return null;
+         }
+      }
+
       private static string DescribeCouncilSeat(CouncilScope scope)
          => scope switch {
             CouncilScope.Family => "kin of the player's house, seated at this council",
@@ -456,6 +476,9 @@ namespace CalradiaRemembers.Chat
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
          if (behavior == null) return "No campaign is running.";
+
+         string blocked = CouncilOpenBlockedReason();
+         if (blocked != null) return blocked;
 
          AssemblyRecord pending = AssemblyBehavior.Instance?.Pending;
 
