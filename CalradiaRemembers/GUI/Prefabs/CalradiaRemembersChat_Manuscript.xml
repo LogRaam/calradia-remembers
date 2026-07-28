@@ -77,7 +77,7 @@
                             MarginLeft="44"
                             MarginRight="40"
                             Brush="Default"
-                            Brush.FontSize="24"
+                            Brush.FontSize="28"
                             Brush.FontColor="#c8a878FF"
                             Brush.TextHorizontalAlignment="Left"
                             Text="@PortraitPanelTitle"
@@ -93,7 +93,7 @@
                         MarginTop="116"
                         MarginBottom="372"
                         MarginLeft="40"
-                        MarginRight="30">
+                        MarginRight="40">
                   <Children>
                     <PortraitScrollablePanel Id="LeftDossierScroll"
                                              WidthSizePolicy="StretchToParent"
@@ -232,15 +232,20 @@
                 <ButtonWidget Id="LeftEncyclopediaButton"
                               WidthSizePolicy="Fixed"
                               HeightSizePolicy="Fixed"
-                              SuggestedWidth="240"
-                              SuggestedHeight="46"
+                              SuggestedWidth="160"
+                              SuggestedHeight="35"
                               HorizontalAlignment="Center"
                               VerticalAlignment="Bottom"
-                              MarginBottom="64"
+                              MarginBottom="38"
+                              MarginLeft="18"
                               IsVisible="@IsEncyclopediaVisible"
-                              Sprite="BlankWhiteSquare_9"
-                              Color="#FFFFFF40"
-                              Command.Click="ExecuteOpenEncyclopedia" />
+                              DoNotPassEventsToChildren="true"
+                              Command.Click="ExecuteOpenEncyclopedia">
+                  <Children>
+                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Sprite="BlankWhiteSquare_9" Color="#000000AA" IsDisabled="true" />
+                  </Children>
+                </ButtonWidget>
 
               </Children>
             </Widget>
@@ -320,9 +325,13 @@
                               VerticalAlignment="Top"
                               MarginTop="150"
                               IsVisible="@IsPrivateRequestVisible"
-                              Sprite="BlankWhiteSquare_9"
-                              Color="#FFFFFF40"
-                              Command.Click="ExecuteRequestPrivate" />
+                              DoNotPassEventsToChildren="true"
+                              Command.Click="ExecuteRequestPrivate">
+                  <Children>
+                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                  </Children>
+                </ButtonWidget>
 
                 <!-- Round Table / Council Voice: council-only, gated by their IsVisible; parked top-right. -->
                 <ButtonWidget Id="RoundTableButton"
@@ -507,8 +516,13 @@
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
                               MarginLeft="56" MarginBottom="186"
                               IsVisible="@IsStyleIconVisible"
-                              Sprite="BlankWhiteSquare_9" Color="#FFFFFF40"
-                              Command.Click="ExecuteOpenStylePicker" />
+                              DoNotPassEventsToChildren="true"
+                              Command.Click="ExecuteOpenStylePicker">
+                  <Children>
+                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                  </Children>
+                </ButtonWidget>
                 <ButtonWidget Id="StylePickerButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                               SuggestedWidth="150" SuggestedHeight="22"
@@ -530,16 +544,26 @@
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
                               MarginLeft="116" MarginBottom="186"
                               IsVisible="@IsOfferItemVisible"
-                              Sprite="BlankWhiteSquare_9" Color="#FFFFFF40"
-                              Command.Click="ExecuteOfferItem" />
+                              DoNotPassEventsToChildren="true"
+                              Command.Click="ExecuteOfferItem">
+                  <Children>
+                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                  </Children>
+                </ButtonWidget>
                 <ButtonWidget Id="OfferGoldButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                               SuggestedWidth="52" SuggestedHeight="52"
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
                               MarginLeft="176" MarginBottom="186"
                               IsVisible="@IsOfferGoldVisible"
-                              Sprite="BlankWhiteSquare_9" Color="#FFFFFF40"
-                              Command.Click="ExecuteOfferGold" />
+                              DoNotPassEventsToChildren="true"
+                              Command.Click="ExecuteOfferGold">
+                  <Children>
+                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                  </Children>
+                </ButtonWidget>
 
                 <!-- Model toggle + Options: discreet text, lower-left, above the icon row. -->
                 <ButtonWidget Id="ModelModeButton"
@@ -591,8 +615,13 @@
                                   SuggestedWidth="30" SuggestedHeight="56"
                                   HorizontalAlignment="Left" VerticalAlignment="Center"
                                   IsVisible="@IsComposeToggleVisible"
-                                  Sprite="BlankWhiteSquare_9" Color="#FFFFFF40"
-                                  Command.Click="ExecuteOpenCompose" />
+                                  DoNotPassEventsToChildren="true"
+                                  Command.Click="ExecuteOpenCompose">
+                      <Children>
+                        <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                      </Children>
+                    </ButtonWidget>
 
                     <Widget Id="InputBox"
                             WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
@@ -668,15 +697,25 @@
                               HorizontalAlignment="Center" VerticalAlignment="Bottom"
                               PositionXOffset="-96" MarginBottom="44"
                               IsVisible="@IsMemoryToggleVisible"
-                              Sprite="BlankWhiteSquare_9" Color="#FFFFFF40"
-                              Command.Click="ExecuteToggleMemoryPanel" />
+                              DoNotPassEventsToChildren="true"
+                              Command.Click="ExecuteToggleMemoryPanel">
+                  <Children>
+                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                  </Children>
+                </ButtonWidget>
                 <ButtonWidget Id="CloseButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                               SuggestedWidth="190" SuggestedHeight="40"
                               HorizontalAlignment="Center" VerticalAlignment="Bottom"
                               PositionXOffset="98" MarginBottom="44"
-                              Sprite="BlankWhiteSquare_9" Color="#FFFFFF40"
-                              Command.Click="ExecuteClose" />
+                              DoNotPassEventsToChildren="true"
+                              Command.Click="ExecuteClose">
+                  <Children>
+                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                  </Children>
+                </ButtonWidget>
 
               </Children>
             </Widget>
