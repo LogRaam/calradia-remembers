@@ -810,6 +810,16 @@ namespace CalradiaRemembers.Chat
       [DataSourceProperty]
       public float PanelPortraitHeight { get; private set; } = 458f;
 
+      /// <summary>
+      ///   Manuscript skin only: the same portrait, aspect-preserved to fit the SMALLER left-page box (the Classic
+      ///   pop-out box is far larger, so its width would overflow the narrow left page). Same aspect, smaller box.
+      /// </summary>
+      [DataSourceProperty]
+      public float ManuscriptPortraitWidth { get; private set; } = 220f;
+
+      [DataSourceProperty]
+      public float ManuscriptPortraitHeight { get; private set; } = 264f;
+
       [DataSourceProperty]
       public string PanelPortraitId { get; private set; } = "";
 
@@ -2201,10 +2211,20 @@ namespace CalradiaRemembers.Chat
          float scale = Math.Min(boxW / aspectW, boxH / aspectH);
          PanelPortraitWidth = aspectW * scale;
          PanelPortraitHeight = aspectH * scale;
+
+         // Same aspect, fitted to the Manuscript left page's smaller portrait box.
+         const float mBoxW = 230f;
+         const float mBoxH = 272f;
+         float mScale = Math.Min(mBoxW / aspectW, mBoxH / aspectH);
+         ManuscriptPortraitWidth = aspectW * mScale;
+         ManuscriptPortraitHeight = aspectH * mScale;
+
          PortraitPanelTitle = string.IsNullOrEmpty(msg.SpeakerName)
             ? "Portrait"
             : msg.SpeakerName;
 
+         OnPropertyChanged(nameof(ManuscriptPortraitWidth));
+         OnPropertyChanged(nameof(ManuscriptPortraitHeight));
          OnPropertyChanged(nameof(PanelPortraitWidth));
          OnPropertyChanged(nameof(PanelPortraitHeight));
          OnPropertyChanged(nameof(PanelPortraitPath));
