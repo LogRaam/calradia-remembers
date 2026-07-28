@@ -1,7 +1,7 @@
 // Code written by Gabriel Mailhot, 26/07/2026.
 // Wires the SDK's LlmMemoryCompressor into the mod. Until now CR injected a character's ENTIRE event history
 // into every prompt (MemoryEventLimit is unbounded in Full mode), so a long-lived character kept inflating the
-// context: a modder measured it past 20k tokens (iwasajedionce, 2026-07-26), which is a real brake on a local
+// context: a modder measured it past 20k tokens, which is a real brake on a local
 // model. The compressor asks the model which memories later events have superseded, keeps the rest, and folds
 // what it dropped into the profile's background context, so the character still knows its own past in outline.
 // The SDK half decides WHAT to drop (and refuses to drop a first meeting, the most recent five, or anything
