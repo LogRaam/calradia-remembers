@@ -238,8 +238,8 @@
                               VerticalAlignment="Bottom"
                               MarginBottom="64"
                               IsVisible="@IsEncyclopediaVisible"
-                              Sprite="frame_9"
-                              Color="#FF3030FF"
+                              Sprite="BlankWhiteSquare_9"
+                              Color="#FFFFFF40"
                               Command.Click="ExecuteOpenEncyclopedia" />
 
               </Children>
@@ -320,8 +320,8 @@
                               VerticalAlignment="Top"
                               MarginTop="150"
                               IsVisible="@IsPrivateRequestVisible"
-                              Sprite="frame_9"
-                              Color="#FF3030FF"
+                              Sprite="BlankWhiteSquare_9"
+                              Color="#FFFFFF40"
                               Command.Click="ExecuteRequestPrivate" />
 
                 <!-- Round Table / Council Voice: council-only, gated by their IsVisible; parked top-right. -->
@@ -507,7 +507,7 @@
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
                               MarginLeft="56" MarginBottom="186"
                               IsVisible="@IsStyleIconVisible"
-                              Sprite="frame_9" Color="#FF3030FF"
+                              Sprite="BlankWhiteSquare_9" Color="#FFFFFF40"
                               Command.Click="ExecuteOpenStylePicker" />
                 <ButtonWidget Id="StylePickerButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
@@ -530,7 +530,7 @@
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
                               MarginLeft="116" MarginBottom="186"
                               IsVisible="@IsOfferItemVisible"
-                              Sprite="frame_9" Color="#FF3030FF"
+                              Sprite="BlankWhiteSquare_9" Color="#FFFFFF40"
                               Command.Click="ExecuteOfferItem" />
                 <ButtonWidget Id="OfferGoldButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
@@ -538,7 +538,7 @@
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
                               MarginLeft="176" MarginBottom="186"
                               IsVisible="@IsOfferGoldVisible"
-                              Sprite="frame_9" Color="#FF3030FF"
+                              Sprite="BlankWhiteSquare_9" Color="#FFFFFF40"
                               Command.Click="ExecuteOfferGold" />
 
                 <!-- Model toggle + Options: discreet text, lower-left, above the icon row. -->
@@ -591,7 +591,7 @@
                                   SuggestedWidth="30" SuggestedHeight="56"
                                   HorizontalAlignment="Left" VerticalAlignment="Center"
                                   IsVisible="@IsComposeToggleVisible"
-                                  Sprite="frame_9" Color="#FF3030FF"
+                                  Sprite="BlankWhiteSquare_9" Color="#FFFFFF40"
                                   Command.Click="ExecuteOpenCompose" />
 
                     <Widget Id="InputBox"
@@ -668,14 +668,14 @@
                               HorizontalAlignment="Center" VerticalAlignment="Bottom"
                               PositionXOffset="-96" MarginBottom="44"
                               IsVisible="@IsMemoryToggleVisible"
-                              Sprite="frame_9" Color="#FF3030FF"
+                              Sprite="BlankWhiteSquare_9" Color="#FFFFFF40"
                               Command.Click="ExecuteToggleMemoryPanel" />
                 <ButtonWidget Id="CloseButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                               SuggestedWidth="190" SuggestedHeight="40"
                               HorizontalAlignment="Center" VerticalAlignment="Bottom"
                               PositionXOffset="98" MarginBottom="44"
-                              Sprite="frame_9" Color="#FF3030FF"
+                              Sprite="BlankWhiteSquare_9" Color="#FFFFFF40"
                               Command.Click="ExecuteClose" />
 
               </Children>
