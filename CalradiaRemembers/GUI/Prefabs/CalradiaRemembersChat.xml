@@ -105,18 +105,16 @@
                           UpdateChildrenStates="true"
                           Command.Click="ExecuteOpenStylePicker">
               <Children>
-                <!-- quill.png ships with its RED and BLUE channels PRE-SWAPPED: it looks BLUE in an image viewer
-                     but renders GOLD in game, and that is deliberate, do not "fix" the file. RuntimePortraitFactory
-                     swaps R/B on every runtime image to correct the engine's BGR read, but that swap is calibrated
-                     for the JPG-sourced player portraits; a Photoshop-encoded PNG carries the opposite convention,
-                     so the same swap turned the gold quill blue. Pre-swapping the file cancels it out. Color is
-                     pinned white so no widget state tints the sprite on top. -->
+                <!-- quill.png is a NORMAL gold PNG; CorrectRedBlue="false" tells the runtime factory to SKIP the
+                     JPG-calibrated R/B swap, so a Photoshop PNG renders gold with no pre-swap hack. Color pinned
+                     white so no widget state tints it. -->
                 <CrRuntimeImageWidget Id="StyleQuillIcon"
                                       WidthSizePolicy="StretchToParent"
                                       HeightSizePolicy="StretchToParent"
                                       HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
                                       ImagePath="@StyleIconPath"
+                                      CorrectRedBlue="false"
                                       Color="#FFFFFFFF" />
               </Children>
             </ButtonWidget>

@@ -60,17 +60,49 @@ namespace CalradiaRemembers.Portraits
         }
 
         /// <summary>
-        ///   Cached load by path: builds a sprite once per file and reuses it, so N chat lines sharing one
-        ///   portrait hold ONE texture. A miss is cached as null so a missing file is not retried every line.
-        ///   The kept texture is intentionally not released (it stays available); a full feature would evict.
+        ///   The fixed-border widths of a nine-patch (nine-slice) sprite: the corners stay their native size
+        ///   while the edges and centre stretch, so a frame drawn far larger than its source keeps crisp
+        ///   corners. All-zero (the default) is an ordinary full-stretch sprite (the portrait case).
         /// </summary>
-        public static Sprite GetOrCreateCached(string fullPath)
+        public readonly struct NinePatch
+        {
+            public NinePatch(int left, int right, int top, int bottom)
+            {
+                Left = left;
+                Right = right;
+                Top = top;
+                Bottom = bottom;
+            }
+
+            public int Left { get; }
+            public int Right { get; }
+            public int Top { get; }
+            public int Bottom { get; }
+
+            public bool IsFlat => Left == 0 && Right == 0 && Top == 0 && Bottom == 0;
+
+            public override string ToString() => $"{Left},{Right},{Top},{Bottom}";
+        }
+
+        private static string KeyFor(string fullPath, bool correctRedBlue, NinePatch ninePatch)
+            => $"{fullPath}|{correctRedBlue}|{ninePatch}";
+
+        /// <summary>
+        ///   Cached load by path: builds a sprite once per (file, options) and reuses it, so N chat lines
+        ///   sharing one portrait hold ONE texture. A miss is cached as null so a missing file is not retried
+        ///   every line. <paramref name="correctRedBlue" /> applies the engine's BGR-read correction (needed
+        ///   for the JPG player portraits, but WRONG for a normal PNG that is already in the right order, so a
+        ///   UI sprite passes false). <paramref name="ninePatch" /> makes the sprite a stretchable frame.
+        /// </summary>
+        public static Sprite GetOrCreateCached(string fullPath, bool correctRedBlue = true, NinePatch ninePatch = default)
         {
             if (string.IsNullOrEmpty(fullPath)) return null;
-            if (Cache.TryGetValue(fullPath, out var cached)) return cached.sprite;
 
-            Sprite sprite = TryCreate(fullPath, out Sprite s, out EngTex tex, out _) ? s : null;
-            Cache[fullPath] = (sprite, tex?.Width ?? 0, tex?.Height ?? 0);
+            string key = KeyFor(fullPath, correctRedBlue, ninePatch);
+            if (Cache.TryGetValue(key, out var cached)) return cached.sprite;
+
+            Sprite sprite = TryCreate(fullPath, correctRedBlue, ninePatch, out Sprite s, out EngTex tex, out _) ? s : null;
+            Cache[key] = (sprite, tex?.Width ?? 0, tex?.Height ?? 0);
 
             return sprite;
         }
@@ -82,7 +114,7 @@ namespace CalradiaRemembers.Portraits
             height = 0;
             if (GetOrCreateCached(fullPath) == null) return false;
 
-            (Sprite _, int w, int h) = Cache[fullPath];
+            (Sprite _, int w, int h) = Cache[KeyFor(fullPath, true, default)];
             width = w;
             height = h;
 
@@ -93,7 +125,7 @@ namespace CalradiaRemembers.Portraits
         ///   Loads <paramref name="fullPath" /> and builds a full-texture sprite. Returns the engine texture so
         ///   the caller can release it. <paramref name="diag" /> narrates each step for the in-game log.
         /// </summary>
-        public static bool TryCreate(string fullPath, out Sprite sprite, out EngTex engineTexture, out string diag)
+        public static bool TryCreate(string fullPath, bool correctRedBlue, NinePatch ninePatch, out Sprite sprite, out EngTex engineTexture, out string diag)
         {
             sprite = null;
             engineTexture = null;
@@ -111,7 +143,9 @@ namespace CalradiaRemembers.Portraits
 
                 // The 2D sprite renderer samples RED and BLUE swapped relative to how the engine decodes an
                 // image (warm skin rendered blue), so colour-correct the bytes IN MEMORY first (no temp file).
-                byte[] corrected = SwapRedBlue(File.ReadAllBytes(fullPath)); // decoded, R/B swapped, PNG re-encoded
+                // Only when asked: this is right for the JPG player portraits but WRONG for a normal PNG that is
+                // already in the correct order (a UI sprite passes correctRedBlue:false and stays true to colour).
+                byte[] corrected = correctRedBlue ? SwapRedBlue(File.ReadAllBytes(fullPath)) : File.ReadAllBytes(fullPath);
                 engineTexture = EngTex.CreateFromMemory(corrected);
 
                 if (engineTexture == null)
@@ -162,7 +196,9 @@ namespace CalradiaRemembers.Portraits
                 SheetHeightField?.SetValue(part, h);
                 part.UpdateInitValues();
 
-                var nine = new SpriteNinePatchParameters(0, 0, 0, 0);
+                // Nine-patch: a flat sprite keeps the full-stretch behaviour (0,0,0,0); a frame passes its fixed
+                // corner widths so the borders stay crisp while the middle stretches to the widget's size.
+                var nine = new SpriteNinePatchParameters(ninePatch.Left, ninePatch.Right, ninePatch.Top, ninePatch.Bottom);
                 sprite = new SpriteGeneric(spriteName, part, nine);
 
                 return true;

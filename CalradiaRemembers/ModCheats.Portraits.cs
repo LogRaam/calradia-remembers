@@ -30,7 +30,7 @@ namespace CalradiaRemembers
         {
             string path = ResolvePortraitPath(args, 0);
 
-            if (!RuntimePortraitFactory.TryCreate(path, out Sprite sprite, out EngTex texture, out string diag))
+            if (!RuntimePortraitFactory.TryCreate(path, true, default, out Sprite sprite, out EngTex texture, out string diag))
                 return $"Portrait spike FAILED: {diag}\nDrop a PNG/JPG at {path}, or pass a full path.";
 
             PortraitSpikeManager.Open(sprite, texture, diag);
@@ -55,7 +55,7 @@ namespace CalradiaRemembers
 
             for (var i = 0; i < count; i++)
             {
-                if (!RuntimePortraitFactory.TryCreate(path, out _, out EngTex texture, out string diag))
+                if (!RuntimePortraitFactory.TryCreate(path, true, default, out _, out EngTex texture, out string diag))
                 {
                     lastDiag = diag;
 
