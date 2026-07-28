@@ -25,7 +25,14 @@ namespace CalradiaRemembers.Logic
         Affection,
 
         /// <summary>Not an upgrade, and not fond enough to wear it over their own gear.</summary>
-        KeptOwnGear
+        KeptOwnGear,
+
+        /// <summary>
+        ///   The recipient is the player's held PRISONER and the gift is a garment: their captor is dressing
+        ///   them, so it is put on regardless of fondness or value (the prisoner does not get a say). Only a
+        ///   wearable garment reaches this, never a weapon, so a captive is never armed by a "gift".
+        /// </summary>
+        Imposed
     }
 
     /// <summary>The facts <see cref="GiftEquipPolicy.Decide" /> needs to judge one gifted equipment item.</summary>
@@ -52,8 +59,15 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public bool IsSentimental { get; }
 
+        /// <summary>
+        ///   True when the recipient is the player's held PRISONER and the gift is a wearable GARMENT (never a
+        ///   weapon): the captor is dressing them, so it is imposed regardless of fondness or value. The engine
+        ///   half sets this only for garment slots, so a captive can never be handed a weapon this way.
+        /// </summary>
+        public bool IsCaptiveDressing { get; }
+
         /// <summary>Builds the fact set the policy judges.</summary>
-        public GiftEquipFacts(bool isEquippable, bool slotEmpty, int giftValue, int currentSlotValue, int relation, bool isSentimental)
+        public GiftEquipFacts(bool isEquippable, bool slotEmpty, int giftValue, int currentSlotValue, int relation, bool isSentimental, bool isCaptiveDressing = false)
         {
             IsEquippable = isEquippable;
             SlotEmpty = slotEmpty;
@@ -61,6 +75,7 @@ namespace CalradiaRemembers.Logic
             CurrentSlotValue = currentSlotValue;
             Relation = relation;
             IsSentimental = isSentimental;
+            IsCaptiveDressing = isCaptiveDressing;
         }
     }
 
@@ -103,11 +118,23 @@ namespace CalradiaRemembers.Logic
         public static GiftEquipDecision Decide(GiftEquipFacts facts)
         {
             if (!facts.IsEquippable) return GiftEquipDecision.Keep(GiftEquipReason.NotEquippable);
+            // A captor dressing a held prisoner overrides the fondness/value math: the prisoner does not choose.
+            if (facts.IsCaptiveDressing) return GiftEquipDecision.Equip(GiftEquipReason.Imposed);
             if (facts.SlotEmpty) return GiftEquipDecision.Equip(GiftEquipReason.EmptySlot);
             if (facts.GiftValue > facts.CurrentSlotValue) return GiftEquipDecision.Equip(GiftEquipReason.Upgrade);
             if (facts.IsSentimental || facts.Relation >= AffectionThreshold) return GiftEquipDecision.Equip(GiftEquipReason.Affection);
 
             return GiftEquipDecision.Keep(GiftEquipReason.KeptOwnGear);
         }
+
+        /// <summary>
+        ///   Which equipment set the engine must write a gift into so it is actually SEEN. A held prisoner is
+        ///   rendered in their BATTLE set (the captor scene is a world-map conversation, which shows battle gear,
+        ///   not the town/civilian outfit), so anything a captor puts on them must go on the battle set or it is
+        ///   invisible. Otherwise the normal rule holds: a civilian garment on the town outfit, war gear on the
+        ///   battle set. Returns true for "use the battle set".
+        /// </summary>
+        public static bool WearsOnBattleSet(bool isHeldCaptive, bool isCivilianGarment)
+            => isHeldCaptive || !isCivilianGarment;
     }
 }

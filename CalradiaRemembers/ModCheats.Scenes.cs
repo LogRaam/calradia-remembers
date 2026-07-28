@@ -20,8 +20,10 @@ using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.ObjectSystem;
 
 #endregion
 
@@ -37,6 +39,59 @@ namespace CalradiaRemembers
       [CommandLineFunctionality.CommandLineArgumentFunction("add_kink", "cr")]
       public static string AddKink(List<string> args)
          => MutateKink(args, true, "cr.add_kink <kink> [name]");
+
+      /// <summary>
+      ///   cr.dress &lt;item name fragment&gt;
+      ///   Test aid for the captive re-dress feature: equips a matching GARMENT on a held prisoner's BATTLE set
+      ///   (the set the captor scene renders), so the visual can be confirmed. Targets the NPC currently in
+      ///   conversation, else the first female prisoner in the party. Conversation agents do not refresh live,
+      ///   so (re)stage the captive scene AFTER running this to see her wearing it. Never equips a weapon.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("dress", "cr")]
+      public static string Dress(List<string> args)
+      {
+         if (args == null || args.Count == 0)
+            return "Usage: cr.dress <item name fragment>. Equips a garment on a held prisoner's battle set; (re)stage the captive scene to see it.";
+
+         string fragment = string.Join(" ", args).Trim();
+
+         Hero target = Hero.OneToOneConversationHero;
+         if (target == null || !target.IsPrisoner)
+            target = MobileParty.MainParty?.PrisonRoster?.GetTroopRoster()
+               ?.Select(e => e.Character?.HeroObject)
+               .FirstOrDefault(h => h != null && h.IsFemale);
+
+         if (target == null)
+            return "No held prisoner found. Talk to a prisoner, or capture one, first.";
+
+         ItemObject item = MBObjectManager.Instance.GetObjectTypeList<ItemObject>()
+            .FirstOrDefault(i => i?.Name != null
+                                 && i.Name.ToString().IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0
+                                 && GarmentSlotFor(i.ItemType) != EquipmentIndex.None);
+
+         if (item == null)
+            return $"No garment item matched '{fragment}'. Try a fragment of a dress / gown / armour name.";
+
+         EquipmentIndex slot = GarmentSlotFor(item.ItemType);
+         target.BattleEquipment[slot] = new EquipmentElement(item);
+
+         return $"Dressed {target.Name} in {item.Name} (battle slot {slot}). Re-open the captive scene to see it (agents do not refresh live).";
+      }
+
+      /// <summary>The garment slot an item type belongs in, or <see cref="EquipmentIndex.None" /> if it is not a worn garment.</summary>
+      private static EquipmentIndex GarmentSlotFor(ItemObject.ItemTypeEnum type)
+      {
+         switch (type)
+         {
+            case ItemObject.ItemTypeEnum.HeadArmor: return EquipmentIndex.Head;
+            case ItemObject.ItemTypeEnum.BodyArmor:
+            case ItemObject.ItemTypeEnum.ChestArmor: return EquipmentIndex.Body;
+            case ItemObject.ItemTypeEnum.LegArmor: return EquipmentIndex.Leg;
+            case ItemObject.ItemTypeEnum.HandArmor: return EquipmentIndex.Gloves;
+            case ItemObject.ItemTypeEnum.Cape: return EquipmentIndex.Cape;
+            default: return EquipmentIndex.None;
+         }
+      }
 
       /// <summary>
       ///   cr.witness [witnessName]

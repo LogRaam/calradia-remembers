@@ -1357,12 +1357,20 @@ namespace CalradiaRemembers.GameState
             if (hero.IsFemale && item.ItemFlags.HasFlag(ItemFlags.NotUsableByFemale)) return "";
             if (!hero.IsFemale && item.ItemFlags.HasFlag(ItemFlags.NotUsableByMale)) return "";
 
-            // A civilian piece (a gown, a fine tunic) goes on their town outfit; war gear on their battle set,
-            // so a gifted dress is seen in the streets and a gifted blade is drawn on the field.
-            Equipment equipment = item.IsCivilian ? hero.CivilianEquipment : hero.BattleEquipment;
+            // A held prisoner is rendered in her BATTLE set (the captor scene is a world-map conversation), so a
+            // garment a captor puts on her must go on the battle set to be SEEN; otherwise the normal rule holds:
+            // a civilian piece (a gown, a fine tunic) on their town outfit, war gear on their battle set, so a
+            // gifted dress is seen in the streets and a gifted blade is drawn on the field.
+            bool isHeldCaptive = hero.IsPrisoner && hero.PartyBelongedToAsPrisoner == MobileParty.MainParty?.Party;
+            bool onBattle = GiftEquipPolicy.WearsOnBattleSet(isHeldCaptive, item.IsCivilian);
+            Equipment equipment = onBattle ? hero.BattleEquipment : hero.CivilianEquipment;
             if (equipment == null) return "";
 
             if (!TryResolveEquipSlot(equipment, item, out EquipmentIndex slot)) return ""; // not wearable/wieldable
+
+            // A captor may DRESS a held prisoner (imposed, regardless of her regard), but never ARM one: only a
+            // wearable garment slot qualifies, never a weapon or a mount.
+            bool isCaptiveDressing = isHeldCaptive && IsGarmentSlot(slot);
 
             EquipmentElement current = equipment[slot];
             int relation = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId)?.ReputationWithPlayer ?? 0;
@@ -1374,13 +1382,14 @@ namespace CalradiaRemembers.GameState
                giftValue: item.Value,
                currentSlotValue: current.Item?.Value ?? 0,
                relation: relation,
-               isSentimental: sentimental));
+               isSentimental: sentimental,
+               isCaptiveDressing: isCaptiveDressing));
 
             if (!decision.ShouldEquip) return "";
 
             equipment[slot] = new EquipmentElement(item);
             ModLog.Info($"[ACTION] give_item: {hero.Name} equipped '{item.Name}' ({decision.Reason}) in " +
-                        $"{(item.IsCivilian ? "civilian" : "battle")} slot {slot}.");
+                        $"{(onBattle ? "battle" : "civilian")} slot {slot}.");
 
             return " " + DescribeEquip(hero, item, decision.Reason);
          }
@@ -1439,10 +1448,24 @@ namespace CalradiaRemembers.GameState
       {
          string name = item.Name?.ToString() ?? "it";
 
-         return reason == GiftEquipReason.Affection
-            ? $"({hero.Name} wears {name} gladly, for your sake.)"
-            : $"({hero.Name} puts {name} on at once.)";
+         switch (reason)
+         {
+            case GiftEquipReason.Imposed:
+               return $"({hero.Name}, your prisoner, is now dressed in {name} at your command.)";
+            case GiftEquipReason.Affection:
+               return $"({hero.Name} wears {name} gladly, for your sake.)";
+            default:
+               return $"({hero.Name} puts {name} on at once.)";
+         }
       }
+
+      /// <summary>
+      ///   True for a slot that holds a worn GARMENT (head/body/legs/hands/cape), the only kind a captor may
+      ///   impose on a held prisoner. Weapon and mount slots are excluded, so a "gift" can never arm a captive.
+      /// </summary>
+      private static bool IsGarmentSlot(EquipmentIndex slot)
+         => slot == EquipmentIndex.Head || slot == EquipmentIndex.Body || slot == EquipmentIndex.Leg
+         || slot == EquipmentIndex.Gloves || slot == EquipmentIndex.Cape;
 
       /// <summary>
       ///   grant_blessing: the conversation NPC, as head of their clan, consents to the player

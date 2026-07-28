@@ -178,5 +178,61 @@ namespace CalradiaRemembers.Tests
             GiftEquipPolicy.Decide(equalValueColdNpc).Reason.Should().Be(GiftEquipReason.KeptOwnGear);
             GiftEquipPolicy.Decide(equalValueSentimentalNpc).Reason.Should().Be(GiftEquipReason.Affection);
         }
+
+        // STAKE: the whole point of the captive re-dress feature (players want to put clothing on their held
+        // prisoners). A captor dressing a held prisoner IMPOSES the garment: it goes on regardless of how the
+        // prisoner regards the player and regardless of whether it is a value upgrade over her own armour. If
+        // this fell through to the fondness gate, a hostile prisoner (the common case) would never be re-dressed
+        // and the feature would silently do nothing, which is exactly the broken-promise report it fixes.
+        [Test]
+        public void GIVEN_a_captor_dressing_a_held_prisoner_WHEN_deciding_THEN_the_garment_is_imposed_even_on_a_hostile_prisoner_over_finer_armour()
+        {
+            var facts = new GiftEquipFacts(
+                isEquippable: true,
+                slotEmpty: false,
+                giftValue: 20,
+                currentSlotValue: 400,
+                relation: -80,
+                isSentimental: false,
+                isCaptiveDressing: true);
+
+            var decision = GiftEquipPolicy.Decide(facts);
+
+            decision.ShouldEquip.Should().BeTrue();
+            decision.Reason.Should().Be(GiftEquipReason.Imposed);
+        }
+
+        // STAKE: safety rail. IsCaptiveDressing is only ever set for a wearable garment (the engine half gates on
+        // the slot), never a weapon, so a "gift" can never arm a prisoner. But a non-equippable item must STILL
+        // be refused even under the captive path, so grain or a jewel handed to a prisoner never hits a slot.
+        [Test]
+        public void GIVEN_a_non_equippable_gift_to_a_held_prisoner_WHEN_deciding_THEN_it_is_still_never_equipped()
+        {
+            var facts = new GiftEquipFacts(
+                isEquippable: false,
+                slotEmpty: true,
+                giftValue: 5,
+                currentSlotValue: 0,
+                relation: 0,
+                isSentimental: false,
+                isCaptiveDressing: true);
+
+            var decision = GiftEquipPolicy.Decide(facts);
+
+            decision.ShouldEquip.Should().BeFalse();
+            decision.Reason.Should().Be(GiftEquipReason.NotEquippable);
+        }
+
+        // STAKE: a held prisoner is rendered in her BATTLE set (the captor scene is a world-map conversation),
+        // so a gifted dress MUST be written to the battle set or it is invisible: this is the exact bug a player
+        // reported (dress "accepted" in dialogue, lady still shown in armour). A free NPC keeps the normal rule.
+        [Test]
+        public void GIVEN_a_civilian_garment_WHEN_choosing_the_set_THEN_a_held_captive_uses_the_battle_set_but_a_free_npc_uses_civilian()
+        {
+            GiftEquipPolicy.WearsOnBattleSet(isHeldCaptive: true, isCivilianGarment: true).Should().BeTrue();
+            GiftEquipPolicy.WearsOnBattleSet(isHeldCaptive: false, isCivilianGarment: true).Should().BeFalse();
+            // War gear always goes on the battle set, captive or not.
+            GiftEquipPolicy.WearsOnBattleSet(isHeldCaptive: false, isCivilianGarment: false).Should().BeTrue();
+        }
     }
 }
