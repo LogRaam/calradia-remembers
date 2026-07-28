@@ -202,6 +202,7 @@ namespace CalradiaRemembers.Chat
       private string _inputText = "";
       private bool _isComposeOpen;
       private bool _isManuscriptLeftPageOpen;
+      private string _manuscriptDossierKey = ""; // hero id the manuscript left page currently shows (for click-to-toggle)
       private bool _isMemoryPanelOpen;
       private bool _isPleaseContinueVisible;
 
@@ -1306,7 +1307,6 @@ namespace CalradiaRemembers.Chat
                npcMsg = new ChatMessageViewModel(_npcPortraitCharacter, _npcName, text, false);
             _messages.Add(npcMsg);
             ModLog.Info("AppendNpcMessage: added to _messages");
-            RefreshManuscriptDossier(npcMsg); // Manuscript skin: keep the left page on the latest speaker; no-op in Classic
             ChatManager.ScrollToBottom();
             if (recordTranscript) RecordTranscript(false, _npcName, _npcHero?.StringId, text);
          }
@@ -1504,12 +1504,6 @@ namespace CalradiaRemembers.Chat
          if (_isPortraitPanelOpen) IsPortraitPanelOpen = false; // and with the portrait panel
          IsComposeOpen = true;
       }
-
-      /// <summary>
-      ///   Manuscript skin: the "&lt;" toggle shows/hides the LEFT dossier page (the manuscript opens with only
-      ///   the right conversation page). A no-op look-only flag; the Classic skin does not bind it.
-      /// </summary>
-      public void ExecuteToggleManuscriptLeftPage() => IsManuscriptLeftPageOpen = !IsManuscriptLeftPageOpen;
 
       public void ExecuteOpenEncyclopedia()
       {
@@ -2156,32 +2150,33 @@ namespace CalradiaRemembers.Chat
       public void OpenPortraitPanel(ChatMessageViewModel msg)
       {
          if (msg == null) return;
+
+         // Manuscript skin: the info dossier IS the left page. A portrait click opens it on that speaker (NPC
+         // dossier, or the player's own deeds for the player's portrait); clicking the SAME portrait again closes
+         // it. The Classic skin keeps its separate left pop-out below.
+         if (ChatManager.SkinPrefab == ChatManager.ManuscriptSkin)
+         {
+            string clickedKey = msg.PortraitKey ?? "";
+            if (_isManuscriptLeftPageOpen && clickedKey == _manuscriptDossierKey)
+            {
+               IsManuscriptLeftPageOpen = false;
+
+               return;
+            }
+
+            if (!PopulatePanelData(msg)) return; // a system / narration line has no portrait
+            _manuscriptDossierKey = clickedKey;
+            IsManuscriptLeftPageOpen = true;
+
+            return;
+         }
+
          if (!PopulatePanelData(msg)) return; // a system / narration line has no portrait: leave the panel closed
 
          if (_isComposeOpen) IsComposeOpen = false;
          if (_isMemoryPanelOpen) IsMemoryPanelOpen = false;
 
          IsPortraitPanelOpen = true;
-      }
-
-      /// <summary>
-      ///   Manuscript skin only: refreshes the ALWAYS-visible left page dossier (name, facts, background, portrait)
-      ///   to the latest speaker, WITHOUT opening the Classic pop-out. The Classic skin has no baked left page, so
-      ///   this is a no-op there (gated on the active skin); any failure degrades to an emptier page, never a crash.
-      /// </summary>
-      public void RefreshManuscriptDossier(ChatMessageViewModel msg)
-      {
-         if (msg == null) return;
-         if (ChatManager.SkinPrefab != ChatManager.ManuscriptSkin) return;
-
-         try
-         {
-            PopulatePanelData(msg);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"RefreshManuscriptDossier failed: {ex.GetType().Name}: {ex.Message}");
-         }
       }
 
       /// <summary>
@@ -2736,7 +2731,13 @@ namespace CalradiaRemembers.Chat
 
          Hero hero = Hero.FindFirst(h => h.StringId == key);
 
-         if (hero == null || hero == Hero.MainHero) return; // player's own line: portrait only, no dossier
+         if (hero == null) return;
+         if (hero == Hero.MainHero) // the player's own portrait: show THEIR panel (identity + their notable deeds)
+         {
+            ResolvePlayerPanelInfo(hero);
+
+            return;
+         }
 
          NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId);
 
@@ -2776,6 +2777,45 @@ namespace CalradiaRemembers.Chat
          ShowPanelGrievances = !string.IsNullOrEmpty(PanelGrievances);
 
          ShowPanelInfo = true;
+      }
+
+      /// <summary>
+      ///   The PLAYER's own info panel (their portrait was clicked): a short identity line plus their notable
+      ///   DEEDS, read from the world chronicle (WorldEventStore, the same source the Chronicle window uses),
+      ///   most recent first and capped so they fit. Any gap simply leaves that section hidden; never throws.
+      /// </summary>
+      private void ResolvePlayerPanelInfo(Hero player)
+      {
+         try
+         {
+            var facts = new StringBuilder();
+            facts.Append("Culture: ").Append(player.Culture?.Name?.ToString() ?? "Unknown").Append('\n');
+            facts.Append("Age: ").Append((int) player.Age).Append('\n');
+            facts.Append("Clan: ").Append(player.Clan?.Name?.ToString() ?? "None").Append('\n');
+            facts.Append("Renown: ").Append((int) (player.Clan?.Renown ?? 0));
+            PanelInfoFacts = facts.ToString();
+            ShowPanelInfo = true;
+
+            IReadOnlyList<WorldEvent> deeds = WorldEventStore.Instance?.GetPlayerChronicle();
+            if (deeds != null && deeds.Count > 0)
+            {
+               var today = (int) CampaignTime.Now.ToDays;
+               var sb = new StringBuilder();
+               foreach (WorldEvent e in deeds.Reverse().Take(8)) // most recent first, capped to what the page can hold
+               {
+                  string text = string.IsNullOrWhiteSpace(e.ChronicleLine) ? e.Summary : e.ChronicleLine;
+                  if (string.IsNullOrWhiteSpace(text)) continue;
+                  sb.Append("• ").Append(text).Append("  (").Append(MemoryDayFormatter.Describe(e.Day, today)).Append(")\n");
+               }
+
+               PanelBackground = sb.ToString().TrimEnd();
+               ShowPanelBackground = !string.IsNullOrWhiteSpace(PanelBackground);
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ResolvePlayerPanelInfo failed: {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       #endregion

@@ -498,8 +498,8 @@
                   </Children>
                 </ButtonWidget>
 
-                <!-- Input row. No Send button: Enter / NumpadEnter sends (ChatInputWidget). The "<" toggles the
-                     LEFT dossier page. Shares the slot with the scene-paused Continue / Try-something pair. -->
+                <!-- Input row. No Send button: Enter / NumpadEnter sends (ChatInputWidget). The "<" opens the
+                     full-text compose panel. Shares the slot with the scene-paused Continue / Try-something pair. -->
                 <Widget Id="InputArea"
                         WidthSizePolicy="StretchToParent"
                         HeightSizePolicy="Fixed"
@@ -510,15 +510,16 @@
                         MarginRight="66">
                   <Children>
 
-                    <!-- The "<" triangle (painted into the page art) toggles the LEFT dossier page: the manuscript
-                         shows only the right page by default, and this opens/closes the left one. Outlined for now. -->
+                    <!-- The "<" triangle (painted into the page art) opens the full-text compose panel, for a
+                         player writing a long message. The LEFT dossier page is opened by clicking a PORTRAIT
+                         instead. Outlined hit-box for now. -->
                     <ButtonWidget Id="ComposeToggleButton"
                                   WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                                   SuggestedWidth="30" SuggestedHeight="56"
                                   HorizontalAlignment="Left" VerticalAlignment="Center"
-                                  IsVisible="@IsChatInputVisible"
+                                  IsVisible="@IsComposeToggleVisible"
                                   Sprite="frame_9" Color="#FF3030FF"
-                                  Command.Click="ExecuteToggleManuscriptLeftPage" />
+                                  Command.Click="ExecuteOpenCompose" />
 
                     <Widget Id="InputBox"
                             WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
