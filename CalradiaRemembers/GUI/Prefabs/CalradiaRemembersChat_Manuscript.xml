@@ -94,31 +94,18 @@
                                 IsVisible="@ShowPanelInfo"
                                 IsDisabled="true" />
 
-                <!-- Background heading + the vanilla encyclopedia paragraph. In the mid-page, above the portrait. -->
-                <TextWidget Id="LeftBackgroundHeading"
-                            WidthSizePolicy="StretchToParent"
-                            HeightSizePolicy="Fixed"
-                            SuggestedHeight="28"
-                            VerticalAlignment="Top"
-                            MarginTop="300"
-                            MarginLeft="44"
-                            MarginRight="40"
-                            Brush="Encyclopedia.Stat.DefinitionText"
-                            Brush.FontSize="20"
-                            Brush.TextHorizontalAlignment="Left"
-                            Text="Background"
-                            IsVisible="@ShowPanelBackground"
-                            IsDisabled="true" />
+                <!-- The vanilla encyclopedia paragraph. The "Background" HEADING is painted into the page art, so
+                     only the dynamic text is rendered here, positioned to sit under that painted heading. -->
                 <RichTextWidget Id="LeftBackgroundText"
                                 WidthSizePolicy="StretchToParent"
                                 HeightSizePolicy="Fixed"
-                                SuggestedHeight="150"
+                                SuggestedHeight="90"
                                 VerticalAlignment="Top"
-                                MarginTop="332"
+                                MarginTop="496"
                                 MarginLeft="44"
                                 MarginRight="40"
                                 Brush="Default"
-                                Brush.FontSize="16"
+                                Brush.FontSize="15"
                                 Brush.FontColor="#d8c8a8FF"
                                 Brush.TextHorizontalAlignment="Left"
                                 Text="@PanelBackground"
@@ -163,33 +150,21 @@
                   </Children>
                 </Widget>
 
-                <!-- "View in Encyclopedia": opens the speaker's encyclopedia page. Chrome button for V1 (an
-                     invisible hit-box over painted art comes once that art is delivered). -->
+                <!-- "View in Encyclopedia": the button label is PAINTED into the page art, so this is an INVISIBLE
+                     hit-box over it (transparent fill so it still catches the click). Position to tune in game. -->
                 <ButtonWidget Id="LeftEncyclopediaButton"
                               WidthSizePolicy="Fixed"
                               HeightSizePolicy="Fixed"
-                              SuggestedWidth="220"
-                              SuggestedHeight="30"
+                              SuggestedWidth="240"
+                              SuggestedHeight="46"
                               HorizontalAlignment="Center"
                               VerticalAlignment="Bottom"
-                              MarginBottom="60"
+                              MarginBottom="64"
                               IsVisible="@IsEncyclopediaVisible"
-                              DoNotPassEventsToChildren="true"
-                              Brush="ButtonBrush1"
-                              UpdateChildrenStates="true"
-                              Command.Click="ExecuteOpenEncyclopedia">
-                  <Children>
-                    <TextWidget WidthSizePolicy="StretchToParent"
-                                HeightSizePolicy="StretchToParent"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Brush="Popup.Button.Text"
-                                Brush.FontSize="15"
-                                Brush.FontColor="#b8b0a0FF"
-                                Brush.TextHorizontalAlignment="Center"
-                                Text="View in Encyclopedia" />
-                  </Children>
-                </ButtonWidget>
+                              Sprite="BlankWhiteSquare_9"
+                              Color="#00000000"
+                              AlphaFactor="0"
+                              Command.Click="ExecuteOpenEncyclopedia" />
 
               </Children>
             </Widget>
@@ -650,37 +625,25 @@
                   </Children>
                 </ButtonWidget>
 
-                <!-- Memories (opens the pop-out) + End Conversation (Close), the bottom-centre pair. -->
+                <!-- Memories + End Conversation: their labels are PAINTED into the page art (bottom-centre pair),
+                     so these are INVISIBLE hit-boxes over them (transparent fill still catches the click). The
+                     Close label is normally dynamic (@CloseButtonText flips to "Leave" when input is locked); over
+                     baked art it always reads "End Conversation", a small V1 compromise. Positions to tune. -->
                 <ButtonWidget Id="MemoriesButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                              SuggestedWidth="150" SuggestedHeight="34"
+                              SuggestedWidth="170" SuggestedHeight="40"
                               HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                              PositionXOffset="-90" MarginBottom="42"
+                              PositionXOffset="-96" MarginBottom="44"
                               IsVisible="@IsMemoryToggleVisible"
-                              DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
-                              UpdateChildrenStates="true" Command.Click="ExecuteToggleMemoryPanel">
-                  <Children>
-                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                                Brush="Popup.Button.Text" Brush.FontSize="16" Brush.FontColor="#8fae7bFF"
-                                Brush.TextHorizontalAlignment="Center" Text="Memories" />
-                  </Children>
-                </ButtonWidget>
+                              Sprite="BlankWhiteSquare_9" Color="#00000000" AlphaFactor="0"
+                              Command.Click="ExecuteToggleMemoryPanel" />
                 <ButtonWidget Id="CloseButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                              SuggestedWidth="170" SuggestedHeight="34"
+                              SuggestedWidth="190" SuggestedHeight="40"
                               HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                              PositionXOffset="90" MarginBottom="42"
-                              DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
-                              UpdateChildrenStates="true" Command.Click="ExecuteClose">
-                  <Children>
-                    <TextWidget Id="CloseButtonTextWidget"
-                                WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                                Brush="Popup.Button.Text" Brush.FontSize="16" Brush.FontColor="#c68b7bFF"
-                                Brush.TextHorizontalAlignment="Center" Text="@CloseButtonText" />
-                  </Children>
-                </ButtonWidget>
+                              PositionXOffset="98" MarginBottom="44"
+                              Sprite="BlankWhiteSquare_9" Color="#00000000" AlphaFactor="0"
+                              Command.Click="ExecuteClose" />
 
               </Children>
             </Widget>
