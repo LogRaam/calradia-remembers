@@ -32,13 +32,15 @@
             HeightSizePolicy="StretchToParent">
       <Children>
 
-        <!-- The book: fixed size (aspect-locked to the page art) so the borders never distort, centred on screen. -->
+        <!-- The book: fixed size (aspect-locked to the page art) so the borders never distort. RIGHT-aligned to
+             behave like the Classic window (anchored right, and the focus arbiter's ChatVisualOffsetX then slides
+             it fully off-screen when a menu / the encyclopedia opens, exactly as Classic does). -->
         <Widget Id="BookRoot"
                 WidthSizePolicy="Fixed"
                 HeightSizePolicy="Fixed"
                 SuggestedWidth="!Book.Width"
                 SuggestedHeight="!Book.Height"
-                HorizontalAlignment="Center"
+                HorizontalAlignment="Right"
                 VerticalAlignment="Center"
                 PositionXOffset="@ChatVisualOffsetX">
           <Children>
@@ -161,9 +163,8 @@
                               VerticalAlignment="Bottom"
                               MarginBottom="64"
                               IsVisible="@IsEncyclopediaVisible"
-                              Sprite="BlankWhiteSquare_9"
-                              Color="#00000000"
-                              AlphaFactor="0"
+                              Sprite="frame_9"
+                              Color="#FF3030FF"
                               Command.Click="ExecuteOpenEncyclopedia" />
 
               </Children>
@@ -234,6 +235,7 @@
                             Text="@RelationSummary"
                             IsDisabled="true" />
 
+                <!-- Request Private label is painted into the page art: invisible (outlined for now) hit-box. -->
                 <ButtonWidget Id="RequestPrivateButton"
                               WidthSizePolicy="Fixed"
                               HeightSizePolicy="Fixed"
@@ -243,16 +245,9 @@
                               VerticalAlignment="Top"
                               MarginTop="150"
                               IsVisible="@IsPrivateRequestVisible"
-                              DoNotPassEventsToChildren="true"
-                              Brush="ButtonBrush1"
-                              UpdateChildrenStates="true"
-                              Command.Click="ExecuteRequestPrivate">
-                  <Children>
-                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                                Brush="Popup.Button.Text" Brush.FontSize="14" Text="Request Private" />
-                  </Children>
-                </ButtonWidget>
+                              Sprite="frame_9"
+                              Color="#FF3030FF"
+                              Command.Click="ExecuteRequestPrivate" />
 
                 <!-- Round Table / Council Voice: council-only, gated by their IsVisible; parked top-right. -->
                 <ButtonWidget Id="RoundTableButton"
@@ -428,22 +423,16 @@
 
                 <!-- ===================== BOTTOM CONTROLS (over the lower page) ===================== -->
 
-                <!-- Style picker (quill) + offer tiles, lower-left icon row. -->
+                <!-- Style picker (quill) + offer (purse) tiles are painted into the page art: outlined hit-boxes.
+                     The quill icon here is dropped (the tile art carries it). -->
                 <ButtonWidget Id="StylePickerIconButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                               SuggestedWidth="52" SuggestedHeight="52"
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
                               MarginLeft="56" MarginBottom="186"
                               IsVisible="@IsStyleIconVisible"
-                              DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
-                              Command.Click="ExecuteOpenStylePicker">
-                  <Children>
-                    <CrRuntimeImageWidget Id="StyleQuillIcon"
-                                          WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                          HorizontalAlignment="Center" VerticalAlignment="Center"
-                                          ImagePath="@StyleIconPath" CorrectRedBlue="false" Color="#FFFFFFFF" />
-                  </Children>
-                </ButtonWidget>
+                              Sprite="frame_9" Color="#FF3030FF"
+                              Command.Click="ExecuteOpenStylePicker" />
                 <ButtonWidget Id="StylePickerButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                               SuggestedWidth="150" SuggestedHeight="22"
@@ -465,29 +454,16 @@
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
                               MarginLeft="116" MarginBottom="186"
                               IsVisible="@IsOfferItemVisible"
-                              DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
-                              Command.Click="ExecuteOfferItem">
-                  <Children>
-                    <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                            SuggestedWidth="38" SuggestedHeight="38"
-                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Sprite="MapBar\mapbar_icon3" Color="#c8a878FF" IsDisabled="true" />
-                  </Children>
-                </ButtonWidget>
+                              Sprite="frame_9" Color="#FF3030FF"
+                              Command.Click="ExecuteOfferItem" />
                 <ButtonWidget Id="OfferGoldButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                              SuggestedWidth="76" SuggestedHeight="52"
+                              SuggestedWidth="52" SuggestedHeight="52"
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
                               MarginLeft="176" MarginBottom="186"
                               IsVisible="@IsOfferGoldVisible"
-                              DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
-                              UpdateChildrenStates="true" Command.Click="ExecuteOfferGold">
-                  <Children>
-                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                                Brush="Popup.Button.Text" Brush.FontSize="15" Text="Give Gold" />
-                  </Children>
-                </ButtonWidget>
+                              Sprite="frame_9" Color="#FF3030FF"
+                              Command.Click="ExecuteOfferGold" />
 
                 <!-- Model toggle + Options: discreet text, lower-left, above the icon row. -->
                 <ButtonWidget Id="ModelModeButton"
@@ -531,19 +507,14 @@
                         MarginRight="66">
                   <Children>
 
+                    <!-- The "<" triangle (opens the full-text panel) is painted into the page art: outlined hit-box. -->
                     <ButtonWidget Id="ComposeToggleButton"
                                   WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                                  SuggestedWidth="24" SuggestedHeight="56"
+                                  SuggestedWidth="30" SuggestedHeight="56"
                                   HorizontalAlignment="Left" VerticalAlignment="Center"
                                   IsVisible="@IsComposeToggleVisible"
-                                  DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
-                                  UpdateChildrenStates="true" Command.Click="ExecuteOpenCompose">
-                      <Children>
-                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                                    Brush="Popup.Button.Text" Brush.FontSize="22" Text="&lt;" />
-                      </Children>
-                    </ButtonWidget>
+                                  Sprite="frame_9" Color="#FF3030FF"
+                                  Command.Click="ExecuteOpenCompose" />
 
                     <Widget Id="InputBox"
                             WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
@@ -635,14 +606,14 @@
                               HorizontalAlignment="Center" VerticalAlignment="Bottom"
                               PositionXOffset="-96" MarginBottom="44"
                               IsVisible="@IsMemoryToggleVisible"
-                              Sprite="BlankWhiteSquare_9" Color="#00000000" AlphaFactor="0"
+                              Sprite="frame_9" Color="#FF3030FF"
                               Command.Click="ExecuteToggleMemoryPanel" />
                 <ButtonWidget Id="CloseButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                               SuggestedWidth="190" SuggestedHeight="40"
                               HorizontalAlignment="Center" VerticalAlignment="Bottom"
                               PositionXOffset="98" MarginBottom="44"
-                              Sprite="BlankWhiteSquare_9" Color="#00000000" AlphaFactor="0"
+                              Sprite="frame_9" Color="#FF3030FF"
                               Command.Click="ExecuteClose" />
 
               </Children>
