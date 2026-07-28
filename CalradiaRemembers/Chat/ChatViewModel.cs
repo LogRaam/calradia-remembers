@@ -1279,6 +1279,7 @@ namespace CalradiaRemembers.Chat
                npcMsg = new ChatMessageViewModel(_npcPortraitCharacter, _npcName, text, false);
             _messages.Add(npcMsg);
             ModLog.Info("AppendNpcMessage: added to _messages");
+            RefreshManuscriptDossier(npcMsg); // Manuscript skin: keep the left page on the latest speaker; no-op in Classic
             ChatManager.ScrollToBottom();
             if (recordTranscript) RecordTranscript(false, _npcName, _npcHero?.StringId, text);
          }
@@ -2122,6 +2123,42 @@ namespace CalradiaRemembers.Chat
       public void OpenPortraitPanel(ChatMessageViewModel msg)
       {
          if (msg == null) return;
+         if (!PopulatePanelData(msg)) return; // a system / narration line has no portrait: leave the panel closed
+
+         if (_isComposeOpen) IsComposeOpen = false;
+         if (_isMemoryPanelOpen) IsMemoryPanelOpen = false;
+
+         IsPortraitPanelOpen = true;
+      }
+
+      /// <summary>
+      ///   Manuscript skin only: refreshes the ALWAYS-visible left page dossier (name, facts, background, portrait)
+      ///   to the latest speaker, WITHOUT opening the Classic pop-out. The Classic skin has no baked left page, so
+      ///   this is a no-op there (gated on the active skin); any failure degrades to an emptier page, never a crash.
+      /// </summary>
+      public void RefreshManuscriptDossier(ChatMessageViewModel msg)
+      {
+         if (msg == null) return;
+         if (ChatManager.SkinPrefab != ChatManager.ManuscriptSkin) return;
+
+         try
+         {
+            PopulatePanelData(msg);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"RefreshManuscriptDossier failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Fills every Panel* property (portrait + encyclopedia dossier) from a chat line's speaker and raises the
+      ///   change notifications. Returns false for a system / narration line that carries no portrait, so the caller
+      ///   can decline to open the Classic pop-out. Shared by the Classic portrait pop-out and the Manuscript page.
+      /// </summary>
+      private bool PopulatePanelData(ChatMessageViewModel msg)
+      {
+         if (msg == null) return false;
 
          PanelPortraitPath = "";
          ShowPanelCustomPortrait = false;
@@ -2158,7 +2195,7 @@ namespace CalradiaRemembers.Chat
          }
          else
          {
-            return; // a system or narration line has no portrait to show
+            return false; // a system or narration line has no portrait to show
          }
 
          float scale = Math.Min(boxW / aspectW, boxH / aspectH);
@@ -2167,9 +2204,6 @@ namespace CalradiaRemembers.Chat
          PortraitPanelTitle = string.IsNullOrEmpty(msg.SpeakerName)
             ? "Portrait"
             : msg.SpeakerName;
-
-         if (_isComposeOpen) IsComposeOpen = false;
-         if (_isMemoryPanelOpen) IsMemoryPanelOpen = false;
 
          OnPropertyChanged(nameof(PanelPortraitWidth));
          OnPropertyChanged(nameof(PanelPortraitHeight));
@@ -2192,7 +2226,7 @@ namespace CalradiaRemembers.Chat
          OnPropertyChanged(nameof(PanelInfoDiscoveries));
          OnPropertyChanged(nameof(PanelGrievances));
 
-         IsPortraitPanelOpen = true;
+         return true;
       }
 
       /// <summary>

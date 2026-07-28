@@ -45,6 +45,8 @@ namespace CalradiaRemembers.Chat
       private const int ChatLayerOrder = 10000;
       /// <summary>The default (Classic) chat skin: the original prefab.</summary>
       public const string ClassicSkin = "CalradiaRemembersChat";
+      /// <summary>The ornate two-page illuminated-manuscript skin (fixed-size book over Gabriel's page art).</summary>
+      public const string ManuscriptSkin = "CalradiaRemembersChat_Manuscript";
 
       /// <summary>
       ///   The chat skin prefab loaded for the NEXT window. A skin is just another prefab that binds to the SAME

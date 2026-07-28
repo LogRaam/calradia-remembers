@@ -30,7 +30,7 @@ namespace CalradiaRemembers
 
                return "Chat skin set to Classic. Applies to the next conversation.";
             case "manuscript":
-               ChatManager.SkinPrefab = "CalradiaRemembersChat_Manuscript";
+               ChatManager.SkinPrefab = ChatManager.ManuscriptSkin;
 
                return "Chat skin set to Manuscript. Applies to the next conversation.";
             default:

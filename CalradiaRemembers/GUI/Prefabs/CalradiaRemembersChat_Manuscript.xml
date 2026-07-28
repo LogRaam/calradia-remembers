@@ -1,0 +1,836 @@
+<Prefab>
+  <!--
+    MANUSCRIPT skin (V1, built blind 2026-07-28, positions to tune in-game).
+
+    A second chat skin: a prefab bound to the SAME ChatViewModel as the Classic window, so it changes only the
+    look. Two ornate leather pages (Gabriel's art, cr_chat_left/right.jpg) laid out as a FIXED-SIZE, CENTERED book,
+    because the page art has a fixed aspect (1194:1867 / 709:1867): a height-stretch would distort the painted
+    borders, so the pages are fixed and the high-res JPGs scale DOWN cleanly. The world shows on the sides.
+
+    The functional right-page widgets (title, message list + scrollbar, input, send, the utility buttons) are copied
+    verbatim from CalradiaRemembersChat.xml so every command / @-binding / relative scrollbar path is identical and
+    proven; only their sizes/margins are retuned for the narrower page. The left page binds to the existing Panel*
+    dossier properties (PanelInfoFacts / PanelBackground / portrait), refreshed to the current speaker each NPC line
+    by ChatViewModel.RefreshManuscriptDossier (a no-op in Classic).
+
+    KNOWN V1 LIMITS (to refine with Gabriel testing): control positions are estimated from the montage, not pixel
+    aligned; the utility buttons keep their Classic chrome (ButtonBrush1) rather than invisible hit-boxes over
+    painted art (that art is not delivered yet); the fixed book height (Book.Height) may need tuning against very
+    high UI-Scale. The falcon ornament is baked into the right JPG; every other element here is an overlay.
+  -->
+  <Constants>
+    <Constant Name="Book.Height" Value="940" />
+    <Constant Name="Left.Width"  Value="357" />
+    <Constant Name="Right.Width" Value="601" />
+    <Constant Name="Book.Width"  Value="958" />
+  </Constants>
+
+  <Window Id="CalradiaRemembersChatWindow" Layer="Overlay">
+
+    <Widget Id="ScreenRoot"
+            WidthSizePolicy="StretchToParent"
+            HeightSizePolicy="StretchToParent">
+      <Children>
+
+        <!-- The book: fixed size (aspect-locked to the page art) so the borders never distort, centred on screen. -->
+        <Widget Id="BookRoot"
+                WidthSizePolicy="Fixed"
+                HeightSizePolicy="Fixed"
+                SuggestedWidth="!Book.Width"
+                SuggestedHeight="!Book.Height"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                PositionXOffset="@ChatVisualOffsetX">
+          <Children>
+
+            <!-- ============================ LEFT PAGE: the NPC dossier ============================ -->
+            <Widget Id="LeftPage"
+                    WidthSizePolicy="Fixed"
+                    HeightSizePolicy="Fixed"
+                    SuggestedWidth="!Left.Width"
+                    SuggestedHeight="!Book.Height"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center">
+              <Children>
+
+                <!-- Page background (leather + painted border). CorrectRedBlue=false: a normal Photoshop JPG, not
+                     the JPG-web portraits the R/B swap was calibrated for. -->
+                <CrRuntimeImageWidget Id="LeftPageBg"
+                                      WidthSizePolicy="StretchToParent"
+                                      HeightSizePolicy="StretchToParent"
+                                      ImagePath="@ChatLeftPanelPath"
+                                      CorrectRedBlue="false"
+                                      IsDisabled="true" />
+
+                <!-- Speaker name (illuminated title of the page). PortraitPanelTitle is set to the speaker name by
+                     RefreshManuscriptDossier. -->
+                <TextWidget Id="LeftName"
+                            WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="Fixed"
+                            SuggestedHeight="36"
+                            VerticalAlignment="Top"
+                            MarginTop="70"
+                            MarginLeft="44"
+                            MarginRight="40"
+                            Brush="Default"
+                            Brush.FontSize="24"
+                            Brush.FontColor="#c8a878FF"
+                            Brush.TextHorizontalAlignment="Left"
+                            Text="@PortraitPanelTitle"
+                            IsDisabled="true" />
+
+                <!-- Inline facts: Culture / Age / Role / Relation / Personal regard (PanelInfoFacts). -->
+                <RichTextWidget Id="LeftFacts"
+                                WidthSizePolicy="StretchToParent"
+                                HeightSizePolicy="CoverChildren"
+                                VerticalAlignment="Top"
+                                MarginTop="116"
+                                MarginLeft="44"
+                                MarginRight="40"
+                                Brush="Encyclopedia.Stat.ValueText"
+                                Brush.FontSize="16"
+                                Brush.TextHorizontalAlignment="Left"
+                                Text="@PanelInfoFacts"
+                                IsVisible="@ShowPanelInfo"
+                                IsDisabled="true" />
+
+                <!-- Background heading + the vanilla encyclopedia paragraph. In the mid-page, above the portrait. -->
+                <TextWidget Id="LeftBackgroundHeading"
+                            WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="Fixed"
+                            SuggestedHeight="28"
+                            VerticalAlignment="Top"
+                            MarginTop="300"
+                            MarginLeft="44"
+                            MarginRight="40"
+                            Brush="Encyclopedia.Stat.DefinitionText"
+                            Brush.FontSize="20"
+                            Brush.TextHorizontalAlignment="Left"
+                            Text="Background"
+                            IsVisible="@ShowPanelBackground"
+                            IsDisabled="true" />
+                <RichTextWidget Id="LeftBackgroundText"
+                                WidthSizePolicy="StretchToParent"
+                                HeightSizePolicy="Fixed"
+                                SuggestedHeight="150"
+                                VerticalAlignment="Top"
+                                MarginTop="332"
+                                MarginLeft="44"
+                                MarginRight="40"
+                                Brush="Default"
+                                Brush.FontSize="16"
+                                Brush.FontColor="#d8c8a8FF"
+                                Brush.TextHorizontalAlignment="Left"
+                                Text="@PanelBackground"
+                                IsVisible="@ShowPanelBackground"
+                                IsDisabled="true" />
+
+                <!-- Portrait, pinned to the lower page (custom ChatPortraits image, else the vanilla 3D render). -->
+                <Widget Id="LeftPortraitArea"
+                        WidthSizePolicy="Fixed"
+                        HeightSizePolicy="Fixed"
+                        SuggestedWidth="250"
+                        SuggestedHeight="300"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Bottom"
+                        MarginBottom="120">
+                  <Children>
+                    <CrRuntimeImageWidget Id="LeftCustomPortrait"
+                                          WidthSizePolicy="Fixed"
+                                          HeightSizePolicy="Fixed"
+                                          SuggestedWidth="@PanelPortraitWidth"
+                                          SuggestedHeight="@PanelPortraitHeight"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          IsVisible="@ShowPanelCustomPortrait"
+                                          ImagePath="@PanelPortraitPath"
+                                          IsDisabled="true" />
+                    <ImageIdentifierWidget Id="LeftVanillaPortrait"
+                                           WidthSizePolicy="Fixed"
+                                           HeightSizePolicy="Fixed"
+                                           SuggestedWidth="@PanelPortraitWidth"
+                                           SuggestedHeight="@PanelPortraitHeight"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsVisible="@ShowPanelVanillaPortrait"
+                                           TextureProviderName="@PanelPortraitTextureProviderName"
+                                           ImageId="@PanelPortraitId"
+                                           AdditionalArgs="@PanelPortraitAdditionalArgs"
+                                           IsBig="true"
+                                           HideWhenNull="false"
+                                           IsDisabled="true" />
+                  </Children>
+                </Widget>
+
+                <!-- "View in Encyclopedia": opens the speaker's encyclopedia page. Chrome button for V1 (an
+                     invisible hit-box over painted art comes once that art is delivered). -->
+                <ButtonWidget Id="LeftEncyclopediaButton"
+                              WidthSizePolicy="Fixed"
+                              HeightSizePolicy="Fixed"
+                              SuggestedWidth="220"
+                              SuggestedHeight="30"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Bottom"
+                              MarginBottom="60"
+                              IsVisible="@IsEncyclopediaVisible"
+                              DoNotPassEventsToChildren="true"
+                              Brush="ButtonBrush1"
+                              UpdateChildrenStates="true"
+                              Command.Click="ExecuteOpenEncyclopedia">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent"
+                                HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Brush="Popup.Button.Text"
+                                Brush.FontSize="15"
+                                Brush.FontColor="#b8b0a0FF"
+                                Brush.TextHorizontalAlignment="Center"
+                                Text="View in Encyclopedia" />
+                  </Children>
+                </ButtonWidget>
+
+              </Children>
+            </Widget>
+
+            <!-- ============================ RIGHT PAGE: the conversation ============================ -->
+            <Widget Id="RightPage"
+                    WidthSizePolicy="Fixed"
+                    HeightSizePolicy="Fixed"
+                    SuggestedWidth="!Right.Width"
+                    SuggestedHeight="!Book.Height"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center">
+              <Children>
+
+                <CrRuntimeImageWidget Id="RightPageBg"
+                                      WidthSizePolicy="StretchToParent"
+                                      HeightSizePolicy="StretchToParent"
+                                      ImagePath="@ChatRightPanelPath"
+                                      CorrectRedBlue="false"
+                                      IsDisabled="true" />
+
+                <!-- Title + presence + relation, centred near the top inside the painted border. -->
+                <TextWidget Id="TitleTextWidget"
+                            WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="Fixed"
+                            SuggestedHeight="36"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            MarginTop="64"
+                            MarginLeft="60"
+                            MarginRight="70"
+                            Brush="Default"
+                            Brush.FontSize="22"
+                            Brush.FontColor="#c8a878FF"
+                            Brush.TextHorizontalAlignment="Center"
+                            Text="@TitleText"
+                            IsDisabled="true" />
+                <TextWidget Id="WitnessesTextWidget"
+                            WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="Fixed"
+                            SuggestedHeight="18"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            MarginTop="104"
+                            MarginLeft="60"
+                            MarginRight="70"
+                            IsVisible="@HasWitnesses"
+                            Brush="Default"
+                            Brush.FontSize="13"
+                            Brush.FontColor="#7a9070FF"
+                            Brush.TextHorizontalAlignment="Center"
+                            Text="@WitnessesText"
+                            IsDisabled="true" />
+                <TextWidget Id="RelationSummaryWidget"
+                            WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="Fixed"
+                            SuggestedHeight="20"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            MarginTop="124"
+                            MarginLeft="60"
+                            MarginRight="70"
+                            Brush="Default"
+                            Brush.FontSize="14"
+                            Brush.FontColor="#9a8a78FF"
+                            Brush.TextHorizontalAlignment="Center"
+                            Text="@RelationSummary"
+                            IsDisabled="true" />
+
+                <ButtonWidget Id="RequestPrivateButton"
+                              WidthSizePolicy="Fixed"
+                              HeightSizePolicy="Fixed"
+                              SuggestedWidth="130"
+                              SuggestedHeight="24"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Top"
+                              MarginTop="150"
+                              IsVisible="@IsPrivateRequestVisible"
+                              DoNotPassEventsToChildren="true"
+                              Brush="ButtonBrush1"
+                              UpdateChildrenStates="true"
+                              Command.Click="ExecuteRequestPrivate">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="14" Text="Request Private" />
+                  </Children>
+                </ButtonWidget>
+
+                <!-- Round Table / Council Voice: council-only, gated by their IsVisible; parked top-right. -->
+                <ButtonWidget Id="RoundTableButton"
+                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="110" SuggestedHeight="22"
+                              HorizontalAlignment="Right" VerticalAlignment="Top"
+                              MarginTop="150" MarginRight="70"
+                              IsVisible="@IsRoundTableVisible"
+                              DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                              UpdateChildrenStates="true" Command.Click="ExecuteRoundTable">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="14" Text="Round Table" />
+                  </Children>
+                </ButtonWidget>
+                <ButtonWidget Id="CouncilVoiceButton"
+                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="180" SuggestedHeight="22"
+                              HorizontalAlignment="Right" VerticalAlignment="Top"
+                              MarginTop="176" MarginRight="70"
+                              IsVisible="@IsCouncilVoiceToggleVisible"
+                              DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                              UpdateChildrenStates="true" Command.Click="ExecuteToggleCouncilVoiceMode">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="14" Text="@CouncilVoiceModeText" />
+                  </Children>
+                </ButtonWidget>
+
+                <!-- ===================== MESSAGE LIST (copied verbatim from Classic) ===================== -->
+                <Widget Id="MessagesArea"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        VerticalAlignment="Top"
+                        MarginTop="190"
+                        MarginBottom="250"
+                        MarginLeft="52"
+                        MarginRight="66">
+                  <Children>
+
+                    <ChatScrollablePanel Id="MessagesScrollPanel"
+                                         WidthSizePolicy="StretchToParent"
+                                         HeightSizePolicy="StretchToParent"
+                                         MarginRight="28"
+                                         AutoHideScrollBars="true"
+                                         ClipRect="MessagesClipRect"
+                                         InnerPanel="MessagesClipRect\MessagesList"
+                                         VerticalScrollbar="..\MessagesScrollbar\Scrollbar">
+                      <Children>
+                        <Widget Id="MessagesClipRect"
+                                WidthSizePolicy="StretchToParent"
+                                HeightSizePolicy="StretchToParent"
+                                ClipContents="true">
+                          <Children>
+
+                            <NavigatableListPanel Id="MessagesList"
+                                                  DataSource="{Messages}"
+                                                  WidthSizePolicy="StretchToParent"
+                                                  HeightSizePolicy="CoverChildren"
+                                                  HorizontalAlignment="Left"
+                                                  VerticalAlignment="Top"
+                                                  StackLayout.LayoutMethod="VerticalTopToBottom">
+                              <ItemTemplate>
+
+                                <Widget Id="MessageRow"
+                                        WidthSizePolicy="StretchToParent"
+                                        HeightSizePolicy="CoverChildren"
+                                        HorizontalAlignment="Left"
+                                        MarginTop="12"
+                                        MarginBottom="2">
+                                  <Children>
+
+                                    <ButtonWidget Id="AvatarContainer"
+                                            Command.Click="ExecuteShowPortrait"
+                                            WidthSizePolicy="Fixed"
+                                            HeightSizePolicy="Fixed"
+                                            SuggestedWidth="@AvatarWidth"
+                                            SuggestedHeight="@AvatarHeight"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Top"
+                                            MarginTop="2"
+                                            IsVisible="@ShowAvatar"
+                                            Command.AlternateClick="ExecuteOpenEncyclopedia">
+                                      <Children>
+
+                                        <ImageIdentifierWidget Id="AvatarPortrait"
+                                                               WidthSizePolicy="Fixed"
+                                                               HeightSizePolicy="Fixed"
+                                                               SuggestedWidth="88"
+                                                               SuggestedHeight="44"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Top"
+                                                               IsVisible="@ShowVanillaPortrait"
+                                                               TextureProviderName="@PortraitTextureProviderName"
+                                                               ImageId="@PortraitId"
+                                                               AdditionalArgs="@PortraitAdditionalArgs"
+                                                               IsBig="true"
+                                                               HideWhenNull="false"
+                                                               IsDisabled="true" />
+
+                                        <CrRuntimeImageWidget Id="CustomAvatar"
+                                                              WidthSizePolicy="StretchToParent"
+                                                              HeightSizePolicy="StretchToParent"
+                                                              IsVisible="@ShowCustomPortrait"
+                                                              ImagePath="@PlayerPortraitPath"
+                                                              IsDisabled="true" />
+
+                                        <Widget Id="AvatarFrame"
+                                                WidthSizePolicy="StretchToParent"
+                                                HeightSizePolicy="StretchToParent"
+                                                IsVisible="@ShowVanillaPortrait"
+                                                Sprite="frame_9"
+                                                ExtendLeft="15" ExtendTop="22" ExtendRight="15" ExtendBottom="-22"
+                                                AlphaFactor="0.25"
+                                                IsDisabled="true" />
+                                      </Children>
+                                    </ButtonWidget>
+
+                                    <RichTextWidget Id="MessageText"
+                                                    WidthSizePolicy="StretchToParent"
+                                                    HeightSizePolicy="CoverChildren"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Top"
+                                                    MarginLeft="@TextMarginLeft"
+                                                    MarginRight="14"
+                                                    Brush="Default"
+                                                    Brush.FontSize="21"
+                                                    Brush.FontColor="@AuthorColor"
+                                                    Brush.TextHorizontalAlignment="Left"
+                                                    Text="@DisplayText"
+                                                    IsDisabled="true" />
+
+                                  </Children>
+                                </Widget>
+
+                              </ItemTemplate>
+                            </NavigatableListPanel>
+
+                          </Children>
+                        </Widget>
+                      </Children>
+                    </ChatScrollablePanel>
+
+                    <Standard.VerticalScrollbar Id="MessagesScrollbar"
+                                                HeightSizePolicy="StretchToParent"
+                                                HorizontalAlignment="Right"
+                                                MarginRight="0" />
+
+                    <Widget Id="ScrollMoreHint"
+                            WidthSizePolicy="CoverChildren"
+                            HeightSizePolicy="CoverChildren"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Bottom"
+                            MarginBottom="4"
+                            MarginRight="28"
+                            IsVisible="false"
+                            Sprite="BlankWhiteSquare_9"
+                            Color="#0d0a08FF"
+                            AlphaFactor="0.55">
+                      <Children>
+                        <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    MarginLeft="14" MarginRight="14" MarginTop="3" MarginBottom="3"
+                                    Brush="Default" Brush.FontSize="16" Brush.FontColor="#e8d8b8FF"
+                                    Brush.TextHorizontalAlignment="Center" Text="scroll down to read more..." />
+                      </Children>
+                    </Widget>
+
+                  </Children>
+                </Widget>
+
+                <!-- ===================== BOTTOM CONTROLS (over the lower page) ===================== -->
+
+                <!-- Style picker (quill) + offer tiles, lower-left icon row. -->
+                <ButtonWidget Id="StylePickerIconButton"
+                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="52" SuggestedHeight="52"
+                              HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                              MarginLeft="56" MarginBottom="186"
+                              IsVisible="@IsStyleIconVisible"
+                              DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteOpenStylePicker">
+                  <Children>
+                    <CrRuntimeImageWidget Id="StyleQuillIcon"
+                                          WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          ImagePath="@StyleIconPath" CorrectRedBlue="false" Color="#FFFFFFFF" />
+                  </Children>
+                </ButtonWidget>
+                <ButtonWidget Id="StylePickerButton"
+                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="150" SuggestedHeight="22"
+                              HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                              MarginLeft="56" MarginBottom="200"
+                              IsVisible="@IsStyleLabelVisible"
+                              DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                              UpdateChildrenStates="true" Command.Click="ExecuteOpenStylePicker">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="14" Text="@StyleButtonText" />
+                  </Children>
+                </ButtonWidget>
+
+                <ButtonWidget Id="OfferItemButton"
+                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="52" SuggestedHeight="52"
+                              HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                              MarginLeft="116" MarginBottom="186"
+                              IsVisible="@IsOfferItemVisible"
+                              DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteOfferItem">
+                  <Children>
+                    <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                            SuggestedWidth="38" SuggestedHeight="38"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Sprite="MapBar\mapbar_icon3" Color="#c8a878FF" IsDisabled="true" />
+                  </Children>
+                </ButtonWidget>
+                <ButtonWidget Id="OfferGoldButton"
+                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="76" SuggestedHeight="52"
+                              HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                              MarginLeft="176" MarginBottom="186"
+                              IsVisible="@IsOfferGoldVisible"
+                              DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                              UpdateChildrenStates="true" Command.Click="ExecuteOfferGold">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="15" Text="Give Gold" />
+                  </Children>
+                </ButtonWidget>
+
+                <!-- Model toggle + Options: discreet text, lower-left, above the icon row. -->
+                <ButtonWidget Id="ModelModeButton"
+                              WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                              HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                              MarginLeft="60" MarginBottom="150"
+                              IsVisible="@IsModelModeToggleVisible"
+                              DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteToggleModelMode">
+                  <Children>
+                    <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                                HorizontalAlignment="Left" VerticalAlignment="Center"
+                                Brush="Default" Brush.FontSize="14" Brush.FontColor="#8a8072FF"
+                                Brush.TextHorizontalAlignment="Left" Text="@ModelModeText" />
+                  </Children>
+                </ButtonWidget>
+                <ButtonWidget Id="OptionsButton"
+                              WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                              HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                              MarginLeft="200" MarginBottom="150"
+                              IsVisible="@IsGameMenuButtonVisible"
+                              DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteOpenGameMenu">
+                  <Children>
+                    <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                                HorizontalAlignment="Left" VerticalAlignment="Center"
+                                Brush="Default" Brush.FontSize="14" Brush.FontColor="#8a8072FF"
+                                Brush.TextHorizontalAlignment="Left" Text="Options" />
+                  </Children>
+                </ButtonWidget>
+
+                <!-- Input row (compose toggle + text box + send). Narrower page, so widths are retuned. Shares the
+                     slot with the scene-paused Continue / Try-something pair (mutually exclusive by IsVisible). -->
+                <Widget Id="InputArea"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="Fixed"
+                        SuggestedHeight="64"
+                        VerticalAlignment="Bottom"
+                        PositionYOffset="-96"
+                        MarginLeft="52"
+                        MarginRight="66">
+                  <Children>
+
+                    <ButtonWidget Id="ComposeToggleButton"
+                                  WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                                  SuggestedWidth="24" SuggestedHeight="56"
+                                  HorizontalAlignment="Left" VerticalAlignment="Center"
+                                  IsVisible="@IsComposeToggleVisible"
+                                  DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                                  UpdateChildrenStates="true" Command.Click="ExecuteOpenCompose">
+                      <Children>
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Brush="Popup.Button.Text" Brush.FontSize="22" Text="&lt;" />
+                      </Children>
+                    </ButtonWidget>
+
+                    <Widget Id="InputBox"
+                            WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                            SuggestedWidth="300" SuggestedHeight="56"
+                            HorizontalAlignment="Left" VerticalAlignment="Center"
+                            PositionXOffset="34"
+                            IsVisible="@IsChatInputVisible"
+                            Sprite="BlankWhiteSquare_9" Color="#0d0a08DD" AlphaFactor="0.4">
+                      <Children>
+                        <ChatInputWidget Id="MessageInput"
+                                         WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                         HorizontalAlignment="Left" VerticalAlignment="Center"
+                                         MarginLeft="12" MarginRight="12" MarginTop="6" MarginBottom="6"
+                                         Brush="Default" Brush.FontSize="19" Brush.FontColor="#e8d8b8FF"
+                                         Brush.TextHorizontalAlignment="Left" MaxLength="8000" Text="@InputText" />
+                      </Children>
+                    </Widget>
+
+                    <ButtonWidget Id="SendButton"
+                                  WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                                  SuggestedWidth="88" SuggestedHeight="56"
+                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                  IsVisible="@IsChatInputVisible"
+                                  DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                                  UpdateChildrenStates="true" IsEnabled="@IsSendEnabled"
+                                  Command.Click="ExecuteSendMessage">
+                      <Children>
+                        <TextWidget Id="SendButtonTextWidget"
+                                    WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Brush="Popup.Button.Text" Brush.FontSize="19" Text="@SendButtonText" />
+                      </Children>
+                    </ButtonWidget>
+
+                    <ButtonWidget Id="ContinueButton"
+                                  WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                                  SuggestedWidth="170" SuggestedHeight="56"
+                                  HorizontalAlignment="Left" VerticalAlignment="Center"
+                                  PositionXOffset="34"
+                                  IsVisible="@IsScenePaused"
+                                  DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                                  UpdateChildrenStates="true" Command.Click="ExecuteContinue">
+                      <Children>
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Brush="Popup.Button.Text" Brush.FontSize="18" Text="Continue" />
+                      </Children>
+                    </ButtonWidget>
+                    <ButtonWidget Id="TrySomethingButton"
+                                  WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                                  SuggestedWidth="200" SuggestedHeight="56"
+                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                  IsVisible="@IsScenePaused"
+                                  DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                                  UpdateChildrenStates="true" Command.Click="ExecuteTrySomething">
+                      <Children>
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Brush="Popup.Button.Text" Brush.FontSize="18" Text="Try something else" />
+                      </Children>
+                    </ButtonWidget>
+
+                  </Children>
+                </Widget>
+
+                <ButtonWidget Id="PleaseContinueButton"
+                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="220" SuggestedHeight="40"
+                              HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                              PositionYOffset="-96"
+                              IsVisible="@IsPleaseContinueVisible"
+                              DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                              Brush.Color="#D9A441FF" Brush.AlphaFactor="1.0"
+                              UpdateChildrenStates="true" Command.Click="ExecutePleaseContinue">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="18" Text="Please continue" />
+                  </Children>
+                </ButtonWidget>
+
+                <!-- Memories (opens the pop-out) + End Conversation (Close), the bottom-centre pair. -->
+                <ButtonWidget Id="MemoriesButton"
+                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="150" SuggestedHeight="34"
+                              HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                              PositionXOffset="-90" MarginBottom="42"
+                              IsVisible="@IsMemoryToggleVisible"
+                              DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                              UpdateChildrenStates="true" Command.Click="ExecuteToggleMemoryPanel">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="16" Brush.FontColor="#8fae7bFF"
+                                Brush.TextHorizontalAlignment="Center" Text="Memories" />
+                  </Children>
+                </ButtonWidget>
+                <ButtonWidget Id="CloseButton"
+                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="170" SuggestedHeight="34"
+                              HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                              PositionXOffset="90" MarginBottom="42"
+                              DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                              UpdateChildrenStates="true" Command.Click="ExecuteClose">
+                  <Children>
+                    <TextWidget Id="CloseButtonTextWidget"
+                                WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="16" Brush.FontColor="#c68b7bFF"
+                                Brush.TextHorizontalAlignment="Center" Text="@CloseButtonText" />
+                  </Children>
+                </ButtonWidget>
+
+              </Children>
+            </Widget>
+
+          </Children>
+        </Widget>
+
+        <!-- ===================== POP-OUTS: Memory + Compose (centred over the book) ===================== -->
+
+        <Widget Id="ComposePanel"
+                WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                SuggestedWidth="560" SuggestedHeight="720"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                IsVisible="@IsComposeOpen"
+                Sprite="BlankWhiteSquare_9" Color="#1a1612F2">
+          <Children>
+            <Widget Id="ComposePanelDecorativeFrame"
+                    WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                    Sprite="frame_9" ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
+                    AlphaFactor="0.4" IsDisabled="true" />
+            <Widget Id="ComposeInputBox"
+                    WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                    VerticalAlignment="Top" MarginTop="40" MarginBottom="94" MarginLeft="24" MarginRight="24"
+                    Sprite="BlankWhiteSquare_9" Color="#0d0a08DD" AlphaFactor="0.4">
+              <Children>
+                <ComposeScrollablePanel Id="ComposeScrollPanel"
+                                        WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                        MarginRight="28" AutoHideScrollBars="true"
+                                        ClipRect="ComposeClipRect"
+                                        InnerPanel="ComposeClipRect\ComposePreview"
+                                        VerticalScrollbar="..\ComposeScrollbar\Scrollbar">
+                  <Children>
+                    <Widget Id="ComposeClipRect"
+                            WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            ClipContents="true">
+                      <Children>
+                        <RichTextWidget Id="ComposePreview"
+                                        WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                        HorizontalAlignment="Left" VerticalAlignment="Top"
+                                        MarginLeft="14" MarginRight="14" MarginTop="10" MarginBottom="10"
+                                        Brush="Default" Brush.FontSize="20" Brush.FontColor="#e8d8b8FF"
+                                        Brush.TextHorizontalAlignment="Left" Brush.TextVerticalAlignment="Top"
+                                        Text="@ComposePreviewText" />
+                      </Children>
+                    </Widget>
+                  </Children>
+                </ComposeScrollablePanel>
+                <Standard.VerticalScrollbar Id="ComposeScrollbar"
+                                            HeightSizePolicy="StretchToParent"
+                                            HorizontalAlignment="Right" MarginRight="4" />
+              </Children>
+            </Widget>
+            <ButtonWidget Id="ComposeCloseButton"
+                          WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                          SuggestedWidth="440" SuggestedHeight="56"
+                          HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="22"
+                          DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                          UpdateChildrenStates="true" Command.Click="ExecuteCloseCompose">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Brush="Popup.Button.Text" Brush.FontSize="20" Text="Close Preview" />
+              </Children>
+            </ButtonWidget>
+          </Children>
+        </Widget>
+
+        <Widget Id="MemoryPanel"
+                WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                SuggestedWidth="520" SuggestedHeight="720"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                IsVisible="@IsMemoryPanelOpen"
+                Sprite="BlankWhiteSquare_9" Color="#1a1612F2">
+          <Children>
+            <Widget Id="MemoryPanelDecorativeFrame"
+                    WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                    Sprite="frame_9" ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
+                    AlphaFactor="0.4" IsDisabled="true" />
+            <TextWidget Id="MemoryTitle"
+                        WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="40"
+                        HorizontalAlignment="Center" VerticalAlignment="Top" MarginTop="24"
+                        Brush="Default" Brush.FontSize="24" Brush.FontColor="#c8a878FF"
+                        Brush.TextHorizontalAlignment="Center" Text="@MemoryPanelTitle" IsDisabled="true" />
+            <Widget Id="MemoryListArea"
+                    WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                    VerticalAlignment="Top" MarginTop="78" MarginBottom="94" MarginLeft="24" MarginRight="24"
+                    Sprite="BlankWhiteSquare_9" Color="#0d0a08DD" AlphaFactor="0.4">
+              <Children>
+                <MemoryScrollablePanel Id="MemoryScrollPanel"
+                                       WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                       MarginRight="28" AutoHideScrollBars="true"
+                                       ClipRect="MemoryClipRect"
+                                       InnerPanel="MemoryClipRect\MemoryList"
+                                       VerticalScrollbar="..\MemoryScrollbar\Scrollbar">
+                  <Children>
+                    <Widget Id="MemoryClipRect"
+                            WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            ClipContents="true">
+                      <Children>
+                        <NavigatableListPanel Id="MemoryList"
+                                              DataSource="{Memories}"
+                                              WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                              HorizontalAlignment="Left" VerticalAlignment="Top"
+                                              StackLayout.LayoutMethod="VerticalTopToBottom">
+                          <ItemTemplate>
+                            <ListPanel Id="MemoryRow"
+                                       WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                       HorizontalAlignment="Left" MarginTop="10" MarginBottom="6"
+                                       MarginLeft="4" MarginRight="4"
+                                       StackLayout.LayoutMethod="VerticalTopToBottom">
+                              <Children>
+                                <AutoHideRichTextWidget Id="MemoryMeta"
+                                                        WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                                        HorizontalAlignment="Left"
+                                                        Brush="Default" Brush.FontSize="14" Brush.FontColor="#9a8a78FF"
+                                                        Brush.TextHorizontalAlignment="Left" Text="@Meta" IsDisabled="true" />
+                                <RichTextWidget Id="MemorySummary"
+                                                WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                                HorizontalAlignment="Left" MarginTop="2"
+                                                Brush="Default" Brush.FontSize="19" Brush.FontColor="#e8d8b8FF"
+                                                Brush.TextHorizontalAlignment="Left" Text="@Summary" IsDisabled="true" />
+                              </Children>
+                            </ListPanel>
+                          </ItemTemplate>
+                        </NavigatableListPanel>
+                      </Children>
+                    </Widget>
+                  </Children>
+                </MemoryScrollablePanel>
+                <Standard.VerticalScrollbar Id="MemoryScrollbar"
+                                            HeightSizePolicy="StretchToParent"
+                                            HorizontalAlignment="Right" MarginRight="4" />
+              </Children>
+            </Widget>
+            <ButtonWidget Id="MemoryCloseButton"
+                          WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                          SuggestedWidth="440" SuggestedHeight="56"
+                          HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="22"
+                          DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
+                          UpdateChildrenStates="true" Command.Click="ExecuteCloseMemoryPanel">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Brush="Popup.Button.Text" Brush.FontSize="20" Text="Close" />
+              </Children>
+            </ButtonWidget>
+          </Children>
+        </Widget>
+
+      </Children>
+    </Widget>
+
+  </Window>
+</Prefab>
