@@ -83,38 +83,111 @@
                             Text="@PortraitPanelTitle"
                             IsDisabled="true" />
 
-                <!-- Inline facts: Culture / Age / Role / Relation / Personal regard (PanelInfoFacts). -->
-                <RichTextWidget Id="LeftFacts"
+                <!-- Scrollable dossier: facts + every section (Background / Character / Appearance / What you have
+                     learned / Grievances), same data as the Classic pop-out. The section HEADINGS are rendered
+                     here, so the "Background" heading must be REMOVED from the left page JPG (else it doubles). -->
+                <Widget Id="LeftDossierArea"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        VerticalAlignment="Top"
+                        MarginTop="116"
+                        MarginBottom="372"
+                        MarginLeft="40"
+                        MarginRight="30">
+                  <Children>
+                    <PortraitScrollablePanel Id="LeftDossierScroll"
+                                             WidthSizePolicy="StretchToParent"
+                                             HeightSizePolicy="StretchToParent"
+                                             MarginRight="20"
+                                             AutoHideScrollBars="true"
+                                             ClipRect="LeftDossierClip"
+                                             InnerPanel="LeftDossierClip\LeftDossierList"
+                                             VerticalScrollbar="..\LeftDossierScrollbar\Scrollbar">
+                      <Children>
+                        <Widget Id="LeftDossierClip"
                                 WidthSizePolicy="StretchToParent"
-                                HeightSizePolicy="CoverChildren"
-                                VerticalAlignment="Top"
-                                MarginTop="116"
-                                MarginLeft="44"
-                                MarginRight="40"
-                                Brush="Encyclopedia.Stat.ValueText"
-                                Brush.FontSize="16"
-                                Brush.TextHorizontalAlignment="Left"
-                                Text="@PanelInfoFacts"
-                                IsVisible="@ShowPanelInfo"
-                                IsDisabled="true" />
+                                HeightSizePolicy="StretchToParent"
+                                ClipContents="true">
+                          <Children>
+                            <ListPanel Id="LeftDossierList"
+                                       WidthSizePolicy="StretchToParent"
+                                       HeightSizePolicy="CoverChildren"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Top"
+                                       MarginLeft="4"
+                                       MarginRight="6"
+                                       StackLayout.LayoutMethod="VerticalTopToBottom">
+                              <Children>
 
-                <!-- The vanilla encyclopedia paragraph. The "Background" HEADING is painted into the page art, so
-                     only the dynamic text is rendered here, positioned to sit under that painted heading. -->
-                <RichTextWidget Id="LeftBackgroundText"
-                                WidthSizePolicy="StretchToParent"
-                                HeightSizePolicy="Fixed"
-                                SuggestedHeight="90"
-                                VerticalAlignment="Top"
-                                MarginTop="468"
-                                MarginLeft="44"
-                                MarginRight="40"
-                                Brush="Default"
-                                Brush.FontSize="15"
-                                Brush.FontColor="#d8c8a8FF"
-                                Brush.TextHorizontalAlignment="Left"
-                                Text="@PanelBackground"
-                                IsVisible="@ShowPanelBackground"
-                                IsDisabled="true" />
+                                <!-- Facts: Culture / Age / Role / Relation / Personal regard -->
+                                <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                                Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="16"
+                                                Brush.TextHorizontalAlignment="Left"
+                                                Text="@PanelInfoFacts" IsVisible="@ShowPanelInfo" IsDisabled="true" />
+
+                                <!-- Background (vanilla encyclopedia) -->
+                                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                            MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                            Brush.TextHorizontalAlignment="Left" Text="Background"
+                                            IsVisible="@ShowPanelBackground" IsDisabled="true" />
+                                <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                                MarginTop="2" Brush="Default" Brush.FontSize="15" Brush.FontColor="#d8c8a8FF"
+                                                Brush.TextHorizontalAlignment="Left"
+                                                Text="@PanelBackground" IsVisible="@ShowPanelBackground" IsDisabled="true" />
+
+                                <!-- Character (authored backstory) -->
+                                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                            MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                            Brush.TextHorizontalAlignment="Left" Text="Character"
+                                            IsVisible="@ShowPanelCharacter" IsDisabled="true" />
+                                <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                                MarginTop="2" Brush="Default" Brush.FontSize="15" Brush.FontColor="#d8c8a8FF"
+                                                Brush.TextHorizontalAlignment="Left"
+                                                Text="@PanelCharacter" IsVisible="@ShowPanelCharacter" IsDisabled="true" />
+
+                                <!-- Appearance -->
+                                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                            MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                            Brush.TextHorizontalAlignment="Left" Text="Appearance"
+                                            IsVisible="@ShowPanelAppearance" IsDisabled="true" />
+                                <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                                MarginTop="2" Brush="Default" Brush.FontSize="15" Brush.FontColor="#d8c8a8FF"
+                                                Brush.TextHorizontalAlignment="Left"
+                                                Text="@PanelAppearance" IsVisible="@ShowPanelAppearance" IsDisabled="true" />
+
+                                <!-- What you have learned (discovered traits / kinks) -->
+                                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                            MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                            Brush.TextHorizontalAlignment="Left" Text="What you have learned"
+                                            IsVisible="@ShowPanelDiscoveries" IsDisabled="true" />
+                                <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                                MarginTop="2" Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="15"
+                                                Brush.TextHorizontalAlignment="Left"
+                                                Text="@PanelInfoDiscoveries" IsVisible="@ShowPanelDiscoveries" IsDisabled="true" />
+
+                                <!-- Grievances -->
+                                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                            MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                            Brush.TextHorizontalAlignment="Left" Text="Grievances"
+                                            IsVisible="@ShowPanelGrievances" IsDisabled="true" />
+                                <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                                MarginTop="2" Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="15"
+                                                Brush.TextHorizontalAlignment="Left"
+                                                Text="@PanelGrievances" IsVisible="@ShowPanelGrievances" IsDisabled="true" />
+
+                              </Children>
+                            </ListPanel>
+                          </Children>
+                        </Widget>
+                      </Children>
+                    </PortraitScrollablePanel>
+
+                    <Standard.VerticalScrollbar Id="LeftDossierScrollbar"
+                                                HeightSizePolicy="StretchToParent"
+                                                HorizontalAlignment="Right"
+                                                MarginRight="0" />
+                  </Children>
+                </Widget>
 
                 <!-- Portrait, pinned to the lower page (custom ChatPortraits image, else the vanilla 3D render). -->
                 <Widget Id="LeftPortraitArea"
