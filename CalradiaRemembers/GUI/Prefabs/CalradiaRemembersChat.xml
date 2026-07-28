@@ -105,9 +105,12 @@
                           UpdateChildrenStates="true"
                           Command.Click="ExecuteOpenStylePicker">
               <Children>
-                <!-- No IsDisabled here: the disabled state paints GauntletUI's cold blue-grey tint over the
-                     sprite (the gold quill went blue in game). The parent button's DoNotPassEventsToChildren
-                     already routes the click, so the icon needs no disabling. Color pinned white = no tint. -->
+                <!-- quill.png ships with its RED and BLUE channels PRE-SWAPPED: it looks BLUE in an image viewer
+                     but renders GOLD in game, and that is deliberate, do not "fix" the file. RuntimePortraitFactory
+                     swaps R/B on every runtime image to correct the engine's BGR read, but that swap is calibrated
+                     for the JPG-sourced player portraits; a Photoshop-encoded PNG carries the opposite convention,
+                     so the same swap turned the gold quill blue. Pre-swapping the file cancels it out. Color is
+                     pinned white so no widget state tints the sprite on top. -->
                 <CrRuntimeImageWidget Id="StyleQuillIcon"
                                       WidthSizePolicy="StretchToParent"
                                       HeightSizePolicy="StretchToParent"
