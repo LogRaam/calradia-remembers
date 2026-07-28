@@ -1014,6 +1014,34 @@ is its LEFT panel and header content, all mapping onto EXISTING CR data (no new 
   the left shows the dossier by default and SWAPS to the compose preview when the quill is clicked on a long
   message. Decide at prefab time.
 
+### STATUS 2026-07-28: UI SKIN SYSTEM + Manuscript skin V1 (BUILT, UNTESTED in game)
+Ratified (Gabriel 2026-07-27): keep the current window as the "Classic" SKIN and add the ornate two-page book
+as a SELECTABLE second skin, aiming for 2-3 skins the player can choose. A skin is just another PREFAB bound to
+the SAME `ChatViewModel` (a superset of properties), so a skin changes ONLY the look, never behaviour; the
+prefab name is chosen at window-open (`ChatManager.SkinPrefab`, applies next conversation).
+- **Infrastructure (committed `63307ec`):** `ChatManager.SkinPrefab` (default `ClassicSkin`), a Classic
+  fallback if a skin prefab is missing, `cr.skin [classic|manuscript]`, and `ChatViewModel.ChatLeftPanelPath`/
+  `ChatRightPanelPath` exposing Gabriel's page art (`GUI/Images/cr_chat_left.jpg` 709x1867 / `cr_chat_right.jpg`
+  1194x1867, opaque JPG, falcon baked into the right one).
+- **Manuscript prefab V1 (committed `b0fa2cd` + `3128018`):** `CalradiaRemembersChat_Manuscript.xml`. A
+  FIXED-SIZE, centred two-page book (fixed, NOT height-stretch, because the page art has a fixed aspect: a
+  stretch would distort the painted borders, so the high-res JPGs scale down cleanly; the world shows on the
+  sides). Right page = the conversation (title/present/relation, the message list + scrollbar + input + send +
+  every utility button, all COPIED VERBATIM from Classic so commands/bindings/relative scrollbar paths are
+  identical and proven). Left page = the NPC dossier, binding the EXISTING `Panel*` props (name via
+  `PortraitPanelTitle`, `PanelInfoFacts` = Culture/Age/Role/Relation/Personal regard, `PanelBackground`,
+  portrait), refreshed to the current speaker per NPC line by new `ChatViewModel.RefreshManuscriptDossier`
+  (extracted `PopulatePanelData` out of `OpenPortraitPanel`; gated to the manuscript skin, no-op in Classic).
+  Added `ManuscriptPortraitWidth/Height` so the left portrait fits the narrower page.
+- **Verified without a game:** builds 0 warnings; the prefab is well-formed XML; all widget types reused from
+  Classic; 0 em-dashes. NOT yet loaded in game.
+- **NEXT (needs Gabriel testing):** (1) does `cr.skin manuscript` render the two backgrounds at the right
+  colour (CorrectRedBlue currently `false`) and size? (2) tune every control POSITION (estimated from the
+  montage, not pixel-aligned) + the fixed `Book.Height` against high UI-Scale; (3) replace the utility buttons'
+  Classic chrome with invisible hit-boxes over PAINTED button art (that art is not delivered yet); (4) the
+  "Background" heading is currently rendered text, not baked art. Then: a player-facing SKIN PICKER (MCM
+  dropdown or an in-chat button) once the skin is validated, and a 3rd skin.
+
 ## WISHED (player feedback SuperGraham339 2026-07-20 + Gabriel): nemesis discoverability + lord bounties
 
 Player report (SuperGraham339, Nexus): captured and tortured by the nemesis "Coll the Unbroken", escaped,
