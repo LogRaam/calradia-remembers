@@ -15,11 +15,15 @@ using TaleWorlds.CampaignSystem.Settlements;
 namespace CalradiaRemembers.Commoners
 {
    /// <summary>
-   ///   Adds a "What's the news here?" option when the player talks to a random
-   ///   non-Hero agent inside a settlement. Hooks at the universal <c>start</c> token
-   ///   so it fires for townspeople, villagers, and castle servants — anyone who is
-   ///   NOT a named Hero (<see cref="Hero.OneToOneConversationHero" /> is null).
-   ///   On selection, the vanilla dialog closes and the CR commoner chat window opens.
+   ///   Adds a "What's the news here?" option when the player talks to a random Townsfolk or Villager inside
+   ///   a settlement. Attached at the VANILLA commoner HUB token <c>town_or_village_player</c>, NOT the raw
+   ///   <c>start</c> token (compatibility fix, player report 2026-07-27): a player line at <c>start</c> turned
+   ///   the conversation entry itself into a player choice and preempted the vanilla greeting that routes
+   ///   townsfolk to that hub, so any other mod adding options there (e.g. Immersive Recruit Commoners, whose
+   ///   recruit options also live at <c>town_or_village_player</c>) had its options blocked out. At the hub,
+   ///   CR's option sits ALONGSIDE the vanilla and third-party ones. The hub is reached only for Townsfolk and
+   ///   Villager occupations, which is exactly the set <see cref="CommonerChatContext" /> already whitelists,
+   ///   so no target is lost. On selection, the vanilla dialog closes and the CR commoner chat window opens.
    /// </summary>
    public sealed class CommonsDialogBehavior
    {
@@ -34,11 +38,12 @@ namespace CalradiaRemembers.Commoners
       /// </summary>
       public void Register(CampaignGameStarter starter)
       {
-         // Player option — appears on the vanilla choice list when talking to
-         // any non-Hero agent inside a settlement.
+         // Player option, sitting at the vanilla commoner HUB (town_or_village_player), so it coexists with the
+         // vanilla options and any other mod's (e.g. Immersive Recruit Commoners) instead of preempting the
+         // conversation entry the way a line hooked at the raw "start" token did.
          starter.AddPlayerLine(
             "cr_commoner_ask_news",
-            "start",
+            "town_or_village_player",
             "cr_commoner_response",
             "What's the news here?",
             IsCommonerEligible,
