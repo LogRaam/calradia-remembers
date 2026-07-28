@@ -46,22 +46,24 @@
           <Children>
 
             <!-- ============================ LEFT PAGE: the NPC dossier ============================ -->
+            <!-- Hidden by default: the manuscript shows only the right page until the "<" toggle opens this one. -->
             <Widget Id="LeftPage"
                     WidthSizePolicy="Fixed"
                     HeightSizePolicy="Fixed"
                     SuggestedWidth="!Left.Width"
                     SuggestedHeight="!Book.Height"
                     HorizontalAlignment="Left"
-                    VerticalAlignment="Center">
+                    VerticalAlignment="Center"
+                    IsVisible="@IsManuscriptLeftPageOpen">
               <Children>
 
-                <!-- Page background (leather + painted border). CorrectRedBlue=false: a normal Photoshop JPG, not
-                     the JPG-web portraits the R/B swap was calibrated for. -->
+                <!-- Page background (leather + painted border). CorrectRedBlue=true: these JPGs read with red and
+                     blue swapped in game (the painted roses came out blue), so the swap corrects them. -->
                 <CrRuntimeImageWidget Id="LeftPageBg"
                                       WidthSizePolicy="StretchToParent"
                                       HeightSizePolicy="StretchToParent"
                                       ImagePath="@ChatLeftPanelPath"
-                                      CorrectRedBlue="false"
+                                      CorrectRedBlue="true"
                                       IsDisabled="true" />
 
                 <!-- Speaker name (illuminated title of the page). PortraitPanelTitle is set to the speaker name by
@@ -103,7 +105,7 @@
                                 HeightSizePolicy="Fixed"
                                 SuggestedHeight="90"
                                 VerticalAlignment="Top"
-                                MarginTop="496"
+                                MarginTop="468"
                                 MarginLeft="44"
                                 MarginRight="40"
                                 Brush="Default"
@@ -122,7 +124,7 @@
                         SuggestedHeight="280"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Bottom"
-                        MarginBottom="110"
+                        MarginBottom="86"
                         ClipContents="true">
                   <Children>
                     <CrRuntimeImageWidget Id="LeftCustomPortrait"
@@ -184,7 +186,7 @@
                                       WidthSizePolicy="StretchToParent"
                                       HeightSizePolicy="StretchToParent"
                                       ImagePath="@ChatRightPanelPath"
-                                      CorrectRedBlue="false"
+                                      CorrectRedBlue="true"
                                       IsDisabled="true" />
 
                 <!-- Title + presence + relation, centred near the top inside the painted border. -->
@@ -318,6 +320,7 @@
                                         WidthSizePolicy="StretchToParent"
                                         HeightSizePolicy="CoverChildren"
                                         HorizontalAlignment="Left"
+                                        MarginLeft="20"
                                         MarginTop="12"
                                         MarginBottom="2">
                                   <Children>
@@ -376,7 +379,7 @@
                                                     MarginLeft="@TextMarginLeft"
                                                     MarginRight="14"
                                                     Brush="Default"
-                                                    Brush.FontSize="21"
+                                                    Brush.FontSize="18"
                                                     Brush.FontColor="@AuthorColor"
                                                     Brush.TextHorizontalAlignment="Left"
                                                     Text="@DisplayText"
@@ -495,8 +498,8 @@
                   </Children>
                 </ButtonWidget>
 
-                <!-- Input row (compose toggle + text box + send). Narrower page, so widths are retuned. Shares the
-                     slot with the scene-paused Continue / Try-something pair (mutually exclusive by IsVisible). -->
+                <!-- Input row. No Send button: Enter / NumpadEnter sends (ChatInputWidget). The "<" toggles the
+                     LEFT dossier page. Shares the slot with the scene-paused Continue / Try-something pair. -->
                 <Widget Id="InputArea"
                         WidthSizePolicy="StretchToParent"
                         HeightSizePolicy="Fixed"
@@ -507,20 +510,21 @@
                         MarginRight="66">
                   <Children>
 
-                    <!-- The "<" triangle (opens the full-text panel) is painted into the page art: outlined hit-box. -->
+                    <!-- The "<" triangle (painted into the page art) toggles the LEFT dossier page: the manuscript
+                         shows only the right page by default, and this opens/closes the left one. Outlined for now. -->
                     <ButtonWidget Id="ComposeToggleButton"
                                   WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                                   SuggestedWidth="30" SuggestedHeight="56"
                                   HorizontalAlignment="Left" VerticalAlignment="Center"
-                                  IsVisible="@IsComposeToggleVisible"
+                                  IsVisible="@IsChatInputVisible"
                                   Sprite="frame_9" Color="#FF3030FF"
-                                  Command.Click="ExecuteOpenCompose" />
+                                  Command.Click="ExecuteToggleManuscriptLeftPage" />
 
                     <Widget Id="InputBox"
-                            WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                            SuggestedWidth="300" SuggestedHeight="56"
+                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
+                            SuggestedHeight="56"
                             HorizontalAlignment="Left" VerticalAlignment="Center"
-                            PositionXOffset="34"
+                            MarginLeft="40" MarginRight="4"
                             IsVisible="@IsChatInputVisible"
                             Sprite="BlankWhiteSquare_9" Color="#0d0a08DD" AlphaFactor="0.4">
                       <Children>
@@ -532,22 +536,6 @@
                                          Brush.TextHorizontalAlignment="Left" MaxLength="8000" Text="@InputText" />
                       </Children>
                     </Widget>
-
-                    <ButtonWidget Id="SendButton"
-                                  WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                                  SuggestedWidth="88" SuggestedHeight="56"
-                                  HorizontalAlignment="Right" VerticalAlignment="Center"
-                                  IsVisible="@IsChatInputVisible"
-                                  DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
-                                  UpdateChildrenStates="true" IsEnabled="@IsSendEnabled"
-                                  Command.Click="ExecuteSendMessage">
-                      <Children>
-                        <TextWidget Id="SendButtonTextWidget"
-                                    WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                                    Brush="Popup.Button.Text" Brush.FontSize="19" Text="@SendButtonText" />
-                      </Children>
-                    </ButtonWidget>
 
                     <ButtonWidget Id="ContinueButton"
                                   WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"

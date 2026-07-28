@@ -201,6 +201,7 @@ namespace CalradiaRemembers.Chat
       private bool _hasWitnesses;
       private string _inputText = "";
       private bool _isComposeOpen;
+      private bool _isManuscriptLeftPageOpen;
       private bool _isMemoryPanelOpen;
       private bool _isPleaseContinueVisible;
 
@@ -460,6 +461,22 @@ namespace CalradiaRemembers.Chat
       /// <summary>The "&lt;" open-review button shows only when the chat input is available and the panel is closed.</summary>
       [DataSourceProperty]
       public bool IsComposeToggleVisible => IsChatInputVisible && !_isComposeOpen;
+
+      /// <summary>
+      ///   Manuscript skin only: whether the LEFT dossier page is shown. The manuscript opens with only the right
+      ///   (conversation) page; the "&lt;" toggle reveals this one. Ignored by the Classic skin (no such page).
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsManuscriptLeftPageOpen
+      {
+         get => _isManuscriptLeftPageOpen;
+         set
+         {
+            if (_isManuscriptLeftPageOpen == value) return;
+            _isManuscriptLeftPageOpen = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
 
       /// <summary>
       ///   True when there is a real hero across the conversation to open an encyclopedia page for
@@ -1487,6 +1504,12 @@ namespace CalradiaRemembers.Chat
          if (_isPortraitPanelOpen) IsPortraitPanelOpen = false; // and with the portrait panel
          IsComposeOpen = true;
       }
+
+      /// <summary>
+      ///   Manuscript skin: the "&lt;" toggle shows/hides the LEFT dossier page (the manuscript opens with only
+      ///   the right conversation page). A no-op look-only flag; the Classic skin does not bind it.
+      /// </summary>
+      public void ExecuteToggleManuscriptLeftPage() => IsManuscriptLeftPageOpen = !IsManuscriptLeftPageOpen;
 
       public void ExecuteOpenEncyclopedia()
       {
