@@ -43,7 +43,15 @@ namespace CalradiaRemembers.Chat
       // after the layer is built, so to keep a game screen opened over the chat (the encyclopedia) visible, the
       // arbiter slides the chat's WINDOW off-screen (a VM-bound offset) instead of restacking the layer.
       private const int ChatLayerOrder = 10000;
-      private const string PrefabName = "CalradiaRemembersChat";
+      /// <summary>The default (Classic) chat skin: the original prefab.</summary>
+      public const string ClassicSkin = "CalradiaRemembersChat";
+
+      /// <summary>
+      ///   The chat skin prefab loaded for the NEXT window. A skin is just another prefab that binds to the SAME
+      ///   <see cref="ChatViewModel" />, so switching it changes only the look, never the behaviour. Applies on
+      ///   the next conversation (the movie is chosen at open). Set via cr.skin (later, an MCM option).
+      /// </summary>
+      public static string SkinPrefab = ClassicSkin;
       private const double VramTickSeconds = 10.0;
 
       private static GauntletLayer _activeLayer;
@@ -638,7 +646,10 @@ namespace CalradiaRemembers.Chat
             ChatLayerOrder);
          _activeLayer.InputRestrictions.SetInputRestrictions();
 
-         _activeMovieId = _activeLayer.LoadMovie(PrefabName, ActiveViewModel);
+         // The selected skin, falling back to Classic if a skin prefab is somehow missing so a bad skin name can
+         // never leave the player with no chat window at all.
+         string skin = string.IsNullOrWhiteSpace(SkinPrefab) ? ClassicSkin : SkinPrefab;
+         _activeMovieId = _activeLayer.LoadMovie(skin, ActiveViewModel);
 
          IGauntletMovie movie = _activeMovieId.Movie;
 

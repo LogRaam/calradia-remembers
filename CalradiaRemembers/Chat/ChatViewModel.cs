@@ -640,6 +640,16 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      /// <summary>Skin art: full path to the left-page (NPC info) background, for the Manuscript skin's CrRuntimeImageWidget.</summary>
+      [DataSourceProperty]
+      public string ChatLeftPanelPath => System.IO.Path.Combine(
+         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_chat_left.jpg");
+
+      /// <summary>Skin art: full path to the right-page (conversation) background, for the Manuscript skin's CrRuntimeImageWidget.</summary>
+      [DataSourceProperty]
+      public string ChatRightPanelPath => System.IO.Path.Combine(
+         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_chat_right.jpg");
+
       /// <summary>Label naming the style currently in force, so the player reads the live voice at a glance.</summary>
       [DataSourceProperty]
       public string StyleButtonText
