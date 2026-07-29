@@ -93,7 +93,7 @@
                         MarginTop="116"
                         MarginBottom="372"
                         MarginLeft="40"
-                        MarginRight="40">
+                        MarginRight="10">
                   <Children>
                     <PortraitScrollablePanel Id="LeftDossierScroll"
                                              WidthSizePolicy="StretchToParent"
@@ -243,7 +243,7 @@
                               Command.Click="ExecuteOpenEncyclopedia">
                   <Children>
                     <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#000000AA" IsDisabled="true" />
+                            Sprite="BlankWhiteSquare_9" Color="#00000000" IsDisabled="true" />
                   </Children>
                 </ButtonWidget>
 
@@ -315,21 +315,28 @@
                             Text="@RelationSummary"
                             IsDisabled="true" />
 
-                <!-- Request Private label is painted into the page art: invisible (outlined for now) hit-box. -->
+                <!-- Request Private is CONDITIONAL (only with witnesses present), so it is a RENDERED button, not
+                     baked art: a dark translucent pill with gold text that appears only when IsPrivateRequestVisible.
+                     Remove the painted "Request Private" from the right page JPG so it does not double up. -->
                 <ButtonWidget Id="RequestPrivateButton"
                               WidthSizePolicy="Fixed"
                               HeightSizePolicy="Fixed"
-                              SuggestedWidth="130"
-                              SuggestedHeight="24"
+                              SuggestedWidth="150"
+                              SuggestedHeight="30"
                               HorizontalAlignment="Center"
                               VerticalAlignment="Top"
                               MarginTop="150"
                               IsVisible="@IsPrivateRequestVisible"
                               DoNotPassEventsToChildren="true"
+                              UpdateChildrenStates="true"
                               Command.Click="ExecuteRequestPrivate">
                   <Children>
                     <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                            Sprite="BlankWhiteSquare_9" Color="#0d0a08C8" IsDisabled="true" />
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Default" Brush.FontSize="15" Brush.FontColor="#c8a878FF"
+                                Brush.TextHorizontalAlignment="Center" Text="Request Private" IsDisabled="true" />
                   </Children>
                 </ButtonWidget>
 
@@ -371,7 +378,7 @@
                         MarginTop="190"
                         MarginBottom="250"
                         MarginLeft="52"
-                        MarginRight="66">
+                        MarginRight="77">
                   <Children>
 
                     <ChatScrollablePanel Id="MessagesScrollPanel"
@@ -512,15 +519,15 @@
                      The quill icon here is dropped (the tile art carries it). -->
                 <ButtonWidget Id="StylePickerIconButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                              SuggestedWidth="52" SuggestedHeight="52"
+                              SuggestedWidth="32" SuggestedHeight="32"
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                              MarginLeft="56" MarginBottom="186"
+                              MarginLeft="134" MarginBottom="174"
                               IsVisible="@IsStyleIconVisible"
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteOpenStylePicker">
                   <Children>
                     <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
                   </Children>
                 </ButtonWidget>
                 <ButtonWidget Id="StylePickerButton"
@@ -540,15 +547,15 @@
 
                 <ButtonWidget Id="OfferItemButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                              SuggestedWidth="52" SuggestedHeight="52"
+                              SuggestedWidth="32" SuggestedHeight="32"
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                              MarginLeft="116" MarginBottom="186"
+                              MarginLeft="94" MarginBottom="174"
                               IsVisible="@IsOfferItemVisible"
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteOfferItem">
                   <Children>
                     <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
                   </Children>
                 </ButtonWidget>
                 <ButtonWidget Id="OfferGoldButton"
@@ -561,7 +568,7 @@
                               Command.Click="ExecuteOfferGold">
                   <Children>
                     <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
                   </Children>
                 </ButtonWidget>
 
@@ -569,28 +576,28 @@
                 <ButtonWidget Id="ModelModeButton"
                               WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                              MarginLeft="60" MarginBottom="150"
+                              MarginLeft="200" MarginBottom="170"
                               IsVisible="@IsModelModeToggleVisible"
                               DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
                               Command.Click="ExecuteToggleModelMode">
                   <Children>
                     <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
                                 HorizontalAlignment="Left" VerticalAlignment="Center"
-                                Brush="Default" Brush.FontSize="14" Brush.FontColor="#8a8072FF"
+                                Brush="Default" Brush.FontSize="12" Brush.FontColor="#8a8072FF"
                                 Brush.TextHorizontalAlignment="Left" Text="@ModelModeText" />
                   </Children>
                 </ButtonWidget>
                 <ButtonWidget Id="OptionsButton"
                               WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                              MarginLeft="200" MarginBottom="150"
+                              MarginLeft="348" MarginBottom="170"
                               IsVisible="@IsGameMenuButtonVisible"
                               DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
                               Command.Click="ExecuteOpenGameMenu">
                   <Children>
                     <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
                                 HorizontalAlignment="Left" VerticalAlignment="Center"
-                                Brush="Default" Brush.FontSize="14" Brush.FontColor="#8a8072FF"
+                                Brush="Default" Brush.FontSize="12" Brush.FontColor="#8a8072FF"
                                 Brush.TextHorizontalAlignment="Left" Text="Options" />
                   </Children>
                 </ButtonWidget>
@@ -602,7 +609,7 @@
                         HeightSizePolicy="Fixed"
                         SuggestedHeight="64"
                         VerticalAlignment="Bottom"
-                        PositionYOffset="-96"
+                        PositionYOffset="-105"
                         MarginLeft="52"
                         MarginRight="66">
                   <Children>
@@ -612,22 +619,25 @@
                          instead. Outlined hit-box for now. -->
                     <ButtonWidget Id="ComposeToggleButton"
                                   WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                                  SuggestedWidth="30" SuggestedHeight="56"
+                                  SuggestedWidth="20" SuggestedHeight="40"    
+                                  MarginLeft="10" 
+                                  MarginBottom="5"
                                   HorizontalAlignment="Left" VerticalAlignment="Center"
-                                  IsVisible="@IsComposeToggleVisible"
+                                  IsVisible="@IsComposeToggleVisible"                                 
                                   DoNotPassEventsToChildren="true"
                                   Command.Click="ExecuteOpenCompose">
                       <Children>
                         <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                                Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
                       </Children>
                     </ButtonWidget>
 
                     <Widget Id="InputBox"
                             WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
-                            SuggestedHeight="56"
+                            SuggestedHeight="36"
                             HorizontalAlignment="Left" VerticalAlignment="Center"
                             MarginLeft="40" MarginRight="4"
+                            marginBottom="24"
                             IsVisible="@IsChatInputVisible"
                             Sprite="BlankWhiteSquare_9" Color="#0d0a08DD" AlphaFactor="0.4">
                       <Children>
@@ -693,27 +703,27 @@
                      baked art it always reads "End Conversation", a small V1 compromise. Positions to tune. -->
                 <ButtonWidget Id="MemoriesButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                              SuggestedWidth="170" SuggestedHeight="40"
+                              SuggestedWidth="100" SuggestedHeight="20"
                               HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                              PositionXOffset="-96" MarginBottom="44"
+                              PositionXOffset="-82" MarginBottom="72"
                               IsVisible="@IsMemoryToggleVisible"
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteToggleMemoryPanel">
                   <Children>
                     <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
                   </Children>
                 </ButtonWidget>
                 <ButtonWidget Id="CloseButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                              SuggestedWidth="190" SuggestedHeight="40"
+                              SuggestedWidth="100" SuggestedHeight="20"
                               HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                              PositionXOffset="98" MarginBottom="44"
+                              PositionXOffset="66" MarginBottom="72"
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteClose">
                   <Children>
                     <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF40" IsDisabled="true" />
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
                   </Children>
                 </ButtonWidget>
 
