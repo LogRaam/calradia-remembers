@@ -904,12 +904,23 @@ namespace CalradiaRemembers.Chat
                      profile.IntimacyLeverageHeld = true;
 
                   // Appreciations pillar (KindnessInScene): a consensual tenderness the partner remembers
-                  // fondly. Not when the dynamic is the exploiter pressing an advantage, which is leverage,
-                  // not a kindness done to them. Mirrors AppreciationBackfillRules' Intimacy-event rule.
+                  // fondly. Not when the dynamic is the exploiter pressing an advantage (leverage, not a
+                  // kindness), and NOT when the model tagged a violent or coerced scene as intimacy: a turn that
+                  // LOWERED the relation, or a captive/captor scene, leaves the memory but no fond mark (player
+                  // report: a violent encounter at relation -20 still read "a tender moment we shared").
                   else if (ModSettings.AdultContentLevel != AdultContentLevel.Off)
-                     AppreciationBehavior.Instance?.TryPlant(partner, Hero.MainHero,
-                        AppreciationSource.KindnessInScene, "A tender moment we shared.",
-                        AppreciationBackfillRules.KindnessInSceneMagnitude, true, gameDay);
+                  {
+                     bool relationLoweredThisTurn = response.Actions != null && response.Actions.Any(a =>
+                        string.Equals(a.Type, "change_relation", StringComparison.OrdinalIgnoreCase)
+                        && a.Parameters != null
+                        && a.Parameters.TryGetValue("delta", out string ds)
+                        && int.TryParse(ds, out int d) && d < 0);
+
+                     if (AppreciationTonePolicy.LeavesSceneKindness(relationLoweredThisTurn, IsCaptiveEncounter || _captorScene))
+                        AppreciationBehavior.Instance?.TryPlant(partner, Hero.MainHero,
+                           AppreciationSource.KindnessInScene, "A tender moment we shared.",
+                           AppreciationBackfillRules.KindnessInSceneMagnitude, true, gameDay);
+                  }
                }
             }
 
