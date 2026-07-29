@@ -36,6 +36,14 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> AdultContentLevel { get; set; } =
          new(new[] {"Off", "Mature", "Explicit", "Hardcore"}, 1); // default: Mature
 
+      [SettingPropertyDropdown("Chat Window Style", RequireRestart = false, Order = 5,
+         HintText = "The look of the conversation window. Origin is the original panel; Dark Leather is the " +
+                    "illuminated leather book. Both are the same conversation, only the look differs. Applies on " +
+                    "your next conversation.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public Dropdown<string> ChatSkin { get; set; } =
+         new(new[] {"Origin", "Dark Leather"}, 1); // default: Dark Leather (the illuminated book)
+
       [SettingPropertyText("OpenRouter API Key", RequireRestart = false, Order = 0,
          HintText = "Paste your key from openrouter.ai/keys. Stored locally on this machine only. NEVER share your " +
                     "config file or a screenshot of this field. Applies immediately.")]

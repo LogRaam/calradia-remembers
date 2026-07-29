@@ -42,6 +42,25 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   The chat window skin prefab chosen in the MCM menu ("Chat Window Style"), mapped from its display
+      ///   label to the prefab name. Read live; falls back to the Dark Leather (Manuscript) book when MCM has
+      ///   not loaded, which is the shipped default.
+      /// </summary>
+      public static string ChatSkinPrefab
+      {
+         get
+         {
+            string v = CrSettings.Instance?.ChatSkin?.SelectedValue;
+
+            switch (v)
+            {
+               case "Origin": return Chat.ChatManager.ClassicSkin;
+               default: return Chat.ChatManager.ManuscriptSkin; // Dark Leather (default)
+            }
+         }
+      }
+
+      /// <summary>
       ///   When true, the companion-contentment loop runs (restlessness, audiences, farewell-letter
       ///   departures). When false the whole system is inert. Read live from the MCM menu; on by default.
       /// </summary>

@@ -2154,7 +2154,7 @@ namespace CalradiaRemembers.Chat
          // Manuscript skin: the info dossier IS the left page. A portrait click opens it on that speaker (NPC
          // dossier, or the player's own deeds for the player's portrait); clicking the SAME portrait again closes
          // it. The Classic skin keeps its separate left pop-out below.
-         if (ChatManager.SkinPrefab == ChatManager.ManuscriptSkin)
+         if (ChatManager.ActiveSkin == ChatManager.ManuscriptSkin)
          {
             string clickedKey = msg.PortraitKey ?? "";
             if (_isManuscriptLeftPageOpen && clickedKey == _manuscriptDossierKey)

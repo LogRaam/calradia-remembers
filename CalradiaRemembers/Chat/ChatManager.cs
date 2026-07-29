@@ -49,11 +49,18 @@ namespace CalradiaRemembers.Chat
       public const string ManuscriptSkin = "CalradiaRemembersChat_Manuscript";
 
       /// <summary>
-      ///   The chat skin prefab loaded for the NEXT window. A skin is just another prefab that binds to the SAME
-      ///   <see cref="ChatViewModel" />, so switching it changes only the look, never the behaviour. Applies on
-      ///   the next conversation (the movie is chosen at open). Set via cr.skin (later, an MCM option).
+      ///   Dev override for the chat skin (set by cr.skin). Null means "use the MCM menu choice". A skin is just
+      ///   another prefab bound to the SAME <see cref="ChatViewModel" />, so it changes only the look. Applies on
+      ///   the next conversation (the movie is chosen at open).
       /// </summary>
-      public static string SkinPrefab = ClassicSkin;
+      public static string SkinConsoleOverride;
+
+      /// <summary>
+      ///   The skin the CURRENTLY-open window was actually loaded with (MCM choice, console override, or Classic
+      ///   forced for a captive scene). Behaviour that must branch on the live look (the Manuscript left page)
+      ///   reads THIS, not the chosen skin, so a captive scene forced to Classic is judged as Classic.
+      /// </summary>
+      public static string ActiveSkin = ClassicSkin;
       private const double VramTickSeconds = 10.0;
 
       private static GauntletLayer _activeLayer;
@@ -648,10 +655,16 @@ namespace CalradiaRemembers.Chat
             ChatLayerOrder);
          _activeLayer.InputRestrictions.SetInputRestrictions();
 
-         // The selected skin, falling back to Classic if a skin prefab is somehow missing so a bad skin name can
-         // never leave the player with no chat window at all. Captive/captor scenes force Classic for now (the
-         // Manuscript skin is not yet fitted to those scenes).
-         string skin = forceClassicSkin || string.IsNullOrWhiteSpace(SkinPrefab) ? ClassicSkin : SkinPrefab;
+         // Skin precedence: a captive scene forces Classic for now (the Manuscript skin is not yet fitted to
+         // those scenes); else a dev console override (cr.skin); else the MCM menu choice (default Dark Leather).
+         // Fall back to Classic if a name is somehow empty so a bad skin can never leave the player with no chat.
+         string skin = forceClassicSkin
+            ? ClassicSkin
+            : !string.IsNullOrWhiteSpace(SkinConsoleOverride)
+               ? SkinConsoleOverride
+               : ModSettings.ChatSkinPrefab;
+         if (string.IsNullOrWhiteSpace(skin)) skin = ClassicSkin;
+         ActiveSkin = skin;
          _activeMovieId = _activeLayer.LoadMovie(skin, ActiveViewModel);
 
          IGauntletMovie movie = _activeMovieId.Movie;
