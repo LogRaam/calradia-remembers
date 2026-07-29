@@ -2,6 +2,23 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.32.1.. 2026-07-29
+
+Two fixes on top of v1.32.0, both from player reports. Your saves carry over untouched.
+
+### Fixed
+- **A violent or coerced encounter no longer leaves a false "tender moment."** A character's encyclopedia could
+  show a fond kindness ("carries a small kindness remembered towards you for a tender moment we shared") after a
+  hostile scene that actually lowered your relation, because that kindness was recorded on any moment the AI
+  tagged as intimate, with no check on the scene's tone. A fond memory now forms only when the moment neither
+  lowered your relation nor was a captive/coerced scene; a hostile encounter is still remembered, it just no
+  longer leaves a false tenderness on the page. (Report: a player on Nexus.)
+- **Compatibility with total-conversion overhauls.** Calradia Remembers no longer declares hard dependencies on
+  two base modules it never actually used (StoryMode, CustomBattle). An overhaul that replaces the vanilla
+  campaign and does not load those (e.g. Empires of Europe 1100) could stop the game from launching at all, with
+  nothing in Crash Doctor (a launcher-level module error, not a code crash); it now loads alongside them.
+  (Report: a player on Nexus.)
+
 ## v1.32.0.. 2026-07-28
 
 A new look for the conversation, a new thing to do with your prisoners, and a compatibility fix. Your saves
