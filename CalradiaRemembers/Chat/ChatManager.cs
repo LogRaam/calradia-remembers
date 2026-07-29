@@ -233,7 +233,7 @@ namespace CalradiaRemembers.Chat
          }
       }
 
-      public static void Open(string npcName = null)
+      public static void Open(string npcName = null, bool forceClassicSkin = false)
       {
          if (IsOpen)
          {
@@ -254,7 +254,7 @@ namespace CalradiaRemembers.Chat
 
          try
          {
-            GenerateChatWindow(npcName);
+            GenerateChatWindow(npcName, forceClassicSkin);
          }
          catch (Exception ex)
          {
@@ -303,7 +303,7 @@ namespace CalradiaRemembers.Chat
          // NOT hand back another attempt (that is what let the fight loop).
          if (string.IsNullOrEmpty(openingOverride)) Duels.CaptiveEscapeCoordinator.NoteNewCaptiveScene();
 
-         Open(captorHero?.Name?.ToString() ?? captorProfile?.Name);
+         Open(captorHero?.Name?.ToString() ?? captorProfile?.Name, forceClassicSkin: true);
 
          if (ActiveViewModel == null) return;
          if (captorHero != null) ActiveViewModel.SetNpcHero(captorHero);
@@ -355,7 +355,7 @@ namespace CalradiaRemembers.Chat
          NpcProfile prisonerProfile,
          CaptiveSceneIntent intent = CaptiveSceneIntent.Interrogation)
       {
-         Open(prisonerHero?.Name?.ToString() ?? prisonerProfile?.Name);
+         Open(prisonerHero?.Name?.ToString() ?? prisonerProfile?.Name, forceClassicSkin: true);
 
          if (ActiveViewModel == null) return;
          if (prisonerHero != null) ActiveViewModel.SetNpcHero(prisonerHero);
@@ -630,7 +630,7 @@ namespace CalradiaRemembers.Chat
          _chatHoldsFocus = false;
       }
 
-      private static void GenerateChatWindow(string npcName)
+      private static void GenerateChatWindow(string npcName, bool forceClassicSkin = false)
       {
          ActiveViewModel = new ChatViewModel {OnCloseRequested = Close};
 
@@ -649,8 +649,9 @@ namespace CalradiaRemembers.Chat
          _activeLayer.InputRestrictions.SetInputRestrictions();
 
          // The selected skin, falling back to Classic if a skin prefab is somehow missing so a bad skin name can
-         // never leave the player with no chat window at all.
-         string skin = string.IsNullOrWhiteSpace(SkinPrefab) ? ClassicSkin : SkinPrefab;
+         // never leave the player with no chat window at all. Captive/captor scenes force Classic for now (the
+         // Manuscript skin is not yet fitted to those scenes).
+         string skin = forceClassicSkin || string.IsNullOrWhiteSpace(SkinPrefab) ? ClassicSkin : SkinPrefab;
          _activeMovieId = _activeLayer.LoadMovie(skin, ActiveViewModel);
 
          IGauntletMovie movie = _activeMovieId.Movie;
