@@ -2,6 +2,30 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.32.0.. 2026-07-28
+
+A new look for the conversation, a new thing to do with your prisoners, and a compatibility fix. Your saves
+carry over untouched.
+
+### Added
+- **A new chat window: "Dark Leather."** Conversations now open in an illuminated two-page leather book, the
+  new default look. The exchange is on the right page; click any portrait to open a dossier on the left, the
+  speaker's culture, age, role, standing, background, what you have learned about them, and their grievances.
+  Click your OWN portrait to read your own notable deeds. Prefer the original panel? A new **Chat Window Style**
+  option in the mod menu switches between **Origin** (the classic panel) and **Dark Leather** at any time. It is
+  the same conversation either way, only the look differs. (More skins are planned.)
+- **Dress your prisoners.** Give a held prisoner a garment (a gown, a fine tunic) in conversation and she
+  actually puts it on, visible the next time you speak with her. A captor imposes the garment regardless of how
+  the prisoner regards you; only clothing is ever handed over this way, never a weapon.
+
+### Fixed
+- **Compatibility with Immersive Recruit Commoners.** Calradia Remembers' townsfolk and villager chat option
+  used to sit on the raw conversation opening, where it could crowd out another mod's options (IRC's recruit
+  lines). It now hangs off the normal town/village talk menu, so both mods' options coexist. (Report: a player
+  on Nexus.)
+- **A grouped execution shows a single notice.** Executing several captives at once now raises one banner for
+  the deed instead of one per grieving kinsman.
+
 ## v1.31.15.. 2026-07-27
 
 Two fixes, from a player report. Your saves carry over untouched.
