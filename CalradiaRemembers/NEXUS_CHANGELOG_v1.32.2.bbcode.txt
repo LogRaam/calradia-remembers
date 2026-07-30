@@ -4,6 +4,7 @@ Two fixes from player reports. Saves carry over untouched.
 
 [size=3][b]Fixed[/b][/size]
 [list]
+[*][b]The Dark Leather chat window now fills the screen.[/b] On a high-resolution display the illuminated book opened noticeably smaller than the classic panel. It now scales to fill the screen height at any resolution, with the ornate border and every control kept in place. (It respects your UI Scale setting.)[/*]
 [*][b]Characters now remember letters you sent them.[/b] A letter you sent to a character (through the tavern keeper) was only "known" to them for their immediate reply, then dropped, so later in person they could act as if it had never arrived ("still awaiting a letter on the subject"). A delivered letter is now filed as a lasting memory, so the character remembers it in later conversation, the same way they already remember the letters they send you. (Report: a player on Nexus.)[/*]
 [*][b]Memory compression no longer fails on heavy reasoning models.[/b] With a reasoning-heavy model (e.g. GLM), the memory-compression step could fail with "the model spent its entire reply budget on internal reasoning": it reserved too little room for the answer after the model's thinking. It now reserves far more. Compression was already safe when it failed (no memories are ever lost, the character simply keeps them uncompressed); this just stops the error. If it still happens on a very heavy reasoning model, lower Reasoning Effort in the mod options. (Report: a player on Nexus.)[/*]
 [/list]

@@ -4,9 +4,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v1.32.2.. 2026-07-29
 
-Two fixes from player reports. Your saves carry over untouched.
+A few fixes, mostly from player reports. Your saves carry over untouched.
 
 ### Fixed
+- **The Dark Leather chat window now fills the screen.** On a high-resolution display the illuminated book
+  opened noticeably smaller than the classic panel. It now scales to fill the screen height at any resolution,
+  with the ornate border and every control kept in place. (It respects your UI Scale setting.)
 - **Characters now remember letters you sent them.** A letter you sent to a character (through the tavern
   keeper) was only "known" to them for their immediate reply, then dropped, so later in person they could act
   as if it had never arrived ("still awaiting a letter on the subject"). A delivered letter is now filed as a
