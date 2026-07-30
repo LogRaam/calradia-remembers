@@ -2020,6 +2020,12 @@ Vlandia -10, toward Khuzait +10) that CR reads to actually DECLARE war or broker
   top, never fights the engine's own diplomacy).
 - **Thresholds:** past a NEGATIVE threshold CR declares war between the two; past a POSITIVE one, peace can be
   declared through CR. Makes a slice of diplomacy RP concrete.
+- **A consultable RELATIONS SCREEN (Gabriel 2026-07-30):** a player-facing overview of inter-faction relations,
+  like Civilization's diplomacy screen, so the table is legible (you SEE who hates whom and anticipate). The
+  READ surface for the WRITE system above; only DISCOVERED factions show (discovery-driven, overhaul-safe by
+  construction). Fits CR's bespoke-window direction (an enluminated "diplomacy ledger" in the shared UI style).
+  Each relation can link back to the WORLD EVENTS that moved it (click -> the events behind the score, via the
+  chronicle), turning a number matrix into narrative. Build the table first; the screen is the natural follow-on.
 - **Design tensions to resolve (needs the kingdom-decision / diplomacy API spike first):** (a) coordinate with
   Bannerlord's OWN war/peace AI so the two do not oscillate (hysteresis + cooldowns, not a per-tick flip);
   (b) WHAT MOVES a score, world events (battles, betrayals, cross-faction marriages) plus the player as a
