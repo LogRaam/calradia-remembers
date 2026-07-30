@@ -48,6 +48,13 @@ namespace CalradiaRemembers.Chat
       /// <summary>The ornate two-page illuminated-manuscript skin (fixed-size book over Gabriel's page art).</summary>
       public const string ManuscriptSkin = "CalradiaRemembersChat_Manuscript";
 
+      // The Manuscript book is a FIXED-aspect design (958x940 units); GauntletUI has no per-widget zoom, so the
+      // whole chat LAYER is scaled instead (UIContext.ScaleModifier), which multiplies sizes AND margins AND
+      // offsets together, so the book and every overlay stay aligned. This factor multiplies the base UI scale,
+      // so it respects the player's UI-Scale while enlarging the book to fill more of the screen at any
+      // resolution (940/1080 base ~= 87%; x1.1 ~= 96%). TUNE by feel.
+      private const float ManuscriptZoom = 1.1f;
+
       /// <summary>
       ///   Dev override for the chat skin (set by cr.skin). Null means "use the MCM menu choice". A skin is just
       ///   another prefab bound to the SAME <see cref="ChatViewModel" />, so it changes only the look. Applies on
@@ -119,6 +126,12 @@ namespace CalradiaRemembers.Chat
       public static void ArbitrateFocus()
       {
          if (!IsOpen || _hostScreen == null) return;
+
+         // Manuscript skin: zoom the whole chat layer so the fixed-aspect book AND all its overlays scale
+         // together (kept aligned) and fill more of the screen at any resolution. Re-applied every frame because
+         // GauntletLayer.UpdateLayout resets ScaleModifier to the base UI scale each pass. Classic is untouched.
+         if (ActiveSkin == ManuscriptSkin && _activeLayer?.UIContext != null)
+            _activeLayer.UIContext.ScaleModifier = ScreenManager.Scale * ManuscriptZoom;
 
          SampleVramPeriodically(); // a heartbeat VRAM read, so an idle (no-response) scene still traces its trend
 
