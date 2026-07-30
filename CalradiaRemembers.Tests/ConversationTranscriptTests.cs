@@ -108,6 +108,59 @@ namespace CalradiaRemembers.Tests
          turns[2].Role.Should().Be(SessionTurnRole.Witness); // Olaf's, attributed
       }
 
+      // With nothing folded, the transcript behaves exactly as before, every line replayed raw, so the running
+      // compression is inert for the short conversations that are the overwhelming majority.
+      [Test]
+      public void GIVEN_no_summary_WHEN_composing_THEN_the_whole_raw_history_is_returned_unchanged()
+      {
+         var turns = Exchange().ComposeSessionFor("lord_derthert");
+
+         turns.Should().HaveCount(3);
+         turns.Should().NotContain(t => t.SpeakerName == ConversationTranscript.SummaryLabel);
+      }
+
+      // STAKE: the coherence guarantee. Once the older half of a long talk is folded, a turn must receive the
+      // compressed recap FIRST (as attributed context) and then ONLY the recent raw lines, so it stays coherent
+      // with the whole conversation without replaying it. The folded lines must not reappear raw.
+      [Test]
+      public void GIVEN_a_folded_summary_WHEN_composing_THEN_the_recap_leads_and_only_recent_lines_follow_raw()
+      {
+         var t = new ConversationTranscript();
+         t.Record(true, "You", "player", "one");
+         t.Record(false, "Derthert", "lord_derthert", "two");
+         t.Record(false, "Derthert", "lord_derthert", "three");
+         t.Record(true, "You", "player", "four");
+         t.Record(false, "Derthert", "lord_derthert", "five");
+
+         t.ApplySummary("They spoke of the war.", 3); // lines [0,3) folded away
+
+         var turns = t.ComposeSessionFor("lord_derthert");
+
+         turns.Should().HaveCount(3);
+         turns[0].Role.Should().Be(SessionTurnRole.Witness);
+         turns[0].SpeakerName.Should().Be(ConversationTranscript.SummaryLabel);
+         turns[0].Text.Should().Be("They spoke of the war.");
+         turns.Should().NotContain(x => x.Text == "two" || x.Text == "three"); // folded, never raw again
+      }
+
+      // STAKE: the fold marker must never go backwards or past the recorded lines, or a line could fall into the
+      // gap between what the summary covered and where the raw replay resumes, and be silently lost, which is
+      // the exact incoherence the feature exists to prevent.
+      [Test]
+      public void GIVEN_a_backward_or_oversized_marker_WHEN_applying_a_summary_THEN_it_is_clamped()
+      {
+         var t = Exchange(); // 3 lines
+
+         t.ApplySummary("recap", 2);
+         t.SummarizedThrough.Should().Be(2);
+
+         t.ApplySummary("recap-back", 1); // backward: ignored, never uncovers a folded line
+         t.SummarizedThrough.Should().Be(2);
+
+         t.ApplySummary("recap-over", 99); // past the end: clamped to the line count
+         t.SummarizedThrough.Should().Be(3);
+      }
+
       #region private
 
       private static ConversationTranscript Exchange()

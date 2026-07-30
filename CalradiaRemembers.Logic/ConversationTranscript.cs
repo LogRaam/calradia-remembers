@@ -23,12 +23,40 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public sealed class ConversationTranscript
     {
+        /// <summary>Attributed label under which the compressed running summary is injected into a session.</summary>
+        public const string SummaryLabel = "Earlier in this conversation";
+
         private readonly List<TranscriptLine> _lines = new List<TranscriptLine>();
 
         /// <summary>The lines recorded so far, oldest first.</summary>
         public IReadOnlyList<TranscriptLine> Lines => _lines;
 
         public int Count => _lines.Count;
+
+        /// <summary>
+        ///   A COMPRESSED recap of the older part of THIS conversation, folded once it grows long so every turn
+        ///   stays coherent with the whole exchange without replaying an ever-growing raw transcript (Gabriel
+        ///   2026-07-30). Empty until the first fold. Distinct from the NPC's persistent memory: this lives and
+        ///   dies with the conversation.
+        /// </summary>
+        public string RunningSummary { get; private set; } = "";
+
+        /// <summary>Lines [0, SummarizedThrough) are folded into <see cref="RunningSummary" /> and no longer replayed raw.</summary>
+        public int SummarizedThrough { get; private set; }
+
+        /// <summary>
+        ///   Records that <paramref name="throughLineCount" /> lines are now captured by <paramref name="summary" />.
+        ///   Monotonic and bounded: the marker never goes backwards and never past the lines actually recorded, so
+        ///   a stale or oversized fold can never hide a line that both the summary and the raw replay would miss.
+        /// </summary>
+        public void ApplySummary(string summary, int throughLineCount)
+        {
+            if (string.IsNullOrWhiteSpace(summary)) return;
+
+            RunningSummary = summary.Trim();
+            int clamped = throughLineCount < SummarizedThrough ? SummarizedThrough : throughLineCount;
+            SummarizedThrough = clamped > _lines.Count ? _lines.Count : clamped;
+        }
 
         /// <summary>
         ///   Records one line, unless there is nothing to record. The blank guard lives HERE, at the single
@@ -48,7 +76,22 @@ namespace CalradiaRemembers.Logic
         ///   See <see cref="SessionHistoryComposer" /> for what each line becomes and why.
         /// </summary>
         public IReadOnlyList<SessionTurn> ComposeSessionFor(string speakerHeroId, int excludeLastN = 0)
-            => SessionHistoryComposer.Compose(_lines, speakerHeroId, excludeLastN);
+        {
+            // No fold yet: the whole raw history, exactly as before.
+            if (string.IsNullOrEmpty(RunningSummary) || SummarizedThrough <= 0)
+                return SessionHistoryComposer.Compose(_lines, speakerHeroId, excludeLastN);
+
+            // Folded: the compressed recap FIRST (as an attributed context line), then only the recent raw lines.
+            var turns = new List<SessionTurn>
+            {
+                new SessionTurn(SessionTurnRole.Witness, SummaryLabel, RunningSummary)
+            };
+
+            foreach (SessionTurn turn in SessionHistoryComposer.Compose(_lines, speakerHeroId, excludeLastN, SummarizedThrough))
+                turns.Add(turn);
+
+            return turns;
+        }
 
         /// <summary>
         ///   The whole conversation as plain attributed text, for a summarizer.

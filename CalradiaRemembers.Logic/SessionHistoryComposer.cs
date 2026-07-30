@@ -67,16 +67,23 @@ namespace CalradiaRemembers.Logic
         ///   Skips the last N entries. Sprint 15C builds the NPC's session before the witness reactions are
         ///   committed, so those reactions reach the model only as the stimulus and are not double-counted.
         /// </param>
+        /// <param name="startIndex">
+        ///   Skips the first N entries. When the older part of a long conversation has been folded into a
+        ///   compressed running summary (see ConversationTranscript), only the RECENT lines are replayed here;
+        ///   the summary is prepended by the caller. A run of the speaker's own lines that straddles the cut is
+        ///   simply composed from the cut forward, its earlier half already living in the summary.
+        /// </param>
         public static IReadOnlyList<SessionTurn> Compose(IReadOnlyList<TranscriptLine> transcript,
                                                          string speakerHeroId,
-                                                         int excludeLastN = 0)
+                                                         int excludeLastN = 0,
+                                                         int startIndex = 0)
         {
             var turns = new List<SessionTurn>();
             if (transcript == null) return turns;
 
             int limit = Math.Max(0, transcript.Count - Math.Max(0, excludeLastN));
 
-            for (var i = 0; i < limit; i++)
+            for (int i = Math.Max(0, startIndex); i < limit; i++)
             {
                 TranscriptLine e = transcript[i];
 
