@@ -2004,6 +2004,30 @@ credibility evaluation. Natural future verb: a vassal pledges to "press my leade
 pressure to the leader's evaluation) rather than declaring war themselves — the bridge from the increment-2 pledge
 system to this future war-decision system.
 
+**DONE (guardrail, 2026-07-30, SDK `71538cf`):** a lord may not conclude peace/a truce or arrange a binding
+faction parley in conversation (only the ruler decides). Extended STAY WITHIN WHAT YOU KNOW after a player
+report where a lord roleplayed a peace parley the engine then contradicted with a battle. Keeps the RP honest
+about the limits of a lord's authority without killing emergent diplomacy talk.
+
+### WISHED (Gabriel 2026-07-30): inter-faction relation scores that DRIVE war and peace
+The concrete, grounded answer to "kingdom/war impact is lacking" (player feedback flashdragonwolf/AbbaDF) and to
+the peace-parley RP gap above. A PERSISTENT table of faction-to-faction relation scores (e.g. Sturgia toward
+Vlandia -10, toward Khuzait +10) that CR reads to actually DECLARE war or broker peace (`DeclareWarAction` /
+`MakePeaceAction`), so faction diplomacy becomes a real thing the player's roleplay can move, not just talk.
+- **Overhaul-mod safe by DISCOVERY:** do NOT hardcode the vanilla factions; BUILD the table as the campaign
+  encounters each faction (via the world-event store), so it works when an overhaul replaces the kingdoms.
+- **Vanilla stays the truth:** if VANILLA declares a war on a pair, reset that pair's score to 0 (CR layers on
+  top, never fights the engine's own diplomacy).
+- **Thresholds:** past a NEGATIVE threshold CR declares war between the two; past a POSITIVE one, peace can be
+  declared through CR. Makes a slice of diplomacy RP concrete.
+- **Design tensions to resolve (needs the kingdom-decision / diplomacy API spike first):** (a) coordinate with
+  Bannerlord's OWN war/peace AI so the two do not oscillate (hysteresis + cooldowns, not a per-tick flip);
+  (b) WHAT MOVES a score, world events (battles, betrayals, cross-faction marriages) plus the player as a
+  PRESSURE source, which ties straight into the council-pressure war model above (the player lobbies, the score
+  is the accumulator); (c) persistence + faction lifecycle (kingdoms are created/destroyed mid-campaign);
+  (d) never silently flip a war the PLAYER is party to. Big new pillar, but the strongest grounded answer to the
+  closed diplomacy mods.
+
 **Settlement sale: EVALUATED AND REJECTED (Gabriel, 2026-07-02): a fief is a lord's sovereignty and reason to
 exist, not merchandise; no amount of gold makes selling it in-character. Do not revisit.**
 
