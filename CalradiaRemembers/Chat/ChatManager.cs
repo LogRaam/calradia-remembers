@@ -52,8 +52,9 @@ namespace CalradiaRemembers.Chat
       // whole chat LAYER is scaled instead (UIContext.ScaleModifier), which multiplies sizes AND margins AND
       // offsets together, so the book and every overlay stay aligned. This factor multiplies the base UI scale,
       // so it respects the player's UI-Scale while enlarging the book to fill more of the screen at any
-      // resolution (940/1080 base ~= 87%; x1.1 ~= 96%). TUNE by feel.
-      private const float ManuscriptZoom = 1.1f;
+      // resolution. TUNE by feel: in game x1.1 filled ~72% of the height, so x1.4 fills ~90% (a small margin
+      // is kept so the ornate top/bottom border is never clipped).
+      private const float ManuscriptZoom = 1.4f;
 
       /// <summary>
       ///   Dev override for the chat skin (set by cr.skin). Null means "use the MCM menu choice". A skin is just
