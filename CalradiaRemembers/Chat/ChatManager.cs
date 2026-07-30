@@ -48,13 +48,18 @@ namespace CalradiaRemembers.Chat
       /// <summary>The ornate two-page illuminated-manuscript skin (fixed-size book over Gabriel's page art).</summary>
       public const string ManuscriptSkin = "CalradiaRemembersChat_Manuscript";
 
-      // The Manuscript book is a FIXED-aspect design (958x940 units); GauntletUI has no per-widget zoom, so the
+      // The Manuscript book is a FIXED-aspect design (940 units tall); GauntletUI has no per-widget zoom, so the
       // whole chat LAYER is scaled instead (UIContext.ScaleModifier), which multiplies sizes AND margins AND
-      // offsets together, so the book and every overlay stay aligned. This factor multiplies the base UI scale,
-      // so it respects the player's UI-Scale while enlarging the book to fill more of the screen at any
-      // resolution. TUNE by feel: in game x1.1 filled ~72% of the height, so x1.4 fills ~90% (a small margin
-      // is kept so the ornate top/bottom border is never clipped).
-      private const float ManuscriptZoom = 1.4f;
+      // offsets together, so the book and every overlay stay aligned.
+      // CONSTANT, NOT multiplied by ScreenManager.Scale: a fixed ScaleModifier maps the 940-unit book onto the
+      // 1080-unit reference height (1080/940), times the fill fraction, so the book fills the SAME fraction of
+      // the screen at every resolution. Multiplying by ScreenManager.Scale made it resolution-DEPENDENT (fine at
+      // one res, hugely overflowing at 2560x1440, player report Berserk160). The trade-off is that it overrides
+      // the player's UI-Scale for the chat layer, the price of a consistent fit everywhere. TUNE the fill.
+      private const float ManuscriptBookHeightUnits = 940f;
+      private const float GauntletReferenceHeight = 1080f;
+      private const float ManuscriptFill = 0.92f; // fraction of the screen height the book fills (leaves a margin)
+      private const float ManuscriptZoom = GauntletReferenceHeight / ManuscriptBookHeightUnits * ManuscriptFill;
 
       /// <summary>
       ///   Dev override for the chat skin (set by cr.skin). Null means "use the MCM menu choice". A skin is just
@@ -129,10 +134,11 @@ namespace CalradiaRemembers.Chat
          if (!IsOpen || _hostScreen == null) return;
 
          // Manuscript skin: zoom the whole chat layer so the fixed-aspect book AND all its overlays scale
-         // together (kept aligned) and fill more of the screen at any resolution. Re-applied every frame because
+         // together (kept aligned) and fill the same fraction of the screen at ANY resolution. A CONSTANT factor
+         // (see ManuscriptZoom), NOT scaled by ScreenManager.Scale. Re-applied every frame because
          // GauntletLayer.UpdateLayout resets ScaleModifier to the base UI scale each pass. Classic is untouched.
          if (ActiveSkin == ManuscriptSkin && _activeLayer?.UIContext != null)
-            _activeLayer.UIContext.ScaleModifier = ScreenManager.Scale * ManuscriptZoom;
+            _activeLayer.UIContext.ScaleModifier = ManuscriptZoom;
 
          SampleVramPeriodically(); // a heartbeat VRAM read, so an idle (no-response) scene still traces its trend
 
