@@ -954,12 +954,32 @@ Scope / ruling:
 - **First candidate = the Chronicle / memory view** (the direct analogue of their Book of Memory), then the
   chat window and the dossier, then the new ASSEMBLY window (whose "bespoke multi-portrait window" was already
   flagged as later polish, line ~125). Do it as ONE shared style pass so the windows look like a family.
-- **NOT the AI-generated illustrations.** Their per-entry scene images are AI image-gen, which CR deliberately
-  PARKED as a separate-mod concern (Claude memory `project_parked_generated_portraits`); CR uses real
-  portraits from BodyProperties. A richer illustrated panel using the player's actual character portrait (which
-  CR can already render in-widget) is in scope; generating scenes is not.
+- **The AI-generated illustrations were PARKED, now being REVISITED** (2026-07-29, on repeated player demand,
+  Gabriel open in-thread). Originally a separate-mod concern (Claude memory `project_parked_generated_portraits`);
+  CR uses real portraits from BodyProperties by default. See the dedicated WISHED entry below; if added it stays
+  strictly OPTIONAL / off by default. A richer illustrated panel using the player's actual character portrait
+  (which CR can already render in-widget) remains in scope regardless.
 - Cost: pure cosmetic/UX, no logic; slower iteration loop (a prefab edit needs a build + a game restart, the
   GauntletUI prefab cache). Best done as a focused polish sprint, not folded into a feature.
+
+### WISHED (player thread Romde1 / Cyb3rFuse / AbbaDF, Nexus 2026-07-28/29): optional AI scene-image generation
+REVISITS the parked "generated illustrations" ruling above ([[project_parked_generated_portraits]]): strong,
+repeated player demand plus Gabriel open to it in-thread ("I can add this feature on the roadmap"). Like AI
+Influence's per-scene images, but done CR's way: strictly OPTIONAL, off by default (cost, plus the well-known
+AI jank the players themselves note, extra fingers and arms).
+
+Three backends, all wanted:
+- CLOUD: an OpenAI-compatible image API (Gabriel's figure in-thread: ~0.05 USD/image, high quality, slower).
+  Mirrors the existing pluggable text-LLM config.
+- LOCAL: ComfyUI / Stable Diffusion via a local endpoint (Cyb3rFuse + AbbaDF +1; free, private). Fits CR's
+  existing OpenAI-compatible-local-endpoint pattern (Ollama / LM Studio are already supported for text).
+- MANUAL (already works today): a player drops images into the mod folder (someguynamedjoe uses Perchance SD +
+  the ChatPortraits folder). Keep this as the zero-cost baseline.
+
+DISPLAY is already solved: `CrRuntimeImageWidget` + `RuntimePortraitFactory` render a runtime image from a disk
+path, VRAM-flat. The NEW work is a pluggable IMAGE client (cloud + local), deciding WHEN/WHAT to illustrate (a
+captive scene, a memory, a portrait), caching to disk so a beat is never regenerated, and MCM toggles (backend,
+endpoint, key, on/off, per-context). Portraits already have a manual path; SCENE illustration is the real ask.
 
 ### Concrete target (Gabriel 2026-07-20): a redesigned CHAT window (mockup "Better Layout CHAT.png")
 A two-column, gold-on-dark manuscript design: LEFT a large parchment narrative scroll under a branded
@@ -1952,6 +1972,17 @@ decisions and war are being kept structurally apart from the pledge system.)
 a step beyond the existing `join_clan`) and **NPC matchmaking** (the player arranges a marriage between two
 OTHER NPCs, reading and writing the same marriage-prospect machinery `MarriageProspectResolver` already
 provides). Both need real design passes; neither is scoped yet.
+
+**WISHED (player flashdragonwolf thread, Nexus 2026-07-29): marriage-brokered clan-join.** "Talk a lord into
+joining my clan by marrying one of my ladies." A COMPOUND deed combining two shipped systems: `join_clan`
+(recruit a lord into the player's clan) + `arrange_marriage` / `grant_blessing` (the match), where the marriage
+to a lady of the player's clan is the RP lever for the defection. Grounded and in-character, exactly CR's lane
+(same thread asked for AI-Influence-style diplomacy depth; this is CR's grounded answer, reinforcing the
+political/defection pillar above). **Engine caveat to spike first:** vanilla `MarriageAction` decides which clan
+the couple ends up in, and a lord who LEADS his own clan pulls the bride into HIS clan, not himself into the
+player's. So it works cleanly for a NON-leader lord (a younger son, a minor family member, a landless lord), or
+the "join your clan" step must be made explicit alongside the marriage so he actually lands under the player's
+banner. Scope the `MarriageAction` API + clan-assignment rules before estimating.
 
 **Future — war declaration as a leader-only strategic decision (Gabriel, 2026-07-02/03, not yet designed).**
 *"War declaration = a leader-only strategic decision, NEVER a conversation or pledge trigger. A dedicated future
