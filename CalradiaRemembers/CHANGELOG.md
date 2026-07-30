@@ -2,6 +2,15 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.32.3.. 2026-07-30
+
+A hotfix for the Dark Leather window. Your saves carry over untouched.
+
+### Fixed
+- **Dark Leather is no longer oversized on high-resolution screens.** The v1.32.2 fill-the-screen change scaled
+  by the display's resolution, so on a 1440p or 4K screen the illuminated book grew far too large and spilled off
+  the edges. It now fills a fixed share of the screen height on every resolution. (Report: a player on Nexus.)
+
 ## v1.32.2.. 2026-07-29
 
 A few fixes, mostly from player reports. Your saves carry over untouched.
