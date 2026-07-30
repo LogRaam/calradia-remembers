@@ -2,6 +2,23 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.32.2.. 2026-07-29
+
+Two fixes from player reports. Your saves carry over untouched.
+
+### Fixed
+- **Characters now remember letters you sent them.** A letter you sent to a character (through the tavern
+  keeper) was only "known" to them for their immediate reply, then dropped, so later in person they could act
+  as if it had never arrived ("still awaiting a letter on the subject"). A delivered letter is now filed as a
+  lasting memory, so the character remembers it in later conversation, the same way they already remember the
+  letters they send you. (Report: a player on Nexus.)
+- **Memory compression no longer fails on heavy reasoning models.** With a reasoning-heavy model (e.g. GLM),
+  the memory-compression step could fail with "the model spent its entire reply budget on internal reasoning":
+  it reserved too little room for the answer after the model's thinking. It now reserves far more. Compression
+  was already safe when it failed (no memories are ever lost, the character simply keeps them uncompressed);
+  this just stops the error. If it still happens on a very heavy reasoning model, lower Reasoning Effort in the
+  mod options. (Report: a player on Nexus.)
+
 ## v1.32.1.. 2026-07-29
 
 Two fixes on top of v1.32.0, both from player reports. Your saves carry over untouched.
