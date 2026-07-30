@@ -47,6 +47,12 @@ namespace CalradiaRemembers.Chat
       public const string ClassicSkin = "CalradiaRemembersChat";
       /// <summary>The ornate two-page illuminated-manuscript skin (fixed-size book over Gabriel's page art).</summary>
       public const string ManuscriptSkin = "CalradiaRemembersChat_Manuscript";
+      /// <summary>The bespoke 3-column COUNCIL window (left seat strip / centre chatroom / right engagements), a stretch layout so it never needs the Manuscript's zoom.</summary>
+      public const string CouncilSkin = "CalradiaRemembersCouncil";
+
+      // Set by OpenForCouncil/OpenForAssembly immediately before Open(), and consumed (reset to false) at the
+      // very start of GenerateChatWindow's skin selection, so it can never leak into the NEXT conversation.
+      private static bool _forceCouncilSkin;
 
       // The Manuscript book is a FIXED-aspect design (940 units tall); GauntletUI has no per-widget zoom, so the
       // whole chat LAYER is scaled instead (UIContext.ScaleModifier), which multiplies sizes AND margins AND
@@ -458,6 +464,7 @@ namespace CalradiaRemembers.Chat
          if (anchorIndex < 0) return "Could not seat an anchor for the council.";
          Hero anchor = seated[anchorIndex];
 
+         _forceCouncilSkin = true;
          Open(anchor.Name?.ToString());
 
          if (ActiveViewModel == null) return "The chat window could not be opened.";
@@ -538,6 +545,7 @@ namespace CalradiaRemembers.Chat
             ? anchorPool[anchorIndex]
             : anchorPool[0];
 
+         _forceCouncilSkin = true;
          Open(anchor.Name?.ToString());
 
          if (ActiveViewModel == null) return "The chat window could not be opened.";
@@ -675,14 +683,22 @@ namespace CalradiaRemembers.Chat
             ChatLayerOrder);
          _activeLayer.InputRestrictions.SetInputRestrictions();
 
-         // Skin precedence: a captive scene forces Classic for now (the Manuscript skin is not yet fitted to
-         // those scenes); else a dev console override (cr.skin); else the MCM menu choice (default Dark Leather).
-         // Fall back to Classic if a name is somehow empty so a bad skin can never leave the player with no chat.
-         string skin = forceClassicSkin
-            ? ClassicSkin
-            : !string.IsNullOrWhiteSpace(SkinConsoleOverride)
-               ? SkinConsoleOverride
-               : ModSettings.ChatSkinPrefab;
+         // Consumed here (reset to false) so a flag set for THIS open can never leak into a later conversation
+         // that opens through a different path (forceClassicSkin, console override, or the MCM choice).
+         bool council = _forceCouncilSkin;
+         _forceCouncilSkin = false;
+
+         // Skin precedence: the bespoke council window wins outright (OpenForCouncil/OpenForAssembly); else a
+         // captive scene forces Classic for now (the Manuscript skin is not yet fitted to those scenes); else a
+         // dev console override (cr.skin); else the MCM menu choice (default Dark Leather). Fall back to Classic
+         // if a name is somehow empty so a bad skin can never leave the player with no chat.
+         string skin = council
+            ? CouncilSkin
+            : forceClassicSkin
+               ? ClassicSkin
+               : !string.IsNullOrWhiteSpace(SkinConsoleOverride)
+                  ? SkinConsoleOverride
+                  : ModSettings.ChatSkinPrefab;
          if (string.IsNullOrWhiteSpace(skin)) skin = ClassicSkin;
          ActiveSkin = skin;
          _activeMovieId = _activeLayer.LoadMovie(skin, ActiveViewModel);
@@ -721,6 +737,9 @@ namespace CalradiaRemembers.Chat
 
          _activeLayer.IsFocusLayer = false;
          _activeLayer.InputRestrictions.ResetInputRestrictions();
+         // Bespoke council window: free every seat tile's tableau before the movie goes away, so none survives
+         // the close regardless of engine teardown timing (mirrors ReleaseAllPortraits for the message list).
+         ActiveViewModel?.ReleaseCouncilPortraits();
          _activeLayer.ReleaseMovie(_activeMovieId);
 
          if (_chatScreen != null)

@@ -1115,6 +1115,16 @@ namespace CalradiaRemembers.Chat
          // persists the pledges; a normal close clears it again in FinalizeCouncilResolutions.
          CalradiaRemembers.Assemblies.CouncilSessionBehavior.Instance?.BeginSession(scope, _councilLedger);
 
+         // Bespoke council window (Inc 0): seats the left strip from the roster the caller (OpenForCouncil /
+         // OpenForAssembly) already built via AddWitness, and gives the centre column its agenda placeholder.
+         CouncilAgendaText = scope switch {
+            CouncilScope.Assembly => "Assemblee",
+            CouncilScope.Family => "Conseil de clan et de famille",
+            CouncilScope.ClanLords => "Conseil des seigneurs du clan",
+            _ => "Conseil des compagnons"
+         };
+         PopulateCouncilParticipants();
+
          ChatSpeaker speaker = MainSpeaker();
          if (speaker.Profile == null)
          {

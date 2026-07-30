@@ -75,5 +75,11 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>Diagnostic VRAM sample line, tagged for the log.</summary>
       void LogVram(string tag);
+
+      /// <summary>Highlights <paramref name="speaker" />'s seat in the bespoke council window while their turn is taken (a no-op outside a council).</summary>
+      void SetActiveCouncilSpeaker(ChatSpeaker speaker);
+
+      /// <summary>Clears any council seat highlight once the lap has moved past every speaker (a no-op outside a council).</summary>
+      void ClearActiveCouncilSpeaker();
    }
 }

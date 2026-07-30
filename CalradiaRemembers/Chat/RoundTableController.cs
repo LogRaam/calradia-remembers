@@ -140,6 +140,9 @@ namespace CalradiaRemembers.Chat
                   host.BuildContextWitnesses(speaker),
                   isRoundTableTurn: true);
 
+               // Bespoke council window: highlight this seat while their turn is taken (a no-op outside a
+               // council, and harmless for the button/free-text lap over the ordinary chat prefab).
+               host.SetActiveCouncilSpeaker(speaker);
                ChatMessageViewModel placeholder = host.AddPlaceholder(speaker);
 
                NpcChatResult result;
@@ -215,6 +218,7 @@ namespace CalradiaRemembers.Chat
                host.ProcessCouncilResolutions(result.Response);
             }
 
+            host.ClearActiveCouncilSpeaker();
             _gate.Start = RoundTablePolicy.NextStartIndex(participants.Count, _gate.Start, order.Count);
          }
          catch (Exception ex)
