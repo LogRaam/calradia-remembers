@@ -16,6 +16,8 @@ namespace CalradiaRemembers.Mapping
    ///   All three files are optional — missing files produce empty strings and the
    ///   PromptBuilder falls back to its hardcoded defaults.
    ///   Reload on every session launch so edits take effect without restarting the game.
+   ///   A file under ModuleData/Custom of the same name is read instead when present, so a
+   ///   player's own edits survive a mod update that re-extracts ModuleData.
    /// </summary>
    public static class NarrativeLoader
    {
@@ -54,7 +56,9 @@ namespace CalradiaRemembers.Mapping
 
       private static string ReadFile(string folder, string filename, string label)
       {
-         string path = Path.Combine(folder, filename);
+         string customPath = Path.Combine(folder, "Custom", filename);
+         bool useCustom = File.Exists(customPath);
+         string path = useCustom ? customPath : Path.Combine(folder, filename);
          if (!File.Exists(path))
          {
             ModLog.Info($"  [{label}] not found — using built-in default. ({path})");
@@ -63,7 +67,7 @@ namespace CalradiaRemembers.Mapping
          }
 
          string content = File.ReadAllText(path, Encoding.UTF8).Trim();
-         ModLog.Info($"  [{label}] loaded ({content.Length} chars).");
+         ModLog.Info($"  [{label}]{(useCustom ? " (custom)" : "")} loaded ({content.Length} chars).");
 
          return content;
       }

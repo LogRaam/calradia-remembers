@@ -89,5 +89,35 @@ namespace CalradiaRemembers.Logic.Styles
 
             return true;
         }
+
+        /// <summary>
+        ///   Merges the shipped style names (ModuleData/Styles) with the player's own overrides
+        ///   (ModuleData/Custom/Styles), so a customized style shows once in the picker rather than
+        ///   twice, and a custom file with the same name as a shipped one wins. Pure name arithmetic:
+        ///   which file actually gets READ for a given name is StyleCatalog's job (Custom-first).
+        /// </summary>
+        /// <param name="shipped">The style names found in the shipped Styles folder.</param>
+        /// <param name="custom">The style names found in the player's Custom/Styles folder.</param>
+        /// <returns>The case-insensitive union, sorted with <see cref="StringComparer.OrdinalIgnoreCase" />.</returns>
+        public static IReadOnlyList<string> MergeStyleNames(IEnumerable<string> shipped, IEnumerable<string> custom)
+        {
+            Dictionary<string, string> byNameLower = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string name in shipped ?? Enumerable.Empty<string>())
+            {
+                if (!string.IsNullOrWhiteSpace(name)) byNameLower[name] = name;
+            }
+
+            // A custom name of the same spelling (any case) OVERRIDES the shipped entry: the player's
+            // own version is what the picker should reflect and what StyleCatalog.PathOf will read.
+            foreach (string name in custom ?? Enumerable.Empty<string>())
+            {
+                if (!string.IsNullOrWhiteSpace(name)) byNameLower[name] = name;
+            }
+
+            return byNameLower.Values
+                               .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                               .ToList();
+        }
     }
 }

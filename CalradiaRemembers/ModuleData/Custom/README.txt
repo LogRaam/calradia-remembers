@@ -1,0 +1,35 @@
+CALRADIA REMEMBERS, CUSTOM FOLDER
+
+This folder is for YOUR edits. The mod never ships files here and never writes into it, so when you
+update the mod (re-extract the archive over your install), whatever you put in Custom is left alone.
+
+WHY THIS EXISTS
+
+Every editable prompt file (world.txt, behavior_guidelines.txt, and the rest) lives in ModuleData, right
+next to the mod's own files. If you edit one of those directly and then update the mod, the update
+overwrites your changes with the shipped default. Custom fixes that: the mod checks here FIRST, and only
+falls back to the shipped file if nothing of the same name exists in Custom.
+
+TO KEEP AN EDITED PROMPT
+
+Copy the file you want to customize into this folder, keeping the same name, then edit your copy here.
+For example:
+  Custom\world.txt
+  Custom\player_description.txt
+  Custom\behavior_guidelines.txt
+  Custom\post_history_instructions.txt
+  Custom\behavior_guidelines_gangleader.txt (and the other station variants)
+
+TO KEEP A CUSTOM STYLE
+
+Put your style file in the Styles subfolder here instead of the main Styles folder, for example:
+  Custom\Styles\MyVoice.txt
+
+It will show up in the style picker like any other style, and if it shares a name with a shipped style,
+your version is the one that gets used.
+
+HOW THE LOOKUP WORKS
+
+For any given file name, the mod loads the one in Custom if it exists, otherwise it loads the standard
+one shipped in ModuleData. Nothing needs to be moved back and forth: keep only what you actually want to
+override in this folder, and everything else keeps using the mod's shipped defaults.

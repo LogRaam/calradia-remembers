@@ -102,5 +102,65 @@ namespace CalradiaRemembers.Tests.Styles
             StyleCatalogPolicy.IsSelectableStyleFile(null).Should().BeFalse();
             StyleCatalogPolicy.IsSelectableStyleFile("   ").Should().BeFalse();
         }
+
+        // MergeStyleNames backs the Custom/ override folder (mirrors ModuleData/Custom for prompts): a
+        // player's own style file under ModuleData/Custom/Styles must override a shipped one of the same
+        // name and both sets must merge without duplicates, so a customization survives a mod update and
+        // is not shown twice in the picker.
+
+        // STAKE: without this, a player who copies "Novelistic.txt" into Custom/Styles to tweak it would
+        // see "Novelistic" listed twice in the picker, one shipped and one custom, with no way to tell
+        // which is which.
+        [Test]
+        public void GIVEN_a_custom_name_matching_a_shipped_name_WHEN_merging_THEN_only_one_entry_is_returned()
+        {
+            List<string> shipped = new List<string> {"Novelistic", "Terse"};
+            List<string> custom = new List<string> {"Novelistic"};
+
+            StyleCatalogPolicy.MergeStyleNames(shipped, custom).Should().Equal("Novelistic", "Terse");
+        }
+
+        // STAKE: a custom style with a name nobody shipped (the common case, a player's own invented
+        // voice) must still show up in the picker alongside the shipped ones, not replace them.
+        [Test]
+        public void GIVEN_disjoint_shipped_and_custom_names_WHEN_merging_THEN_the_union_is_returned()
+        {
+            List<string> shipped = new List<string> {"Default", "Terse"};
+            List<string> custom = new List<string> {"MyVoice"};
+
+            StyleCatalogPolicy.MergeStyleNames(shipped, custom).Should().Equal("Default", "MyVoice", "Terse");
+        }
+
+        // STAKE: file systems and players are not consistent about casing; "novelistic" in Custom must
+        // still be recognized as overriding "Novelistic" shipped, not treated as a second, unrelated style.
+        [Test]
+        public void GIVEN_a_custom_name_differing_only_in_case_WHEN_merging_THEN_it_still_dedupes_to_one_entry()
+        {
+            List<string> shipped = new List<string> {"Novelistic"};
+            List<string> custom = new List<string> {"NOVELISTIC"};
+
+            StyleCatalogPolicy.MergeStyleNames(shipped, custom).Should().ContainSingle();
+        }
+
+        // STAKE: most players never create a Custom/Styles folder at all, so the everyday case (no
+        // custom styles) must reduce to exactly the shipped list, unchanged.
+        [Test]
+        public void GIVEN_no_custom_names_WHEN_merging_THEN_the_shipped_names_are_returned_unchanged()
+        {
+            List<string> shipped = new List<string> {"Default", "Grimdark"};
+
+            StyleCatalogPolicy.MergeStyleNames(shipped, new List<string>()).Should().Equal("Default", "Grimdark");
+        }
+
+        // STAKE: the picker relies on alphabetical order regardless of which folder a name came from, so
+        // a custom-only or mixed-case result must not appear out of order.
+        [Test]
+        public void GIVEN_mixed_shipped_and_custom_names_WHEN_merging_THEN_the_result_is_sorted_case_insensitively()
+        {
+            List<string> shipped = new List<string> {"Whimsical", "default"};
+            List<string> custom = new List<string> {"Austen"};
+
+            StyleCatalogPolicy.MergeStyleNames(shipped, custom).Should().Equal("Austen", "default", "Whimsical");
+        }
     }
 }

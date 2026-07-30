@@ -27,9 +27,18 @@ namespace CalradiaRemembers.Styles
             => Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData", StylesFolderName);
 
         /// <summary>
+        ///   The full path of the player's own Custom/Styles folder, whether or not it exists yet. A
+        ///   file here of the same name as a shipped style overrides it, and survives a mod update that
+        ///   re-extracts ModuleData (the mod never ships or writes into Custom).
+        /// </summary>
+        public static string CustomFolderPath
+            => Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData", "Custom", StylesFolderName);
+
+        /// <summary>
         ///   Every style the player currently has, by display name (the file name without its extension),
-        ///   alphabetically. Enumerates the directory, so it is called when LISTING or PICKING a style, never
-        ///   on the per-message path (which only ever stats one known file).
+        ///   alphabetically, merging the shipped Styles folder with the player's Custom/Styles overrides
+        ///   (a Custom name wins). Enumerates both directories, so it is called when LISTING or PICKING a
+        ///   style, never on the per-message path (which only ever stats one known file).
         /// </summary>
         public static IReadOnlyList<string> AvailableNames()
         {
@@ -37,15 +46,19 @@ namespace CalradiaRemembers.Styles
             {
                 EnsureFolder();
 
-                return Directory.Exists(FolderPath)
-                    ? Directory.GetFiles(FolderPath, "*.txt")
-                               .Select(Path.GetFileNameWithoutExtension)
-                               // Documentation (README) and drafts (a leading underscore) are not styles: they
-                               // must never show up in the picker as if they were (player report 2026-07-26).
-                               .Where(StyleCatalogPolicy.IsSelectableStyleFile)
-                               .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-                               .ToList()
-                    : new List<string>();
+                IEnumerable<string> shipped = Directory.Exists(FolderPath)
+                    ? Directory.GetFiles(FolderPath, "*.txt").Select(Path.GetFileNameWithoutExtension)
+                    : Enumerable.Empty<string>();
+
+                IEnumerable<string> custom = Directory.Exists(CustomFolderPath)
+                    ? Directory.GetFiles(CustomFolderPath, "*.txt").Select(Path.GetFileNameWithoutExtension)
+                    : Enumerable.Empty<string>();
+
+                // Documentation (README) and drafts (a leading underscore) are not styles: they
+                // must never show up in the picker as if they were (player report 2026-07-26).
+                return StyleCatalogPolicy.MergeStyleNames(
+                    shipped.Where(StyleCatalogPolicy.IsSelectableStyleFile),
+                    custom.Where(StyleCatalogPolicy.IsSelectableStyleFile));
             }
             catch (Exception ex)
             {
@@ -73,9 +86,19 @@ namespace CalradiaRemembers.Styles
             }
         }
 
-        /// <summary>The file path a style name maps to (never null; the file may not exist).</summary>
+        /// <summary>
+        ///   The file path a style name maps to (never null; the file may not exist). Custom-first: a
+        ///   file of the same name under Custom/Styles is returned when it exists, so a player's own
+        ///   edit is what StampTicksOf and ReadRules actually see, without either of them needing to
+        ///   know about the override.
+        /// </summary>
         public static string PathOf(string name)
-            => Path.Combine(FolderPath, (name ?? string.Empty) + ".txt");
+        {
+            string fileName = (name ?? string.Empty) + ".txt";
+            string customPath = Path.Combine(CustomFolderPath, fileName);
+
+            return File.Exists(customPath) ? customPath : Path.Combine(FolderPath, fileName);
+        }
 
         /// <summary>
         ///   The style file's last-write time in ticks, or 0 when it does not exist. This is the CHEAP check
@@ -120,6 +143,8 @@ namespace CalradiaRemembers.Styles
         ///   at. The styles THEMSELVES ship with the mod (ModuleData/Styles, deployed like every other editable
         ///   prompt file), so nothing is written here: a player who edits a style keeps their version, and a
         ///   player who deletes one gets it back on the next update rather than having it silently recreated.
+        ///   Custom/Styles is deliberately NOT created here: it is the player's own folder, so it only ever
+        ///   exists because the player (or a past mod version's README) put it there.
         /// </summary>
         public static void EnsureFolder()
         {
