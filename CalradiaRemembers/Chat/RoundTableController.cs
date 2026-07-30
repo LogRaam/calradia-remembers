@@ -130,6 +130,7 @@ namespace CalradiaRemembers.Chat
                   continue;
                }
 
+               await host.EnsureHistoryCompressedAsync();
                ChatSession session = host.BuildSession(speaker);
                const string stimulus = "(The floor is open to the group. Take your turn in the discussion now.)";
 

@@ -22,6 +22,7 @@ using CalradiaRemembers.Services;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Styles;
 using CalradiaRemembers.WorldEvents;
+using NpcMemoryService.Core.Compression;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Parsing;
 using NpcMemoryService.Core.Prompts;
@@ -63,6 +64,7 @@ namespace CalradiaRemembers.Chat
             ModLog.Info($"[SCENE] continuation {_sceneContinuations} → {behavior.LlmServices.ModelId} " +
                         $"(mode {LlmServices.ActiveModelMode})...");
 
+            await EnsureTranscriptCompressedAsync();
             ChatSession session = BuildSessionFor(speaker);
             var world = new WorldState {
                CurrentDay = behavior.GameStateBridge.GetCurrentGameDay(),
@@ -365,6 +367,7 @@ namespace CalradiaRemembers.Chat
                ? "[The prisoner has just torn free of your grip and bolted into the dark — and they are GONE, " + "beyond any chance of recapture tonight. You FAILED to hold them. React in character to losing " + "them this very instant: fury, a shout, a curse, a too-late order to give chase. A few lines " + "only. Then it is over — emit end_conversation.]"
                : "[The prisoner lunged to break free and FAILED — you caught them before they got anywhere. " + "Reassert your control, make them feel the cost of the attempt, and carry the scene on.]";
 
+            await EnsureTranscriptCompressedAsync();
             ChatSession session = BuildSessionFor(speaker);
             var world = new WorldState {
                CurrentDay = behavior.GameStateBridge.GetCurrentGameDay(),
@@ -505,6 +508,7 @@ namespace CalradiaRemembers.Chat
             // Route to whoever the player addressed (main NPC or a witness) and rebuild that
             // speaker's session from the attributed transcript (correct attribution).
             NpcProfile profile = speaker.Profile;
+            await EnsureTranscriptCompressedAsync();
             ChatSession session = BuildSessionFor(speaker);
 
             if (behavior == null || profile == null || session == null)
@@ -1456,6 +1460,7 @@ namespace CalradiaRemembers.Chat
 
                // Session built WITHOUT currentReactions — they are not committed yet.
                // They travel as the stimulus so the LLM sees them as the final user turn.
+               await EnsureTranscriptCompressedAsync();
                ChatSession session = BuildSessionFor(mainSpeaker);
                string stimulus = string.Join("\n",
                   currentReactions.Select(r => $"[{r.name}]: {r.text}"));
@@ -1652,6 +1657,8 @@ namespace CalradiaRemembers.Chat
 
       ChatSession IRoundTableHost.BuildSession(ChatSpeaker speaker) => BuildSessionFor(speaker);
 
+      Task IRoundTableHost.EnsureHistoryCompressedAsync() => EnsureTranscriptCompressedAsync();
+
       IReadOnlyList<WitnessEntry> IRoundTableHost.BuildContextWitnesses(ChatSpeaker speaker) => BuildContextWitnesses(speaker);
 
       ChatMessageViewModel IRoundTableHost.AddPlaceholder(ChatSpeaker speaker)
@@ -1738,6 +1745,61 @@ namespace CalradiaRemembers.Chat
       }
 
       #endregion
+
+      // ── Running-transcript compression (Gabriel 2026-07-30) ────────────────
+
+      private const int ConversationCompressTimeoutSeconds = 60;
+
+      /// <summary>
+      ///   Before a turn is built, fold the older part of a long conversation into a compressed running recap
+      ///   (Gabriel 2026-07-30), so every participant stays coherent with the whole exchange without replaying an
+      ///   ever-growing raw transcript. A no-op below the policy threshold; never throws (a failed fold just keeps
+      ///   the raw history). LLM off-thread, then the state mutation back on the main thread.
+      /// </summary>
+      private async Task EnsureTranscriptCompressedAsync()
+      {
+         try
+         {
+            var behavior = NpcMemoryCampaignBehavior.Instance;
+            if (behavior?.LlmServices is not {IsAvailable: true}) return;
+
+            ConversationFoldPlan plan = ConversationCompressionPolicy.Plan(_transcript.Count, _transcript.SummarizedThrough);
+            if (!plan.ShouldFold) return;
+
+            string newLines = _transcript.RenderRange(plan.FoldFrom, plan.FoldTo, PlayerTranscriptLabel());
+            if (string.IsNullOrWhiteSpace(newLines)) return;
+
+            string existing = _transcript.RunningSummary;
+            var compressor = new ConversationHistoryCompressor(behavior.LlmServices.LlmClient);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(ConversationCompressTimeoutSeconds));
+
+            string updated = null;
+            try
+            {
+               updated = await Task.Run(() => compressor.CompressAsync(existing, newLines, cts.Token)).ConfigureAwait(false);
+            }
+            catch (Exception netEx)
+            {
+               ModLog.Error($"[CONV COMPRESS] LLM call failed: {netEx.Message}");
+            }
+
+            await MainThreadDispatcher.SwitchToMainThread();
+
+            if (!string.IsNullOrWhiteSpace(updated))
+            {
+               _transcript.ApplySummary(updated, plan.FoldTo);
+               ModLog.Info($"[CONV COMPRESS] folded lines [{plan.FoldFrom},{plan.FoldTo}) into the running recap.");
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"EnsureTranscriptCompressedAsync failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>The label the player's lines carry in the recap: "Prisoner" in a captive scene, else their name.</summary>
+      private string PlayerTranscriptLabel()
+         => IsCaptiveEncounter ? "Prisoner" : Hero.MainHero?.Name?.ToString() ?? "You";
 
       #endregion
    }

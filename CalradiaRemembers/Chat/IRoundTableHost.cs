@@ -3,6 +3,7 @@
 #region
 
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using NpcMemoryService.Core.Models;
 
 #endregion
@@ -32,6 +33,9 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>Rebuilds the given speaker's attributed ChatSession from the running transcript.</summary>
       ChatSession BuildSession(ChatSpeaker speaker);
+
+      /// <summary>Folds the conversation's older half into a compressed recap before this member's turn is built, so the whole lap stays coherent.</summary>
+      Task EnsureHistoryCompressedAsync();
 
       /// <summary>The witness list to inject into this speaker's prompt (every other present participant).</summary>
       IReadOnlyList<WitnessEntry> BuildContextWitnesses(ChatSpeaker speaker);
