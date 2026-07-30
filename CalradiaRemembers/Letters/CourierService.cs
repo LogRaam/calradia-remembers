@@ -455,7 +455,7 @@ namespace CalradiaRemembers.Letters
 
             if (!CanReceiveLetter(recipient) || ResolveCourierTarget(recipient) as Settlement != settlement) return;
 
-            Deliver(letter, false);
+            Deliver(letter, false, profile);
             Disband(party);
             store.Set(profile);
          }
@@ -910,7 +910,7 @@ namespace CalradiaRemembers.Letters
 
             if (!HasArrived(courier, recipient)) return true; // matched this courier — stop scanning
 
-            Deliver(letter, false);
+            Deliver(letter, false, profile);
             Disband(courier);
             store.Set(profile);
 
@@ -994,10 +994,11 @@ namespace CalradiaRemembers.Letters
 
       // ── Private helpers ───────────────────────────────────────────────────
 
-      private static void Deliver(PlayerLetter letter, bool courierGone)
+      private static void Deliver(PlayerLetter letter, bool courierGone, NpcProfile profile)
       {
          letter.IsDelivered = true;
          letter.CourierPartyId = null;
+         PlayerLetterService.RecordReceipt(profile, letter); // durable memory so the NPC remembers it in later talk
 
          MBInformationManager.AddQuickInformation(new TextObject(
             $"Your letter has reached {letter.RecipientName}."));
@@ -1367,7 +1368,7 @@ namespace CalradiaRemembers.Letters
             // Deliver BEFORE disbanding: Deliver sets IsDelivered + nulls
             // CourierPartyId, so if ApplyForDisbanding raises MobilePartyDestroyed
             // synchronously, HandlePartyDestroyed sees a delivered letter and no-ops.
-            Deliver(letter, false);
+            Deliver(letter, false, profile);
             Disband(courier);
             changed = true;
          }

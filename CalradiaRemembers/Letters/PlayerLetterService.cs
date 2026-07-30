@@ -52,6 +52,7 @@ namespace CalradiaRemembers.Letters
                if (letter.DeliveryDay > today) continue;
 
                letter.IsDelivered = true;
+               RecordReceipt(profile, letter); // file the durable memory so it survives past the read flag
                changed = true;
                ModLog.Info($"[PLAYER LETTER] delivered (date fallback) to {profile.Name} " + $"(sent day {letter.SentOnDay}).");
             }
@@ -142,7 +143,40 @@ namespace CalradiaRemembers.Letters
          ModLog.Info($"[PLAYER LETTER] marked letters read for {profile.Name}.");
       }
 
+      /// <summary>
+      ///   Files a durable memory on the recipient that they received this letter from the player, so the letter
+      ///   is still remembered in a later face-to-face conversation. Without it, a player letter is injected into
+      ///   the prompt ONLY while delivered-and-unread and vanishes after the NPC's first reply (player report: the
+      ///   NPC later says it is "still awaiting a letter"). Mirrors the NPC->player direction (LetterPopupManager).
+      ///   Called once, at delivery; the caller persists the profile.
+      /// </summary>
+      public static void RecordReceipt(NpcProfile profile, PlayerLetter letter)
+      {
+         if (profile?.Events == null || letter == null) return;
+
+         var today = (int) CampaignTime.Now.ToDays;
+         string player = Hero.MainHero?.Name?.ToString() ?? "the player";
+         string snippet = Snippet(letter.Content);
+         string summary = string.IsNullOrWhiteSpace(snippet)
+            ? $"Received a letter from {player}."
+            : $"Received a letter from {player}: \"{snippet}\"";
+
+         profile.Events.Add(new NotableEvent(today, NotableEventType.Other, summary));
+         ModLog.Info($"[PLAYER LETTER] filed a receipt memory on {profile.Name}.");
+      }
+
       #region private
+
+      /// <summary>A one-line, length-capped preview of the letter body for the receipt memory.</summary>
+      private static string Snippet(string content)
+      {
+         if (string.IsNullOrWhiteSpace(content)) return "";
+
+         string s = content.Trim().Replace("\r", " ").Replace("\n", " ");
+         const int max = 140;
+
+         return s.Length <= max ? s : s.Substring(0, max).TrimEnd() + "...";
+      }
 
       // ── Private helpers ───────────────────────────────────────────────────
 
