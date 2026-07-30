@@ -1773,6 +1773,12 @@ namespace CalradiaRemembers.Chat
          ChatSpeaker speaker = ResolveAddressedSpeaker(text);
          RefreshWitnessUi(); // refresh the "Speaking to …" indicator
 
+         // Bespoke council window (Inc 1): before this new turn, mirror what the table has settled so far into
+         // the Engagements panel. Reads the previous, fully-settled turn (this send's lines are not committed to
+         // the transcript until the call runs), so the panel stays one turn behind but never mid-turn. A no-op
+         // outside a council, and off-thread, so it never delays the send.
+         KickCouncilEngagementExtraction();
+
          // Display only — the player line is committed to the transcript after the call
          // so BuildSessionFor doesn't double-count it (ChatAsync adds it itself).
          AppendPlayerMessage(text, false);

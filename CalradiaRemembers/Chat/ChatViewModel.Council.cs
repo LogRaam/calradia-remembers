@@ -9,6 +9,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic.Assemblies;
+using NpcMemoryService.Core.Compression;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
@@ -19,11 +24,14 @@ namespace CalradiaRemembers.Chat
 {
    public sealed partial class ChatViewModel
    {
+      private const int CouncilEngagementExtractTimeoutSeconds = 45;
       private readonly MBBindingList<CouncilEngagementViewModel> _engagements = new MBBindingList<CouncilEngagementViewModel>();
       private readonly MBBindingList<CouncilParticipantViewModel> _councilParticipants = new MBBindingList<CouncilParticipantViewModel>();
+      private readonly EngagementLedger _engagementLedger = new EngagementLedger();
       private string _councilAgendaText = "";
       private ChatMessageViewModel _councilDossierPortrait; // transient carrier resolving the clicked seat's portrait, released on close/reopen
       private bool _isCouncilDossierOpen;
+      private bool _engagementExtractionRunning;
 
       /// <summary>
       ///   The short "Ordre du jour" line shown under the title in the bespoke council window. Seeded from the
@@ -193,6 +201,93 @@ namespace CalradiaRemembers.Chat
 
          _councilParticipants.Clear();
       }
+
+      #region Engagements extraction (Inc 1)
+
+      /// <summary>
+      ///   Kicks a background reading of the council's standing engagements, unless one is already in flight, the
+      ///   LLM is unavailable, or this is not a council. Fired once per player turn (from ExecuteSendMessage), so
+      ///   the right-hand Engagements panel mirrors what the table has settled through the previous turn. Fire and
+      ///   forget: a failed or slow reading simply leaves the panel as it was. There is no cancel button by design
+      ///   (Gabriel 2026-07-30); a decision is walked back purely by the conversation no longer asserting it, which
+      ///   the next reading picks up.
+      /// </summary>
+      private void KickCouncilEngagementExtraction()
+      {
+         if (_councilScope == null || _engagementExtractionRunning) return;
+
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+         if (behavior?.LlmServices is not {IsAvailable: true}) return;
+
+         _engagementExtractionRunning = true;
+         _ = RunCouncilEngagementExtractionAsync();
+      }
+
+      /// <summary>
+      ///   Reads the whole conversation, asks the extractor which decisions currently stand, and reconciles the
+      ///   ledger to that snapshot (a decision walked back in the talk simply stops appearing and is dropped). The
+      ///   LLM runs off-thread; the ledger mutation and the binding refresh happen back on the main thread. Never
+      ///   throws, and always clears the in-flight guard.
+      /// </summary>
+      private async Task RunCouncilEngagementExtractionAsync()
+      {
+         try
+         {
+            var behavior = NpcMemoryCampaignBehavior.Instance;
+            string conversation = _transcript.ToPlainText(PlayerTranscriptLabel());
+            if (string.IsNullOrWhiteSpace(conversation) || behavior?.LlmServices?.LlmClient == null) return;
+
+            var extractor = new CouncilEngagementExtractor(behavior.LlmServices.LlmClient);
+            string raw = null;
+
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CouncilEngagementExtractTimeoutSeconds)))
+            {
+               try
+               {
+                  raw = await Task.Run(() => extractor.ExtractAsync(conversation, cts.Token)).ConfigureAwait(false);
+               }
+               catch (Exception netEx)
+               {
+                  ModLog.Error($"[ENGAGEMENTS] extraction call failed: {netEx.Message}");
+               }
+            }
+
+            await MainThreadDispatcher.SwitchToMainThread();
+
+            // The window may have closed or the council ended while the call was in flight.
+            if (_councilScope == null || raw == null) return;
+
+            _engagementLedger.Reconcile(EngagementSnapshotParser.Parse(raw));
+            RefreshEngagementsBinding();
+            ModLog.Info($"[ENGAGEMENTS] reconciled: {_engagementLedger.Engagements.Count} standing.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"RunCouncilEngagementExtractionAsync failed: {ex.GetType().Name}: {ex.Message}");
+         }
+         finally
+         {
+            _engagementExtractionRunning = false;
+         }
+      }
+
+      /// <summary>Rebuilds the bound Engagements rows from the ledger and refreshes the empty-state gates.</summary>
+      private void RefreshEngagementsBinding()
+      {
+         _engagements.Clear();
+
+         foreach (CouncilEngagement e in _engagementLedger.Engagements)
+            _engagements.Add(new CouncilEngagementViewModel(e.Subject, e.Text, DescribeEngagementStatus(e.Status)));
+
+         OnPropertyChanged(nameof(HasEngagements));
+         OnPropertyChanged(nameof(ShowEngagementsPlaceholder));
+      }
+
+      /// <summary>The seated-panel wording for an engagement's standing: settled versus still under discussion.</summary>
+      private static string DescribeEngagementStatus(EngagementStatus status)
+         => status == EngagementStatus.Agreed ? "Convenu" : "En debat";
+
+      #endregion
 
       #region IRoundTableHost (council seat highlight)
 
