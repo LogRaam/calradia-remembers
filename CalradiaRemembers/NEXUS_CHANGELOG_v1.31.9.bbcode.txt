@@ -1,9 +1,0 @@
-[size=4]v1.31.9[/size]
-
-A duel fix, from a player report. Saves carry over untouched.
-
-[size=3][b]For everyone (if you use duels)[/b][/size]
-[list]
-[*][b]You can now duel companions and settlement notables, not just lords.[/b] Challenging a companion (or a gang leader, a merchant, a village headman) to a duel did nothing but make the AI describe a fight in text.. a real duel could only be offered against a noble, so with anyone else the challenge never launched. Any named person of standing is now a fair field of honour; only a nameless commoner is still turned away. (Report: a player.)[/*]
-[*][b]The AI no longer plays out a fight it cannot actually stage.[/b] When a real duel is not on the table, a character is now told plainly never to narrate a duel, or a blow struck, as if it happened, and to say so rather than acting it out. A fight the game will not run is treated as talk, not a scene.[/*]
-[/list]

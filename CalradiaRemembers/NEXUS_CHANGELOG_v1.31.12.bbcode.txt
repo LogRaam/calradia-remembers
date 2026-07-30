@@ -1,8 +1,0 @@
-[size=4]v1.31.12[/size]
-
-A small consistency fix, from a player report. Saves carry over untouched.
-
-[size=3][b]Fixed[/b][/size]
-[list]
-[*][b]A character's memories now keep one voice.[/b] Some remembered moments were written in the first person ("I told him...") and others in the third ("Nethor granted...", "he admits..."), so a character's memory panel could read unevenly. New memories are now always written in the character's own first-person voice, matching the conversation recaps. Memories already saved keep whatever voice they were written in (the mod does not rewrite them). (Report: a player on Nexus.)[/*]
-[/list]
