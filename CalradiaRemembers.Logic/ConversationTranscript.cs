@@ -115,5 +115,28 @@ namespace CalradiaRemembers.Logic
 
             return sb.ToString();
         }
+
+        /// <summary>
+        ///   Lines [from, to) as attributed text, for the running-recap summarizer to fold in. Same attribution
+        ///   as <see cref="ToPlainText" /> (the player carries <paramref name="playerLabel" />). A clamped, empty,
+        ///   or inverted range yields "".
+        /// </summary>
+        public string RenderRange(int from, int to, string playerLabel)
+        {
+            int start = from < 0 ? 0 : from;
+            int end = to > _lines.Count ? _lines.Count : to;
+            if (end <= start) return "";
+
+            var sb = new StringBuilder();
+            for (int i = start; i < end; i++)
+            {
+                TranscriptLine e = _lines[i];
+                if (string.IsNullOrWhiteSpace(e.Text)) continue;
+
+                sb.AppendLine($"{(e.IsPlayer ? playerLabel : e.SpeakerName)}: {e.Text}");
+            }
+
+            return sb.ToString();
+        }
     }
 }
