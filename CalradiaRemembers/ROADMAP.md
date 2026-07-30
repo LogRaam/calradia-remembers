@@ -1984,6 +1984,13 @@ player's. So it works cleanly for a NON-leader lord (a younger son, a minor fami
 the "join your clan" step must be made explicit alongside the marriage so he actually lands under the player's
 banner. Scope the `MarriageAction` API + clan-assignment rules before estimating.
 
+**BUILT (player request, Nexus 2026-07-30): `ModuleData/Custom/` override folder.** Edited prompts and custom
+styles were overwritten on every mod update (re-extraction). A `Custom/` folder the mod never ships into now
+survives updates (the CK3 VOTC pattern); the loaders read `Custom/<file>` first, else the shipped file
+(`NarrativeLoader.ReadFile` for the prompt .txts; `StyleCatalog.PathOf` + `MergeStyleNames` for styles).
+A pure openness win. Committed local (`13bc5d0`), not yet in a numbered release. Could extend to the editable
+JSON (`cultural_traditions`, `character_overrides`, `jealousy_cultures`) later.
+
 **Future — war declaration as a leader-only strategic decision (Gabriel, 2026-07-02/03, not yet designed).**
 *"War declaration = a leader-only strategic decision, NEVER a conversation or pledge trigger. A dedicated future
 system where the FACTION LEADER evaluates the clan's world situation, interests, relative strength, open fronts,
