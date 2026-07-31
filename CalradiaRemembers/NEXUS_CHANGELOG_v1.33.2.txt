@@ -1,0 +1,6 @@
+v1.33.2
+
+A small follow-up for players who use overhaul mods. Your saves carry over untouched.
+
+Improved
+- The Custom folder now keeps your culture edits too. cultural_traditions.json and jealousy_cultures.json can now live in ModuleData/Custom/, so an overhaul player's own cultures survive a mod update, like the other prompt files already do. They were read only from the shipped copy before. Both are keyed by the culture's display name (case-sensitive; the "Culture:" line on a character's chat info panel shows it), and an unlisted culture still degrades gracefully. (Question: a player on Nexus.)
