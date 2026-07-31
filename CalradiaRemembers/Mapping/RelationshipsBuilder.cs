@@ -160,7 +160,7 @@ namespace CalradiaRemembers.Mapping
             : child.Father;
 
          string baseName = child.IsAlive
-            ? $"{child.Name} ({sex}"
+            ? $"{child.Name} ({sex}, age {(int) child.Age}"
             : $"the late {child.Name} ({sex}";
 
          if (other == null || other == npcHero.Spouse)
@@ -234,14 +234,14 @@ namespace CalradiaRemembers.Mapping
             : "male";
 
          return h.IsAlive
-            ? $"{h.Name} ({sex})"
+            ? $"{h.Name} ({sex}, age {(int) h.Age})"
             : $"the late {h.Name} ({sex})";
       }
 
       /// <summary>Names a relative, marking the deceased as "the late …" so the NPC speaks of them accurately.</summary>
       private static string FormatKin(Hero kin)
          => kin.IsAlive
-            ? kin.Name.ToString()
+            ? $"{kin.Name} (age {(int) kin.Age})"
             : $"the late {kin.Name}{DescribeDeath(kin)}";
 
       #endregion

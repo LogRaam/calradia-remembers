@@ -67,7 +67,7 @@ namespace CalradiaRemembers.Mapping
          {
             if (other == npc || other.IsHumanPlayerCharacter) continue;
 
-            var fullName = other.Name?.ToString();
+            var fullName = HeroLabel.Describe(other.Name?.ToString(), other.Clan?.Name?.ToString(), other.Culture?.Name?.ToString());
 
             if (string.IsNullOrEmpty(fullName)) continue;
             if (seen.Contains(other.StringId)) continue;

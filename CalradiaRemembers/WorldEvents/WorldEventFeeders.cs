@@ -88,7 +88,12 @@ namespace CalradiaRemembers.WorldEvents
 
       private static bool IsBandit(Hero h) => h?.MapFaction?.IsBanditFaction == true;
 
-      private static string LeaderName(Hero h) => h?.Name?.ToString() ?? "a host";
+      private static string LeaderName(Hero h) => h?.Name == null ? "a host" : HeroLabel.Describe(h.Name.ToString(), h.Clan?.Name?.ToString());
+
+      // Names a hero actor for a Summary line with the clan disambiguator (rumor/news phrasing must
+      // never let a namesake, such as a lord and the player's own young son, be read as the same
+      // person). Empty when the hero itself is null, so callers keep their own sentence-start fallback.
+      private static string Named(Hero h) => HeroLabel.Describe(h?.Name?.ToString(), h?.Clan?.Name?.ToString());
 
       private static string PairKey(Hero a, Hero b)
          => string.CompareOrdinal(a.StringId, b.StringId) < 0
@@ -210,7 +215,7 @@ namespace CalradiaRemembers.WorldEvents
                   ? 45
                   : 35,
                InvolvesPlayer = playerIn,
-               Summary = $"{a.Name} wed {b.Name}.",
+               Summary = $"{Named(a)} wed {Named(b)}.",
                ActorIds = Ids(a, b),
                FactionIds = FactionIds(a, b)
             };
@@ -238,8 +243,8 @@ namespace CalradiaRemembers.WorldEvents
                Magnitude = 65,
                InvolvesPlayer = playerIn,
                Summary = killer != null
-                  ? $"{killer.Name} had {victim.Name} executed."
-                  : $"{victim.Name} was executed.",
+                  ? $"{Named(killer)} had {Named(victim)} executed."
+                  : $"{Named(victim)} was executed.",
                ActorIds = Ids(victim, killer),
                FactionIds = FactionIds(victim, killer),
                // Influence loop: an execution by the player wounds the victim's own faction deeply.
@@ -388,9 +393,9 @@ namespace CalradiaRemembers.WorldEvents
                   PlaceId = settlement.StringId,
                   Magnitude = settlement.IsTown ? 70 : settlement.IsCastle ? 55 : 35,
                   InvolvesPlayer = playerIn,
-                  Summary = $"{taker?.Name?.ToString() ?? "A host"} took {settlement.Name}" +
+                  Summary = $"{(taker == null ? "A host" : Named(taker))} took {settlement.Name}" +
                             (oldOwner != null
-                               ? $" from {oldOwner.Name}."
+                               ? $" from {Named(oldOwner)}."
                                : "."),
                   ActorIds = Ids(taker, oldOwner),
                   FactionIds = FactionIds(taker, oldOwner),
@@ -834,7 +839,7 @@ namespace CalradiaRemembers.WorldEvents
                   Type = WorldEventType.Rivalry,
                   Day = today,
                   Magnitude = 22,
-                  Summary = $"{lords[i].Name} and {lords[j].Name} are at bitter odds.",
+                  Summary = $"{Named(lords[i])} and {Named(lords[j])} are at bitter odds.",
                   ActorIds = Ids(lords[i], lords[j]),
                   FactionIds = kingdom?.StringId != null
                      ? new List<string> {kingdom.StringId}
