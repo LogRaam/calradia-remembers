@@ -2,6 +2,22 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.33.1.. 2026-07-31
+
+Two relevance fixes from a player report. Your saves carry over untouched.
+
+### Fixed
+- **Characters speak their age.** A character's own age was never given to the AI, so a lord of twenty-two could
+  talk about himself as if he had lived a long life. Each character now knows how old they are (carried on their
+  profile, refreshed each conversation) and the identity prompt tells them to speak as someone of their years.
+- **Characters who share a first name are no longer mistaken for one another.** Names repeat in Calradia, and the
+  model could conflate two different people who share one (a player's six-year-old son and a Battanian lord both
+  named Luichan, so the father spoke as if the child had captured a castle). Heroes are now named with their
+  house wherever it matters (rumors read "Luichan of Fen Company took X"; a shared `HeroLabel` helper appends
+  clan and culture at every naming site), family members carry their age ("Luichan (male, age 6)"), and a
+  standing prompt directive states that a name in the news is not necessarily a relative of the same name. Scales
+  as later generations repeat names. (Report: a player on Nexus.)
+
 ## v1.33.0.. 2026-07-31
 
 Two features for players who like to tinker with the writing, plus a couple of quiet improvements. Your saves

@@ -1,0 +1,9 @@
+[size=4]v1.33.1[/size]
+
+Two relevance fixes from a player report. Saves carry over untouched.
+
+[size=3][b]Fixed[/b][/size]
+[list]
+[*][b]Characters speak their age.[/b] A character's own age was never given to the AI, so a lord of twenty-two could talk about himself as if he had lived a long life, with decades of deeds behind him. Each character now knows how old they are and speaks accordingly.. a young one as a young one, an elder as an elder.[/*]
+[*][b]Characters who share a first name are no longer mistaken for one another.[/b] Names repeat in Calradia, and the AI could confuse two different people who share one. In one report a character heard that a lord named Luichan had captured a castle and assumed it was his own six-year-old son, also named Luichan. People are now named with their house wherever it matters (a rumor reads "Luichan of Fen Company took the castle", not just "Luichan"), family members carry their age, and the AI is told plainly that a name in the news is not necessarily a relative of the same name. This will matter more and more as second and third generations are born and names start to repeat. (Report: a player on Nexus.)[/*]
+[/list]
