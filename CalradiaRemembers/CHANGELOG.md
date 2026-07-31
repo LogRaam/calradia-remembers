@@ -2,6 +2,17 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.33.2.. 2026-07-31
+
+A small follow-up for players who use overhaul mods. Your saves carry over untouched.
+
+### Improved
+- **The Custom folder now keeps your culture edits too.** `cultural_traditions.json` and `jealousy_cultures.json`
+  can now live in `ModuleData/Custom/`, so an overhaul player's own cultures survive a mod update, like the other
+  prompt files already do. They were read only from the shipped copy before. Both are keyed by the culture's
+  display name (case-sensitive; the "Culture:" line on a character's chat info panel shows it), and an unlisted
+  culture still degrades gracefully. (Question: a player on Nexus.)
+
 ## v1.33.1.. 2026-07-31
 
 Two relevance fixes from a player report. Your saves carry over untouched.
@@ -17,12 +28,6 @@ Two relevance fixes from a player report. Your saves carry over untouched.
   clan and culture at every naming site), family members carry their age ("Luichan (male, age 6)"), and a
   standing prompt directive states that a name in the news is not necessarily a relative of the same name. Scales
   as later generations repeat names. (Report: a player on Nexus.)
-
-### Improved
-- **The Custom folder now keeps your culture edits too.** `cultural_traditions.json` and `jealousy_cultures.json`
-  can now live in `ModuleData/Custom/`, so an overhaul player's own cultures survive a mod update, like the other
-  prompt files already do. They were read only from the shipped copy before. Both are keyed by the culture's
-  display name (case-sensitive), and an unlisted culture still degrades gracefully. (Question: a player on Nexus.)
 
 ## v1.33.0.. 2026-07-31
 

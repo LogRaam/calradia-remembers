@@ -7,8 +7,3 @@ Two relevance fixes from a player report. Saves carry over untouched.
 [*][b]Characters speak their age.[/b] A character's own age was never given to the AI, so a lord of twenty-two could talk about himself as if he had lived a long life, with decades of deeds behind him. Each character now knows how old they are and speaks accordingly.. a young one as a young one, an elder as an elder.[/*]
 [*][b]Characters who share a first name are no longer mistaken for one another.[/b] Names repeat in Calradia, and the AI could confuse two different people who share one. In one report a character heard that a lord named Luichan had captured a castle and assumed it was his own six-year-old son, also named Luichan. People are now named with their house wherever it matters (a rumor reads "Luichan of Fen Company took the castle", not just "Luichan"), family members carry their age, and the AI is told plainly that a name in the news is not necessarily a relative of the same name. This will matter more and more as second and third generations are born and names start to repeat. (Report: a player on Nexus.)[/*]
 [/list]
-
-[size=3][b]Improved[/b][/size]
-[list]
-[*][b]The Custom folder now keeps your culture edits too.[/b] The two culture files, cultural_traditions.json and jealousy_cultures.json, can now live in ModuleData/Custom/ like the other prompt files, so if you play an overhaul and add your world's own cultures, your edits survive a mod update instead of being overwritten. Both are keyed by the culture's display name (the "Culture:" line on a character's chat info panel), and an unlisted culture still works, just with a lighter cultural note. (Question: a player on Nexus.)[/*]
-[/list]
