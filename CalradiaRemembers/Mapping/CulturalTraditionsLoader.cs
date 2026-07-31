@@ -12,12 +12,13 @@ using TaleWorlds.Library;
 namespace CalradiaRemembers.Mapping
 {
     /// <summary>
-    ///   Loads and caches the <c>cultural_traditions.json</c> file from the mod's
-    ///   ModuleData folder. Keyed by culture display name (e.g. "Empire", "Vlandia")
-    ///   to match the format used by AI Influence and other mods, enabling
-    ///   interoperability: a conversion mod author can ship their own
-    ///   <c>cultural_traditions.json</c> with culture names appropriate to their world
-    ///   and CalradiaRemembers will pick them up automatically.
+    ///   Loads and caches the <c>cultural_traditions.json</c> file from the mod's own
+    ///   ModuleData folder (and, if present, ModuleData/Custom first). Keyed by culture
+    ///   display name (e.g. "Empire", "Vlandia") to match the format used by AI Influence
+    ///   and other mods. There is no cross-module discovery: CalradiaRemembers never scans
+    ///   another mod's files. A total-conversion or overhaul author instead drops their own
+    ///   <c>cultural_traditions.json</c> under ModuleData/Custom (survives a CalradiaRemembers
+    ///   update) or edits the shipped copy directly.
     ///   Unknown cultures fall back to an empty string — the caller handles graceful degradation.
     /// </summary>
     public static class CulturalTraditionsLoader
@@ -29,9 +30,7 @@ namespace CalradiaRemembers.Mapping
         /// </summary>
         public static void Load()
         {
-            string path = Path.Combine(
-                BasePath.Name, "Modules", "CalradiaRemembers",
-                "ModuleData", "cultural_traditions.json");
+            string path = NarrativeLoader.ResolveCustomFirst("cultural_traditions.json");
 
             if (!File.Exists(path))
             {

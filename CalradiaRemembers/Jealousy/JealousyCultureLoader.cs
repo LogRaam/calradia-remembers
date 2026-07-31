@@ -6,6 +6,7 @@
 using System.Collections.Generic;
 using System.IO;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Mapping;
 using Newtonsoft.Json;
 using TaleWorlds.Library;
 
@@ -28,9 +29,7 @@ namespace CalradiaRemembers.Jealousy
         /// <summary>Loads (or reloads) the JSON file. Safe to call on every session launch.</summary>
         public static void Load()
         {
-            string path = Path.Combine(
-                BasePath.Name, "Modules", "CalradiaRemembers",
-                "ModuleData", "jealousy_cultures.json");
+            string path = NarrativeLoader.ResolveCustomFirst("jealousy_cultures.json");
 
             if (!File.Exists(path))
             {

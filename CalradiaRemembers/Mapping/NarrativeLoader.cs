@@ -29,17 +29,30 @@ namespace CalradiaRemembers.Mapping
 
       public static void Load()
       {
-         string moduleData = Path.Combine(
-            BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData");
-
-         WorldDescription = ReadFile(moduleData, "world.txt", "world description");
-         PlayerDescription = ReadFile(moduleData, "player_description.txt", "player description");
-         BehaviorGuidelines = ReadFile(moduleData, "behavior_guidelines.txt", "behavior guidelines");
-         PostHistoryInstructions = ReadFile(moduleData, "post_history_instructions.txt", "post-history instructions");
+         WorldDescription = ReadFile("world.txt", "world description");
+         PlayerDescription = ReadFile("player_description.txt", "player description");
+         BehaviorGuidelines = ReadFile("behavior_guidelines.txt", "behavior guidelines");
+         PostHistoryInstructions = ReadFile("post_history_instructions.txt", "post-history instructions");
 
          _stationGuidelines.Clear();
          foreach (string station in new[] {"gangleader", "notable", "wanderer"})
-            _stationGuidelines[station] = ReadFile(moduleData, $"behavior_guidelines_{station}.txt", $"{station} guidelines");
+            _stationGuidelines[station] = ReadFile($"behavior_guidelines_{station}.txt", $"{station} guidelines");
+      }
+
+      /// <summary>
+      ///   Resolves <paramref name="filename" /> Custom-first: the absolute path to
+      ///   ModuleData/Custom/<paramref name="filename" /> when that file exists, otherwise the
+      ///   shipped ModuleData path (returned whether or not it exists, so callers keep handling
+      ///   a missing file themselves). Shared by every ModuleData reader (narrative text,
+      ///   cultural_traditions.json, jealousy_cultures.json) so a player's edits survive a mod
+      ///   update that re-extracts ModuleData.
+      /// </summary>
+      public static string ResolveCustomFirst(string filename)
+      {
+         string folder = ModuleDataFolder();
+         string customPath = Path.Combine(folder, "Custom", filename);
+
+         return File.Exists(customPath) ? customPath : Path.Combine(folder, filename);
       }
 
       /// <summary>
@@ -54,11 +67,13 @@ namespace CalradiaRemembers.Mapping
 
       #region private
 
-      private static string ReadFile(string folder, string filename, string label)
+      private static string ModuleDataFolder()
+         => Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData");
+
+      private static string ReadFile(string filename, string label)
       {
-         string customPath = Path.Combine(folder, "Custom", filename);
-         bool useCustom = File.Exists(customPath);
-         string path = useCustom ? customPath : Path.Combine(folder, filename);
+         string path = ResolveCustomFirst(filename);
+         bool useCustom = path == Path.Combine(ModuleDataFolder(), "Custom", filename);
          if (!File.Exists(path))
          {
             ModLog.Info($"  [{label}] not found — using built-in default. ({path})");

@@ -19,6 +19,10 @@ For example:
   Custom\behavior_guidelines.txt
   Custom\post_history_instructions.txt
   Custom\behavior_guidelines_gangleader.txt (and the other station variants)
+  Custom\cultural_traditions.json (JSON: keep the structure valid, matching "Name": "description"
+    pairs with commas between them; keyed by the culture's DISPLAY NAME, case-sensitive, so an overhaul
+    mod's own culture, for example "Nord", goes in as its own entry)
+  Custom\jealousy_cultures.json (same JSON rules and same DISPLAY NAME keying as cultural_traditions.json)
 
 TO KEEP A CUSTOM STYLE
 
