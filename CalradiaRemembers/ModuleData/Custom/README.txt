@@ -33,3 +33,28 @@ HOW THE LOOKUP WORKS
 For any given file name, the mod loads the one in Custom if it exists, otherwise it loads the standard
 one shipped in ModuleData. Nothing needs to be moved back and forth: keep only what you actually want to
 override in this folder, and everything else keeps using the mod's shipped defaults.
+
+TEMPLATE VARIABLES
+
+Your styles and overrides can use SillyTavern-style {{token}} variables. They are resolved fresh for the
+NPC you are actually talking to and the player you actually are, at the moment each reply is written, so
+the same style file works correctly for every character instead of freezing onto whoever you first used it
+with.
+
+Supported tokens:
+  {{char}}        the NPC's name
+  {{char_gender}} the NPC's gender, "woman" or "man"
+  {{user}}        your character's name
+  {{user_gender}} your character's gender, "woman" or "man"
+  {{user_clan}}   your clan's name
+  {{spouse}}      your spouse's name (empty if you have none)
+  {{father}}      your father's name (empty if unknown)
+  {{mother}}      your mother's name (empty if unknown)
+
+Case does not matter ({{char}}, {{Char}}, and {{CHAR}} all work), and spaces inside the braces are fine
+({{ user }} works too). An unrecognized token, such as a typo, is left exactly as written rather than
+silently removed, so you can spot the mistake.
+
+Example, in a Custom\Styles\ file:
+  Write {{char}}'s dialogue in short, clipped sentences, and have them address {{user}} by name when the
+  scene turns tense.
