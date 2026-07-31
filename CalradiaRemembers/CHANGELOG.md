@@ -2,6 +2,36 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.33.0.. 2026-07-31
+
+Two features for players who like to tinker with the writing, plus a couple of quiet improvements. Your saves
+carry over untouched.
+
+### Added
+- **A Custom folder that survives updates.** The prompt files that shape how characters write (world.txt,
+  player_description.txt, post_history_instructions.txt, the behaviour guidelines) and your narrative styles all
+  live in ModuleData next to the mod's own files, so editing them directly meant an update would overwrite your
+  work. There is now a `ModuleData/Custom` folder: drop a copy of any of those files there (same name), or put a
+  style in `Custom/Styles`, and the mod loads yours first and never touches it on update.
+- **Template variables in your prompts and styles.** Player-authored text (styles, and the prompt files above)
+  now understands SillyTavern-style `{{token}}` variables, resolved fresh for the character you are talking to
+  and the hero you are: `{{char}}`, `{{char_gender}}`, `{{user}}`, `{{user_gender}}`, `{{user_clan}}`,
+  `{{faction}}` (also `{{user_faction}}`), `{{location}}`, `{{spouse}}`, `{{father}}`, `{{mother}}`. Resolved at
+  the moment each reply is written, so one style file works for every character. Case-insensitive; an unknown
+  token is left exactly as written instead of vanishing.
+
+### Improved
+- **Characters stay consistent through long conversations.** In a long exchange (above all a gathering of
+  several characters at once), the earlier part of the talk is folded into a compact running recap given to
+  every speaker, so no one loses track of what was said or agreed to earlier, without the prompt growing without
+  bound. Short conversations are untouched.
+
+### Fixed
+- **A lord no longer "agrees" to peace or a parley in conversation.** War and peace between realms are a ruler's
+  strategic decision, not something settled in a chat, so a character can no longer talk as if concluding a truce
+  or committing their faction to a negotiation on the spot: they defer it to their liege, closing off a promise
+  the game could never keep.
+
 ## v1.32.3.. 2026-07-30
 
 A hotfix for the Dark Leather window. Your saves carry over untouched.
