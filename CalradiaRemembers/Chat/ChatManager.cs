@@ -439,14 +439,18 @@ namespace CalradiaRemembers.Chat
       ///   to the member who regards the player best (<see cref="CouncilAnchorPolicy" />), and seats the rest as
       ///   present members who may speak or merely gesture on each turn. Returns a line describing what was
       ///   opened, or why it could not be, so a caller can report it to the player.
+      ///   <paramref name="allowInScene" /> bypasses the InScene refusal: a settlement-hosted council (Phase 1
+      ///   scene staging) deliberately opens AFTER its own Location mission has started, so Mission.Current is
+      ///   non-null by design there, unlike the ordinary map-overlay path (cr.council), which must still refuse
+      ///   inside somebody else's scene.
       /// </summary>
-      public static string OpenForCouncil(CouncilScope scope)
+      public static string OpenForCouncil(CouncilScope scope, bool allowInScene = false)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
          if (behavior == null) return "No campaign is running.";
 
-         string blocked = CouncilOpenBlockedReason();
+         string blocked = CouncilOpenBlockedReason(allowInScene);
          if (blocked != null) return blocked;
 
          List<Hero> seated = CouncilRosterResolver.Seated(scope);
@@ -489,15 +493,35 @@ namespace CalradiaRemembers.Chat
       ///   Council audit M1/M2: the player-facing reason convening is refused right now, or null when it is
       ///   safe. Maps live engine state to <see cref="CouncilAccessPolicy" /> so the rules stay unit-tested:
       ///   an already-open chat would otherwise be hijacked (the old conversation reassigned an anchor and
-      ///   witnesses), and a council makes no sense from inside captivity or a mission scene.
+      ///   witnesses), and a council makes no sense from inside captivity or (for the map-overlay path) a
+      ///   mission scene. <paramref name="allowInScene" /> is true only for the settlement-hosted council,
+      ///   which is opened FROM inside its own Location mission on purpose.
       /// </summary>
-      private static string CouncilOpenBlockedReason()
+      private static string CouncilOpenBlockedReason(bool allowInScene)
       {
-         switch (CouncilAccessPolicy.Evaluate(IsOpen, Hero.MainHero?.IsPrisoner == true, Mission.Current != null))
+         bool inScene = !allowInScene && Mission.Current != null;
+
+         switch (CouncilAccessPolicy.Evaluate(IsOpen, Hero.MainHero?.IsPrisoner == true, inScene))
          {
             case CouncilAccessBlock.ChatAlreadyOpen: return "A conversation is already open. Close it before convening.";
             case CouncilAccessBlock.PlayerCaptive:   return "You cannot convene while you are held captive.";
             case CouncilAccessBlock.InScene:         return "You cannot convene in the middle of a scene.";
+            default:                                 return null;
+         }
+      }
+
+      /// <summary>
+      ///   The chat-open / captive refusal ONLY (never the scene one), for a caller staging a settlement council
+      ///   BEFORE entering the Location mission: at that point Mission.Current is still null (no scene yet), so
+      ///   the scene check would tell nothing useful, and checking it here would need a second, separate call
+      ///   once the mission is up anyway. Null when clear to proceed.
+      /// </summary>
+      public static string PreCouncilBlockReason()
+      {
+         switch (CouncilAccessPolicy.Evaluate(IsOpen, Hero.MainHero?.IsPrisoner == true, false))
+         {
+            case CouncilAccessBlock.ChatAlreadyOpen: return "A conversation is already open. Close it before convening.";
+            case CouncilAccessBlock.PlayerCaptive:   return "You cannot convene while you are held captive.";
             default:                                 return null;
          }
       }
@@ -521,7 +545,7 @@ namespace CalradiaRemembers.Chat
 
          if (behavior == null) return "No campaign is running.";
 
-         string blocked = CouncilOpenBlockedReason();
+         string blocked = CouncilOpenBlockedReason(allowInScene: false);
          if (blocked != null) return blocked;
 
          AssemblyRecord pending = AssemblyBehavior.Instance?.Pending;
