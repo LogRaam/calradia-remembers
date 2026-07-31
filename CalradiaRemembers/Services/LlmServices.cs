@@ -515,6 +515,7 @@ namespace CalradiaRemembers.Services
             // has written (or not written) in player_description.txt.
             PlayerName = Hero.MainHero?.Name?.ToString() ?? "",
             PlayerClanName = Hero.MainHero?.Clan?.Name?.ToString() ?? "",
+            PlayerFactionName = Hero.MainHero?.MapFaction?.Name?.ToString() ?? "",
             WorldDescription = NarrativeLoader.WorldDescription,
             PlayerDescription = NarrativeLoader.PlayerDescription,
             BehaviorGuidelinesOverride = NarrativeLoader.BehaviorGuidelines,

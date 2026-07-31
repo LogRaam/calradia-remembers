@@ -158,6 +158,7 @@ namespace CalradiaRemembers.Mapping
             KnownWanderers = ResolveKnownWanderers(hero, playerMessage),
             NpcCurrentActivity = bridge.GetCurrentActivity(hero),
             CurrentLocationNote = BuildLocationNote(hero),
+            CurrentLocationName = Hero.MainHero?.CurrentSettlement?.Name?.ToString() ?? "",
             GeographyNote = SettlementContextResolver.Resolve(hero, playerMessage),
             AtSea = atSea,
             // Perception layer (2026-07-21): how the player is dressed, so an NPC can notice it. The mod-side

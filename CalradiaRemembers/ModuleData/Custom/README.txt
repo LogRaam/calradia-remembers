@@ -47,6 +47,8 @@ Supported tokens:
   {{user}}        your character's name
   {{user_gender}} your character's gender, "woman" or "man"
   {{user_clan}}   your clan's name
+  {{faction}}     your faction: your kingdom, or your own clan if you have none (also {{user_faction}})
+  {{location}}    the settlement or scene you are in (empty when roaming the world map)
   {{spouse}}      your spouse's name (empty if you have none)
   {{father}}      your father's name (empty if unknown)
   {{mother}}      your mother's name (empty if unknown)
