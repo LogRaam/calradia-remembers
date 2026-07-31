@@ -33,6 +33,18 @@
             HeightSizePolicy="StretchToParent">
       <Children>
 
+        <!-- Full-screen OPAQUE backdrop. The council opens over the world MAP (a suspended MapScreen), and the
+             chat GauntletLayer never clears its framebuffer, so any transparent region smears the stale frame
+             (the dev console, earlier windows) diagonally. An opaque fill behind everything stops that outright,
+             independent of clear semantics. Carries the same ChatVisualOffsetX so it slides aside with the rest
+             when the focus-arbiter yields to another screen (encyclopedia, escape menu). -->
+        <Widget Id="CouncilBackdrop"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                Sprite="BlankWhiteSquare_9"
+                Color="#0d0a08FF"
+                PositionXOffset="@ChatVisualOffsetX" />
+
         <!-- Fills the screen with modest margins. PositionXOffset keeps the focus-arbiter's slide-aside behaviour
              (ChatViewModel.SetVisualOffscreen) working exactly as the other two skins. -->
         <Widget Id="CouncilRoot"
