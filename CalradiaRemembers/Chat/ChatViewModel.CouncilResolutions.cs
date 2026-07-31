@@ -174,6 +174,7 @@ namespace CalradiaRemembers.Chat
          int gameDay = behavior.GameStateBridge.GetCurrentGameDay();
 
          CouncilLift.Finalize(_councilLedger, _councilScope.Value, behavior, gameDay, AppendSystemMessage);
+         SealCouncilEngagements(behavior, gameDay);
          CouncilSessionBehavior.Instance?.EndSession();
       }
    }

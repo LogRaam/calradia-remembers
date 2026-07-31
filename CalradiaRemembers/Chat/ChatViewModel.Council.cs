@@ -289,6 +289,66 @@ namespace CalradiaRemembers.Chat
 
       #endregion
 
+      #region Engagements seal (apply-at-End)
+
+      /// <summary>
+      ///   Council apply-at-End for engagements: real world-effect executors (grant fief, gold, etc.) do not
+      ///   exist yet in this codebase (only a bandit-clear quest is executable, see CouncilLift.Settle), so an
+      ///   AGREED engagement's applied effect is a durable memory sealed onto the concerned hero, so the NPC
+      ///   remembers what the council settled. A decision bound to a seated member (see
+      ///   <see cref="EngagementSubjectMatcher" />) seals in the first person on THEM; a collective or unresolved
+      ///   subject seals on the presiding anchor instead. What the player saw standing in the Engagements panel
+      ///   at the last reconciliation is exactly what is sealed here: the ledger is one turn behind, never
+      ///   mid-turn, which is the intended "only what was seen applies" property the whole feature is built on.
+      ///   Called once from <see cref="FinalizeCouncilResolutions" />, under the same idempotency guard, so it
+      ///   fires once per close.
+      /// </summary>
+      public void SealCouncilEngagements(NpcMemoryCampaignBehavior behavior, int gameDay)
+      {
+         try
+         {
+            if (behavior?.Store == null) return;
+
+            var names = new List<string>();
+            var heroIds = new List<string>();
+
+            foreach (CouncilParticipantViewModel seat in _councilParticipants)
+            {
+               names.Add(seat.Name);
+               heroIds.Add(seat.HeroStringId);
+            }
+
+            string anchorHeroId = MainSpeaker()?.Hero?.StringId;
+
+            foreach (CouncilEngagement e in _engagementLedger.PendingCommit())
+            {
+               if (string.IsNullOrWhiteSpace(e.Text)) continue;
+
+               int idx = EngagementSubjectMatcher.MatchIndex(e.Subject, names);
+               bool onBound = idx >= 0;
+               string heroId = onBound ? heroIds[idx] : anchorHeroId;
+
+               if (string.IsNullOrEmpty(heroId)) continue;
+
+               string summary = EngagementSealText.Summarize(e.Text, onBound);
+               if (string.IsNullOrEmpty(summary)) continue;
+
+               NpcProfile profile = behavior.Store.Get(heroId);
+               if (profile == null) continue;
+
+               profile.Events.Add(new NotableEvent(gameDay, NotableEventType.Agreement, summary));
+               behavior.Store.Set(profile);
+               ModLog.Info($"[ENGAGEMENTS] sealed onto {heroId}: {summary}");
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"SealCouncilEngagements failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      #endregion
+
       #region IRoundTableHost (council seat highlight)
 
       void IRoundTableHost.SetActiveCouncilSpeaker(ChatSpeaker speaker) => SetActiveCouncilSpeaker(speaker?.Hero?.StringId);
