@@ -18,6 +18,12 @@ Two relevance fixes from a player report. Your saves carry over untouched.
   standing prompt directive states that a name in the news is not necessarily a relative of the same name. Scales
   as later generations repeat names. (Report: a player on Nexus.)
 
+### Improved
+- **The Custom folder now keeps your culture edits too.** `cultural_traditions.json` and `jealousy_cultures.json`
+  can now live in `ModuleData/Custom/`, so an overhaul player's own cultures survive a mod update, like the other
+  prompt files already do. They were read only from the shipped copy before. Both are keyed by the culture's
+  display name (case-sensitive), and an unlisted culture still degrades gracefully. (Question: a player on Nexus.)
+
 ## v1.33.0.. 2026-07-31
 
 Two features for players who like to tinker with the writing, plus a couple of quiet improvements. Your saves
