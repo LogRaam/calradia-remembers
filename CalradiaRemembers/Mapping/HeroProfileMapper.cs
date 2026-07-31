@@ -23,6 +23,7 @@ namespace CalradiaRemembers.Mapping
             Id = hero.StringId,
             Name = hero.Name?.ToString() ?? "Unknown",
             IsFemale = hero.IsFemale,
+            Age = (int) hero.Age,
             Faction = hero.MapFaction?.Name?.ToString() ?? "Unaligned",
             Clan = hero.Clan?.Name?.ToString() ?? "No clan",
             Personality = BuildPersonality(hero),
@@ -52,6 +53,7 @@ namespace CalradiaRemembers.Mapping
       {
          if (profile == null || hero == null) return;
          profile.IsFemale = hero.IsFemale;
+         profile.Age = (int) hero.Age;
          profile.Personality = BuildPersonality(hero);
          profile.SpouseName = hero.Spouse?.IsAlive == true
             ? hero.Spouse.Name?.ToString()

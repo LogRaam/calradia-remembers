@@ -345,6 +345,11 @@ namespace CalradiaRemembers.Dialogue
             // not at the next session launch.
             existing.Relationships = RelationshipsBuilder.Build(hero);
 
+            // Age was never carried on an existing profile before this field existed, and a
+            // fresh session-launch refresh could still be a stale in-game year old, so keep it
+            // current from the next conversation on, same cadence as Relationships above.
+            existing.Age = (int) hero.Age;
+
             return existing;
          }
 
