@@ -149,7 +149,10 @@ namespace CalradiaRemembers.Letters
       ///   <see cref="LetterCandidateIntent.EligibleSinceDay" /> has arrived and whose sender still passes the
       ///   shared <see cref="CanSendLetter" /> gate (in-transit, cooldown, proximity, prisoner). A sender who
       ///   has since died can never write the letter they intended to, so their whole backlog is dropped
-      ///   rather than left to accumulate forever.
+      ///   rather than left to accumulate forever. Likewise, an intent that outlives its
+      ///   <see cref="LetterCandidateFreshness" /> window without ever being chosen is quietly retired: we do
+      ///   not need to deliver every letter, only the ones that still matter, so stale news is dropped rather
+      ///   than force-delivered.
       /// </summary>
       private void CollectEventCandidates(
          BannerlordNpcMemoryStore store, LlmServices llmServices, int today,
@@ -174,8 +177,16 @@ namespace CalradiaRemembers.Letters
 
             if (hero == null) continue; // transient: not resolvable this tick, try again later.
 
+            var stale = new List<LetterCandidateIntent>();
+
             foreach (LetterCandidateIntent intent in profile.LetterCandidates)
             {
+               if (LetterCandidateFreshness.IsStale(intent.Reason, intent.EligibleSinceDay, today))
+               {
+                  stale.Add(intent);
+                  continue;
+               }
+
                if (intent.EligibleSinceDay > today) continue;
                if (!CanSendLetter(profile, today, DefaultCooldownDays)) continue;
 
@@ -201,6 +212,15 @@ namespace CalradiaRemembers.Letters
                   capturedProfile.LetterCandidates.Remove(capturedIntent);
                   store.Set(capturedProfile);
                };
+            }
+
+            if (stale.Count > 0)
+            {
+               foreach (LetterCandidateIntent intent in stale)
+                  profile.LetterCandidates.Remove(intent);
+
+               store.Set(profile);
+               ModLog.Info($"[LETTER] retired {stale.Count} stale candidate(s) for {profile.Name}.");
             }
          }
       }
