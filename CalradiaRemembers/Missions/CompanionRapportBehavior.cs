@@ -83,8 +83,21 @@ namespace CalradiaRemembers.Missions
          try
          {
             MarriageAction.Apply(a, b, false);
+
+            // Only announce a wedding that ACTUALLY took. MarriageAction can quietly no-op on an edge the guards
+            // above miss (a same-clan companion pair is not the cross-clan case vanilla marriage assumes), and a
+            // player who is told two companions wed but can then find no marriage anywhere is exactly the
+            // unverifiable claim this mod refuses to make (player report). If it did not take, log it and stay
+            // silent rather than announce a phantom.
+            if (a.Spouse != b || b.Spouse != a)
+            {
+               ModLog.Error($"[CAMP] marriage of {a.Name} & {b.Name} did not take (MarriageAction.Apply no-op); not announced.");
+
+               return;
+            }
+
             MBInformationManager.AddQuickInformation(
-               new TextObject($"{a.Name} and {b.Name} have wed — your clan grows."), 0, a.CharacterObject);
+               new TextObject($"{a.Name} and {b.Name} have wed, your clan grows."), 0, a.CharacterObject);
             ModLog.Info($"[CAMP] {a.Name} and {b.Name} married (companions, kept in your clan).");
          }
          catch (Exception ex) { ModLog.Error($"[CAMP] marriage of {a.Name} & {b.Name} failed: {ex.Message}"); }
