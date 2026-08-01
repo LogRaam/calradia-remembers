@@ -78,6 +78,12 @@ namespace CalradiaRemembers.Missions
          bool adult = !a.IsChild && !b.IsChild;
 
          if (!CompanionRapport.CanMarry(a.GetRelation(b), true, opposite, adult)) return;
+
+         // Vanilla has the final say: MarriageAction.Apply silently no-ops unless the marriage model deems the
+         // couple suitable (extra checks our own guards do not make, e.g. for a same-clan companion pair). Ask it
+         // up front rather than roll, "wed", and announce a marriage that never took (the phantom in the report).
+         if (Campaign.Current?.Models?.MarriageModel?.IsCoupleSuitableForMarriage(a, b) != true) return;
+
          if (MBRandom.RandomInt(100) >= MarriageChancePercent) return;
 
          try
