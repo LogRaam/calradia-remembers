@@ -1,0 +1,6 @@
+v1.33.3
+
+A compatibility fix. Your saves carry over untouched.
+
+Fixed
+- No longer crashes at startup alongside Europe1100 / EOE 1100. Both mods happened to register a save type at the same internal ID, so whichever loaded second crashed the game at boot (an "item with the same key has already been added" error), and no load order avoided it. Calradia Remembers now detects Europe1100 and moves its own save IDs out of the way, so the two run together. Players without Europe1100 are completely unaffected: your saves are byte-for-byte untouched. (Report: a player on Nexus.)

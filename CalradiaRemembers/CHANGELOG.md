@@ -2,6 +2,20 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.33.3.. 2026-07-31
+
+A compatibility fix. Your saves carry over untouched.
+
+### Fixed
+- **No longer crashes at startup alongside Europe1100 / EOE 1100.** Both mods registered a save type at the same
+  internal ID (300000001), so whichever loaded second crashed the game at boot ("an item with the same key has
+  already been added"), and no load order avoided it. Calradia Remembers now detects Europe1100 at boot and shifts
+  its own quest save IDs to a distinct base, so the two run together. Players without Europe1100 are completely
+  unaffected: the shipped base is kept and existing saves are byte-for-byte untouched. NPC memories and relations
+  are unaffected in either case (they live in a separate store). The only edge is that adding or removing
+  Europe1100 mid-campaign moves the base and drops any in-progress CR quest, but that already desyncs the mod from
+  the game. (Report: a player on Nexus.)
+
 ## v1.33.2.. 2026-07-31
 
 A small follow-up for players who use overhaul mods. Your saves carry over untouched.
