@@ -1118,10 +1118,10 @@ namespace CalradiaRemembers.Chat
          // Bespoke council window (Inc 0): seats the left strip from the roster the caller (OpenForCouncil /
          // OpenForAssembly) already built via AddWitness, and gives the centre column its agenda placeholder.
          CouncilAgendaText = scope switch {
-            CouncilScope.Assembly => "Assemblee",
-            CouncilScope.Family => "Conseil de clan et de famille",
-            CouncilScope.ClanLords => "Conseil des seigneurs du clan",
-            _ => "Conseil des compagnons"
+            CouncilScope.Assembly => "Assembly",
+            CouncilScope.Family => "Clan and family council",
+            CouncilScope.ClanLords => "Council of your clan's lords",
+            _ => "Council of companions"
          };
          PopulateCouncilParticipants();
 

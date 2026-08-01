@@ -26,11 +26,23 @@ namespace CalradiaRemembers.Chat
       private string _portraitId = "";
       private string _portraitTextureProviderName = "";
 
+      /// <summary>Default seat tile size: a vanilla 3D character render is taller than wide; a square tile squished it.</summary>
+      private const float DefaultPortraitWidth = 54f;
+
+      private const float DefaultPortraitHeight = 72f;
+
+      /// <summary>Box a custom PNG fits into, aspect-preserved (mirrors ChatMessageViewModel.ApplyCustomPortrait).</summary>
+      private const float CustomPortraitBoxWidth = 64f;
+
+      private const float CustomPortraitBoxHeight = 80f;
+
       public CouncilParticipantViewModel(Hero hero, string seatLabel)
       {
          HeroStringId = hero?.StringId ?? "";
          Name = hero?.Name?.ToString() ?? "Unknown";
          SeatLabel = seatLabel ?? "";
+         PortraitWidth = DefaultPortraitWidth;
+         PortraitHeight = DefaultPortraitHeight;
 
          ResolvePortrait(hero);
          ApplyCustomPortrait(hero?.StringId, hero?.Name?.ToString());
@@ -61,6 +73,18 @@ namespace CalradiaRemembers.Chat
 
       [DataSourceProperty]
       public string PlayerPortraitPath { get; private set; } = "";
+
+      /// <summary>
+      ///   The seat tile's portrait height in Gauntlet units, aspect-correct: taller-than-wide for the default
+      ///   vanilla render, or fit to the custom-PNG box when this seat has a dropped image. Squished flat
+      ///   before this (a fixed 66x66 square) because a character render (or most portrait art) is not square.
+      /// </summary>
+      [DataSourceProperty]
+      public float PortraitHeight { get; private set; }
+
+      /// <summary>See <see cref="PortraitHeight" />.</summary>
+      [DataSourceProperty]
+      public float PortraitWidth { get; private set; }
 
       [DataSourceProperty]
       public string PortraitAdditionalArgs
@@ -147,6 +171,20 @@ namespace CalradiaRemembers.Chat
 
          PlayerPortraitPath = path;
          ShowCustomPortrait = true;
+
+         // Fit the PNG into the custom box, aspect-preserved (mirrors ChatMessageViewModel.ApplyCustomPortrait);
+         // fall back to the default tile size if the file's dimensions cannot be read.
+         if (RuntimePortraitFactory.TryGetDimensions(path, out int w, out int h) && w > 0 && h > 0)
+         {
+            float scale = Math.Min(CustomPortraitBoxWidth / w, CustomPortraitBoxHeight / h);
+            PortraitWidth = w * scale;
+            PortraitHeight = h * scale;
+         }
+         else
+         {
+            PortraitWidth = DefaultPortraitWidth;
+            PortraitHeight = DefaultPortraitHeight;
+         }
 
          // A custom seat uses a cached sprite, not a 3D render-target: clear the vanilla ids so it is never
          // counted as a live tableau nor released by ReleasePortrait (it would vanish).

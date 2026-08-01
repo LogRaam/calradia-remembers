@@ -60,7 +60,7 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>The placeholder shown in the Engagements panel while <see cref="Engagements" /> is empty.</summary>
       [DataSourceProperty]
-      public string EngagementsPlaceholderText => "Aucun engagement pour l'instant";
+      public string EngagementsPlaceholderText => "No decisions yet.";
 
       /// <summary>True while at least one engagement has been recorded (Inc 1); hides the empty-state placeholder.</summary>
       [DataSourceProperty]
@@ -285,7 +285,7 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>The seated-panel wording for an engagement's standing: settled versus still under discussion.</summary>
       private static string DescribeEngagementStatus(EngagementStatus status)
-         => status == EngagementStatus.Agreed ? "Convenu" : "En debat";
+         => status == EngagementStatus.Agreed ? "Agreed" : "Discussed";
 
       #endregion
 

@@ -119,48 +119,6 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.council_scene [companions|family|lords]
-      ///   Council scene hosting, Phase 1: stages the SAME real council (default: companions) inside the
-      ///   settlement's actual Location scene (lordshall if the player's clan owns it, tavern otherwise) instead
-      ///   of the map overlay cr.council uses. Requires the player inside a town/castle with no mission running.
-      ///   Reports every outcome (staged / not-in-a-settlement / blocked) so the tester sees what happened; the
-      ///   council itself only opens once the scene has fully loaded (Mission.AfterStart).
-      /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("council_scene", "cr")]
-      public static string CouncilScene(List<string> args)
-      {
-         try
-         {
-            string which = args is {Count: > 0} ? args[0].ToLowerInvariant() : "companions";
-
-            CouncilScope scope;
-            switch (which)
-            {
-               case "family":
-                  scope = CouncilScope.Family;
-
-                  break;
-               case "lords":
-               case "clanlords":
-                  scope = CouncilScope.ClanLords;
-
-                  break;
-               case "companions":
-                  scope = CouncilScope.Companions;
-
-                  break;
-               default:
-                  return $"Unknown council '{which}'. Use: companions | family | lords.";
-            }
-
-            CouncilStageOutcome outcome = CouncilSceneStager.TryBeginSettlementCouncil(scope, out string message);
-
-            return $"[{outcome}] {message}";
-         }
-         catch (Exception ex) { return $"cr.council_scene failed: {ex.GetType().Name}: {ex.Message}"; }
-      }
-
-      /// <summary>
       ///   cr.council_test [n|off]
       ///   Assembly spike (2026-07-20): validates the SINGLE-CALL multi-speaker council model without hiring
       ///   anyone. Open a chat with ANY NPC, run this, and it seats N members (default 3, real lords by clan

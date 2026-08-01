@@ -71,7 +71,7 @@
                             WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="36"
                             VerticalAlignment="Top" MarginTop="14"
                             Brush="Default" Brush.FontSize="20" Brush.FontColor="#c8a878FF"
-                            Brush.TextHorizontalAlignment="Center" Text="CLAN JOUEUR" IsDisabled="true" />
+                            Brush.TextHorizontalAlignment="Center" Text="YOUR CLAN" IsDisabled="true" />
 
                 <Widget Id="LeftListArea"
                         WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
@@ -115,7 +115,7 @@
 
                                     <ImageIdentifierWidget Id="ParticipantVanillaPortrait"
                                                            WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                                                           SuggestedWidth="66" SuggestedHeight="66"
+                                                           SuggestedWidth="@PortraitWidth" SuggestedHeight="@PortraitHeight"
                                                            HorizontalAlignment="Left" VerticalAlignment="Top"
                                                            MarginLeft="8" MarginTop="8"
                                                            IsVisible="@ShowVanillaPortrait"
@@ -126,7 +126,7 @@
 
                                     <CrRuntimeImageWidget Id="ParticipantCustomPortrait"
                                                           WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                                                          SuggestedWidth="66" SuggestedHeight="66"
+                                                          SuggestedWidth="@PortraitWidth" SuggestedHeight="@PortraitHeight"
                                                           HorizontalAlignment="Left" VerticalAlignment="Top"
                                                           MarginLeft="8" MarginTop="8"
                                                           IsVisible="@ShowCustomPortrait"
@@ -349,7 +349,7 @@
                 <ButtonWidget Id="EndCouncilButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                               SuggestedWidth="140" SuggestedHeight="34"
-                              HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                              HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="74"
                               DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
                               UpdateChildrenStates="true" Command.Click="ExecuteClose">
                   <Children>

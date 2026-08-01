@@ -54,6 +54,17 @@ namespace CalradiaRemembers.Chat
       // very start of GenerateChatWindow's skin selection, so it can never leak into the NEXT conversation.
       private static bool _forceCouncilSkin;
 
+      // Same lifecycle as _forceCouncilSkin: forces THIS council/assembly open onto a pushed screen (real
+      // keyboard focus, no walkable mission needed) even while the global HostMode stays Overlay for every
+      // other conversation. Consumed at the same spot in GenerateChatWindow.
+      private static bool _forceCouncilPushedScreen;
+
+      // True while the CURRENTLY open window is actually hosted as a pushed screen, whether that came from the
+      // global HostMode or from a forced council/assembly. ArbitrateFocus reads THIS instead of HostMode, so a
+      // forced-pushed council still skips the overlay's focus-arbitration/slide-aside logic even though HostMode
+      // itself is unchanged. Reset when the window tears down.
+      private static bool _activeIsPushed;
+
       // The Manuscript book is a FIXED-aspect design (940 units tall); GauntletUI has no per-widget zoom, so the
       // whole chat LAYER is scaled instead (UIContext.ScaleModifier), which multiplies sizes AND margins AND
       // offsets together, so the book and every overlay stay aligned.
@@ -149,7 +160,7 @@ namespace CalradiaRemembers.Chat
          SampleVramPeriodically(); // a heartbeat VRAM read, so an idle (no-response) scene still traces its trend
 
          // Pushed-screen mode needs no focus juggling — the engine hands focus to whatever is pushed on top of us.
-         if (HostMode == ChatHostMode.PushedScreen) return;
+         if (_activeIsPushed) return;
 
          try
          {
@@ -302,10 +313,12 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         // Overlay mode only: stop the host map scene rendering behind our overlay (the naval-map VRAM fix).
-         // Pushed-screen mode suspends the map by construction (the engine suspends the screen below), so this
-         // reflection hack is neither needed nor wanted there.
-         if (HostMode == ChatHostMode.Overlay)
+         // Overlay-hosted windows only: stop the host map scene rendering behind our overlay (the naval-map VRAM
+         // fix). A pushed screen (global HostMode, or a forced council/assembly) suspends the map by
+         // construction (the engine suspends the screen below), so this reflection hack is neither needed nor
+         // wanted there. Reads _activeIsPushed (set inside GenerateChatWindow above), not the global HostMode,
+         // so a forced-pushed council is correctly skipped even while HostMode itself stays Overlay.
+         if (!_activeIsPushed)
             SafeStep(() => MapSceneSuspender.Suspend(_hostScreen), "SuspendMapScene");
 
          ModLog.Info($"Chat window opened on {_hostScreen.GetType().Name} with NPC '{npcName ?? "(none)"}'.");
@@ -469,6 +482,7 @@ namespace CalradiaRemembers.Chat
          Hero anchor = seated[anchorIndex];
 
          _forceCouncilSkin = true;
+         _forceCouncilPushedScreen = true;
          Open(anchor.Name?.ToString());
 
          if (ActiveViewModel == null) return "The chat window could not be opened.";
@@ -570,6 +584,7 @@ namespace CalradiaRemembers.Chat
             : anchorPool[0];
 
          _forceCouncilSkin = true;
+         _forceCouncilPushedScreen = true;
          Open(anchor.Name?.ToString());
 
          if (ActiveViewModel == null) return "The chat window could not be opened.";
@@ -733,7 +748,15 @@ namespace CalradiaRemembers.Chat
          ModLog.Info($"Movie loaded? {movie?.IsLoaded}");
          ModLog.Info($"RootWidget null? {movie?.RootWidget == null}");
 
-         if (HostMode == ChatHostMode.PushedScreen)
+         // Consumed here (reset to false) so a flag set for THIS council/assembly open can never leak into a
+         // later conversation that opens through a different path. A forced council/assembly always gets a
+         // pushed screen (real keyboard focus, no walkable mission), even while HostMode itself stays Overlay
+         // for every other conversation.
+         bool pushed = HostMode == ChatHostMode.PushedScreen || _forceCouncilPushedScreen;
+         _forceCouncilPushedScreen = false;
+         _activeIsPushed = pushed;
+
+         if (pushed)
          {
             // A real screen on the stack: the engine suspends the screen below (no naval-map VRAM leak) and hands
             // focus/input to any screen pushed on top of us (the encyclopedia, the ESC menu) natively — so no
@@ -778,6 +801,8 @@ namespace CalradiaRemembers.Chat
          {
             _hostScreen?.RemoveLayer(_activeLayer);
          }
+
+         _activeIsPushed = false;
       }
 
       private static void PauseCampaignMap()
