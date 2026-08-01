@@ -3,8 +3,10 @@
 #region
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
@@ -413,8 +415,14 @@ namespace CalradiaRemembers.Letters
             return;
          }
 
-         string letterBody = decision.Body;
+         // B1: the marker (if any) rides the SAME raw text as the DELAY/body parse above, so it must be stripped
+         // out of the body before it is ever sent: it is metadata for the courier system, never letter prose.
+         string letterBody = StripCorrespondencePreferenceLine(decision.Body);
          if (string.IsNullOrWhiteSpace(letterBody)) return;
+
+         // B1: an explicit "write me less/more" stated in this reply. Parsed from the FULL raw text (not just
+         // decision.Body) since the marker sits on its own trailing line within it.
+         CorrespondencePreference pref = CorrespondencePreferenceParser.Parse(rawDecision);
 
          int dispatchDay = today + decision.DelayDays;
          int travelDays = ComputeDeliveryDays(senderHero);
@@ -434,9 +442,40 @@ namespace CalradiaRemembers.Letters
          LetterMutationQueue.Post(() =>
          {
             profile.SentLetters.Add(reply);
+
+            // B1: this answers a letter the PLAYER composed (PlayerLetter carries no LetterReason of its own),
+            // so there is no NPC-authored "original letter" to attribute the subject nudge to; PlayerLetterReply
+            // itself is the only reachable subject bucket here.
+            if (pref.Scope != PreferenceScope.None)
+            {
+               InterestDeltas d = CorrespondenceInterestPolicy.DeltasFor(pref);
+               profile.CorrespondenceInterest = CorrespondenceInterestPolicy.ClampSender(profile.CorrespondenceInterest + d.SenderDelta);
+               NpcMemoryCampaignBehavior.Instance?.LetterEvaluator.NudgeSubject(LetterReason.PlayerLetterReply, d.SubjectDelta);
+               NpcMemoryCampaignBehavior.Instance?.LetterEvaluator.NudgeGlobal(d.GlobalDelta);
+               ModLog.Info($"[LETTER] {profile.Name} stated a correspondence preference: scope={pref.Scope} direction={pref.Direction} strength={pref.Strength}.");
+            }
+
             store.Set(profile);
             ModLog.Info($"[LETTER] {profile.Name} will reply to player's letter, courier departs day {dispatchDay} ({decision.DelayDays}d delay).");
          });
+      }
+
+      /// <summary>
+      ///   B1: strips a trailing <see cref="CorrespondencePreferenceParser.Marker" /> control line out of a
+      ///   reply's letter body, so metadata meant for the courier system never leaks into the delivered letter
+      ///   the player actually reads.
+      /// </summary>
+      private static string StripCorrespondencePreferenceLine(string text)
+      {
+         if (string.IsNullOrEmpty(text)) return text;
+
+         string[] lines = text.Split('\n');
+         var kept = new List<string>(lines.Length);
+         foreach (string line in lines)
+            if (!line.TrimStart().StartsWith(CorrespondencePreferenceParser.Marker, StringComparison.OrdinalIgnoreCase))
+               kept.Add(line);
+
+         return string.Join("\n", kept).TrimEnd();
       }
 
       private static async Task GenerateReplyAsync(

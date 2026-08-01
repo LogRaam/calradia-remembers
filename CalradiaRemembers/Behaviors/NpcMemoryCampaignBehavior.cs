@@ -137,6 +137,8 @@ namespace CalradiaRemembers.Behaviors
          // Additive, distinct key: the durable conversation-summary queue. Its own load degrades to empty, so a
          // save written before this feature (no such key) opens fine.
          ConvSummaryQueue.SyncData(dataStore);
+         // B1: persisted subject/global correspondence-interest dampers. Same additive/graceful contract.
+         LetterEvaluator.SyncData(dataStore);
       }
 
       #region private

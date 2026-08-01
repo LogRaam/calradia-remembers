@@ -208,6 +208,13 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> InterceptionPacing { get; set; } =
          new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's behaviour)
 
+      [SettingPropertyDropdown("Letters from NPCs", RequireRestart = false, Order = 6,
+         HintText = "How many unprompted letters NPCs send you. Fewer keeps only what matters; the mod also learns " +
+                    "from which letters you answer versus dismiss. Applies immediately.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public Dropdown<string> LetterPacing { get; set; } =
+         new(new[] {"Rarely", "Occasionally", "Often"}, 1); // default: Occasionally
+
       [SettingPropertyBool("Story Log", RequireRestart = false, Order = 2,
          HintText = "Writes a clean narrative transcript of every conversation and letter to " +
                     "CalradiaRemembers_story.log in your Logs folder. No timestamps, no noise: it reads like a novel.")]

@@ -227,7 +227,11 @@ namespace CalradiaRemembers.Letters
       // ── Commands ────────────────────────────────────────────────────────
 
       /// <summary>Read mode: dismiss the letter (it was already marked delivered on arrival).</summary>
-      public void ExecuteAcknowledge() => OnCloseRequested?.Invoke();
+      public void ExecuteAcknowledge()
+      {
+         ApplyInterestDelta(CorrespondenceInterestPolicy.OnAcknowledge());
+         OnCloseRequested?.Invoke();
+      }
 
       public void ExecuteClose() => OnCloseRequested?.Invoke();
 
@@ -381,6 +385,30 @@ namespace CalradiaRemembers.Letters
          _showPortrait = portrait.HasImage;
       }
 
+      // ── B1: correspondence interest (persisted; plumbing only, see B2 for the mailbox reading it) ────────
+
+      /// <summary>
+      ///   Applies a correspondence-interest delta (<see cref="CorrespondenceInterestPolicy.OnAcknowledge" /> or
+      ///   <see cref="CorrespondenceInterestPolicy.OnReply" />) to the sender's persisted profile and to this
+      ///   letter's subject, both run on the main/UI thread so a direct <c>Store.Set</c> is safe here. Skipped
+      ///   for a <see cref="LetterMailboxPolicy.BypassesBudget" /> reason: a divorce demand, a pension due date,
+      ///   a companion's farewell, or the player's own reply carries no signal about the player's taste in
+      ///   unprompted correspondence.
+      /// </summary>
+      private void ApplyInterestDelta(InterestDeltas deltas)
+      {
+         if (_letter == null || _profile == null) return;
+         if (LetterMailboxPolicy.BypassesBudget(_letter.Reason)) return;
+
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+         NpcProfile p = behavior?.Store.Get(_profile.Id);
+         if (p == null) return;
+
+         p.CorrespondenceInterest = CorrespondenceInterestPolicy.ClampSender(p.CorrespondenceInterest + deltas.SenderDelta);
+         behavior.Store.Set(p);
+         behavior.LetterEvaluator.NudgeSubject(_letter.Reason, deltas.SubjectDelta);
+      }
+
       // ── Sealing (no inline LLM call) ────────────────────────────────────
 
       private void SealAndSendCompose(string content)
@@ -450,6 +478,8 @@ namespace CalradiaRemembers.Letters
 
          LetterGenerationService.QueueReplyLetter(
             _profile, giverHero, _letter, behavior.LlmServices, behavior.Store, today);
+
+         ApplyInterestDelta(CorrespondenceInterestPolicy.OnReply());
 
          MBInformationManager.AddQuickInformation(new TextObject(
             $"Your reply to {_profile.Name} has been sealed and sent."));

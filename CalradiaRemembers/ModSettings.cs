@@ -88,6 +88,26 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   How many unprompted letters NPCs send the player. Read live from the MCM menu; Occasionally (the
+      ///   shipped feel) when MCM has not loaded, so nothing changes for a player who never touches it. B1:
+      ///   plumbing only for now, nothing yet reads this to steer the mailbox (see LetterPacingRules.BudgetFor).
+      /// </summary>
+      public static LetterPacing LettersFromNpcs
+      {
+         get
+         {
+            string v = CrSettings.Instance?.LetterPacing?.SelectedValue;
+
+            switch (v)
+            {
+               case "Rarely": return LetterPacing.Rarely;
+               case "Often": return LetterPacing.Often;
+               default: return LetterPacing.Occasionally;
+            }
+         }
+      }
+
+      /// <summary>
       ///   The PERSISTED DEFAULT for how a NEWLY opened council speaks: <see cref="CouncilVoiceMode.WholeTable" />
       ///   (one call, cohesive, other members voiced from little more than a name) or
       ///   <see cref="CouncilVoiceMode.PerMember" /> (each seated member's own full dossier, at the cost of one

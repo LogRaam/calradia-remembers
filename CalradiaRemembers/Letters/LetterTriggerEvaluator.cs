@@ -1,16 +1,24 @@
 // Code written by Gabriel Mailhot, 21/06/2026.
+// B2: replaced the fire-immediately / round-robin daily evaluation with a weighted, budgeted mailbox
+// scheduler (CalradiaRemembers.Logic.LetterMailboxPolicy). Event handlers now ENQUEUE a LetterCandidateIntent
+// instead of writing straight away; EvaluateDaily collects every eligible candidate across every correspondent
+// into one pool and lets the scheduler pick at most one winner per tick, aged and budgeted against a
+// rolling window derived from persisted SentLetters. Guaranteed obligations (ProcessScheduledLetters, and
+// every LetterMailboxPolicy.BypassesBudget reason) never enter the pool and never consume budget.
 
 #region
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
+using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.MapEvents;
@@ -25,9 +33,12 @@ namespace CalradiaRemembers.Letters
 {
    /// <summary>
    ///   Listens to campaign events and evaluates daily conditions to decide when
-   ///   an NPC should initiate a letter to the player. Fires
-   ///   <see cref="LetterGenerationService.QueueInitialLetter" /> when a trigger
-   ///   condition is met, subject to per-NPC cooldowns and in-transit limits.
+   ///   an NPC should initiate a letter to the player. Event handlers enqueue a
+   ///   <see cref="LetterCandidateIntent" /> (or, for a few live-recomputed categories,
+   ///   a fresh <see cref="LetterCandidate" /> built each tick); <see cref="EvaluateDaily" />
+   ///   pools every eligible candidate and hands the pool to
+   ///   <see cref="LetterMailboxPolicy.SelectNext" />, which picks at most one winner per
+   ///   tick, subject to per-NPC cooldowns, in-transit limits, and the rolling-window budget.
    /// </summary>
    public sealed class LetterTriggerEvaluator
    {
@@ -41,57 +52,559 @@ namespace CalradiaRemembers.Letters
       // Minimum days between two letters from the same NPC (anti-spam).
       private const int DefaultCooldownDays = 15;
 
-      // Cumulative anti-flood: at most ONE unprompted daily-correspondence letter per this many days
-      // across ALL NPCs, on top of each NPC's own cooldown. Stops a player with many correspondents
-      // from being buried (tester feedback). Non-persisted — a reload may let one extra through.
-      private const int GlobalLetterCooldownDays = 4;
-
       // We cap how many letters queue up from a single event.
       private const int MaxLettersPerEvent = 2;
+
+      // B2: no longer gates anything (the budget scheduler owns that job now); kept purely so a log line can
+      // still report how long it has been since the mailbox last actually released something.
       private int _lastDailyLetterDay = -1;
 
-      // M12 (courier audit): rotates which correspondence category gets first pick each tick. The four categories
-      // share ONE letter-per-global-window budget, and a fixed || order let an always-active romance permanently
-      // starve spouse/follow-up/marriage letters. Rotating the start gives each category its turn over time.
-      private int _evaluatorStart;
+      // B1: persisted per-subject and global correspondence-interest dampers (see CorrespondenceInterestPolicy).
+      // Keyed by (int)LetterReason; values are dampers <= 0, moved only through the clamped accessors below.
+      // B2: now READ by the mailbox scheduler (LetterWeights.WeightWithInterest) to weight every candidate.
+      private Dictionary<int, int> _subjectInterest = new Dictionary<int, int>();
+      private int _globalInterest;
+
+      // Additive, distinct save key: a save written before this feature simply has no such key, and an
+      // absent/garbled blob degrades to the empty defaults above (0 = neutral everywhere) rather than throwing.
+      private const string LetterPacingSaveKey = "CalradiaRemembers_LetterPacing_v1bytes";
 
       // ── Daily evaluation (called from OnDailyTick) ────────────────────────
 
+      /// <summary>
+      ///   B2: the mailbox scheduler's daily tick. Guaranteed obligations are processed first and
+      ///   unconditionally (<see cref="ProcessScheduledLetters" />); everything else is pooled as
+      ///   <see cref="LetterCandidate" />s (persisted event intents plus freshly recomputed romantic/spouse/
+      ///   marriage/follow-up candidates) and handed to <see cref="LetterMailboxPolicy.SelectNext" />, which
+      ///   picks at most one winner for today, weighed against a budget derived purely from persisted
+      ///   <see cref="PendingLetter" /> history (<see cref="GatherRecentReleaseDays" />), robust to a reload,
+      ///   unlike the old in-memory global cooldown it replaces.
+      /// </summary>
       public void EvaluateDaily(BannerlordNpcMemoryStore store, LlmServices llmServices, int today)
       {
-         // 2.5: committed obligations (child support) are written on their due day with bounded retry, BEFORE the
-         // global anti-flood cooldown gate below: a pension the NPC already committed to must never be throttled
+         // 2.5: committed obligations (child support) are written on their due day with bounded retry, BEFORE
+         // the mailbox competes for anything: a pension the NPC already committed to must never be throttled
          // (or lost) by the spontaneous-correspondence budget.
          ProcessScheduledLetters(store, llmServices, today);
 
-         if (!LetterCadence.CanSendGlobally(_lastDailyLetterDay < 0
-                   ? null
-                   : _lastDailyLetterDay,
-                today, GlobalLetterCooldownDays))
-            return;
+         var pool = new List<LetterCandidate>();
+         var release = new Dictionary<LetterCandidate, Action>();
 
-         // At most one daily-correspondence letter per tick, and only once per global window. M12: the starting
-         // category rotates each tick (round-robin) so no single always-eligible category monopolises the budget.
-         Func<bool>[] evaluators =
+         CollectEventCandidates(store, llmServices, today, pool, release);
+         CollectRomanticCorrespondence(store, llmServices, today, pool, release);
+         CollectAwaitingReplies(store, llmServices, today, pool, release);
+         CollectSpouseCorrespondence(store, llmServices, today, pool, release);
+         CollectMarriageSolicitations(store, llmServices, today, pool, release);
+
+         LetterBudget budget = LetterPacingRules.BudgetFor(ModSettings.LettersFromNpcs);
+         IReadOnlyList<int> recent = GatherRecentReleaseDays(store, today, budget.WindowDays);
+
+         LetterCandidate chosen = LetterMailboxPolicy.SelectNext(pool, recent, today, budget, MBRandom.RandomInt(100));
+
+         if (ModSettings.VerboseLogging)
+            ModLog.Info($"[LETTER] mailbox tick: pool={pool.Count}, budget={budget.MaxPerWindow}/{budget.WindowDays}d, released={(chosen != null ? chosen.Reason.ToString() : "none")}.");
+
+         if (chosen == null || !release.TryGetValue(chosen, out Action act)) return;
+
+         act();
+         _lastDailyLetterDay = today;
+         ModLog.Info($"[LETTER] mailbox released {chosen.Reason} from {chosen.SenderId} (pool of {pool.Count}, weight {chosen.Weight}).");
+      }
+
+      /// <summary>
+      ///   B2: the mailbox budget's window membership, derived purely from persisted
+      ///   <see cref="NpcProfile.SentLetters" />: every letter that actually competed for (and won) a
+      ///   budget slot recently, across EVERY correspondent. Deliberately reload-proof: the old in-memory
+      ///   global cooldown could let one extra letter through after a reload; this cannot, since it is
+      ///   recomputed from the save every tick. <see cref="LetterMailboxPolicy.CountsTowardBudget" /> excludes
+      ///   both a lost courier's letter and any guaranteed-bypass reason, so neither shrinks the window.
+      /// </summary>
+      private static IReadOnlyList<int> GatherRecentReleaseDays(BannerlordNpcMemoryStore store, int today, int windowDays)
+      {
+         var days = new List<int>();
+
+         foreach (string id in store.ListIds())
          {
-            () => EvaluateRomanticCorrespondence(store, llmServices, today),
-            () => EvaluateAwaitingReplies(store, llmServices, today),
-            () => EvaluateSpouseCorrespondence(store, llmServices, today),
-            () => EvaluateMarriageSolicitations(store, llmServices, today)
-         };
+            NpcProfile profile = store.Get(id);
 
-         var queued = false;
-         for (var i = 0; i < evaluators.Length; i++)
-            if (evaluators[(_evaluatorStart + i) % evaluators.Length]())
+            if (profile?.SentLetters == null) continue;
+
+            foreach (PendingLetter l in profile.SentLetters)
             {
-               queued = true;
+               if (!LetterMailboxPolicy.CountsTowardBudget(l.Reason, l.IsLost)) continue;
+               if (today - l.SentOnDay >= windowDays) continue;
+
+               days.Add(l.SentOnDay);
+            }
+         }
+
+         return days;
+      }
+
+      // ── B2: candidate collectors (populate the pool; mutate nothing until release() fires) ──────────────
+
+      /// <summary>
+      ///   Drains every profile's persisted <see cref="NpcProfile.LetterCandidates" /> (enqueued by the event
+      ///   handlers below) into the pool: one <see cref="LetterCandidate" /> per intent whose
+      ///   <see cref="LetterCandidateIntent.EligibleSinceDay" /> has arrived and whose sender still passes the
+      ///   shared <see cref="CanSendLetter" /> gate (in-transit, cooldown, proximity, prisoner). A sender who
+      ///   has since died can never write the letter they intended to, so their whole backlog is dropped
+      ///   rather than left to accumulate forever.
+      /// </summary>
+      private void CollectEventCandidates(
+         BannerlordNpcMemoryStore store, LlmServices llmServices, int today,
+         List<LetterCandidate> pool, Dictionary<LetterCandidate, Action> release)
+      {
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile?.LetterCandidates == null || profile.LetterCandidates.Count == 0) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+
+            if (hero != null && !hero.IsAlive)
+            {
+               // Nobody left to write these; do not let a dead sender's backlog linger in the save forever.
+               profile.LetterCandidates.Clear();
+               store.Set(profile);
+
+               continue;
+            }
+
+            if (hero == null) continue; // transient: not resolvable this tick, try again later.
+
+            foreach (LetterCandidateIntent intent in profile.LetterCandidates)
+            {
+               if (intent.EligibleSinceDay > today) continue;
+               if (!CanSendLetter(profile, today, DefaultCooldownDays)) continue;
+
+               int baseWeight = intent.BaseWeightOverride > 0 ? intent.BaseWeightOverride : LetterWeights.BaseWeight(intent.Reason);
+               int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(intent.Reason), GlobalInterest);
+
+               var candidate = new LetterCandidate {
+                  Reason = intent.Reason,
+                  SenderId = id,
+                  Weight = weight,
+                  EligibleSinceDay = intent.EligibleSinceDay
+               };
+               pool.Add(candidate);
+
+               NpcProfile capturedProfile = profile;
+               Hero capturedHero = hero;
+               LetterCandidateIntent capturedIntent = intent;
+               release[candidate] = () =>
+               {
+                  LetterGenerationService.QueueInitialLetter(
+                     capturedProfile, capturedHero, capturedIntent.Reason, capturedIntent.Context ?? "",
+                     llmServices, store, today);
+                  capturedProfile.LetterCandidates.Remove(capturedIntent);
+                  store.Set(capturedProfile);
+               };
+            }
+         }
+      }
+
+      /// <summary>
+      ///   Every NPC in an active romance who has not seen the player in a while and passes cooldown becomes
+      ///   one candidate, not just the first found (as the old round-robin evaluator returned). Weighed and
+      ///   pooled here; the actual letter is written only if <see cref="LetterMailboxPolicy.SelectNext" />
+      ///   picks it, inside the release closure, exactly as it was fired unconditionally before.
+      /// </summary>
+      private void CollectRomanticCorrespondence(
+         BannerlordNpcMemoryStore store, LlmServices llmServices, int today,
+         List<LetterCandidate> pool, Dictionary<LetterCandidate, Action> release)
+      {
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile?.Romantic == null) continue;
+            // M-R1: an ACTIVE romance (courting or deeper); Estranged/Broken must not draw romantic letters.
+            if (!profile.Romantic.Status.IsCourtingOrDeeper()) continue;
+            if (profile.ReputationWithPlayer < 15) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+
+            if (hero is not {IsAlive: true}) continue;
+            if (IsWithPlayer(hero)) continue; // travelling companion, no letter needed
+
+            if (!CanSendLetter(profile, today, 10)) continue;
+            if (DaysSinceLastEvent(profile, today) < 3) continue; // met recently
+
+            int daysSince = DaysSinceLastEvent(profile, today);
+            string context = $"Romantic status: {profile.Romantic.Status}. " + $"Last saw the player {daysSince} days ago." + $" Your feeling toward the player right now: {ThirdPartyDescriptor.DescribeRelation(profile.ReputationWithPlayer)}. Write in a tone true to that feeling, not a generic longing.";
+
+            int baseWeight = LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence);
+            int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(LetterReason.RomanticCorrespondence), GlobalInterest);
+
+            var candidate = new LetterCandidate {
+               Reason = LetterReason.RomanticCorrespondence,
+               SenderId = id,
+               Weight = weight,
+               EligibleSinceDay = today
+            };
+            pool.Add(candidate);
+
+            NpcProfile capturedProfile = profile;
+            Hero capturedHero = hero;
+            release[candidate] = () =>
+               LetterGenerationService.QueueInitialLetter(
+                  capturedProfile, capturedHero, LetterReason.RomanticCorrespondence, context,
+                  llmServices, store, today);
+         }
+      }
+
+      /// <summary>
+      ///   Checks for romantic letters that were delivered but never answered. When the player has gone
+      ///   silent for five days after reading an NPC's romantic letter, that NPC becomes a candidate for a
+      ///   single impatient follow-up. The <see cref="PendingLetter.FollowUpSent" /> WRITE only happens inside
+      ///   the release closure now (not here): an unanswered letter whose candidate is NOT chosen today must
+      ///   stay eligible tomorrow, not be silently marked as already followed-up.
+      /// </summary>
+      private void CollectAwaitingReplies(
+         BannerlordNpcMemoryStore store, LlmServices llmServices, int today,
+         List<LetterCandidate> pool, Dictionary<LetterCandidate, Action> release)
+      {
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile?.Romantic == null) continue;
+            // M-R1: an ACTIVE romance (courting or deeper); Estranged/Broken must not draw romantic letters.
+            if (!profile.Romantic.Status.IsCourtingOrDeeper()) continue;
+            if (profile.ReputationWithPlayer < 15) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+
+            if (hero is not {IsAlive: true}) continue;
+            if (hero.IsPrisoner) continue; // M15: this follow-up bypasses the shared cadence gate, so guard the prisoner case here too.
+            if (IsWithPlayer(hero)) continue;
+
+            // Find a delivered romantic letter with no player reply after 5 days.
+            PendingLetter unanswered = null;
+            foreach (PendingLetter l in profile.SentLetters)
+            {
+               if (l.Reason != LetterReason.RomanticCorrespondence) continue;
+               if (!l.IsDelivered) continue;
+               if (!string.IsNullOrWhiteSpace(l.PlayerReply)) continue;
+               // 2.3: measure the silence from the REAL delivery day (a slow courier used to make "your silence
+               // weighs on me" fire the day after a late arrival). EffectiveDeliveredDay falls back to DeliveryDay
+               // on old saves.
+               if (today - l.EffectiveDeliveredDay < 5) continue;
+
+               unanswered = l;
 
                break;
             }
 
-         _evaluatorStart = (_evaluatorStart + 1) % evaluators.Length;
+            if (unanswered == null) continue;
 
-         if (queued) _lastDailyLetterDay = today;
+            // Primary guard: flag on the original letter survives even when the follow-up
+            // placeholder is removed by LLM failure or session-reload orphan cleanup.
+            if (unanswered.FollowUpSent) continue;
+
+            // Legacy fallback for saves pre-dating FollowUpSent: if the follow-up letter still exists in
+            // SentLetters, backfill the flag and skip. This reflects TRUE past state (a follow-up was already
+            // truly sent), not a decision about today's candidate, so it is safe to apply immediately rather
+            // than deferring to a release closure.
+            var followUpPresent = false;
+            foreach (PendingLetter l in profile.SentLetters)
+               if (l.Reason == LetterReason.AwaitingReply && l.SentOnDay > unanswered.SentOnDay)
+               {
+                  followUpPresent = true;
+
+                  break;
+               }
+
+            if (followUpPresent)
+            {
+               unanswered.FollowUpSent = true;
+               store.Set(profile);
+
+               continue;
+            }
+
+            int daysSince = today - unanswered.EffectiveDeliveredDay;
+            string context = $"You wrote a letter {daysSince} days ago expressing your feelings. " +
+                             $"The player has not replied. Their silence weighs on you.";
+
+            int baseWeight = LetterWeights.BaseWeight(LetterReason.AwaitingReply);
+            int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(LetterReason.AwaitingReply), GlobalInterest);
+
+            var candidate = new LetterCandidate {
+               Reason = LetterReason.AwaitingReply,
+               SenderId = id,
+               Weight = weight,
+               EligibleSinceDay = today
+            };
+            pool.Add(candidate);
+
+            NpcProfile capturedProfile = profile;
+            Hero capturedHero = hero;
+            PendingLetter capturedUnanswered = unanswered;
+            release[candidate] = () =>
+            {
+               // The flag write is the whole reason this candidate must not fire twice; deferred here so an
+               // un-selected candidate stays eligible next tick instead of being silently marked "handled".
+               capturedUnanswered.FollowUpSent = true;
+               store.Set(capturedProfile);
+               LetterGenerationService.QueueInitialLetter(
+                  capturedProfile, capturedHero, LetterReason.AwaitingReply, context,
+                  llmServices, store, today);
+
+               ModLog.Info($"[LETTER] {capturedProfile.Name} sends awaiting-reply follow-up ({daysSince}d of silence).");
+            };
+         }
+      }
+
+      /// <summary>
+      ///   A clan head who regards the player well may become a candidate to proactively propose an alliance
+      ///   match by letter: NPC is a lord with eligible kin, player is single, player has some standing (clan
+      ///   tier ≥ 1), personal regard ≥ 20, and no proposal was already sent. The one-proposal-ever dedupe is a
+      ///   pure read of already-persisted <see cref="NpcProfile.SentLetters" />, which the release closure's
+      ///   own <see cref="LetterGenerationService.QueueInitialLetter" /> call keeps accurate for future ticks,
+      ///   so it needs no deferral of its own.
+      /// </summary>
+      private void CollectMarriageSolicitations(
+         BannerlordNpcMemoryStore store, LlmServices llmServices, int today,
+         List<LetterCandidate> pool, Dictionary<LetterCandidate, Action> release)
+      {
+         if (Hero.MainHero?.Spouse != null) return; // player already wed
+         if (Clan.PlayerClan?.Tier < 1) return; // no standing
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile == null) continue;
+            if (profile.ReputationWithPlayer < 20) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+
+            if (hero is not {IsAlive: true} || !hero.IsLord) continue;
+            if (IsWithPlayer(hero)) continue;
+
+            // Build prospects — non-empty means this NPC has authority and eligible kin.
+            string prospects = MarriageProspectResolver.Build(hero);
+
+            if (string.IsNullOrWhiteSpace(prospects)) continue;
+
+            if (!CanSendLetter(profile, today, 30)) continue;
+
+            // Only one marriage proposal letter ever (avoid pestering the player).
+            var alreadySent = false;
+            foreach (PendingLetter l in profile.SentLetters)
+               if (l.Reason == LetterReason.MarriageProposal)
+               {
+                  alreadySent = true;
+
+                  break;
+               }
+
+            if (alreadySent) continue;
+
+            string context = $"You are a lord of standing and you regard the player highly. " +
+                             $"You are writing to propose a marriage alliance between your house and theirs. " +
+                             $"Eligible members of your house: {prospects}";
+
+            int baseWeight = LetterWeights.BaseWeight(LetterReason.MarriageProposal);
+            int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(LetterReason.MarriageProposal), GlobalInterest);
+
+            var candidate = new LetterCandidate {
+               Reason = LetterReason.MarriageProposal,
+               SenderId = id,
+               Weight = weight,
+               EligibleSinceDay = today
+            };
+            pool.Add(candidate);
+
+            NpcProfile capturedProfile = profile;
+            Hero capturedHero = hero;
+            release[candidate] = () =>
+            {
+               LetterGenerationService.QueueInitialLetter(
+                  capturedProfile, capturedHero, LetterReason.MarriageProposal, context,
+                  llmServices, store, today);
+
+               ModLog.Info($"[LETTER] {capturedProfile.Name} sends marriage solicitation to player.");
+            };
+         }
+      }
+
+      /// <summary>
+      ///   The player's own vanilla spouse AND every committed consort each become their own candidate when
+      ///   eligible (not just the first found, as the old evaluator returned): a spouse and a consort may now
+      ///   compete in the SAME tick, with the mailbox scheduler (not evaluator order) deciding which one
+      ///   actually reaches the player.
+      /// </summary>
+      private void CollectSpouseCorrespondence(
+         BannerlordNpcMemoryStore store, LlmServices llmServices, int today,
+         List<LetterCandidate> pool, Dictionary<LetterCandidate, Action> release)
+      {
+         // Native (legal) spouse.
+         Hero spouse = Hero.MainHero?.Spouse;
+         if (spouse is {IsAlive: true} && !IsWithPlayer(spouse))
+         {
+            NpcProfile profile = store.Get(spouse.StringId);
+            if (profile != null && CanSendLetter(profile, today, 7) && DaysSinceLastEvent(profile, today) >= 5
+                && PassesAbsenceDistanceRoll(spouse))
+            {
+               int daysSince = DaysSinceLastEvent(profile, today);
+               var ctx = $"Player's spouse. Has not seen the player in {daysSince} days." + $" Your feeling toward the player right now: {ThirdPartyDescriptor.DescribeRelation(profile.ReputationWithPlayer)}. Write in a tone true to that feeling: a warm marriage writes with warmth, never generic reproach.";
+
+               int baseWeight = LetterWeights.BaseWeight(LetterReason.SpouseCorrespondence);
+               int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(LetterReason.SpouseCorrespondence), GlobalInterest);
+
+               var candidate = new LetterCandidate {
+                  Reason = LetterReason.SpouseCorrespondence,
+                  SenderId = spouse.StringId,
+                  Weight = weight,
+                  EligibleSinceDay = today
+               };
+               pool.Add(candidate);
+
+               NpcProfile capturedProfile = profile;
+               Hero capturedSpouse = spouse;
+               release[candidate] = () =>
+                  LetterGenerationService.QueueInitialLetter(
+                     capturedProfile, capturedSpouse, LetterReason.SpouseCorrespondence, ctx,
+                     llmServices, store, today);
+            }
+         }
+
+         // Consorts: committed partners recognised by the mod but not by the game engine.
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile?.Romantic?.IsConsort != true) continue;
+            if (profile.Romantic.Status != RomanticStatus.Committed) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+
+            if (hero is not {IsAlive: true}) continue;
+            if (IsWithPlayer(hero)) continue;
+            if (!CanSendLetter(profile, today, 10)) continue;
+            if (DaysSinceLastEvent(profile, today) < 7) continue;
+            if (!PassesAbsenceDistanceRoll(hero)) continue;
+
+            var context = $"Player's consort. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
+
+            int baseWeight = LetterWeights.BaseWeight(LetterReason.SpouseCorrespondence);
+            int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(LetterReason.SpouseCorrespondence), GlobalInterest);
+
+            var candidate = new LetterCandidate {
+               Reason = LetterReason.SpouseCorrespondence,
+               SenderId = id,
+               Weight = weight,
+               EligibleSinceDay = today
+            };
+            pool.Add(candidate);
+
+            NpcProfile capturedProfile = profile;
+            Hero capturedHero = hero;
+            release[candidate] = () =>
+               LetterGenerationService.QueueInitialLetter(
+                  capturedProfile, capturedHero, LetterReason.SpouseCorrespondence, context,
+                  llmServices, store, today);
+         }
+      }
+
+      // ── B1: correspondence interest (persisted; B2 wires this into the mailbox's weighting) ────
+
+      /// <summary>The current damper for one subject (a <see cref="LetterReason" />), or 0 (neutral) if never nudged.</summary>
+      public int GetSubjectInterest(LetterReason reason)
+         => _subjectInterest.TryGetValue((int) reason, out int v) ? v : 0;
+
+      /// <summary>Moves one subject's damper by <paramref name="delta" />, clamped via <see cref="CorrespondenceInterestPolicy.ClampSubject" />.</summary>
+      public void NudgeSubject(LetterReason reason, int delta)
+      {
+         int key = (int) reason;
+         int current = _subjectInterest.TryGetValue(key, out int v) ? v : 0;
+         _subjectInterest[key] = CorrespondenceInterestPolicy.ClampSubject(current + delta);
+      }
+
+      /// <summary>The player's overall correspondence damper (0 = neutral, never a bonus).</summary>
+      public int GlobalInterest => _globalInterest;
+
+      /// <summary>Moves the global damper by <paramref name="delta" />, clamped via <see cref="CorrespondenceInterestPolicy.ClampGlobal" />.</summary>
+      public void NudgeGlobal(int delta)
+         => _globalInterest = CorrespondenceInterestPolicy.ClampGlobal(_globalInterest + delta);
+
+      /// <summary>
+      ///   Persists the subject/global damper state as a UTF-8 JSON byte[] blob, mirroring
+      ///   <see cref="Storage.BannerlordNpcMemoryStore.SyncData" />'s byte[] pattern: additive and save-safe, so
+      ///   a save written before this feature has no such key, and a garbled or absent blob degrades to the
+      ///   empty defaults rather than throwing out of a save or load. Never resets on session launch (SyncData
+      ///   runs before OnSessionLaunched), so loaded state is never clobbered.
+      /// </summary>
+      public void SyncData(IDataStore dataStore)
+      {
+         try
+         {
+            if (dataStore.IsSaving)
+            {
+               string json;
+               try
+               {
+                  json = JsonConvert.SerializeObject(new LetterPacingState {
+                     SubjectInterest = _subjectInterest,
+                     GlobalInterest = _globalInterest
+                  });
+               }
+               catch (Exception ex)
+               {
+                  ModLog.Error($"[LETTER PACING] serialize failed, persisting empty state this save. {ex.GetType().Name}: {ex.Message}");
+                  json = "{}";
+               }
+
+               byte[] bytes = Encoding.UTF8.GetBytes(json);
+               try { dataStore.SyncData(LetterPacingSaveKey, ref bytes); }
+               catch (Exception ex)
+               {
+                  ModLog.Error($"[LETTER PACING] byte[] save failed: {ex.GetType().Name}: {ex.Message}");
+               }
+            }
+            else
+            {
+               byte[] bytes = null;
+               try { dataStore.SyncData(LetterPacingSaveKey, ref bytes); }
+               catch
+               {
+                  // key absent on a save written before this feature: fall through to the empty defaults
+               }
+
+               if (bytes is {Length: > 0})
+                  try
+                  {
+                     string json = Encoding.UTF8.GetString(bytes);
+                     LetterPacingState state = JsonConvert.DeserializeObject<LetterPacingState>(json);
+                     if (state != null)
+                     {
+                        _subjectInterest = state.SubjectInterest ?? new Dictionary<int, int>();
+                        _globalInterest = state.GlobalInterest;
+                     }
+                  }
+                  catch (Exception ex)
+                  {
+                     ModLog.Error($"[LETTER PACING] load failed; keeping empty defaults. {ex.GetType().Name}: {ex.Message}");
+                  }
+
+               ModLog.Info($"[LETTER PACING] loaded ({_subjectInterest.Count} subject entr{(_subjectInterest.Count == 1 ? "y" : "ies")}, global {_globalInterest}).");
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[LETTER PACING] SyncData failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>The wire shape for <see cref="SyncData" />: kept trivial so the JSON round-trips without fuss.</summary>
+      private sealed class LetterPacingState
+      {
+         public Dictionary<int, int> SubjectInterest { get; set; }
+         public int GlobalInterest { get; set; }
       }
 
       /// <summary>
@@ -244,238 +757,6 @@ namespace CalradiaRemembers.Letters
       private static int DaysSinceLastEvent(NpcProfile profile, int today)
          => LetterCadence.DaysSinceLastEvent(profile, today);
 
-      /// <summary>
-      ///   Checks for romantic letters that were delivered but never answered. When the
-      ///   player has gone silent for five days after reading an NPC's romantic letter,
-      ///   the NPC writes a single follow-up expressing their impatience or longing.
-      ///   One follow-up per unanswered letter; bypasses the normal cooldown gate.
-      /// </summary>
-      private static bool EvaluateAwaitingReplies(
-         BannerlordNpcMemoryStore store,
-         LlmServices llmServices,
-         int today)
-      {
-         foreach (string id in store.ListIds())
-         {
-            NpcProfile profile = store.Get(id);
-
-            if (profile?.Romantic == null) continue;
-            // M-R1: an ACTIVE romance (courting or deeper); Estranged/Broken must not draw romantic letters.
-            if (!profile.Romantic.Status.IsCourtingOrDeeper()) continue;
-            if (profile.ReputationWithPlayer < 15) continue;
-
-            Hero hero = Hero.FindFirst(h => h.StringId == id);
-
-            if (hero is not {IsAlive: true}) continue;
-            if (hero.IsPrisoner) continue; // M15: this follow-up bypasses the shared cadence gate, so guard the prisoner case here too.
-            if (IsWithPlayer(hero)) continue;
-
-            // Find a delivered romantic letter with no player reply after 5 days.
-            PendingLetter unanswered = null;
-            foreach (PendingLetter l in profile.SentLetters)
-            {
-               if (l.Reason != LetterReason.RomanticCorrespondence) continue;
-               if (!l.IsDelivered) continue;
-               if (!string.IsNullOrWhiteSpace(l.PlayerReply)) continue;
-               // 2.3: measure the silence from the REAL delivery day (a slow courier used to make "your silence
-               // weighs on me" fire the day after a late arrival). EffectiveDeliveredDay falls back to DeliveryDay
-               // on old saves.
-               if (today - l.EffectiveDeliveredDay < 5) continue;
-
-               unanswered = l;
-
-               break;
-            }
-
-            if (unanswered == null) continue;
-
-            // Primary guard: flag on the original letter survives even when the follow-up
-            // placeholder is removed by LLM failure or session-reload orphan cleanup.
-            if (unanswered.FollowUpSent) continue;
-
-            // Legacy fallback for saves pre-dating FollowUpSent: if the follow-up letter
-            // still exists in SentLetters, backfill the flag and skip.
-            var followUpPresent = false;
-            foreach (PendingLetter l in profile.SentLetters)
-               if (l.Reason == LetterReason.AwaitingReply && l.SentOnDay > unanswered.SentOnDay)
-               {
-                  followUpPresent = true;
-
-                  break;
-               }
-
-            if (followUpPresent)
-            {
-               unanswered.FollowUpSent = true;
-               store.Set(profile);
-
-               continue;
-            }
-
-            int daysSince = today - unanswered.EffectiveDeliveredDay;
-            string context = $"You wrote a letter {daysSince} days ago expressing your feelings. " +
-                             $"The player has not replied. Their silence weighs on you.";
-
-            unanswered.FollowUpSent = true;
-            store.Set(profile);
-            LetterGenerationService.QueueInitialLetter(
-               profile, hero, LetterReason.AwaitingReply, context,
-               llmServices, store, today);
-
-            ModLog.Info($"[LETTER] {profile.Name} sends awaiting-reply follow-up ({daysSince}d of silence).");
-
-            return true; // one follow-up per daily tick
-         }
-
-         return false;
-      }
-
-      /// <summary>
-      ///   A clan head who regards the player well may proactively propose an alliance match
-      ///   by letter. Fires when: NPC is a lord with eligible kin, player is single, player
-      ///   has some standing (clan tier ≥ 1), personal regard ≥ 20, and no proposal was
-      ///   already sent. One solicitation per daily tick; cooldown 30 days.
-      /// </summary>
-      private static bool EvaluateMarriageSolicitations(
-         BannerlordNpcMemoryStore store,
-         LlmServices llmServices,
-         int today)
-      {
-         if (Hero.MainHero?.Spouse != null) return false; // player already wed
-         if (Clan.PlayerClan?.Tier < 1) return false; // no standing
-
-         foreach (string id in store.ListIds())
-         {
-            NpcProfile profile = store.Get(id);
-
-            if (profile == null) continue;
-            if (profile.ReputationWithPlayer < 20) continue;
-
-            Hero hero = Hero.FindFirst(h => h.StringId == id);
-
-            if (hero is not {IsAlive: true} || !hero.IsLord) continue;
-            if (IsWithPlayer(hero)) continue;
-
-            // Build prospects — non-empty means this NPC has authority and eligible kin.
-            string prospects = MarriageProspectResolver.Build(hero);
-
-            if (string.IsNullOrWhiteSpace(prospects)) continue;
-
-            if (!CanSendLetter(profile, today, 30)) continue;
-
-            // Only one marriage proposal letter ever (avoid pestering the player).
-            var alreadySent = false;
-            foreach (PendingLetter l in profile.SentLetters)
-               if (l.Reason == LetterReason.MarriageProposal)
-               {
-                  alreadySent = true;
-
-                  break;
-               }
-
-            if (alreadySent) continue;
-
-            string context = $"You are a lord of standing and you regard the player highly. " +
-                             $"You are writing to propose a marriage alliance between your house and theirs. " +
-                             $"Eligible members of your house: {prospects}";
-
-            LetterGenerationService.QueueInitialLetter(
-               profile, hero, LetterReason.MarriageProposal, context,
-               llmServices, store, today);
-
-            ModLog.Info($"[LETTER] {profile.Name} sends marriage solicitation to player.");
-
-            return true; // one solicitation per daily tick
-         }
-
-         return false;
-      }
-
-      // ── Daily condition evaluators ─────────────────────────────────────────
-
-      private static bool EvaluateRomanticCorrespondence(
-         BannerlordNpcMemoryStore store,
-         LlmServices llmServices,
-         int today)
-      {
-         foreach (string id in store.ListIds())
-         {
-            NpcProfile profile = store.Get(id);
-
-            if (profile?.Romantic == null) continue;
-            // M-R1: an ACTIVE romance (courting or deeper); Estranged/Broken must not draw romantic letters.
-            if (!profile.Romantic.Status.IsCourtingOrDeeper()) continue;
-            if (profile.ReputationWithPlayer < 15) continue;
-
-            Hero hero = Hero.FindFirst(h => h.StringId == id);
-
-            if (hero is not {IsAlive: true}) continue;
-            if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
-
-            if (!CanSendLetter(profile, today, 10)) continue;
-            if (DaysSinceLastEvent(profile, today) < 3) continue; // met recently
-
-            string context = $"Romantic status: {profile.Romantic.Status}. " + $"Last saw the player {DaysSinceLastEvent(profile, today)} days ago." + $" Your feeling toward the player right now: {ThirdPartyDescriptor.DescribeRelation(profile.ReputationWithPlayer)}. Write in a tone true to that feeling, not a generic longing.";
-
-            LetterGenerationService.QueueInitialLetter(
-               profile, hero, LetterReason.RomanticCorrespondence, context,
-               llmServices, store, today);
-
-            return true; // one romantic letter per daily tick
-         }
-
-         return false;
-      }
-
-      private static bool EvaluateSpouseCorrespondence(
-         BannerlordNpcMemoryStore store,
-         LlmServices llmServices,
-         int today)
-      {
-         // Native (legal) spouse.
-         Hero spouse = Hero.MainHero?.Spouse;
-         if (spouse is {IsAlive: true} && !IsWithPlayer(spouse))
-         {
-            NpcProfile profile = store.Get(spouse.StringId);
-            if (profile != null && CanSendLetter(profile, today, 7) && DaysSinceLastEvent(profile, today) >= 5
-                && PassesAbsenceDistanceRoll(spouse))
-            {
-               var ctx = $"Player's spouse. Has not seen the player in {DaysSinceLastEvent(profile, today)} days." + $" Your feeling toward the player right now: {ThirdPartyDescriptor.DescribeRelation(profile.ReputationWithPlayer)}. Write in a tone true to that feeling: a warm marriage writes with warmth, never generic reproach.";
-               LetterGenerationService.QueueInitialLetter(
-                  profile, spouse, LetterReason.SpouseCorrespondence, ctx,
-                  llmServices, store, today);
-
-               return true;
-            }
-         }
-
-         // Consorts — committed partners recognised by the mod but not by the game engine.
-         foreach (string id in store.ListIds())
-         {
-            NpcProfile profile = store.Get(id);
-
-            if (profile?.Romantic?.IsConsort != true) continue;
-            if (profile.Romantic.Status != RomanticStatus.Committed) continue;
-
-            Hero hero = Hero.FindFirst(h => h.StringId == id);
-
-            if (hero is not {IsAlive: true}) continue;
-            if (IsWithPlayer(hero)) continue;
-            if (!CanSendLetter(profile, today, 10)) continue;
-            if (DaysSinceLastEvent(profile, today) < 7) continue;
-            if (!PassesAbsenceDistanceRoll(hero)) continue;
-
-            var context = $"Player's consort. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
-            LetterGenerationService.QueueInitialLetter(
-               profile, hero, LetterReason.SpouseCorrespondence, context,
-               llmServices, store, today);
-
-            return true; // one consort letter per daily tick
-         }
-
-         return false;
-      }
-
       // ── Helpers ───────────────────────────────────────────────────────────
 
       /// <summary>
@@ -486,6 +767,11 @@ namespace CalradiaRemembers.Letters
       /// </summary>
       private static bool IsWithPlayer(Hero hero) => HeroProximity.IsNearPlayer(hero);
 
+      /// <summary>
+      ///   B2: tournament congratulations no longer fire immediately: each eligible NPC (same guards, same
+      ///   cap of <see cref="MaxLettersPerEvent" />) ENQUEUES a <see cref="LetterCandidateIntent" /> instead,
+      ///   for the mailbox scheduler to weigh against everything else pending on its next daily tick.
+      /// </summary>
       private static void NpcCongratulatePlayerForTournamentVictory(NpcMemoryCampaignBehavior behavior, int today, string context)
       {
          var queued = 0;
@@ -501,24 +787,35 @@ namespace CalradiaRemembers.Letters
             Hero hero = Hero.FindFirst(h => h.StringId == id);
 
             if (hero is not {IsAlive: true}) continue;
-            if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
+            if (IsWithPlayer(hero)) continue; // travelling companion, no letter needed
 
             // Friendly NPCs congratulate; rivals or hostiles might challenge.
             if (profile.ReputationWithPlayer < 10) continue;
 
-            LetterGenerationService.QueueInitialLetter(
-               profile, hero, LetterReason.TournamentVictory, context,
-               behavior.LlmServices, behavior.Store, today);
+            profile.LetterCandidates.Add(new LetterCandidateIntent {
+               Reason = LetterReason.TournamentVictory,
+               Context = context,
+               EligibleSinceDay = today,
+               BaseWeightOverride = 0 // derive from LetterWeights.BaseWeight(TournamentVictory)
+            });
+            behavior.Store.Set(profile);
             queued++;
          }
       }
 
-      private static void NpcCongratulatePlayerOnBattleVictory(NpcMemoryCampaignBehavior behavior, int today, string context)
+      /// <summary>
+      ///   B2: battle congratulations no longer fire immediately: the single eligible NPC (same guards, same
+      ///   cap of 1 per battle) ENQUEUES a <see cref="LetterCandidateIntent" /> carrying the underdog-scaled
+      ///   <paramref name="weightOverride" /> computed once at the moment the battle ended
+      ///   (<see cref="LetterWeights.BattleVictoryWeight" />), so the mailbox scheduler weighs it correctly
+      ///   whenever it is eventually released, however many days later that turns out to be.
+      /// </summary>
+      private static void NpcCongratulatePlayerOnBattleVictory(NpcMemoryCampaignBehavior behavior, int today, string context, int weightOverride)
       {
          var queued = 0;
          foreach (string id in behavior.Store.ListIds())
          {
-            if (queued >= 1) break; // cap at 1 per battle
+            if (queued >= 1) break; // cap at 1 enqueued candidate per battle
 
             NpcProfile profile = behavior.Store.Get(id);
 
@@ -528,16 +825,20 @@ namespace CalradiaRemembers.Letters
             Hero hero = Hero.FindFirst(h => h.StringId == id);
 
             if (hero is not {IsAlive: true}) continue;
-            if (IsWithPlayer(hero)) continue; // travelling companion — no letter needed
+            if (IsWithPlayer(hero)) continue; // travelling companion, no letter needed
 
             // Ally of the player (same faction or high personal regard) celebrates.
             bool sameOrAllied = hero.MapFaction != null && hero.MapFaction == Hero.MainHero?.MapFaction;
 
             if (!sameOrAllied || profile.ReputationWithPlayer < 20) continue;
 
-            LetterGenerationService.QueueInitialLetter(
-               profile, hero, LetterReason.BattleVictory, context,
-               behavior.LlmServices, behavior.Store, today);
+            profile.LetterCandidates.Add(new LetterCandidateIntent {
+               Reason = LetterReason.BattleVictory,
+               Context = context,
+               EligibleSinceDay = today,
+               BaseWeightOverride = weightOverride
+            });
+            behavior.Store.Set(profile);
             queued++;
          }
       }
@@ -575,17 +876,24 @@ namespace CalradiaRemembers.Letters
          var context = $"{(isLegitimate ? "Legitimate" : "Illegitimate")} birth. She has given birth to {childDesc} on day {today}.";
 
          // Birth announcement: a fond note from afar, never sent to a mother riding beside the player (the game
-         // already announces the birth). Sent immediately.
+         // already announces the birth). B2: ENQUEUED for the mailbox scheduler rather than sent immediately.
          if (BirthLetterPolicy.ShouldSendAnnouncement(motherWithPlayer))
-            LetterGenerationService.QueueInitialLetter(
-               profile, mother, LetterReason.BirthAnnouncement, context,
-               behavior.LlmServices, behavior.Store, today);
+         {
+            profile.LetterCandidates.Add(new LetterCandidateIntent {
+               Reason = LetterReason.BirthAnnouncement,
+               Context = context,
+               EligibleSinceDay = today,
+               BaseWeightOverride = 0 // derive from LetterWeights.BaseWeight(BirthAnnouncement)
+            });
+            behavior.Store.Set(profile);
+         }
 
          // Child support request: due a week later, quest opens on delivery. The player's own spouse never duns
          // him for their shared child, and a mother travelling with him writes nothing (player report 2026-07-10).
          // 2.5 (courier audit): SCHEDULE the intent rather than generate it now with a future-dated stamp. The
          // content is written on the due day with bounded retry (ProcessScheduledLetters), so an LLM outage at the
-         // birth no longer loses the pension and its quest forever, and SentOnDay is never a future day.
+         // birth no longer loses the pension and its quest forever, and SentOnDay is never a future day. This is a
+         // GUARANTEED obligation (LetterMailboxPolicy.BypassesBudget), never a mailbox candidate.
          if (BirthLetterPolicy.ShouldRequestChildSupport(motherWithPlayer, isLegitimate))
          {
             string supportContext = context + $" She is now asking the player for {ChildSupportAmount} denars to help raise the child.";
@@ -642,7 +950,21 @@ namespace CalradiaRemembers.Letters
          string defeatedNames = string.Join(", ", SelectLeaderName(loserParties));
          var context = $"Player won a battle, defeating {defeatedNames}.";
 
-         NpcCongratulatePlayerOnBattleVictory(behavior, today, context);
+         // B2: scale the letter's weight by how outmatched the player was. Player WON, so the enemy is the
+         // LOSING side and the player's own side (attacker or defender, whichever it was) is the winning one.
+         float SideStrength(BattleSideEnum side)
+            => (mapEvent.GetMapEventSide(side)?.Parties)?.Sum(mp => mp.Party?.EstimatedStrength ?? 0f) ?? 0f;
+
+         float playerStrength = SideStrength(playerSide);
+         float enemyStrength = SideStrength(losingSide);
+         float ratio = playerStrength <= 0f ? 1f : enemyStrength / playerStrength; // guard divide-by-zero
+
+         int weight = LetterWeights.BattleVictoryWeight(ratio);
+
+         if (ratio >= 1.5f)
+            context += $" The player won against heavy odds (roughly {ratio:0.#} to 1).";
+
+         NpcCongratulatePlayerOnBattleVictory(behavior, today, context, weight);
       }
 
       // ── Event handlers ────────────────────────────────────────────────────
