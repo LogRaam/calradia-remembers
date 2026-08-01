@@ -52,11 +52,14 @@ namespace CalradiaRemembers.Commoners
       /// <summary>
       ///   Creates a synthetic commoner profile for a conversation in the given
       ///   settlement. The profile Id is unique per call; caller must NOT store it.
+      ///   <paramref name="knownIsFemale" /> is the ACTUAL gender of the villager the player is speaking to
+      ///   (from the conversation character); pass it so a female villager is voiced as a woman. Only when it is
+      ///   null (no partner resolvable) does the gender fall back to a coin flip, as it always did.
       /// </summary>
-      public static NpcProfile Create(Settlement settlement)
+      public static NpcProfile Create(Settlement settlement, bool? knownIsFemale = null)
       {
          string culture = settlement?.Culture?.Name?.ToString() ?? "";
-         bool isFemale = _rng.Next(2) == 0;
+         bool isFemale = knownIsFemale ?? _rng.Next(2) == 0;
          string name = DrawName(culture, isFemale);
          string archetype = _archetypes[_rng.Next(_archetypes.Length)];
 

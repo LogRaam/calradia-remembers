@@ -93,8 +93,13 @@ namespace CalradiaRemembers.Commoners
 
          if (settlement == null) return;
 
+         // Use the ACTUAL villager's gender (player report: a female villager was voiced as a man because the
+         // profile's gender was a coin flip disconnected from who is on screen). The conversation character is
+         // the villager the player selected; fall back to the coin flip only if it cannot be resolved.
+         CharacterObject partner = Campaign.Current?.ConversationManager?.OneToOneConversationCharacter;
+
          CommonsKnowledge knowledge = CommonsKnowledgeBuilder.Build(settlement);
-         NpcProfile profile = CommonsProfileFactory.Create(settlement);
+         NpcProfile profile = CommonsProfileFactory.Create(settlement, partner?.IsFemale);
 
          ChatManager.OpenForCommoner(profile, knowledge);
       }
