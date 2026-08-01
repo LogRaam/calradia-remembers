@@ -1,0 +1,10 @@
+Version 1.33.4
+
+A rework of how NPC letters reach you, plus two fixes from player reports. Your saves carry over untouched.
+
+Improved
+- Letters now come at a saner pace, and the mod learns which ones you care about. Several of you deep into long campaigns said the same thing: you love the letters, but after building many relationships there were simply too many. Letters are now chosen by importance and held to a steady volume, so a long campaign no longer buries you. The most meaningful letters (a threat, a proposal, a wartime plea) take priority; routine ones wait their turn or step aside. The mailbox adapts to you: dismissing a letter with Acknowledge quietly lowers that sender and that kind of letter, while writing a real reply raises them. You can also simply tell someone in a reply to write you less (or more), and the mod picks it up in any language. A new option in the mod menu, "Letters from NPCs" (Rarely / Occasionally / Often), sets the overall pace. A battle won against long odds is now far more likely to be the one an ally writes about. Letters that must never be missed (a divorce, a child-support request, a companion leaving, a reply to a letter you sent) always come through.
+
+Fixed
+- Pregnant women now know they are pregnant. A pregnant NPC would deny being with child when asked, because her pregnancy was never told to her in conversation. She now acknowledges it plainly, and stays discreet about the father when it is a secret (an affair, or a hidden bastard), so nothing is spoiled.
+- Female villagers are no longer spoken to as men. A commoner's gender was picked at random, disconnected from the villager on screen, and the commoner prompt never stated a gender at all, so a woman was often voiced as a man. Both are fixed: the mod reads the real villager's gender and tells the character who they are. This also corrects vanilla female townsfolk and villagers.
