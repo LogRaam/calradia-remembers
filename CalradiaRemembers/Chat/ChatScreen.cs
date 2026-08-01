@@ -29,6 +29,11 @@ namespace CalradiaRemembers.Chat
          if (_layer == null) return;
 
          AddLayer(_layer);
+         // Re-assert input capture AFTER the layer is attached to this pushed screen. The restriction set on the
+         // layer before PushScreen can be dropped during the screen transition, and then the campaign map below
+         // still polls its hotkeys: typing a letter that is a game shortcut (i/c/n/k/q...) opens that window over
+         // the council. Re-applying here makes this layer consume keyboard/mouse so nothing leaks to the map.
+         _layer.InputRestrictions.SetInputRestrictions();
          _layer.IsFocusLayer = true;
          ScreenManager.TrySetFocus(_layer);
       }

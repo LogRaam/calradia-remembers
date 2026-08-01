@@ -362,11 +362,6 @@
                             IsVisible="@IsChatInputVisible"
                             Sprite="BlankWhiteSquare_9" Color="#241d14FF">
                       <Children>
-                        <!-- Border FIRST (drawn behind) so it decorates the field without intercepting the click
-                             that focuses the ChatInputWidget: a disabled overlay on top can swallow that click. -->
-                        <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                Sprite="frame_9" ExtendLeft="6" ExtendTop="6" ExtendRight="6" ExtendBottom="6"
-                                IsDisabled="true" />
                         <ChatInputWidget Id="MessageInput"
                                          WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                          HorizontalAlignment="Left" VerticalAlignment="Center"
