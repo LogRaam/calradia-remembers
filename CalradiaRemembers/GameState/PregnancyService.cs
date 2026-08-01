@@ -39,6 +39,8 @@ namespace CalradiaRemembers.GameState
       private const float MinFertileAge = 18f;
       private const int PostpartumCooldownDays = 30; // tuning — recovery before she can conceive again
       private const string UnknownFatherStringId = "cr_unknown_father";
+      private static FieldInfo _dueDateField;
+      private static FieldInfo _fatherField;
       private static FieldInfo _listField;
       private static FieldInfo _motherField;
 
@@ -92,6 +94,48 @@ namespace CalradiaRemembers.GameState
             ModLog.Error($"[PREGNANCY] conception failed: {ex.Message}");
 
             return null;
+         }
+      }
+
+      /// <summary>
+      ///   Reflectively finds <paramref name="mother" />'s live pregnancy entry (if any) and reports the
+      ///   father and how many days remain until she is due. Fixes a player report: a pregnant NPC had no
+      ///   idea she was pregnant in chat and denied it, because this state was never read out of the
+      ///   engine's own pregnancy list for the prompt. Returns false (father null, daysRemaining 0) when
+      ///   she has no tracked pregnancy or reflection fails (never throws).
+      /// </summary>
+      public static bool TryGetPregnancyInfo(Hero mother, out Hero father, out int daysRemaining)
+      {
+         father = null;
+         daysRemaining = 0;
+
+         try
+         {
+            if (mother == null || !ResolveReflection()) return false;
+
+            IList list = PregnancyList();
+            if (list == null) return false;
+
+            foreach (object pregnancy in list)
+            {
+               if (_motherField.GetValue(pregnancy) as Hero != mother) continue;
+
+               father = _fatherField?.GetValue(pregnancy) as Hero;
+               var dueDate = (CampaignTime) _dueDateField.GetValue(pregnancy);
+               daysRemaining = Math.Max(0, (int) (dueDate.ToDays - CampaignTime.Now.ToDays));
+
+               return true;
+            }
+
+            return false;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[PREGNANCY] TryGetPregnancyInfo failed: {ex.Message}");
+            father = null;
+            daysRemaining = 0;
+
+            return false;
          }
       }
 
@@ -291,6 +335,10 @@ namespace CalradiaRemembers.GameState
          _pregnancyType = typeof(PregnancyCampaignBehavior)
             .GetNestedType("Pregnancy", BindingFlags.NonPublic);
          _motherField = _pregnancyType?.GetField("Mother",
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+         _fatherField = _pregnancyType?.GetField("Father",
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+         _dueDateField = _pregnancyType?.GetField("DueDate",
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
          _listField = typeof(PregnancyCampaignBehavior)
             .GetField("_heroPregnancies", BindingFlags.NonPublic | BindingFlags.Instance);

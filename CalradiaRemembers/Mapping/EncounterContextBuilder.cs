@@ -291,6 +291,9 @@ namespace CalradiaRemembers.Mapping
             IntimacyLeverageActive = IntimacyBargainEligibility.IsEligible(hero) && profile?.IntimacyLeverageHeld == true,
             BastardMotherTone = ResolveBastardMotherTone(hero),
             BastardBlackmailDemand = BastardBehavior.Instance?.BlackmailDemandOver(hero) ?? 0,
+            // Fixes a player report: a pregnant NPC woman denied being with child in chat because her
+            // pregnancy state was never injected into the prompt. See ResolvePregnancyNote.
+            PregnancyNote = ResolvePregnancyNote(hero),
             ExtraActionTeachings = ResolveExtraActionTeachings(hero, profile, playerStatus, bridge, playerMessage)
             // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
             // coin, and naming the exact sum broke immersion. Affordability is enforced by the
@@ -659,6 +662,34 @@ namespace CalradiaRemembers.Mapping
             BastardMotherDisposition.Resentful => "resentful",
             _ => "pragmatic"
          };
+      }
+
+      /// <summary>
+      ///   For a pregnant female NPC, resolves her pregnancy state into the second-person prompt line via
+      ///   <see cref="PregnancyNotePolicy" /> (fixes a player report: she otherwise has no idea she is
+      ///   pregnant and denies it in chat, since this state was never injected into the prompt). The father
+      ///   is namable ONLY when he is her LEGAL spouse: any other father (the player in an affair, another
+      ///   lord, or the hidden "Unknown" bandit father) stays a secret, preserving the hidden-bastard
+      ///   pillar. Empty string when she is not pregnant or nothing could be resolved.
+      /// </summary>
+      private static string ResolvePregnancyNote(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero is not {IsFemale: true, IsPregnant: true}) return "";
+
+            if (!PregnancyService.TryGetPregnancyInfo(npcHero, out Hero father, out int daysRemaining)) return "";
+
+            bool fatherIsPlayer = father == Hero.MainHero;
+            bool fatherNamable = father != null && father == npcHero.Spouse;
+            string fatherName = fatherNamable
+               ? father.Name?.ToString()
+               : "";
+            var totalDuration = (int) (Campaign.Current?.Models?.PregnancyModel?.PregnancyDurationInDays ?? 0f);
+
+            return PregnancyNotePolicy.Describe(true, fatherIsPlayer, fatherName, fatherNamable, daysRemaining, totalDuration);
+         }
+         catch { return ""; }
       }
 
       /// <summary>
