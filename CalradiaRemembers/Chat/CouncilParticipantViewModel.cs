@@ -26,15 +26,18 @@ namespace CalradiaRemembers.Chat
       private string _portraitId = "";
       private string _portraitTextureProviderName = "";
 
-      /// <summary>Default seat tile size: a vanilla 3D character render is taller than wide; a square tile squished it.</summary>
-      private const float DefaultPortraitWidth = 54f;
+      /// <summary>
+      ///   Default seat tile portrait size: a wide 2:1 banner (width = 2x height), per Gabriel's request. The seat
+      ///   card is laid out vertically (portrait on top, name/role below) so this wide tile does not crowd the label.
+      /// </summary>
+      private const float DefaultPortraitWidth = 120f;
 
-      private const float DefaultPortraitHeight = 72f;
+      private const float DefaultPortraitHeight = 60f;
 
-      /// <summary>Box a custom PNG fits into, aspect-preserved (mirrors ChatMessageViewModel.ApplyCustomPortrait).</summary>
-      private const float CustomPortraitBoxWidth = 64f;
+      /// <summary>Box a custom PNG fits into, aspect-preserved (mirrors ChatMessageViewModel.ApplyCustomPortrait). 2:1 wide.</summary>
+      private const float CustomPortraitBoxWidth = 120f;
 
-      private const float CustomPortraitBoxHeight = 80f;
+      private const float CustomPortraitBoxHeight = 60f;
 
       public CouncilParticipantViewModel(Hero hero, string seatLabel)
       {

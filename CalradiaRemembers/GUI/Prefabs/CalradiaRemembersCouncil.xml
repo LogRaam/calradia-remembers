@@ -99,7 +99,7 @@
 
                                 <ButtonWidget Id="ParticipantTile"
                                               WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
-                                              SuggestedHeight="96"
+                                              SuggestedHeight="124"
                                               MarginBottom="8"
                                               DoNotPassEventsToChildren="true"
                                               Command.Click="ExecuteOpenDossier">
@@ -113,11 +113,13 @@
                                             ExtendLeft="4" ExtendTop="4" ExtendRight="4" ExtendBottom="4"
                                             Color="#D9A441FF" AlphaFactor="0.8" IsDisabled="true" />
 
+                                    <!-- Vertical card: a wide 2:1 portrait on top, name + role centred below it, so the
+                                         wider tile no longer crowds the label the way the old side-by-side layout did. -->
                                     <ImageIdentifierWidget Id="ParticipantVanillaPortrait"
                                                            WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                                                            SuggestedWidth="@PortraitWidth" SuggestedHeight="@PortraitHeight"
-                                                           HorizontalAlignment="Left" VerticalAlignment="Top"
-                                                           MarginLeft="8" MarginTop="8"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                           MarginTop="8"
                                                            IsVisible="@ShowVanillaPortrait"
                                                            TextureProviderName="@PortraitTextureProviderName"
                                                            ImageId="@PortraitId"
@@ -127,25 +129,25 @@
                                     <CrRuntimeImageWidget Id="ParticipantCustomPortrait"
                                                           WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                                                           SuggestedWidth="@PortraitWidth" SuggestedHeight="@PortraitHeight"
-                                                          HorizontalAlignment="Left" VerticalAlignment="Top"
-                                                          MarginLeft="8" MarginTop="8"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                          MarginTop="8"
                                                           IsVisible="@ShowCustomPortrait"
                                                           ImagePath="@PlayerPortraitPath" IsDisabled="true" />
 
                                     <TextWidget Id="ParticipantName"
                                                 WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
                                                 SuggestedHeight="20"
-                                                HorizontalAlignment="Left" VerticalAlignment="Top"
-                                                MarginTop="10" MarginLeft="82" MarginRight="6"
+                                                HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                MarginTop="74" MarginLeft="6" MarginRight="6"
                                                 Brush="Default" Brush.FontSize="15" Brush.FontColor="#e8d8b8FF"
-                                                Brush.TextHorizontalAlignment="Left" Text="@Name" IsDisabled="true" />
+                                                Brush.TextHorizontalAlignment="Center" Text="@Name" IsDisabled="true" />
 
                                     <TextWidget Id="ParticipantSeatLabel"
                                                 WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                                                HorizontalAlignment="Left" VerticalAlignment="Top"
-                                                MarginTop="34" MarginLeft="82" MarginRight="6"
+                                                HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                MarginTop="96" MarginLeft="6" MarginRight="6"
                                                 Brush="Default" Brush.FontSize="12" Brush.FontColor="#9a8a78FF"
-                                                Brush.TextHorizontalAlignment="Left" Text="@SeatLabel" IsDisabled="true" />
+                                                Brush.TextHorizontalAlignment="Center" Text="@SeatLabel" IsDisabled="true" />
 
                                   </Children>
                                 </ButtonWidget>
