@@ -445,15 +445,12 @@ namespace CalradiaRemembers.Letters
 
             // B1: this answers a letter the PLAYER composed (PlayerLetter carries no LetterReason of its own),
             // so there is no NPC-authored "original letter" to attribute the subject nudge to; PlayerLetterReply
-            // itself is the only reachable subject bucket here.
-            if (pref.Scope != PreferenceScope.None)
-            {
-               InterestDeltas d = CorrespondenceInterestPolicy.DeltasFor(pref);
-               profile.CorrespondenceInterest = CorrespondenceInterestPolicy.ClampSender(profile.CorrespondenceInterest + d.SenderDelta);
-               NpcMemoryCampaignBehavior.Instance?.LetterEvaluator.NudgeSubject(LetterReason.PlayerLetterReply, d.SubjectDelta);
-               NpcMemoryCampaignBehavior.Instance?.LetterEvaluator.NudgeGlobal(d.GlobalDelta);
+            // itself is the only reachable subject bucket here. Routed through CorrespondenceSignalService, the
+            // single seam this reply path shares with the letters_mailbox self-test.
+            bool applied = CorrespondenceSignalService.ApplyPreference(
+               profile, NpcMemoryCampaignBehavior.Instance?.LetterEvaluator, pref, LetterReason.PlayerLetterReply);
+            if (applied)
                ModLog.Info($"[LETTER] {profile.Name} stated a correspondence preference: scope={pref.Scope} direction={pref.Direction} strength={pref.Strength}.");
-            }
 
             store.Set(profile);
             ModLog.Info($"[LETTER] {profile.Name} will reply to player's letter, courier departs day {dispatchDay} ({decision.DelayDays}d delay).");

@@ -127,6 +127,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("presence", Severity.Light, "Mechanical: a companion riding in your party is told they travel at your side and is NEVER told how long since they last saw you, even with a 60-day-stale memory (the 'crew acts abandoned between two ports' report); a lord genuinely away STILL hears the time apart. BORROWS a companion into your party if none is riding along, and puts them back", TestPresence),
          new SelfTest("presence_gate", Severity.Light, "Mechanical: the ONE behaviour v1.30.14 changed, guarded across the WHOLE living roster with no preconditions. The letter system's facade and the single presence authority must give the same answer for every hero alive (before this, letters asked a wide question and jealousy a party-only one), and beside/away must be exact opposites. If they ever disagree again, the systems have drifted apart and this fires", TestPresenceGate),
          new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
+         new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
          new SelfTest("reasoning_scrub", Severity.Light, "Mechanical: the inline <think> leak (tthheerroocckk, nemotron on High reasoning). The save/load itself is STUBBED: corrupted memories are written straight into the store as an old save would carry them (a trace before real prose, a memory that is ONLY a truncated trace, a corrupted background paragraph) -> the REAL session-launch scrub runs -> assert the prose is recovered, the all-trace memory becomes the honest 'faded' line (never invented content), the background returns to null, and a second pass is a no-op. Removes its seeds afterwards", TestReasoningScrub),
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
@@ -6092,6 +6093,84 @@ namespace CalradiaRemembers.Diagnostics
 
          // Leave them where their clan's standing places them, rather than artificially soured.
          CompanionHappinessService.Set(subject, baseline);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   MECHANICAL (no LLM): the whole letters-mailbox stack, end to end, without ever calling EvaluateDaily
+      ///   (which would need a real correspondent event to fire and cannot be forced deterministically). The
+      ///   headline: asking a sender to write less, via the REAL parser (<see cref="CorrespondencePreferenceParser" />)
+      ///   and the REAL apply seam (<see cref="CorrespondenceSignalService" />) both the reply path and this test
+      ///   share, drives that sender's damper to its floor and LOWERS the weight their letters compete with, the
+      ///   player-visible promise behind the whole B1/B2 correspondence-interest feature. Also pins the quieter
+      ///   implicit signal (an unanswered letter still dampens), the scheduler's weighted pick, its budget
+      ///   throttle, and a stale candidate's retirement. Every live mutation is restored before returning.
+      /// </summary>
+      private static string TestLettersMailbox(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("letters_mailbox");
+
+         string id = behavior.Store.ListIds().FirstOrDefault();
+         NpcProfile profile = id != null ? behavior.Store.Get(id) : null;
+
+         if (t.Skip(profile == null, "no NPC profile exists yet (chat with someone once to seed one, then re-run)")) return t.Line();
+
+         int baseInterest = profile.CorrespondenceInterest;
+         LetterTriggerEvaluator ev = behavior.LetterEvaluator;
+         var today = (int) CampaignTime.Now.ToDays;
+
+         try
+         {
+            // ── Headline: a stated "write less" preference, through the REAL parser + the REAL apply seam ──
+            profile.CorrespondenceInterest = 0;
+            int weightBefore = LetterWeights.WeightWithInterest(LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence), profile.CorrespondenceInterest, 0, 0);
+
+            CorrespondencePreference pref = CorrespondencePreferenceParser.Parse(
+               "DELAY: 2\nMy reply...\n[CORRESPONDENCE_PREFERENCE] scope=sender direction=less strength=strong");
+            t.Expect("parserReadsSenderScope", pref.Scope, PreferenceScope.Sender);
+
+            bool applied = CorrespondenceSignalService.ApplyPreference(profile, ev, pref, LetterReason.RomanticCorrespondence);
+            t.Expect("theSeamActuallyApplied", applied, true);
+            t.Expect("statedPreferenceDrivesSenderToTheFloor", profile.CorrespondenceInterest, CorrespondenceInterestPolicy.SenderFloor);
+
+            int weightAfter = LetterWeights.WeightWithInterest(LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence), profile.CorrespondenceInterest, 0, 0);
+            t.Note($"askedToWriteLess: weight {weightBefore} -> {weightAfter}");
+            t.Expect("askingToWriteLessLOWERSTheirMailboxWeight", weightAfter < weightBefore, true);
+
+            // ── The quiet implicit signal: an acknowledged-but-unanswered letter also dampens ──
+            profile.CorrespondenceInterest = 0;
+            profile.CorrespondenceInterest = CorrespondenceInterestPolicy.ClampSender(profile.CorrespondenceInterest + CorrespondenceInterestPolicy.OnAcknowledge().SenderDelta);
+            int weightNeutral = LetterWeights.WeightWithInterest(LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence), 0, 0, 0);
+            int weightAfterAck = LetterWeights.WeightWithInterest(LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence), profile.CorrespondenceInterest, 0, 0);
+            t.Expect("acknowledgingWithoutReplyingGoesNegative", profile.CorrespondenceInterest < 0, true);
+            t.Expect("anAcknowledgeAloneAlsoLowersTheirWeight", weightAfterAck < weightNeutral, true);
+
+            // ── Ranking: the weighted scheduler prefers the important letter over mere flavor ──
+            var intrigue = new LetterCandidate {Reason = LetterReason.Blackmail, SenderId = "a", Weight = LetterWeights.BaseWeight(LetterReason.Blackmail), EligibleSinceDay = today};
+            var flavor = new LetterCandidate {Reason = LetterReason.TournamentVictory, SenderId = "b", Weight = LetterWeights.BaseWeight(LetterReason.TournamentVictory), EligibleSinceDay = today};
+            var pool = new List<LetterCandidate> {flavor, intrigue};
+
+            LetterBudget openBudget = LetterPacingRules.BudgetFor(LetterPacing.Occasionally);
+            LetterCandidate chosen = LetterMailboxPolicy.SelectNext(pool, new List<int>(), today, openBudget, 99); // 99 disables the diversity roll
+            t.Expect("theSchedulerPrefersTheImportantLetter", chosen?.Reason, LetterReason.Blackmail);
+
+            // ── Budget throttle: a spent window releases nothing, however loud the pool ──
+            var spentWindow = new List<int>();
+            for (var i = 0; i < openBudget.MaxPerWindow; i++) spentWindow.Add(today);
+            LetterCandidate throttled = LetterMailboxPolicy.SelectNext(pool, spentWindow, today, openBudget, 99);
+            t.Expect("aFullBudgetWindowReleasesNothing", throttled, null);
+
+            // ── Staleness: an old event candidate is quietly retired rather than force-delivered ──
+            t.Expect("a40DayOldCandidateIsStale", LetterCandidateFreshness.IsStale(LetterReason.BattleVictory, today - 40, today), true);
+            t.Expect("a5DayOldCandidateIsStillFresh", LetterCandidateFreshness.IsStale(LetterReason.BattleVictory, today - 5, today), false);
+         }
+         finally
+         {
+            // Scope=sender never touched subject/global, so only CorrespondenceInterest needs restoring.
+            profile.CorrespondenceInterest = baseInterest;
+            behavior.Store.Set(profile);
+         }
 
          return t.Line();
       }
