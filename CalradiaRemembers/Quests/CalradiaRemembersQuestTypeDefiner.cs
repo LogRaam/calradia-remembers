@@ -45,12 +45,35 @@ namespace CalradiaRemembers.Quests
             {
                 bool colliderPresent = AppDomain.CurrentDomain.GetAssemblies()
                     .Any(a => QuestSaveBasePolicy.IsColliderAssembly(a.GetName().Name));
+                int baseId = QuestSaveBasePolicy.Choose(colliderPresent);
 
-                return QuestSaveBasePolicy.Choose(colliderPresent);
+                LogBaseChoice(colliderPresent, baseId);
+
+                return baseId;
             }
             catch
             {
                 return QuestSaveBasePolicy.DefaultBase;
+            }
+        }
+
+        /// <summary>
+        ///   Records which quest save-base the definer picked at boot and why, so a future save-compatibility
+        ///   problem can be traced from the log. Its own guard: a logging failure this early (before the campaign)
+        ///   must never change the base the caller returns.
+        /// </summary>
+        private static void LogBaseChoice(bool colliderPresent, int baseId)
+        {
+            try
+            {
+                if (colliderPresent)
+                    ModLog.Info($"[SAVE COMPAT] Europe1100/EOE detected at boot: quest save-base shifted to {baseId} to avoid the 300000001 collision. In-progress CR quests are stored under this base.");
+                else
+                    ModLog.Info($"[SAVE COMPAT] no known save-id collider loaded; quest save-base is the shipped {baseId}.");
+            }
+            catch
+            {
+                // Never let a logging failure affect the boot registration.
             }
         }
 
