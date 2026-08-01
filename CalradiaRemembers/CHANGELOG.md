@@ -4,9 +4,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v1.33.3.. 2026-07-31
 
-A compatibility fix. Your saves carry over untouched.
+A compatibility fix and a bug fix, both from player reports. Your saves carry over untouched.
 
 ### Fixed
+- **No more phantom companion weddings.** Camp life could announce that two companions had married when the game
+  had actually declined the match (`MarriageAction.Apply` silently no-ops unless the marriage model deems the
+  couple suitable, and a same-clan companion pair often is not), so the wedding appeared nowhere afterward.
+  TryMarry now pre-checks `MarriageModel.IsCoupleSuitableForMarriage` before the chance roll and verifies the
+  spouse link after applying, so a wedding is announced only when it truly took place. (Report: a player on Nexus.)
 - **No longer crashes at startup alongside Europe1100 / EOE 1100.** Both mods registered a save type at the same
   internal ID (300000001), so whichever loaded second crashed the game at boot ("an item with the same key has
   already been added"), and no load order avoided it. Calradia Remembers now detects Europe1100 at boot and shifts
