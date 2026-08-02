@@ -67,6 +67,23 @@ namespace CalradiaRemembers
       public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
 
       /// <summary>
+      ///   Player-chosen zoom factor for the Dark Leather (Manuscript) chat window ("Dark Leather Size (%)"),
+      ///   read live from the MCM menu. 1.0 (100%) reproduces the shipped look; clamped to [0.8, 1.4] to match
+      ///   the slider's own bounds even if a stale/edited config carries something outside them. Falls back to
+      ///   1.0 when MCM has not loaded. No effect on the Origin skin (see <see cref="Chat.ChatManager" />).
+      /// </summary>
+      public static float DarkLeatherScale
+      {
+         get
+         {
+            int pct = CrSettings.Instance?.DarkLeatherZoomPercent ?? 100;
+            if (pct < 80) pct = 80;
+            if (pct > 140) pct = 140;
+            return pct / 100f;
+         }
+      }
+
+      /// <summary>
       ///   How readily lords ride out to have a word with the player on the road (player request, Fakade). Read
       ///   live from the MCM menu; Occasionally (the shipped feel) when MCM has not loaded, so nothing changes for
       ///   a player who never touches it.

@@ -44,6 +44,12 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> ChatSkin { get; set; } =
          new(new[] {"Origin", "Dark Leather"}, 1); // default: Dark Leather (the illuminated book)
 
+      [SettingPropertyInteger("Dark Leather Size (%)", 80, 140, "0 '%'", RequireRestart = false, Order = 7,
+         HintText = "Scales the Dark Leather chat window. Raise it on a high-resolution screen (1440p+) if the book " +
+                    "feels small or cramped. 100 is the shipped size. No effect on the Origin skin.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public int DarkLeatherZoomPercent { get; set; } = 100;
+
       [SettingPropertyText("OpenRouter API Key", RequireRestart = false, Order = 0,
          HintText = "Paste your key from openrouter.ai/keys. Stored locally on this machine only. NEVER share your " +
                     "config file or a screenshot of this field. Applies immediately.")]

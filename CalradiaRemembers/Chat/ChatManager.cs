@@ -152,10 +152,12 @@ namespace CalradiaRemembers.Chat
 
          // Manuscript skin: zoom the whole chat layer so the fixed-aspect book AND all its overlays scale
          // together (kept aligned) and fill the same fraction of the screen at ANY resolution. A CONSTANT factor
-         // (see ManuscriptZoom), NOT scaled by ScreenManager.Scale. Re-applied every frame because
+         // (see ManuscriptZoom), NOT scaled by ScreenManager.Scale, further scaled by the player's MCM "Dark
+         // Leather Size" factor (ModSettings.DarkLeatherScale, 80-140%, 100% = this constant unchanged) so a
+         // high-resolution player can size the book to taste. Re-applied every frame because
          // GauntletLayer.UpdateLayout resets ScaleModifier to the base UI scale each pass. Classic is untouched.
          if (ActiveSkin == ManuscriptSkin && _activeLayer?.UIContext != null)
-            _activeLayer.UIContext.ScaleModifier = ManuscriptZoom;
+            _activeLayer.UIContext.ScaleModifier = ManuscriptZoom * ModSettings.DarkLeatherScale;
 
          SampleVramPeriodically(); // a heartbeat VRAM read, so an idle (no-response) scene still traces its trend
 
