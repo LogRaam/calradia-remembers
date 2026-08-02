@@ -10,9 +10,11 @@
 
 #region
 
+using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Logic;
 using FluentAssertions;
+using NpcMemoryService.Core.Models;
 using NUnit.Framework;
 
 #endregion
@@ -92,6 +94,42 @@ namespace CalradiaRemembers.Tests
 
             o.HasConviction.Should().BeTrue();
             o.HasBackstory.Should().BeFalse();
+        }
+
+        // ── Authored kinks (ParsedKinks) ─────────────────────────────────────
+
+        // The whole point of the field: CharacterLoreBehavior and the per-turn chat sync both need to tell
+        // "author left kinks out" (null → keep the rolled/frozen kinks) apart from "author locked to
+        // exactly this list". If Kinks==null ever parsed to an empty list instead of null, a lock to "no
+        // kinks at all" would become indistinguishable from no lock, and the reload path would silently
+        // keep re-rolling from traits for an NPC the author meant to leave kink-less.
+        [Test]
+        public void GIVEN_kinks_omitted_WHEN_parsing_THEN_ParsedKinks_is_null()
+        {
+            new CharacterOverride { Hero = "Derthert" }.ParsedKinks.Should().BeNull();
+        }
+
+        // The other half of the same contract: a present-but-empty JSON array ("kinks": []) is a deliberate
+        // lock to NO kinks, and must parse to an empty (non-null) list so the caller applies it (clears the
+        // NPC's kinks) rather than treating it as "field not set" and leaving the rolled kinks alone.
+        [Test]
+        public void GIVEN_an_empty_kinks_list_WHEN_parsing_THEN_ParsedKinks_is_an_empty_non_null_list()
+        {
+            var o = new CharacterOverride { Hero = "Derthert", Kinks = new List<string>() };
+
+            o.ParsedKinks.Should().NotBeNull();
+            o.ParsedKinks.Should().BeEmpty();
+        }
+
+        // The names a player types are the enum's own member names (what cr.kinks lists as valid), authored
+        // by hand in JSON, same contract as ParsedOrientation, routed through KinkParser so unknown/garbage
+        // entries degrade quietly instead of corrupting the whole override.
+        [Test]
+        public void GIVEN_valid_kink_names_WHEN_parsing_THEN_ParsedKinks_maps_them_in_order()
+        {
+            var o = new CharacterOverride { Hero = "Derthert", Kinks = new List<string> { "Dominance", "Praise" } };
+
+            o.ParsedKinks.Should().Equal(Kink.Dominance, Kink.Praise);
         }
 
         // ── Resolution ──────────────────────────────────────────────────────

@@ -65,6 +65,16 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public string Orientation { get; set; }
 
+        /// <summary>
+        ///   Optional authored kink lock (the same names <c>cr.kinks</c> lists as valid). When present, it
+        ///   REPLACES the NPC's rolled/frozen kinks instead of the usual trait-derived roll, and (unlike
+        ///   <see cref="Orientation" />) survives <c>cr.reload_lore</c>: a kink added at the table with
+        ///   <c>cr.add_kink</c> was otherwise wiped the next time the lore reloaded (CharacterLoreBehavior
+        ///   re-derives kinks from current traits on every reload). Null means the author left this field out
+        ///   entirely (no lock, keep the rolled/frozen kinks); an empty list is a deliberate lock to NO kinks.
+        /// </summary>
+        public List<string> Kinks { get; set; }
+
         /// <summary>True when this override sets at least one trait.</summary>
         public bool HasTraits =>
             Valor.HasValue || Honor.HasValue || Mercy.HasValue || Generosity.HasValue || Calculating.HasValue;
@@ -77,6 +87,13 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>The authored orientation parsed to an enum, or null when unset/unrecognized.</summary>
         public SexualOrientation? ParsedOrientation => OrientationParser.Parse(Orientation);
+
+        /// <summary>
+        ///   The authored kink lock, parsed. Null ONLY when <see cref="Kinks" /> itself is null (the author
+        ///   omitted the field): a present-but-empty list parses to an empty (non-null) list, which is a
+        ///   deliberate lock to no kinks at all, and callers must tell the two apart.
+        /// </summary>
+        public IReadOnlyList<Kink> ParsedKinks => Kinks == null ? null : KinkParser.Parse(Kinks);
 
         /// <summary>
         ///   The authored trait levels that are actually set, each clamped to the engine band, in a

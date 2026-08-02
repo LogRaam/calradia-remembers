@@ -93,6 +93,16 @@ namespace CalradiaRemembers.Lore
       public static NpcMemoryService.Core.Models.SexualOrientation? OrientationFor(Hero hero)
          => ModSettings.UseCustomTraits ? For(hero)?.ParsedOrientation : null;
 
+      /// <summary>
+      ///   The authored, LOCKED kinks for <paramref name="hero" /> when custom data is enabled and the
+      ///   override sets them, else null. Unlike <see cref="OrientationFor" />, an override may lock kinks
+      ///   to an EMPTY list (no kinks at all): null here means "no lock", not "no kinks". Synced onto the
+      ///   NPC's RomanticProfile both live (per turn) and at the lore-reload seam, so an authored lock
+      ///   survives cr.reload_lore instead of being overwritten by the usual trait-derived re-roll.
+      /// </summary>
+      public static IReadOnlyList<NpcMemoryService.Core.Models.Kink> KinksFor(Hero hero)
+         => ModSettings.UseCustomTraits ? For(hero)?.ParsedKinks : null;
+
       /// <summary>The override that applies to <paramref name="hero" />, or null.</summary>
       public static CharacterOverride For(Hero hero)
          => hero == null

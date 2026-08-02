@@ -37,15 +37,19 @@ namespace CalradiaRemembers.Lore
          {
             CharacterOverride ov = CharacterOverrideLoader.Set.Resolve(hero.StringId, hero.Name?.ToString());
 
-            if (ov is not {HasTraits: true}) continue;
+            // An override with ONLY a kinks lock (no trait fields) must still be processed here: this is the
+            // seam cr.reload_lore runs through, and skipping it would mean an authored-only kink lock never
+            // survives a reload at all.
+            if (ov == null || (!ov.HasTraits && ov.ParsedKinks == null)) continue;
 
-            foreach ((AuthoredTrait trait, int level) in ov.ClampedTraitLevels())
-            {
-               TraitObject to = Map(trait);
-               if (to != null) hero.SetTraitLevel(to, level);
-            }
+            if (ov.HasTraits)
+               foreach ((AuthoredTrait trait, int level) in ov.ClampedTraitLevels())
+               {
+                  TraitObject to = Map(trait);
+                  if (to != null) hero.SetTraitLevel(to, level);
+               }
 
-            RederiveKinks(hero); // frozen kinks on an already-met NPC follow the new personality
+            RederiveKinks(hero); // frozen kinks on an already-met NPC follow the new personality, or an authored lock
             n++;
          }
 
@@ -74,17 +78,21 @@ namespace CalradiaRemembers.Lore
          {
             CharacterOverride ov = CharacterOverrideLoader.Set.Resolve(hero.StringId, hero.Name?.ToString());
 
-            if (ov is not {HasTraits: true}) continue;
+            // Same widened gate as ApplyAll: a kinks-only override must still be visited here, so turning
+            // "Use custom traits" OFF actually releases its kink lock (RederiveKinks below checks the toggle
+            // itself via CharacterOverrideLoader.KinksFor and no-ops the lock while it is off).
+            if (ov == null || (!ov.HasTraits && ov.ParsedKinks == null)) continue;
 
-            foreach ((AuthoredTrait trait, int _) in ov.ClampedTraitLevels())
-            {
-               TraitObject to = Map(trait);
-               // The template (CharacterObject) keeps the original level — Hero.SetTraitLevel only
-               // ever wrote the hero's own trait store, never the template.
-               if (to != null) hero.SetTraitLevel(to, hero.CharacterObject.GetTraitLevel(to));
-            }
+            if (ov.HasTraits)
+               foreach ((AuthoredTrait trait, int _) in ov.ClampedTraitLevels())
+               {
+                  TraitObject to = Map(trait);
+                  // The template (CharacterObject) keeps the original level — Hero.SetTraitLevel only
+                  // ever wrote the hero's own trait store, never the template.
+                  if (to != null) hero.SetTraitLevel(to, hero.CharacterObject.GetTraitLevel(to));
+               }
 
-            RederiveKinks(hero); // back to the kinks the vanilla traits imply
+            RederiveKinks(hero); // back to the kinks the vanilla traits imply (lock is inert while the toggle is off)
             n++;
          }
 
@@ -119,6 +127,9 @@ namespace CalradiaRemembers.Lore
       ///   traits, so a personality override doesn't leave kinks frozen against the old traits. A
       ///   never-met NPC has no profile yet and derives its kinks correctly when first built — nothing
       ///   to do here. The derivation is deterministic, so this is stable, not a reroll.
+      ///   Then applies an authored KINKS LOCK on top when one exists (player request: a kink added at the
+      ///   table with cr.add_kink was silently wiped by this very re-derivation on the next cr.reload_lore;
+      ///   authoring the lock in character_overrides.json makes it survive instead).
       /// </summary>
       private static void RederiveKinks(Hero hero)
       {
@@ -130,6 +141,15 @@ namespace CalradiaRemembers.Lore
          List<Kink> fresh = RomanticProfileBuilder.DeriveKinks(hero, profile.Romantic.ArchetypeName);
          profile.Romantic.Kinks.Clear(); // init-only property, but the list itself is mutable
          profile.Romantic.Kinks.AddRange(fresh);
+
+         IReadOnlyList<Kink> authoredKinks = CharacterOverrideLoader.KinksFor(hero);
+         if (authoredKinks != null)
+         {
+            profile.Romantic.Kinks.Clear();
+            profile.Romantic.Kinks.AddRange(authoredKinks);
+            ModLog.Info($"[OVERRIDE] {profile.Name} kinks locked to [{string.Join(", ", authoredKinks)}] by authored char data.");
+         }
+
          store.Set(profile);
       }
 

@@ -627,6 +627,19 @@ namespace CalradiaRemembers.Chat
                ModLog.Info($"[OVERRIDE] {profile.Name} orientation set to {authoredOrientation.Value} by authored char data.");
             }
 
+            // Sync an authored kink LOCK the same way: player request (kinks added with cr.add_kink were lost
+            // on cr.reload_lore because that path re-derives kinks from current traits). An authored list here
+            // REPLACES whatever was rolled/frozen, every turn, so an edit to the override file takes effect
+            // without needing to reopen the chat. An empty authored list is a deliberate lock to no kinks.
+            IReadOnlyList<Kink> authoredKinks = CharacterOverrideLoader.KinksFor(speaker.Hero);
+            if (authoredKinks != null && profile.Romantic != null)
+            {
+               // Kinks is init-only; the list it points to is mutable (same pattern as CharacterLoreBehavior.RederiveKinks).
+               profile.Romantic.Kinks.Clear();
+               profile.Romantic.Kinks.AddRange(authoredKinks);
+               ModLog.Info($"[OVERRIDE] {profile.Name} kinks locked to [{string.Join(", ", authoredKinks)}] by authored char data.");
+            }
+
             // ── Diagnostic: log the full system prompt sent to the LLM ─────
             if (ModSettings.VerboseLogging)
                try
