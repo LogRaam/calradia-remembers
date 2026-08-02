@@ -2,6 +2,28 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.33.6.. 2026-08-02
+
+More fixes and a safeguard, all from your feedback. Your saves carry over untouched.
+
+### New
+- **Keep your custom prompts and styles safe from updates.** A new mod option, "Custom Folder Path", lets you point
+  the mod at a folder OUTSIDE the mod for your edited prompts and styles, so a reinstall or a clean update can never
+  wipe them (leave it blank for the default ModuleData/Custom). It also lets you keep several prompt sets and switch
+  between them. (Report: a player whose Custom folder was emptied on an update.)
+
+### Improved
+- **A promised task now actually becomes a quest.** When a character agrees in conversation to send you on a
+  concrete mission or errand, the quest is created that same turn, instead of the agreement sometimes evaporating
+  into back-and-forth talk with nothing recorded. (Report: a player on Nexus.)
+
+### Fixed
+- **Captured at sea no longer plays out in a land camp.** If you are taken prisoner at sea (for instance by Sea
+  Raiders), the scene now knows you are aboard a ship rather than inventing a tent by a campfire. (Report: a player
+  on Nexus.)
+- **Coercion is no longer remembered as intimacy.** A non-consensual captive scene is never recorded as a consensual
+  intimate memory, and never warms a character's regard as though it were one; the harm is remembered as what it is.
+
 ## v1.33.5.. 2026-08-01
 
 Quality-of-life additions and fixes from player feedback. Your saves carry over untouched.
