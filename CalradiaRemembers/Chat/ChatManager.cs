@@ -315,13 +315,13 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         // Overlay-hosted windows only: stop the host map scene rendering behind our overlay (the naval-map VRAM
-         // fix). A pushed screen (global HostMode, or a forced council/assembly) suspends the map by
-         // construction (the engine suspends the screen below), so this reflection hack is neither needed nor
-         // wanted there. Reads _activeIsPushed (set inside GenerateChatWindow above), not the global HostMode,
-         // so a forced-pushed council is correctly skipped even while HostMode itself stays Overlay.
-         if (!_activeIsPushed)
-            SafeStep(() => MapSceneSuspender.Suspend(_hostScreen), "SuspendMapScene");
+         // Stop the host map scene from rendering behind the chat (the naval-map VRAM / D3D "device removed" fix).
+         // Needed for BOTH overlay AND pushed hosting: pushing a screen suspends the screen STACK and input, but
+         // the campaign map's 3D scene keeps rendering into its compositing target behind our opaque window and
+         // exhausts VRAM (player report: the council window brought the device-removed crash back). It was wrong
+         // to skip this in pushed mode. MapSceneSuspender only ever touches a real MapScreen, is idempotent, and
+         // Resume() runs unconditionally at close, so calling it in every mode is safe.
+         SafeStep(() => MapSceneSuspender.Suspend(_hostScreen), "SuspendMapScene");
 
          ModLog.Info($"Chat window opened on {_hostScreen.GetType().Name} with NPC '{npcName ?? "(none)"}'.");
          ModLog.Info($"[VRAM] open (baseline) | {VramProbe.Describe()}");
