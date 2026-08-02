@@ -1148,6 +1148,7 @@ namespace CalradiaRemembers.Chat
          }
 
          ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, CouncilPlaceholderText);
+         ApplyCouncilSceneImage(placeholder); // scene image while the council opens, instead of the anchor's own portrait
          _messages.Add(placeholder);
          IsSendEnabled = false;
 
@@ -1849,6 +1850,7 @@ namespace CalradiaRemembers.Chat
 
          ChatSpeaker anchor = MainSpeaker();
          ChatMessageViewModel placeholder = MakeSpeakerMessage(anchor, CouncilPlaceholderText);
+         ApplyCouncilSceneImage(placeholder); // scene image while the council weighs this turn, instead of the anchor's own portrait
          _messages.Add(placeholder);
          _ = RunLlmExchangeAsync(text, anchor, placeholder, false, addressedName);
       }

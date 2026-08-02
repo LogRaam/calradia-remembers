@@ -9,13 +9,18 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
 using NpcMemoryService.Core.Compression;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Core;
 using TaleWorlds.Library;
 
 #endregion
@@ -205,6 +210,69 @@ namespace CalradiaRemembers.Chat
 
          _councilParticipants.Clear();
       }
+
+      #region Scene image on the thinking placeholder
+
+      /// <summary>
+      ///   Paints a council "thinking" placeholder (<see cref="CouncilPlaceholderText" />) with a situational
+      ///   SCENE image instead of the anchor's own portrait: no single seated member presides over a council, so
+      ///   their face on the waiting bubble reads wrong (the narrator model already dropped that framing). Called
+      ///   from both council placeholder sites (<see cref="ActivateCouncil" />'s opener and
+      ///   <see cref="ExecuteSendCouncilMessage" />'s per-turn placeholder) right after the placeholder is built.
+      ///   Every resolution step is guarded: any failure (terrain lookup, missing file on disk, ...) simply leaves
+      ///   the placeholder with the ordinary anchor portrait <see cref="MakeSpeakerMessage" /> already gave it.
+      /// </summary>
+      private void ApplyCouncilSceneImage(ChatMessageViewModel placeholder)
+      {
+         try
+         {
+            if (placeholder == null) return;
+
+            bool outside = Settlement.CurrentSettlement == null;
+            bool scopeIsFamily = _councilScope == CouncilScope.Family;
+            bool ownedByPlayer = Settlement.CurrentSettlement?.OwnerClan == Clan.PlayerClan;
+            CouncilSceneTerrain terrain = ResolveCouncilSceneTerrain();
+            bool playerIsFemale = Hero.MainHero?.IsFemale == true;
+
+            string basename = CouncilSceneImagePolicy.Resolve(outside, scopeIsFamily, ownedByPlayer, terrain, playerIsFemale);
+            string path = Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", basename + ".jpg");
+
+            placeholder.ApplyScenePortrait(path);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ChatViewModel.ApplyCouncilSceneImage failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Maps the engine terrain at the player party's map position to the coarse bucket
+      ///   <see cref="CouncilSceneImagePolicy" /> cares about (Gabriel commissioned art only for Desert and
+      ///   Steppe; every other TerrainType falls back to Other). Guards a missing map scene or party (Other).
+      /// </summary>
+      private static CouncilSceneTerrain ResolveCouncilSceneTerrain()
+      {
+         try
+         {
+            if (Campaign.Current?.MapSceneWrapper == null || MobileParty.MainParty == null) return CouncilSceneTerrain.Other;
+
+            TerrainType terrain = Campaign.Current.MapSceneWrapper.GetTerrainTypeAtPosition(MobileParty.MainParty.Position);
+
+            return terrain switch {
+               TerrainType.Desert => CouncilSceneTerrain.Desert,
+               TerrainType.Steppe => CouncilSceneTerrain.Steppe,
+               _ => CouncilSceneTerrain.Other
+            };
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ChatViewModel.ResolveCouncilSceneTerrain failed: {ex.GetType().Name}: {ex.Message}");
+
+            return CouncilSceneTerrain.Other;
+         }
+      }
+
+      #endregion
 
       #region Engagements extraction (Inc 1)
 

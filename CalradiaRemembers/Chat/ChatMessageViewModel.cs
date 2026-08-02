@@ -287,10 +287,35 @@ namespace CalradiaRemembers.Chat
 
          if (string.IsNullOrEmpty(path)) return;
 
+         ApplyImagePortrait(path);
+      }
+
+      /// <summary>
+      ///   Council "thinking" placeholder only: shows a situational SCENE image (CouncilSceneImagePolicy, resolved
+      ///   by the caller from where the council sits) instead of the anchor's own portrait, since no single seated
+      ///   member presides over a council. Sizing mirrors <see cref="ApplyCustomPortrait" /> exactly (same fixed
+      ///   box, aspect-preserved), but the path is not tied to any hero. A no-op once the line has no avatar at
+      ///   all, or when <paramref name="imagePath" /> is empty (resolution failed upstream): the placeholder then
+      ///   simply keeps the ordinary anchor portrait it was built with.
+      /// </summary>
+      public void ApplyScenePortrait(string imagePath)
+      {
+         if (!_showAvatar || string.IsNullOrEmpty(imagePath)) return;
+
+         ApplyImagePortrait(imagePath);
+      }
+
+      /// <summary>
+      ///   Shared by <see cref="ApplyCustomPortrait" /> and <see cref="ApplyScenePortrait" />: fits the image at
+      ///   <paramref name="path" /> into the avatar box and clears the vanilla portrait ids so it is treated as a
+      ///   cached sprite, not a 3D render-target.
+      /// </summary>
+      private void ApplyImagePortrait(string path)
+      {
          PlayerPortraitPath = path;
          ShowCustomPortrait = true;
 
-         // The portrait FILLS the avatar column width and grows only in HEIGHT to keep the PNG's aspect
+         // The portrait FILLS the avatar column width and grows only in HEIGHT to keep the image's aspect
          // (no stretch), capped so a very tall image cannot make a giant row. Width never exceeds the column,
          // so the message text stays at its fixed margin and the whole conversation stays aligned.
          const float colWidth = 96f;
