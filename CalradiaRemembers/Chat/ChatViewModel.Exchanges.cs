@@ -861,6 +861,17 @@ namespace CalradiaRemembers.Chat
             // romantic arc (AdvanceRomanticStatus) off the same unbacked claim. A withheld claim is stashed
             // here and only committed once the action loop below has run and Hero.Spouse can be checked for
             // real (see the confirm/drop block right after that loop).
+            // Intimacy guard (Gabriel 2026-08-02): coercion is not intimacy. A captive or captor scene is
+            // non-consensual by construction, so an [EVENT] the model tagged Intimacy/Flirt inside one must NEVER
+            // become a consensual memory, grant the intimacy regard gain, or rouse jealousy as a courtship. Strip
+            // it here so every path below (ProfileMutator, the regard/jealousy block) sees no romantic event; the
+            // scene's own Captivity/grudge finalizers hold the harm. Pure CoerciveSceneEventPolicy keeps it tested.
+            if (CoerciveSceneEventPolicy.ShouldDropRomanticEvent(response.NewEventData?.Type, IsCaptiveEncounter || _captorScene))
+            {
+               ModLog.Info($"[SCENE] dropped a {response.NewEventData.Type} [EVENT] in a coercive scene (coercion is not intimacy).");
+               response = WithoutEventData(response);
+            }
+
             ParsedEventData withheldMarriageClaim = null;
             ParsedResponse responseForMutator = response;
             if (response.NewEventData != null &&
