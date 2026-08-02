@@ -2,6 +2,29 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.33.5.. 2026-08-01
+
+Quality-of-life additions and fixes from player feedback. Your saves carry over untouched.
+
+### New
+- **Lock an NPC's kinks in the character override file.** If you author characters in
+  `ModuleData/character_overrides.json`, you can now add a `kinks` list to lock specific kinks on an NPC (the
+  full list of valid names is in that file). Unlike adding them by console, an authored lock survives a lore
+  reload, shows up when you inspect the NPC, and drives the scenes you stage. Requires "Use custom traits" in the
+  mod options. (Report: a player on Nexus.)
+- **Dark Leather size option.** A new "Dark Leather Size (%)" setting in the mod options scales the leather chat
+  window, so you can make it larger on a high-resolution screen where it felt cramped. 100 is the shipped size,
+  and the Origin skin is unaffected. (Report: a player on Nexus.)
+
+### Improved
+- **Characters hold truer to their nature.** A cold, cruel, or calculating lord could drift into kindly, agreeable
+  answers that did not fit them (a ruthless lord suddenly championing the peasantry). The prompt now presses harder
+  to keep replies in line with the character's own traits. (Report: a player on Nexus.)
+- **NPCs stop putting your army in the room.** In a city or a keep, an NPC would speak as though your soldiers
+  stood at your back, when your men would really be beyond the walls. Indoors they now know your force is not
+  present, while still aware of your standing as a commander; out on the open road it is unchanged. (Report: a
+  player on Nexus.)
+
 ## v1.33.4.. 2026-08-01
 
 A rework of how NPC letters reach you, plus two fixes from player reports. Your saves carry over untouched.
