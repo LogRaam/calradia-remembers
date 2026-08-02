@@ -1472,6 +1472,13 @@ namespace CalradiaRemembers.Chat
                // (PromptNext drops them instead if the conversation just ended).
                if (_confirmation.HasPending && !_confirmation.IsAwaiting) _confirmation.PromptNext(this);
             }
+
+            // Bespoke council window (Inc 1): now that THIS council turn's lines are committed to the transcript,
+            // re-read the standing engagements so the panel reflects a decision the SAME turn it was made, not one
+            // turn later (player report: pledges appeared in the chat but the Engagements panel still read "No
+            // decisions yet"). The in-flight guard in KickCouncilEngagementExtraction dedupes the start-of-turn read.
+            if (_councilScope != null)
+               KickCouncilEngagementExtraction();
          }
       }
 

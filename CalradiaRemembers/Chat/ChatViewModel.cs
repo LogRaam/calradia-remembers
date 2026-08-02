@@ -2434,8 +2434,13 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public void SetVisualOffscreen(bool off)
       {
+         // The narrow 1:1 chat window is anchored to the right, so +800 slides it fully off. The COUNCIL window
+         // is FULL SCREEN WIDTH (player report: slid only 800, its left column still covered the pause menu's
+         // buttons, so the player could not click Resume and was stuck). A full-width window needs a slide larger
+         // than any screen, so it clears entirely; 6000 covers up to a 5K ultrawide.
+         float slide = ChatManager.ActiveSkin == ChatManager.CouncilSkin ? 6000f : 800f;
          ChatVisualOffsetX = off
-            ? 800f
+            ? slide
             : -30f;
 
          // The portrait dossier is anchored to the right of the screen (not inside the sliding window), so it
