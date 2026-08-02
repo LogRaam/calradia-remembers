@@ -253,6 +253,14 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Character", GroupOrder = 5)]
       public bool UseCustomTraits { get; set; } = false;
 
+      [SettingPropertyText("Custom Folder Path", RequireRestart = false, Order = 2,
+         HintText = "Where your edited prompts and styles are read from. BLANK = the default (the mod's own " +
+                    "ModuleData/Custom). Set an absolute folder path to keep them OUTSIDE the mod so an update " +
+                    "never wipes them (just re-enter it after an update); also lets you keep several prompt sets " +
+                    "and switch. Applies on the next campaign or cr.reload_lore.")]
+      [SettingPropertyGroup("Character", GroupOrder = 5)]
+      public string CustomFolderPath { get; set; } = "";
+
       [SettingPropertyBool("Verbose Logging", RequireRestart = false, Order = 1,
          HintText = "Logs the full system prompt and NPC reply on every exchange. Turn on only to capture a bug " +
                     "report: it floods the log. Requires Enable Logging.")]

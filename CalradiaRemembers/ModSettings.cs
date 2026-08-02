@@ -67,6 +67,13 @@ namespace CalradiaRemembers
       public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
 
       /// <summary>
+      ///   The player-chosen base folder for prompt/style overrides (MCM), or "" for the default ModuleData/Custom.
+      ///   Read by <see cref="Mapping.NarrativeLoader.CustomBaseFolder" /> so a player can keep their edits outside
+      ///   the module and survive an update that replaces it (player report v1.33.5).
+      /// </summary>
+      public static string CustomFolderPath => CrSettings.Instance?.CustomFolderPath?.Trim() ?? "";
+
+      /// <summary>
       ///   Player-chosen zoom factor for the Dark Leather (Manuscript) chat window ("Dark Leather Size (%)"),
       ///   read live from the MCM menu. 1.0 (100%) reproduces the shipped look; clamped to [0.8, 1.4] to match
       ///   the slider's own bounds even if a stale/edited config carries something outside them. Falls back to

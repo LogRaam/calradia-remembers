@@ -27,12 +27,13 @@ namespace CalradiaRemembers.Styles
             => Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData", StylesFolderName);
 
         /// <summary>
-        ///   The full path of the player's own Custom/Styles folder, whether or not it exists yet. A
-        ///   file here of the same name as a shipped style overrides it, and survives a mod update that
-        ///   re-extracts ModuleData (the mod never ships or writes into Custom).
+        ///   The full path of the player's own Custom Styles folder, whether or not it exists yet. A file here of
+        ///   the same name as a shipped style overrides it. It lives under the shared override base
+        ///   (<see cref="Mapping.NarrativeLoader.CustomBaseFolder" />): the MCM "Custom Folder Path" when set (so it
+        ///   can sit OUTSIDE the module and survive any update), else ModuleData/Custom.
         /// </summary>
         public static string CustomFolderPath
-            => Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData", "Custom", StylesFolderName);
+            => Path.Combine(Mapping.NarrativeLoader.CustomBaseFolder(), StylesFolderName);
 
         /// <summary>
         ///   Every style the player currently has, by display name (the file name without its extension),

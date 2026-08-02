@@ -40,19 +40,35 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
-      ///   Resolves <paramref name="filename" /> Custom-first: the absolute path to
-      ///   ModuleData/Custom/<paramref name="filename" /> when that file exists, otherwise the
-      ///   shipped ModuleData path (returned whether or not it exists, so callers keep handling
-      ///   a missing file themselves). Shared by every ModuleData reader (narrative text,
-      ///   cultural_traditions.json, jealousy_cultures.json) so a player's edits survive a mod
-      ///   update that re-extracts ModuleData.
+      ///   The base folder for player overrides. It is the MCM "Custom Folder Path" when the player has set it to
+      ///   an existing folder, otherwise the shipped <c>ModuleData/Custom</c>. A player who points this at a folder
+      ///   OUTSIDE the module keeps their prompts/styles safe from a mod update that replaces the module folder
+      ///   (player report v1.33.5: a clean reinstall wiped Custom); they just re-enter the path after an update, and
+      ///   it also lets them keep several prompt sets and switch between them. Shared by <see cref="ResolveCustomFirst" />
+      ///   and StyleCatalog so ALL overrides honour the one path.
+      /// </summary>
+      public static string CustomBaseFolder()
+      {
+         string configured = CalradiaRemembers.ModSettings.CustomFolderPath;
+         if (!string.IsNullOrWhiteSpace(configured))
+            try { if (Directory.Exists(configured)) return configured; }
+            catch { /* a malformed path silently falls back to the shipped default below */ }
+
+         return Path.Combine(ModuleDataFolder(), "Custom");
+      }
+
+      /// <summary>
+      ///   Resolves <paramref name="filename" /> Custom-first: the absolute path under
+      ///   <see cref="CustomBaseFolder" /> when that file exists, otherwise the shipped ModuleData path (returned
+      ///   whether or not it exists, so callers keep handling a missing file themselves). Shared by every ModuleData
+      ///   reader (narrative text, cultural_traditions.json, jealousy_cultures.json) so a player's edits survive a
+      ///   mod update.
       /// </summary>
       public static string ResolveCustomFirst(string filename)
       {
-         string folder = ModuleDataFolder();
-         string customPath = Path.Combine(folder, "Custom", filename);
+         string customPath = Path.Combine(CustomBaseFolder(), filename);
 
-         return File.Exists(customPath) ? customPath : Path.Combine(folder, filename);
+         return File.Exists(customPath) ? customPath : Path.Combine(ModuleDataFolder(), filename);
       }
 
       /// <summary>
@@ -73,7 +89,7 @@ namespace CalradiaRemembers.Mapping
       private static string ReadFile(string filename, string label)
       {
          string path = ResolveCustomFirst(filename);
-         bool useCustom = path == Path.Combine(ModuleDataFolder(), "Custom", filename);
+         bool useCustom = path != Path.Combine(ModuleDataFolder(), filename);
          if (!File.Exists(path))
          {
             ModLog.Info($"  [{label}] not found — using built-in default. ({path})");
