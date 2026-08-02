@@ -483,8 +483,12 @@ namespace CalradiaRemembers.Chat
          if (anchorIndex < 0) return "Could not seat an anchor for the council.";
          Hero anchor = seated[anchorIndex];
 
+         // Overlay, not a pushed screen: staged (CouncilConversationStager) or not, the council opens exactly
+         // like OpenForCaptiveEncounter (a layer over whatever the current top screen is). Staged, that top
+         // screen is the anchor's own conversation MissionScreen (map suspended, real keyboard focus already
+         // provided by the mission); unstaged (the rare no-conversation-partner edge), it is the plain map,
+         // the same overlay-on-map tolerance every other conversation accepts.
          _forceCouncilSkin = true;
-         _forceCouncilPushedScreen = true;
          Open(anchor.Name?.ToString());
 
          if (ActiveViewModel == null) return "The chat window could not be opened.";

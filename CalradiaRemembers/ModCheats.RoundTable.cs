@@ -106,7 +106,9 @@ namespace CalradiaRemembers
             // The refusals are worth showing: "nobody is seated" is a very different report from "your two
             // companions are both held prisoner", and only the roster knows which.
             List<CouncilSeat> roster = CouncilRosterResolver.Resolve(scope);
-            string opened = ChatManager.OpenForCouncil(scope);
+            // Staged over a conversation scene (CouncilConversationStager), the same VRAM-safe/keyboard-focus
+            // hosting the captive chat already uses, instead of calling ChatManager.OpenForCouncil directly.
+            string opened = CouncilConversationStager.StageCouncil(scope);
             string refused = string.Join(", ", roster
                                               .Where(s => !s.Seated && s.Reason != CouncilExclusionReason.NotOfThisCouncil)
                                               .Select(s => $"{s.Hero?.Name} ({s.Reason})"));

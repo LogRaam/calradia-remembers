@@ -450,6 +450,9 @@ namespace CalradiaRemembers.Interception
          if (Campaign.Current?.CurrentMenuContext != null) return false;
          if (ChatManager.IsOpen) return false;
          if (CaptiveSceneStager.IsStaging) return false;
+         // A council staging its own conversation scene is the same kind of "about to hand focus to a
+         // conversation" moment as a captive scene staging one; a lord riding out mid-stage would collide.
+         if (CouncilConversationStager.IsStaging) return false;
 
          return true;
       }

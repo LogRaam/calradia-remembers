@@ -65,6 +65,7 @@ namespace CalradiaRemembers
          base.OnApplicationTick(dt);
          VramWatch.Tick();
          CaptiveSceneStager.Tick(); // opens a staged captive chat once its conversation scene has loaded
+         CouncilConversationStager.Tick(); // opens a staged council once its conversation scene has loaded
          Duels.DuelSceneSpike.Tick(dt); // drives the wilderness-duel spike's open/close/VRAM state machine
       }
 
