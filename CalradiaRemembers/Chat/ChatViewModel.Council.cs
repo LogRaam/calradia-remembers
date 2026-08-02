@@ -148,7 +148,11 @@ namespace CalradiaRemembers.Chat
          ChatSpeaker anchor = MainSpeaker();
          if (anchor?.Hero != null)
          {
-            _councilParticipants.Add(new CouncilParticipantViewModel(anchor.Hero, "Presides over this council"));
+            // Council narrator model (2026-08-02): the anchor is the conversation's staging body only (the
+            // profile behind the LLM call, hidden behind the opaque backdrop), never a privileged voice. The
+            // seat label used to read "Presides over this council"; that presiding language is exactly what
+            // the reshape drops, so the label is now the same neutral seat description any other member gets.
+            _councilParticipants.Add(new CouncilParticipantViewModel(anchor.Hero, "Seated at this council"));
             seatedHeroIds.Add(anchor.Hero.StringId);
          }
 

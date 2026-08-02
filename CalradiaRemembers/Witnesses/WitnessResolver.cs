@@ -582,8 +582,10 @@ namespace CalradiaRemembers.Witnesses
       ///   Extracts a concise character descriptor (the archetype label — the first
       ///   sentence of the profile's Trait) so the main NPC can voice this witness's
       ///   reactions in character. Returns null when no profile or trait is available.
+      ///   Internal (not private): the council narrator model reuses it in <see cref="ChatManager" /> to seat
+      ///   each council member with a real persona rather than a bare seat description.
       /// </summary>
-      private static string ResolvePersona(Hero h, BannerlordNpcMemoryStore store)
+      internal static string ResolvePersona(Hero h, BannerlordNpcMemoryStore store)
       {
          try
          {

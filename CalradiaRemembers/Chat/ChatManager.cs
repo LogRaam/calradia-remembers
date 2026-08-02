@@ -13,7 +13,9 @@ using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Services;
+using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Prompts;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.Engine.GauntletUI;
@@ -499,14 +501,44 @@ namespace CalradiaRemembers.Chat
                Name = member.Name?.ToString(),
                HeroStringId = member.StringId,
                IsPlayerCompanion = member.IsPlayerCompanion,
-               RelationToNpc = DescribeCouncilSeat(scope)
+               RelationToNpc = DescribeCouncilSeat(scope),
+               Persona = DescribeCouncilMemberPersona(member, behavior)
             });
 
          ActiveViewModel.ActivateCouncil(scope);
          ModLog.Info($"[COUNCIL] opened {scope} with {seated.Count} seated, anchor {anchor.Name}.");
 
          return $"Council ({scope}) opened with {seated.Count} seated. {anchor.Name} speaks for the table; "
-              + "the others react each turn.";
+              + "the others may speak, as the narrator gives them the floor.";
+      }
+
+      /// <summary>
+      ///   Council narrator model (2026-08-02): a short persona + regard descriptor for a SEATED MEMBER other
+      ///   than the anchor, so the narrator's single call can voice every member's own trait AND their own
+      ///   standing with the player, not just a bare seat label. Reuses <see cref="WitnessResolver.ResolvePersona" />
+      ///   (the same archetype label an ordinary witness carries) and the canonical <see cref="RegardBands" />
+      ///   wording (the same one the encyclopedia's "Personal regard" row shows), so nothing here can disagree
+      ///   with what the player could already look up. Never throws; a missing profile/persona degrades to the
+      ///   regard clause alone.
+      /// </summary>
+      private static string DescribeCouncilMemberPersona(Hero member, NpcMemoryCampaignBehavior behavior)
+      {
+         try
+         {
+            string persona = WitnessResolver.ResolvePersona(member, behavior?.Store);
+            int regard = behavior?.Store?.Get(member.StringId)?.ReputationWithPlayer ?? 0;
+            string regardPhrase = $"regards you with {RegardBands.Describe(regard)}";
+
+            return string.IsNullOrWhiteSpace(persona)
+               ? regardPhrase
+               : $"{persona}, {regardPhrase}";
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"DescribeCouncilMemberPersona failed for {member?.Name}: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
       }
 
       /// <summary>
@@ -601,7 +633,8 @@ namespace CalradiaRemembers.Chat
                Name = member.Name?.ToString(),
                HeroStringId = member.StringId,
                IsPlayerCompanion = member.IsPlayerCompanion,
-               RelationToNpc = "seated at the player's assembly, present in person"
+               RelationToNpc = "seated at the player's assembly, present in person",
+               Persona = DescribeCouncilMemberPersona(member, behavior)
             });
 
          foreach (Hero lord in envoys.Where(h => h != anchor))
@@ -609,7 +642,8 @@ namespace CalradiaRemembers.Chat
                Name = lord.Name?.ToString(),
                HeroStringId = lord.StringId,
                IsPlayerCompanion = false,
-               RelationToNpc = $"an envoy speaking in the name of {lord.Name}, who could not attend in person"
+               RelationToNpc = $"an envoy speaking in the name of {lord.Name}, who could not attend in person",
+               Persona = DescribeCouncilMemberPersona(lord, behavior)
             });
 
          ActiveViewModel.ActivateCouncil(CouncilScope.Assembly);

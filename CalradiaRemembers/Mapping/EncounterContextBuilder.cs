@@ -113,6 +113,8 @@ namespace CalradiaRemembers.Mapping
          bool audienceRetirementIsLanded = false,
          bool resolveInterception = true,
          bool isRoundTableTurn = false,
+         bool isCouncilNarratorTurn = false,
+         string addressedCouncilMemberName = null,
          bool? playerAttemptSucceeds = null)
       {
          int daysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge);
@@ -181,6 +183,11 @@ namespace CalradiaRemembers.Mapping
             IsConversationOpening = isConversationOpening,
             IsLastWitnessExchange = isLastWitnessExchange,
             IsRoundTableTurn = isRoundTableTurn,
+            // Council narrator model (2026-08-02): a real, player-led council's own flag, ALONGSIDE
+            // IsRoundTableTurn above (kept true so every other council rule sharing that block still applies).
+            // See EncounterContext.IsCouncilNarratorTurn for the full rationale.
+            IsCouncilNarratorTurn = isCouncilNarratorTurn,
+            AddressedCouncilMemberName = addressedCouncilMemberName,
             // This turn's pre-drawn verdict for a captive player's physical attempt: the mod decides, the model
             // narrates (an LLM judging the struggle it is also writing always sides with its own story).
             PlayerAttemptSucceeds = playerAttemptSucceeds,

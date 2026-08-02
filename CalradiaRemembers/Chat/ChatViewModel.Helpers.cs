@@ -598,7 +598,14 @@ namespace CalradiaRemembers.Chat
       ///   narration line (appended separately) carries the beat — and an empty string is returned.
       ///   Only when there is neither dialogue nor narration do we fall back to "(silence...)".
       /// </summary>
-      private string RenderNpcTurn(ChatMessageViewModel placeholder, ChatSpeaker speaker, ParsedResponse response)
+      /// <param name="allowSilentSpeaker">
+      ///   Council narrator model: true for a real council, where <paramref name="speaker" /> is the anchor
+      ///   seated like any other member, not privileged to reply every turn. When true, a response carrying
+      ///   [WITNESS_REACTION] blocks (other seated members spoke, even if the anchor and the narrator both
+      ///   stayed silent) also drops the placeholder cleanly instead of falling back to "(silence...)" under
+      ///   the anchor's own name for a turn they simply chose not to speak on.
+      /// </param>
+      private string RenderNpcTurn(ChatMessageViewModel placeholder, ChatSpeaker speaker, ParsedResponse response, bool allowSilentSpeaker = false)
       {
          if (!string.IsNullOrWhiteSpace(response?.Dialogue))
          {
@@ -607,9 +614,10 @@ namespace CalradiaRemembers.Chat
             return response.Dialogue;
          }
 
-         if (!string.IsNullOrWhiteSpace(response?.Narration))
+         if (!string.IsNullOrWhiteSpace(response?.Narration)
+             || (allowSilentSpeaker && response?.WitnessReactions is {Count: > 0}))
          {
-            RemovePlaceholder(placeholder); // narration-only turn — no empty dialogue bubble
+            RemovePlaceholder(placeholder); // narration-only (or council: other members carried it), no empty bubble
 
             return string.Empty;
          }

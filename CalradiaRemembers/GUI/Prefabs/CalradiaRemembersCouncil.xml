@@ -33,19 +33,17 @@
             HeightSizePolicy="StretchToParent">
       <Children>
 
-        <!-- Council-in-mission spike (2026-08-02): the council now opens over its OWN empty 3D mission scene
-             (CouncilMissionStager), not the map, so the smear risk the opaque fill guarded against (the chat
-             GauntletLayer never clears its framebuffer, over a MapScreen that keeps rendering behind an opaque
-             window) no longer applies the same way — a Mission's own screen owns the framebuffer instead.
-             Dropped to a PARTIAL alpha so the scene shows through (Gabriel's explicit "glimpse the scene" ask).
-             TUNE: raise back toward FF if the scene turns out distracting once Gabriel sees it in-game. Carries
-             the same ChatVisualOffsetX so it slides aside with the rest when the focus-arbiter yields to another
-             screen (encyclopedia, escape menu). -->
+        <!-- OPAQUE by design (Gabriel 2026-08-02). The council is hosted over a staged CONVERSATION mission
+             (CouncilConversationStager) so the map is genuinely suspended (no VRAM leak, real keyboard focus),
+             but the council has NO single presiding NPC, so we do NOT want to see the conversation anchor standing
+             there with the vanilla dialogue behind. A full-opaque fill hides that scene entirely; the mission is
+             still what owns the framebuffer and suspends the map. Carries ChatVisualOffsetX so it slides aside with
+             the rest when the focus-arbiter yields to another screen (encyclopedia, escape menu). -->
         <Widget Id="CouncilBackdrop"
                 WidthSizePolicy="StretchToParent"
                 HeightSizePolicy="StretchToParent"
                 Sprite="BlankWhiteSquare_9"
-                Color="#0d0a0855"
+                Color="#0d0a08FF"
                 PositionXOffset="@ChatVisualOffsetX" />
 
         <!-- Fills the screen with modest margins. PositionXOffset keeps the focus-arbiter's slide-aside behaviour
@@ -63,7 +61,7 @@
                     HeightSizePolicy="StretchToParent"
                     SuggestedWidth="!Council.Left.Width"
                     HorizontalAlignment="Left"
-                    Sprite="BlankWhiteSquare_9" Color="#14110dD0">
+                    Sprite="BlankWhiteSquare_9" Color="#14110dF2">
               <Children>
 
                 <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
@@ -402,7 +400,7 @@
                     HeightSizePolicy="StretchToParent"
                     SuggestedWidth="!Council.Right.Width"
                     HorizontalAlignment="Right"
-                    Sprite="BlankWhiteSquare_9" Color="#14110dD0">
+                    Sprite="BlankWhiteSquare_9" Color="#14110dF2">
               <Children>
 
                 <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"

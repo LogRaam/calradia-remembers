@@ -490,7 +490,8 @@ namespace CalradiaRemembers.Chat
       private async Task RunLlmExchangeAsync(string playerMessage,
                                              ChatSpeaker speaker,
                                              ChatMessageViewModel placeholder,
-                                             bool suppressPlayerLine = false)
+                                             bool suppressPlayerLine = false,
+                                             string addressedCouncilMemberName = null)
       {
          try
          {
@@ -568,11 +569,16 @@ namespace CalradiaRemembers.Chat
                // the turn counter: a captor's opening turn carries suppressPlayerLine and so never
                // increments it, which asked for the opening narration twice in every captive scene.
                isConversationOpening: ConsumeOpeningNarration(),
-               // Assembly spike: when armed by cr.council_test, a normal player turn takes the COUNCIL framing,
-               // so this single call yields the anchor's reply + a [WITNESS_REACTION] per present member.
-               // A real council carries the whole-table framing for its WHOLE session (_councilScope); the
-               // console spike arms the same framing globally on an ordinary chat, for validation only.
+               // Assembly spike: when armed by cr.council_test, a normal player turn takes the OLD whole-table
+               // framing, so that single call yields the anchor's reply + a [WITNESS_REACTION] per present
+               // member. A real council carries this for its WHOLE session (_councilScope), but additionally
+               // narrows to the NARRATOR framing below: the spike deliberately keeps validating the older
+               // whole-table model it was built to test, not the reshape.
                isRoundTableTurn: RoundTableController.CouncilTurnsForced || _councilScope != null,
+               // Council narrator model (2026-08-02): a REAL council (never the console spike above) fires the
+               // narrator framing instead of "you lead, they react" (see EncounterContext.IsCouncilNarratorTurn).
+               isCouncilNarratorTurn: _councilScope != null,
+               addressedCouncilMemberName: addressedCouncilMemberName,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic
                // scene cue has no attempt to judge.
@@ -758,8 +764,11 @@ namespace CalradiaRemembers.Chat
                AppendNarration(response.Narration, placeholder);
 
             // Render the turn: dialogue bubble, or a narration-only turn (no empty bubble), or
-            // a "(silence...)" fallback. npcLine is empty for a narration-only turn.
-            npcLine = RenderNpcTurn(placeholder, speaker, response);
+            // a "(silence...)" fallback. npcLine is empty for a narration-only turn. A real council
+            // (allowSilentSpeaker) also drops the placeholder cleanly when the anchor stayed silent this turn
+            // and other seated members carried it via [WITNESS_REACTION] instead: the anchor is not privileged
+            // and must not surface a "(silence...)" bubble under their own name for choosing not to speak.
+            npcLine = RenderNpcTurn(placeholder, speaker, response, allowSilentSpeaker: _councilScope != null);
             if (IsCaptiveEncounter) _captiveBeatCount++;
 
             // Commit this turn to the attributed transcript — player first, then the
@@ -813,6 +822,21 @@ namespace CalradiaRemembers.Chat
                   IsCaptiveEncounter, _conversationEnded)
                   ? new List<(string name, string heroId, string text)>()
                   : CollectWitnessReactions(response);
+
+            // Council narrator model: the ratified exception, a member addressed BY NAME must at least
+            // respond this turn. The prompt teaches it, but a weak model can still ignore the directive, so a
+            // minimal, deterministic line backstops the guarantee when nobody voiced that member this turn (the
+            // anchor speaking for themselves does not need one; their own [DIALOGUE] already covers it).
+            if (_councilScope != null && !string.IsNullOrEmpty(addressedCouncilMemberName)
+                && !string.Equals(addressedCouncilMemberName, speaker.Name, StringComparison.OrdinalIgnoreCase)
+                && !witnessReactions.Exists(w => string.Equals(w.name, addressedCouncilMemberName, StringComparison.OrdinalIgnoreCase)))
+            {
+               string fallbackHeroId = _witnesses.FirstOrDefault(w =>
+                  string.Equals(w.Name, addressedCouncilMemberName, StringComparison.OrdinalIgnoreCase))?.HeroStringId;
+               witnessReactions.Add((addressedCouncilMemberName, fallbackHeroId,
+                  "*inclines their head toward you, answering the point directly, if briefly.*"));
+               ModLog.Info($"[COUNCIL] {addressedCouncilMemberName} was addressed directly but gave no line this turn; a fallback line was added.");
+            }
 
             foreach (var (wn, _, wt) in witnessReactions)
             {
@@ -1308,7 +1332,12 @@ namespace CalradiaRemembers.Chat
             // up to 3 extra captor turns per player message — walls of text, the player rarely
             // getting to reply, and the Continue/Try-something pause never reached. Captive scenes
             // use the continuation pause below instead.
-            if (witnessReactions.Count > 0 && speaker.IsMain && !IsCaptiveEncounter && _witnessExchangesThisRound < WitnessExchangeCap && !_conversationEnded)
+            // NOT at a real council either (council narrator model): the whole table already spoke this ONE
+            // narrator call (the anchor's [DIALOGUE] plus every other member's [WITNESS_REACTION]), so firing
+            // an extra auto-reply here would be a second LLM call per player turn, exactly what "one narrator
+            // call per player turn" rules out.
+            if (witnessReactions.Count > 0 && speaker.IsMain && !IsCaptiveEncounter && _councilScope == null
+                && _witnessExchangesThisRound < WitnessExchangeCap && !_conversationEnded)
             {
                _witnessExchangesThisRound++;
                _npcWitnessExchangePending = true;
