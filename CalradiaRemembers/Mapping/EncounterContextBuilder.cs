@@ -199,6 +199,7 @@ namespace CalradiaRemembers.Mapping
             NativeQuestNote = ResolveNativeQuestNote(hero),
             NemesisRecaptureNote = ResolveNemesisRecaptureNote(hero, playerStatus),
             CaptiveIntent = captiveIntent,
+            CaptiveSceneAtSea = ResolveCaptiveSceneAtSea(hero, playerStatus),
             CaptiveSceneFocus = captiveSceneFocus,
             CaptiveSceneStyle = captiveSceneStyle,
             CaptorKnowsPlayerName = profile?.CaptorLearnedPlayerName ?? false,
@@ -739,6 +740,29 @@ namespace CalradiaRemembers.Mapping
             CoercionResult coercion = StanceGatePolicy.ResolveCoercion(stance.Fear, stance.Respect, honor, valor, calculating);
 
             return coercion.Outcome == CoercionOutcome.YieldsSofterTerms;
+         }
+         catch { return false; }
+      }
+
+      /// <summary>
+      ///   True when a captive scene is physically happening at sea. Player report: captured by Sea Raiders,
+      ///   the captive scene was narrated as a land camp with a tent and a campfire because nothing told the
+      ///   model the ship was still under them. <c>MobileParty.MainParty</c> (the general <see cref="AtSea" />
+      ///   flag above) cannot answer this: the player's own party is gone once they are taken prisoner, so it
+      ///   reads stale/false. The actual vessel in play is either the party now HOLDING the player captive
+      ///   (<see cref="Hero.PartyBelongedToAsPrisoner" />) or the captor NPC's own live party — checked both
+      ///   ways since either can be the ship, depending on how the capture was staged.
+      /// </summary>
+      private static bool ResolveCaptiveSceneAtSea(Hero hero, PlayerStatusVsNpc playerStatus)
+      {
+         try
+         {
+            if (playerStatus != PlayerStatusVsNpc.Captive) return false;
+
+            bool holdingPartyAtSea = Hero.MainHero?.PartyBelongedToAsPrisoner?.MobileParty?.IsCurrentlyAtSea == true;
+            bool captorPartyAtSea = hero?.PartyBelongedTo?.IsCurrentlyAtSea == true;
+
+            return holdingPartyAtSea || captorPartyAtSea;
          }
          catch { return false; }
       }

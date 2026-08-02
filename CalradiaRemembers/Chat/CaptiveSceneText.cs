@@ -126,6 +126,22 @@ namespace CalradiaRemembers.Chat
          "beside a cold forest stream", "in a half-collapsed barn", "at a ford strewn with old bones"
       };
 
+      // AT SEA locales: the captivity is happening aboard the captor's ship on open water (Sea Raiders and
+      // other naval captors), no camp, no roads, no firelight ashore. Selected instead of the wilderness
+      // pool when the captor and/or the holding party is at sea (player report: a Sea Raiders capture was
+      // narrated as a land camp with a tent and a campfire, the ship never registering).
+      private static readonly string[] SeaLocales = {
+         "on the open deck of the ship, land lost from sight", "belowdecks in the cramped, creaking hold",
+         "at the stern rail with the wake churning white behind", "lashed against the mast as the deck rolls beneath you",
+         "in the bow, spray coming up over the rail", "among the coiled rope and cargo of the hold"
+      };
+
+      private static readonly string[] SeaPresentations = {
+         "dragged up from the hold in chains", "shoved stumbling across the pitching deck",
+         "hauled up from below at spearpoint", "thrown down against the mast",
+         "marched up from the hold, still soaked with spray"
+      };
+
       // When the player is held in a town or castle, the scene happens INSIDE it — a cell or a private
       // chamber of the captor's seat — not at a roadside camp. {0} is the settlement name.
       private static readonly string[] HeldLocales = {
@@ -148,7 +164,28 @@ namespace CalradiaRemembers.Chat
       };
 
       public static string BuildCaptiveOpener(bool isCollective, CaptiveSceneIntent intent)
+         => BuildCaptiveOpener(isCollective, intent, false);
+
+      /// <summary>
+      ///   As the other overload, but with the Extortion/Intimidation openers (the only two that hardcode a
+      ///   land "bandit camp"/"firelight" setting) swapped for a ship-appropriate phrasing when
+      ///   <paramref name="atSea" /> is true. Player report: captured by Sea Raiders, the opener itself named
+      ///   a "bandit camp" outright, so the model never had a chance to picture a ship even before
+      ///   <see cref="BuildSceneSetup(CaptiveSceneIntent, ref int, bool, out string)" />'s own locale pool ran.
+      /// </summary>
+      public static string BuildCaptiveOpener(bool isCollective, CaptiveSceneIntent intent, bool atSea)
       {
+         if (atSea)
+         {
+            switch (intent)
+            {
+               case CaptiveSceneIntent.Extortion:
+                  return "[Your men drag the bound captive before you on the open deck of the ship, the sea reaching to every horizon. They are disarmed and helpless, and you mean to wring some coin or advantage out of them. Open in your own voice, a brigand who smells money.]";
+               case CaptiveSceneIntent.Intimidation:
+                  return "[The bound captive is shoved to their knees before you on the deck of your ship. No lord, no law reaches them out here on the water. You mean to make them understand exactly how helpless they are. Begin in your own voice, all menace.]";
+            }
+         }
+
          switch (intent)
          {
             case CaptiveSceneIntent.Interrogation:
@@ -247,7 +284,7 @@ namespace CalradiaRemembers.Chat
       }
 
       public static string BuildSceneSetup(CaptiveSceneIntent intent, ref int lastFocusIndex)
-         => BuildSceneSetup(intent, ref lastFocusIndex, out _);
+         => BuildSceneSetup(intent, ref lastFocusIndex, false, out _);
 
       /// <summary>
       ///   As <see cref="BuildSceneSetup(CaptiveSceneIntent, ref int)" />, also handing back the chosen
@@ -256,6 +293,14 @@ namespace CalradiaRemembers.Chat
       ///   ongoing prompt.
       /// </summary>
       public static string BuildSceneSetup(CaptiveSceneIntent intent, ref int lastFocusIndex, out string focus)
+         => BuildSceneSetup(intent, ref lastFocusIndex, false, out focus);
+
+      /// <summary>
+      ///   As the other overload, but drawing the AT-SEA locale pool instead of the wilderness one when
+      ///   <paramref name="atSea" /> is true (never for a held-in-settlement scene, which stays a cell or a
+      ///   private hall regardless: a captor cannot be both in a keep and on a ship).
+      /// </summary>
+      public static string BuildSceneSetup(CaptiveSceneIntent intent, ref int lastFocusIndex, bool atSea, out string focus)
       {
          Settlement held = ResolveHoldingSettlement();
 
@@ -265,6 +310,12 @@ namespace CalradiaRemembers.Chat
             locale = string.Format(HeldLocales[MBRandom.RandomInt(HeldLocales.Length)], held.Name);
             state = HeldCaptorStates[MBRandom.RandomInt(HeldCaptorStates.Length)];
             pres = HeldPresentations[MBRandom.RandomInt(HeldPresentations.Length)];
+         }
+         else if (atSea) // aboard the captor's ship: no camp, no roads, no firelight
+         {
+            locale = SeaLocales[MBRandom.RandomInt(SeaLocales.Length)];
+            state = CaptorStates[MBRandom.RandomInt(CaptorStates.Length)];
+            pres = SeaPresentations[MBRandom.RandomInt(SeaPresentations.Length)];
          }
          else // on the road / in a camp
          {

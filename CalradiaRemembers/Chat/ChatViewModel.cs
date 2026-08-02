@@ -1036,13 +1036,17 @@ namespace CalradiaRemembers.Chat
          // menace scene converges in prose just the same); its last index is static, so this scene never
          // repeats the previous one's lens.
          _captiveSceneStyle = CaptiveSceneText.PickStyleRegister(ref _lastCaptiveStyleIndex);
+         // Player report: captured by Sea Raiders, the scene was narrated as a land camp with a tent and a
+         // campfire, the ship never registering. Resolved once here so both the fixed opener text and the
+         // randomized locale pool draw from the same at-sea verdict.
+         bool atSea = ResolveCaptiveSceneAtSea();
          string setup = nonSexual
             ? ""
-            : CaptiveSceneText.BuildSceneSetup(intent, ref _lastSceneFocusIndex, out _captiveSceneFocus);
+            : CaptiveSceneText.BuildSceneSetup(intent, ref _lastSceneFocusIndex, atSea, out _captiveSceneFocus);
          // An openingOverride replaces the intent-based opener with a supplied stage cue: used when the scene
          // RESUMES after a lost escape encounter, so the captor opens on the recapture instead of a fresh intent.
          string opener = string.IsNullOrEmpty(openingOverride)
-            ? CaptiveSceneText.BuildCaptiveOpener(isCollective, intent) + setup
+            ? CaptiveSceneText.BuildCaptiveOpener(isCollective, intent, atSea) + setup
             : openingOverride;
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, captor, placeholder, true);
@@ -2635,6 +2639,26 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private bool NpcIsPlayerPrisoner()
          => _npcHero is {IsPrisoner: true} && _npcHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+
+      /// <summary>
+      ///   True when the PLAYER'S captive scene is physically happening at sea. Mirrors
+      ///   <c>EncounterContextBuilder.ResolveCaptiveSceneAtSea</c> (same verdict must reach both the
+      ///   scene-flavour text built here and the SDK's <see cref="EncounterContext.CaptiveSceneAtSea" />, or
+      ///   the opener and the system prompt could disagree). <c>MobileParty.MainParty.IsCurrentlyAtSea</c>
+      ///   cannot answer this once the player is a captive (their own party is gone), so this checks the
+      ///   party actually HOLDING them captive, and the captor's own live party as a fallback.
+      /// </summary>
+      private bool ResolveCaptiveSceneAtSea()
+      {
+         try
+         {
+            bool holdingPartyAtSea = Hero.MainHero?.PartyBelongedToAsPrisoner?.MobileParty?.IsCurrentlyAtSea == true;
+            bool captorPartyAtSea = _npcHero?.PartyBelongedTo?.IsCurrentlyAtSea == true;
+
+            return holdingPartyAtSea || captorPartyAtSea;
+         }
+         catch { return false; }
+      }
 
       /// <summary>
       ///   On each inserted line, keep VRAM bounded by the number of participants (not the transcript length):
