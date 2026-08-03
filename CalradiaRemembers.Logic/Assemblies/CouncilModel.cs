@@ -21,7 +21,13 @@ namespace CalradiaRemembers.Logic.Assemblies
         InBattle,
 
         /// <summary>Alive and free, but not a member of the roster this council gathers.</summary>
-        NotOfThisCouncil
+        NotOfThisCouncil,
+
+        /// <summary>Marching with an army; cannot break away to attend, even an abstract summons.</summary>
+        InArmy,
+
+        /// <summary>Away on a companion errand; cannot attend until they return.</summary>
+        OnMission
     }
 
     /// <summary>
@@ -37,7 +43,9 @@ namespace CalradiaRemembers.Logic.Assemblies
                                       bool isInBattle,
                                       bool isCompanion,
                                       bool isImmediateFamily,
-                                      bool isClanLord)
+                                      bool isClanLord,
+                                      bool isInArmy,
+                                      bool isOnMission)
         {
             IsAlive = isAlive;
             IsPrisoner = isPrisoner;
@@ -45,6 +53,8 @@ namespace CalradiaRemembers.Logic.Assemblies
             IsCompanion = isCompanion;
             IsImmediateFamily = isImmediateFamily;
             IsClanLord = isClanLord;
+            IsInArmy = isInArmy;
+            IsOnMission = isOnMission;
         }
 
         public bool IsAlive { get; }
@@ -61,6 +71,12 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>A hero-lord who belongs to the player's clan.</summary>
         public bool IsClanLord { get; }
+
+        /// <summary>The hero's party is attached to an army right now; cannot break away to attend.</summary>
+        public bool IsInArmy { get; }
+
+        /// <summary>The hero is away on a companion errand (CompanionMissionBehavior.IsAway); cannot attend until they return.</summary>
+        public bool IsOnMission { get; }
     }
 
     /// <summary>Whether a hero is seated at a council, and if not, the reason to show on the roster.</summary>

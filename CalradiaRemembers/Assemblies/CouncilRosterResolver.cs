@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Missions;
 using TaleWorlds.CampaignSystem;
 
 #endregion
@@ -127,7 +128,9 @@ namespace CalradiaRemembers.Assemblies
             hero.PartyBelongedTo?.MapEvent != null,
             hero.IsPlayerCompanion,
             isFamily,
-            clan != null && hero.Clan == clan && hero.IsLord && hero != player);
+            clan != null && hero.Clan == clan && hero.IsLord && hero != player,
+            hero.PartyBelongedTo?.Army != null,
+            CompanionMissionBehavior.Instance?.IsAway(hero.StringId) ?? false);
       }
 
       #endregion

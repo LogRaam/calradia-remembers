@@ -157,6 +157,8 @@ namespace CalradiaRemembers.Chat
             case CouncilExclusionReason.Dead: return "they have since died.";
             case CouncilExclusionReason.Imprisoned: return "they are now held prisoner.";
             case CouncilExclusionReason.InBattle: return "they are caught in a battle right now.";
+            case CouncilExclusionReason.InArmy: return "they are marching with an army right now.";
+            case CouncilExclusionReason.OnMission: return "they are away on a mission right now.";
             case CouncilExclusionReason.NotOfThisCouncil: return "they no longer belong to this house.";
             default: return "they are no longer available.";
          }

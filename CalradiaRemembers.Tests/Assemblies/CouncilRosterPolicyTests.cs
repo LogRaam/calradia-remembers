@@ -21,8 +21,10 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                      bool inBattle = false,
                                                      bool companion = false,
                                                      bool family = false,
-                                                     bool clanLord = false)
-            => new CouncilMembershipFacts(alive, prisoner, inBattle, companion, family, clanLord);
+                                                     bool clanLord = false,
+                                                     bool inArmy = false,
+                                                     bool onMission = false)
+            => new CouncilMembershipFacts(alive, prisoner, inBattle, companion, family, clanLord, inArmy, onMission);
 
         // The straight case: a companion is seated at a companions' council. If this failed the right-hand roster
         // would be empty and the player would have no one to address.
@@ -89,6 +91,64 @@ namespace CalradiaRemembers.Tests.Assemblies
 
             e.Eligible.Should().BeFalse();
             e.Reason.Should().Be(CouncilExclusionReason.Dead);
+        }
+
+        // The mod author's Partie 4 rule: a council may gather members who are not currently in the player's
+        // party, BUT they must be AVAILABLE, meaning not a prisoner, not engaged in an army, and not away on a
+        // mission. A clan lord marching with an army cannot break away for an abstract summons any more than one
+        // pinned in a battle can; seating him anyway would let him agree to deeds he cannot perform, recreating
+        // the "absent member acts as if present" bug under another form.
+        [Test]
+        public void GIVEN_a_clan_lord_in_an_army_WHEN_a_council_is_gathered_THEN_he_is_excluded_as_in_army()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.ClanLords, Member(clanLord: true, inArmy: true));
+
+            e.Eligible.Should().BeFalse();
+            e.Reason.Should().Be(CouncilExclusionReason.InArmy);
+        }
+
+        // Same Partie 4 rule, the mission leg: a companion sent off on an errand (CompanionMissionBehavior.IsAway)
+        // is physically elsewhere and cannot sit at the table either, even though the council itself is convened
+        // abstractly. Without this gate a dispatched companion would still be seated and could pledge to tasks
+        // he is, in fact, off doing something else entirely.
+        [Test]
+        public void GIVEN_a_companion_away_on_a_mission_WHEN_a_companions_council_is_gathered_THEN_he_is_excluded_as_on_mission()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.Companions, Member(companion: true, onMission: true));
+
+            e.Eligible.Should().BeFalse();
+            e.Reason.Should().Be(CouncilExclusionReason.OnMission);
+        }
+
+        // Priority is unaffected by the new gates: the dead, the imprisoned, and the battle-pinned still win over
+        // InArmy/OnMission when several conditions overlap, since those two facts are only ever true together with
+        // IsAlive/IsPrisoner/IsInBattle in a stale-fact edge case, never a real one, and the roster must still
+        // report the most severe truth first.
+        [Test]
+        public void GIVEN_a_dead_member_who_is_also_flagged_in_an_army_WHEN_a_council_is_gathered_THEN_dead_still_wins()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.ClanLords, Member(alive: false, clanLord: true, inArmy: true));
+
+            e.Eligible.Should().BeFalse();
+            e.Reason.Should().Be(CouncilExclusionReason.Dead);
+        }
+
+        [Test]
+        public void GIVEN_a_prisoner_who_is_also_flagged_away_on_a_mission_WHEN_a_council_is_gathered_THEN_imprisoned_still_wins()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.Companions, Member(companion: true, prisoner: true, onMission: true));
+
+            e.Eligible.Should().BeFalse();
+            e.Reason.Should().Be(CouncilExclusionReason.Imprisoned);
+        }
+
+        [Test]
+        public void GIVEN_a_member_in_battle_who_is_also_flagged_in_an_army_WHEN_a_council_is_gathered_THEN_in_battle_still_wins()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.Family, Member(family: true, inBattle: true, inArmy: true));
+
+            e.Eligible.Should().BeFalse();
+            e.Reason.Should().Be(CouncilExclusionReason.InBattle);
         }
     }
 }
