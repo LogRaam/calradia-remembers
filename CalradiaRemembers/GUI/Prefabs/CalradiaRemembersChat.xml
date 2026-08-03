@@ -105,16 +105,16 @@
                           UpdateChildrenStates="true"
                           Command.Click="ExecuteOpenStylePicker">
               <Children>
-                <!-- quill.png is a NORMAL gold PNG; CorrectRedBlue="false" tells the runtime factory to SKIP the
-                     JPG-calibrated R/B swap, so a Photoshop PNG renders gold with no pre-swap hack. Color pinned
-                     white so no widget state tints it. -->
+                <!-- quill.jpg (Gabriel switched the asset from PNG to JPG): a JPG needs the runtime factory's
+                     JPG-calibrated R/B swap, so CorrectRedBlue is left at its default (true) rather than the "false"
+                     the old PNG used, or the icon would render with red and blue inverted. Color pinned white so no
+                     widget state tints it. -->
                 <CrRuntimeImageWidget Id="StyleQuillIcon"
                                       WidthSizePolicy="StretchToParent"
                                       HeightSizePolicy="StretchToParent"
                                       HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
                                       ImagePath="@StyleIconPath"
-                                      CorrectRedBlue="false"
                                       Color="#FFFFFFFF" />
               </Children>
             </ButtonWidget>

@@ -75,7 +75,7 @@ namespace CalradiaRemembers.Styles
         ///   back to a text button, so a missing or unreadable asset can never leave an empty button.
         /// </summary>
         public static string IconPath
-            => Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "quill.png");
+            => Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "quill.jpg");
 
         /// <summary>True when the quill asset is on disk, so the header can show the icon instead of the label.</summary>
         public static bool IconExists
