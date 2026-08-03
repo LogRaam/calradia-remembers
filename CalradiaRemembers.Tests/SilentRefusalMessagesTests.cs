@@ -7,6 +7,12 @@
 // deed as done, keeps replaying the phantom gift or payment into every later prompt while the player sees
 // nothing at all. These strings are what the bridge now hands to ActionOutcome.Refused(...) on those
 // branches instead, so both sides of the conversation learn the deed did not happen.
+//
+// The same silent-null class also covers a promised gift with no item named at all, a grant_blessing with
+// no one named, an arrange_marriage with no kin named, and a decline_divorce whose two guard checks used to
+// return null while accept_divorce's identical checks already surfaced a Refused: the model narrates the
+// gift, blessing, betrothal, or refusal as done, and without a surfaced message the player never learns it
+// silently did nothing.
 
 #region
 
@@ -83,6 +89,72 @@ namespace CalradiaRemembers.Tests
          message.Should().NotBeNullOrEmpty();
          message.Should().StartWith("(");
          message.Should().EndWith(")");
+      }
+
+      // STAKE: the model narrates a gift with no item ever actually named (no picked bag item, no free-text
+      // name). ExecuteGiveItem used to return null on this branch, so the player saw no effect while the
+      // model kept believing the gift went through.
+      [Test]
+      public void GIVEN_give_item_named_no_item_at_all_WHEN_building_the_message_THEN_it_is_a_parenthetical_in_character_note()
+      {
+         string message = SilentRefusalMessages.GiveItemNoneNamed();
+
+         message.Should().NotBeNullOrEmpty();
+         message.Should().StartWith("(");
+         message.Should().EndWith(")");
+      }
+
+      // STAKE: the model narrates a blessing with no one actually named to bless. ExecuteGrantBlessing used
+      // to return null on a missing or blank hero parameter, leaving the player with no idea the blessing
+      // never happened while the model kept believing consent was given.
+      [Test]
+      public void GIVEN_grant_blessing_named_no_one_WHEN_building_the_message_THEN_it_is_a_parenthetical_in_character_note()
+      {
+         string message = SilentRefusalMessages.GrantBlessingNoOneNamed();
+
+         message.Should().NotBeNullOrEmpty();
+         message.Should().StartWith("(");
+         message.Should().EndWith(")");
+      }
+
+      // STAKE: the model narrates a betrothal with the player's or the target's kin left unnamed.
+      // ExecuteArrangeMarriage used to return null when either parameter was missing or blank, so the
+      // promised match silently never happened.
+      [Test]
+      public void GIVEN_arrange_marriage_is_missing_a_kin_name_WHEN_building_the_message_THEN_it_is_a_parenthetical_in_character_note()
+      {
+         string message = SilentRefusalMessages.ArrangeMarriageMissingKin();
+
+         message.Should().NotBeNullOrEmpty();
+         message.Should().StartWith("(");
+         message.Should().EndWith(")");
+      }
+
+      // STAKE: accept_divorce already surfaces this exact check (the named hero is not actually the
+      // player's spouse) via ActionOutcome.Refused. decline_divorce used to return null on the identical
+      // check, a real asymmetry: refusing a divorce demand that was never real silently did nothing.
+      [Test]
+      public void GIVEN_the_named_hero_is_not_the_player_spouse_WHEN_building_the_message_THEN_it_denies_a_marriage_exists()
+      {
+         string message = SilentRefusalMessages.DivorceNotFromSpouse();
+
+         message.Should().NotBeNullOrEmpty();
+         message.Should().StartWith("(");
+         message.Should().EndWith(")");
+      }
+
+      // STAKE: accept_divorce already surfaces this exact check (no divorce demand is actually pending)
+      // via ActionOutcome.Refused, naming the spouse. decline_divorce used to return null on the identical
+      // check; the spouse's name must be present so the model can attribute the refusal to the right person.
+      [Test]
+      public void GIVEN_no_divorce_demand_is_pending_WHEN_building_the_message_THEN_it_names_the_spouse_and_denies_a_demand()
+      {
+         string message = SilentRefusalMessages.DivorceNoDemandPending("Derthert");
+
+         message.Should().NotBeNullOrEmpty();
+         message.Should().StartWith("(");
+         message.Should().EndWith(")");
+         message.Should().Contain("Derthert");
       }
    }
 }

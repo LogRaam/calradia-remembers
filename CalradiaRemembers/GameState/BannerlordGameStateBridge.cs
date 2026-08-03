@@ -874,14 +874,14 @@ namespace CalradiaRemembers.GameState
             var player = Hero.MainHero;
 
             if (player == null || npcHero == null || npcHero != player.Spouse)
-               return ActionOutcome.Refused("(There is no marriage between you and this person to end.)");
+               return ActionOutcome.Refused(SilentRefusalMessages.DivorceNotFromSpouse());
 
             var demands = SpouseDivorceDemandBehavior.Instance;
             bool demanding = demands?.IsDemanding(npcHero.StringId) == true;
             bool estranging = demands?.IsEstranging(npcHero.StringId) == true;
 
             if (demands == null || !demanding && !estranging)
-               return ActionOutcome.Refused($"({npcHero.Name} has not pressed you to end the marriage.)");
+               return ActionOutcome.Refused(SilentRefusalMessages.DivorceNoDemandPending(npcHero.Name.ToString()));
 
             int spouseVsPlayerBefore = npcHero.GetRelation(player);
 
@@ -951,11 +951,17 @@ namespace CalradiaRemembers.GameState
          {
             var player = Hero.MainHero;
 
-            if (player == null || npcHero == null || npcHero != player.Spouse) return null;
+            // Was a silent no-op that let the model replay a phantom refusal: the named hero is not
+            // actually the player's spouse. Mirrors ExecuteAcceptDivorce's identical first check.
+            if (player == null || npcHero == null || npcHero != player.Spouse)
+               return ActionOutcome.Refused(SilentRefusalMessages.DivorceNotFromSpouse());
 
             var demands = SpouseDivorceDemandBehavior.Instance;
 
-            if (demands == null || !demands.IsDemanding(npcHero.StringId)) return null;
+            // Was a silent no-op that let the model replay a phantom refusal: no divorce demand was
+            // actually pending. Mirrors ExecuteAcceptDivorce's identical second check.
+            if (demands == null || !demands.IsDemanding(npcHero.StringId))
+               return ActionOutcome.Refused(SilentRefusalMessages.DivorceNoDemandPending(npcHero.Name.ToString()));
 
             demands.RegisterRefusal(npcHero, (int) CampaignTime.Now.ToDays);
             ModLog.Info($"[ACTION] decline_divorce: player refused {npcHero.Name}'s divorce demand.");
@@ -1297,7 +1303,9 @@ namespace CalradiaRemembers.GameState
             action.Parameters.TryGetValue("item", out string itemName);
             string itemId = context?.OfferedItemId; // the exact item the player picked from the bag, if any
 
-            if (string.IsNullOrWhiteSpace(itemName) && string.IsNullOrWhiteSpace(itemId)) return null;
+            // Was a silent no-op that let the model replay a phantom gift: no item was named at all.
+            if (string.IsNullOrWhiteSpace(itemName) && string.IsNullOrWhiteSpace(itemId))
+               return ActionOutcome.Refused(SilentRefusalMessages.GiveItemNoneNamed());
 
             // Prefer the exact item the player picked from the bag (by id); fall back to a name match
             // for a gift offered purely in free text. The id path is immune to the LLM rewording the name.
@@ -1489,7 +1497,9 @@ namespace CalradiaRemembers.GameState
             if (Hero.MainHero?.Spouse != null)
                return ActionOutcome.Refused("(You are already wed — the blessing cannot apply.)");
 
-            if (!action.Parameters.TryGetValue("hero", out string spouseName) || string.IsNullOrWhiteSpace(spouseName)) return null;
+            // Was a silent no-op that let the model replay a phantom blessing: no one was named to bless.
+            if (!action.Parameters.TryGetValue("hero", out string spouseName) || string.IsNullOrWhiteSpace(spouseName))
+               return ActionOutcome.Refused(SilentRefusalMessages.GrantBlessingNoOneNamed());
 
             Hero spouse = MarriageProspectResolver.ResolveCandidate(npcHero, spouseName);
 
@@ -1543,7 +1553,10 @@ namespace CalradiaRemembers.GameState
 
             action.Parameters.TryGetValue("player_kin", out string playerKinName);
             action.Parameters.TryGetValue("target_kin", out string targetKinName);
-            if (string.IsNullOrWhiteSpace(playerKinName) || string.IsNullOrWhiteSpace(targetKinName)) return null;
+
+            // Was a silent no-op that let the model replay a phantom betrothal: a kin name was missing.
+            if (string.IsNullOrWhiteSpace(playerKinName) || string.IsNullOrWhiteSpace(targetKinName))
+               return ActionOutcome.Refused(SilentRefusalMessages.ArrangeMarriageMissingKin());
 
             // A is resolved through the player as the head of their own house; B through the conversation NPC's
             // house (or the NPC themselves, when the player names them directly).
