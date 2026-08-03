@@ -198,21 +198,8 @@
                             Brush="Default" Brush.FontSize="13" Brush.FontColor="#7a9070FF"
                             Brush.TextHorizontalAlignment="Center" Text="@WitnessesText" IsDisabled="true" />
 
-                <!-- End: moved off the bottom edge to a compact top-right corner, clearly separate from the
-                     input bar below (previously sat directly above the input field at the bottom, contributing
-                     to the field reading as buried/hidden on the dark backdrop). Same ExecuteClose lifecycle. -->
-                <ButtonWidget Id="EndCouncilButton"
-                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                              SuggestedWidth="110" SuggestedHeight="30"
-                              HorizontalAlignment="Right" VerticalAlignment="Top" MarginTop="4" MarginRight="0"
-                              DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
-                              UpdateChildrenStates="true" Command.Click="ExecuteClose">
-                  <Children>
-                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                                Brush="Popup.Button.Text" Brush.FontSize="15" Text="@CloseButtonText" />
-                  </Children>
-                </ButtonWidget>
+                <!-- End conversation now lives as a RED button directly under the input bar (see EndCouncilButton
+                     further down), per Gabriel. -->
 
                 <!-- ===================== MESSAGE LIST (copied verbatim from Classic) ===================== -->
                 <Widget Id="MessagesArea"
@@ -220,7 +207,7 @@
                         HeightSizePolicy="StretchToParent"
                         VerticalAlignment="Top"
                         MarginTop="92"
-                        MarginBottom="96"
+                        MarginBottom="132"
                         MarginLeft="4"
                         MarginRight="4">
                   <Children>
@@ -341,27 +328,25 @@
                      carries no placeholder text. -->
                 <TextWidget Id="InputHintTextWidget"
                             WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="20"
-                            HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="68"
+                            HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="104"
                             IsVisible="@IsChatInputVisible"
                             Brush="Default" Brush.FontSize="15" Brush.FontColor="#9a8f7aFF"
                             Brush.TextHorizontalAlignment="Center"
-                            Text="Speak to the council, then press Enter or Send" IsDisabled="true" />
+                            Text="Speak to the council, then press Enter" IsDisabled="true" />
 
-                <!-- Input row: bordered, lighter-fill field (was the same near-black fill as the backdrop, no
-                     border, no Send button - effectively invisible) + a Send button on the right, mirroring
-                     Classic's discoverable affordance. Enter / NumpadEnter still sends (ChatInputWidget). -->
+                <!-- Input row: FULL-WIDTH field, no Send button (Gabriel). Enter / NumpadEnter sends. Sits above the
+                     red End button below it. -->
                 <Widget Id="InputArea"
                         WidthSizePolicy="StretchToParent"
                         HeightSizePolicy="Fixed"
                         SuggestedHeight="44"
                         VerticalAlignment="Bottom"
-                        MarginBottom="20"
+                        MarginBottom="56"
                         MarginLeft="4"
                         MarginRight="4">
                   <Children>
                     <Widget Id="InputBox"
                             WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            MarginRight="120"
                             IsVisible="@IsChatInputVisible"
                             Sprite="BlankWhiteSquare_9" Color="#241d14FF">
                       <Children>
@@ -373,23 +358,30 @@
                                          Brush.TextHorizontalAlignment="Left" MaxLength="8000" Text="@InputText" />
                       </Children>
                     </Widget>
-
-                    <ButtonWidget Id="SendButton"
-                                  WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent"
-                                  SuggestedWidth="110"
-                                  HorizontalAlignment="Right"
-                                  IsVisible="@IsChatInputVisible"
-                                  IsEnabled="@IsSendEnabled"
-                                  DoNotPassEventsToChildren="true" Brush="ButtonBrush1"
-                                  UpdateChildrenStates="true" Command.Click="ExecuteSendMessage">
-                      <Children>
-                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                                    Brush="Popup.Button.Text" Brush.FontSize="18" Text="@SendButtonText" />
-                      </Children>
-                    </ButtonWidget>
                   </Children>
                 </Widget>
+
+                <!-- End conversation: a RED button directly UNDER the input bar (Gabriel). Same ExecuteClose
+                     lifecycle as before; a solid red fill + a red frame under a pale label so it reads clearly as
+                     the leave action. -->
+                <ButtonWidget Id="EndCouncilButton"
+                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="220" SuggestedHeight="34"
+                              HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="14"
+                              DoNotPassEventsToChildren="true"
+                              UpdateChildrenStates="true" Command.Click="ExecuteClose">
+                  <Children>
+                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Sprite="BlankWhiteSquare_9" Color="#7a1f1fFF" IsDisabled="true" />
+                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Sprite="frame_9" ExtendLeft="4" ExtendTop="4" ExtendRight="4" ExtendBottom="4"
+                            Color="#c04040FF" AlphaFactor="0.7" IsDisabled="true" />
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Default" Brush.FontSize="16" Brush.FontColor="#f2e2d2FF"
+                                Brush.TextHorizontalAlignment="Center" Text="@CloseButtonText" IsDisabled="true" />
+                  </Children>
+                </ButtonWidget>
 
               </Children>
             </Widget>
