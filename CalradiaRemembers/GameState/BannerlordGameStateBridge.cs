@@ -1251,9 +1251,15 @@ namespace CalradiaRemembers.GameState
          {
             ModLog.Info($"[ACTION] give_gold from {npcHero?.Name} had no parsable amount: ignored.");
 
-            return null;
+            // Was a silent no-op that let the model keep narrating a gift that never left anyone's purse.
+            return ActionOutcome.Refused(SilentRefusalMessages.GiveGoldNoValidSum());
          }
-         if (amount <= 0 || npcHero == null || Hero.MainHero == null) return null;
+         if (amount <= 0)
+         {
+            // Same silent-no-op fault as the unparsable case above, just a non-positive value instead.
+            return ActionOutcome.Refused(SilentRefusalMessages.GiveGoldNoValidSum());
+         }
+         if (npcHero == null || Hero.MainHero == null) return null;
 
          // Solvency: an NPC cannot give gold it does not hold. Clamp to the giver's real purse so a hallucinated
          // "10000" from a lord carrying 40 denars neither conjures coin nor drives the giver's purse negative.
@@ -1262,7 +1268,9 @@ namespace CalradiaRemembers.GameState
          {
             ModLog.Info($"[ACTION] give_gold: {npcHero.Name} has no gold to give: ignored.");
 
-            return null;
+            // Was a silent no-op: the model had already told the player gold was coming, so the player was
+            // left checking an unchanged purse with no explanation.
+            return ActionOutcome.Refused(SilentRefusalMessages.GiveGoldGiverInsolvent(npcHero.Name.ToString()));
          }
 
          amount = ClampInt(amount, 1, payable);
@@ -2213,13 +2221,27 @@ namespace CalradiaRemembers.GameState
 
       private static ActionOutcome ExecuteTakeGold(GameAction action, Hero npcHero)
       {
-         if (!TryGetInt(action.Parameters, "amount", out int amount)) return null;
-         if (amount <= 0 || Hero.MainHero == null) return null;
+         if (!TryGetInt(action.Parameters, "amount", out int amount))
+         {
+            // Was a silent no-op that let the model keep narrating a payment that never left the player's purse.
+            return ActionOutcome.Refused(SilentRefusalMessages.TakeGoldNoValidSum());
+         }
+         if (Hero.MainHero == null) return null;
+         if (amount <= 0)
+         {
+            // Same silent-no-op fault as the unparsable case above, just a non-positive value instead.
+            return ActionOutcome.Refused(SilentRefusalMessages.TakeGoldNoValidSum());
+         }
 
          // Never take more than the player actually carries (bandits simply empty the purse).
          amount = Math.Min(ClampInt(amount, 1, 10000), Hero.MainHero.Gold);
 
-         if (amount <= 0) return null;
+         if (amount <= 0)
+         {
+            // Was a silent no-op: the model had already narrated the payment as handed over while the
+            // player's purse (empty) never moved.
+            return ActionOutcome.Refused(SilentRefusalMessages.TakeGoldPlayerInsolvent());
+         }
 
          if (npcHero != null)
          {
@@ -2767,7 +2789,9 @@ namespace CalradiaRemembers.GameState
             InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q =>
                q.Type == QuestType.DeliverPrisoner && q.IsOutstanding);
 
-            if (quest == null) return null; // no such bargain — ignore a stray emission
+            // Was a silent no-op: the model had already narrated the captive as handed over while the
+            // prisoner roster (and any bargain) never moved. No such bargain, so surface the refusal.
+            if (quest == null) return ActionOutcome.Refused(SilentRefusalMessages.GivePrisonerNoBargain());
 
             var target = new PrisonerDeedTarget(quest.TargetHeroId, quest.TargetFactionId);
 
