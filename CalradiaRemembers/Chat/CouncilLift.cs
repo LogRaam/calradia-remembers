@@ -13,8 +13,10 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Quests;
 using NpcMemoryService.Core.Models;
@@ -147,9 +149,11 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         // Council audit M4 -> B2: the executable gate above proves kind is Quest, AppointGovernor or
-         // AssignPartyRole today; this switch is the per-kind dispatch that plug point replaces. Each case owns
-         // its own guards and reporting so a new executor never has to thread through another kind's assumptions.
+         // Council audit M4 -> B2: the executable gate above proves kind is Quest, AppointGovernor,
+         // AssignPartyRole, or one of the later executors (RejoinParty, DispatchOnMission, GrantStipend,
+         // DeclareWar/MakePeace, GiveGold/GiveInfluence, and Partie 2's GrantFief/RevokeFief) today; this switch
+         // is the per-kind dispatch that plug point replaces. Each case owns its own guards and reporting so a
+         // new executor never has to thread through another kind's assumptions.
          switch (kind)
          {
             case ResolutionKind.AppointGovernor:
@@ -184,6 +188,16 @@ namespace CalradiaRemembers.Chat
 
             case ResolutionKind.GiveInfluence:
                SettleGiveInfluence(ledger, entry, actorHero, actorName, report);
+
+               return;
+
+            case ResolutionKind.GrantFief:
+               SettleGrantFief(ledger, entry, actorHero, actorName, report);
+
+               return;
+
+            case ResolutionKind.RevokeFief:
+               SettleRevokeFief(ledger, entry, actorHero, actorName, report, gameDay);
 
                return;
 
@@ -701,6 +715,165 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"{actorName} lends their clan's influence to yours (+{amount}).", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} lent the player {amount} influence at court.");
+      }
+
+      /// <summary>
+      ///   Partie 2 (COUNCIL_ACTIONS.md): the FIRST GOVERNANCE executor, granting a crown fief to a seated
+      ///   WarCouncil vassal. A fief is CLAN-owned in vanilla (ChangeOwnerOfSettlementAction moves a hero's
+      ///   whole CLAN in), so this is inherently cross-clan: the player's OWN clan gives one of its towns or
+      ///   castles to the vassal's clan. Author's condition (Gabriel, "on ne veut pas que ce soit facile",
+      ///   COUNCIL_ACTIONS.md): only the actual kingdom SOVEREIGN may do this (FiefTransferPolicy.CanGrant),
+      ///   re-checked here rather than trusted from proposal time, exactly like every other executor. Applied
+      ///   via <see cref="ChangeOwnerOfSettlementAction.ApplyByKingDecision" />, the same detail vanilla's own
+      ///   fief councils use for a sovereign's own decision (never ApplyBySiege/ApplyByRebellion, which carry
+      ///   conquest-specific side effects this deed does not have).
+      /// </summary>
+      private static void SettleGrantFief(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         // Defensive, mirroring SettleGiveInfluence's own re-check: the beneficiary must be a genuine OTHER
+         // house. A true PlayerIsKingdomLeader already implies this (WarCouncilCandidates only falls back to the
+         // player's own clan lords when NO kingdom exists), but re-checking here costs nothing and keeps this
+         // executor honest even if the roster gate is ever relaxed.
+         if (actorHero.Clan == null || actorHero.Clan == Clan.PlayerClan)
+         {
+            const string reason = "they belong to the player's own house; there is no fief to grant across houses.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         bool playerIsKingdomLeader = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
+
+         // TargetHint (m2) carries the FIEF NAME, the same grounding slot appoint_governor's own pledge uses.
+         // Town or castle only (a village is not cedable on its own, COUNCIL_ACTIONS.md), and STILL a crown fief
+         // the player's own clan holds right now: a fief already given or lost between the pledge and the lift
+         // must refuse rather than conjure a transfer from nothing.
+         Settlement fief = Settlement.All?.FirstOrDefault(s =>
+            (s.IsTown || s.IsCastle)
+            && s.OwnerClan == Clan.PlayerClan
+            && string.Equals(s.Name?.ToString(), entry.TargetHint, StringComparison.OrdinalIgnoreCase));
+
+         if (!FiefTransferPolicy.CanGrant(playerIsKingdomLeader, fief != null))
+         {
+            string reason = !playerIsKingdomLeader
+               ? "the player no longer rules a kingdom to grant a crown fief from."
+               : "there is no crown fief of ours by that name left to grant.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         // Kimi review (COUNCIL_ACTIONS.md, grant_fief cas limites): a fief ceded while a governor is in post
+         // would otherwise leave that governor a wandering hero in what is now foreign land. Release the post
+         // first (mirroring SettleRejoinParty's own governor-release), and send a released PLAYER companion
+         // back to the main party so they are never simply stranded.
+         Hero formerGovernor = fief.Town?.Governor;
+         if (formerGovernor != null)
+         {
+            ChangeGovernorAction.RemoveGovernorOf(formerGovernor);
+
+            if (formerGovernor.IsPlayerCompanion && formerGovernor.PartyBelongedTo != MobileParty.MainParty)
+               AddHeroToPartyAction.Apply(formerGovernor, MobileParty.MainParty, false);
+         }
+
+         ChangeOwnerOfSettlementAction.ApplyByKingDecision(actorHero, fief);
+
+         // Author's condition: "on ne veut pas que ce soit facile". A fixed, unconditional influence cost
+         // (FiefTransferPolicy.GrantInfluenceCost), never gated on the player's current reserve: the sovereign's
+         // OWN prerogative to grant is never blocked by a thin treasury, but it is never a free favour either.
+         if (Clan.PlayerClan != null) ChangeClanInfluenceAction.Apply(Clan.PlayerClan, -FiefTransferPolicy.GrantInfluenceCost);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"{fief.Name} passes to {actorName}'s house by the crown's own decision (-{FiefTransferPolicy.GrantInfluenceCost} influence).", true);
+         ModLog.Info($"[COUNCIL] lift: {fief.Name} granted to {actorName}'s clan by royal decision.");
+      }
+
+      /// <summary>
+      ///   Partie 2 (COUNCIL_ACTIONS.md): the SECOND GOVERNANCE executor, and grant_fief's grim mirror: strips a
+      ///   crown fief BACK from a seated WarCouncil vassal. Author's condition (Gabriel: "une des pires
+      ///   punitions qui puisse être faite"), corrected by the Kimi review from "chef de clan" to the true
+      ///   kingdom SOVEREIGN (a clan leader has no fief of a clanmate's to reclaim, a clan's own fiefs already
+      ///   belong to it): re-checked here via FiefTransferPolicy.CanRevoke, bridge is law. On success, plants a
+      ///   MAXIMUM <see cref="GrudgeSource.FiefRevoked" /> grudge via the REAL gate (GrudgeBehavior.TryPlant,
+      ///   never a bare relation hit alone, so the loss surfaces in conversation and the encyclopedia like every
+      ///   other tier-2/3 source) plus a real relation hit (FiefTransferPolicy.RevokeRelationHit). Defection
+      ///   ("il est fort probable qu'un NPC quitte le clan dans les jours qui suivent") is DELIBERATELY NOT
+      ///   wired: vanilla's own ChangeKingdomAction.ApplyByLeaveKingdom is immediate and unconditional, not the
+      ///   probabilistic, delayed departure Gabriel described, and building that properly (a tracked timer
+      ///   weighted by standing) is a real new feature, not a one-line reuse; see the TODO below.
+      /// </summary>
+      private static void SettleRevokeFief(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report, int gameDay)
+      {
+         if (actorHero is not {IsAlive: true})
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (actorHero.Clan == null || actorHero.Clan == Clan.PlayerClan)
+         {
+            const string reason = "they hold no separate house whose fief could be revoked.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         bool playerIsKingdomLeader = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
+
+         Clan spoliatedClan = actorHero.Clan;
+
+         // TargetHint (m2) carries the FIEF NAME, exactly like grant_fief. STILL owned by the SPOLIATED vassal's
+         // own clan right now: naming a fief they never held, or already lost, would confiscate nothing.
+         Settlement fief = Settlement.All?.FirstOrDefault(s =>
+            (s.IsTown || s.IsCastle)
+            && s.OwnerClan == spoliatedClan
+            && string.Equals(s.Name?.ToString(), entry.TargetHint, StringComparison.OrdinalIgnoreCase));
+
+         if (!FiefTransferPolicy.CanRevoke(playerIsKingdomLeader, fief != null))
+         {
+            string reason = !playerIsKingdomLeader
+               ? "the player no longer rules a kingdom to revoke a fief in its name."
+               : $"{actorName} holds no fief of that name to revoke.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         ChangeOwnerOfSettlementAction.ApplyByKingDecision(Hero.MainHero, fief);
+
+         // Author's condition: one of the gravest punishments the table can hand down. Planted through the
+         // REAL grudge gate (anti-noise guardrails, per-holder cap) rather than force-inserted, so a maximum
+         // magnitude pledge still respects the same admission rule every other grudge in the game does.
+         GrudgeBehavior.Instance?.TryPlant(actorHero, Hero.MainHero, GrudgeSource.FiefRevoked,
+            $"stripped of {fief.Name} by the crown's own decision", FiefTransferPolicy.RevokeGrudgeMagnitude,
+            knownToPlayer: true, gameDay);
+
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(actorHero, Hero.MainHero, FiefTransferPolicy.RevokeRelationHit, false);
+
+         // TODO (deferred, see this method's own doc): a real probabilistic, delayed defection
+         // (ChangeKingdomAction.ApplyByLeaveKingdom, weighted by the spoliated lord's standing, some days after
+         // the confiscation) is a follow-up build, not hand-rolled here to avoid a fragile, unconditional exit
+         // that does not match Gabriel's own "fort probable... dans les jours qui suivent" description.
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"{fief.Name} is stripped from {actorName} and returns to the crown.", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} was stripped of {fief.Name} by royal decision; a grudge is planted.");
       }
 
       /// <summary>

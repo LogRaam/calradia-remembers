@@ -160,6 +160,9 @@ namespace CalradiaRemembers.Chat
          // ResolutionCatalog.GiveInfluence's own doc), it is computed fresh at the lift by CourtActionPolicy.InfluenceGrant,
          // so it falls through to the default branch below and simply carries a null TargetHint (proposal.TargetSettlement,
          // which the LLM is never taught to emit for this kind), CouncilLift.SettleGiveInfluence never reads it.
+         // Partie 2's "grant_fief" and "revoke_fief" (COUNCIL_ACTIONS.md) ground on the FIEF NAME, which needs no
+         // new field either: they fall through to the SAME default branch "quest"/"appoint_governor" already use,
+         // reading proposal.TargetSettlement, read back by CouncilLift.SettleGrantFief/SettleRevokeFief.
          string targetHint;
          if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.AssignPartyRole), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetRole;

@@ -27,8 +27,11 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool canDeclareWar = false,
                                                   bool canMakePeace = false,
                                                   bool memberHasGold = false,
-                                                  bool memberCanGrantInfluence = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence);
+                                                  bool memberCanGrantInfluence = false,
+                                                  bool playerIsKingdomLeader = false,
+                                                  bool playerHasGiveableFief = false,
+                                                  bool seatedVassalOwnsFief = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -328,6 +331,106 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, Facts(memberCanGrantInfluence: true))
                 .Should().NotContain("give_influence");
+        }
+
+        // Partie 2 (COUNCIL_ACTIONS.md): grant_fief needs BOTH the player's own sovereignty AND a giveable
+        // crown fief. Missing either must withhold it, so the table never resolves to grant a fief the player
+        // has no standing to give away, or a fief that does not exist to give.
+        [Test]
+        public void GIVEN_grant_fief_WHEN_either_condition_is_missing_THEN_it_is_not_offered()
+        {
+            ResolutionDefinition grantFief = ResolutionCatalog.Get(ResolutionKind.GrantFief);
+
+            ResolutionEligibilityPolicy.CanOffer(grantFief, Facts(playerIsKingdomLeader: true, playerHasGiveableFief: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(grantFief, Facts(playerIsKingdomLeader: true, playerHasGiveableFief: false)).Should().BeFalse();
+            ResolutionEligibilityPolicy.CanOffer(grantFief, Facts(playerIsKingdomLeader: false, playerHasGiveableFief: true)).Should().BeFalse();
+        }
+
+        // The offering wire: grant_fief must be TAUGHT to the LLM only when both conditions hold, or the model
+        // promises a fief CouncilLift.SettleGrantFief's own re-check (FiefTransferPolicy.CanGrant) would refuse
+        // outright (bridge is law).
+        [Test]
+        public void GIVEN_the_player_can_grant_a_fief_WHEN_offered_keys_are_asked_THEN_grant_fief_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil,
+                    Facts(playerIsKingdomLeader: true, playerHasGiveableFief: true))
+                .Should().Contain("grant_fief");
+        }
+
+        // Absent either fact (no kingdom to rule, or no crown fief to give) the key must be withheld, or the
+        // table could offer a grant the lift has already proven the player has no standing or nothing to give.
+        [Test]
+        public void GIVEN_the_player_cannot_grant_a_fief_WHEN_offered_keys_are_asked_THEN_grant_fief_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil,
+                    Facts(playerIsKingdomLeader: false, playerHasGiveableFief: true))
+                .Should().NotContain("grant_fief");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil,
+                    Facts(playerIsKingdomLeader: true, playerHasGiveableFief: false))
+                .Should().NotContain("grant_fief");
+        }
+
+        // The empty-promise guard, the other direction: ClanLords, Companions and Family carry no GrantFief
+        // catalogue entry at all (a fief is clan-owned, so a transfer within the player's own clan or a hired
+        // hand's council is mechanically vacant), so the key must never surface there even when both facts are
+        // (nonsensically) true.
+        [Test]
+        public void GIVEN_a_clan_lords_companions_or_family_council_WHEN_offered_keys_are_asked_THEN_grant_fief_is_never_included()
+        {
+            ResolutionWorldFacts facts = Facts(playerIsKingdomLeader: true, playerHasGiveableFief: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("grant_fief");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("grant_fief");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("grant_fief");
+        }
+
+        // Partie 2 (COUNCIL_ACTIONS.md): revoke_fief needs BOTH the player's own sovereignty AND a seated
+        // vassal actually holding a fief to strip. Missing either must withhold it, so the table never resolves
+        // to revoke a fief nobody present holds, or that the player has no standing to seize.
+        [Test]
+        public void GIVEN_revoke_fief_WHEN_either_condition_is_missing_THEN_it_is_not_offered()
+        {
+            ResolutionDefinition revokeFief = ResolutionCatalog.Get(ResolutionKind.RevokeFief);
+
+            ResolutionEligibilityPolicy.CanOffer(revokeFief, Facts(playerIsKingdomLeader: true, seatedVassalOwnsFief: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(revokeFief, Facts(playerIsKingdomLeader: true, seatedVassalOwnsFief: false)).Should().BeFalse();
+            ResolutionEligibilityPolicy.CanOffer(revokeFief, Facts(playerIsKingdomLeader: false, seatedVassalOwnsFief: true)).Should().BeFalse();
+        }
+
+        // The offering wire: revoke_fief must be TAUGHT to the LLM only when both conditions hold, or the model
+        // threatens a punishment CouncilLift.SettleRevokeFief's own re-check (FiefTransferPolicy.CanRevoke)
+        // would refuse outright, a hollow threat the table never actually carries out.
+        [Test]
+        public void GIVEN_the_player_can_revoke_a_fief_WHEN_offered_keys_are_asked_THEN_revoke_fief_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil,
+                    Facts(playerIsKingdomLeader: true, seatedVassalOwnsFief: true))
+                .Should().Contain("revoke_fief");
+        }
+
+        // Absent either fact (no kingdom to rule, or no seated vassal holds a fief at all) the key must be
+        // withheld, or the table could threaten a confiscation the lift has already proven impossible.
+        [Test]
+        public void GIVEN_the_player_cannot_revoke_a_fief_WHEN_offered_keys_are_asked_THEN_revoke_fief_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil,
+                    Facts(playerIsKingdomLeader: false, seatedVassalOwnsFief: true))
+                .Should().NotContain("revoke_fief");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil,
+                    Facts(playerIsKingdomLeader: true, seatedVassalOwnsFief: false))
+                .Should().NotContain("revoke_fief");
+        }
+
+        // The empty-promise guard, the other direction: ClanLords, Companions and Family carry no RevokeFief
+        // catalogue entry at all, so the key must never surface there even when both facts are (nonsensically) true.
+        [Test]
+        public void GIVEN_a_clan_lords_companions_or_family_council_WHEN_offered_keys_are_asked_THEN_revoke_fief_is_never_included()
+        {
+            ResolutionWorldFacts facts = Facts(playerIsKingdomLeader: true, seatedVassalOwnsFief: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("revoke_fief");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("revoke_fief");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("revoke_fief");
         }
     }
 }

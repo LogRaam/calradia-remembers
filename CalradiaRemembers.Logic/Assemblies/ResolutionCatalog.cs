@@ -48,8 +48,24 @@ namespace CalradiaRemembers.Logic.Assemblies
         /// <summary>Grant a companion a purse from the player's coffers.</summary>
         GrantStipend,
 
-        /// <summary>Grant a fief to a clan lord (ClanLords council; executor arrives with that variant).</summary>
+        /// <summary>
+        ///   Grant a crown fief to a seated WarCouncil vassal (the OTHER clan's own leader, never the player's
+        ///   own house, see COUNCIL_ACTIONS.md's Kimi review under grant_fief: a fief belongs to the CLAN, so
+        ///   "granting" one within the player's own clan is mechanically vacant). Re-scoped from an earlier
+        ///   ClanLords-only scaffold to WarCouncil, its only mechanically meaningful scope, the day the executor
+        ///   landed (CouncilLift.SettleGrantFief).
+        /// </summary>
         GrantFief,
+
+        /// <summary>
+        ///   Strips a crown fief BACK from a seated WarCouncil vassal, sovereign-only (COUNCIL_ACTIONS.md,
+        ///   Gabriel: "uniquement si on est le chef du clan", corrected by the Kimi review to KINGDOM sovereign,
+        ///   since a fief the player's own clan already holds cannot meaningfully be revoked from a clanmate).
+        ///   One of the gravest punishments the table can hand down: plants a maximum
+        ///   <see cref="CalradiaRemembers.Logic.Grudges.GrudgeSource.FiefRevoked" /> grudge on the spoliated lord
+        ///   and a real relation hit (CouncilLift.SettleRevokeFief).
+        /// </summary>
+        RevokeFief,
 
         /// <summary>
         ///   A seated clan companion who is NOT currently riding in the player's own party (seated thanks to the
@@ -145,7 +161,21 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   comfortably more influence than the computed grant, and the relation floor met). give_influence's
         ///   own fact.
         /// </summary>
-        MemberCanGrantInfluence = 512
+        MemberCanGrantInfluence = 512,
+
+        /// <summary>
+        ///   The player actually RULES a kingdom (Kingdom.Leader == the player), not merely a member of one. Both
+        ///   grant_fief and revoke_fief's own gate (COUNCIL_ACTIONS.md's Kimi review): a fief is clan-owned, so
+        ///   only the true sovereign can move one between the crown and a vassal at all; an independent clan (no
+        ///   kingdom) or a vassal clan among peers has no crown fief to give or take.
+        /// </summary>
+        PlayerIsKingdomLeader = 1024,
+
+        /// <summary>The player's own clan currently owns at least one town or castle it could give away as a crown fief. grant_fief's own fact.</summary>
+        PlayerHasGiveableFief = 2048,
+
+        /// <summary>At least one seated WarCouncil vassal's own clan currently owns a town or castle that could be stripped back to the crown. revoke_fief's own fact.</summary>
+        SeatedVassalOwnsFief = 4096
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -180,7 +210,10 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool playerCanDeclareWar = false,
                                     bool playerCanMakePeace = false,
                                     bool memberHasGold = false,
-                                    bool memberCanGrantInfluence = false)
+                                    bool memberCanGrantInfluence = false,
+                                    bool playerIsKingdomLeader = false,
+                                    bool playerHasGiveableFief = false,
+                                    bool seatedVassalOwnsFief = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -192,6 +225,9 @@ namespace CalradiaRemembers.Logic.Assemblies
             PlayerCanMakePeace = playerCanMakePeace;
             MemberHasGold = memberHasGold;
             MemberCanGrantInfluence = memberCanGrantInfluence;
+            PlayerIsKingdomLeader = playerIsKingdomLeader;
+            PlayerHasGiveableFief = playerHasGiveableFief;
+            SeatedVassalOwnsFief = seatedVassalOwnsFief;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -212,6 +248,15 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated allied clan leader's own clan could grant influence to the player's clan (give_influence's own fact, see ResolutionRequirement.MemberCanGrantInfluence).</summary>
         public bool MemberCanGrantInfluence { get; }
+
+        /// <summary>The player actually rules a kingdom (Kingdom.Leader == the player). Both grant_fief's and revoke_fief's own fact, see ResolutionRequirement.PlayerIsKingdomLeader.</summary>
+        public bool PlayerIsKingdomLeader { get; }
+
+        /// <summary>The player's own clan currently owns a town or castle it could give away. grant_fief's own fact, see ResolutionRequirement.PlayerHasGiveableFief.</summary>
+        public bool PlayerHasGiveableFief { get; }
+
+        /// <summary>At least one seated WarCouncil vassal's own clan currently owns a town or castle. revoke_fief's own fact, see ResolutionRequirement.SeatedVassalOwnsFief.</summary>
+        public bool SeatedVassalOwnsFief { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -230,9 +275,6 @@ namespace CalradiaRemembers.Logic.Assemblies
 
             new ResolutionDefinition(ResolutionKind.GrantStipend, CouncilScope.Companions,
                 "Grant a stipend", ResolutionRequirement.PlayerCanAffordStipend),
-
-            new ResolutionDefinition(ResolutionKind.GrantFief, CouncilScope.ClanLords,
-                "Grant a fief", ResolutionRequirement.TargetAvailable | ResolutionRequirement.PlayerHasVacantFief),
 
             new ResolutionDefinition(ResolutionKind.RejoinParty, CouncilScope.Companions,
                 "Rejoin the party", ResolutionRequirement.TargetOutOfPlayerParty),
@@ -263,7 +305,21 @@ namespace CalradiaRemembers.Logic.Assemblies
             // OTHER clans' own leaders (CouncilRosterResolver.WarCouncilCandidates), the one scope where a
             // seated member's clan is genuinely a different house that can pledge its own influence.
             new ResolutionDefinition(ResolutionKind.GiveInfluence, CouncilScope.WarCouncil,
-                "Pledge your clan's influence", ResolutionRequirement.MemberCanGrantInfluence)
+                "Pledge your clan's influence", ResolutionRequirement.MemberCanGrantInfluence),
+
+            // Partie 2 (COUNCIL_ACTIONS.md, grant_fief/revoke_fief): the FIRST two governance kinds to gain a
+            // real executor. Re-scoped to WarCouncil ONLY (a fief is clan-owned, so "granting"/"revoking" one
+            // within the player's own clan, ClanLords' own scope, is mechanically vacant, exactly the empty-
+            // promise class the Kimi review flagged for the earlier ClanLords scaffold); the seated vassal is
+            // the OTHER clan's own leader (CouncilRosterResolver.WarCouncilCandidates), a genuine crown/vassal
+            // pair. Both also require ResolutionRequirement.PlayerIsKingdomLeader: a fief moves between the
+            // crown and a vassal only under a true sovereign, never an independent clan (whose WarCouncil
+            // fallback seats its OWN clan lords, see WarCouncilCandidates' own doc) or a vassal among peers.
+            new ResolutionDefinition(ResolutionKind.GrantFief, CouncilScope.WarCouncil,
+                "Grant a fief", ResolutionRequirement.PlayerIsKingdomLeader | ResolutionRequirement.PlayerHasGiveableFief),
+
+            new ResolutionDefinition(ResolutionKind.RevokeFief, CouncilScope.WarCouncil,
+                "Revoke a fief", ResolutionRequirement.PlayerIsKingdomLeader | ResolutionRequirement.SeatedVassalOwnsFief)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -289,6 +345,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.DispatchOnMission: return "dispatch_mission";
                 case ResolutionKind.GrantStipend:      return "grant_stipend";
                 case ResolutionKind.GrantFief:         return "grant_fief";
+                case ResolutionKind.RevokeFief:        return "revoke_fief";
                 case ResolutionKind.RejoinParty:       return "rejoin_party";
                 case ResolutionKind.DeclareWar:        return "declare_war";
                 case ResolutionKind.MakePeace:          return "make_peace";
@@ -332,17 +389,22 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   the mirror image of GrantStipend's money direction. GiveInfluence (CouncilLift.SettleGiveInfluence,
         ///   reusing CourtActionPolicy.InfluenceGrant/CanAffordInfluenceGrant, the same math the 1:1
         ///   give_influence verb already uses) is a seated ALLIED CLAN LEADER's own clan influence pledged TO
-        ///   the player's clan, WarCouncil-only and carrying no LLM-chosen amount (the policy computes it). The
-        ///   remaining scoped menu motions are recorded but not yet executed, so they arrive with their variant
-        ///   (Q5). The runtime teaches and lifts only executable kinds, so the table never promises a deed it
-        ///   cannot keep.
+        ///   the player's clan, WarCouncil-only and carrying no LLM-chosen amount (the policy computes it).
+        ///   GrantFief and RevokeFief (CouncilLift.SettleGrantFief/SettleRevokeFief), Partie 2's first two
+        ///   GOVERNANCE executors (COUNCIL_ACTIONS.md), move a crown fief between the player's own clan and a
+        ///   seated WarCouncil vassal's; RevokeFief additionally plants a maximum
+        ///   <see cref="CalradiaRemembers.Logic.Grudges.GrudgeSource.FiefRevoked" /> grudge and a real relation
+        ///   hit on the spoliated lord, one of the gravest deeds the table can hand down. The remaining scoped
+        ///   menu motions are recorded but not yet executed, so they arrive with their variant (Q5). The runtime
+        ///   teaches and lifts only executable kinds, so the table never promises a deed it cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
             => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor
             || kind == ResolutionKind.AssignPartyRole || kind == ResolutionKind.RejoinParty
             || kind == ResolutionKind.DispatchOnMission || kind == ResolutionKind.GrantStipend
             || kind == ResolutionKind.DeclareWar || kind == ResolutionKind.MakePeace
-            || kind == ResolutionKind.GiveGold || kind == ResolutionKind.GiveInfluence;
+            || kind == ResolutionKind.GiveGold || kind == ResolutionKind.GiveInfluence
+            || kind == ResolutionKind.GrantFief || kind == ResolutionKind.RevokeFief;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

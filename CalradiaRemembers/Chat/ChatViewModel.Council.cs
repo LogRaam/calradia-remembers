@@ -326,6 +326,29 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Partie 2's own fact, revoke_fief (COUNCIL_ACTIONS.md; ResolutionOfferingResolver.OfferedKindKeys). True
+      ///   once any seated WarCouncil vassal's own clan currently owns a town or castle: without this, the model
+      ///   could threaten a confiscation the lift then finds nobody present actually holds anything to strip.
+      ///   Mirrors AnySeatedMemberHasGold's own loose gate (proves only SOME fief exists, never which one is
+      ///   named): the actual fief named is re-resolved and re-checked against the SAME seated vassal's own clan
+      ///   at the lift (CouncilLift.SettleRevokeFief, bridge is law).
+      /// </summary>
+      private bool AnySeatedVassalOwnsFief()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            Clan clan = hero?.Clan;
+            if (clan == null || clan == Clan.PlayerClan) continue;
+
+            if (Settlement.All != null && Settlement.All.Any(s => (s.IsTown || s.IsCastle) && s.OwnerClan == clan))
+               return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>
       ///   The WarCouncil's own gate: declare_war's PlayerCanDeclareWar fact (ResolutionOfferingResolver.OfferedKindKeys).
       ///   True once the player leads their own MapFaction (kingdom ruler, or an independent clan that IS its own
       ///   faction, see Hero.IsFactionLeader) AND at least one other faction exists that is neither the player's

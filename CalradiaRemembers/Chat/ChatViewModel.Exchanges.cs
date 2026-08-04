@@ -603,9 +603,12 @@ namespace CalradiaRemembers.Chat
                // is Partie 1's other own fact, give_influence: at least one seated ALLY (WarCouncil only, the
                // one scope ResolutionCatalog grants it) has a clan that could currently spare influence to the
                // player's clan under the reused 1:1 give_influence gates; unlike give_gold this carries no
-               // LLM-chosen amount, the lift computes it fresh.
+               // LLM-chosen amount, the lift computes it fresh. AnySeatedVassalOwnsFief is Partie 2's own fact,
+               // revoke_fief (COUNCIL_ACTIONS.md): at least one seated WarCouncil vassal's own clan currently
+               // owns a town or castle that could be stripped back to the crown; grant_fief's own sovereignty
+               // and giveable-fief facts need no roster and are read directly inside ResolutionOfferingResolver.
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

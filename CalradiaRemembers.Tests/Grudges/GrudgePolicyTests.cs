@@ -32,6 +32,18 @@ namespace CalradiaRemembers.Tests.Grudges
          GrudgePolicy.ResolutionKindFor(GrudgeSource.DeliveredPrisoner, 50).Should().Be(GrudgeResolutionKind.Deed);
       }
 
+      // FiefRevoked (the council's revoke_fief, COUNCIL_ACTIONS.md: "une des pires punitions qui puisse être
+      // faite") mirrors DeliveredPrisoner's own skip of the soft/hard split: a stripped fief is a concrete,
+      // verifiable loss no apology undoes, so a real deed is the ONLY path back regardless of how soft the
+      // rigidity happens to land (a vassal who otherwise trusted the player deeply still cannot be talked out
+      // of this one, only won back by action).
+      [Test]
+      public void GIVEN_a_fief_revoked_grudge_WHEN_mapping_the_resolution_kind_THEN_it_wants_a_real_deed_regardless_of_rigidity()
+      {
+         GrudgePolicy.ResolutionKindFor(GrudgeSource.FiefRevoked, 5).Should().Be(GrudgeResolutionKind.Deed);
+         GrudgePolicy.ResolutionKindFor(GrudgeSource.FiefRevoked, 90).Should().Be(GrudgeResolutionKind.Deed);
+      }
+
       // If stale (resolved or fully decayed) entries counted toward the cap, an NPC whose old wounds
       // simply faded could get stuck refusing every new grievance forever, a "full house" that is
       // actually empty. TryAdmit filters to live grudges first so the cap only ever gates real ones.

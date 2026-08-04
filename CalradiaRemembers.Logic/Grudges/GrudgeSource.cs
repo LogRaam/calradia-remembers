@@ -86,6 +86,15 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   permanent penalty. The mirror of <see cref="UnblessedMarriage" /> (love without the family), as
         ///   this is the family without love.
         /// </summary>
-        ForcedMarriage = 16
+        ForcedMarriage = 16,
+
+        /// <summary>
+        ///   "You stripped me of my fief": the council's own revoke_fief (COUNCIL_ACTIONS.md, Gabriel: "une des
+        ///   pires punitions qui puisse être faite"), a sovereign taking a crown fief back from a seated
+        ///   WarCouncil vassal. Always planted at maximum magnitude (FiefTransferPolicy.RevokeGrudgeMagnitude);
+        ///   rigidity still follows the usual regard-based formula, so a vassal who otherwise trusted the player
+        ///   deeply can, in principle, still mend this, but a lord already distrustful earns a near-vendetta.
+        /// </summary>
+        FiefRevoked = 17
     }
 }

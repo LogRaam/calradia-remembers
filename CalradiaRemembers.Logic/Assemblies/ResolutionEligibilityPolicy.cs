@@ -59,6 +59,9 @@ namespace CalradiaRemembers.Logic.Assemblies
             if (required.HasFlag(ResolutionRequirement.PlayerCanMakePeace) && !f.PlayerCanMakePeace) return false;
             if (required.HasFlag(ResolutionRequirement.MemberHasGold) && !f.MemberHasGold) return false;
             if (required.HasFlag(ResolutionRequirement.MemberCanGrantInfluence) && !f.MemberCanGrantInfluence) return false;
+            if (required.HasFlag(ResolutionRequirement.PlayerIsKingdomLeader) && !f.PlayerIsKingdomLeader) return false;
+            if (required.HasFlag(ResolutionRequirement.PlayerHasGiveableFief) && !f.PlayerHasGiveableFief) return false;
+            if (required.HasFlag(ResolutionRequirement.SeatedVassalOwnsFief) && !f.SeatedVassalOwnsFief) return false;
 
             return true;
         }

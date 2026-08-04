@@ -59,8 +59,14 @@ namespace CalradiaRemembers.Assemblies
       ///   Never throws: any
       ///   engine read failure degrades to
       ///   no vacant fief, so a failing lookup only WITHHOLDS a motion, never over-offers one the lift cannot honour.
+      ///   <paramref name="anySeatedVassalOwnsFief" /> is Partie 2's own fact, revoke_fief (see
+      ///   ChatViewModel.AnySeatedVassalOwnsFief): at least one seated WarCouncil vassal's own clan currently
+      ///   owns a town or castle that could be stripped back to the crown; the real fief named is re-resolved
+      ///   and re-checked at the lift regardless (CouncilLift.SettleRevokeFief, bridge is law).
+      ///   <see cref="PlayerIsKingdomLeader" /> and <see cref="HasGiveableFief" /> are read directly here (no
+      ///   roster is needed for either), grant_fief's and both kinds' own shared sovereignty fact.
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false)
       {
          try
          {
@@ -74,7 +80,10 @@ namespace CalradiaRemembers.Assemblies
                playerCanDeclareWar: playerCanDeclareWar,
                playerCanMakePeace: playerCanMakePeace,
                memberHasGold: anySeatedMemberHasGold,
-               memberCanGrantInfluence: anySeatedMemberCanGrantInfluence);
+               memberCanGrantInfluence: anySeatedMemberCanGrantInfluence,
+               playerIsKingdomLeader: PlayerIsKingdomLeader(),
+               playerHasGiveableFief: HasGiveableFief(),
+               seatedVassalOwnsFief: anySeatedVassalOwnsFief);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }
@@ -96,6 +105,29 @@ namespace CalradiaRemembers.Assemblies
 
          return Settlement.All != null && Settlement.All.Any(s =>
             (s.IsTown || s.IsCastle) && s.OwnerClan == clan && s.Town?.Governor == null);
+      }
+
+      // grant_fief's/revoke_fief's shared sovereignty gate (Partie 2, COUNCIL_ACTIONS.md's Kimi review): the
+      // player must actually RULE a kingdom, not merely belong to one or lead an independent clan. Without this,
+      // WarCouncil's own no-kingdom fallback (CouncilRosterResolver.WarCouncilCandidates seats the player's OWN
+      // clan lords when there is no kingdom) would let a fief "move" within the player's own clan, mechanically vacant.
+      private static bool PlayerIsKingdomLeader()
+      {
+         Clan clan = Clan.PlayerClan;
+
+         return clan?.Kingdom != null && clan.Kingdom.Leader == Hero.MainHero;
+      }
+
+      // A town or castle the player's own clan currently owns, regardless of governor: grant_fief's own fact.
+      // Unlike HasVacantGovernableFief (appoint_governor needs an UNGOVERNED fief), a crown fief may already
+      // have a governor and still be perfectly giveable; SettleGrantFief itself releases that governor before
+      // the transfer, mirroring the rejoin_party governor-release pattern.
+      private static bool HasGiveableFief()
+      {
+         Clan clan = Clan.PlayerClan;
+         if (clan == null) return false;
+
+         return Settlement.All != null && Settlement.All.Any(s => (s.IsTown || s.IsCastle) && s.OwnerClan == clan);
       }
    }
 }

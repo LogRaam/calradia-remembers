@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             }
         }
 
-        // The companions' council raises its own set and NOTHING from another scope: the clan-lords' GrantFief
+        // The companions' council raises its own set and NOTHING from another scope: the WarCouncil's GrantFief
         // must not appear here. If it did, the player could move a fief grant on a council of non-noble hirelings.
         [Test]
         public void GIVEN_a_companions_council_WHEN_the_catalogue_is_queried_THEN_only_companions_motions_return()
@@ -50,17 +50,15 @@ namespace CalradiaRemembers.Tests.Assemblies
             kinds.Should().NotContain(ResolutionKind.GrantFief);
         }
 
-        // The mirror check: the clan-lords' scope returns its motions and none of the companions' set, proving
-        // the filter discriminates both ways rather than leaking a common list. GiveGold (Partie 1) added a
-        // SECOND ClanLords motion alongside GrantFief: the catalogue's ForScope must still return both, in
-        // declaration order, proving a duplicate-kind entry (see ResolutionCatalog.All's own doc) does not break
-        // the by-scope query for the scope that already had one motion.
+        // GrantFief was RE-SCOPED off ClanLords to WarCouncil (Partie 2, COUNCIL_ACTIONS.md's Kimi review: a
+        // fief belongs to the CLAN, so "granting" one within the player's own clan, ClanLords' own scope, is
+        // mechanically vacant). The clan-lords' scope must now return ONLY GiveGold, its one remaining motion.
         [Test]
-        public void GIVEN_a_clan_lords_council_WHEN_the_catalogue_is_queried_THEN_grant_fief_and_give_gold_return()
+        public void GIVEN_a_clan_lords_council_WHEN_the_catalogue_is_queried_THEN_only_give_gold_returns()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.ClanLords).Select(d => d.Kind).ToList();
 
-            kinds.Should().Equal(ResolutionKind.GrantFief, ResolutionKind.GiveGold);
+            kinds.Should().Equal(ResolutionKind.GiveGold);
         }
 
         // The family council has no motions yet (they arrive with that variant); the query must return an empty
@@ -112,7 +110,51 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionCatalog.IsExecutable(ResolutionKind.RejoinParty).Should().BeTrue();
             ResolutionCatalog.IsExecutable(ResolutionKind.DispatchOnMission).Should().BeTrue();
             ResolutionCatalog.IsExecutable(ResolutionKind.GrantStipend).Should().BeTrue();
-            ResolutionCatalog.IsExecutable(ResolutionKind.GrantFief).Should().BeFalse();
+        }
+
+        // Partie 2 (COUNCIL_ACTIONS.md): grant_fief and revoke_fief gained a real executor
+        // (CouncilLift.SettleGrantFief/SettleRevokeFief), the first two GOVERNANCE kinds to do so; a table that
+        // could still only record them, never carry them out, would keep promising a deed the lift silently drops.
+        [Test]
+        public void GIVEN_grant_fief_and_revoke_fief_WHEN_asked_if_they_execute_THEN_both_are_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.GrantFief).Should().BeTrue();
+            ResolutionCatalog.IsExecutable(ResolutionKind.RevokeFief).Should().BeTrue();
+        }
+
+        // Neither kind is a decision about two FACTIONS (unlike declare_war/make_peace): both bind to a seated
+        // WarCouncil vassal's own fate (the beneficiary for a grant, the spoliated lord for a revoke), so both
+        // must keep the ordinary seated-member re-validation at the lift, never bypass it.
+        [Test]
+        public void GIVEN_grant_fief_and_revoke_fief_WHEN_asked_if_they_are_faction_centric_THEN_neither_is()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.GrantFief).Should().BeFalse();
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.RevokeFief).Should().BeFalse();
+        }
+
+        // grant_fief and revoke_fief are WarCouncil-only (Partie 2's own scoping call): the seated vassal is the
+        // OTHER clan's own leader, a genuine crown/vassal pair the catalogue's earlier ClanLords scaffold never
+        // was. Both must surface alongside declare_war/give_gold/give_influence, in declaration order.
+        [Test]
+        public void GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_grant_fief_and_revoke_fief_also_return()
+        {
+            var kinds = ResolutionCatalog.ForScope(CouncilScope.WarCouncil).Select(d => d.Kind).ToList();
+
+            kinds.Should().Equal(ResolutionKind.DeclareWar, ResolutionKind.GiveGold, ResolutionKind.GiveInfluence,
+                ResolutionKind.GrantFief, ResolutionKind.RevokeFief);
+        }
+
+        // The empty-promise guard: ClanLords, Companions and Family carry NO GrantFief/RevokeFief catalogue
+        // entry at all (a fief is clan-owned, so a transfer within the player's own clan or a hired hand's
+        // council is mechanically vacant), so their executable set must never surface either key.
+        [Test]
+        public void GIVEN_a_clan_lords_companions_or_family_council_WHEN_asked_for_executable_kinds_THEN_grant_fief_and_revoke_fief_are_absent()
+        {
+            foreach (CouncilScope scope in new[] {CouncilScope.ClanLords, CouncilScope.Companions, CouncilScope.Family})
+            {
+                ResolutionCatalog.ExecutableKindKeysForScope(scope).Should().NotContain("grant_fief");
+                ResolutionCatalog.ExecutableKindKeysForScope(scope).Should().NotContain("revoke_fief");
+            }
         }
 
         // Companions is both AppointGovernor's and AssignPartyRole's own scope: its executable key set must now
@@ -169,18 +211,20 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionCatalog.KeyOf(ResolutionKind.Quest).Should().Be(CouncilResolutionPolicy.QuestKind);
         }
 
-        // The WarCouncil's first motion: it must appear under its own scope, and only there, exactly like
-        // GrantFief is ClanLords-only. Getting this wrong would put a war declaration on an internal council
-        // that has no business raising it, or hide it from the one council built for it. GiveGold (Partie 1)
-        // added a SECOND WarCouncil motion alongside DeclareWar, and GiveInfluence (also Partie 1, WarCouncil
-        // ONLY per COUNCIL_ACTIONS.md's Kimi review) adds a THIRD: a war council's own allied lords plausibly
-        // have both coin and clan influence of their own to pledge, so all three must return, in declaration order.
+        // The WarCouncil's first motion: it must appear under its own scope, and only there. Getting this wrong
+        // would put a war declaration on an internal council that has no business raising it, or hide it from
+        // the one council built for it. GiveGold (Partie 1) added a SECOND WarCouncil motion alongside
+        // DeclareWar, GiveInfluence (also Partie 1, WarCouncil ONLY per COUNCIL_ACTIONS.md's Kimi review) a
+        // THIRD, and GrantFief/RevokeFief (Partie 2, re-scoped off an earlier ClanLords scaffold, see
+        // GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_grant_fief_and_revoke_fief_also_return below)
+        // a FOURTH and FIFTH: a war council's own allied lords plausibly have coin, clan influence, and fiefs of
+        // their own to pledge or lose.
         [Test]
-        public void GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_declare_war_give_gold_and_give_influence_return()
+        public void GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_declare_war_give_gold_and_give_influence_are_present()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.WarCouncil).Select(d => d.Kind).ToList();
 
-            kinds.Should().Equal(ResolutionKind.DeclareWar, ResolutionKind.GiveGold, ResolutionKind.GiveInfluence);
+            kinds.Should().Contain(new[] {ResolutionKind.DeclareWar, ResolutionKind.GiveGold, ResolutionKind.GiveInfluence});
         }
 
         // declare_war has a live lift executor (CouncilLift.SettleDeclareWar) from the day it lands, unlike the
