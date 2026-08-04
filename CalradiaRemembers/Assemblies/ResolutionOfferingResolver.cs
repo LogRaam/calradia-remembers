@@ -65,8 +65,13 @@ namespace CalradiaRemembers.Assemblies
       ///   and re-checked at the lift regardless (CouncilLift.SettleRevokeFief, bridge is law).
       ///   <see cref="PlayerIsKingdomLeader" /> and <see cref="HasGiveableFief" /> are read directly here (no
       ///   roster is needed for either), grant_fief's and both kinds' own shared sovereignty fact.
+      ///   <paramref name="anySeatedCompanionExpellable" /> is Partie 8's own fact, expel_from_clan (see
+      ///   ChatViewModel.AnySeatedCompanionExpellable): at least one seated companion is currently expellable
+      ///   per ExpulsionPolicy.CanExpel (player leads their own clan, the seat is a live companion, not the
+      ///   player's own spouse); the same gate is re-checked at the lift regardless (CouncilLift.SettleExpelFromClan,
+      ///   bridge is law).
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false)
       {
          try
          {
@@ -83,7 +88,8 @@ namespace CalradiaRemembers.Assemblies
                memberCanGrantInfluence: anySeatedMemberCanGrantInfluence,
                playerIsKingdomLeader: PlayerIsKingdomLeader(),
                playerHasGiveableFief: HasGiveableFief(),
-               seatedVassalOwnsFief: anySeatedVassalOwnsFief);
+               seatedVassalOwnsFief: anySeatedVassalOwnsFief,
+               anySeatedCompanionExpellable: anySeatedCompanionExpellable);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

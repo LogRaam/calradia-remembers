@@ -30,8 +30,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool memberCanGrantInfluence = false,
                                                   bool playerIsKingdomLeader = false,
                                                   bool playerHasGiveableFief = false,
-                                                  bool seatedVassalOwnsFief = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief);
+                                                  bool seatedVassalOwnsFief = false,
+                                                  bool anySeatedCompanionExpellable = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -431,6 +432,53 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("revoke_fief");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("revoke_fief");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("revoke_fief");
+        }
+
+        // Partie 8 (COUNCIL_ACTIONS.md's Kimi review): expel_from_clan needs the single AnySeatedCompanionExpellable
+        // fact (itself already the AND of player-leads-clan / target-is-companion / not-spouse / alive, see
+        // ExpulsionPolicy.CanExpel). Missing it must withhold the motion entirely.
+        [Test]
+        public void GIVEN_expel_from_clan_WHEN_no_seated_companion_is_expellable_THEN_it_is_not_offered()
+        {
+            ResolutionDefinition expel = ResolutionCatalog.Get(ResolutionKind.ExpelFromClan);
+
+            ResolutionEligibilityPolicy.CanOffer(expel, Facts(anySeatedCompanionExpellable: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(expel, Facts(anySeatedCompanionExpellable: false)).Should().BeFalse();
+        }
+
+        // The offering wire: expel_from_clan must be TAUGHT to the LLM only when the fact holds, or the model
+        // threatens a permanent break CouncilLift.SettleExpelFromClan's own re-check (ExpulsionPolicy.CanExpel)
+        // would refuse outright, a hollow threat that would still cost the table nothing to voice.
+        [Test]
+        public void GIVEN_a_companion_is_expellable_WHEN_offered_keys_are_asked_THEN_expel_from_clan_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions,
+                    Facts(anySeatedCompanionExpellable: true))
+                .Should().Contain("expel_from_clan");
+        }
+
+        // Absent the fact (no leader, no companion, only the spouse, or nobody alive to expel) the key must be
+        // withheld, or the table could threaten an expulsion the lift has already proven impossible.
+        [Test]
+        public void GIVEN_no_companion_is_expellable_WHEN_offered_keys_are_asked_THEN_expel_from_clan_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions,
+                    Facts(anySeatedCompanionExpellable: false))
+                .Should().NotContain("expel_from_clan");
+        }
+
+        // The empty-promise guard, the other direction: Family, ClanLords, WarCouncil and Parley carry no
+        // ExpelFromClan catalogue entry at all (this build's own scoping call, see ExpulsionPolicy's own
+        // header), so the key must never surface there even when the fact is (nonsensically) true.
+        [Test]
+        public void GIVEN_a_family_clan_lords_war_council_or_parley_WHEN_offered_keys_are_asked_THEN_expel_from_clan_is_never_included()
+        {
+            ResolutionWorldFacts facts = Facts(anySeatedCompanionExpellable: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("expel_from_clan");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("expel_from_clan");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts).Should().NotContain("expel_from_clan");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("expel_from_clan");
         }
     }
 }

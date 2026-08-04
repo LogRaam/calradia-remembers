@@ -115,7 +115,17 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   kind's ResolutionDefinition carries no amount-shaped requirement, only the fact that some
         ///   seated ally's clan could grant it at all.
         /// </summary>
-        GiveInfluence
+        GiveInfluence,
+
+        /// <summary>
+        ///   Partie 8 (COUNCIL_ACTIONS.md's Kimi review): the council's harshest INTERNAL sanction, the
+        ///   player-chief casting a seated COMPANION out of their own clan entirely. Companions scope only (see
+        ///   <see cref="CalradiaRemembers.Logic.Assemblies.ExpulsionPolicy" />'s own header for why Family and
+        ///   ClanLords, this build's original brief, would be permanently unofferable dead code for a
+        ///   companions-only kind: neither roster ever seats a companion). No target grounding beyond the actor:
+        ///   the deed falls entirely on the seated companion named, nothing else to record.
+        /// </summary>
+        ExpelFromClan
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -175,7 +185,14 @@ namespace CalradiaRemembers.Logic.Assemblies
         PlayerHasGiveableFief = 2048,
 
         /// <summary>At least one seated WarCouncil vassal's own clan currently owns a town or castle that could be stripped back to the crown. revoke_fief's own fact.</summary>
-        SeatedVassalOwnsFief = 4096
+        SeatedVassalOwnsFief = 4096,
+
+        /// <summary>
+        ///   At least one seated companion is currently expellable per <see cref="CalradiaRemembers.Logic.Assemblies.ExpulsionPolicy.CanExpel" />
+        ///   (the player leads their own clan, the seat is a live companion of it, not the player's own
+        ///   spouse). expel_from_clan's own fact.
+        /// </summary>
+        AnySeatedCompanionExpellable = 8192
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -213,7 +230,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool memberCanGrantInfluence = false,
                                     bool playerIsKingdomLeader = false,
                                     bool playerHasGiveableFief = false,
-                                    bool seatedVassalOwnsFief = false)
+                                    bool seatedVassalOwnsFief = false,
+                                    bool anySeatedCompanionExpellable = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -228,6 +246,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             PlayerIsKingdomLeader = playerIsKingdomLeader;
             PlayerHasGiveableFief = playerHasGiveableFief;
             SeatedVassalOwnsFief = seatedVassalOwnsFief;
+            AnySeatedCompanionExpellable = anySeatedCompanionExpellable;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -257,6 +276,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated WarCouncil vassal's own clan currently owns a town or castle. revoke_fief's own fact, see ResolutionRequirement.SeatedVassalOwnsFief.</summary>
         public bool SeatedVassalOwnsFief { get; }
+
+        /// <summary>At least one seated companion is currently expellable. expel_from_clan's own fact, see ResolutionRequirement.AnySeatedCompanionExpellable.</summary>
+        public bool AnySeatedCompanionExpellable { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -319,7 +341,16 @@ namespace CalradiaRemembers.Logic.Assemblies
                 "Grant a fief", ResolutionRequirement.PlayerIsKingdomLeader | ResolutionRequirement.PlayerHasGiveableFief),
 
             new ResolutionDefinition(ResolutionKind.RevokeFief, CouncilScope.WarCouncil,
-                "Revoke a fief", ResolutionRequirement.PlayerIsKingdomLeader | ResolutionRequirement.SeatedVassalOwnsFief)
+                "Revoke a fief", ResolutionRequirement.PlayerIsKingdomLeader | ResolutionRequirement.SeatedVassalOwnsFief),
+
+            // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, expel_from_clan): Companions scope ONLY, a deliberate
+            // deviation from this build's original brief (Family/ClanLords), see ExpulsionPolicy's own header:
+            // neither of those rosters ever seats a live companion (Family = blood/marriage kin, ClanLords =
+            // Hero.IsLord members), so a companions-only kind offered there would never turn eligible. Companions
+            // is the one scope every other companion-fate kind above (AssignPartyRole, AppointGovernor,
+            // DispatchOnMission, GrantStipend, RejoinParty) already uses for exactly this reason.
+            new ResolutionDefinition(ResolutionKind.ExpelFromClan, CouncilScope.Companions,
+                "Expel from the clan", ResolutionRequirement.AnySeatedCompanionExpellable)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -351,6 +382,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.MakePeace:          return "make_peace";
                 case ResolutionKind.GiveGold:           return "give_gold";
                 case ResolutionKind.GiveInfluence:      return "give_influence";
+                case ResolutionKind.ExpelFromClan:      return "expel_from_clan";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -394,9 +426,13 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   GOVERNANCE executors (COUNCIL_ACTIONS.md), move a crown fief between the player's own clan and a
         ///   seated WarCouncil vassal's; RevokeFief additionally plants a maximum
         ///   <see cref="CalradiaRemembers.Logic.Grudges.GrudgeSource.FiefRevoked" /> grudge and a real relation
-        ///   hit on the spoliated lord, one of the gravest deeds the table can hand down. The remaining scoped
-        ///   menu motions are recorded but not yet executed, so they arrive with their variant (Q5). The runtime
-        ///   teaches and lifts only executable kinds, so the table never promises a deed it cannot keep.
+        ///   hit on the spoliated lord, one of the gravest deeds the table can hand down. ExpelFromClan
+        ///   (CouncilLift.SettleExpelFromClan), Partie 8's own harshest INTERNAL sanction, casts a seated
+        ///   companion out of the player's own clan, planting a maximum-tier
+        ///   <see cref="CalradiaRemembers.Logic.Grudges.GrudgeSource.Expelled" /> grudge and a real relation hit.
+        ///   The remaining scoped menu motions are recorded but not yet executed, so they arrive with their
+        ///   variant (Q5). The runtime teaches and lifts only executable kinds, so the table never promises a
+        ///   deed it cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
             => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor
@@ -404,7 +440,8 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.DispatchOnMission || kind == ResolutionKind.GrantStipend
             || kind == ResolutionKind.DeclareWar || kind == ResolutionKind.MakePeace
             || kind == ResolutionKind.GiveGold || kind == ResolutionKind.GiveInfluence
-            || kind == ResolutionKind.GrantFief || kind == ResolutionKind.RevokeFief;
+            || kind == ResolutionKind.GrantFief || kind == ResolutionKind.RevokeFief
+            || kind == ResolutionKind.ExpelFromClan;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

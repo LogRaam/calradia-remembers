@@ -162,7 +162,10 @@ namespace CalradiaRemembers.Chat
          // which the LLM is never taught to emit for this kind), CouncilLift.SettleGiveInfluence never reads it.
          // Partie 2's "grant_fief" and "revoke_fief" (COUNCIL_ACTIONS.md) ground on the FIEF NAME, which needs no
          // new field either: they fall through to the SAME default branch "quest"/"appoint_governor" already use,
-         // reading proposal.TargetSettlement, read back by CouncilLift.SettleGrantFief/SettleRevokeFief.
+         // reading proposal.TargetSettlement, read back by CouncilLift.SettleGrantFief/SettleRevokeFief. Partie
+         // 8's "expel_from_clan" grounds on NOTHING beyond the actor, exactly like "give_influence": it also
+         // falls through to this default branch and simply carries a null TargetHint (the LLM is never taught to
+         // emit target_settlement for this kind), CouncilLift.SettleExpelFromClan never reads it.
          string targetHint;
          if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.AssignPartyRole), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetRole;

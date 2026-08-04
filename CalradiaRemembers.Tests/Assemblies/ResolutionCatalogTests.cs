@@ -45,7 +45,8 @@ namespace CalradiaRemembers.Tests.Assemblies
             kinds.Should().Contain(new[]
             {
                 ResolutionKind.AssignPartyRole, ResolutionKind.AppointGovernor,
-                ResolutionKind.DispatchOnMission, ResolutionKind.GrantStipend, ResolutionKind.RejoinParty
+                ResolutionKind.DispatchOnMission, ResolutionKind.GrantStipend, ResolutionKind.RejoinParty,
+                ResolutionKind.ExpelFromClan
             });
             kinds.Should().NotContain(ResolutionKind.GrantFief);
         }
@@ -155,6 +156,42 @@ namespace CalradiaRemembers.Tests.Assemblies
                 ResolutionCatalog.ExecutableKindKeysForScope(scope).Should().NotContain("grant_fief");
                 ResolutionCatalog.ExecutableKindKeysForScope(scope).Should().NotContain("revoke_fief");
             }
+        }
+
+        // Partie 8 (COUNCIL_ACTIONS.md's Kimi review): expel_from_clan gained a real executor
+        // (CouncilLift.SettleExpelFromClan) the day it landed; a table that could still only record it, never
+        // carry it out, would keep promising a deed the lift silently drops.
+        [Test]
+        public void GIVEN_expel_from_clan_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.ExpelFromClan).Should().BeTrue();
+        }
+
+        // expel_from_clan is a seated companion's own fate (the target cast out), not a decision about two
+        // FACTIONS, so it must never bypass the ordinary seated-member re-validation the way declare_war/
+        // make_peace do (covered generically by GIVEN_every_member_pledge_kind_WHEN_asked_if_it_is_faction_centric_THEN_none_of_them_are
+        // below; pinned here too for the kind's own documentation).
+        [Test]
+        public void GIVEN_expel_from_clan_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.ExpelFromClan).Should().BeFalse();
+        }
+
+        // Companions-scope-only (a deliberate deviation from this build's own original brief, Family/ClanLords:
+        // see ExpulsionPolicy's own header, neither of those rosters ever seats a live companion). Its key must
+        // surface alongside the other companion-fate kinds, and it must never leak to a scope that carries no
+        // ExpelFromClan catalogue entry at all.
+        [Test]
+        public void GIVEN_a_companions_council_WHEN_asked_for_executable_kinds_THEN_expel_from_clan_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().Contain("expel_from_clan");
+        }
+
+        [Test]
+        public void GIVEN_a_family_clan_lords_war_council_or_parley_WHEN_asked_for_executable_kinds_THEN_expel_from_clan_is_absent()
+        {
+            foreach (CouncilScope scope in new[] {CouncilScope.Family, CouncilScope.ClanLords, CouncilScope.WarCouncil, CouncilScope.Parley})
+                ResolutionCatalog.ExecutableKindKeysForScope(scope).Should().NotContain("expel_from_clan");
         }
 
         // Companions is both AppointGovernor's and AssignPartyRole's own scope: its executable key set must now

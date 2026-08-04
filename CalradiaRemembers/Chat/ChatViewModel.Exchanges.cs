@@ -607,8 +607,11 @@ namespace CalradiaRemembers.Chat
                // revoke_fief (COUNCIL_ACTIONS.md): at least one seated WarCouncil vassal's own clan currently
                // owns a town or castle that could be stripped back to the crown; grant_fief's own sovereignty
                // and giveable-fief facts need no roster and are read directly inside ResolutionOfferingResolver.
+               // AnySeatedCompanionExpellable is Partie 8's own fact, expel_from_clan (COUNCIL_ACTIONS.md's
+               // Kimi review): at least one seated companion is currently expellable (player leads their own
+               // clan, live companion, not the player's own spouse); Companions-scope only, see ExpulsionPolicy.
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

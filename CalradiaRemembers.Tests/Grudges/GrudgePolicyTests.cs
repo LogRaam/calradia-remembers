@@ -44,6 +44,17 @@ namespace CalradiaRemembers.Tests.Grudges
          GrudgePolicy.ResolutionKindFor(GrudgeSource.FiefRevoked, 90).Should().Be(GrudgeResolutionKind.Deed);
       }
 
+      // Expelled (the council's expel_from_clan, COUNCIL_ACTIONS.md's Kimi review, Partie 8) mirrors
+      // FiefRevoked's own skip of the soft/hard split: being cast out of a clan is a concrete, publicly visible
+      // rupture no apology undoes, so a real deed is the ONLY path back regardless of how soft the rigidity
+      // happens to land.
+      [Test]
+      public void GIVEN_an_expelled_grudge_WHEN_mapping_the_resolution_kind_THEN_it_wants_a_real_deed_regardless_of_rigidity()
+      {
+         GrudgePolicy.ResolutionKindFor(GrudgeSource.Expelled, 5).Should().Be(GrudgeResolutionKind.Deed);
+         GrudgePolicy.ResolutionKindFor(GrudgeSource.Expelled, 90).Should().Be(GrudgeResolutionKind.Deed);
+      }
+
       // If stale (resolved or fully decayed) entries counted toward the cap, an NPC whose old wounds
       // simply faded could get stuck refusing every new grievance forever, a "full house" that is
       // actually empty. TryAdmit filters to live grudges first so the cap only ever gates real ones.

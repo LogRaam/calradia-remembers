@@ -129,8 +129,9 @@ namespace CalradiaRemembers.Chat
          // that touches persisted save state), DeclareWar/MakePeace (the FACTION-CENTRIC pair, dispatched above
          // before this gate) and, Partie 1's own, GiveGold (SettleGiveGold, a seated lord's own purse pledged TO
          // the player) and GiveInfluence (SettleGiveInfluence, a seated ALLY's own clan influence pledged TO the
-         // player's clan) are executable today, so a passing entry here is one of those; the switch below this
-         // gate is the per-kind dispatch, extended the day a new executor is wired.
+         // player's clan), Partie 2's GrantFief/RevokeFief, and Partie 8's ExpelFromClan (SettleExpelFromClan, a
+         // seated companion cast out of the player's own clan) are executable today, so a passing entry here is
+         // one of those; the switch below this gate is the per-kind dispatch, extended the day a new executor is wired.
          if (!ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind kind) || !ResolutionCatalog.IsExecutable(kind))
          {
             ledger.MarkFailed(entry.Id, "This kind of decision is not yet settled by the council.");
@@ -151,9 +152,9 @@ namespace CalradiaRemembers.Chat
 
          // Council audit M4 -> B2: the executable gate above proves kind is Quest, AppointGovernor,
          // AssignPartyRole, or one of the later executors (RejoinParty, DispatchOnMission, GrantStipend,
-         // DeclareWar/MakePeace, GiveGold/GiveInfluence, and Partie 2's GrantFief/RevokeFief) today; this switch
-         // is the per-kind dispatch that plug point replaces. Each case owns its own guards and reporting so a
-         // new executor never has to thread through another kind's assumptions.
+         // DeclareWar/MakePeace, GiveGold/GiveInfluence, Partie 2's GrantFief/RevokeFief, and Partie 8's
+         // ExpelFromClan) today; this switch is the per-kind dispatch that plug point replaces. Each case owns
+         // its own guards and reporting so a new executor never has to thread through another kind's assumptions.
          switch (kind)
          {
             case ResolutionKind.AppointGovernor:
@@ -198,6 +199,11 @@ namespace CalradiaRemembers.Chat
 
             case ResolutionKind.RevokeFief:
                SettleRevokeFief(ledger, entry, actorHero, actorName, report, gameDay);
+
+               return;
+
+            case ResolutionKind.ExpelFromClan:
+               SettleExpelFromClan(ledger, entry, actorHero, actorName, report, gameDay);
 
                return;
 
@@ -874,6 +880,85 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"{fief.Name} is stripped from {actorName} and returns to the crown.", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} was stripped of {fief.Name} by royal decision; a grudge is planted.");
+      }
+
+      /// <summary>
+      ///   Partie 8 (COUNCIL_ACTIONS.md's Kimi review): the council's harshest INTERNAL sanction, casting a
+      ///   seated COMPANION out of the player's own clan entirely. Guards re-checked here rather than trusted
+      ///   from proposal/offer time (bridge is law), matching <see cref="ExpulsionPolicy.CanExpel" /> exactly:
+      ///   the player must still lead the clan (a companion's hire/fire is a genuine CLAN-internal decision,
+      ///   unlike grant_fief/revoke_fief's cross-clan sovereignty bar), the actor must still be a live COMPANION
+      ///   of that same clan (never a family member or a fief-holding lord, both out of scope for this build,
+      ///   see ExpulsionPolicy's own header), and never the player's own spouse (that bond has its own
+      ///   dissolution channel, end_marriage/divorce, never this one). An additional mechanical guard beyond the
+      ///   pure policy: a companion AWAY on a companion-mission errand (<see cref="CompanionMissionBehavior.IsAway" />)
+      ///   is refused outright rather than expelled out from under an in-flight errand, mirroring
+      ///   SettleDispatchMission's own re-check of the same state. On success, uses the SAME native path the
+      ///   mod's own voluntary-departure flow already uses for an unhappy companion leaving
+      ///   (<see cref="RemoveCompanionAction.ApplyByFire" />, see CompanionHappinessBehavior.Depart /
+      ///   WarWearinessBehavior): the companion becomes a Fugitive (decompiled TaleWorlds.CampaignSystem.Actions.
+      ///   RemoveCompanionAction: MakeHeroFugitiveAction.Apply under RemoveCompanionDetail.Fire), never quietly
+      ///   returned to a hireable Wanderer in a tavern, a fitting consequence for a chief casting someone out
+      ///   rather than a costless dismissal. ApplyByFire ALSO releases a held governorship internally
+      ///   (companion.GovernorOf != null -> ChangeGovernorAction.RemoveGovernorOf), so the explicit check below
+      ///   is redundant for correctness and kept only so the report line can name the vacated fief, exactly like
+      ///   SettleRejoinParty's and SettleGrantFief's own governor-release pattern. Plants a
+      ///   <see cref="GrudgeSource.Expelled" /> grudge through the REAL gate (GrudgeBehavior.TryPlant, anti-noise
+      ///   guardrails, per-holder cap) plus a real relation hit (ExpulsionPolicy.RelationHit), so the deed is
+      ///   never a consequence-free button.
+      /// </summary>
+      private static void SettleExpelFromClan(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report, int gameDay)
+      {
+         if (actorHero is not {IsAlive: true})
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         bool playerIsClanLeader = Clan.PlayerClan?.Leader == Hero.MainHero;
+         bool isSpouse = actorHero == Hero.MainHero?.Spouse;
+
+         if (!ExpulsionPolicy.CanExpel(playerIsClanLeader, actorHero.IsPlayerCompanion, isSpouse, actorHero.IsAlive))
+         {
+            string reason = !playerIsClanLeader
+               ? "the player no longer leads the clan."
+               : !actorHero.IsPlayerCompanion
+                  ? "they no longer belong to the player's clan as a companion."
+                  : "they are the player's own spouse; that bond can only be ended another way.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (CompanionMissionBehavior.Instance != null && CompanionMissionBehavior.Instance.IsAway(actorHero.StringId))
+         {
+            const string reason = "they are away on an errand; recall them before casting them out.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         bool wasGovernor = actorHero.GovernorOf != null;
+         string governedFief = wasGovernor ? actorHero.GovernorOf.Name?.ToString() : null;
+
+         RemoveCompanionAction.ApplyByFire(Clan.PlayerClan, actorHero);
+
+         GrudgeBehavior.Instance?.TryPlant(actorHero, Hero.MainHero, GrudgeSource.Expelled,
+            "cast out of the clan by its own chief", ExpulsionPolicy.GrudgeMagnitude,
+            knownToPlayer: true, gameDay);
+
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(actorHero, Hero.MainHero, ExpulsionPolicy.RelationHit, false);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke(wasGovernor
+            ? $"{actorName} is stripped of the governorship of {governedFief} and cast out of your clan."
+            : $"{actorName} is cast out of your clan.", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} was expelled from the player's clan; a grudge is planted.");
       }
 
       /// <summary>

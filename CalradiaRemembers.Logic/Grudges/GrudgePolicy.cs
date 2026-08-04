@@ -301,6 +301,7 @@ namespace CalradiaRemembers.Logic.Grudges
                 case GrudgeSource.PrisonerRescued:    return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
                 case GrudgeSource.External:           return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
                 case GrudgeSource.FiefRevoked:        return GrudgeResolutionKind.Deed;
+                case GrudgeSource.Expelled:           return GrudgeResolutionKind.Deed;
                 default:                              return GrudgeResolutionKind.Amends;
             }
         }

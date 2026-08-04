@@ -349,6 +349,37 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Partie 8's own fact, expel_from_clan (COUNCIL_ACTIONS.md's Kimi review; ResolutionOfferingResolver.OfferedKindKeys).
+      ///   True once any seated companion is currently expellable per <see cref="ExpulsionPolicy.CanExpel" />:
+      ///   the player leads their own clan (a companion's hire/fire is a genuine CLAN-internal decision, unlike
+      ///   grant_fief/revoke_fief's cross-clan sovereignty bar), the seat is a LIVE companion of that same clan,
+      ///   and not the player's own spouse (that bond has its own dissolution channel, never this one). Scope
+      ///   note: this is Companions' own fact only (a deliberate deviation from this build's original brief,
+      ///   Family/ClanLords - see ExpulsionPolicy's own header for why neither of those rosters ever seats a
+      ///   companion in the first place). Mirrors AnySeatedMemberHasGold's own loose gate (proves only SOME
+      ///   companion is expellable, never which one the LLM will actually name): the away-on-mission check is
+      ///   deliberately skipped here too and re-verified at the lift instead (CouncilLift.SettleExpelFromClan,
+      ///   bridge is law), the same discipline SettleDispatchMission's own IsAway re-check already follows.
+      /// </summary>
+      private bool AnySeatedCompanionExpellable()
+      {
+         bool playerIsClanLeader = Clan.PlayerClan?.Leader == Hero.MainHero;
+         if (!playerIsClanLeader) return false;
+
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero == null) continue;
+
+            bool isSpouse = hero == Hero.MainHero?.Spouse;
+            if (ExpulsionPolicy.CanExpel(playerIsClanLeader, hero.IsPlayerCompanion, isSpouse, hero.IsAlive))
+               return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>
       ///   The WarCouncil's own gate: declare_war's PlayerCanDeclareWar fact (ResolutionOfferingResolver.OfferedKindKeys).
       ///   True once the player leads their own MapFaction (kingdom ruler, or an independent clan that IS its own
       ///   faction, see Hero.IsFactionLeader) AND at least one other faction exists that is neither the player's

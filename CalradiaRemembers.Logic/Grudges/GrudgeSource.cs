@@ -95,6 +95,16 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   rigidity still follows the usual regard-based formula, so a vassal who otherwise trusted the player
         ///   deeply can, in principle, still mend this, but a lord already distrustful earns a near-vendetta.
         /// </summary>
-        FiefRevoked = 17
+        FiefRevoked = 17,
+
+        /// <summary>
+        ///   "You cast me out of your own house": the council's own expel_from_clan (COUNCIL_ACTIONS.md, Kimi
+        ///   review, Partie 8), the player-chief severing a seated COMPANION from the clan entirely. Planted at
+        ///   a high magnitude (ExpulsionPolicy.GrudgeMagnitude, the review's own 50-70 range), deliberately below
+        ///   <see cref="FiefRevoked" />'s maximum: Gabriel's own words reserve that ceiling for a vassal's fief
+        ///   specifically, and a hired companion's expulsion, while still one of the gravest social costs the
+        ///   table can hand down, is not quite that.
+        /// </summary>
+        Expelled = 18
     }
 }
