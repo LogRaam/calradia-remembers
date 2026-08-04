@@ -153,13 +153,16 @@ namespace CalradiaRemembers.Chat
          // CouncilLift.SettleGrantStipend, the FIRST executor that touches persisted save state), and "declare_war"
          // grounds on the FACTION named instead (read back by CouncilLift.SettleDeclareWar, the FIRST FACTION-CENTRIC
          // kind); its symmetric counterpart "make_peace" REUSES the same TargetFaction field (read back as the
-         // FALLBACK in CouncilLift.SettleMakePeace, which prefers the parley's own STORED target faction).
+         // FALLBACK in CouncilLift.SettleMakePeace, which prefers the parley's own STORED target faction). Partie
+         // 1's "give_gold" REUSES grant_stipend's own TargetAmount field/parse (no new SDK field): both kinds
+         // ground on a denars figure, read back by int.TryParse in CouncilLift.SettleGiveGold.
          string targetHint;
          if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.AssignPartyRole), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetRole;
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DispatchOnMission), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetMission;
-         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GrantStipend), StringComparison.OrdinalIgnoreCase))
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GrantStipend), StringComparison.OrdinalIgnoreCase)
+               || string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GiveGold), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetAmount?.ToString();
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DeclareWar), StringComparison.OrdinalIgnoreCase)
                || string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.MakePeace), StringComparison.OrdinalIgnoreCase))

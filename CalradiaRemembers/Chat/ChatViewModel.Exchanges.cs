@@ -596,9 +596,12 @@ namespace CalradiaRemembers.Chat
                // the first FACTION-CENTRIC kind (proving the player leads a faction with a valid war target,
                // never which faction the LLM will actually name); PlayerCanMakePeace is its symmetric
                // counterpart, the Parley's own fact, make_peace (proving the player leads a faction at war with
-               // the specific enemy this parley was convened against).
+               // the specific enemy this parley was convened against); AnySeatedMemberHasGold is Partie 1's own
+               // fact, give_gold (bringing the existing 1:1 resource verbs to the council): at least one seated
+               // member in ClanLords/WarCouncil (the only scopes ResolutionCatalog grants it) holds gold of
+               // their own, the mirror image of grant_stipend's money direction.
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

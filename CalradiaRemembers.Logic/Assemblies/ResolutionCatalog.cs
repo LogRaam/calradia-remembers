@@ -74,7 +74,17 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   <see cref="IsFactionCentric" />): its subject is two FACTIONS, not a seated member's own fate, even
         ///   though a parley seats only one counterpart (the enemy leader).
         /// </summary>
-        MakePeace
+        MakePeace,
+
+        /// <summary>
+        ///   Partie 1 (bringing the existing 1:1 resource verbs to the council): a seated LORD pledges to give
+        ///   the PLAYER gold from their own purse. Member-pledge shaped like GrantStipend (not faction-centric,
+        ///   see <see cref="IsFactionCentric" />), but the money moves the OPPOSITE direction: a companion's
+        ///   stipend is funded FROM the player, this is funded FROM the giver TO the player. Scoped to ClanLords
+        ///   and WarCouncil only (two catalogue entries, see <see cref="ResolutionCatalog.All" />): a seated
+        ///   member plausibly has coin of their own to give in those councils, never Companions or Family.
+        /// </summary>
+        GiveGold
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -109,7 +119,10 @@ namespace CalradiaRemembers.Logic.Assemblies
         PlayerCanDeclareWar = 64,
 
         /// <summary>The player leads their own faction AND that faction is currently at war with the parley's target faction.</summary>
-        PlayerCanMakePeace = 128
+        PlayerCanMakePeace = 128,
+
+        /// <summary>At least one seated member currently holds gold they could pledge to the player (give_gold's own fact).</summary>
+        MemberHasGold = 256
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -142,7 +155,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool missionAvailable,
                                     bool targetOutOfPlayerParty = false,
                                     bool playerCanDeclareWar = false,
-                                    bool playerCanMakePeace = false)
+                                    bool playerCanMakePeace = false,
+                                    bool memberHasGold = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -152,6 +166,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             TargetOutOfPlayerParty = targetOutOfPlayerParty;
             PlayerCanDeclareWar = playerCanDeclareWar;
             PlayerCanMakePeace = playerCanMakePeace;
+            MemberHasGold = memberHasGold;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -166,6 +181,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>The player leads their faction and it is at war with the parley's target faction (make_peace's own fact, see ResolutionRequirement.PlayerCanMakePeace).</summary>
         public bool PlayerCanMakePeace { get; }
+
+        /// <summary>At least one seated member holds gold they could pledge to the player (give_gold's own fact, see ResolutionRequirement.MemberHasGold).</summary>
+        public bool MemberHasGold { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -195,7 +213,19 @@ namespace CalradiaRemembers.Logic.Assemblies
                 "Declare war", ResolutionRequirement.PlayerCanDeclareWar),
 
             new ResolutionDefinition(ResolutionKind.MakePeace, CouncilScope.Parley,
-                "Make peace", ResolutionRequirement.PlayerCanMakePeace)
+                "Make peace", ResolutionRequirement.PlayerCanMakePeace),
+
+            // Partie 1 (bringing the existing 1:1 resource verbs to the council): TWO entries for the same kind,
+            // one per scope where a seated member plausibly has coin of their own to give (never Companions or
+            // Family, where a member is either a hired hand or dynastic kin, not a moneyed lord). ForScope's own
+            // Where-filter (below) discriminates correctly across duplicate-kind entries; Get(kind), which does
+            // not filter by scope, returns whichever entry appears first here, but since both carry the IDENTICAL
+            // requirement (MemberHasGold) this is harmless.
+            new ResolutionDefinition(ResolutionKind.GiveGold, CouncilScope.ClanLords,
+                "Pledge gold to you", ResolutionRequirement.MemberHasGold),
+
+            new ResolutionDefinition(ResolutionKind.GiveGold, CouncilScope.WarCouncil,
+                "Pledge gold to you", ResolutionRequirement.MemberHasGold)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -224,6 +254,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.RejoinParty:       return "rejoin_party";
                 case ResolutionKind.DeclareWar:        return "declare_war";
                 case ResolutionKind.MakePeace:          return "make_peace";
+                case ResolutionKind.GiveGold:           return "give_gold";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -256,15 +287,19 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   sends a seated companion out on one of the existing companion-mission errands; and the FIFTH executor,
         ///   <see cref="ResolutionKind.GrantStipend" /> (CouncilLift.SettleGrantStipend), and the FIRST that touches
         ///   persisted save state, funds a recurring 30-day purse for a seated companion out of a mod-tracked
-        ///   escrow (StipendPolicy, CouncilStipendBehavior). The remaining scoped menu motions are recorded but not
-        ///   yet executed, so they arrive with their variant (Q5). The runtime teaches and lifts only executable
-        ///   kinds, so the table never promises a deed it cannot keep.
+        ///   escrow (StipendPolicy, CouncilStipendBehavior). DeclareWar and its symmetric counterpart MakePeace
+        ///   are the first FACTION-CENTRIC executors. GiveGold, Partie 1's first VERB brought to the council
+        ///   (CouncilLift.SettleGiveGold, GoldPledgePolicy), is a seated LORD's own gold pledged TO the player,
+        ///   the mirror image of GrantStipend's money direction. The remaining scoped menu motions are recorded
+        ///   but not yet executed, so they arrive with their variant (Q5). The runtime teaches and lifts only
+        ///   executable kinds, so the table never promises a deed it cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
             => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor
             || kind == ResolutionKind.AssignPartyRole || kind == ResolutionKind.RejoinParty
             || kind == ResolutionKind.DispatchOnMission || kind == ResolutionKind.GrantStipend
-            || kind == ResolutionKind.DeclareWar || kind == ResolutionKind.MakePeace;
+            || kind == ResolutionKind.DeclareWar || kind == ResolutionKind.MakePeace
+            || kind == ResolutionKind.GiveGold;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

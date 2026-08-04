@@ -123,10 +123,11 @@ namespace CalradiaRemembers.Chat
          // B2/M4: the registry, not a magic string, decides what the table can carry out. Only executable kinds
          // reach an executor; anything else (an unmapped kind, or a catalogue kind whose executor has not landed
          // yet, Q5 "extend then migrate") is reported honestly instead of silently applied or dropped. Quest,
-         // AppointGovernor, AssignPartyRole, RejoinParty, DispatchOnMission and, the fifth, GrantStipend (the
-         // FIRST executor that touches persisted save state) are executable today, so a passing entry here is one
-         // of those six; the switch below this gate is the per-kind dispatch, extended the day a seventh executor
-         // is wired.
+         // AppointGovernor, AssignPartyRole, RejoinParty, DispatchOnMission, GrantStipend (the FIRST executor
+         // that touches persisted save state), DeclareWar/MakePeace (the FACTION-CENTRIC pair, dispatched above
+         // before this gate) and, Partie 1's own, GiveGold (SettleGiveGold, a seated lord's own purse pledged TO
+         // the player) are executable today, so a passing entry here is one of those; the switch below this gate
+         // is the per-kind dispatch, extended the day a new executor is wired.
          if (!ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind kind) || !ResolutionCatalog.IsExecutable(kind))
          {
             ledger.MarkFailed(entry.Id, "This kind of decision is not yet settled by the council.");
@@ -172,6 +173,11 @@ namespace CalradiaRemembers.Chat
 
             case ResolutionKind.GrantStipend:
                SettleGrantStipend(ledger, entry, actorHero, actorName, report);
+
+               return;
+
+            case ResolutionKind.GiveGold:
+               SettleGiveGold(ledger, entry, actorHero, actorName, report);
 
                return;
 
@@ -562,6 +568,56 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"{actorName} will draw {clamped} denars a day from your coffers for the next {StipendPolicy.TrancheDays} days.", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} granted a stipend of {clamped}/day for {StipendPolicy.TrancheDays} days.");
+      }
+
+      /// <summary>
+      ///   Partie 1 (bringing the existing 1:1 resource verbs to the council): a seated LORD pledges to give the
+      ///   PLAYER gold from their OWN purse, the mirror image of SettleGrantStipend's money direction. Mirrors
+      ///   the existing 1:1 give_gold bridge's own solvency clamp exactly (BannerlordGameStateBridge.ExecuteGiveGold):
+      ///   the amount the LLM proposed (AssemblyResolutionEntry.TargetHint, REUSING grant_stipend's own
+      ///   TargetAmount field/parse rather than growing a new SDK field, see RecordCouncilResolution) is
+      ///   re-clamped here against the giver's REAL gold (GoldPledgePolicy.ClampPayable), bridge is law, never
+      ///   trusted from proposal/offer time. A giver who holds no gold at all is refused outright rather than
+      ///   applied for zero denars while still reporting the pledge kept.
+      /// </summary>
+      private static void SettleGiveGold(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true})
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!int.TryParse(entry.TargetHint, out int proposed))
+         {
+            const string reason = "no valid sum was named.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         int payable = GoldPledgePolicy.ClampPayable(proposed, actorHero.Gold);
+
+         if (payable < 1)
+         {
+            const string reason = "they hold no gold to give.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         GiveGoldAction.ApplyBetweenCharacters(actorHero, Hero.MainHero, payable);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke(payable < proposed
+            ? $"{actorName} pledges gold to you: {payable} denars, all they could spare (less than the {proposed} promised)."
+            : $"{actorName} pledges {payable} denars to you.", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} gave the player {payable} denars (proposed {proposed}).");
       }
 
       /// <summary>

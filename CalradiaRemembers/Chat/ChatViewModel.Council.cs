@@ -266,6 +266,27 @@ namespace CalradiaRemembers.Chat
       private static bool PlayerCanAffordStipend() => Hero.MainHero != null && Hero.MainHero.Gold >= StipendPolicy.MinTrancheCost;
 
       /// <summary>
+      ///   True once any seated member currently holds gold greater than zero: Partie 1's own fact, give_gold
+      ///   (ResolutionOfferingResolver.OfferedKindKeys). Unlike PlayerCanAffordStipend (the PLAYER'S own gold),
+      ///   this reads each SEAT's own purse, since give_gold moves the opposite direction: a seated lord pledges
+      ///   FROM their own coffers TO the player. Scoped to ClanLords and WarCouncil only by the catalogue itself
+      ///   (ResolutionCatalog's two GiveGold entries), so a Companions or Family council never sees give_gold
+      ///   offered regardless of what this returns. The real proposed amount is unknown at offer time; the
+      ///   actual figure is re-clamped against the giver's ACTUAL gold at the lift (CouncilLift.SettleGiveGold,
+      ///   GoldPledgePolicy.ClampPayable), bridge-is-law like every other executor's own re-check.
+      /// </summary>
+      private bool AnySeatedMemberHasGold()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero is {IsAlive: true} && hero.Gold > 0) return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>
       ///   The WarCouncil's own gate: declare_war's PlayerCanDeclareWar fact (ResolutionOfferingResolver.OfferedKindKeys).
       ///   True once the player leads their own MapFaction (kingdom ruler, or an independent clan that IS its own
       ///   faction, see Hero.IsFactionLeader) AND at least one other faction exists that is neither the player's

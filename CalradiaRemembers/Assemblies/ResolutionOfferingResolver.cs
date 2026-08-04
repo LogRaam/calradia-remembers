@@ -46,10 +46,15 @@ namespace CalradiaRemembers.Assemblies
       ///   AND at least one valid war target exists; the actual faction named is re-resolved and re-checked at
       ///   the lift regardless. <paramref name="playerCanMakePeace" /> is the Parley's own fact, make_peace (see
       ///   ChatViewModel.PlayerCanMakePeace): the player leads a faction AND it is currently at war with the
-      ///   specific enemy the parley was convened against. Never throws: any engine read failure degrades to
+      ///   specific enemy the parley was convened against. <paramref name="anySeatedMemberHasGold" /> is Partie
+      ///   1's own fact, give_gold (see ChatViewModel.AnySeatedMemberHasGold): at least one seated member
+      ///   (ClanLords or WarCouncil only, see ResolutionCatalog's two GiveGold entries) currently holds gold of
+      ///   their own; the real proposed amount is unknown at offer time and is re-clamped against the giver's
+      ///   ACTUAL gold at the lift (CouncilLift.SettleGiveGold, GoldPledgePolicy.ClampPayable). Never throws: any
+      ///   engine read failure degrades to
       ///   no vacant fief, so a failing lookup only WITHHOLDS a motion, never over-offers one the lift cannot honour.
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false)
       {
          try
          {
@@ -61,7 +66,8 @@ namespace CalradiaRemembers.Assemblies
                missionAvailable: false,
                targetOutOfPlayerParty: anySeatedCompanionOutOfPlayerParty,
                playerCanDeclareWar: playerCanDeclareWar,
-               playerCanMakePeace: playerCanMakePeace);
+               playerCanMakePeace: playerCanMakePeace,
+               memberHasGold: anySeatedMemberHasGold);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

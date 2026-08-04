@@ -25,8 +25,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool mission = false,
                                                   bool outOfParty = false,
                                                   bool canDeclareWar = false,
-                                                  bool canMakePeace = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace);
+                                                  bool canMakePeace = false,
+                                                  bool memberHasGold = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -240,6 +241,49 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, Facts(canMakePeace: false))
                 .Should().NotContain("make_peace");
+        }
+
+        // Partie 1 (bringing the existing 1:1 resource verbs to the council): give_gold needs only that a seated
+        // member holds gold to give. Present it when one does, withhold it when nobody at the table has any coin
+        // of their own to pledge.
+        [Test]
+        public void GIVEN_give_gold_WHEN_a_member_does_or_does_not_hold_gold_THEN_offer_follows()
+        {
+            ResolutionDefinition giveGold = ResolutionCatalog.Get(ResolutionKind.GiveGold);
+
+            ResolutionEligibilityPolicy.CanOffer(giveGold, Facts(memberHasGold: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(giveGold, Facts(memberHasGold: false)).Should().BeFalse();
+        }
+
+        // The offering wire: give_gold must be TAUGHT to the LLM only when a seated member (ClanLords) actually
+        // holds gold, or the model promises a pledge CouncilLift.SettleGiveGold then finds nobody present could
+        // actually pay (GoldPledgePolicy.ClampPayable would clamp it to zero and the lift would refuse it).
+        [Test]
+        public void GIVEN_a_seated_clan_lord_holds_gold_WHEN_offered_keys_are_asked_THEN_give_gold_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, Facts(memberHasGold: true))
+                .Should().Contain("give_gold");
+        }
+
+        // The WarCouncil gets the identical gate: a war council with no moneyed lord seated must not see
+        // give_gold offered either.
+        [Test]
+        public void GIVEN_no_seated_war_council_member_holds_gold_WHEN_offered_keys_are_asked_THEN_give_gold_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, Facts(memberHasGold: false))
+                .Should().NotContain("give_gold");
+        }
+
+        // The empty-promise guard, the other direction: Companions and Family carry no GiveGold catalogue entry
+        // at all, so the key must never surface there even when the fact is (nonsensically) true, proving the
+        // scope gate, not merely the fact, is what keeps a hired hand or dynastic kin from pledging a lord's purse.
+        [Test]
+        public void GIVEN_a_companions_or_family_council_WHEN_offered_keys_are_asked_THEN_give_gold_is_never_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, Facts(memberHasGold: true))
+                .Should().NotContain("give_gold");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, Facts(memberHasGold: true))
+                .Should().NotContain("give_gold");
         }
     }
 }

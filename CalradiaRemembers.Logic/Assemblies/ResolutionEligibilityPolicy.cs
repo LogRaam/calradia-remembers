@@ -57,6 +57,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             if (required.HasFlag(ResolutionRequirement.TargetOutOfPlayerParty) && !f.TargetOutOfPlayerParty) return false;
             if (required.HasFlag(ResolutionRequirement.PlayerCanDeclareWar) && !f.PlayerCanDeclareWar) return false;
             if (required.HasFlag(ResolutionRequirement.PlayerCanMakePeace) && !f.PlayerCanMakePeace) return false;
+            if (required.HasFlag(ResolutionRequirement.MemberHasGold) && !f.MemberHasGold) return false;
 
             return true;
         }
