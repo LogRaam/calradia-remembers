@@ -32,6 +32,21 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## WISHED, DEFERRED (player wish, 2026-08-03): NPC behaviors DURING battles (a promise to stay by your side, honored in combat)
+
+A player pledged a companion to "stay by my side in battle" and noted, correctly, that the engine will not honor
+that without a helper layer steering an agent's combat AI (the player: "a completely different mod"). The wish is
+broader than one line: NPC behaviors playing out ON the battlefield, driven by what was said or promised in
+conversation (guard the player, hold a line, hunt a named rival, flee when broken) so that a spoken commitment
+shows up where the player fights, not only in the journal.
+
+Honest assessment: HARD, and a different discipline than CR's conversation/memory core. It needs a Mission-behavior
+layer over the live battle (agent targeting / formation / behavior overrides via `MissionBehavior` + the agent AI
+components), plus a bridge from a tracked commitment ("stay by my side") to a per-agent combat directive. Parked as
+a future direction (roadmap, not scheduled). Gabriel: original and immersive, added for later.
+
+---
+
 ## KNOWN BUG, DEFERRED (player report, screenshot 2026-07-25): the chat does not slide aside when the escape menu opens over it
 
 A player sent a screenshot with THREE UI layers stacked at once: the town menu (left), the vanilla escape/PAUSED
