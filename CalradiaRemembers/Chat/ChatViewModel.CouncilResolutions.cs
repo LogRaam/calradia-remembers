@@ -155,7 +155,11 @@ namespace CalradiaRemembers.Chat
          // kind); its symmetric counterpart "make_peace" REUSES the same TargetFaction field (read back as the
          // FALLBACK in CouncilLift.SettleMakePeace, which prefers the parley's own STORED target faction). Partie
          // 1's "give_gold" REUSES grant_stipend's own TargetAmount field/parse (no new SDK field): both kinds
-         // ground on a denars figure, read back by int.TryParse in CouncilLift.SettleGiveGold.
+         // ground on a denars figure, read back by int.TryParse in CouncilLift.SettleGiveGold. Partie 1's other
+         // kind, "give_influence", grounds on NOTHING beyond the actor: the amount is never an LLM choice (see
+         // ResolutionCatalog.GiveInfluence's own doc), it is computed fresh at the lift by CourtActionPolicy.InfluenceGrant,
+         // so it falls through to the default branch below and simply carries a null TargetHint (proposal.TargetSettlement,
+         // which the LLM is never taught to emit for this kind), CouncilLift.SettleGiveInfluence never reads it.
          string targetHint;
          if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.AssignPartyRole), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetRole;

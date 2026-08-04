@@ -84,7 +84,22 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   and WarCouncil only (two catalogue entries, see <see cref="ResolutionCatalog.All" />): a seated
         ///   member plausibly has coin of their own to give in those councils, never Companions or Family.
         /// </summary>
-        GiveGold
+        GiveGold,
+
+        /// <summary>
+        ///   Partie 1 (bringing the existing 1:1 resource verbs to the council): a seated ALLIED CLAN LEADER
+        ///   pledges their own clan's political influence to the player's clan (the 1:1 give_influence verb,
+        ///   see CalradiaRemembers.Verbs.GiveInfluenceVerb / CourtActionResolver.TryGiveInfluence). Unlike
+        ///   GiveGold, this is scoped to WarCouncil ONLY (COUNCIL_ACTIONS.md, Kimi review): influence is a
+        ///   CLAN-level resource, meaningless within the player's own clan (the 1:1 verb already excludes
+        ///   giver == Clan.PlayerClan) and meaningless outside a kingdom (a clan holding no seat at any
+        ///   court has no influence worth pledging), so ClanLords/Companions/Family, where a seated member
+        ///   IS the player's own clan or a hired hand, never carry this motion. The amount is NEVER chosen by
+        ///   the LLM: it is computed at the lift by the reused CourtActionPolicy.InfluenceGrant, so this
+        ///   kind's ResolutionDefinition carries no amount-shaped requirement, only the fact that some
+        ///   seated ally's clan could grant it at all.
+        /// </summary>
+        GiveInfluence
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -122,7 +137,15 @@ namespace CalradiaRemembers.Logic.Assemblies
         PlayerCanMakePeace = 128,
 
         /// <summary>At least one seated member currently holds gold they could pledge to the player (give_gold's own fact).</summary>
-        MemberHasGold = 256
+        MemberHasGold = 256,
+
+        /// <summary>
+        ///   At least one seated allied clan leader's OWN clan could currently grant influence to the player's
+        ///   clan under the reused 1:1 give_influence gates (both clans in a kingdom, giver's clan holding
+        ///   comfortably more influence than the computed grant, and the relation floor met). give_influence's
+        ///   own fact.
+        /// </summary>
+        MemberCanGrantInfluence = 512
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -156,7 +179,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool targetOutOfPlayerParty = false,
                                     bool playerCanDeclareWar = false,
                                     bool playerCanMakePeace = false,
-                                    bool memberHasGold = false)
+                                    bool memberHasGold = false,
+                                    bool memberCanGrantInfluence = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -167,6 +191,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             PlayerCanDeclareWar = playerCanDeclareWar;
             PlayerCanMakePeace = playerCanMakePeace;
             MemberHasGold = memberHasGold;
+            MemberCanGrantInfluence = memberCanGrantInfluence;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -184,6 +209,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated member holds gold they could pledge to the player (give_gold's own fact, see ResolutionRequirement.MemberHasGold).</summary>
         public bool MemberHasGold { get; }
+
+        /// <summary>At least one seated allied clan leader's own clan could grant influence to the player's clan (give_influence's own fact, see ResolutionRequirement.MemberCanGrantInfluence).</summary>
+        public bool MemberCanGrantInfluence { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -225,7 +253,17 @@ namespace CalradiaRemembers.Logic.Assemblies
                 "Pledge gold to you", ResolutionRequirement.MemberHasGold),
 
             new ResolutionDefinition(ResolutionKind.GiveGold, CouncilScope.WarCouncil,
-                "Pledge gold to you", ResolutionRequirement.MemberHasGold)
+                "Pledge gold to you", ResolutionRequirement.MemberHasGold),
+
+            // Partie 1 (bringing the existing 1:1 resource verbs to the council): WarCouncil ONLY, unlike
+            // GiveGold's two scopes. COUNCIL_ACTIONS.md's Kimi review is explicit: influence is a CLAN-level
+            // resource, and the 1:1 verb already excludes giver == Clan.PlayerClan, so ClanLords (where every
+            // seated lord IS the player's own clan) would be mechanically vacant, a false promise the LLM could
+            // still voice ("I put my weight behind you") for a transfer that lifts to nothing. WarCouncil seats
+            // OTHER clans' own leaders (CouncilRosterResolver.WarCouncilCandidates), the one scope where a
+            // seated member's clan is genuinely a different house that can pledge its own influence.
+            new ResolutionDefinition(ResolutionKind.GiveInfluence, CouncilScope.WarCouncil,
+                "Pledge your clan's influence", ResolutionRequirement.MemberCanGrantInfluence)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -255,6 +293,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.DeclareWar:        return "declare_war";
                 case ResolutionKind.MakePeace:          return "make_peace";
                 case ResolutionKind.GiveGold:           return "give_gold";
+                case ResolutionKind.GiveInfluence:      return "give_influence";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -290,16 +329,20 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   escrow (StipendPolicy, CouncilStipendBehavior). DeclareWar and its symmetric counterpart MakePeace
         ///   are the first FACTION-CENTRIC executors. GiveGold, Partie 1's first VERB brought to the council
         ///   (CouncilLift.SettleGiveGold, GoldPledgePolicy), is a seated LORD's own gold pledged TO the player,
-        ///   the mirror image of GrantStipend's money direction. The remaining scoped menu motions are recorded
-        ///   but not yet executed, so they arrive with their variant (Q5). The runtime teaches and lifts only
-        ///   executable kinds, so the table never promises a deed it cannot keep.
+        ///   the mirror image of GrantStipend's money direction. GiveInfluence (CouncilLift.SettleGiveInfluence,
+        ///   reusing CourtActionPolicy.InfluenceGrant/CanAffordInfluenceGrant, the same math the 1:1
+        ///   give_influence verb already uses) is a seated ALLIED CLAN LEADER's own clan influence pledged TO
+        ///   the player's clan, WarCouncil-only and carrying no LLM-chosen amount (the policy computes it). The
+        ///   remaining scoped menu motions are recorded but not yet executed, so they arrive with their variant
+        ///   (Q5). The runtime teaches and lifts only executable kinds, so the table never promises a deed it
+        ///   cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
             => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor
             || kind == ResolutionKind.AssignPartyRole || kind == ResolutionKind.RejoinParty
             || kind == ResolutionKind.DispatchOnMission || kind == ResolutionKind.GrantStipend
             || kind == ResolutionKind.DeclareWar || kind == ResolutionKind.MakePeace
-            || kind == ResolutionKind.GiveGold;
+            || kind == ResolutionKind.GiveGold || kind == ResolutionKind.GiveInfluence;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

@@ -287,6 +287,45 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   True once any seated ally's OWN clan currently holds influence it could spare to the player's clan:
+      ///   Partie 1's other own fact, give_influence (ResolutionOfferingResolver.OfferedKindKeys). Reuses the
+      ///   SAME gates the 1:1 give_influence verb already checks (CalradiaRemembers.Verbs.GiveInfluenceVerb /
+      ///   CourtActionResolver.TryGiveInfluence): a living lord, a clan of their own distinct from the player's
+      ///   (COUNCIL_ACTIONS.md's Kimi review: the 1:1 verb already excludes giver == Clan.PlayerClan, so this
+      ///   would be mechanically vacant within the player's own clan), BOTH clans seated in a kingdom (influence
+      ///   carries no weight for a clan holding no seat at any court), the relation floor
+      ///   (CourtActionPolicy.InfluenceMinRelation), and the giver's clan holding comfortably more than the
+      ///   computed grant in reserve (CourtActionPolicy.CanAffordInfluenceGrant). Skips the 1:1 verb's own
+      ///   cooldown check (no NpcProfile is read here, mirroring AnySeatedMemberHasGold's own loose gate): a
+      ///   member whose cooldown has not elapsed is instead caught, and reported honestly, at the lift
+      ///   (CouncilLift.SettleGiveInfluence), the same "prove SOME grant is possible, never the exact figure"
+      ///   discipline AnySeatedMemberHasGold already uses for give_gold.
+      /// </summary>
+      private bool AnySeatedMemberCanGrantInfluence()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero is not {IsAlive: true, IsLord: true} || hero.IsPrisoner) continue;
+
+            Clan giver = hero.Clan;
+            if (giver == null || giver == Clan.PlayerClan) continue;
+            if (giver.Kingdom == null || Clan.PlayerClan?.Kingdom == null) continue;
+
+            int relation = hero.GetRelation(Hero.MainHero);
+            if (relation < CourtActionPolicy.InfluenceMinRelation) continue;
+
+            int amount = CourtActionPolicy.InfluenceGrant(relation);
+            if (amount <= 0) continue;
+            if (!CourtActionPolicy.CanAffordInfluenceGrant(giver.Influence, amount)) continue;
+
+            return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>
       ///   The WarCouncil's own gate: declare_war's PlayerCanDeclareWar fact (ResolutionOfferingResolver.OfferedKindKeys).
       ///   True once the player leads their own MapFaction (kingdom ruler, or an independent clan that IS its own
       ///   faction, see Hero.IsFactionLeader) AND at least one other faction exists that is neither the player's

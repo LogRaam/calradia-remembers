@@ -126,8 +126,9 @@ namespace CalradiaRemembers.Chat
          // AppointGovernor, AssignPartyRole, RejoinParty, DispatchOnMission, GrantStipend (the FIRST executor
          // that touches persisted save state), DeclareWar/MakePeace (the FACTION-CENTRIC pair, dispatched above
          // before this gate) and, Partie 1's own, GiveGold (SettleGiveGold, a seated lord's own purse pledged TO
-         // the player) are executable today, so a passing entry here is one of those; the switch below this gate
-         // is the per-kind dispatch, extended the day a new executor is wired.
+         // the player) and GiveInfluence (SettleGiveInfluence, a seated ALLY's own clan influence pledged TO the
+         // player's clan) are executable today, so a passing entry here is one of those; the switch below this
+         // gate is the per-kind dispatch, extended the day a new executor is wired.
          if (!ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind kind) || !ResolutionCatalog.IsExecutable(kind))
          {
             ledger.MarkFailed(entry.Id, "This kind of decision is not yet settled by the council.");
@@ -178,6 +179,11 @@ namespace CalradiaRemembers.Chat
 
             case ResolutionKind.GiveGold:
                SettleGiveGold(ledger, entry, actorHero, actorName, report);
+
+               return;
+
+            case ResolutionKind.GiveInfluence:
+               SettleGiveInfluence(ledger, entry, actorHero, actorName, report);
 
                return;
 
@@ -618,6 +624,83 @@ namespace CalradiaRemembers.Chat
             ? $"{actorName} pledges gold to you: {payable} denars, all they could spare (less than the {proposed} promised)."
             : $"{actorName} pledges {payable} denars to you.", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} gave the player {payable} denars (proposed {proposed}).");
+      }
+
+      /// <summary>
+      ///   Partie 1 (bringing the existing 1:1 resource verbs to the council): a seated ALLIED CLAN LEADER
+      ///   pledges their own clan's political influence to the player's clan, WarCouncil-only. Unlike
+      ///   SettleGiveGold, there is no LLM-proposed amount to clamp (entry.TargetHint carries no grounding for
+      ///   this kind, see RecordCouncilResolution): the amount is computed here fresh, entirely by the SAME
+      ///   pure policy the 1:1 give_influence verb already uses (CourtActionPolicy.InfluenceGrant, gated by
+      ///   CanAffordInfluenceGrant), never trusted or figured at proposal/offer time. Every gate the 1:1 verb
+      ///   checks (CalradiaRemembers.Verbs.GiveInfluenceVerb / CourtActionResolver.TryGiveInfluence) is
+      ///   re-verified here against CURRENT state (bridge is law): the giver still leads a clan distinct from
+      ///   the player's (COUNCIL_ACTIONS.md's Kimi review: within the player's own clan this would be
+      ///   mechanically vacant), both clans still seated in a kingdom, the relation floor still met, and the
+      ///   giver's clan still holding comfortably more influence than the grant costs. The 1:1 verb's own
+      ///   per-NPC cooldown is deliberately NOT re-checked here: a council pledge is a fresh commitment made at
+      ///   this table, not a repeat of the 1:1 exchange, and the reserve/relation gates already guard against an
+      ///   emptied treasury.
+      /// </summary>
+      private static void SettleGiveInfluence(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true, IsLord: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         Clan giver = actorHero.Clan;
+
+         if (giver == null || giver == Clan.PlayerClan)
+         {
+            const string reason = "their own house is the player's own; there is no influence to lend.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (giver.Kingdom == null || Clan.PlayerClan?.Kingdom == null)
+         {
+            const string reason = "influence carries no weight outside a kingdom's court.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         int relation = actorHero.GetRelation(Hero.MainHero);
+
+         if (relation < CourtActionPolicy.InfluenceMinRelation)
+         {
+            const string reason = "they no longer hold the player in high enough regard.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         int amount = CourtActionPolicy.InfluenceGrant(relation);
+
+         if (amount <= 0 || !CourtActionPolicy.CanAffordInfluenceGrant(giver.Influence, amount))
+         {
+            const string reason = "their house cannot spare the influence just now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         ChangeClanInfluenceAction.Apply(giver, -amount);
+         ChangeClanInfluenceAction.Apply(Clan.PlayerClan, amount);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"{actorName} lends their clan's influence to yours (+{amount}).", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} lent the player {amount} influence at court.");
       }
 
       /// <summary>

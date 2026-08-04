@@ -50,11 +50,17 @@ namespace CalradiaRemembers.Assemblies
       ///   1's own fact, give_gold (see ChatViewModel.AnySeatedMemberHasGold): at least one seated member
       ///   (ClanLords or WarCouncil only, see ResolutionCatalog's two GiveGold entries) currently holds gold of
       ///   their own; the real proposed amount is unknown at offer time and is re-clamped against the giver's
-      ///   ACTUAL gold at the lift (CouncilLift.SettleGiveGold, GoldPledgePolicy.ClampPayable). Never throws: any
+      ///   ACTUAL gold at the lift (CouncilLift.SettleGiveGold, GoldPledgePolicy.ClampPayable). <paramref name="anySeatedMemberCanGrantInfluence" />
+      ///   is Partie 1's other own fact, give_influence (see ChatViewModel.AnySeatedMemberCanGrantInfluence): at
+      ///   least one seated ally (WarCouncil only, see ResolutionCatalog's single GiveInfluence entry) has a
+      ///   clan that could currently spare some influence under the reused 1:1 give_influence gates; the real
+      ///   amount is NEVER an LLM choice (unlike give_gold's target_amount) and is computed fresh at the lift by
+      ///   CourtActionPolicy.InfluenceGrant, re-checked against CanAffordInfluenceGrant (CouncilLift.SettleGiveInfluence).
+      ///   Never throws: any
       ///   engine read failure degrades to
       ///   no vacant fief, so a failing lookup only WITHHOLDS a motion, never over-offers one the lift cannot honour.
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false)
       {
          try
          {
@@ -67,7 +73,8 @@ namespace CalradiaRemembers.Assemblies
                targetOutOfPlayerParty: anySeatedCompanionOutOfPlayerParty,
                playerCanDeclareWar: playerCanDeclareWar,
                playerCanMakePeace: playerCanMakePeace,
-               memberHasGold: anySeatedMemberHasGold);
+               memberHasGold: anySeatedMemberHasGold,
+               memberCanGrantInfluence: anySeatedMemberCanGrantInfluence);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

@@ -599,9 +599,13 @@ namespace CalradiaRemembers.Chat
                // the specific enemy this parley was convened against); AnySeatedMemberHasGold is Partie 1's own
                // fact, give_gold (bringing the existing 1:1 resource verbs to the council): at least one seated
                // member in ClanLords/WarCouncil (the only scopes ResolutionCatalog grants it) holds gold of
-               // their own, the mirror image of grant_stipend's money direction.
+               // their own, the mirror image of grant_stipend's money direction. AnySeatedMemberCanGrantInfluence
+               // is Partie 1's other own fact, give_influence: at least one seated ALLY (WarCouncil only, the
+               // one scope ResolutionCatalog grants it) has a clan that could currently spare influence to the
+               // player's clan under the reused 1:1 give_influence gates; unlike give_gold this carries no
+               // LLM-chosen amount, the lift computes it fresh.
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

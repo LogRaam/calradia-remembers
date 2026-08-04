@@ -26,8 +26,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool outOfParty = false,
                                                   bool canDeclareWar = false,
                                                   bool canMakePeace = false,
-                                                  bool memberHasGold = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold);
+                                                  bool memberHasGold = false,
+                                                  bool memberCanGrantInfluence = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -284,6 +285,49 @@ namespace CalradiaRemembers.Tests.Assemblies
                 .Should().NotContain("give_gold");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, Facts(memberHasGold: true))
                 .Should().NotContain("give_gold");
+        }
+
+        // Partie 1 (bringing the existing 1:1 resource verbs to the council): give_influence needs only that a
+        // seated ally's own clan could grant it. Present it when one can, withhold it when nobody at the table
+        // has a clan able to spare any influence.
+        [Test]
+        public void GIVEN_give_influence_WHEN_a_member_can_or_cannot_grant_influence_THEN_offer_follows()
+        {
+            ResolutionDefinition giveInfluence = ResolutionCatalog.Get(ResolutionKind.GiveInfluence);
+
+            ResolutionEligibilityPolicy.CanOffer(giveInfluence, Facts(memberCanGrantInfluence: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(giveInfluence, Facts(memberCanGrantInfluence: false)).Should().BeFalse();
+        }
+
+        // The offering wire: give_influence must be TAUGHT to the LLM only when a seated ally's clan actually
+        // could grant it, or the model promises a pledge CouncilLift.SettleGiveInfluence then finds the giver's
+        // own clan cannot afford (reserve buffer) or is not owed the standing (relation floor) to spare.
+        [Test]
+        public void GIVEN_a_seated_ally_can_grant_influence_WHEN_offered_keys_are_asked_THEN_give_influence_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, Facts(memberCanGrantInfluence: true))
+                .Should().Contain("give_influence");
+        }
+
+        // Absent that fact (no seated ally's clan could currently spare any influence) the key must be
+        // withheld, or the table could offer a pledge nobody present could actually keep.
+        [Test]
+        public void GIVEN_no_seated_ally_can_grant_influence_WHEN_offered_keys_are_asked_THEN_give_influence_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, Facts(memberCanGrantInfluence: false))
+                .Should().NotContain("give_influence");
+        }
+
+        // The empty-promise guard, the other direction: ClanLords carries no GiveInfluence catalogue entry at
+        // all (within the player's own clan the transfer is clan-to-itself, the exact vacant-promise case
+        // COUNCIL_ACTIONS.md's Kimi review flags), so the key must never surface there even when the fact is
+        // (nonsensically) true, proving the scope gate, not merely the fact, keeps the council from teaching a
+        // pledge that would lift to nothing.
+        [Test]
+        public void GIVEN_a_clan_lords_council_WHEN_offered_keys_are_asked_THEN_give_influence_is_never_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, Facts(memberCanGrantInfluence: true))
+                .Should().NotContain("give_influence");
         }
     }
 }

@@ -172,14 +172,15 @@ namespace CalradiaRemembers.Tests.Assemblies
         // The WarCouncil's first motion: it must appear under its own scope, and only there, exactly like
         // GrantFief is ClanLords-only. Getting this wrong would put a war declaration on an internal council
         // that has no business raising it, or hide it from the one council built for it. GiveGold (Partie 1)
-        // added a SECOND WarCouncil motion alongside DeclareWar: a war council's own lords plausibly have coin
-        // of their own to pledge too, so both must return, in declaration order.
+        // added a SECOND WarCouncil motion alongside DeclareWar, and GiveInfluence (also Partie 1, WarCouncil
+        // ONLY per COUNCIL_ACTIONS.md's Kimi review) adds a THIRD: a war council's own allied lords plausibly
+        // have both coin and clan influence of their own to pledge, so all three must return, in declaration order.
         [Test]
-        public void GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_declare_war_and_give_gold_return()
+        public void GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_declare_war_give_gold_and_give_influence_return()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.WarCouncil).Select(d => d.Kind).ToList();
 
-            kinds.Should().Equal(ResolutionKind.DeclareWar, ResolutionKind.GiveGold);
+            kinds.Should().Equal(ResolutionKind.DeclareWar, ResolutionKind.GiveGold, ResolutionKind.GiveInfluence);
         }
 
         // declare_war has a live lift executor (CouncilLift.SettleDeclareWar) from the day it lands, unlike the
@@ -287,6 +288,48 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("give_gold");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("give_gold");
+        }
+
+        // Partie 1 (bringing the existing 1:1 resource verbs to the council): give_influence has a live lift
+        // executor (CouncilLift.SettleGiveInfluence) from the day it lands, reusing the same
+        // CourtActionPolicy.InfluenceGrant/CanAffordInfluenceGrant math the 1:1 give_influence verb already
+        // uses; the table must be able to actually move the influence, not just record the pledge.
+        [Test]
+        public void GIVEN_give_influence_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.GiveInfluence).Should().BeTrue();
+        }
+
+        // give_influence is a seated ally's own clan promise (their house's own standing), not a decision about
+        // two factions, so it must never bypass the ordinary seated-member re-validation the way declare_war/
+        // make_peace do.
+        [Test]
+        public void GIVEN_give_influence_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.GiveInfluence).Should().BeFalse();
+        }
+
+        // WarCouncil is the ONLY scope give_influence was granted (COUNCIL_ACTIONS.md's Kimi review: influence
+        // is a CLAN-level resource, and the 1:1 verb already excludes giver == Clan.PlayerClan, so ClanLords,
+        // where every seated lord IS the player's own clan, would be mechanically vacant): its key must surface
+        // alongside the universal quest, or a war council seated with an influential ally would have no way to
+        // reach CouncilLift.SettleGiveInfluence at all.
+        [Test]
+        public void GIVEN_a_war_council_WHEN_asked_for_executable_kinds_THEN_give_influence_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.WarCouncil).Should().Contain("give_influence");
+        }
+
+        // The empty-promise guard, the other direction: ClanLords, Companions and Family carry NO GiveInfluence
+        // catalogue entry at all (within the player's own clan the transfer would be clan-to-itself, a hired
+        // hand or dynastic kin holds no clan influence to pledge either), so their executable set must never
+        // surface it, whatever the world facts.
+        [Test]
+        public void GIVEN_a_clan_lords_companions_or_family_council_WHEN_asked_for_executable_kinds_THEN_give_influence_is_absent()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().NotContain("give_influence");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("give_influence");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("give_influence");
         }
     }
 }
