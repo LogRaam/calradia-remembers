@@ -174,12 +174,13 @@ namespace CalradiaRemembers.Logic.Assemblies
         }
 
         /// <summary>
-        ///   True when a passed motion of this kind has a LIVE lift executor. Council audit M4: today only
-        ///   <see cref="ResolutionKind.Quest" /> (a member set a task in the world) is carried out; the scoped
-        ///   menu motions are recorded but not yet executed, so they arrive with their variant (Q5). The runtime
-        ///   teaches and lifts only executable kinds, so the table never promises a deed it cannot keep.
+        ///   True when a passed motion of this kind has a LIVE lift executor. Council audit M4: <see cref="ResolutionKind.Quest" />
+        ///   (a member set a task in the world) and, since the first governance executor, <see cref="ResolutionKind.AppointGovernor" />
+        ///   (CouncilLift.SettleAppointGovernor) are carried out; the remaining scoped menu motions are recorded
+        ///   but not yet executed, so they arrive with their variant (Q5). The runtime teaches and lifts only
+        ///   executable kinds, so the table never promises a deed it cannot keep.
         /// </summary>
-        public static bool IsExecutable(ResolutionKind kind) => kind == ResolutionKind.Quest;
+        public static bool IsExecutable(ResolutionKind kind) => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor;
 
         /// <summary>
         ///   The string keys of the kinds a council of <paramref name="scope" /> may currently ACT on: the

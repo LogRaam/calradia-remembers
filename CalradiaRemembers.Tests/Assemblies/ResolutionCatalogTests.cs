@@ -93,15 +93,28 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionCatalog.TryParseKey(null, out _).Should().BeFalse();
         }
 
-        // M4: only a kind with a live executor is executable. Today that is Quest alone; the scoped menu motions
+        // M4: only a kind with a live executor is executable. Quest and, since the first governance executor,
+        // AppointGovernor (CouncilLift.SettleAppointGovernor) qualify today; the remaining scoped menu motions
         // are recorded but not yet carried out, so teaching them would promise a deed the lift silently drops
         // (the MarkFailed "this kind of decision is not yet settled" path the audit flagged).
         [Test]
-        public void GIVEN_the_kinds_WHEN_asked_which_execute_THEN_only_quest_does_today()
+        public void GIVEN_the_kinds_WHEN_asked_which_execute_THEN_only_quest_and_appoint_governor_do_today()
         {
             ResolutionCatalog.IsExecutable(ResolutionKind.Quest).Should().BeTrue();
+            ResolutionCatalog.IsExecutable(ResolutionKind.AppointGovernor).Should().BeTrue();
             ResolutionCatalog.IsExecutable(ResolutionKind.GrantFief).Should().BeFalse();
             ResolutionCatalog.IsExecutable(ResolutionKind.AssignPartyRole).Should().BeFalse();
+            ResolutionCatalog.IsExecutable(ResolutionKind.DispatchOnMission).Should().BeFalse();
+            ResolutionCatalog.IsExecutable(ResolutionKind.GrantStipend).Should().BeFalse();
+        }
+
+        // Companions is AppointGovernor's own scope: its executable key set must now surface "appoint_governor"
+        // alongside the universal "quest", or the lift-gate change above would be invisible to anything reading
+        // the catalogue the way the (separate, not-yet-built) prompt-offering follow-up will.
+        [Test]
+        public void GIVEN_a_companions_council_WHEN_asked_for_executable_kinds_THEN_appoint_governor_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().Contain("appoint_governor");
         }
 
         // M4 (Family had ZERO catalogue kinds): every scope, Family included, must expose at least one executable
