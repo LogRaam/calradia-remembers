@@ -502,7 +502,8 @@ namespace CalradiaRemembers.Chat
                HeroStringId = member.StringId,
                IsPlayerCompanion = member.IsPlayerCompanion,
                RelationToNpc = DescribeCouncilSeat(scope),
-               Persona = DescribeCouncilMemberPersona(member, behavior)
+               Persona = DescribeCouncilMemberPersona(member, behavior),
+               PresenceStatus = CouncilRosterResolver.DescribePresence(member)
             });
 
          ActiveViewModel.ActivateCouncil(scope);

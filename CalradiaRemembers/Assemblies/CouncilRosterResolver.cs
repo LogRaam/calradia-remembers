@@ -13,6 +13,7 @@ using System.Linq;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Missions;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 
 #endregion
 
@@ -69,6 +70,33 @@ namespace CalradiaRemembers.Assemblies
          if (hero == null) return new CouncilEligibility(false, CouncilExclusionReason.NotOfThisCouncil);
 
          return CouncilRosterPolicy.Evaluate(scope, FactsFor(hero));
+      }
+
+      /// <summary>
+      ///   A seated member's true whereabouts relative to the player, in a short honest phrase (bug c: a
+      ///   member seated purely on availability, with no distance test by design, could otherwise be voiced as
+      ///   though they travelled at the player's side while actually staying behind). Reads the same live Hero
+      ///   state the roster already touches into the pure <see cref="MemberPresenceDescriber" />, so the wording
+      ///   itself stays unit-tested. Never throws: any resolution gap degrades to the "abroad" phrase rather
+      ///   than surface an exception into the prompt-building path.
+      /// </summary>
+      public static string DescribePresence(Hero hero)
+      {
+         try
+         {
+            MobileParty party = hero?.PartyBelongedTo;
+            bool inMainParty = party != null && party == MobileParty.MainParty;
+            bool leadsOwnParty = !inMainParty && party != null && party.LeaderHero == hero;
+            string settlementName = party == null ? hero?.CurrentSettlement?.Name?.ToString() : null;
+
+            return MemberPresenceDescriber.Describe(new MemberPresenceFacts(inMainParty, leadsOwnParty, settlementName));
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COUNCIL] DescribePresence failed for {hero?.Name}: {ex.GetType().Name}: {ex.Message}");
+
+            return MemberPresenceDescriber.Describe(new MemberPresenceFacts(false, false, null));
+         }
       }
 
       #region private
