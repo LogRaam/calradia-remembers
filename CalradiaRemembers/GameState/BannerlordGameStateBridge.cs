@@ -1969,7 +1969,11 @@ namespace CalradiaRemembers.GameState
       ///   rival, but every guard is re-checked here — the prompt is advice, the bridge is law: the target
       ///   is re-resolved by name, kin are excluded again, and a lord may hold only one pledge at a time.
       ///   Reuses an already-active scheme between the pair rather than erroring (<c>ForcePlot</c>'s own
-      ///   guard), so a lord already secretly plotting can still be held to account for it.
+      ///   guard), so a lord already secretly plotting can still be held to account for it. The actual launch
+      ///   (scheme kind pick, <c>ForcePlot</c>, <see cref="TrackedCommitment" /> creation, and the promisor's own
+      ///   memory of it) is factored into <see cref="CourtActionResolver.LaunchPledge" /> (2026-08-04, Partie 1's
+      ///   council schemes kind), the SAME code path <c>CalradiaRemembers.Chat.CouncilLift.SettlePledgeAgainst</c>
+      ///   now calls too, so a pledge behaves identically whichever table struck it.
       /// </summary>
       private static ActionOutcome ExecutePledgeAgainst(GameAction action, Hero npcHero, ActionContext context)
       {
@@ -1996,20 +2000,8 @@ namespace CalradiaRemembers.GameState
             if (CourtActionResolver.IsCloseKin(npcHero, target))
                return ActionOutcome.Refused($"({npcHero.Name} will not move against their own kin.)");
 
-            // A calculating lord favours quiet sabotage; others reach for slander. Never a war action —
-            // the scheme is the whole of what a pledge sets in motion.
-            SchemeKind kind = npcHero.GetTraitLevel(DefaultTraits.Calculating) >= 1
-               ? SchemeKind.Sabotage
-               : SchemeKind.Slander;
-            string schemeStatus = SchemeStore.Instance?.ForcePlot(npcHero, target, kind);
-
             var today = (int) CampaignTime.Now.ToDays;
-            behavior.Create(npcHero.StringId, target.StringId, today);
-
-            profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
-               $"Pledged to the player to move against {target.Name}."));
-
-            ModLog.Info($"[ACTION] pledge_against: {npcHero.Name} pledged to move against {target.Name} ({kind}). {schemeStatus}");
+            CourtActionResolver.LaunchPledge(npcHero, target, profile, behavior, today);
 
             return new ActionOutcome($"{npcHero.Name} pledges to move against {target.Name}.", true);
          }

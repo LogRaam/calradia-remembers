@@ -177,6 +177,13 @@ namespace CalradiaRemembers.Chat
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DeclareWar), StringComparison.OrdinalIgnoreCase)
                || string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.MakePeace), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetFaction;
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.PledgeAgainst), StringComparison.OrdinalIgnoreCase))
+            // Partie 1's schemes kind (COUNCIL_ACTIONS.md's schemes block, reusing the existing 1:1
+            // pledge_against system end to end): grounds on the RIVAL'S NAME, a dedicated SDK field
+            // (ResolutionProposal.TargetRival, not a reuse of TargetSettlement, which would be a confusing lie
+            // for a hero's name to live in), read back by CouncilLift.SettlePledgeAgainst via
+            // CourtActionResolver's own tolerant name match.
+            targetHint = proposal.TargetRival;
          else
             targetHint = proposal.TargetSettlement;
          AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession, targetHint);

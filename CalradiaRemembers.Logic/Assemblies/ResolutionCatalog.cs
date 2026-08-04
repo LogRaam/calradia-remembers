@@ -125,7 +125,25 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   companions-only kind: neither roster ever seats a companion). No target grounding beyond the actor:
         ///   the deed falls entirely on the seated companion named, nothing else to record.
         /// </summary>
-        ExpelFromClan
+        ExpelFromClan,
+
+        /// <summary>
+        ///   Partie 1 (COUNCIL_ACTIONS.md's schemes block): a seated member pledges to move against a named
+        ///   RIVAL, REUSING the existing 1:1 pledge_against system end to end (the same real scheme launched
+        ///   through <c>CalradiaRemembers.WorldEvents.SchemeStore.ForcePlot</c>, and the same
+        ///   <c>CalradiaRemembers.Logic.TrackedCommitment</c> tracked afterward), both callers now running a
+        ///   SINGLE shared code path (<c>CourtActionResolver.LaunchPledge</c>) so the pledge behaves identically
+        ///   whichever table struck it. Scoped to ClanLords and Family (see <see cref="ResolutionCatalog.All" />):
+        ///   a seated lord's own standing rivalries are exactly as plausible at the table as within the player's
+        ///   own inner circle, unlike GiveGold/GiveInfluence's moneyed-lord-only scoping; never WarCouncil (which
+        ///   already carries its own faction-scale motions, DeclareWar/MakePeace, for cross-house conflict) nor
+        ///   Companions (a hired hand's own rivalry has no lord's standing behind it to make a scheme credible).
+        ///   A pledge against a hero SEATED AT THIS SAME COUNCIL is refused outright at the lift
+        ///   (COUNCIL_ACTIONS.md's Kimi review flags this "trahison a table" case explicitly; Gabriel's v1 pick
+        ///   is to refuse it rather than allow-and-tax a public betrayal, see CouncilLift.SettlePledgeAgainst's
+        ///   own doc and <see cref="PledgeAgainstPolicy" />).
+        /// </summary>
+        PledgeAgainst
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -192,7 +210,19 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   (the player leads their own clan, the seat is a live companion of it, not the player's own
         ///   spouse). expel_from_clan's own fact.
         /// </summary>
-        AnySeatedCompanionExpellable = 8192
+        AnySeatedCompanionExpellable = 8192,
+
+        /// <summary>
+        ///   At least one seated member currently holds NO pledge already outstanding (CommitmentBehavior.HasActive
+        ///   false): pledge_against's own fact. An APPROXIMATION (COUNCIL_ACTIONS.md's schemes block): proving a
+        ///   genuine RIVAL also exists (standing enmity, non-kin, non-faction-leader) would need each seat's own
+        ///   NpcProfile plus a full Hero.AllAliveHeroes scan per seat, real cost for a fact that only gates
+        ///   TEACHING and never the exact rival (unknown until the LLM names one); the full validation still
+        ///   happens at the lift regardless (CourtActionResolver.ResolvePledgeTarget, bridge is law), mirroring
+        ///   the same "prove SOME pledge is possible, never the exact rival" discipline
+        ///   <see cref="MemberHasGold" /> already uses for give_gold.
+        /// </summary>
+        AnySeatedMemberCanPledgeAgainst = 16384
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -231,7 +261,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool playerIsKingdomLeader = false,
                                     bool playerHasGiveableFief = false,
                                     bool seatedVassalOwnsFief = false,
-                                    bool anySeatedCompanionExpellable = false)
+                                    bool anySeatedCompanionExpellable = false,
+                                    bool anySeatedMemberCanPledgeAgainst = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -247,6 +278,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             PlayerHasGiveableFief = playerHasGiveableFief;
             SeatedVassalOwnsFief = seatedVassalOwnsFief;
             AnySeatedCompanionExpellable = anySeatedCompanionExpellable;
+            AnySeatedMemberCanPledgeAgainst = anySeatedMemberCanPledgeAgainst;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -279,6 +311,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated companion is currently expellable. expel_from_clan's own fact, see ResolutionRequirement.AnySeatedCompanionExpellable.</summary>
         public bool AnySeatedCompanionExpellable { get; }
+
+        /// <summary>At least one seated member holds no pledge already outstanding. pledge_against's own fact (an approximation, see ResolutionRequirement.AnySeatedMemberCanPledgeAgainst).</summary>
+        public bool AnySeatedMemberCanPledgeAgainst { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -350,7 +385,17 @@ namespace CalradiaRemembers.Logic.Assemblies
             // is the one scope every other companion-fate kind above (AssignPartyRole, AppointGovernor,
             // DispatchOnMission, GrantStipend, RejoinParty) already uses for exactly this reason.
             new ResolutionDefinition(ResolutionKind.ExpelFromClan, CouncilScope.Companions,
-                "Expel from the clan", ResolutionRequirement.AnySeatedCompanionExpellable)
+                "Expel from the clan", ResolutionRequirement.AnySeatedCompanionExpellable),
+
+            // Partie 1 (COUNCIL_ACTIONS.md's schemes block): pledge_against, REUSING the existing 1:1 system end
+            // to end. TWO entries, ClanLords and Family (never Companions/WarCouncil: a companion's own rivalry
+            // has no lord's standing behind it to make a scheme credible, and WarCouncil already carries its own
+            // faction-scale motions, declare_war/make_peace, for cross-house conflict).
+            new ResolutionDefinition(ResolutionKind.PledgeAgainst, CouncilScope.ClanLords,
+                "Pledge to move against a rival", ResolutionRequirement.AnySeatedMemberCanPledgeAgainst),
+
+            new ResolutionDefinition(ResolutionKind.PledgeAgainst, CouncilScope.Family,
+                "Pledge to move against a rival", ResolutionRequirement.AnySeatedMemberCanPledgeAgainst)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -383,6 +428,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.GiveGold:           return "give_gold";
                 case ResolutionKind.GiveInfluence:      return "give_influence";
                 case ResolutionKind.ExpelFromClan:      return "expel_from_clan";
+                case ResolutionKind.PledgeAgainst:      return "pledge_against";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -431,8 +477,11 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   companion out of the player's own clan, planting a maximum-tier
         ///   <see cref="CalradiaRemembers.Logic.Grudges.GrudgeSource.Expelled" /> grudge and a real relation hit.
         ///   The remaining scoped menu motions are recorded but not yet executed, so they arrive with their
-        ///   variant (Q5). The runtime teaches and lifts only executable kinds, so the table never promises a
-        ///   deed it cannot keep.
+        ///   variant (Q5). PledgeAgainst (CouncilLift.SettlePledgeAgainst), Partie 1's schemes kind, reuses the
+        ///   existing 1:1 pledge_against system end to end (a real scheme launched via SchemeStore.ForcePlot and
+        ///   a TrackedCommitment recorded, the SAME shared code path, CourtActionResolver.LaunchPledge, the 1:1
+        ///   action itself calls) on a seated ClanLords/Family member. The runtime teaches and lifts only
+        ///   executable kinds, so the table never promises a deed it cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
             => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor
@@ -441,7 +490,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.DeclareWar || kind == ResolutionKind.MakePeace
             || kind == ResolutionKind.GiveGold || kind == ResolutionKind.GiveInfluence
             || kind == ResolutionKind.GrantFief || kind == ResolutionKind.RevokeFief
-            || kind == ResolutionKind.ExpelFromClan;
+            || kind == ResolutionKind.ExpelFromClan || kind == ResolutionKind.PledgeAgainst;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

@@ -610,8 +610,13 @@ namespace CalradiaRemembers.Chat
                // AnySeatedCompanionExpellable is Partie 8's own fact, expel_from_clan (COUNCIL_ACTIONS.md's
                // Kimi review): at least one seated companion is currently expellable (player leads their own
                // clan, live companion, not the player's own spouse); Companions-scope only, see ExpulsionPolicy.
+               // AnySeatedMemberCanPledgeAgainst is Partie 1's schemes kind's own fact, pledge_against
+               // (COUNCIL_ACTIONS.md's schemes block, REUSING the existing 1:1 pledge_against system end to
+               // end): at least one seated LORD in ClanLords/Family (the only scopes ResolutionCatalog grants
+               // it) holds no pledge already outstanding; an approximation, the genuine rival is re-resolved by
+               // name only at the lift.
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

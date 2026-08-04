@@ -69,9 +69,14 @@ namespace CalradiaRemembers.Assemblies
       ///   ChatViewModel.AnySeatedCompanionExpellable): at least one seated companion is currently expellable
       ///   per ExpulsionPolicy.CanExpel (player leads their own clan, the seat is a live companion, not the
       ///   player's own spouse); the same gate is re-checked at the lift regardless (CouncilLift.SettleExpelFromClan,
-      ///   bridge is law).
+      ///   bridge is law). <paramref name="anySeatedMemberCanPledgeAgainst" /> is Partie 1's schemes kind's own
+      ///   fact, pledge_against (see ChatViewModel.AnySeatedMemberCanPledgeAgainst): at least one seated member
+      ///   (ClanLords or Family only, see ResolutionCatalog's two PledgeAgainst entries) currently holds no
+      ///   pledge already outstanding. An APPROXIMATION, mirroring anySeatedMemberHasGold's own loose gate:
+      ///   proving a genuine RIVAL also exists is left to the lift (CourtActionResolver.ResolvePledgeTarget,
+      ///   CouncilLift.SettlePledgeAgainst, bridge is law).
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false)
       {
          try
          {
@@ -89,7 +94,8 @@ namespace CalradiaRemembers.Assemblies
                playerIsKingdomLeader: PlayerIsKingdomLeader(),
                playerHasGiveableFief: HasGiveableFief(),
                seatedVassalOwnsFief: anySeatedVassalOwnsFief,
-               anySeatedCompanionExpellable: anySeatedCompanionExpellable);
+               anySeatedCompanionExpellable: anySeatedCompanionExpellable,
+               anySeatedMemberCanPledgeAgainst: anySeatedMemberCanPledgeAgainst);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

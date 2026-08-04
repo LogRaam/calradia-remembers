@@ -13,6 +13,8 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Commitments;
+using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
@@ -129,9 +131,11 @@ namespace CalradiaRemembers.Chat
          // that touches persisted save state), DeclareWar/MakePeace (the FACTION-CENTRIC pair, dispatched above
          // before this gate) and, Partie 1's own, GiveGold (SettleGiveGold, a seated lord's own purse pledged TO
          // the player) and GiveInfluence (SettleGiveInfluence, a seated ALLY's own clan influence pledged TO the
-         // player's clan), Partie 2's GrantFief/RevokeFief, and Partie 8's ExpelFromClan (SettleExpelFromClan, a
-         // seated companion cast out of the player's own clan) are executable today, so a passing entry here is
-         // one of those; the switch below this gate is the per-kind dispatch, extended the day a new executor is wired.
+         // player's clan), Partie 2's GrantFief/RevokeFief, Partie 8's ExpelFromClan (SettleExpelFromClan, a
+         // seated companion cast out of the player's own clan), and Partie 1's schemes kind PledgeAgainst
+         // (SettlePledgeAgainst, a seated member's own scheme against a rival, reusing the 1:1 pledge_against
+         // system end to end) are executable today, so a passing entry here is one of those; the switch below
+         // this gate is the per-kind dispatch, extended the day a new executor is wired.
          if (!ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind kind) || !ResolutionCatalog.IsExecutable(kind))
          {
             ledger.MarkFailed(entry.Id, "This kind of decision is not yet settled by the council.");
@@ -204,6 +208,11 @@ namespace CalradiaRemembers.Chat
 
             case ResolutionKind.ExpelFromClan:
                SettleExpelFromClan(ledger, entry, actorHero, actorName, report, gameDay);
+
+               return;
+
+            case ResolutionKind.PledgeAgainst:
+               SettlePledgeAgainst(ledger, entry, actorHero, actorName, giver, gameDay, report);
 
                return;
 
@@ -959,6 +968,90 @@ namespace CalradiaRemembers.Chat
             ? $"{actorName} is stripped of the governorship of {governedFief} and cast out of your clan."
             : $"{actorName} is cast out of your clan.", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} was expelled from the player's clan; a grudge is planted.");
+      }
+
+      /// <summary>
+      ///   Partie 1 (COUNCIL_ACTIONS.md's schemes block): a seated member pledges to move against a named RIVAL,
+      ///   REUSING the existing 1:1 pledge_against system end to end via the ONE shared code path both callers
+      ///   now run, <see cref="CourtActionResolver.LaunchPledge" /> (the same real scheme launched through
+      ///   SchemeStore.ForcePlot and the same TrackedCommitment recorded the 1:1 action already produces). Every
+      ///   1:1 gate is re-checked here (bridge is law): the pledger is a living, free lord, not the player; the
+      ///   rival is re-resolved BY NAME from <see cref="AssemblyResolutionEntry.TargetHint" /> (this kind's own
+      ///   grounding slot, the SDK's dedicated ResolutionProposal.TargetRival field, see RecordCouncilResolution)
+      ///   via <see cref="CourtActionResolver.ResolvePledgeTarget" />, which already excludes the player, the
+      ///   pledger's own kin, and requires a living lord; a lord may hold only one pledge at a time
+      ///   (CommitmentBehavior.HasActive). The COUNCIL'S OWN caveat beyond the reused 1:1 gates
+      ///   (COUNCIL_ACTIONS.md's Kimi review, "trahison a table"): a pledge against a hero SEATED AT THIS SAME
+      ///   COUNCIL is refused outright rather than allowed-and-taxed - Gabriel's v1 pick, simpler and safer than
+      ///   pricing a public betrayal at the table. <see cref="AssemblyResolutionEntry.WitnessIds" /> (audit M6,
+      ///   the other seats present when the pledge was recorded) is the cheap, no-new-field way to know who else
+      ///   sat here, read by the pure <see cref="PledgeAgainstPolicy.IsRivalSeatedAtCouncil" />.
+      /// </summary>
+      private static void SettlePledgeAgainst(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, NpcProfile giver, int gameDay, Action<string, bool> report)
+      {
+         if (actorHero is not {IsLord: true, IsAlive: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         var commitmentBehavior = CommitmentBehavior.Instance;
+
+         if (commitmentBehavior == null)
+         {
+            const string reason = "no commitment ledger is available right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (commitmentBehavior.HasActive(actorHero.StringId))
+         {
+            const string reason = "they already have a pledge outstanding, one vow at a time.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         Hero target = CourtActionResolver.ResolvePledgeTarget(entry.TargetHint, actorHero);
+
+         if (target == null)
+         {
+            const string reason = "no rival by that name is known to pledge against.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (CourtActionResolver.IsCloseKin(actorHero, target))
+         {
+            const string reason = "they will not move against their own kin.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (PledgeAgainstPolicy.IsRivalSeatedAtCouncil(target.StringId, entry.WitnessIds))
+         {
+            const string reason = "the rival named sits at this very council; that treachery is refused at this table.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         CourtActionResolver.LaunchPledge(actorHero, target, giver, commitmentBehavior, gameDay);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"{actorName} pledges to move against {target.Name}.", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} pledged to move against {target.Name}.");
       }
 
       /// <summary>

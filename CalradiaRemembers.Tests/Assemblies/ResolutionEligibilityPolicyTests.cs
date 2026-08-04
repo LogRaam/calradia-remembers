@@ -31,8 +31,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool playerIsKingdomLeader = false,
                                                   bool playerHasGiveableFief = false,
                                                   bool seatedVassalOwnsFief = false,
-                                                  bool anySeatedCompanionExpellable = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable);
+                                                  bool anySeatedCompanionExpellable = false,
+                                                  bool anySeatedMemberCanPledgeAgainst = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -479,6 +480,57 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("expel_from_clan");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts).Should().NotContain("expel_from_clan");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("expel_from_clan");
+        }
+
+        // Partie 1 (COUNCIL_ACTIONS.md's schemes block): pledge_against needs only the single, approximated
+        // AnySeatedMemberCanPledgeAgainst fact (no pledge already outstanding on some seated member). Missing it
+        // must withhold the motion entirely, or the table could offer a scheme the lift has already proven
+        // nobody present is free to launch.
+        [Test]
+        public void GIVEN_pledge_against_WHEN_no_seated_member_can_pledge_THEN_it_is_not_offered()
+        {
+            ResolutionDefinition pledgeAgainst = ResolutionCatalog.Get(ResolutionKind.PledgeAgainst);
+
+            ResolutionEligibilityPolicy.CanOffer(pledgeAgainst, Facts(anySeatedMemberCanPledgeAgainst: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(pledgeAgainst, Facts(anySeatedMemberCanPledgeAgainst: false)).Should().BeFalse();
+        }
+
+        // The offering wire: pledge_against must be TAUGHT to the LLM only when the fact holds, or the model
+        // proposes a scheme CouncilLift.SettlePledgeAgainst's own re-check (CommitmentBehavior.HasActive,
+        // CourtActionResolver.ResolvePledgeTarget) would refuse outright, a hollow promise the table never
+        // actually carries out.
+        [Test]
+        public void GIVEN_a_seated_member_can_pledge_against_a_rival_WHEN_offered_keys_are_asked_THEN_pledge_against_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, Facts(anySeatedMemberCanPledgeAgainst: true))
+                .Should().Contain("pledge_against");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, Facts(anySeatedMemberCanPledgeAgainst: true))
+                .Should().Contain("pledge_against");
+        }
+
+        // Absent that fact (every seated member already carries a pledge, or none is seated) the key must be
+        // withheld, or the table could offer a scheme the lift has already proven impossible.
+        [Test]
+        public void GIVEN_no_seated_member_can_pledge_against_a_rival_WHEN_offered_keys_are_asked_THEN_pledge_against_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, Facts(anySeatedMemberCanPledgeAgainst: false))
+                .Should().NotContain("pledge_against");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, Facts(anySeatedMemberCanPledgeAgainst: false))
+                .Should().NotContain("pledge_against");
+        }
+
+        // The empty-promise guard, the other direction: Companions, WarCouncil and Parley carry no PledgeAgainst
+        // catalogue entry at all (a hired hand's own rivalry has no lord's standing behind it, and WarCouncil
+        // already carries its own faction-scale motions), so the key must never surface there even when the fact
+        // is (nonsensically) true.
+        [Test]
+        public void GIVEN_a_companions_war_council_or_parley_council_WHEN_offered_keys_are_asked_THEN_pledge_against_is_never_included()
+        {
+            ResolutionWorldFacts facts = Facts(anySeatedMemberCanPledgeAgainst: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("pledge_against");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts).Should().NotContain("pledge_against");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("pledge_against");
         }
     }
 }

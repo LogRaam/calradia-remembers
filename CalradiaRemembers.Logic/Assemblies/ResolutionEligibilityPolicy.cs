@@ -63,6 +63,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             if (required.HasFlag(ResolutionRequirement.PlayerHasGiveableFief) && !f.PlayerHasGiveableFief) return false;
             if (required.HasFlag(ResolutionRequirement.SeatedVassalOwnsFief) && !f.SeatedVassalOwnsFief) return false;
             if (required.HasFlag(ResolutionRequirement.AnySeatedCompanionExpellable) && !f.AnySeatedCompanionExpellable) return false;
+            if (required.HasFlag(ResolutionRequirement.AnySeatedMemberCanPledgeAgainst) && !f.AnySeatedMemberCanPledgeAgainst) return false;
 
             return true;
         }

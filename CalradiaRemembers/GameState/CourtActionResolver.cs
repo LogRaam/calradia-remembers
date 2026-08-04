@@ -7,8 +7,10 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 
@@ -322,6 +324,34 @@ namespace CalradiaRemembers.GameState
             (npc.Spouse == candidate || npc.Father == candidate || npc.Mother == candidate ||
              npc.Children != null && npc.Children.Contains(candidate) ||
              npc.Siblings != null && npc.Siblings.Contains(candidate));
+
+      /// <summary>
+      ///   Launches the pledge's underlying scheme and records its <see cref="TrackedCommitment" />: the ONE
+      ///   shared code path every pledge_against caller runs (the 1:1 action,
+      ///   <c>BannerlordGameStateBridge.ExecutePledgeAgainst</c>, and the council's own resolution,
+      ///   <c>CalradiaRemembers.Chat.CouncilLift.SettlePledgeAgainst</c>), factored out here (2026-08-04, Partie
+      ///   1's schemes kind) so a lord's pledge behaves identically whichever table struck it, rather than the
+      ///   two callers drifting apart over two copies of the same scheme-launch logic. Every gate (kin,
+      ///   one-active-commitment, and whichever caller's own extra caveat, e.g. the council's "not a fellow
+      ///   seat") must already have passed before this is called; this method only performs the launch, it is
+      ///   never itself a guard.
+      /// </summary>
+      public static void LaunchPledge(Hero promisor, Hero target, NpcProfile promisorProfile, CommitmentBehavior behavior, int today)
+      {
+         // A calculating lord favours quiet sabotage; others reach for slander. Never a war action - the
+         // scheme is the whole of what a pledge sets in motion.
+         SchemeKind kind = promisor.GetTraitLevel(DefaultTraits.Calculating) >= 1
+            ? SchemeKind.Sabotage
+            : SchemeKind.Slander;
+         string schemeStatus = SchemeStore.Instance?.ForcePlot(promisor, target, kind);
+
+         behavior.Create(promisor.StringId, target.StringId, today);
+
+         promisorProfile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
+            $"Pledged to the player to move against {target.Name}."));
+
+         ModLog.Info($"[ACTION] pledge_against: {promisor.Name} pledged to move against {target.Name} ({kind}). {schemeStatus}");
+      }
 
       // ── release_prisoner ─────────────────────────────────────────────────
 

@@ -53,21 +53,24 @@ namespace CalradiaRemembers.Tests.Assemblies
 
         // GrantFief was RE-SCOPED off ClanLords to WarCouncil (Partie 2, COUNCIL_ACTIONS.md's Kimi review: a
         // fief belongs to the CLAN, so "granting" one within the player's own clan, ClanLords' own scope, is
-        // mechanically vacant). The clan-lords' scope must now return ONLY GiveGold, its one remaining motion.
+        // mechanically vacant). PledgeAgainst (Partie 1's schemes kind) then joined GiveGold as the clan-lords'
+        // SECOND motion, so the scope must return exactly those two, in declaration order.
         [Test]
-        public void GIVEN_a_clan_lords_council_WHEN_the_catalogue_is_queried_THEN_only_give_gold_returns()
+        public void GIVEN_a_clan_lords_council_WHEN_the_catalogue_is_queried_THEN_give_gold_and_pledge_against_return()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.ClanLords).Select(d => d.Kind).ToList();
 
-            kinds.Should().Equal(ResolutionKind.GiveGold);
+            kinds.Should().Equal(ResolutionKind.GiveGold, ResolutionKind.PledgeAgainst);
         }
 
-        // The family council has no motions yet (they arrive with that variant); the query must return an empty
-        // list, never throw, so wiring the family variant later is purely additive.
+        // The family council carried NO motion at all until PledgeAgainst (Partie 1's schemes kind) became its
+        // first: a seated lord's own standing rivalry is exactly as plausible within the player's inner circle
+        // as among the wider clan-lords' table. The query must now return exactly that one motion.
         [Test]
-        public void GIVEN_a_scope_with_no_motions_yet_WHEN_queried_THEN_it_returns_empty_without_throwing()
+        public void GIVEN_the_family_council_WHEN_the_catalogue_is_queried_THEN_only_pledge_against_returns()
         {
-            ResolutionCatalog.ForScope(CouncilScope.Family).Should().BeEmpty();
+            ResolutionCatalog.ForScope(CouncilScope.Family).Select(d => d.Kind)
+                .Should().Equal(ResolutionKind.PledgeAgainst);
         }
 
         // M4: the catalogue enum and the runtime string vocabulary used to be disjoint ("quest" existed only as a
@@ -411,6 +414,48 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().NotContain("give_influence");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("give_influence");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("give_influence");
+        }
+
+        // Partie 1 (COUNCIL_ACTIONS.md's schemes block): pledge_against has a live lift executor
+        // (CouncilLift.SettlePledgeAgainst) from the day it lands, REUSING the existing 1:1 pledge_against
+        // system end to end; the table must be able to actually launch the scheme, not just record the pledge.
+        [Test]
+        public void GIVEN_pledge_against_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.PledgeAgainst).Should().BeTrue();
+        }
+
+        // pledge_against is a seated member's own promise (their own scheme against a rival), not a decision
+        // about two FACTIONS, so it must never bypass the ordinary seated-member re-validation the way
+        // declare_war/make_peace do (covered generically by
+        // GIVEN_every_member_pledge_kind_WHEN_asked_if_it_is_faction_centric_THEN_none_of_them_are above; pinned
+        // here too for the kind's own documentation).
+        [Test]
+        public void GIVEN_pledge_against_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.PledgeAgainst).Should().BeFalse();
+        }
+
+        // Both scopes pledge_against was granted must actually surface its key alongside the universal quest, or
+        // a council seated with a genuinely aggrieved lord would have no way to reach
+        // CouncilLift.SettlePledgeAgainst at all.
+        [Test]
+        public void GIVEN_a_clan_lords_or_family_council_WHEN_asked_for_executable_kinds_THEN_pledge_against_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().Contain("pledge_against");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().Contain("pledge_against");
+        }
+
+        // The empty-promise guard, the other direction: Companions, WarCouncil and Parley carry NO PledgeAgainst
+        // catalogue entry at all (a hired hand's own rivalry has no lord's standing behind it, and WarCouncil
+        // already carries its own faction-scale motions, declare_war/make_peace), so their executable set must
+        // never surface it, whatever the world facts.
+        [Test]
+        public void GIVEN_a_companions_war_council_or_parley_council_WHEN_asked_for_executable_kinds_THEN_pledge_against_is_absent()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("pledge_against");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.WarCouncil).Should().NotContain("pledge_against");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Parley).Should().NotContain("pledge_against");
         }
     }
 }

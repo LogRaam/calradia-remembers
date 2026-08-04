@@ -14,6 +14,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
 using NpcMemoryService.Core.Compression;
@@ -374,6 +375,30 @@ namespace CalradiaRemembers.Chat
             bool isSpouse = hero == Hero.MainHero?.Spouse;
             if (ExpulsionPolicy.CanExpel(playerIsClanLeader, hero.IsPlayerCompanion, isSpouse, hero.IsAlive))
                return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>
+      ///   Partie 1 (COUNCIL_ACTIONS.md's schemes block): pledge_against's own fact, REUSING the existing 1:1
+      ///   pledge_against system end to end. True once any seated LORD, alive, free, and not the player, holds
+      ///   no pledge already outstanding (CommitmentBehavior.HasActive). An APPROXIMATION, mirroring
+      ///   AnySeatedMemberHasGold's own loose gate: proving a genuine RIVAL also exists (standing enmity,
+      ///   non-kin, non-faction-leader) would need each seat's own NpcProfile plus a full Hero.AllAliveHeroes
+      ///   scan, real cost for a fact that only gates TEACHING, and the exact rival is not known at offer time
+      ///   regardless (the LLM has not named one yet); the full validation, plus the council's own
+      ///   not-a-fellow-seat caveat, still happens at the lift (CourtActionResolver.ResolvePledgeTarget,
+      ///   CouncilLift.SettlePledgeAgainst, bridge is law).
+      /// </summary>
+      private bool AnySeatedMemberCanPledgeAgainst()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero is not {IsAlive: true, IsLord: true} || hero.IsPrisoner || hero == Hero.MainHero) continue;
+
+            if (CommitmentBehavior.Instance?.HasActive(hero.StringId) != true) return true;
          }
 
          return false;
