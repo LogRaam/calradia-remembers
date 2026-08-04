@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Appreciations;
+using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Jealousy;
@@ -579,6 +580,13 @@ namespace CalradiaRemembers.Chat
                // narrator framing instead of "you lead, they react" (see EncounterContext.IsCouncilNarratorTurn).
                isCouncilNarratorTurn: _councilScope != null,
                addressedCouncilMemberName: addressedCouncilMemberName,
+               // Council resolution offering: computed ONLY for a REAL council (_councilScope set), never for the
+               // console whole-table spike or an ordinary 1:1 turn, so appoint_governor can never be taught
+               // outside a real, eligible council. _councilParticipants is already the roster CouncilRosterResolver
+               // seated (available members only), so any filled seat satisfies TargetAvailable.
+               councilOfferedResolutionKinds: _councilScope != null
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0)
+                  : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic
                // scene cue has no attempt to judge.

@@ -25,6 +25,26 @@ namespace CalradiaRemembers.Logic.Assemblies
         public static IEnumerable<ResolutionDefinition> OffersFor(CouncilScope scope, ResolutionWorldFacts facts)
             => ResolutionCatalog.ForScope(scope).Where(d => CanOffer(d, facts));
 
+        /// <summary>
+        ///   The string keys of the kinds a council of <paramref name="scope" /> may currently TEACH the LLM:
+        ///   <see cref="ResolutionCatalog.ExecutableKindKeysForScope" /> (the LIVE-executor set) narrowed to the
+        ///   ones <paramref name="facts" /> actually satisfies. Quest carries no <see cref="ResolutionDefinition" />
+        ///   (it is universal, not a scoped menu motion, see <see cref="ResolutionKind.Quest" />) so it is always
+        ///   kept; every other executable kind must pass <see cref="CanOffer" /> like any catalogue motion. This
+        ///   is the one place the prompt-offering feature reads, so a kind the lift cannot yet honour (an unmet
+        ///   requirement) is withheld from the teaching instead of promising a deed that fails at the lift.
+        /// </summary>
+        public static IEnumerable<string> OfferedExecutableKeysForScope(CouncilScope scope, ResolutionWorldFacts facts)
+        {
+            foreach (string key in ResolutionCatalog.ExecutableKindKeysForScope(scope))
+            {
+                if (!ResolutionCatalog.TryParseKey(key, out ResolutionKind kind)) continue;
+
+                if (kind == ResolutionKind.Quest || CanOffer(ResolutionCatalog.Get(kind), facts))
+                    yield return key;
+            }
+        }
+
         // The single place the requirement flags map to world facts. Each required flag must find its fact true;
         // an unrequired flag is ignored. A requirement of None is trivially met (an unconditional motion).
         private static bool Meets(ResolutionWorldFacts f, ResolutionRequirement required)

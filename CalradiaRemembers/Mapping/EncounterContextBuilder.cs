@@ -115,6 +115,7 @@ namespace CalradiaRemembers.Mapping
          bool isRoundTableTurn = false,
          bool isCouncilNarratorTurn = false,
          string addressedCouncilMemberName = null,
+         IReadOnlyList<string> councilOfferedResolutionKinds = null,
          bool? playerAttemptSucceeds = null)
       {
          int daysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge);
@@ -188,6 +189,11 @@ namespace CalradiaRemembers.Mapping
             // See EncounterContext.IsCouncilNarratorTurn for the full rationale.
             IsCouncilNarratorTurn = isCouncilNarratorTurn,
             AddressedCouncilMemberName = addressedCouncilMemberName,
+            // Council resolution offering: which executable resolution kinds (beyond the universal quest) the
+            // mod has proven the lift could currently honour (see ResolutionOfferingResolver). Null on every
+            // non-council turn (every caller above this one), so PromptBuilder's fallback (teach quest alone)
+            // is exactly what every existing caller already gets.
+            CouncilOfferedResolutionKinds = councilOfferedResolutionKinds,
             // This turn's pre-drawn verdict for a captive player's physical attempt: the mod decides, the model
             // narrates (an LLM judging the struggle it is also writing always sides with its own story).
             PlayerAttemptSucceeds = playerAttemptSucceeds,

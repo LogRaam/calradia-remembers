@@ -77,5 +77,40 @@ namespace CalradiaRemembers.Tests.Assemblies
             offered.Should().NotContain(ResolutionKind.AppointGovernor); // no vacant fief
             offered.Should().NotContain(ResolutionKind.DispatchOnMission); // no mission available
         }
+
+        // The prompt-offering feature (2026-08-03): appoint_governor must be TAUGHT to the LLM only when both
+        // its conditions hold, or the model promises a governorship the lift then has no fief/companion to
+        // grant (CouncilLift.SettleAppointGovernor's own re-check would fail it, wasting the player's turn on
+        // a pledge that was never possible).
+        [Test]
+        public void GIVEN_a_vacant_fief_and_an_available_member_WHEN_offered_keys_are_asked_THEN_appoint_governor_is_included()
+        {
+            ResolutionWorldFacts facts = Facts(available: true, vacantFief: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts)
+                .Should().Contain("appoint_governor");
+        }
+
+        // Missing either half of the requirement must withhold the key from the OFFERED set, the same AND the
+        // definition-level CanOffer check already enforces; this test pins that the scope-level aggregation
+        // (what the prompt actually reads) does not silently relax that AND.
+        [Test]
+        public void GIVEN_no_vacant_fief_OR_no_available_member_WHEN_offered_keys_are_asked_THEN_appoint_governor_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, Facts(available: true, vacantFief: false))
+                .Should().NotContain("appoint_governor");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, Facts(available: false, vacantFief: true))
+                .Should().NotContain("appoint_governor");
+        }
+
+        // Quest carries no ResolutionDefinition (it is universal, not a scoped catalogue motion), so it must
+        // never be filtered by facts: a family council with zero motions of its own must still surface "quest",
+        // or that scope could seat and debate yet never record a single deed.
+        [Test]
+        public void GIVEN_any_scope_and_empty_facts_WHEN_offered_keys_are_asked_THEN_quest_is_always_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, Facts())
+                .Should().Contain("quest");
+        }
     }
 }
