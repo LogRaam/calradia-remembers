@@ -22,8 +22,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool available = false,
                                                   bool vacantFief = false,
                                                   bool canAfford = false,
-                                                  bool mission = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission);
+                                                  bool mission = false,
+                                                  bool outOfParty = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -35,6 +36,19 @@ namespace CalradiaRemembers.Tests.Assemblies
 
             ResolutionEligibilityPolicy.CanOffer(assign, Facts(inParty: true)).Should().BeTrue();
             ResolutionEligibilityPolicy.CanOffer(assign, Facts(inParty: false)).Should().BeFalse();
+        }
+
+        // Bug d, the symmetric inverse: rejoining the party needs the OPPOSITE fact of assign_party_role, a
+        // seated companion who is NOT in the party. Offering it while nobody is out (or withholding it while
+        // someone is) would either promise a rejoin the lift finds nothing to settle, or hide the one deed that
+        // closes the "companion pledges to rejoin, nothing happens" report.
+        [Test]
+        public void GIVEN_rejoin_party_WHEN_the_target_is_or_is_not_out_of_the_party_THEN_offer_follows()
+        {
+            ResolutionDefinition rejoin = ResolutionCatalog.Get(ResolutionKind.RejoinParty);
+
+            ResolutionEligibilityPolicy.CanOffer(rejoin, Facts(outOfParty: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(rejoin, Facts(outOfParty: false)).Should().BeFalse();
         }
 
         // A two-condition motion is AND, not OR: appointing a governor needs BOTH an available companion AND a
@@ -101,6 +115,25 @@ namespace CalradiaRemembers.Tests.Assemblies
                 .Should().NotContain("appoint_governor");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, Facts(available: false, vacantFief: true))
                 .Should().NotContain("appoint_governor");
+        }
+
+        // The offering wire (bug d): rejoin_party must be TAUGHT to the LLM only when a seated companion is
+        // actually out of the party, or the model promises a rejoin CouncilLift.SettleRejoinParty then finds
+        // nobody eligible to bring back (wasting the player's turn on a pledge that was never possible).
+        [Test]
+        public void GIVEN_a_seated_companion_out_of_the_party_WHEN_offered_keys_are_asked_THEN_rejoin_party_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, Facts(outOfParty: true))
+                .Should().Contain("rejoin_party");
+        }
+
+        // Absent that fact (every seated companion already rides along, or none is seated) the key must be
+        // withheld, or the LLM could promise a rejoin for someone with nothing to rejoin from.
+        [Test]
+        public void GIVEN_no_seated_companion_out_of_the_party_WHEN_offered_keys_are_asked_THEN_rejoin_party_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, Facts(outOfParty: false))
+                .Should().NotContain("rejoin_party");
         }
 
         // Quest carries no ResolutionDefinition (it is universal, not a scoped catalogue motion), so it must

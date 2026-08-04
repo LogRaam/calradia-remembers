@@ -101,8 +101,9 @@ namespace CalradiaRemembers.Chat
          // B2/M4: the registry, not a magic string, decides what the table can carry out. Only executable kinds
          // reach an executor; anything else (an unmapped kind, or a catalogue kind whose executor has not landed
          // yet, Q5 "extend then migrate") is reported honestly instead of silently applied or dropped. Quest,
-         // AppointGovernor and AssignPartyRole are executable today, so a passing entry here is one of those
-         // three; the switch below this gate is the per-kind dispatch, extended the day a fourth executor is wired.
+         // AppointGovernor, AssignPartyRole and RejoinParty are executable today, so a passing entry here is one
+         // of those four; the switch below this gate is the per-kind dispatch, extended the day a fifth executor
+         // is wired.
          if (!ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind kind) || !ResolutionCatalog.IsExecutable(kind))
          {
             ledger.MarkFailed(entry.Id, "This kind of decision is not yet settled by the council.");
@@ -133,6 +134,11 @@ namespace CalradiaRemembers.Chat
 
             case ResolutionKind.AssignPartyRole:
                SettleAssignPartyRole(ledger, entry, actorHero, actorName, report);
+
+               return;
+
+            case ResolutionKind.RejoinParty:
+               SettleRejoinParty(ledger, entry, actorHero, actorName, report);
 
                return;
 
@@ -290,6 +296,89 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"{actorName} now serves as your {role}.", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} assigned party role {role}.");
+      }
+
+      /// <summary>
+      ///   The THIRD executable menu motion, closing bug d: a clan companion seated at a council while NOT
+      ///   currently riding in the player's own party (the roster's own availability rule allows this seat, e.g.
+      ///   while governing a town, see anySeatedMemberAvailable's doc) pledges to rejoin it. Author's stance,
+      ///   mirroring AssignPartyRole and AppointGovernor's own wiring: instant at the lift, no price, no
+      ///   companion-limit check (they are already a companion), and no separate refusal policy (a member
+      ///   pledging their own return is not a favour asked of a third party). The guards are mechanical,
+      ///   bridge-is-law re-checks of what the pledge still needs to be true: alive, not held prisoner, still a
+      ///   clan companion (a clan LORD leads their own party and is out of scope here), and genuinely outside the
+      ///   main party. Two edge cases get their own explicit handling rather than a silent skip: a companion who
+      ///   LEADS their own separate party is refused in v1 (disbanding that party is the player's own call, not
+      ///   this lift's), and a companion currently holding a settlement GOVERNOR post has that post released
+      ///   first (the inverse of SettleAppointGovernor's own grant), reported alongside the rejoin.
+      /// </summary>
+      private static void SettleRejoinParty(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true})
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (actorHero.IsPrisoner)
+         {
+            const string reason = "they are held prisoner and cannot travel.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!actorHero.IsPlayerCompanion)
+         {
+            const string reason = "they no longer belong to the player's clan as a companion.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (actorHero.PartyBelongedTo == MobileParty.MainParty)
+         {
+            const string reason = "they already ride in the player's own party.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         // A companion who leads their OWN party (not the main one) cannot simply be lifted out of it without
+         // orphaning whoever they command: refuse in v1 rather than silently disbanding a party the player never
+         // asked to break up.
+         if (actorHero.PartyBelongedTo?.LeaderHero == actorHero)
+         {
+            const string reason = "they lead their own company; disband it first.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         // The inverse of SettleAppointGovernor's own grant: a governor rejoining the party must first be
+         // relieved of their post, or the fief would be left claiming a governor who has physically left it.
+         bool wasGovernor = actorHero.GovernorOf != null;
+         string governedFief = wasGovernor ? actorHero.GovernorOf.Name?.ToString() : null;
+         if (wasGovernor)
+         {
+            ChangeGovernorAction.RemoveGovernorOf(actorHero);
+            ModLog.Info($"[COUNCIL] lift: released {actorName} from governing {governedFief} so they could rejoin the party.");
+         }
+
+         AddHeroToPartyAction.Apply(actorHero, MobileParty.MainParty, false);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke(wasGovernor
+            ? $"{actorName} steps down from governing {governedFief} and rejoins your party."
+            : $"{actorName} rejoins your party.", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} rejoined the player's party.");
       }
 
       /// <summary>Maps the Logic-side <see cref="CouncilPartyRole" /> to the engine's own <see cref="PartyRole" />. None never reaches here (guarded in <see cref="SettleAssignPartyRole" />).</summary>

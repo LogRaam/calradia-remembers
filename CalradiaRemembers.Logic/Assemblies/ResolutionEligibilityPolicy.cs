@@ -54,6 +54,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             if (required.HasFlag(ResolutionRequirement.PlayerHasVacantFief) && !f.PlayerHasVacantFief) return false;
             if (required.HasFlag(ResolutionRequirement.PlayerCanAffordStipend) && !f.PlayerCanAffordStipend) return false;
             if (required.HasFlag(ResolutionRequirement.MissionAvailable) && !f.MissionAvailable) return false;
+            if (required.HasFlag(ResolutionRequirement.TargetOutOfPlayerParty) && !f.TargetOutOfPlayerParty) return false;
 
             return true;
         }

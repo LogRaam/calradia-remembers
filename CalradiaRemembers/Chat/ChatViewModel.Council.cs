@@ -229,6 +229,30 @@ namespace CalradiaRemembers.Chat
          return false;
       }
 
+      /// <summary>
+      ///   True once any seated member's hero is a live clan companion currently OUTSIDE the player's own party:
+      ///   the TargetOutOfPlayerParty fact rejoin_party needs (ResolutionOfferingResolver.OfferedKindKeys),
+      ///   mirroring <see cref="AnySeatedMemberInPlayerParty" />'s own wiring exactly, but the symmetric inverse
+      ///   condition. Closes bug d: a clan companion may be seated at a council while away (the roster's own
+      ///   availability rule already allows this, see anySeatedMemberAvailable's doc), and today the only "join"
+      ///   path (the 1:1 join_party action) hires a free Wanderer only, so an existing companion pledging to
+      ///   rejoin had nothing to execute it. A clan LORD who leads their own party is out of scope for this
+      ///   rejoin (see CouncilLift.SettleRejoinParty's own refusal for that case), so this reads IsPlayerCompanion
+      ///   specifically, not merely same-clan.
+      /// </summary>
+      private bool AnySeatedCompanionOutOfPlayerParty()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero is {IsAlive: true, IsPlayerCompanion: true, IsPrisoner: false}
+                && hero.PartyBelongedTo != MobileParty.MainParty)
+               return true;
+         }
+
+         return false;
+      }
+
       #region Scene image on the thinking placeholder
 
       /// <summary>
