@@ -34,8 +34,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool anySeatedCompanionExpellable = false,
                                                   bool anySeatedMemberCanPledgeAgainst = false,
                                                   bool anySeatedAllyHasMarriageableKin = false,
-                                                  bool anySeatedTributePayerAvailable = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin, anySeatedTributePayerAvailable);
+                                                  bool anySeatedTributePayerAvailable = false,
+                                                  bool anySeatedPrisonerAvailableToRelease = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin, anySeatedTributePayerAvailable, anySeatedPrisonerAvailableToRelease);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -686,6 +687,53 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("tribute");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("tribute");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts).Should().NotContain("tribute");
+        }
+
+        // Rounds out the Parley toolkit (make_peace + tribute + release_prisoner, 2026-08-04): release_prisoner
+        // needs only the single AnySeatedPrisonerAvailableToRelease fact (the player holds a hero prisoner of
+        // the parley enemy's own faction). Missing it must withhold the motion entirely, or the table could
+        // offer a concession the lift has already proven nobody-held-captive makes possible.
+        [Test]
+        public void GIVEN_release_prisoner_WHEN_the_player_does_or_does_not_hold_a_prisoner_of_the_enemy_faction_THEN_offer_follows()
+        {
+            ResolutionDefinition releasePrisoner = ResolutionCatalog.Get(ResolutionKind.ReleasePrisoner);
+
+            ResolutionEligibilityPolicy.CanOffer(releasePrisoner, Facts(anySeatedPrisonerAvailableToRelease: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(releasePrisoner, Facts(anySeatedPrisonerAvailableToRelease: false)).Should().BeFalse();
+        }
+
+        // The offering wire: release_prisoner must be TAUGHT to the LLM only when the fact holds, or the model
+        // proposes a concession CouncilLift.SettleReleasePrisoner's own re-check (the named captive must still
+        // be held by the player AND belong to the parley enemy's own faction) would refuse outright, a hollow
+        // promise the table never actually carries out.
+        [Test]
+        public void GIVEN_the_player_holds_a_prisoner_of_the_enemy_faction_WHEN_offered_keys_are_asked_THEN_release_prisoner_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, Facts(anySeatedPrisonerAvailableToRelease: true))
+                .Should().Contain("release_prisoner");
+        }
+
+        // Absent that fact (the player holds no prisoner of the parley enemy's own faction) the key must be
+        // withheld, or the table could offer a concession the lift has already proven impossible.
+        [Test]
+        public void GIVEN_the_player_holds_no_prisoner_of_the_enemy_faction_WHEN_offered_keys_are_asked_THEN_release_prisoner_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, Facts(anySeatedPrisonerAvailableToRelease: false))
+                .Should().NotContain("release_prisoner");
+        }
+
+        // The empty-promise guard, the other direction: Companions, Family, ClanLords and WarCouncil carry no
+        // ReleasePrisoner catalogue entry at all (only a Parley ever seats an enemy faction leader to ask this
+        // concession of), so the key must never surface there even when the fact is (nonsensically) true.
+        [Test]
+        public void GIVEN_a_companions_family_clan_lords_or_war_council_WHEN_offered_keys_are_asked_THEN_release_prisoner_is_never_included()
+        {
+            ResolutionWorldFacts facts = Facts(anySeatedPrisonerAvailableToRelease: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("release_prisoner");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("release_prisoner");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("release_prisoner");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts).Should().NotContain("release_prisoner");
         }
     }
 }

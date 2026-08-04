@@ -21,6 +21,7 @@ using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Quests;
+using CalradiaRemembers.Verbs;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -160,9 +161,11 @@ namespace CalradiaRemembers.Chat
 
          // Council audit M4 -> B2: the executable gate above proves kind is Quest, AppointGovernor,
          // AssignPartyRole, or one of the later executors (RejoinParty, DispatchOnMission, GrantStipend,
-         // DeclareWar/MakePeace, GiveGold/GiveInfluence, Partie 2's GrantFief/RevokeFief, and Partie 8's
-         // ExpelFromClan) today; this switch is the per-kind dispatch that plug point replaces. Each case owns
-         // its own guards and reporting so a new executor never has to thread through another kind's assumptions.
+         // DeclareWar/MakePeace, GiveGold/GiveInfluence, Partie 2's GrantFief/RevokeFief, Partie 8's
+         // ExpelFromClan/SwapFiefs/Tribute, and ReleasePrisoner, rounding out the Parley toolkit alongside
+         // MakePeace and Tribute) today; this switch is the per-kind dispatch that plug point replaces. Each
+         // case owns its own guards and reporting so a new executor never has to thread through another kind's
+         // assumptions.
          switch (kind)
          {
             case ResolutionKind.AppointGovernor:
@@ -232,6 +235,11 @@ namespace CalradiaRemembers.Chat
 
             case ResolutionKind.Tribute:
                SettleTribute(ledger, entry, actorHero, actorName, report);
+
+               return;
+
+            case ResolutionKind.ReleasePrisoner:
+               SettleReleasePrisoner(ledger, entry, actorHero, actorName, report, parleyTargetFactionId);
 
                return;
 
@@ -1349,6 +1357,71 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"{actorName} will pay you {clamped} denars a day for the next {TributePolicy.TributeDays} days.", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} pledged a tribute of {clamped}/day for {TributePolicy.TributeDays} days.");
+      }
+
+      /// <summary>
+      ///   Rounds out the Parley toolkit (make_peace + tribute + release_prisoner, 2026-08-04): as a concession
+      ///   in THIS SAME negotiation, the PLAYER releases an enemy lord they currently hold prisoner back to
+      ///   freedom, REUSING the existing 1:1 free_prisoner mechanic end to end
+      ///   (<see cref="EndCaptivityAction.ApplyByReleasedByChoice" />, the SAME call
+      ///   BannerlordGameStateBridge.ExecuteFreePrisoner and the 1:1 release_prisoner verb both already use)
+      ///   plus the SAME +relation bump the 1:1 release_prisoner verb already gives a freed captive toward the
+      ///   player (<see cref="ChangeRelationAction.ApplyRelationChangeBetweenHeroes" />,
+      ///   <see cref="CourtActionPolicy.ReleasePrisonerRelationBump" />). <see cref="AssemblyResolutionEntry.TargetHint" />
+      ///   carries the CAPTIVE'S OWN NAME (this kind's own grounding, see RecordCouncilResolution's doc),
+      ///   resolved among the player's own held hero prisoners by
+      ///   <see cref="BuyPrisonerVerb.ResolvePlayerHeldPrisonerByName" /> (the SAME player-custody pool the
+      ///   prisoner-trade verbs already read, so "still held" is proven by the lookup itself finding them at
+      ///   all). Guards re-checked here rather than trusted from proposal/offer time (bridge is law): the named
+      ///   prisoner must still belong to the SAME faction the parley was convened against
+      ///   (<paramref name="parleyTargetFactionId" />, exactly like <see cref="SettleMakePeace" />'s own
+      ///   preferred source), so this only ever frees a genuine concession to THIS counterpart, never an
+      ///   unrelated captive of some third house. A named prisoner who is not held, or belongs to a different
+      ///   faction, is surfaced honestly rather than silently doing nothing, the same discipline every executor
+      ///   above follows.
+      /// </summary>
+      private static void SettleReleasePrisoner(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report, string parleyTargetFactionId)
+      {
+         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         Hero prisoner = BuyPrisonerVerb.ResolvePlayerHeldPrisonerByName(entry.TargetHint);
+
+         if (prisoner == null)
+         {
+            const string reason = "you hold no such captive to free.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         IFaction enemyFaction = ParleyFactionLookup.ByStringId(parleyTargetFactionId);
+
+         if (enemyFaction == null || prisoner.MapFaction == null || prisoner.MapFaction != enemyFaction)
+         {
+            string reason = $"{prisoner.Name} does not belong to {actorName}'s own faction; freeing them would be no concession to this table.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         string prisonerName = prisoner.Name?.ToString() ?? "the captive";
+
+         EndCaptivityAction.ApplyByReleasedByChoice(prisoner, Hero.MainHero);
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(
+            prisoner, Hero.MainHero, CourtActionPolicy.ReleasePrisonerRelationBump, false);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"You free {prisonerName}, returning them to {actorName}.", true);
+         ModLog.Info($"[COUNCIL] lift: released {prisonerName} from captivity as a parley concession to {actorName}.");
       }
 
       /// <summary>

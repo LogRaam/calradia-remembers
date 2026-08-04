@@ -173,7 +173,12 @@ namespace CalradiaRemembers.Chat
          // the lift by the SAME codec (CouncilLift.SettleArrangeMarriage). Partie 8's "swap_fiefs" (COUNCIL_ACTIONS.md's
          // Kimi review) is the SECOND such two-name kind (the player's own fief AND the seated vassal's own
          // fief), composed the same way by the dedicated FiefSwapGroundingCodec.Compose, split apart again at
-         // the lift by that same codec (CouncilLift.SettleSwapFiefs).
+         // the lift by that same codec (CouncilLift.SettleSwapFiefs). "release_prisoner" (rounding out the
+         // Parley toolkit alongside make_peace and tribute, 2026-08-04) grounds on the CAPTIVE'S OWN NAME, a
+         // dedicated SDK field (ResolutionProposal.TargetPrisonerName, not a reuse of TargetRival, which is
+         // pledge_against's own ADVERSARY grounding, a different relationship entirely), read back by
+         // CouncilLift.SettleReleasePrisoner via BuyPrisonerVerb's own tolerant name match over the player's
+         // held prisoners.
          string targetHint;
          if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.ArrangeMarriage), StringComparison.OrdinalIgnoreCase))
             targetHint = ArrangeMarriageGroundingCodec.Compose(proposal.PlayerKinName, proposal.TargetKinName);
@@ -200,6 +205,10 @@ namespace CalradiaRemembers.Chat
             // for a hero's name to live in), read back by CouncilLift.SettlePledgeAgainst via
             // CourtActionResolver's own tolerant name match.
             targetHint = proposal.TargetRival;
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.ReleasePrisoner), StringComparison.OrdinalIgnoreCase))
+            // "release_prisoner" (rounding out the Parley toolkit alongside make_peace and tribute): grounds on
+            // the CAPTIVE'S OWN NAME, this kind's own dedicated field (see this method's own doc above).
+            targetHint = proposal.TargetPrisonerName;
          else
             targetHint = proposal.TargetSettlement;
          AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession, targetHint);

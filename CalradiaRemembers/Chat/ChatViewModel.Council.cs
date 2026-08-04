@@ -461,6 +461,30 @@ namespace CalradiaRemembers.Chat
          return false;
       }
 
+      /// <summary>
+      ///   Rounds out the Parley toolkit (make_peace + tribute + release_prisoner, 2026-08-04): release_prisoner's
+      ///   own fact. True once the player currently holds, in their own party (the SAME pool the 1:1 prisoner-trade
+      ///   verbs already read, <see cref="CalradiaRemembers.Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners" />), at
+      ///   least one hero prisoner belonging to the SAME faction this parley was convened against
+      ///   (<see cref="CalradiaRemembers.Assemblies.ParleyFactionLookup" />, the ONE source of truth
+      ///   PlayerCanMakePeace already reads for the identical reason): a captive of an unrelated third house
+      ///   would be no genuine concession to the seated counterpart across the table. An APPROXIMATION,
+      ///   mirroring AnySeatedTributePayerAvailable's own loose gate: proves only that SOME real concession
+      ///   exists, never the exact captive the LLM will actually name; the named captive is re-resolved and
+      ///   re-checked against the SAME faction at the lift regardless (CouncilLift.SettleReleasePrisoner, bridge
+      ///   is law).
+      /// </summary>
+      private bool AnySeatedPrisonerAvailableToRelease()
+      {
+         IFaction enemyFaction = CalradiaRemembers.Assemblies.ParleyFactionLookup.ByStringId(_councilParleyTargetFactionId);
+         if (enemyFaction == null) return false;
+
+         foreach (Hero prisoner in CalradiaRemembers.Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners())
+            if (prisoner?.MapFaction != null && prisoner.MapFaction == enemyFaction) return true;
+
+         return false;
+      }
+
       /// <summary>Whether the player's own clan currently holds any alive, unwed kin other than the player: the half of <see cref="AnySeatedAllyHasMarriageableKin" /> that never depends on who is seated.</summary>
       private static bool PlayerClanHasUnwedKin()
       {

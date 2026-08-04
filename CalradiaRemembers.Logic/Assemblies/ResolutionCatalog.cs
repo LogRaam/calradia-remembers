@@ -195,7 +195,25 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   GiveGold, never a decision about the two factions themselves the way MakePeace is, so it keeps the
         ///   ordinary seated-member re-validation at the lift (CouncilLift.SettleTribute).
         /// </summary>
-        Tribute
+        Tribute,
+
+        /// <summary>
+        ///   Rounds out the Parley toolkit (make_peace + tribute + release_prisoner, 2026-08-04): as a
+        ///   concession in the SAME negotiation, the PLAYER releases an enemy lord they currently hold
+        ///   prisoner back to freedom, REUSING the existing 1:1 free_prisoner mechanic end to end
+        ///   (EndCaptivityAction.ApplyByReleasedByChoice, the same call BannerlordGameStateBridge.ExecuteFreePrisoner
+        ///   and the 1:1 release_prisoner verb already use) plus the SAME +relation bump the release_prisoner
+        ///   verb already gives a freed captive toward the player (CourtActionPolicy.ReleasePrisonerRelationBump).
+        ///   Parley-scoped ONLY (the one roster that ever seats an enemy faction leader to negotiate a
+        ///   concession from at all, mirroring Tribute's own single-scope entry): the seated ENEMY leader is the
+        ///   actor whose own house benefits, never the freed captive themselves (a hero of that SAME faction,
+        ///   re-validated at the lift so only a genuine concession to THIS counterpart, never an unrelated
+        ///   captive of some third house, is ever freed here). Not FACTION-CENTRIC (see
+        ///   <see cref="IsFactionCentric" />): the pledge is the seated leader's own ASK of the player, not a
+        ///   decision about the two factions themselves the way MakePeace is, so it keeps the ordinary
+        ///   seated-member re-validation at the lift (CouncilLift.SettleReleasePrisoner).
+        /// </summary>
+        ReleasePrisoner
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -291,7 +309,15 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   tribute's own gate. Parley-scoped only (the one roster that ever seats an enemy faction leader at
         ///   all), see <see cref="ResolutionCatalog" />'s single Tribute entry.
         /// </summary>
-        AnySeatedTributePayerAvailable = 65536
+        AnySeatedTributePayerAvailable = 65536,
+
+        /// <summary>
+        ///   The player currently holds, in their own party, at least one hero prisoner belonging to the SAME
+        ///   faction the parley was convened against: release_prisoner's own gate. Parley-scoped only, mirroring
+        ///   <see cref="AnySeatedTributePayerAvailable" />'s own single-scope entry (the one roster where a
+        ///   concession to a named enemy faction is meaningful at all).
+        /// </summary>
+        AnySeatedPrisonerAvailableToRelease = 131072
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -333,7 +359,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool anySeatedCompanionExpellable = false,
                                     bool anySeatedMemberCanPledgeAgainst = false,
                                     bool anySeatedAllyHasMarriageableKin = false,
-                                    bool anySeatedTributePayerAvailable = false)
+                                    bool anySeatedTributePayerAvailable = false,
+                                    bool anySeatedPrisonerAvailableToRelease = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -352,6 +379,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             AnySeatedMemberCanPledgeAgainst = anySeatedMemberCanPledgeAgainst;
             AnySeatedAllyHasMarriageableKin = anySeatedAllyHasMarriageableKin;
             AnySeatedTributePayerAvailable = anySeatedTributePayerAvailable;
+            AnySeatedPrisonerAvailableToRelease = anySeatedPrisonerAvailableToRelease;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -393,6 +421,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated Parley counterpart is alive and leads a clan distinct from the player's own. tribute's own fact (an approximation, see ResolutionRequirement.AnySeatedTributePayerAvailable).</summary>
         public bool AnySeatedTributePayerAvailable { get; }
+
+        /// <summary>The player holds a hero prisoner of the parley enemy's own faction. release_prisoner's own fact, see ResolutionRequirement.AnySeatedPrisonerAvailableToRelease.</summary>
+        public bool AnySeatedPrisonerAvailableToRelease { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -499,7 +530,14 @@ namespace CalradiaRemembers.Logic.Assemblies
             // the seated leader's OWN promise, so it keeps the ordinary seated-member re-validation, unlike
             // MakePeace/DeclareWar.
             new ResolutionDefinition(ResolutionKind.Tribute, CouncilScope.Parley,
-                "Pledge a daily tribute", ResolutionRequirement.AnySeatedTributePayerAvailable)
+                "Pledge a daily tribute", ResolutionRequirement.AnySeatedTributePayerAvailable),
+
+            // Rounds out the Parley toolkit (make_peace + tribute + release_prisoner, 2026-08-04): Parley-scoped
+            // ONLY, mirroring Tribute's own single-scope entry (the one roster that ever seats an enemy faction
+            // leader to negotiate a concession with at all). Unlike Tribute (funded from the SEATED leader's own
+            // purse), the concession here is the PLAYER's own: an enemy lord they hold prisoner is set free.
+            new ResolutionDefinition(ResolutionKind.ReleasePrisoner, CouncilScope.Parley,
+                "Free a captive lord", ResolutionRequirement.AnySeatedPrisonerAvailableToRelease)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -536,6 +574,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.ArrangeMarriage:    return "arrange_marriage";
                 case ResolutionKind.SwapFiefs:          return "swap_fiefs";
                 case ResolutionKind.Tribute:             return "tribute";
+                case ResolutionKind.ReleasePrisoner:     return "release_prisoner";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -599,8 +638,13 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   REUSING GrantFief's and RevokeFief's own machinery (FiefTransferPolicy.CanSwap,
         ///   ChangeOwnerOfSettlementAction.ApplyByKingDecision) both directions in the same lift call: every
         ///   guard is validated for BOTH fiefs before either transfer is applied, so a swap never moves one side
-        ///   of the trade while leaving the other in place. The runtime teaches and lifts only executable kinds,
-        ///   so the table never promises a deed it cannot keep.
+        ///   of the trade while leaving the other in place. ReleasePrisoner (CouncilLift.SettleReleasePrisoner),
+        ///   rounding out the Parley toolkit alongside MakePeace and Tribute, REUSES the existing 1:1
+        ///   free_prisoner mechanic end to end (EndCaptivityAction.ApplyByReleasedByChoice plus the SAME
+        ///   +relation bump the 1:1 release_prisoner verb already gives a freed captive,
+        ///   CourtActionPolicy.ReleasePrisonerRelationBump): the player frees an enemy lord they hold prisoner
+        ///   as a concession to the seated counterpart's own house. The runtime teaches and lifts only
+        ///   executable kinds, so the table never promises a deed it cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
             => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor
@@ -611,7 +655,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.GrantFief || kind == ResolutionKind.RevokeFief
             || kind == ResolutionKind.ExpelFromClan || kind == ResolutionKind.PledgeAgainst
             || kind == ResolutionKind.ArrangeMarriage || kind == ResolutionKind.SwapFiefs
-            || kind == ResolutionKind.Tribute;
+            || kind == ResolutionKind.Tribute || kind == ResolutionKind.ReleasePrisoner;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric
