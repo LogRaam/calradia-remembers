@@ -582,7 +582,7 @@ namespace CalradiaRemembers.Chat
                addressedCouncilMemberName: addressedCouncilMemberName,
                // Council resolution offering: computed ONLY for a REAL council (_councilScope set), never for the
                // console whole-table spike or an ordinary 1:1 turn, so appoint_governor/assign_party_role/
-               // rejoin_party/dispatch_mission can never be taught outside a real, eligible council.
+               // rejoin_party/dispatch_mission/grant_stipend can never be taught outside a real, eligible council.
                // _councilParticipants is already the roster CouncilRosterResolver seated (available members
                // only), so any filled seat satisfies TargetAvailable; TargetInPlayerParty is the narrower
                // AnySeatedMemberInPlayerParty check assign_party_role needs, and dispatch_mission REUSES this
@@ -590,9 +590,11 @@ namespace CalradiaRemembers.Chat
                // why: being in the main party already excludes an away companion in the normal case, and the
                // narrow reconciliation-window edge case is caught at CouncilLift.SettleDispatchMission instead);
                // TargetOutOfPlayerParty is the symmetric inverse, AnySeatedCompanionOutOfPlayerParty, rejoin_party
-               // alone needs (bug d).
+               // alone needs (bug d); PlayerCanAffordStipend is the fifth executor's own fact, grant_stipend,
+               // proving only the cheapest possible tranche is affordable (the real proposed amount is unknown at
+               // offer time, re-checked at the lift).
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

@@ -171,6 +171,26 @@ namespace CalradiaRemembers.Tests.Assemblies
                 .Should().NotContain("dispatch_mission");
         }
 
+        // The offering wire, the fifth executable motion and the first that touches persisted save state:
+        // grant_stipend must be TAUGHT to the LLM only when the player can afford at least the minimum tranche,
+        // or the model promises a purse CouncilLift.SettleGrantStipend (CouncilStipendBehavior.TryStart) then
+        // finds the player's coffers cannot fund at all.
+        [Test]
+        public void GIVEN_the_player_can_afford_the_floor_tranche_WHEN_offered_keys_are_asked_THEN_grant_stipend_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, Facts(canAfford: true))
+                .Should().Contain("grant_stipend");
+        }
+
+        // Absent that fact (the player cannot even cover the cheapest possible tranche) the key must be withheld,
+        // or the LLM could promise a stipend the lift has already proven the treasury cannot fund at all.
+        [Test]
+        public void GIVEN_the_player_cannot_afford_the_floor_tranche_WHEN_offered_keys_are_asked_THEN_grant_stipend_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, Facts(canAfford: false))
+                .Should().NotContain("grant_stipend");
+        }
+
         // Quest carries no ResolutionDefinition (it is universal, not a scoped catalogue motion), so it must
         // never be filtered by facts: a family council with zero motions of its own must still surface "quest",
         // or that scope could seat and debate yet never record a single deed.

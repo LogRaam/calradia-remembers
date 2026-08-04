@@ -137,14 +137,17 @@ namespace CalradiaRemembers.Chat
          string id = Guid.NewGuid().ToString("N");
          // TargetHint is the entry's ONE grounding string, reused per kind rather than growing a second field:
          // a "quest"/"appoint_governor" pledge grounds on the settlement named, "assign_party_role" grounds on the
-         // ROLE named instead (see PartyRoleParser, read back by CouncilLift.SettleAssignPartyRole), and
-         // "dispatch_mission" grounds on the ERRAND named instead (see MissionTypeParser, read back by
-         // CouncilLift.SettleDispatchMission).
+         // ROLE named instead (see PartyRoleParser, read back by CouncilLift.SettleAssignPartyRole), "dispatch_mission"
+         // grounds on the ERRAND named instead (see MissionTypeParser, read back by CouncilLift.SettleDispatchMission),
+         // and "grant_stipend" grounds on the proposed AMOUNT instead (read back by int.TryParse in
+         // CouncilLift.SettleGrantStipend, the FIRST executor that touches persisted save state).
          string targetHint;
          if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.AssignPartyRole), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetRole;
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DispatchOnMission), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetMission;
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GrantStipend), StringComparison.OrdinalIgnoreCase))
+            targetHint = proposal.TargetAmount?.ToString();
          else
             targetHint = proposal.TargetSettlement;
          AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession, targetHint);

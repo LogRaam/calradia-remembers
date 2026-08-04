@@ -211,15 +211,18 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   (CouncilLift.SettleAppointGovernor), and, mirroring that same wiring, <see cref="ResolutionKind.AssignPartyRole" />
         ///   (CouncilLift.SettleAssignPartyRole) are carried out; closing bug d, <see cref="ResolutionKind.RejoinParty" />
         ///   (CouncilLift.SettleRejoinParty) brings a seated companion who is out of the player's party back into
-        ///   it; and, the FOURTH executor, <see cref="ResolutionKind.DispatchOnMission" /> (CouncilLift.SettleDispatchMission)
-        ///   sends a seated companion out on one of the existing companion-mission errands. The remaining scoped
-        ///   menu motions are recorded but not yet executed, so they arrive with their variant (Q5). The runtime
-        ///   teaches and lifts only executable kinds, so the table never promises a deed it cannot keep.
+        ///   it; the FOURTH executor, <see cref="ResolutionKind.DispatchOnMission" /> (CouncilLift.SettleDispatchMission)
+        ///   sends a seated companion out on one of the existing companion-mission errands; and the FIFTH executor,
+        ///   <see cref="ResolutionKind.GrantStipend" /> (CouncilLift.SettleGrantStipend), and the FIRST that touches
+        ///   persisted save state, funds a recurring 30-day purse for a seated companion out of a mod-tracked
+        ///   escrow (StipendPolicy, CouncilStipendBehavior). The remaining scoped menu motions are recorded but not
+        ///   yet executed, so they arrive with their variant (Q5). The runtime teaches and lifts only executable
+        ///   kinds, so the table never promises a deed it cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
             => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor
             || kind == ResolutionKind.AssignPartyRole || kind == ResolutionKind.RejoinParty
-            || kind == ResolutionKind.DispatchOnMission;
+            || kind == ResolutionKind.DispatchOnMission || kind == ResolutionKind.GrantStipend;
 
         /// <summary>
         ///   The string keys of the kinds a council of <paramref name="scope" /> may currently ACT on: the

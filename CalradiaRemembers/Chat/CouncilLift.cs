@@ -103,9 +103,10 @@ namespace CalradiaRemembers.Chat
          // B2/M4: the registry, not a magic string, decides what the table can carry out. Only executable kinds
          // reach an executor; anything else (an unmapped kind, or a catalogue kind whose executor has not landed
          // yet, Q5 "extend then migrate") is reported honestly instead of silently applied or dropped. Quest,
-         // AppointGovernor, AssignPartyRole, RejoinParty and DispatchOnMission are executable today, so a passing
-         // entry here is one of those five; the switch below this gate is the per-kind dispatch, extended the
-         // day a sixth executor is wired.
+         // AppointGovernor, AssignPartyRole, RejoinParty, DispatchOnMission and, the fifth, GrantStipend (the
+         // FIRST executor that touches persisted save state) are executable today, so a passing entry here is one
+         // of those six; the switch below this gate is the per-kind dispatch, extended the day a seventh executor
+         // is wired.
          if (!ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind kind) || !ResolutionCatalog.IsExecutable(kind))
          {
             ledger.MarkFailed(entry.Id, "This kind of decision is not yet settled by the council.");
@@ -146,6 +147,11 @@ namespace CalradiaRemembers.Chat
 
             case ResolutionKind.DispatchOnMission:
                SettleDispatchMission(ledger, entry, actorHero, actorName, report);
+
+               return;
+
+            case ResolutionKind.GrantStipend:
+               SettleGrantStipend(ledger, entry, actorHero, actorName, report);
 
                return;
 
@@ -471,6 +477,71 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke(message, true);
          ModLog.Info($"[COUNCIL] lift: {actorName} dispatched on a {type} errand.");
+      }
+
+      /// <summary>
+      ///   The FIFTH executable menu motion, and the FIRST that touches PERSISTED SAVE STATE (a mod-tracked
+      ///   escrow, CouncilStipendBehavior) rather than merely mutating a live campaign object. Author's design
+      ///   (Kimi review, adopted as-is, COUNCIL_ACTIONS.md "grant_stipend"): a recurring payment to a seated clan
+      ///   companion, FIXED at a 30-day tranche, funded entirely up front so the promise can never fail mid-term
+      ///   (CouncilStipendBehavior.TryStart deducts the whole tranche from the player's gold into escrow here,
+      ///   then a daily tick pays it out). The amount the LLM proposed (AssemblyResolutionEntry.TargetHint, this
+      ///   kind's own grounding slot, mirroring how assign_party_role grounds on a role name) is re-clamped to
+      ///   [50, 500] and the player's gold re-checked against the FULL tranche at settlement time (bridge is law):
+      ///   an offering that only proved the MINIMUM tranche affordable must still be refused here if the ACTUAL
+      ///   proposed amount now outruns the player's purse.
+      /// </summary>
+      private static void SettleGrantStipend(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true})
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!actorHero.IsPlayerCompanion)
+         {
+            const string reason = "they no longer belong to the player's clan as a companion.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!int.TryParse(entry.TargetHint, out int amount))
+         {
+            const string reason = "no valid stipend amount was named.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (CouncilStipendBehavior.Instance == null)
+         {
+            const string reason = "no stipend ledger is available right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!CouncilStipendBehavior.Instance.TryStart(actorHero, amount, out string failReason))
+         {
+            ledger.MarkFailed(entry.Id, failReason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {failReason}", false);
+
+            return;
+         }
+
+         int clamped = StipendPolicy.ClampAmountPerDay(amount);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"{actorName} will draw {clamped} denars a day from your coffers for the next {StipendPolicy.TrancheDays} days.", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} granted a stipend of {clamped}/day for {StipendPolicy.TrancheDays} days.");
       }
 
       /// <summary>Maps the Logic-side <see cref="CouncilMissionType" /> to the mod's own <see cref="CompanionMissionType" />. None never reaches here (guarded in <see cref="SettleDispatchMission" />).</summary>

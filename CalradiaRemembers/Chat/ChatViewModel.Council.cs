@@ -253,6 +253,17 @@ namespace CalradiaRemembers.Chat
          return false;
       }
 
+      /// <summary>
+      ///   True once the player's own gold can cover at least StipendPolicy.MinTrancheCost (the cheapest possible
+      ///   30-day tranche, 50 denars/day floor): the PlayerCanAffordStipend fact grant_stipend needs
+      ///   (ResolutionOfferingResolver.OfferedKindKeys). The LLM has not proposed a real amount at offer time (that
+      ///   only exists once a [RESOLUTION] names target_amount), so this proves only the FLOOR is affordable; the
+      ///   actual proposed amount is re-clamped and re-checked against the player's gold at the lift
+      ///   (CouncilLift.SettleGrantStipend -> CouncilStipendBehavior.TryStart), bridge-is-law like every other
+      ///   executor's own re-check.
+      /// </summary>
+      private static bool PlayerCanAffordStipend() => Hero.MainHero != null && Hero.MainHero.Gold >= StipendPolicy.MinTrancheCost;
+
       #region Scene image on the thinking placeholder
 
       /// <summary>

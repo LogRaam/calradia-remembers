@@ -4,10 +4,11 @@
 // ResolutionEligibilityPolicy judges, so the set of resolution kinds a council turn TEACHES the LLM can never
 // promise a deed the lift cannot honour (the exact empty-promise class the whole catalogue exists to prevent).
 // This is the populator ResolutionCatalog and ResolutionEligibilityPolicy were built for; appoint_governor,
-// assign_party_role, rejoin_party and, mirroring assign_party_role's own TargetInPlayerParty fact exactly (no
-// dedicated plumbing needed here, see ResolutionCatalog's DispatchOnMission entry), dispatch_mission are wired
-// today (ResolutionCatalog.IsExecutable), so the remaining scoped kinds never surface here regardless of facts,
-// and this reader stays minimal until they land.
+// assign_party_role, rejoin_party, mirroring assign_party_role's own TargetInPlayerParty fact exactly (no
+// dedicated plumbing needed here, see ResolutionCatalog's DispatchOnMission entry) dispatch_mission, and, the
+// fifth executor and the first that touches persisted save state, grant_stipend (its own PlayerCanAffordStipend
+// fact, read from the player's live gold) are wired today (ResolutionCatalog.IsExecutable), so the remaining
+// scoped kinds never surface here regardless of facts, and this reader stays minimal until they land.
 
 #region
 
@@ -37,11 +38,13 @@ namespace CalradiaRemembers.Assemblies
       ///   Hero and checks PartyBelongedTo for real (see ChatViewModel.AnySeatedMemberInPlayerParty).
       ///   <paramref name="anySeatedCompanionOutOfPlayerParty" /> is the symmetric TargetOutOfPlayerParty fact
       ///   rejoin_party needs, closing bug d (a clan companion seated at the table while away is otherwise
-      ///   unreachable by any executor, see ChatViewModel.AnySeatedCompanionOutOfPlayerParty). Never throws: any
-      ///   engine read failure degrades to no vacant fief, so a failing lookup only WITHHOLDS a motion, never
-      ///   over-offers one the lift cannot honour.
+      ///   unreachable by any executor, see ChatViewModel.AnySeatedCompanionOutOfPlayerParty). <paramref name="playerCanAffordStipend" />
+      ///   is the fifth executor's own fact, grant_stipend (see ChatViewModel.PlayerCanAffordStipend): the player's
+      ///   gold checked against StipendPolicy.MinTrancheCost, the cheapest possible tranche, since the real
+      ///   proposed amount is not known until the LLM names one. Never throws: any engine read failure degrades to
+      ///   no vacant fief, so a failing lookup only WITHHOLDS a motion, never over-offers one the lift cannot honour.
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false)
       {
          try
          {
@@ -49,7 +52,7 @@ namespace CalradiaRemembers.Assemblies
                targetInPlayerParty: anySeatedMemberInPlayerParty,
                targetAvailable: anySeatedMemberAvailable,
                playerHasVacantFief: HasVacantGovernableFief(),
-               playerCanAffordStipend: false,
+               playerCanAffordStipend: playerCanAffordStipend,
                missionAvailable: false,
                targetOutOfPlayerParty: anySeatedCompanionOutOfPlayerParty);
 

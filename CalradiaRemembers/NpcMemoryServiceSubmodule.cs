@@ -249,6 +249,10 @@ namespace CalradiaRemembers
          // shipped path) is actually open, and recovers its pledges if a save was caught mid-sitting; harmless
          // and idle otherwise, so it is not gated with the rest of the Assembly pillar below.
          campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.CouncilSessionBehavior());
+         // Council stipend escrow (grant_stipend, the fifth executable resolution and the first that touches
+         // persisted save state): always on, mirroring CouncilSessionBehavior above. Idle (no active stipends)
+         // outside a council that actually grants one, so it is not gated with the rest of the Assembly pillar.
+         campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.CouncilStipendBehavior());
          // ASSEMBLY pillar: GATED OFF for release (built, not yet play-tested in a live campaign). To test it in
          // a DEV build, UNCOMMENT the two lines below, then stage a session fast with cr.assembly_test [n] and
          // cr.assembly_open (bypasses the travel wait). It ships as a real feature only once validated.
