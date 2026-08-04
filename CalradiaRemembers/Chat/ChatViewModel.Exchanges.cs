@@ -618,8 +618,12 @@ namespace CalradiaRemembers.Chat
                // fact, arrange_marriage (COUNCIL_ACTIONS.md, "juste arrange_mariage qui est valide"): WarCouncil
                // only, the player's own clan holds an unwed kin AND at least one seated ally's own house offers
                // one too; an approximation, the exact pairing and every hard gate are re-validated at the lift.
+               // AnySeatedTributePayerAvailable is Partie 8's own fact, tribute (COUNCIL_ACTIONS.md's Kimi
+               // review): Parley-only, the seated counterpart is alive and leads a clan distinct from the
+               // player's own; the real proposed amount and the payer's live affordability are both re-checked
+               // at the lift and at every daily tick regardless.
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

@@ -67,12 +67,19 @@ namespace CalradiaRemembers.Assemblies
       ///   LIFT, where a member who pledged something at the table may since have died, been taken prisoner,
       ///   or left the roster (dismissed, no longer a clan lord). Wraps the exact same policy the original
       ///   seating (<see cref="Resolve" />) used, so a re-validation and the original seating never diverge.
+      ///   <paramref name="parleyTargetFactionId" /> is the Parley's own extra parameter (ignored by every other
+      ///   scope, defaults to null): without it, <see cref="FactsFor" /> can never prove <c>IsParleyCounterpart</c>
+      ///   true, so EVERY re-validation of a genuine Parley member would wrongly fail (bug fixed alongside
+      ///   tribute, the first non-FACTION-CENTRIC Parley resolution to actually reach this ordinary gate -
+      ///   MakePeace/DeclareWar bypass it entirely, see CouncilLift.Settle's own dispatch order, which is why
+      ///   this gap went unnoticed until now). Callers at the lift MUST pass the council's own stored/carried
+      ///   parley target through here for a Parley-scoped re-check to ever pass.
       /// </summary>
-      public static CouncilEligibility EvaluateNow(CouncilScope scope, Hero hero)
+      public static CouncilEligibility EvaluateNow(CouncilScope scope, Hero hero, string parleyTargetFactionId = null)
       {
          if (hero == null) return new CouncilEligibility(false, CouncilExclusionReason.NotOfThisCouncil);
 
-         return CouncilRosterPolicy.Evaluate(scope, FactsFor(hero));
+         return CouncilRosterPolicy.Evaluate(scope, FactsFor(hero, parleyTargetFactionId));
       }
 
       /// <summary>

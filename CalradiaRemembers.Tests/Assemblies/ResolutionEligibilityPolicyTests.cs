@@ -33,8 +33,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool seatedVassalOwnsFief = false,
                                                   bool anySeatedCompanionExpellable = false,
                                                   bool anySeatedMemberCanPledgeAgainst = false,
-                                                  bool anySeatedAllyHasMarriageableKin = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin);
+                                                  bool anySeatedAllyHasMarriageableKin = false,
+                                                  bool anySeatedTributePayerAvailable = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin, anySeatedTributePayerAvailable);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -577,6 +578,52 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("arrange_marriage");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("arrange_marriage");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("arrange_marriage");
+        }
+
+        // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "tribute"): tribute needs only the single, approximated
+        // AnySeatedTributePayerAvailable fact (some seated Parley counterpart leads a clan of their own). Missing
+        // it must withhold the motion entirely, or the table could bind an enemy to a daily payment the lift has
+        // already proven nobody present could actually owe.
+        [Test]
+        public void GIVEN_tribute_WHEN_no_seated_counterpart_can_pay_THEN_it_is_not_offered()
+        {
+            ResolutionDefinition tribute = ResolutionCatalog.Get(ResolutionKind.Tribute);
+
+            ResolutionEligibilityPolicy.CanOffer(tribute, Facts(anySeatedTributePayerAvailable: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(tribute, Facts(anySeatedTributePayerAvailable: false)).Should().BeFalse();
+        }
+
+        // The offering wire: tribute must be TAUGHT to the LLM only when the fact holds, or the model proposes a
+        // pledge CouncilLift.SettleTribute's own re-check (the payer must lead a clan distinct from the player's)
+        // would refuse outright, a hollow promise the table never actually carries out.
+        [Test]
+        public void GIVEN_a_seated_counterpart_can_pay_tribute_WHEN_offered_keys_are_asked_THEN_tribute_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, Facts(anySeatedTributePayerAvailable: true))
+                .Should().Contain("tribute");
+        }
+
+        // Absent that fact (nobody seated leads a clan of their own to pay from) the key must be withheld, or the
+        // table could bind an enemy to a tribute the lift has already proven impossible.
+        [Test]
+        public void GIVEN_no_seated_counterpart_can_pay_tribute_WHEN_offered_keys_are_asked_THEN_tribute_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, Facts(anySeatedTributePayerAvailable: false))
+                .Should().NotContain("tribute");
+        }
+
+        // The empty-promise guard, the other direction: Companions, Family, ClanLords and WarCouncil carry no
+        // Tribute catalogue entry at all (only a Parley ever seats an enemy faction leader to pay tribute from),
+        // so the key must never surface there even when the fact is (nonsensically) true.
+        [Test]
+        public void GIVEN_a_companions_family_clan_lords_or_war_council_WHEN_offered_keys_are_asked_THEN_tribute_is_never_included()
+        {
+            ResolutionWorldFacts facts = Facts(anySeatedTributePayerAvailable: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("tribute");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("tribute");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("tribute");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts).Should().NotContain("tribute");
         }
     }
 }

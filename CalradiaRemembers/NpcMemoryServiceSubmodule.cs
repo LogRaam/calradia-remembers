@@ -253,6 +253,11 @@ namespace CalradiaRemembers
          // persisted save state): always on, mirroring CouncilSessionBehavior above. Idle (no active stipends)
          // outside a council that actually grants one, so it is not gated with the rest of the Assembly pillar.
          campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.CouncilStipendBehavior());
+         // Council tribute (Partie 8, "tribute"): a Parley-scoped, pay-as-you-go daily payment from a defeated
+         // enemy leader's own coffers, always on, mirroring CouncilStipendBehavior/CouncilTributeBehavior above.
+         // Idle (no active tributes) outside a Parley that actually strikes one, so it is not gated with the
+         // rest of the Assembly pillar either.
+         campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.CouncilTributeBehavior());
          // ASSEMBLY pillar: GATED OFF for release (built, not yet play-tested in a live campaign). To test it in
          // a DEV build, UNCOMMENT the two lines below, then stage a session fast with cr.assembly_test [n] and
          // cr.assembly_open (bypasses the travel wait). It ships as a real feature only once validated.

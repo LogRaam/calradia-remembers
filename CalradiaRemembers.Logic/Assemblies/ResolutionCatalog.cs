@@ -161,7 +161,22 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   consent is already subsumed by ArrangedMatchPolicy's standing check), nor are marry/take_as_consort/
         ///   take_as_secret_lover (personal player-NPC acts, never a table decision).
         /// </summary>
-        ArrangeMarriage
+        ArrangeMarriage,
+
+        /// <summary>
+        ///   Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "tribute"): the Parley's OWN submission/buy-off motion,
+        ///   Parley-scoped ONLY (the one council seating an enemy faction leader to negotiate with at all). The
+        ///   SEATED ENEMY leader pledges a recurring DAILY payment to the player from their own coffers, the
+        ///   money moving the OPPOSITE direction of GrantStipend (funded by the player) and the SAME direction as
+        ///   GiveGold (funded by the giver), but recurring rather than a one-off sum, and PAY-AS-YOU-GO rather
+        ///   than escrowed (TributePolicy, CouncilTributeBehavior): unlike GrantStipend's whole-tranche escrow, a
+        ///   tribute is checked against the payer's live gold fresh every day, so it can run dry mid-term and
+        ///   must degrade gracefully rather than fail all at once. Not FACTION-CENTRIC (see
+        ///   <see cref="IsFactionCentric" />): the pledge is the seated leader's OWN promise to pay, exactly like
+        ///   GiveGold, never a decision about the two factions themselves the way MakePeace is, so it keeps the
+        ///   ordinary seated-member re-validation at the lift (CouncilLift.SettleTribute).
+        /// </summary>
+        Tribute
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -250,7 +265,14 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   consent (ArrangedMatchPolicy), the full validation still runs at the lift regardless
         ///   (<c>CalradiaRemembers.GameState.CourtActionResolver.TryArrangeMarriage</c>, bridge is law).
         /// </summary>
-        AnySeatedAllyHasMarriageableKin = 32768
+        AnySeatedAllyHasMarriageableKin = 32768,
+
+        /// <summary>
+        ///   At least one seated Parley counterpart is alive and leads a clan distinct from the player's own:
+        ///   tribute's own gate. Parley-scoped only (the one roster that ever seats an enemy faction leader at
+        ///   all), see <see cref="ResolutionCatalog" />'s single Tribute entry.
+        /// </summary>
+        AnySeatedTributePayerAvailable = 65536
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -291,7 +313,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool seatedVassalOwnsFief = false,
                                     bool anySeatedCompanionExpellable = false,
                                     bool anySeatedMemberCanPledgeAgainst = false,
-                                    bool anySeatedAllyHasMarriageableKin = false)
+                                    bool anySeatedAllyHasMarriageableKin = false,
+                                    bool anySeatedTributePayerAvailable = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -309,6 +332,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             AnySeatedCompanionExpellable = anySeatedCompanionExpellable;
             AnySeatedMemberCanPledgeAgainst = anySeatedMemberCanPledgeAgainst;
             AnySeatedAllyHasMarriageableKin = anySeatedAllyHasMarriageableKin;
+            AnySeatedTributePayerAvailable = anySeatedTributePayerAvailable;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -347,6 +371,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated ally's own house offers an unwed kin AND the player's own clan holds one too. arrange_marriage's own fact (an approximation, see ResolutionRequirement.AnySeatedAllyHasMarriageableKin).</summary>
         public bool AnySeatedAllyHasMarriageableKin { get; }
+
+        /// <summary>At least one seated Parley counterpart is alive and leads a clan distinct from the player's own. tribute's own fact (an approximation, see ResolutionRequirement.AnySeatedTributePayerAvailable).</summary>
+        public bool AnySeatedTributePayerAvailable { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -435,7 +462,16 @@ namespace CalradiaRemembers.Logic.Assemblies
             // never ClanLords/Companions/Family, where a seated member is either the player's own house already
             // (nothing to marry cross-clan) or a hired hand with no house of their own to offer.
             new ResolutionDefinition(ResolutionKind.ArrangeMarriage, CouncilScope.WarCouncil,
-                "Arrange a marriage alliance", ResolutionRequirement.AnySeatedAllyHasMarriageableKin)
+                "Arrange a marriage alliance", ResolutionRequirement.AnySeatedAllyHasMarriageableKin),
+
+            // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "tribute"): the Parley's own submission/buy-off motion,
+            // Parley-scoped ONLY (the one roster that ever seats an enemy faction leader to pay from their own
+            // coffers). Mirrors MakePeace's own scope exactly, since a tribute is negotiated at the very same
+            // table a peace would be, but is NOT faction-centric (see ResolutionKind.Tribute's own doc): it is
+            // the seated leader's OWN promise, so it keeps the ordinary seated-member re-validation, unlike
+            // MakePeace/DeclareWar.
+            new ResolutionDefinition(ResolutionKind.Tribute, CouncilScope.Parley,
+                "Pledge a daily tribute", ResolutionRequirement.AnySeatedTributePayerAvailable)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -470,6 +506,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.ExpelFromClan:      return "expel_from_clan";
                 case ResolutionKind.PledgeAgainst:      return "pledge_against";
                 case ResolutionKind.ArrangeMarriage:    return "arrange_marriage";
+                case ResolutionKind.Tribute:             return "tribute";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -524,8 +561,12 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   action itself calls) on a seated ClanLords/Family member. ArrangeMarriage (CouncilLift.SettleArrangeMarriage),
         ///   Partie 1's own marriage-as-currency kind (COUNCIL_ACTIONS.md, "juste arrange_mariage qui est
         ///   valide"), WarCouncil-only, REUSES the existing 1:1 arrange_marriage system end to end (the SAME
-        ///   shared core, CourtActionResolver.TryArrangeMarriage). The runtime teaches and lifts only
-        ///   executable kinds, so the table never promises a deed it cannot keep.
+        ///   shared core, CourtActionResolver.TryArrangeMarriage). Tribute (CouncilLift.SettleTribute), Partie 8's
+        ///   own submission/buy-off motion, Parley-only, binds the seated ENEMY leader to a recurring DAILY
+        ///   payment out of their own coffers (CouncilTributeBehavior, TributePolicy), pay-as-you-go rather than
+        ///   escrowed like GrantStipend, so it degrades gracefully (a run of missed days ends it early) rather
+        ///   than failing all at once. The runtime teaches and lifts only executable kinds, so the table never
+        ///   promises a deed it cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
             => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor
@@ -535,7 +576,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.GiveGold || kind == ResolutionKind.GiveInfluence
             || kind == ResolutionKind.GrantFief || kind == ResolutionKind.RevokeFief
             || kind == ResolutionKind.ExpelFromClan || kind == ResolutionKind.PledgeAgainst
-            || kind == ResolutionKind.ArrangeMarriage;
+            || kind == ResolutionKind.ArrangeMarriage || kind == ResolutionKind.Tribute;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

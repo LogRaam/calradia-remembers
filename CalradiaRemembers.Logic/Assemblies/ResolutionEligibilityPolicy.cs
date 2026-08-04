@@ -65,6 +65,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             if (required.HasFlag(ResolutionRequirement.AnySeatedCompanionExpellable) && !f.AnySeatedCompanionExpellable) return false;
             if (required.HasFlag(ResolutionRequirement.AnySeatedMemberCanPledgeAgainst) && !f.AnySeatedMemberCanPledgeAgainst) return false;
             if (required.HasFlag(ResolutionRequirement.AnySeatedAllyHasMarriageableKin) && !f.AnySeatedAllyHasMarriageableKin) return false;
+            if (required.HasFlag(ResolutionRequirement.AnySeatedTributePayerAvailable) && !f.AnySeatedTributePayerAvailable) return false;
 
             return true;
         }

@@ -179,7 +179,11 @@ namespace CalradiaRemembers.Chat
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DispatchOnMission), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetMission;
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GrantStipend), StringComparison.OrdinalIgnoreCase)
-               || string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GiveGold), StringComparison.OrdinalIgnoreCase))
+               || string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GiveGold), StringComparison.OrdinalIgnoreCase)
+               // Partie 8 ("tribute", COUNCIL_ACTIONS.md's Kimi review): a THIRD reuse of grant_stipend's own
+               // TargetAmount field/parse (no new SDK field), read back by int.TryParse in
+               // CouncilLift.SettleTribute exactly like grant_stipend's own amount.
+               || string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.Tribute), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetAmount?.ToString();
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DeclareWar), StringComparison.OrdinalIgnoreCase)
                || string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.MakePeace), StringComparison.OrdinalIgnoreCase))

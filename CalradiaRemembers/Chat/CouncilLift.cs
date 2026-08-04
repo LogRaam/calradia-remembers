@@ -113,7 +113,11 @@ namespace CalradiaRemembers.Chat
          Hero actorHero = Hero.FindFirst(h => h.StringId == entry.TargetHeroId);
          string actorName = actorHero?.Name?.ToString() ?? "One of the council";
 
-         CouncilEligibility verdict = CouncilRosterResolver.EvaluateNow(scope, actorHero);
+         // parleyTargetFactionId is passed through here so a genuine Parley member (e.g. tribute's own payer)
+         // re-validates correctly: without it FactsFor can never prove IsParleyCounterpart true, and every
+         // Parley re-check would wrongly fail (see CouncilRosterResolver.EvaluateNow's own doc). Harmless for
+         // every other scope, which never reads this parameter.
+         CouncilEligibility verdict = CouncilRosterResolver.EvaluateNow(scope, actorHero, parleyTargetFactionId);
 
          if (actorHero == null || !verdict.Eligible)
          {
@@ -218,6 +222,11 @@ namespace CalradiaRemembers.Chat
 
             case ResolutionKind.ArrangeMarriage:
                SettleArrangeMarriage(ledger, entry, actorHero, actorName, report);
+
+               return;
+
+            case ResolutionKind.Tribute:
+               SettleTribute(ledger, entry, actorHero, actorName, report);
 
                return;
 
@@ -1152,6 +1161,71 @@ namespace CalradiaRemembers.Chat
             return $"{verdict.B.Name} now belongs to {verdict.B.Clan?.Name}.";
 
          return "Neither joins the other's house by this match.";
+      }
+
+      /// <summary>
+      ///   Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "tribute"): the Parley's own submission/buy-off motion. The
+      ///   SEATED ENEMY leader (actorHero, the parley's own counterpart) pledges a recurring DAILY payment out of
+      ///   their own coffers, PAY-AS-YOU-GO rather than escrowed (TributePolicy, CouncilTributeBehavior): unlike
+      ///   SettleGrantStipend's whole-tranche fund-up-front, nothing is charged here, only started. Guards
+      ///   mirror SettleGiveInfluence's/SettleGrantFief's own cross-clan check (the payer must lead a house
+      ///   distinct from the player's own, or a tribute paid to oneself is meaningless), NOT the ordinary
+      ///   IsPlayerCompanion check every Companions-scoped executor above uses (a Parley counterpart is an enemy
+      ///   lord, never a companion). Deliberately does NOT require the two factions still being at war: peace
+      ///   may have just been struck in this SAME parley turn (make_peace and tribute may both be pledged at
+      ///   once), and a tribute is exactly the kind of submission that accompanies a peace, not only a war.
+      /// </summary>
+      private static void SettleTribute(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (actorHero.Clan == null || actorHero.Clan == Clan.PlayerClan)
+         {
+            const string reason = "they lead no house distinct from the player's own to pay tribute from.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!int.TryParse(entry.TargetHint, out int amount))
+         {
+            const string reason = "no valid tribute amount was named.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (CouncilTributeBehavior.Instance == null)
+         {
+            const string reason = "no tribute ledger is available right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!CouncilTributeBehavior.Instance.TryStart(actorHero, amount, out string failReason))
+         {
+            ledger.MarkFailed(entry.Id, failReason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {failReason}", false);
+
+            return;
+         }
+
+         int clamped = TributePolicy.ClampAmountPerDay(amount);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"{actorName} will pay you {clamped} denars a day for the next {TributePolicy.TributeDays} days.", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} pledged a tribute of {clamped}/day for {TributePolicy.TributeDays} days.");
       }
 
       /// <summary>

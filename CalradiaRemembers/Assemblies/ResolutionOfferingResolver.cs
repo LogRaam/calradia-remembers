@@ -80,8 +80,14 @@ namespace CalradiaRemembers.Assemblies
       ///   (a genuine other clan) offers one too. An APPROXIMATION like the others above: the exact pairing, hard
       ///   eligibility, and family consent are all re-validated at the lift regardless
       ///   (CalradiaRemembers.GameState.CourtActionResolver.TryArrangeMarriage, bridge is law).
+      ///   <paramref name="anySeatedTributePayerAvailable" /> is Partie 8's own fact, tribute (see
+      ///   ChatViewModel.AnySeatedTributePayerAvailable): Parley-only, the seated counterpart (the parley's own
+      ///   enemy leader) is alive and leads a clan distinct from the player's own. An APPROXIMATION, mirroring
+      ///   anySeatedMemberHasGold's own loose gate: proves only that SOME payer could plausibly pay, never the
+      ///   real proposed amount or whether their live gold covers even one day of it; both are re-checked fresh
+      ///   at the lift and at every daily tick regardless (CouncilLift.SettleTribute, CouncilTributeBehavior.Advance).
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false)
       {
          try
          {
@@ -101,7 +107,8 @@ namespace CalradiaRemembers.Assemblies
                seatedVassalOwnsFief: anySeatedVassalOwnsFief,
                anySeatedCompanionExpellable: anySeatedCompanionExpellable,
                anySeatedMemberCanPledgeAgainst: anySeatedMemberCanPledgeAgainst,
-               anySeatedAllyHasMarriageableKin: anySeatedAllyHasMarriageableKin);
+               anySeatedAllyHasMarriageableKin: anySeatedAllyHasMarriageableKin,
+               anySeatedTributePayerAvailable: anySeatedTributePayerAvailable);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

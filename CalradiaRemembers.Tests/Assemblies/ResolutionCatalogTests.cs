@@ -307,13 +307,15 @@ namespace CalradiaRemembers.Tests.Assemblies
         }
 
         // declare_war's symmetric counterpart: it must appear under its own scope, Parley, and only there, so a
-        // parley (which exists specifically to negotiate peace) is the one council where make_peace can be raised.
+        // parley (which exists specifically to negotiate peace) is the one council where make_peace can be
+        // raised. Tribute (Partie 8) later joined as Parley's second motion, see
+        // GIVEN_a_parley_WHEN_the_catalogue_is_queried_THEN_make_peace_and_tribute_return below.
         [Test]
-        public void GIVEN_a_parley_WHEN_the_catalogue_is_queried_THEN_only_make_peace_returns()
+        public void GIVEN_a_parley_WHEN_the_catalogue_is_queried_THEN_only_make_peace_and_tribute_return()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.Parley).Select(d => d.Kind).ToList();
 
-            kinds.Should().Equal(ResolutionKind.MakePeace);
+            kinds.Should().Equal(ResolutionKind.MakePeace, ResolutionKind.Tribute);
         }
 
         // make_peace has a live lift executor (CouncilLift.SettleMakePeace) from the day it lands, mirroring
@@ -500,6 +502,44 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().NotContain("arrange_marriage");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("arrange_marriage");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("arrange_marriage");
+        }
+
+        // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "tribute"): tribute has a live lift executor
+        // (CouncilLift.SettleTribute) from the day it lands; the table must be able to actually bind the enemy
+        // leader to the daily payment, not just record the pledge.
+        [Test]
+        public void GIVEN_tribute_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.Tribute).Should().BeTrue();
+        }
+
+        // tribute is the seated ENEMY leader's own promise to pay from their own coffers, not a decision about
+        // two FACTIONS the way make_peace is (even though both are struck at the same Parley table), so it must
+        // never bypass the ordinary seated-member re-validation the way declare_war/make_peace do (covered
+        // generically by GIVEN_every_member_pledge_kind_WHEN_asked_if_it_is_faction_centric_THEN_none_of_them_are
+        // above; pinned here too for the kind's own documentation).
+        [Test]
+        public void GIVEN_tribute_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.Tribute).Should().BeFalse();
+        }
+
+        // A parley must be able to bind the enemy to a tribute, not merely make peace or debate: tribute rides
+        // alongside the universal quest key and make_peace.
+        [Test]
+        public void GIVEN_a_parley_WHEN_asked_for_executable_kinds_THEN_tribute_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Parley).Should().Contain("tribute");
+        }
+
+        // The empty-promise guard, the other direction: no OTHER scope carries a Tribute catalogue entry at all
+        // (only a Parley ever seats an enemy faction leader to pay tribute from), so the key must never surface
+        // elsewhere, whatever the world facts.
+        [Test]
+        public void GIVEN_a_companions_family_clan_lords_or_war_council_WHEN_asked_for_executable_kinds_THEN_tribute_is_absent()
+        {
+            foreach (CouncilScope scope in new[] {CouncilScope.Companions, CouncilScope.Family, CouncilScope.ClanLords, CouncilScope.WarCouncil})
+                ResolutionCatalog.ExecutableKindKeysForScope(scope).Should().NotContain("tribute");
         }
     }
 }
