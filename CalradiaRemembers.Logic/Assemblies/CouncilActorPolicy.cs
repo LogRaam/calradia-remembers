@@ -93,8 +93,29 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   any other kind (and an unmatched name still refuses, never guessing); only a genuinely OMITTED actor
         ///   for THIS kind defaults to seat 0, the presiding member (<see cref="ResolveActor" /> never guesses a
         ///   fallback for any other kind, so this is deliberately narrow rather than a change to that policy).
+        ///   Delegates to <see cref="ResolveFactionCentricActor" />, the shared carve-out declare_war's symmetric
+        ///   counterpart make_peace also needs; kept as its own named method so existing callers/tests are undisturbed.
         /// </summary>
         public static int ResolveDeclareWarActor(string actor, IReadOnlyList<string> seatedNames)
+            => ResolveFactionCentricActor(actor, seatedNames);
+
+        /// <summary>
+        ///   Council resolution attribution for make_peace, the Parley's own FACTION-CENTRIC kind: the same
+        ///   carve-out as <see cref="ResolveDeclareWarActor" /> and for the identical reason, a parley's
+        ///   make_peace need not name a proposing member either, since the pledge is the table's own decision to
+        ///   end a war, not one seated counterpart's personal promise. Shares <see cref="ResolveFactionCentricActor" />
+        ///   so the two faction-centric kinds can never drift apart.
+        /// </summary>
+        public static int ResolveMakePeaceActor(string actor, IReadOnlyList<string> seatedNames)
+            => ResolveFactionCentricActor(actor, seatedNames);
+
+        /// <summary>
+        ///   The shared carve-out behind every FACTION-CENTRIC kind's actor resolution (today, declare_war and
+        ///   make_peace): a NAMED actor resolves exactly like any other kind (an unmatched name still refuses,
+        ///   never guessing); only a genuinely OMITTED actor defaults to seat 0, the presiding member, since none
+        ///   of the seated members is the actual subject of a decision about two FACTIONS.
+        /// </summary>
+        private static int ResolveFactionCentricActor(string actor, IReadOnlyList<string> seatedNames)
         {
             int resolved = ResolveActor(actor, seatedNames);
             if (resolved >= 0) return resolved;

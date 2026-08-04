@@ -44,10 +44,12 @@ namespace CalradiaRemembers.Assemblies
       ///   proposed amount is not known until the LLM names one. <paramref name="playerCanDeclareWar" /> is the
       ///   WarCouncil's own fact, declare_war (see ChatViewModel.PlayerCanDeclareWar): the player leads a faction
       ///   AND at least one valid war target exists; the actual faction named is re-resolved and re-checked at
-      ///   the lift regardless. Never throws: any engine read failure degrades to
+      ///   the lift regardless. <paramref name="playerCanMakePeace" /> is the Parley's own fact, make_peace (see
+      ///   ChatViewModel.PlayerCanMakePeace): the player leads a faction AND it is currently at war with the
+      ///   specific enemy the parley was convened against. Never throws: any engine read failure degrades to
       ///   no vacant fief, so a failing lookup only WITHHOLDS a motion, never over-offers one the lift cannot honour.
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false)
       {
          try
          {
@@ -58,7 +60,8 @@ namespace CalradiaRemembers.Assemblies
                playerCanAffordStipend: playerCanAffordStipend,
                missionAvailable: false,
                targetOutOfPlayerParty: anySeatedCompanionOutOfPlayerParty,
-               playerCanDeclareWar: playerCanDeclareWar);
+               playerCanDeclareWar: playerCanDeclareWar,
+               playerCanMakePeace: playerCanMakePeace);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

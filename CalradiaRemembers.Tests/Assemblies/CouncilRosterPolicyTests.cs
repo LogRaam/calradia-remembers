@@ -24,8 +24,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                      bool clanLord = false,
                                                      bool inArmy = false,
                                                      bool onMission = false,
-                                                     bool alliedLeader = false)
-            => new CouncilMembershipFacts(alive, prisoner, inBattle, companion, family, clanLord, inArmy, onMission, alliedLeader);
+                                                     bool alliedLeader = false,
+                                                     bool parleyCounterpart = false)
+            => new CouncilMembershipFacts(alive, prisoner, inBattle, companion, family, clanLord, inArmy, onMission, alliedLeader, parleyCounterpart);
 
         // The straight case: a companion is seated at a companions' council. If this failed the right-hand roster
         // would be empty and the player would have no one to address.
@@ -194,6 +195,87 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_an_allied_leader_held_prisoner_WHEN_a_war_council_is_gathered_THEN_he_is_excluded_as_imprisoned()
         {
             CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.WarCouncil, Member(alliedLeader: true, prisoner: true));
+
+            e.Eligible.Should().BeFalse();
+            e.Reason.Should().Be(CouncilExclusionReason.Imprisoned);
+        }
+
+        // The Parley scope, declare_war's symmetric counterpart's own roster: the enemy leader the parley was
+        // convened against is seated. If this failed a parley could never seat its one counterpart and make_peace
+        // would have nobody at the table to negotiate with.
+        [Test]
+        public void GIVEN_the_parley_counterpart_WHEN_a_parley_is_gathered_THEN_he_is_seated()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.Parley, Member(parleyCounterpart: true));
+
+            e.Eligible.Should().BeTrue();
+            e.Reason.Should().Be(CouncilExclusionReason.None);
+        }
+
+        // The scope still filters: an allied leader (or any other roster's member) is not the specific enemy
+        // leader this parley was convened against, so a parley must not seat him just because he belongs to
+        // another internal roster.
+        [Test]
+        public void GIVEN_an_allied_leader_who_is_not_the_parley_counterpart_WHEN_a_parley_is_gathered_THEN_he_is_not_of_that_council()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.Parley, Member(alliedLeader: true));
+
+            e.Eligible.Should().BeFalse();
+            e.Reason.Should().Be(CouncilExclusionReason.NotOfThisCouncil);
+        }
+
+        // Author's decision, the relaxed availability gate: the parley counterpart is the LEADER of an enemy
+        // faction, not one of the player's own people, so leading his own army (routinely true of an enemy at
+        // war, and precisely why a parley is being sought) must NOT bar his seat the way it would for a member
+        // of the player's own house. Only alive + not prisoner gate him.
+        [Test]
+        public void GIVEN_the_parley_counterpart_leading_an_army_WHEN_a_parley_is_gathered_THEN_he_is_still_seated()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.Parley, Member(parleyCounterpart: true, inArmy: true));
+
+            e.Eligible.Should().BeTrue();
+            e.Reason.Should().Be(CouncilExclusionReason.None);
+        }
+
+        // Same relaxation, the in-battle leg: an enemy leader pinned in a battle right now is still, abstractly,
+        // reachable for the parley (the summons is abstract, mirroring every other scope's own no-distance-test
+        // design), unlike a member of the player's own house who must physically break away.
+        [Test]
+        public void GIVEN_the_parley_counterpart_in_battle_WHEN_a_parley_is_gathered_THEN_he_is_still_seated()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.Parley, Member(parleyCounterpart: true, inBattle: true));
+
+            e.Eligible.Should().BeTrue();
+            e.Reason.Should().Be(CouncilExclusionReason.None);
+        }
+
+        // Same relaxation, the mission leg: CompanionMissionBehavior.IsAway is a fact about the PLAYER's own
+        // companions, meaningless for an enemy leader, so it must never bar this seat either.
+        [Test]
+        public void GIVEN_the_parley_counterpart_flagged_on_mission_WHEN_a_parley_is_gathered_THEN_he_is_still_seated()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.Parley, Member(parleyCounterpart: true, onMission: true));
+
+            e.Eligible.Should().BeTrue();
+            e.Reason.Should().Be(CouncilExclusionReason.None);
+        }
+
+        // The two gates that DO still apply: a dead counterpart obviously cannot be negotiated with.
+        [Test]
+        public void GIVEN_a_dead_parley_counterpart_WHEN_a_parley_is_gathered_THEN_he_is_excluded_as_dead()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.Parley, Member(alive: false, parleyCounterpart: true));
+
+            e.Eligible.Should().BeFalse();
+            e.Reason.Should().Be(CouncilExclusionReason.Dead);
+        }
+
+        // And a captured enemy leader cannot sit as the enemy's own negotiator either (he already answers to the
+        // player as a prisoner, there is no war-faction table left for him to represent).
+        [Test]
+        public void GIVEN_a_captured_parley_counterpart_WHEN_a_parley_is_gathered_THEN_he_is_excluded_as_imprisoned()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.Parley, Member(prisoner: true, parleyCounterpart: true));
 
             e.Eligible.Should().BeFalse();
             e.Reason.Should().Be(CouncilExclusionReason.Imprisoned);

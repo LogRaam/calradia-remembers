@@ -33,17 +33,20 @@ namespace CalradiaRemembers.Assemblies
       /// <summary>
       ///   Every hero considered for a council of this scope, seated or not. The caller shows the refusals
       ///   (a companion held prisoner is worth naming, an unrelated lord is not, hence the candidate pool
-      ///   below is already scoped before the policy judges availability).
+      ///   below is already scoped before the policy judges availability). <paramref name="parleyTargetFactionId" />
+      ///   is the Parley's own extra parameter (ignored by every other scope): the StringId of the specific enemy
+      ///   faction the parley was convened against, without which a Parley's candidate pool is empty (there is no
+      ///   counterpart to seat).
       /// </summary>
-      public static List<CouncilSeat> Resolve(CouncilScope scope)
+      public static List<CouncilSeat> Resolve(CouncilScope scope, string parleyTargetFactionId = null)
       {
          var seats = new List<CouncilSeat>();
 
          try
          {
-            foreach (Hero hero in CandidatePool(scope))
+            foreach (Hero hero in CandidatePool(scope, parleyTargetFactionId))
             {
-               CouncilEligibility verdict = CouncilRosterPolicy.Evaluate(scope, FactsFor(hero));
+               CouncilEligibility verdict = CouncilRosterPolicy.Evaluate(scope, FactsFor(hero, parleyTargetFactionId));
                seats.Add(new CouncilSeat {Hero = hero, Seated = verdict.Eligible, Reason = verdict.Reason});
             }
          }
@@ -56,8 +59,8 @@ namespace CalradiaRemembers.Assemblies
       }
 
       /// <summary>The seated members only, which is what a session actually opens over.</summary>
-      public static List<Hero> Seated(CouncilScope scope)
-         => Resolve(scope).Where(s => s.Seated && s.Hero != null).Select(s => s.Hero).ToList();
+      public static List<Hero> Seated(CouncilScope scope, string parleyTargetFactionId = null)
+         => Resolve(scope, parleyTargetFactionId).Where(s => s.Seated && s.Hero != null).Select(s => s.Hero).ToList();
 
       /// <summary>
       ///   Re-checks a SINGLE hero's council eligibility against CURRENT world state, used at the council's
@@ -103,8 +106,13 @@ namespace CalradiaRemembers.Assemblies
 
       // Who is even considered. Scoped BEFORE the policy runs so the refusal list stays meaningful: every
       // living lord in Calradia is "not of this council", and listing them all as refusals would be noise.
-      private static IEnumerable<Hero> CandidatePool(CouncilScope scope)
+      private static IEnumerable<Hero> CandidatePool(CouncilScope scope, string parleyTargetFactionId = null)
       {
+         // Parley is parameterized by a specific ENEMY faction, not the player's own house, so it is resolved
+         // before the player-clan null-guard below (which every OTHER scope needs, but a parley does not: its
+         // one candidate comes from the target faction, never Clan.PlayerClan).
+         if (scope == CouncilScope.Parley) return ParleyCandidates(parleyTargetFactionId);
+
          Clan clan = Clan.PlayerClan;
 
          if (clan == null) return Enumerable.Empty<Hero>();
@@ -122,6 +130,19 @@ namespace CalradiaRemembers.Assemblies
             default:
                return Enumerable.Empty<Hero>();
          }
+      }
+
+      // A parley's roster (author's decision): a single-seat pool, the LEADER of the specific enemy faction the
+      // parley was convened against, the negotiating counterpart. No target stored (or it no longer resolves,
+      // e.g. an eliminated faction) yields an empty pool: a parley with nobody to negotiate with cannot open.
+      private static IEnumerable<Hero> ParleyCandidates(string parleyTargetFactionId)
+      {
+         IFaction target = ParleyFactionLookup.ByStringId(parleyTargetFactionId);
+         Hero leader = target?.Leader;
+
+         if (leader == null) yield break;
+
+         yield return leader;
       }
 
       // Roster default (author's decision): the war council gathers the player's ALLIES, i.e. the leaders of
@@ -159,7 +180,7 @@ namespace CalradiaRemembers.Assemblies
                yield return child;
       }
 
-      private static CouncilMembershipFacts FactsFor(Hero hero)
+      private static CouncilMembershipFacts FactsFor(Hero hero, string parleyTargetFactionId = null)
       {
          Clan clan = Clan.PlayerClan;
          var player = Hero.MainHero;
@@ -176,6 +197,11 @@ namespace CalradiaRemembers.Assemblies
                                 ? hero.Clan != null && hero.Clan != clan && hero.Clan.Kingdom == clan.Kingdom && hero.Clan.Leader == hero
                                 : hero.Clan == clan && hero.IsLord && hero != player);
 
+         // Mirrors ParleyCandidates exactly (the one hero that pool ever returns must also read true here): the
+         // leader of the stored parley target faction, resolved by StringId (never by name, unlike declare_war's
+         // free-text target).
+         bool isParleyCounterpart = ParleyFactionLookup.ByStringId(parleyTargetFactionId)?.Leader == hero;
+
          return new CouncilMembershipFacts(
             hero.IsAlive,
             hero.IsPrisoner,
@@ -185,7 +211,8 @@ namespace CalradiaRemembers.Assemblies
             clan != null && hero.Clan == clan && hero.IsLord && hero != player,
             hero.PartyBelongedTo?.Army != null,
             CompanionMissionBehavior.Instance?.IsAway(hero.StringId) ?? false,
-            isAlliedLeader);
+            isAlliedLeader,
+            isParleyCounterpart);
       }
 
       #endregion

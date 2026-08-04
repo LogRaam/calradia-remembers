@@ -137,5 +137,40 @@ namespace CalradiaRemembers.Tests.Assemblies
             CouncilActorPolicy.ResolveDeclareWarActor(null, new List<string>()).Should().Be(-1);
             CouncilActorPolicy.ResolveDeclareWarActor(null, null).Should().Be(-1);
         }
+
+        // make_peace's own carve-out, the same reasoning as declare_war's: the pledge is the table's decision to
+        // end a war between two FACTIONS, not one seated counterpart's promise, so an omitted actor must still
+        // default to the presiding seat rather than being dropped, or a parley could never actually record peace.
+        [Test]
+        public void GIVEN_a_blank_actor_WHEN_resolving_a_make_peace_actor_THEN_the_presiding_seat_is_returned()
+        {
+            CouncilActorPolicy.ResolveMakePeaceActor(null, new List<string> {"Sley", "Aldric"}).Should().Be(0);
+            CouncilActorPolicy.ResolveMakePeaceActor("", new List<string> {"Sley", "Aldric"}).Should().Be(0);
+            CouncilActorPolicy.ResolveMakePeaceActor("   ", new List<string> {"Sley", "Aldric"}).Should().Be(0);
+        }
+
+        // A NAMED actor is resolved exactly like any other kind: this carve-out only widens what an OMITTED
+        // actor means, it never loosens the "never guess" rule for a name that was actually given.
+        [Test]
+        public void GIVEN_a_named_actor_WHEN_resolving_a_make_peace_actor_THEN_it_resolves_like_any_other_kind()
+        {
+            CouncilActorPolicy.ResolveMakePeaceActor("Aldric", new List<string> {"Sley", "Aldric"}).Should().Be(1);
+        }
+
+        // An actor naming somebody not seated must still refuse: the omitted-actor default is narrowly for a
+        // BLANK actor, never a signal to fall back on a hallucinated name.
+        [Test]
+        public void GIVEN_an_unmatched_named_actor_WHEN_resolving_a_make_peace_actor_THEN_it_is_still_refused()
+        {
+            CouncilActorPolicy.ResolveMakePeaceActor("Someone Else", new List<string> {"Sley", "Aldric"}).Should().Be(-1);
+        }
+
+        // No seats at all must still refuse cleanly rather than default to a nonexistent seat 0.
+        [Test]
+        public void GIVEN_no_seated_members_WHEN_resolving_a_make_peace_actor_THEN_it_is_refused_without_throwing()
+        {
+            CouncilActorPolicy.ResolveMakePeaceActor(null, new List<string>()).Should().Be(-1);
+            CouncilActorPolicy.ResolveMakePeaceActor(null, null).Should().Be(-1);
+        }
     }
 }

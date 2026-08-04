@@ -16,15 +16,21 @@ namespace CalradiaRemembers.Logic.Assemblies
             // hero pinned in a battle. These bar the seat regardless of which roster is being gathered.
             if (!f.IsAlive) return new CouncilEligibility(false, CouncilExclusionReason.Dead);
             if (f.IsPrisoner) return new CouncilEligibility(false, CouncilExclusionReason.Imprisoned);
-            if (f.IsInBattle) return new CouncilEligibility(false, CouncilExclusionReason.InBattle);
 
             // A member marching with an army or away on a companion errand cannot physically sit at the table
             // either, for the same reason as the battle gate: seating them anyway would let them agree to deeds
             // they cannot perform, recreating the "absent member acts as if present" bug under another form.
-            // These two also bar the seat regardless of scope, so they sit here rather than in the membership
-            // switch below.
-            if (f.IsInArmy) return new CouncilEligibility(false, CouncilExclusionReason.InArmy);
-            if (f.IsOnMission) return new CouncilEligibility(false, CouncilExclusionReason.OnMission);
+            // These three also bar the seat regardless of scope for every OTHER council, so they sit here rather
+            // than in the membership switch below. A Parley's counterpart is deliberately excluded (author's
+            // decision): they are the LEADER of an enemy faction the player is at war with, not one of YOUR
+            // people subject to army/mission gates, an enemy leader is routinely leading their own army, and
+            // that is exactly why a parley is being sought. Only alive + not prisoner gate them.
+            if (scope != CouncilScope.Parley)
+            {
+                if (f.IsInBattle) return new CouncilEligibility(false, CouncilExclusionReason.InBattle);
+                if (f.IsInArmy) return new CouncilEligibility(false, CouncilExclusionReason.InArmy);
+                if (f.IsOnMission) return new CouncilEligibility(false, CouncilExclusionReason.OnMission);
+            }
 
             // Membership: the chosen scope decides which flag seats the hero. The flags overlap by design (a
             // sibling-lord is both Family and ClanLord), so a hero can be eligible for one council and not another.
@@ -42,6 +48,9 @@ namespace CalradiaRemembers.Logic.Assemblies
                     break;
                 case CouncilScope.WarCouncil:
                     belongs = f.IsAlliedLeader;
+                    break;
+                case CouncilScope.Parley:
+                    belongs = f.IsParleyCounterpart;
                     break;
                 default:
                     belongs = false;

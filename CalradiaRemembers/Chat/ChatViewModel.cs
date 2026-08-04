@@ -257,6 +257,17 @@ namespace CalradiaRemembers.Chat
       private CouncilScope? _councilScope;
 
       /// <summary>
+      ///   Set only for a <see cref="CouncilScope.Parley" /> (null for every other scope): the StringId of the
+      ///   specific enemy faction this parley was convened against, carried from convening
+      ///   (<see cref="ActivateCouncil" />) through to <see cref="ChatViewModel.PlayerCanMakePeace" /> (the
+      ///   offering) and, via <see cref="CalradiaRemembers.Assemblies.CouncilSessionBehavior.BeginSession" />, to
+      ///   <see cref="CouncilLift.SettleMakePeace" /> at the lift. Session state like <see cref="_councilScope" />
+      ///   itself, but ALSO handed to the session behavior so it survives a mid-session save (see that class's
+      ///   own additive snapshot field).
+      /// </summary>
+      private string _councilParleyTargetFactionId;
+
+      /// <summary>
       ///   How the CURRENT council speaks (whole-table single call, or one call per seated member). Seeded from
       ///   <see cref="ModSettings.DefaultCouncilVoiceMode" /> when the council opens (<see cref="ActivateCouncil" />),
       ///   then flipped live by the in-window toggle (<see cref="ExecuteToggleCouncilVoiceMode" />): session
@@ -1115,19 +1126,24 @@ namespace CalradiaRemembers.Chat
       ///   toggle (<see cref="_councilVoiceMode" />) is superseded for a real council by this narrator model: it
       ///   stays visible (Gabriel iterates on it in-game) but <see cref="ExecuteSendMessage" /> no longer
       ///   branches on it. Carried as SESSION state, so closing the window ends council mode and a later
-      ///   ordinary chat is unaffected.
+      ///   ordinary chat is unaffected. <paramref name="parleyTargetFactionId" /> is the Parley's own extra piece
+      ///   of session state (null for every other scope): the StringId of the specific enemy faction this parley
+      ///   was convened against, set by the caller (ChatManager.OpenForCouncil) once it has resolved the roster's
+      ///   one counterpart.
       /// </summary>
-      public void ActivateCouncil(CouncilScope scope)
+      public void ActivateCouncil(CouncilScope scope, string parleyTargetFactionId = null)
       {
          _mode = ChatMode.Conversation;
          _councilScope = scope;
+         _councilParleyTargetFactionId = parleyTargetFactionId;
          _councilVoiceMode = ModSettings.DefaultCouncilVoiceMode;
          CouncilVoiceModeText = DescribeCouncilVoiceMode(_councilVoiceMode);
          IsCouncilVoiceToggleVisible = true;
 
          // C4: hand the live ledger + scope to the save-safe session behavior, so a save (or crash) mid-sitting
-         // persists the pledges; a normal close clears it again in FinalizeCouncilResolutions.
-         CalradiaRemembers.Assemblies.CouncilSessionBehavior.Instance?.BeginSession(scope, _councilLedger);
+         // persists the pledges; a normal close clears it again in FinalizeCouncilResolutions. The parley target
+         // faction rides along as its own additive field (CouncilSessionSnapshot.ParleyTargetFactionId).
+         CalradiaRemembers.Assemblies.CouncilSessionBehavior.Instance?.BeginSession(scope, _councilLedger, parleyTargetFactionId);
 
          // Bespoke council window (Inc 0): seats the left strip from the roster the caller (OpenForCouncil /
          // OpenForAssembly) already built via AddWitness, and gives the centre column its agenda placeholder.
@@ -1136,6 +1152,7 @@ namespace CalradiaRemembers.Chat
             CouncilScope.Family => "Clan and family council",
             CouncilScope.ClanLords => "Council of your clan's lords",
             CouncilScope.WarCouncil => "War council",
+            CouncilScope.Parley => "Parley",
             _ => "Council of companions"
          };
          PopulateCouncilParticipants();
@@ -1180,6 +1197,11 @@ namespace CalradiaRemembers.Chat
                "acknowledge the summons and ask what war matter the player lays before the table. The others are " +
                "present and listening, each with their own stake in what war would cost them; not all of them need " +
                "speak yet.]",
+            CouncilScope.Parley =>
+               "[The player has sought a PARLEY: the enemy's own envoy sits across the table, at the player's " +
+               "word, to speak of peace. Describe the meeting settling in, briefly, then give the floor: the " +
+               "counterpart may acknowledge why they came and ask what terms the player would offer. Wary, not " +
+               "friendly, they did not come to surrender, only to hear.]",
             _ =>
                "[The player has called their companions together: they are gathered at their word. Describe the " +
                "gathering settling in, briefly, then give the floor: one seated member may acknowledge the summons " +

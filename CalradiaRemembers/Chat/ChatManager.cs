@@ -459,9 +459,12 @@ namespace CalradiaRemembers.Chat
       ///   <paramref name="allowInScene" /> bypasses the InScene refusal: a settlement-hosted council (Phase 1
       ///   scene staging) deliberately opens AFTER its own Location mission has started, so Mission.Current is
       ///   non-null by design there, unlike the ordinary map-overlay path (cr.council), which must still refuse
-      ///   inside somebody else's scene.
+      ///   inside somebody else's scene. <paramref name="parleyTargetFactionId" /> is the Parley's own extra
+      ///   parameter (null for every other scope): the StringId of the specific enemy faction this parley was
+      ///   convened against, carried into the roster (CouncilRosterResolver.Seated) and the view-model
+      ///   (ActivateCouncil), which in turn hands it to the save-safe session behavior.
       /// </summary>
-      public static string OpenForCouncil(CouncilScope scope, bool allowInScene = false)
+      public static string OpenForCouncil(CouncilScope scope, bool allowInScene = false, string parleyTargetFactionId = null)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
@@ -470,7 +473,7 @@ namespace CalradiaRemembers.Chat
          string blocked = CouncilOpenBlockedReason(allowInScene);
          if (blocked != null) return blocked;
 
-         List<Hero> seated = CouncilRosterResolver.Seated(scope);
+         List<Hero> seated = CouncilRosterResolver.Seated(scope, parleyTargetFactionId);
 
          if (seated.Count == 0)
             return $"Nobody is seated for a {scope} council right now (nobody available, or nobody of that house).";
@@ -506,7 +509,7 @@ namespace CalradiaRemembers.Chat
                PresenceStatus = CouncilRosterResolver.DescribePresence(member)
             });
 
-         ActiveViewModel.ActivateCouncil(scope);
+         ActiveViewModel.ActivateCouncil(scope, parleyTargetFactionId);
          ModLog.Info($"[COUNCIL] opened {scope} with {seated.Count} seated, anchor {anchor.Name}.");
 
          return $"Council ({scope}) opened with {seated.Count} seated. {anchor.Name} speaks for the table; "
@@ -584,6 +587,7 @@ namespace CalradiaRemembers.Chat
             CouncilScope.Family => "kin of the player's house, seated at this council",
             CouncilScope.ClanLords => "a lord of the player's clan, seated at this council",
             CouncilScope.WarCouncil => "an allied lord seated at this war council",
+            CouncilScope.Parley => "the enemy leader this parley was sought with",
             _ => "a companion in the player's service, seated at this council"
          };
 

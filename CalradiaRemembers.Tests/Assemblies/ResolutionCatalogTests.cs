@@ -200,7 +200,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             foreach (ResolutionKind kind in Enum.GetValues(typeof(ResolutionKind)).Cast<ResolutionKind>())
             {
-                if (kind == ResolutionKind.DeclareWar) continue;
+                if (kind == ResolutionKind.DeclareWar || kind == ResolutionKind.MakePeace) continue;
 
                 ResolutionCatalog.IsFactionCentric(kind).Should().BeFalse();
             }
@@ -212,6 +212,39 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_a_war_council_WHEN_asked_for_executable_kinds_THEN_declare_war_is_offered()
         {
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.WarCouncil).Should().Contain("declare_war");
+        }
+
+        // declare_war's symmetric counterpart: it must appear under its own scope, Parley, and only there, so a
+        // parley (which exists specifically to negotiate peace) is the one council where make_peace can be raised.
+        [Test]
+        public void GIVEN_a_parley_WHEN_the_catalogue_is_queried_THEN_only_make_peace_returns()
+        {
+            var kinds = ResolutionCatalog.ForScope(CouncilScope.Parley).Select(d => d.Kind).ToList();
+
+            kinds.Should().Equal(ResolutionKind.MakePeace);
+        }
+
+        // make_peace has a live lift executor (CouncilLift.SettleMakePeace) from the day it lands, mirroring
+        // declare_war: the table must be able to actually carry the decision out, not just record it.
+        [Test]
+        public void GIVEN_make_peace_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.MakePeace).Should().BeTrue();
+        }
+
+        // make_peace's subject is two FACTIONS exactly like declare_war, so the mod's lift must dispatch it the
+        // same way (bypassing the seated-member re-validation and going straight to its own faction re-check).
+        [Test]
+        public void GIVEN_make_peace_WHEN_asked_if_it_is_faction_centric_THEN_it_is()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.MakePeace).Should().BeTrue();
+        }
+
+        // A parley must be able to act, not merely debate: make_peace rides alongside the universal quest key.
+        [Test]
+        public void GIVEN_a_parley_WHEN_asked_for_executable_kinds_THEN_make_peace_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Parley).Should().Contain("make_peace");
         }
     }
 }

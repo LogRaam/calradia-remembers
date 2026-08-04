@@ -86,9 +86,12 @@ namespace CalradiaRemembers.Chat
       ///   same guards <see cref="ModCheats.Council" /> already reported before it called
       ///   <see cref="ChatManager.OpenForCouncil" /> directly, so a refusal reads exactly as it did before this
       ///   stager existed. Returns a short line for the console: either a refusal, or confirmation that the
-      ///   council is convening.
+      ///   council is convening. <paramref name="parleyTargetFactionId" /> is the Parley's own extra parameter
+      ///   (null for every other scope): the StringId of the specific enemy faction this parley was convened
+      ///   against, carried through the whole staging pipeline to the eventual <see cref="ChatManager.OpenForCouncil" />
+      ///   call.
       /// </summary>
-      public static string StageCouncil(CouncilScope scope)
+      public static string StageCouncil(CouncilScope scope, string parleyTargetFactionId = null)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
@@ -98,7 +101,7 @@ namespace CalradiaRemembers.Chat
          string blocked = ChatManager.PreCouncilBlockReason();
          if (blocked != null) return blocked;
 
-         List<Hero> seated = CouncilRosterResolver.Seated(scope);
+         List<Hero> seated = CouncilRosterResolver.Seated(scope, parleyTargetFactionId);
 
          if (seated.Count == 0)
             return $"Nobody is seated for a {scope} council right now (nobody available, or nobody of that house).";
@@ -107,7 +110,7 @@ namespace CalradiaRemembers.Chat
 
          if (anchor == null) return "Could not seat an anchor for the council.";
 
-         BeginStagedConversation(scope, anchor);
+         BeginStagedConversation(scope, anchor, parleyTargetFactionId);
 
          return $"Convening the council ({scope})...";
       }
@@ -162,6 +165,9 @@ namespace CalradiaRemembers.Chat
       private sealed class Pending
       {
          public CouncilScope Scope;
+
+         /// <summary>The Parley's own carried state (null for every other scope); see <see cref="StageCouncil" />'s own doc.</summary>
+         public string ParleyTargetFactionId;
       }
 
       #region private
@@ -172,9 +178,9 @@ namespace CalradiaRemembers.Chat
       ///   <see cref="Campaign.ConversationManager" />, the player is at sea, or the conversation fails to start.
       ///   Mirrors CaptiveSceneStager.BeginStagedConversation.
       /// </summary>
-      private static void BeginStagedConversation(CouncilScope scope, Hero anchor)
+      private static void BeginStagedConversation(CouncilScope scope, Hero anchor, string parleyTargetFactionId = null)
       {
-         var pending = new Pending {Scope = scope};
+         var pending = new Pending {Scope = scope, ParleyTargetFactionId = parleyTargetFactionId};
 
          CharacterObject partner = anchor?.CharacterObject;
          PartyBase partnerParty = anchor?.PartyBelongedTo?.Party;
@@ -228,7 +234,7 @@ namespace CalradiaRemembers.Chat
 
       private static void OpenDirect(Pending p)
       {
-         ChatManager.OpenForCouncil(p.Scope);
+         ChatManager.OpenForCouncil(p.Scope, parleyTargetFactionId: p.ParleyTargetFactionId);
       }
 
       private static void OpenPending(string via)
@@ -247,7 +253,7 @@ namespace CalradiaRemembers.Chat
                         $"convoHero={Hero.OneToOneConversationHero?.Name?.ToString() ?? "none"}).");
             // allowInScene: the scene we staged IS a live Mission by this point (same as the settlement-hosted
             // council this parameter was built for), so the ordinary InScene refusal must be bypassed here.
-            ChatManager.OpenForCouncil(p.Scope, allowInScene: true);
+            ChatManager.OpenForCouncil(p.Scope, allowInScene: true, parleyTargetFactionId: p.ParleyTargetFactionId);
          }
          catch (Exception ex)
          {

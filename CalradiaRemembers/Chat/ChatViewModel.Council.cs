@@ -292,6 +292,28 @@ namespace CalradiaRemembers.Chat
             && !FactionManager.IsAtWarAgainstFaction(playerFaction, c));
       }
 
+      /// <summary>
+      ///   The Parley's own gate, declare_war's symmetric counterpart: make_peace's PlayerCanMakePeace fact
+      ///   (ResolutionOfferingResolver.OfferedKindKeys). Unlike PlayerCanDeclareWar (a static, scope-wide check
+      ///   over EVERY possible target), this reads <see cref="_councilParleyTargetFactionId" />, the ONE faction
+      ///   the parley was actually convened against: true once the player leads their own faction AND that
+      ///   faction is currently at war with the stored parley target. Instance (not static) because it needs the
+      ///   session's own stored target; the real faction is re-resolved and re-checked again at the lift
+      ///   regardless (CouncilLift.SettleMakePeace, bridge is law).
+      /// </summary>
+      private bool PlayerCanMakePeace()
+      {
+         if (Hero.MainHero is not {IsFactionLeader: true}) return false;
+
+         IFaction playerFaction = Hero.MainHero.MapFaction;
+         if (playerFaction == null) return false;
+
+         IFaction target = CalradiaRemembers.Assemblies.ParleyFactionLookup.ByStringId(_councilParleyTargetFactionId);
+         if (target == null) return false;
+
+         return FactionManager.IsAtWarAgainstFaction(playerFaction, target);
+      }
+
       #region Scene image on the thinking placeholder
 
       /// <summary>

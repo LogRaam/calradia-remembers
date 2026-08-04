@@ -69,14 +69,18 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.council [companions|family|lords|war]
+      ///   cr.council [companions|family|lords|war|parley &lt;faction name&gt;]
       ///   Opens a REAL council of the player's own house (default: companions), or, with "war", the WarCouncil
       ///   scope: the player's ALLIES (the leaders of the OTHER clans in his kingdom, or, with no kingdom, his
-      ///   own clan lords) deciding war policy. Unlike cr.council_test, which bolts synthetic members onto
-      ///   whatever chat is already open, this seats the actual roster the scope gathers, gives the spoken
-      ///   reply to the member who regards the player best, and carries the whole-table framing for the WHOLE
-      ///   session (it ends with the window, nothing global is armed). Each turn is ONE call: the anchor
-      ///   answers and every other member may speak or merely gesture.
+      ///   own clan lords) deciding war policy. With "parley &lt;faction name&gt;", opens a Parley against the
+      ///   named ENEMY faction (a Kingdom or an independent Clan, resolved by name, case-insensitive): seats that
+      ///   faction's LEADER, the negotiating counterpart, and its own motion, make_peace, ends the war between
+      ///   the player's faction and that one. The player must currently be leading their own faction AND be at
+      ///   war with the named faction, else this refuses and opens nothing. Unlike cr.council_test, which bolts
+      ///   synthetic members onto whatever chat is already open, this seats the actual roster the scope gathers,
+      ///   gives the spoken reply to the member who regards the player best, and carries the whole-table framing
+      ///   for the WHOLE session (it ends with the window, nothing global is armed). Each turn is ONE call: the
+      ///   anchor answers and every other member may speak or merely gesture.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("council", "cr")]
       public static string Council(List<string> args)
@@ -86,6 +90,7 @@ namespace CalradiaRemembers
             string which = args is {Count: > 0} ? args[0].ToLowerInvariant() : "companions";
 
             CouncilScope scope;
+            string parleyTargetFactionId = null;
             switch (which)
             {
                case "family":
@@ -106,16 +111,38 @@ namespace CalradiaRemembers
                   scope = CouncilScope.WarCouncil;
 
                   break;
+               case "parley":
+                  if (args.Count < 2)
+                     return "Usage: cr.council parley <faction name>.";
+
+                  string factionName = string.Join(" ", args.Skip(1));
+                  IFaction parleyTarget = CouncilLift.ResolveFactionByName(factionName);
+
+                  if (parleyTarget == null)
+                     return $"No faction named '{factionName}' could be found.";
+
+                  IFaction playerFaction = Hero.MainHero?.MapFaction;
+
+                  if (playerFaction == null)
+                     return "You do not lead a faction, so there is no side to negotiate for.";
+
+                  if (!FactionManager.IsAtWarAgainstFaction(playerFaction, parleyTarget))
+                     return $"You are not at war with {parleyTarget.Name}. A parley can only be sought with an enemy.";
+
+                  scope = CouncilScope.Parley;
+                  parleyTargetFactionId = parleyTarget.StringId;
+
+                  break;
                default:
-                  return $"Unknown council '{which}'. Use: companions | family | lords | war.";
+                  return $"Unknown council '{which}'. Use: companions | family | lords | war | parley <faction name>.";
             }
 
             // The refusals are worth showing: "nobody is seated" is a very different report from "your two
             // companions are both held prisoner", and only the roster knows which.
-            List<CouncilSeat> roster = CouncilRosterResolver.Resolve(scope);
+            List<CouncilSeat> roster = CouncilRosterResolver.Resolve(scope, parleyTargetFactionId);
             // Staged over a conversation scene (CouncilConversationStager), the same VRAM-safe/keyboard-focus
             // hosting the captive chat already uses, instead of calling ChatManager.OpenForCouncil directly.
-            string opened = CouncilConversationStager.StageCouncil(scope);
+            string opened = CouncilConversationStager.StageCouncil(scope, parleyTargetFactionId);
             string refused = string.Join(", ", roster
                                               .Where(s => !s.Seated && s.Reason != CouncilExclusionReason.NotOfThisCouncil)
                                               .Select(s => $"{s.Hero?.Name} ({s.Reason})"));

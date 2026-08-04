@@ -46,7 +46,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                       bool isClanLord,
                                       bool isInArmy,
                                       bool isOnMission,
-                                      bool isAlliedLeader = false)
+                                      bool isAlliedLeader = false,
+                                      bool isParleyCounterpart = false)
         {
             IsAlive = isAlive;
             IsPrisoner = isPrisoner;
@@ -57,6 +58,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             IsInArmy = isInArmy;
             IsOnMission = isOnMission;
             IsAlliedLeader = isAlliedLeader;
+            IsParleyCounterpart = isParleyCounterpart;
         }
 
         public bool IsAlive { get; }
@@ -88,6 +90,16 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   leader, though the common case is disjoint from IsClanLord (a DIFFERENT clan's leader).
         /// </summary>
         public bool IsAlliedLeader { get; }
+
+        /// <summary>
+        ///   The Parley's own roster fact: the LEADER of the specific enemy faction the parley was convened
+        ///   against (see CouncilRosterResolver.CandidatePool's Parley case, parameterized by the stored target
+        ///   faction). Unlike every other membership flag, this hero is not a member of the player's own house at
+        ///   all, the negotiating counterpart, so the availability gates that assume "one of YOUR people"
+        ///   (InBattle/InArmy/OnMission) do not apply to them (see CouncilRosterPolicy.Evaluate's own carve-out);
+        ///   only alive and not a prisoner are checked.
+        /// </summary>
+        public bool IsParleyCounterpart { get; }
     }
 
     /// <summary>Whether a hero is seated at a council, and if not, the reason to show on the roster.</summary>

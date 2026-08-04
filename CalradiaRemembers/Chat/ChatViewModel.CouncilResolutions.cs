@@ -50,13 +50,17 @@ namespace CalradiaRemembers.Chat
             // Unlike an [ACTION]'s optional "actor" (absent = the current speaker), a [RESOLUTION] always
             // requires one: there is no natural "whoever is speaking" fallback for a table decision, and
             // guessing it onto the anchor is exactly the misattribution this whole feature exists to prevent.
-            // declare_war is the one carve-out (ResolveDeclareWarActor): it is a FACTION-CENTRIC decision, not a
-            // member's own promise, so an OMITTED actor there defaults to the presiding member instead of being
-            // dropped; a NAMED-but-unmatched actor still refuses exactly like every other kind.
+            // declare_war and its symmetric counterpart make_peace are the carve-outs (ResolveDeclareWarActor /
+            // ResolveMakePeaceActor): both are FACTION-CENTRIC decisions, not a member's own promise, so an
+            // OMITTED actor there defaults to the presiding member instead of being dropped; a NAMED-but-unmatched
+            // actor still refuses exactly like every other kind.
             bool isDeclareWar = string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DeclareWar), StringComparison.OrdinalIgnoreCase);
+            bool isMakePeace = string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.MakePeace), StringComparison.OrdinalIgnoreCase);
             int idx = isDeclareWar
                ? CouncilActorPolicy.ResolveDeclareWarActor(proposal.Actor, names)
-               : CouncilActorPolicy.ResolveActor(proposal.Actor, names);
+               : isMakePeace
+                  ? CouncilActorPolicy.ResolveMakePeaceActor(proposal.Actor, names)
+                  : CouncilActorPolicy.ResolveActor(proposal.Actor, names);
 
             if (idx < 0)
             {
@@ -148,7 +152,8 @@ namespace CalradiaRemembers.Chat
          // "grant_stipend" grounds on the proposed AMOUNT instead (read back by int.TryParse in
          // CouncilLift.SettleGrantStipend, the FIRST executor that touches persisted save state), and "declare_war"
          // grounds on the FACTION named instead (read back by CouncilLift.SettleDeclareWar, the FIRST FACTION-CENTRIC
-         // kind).
+         // kind); its symmetric counterpart "make_peace" REUSES the same TargetFaction field (read back as the
+         // FALLBACK in CouncilLift.SettleMakePeace, which prefers the parley's own STORED target faction).
          string targetHint;
          if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.AssignPartyRole), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetRole;
@@ -156,7 +161,8 @@ namespace CalradiaRemembers.Chat
             targetHint = proposal.TargetMission;
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GrantStipend), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetAmount?.ToString();
-         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DeclareWar), StringComparison.OrdinalIgnoreCase))
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DeclareWar), StringComparison.OrdinalIgnoreCase)
+               || string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.MakePeace), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetFaction;
          else
             targetHint = proposal.TargetSettlement;
@@ -198,7 +204,7 @@ namespace CalradiaRemembers.Chat
 
          int gameDay = behavior.GameStateBridge.GetCurrentGameDay();
 
-         CouncilLift.Finalize(_councilLedger, _councilScope.Value, behavior, gameDay, AppendSystemMessage);
+         CouncilLift.Finalize(_councilLedger, _councilScope.Value, behavior, gameDay, AppendSystemMessage, _councilParleyTargetFactionId);
          SealCouncilEngagements(behavior, gameDay);
          CouncilSessionBehavior.Instance?.EndSession();
       }

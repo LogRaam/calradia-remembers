@@ -24,8 +24,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool canAfford = false,
                                                   bool mission = false,
                                                   bool outOfParty = false,
-                                                  bool canDeclareWar = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar);
+                                                  bool canDeclareWar = false,
+                                                  bool canMakePeace = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -219,6 +220,26 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, Facts(canDeclareWar: false))
                 .Should().NotContain("declare_war");
+        }
+
+        // The Parley's own gate, declare_war's symmetric counterpart: make_peace must be TAUGHT to the LLM only
+        // when the mod's offering has proven the player leads their own faction AND it is at war with the
+        // parley's target, or the model promises a peace CouncilLift.SettleMakePeace's own guard would refuse.
+        [Test]
+        public void GIVEN_the_player_can_make_peace_WHEN_offered_keys_are_asked_THEN_make_peace_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, Facts(canMakePeace: true))
+                .Should().Contain("make_peace");
+        }
+
+        // Absent that fact (the player does not lead their own faction, or is somehow not at war with the
+        // parley's target) the key must be withheld, or the table could offer a peace nobody present has the
+        // standing to make.
+        [Test]
+        public void GIVEN_the_player_cannot_make_peace_WHEN_offered_keys_are_asked_THEN_make_peace_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, Facts(canMakePeace: false))
+                .Should().NotContain("make_peace");
         }
     }
 }

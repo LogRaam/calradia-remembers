@@ -43,6 +43,7 @@ using CalradiaRemembers.Stance;
 using CalradiaRemembers.Travel;
 using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
+using Newtonsoft.Json;
 using NpcMemoryService.Core.Captivity;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
@@ -211,6 +212,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("assembly_convene", Severity.Light, "Mechanical (ASSEMBLY Inc 1): arranges a host town + live lords with a seeded regard, convenes through the real facts-builder + RSVP policy, asserts the regard read-back + roster + tally, then cancels and restores (no manual in-game setup needed)", TestAssemblyConvene),
          new SelfTest("assembly_arrival", Severity.Light, "Mechanical (ASSEMBLY Inc 1 slice 2): convenes + sets two lords EnRoute, then drives the two runtime transitions: one reaches the host and seats Present, the deadline turns the other into an ambassador; cancels after (no map travel, no LLM)", TestAssemblyArrival),
          new SelfTest("assembly_revalidate", Severity.Light, "Mechanical (ASSEMBLY Inc 1 robustness): the daily re-validation reads the live host + traveller state and leaves a healthy assembly intact (host/traveller edge combinations are pinned by the pure policy tests)", TestAssemblyRevalidate),
+         new SelfTest("council_parley_snapshot", Severity.Light, "Mechanical (Parley council): CouncilSessionSnapshot's additive ParleyTargetFactionId field round-trips through the exact JsonConvert path CouncilSessionBehavior.SyncData uses, both WITH a value set and WITHOUT one present in the JSON at all (an old pre-Parley snapshot) -> the missing-field case must deserialize to null rather than throw. No live campaign state touched", TestCouncilParleySnapshot),
          new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate),
          new SelfTest("chat_captor_break", Severity.Light, "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?", TestChatCaptorBreak, true, 3),
          new SelfTest("chat_captor_torture", Severity.Light, "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?", TestChatCaptorTorture, true, 3),
@@ -1964,6 +1966,46 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("healthyTravellerKeptEnRoute", after, AssemblyInviteeStatus.EnRoute);
 
          AssemblyBehavior.Instance.Cancel();
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Mechanical (Parley council, 2026-08-03): the additive JSON field CouncilSessionSnapshot.ParleyTargetFactionId
+      ///   round-trips through the exact JsonConvert.SerializeObject/DeserializeObject path CouncilSessionBehavior.SyncData
+      ///   uses. Two cases: WITH a value set (the ordinary Parley case, must survive intact) and a hand-written JSON
+      ///   payload WITHOUT the property present at all (an old snapshot written before this field existed, or any
+      ///   non-Parley scope, which never sets it) -> Newtonsoft must tolerate the missing property as null rather than
+      ///   throw, or an old in-flight council save recovered mid-session would crash the campaign on load instead of
+      ///   simply recovering no parley target (see CouncilSessionSnapshot's own field doc). Pure serialization, no
+      ///   live campaign state touched, so this needs no arrange/skip preconditions.
+      /// </summary>
+      private static string TestCouncilParleySnapshot(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("council_parley_snapshot");
+
+         var withTarget = new CouncilSessionBehavior.CouncilSessionSnapshot {
+            Scope = CouncilScope.Parley,
+            Entries = new List<AssemblyResolutionEntry>(),
+            ParleyTargetFactionId = "fac_test_vlandia"
+         };
+         string json = JsonConvert.SerializeObject(withTarget, Formatting.None);
+         var roundTripped = JsonConvert.DeserializeObject<CouncilSessionBehavior.CouncilSessionSnapshot>(json);
+
+         t.Expect("scopeRoundTrips", roundTripped?.Scope, CouncilScope.Parley);
+         t.Expect("parleyTargetFactionIdRoundTrips", roundTripped?.ParleyTargetFactionId, "fac_test_vlandia");
+
+         // The old (pre-Parley) shape: no ParleyTargetFactionId property in the JSON at all, mirroring exactly
+         // what a save written before this field existed would carry (ClanLords = ordinal 2).
+         const string legacyJson = "{\"Scope\":2,\"Entries\":[]}";
+         CouncilSessionBehavior.CouncilSessionSnapshot legacy = null;
+         Exception thrown = null;
+         try { legacy = JsonConvert.DeserializeObject<CouncilSessionBehavior.CouncilSessionSnapshot>(legacyJson); }
+         catch (Exception ex) { thrown = ex; }
+
+         t.Expect("legacyShapeDoesNotThrow", thrown == null, true);
+         t.Expect("legacyShapeYieldsNullParleyTarget", legacy?.ParleyTargetFactionId, null);
+         t.Expect("legacyShapeScopeStillReads", legacy?.Scope, CouncilScope.ClanLords);
 
          return t.Line();
       }

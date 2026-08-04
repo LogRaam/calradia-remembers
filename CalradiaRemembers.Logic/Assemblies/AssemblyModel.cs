@@ -48,7 +48,18 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   CandidatePool). The first FACTION-CENTRIC scope: its motions (declare_war) concern two FACTIONS,
         ///   not a seated member's own fate, unlike every other scope's member-pledge pattern.
         /// </summary>
-        WarCouncil
+        WarCouncil,
+
+        /// <summary>
+        ///   A meeting with a specific ENEMY clan/faction the player is at war with, to negotiate peace. Its
+        ///   roster is PARAMETERIZED by which enemy the parley was convened against (see
+        ///   CouncilRosterResolver.CandidatePool), unlike every scope above whose roster depends only on the
+        ///   scope itself: the seat is the counterpart's LEADER, not a member of the player's own house. Its
+        ///   motion, make_peace, is FACTION-CENTRIC like WarCouncil's declare_war, ending the war between the
+        ///   player's faction and the chosen enemy. Appended LAST so its ordinal is additive (this enum is
+        ///   persisted by ordinal, see CouncilSessionBehavior.CouncilSessionSnapshot.Scope).
+        /// </summary>
+        Parley
     }
 
     /// <summary>

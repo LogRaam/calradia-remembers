@@ -33,9 +33,12 @@ namespace CalradiaRemembers.Chat
       /// <summary>
       ///   Walks every AGREED pledge and settles it, writing an unkept-pledge memory (M7) on any that fails.
       ///   <paramref name="report" /> receives a player-facing line per pledge (message, isPositive); a headless
-      ///   caller may pass a banner reporter, or null to stay silent.
+      ///   caller may pass a banner reporter, or null to stay silent. <paramref name="parleyTargetFactionId" /> is
+      ///   the Parley's own carried state (null for every other scope): the StringId of the enemy faction this
+      ///   council was convened against, threaded through to <see cref="SettleMakePeace" /> as its PREFERRED
+      ///   target (see that method's own doc for why it still falls back to entry.TargetHint).
       /// </summary>
-      public static void Finalize(AssemblyLedger ledger, CouncilScope scope, NpcMemoryCampaignBehavior behavior, int gameDay, Action<string, bool> report)
+      public static void Finalize(AssemblyLedger ledger, CouncilScope scope, NpcMemoryCampaignBehavior behavior, int gameDay, Action<string, bool> report, string parleyTargetFactionId = null)
       {
          if (ledger == null || behavior?.Store == null) return;
 
@@ -47,7 +50,7 @@ namespace CalradiaRemembers.Chat
          {
             try
             {
-               Settle(ledger, entry, scope, behavior, gameDay, report);
+               Settle(ledger, entry, scope, behavior, gameDay, report, parleyTargetFactionId);
             }
             catch (Exception ex)
             {
@@ -84,18 +87,21 @@ namespace CalradiaRemembers.Chat
 
       #region private
 
-      private static void Settle(AssemblyLedger ledger, AssemblyResolutionEntry entry, CouncilScope scope, NpcMemoryCampaignBehavior behavior, int gameDay, Action<string, bool> report)
+      private static void Settle(AssemblyLedger ledger, AssemblyResolutionEntry entry, CouncilScope scope, NpcMemoryCampaignBehavior behavior, int gameDay, Action<string, bool> report, string parleyTargetFactionId = null)
       {
-         // Faction-centric kinds (today, only declare_war, ResolutionCatalog.IsFactionCentric) are dispatched
-         // BEFORE the ordinary seated-member gate below: their pledge concerns two FACTIONS, not the fate of
-         // entry.TargetHeroId (that field still carries the PROPOSING member's id, for the M7 broken-pledge
-         // memory on failure, see Finalize), so re-validating THAT member's own council eligibility here would
-         // wrongly block a table decision that was never actually about them (e.g. a proposer who has since left
-         // the roster must not sink a war the rest of the table still agreed to). SettleDeclareWar re-validates
-         // the actual subject of the pledge instead: the FACTIONS.
+         // Faction-centric kinds (declare_war and its symmetric counterpart make_peace, ResolutionCatalog.IsFactionCentric)
+         // are dispatched BEFORE the ordinary seated-member gate below: their pledge concerns two FACTIONS, not
+         // the fate of entry.TargetHeroId (that field still carries the PROPOSING member's id, for the M7
+         // broken-pledge memory on failure, see Finalize), so re-validating THAT member's own council eligibility
+         // here would wrongly block a table decision that was never actually about them (e.g. a proposer who has
+         // since left the roster must not sink a war, or a peace, the rest of the table still agreed to).
+         // SettleDeclareWar/SettleMakePeace re-validate the actual subject of the pledge instead: the FACTIONS.
          if (ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind peekedKind) && ResolutionCatalog.IsFactionCentric(peekedKind))
          {
-            SettleDeclareWar(ledger, entry, report);
+            if (peekedKind == ResolutionKind.MakePeace)
+               SettleMakePeace(ledger, entry, report, parleyTargetFactionId);
+            else
+               SettleDeclareWar(ledger, entry, report);
 
             return;
          }
@@ -632,8 +638,80 @@ namespace CalradiaRemembers.Chat
          ModLog.Info($"[COUNCIL] lift: war council declared war on {target.Name}.");
       }
 
-      /// <summary>Resolves a faction by name (case-insensitive) among live Kingdoms and independent Clans, the same pool SettleDeclareWar's target must come from.</summary>
-      private static IFaction ResolveFactionByName(string name)
+      /// <summary>
+      ///   The Parley's own executor, declare_war's symmetric counterpart: ends the war between the player's
+      ///   faction and the enemy faction the parley was convened against. <paramref name="parleyTargetFactionId" />
+      ///   (the stored parley target, CouncilSessionBehavior's carried state) is PREFERRED over <see cref="AssemblyResolutionEntry.TargetHint" />
+      ///   (the LLM's own free-text target_faction, resolved by name like declare_war's): the whole point of a
+      ///   parley is that its target is already fixed by how it was convened, so the stored id is the more
+      ///   trustworthy source, and the two should agree in the ordinary case; TargetHint remains the fallback for
+      ///   the rare edge where no parley target was stored (e.g. a pre-Parley save recovering an in-flight
+      ///   session, see CouncilSessionSnapshot's own additive-field doc) but the model still named one plainly.
+      ///   Author's guards (bridge is law, re-checked here rather than trusted from proposal/offer time, exactly
+      ///   like every other executor): the player must still lead their own faction (Hero.IsFactionLeader), the
+      ///   target faction must resolve among live Kingdoms and independent Clans, and the player's faction must
+      ///   still be at war with it. Any failing guard MarkFails with an honest reason; success calls the same
+      ///   native <see cref="MakePeaceAction.Apply" /> the scenario system (ScenarioConsequenceExecutor.MakePeace)
+      ///   already uses.
+      /// </summary>
+      private static void SettleMakePeace(AssemblyLedger ledger, AssemblyResolutionEntry entry, Action<string, bool> report, string parleyTargetFactionId)
+      {
+         const string label = "The council's decision to make peace";
+
+         if (Hero.MainHero is not {IsFactionLeader: true})
+         {
+            const string reason = "the player no longer leads a faction that can make peace.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{label} could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         IFaction playerFaction = Hero.MainHero.MapFaction;
+
+         if (playerFaction == null)
+         {
+            const string reason = "the player belongs to no faction.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{label} could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         IFaction target = ParleyFactionLookup.ByStringId(parleyTargetFactionId) ?? ResolveFactionByName(entry.TargetHint);
+
+         if (target == null)
+         {
+            const string reason = "no faction by that name could be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{label} could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!FactionManager.IsAtWarAgainstFaction(playerFaction, target))
+         {
+            string reason = $"the player is not at war with {target.Name}.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{label} could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         MakePeaceAction.Apply(playerFaction, target);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"Your council makes peace with {target.Name}.", true);
+         ModLog.Info($"[COUNCIL] lift: parley made peace with {target.Name}.");
+      }
+
+      /// <summary>
+      ///   Resolves a faction by name (case-insensitive) among live Kingdoms and independent Clans, the same pool
+      ///   SettleDeclareWar's/SettleMakePeace's target must come from. Internal (not private): also reused by
+      ///   ModCheats.Council for the "cr.council parley &lt;faction name&gt;" convening syntax, so the console
+      ///   command and the lift resolve a typed faction name identically.
+      /// </summary>
+      internal static IFaction ResolveFactionByName(string name)
       {
          if (string.IsNullOrWhiteSpace(name)) return null;
 

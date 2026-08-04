@@ -35,16 +35,30 @@ namespace CalradiaRemembers.Assemblies
         private AssemblyLedger _ledger;
         private CouncilScope? _scope;
 
+        /// <summary>
+        ///   The Parley's own carried state: the StringId of the specific enemy faction this council was convened
+        ///   against (set by ChatViewModel.ActivateCouncil, read back by make_peace's lift, CouncilLift.SettleMakePeace).
+        ///   Null for every other scope, and for a Parley snapshot written before this field existed (additive JSON
+        ///   field, see CouncilSessionSnapshot).
+        /// </summary>
+        private string _parleyTargetFactionId;
+
         public CouncilSessionBehavior()
         {
             Instance = this;
         }
 
-        /// <summary>The view-model registers the council's live ledger + scope as it opens, so a save mid-sitting persists them.</summary>
-        public void BeginSession(CouncilScope scope, AssemblyLedger ledger)
+        /// <summary>
+        ///   The view-model registers the council's live ledger + scope as it opens, so a save mid-sitting
+        ///   persists them. <paramref name="parleyTargetFactionId" /> is the Parley's own extra piece of carried
+        ///   state (null for every other scope): the StringId of the specific enemy faction this council was
+        ///   convened against, so make_peace's lift can still find it after a save/load recovery.
+        /// </summary>
+        public void BeginSession(CouncilScope scope, AssemblyLedger ledger, string parleyTargetFactionId = null)
         {
             _scope = scope;
             _ledger = ledger;
+            _parleyTargetFactionId = parleyTargetFactionId;
         }
 
         /// <summary>The view-model clears the session on a normal close, its pledges already lifted; nothing is left to recover.</summary>
@@ -52,6 +66,7 @@ namespace CalradiaRemembers.Assemblies
         {
             _scope = null;
             _ledger = null;
+            _parleyTargetFactionId = null;
         }
 
         public override void RegisterEvents()
@@ -69,7 +84,11 @@ namespace CalradiaRemembers.Assemblies
                     // Serialize a frozen snapshot only while a council is actually in flight; otherwise persist a
                     // literal "null", so an ordinary save outside a council carries no stale session forward.
                     CouncilSessionSnapshot snapshot = _scope != null && _ledger != null
-                        ? new CouncilSessionSnapshot {Scope = _scope.Value, Entries = new List<AssemblyResolutionEntry>(_ledger.Entries ?? new List<AssemblyResolutionEntry>())}
+                        ? new CouncilSessionSnapshot {
+                             Scope = _scope.Value,
+                             Entries = new List<AssemblyResolutionEntry>(_ledger.Entries ?? new List<AssemblyResolutionEntry>()),
+                             ParleyTargetFactionId = _parleyTargetFactionId
+                          }
                         : null;
                     bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(snapshot, Formatting.None));
                 }
@@ -94,6 +113,7 @@ namespace CalradiaRemembers.Assemblies
 
                 _scope = null;
                 _ledger = null;
+                _parleyTargetFactionId = null;
 
                 if (bytes is {Length: > 0})
                     try
@@ -106,12 +126,17 @@ namespace CalradiaRemembers.Assemblies
                             ledger.Sanitize(); // repair any blank/duplicate ids a hand-edited save could carry
                             _ledger = ledger;
                             _scope = snapshot.Scope;
+                            // Additive field (2026-08-03): a snapshot written before ParleyTargetFactionId existed
+                            // deserializes it as null (Newtonsoft tolerates a missing JSON property on a reference
+                            // field), so a pre-Parley save recovers no parley target rather than crashing.
+                            _parleyTargetFactionId = snapshot.ParleyTargetFactionId;
                         }
                     }
                     catch (Exception ex)
                     {
                         _scope = null;
                         _ledger = null;
+                        _parleyTargetFactionId = null;
                         ModLog.Error($"[COUNCIL] session load failed, in-flight council dropped for this load. {ex.GetType().Name}: {ex.Message}");
                     }
             }
@@ -122,6 +147,15 @@ namespace CalradiaRemembers.Assemblies
         {
             public CouncilScope Scope { get; set; }
             public List<AssemblyResolutionEntry> Entries { get; set; }
+
+            /// <summary>
+            ///   ADDITIVE field (2026-08-03), the Parley's own carried state: the StringId of the enemy faction
+            ///   this council was convened against, or null for every scope but Parley. A snapshot written before
+            ///   this field existed deserializes it as null (Newtonsoft tolerates a missing property on a
+            ///   reference-typed field), so an old in-flight save simply recovers no parley target, never a crash.
+            ///   Does NOT bump SaveKey: this is a new field on the existing JSON shape, not a new save slot.
+            /// </summary>
+            public string ParleyTargetFactionId { get; set; }
         }
 
         #region private
@@ -144,7 +178,7 @@ namespace CalradiaRemembers.Assemblies
             int gameDay = behavior.GameStateBridge.GetCurrentGameDay();
 
             var settled = 0;
-            CouncilLift.Finalize(_ledger, _scope.Value, behavior, gameDay, (message, positive) => settled++);
+            CouncilLift.Finalize(_ledger, _scope.Value, behavior, gameDay, (message, positive) => settled++, _parleyTargetFactionId);
 
             if (settled > 0)
             {

@@ -66,7 +66,15 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   two FACTIONS. See <see cref="IsFactionCentric" />, which the mod's lift consults to skip the
         ///   ordinary seated-member re-validation this kind has no member actor for.
         /// </summary>
-        DeclareWar
+        DeclareWar,
+
+        /// <summary>
+        ///   The Parley's own motion, and DeclareWar's symmetric counterpart: ends the war between the player's
+        ///   faction and the enemy faction the parley was convened against. FACTION-CENTRIC like DeclareWar (see
+        ///   <see cref="IsFactionCentric" />): its subject is two FACTIONS, not a seated member's own fate, even
+        ///   though a parley seats only one counterpart (the enemy leader).
+        /// </summary>
+        MakePeace
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -98,7 +106,10 @@ namespace CalradiaRemembers.Logic.Assemblies
         TargetOutOfPlayerParty = 32,
 
         /// <summary>The player leads a faction (kingdom ruler, or an independent clan that IS its own faction) that could declare a new war.</summary>
-        PlayerCanDeclareWar = 64
+        PlayerCanDeclareWar = 64,
+
+        /// <summary>The player leads their own faction AND that faction is currently at war with the parley's target faction.</summary>
+        PlayerCanMakePeace = 128
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -130,7 +141,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool playerCanAffordStipend,
                                     bool missionAvailable,
                                     bool targetOutOfPlayerParty = false,
-                                    bool playerCanDeclareWar = false)
+                                    bool playerCanDeclareWar = false,
+                                    bool playerCanMakePeace = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -139,6 +151,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             MissionAvailable = missionAvailable;
             TargetOutOfPlayerParty = targetOutOfPlayerParty;
             PlayerCanDeclareWar = playerCanDeclareWar;
+            PlayerCanMakePeace = playerCanMakePeace;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -150,6 +163,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>The player leads a faction that could declare a new war (declare_war's own fact, see ResolutionRequirement.PlayerCanDeclareWar).</summary>
         public bool PlayerCanDeclareWar { get; }
+
+        /// <summary>The player leads their faction and it is at war with the parley's target faction (make_peace's own fact, see ResolutionRequirement.PlayerCanMakePeace).</summary>
+        public bool PlayerCanMakePeace { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -176,7 +192,10 @@ namespace CalradiaRemembers.Logic.Assemblies
                 "Rejoin the party", ResolutionRequirement.TargetOutOfPlayerParty),
 
             new ResolutionDefinition(ResolutionKind.DeclareWar, CouncilScope.WarCouncil,
-                "Declare war", ResolutionRequirement.PlayerCanDeclareWar)
+                "Declare war", ResolutionRequirement.PlayerCanDeclareWar),
+
+            new ResolutionDefinition(ResolutionKind.MakePeace, CouncilScope.Parley,
+                "Make peace", ResolutionRequirement.PlayerCanMakePeace)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -204,6 +223,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.GrantFief:         return "grant_fief";
                 case ResolutionKind.RejoinParty:       return "rejoin_party";
                 case ResolutionKind.DeclareWar:        return "declare_war";
+                case ResolutionKind.MakePeace:          return "make_peace";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -244,18 +264,19 @@ namespace CalradiaRemembers.Logic.Assemblies
             => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor
             || kind == ResolutionKind.AssignPartyRole || kind == ResolutionKind.RejoinParty
             || kind == ResolutionKind.DispatchOnMission || kind == ResolutionKind.GrantStipend
-            || kind == ResolutionKind.DeclareWar;
+            || kind == ResolutionKind.DeclareWar || kind == ResolutionKind.MakePeace;
 
         /// <summary>
-        ///   True for a FACTION-CENTRIC kind (today, only <see cref="ResolutionKind.DeclareWar" />): its pledge
-        ///   concerns two FACTIONS, not a seated member's own fate, so it has no member actor for the ordinary
-        ///   seated-member re-validation every other kind gets at the lift (CouncilLift.Settle resolves
-        ///   entry.TargetHeroId and re-checks CouncilRosterResolver.EvaluateNow before dispatch). The mod's lift
-        ///   consults this to skip that gate specifically for a faction-centric kind and dispatch straight to its
-        ///   own executor, which re-validates the FACTIONS instead (bridge-is-law, just on a different subject).
+        ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric
+        ///   counterpart <see cref="ResolutionKind.MakePeace" />): its pledge concerns two FACTIONS, not a seated
+        ///   member's own fate, so it has no member actor for the ordinary seated-member re-validation every
+        ///   other kind gets at the lift (CouncilLift.Settle resolves entry.TargetHeroId and re-checks
+        ///   CouncilRosterResolver.EvaluateNow before dispatch). The mod's lift consults this to skip that gate
+        ///   specifically for a faction-centric kind and dispatch straight to its own executor, which
+        ///   re-validates the FACTIONS instead (bridge-is-law, just on a different subject).
         /// </summary>
         public static bool IsFactionCentric(ResolutionKind kind)
-            => kind == ResolutionKind.DeclareWar;
+            => kind == ResolutionKind.DeclareWar || kind == ResolutionKind.MakePeace;
 
         /// <summary>
         ///   The string keys of the kinds a council of <paramref name="scope" /> may currently ACT on: the
