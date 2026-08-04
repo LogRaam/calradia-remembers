@@ -86,6 +86,11 @@ namespace CalradiaRemembers.Assemblies
       ///   anySeatedMemberHasGold's own loose gate: proves only that SOME payer could plausibly pay, never the
       ///   real proposed amount or whether their live gold covers even one day of it; both are re-checked fresh
       ///   at the lift and at every daily tick regardless (CouncilLift.SettleTribute, CouncilTributeBehavior.Advance).
+      ///   Partie 8's OTHER own kind, swap_fiefs (CouncilLift.SettleSwapFiefs), needs NO new parameter or plumbing
+      ///   here at all: its own fact is the literal AND of grant_fief's PlayerIsKingdomLeader/HasGiveableFief and
+      ///   revoke_fief's SeatedVassalOwnsFief, already fully read above via <paramref name="anySeatedVassalOwnsFief" />,
+      ///   <see cref="PlayerIsKingdomLeader" />, and <see cref="HasGiveableFief" />; <see cref="ResolutionEligibilityPolicy.Meets" />
+      ///   composes the three existing flags for it, so this reader stays untouched by that kind's own addition.
       /// </summary>
       public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false)
       {

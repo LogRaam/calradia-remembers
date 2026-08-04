@@ -164,6 +164,25 @@ namespace CalradiaRemembers.Logic.Assemblies
         ArrangeMarriage,
 
         /// <summary>
+        ///   Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "swap_fiefs"): the player and a seated WarCouncil vassal
+        ///   ATOMICALLY EXCHANGE one fief each, REUSING grant_fief's and revoke_fief's own machinery end to end
+        ///   (Partie 2's fief transfer, <see cref="CalradiaRemembers.Logic.Assemblies.FiefTransferPolicy" />):
+        ///   the player's own clan gives up one town/castle to the seated vassal's clan, and takes one of the
+        ///   vassal's own back, in the SAME lift call, both or neither (CouncilLift.SettleSwapFiefs). WarCouncil
+        ///   ONLY, mirroring GrantFief/RevokeFief's own scoping (a fief is clan-owned, so a swap within the
+        ///   player's own clan, ClanLords' own scope, is mechanically vacant): <see cref="FiefSwapGroundingCodec" />
+        ///   carries the two fief names the same way <see cref="ArrangeMarriageGroundingCodec" /> carries two kin
+        ///   names, since a single <see cref="AssemblyResolutionEntry.TargetHint" /> slot cannot otherwise hold
+        ///   both. Its own <see cref="ResolutionDefinition.Requires" /> is deliberately the literal AND of
+        ///   GrantFief's and RevokeFief's own requirement flags (PlayerIsKingdomLeader | PlayerHasGiveableFief |
+        ///   SeatedVassalOwnsFief): exactly the fact a swap needs (the player rules a kingdom, owns a giveable
+        ///   fief, AND a seated vassal owns one too), already fully wired by Partie 2, so this kind needs NO new
+        ///   <see cref="ResolutionRequirement" /> flag and NO new <see cref="ResolutionWorldFacts" /> field at
+        ///   all.
+        /// </summary>
+        SwapFiefs,
+
+        /// <summary>
         ///   Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "tribute"): the Parley's OWN submission/buy-off motion,
         ///   Parley-scoped ONLY (the one council seating an enemy faction leader to negotiate with at all). The
         ///   SEATED ENEMY leader pledges a recurring DAILY payment to the player from their own coffers, the
@@ -464,6 +483,15 @@ namespace CalradiaRemembers.Logic.Assemblies
             new ResolutionDefinition(ResolutionKind.ArrangeMarriage, CouncilScope.WarCouncil,
                 "Arrange a marriage alliance", ResolutionRequirement.AnySeatedAllyHasMarriageableKin),
 
+            // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "swap_fiefs"): WarCouncil ONLY, mirroring GrantFief/
+            // RevokeFief's own scoping exactly (a fief is clan-owned, so a swap within the player's own clan is
+            // mechanically vacant). The requirement is the literal AND of GrantFief's and RevokeFief's own two
+            // requirements: the player must rule a kingdom, hold a giveable fief of their own, AND the seated
+            // vassal must hold a fief of their own to trade back. No new ResolutionRequirement flag needed: the
+            // three flags already exist and already compose correctly through ResolutionEligibilityPolicy.Meets.
+            new ResolutionDefinition(ResolutionKind.SwapFiefs, CouncilScope.WarCouncil,
+                "Swap a fief", ResolutionRequirement.PlayerIsKingdomLeader | ResolutionRequirement.PlayerHasGiveableFief | ResolutionRequirement.SeatedVassalOwnsFief),
+
             // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "tribute"): the Parley's own submission/buy-off motion,
             // Parley-scoped ONLY (the one roster that ever seats an enemy faction leader to pay from their own
             // coffers). Mirrors MakePeace's own scope exactly, since a tribute is negotiated at the very same
@@ -506,6 +534,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.ExpelFromClan:      return "expel_from_clan";
                 case ResolutionKind.PledgeAgainst:      return "pledge_against";
                 case ResolutionKind.ArrangeMarriage:    return "arrange_marriage";
+                case ResolutionKind.SwapFiefs:          return "swap_fiefs";
                 case ResolutionKind.Tribute:             return "tribute";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
@@ -565,8 +594,13 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   own submission/buy-off motion, Parley-only, binds the seated ENEMY leader to a recurring DAILY
         ///   payment out of their own coffers (CouncilTributeBehavior, TributePolicy), pay-as-you-go rather than
         ///   escrowed like GrantStipend, so it degrades gracefully (a run of missed days ends it early) rather
-        ///   than failing all at once. The runtime teaches and lifts only executable kinds, so the table never
-        ///   promises a deed it cannot keep.
+        ///   than failing all at once. SwapFiefs (CouncilLift.SettleSwapFiefs), Partie 8's other own kind,
+        ///   ATOMICALLY exchanges one fief between the player's own clan and a seated WarCouncil vassal's,
+        ///   REUSING GrantFief's and RevokeFief's own machinery (FiefTransferPolicy.CanSwap,
+        ///   ChangeOwnerOfSettlementAction.ApplyByKingDecision) both directions in the same lift call: every
+        ///   guard is validated for BOTH fiefs before either transfer is applied, so a swap never moves one side
+        ///   of the trade while leaving the other in place. The runtime teaches and lifts only executable kinds,
+        ///   so the table never promises a deed it cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
             => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor
@@ -576,7 +610,8 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.GiveGold || kind == ResolutionKind.GiveInfluence
             || kind == ResolutionKind.GrantFief || kind == ResolutionKind.RevokeFief
             || kind == ResolutionKind.ExpelFromClan || kind == ResolutionKind.PledgeAgainst
-            || kind == ResolutionKind.ArrangeMarriage || kind == ResolutionKind.Tribute;
+            || kind == ResolutionKind.ArrangeMarriage || kind == ResolutionKind.SwapFiefs
+            || kind == ResolutionKind.Tribute;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

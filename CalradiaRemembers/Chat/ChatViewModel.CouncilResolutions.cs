@@ -170,10 +170,15 @@ namespace CalradiaRemembers.Chat
          // kind that grounds on TWO names rather than one (the player-clan kin AND the seated ally's own kin):
          // both are composed into this single TargetHint slot by ArrangeMarriageGroundingCodec.Compose (a
          // structured composite this codebase controls end to end, never prose-parsing), split apart again at
-         // the lift by the SAME codec (CouncilLift.SettleArrangeMarriage).
+         // the lift by the SAME codec (CouncilLift.SettleArrangeMarriage). Partie 8's "swap_fiefs" (COUNCIL_ACTIONS.md's
+         // Kimi review) is the SECOND such two-name kind (the player's own fief AND the seated vassal's own
+         // fief), composed the same way by the dedicated FiefSwapGroundingCodec.Compose, split apart again at
+         // the lift by that same codec (CouncilLift.SettleSwapFiefs).
          string targetHint;
          if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.ArrangeMarriage), StringComparison.OrdinalIgnoreCase))
             targetHint = ArrangeMarriageGroundingCodec.Compose(proposal.PlayerKinName, proposal.TargetKinName);
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.SwapFiefs), StringComparison.OrdinalIgnoreCase))
+            targetHint = FiefSwapGroundingCodec.Compose(proposal.PlayerFiefName, proposal.TargetFiefName);
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.AssignPartyRole), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetRole;
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DispatchOnMission), StringComparison.OrdinalIgnoreCase))

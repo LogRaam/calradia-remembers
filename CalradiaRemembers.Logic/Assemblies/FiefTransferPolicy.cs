@@ -51,5 +51,21 @@ namespace CalradiaRemembers.Logic.Assemblies
         /// </summary>
         public static bool CanRevoke(bool playerIsKingdomLeader, bool fiefOwnedBySpoliatedClan)
             => playerIsKingdomLeader && fiefOwnedBySpoliatedClan;
+
+        /// <summary>
+        ///   swap_fiefs' gate (COUNCIL_ACTIONS.md Partie 8, Kimi review): legal only when the player actually
+        ///   RULES a kingdom AND their own clan currently owns the fief they are giving up AND the seated
+        ///   vassal's own clan currently owns the fief offered in exchange - the literal AND of
+        ///   <see cref="CanGrant" />'s and <see cref="CanRevoke" />'s own two conditions, since a swap is
+        ///   mechanically a grant and a revoke that must both succeed or neither happens. This is deliberately
+        ///   the SAME sovereignty bar grant/revoke already enforce, not a separate rule: a swap moves crown land
+        ///   exactly like either half alone would, so it needs no laxer (or stricter) gate of its own.
+        ///   CouncilLift.SettleSwapFiefs calls <see cref="TaleWorlds.CampaignSystem.Actions.ChangeOwnerOfSettlementAction.ApplyByKingDecision" />
+        ///   for EITHER side only after this whole gate (both halves) has already passed: the atomicity lives in
+        ///   the executor's own validate-then-apply ordering, this method only says whether the trade is legal at
+        ///   all.
+        /// </summary>
+        public static bool CanSwap(bool playerIsKingdomLeader, bool playerFiefOwnedByPlayerClan, bool vassalFiefOwnedBySeatedVassalClan)
+            => playerIsKingdomLeader && playerFiefOwnedByPlayerClan && vassalFiefOwnedBySeatedVassalClan;
     }
 }

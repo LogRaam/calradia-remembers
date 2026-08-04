@@ -580,6 +580,68 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("arrange_marriage");
         }
 
+        // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "swap_fiefs"): swap_fiefs needs ALL THREE conditions
+        // grant_fief and revoke_fief already require, combined (the literal AND of PlayerIsKingdomLeader,
+        // PlayerHasGiveableFief, and SeatedVassalOwnsFief - ResolutionCatalog.SwapFiefs' own doc). Missing any
+        // one must withhold the motion, so the table never resolves to trade a fief the player has no standing
+        // to give, or that neither side actually holds.
+        [Test]
+        public void GIVEN_swap_fiefs_WHEN_any_condition_is_missing_THEN_it_is_not_offered()
+        {
+            ResolutionDefinition swapFiefs = ResolutionCatalog.Get(ResolutionKind.SwapFiefs);
+
+            ResolutionEligibilityPolicy.CanOffer(swapFiefs,
+                Facts(playerIsKingdomLeader: true, playerHasGiveableFief: true, seatedVassalOwnsFief: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(swapFiefs,
+                Facts(playerIsKingdomLeader: false, playerHasGiveableFief: true, seatedVassalOwnsFief: true)).Should().BeFalse();
+            ResolutionEligibilityPolicy.CanOffer(swapFiefs,
+                Facts(playerIsKingdomLeader: true, playerHasGiveableFief: false, seatedVassalOwnsFief: true)).Should().BeFalse();
+            ResolutionEligibilityPolicy.CanOffer(swapFiefs,
+                Facts(playerIsKingdomLeader: true, playerHasGiveableFief: true, seatedVassalOwnsFief: false)).Should().BeFalse();
+        }
+
+        // The offering wire: swap_fiefs must be TAUGHT to the LLM only when all three conditions hold, or the
+        // model promises a trade CouncilLift.SettleSwapFiefs' own re-check (FiefTransferPolicy.CanSwap) would
+        // refuse outright (bridge is law), atomically leaving neither fief transferred.
+        [Test]
+        public void GIVEN_the_player_can_swap_a_fief_WHEN_offered_keys_are_asked_THEN_swap_fiefs_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil,
+                    Facts(playerIsKingdomLeader: true, playerHasGiveableFief: true, seatedVassalOwnsFief: true))
+                .Should().Contain("swap_fiefs");
+        }
+
+        // Absent any one fact (no kingdom to rule, no crown fief of the player's own to offer, or no seated
+        // vassal holds one to trade back) the key must be withheld, or the table could offer a trade the lift
+        // has already proven impossible on at least one side.
+        [Test]
+        public void GIVEN_the_player_cannot_swap_a_fief_WHEN_offered_keys_are_asked_THEN_swap_fiefs_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil,
+                    Facts(playerIsKingdomLeader: false, playerHasGiveableFief: true, seatedVassalOwnsFief: true))
+                .Should().NotContain("swap_fiefs");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil,
+                    Facts(playerIsKingdomLeader: true, playerHasGiveableFief: false, seatedVassalOwnsFief: true))
+                .Should().NotContain("swap_fiefs");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil,
+                    Facts(playerIsKingdomLeader: true, playerHasGiveableFief: true, seatedVassalOwnsFief: false))
+                .Should().NotContain("swap_fiefs");
+        }
+
+        // The empty-promise guard, the other direction: ClanLords, Companions and Family carry no SwapFiefs
+        // catalogue entry at all (a fief is clan-owned, so an exchange within the player's own clan or a hired
+        // hand's council is mechanically vacant), so the key must never surface there even when all three facts
+        // are (nonsensically) true.
+        [Test]
+        public void GIVEN_a_clan_lords_companions_or_family_council_WHEN_offered_keys_are_asked_THEN_swap_fiefs_is_never_included()
+        {
+            ResolutionWorldFacts facts = Facts(playerIsKingdomLeader: true, playerHasGiveableFief: true, seatedVassalOwnsFief: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("swap_fiefs");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("swap_fiefs");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("swap_fiefs");
+        }
+
         // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "tribute"): tribute needs only the single, approximated
         // AnySeatedTributePayerAvailable fact (some seated Parley counterpart leads a clan of their own). Missing
         // it must withhold the motion entirely, or the table could bind an enemy to a daily payment the lift has

@@ -140,14 +140,15 @@ namespace CalradiaRemembers.Tests.Assemblies
         // OTHER clan's own leader, a genuine crown/vassal pair the catalogue's earlier ClanLords scaffold never
         // was. Both must surface alongside declare_war/give_gold/give_influence, in declaration order.
         // ArrangeMarriage (Partie 1, "juste arrange_mariage qui est valide") joined the same WarCouncil scope
-        // last, so the full declaration-order list now ends with it too.
+        // next, and SwapFiefs (Partie 8, COUNCIL_ACTIONS.md's Kimi review, REUSING grant_fief's/revoke_fief's
+        // own machinery) joined last, so the full declaration-order list now ends with it too.
         [Test]
         public void GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_grant_fief_and_revoke_fief_also_return()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.WarCouncil).Select(d => d.Kind).ToList();
 
             kinds.Should().Equal(ResolutionKind.DeclareWar, ResolutionKind.GiveGold, ResolutionKind.GiveInfluence,
-                ResolutionKind.GrantFief, ResolutionKind.RevokeFief, ResolutionKind.ArrangeMarriage);
+                ResolutionKind.GrantFief, ResolutionKind.RevokeFief, ResolutionKind.ArrangeMarriage, ResolutionKind.SwapFiefs);
         }
 
         // The empty-promise guard: ClanLords, Companions and Family carry NO GrantFief/RevokeFief catalogue
@@ -502,6 +503,47 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().NotContain("arrange_marriage");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("arrange_marriage");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("arrange_marriage");
+        }
+
+        // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "swap_fiefs"): swap_fiefs has a live lift executor
+        // (CouncilLift.SettleSwapFiefs) from the day it lands, REUSING grant_fief's/revoke_fief's own machinery
+        // end to end; the table must be able to actually carry out the exchange, not just record the pledge.
+        [Test]
+        public void GIVEN_swap_fiefs_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.SwapFiefs).Should().BeTrue();
+        }
+
+        // swap_fiefs binds the player's own clan and a seated vassal's own clan to an exchange, not a decision
+        // about two FACTIONS, so it must never bypass the ordinary seated-member re-validation the way
+        // declare_war/make_peace do (covered generically by
+        // GIVEN_every_member_pledge_kind_WHEN_asked_if_it_is_faction_centric_THEN_none_of_them_are above; pinned
+        // here too for the kind's own documentation).
+        [Test]
+        public void GIVEN_swap_fiefs_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.SwapFiefs).Should().BeFalse();
+        }
+
+        // WarCouncil is the ONLY scope swap_fiefs was granted (mirroring GrantFief/RevokeFief/ArrangeMarriage's
+        // own scoping): its key must surface alongside the universal quest, or a war council seated with a
+        // fief-holding vassal would have no way to reach CouncilLift.SettleSwapFiefs at all.
+        [Test]
+        public void GIVEN_a_war_council_WHEN_asked_for_executable_kinds_THEN_swap_fiefs_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.WarCouncil).Should().Contain("swap_fiefs");
+        }
+
+        // The empty-promise guard, the other direction: ClanLords, Companions and Family carry NO SwapFiefs
+        // catalogue entry at all (a fief is clan-owned, so an exchange within the player's own clan or a hired
+        // hand's council is mechanically vacant, the same reasoning GrantFief/RevokeFief already document), so
+        // their executable set must never surface it, whatever the world facts.
+        [Test]
+        public void GIVEN_a_clan_lords_companions_or_family_council_WHEN_asked_for_executable_kinds_THEN_swap_fiefs_is_absent()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().NotContain("swap_fiefs");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("swap_fiefs");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("swap_fiefs");
         }
 
         // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "tribute"): tribute has a live lift executor

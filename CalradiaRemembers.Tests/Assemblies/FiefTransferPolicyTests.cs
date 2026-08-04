@@ -102,5 +102,54 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             FiefTransferPolicy.GrantInfluenceCost.Should().BeInRange(100, 300);
         }
+
+        // swap_fiefs (Partie 8, COUNCIL_ACTIONS.md's Kimi review): the ordinary case, a true sovereign trading a
+        // fief their own clan holds for one the seated vassal's own clan holds, is legal. This is the literal AND
+        // of CanGrant's and CanRevoke's own two conditions: the stake is that a swap must never be EASIER to
+        // strike than either half alone, or the crown could trade land under a laxer rule than granting or
+        // revoking it outright would allow.
+        [Test]
+        public void GIVEN_a_sovereign_and_both_fiefs_owned_as_expected_WHEN_asked_to_swap_THEN_it_is_legal()
+        {
+            FiefTransferPolicy.CanSwap(playerIsKingdomLeader: true, playerFiefOwnedByPlayerClan: true, vassalFiefOwnedBySeatedVassalClan: true)
+                .Should().BeTrue();
+        }
+
+        // Without true kingdom sovereignty, a swap moves crown land exactly like a grant or revoke would, so it
+        // must be refused the same way, whatever the two fiefs are owned by.
+        [Test]
+        public void GIVEN_the_player_is_not_the_kingdom_sovereign_WHEN_asked_to_swap_THEN_it_is_refused()
+        {
+            FiefTransferPolicy.CanSwap(playerIsKingdomLeader: false, playerFiefOwnedByPlayerClan: true, vassalFiefOwnedBySeatedVassalClan: true)
+                .Should().BeFalse();
+        }
+
+        // The player's own half of the trade must be real: naming a fief the player's clan does not actually
+        // hold would give away nothing while still taking the vassal's own fief in return, an unbalanced non-swap.
+        [Test]
+        public void GIVEN_the_named_player_fief_is_not_the_players_own_WHEN_asked_to_swap_THEN_it_is_refused()
+        {
+            FiefTransferPolicy.CanSwap(playerIsKingdomLeader: true, playerFiefOwnedByPlayerClan: false, vassalFiefOwnedBySeatedVassalClan: true)
+                .Should().BeFalse();
+        }
+
+        // The vassal's own half of the trade must be equally real: naming a fief the seated vassal does not hold
+        // would take the player's own fief for nothing in return, the symmetric unbalanced non-swap.
+        [Test]
+        public void GIVEN_the_named_vassal_fief_is_not_the_vassals_own_WHEN_asked_to_swap_THEN_it_is_refused()
+        {
+            FiefTransferPolicy.CanSwap(playerIsKingdomLeader: true, playerFiefOwnedByPlayerClan: true, vassalFiefOwnedBySeatedVassalClan: false)
+                .Should().BeFalse();
+        }
+
+        // No single condition alone suffices: any two-of-three (or fewer) must still refuse the whole trade,
+        // never partially. This is the pure gate's own half of the atomicity guarantee CouncilLift.SettleSwapFiefs
+        // relies on: the AND, not an OR, is the whole point.
+        [Test]
+        public void GIVEN_any_single_condition_is_missing_WHEN_asked_to_swap_THEN_it_is_refused()
+        {
+            FiefTransferPolicy.CanSwap(playerIsKingdomLeader: false, playerFiefOwnedByPlayerClan: false, vassalFiefOwnedBySeatedVassalClan: false)
+                .Should().BeFalse();
+        }
     }
 }

@@ -225,6 +225,11 @@ namespace CalradiaRemembers.Chat
 
                return;
 
+            case ResolutionKind.SwapFiefs:
+               SettleSwapFiefs(ledger, entry, actorHero, actorName, report);
+
+               return;
+
             case ResolutionKind.Tribute:
                SettleTribute(ledger, entry, actorHero, actorName, report);
 
@@ -1161,6 +1166,124 @@ namespace CalradiaRemembers.Chat
             return $"{verdict.B.Name} now belongs to {verdict.B.Clan?.Name}.";
 
          return "Neither joins the other's house by this match.";
+      }
+
+      /// <summary>
+      ///   Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "swap_fiefs"): the player and a seated WarCouncil vassal
+      ///   ATOMICALLY EXCHANGE one fief each, REUSING grant_fief's and revoke_fief's own machinery end to end
+      ///   (FiefTransferPolicy.CanSwap, the literal AND of CanGrant's and CanRevoke's own two conditions;
+      ///   <see cref="ChangeOwnerOfSettlementAction.ApplyByKingDecision" />, the same detail grant_fief/
+      ///   revoke_fief already apply). <paramref name="actorHero" /> IS the seated vassal on the OTHER side of
+      ///   the trade (mirroring SettleGrantFief's/SettleRevokeFief's own beneficiary/spoliated-lord role).
+      ///   <see cref="AssemblyResolutionEntry.TargetHint" /> carries BOTH fief names composed together
+      ///   (<see cref="FiefSwapGroundingCodec" />, mirroring <see cref="ArrangeMarriageGroundingCodec" />'s own
+      ///   two-name grounding, since a single TargetHint slot cannot otherwise hold two names).
+      ///   ATOMIC BY CONSTRUCTION (the whole stake of this executor): every guard for BOTH fiefs (ownership,
+      ///   siege) is checked to completion BEFORE either <see cref="ChangeOwnerOfSettlementAction.ApplyByKingDecision" />
+      ///   call is made; if any single guard fails, the method returns having applied NEITHER transfer, never
+      ///   one side of the trade left half-done. A besieged fief on EITHER side refuses the whole swap (Design
+      ///   call, this build: an active siege makes ownership itself provisional, an unsafe moment for the crown
+      ///   to move either parcel of land). A garrison FOLLOWS its fief on a transfer (vanilla's own
+      ///   ChangeOwnerOfSettlementAction default), exactly like grant_fief/revoke_fief already inherit; a
+      ///   governor in post on either side is released first, mirroring SettleGrantFief's own governor-release
+      ///   (a released PLAYER companion is sent back to the main party rather than left stranded in what is now
+      ///   foreign land).
+      /// </summary>
+      private static void SettleSwapFiefs(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (actorHero.Clan == null || actorHero.Clan == Clan.PlayerClan)
+         {
+            const string reason = "they belong to the player's own house; there is no cross-clan swap to make.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!FiefSwapGroundingCodec.TryDecompose(entry.TargetHint, out string playerFiefName, out string targetFiefName))
+         {
+            const string reason = "no two fiefs were named plainly enough to swap.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         bool playerIsKingdomLeader = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
+
+         // TargetHint (composed above) names the PLAYER's own fief on the left, the VASSAL's own fief on the
+         // right (RecordCouncilResolution's own composing order, see that method's doc). Each is resolved
+         // against the SPECIFIC clan the swap needs it to belong to right now, exactly like grant_fief resolves
+         // against Clan.PlayerClan and revoke_fief resolves against the spoliated clan: naming a fief neither
+         // side currently holds must refuse rather than conjure a transfer from nothing.
+         Settlement playerFief = Settlement.All?.FirstOrDefault(s =>
+            (s.IsTown || s.IsCastle)
+            && s.OwnerClan == Clan.PlayerClan
+            && string.Equals(s.Name?.ToString(), playerFiefName, StringComparison.OrdinalIgnoreCase));
+
+         Settlement vassalFief = Settlement.All?.FirstOrDefault(s =>
+            (s.IsTown || s.IsCastle)
+            && s.OwnerClan == actorHero.Clan
+            && string.Equals(s.Name?.ToString(), targetFiefName, StringComparison.OrdinalIgnoreCase));
+
+         if (!FiefTransferPolicy.CanSwap(playerIsKingdomLeader, playerFief != null, vassalFief != null))
+         {
+            string reason = !playerIsKingdomLeader
+               ? "the player no longer rules a kingdom to broker a fief swap in its name."
+               : playerFief == null
+                  ? "there is no fief of ours by that name left to offer."
+                  : $"{actorName} holds no fief of that name to offer in exchange.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         // Design call, this build (COUNCIL_ACTIONS.md Partie 8 does not pin a siege rule for swap_fiefs
+         // specifically): a fief under active siege has provisional ownership, an unsafe moment for the crown
+         // to move EITHER parcel of land; refuse the whole swap rather than complete half of it around a fight
+         // still in progress. Checked for BOTH sides before either transfer is even considered, the same
+         // validate-everything-first discipline the whole method follows.
+         if (playerFief.SiegeEvent != null || vassalFief.SiegeEvent != null)
+         {
+            const string reason = "one of the two fiefs is under siege and cannot change hands right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         // Every guard above has now passed for BOTH fiefs: only past this point does either transfer actually
+         // apply, so a failure anywhere above this line has left the world completely untouched (the atomicity
+         // this whole executor exists to guarantee).
+         Hero formerPlayerFiefGovernor = playerFief.Town?.Governor;
+         if (formerPlayerFiefGovernor != null)
+         {
+            ChangeGovernorAction.RemoveGovernorOf(formerPlayerFiefGovernor);
+
+            if (formerPlayerFiefGovernor.IsPlayerCompanion && formerPlayerFiefGovernor.PartyBelongedTo != MobileParty.MainParty)
+               AddHeroToPartyAction.Apply(formerPlayerFiefGovernor, MobileParty.MainParty, false);
+         }
+
+         Hero formerVassalFiefGovernor = vassalFief.Town?.Governor;
+         if (formerVassalFiefGovernor != null)
+            ChangeGovernorAction.RemoveGovernorOf(formerVassalFiefGovernor);
+
+         ChangeOwnerOfSettlementAction.ApplyByKingDecision(actorHero, playerFief);
+         ChangeOwnerOfSettlementAction.ApplyByKingDecision(Hero.MainHero, vassalFief);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"{playerFief.Name} passes to {actorName}'s house, and {vassalFief.Name} passes to yours: an even exchange sealed by the crown.", true);
+         ModLog.Info($"[COUNCIL] lift: swap sealed, {playerFief.Name} to {actorName}'s clan, {vassalFief.Name} to the player's clan.");
       }
 
       /// <summary>
