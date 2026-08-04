@@ -32,8 +32,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool playerHasGiveableFief = false,
                                                   bool seatedVassalOwnsFief = false,
                                                   bool anySeatedCompanionExpellable = false,
-                                                  bool anySeatedMemberCanPledgeAgainst = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst);
+                                                  bool anySeatedMemberCanPledgeAgainst = false,
+                                                  bool anySeatedAllyHasMarriageableKin = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -531,6 +532,51 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("pledge_against");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts).Should().NotContain("pledge_against");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("pledge_against");
+        }
+
+        // Partie 1 (COUNCIL_ACTIONS.md, "juste arrange_mariage qui est valide"): arrange_marriage needs only the
+        // single, approximated AnySeatedAllyHasMarriageableKin fact (both sides offer an unwed kin). Missing it
+        // must withhold the motion entirely, or the table could pledge a match nobody present could actually make.
+        [Test]
+        public void GIVEN_arrange_marriage_WHEN_no_seated_ally_offers_a_marriageable_kin_THEN_it_is_not_offered()
+        {
+            ResolutionDefinition arrangeMarriage = ResolutionCatalog.Get(ResolutionKind.ArrangeMarriage);
+
+            ResolutionEligibilityPolicy.CanOffer(arrangeMarriage, Facts(anySeatedAllyHasMarriageableKin: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(arrangeMarriage, Facts(anySeatedAllyHasMarriageableKin: false)).Should().BeFalse();
+        }
+
+        // The offering wire: arrange_marriage must be TAUGHT to the LLM only when the fact holds, or the model
+        // proposes a match CourtActionResolver.TryArrangeMarriage's own re-check would refuse outright (no unwed
+        // kin, no authority, or the family's own standing refuses it), a hollow promise the table never actually
+        // carries out.
+        [Test]
+        public void GIVEN_a_seated_ally_offers_a_marriageable_kin_WHEN_offered_keys_are_asked_THEN_arrange_marriage_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, Facts(anySeatedAllyHasMarriageableKin: true))
+                .Should().Contain("arrange_marriage");
+        }
+
+        // Absent that fact (nobody present, on either side, has an unwed kin to offer) the key must be withheld,
+        // or the table could pledge a marriage the lift has already proven impossible.
+        [Test]
+        public void GIVEN_no_seated_ally_offers_a_marriageable_kin_WHEN_offered_keys_are_asked_THEN_arrange_marriage_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, Facts(anySeatedAllyHasMarriageableKin: false))
+                .Should().NotContain("arrange_marriage");
+        }
+
+        // The empty-promise guard, the other direction: ClanLords, Companions and Family carry no ArrangeMarriage
+        // catalogue entry at all (no genuine cross-clan house to marry into within the player's own clan or a
+        // hired hand's council), so the key must never surface there even when the fact is (nonsensically) true.
+        [Test]
+        public void GIVEN_a_clan_lords_companions_or_family_council_WHEN_offered_keys_are_asked_THEN_arrange_marriage_is_never_included()
+        {
+            ResolutionWorldFacts facts = Facts(anySeatedAllyHasMarriageableKin: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("arrange_marriage");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("arrange_marriage");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("arrange_marriage");
         }
     }
 }

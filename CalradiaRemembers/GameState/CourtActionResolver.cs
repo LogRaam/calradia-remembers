@@ -5,11 +5,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Marriage;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
@@ -353,6 +356,77 @@ namespace CalradiaRemembers.GameState
          ModLog.Info($"[ACTION] pledge_against: {promisor.Name} pledged to move against {target.Name} ({kind}). {schemeStatus}");
       }
 
+      // ── arrange_marriage (Partie 1, council currency, 2026-08-04) ───────
+
+      /// <summary>
+      ///   The ONE shared code path every arrange_marriage caller runs (the 1:1 action,
+      ///   <c>BannerlordGameStateBridge.ExecuteArrangeMarriage</c>, and the council's own resolution,
+      ///   <c>CalradiaRemembers.Chat.CouncilLift.SettleArrangeMarriage</c>), factored out here (2026-08-04,
+      ///   mirroring <see cref="LaunchPledge" />'s own extraction for pledge_against) so an arranged match
+      ///   behaves identically whichever table struck it: resolves both kin BY NAME (the SAME formula the 1:1
+      ///   action always used, <paramref name="playerKinName" /> against the player's own house,
+      ///   <paramref name="targetKinName" /> against <paramref name="authorizer" />'s own house, or
+      ///   <paramref name="authorizer" /> themselves when named directly), re-checks the authorizer's authority
+      ///   over the target kin, defers hard legality (age, kinship, marital status) to the engine's own
+      ///   <c>MarriageModel</c>, asks the pure <see cref="ArrangedMatchPolicy" /> for the family's consent, and
+      ///   only then applies the real wedding (<see cref="MarriageAction.Apply" />). <paramref name="authorizer" />
+      ///   is the party who must consent to giving the target kin in marriage: the 1:1 conversation NPC, or the
+      ///   council's own seated allied clan leader (always their house's clan head by construction,
+      ///   <c>CouncilRosterResolver.WarCouncilCandidates</c>, so <see cref="MarriageProspectResolver.HasAuthority" />
+      ///   holds for any kin of their own clan exactly as the 1:1 case already relied on). Every caller resolves
+      ///   nothing itself before calling this: this method is the WHOLE decision, not merely the final apply.
+      /// </summary>
+      public static ArrangeMarriageVerdict TryArrangeMarriage(string playerKinName, string targetKinName, Hero authorizer)
+      {
+         Hero a = MarriageProspectResolver.ResolveCandidate(Hero.MainHero, playerKinName);
+         Hero b = authorizer != null && string.Equals(authorizer.Name?.ToString(), targetKinName, StringComparison.OrdinalIgnoreCase)
+            ? authorizer
+            : MarriageProspectResolver.ResolveCandidate(authorizer, targetKinName);
+
+         if (a == null || a == Hero.MainHero || a.Clan != Clan.PlayerClan)
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.NoPlayerKin, a, b, null, null);
+
+         if (b == null)
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.NoTargetKin, a, b, null, null);
+
+         // The authorizer must be able to give B in marriage: their house's own head, or B's parent, or B
+         // themselves (mirrors the 1:1 action's own "b != npcHero" guard exactly).
+         if (b != authorizer && !MarriageProspectResolver.HasAuthority(authorizer, b))
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.NoAuthority, a, b, null, null);
+
+         // Hard legality (age, kinship, marital status, opposite sex) is the engine's own rule, not ours.
+         if (Campaign.Current?.Models?.MarriageModel?.IsCoupleSuitableForMarriage(a, b) != true)
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.NotSuitable, a, b, null, null);
+
+         // CR consent: the target family weighs the player's standing. The regard read is the mod's own
+         // personal ledger (what the player built in chat), per the two-ledger rule, with the vanilla clan
+         // relation as a fallback only when no profile exists yet.
+         int regard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(authorizer.StringId)?.ReputationWithPlayer
+                      ?? authorizer.GetRelation(Hero.MainHero);
+
+         ArrangedMatchConsent consent = ArrangedMatchPolicy.Decide(new ArrangedMatchFacts(
+            targetIsOfAnotherClan: b.Clan != Clan.PlayerClan,
+            targetFamilyRegard: regard,
+            playerClanTier: Clan.PlayerClan?.Tier ?? 0,
+            targetClanTier: b.Clan?.Tier ?? 0));
+
+         if (consent == ArrangedMatchConsent.NotCrossClan)
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.NotCrossClan, a, b, null, null);
+
+         if (consent == ArrangedMatchConsent.RefusedStanding)
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.RefusedStanding, a, b, null, null);
+
+         // Captured BEFORE the apply: MarriageAction.Apply moves one spouse into the other's clan per the
+         // engine's own MarriageModel, and the council's own report (COUNCIL_ACTIONS.md's Kimi review: "le
+         // libelle de la resolution doit dire qui rejoint quelle maison") needs the PRIOR house to say who moved.
+         Clan aClanBefore = a.Clan;
+         Clan bClanBefore = b.Clan;
+
+         MarriageAction.Apply(a, b);
+
+         return new ArrangeMarriageVerdict(ArrangeMarriageResult.Wed, a, b, aClanBefore, bClanBefore);
+      }
+
       // ── release_prisoner ─────────────────────────────────────────────────
 
       /// <summary>
@@ -477,5 +551,56 @@ namespace CalradiaRemembers.GameState
       private static int Today() => (int) CampaignTime.Now.ToDays;
 
       #endregion
+   }
+
+   /// <summary>The outcome of <see cref="CourtActionResolver.TryArrangeMarriage" />, read by every caller to report its own message.</summary>
+   public enum ArrangeMarriageResult
+   {
+      /// <summary>The match was sealed: <see cref="ArrangeMarriageVerdict.A" /> and <see cref="ArrangeMarriageVerdict.B" /> are wed.</summary>
+      Wed,
+
+      /// <summary>No unwed kin of the player's own clan answers to the name given.</summary>
+      NoPlayerKin,
+
+      /// <summary>The authorizer names no one of their house by the target name given.</summary>
+      NoTargetKin,
+
+      /// <summary>The authorizer has no authority to promise the named target kin in marriage.</summary>
+      NoAuthority,
+
+      /// <summary>The engine's own MarriageModel refuses the match (age, kinship, marital status, opposite sex).</summary>
+      NotSuitable,
+
+      /// <summary>The named target kin is already of the player's own clan (this feature is cross-clan only).</summary>
+      NotCrossClan,
+
+      /// <summary>The target family declines: the player's standing does not warrant the match.</summary>
+      RefusedStanding
+   }
+
+   /// <summary>
+   ///   The full verdict of <see cref="CourtActionResolver.TryArrangeMarriage" />: which two heroes were
+   ///   resolved (whatever the result, so a caller can name them in a refusal message), and, only on
+   ///   <see cref="ArrangeMarriageResult.Wed" />, each one's clan BEFORE the wedding was applied, the "visible
+   ///   price" a marriage carries (COUNCIL_ACTIONS.md's Kimi review): comparing <see cref="AClanBefore" />/
+   ///   <see cref="BClanBefore" /> against <see cref="A" />.Clan/<see cref="B" />.Clan AFTER the apply tells a
+   ///   caller which kin actually moved house.
+   /// </summary>
+   public readonly struct ArrangeMarriageVerdict
+   {
+      public ArrangeMarriageVerdict(ArrangeMarriageResult result, Hero a, Hero b, Clan aClanBefore, Clan bClanBefore)
+      {
+         Result = result;
+         A = a;
+         B = b;
+         AClanBefore = aClanBefore;
+         BClanBefore = bClanBefore;
+      }
+
+      public ArrangeMarriageResult Result { get; }
+      public Hero A { get; }
+      public Hero B { get; }
+      public Clan AClanBefore { get; }
+      public Clan BClanBefore { get; }
    }
 }

@@ -139,13 +139,15 @@ namespace CalradiaRemembers.Tests.Assemblies
         // grant_fief and revoke_fief are WarCouncil-only (Partie 2's own scoping call): the seated vassal is the
         // OTHER clan's own leader, a genuine crown/vassal pair the catalogue's earlier ClanLords scaffold never
         // was. Both must surface alongside declare_war/give_gold/give_influence, in declaration order.
+        // ArrangeMarriage (Partie 1, "juste arrange_mariage qui est valide") joined the same WarCouncil scope
+        // last, so the full declaration-order list now ends with it too.
         [Test]
         public void GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_grant_fief_and_revoke_fief_also_return()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.WarCouncil).Select(d => d.Kind).ToList();
 
             kinds.Should().Equal(ResolutionKind.DeclareWar, ResolutionKind.GiveGold, ResolutionKind.GiveInfluence,
-                ResolutionKind.GrantFief, ResolutionKind.RevokeFief);
+                ResolutionKind.GrantFief, ResolutionKind.RevokeFief, ResolutionKind.ArrangeMarriage);
         }
 
         // The empty-promise guard: ClanLords, Companions and Family carry NO GrantFief/RevokeFief catalogue
@@ -456,6 +458,48 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("pledge_against");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.WarCouncil).Should().NotContain("pledge_against");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Parley).Should().NotContain("pledge_against");
+        }
+
+        // Partie 1 (COUNCIL_ACTIONS.md, "juste arrange_mariage qui est valide"): arrange_marriage has a live lift
+        // executor (CouncilLift.SettleArrangeMarriage) from the day it lands, REUSING the existing 1:1
+        // arrange_marriage system end to end; the table must be able to actually seal the match, not just
+        // record the pledge.
+        [Test]
+        public void GIVEN_arrange_marriage_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.ArrangeMarriage).Should().BeTrue();
+        }
+
+        // arrange_marriage binds two named KIN, not two FACTIONS, so it must never bypass the ordinary
+        // seated-member re-validation the way declare_war/make_peace do (covered generically by
+        // GIVEN_every_member_pledge_kind_WHEN_asked_if_it_is_faction_centric_THEN_none_of_them_are above; pinned
+        // here too for the kind's own documentation).
+        [Test]
+        public void GIVEN_arrange_marriage_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.ArrangeMarriage).Should().BeFalse();
+        }
+
+        // WarCouncil is the ONLY scope arrange_marriage was granted (COUNCIL_ACTIONS.md's Kimi review: a
+        // marriage alliance is a genuine cross-clan currency, exactly the pool WarCouncil already seats): its key
+        // must surface alongside the universal quest, or a war council seated with a marriageable ally would
+        // have no way to reach CouncilLift.SettleArrangeMarriage at all.
+        [Test]
+        public void GIVEN_a_war_council_WHEN_asked_for_executable_kinds_THEN_arrange_marriage_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.WarCouncil).Should().Contain("arrange_marriage");
+        }
+
+        // The empty-promise guard, the other direction: ClanLords, Companions and Family carry NO ArrangeMarriage
+        // catalogue entry at all (within the player's own clan, or a hired hand's/dynastic kin's council, there
+        // is no genuine cross-clan house to marry into), so their executable set must never surface it, whatever
+        // the world facts.
+        [Test]
+        public void GIVEN_a_clan_lords_companions_or_family_council_WHEN_asked_for_executable_kinds_THEN_arrange_marriage_is_absent()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().NotContain("arrange_marriage");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("arrange_marriage");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("arrange_marriage");
         }
     }
 }

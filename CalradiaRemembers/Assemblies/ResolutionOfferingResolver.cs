@@ -74,9 +74,14 @@ namespace CalradiaRemembers.Assemblies
       ///   (ClanLords or Family only, see ResolutionCatalog's two PledgeAgainst entries) currently holds no
       ///   pledge already outstanding. An APPROXIMATION, mirroring anySeatedMemberHasGold's own loose gate:
       ///   proving a genuine RIVAL also exists is left to the lift (CourtActionResolver.ResolvePledgeTarget,
-      ///   CouncilLift.SettlePledgeAgainst, bridge is law).
+      ///   CouncilLift.SettlePledgeAgainst, bridge is law). <paramref name="anySeatedAllyHasMarriageableKin" /> is
+      ///   Partie 1's own marriage-as-currency fact, arrange_marriage (see ChatViewModel.AnySeatedAllyHasMarriageableKin):
+      ///   WarCouncil only, the player's own clan holds an unwed kin AND at least one seated ally's own house
+      ///   (a genuine other clan) offers one too. An APPROXIMATION like the others above: the exact pairing, hard
+      ///   eligibility, and family consent are all re-validated at the lift regardless
+      ///   (CalradiaRemembers.GameState.CourtActionResolver.TryArrangeMarriage, bridge is law).
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false)
       {
          try
          {
@@ -95,7 +100,8 @@ namespace CalradiaRemembers.Assemblies
                playerHasGiveableFief: HasGiveableFief(),
                seatedVassalOwnsFief: anySeatedVassalOwnsFief,
                anySeatedCompanionExpellable: anySeatedCompanionExpellable,
-               anySeatedMemberCanPledgeAgainst: anySeatedMemberCanPledgeAgainst);
+               anySeatedMemberCanPledgeAgainst: anySeatedMemberCanPledgeAgainst,
+               anySeatedAllyHasMarriageableKin: anySeatedAllyHasMarriageableKin);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

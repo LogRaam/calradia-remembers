@@ -143,7 +143,25 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   is to refuse it rather than allow-and-tax a public betrayal, see CouncilLift.SettlePledgeAgainst's
         ///   own doc and <see cref="PledgeAgainstPolicy" />).
         /// </summary>
-        PledgeAgainst
+        PledgeAgainst,
+
+        /// <summary>
+        ///   Partie 1 (COUNCIL_ACTIONS.md, Gabriel: "dans le conseil, le mariage peut etre une monnaie
+        ///   d'echange... probablement juste arrange_mariage qui est valide"): a seated ALLIED CLAN LEADER
+        ///   consents to wed one of their own kin (or themselves) to a kin of the player's own house, REUSING the
+        ///   existing 1:1 arrange_marriage system end to end (the same shared core both callers now run,
+        ///   <c>CalradiaRemembers.GameState.CourtActionResolver.TryArrangeMarriage</c>). WarCouncil ONLY
+        ///   (COUNCIL_ACTIONS.md's Kimi review): a marriage alliance is a genuine CROSS-CLAN currency, exactly
+        ///   the pool WarCouncil already seats (the OTHER clan's own leader, <c>CouncilRosterResolver.WarCouncilCandidates</c>),
+        ///   never ClanLords/Companions/Family, where a seated member is either the player's own house already
+        ///   or a hired hand with no house to offer. The one kind that grounds on TWO names rather than one (the
+        ///   player-clan kin AND the ally's own kin): see <see cref="ArrangeMarriageGroundingCodec" /> for how
+        ///   both are carried through the single <see cref="AssemblyResolutionEntry.TargetHint" /> slot.
+        ///   grant_blessing is deliberately NOT brought to the council (COUNCIL_ACTIONS.md's Kimi review: its own
+        ///   consent is already subsumed by ArrangedMatchPolicy's standing check), nor are marry/take_as_consort/
+        ///   take_as_secret_lover (personal player-NPC acts, never a table decision).
+        /// </summary>
+        ArrangeMarriage
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -222,7 +240,17 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   the same "prove SOME pledge is possible, never the exact rival" discipline
         ///   <see cref="MemberHasGold" /> already uses for give_gold.
         /// </summary>
-        AnySeatedMemberCanPledgeAgainst = 16384
+        AnySeatedMemberCanPledgeAgainst = 16384,
+
+        /// <summary>
+        ///   At least one seated ally's own house (a genuine OTHER clan) offers an unwed kin (or is themselves
+        ///   unwed) AND the player's own clan holds an unwed kin of its own: arrange_marriage's own fact. An
+        ///   APPROXIMATION, mirroring <see cref="MemberHasGold" />'s own loose gate: proves only that SOME match
+        ///   could exist, never the exact pairing, hard eligibility (age, kinship, marital status), or family
+        ///   consent (ArrangedMatchPolicy), the full validation still runs at the lift regardless
+        ///   (<c>CalradiaRemembers.GameState.CourtActionResolver.TryArrangeMarriage</c>, bridge is law).
+        /// </summary>
+        AnySeatedAllyHasMarriageableKin = 32768
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -262,7 +290,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool playerHasGiveableFief = false,
                                     bool seatedVassalOwnsFief = false,
                                     bool anySeatedCompanionExpellable = false,
-                                    bool anySeatedMemberCanPledgeAgainst = false)
+                                    bool anySeatedMemberCanPledgeAgainst = false,
+                                    bool anySeatedAllyHasMarriageableKin = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -279,6 +308,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             SeatedVassalOwnsFief = seatedVassalOwnsFief;
             AnySeatedCompanionExpellable = anySeatedCompanionExpellable;
             AnySeatedMemberCanPledgeAgainst = anySeatedMemberCanPledgeAgainst;
+            AnySeatedAllyHasMarriageableKin = anySeatedAllyHasMarriageableKin;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -314,6 +344,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated member holds no pledge already outstanding. pledge_against's own fact (an approximation, see ResolutionRequirement.AnySeatedMemberCanPledgeAgainst).</summary>
         public bool AnySeatedMemberCanPledgeAgainst { get; }
+
+        /// <summary>At least one seated ally's own house offers an unwed kin AND the player's own clan holds one too. arrange_marriage's own fact (an approximation, see ResolutionRequirement.AnySeatedAllyHasMarriageableKin).</summary>
+        public bool AnySeatedAllyHasMarriageableKin { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -395,7 +428,14 @@ namespace CalradiaRemembers.Logic.Assemblies
                 "Pledge to move against a rival", ResolutionRequirement.AnySeatedMemberCanPledgeAgainst),
 
             new ResolutionDefinition(ResolutionKind.PledgeAgainst, CouncilScope.Family,
-                "Pledge to move against a rival", ResolutionRequirement.AnySeatedMemberCanPledgeAgainst)
+                "Pledge to move against a rival", ResolutionRequirement.AnySeatedMemberCanPledgeAgainst),
+
+            // Partie 1 (COUNCIL_ACTIONS.md, "juste arrange_mariage qui est valide"): WarCouncil ONLY, the one
+            // scope where a seated member's own house is a genuine OTHER clan (CouncilRosterResolver.WarCouncilCandidates),
+            // never ClanLords/Companions/Family, where a seated member is either the player's own house already
+            // (nothing to marry cross-clan) or a hired hand with no house of their own to offer.
+            new ResolutionDefinition(ResolutionKind.ArrangeMarriage, CouncilScope.WarCouncil,
+                "Arrange a marriage alliance", ResolutionRequirement.AnySeatedAllyHasMarriageableKin)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -429,6 +469,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.GiveInfluence:      return "give_influence";
                 case ResolutionKind.ExpelFromClan:      return "expel_from_clan";
                 case ResolutionKind.PledgeAgainst:      return "pledge_against";
+                case ResolutionKind.ArrangeMarriage:    return "arrange_marriage";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -480,7 +521,10 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   variant (Q5). PledgeAgainst (CouncilLift.SettlePledgeAgainst), Partie 1's schemes kind, reuses the
         ///   existing 1:1 pledge_against system end to end (a real scheme launched via SchemeStore.ForcePlot and
         ///   a TrackedCommitment recorded, the SAME shared code path, CourtActionResolver.LaunchPledge, the 1:1
-        ///   action itself calls) on a seated ClanLords/Family member. The runtime teaches and lifts only
+        ///   action itself calls) on a seated ClanLords/Family member. ArrangeMarriage (CouncilLift.SettleArrangeMarriage),
+        ///   Partie 1's own marriage-as-currency kind (COUNCIL_ACTIONS.md, "juste arrange_mariage qui est
+        ///   valide"), WarCouncil-only, REUSES the existing 1:1 arrange_marriage system end to end (the SAME
+        ///   shared core, CourtActionResolver.TryArrangeMarriage). The runtime teaches and lifts only
         ///   executable kinds, so the table never promises a deed it cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
@@ -490,7 +534,8 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.DeclareWar || kind == ResolutionKind.MakePeace
             || kind == ResolutionKind.GiveGold || kind == ResolutionKind.GiveInfluence
             || kind == ResolutionKind.GrantFief || kind == ResolutionKind.RevokeFief
-            || kind == ResolutionKind.ExpelFromClan || kind == ResolutionKind.PledgeAgainst;
+            || kind == ResolutionKind.ExpelFromClan || kind == ResolutionKind.PledgeAgainst
+            || kind == ResolutionKind.ArrangeMarriage;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

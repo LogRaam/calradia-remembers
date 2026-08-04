@@ -216,6 +216,11 @@ namespace CalradiaRemembers.Chat
 
                return;
 
+            case ResolutionKind.ArrangeMarriage:
+               SettleArrangeMarriage(ledger, entry, actorHero, actorName, report);
+
+               return;
+
             case ResolutionKind.Quest:
             default:
                SettleQuest(ledger, entry, actorHero, actorName, giver, behavior, gameDay, report);
@@ -1052,6 +1057,101 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"{actorName} pledges to move against {target.Name}.", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} pledged to move against {target.Name}.");
+      }
+
+      /// <summary>
+      ///   Partie 1 (COUNCIL_ACTIONS.md, Gabriel: "dans le conseil, le mariage peut etre une monnaie
+      ///   d'echange... probablement juste arrange_mariage qui est valide"): a seated ALLIED CLAN LEADER
+      ///   consents to wed a kin of the player's own house to one of their own (or themselves), REUSING the
+      ///   existing 1:1 arrange_marriage system end to end via the ONE shared code path both callers now run,
+      ///   <see cref="CourtActionResolver.TryArrangeMarriage" /> (the same real consent+eligibility+apply chain
+      ///   the 1:1 action already ran). <paramref name="actorHero" /> IS the authorizer (the seated allied clan
+      ///   leader whose authority over their own kin is checked exactly like the 1:1 conversation NPC's, since
+      ///   WarCouncil always seats a clan's own head, <c>CouncilRosterResolver.WarCouncilCandidates</c>);
+      ///   <see cref="AssemblyResolutionEntry.TargetHint" /> carries BOTH kin names composed together
+      ///   (<see cref="ArrangeMarriageGroundingCodec" />, this kind's own grounding, since a single TargetHint
+      ///   slot cannot otherwise hold two names). The COUNCIL'S OWN caveat beyond the reused 1:1 gates
+      ///   (COUNCIL_ACTIONS.md's Kimi review, "l'effet de bord majeur a expliciter dans la resolution"): a
+      ///   marriage moves one spouse's clan, so the report explicitly names who now belongs to which house
+      ///   (<see cref="DescribeArrangeMarriagePrice" />) rather than leaving the player to discover the "price" of
+      ///   this alliance-currency only after the fact.
+      /// </summary>
+      private static void SettleArrangeMarriage(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (actorHero.Clan == null || actorHero.Clan == Clan.PlayerClan)
+         {
+            const string reason = "they belong to the player's own house; there is no cross-clan match to arrange.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!ArrangeMarriageGroundingCodec.TryDecompose(entry.TargetHint, out string playerKinName, out string targetKinName))
+         {
+            const string reason = "no two kin were named plainly enough to arrange a match.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         ArrangeMarriageVerdict verdict = CourtActionResolver.TryArrangeMarriage(playerKinName, targetKinName, actorHero);
+
+         if (verdict.Result != ArrangeMarriageResult.Wed)
+         {
+            string reason = DescribeArrangeMarriageFailure(verdict.Result, actorName);
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         ledger.MarkApplied(entry.Id);
+         string priceLine = DescribeArrangeMarriagePrice(verdict);
+         report?.Invoke($"{verdict.A.Name} of the player's clan weds {verdict.B.Name} of {actorName}'s house, sealing the alliance. {priceLine}", true);
+         ModLog.Info($"[COUNCIL] lift: {verdict.A.Name} (player clan) wed {verdict.B.Name} ({actorName}'s house), consent by {actorName}.");
+      }
+
+      /// <summary>Human-readable reason for every non-Wed <see cref="ArrangeMarriageResult" />, mirroring the 1:1 action's own refusal wording.</summary>
+      private static string DescribeArrangeMarriageFailure(ArrangeMarriageResult result, string actorName)
+      {
+         switch (result)
+         {
+            case ArrangeMarriageResult.NoPlayerKin: return "no unwed kin of the player's own house could be named to this match.";
+            case ArrangeMarriageResult.NoTargetKin: return $"{actorName} names no one of their house to give.";
+            case ArrangeMarriageResult.NoAuthority: return $"{actorName} has no authority to promise that kin in marriage.";
+            case ArrangeMarriageResult.NotSuitable: return "the two named could not lawfully wed (age, kinship, or one is already promised elsewhere).";
+            case ArrangeMarriageResult.NotCrossClan: return "the kin named is already of the player's own clan.";
+            case ArrangeMarriageResult.RefusedStanding: return $"{actorName}'s house will not give their kin to the player's house on its present standing.";
+            default: return "the match could not be arranged.";
+         }
+      }
+
+      /// <summary>
+      ///   The "visible price" COUNCIL_ACTIONS.md's Kimi review demands: names whichever of the two newlyweds
+      ///   actually changed clan (comparing each hero's clan AFTER MarriageAction.Apply against the clan
+      ///   <see cref="CourtActionResolver.TryArrangeMarriage" /> captured just BEFORE it), so the report never
+      ///   leaves the player to discover a lost companion-governor moved to the other house only later.
+      /// </summary>
+      private static string DescribeArrangeMarriagePrice(ArrangeMarriageVerdict verdict)
+      {
+         if (verdict.A.Clan != verdict.AClanBefore)
+            return $"{verdict.A.Name} now belongs to {verdict.A.Clan?.Name}.";
+
+         if (verdict.B.Clan != verdict.BClanBefore)
+            return $"{verdict.B.Name} now belongs to {verdict.B.Clan?.Name}.";
+
+         return "Neither joins the other's house by this match.";
       }
 
       /// <summary>

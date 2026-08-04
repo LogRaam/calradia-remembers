@@ -166,8 +166,15 @@ namespace CalradiaRemembers.Chat
          // 8's "expel_from_clan" grounds on NOTHING beyond the actor, exactly like "give_influence": it also
          // falls through to this default branch and simply carries a null TargetHint (the LLM is never taught to
          // emit target_settlement for this kind), CouncilLift.SettleExpelFromClan never reads it.
+         // Partie 1's "arrange_marriage" (COUNCIL_ACTIONS.md, "juste arrange_mariage qui est valide") is the ONE
+         // kind that grounds on TWO names rather than one (the player-clan kin AND the seated ally's own kin):
+         // both are composed into this single TargetHint slot by ArrangeMarriageGroundingCodec.Compose (a
+         // structured composite this codebase controls end to end, never prose-parsing), split apart again at
+         // the lift by the SAME codec (CouncilLift.SettleArrangeMarriage).
          string targetHint;
-         if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.AssignPartyRole), StringComparison.OrdinalIgnoreCase))
+         if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.ArrangeMarriage), StringComparison.OrdinalIgnoreCase))
+            targetHint = ArrangeMarriageGroundingCodec.Compose(proposal.PlayerKinName, proposal.TargetKinName);
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.AssignPartyRole), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetRole;
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DispatchOnMission), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetMission;

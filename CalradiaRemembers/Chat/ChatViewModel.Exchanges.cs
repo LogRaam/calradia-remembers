@@ -614,9 +614,12 @@ namespace CalradiaRemembers.Chat
                // (COUNCIL_ACTIONS.md's schemes block, REUSING the existing 1:1 pledge_against system end to
                // end): at least one seated LORD in ClanLords/Family (the only scopes ResolutionCatalog grants
                // it) holds no pledge already outstanding; an approximation, the genuine rival is re-resolved by
-               // name only at the lift.
+               // name only at the lift. AnySeatedAllyHasMarriageableKin is Partie 1's own marriage-as-currency
+               // fact, arrange_marriage (COUNCIL_ACTIONS.md, "juste arrange_mariage qui est valide"): WarCouncil
+               // only, the player's own clan holds an unwed kin AND at least one seated ally's own house offers
+               // one too; an approximation, the exact pairing and every hard gate are re-validated at the lift.
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

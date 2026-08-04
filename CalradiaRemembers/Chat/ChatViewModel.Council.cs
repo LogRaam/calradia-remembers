@@ -405,6 +405,56 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Partie 1 (COUNCIL_ACTIONS.md, "juste arrange_mariage qui est valide"): arrange_marriage's own fact,
+      ///   WarCouncil only, REUSING the existing 1:1 arrange_marriage system end to end. True once the player's
+      ///   own clan holds an unwed kin (<see cref="PlayerClanHasUnwedKin" />) AND at least one seated ally's own
+      ///   house (a genuine OTHER clan, mirroring <see cref="AnySeatedMemberCanGrantInfluence" />'s own
+      ///   giver-is-not-the-player's-clan gate) offers an unwed kin of its own, or is themselves unwed (mirroring
+      ///   the 1:1 action's own "b == npcHero" case). An APPROXIMATION, mirroring <see cref="AnySeatedMemberHasGold" />'s
+      ///   own loose gate deliberately: only alive-and-unwed is checked here, never the opposite-sex/age pairing
+      ///   <see cref="CalradiaRemembers.Marriage.MarriageProspectResolver.IsMarriageable" /> enforces, nor
+      ///   <see cref="CalradiaRemembers.Logic.ArrangedMatchPolicy" />'s own standing consent, the exact pairing
+      ///   and every hard gate are re-validated at the lift regardless
+      ///   (CalradiaRemembers.GameState.CourtActionResolver.TryArrangeMarriage, bridge is law), the same "prove
+      ///   SOME pledge is possible, never the exact match" discipline every other loose gate above already uses.
+      /// </summary>
+      private bool AnySeatedAllyHasMarriageableKin()
+      {
+         if (!PlayerClanHasUnwedKin()) return false;
+
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero ally = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (ally is not {IsAlive: true} || ally.IsPrisoner) continue;
+
+            Clan allyClan = ally.Clan;
+            if (allyClan == null || allyClan == Clan.PlayerClan) continue;
+
+            if (ally.Spouse == null) return true; // the ally themselves may be the match
+
+            if (allyClan.Heroes != null)
+               foreach (Hero member in allyClan.Heroes)
+                  if (member != ally && member is {IsAlive: true, Spouse: null})
+                     return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>Whether the player's own clan currently holds any alive, unwed kin other than the player: the half of <see cref="AnySeatedAllyHasMarriageableKin" /> that never depends on who is seated.</summary>
+      private static bool PlayerClanHasUnwedKin()
+      {
+         Clan clan = Clan.PlayerClan;
+         if (clan?.Heroes == null) return false;
+
+         foreach (Hero member in clan.Heroes)
+            if (member != Hero.MainHero && member is {IsAlive: true, Spouse: null})
+               return true;
+
+         return false;
+      }
+
+      /// <summary>
       ///   The WarCouncil's own gate: declare_war's PlayerCanDeclareWar fact (ResolutionOfferingResolver.OfferedKindKeys).
       ///   True once the player leads their own MapFaction (kingdom ruler, or an independent clan that IS its own
       ///   faction, see Hero.IsFactionLeader) AND at least one other faction exists that is neither the player's
