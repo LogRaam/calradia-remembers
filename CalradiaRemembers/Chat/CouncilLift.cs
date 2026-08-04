@@ -18,6 +18,7 @@ using CalradiaRemembers.Quests;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
 #endregion
@@ -99,9 +100,9 @@ namespace CalradiaRemembers.Chat
 
          // B2/M4: the registry, not a magic string, decides what the table can carry out. Only executable kinds
          // reach an executor; anything else (an unmapped kind, or a catalogue kind whose executor has not landed
-         // yet, Q5 "extend then migrate") is reported honestly instead of silently applied or dropped. Quest and
-         // AppointGovernor are executable today, so a passing entry here is one of those two; the switch below
-         // this gate is the per-kind dispatch, extended the day a third executor is wired.
+         // yet, Q5 "extend then migrate") is reported honestly instead of silently applied or dropped. Quest,
+         // AppointGovernor and AssignPartyRole are executable today, so a passing entry here is one of those
+         // three; the switch below this gate is the per-kind dispatch, extended the day a fourth executor is wired.
          if (!ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind kind) || !ResolutionCatalog.IsExecutable(kind))
          {
             ledger.MarkFailed(entry.Id, "This kind of decision is not yet settled by the council.");
@@ -120,13 +121,18 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         // Council audit M4 -> B2: the executable gate above proves kind is Quest or AppointGovernor today;
-         // this switch is the per-kind dispatch that plug point replaces. Each case owns its own guards and
-         // reporting so a new executor never has to thread through another kind's assumptions.
+         // Council audit M4 -> B2: the executable gate above proves kind is Quest, AppointGovernor or
+         // AssignPartyRole today; this switch is the per-kind dispatch that plug point replaces. Each case owns
+         // its own guards and reporting so a new executor never has to thread through another kind's assumptions.
          switch (kind)
          {
             case ResolutionKind.AppointGovernor:
                SettleAppointGovernor(ledger, entry, actorHero, actorName, giver, report);
+
+               return;
+
+            case ResolutionKind.AssignPartyRole:
+               SettleAssignPartyRole(ledger, entry, actorHero, actorName, report);
 
                return;
 
@@ -234,6 +240,69 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"{actorName} now governs {fief.Name}.", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} appointed governor of {fief.Name}.");
+      }
+
+      /// <summary>
+      ///   The SECOND governance executor, mirroring AppointGovernor's own wiring exactly. Author's stance
+      ///   (Kimi default, ratified 2026-08-03): instant at the lift, no cost, no trust gate - unlike a
+      ///   governorship this is a purely INTERNAL attribution (who rides doing what within the player's own
+      ///   party), so there is no one to refuse it and no separate refusal policy to consult. The only guards
+      ///   are mechanical, bridge-is-law re-checks of what the pledge actually needs to still be true: the
+      ///   member is alive, still rides in the player's OWN party (a role held outside it is meaningless - Scout,
+      ///   Engineer, Quartermaster and Surgeon all act on the party the member travels with), and the role named
+      ///   in <see cref="AssemblyResolutionEntry.TargetHint" /> (the same single grounding slot AppointGovernor
+      ///   uses for a fief name, here carrying the ROLE name instead, see <see cref="PartyRoleParser" />)
+      ///   resolves to one of the four the council supports.
+      /// </summary>
+      private static void SettleAssignPartyRole(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true})
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (actorHero.PartyBelongedTo != MobileParty.MainParty)
+         {
+            const string reason = "they no longer ride in the player's own party.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         CouncilPartyRole role = PartyRoleParser.Parse(entry.TargetHint);
+
+         if (role == CouncilPartyRole.None)
+         {
+            const string reason = "no valid party role was named.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         MobileParty.MainParty.SetHeroPartyRole(actorHero, ToEnginePartyRole(role));
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"{actorName} now serves as your {role}.", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} assigned party role {role}.");
+      }
+
+      /// <summary>Maps the Logic-side <see cref="CouncilPartyRole" /> to the engine's own <see cref="PartyRole" />. None never reaches here (guarded in <see cref="SettleAssignPartyRole" />).</summary>
+      private static PartyRole ToEnginePartyRole(CouncilPartyRole role)
+      {
+         switch (role)
+         {
+            case CouncilPartyRole.Scout:         return PartyRole.Scout;
+            case CouncilPartyRole.Engineer:      return PartyRole.Engineer;
+            case CouncilPartyRole.Quartermaster: return PartyRole.Quartermaster;
+            case CouncilPartyRole.Surgeon:       return PartyRole.Surgeon;
+            default:                             throw new ArgumentOutOfRangeException(nameof(role), role, "CouncilPartyRole.None must be guarded before this is called.");
+         }
       }
 
       private static string DescribeUnavailability(CouncilExclusionReason reason, bool heroGone)

@@ -211,6 +211,24 @@ namespace CalradiaRemembers.Chat
          _councilParticipants.Clear();
       }
 
+      /// <summary>
+      ///   True once any seated member's hero currently rides in the player's own party: the TargetInPlayerParty
+      ///   fact assign_party_role needs (ResolutionOfferingResolver.OfferedKindKeys) before the offering can teach
+      ///   it. A filled seat alone does not prove this (a companion may be seated at a council while governing a
+      ///   town elsewhere, see anySeatedMemberAvailable's own doc), so each seat's live Hero is resolved and its
+      ///   PartyBelongedTo checked for real, rather than assuming every seat qualifies.
+      /// </summary>
+      private bool AnySeatedMemberInPlayerParty()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero != null && hero.PartyBelongedTo == MobileParty.MainParty) return true;
+         }
+
+         return false;
+      }
+
       #region Scene image on the thinking placeholder
 
       /// <summary>

@@ -146,7 +146,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             switch (kind)
             {
                 case ResolutionKind.Quest:             return "quest";
-                case ResolutionKind.AssignPartyRole:   return "assign_role";
+                case ResolutionKind.AssignPartyRole:   return "assign_party_role";
                 case ResolutionKind.AppointGovernor:   return "appoint_governor";
                 case ResolutionKind.DispatchOnMission: return "dispatch_mission";
                 case ResolutionKind.GrantStipend:      return "grant_stipend";
@@ -175,12 +175,14 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>
         ///   True when a passed motion of this kind has a LIVE lift executor. Council audit M4: <see cref="ResolutionKind.Quest" />
-        ///   (a member set a task in the world) and, since the first governance executor, <see cref="ResolutionKind.AppointGovernor" />
-        ///   (CouncilLift.SettleAppointGovernor) are carried out; the remaining scoped menu motions are recorded
+        ///   (a member set a task in the world), the first governance executor <see cref="ResolutionKind.AppointGovernor" />
+        ///   (CouncilLift.SettleAppointGovernor), and, mirroring that same wiring, <see cref="ResolutionKind.AssignPartyRole" />
+        ///   (CouncilLift.SettleAssignPartyRole) are carried out; the remaining scoped menu motions are recorded
         ///   but not yet executed, so they arrive with their variant (Q5). The runtime teaches and lifts only
         ///   executable kinds, so the table never promises a deed it cannot keep.
         /// </summary>
-        public static bool IsExecutable(ResolutionKind kind) => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor;
+        public static bool IsExecutable(ResolutionKind kind)
+            => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor || kind == ResolutionKind.AssignPartyRole;
 
         /// <summary>
         ///   The string keys of the kinds a council of <paramref name="scope" /> may currently ACT on: the

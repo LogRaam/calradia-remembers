@@ -1,11 +1,11 @@
 // Code written by Gabriel Mailhot, 03/08/2026.
 // ASSEMBLY pillar, Council module: the engine side of ResolutionWorldFacts. Reads live campaign state (a vacant
-// governable fief, whether any seated member is available) into the facts ResolutionEligibilityPolicy judges,
-// so the set of resolution kinds a council turn TEACHES the LLM can never promise a deed the lift cannot honour
-// (the exact empty-promise class the whole catalogue exists to prevent). This is the populator ResolutionCatalog
-// and ResolutionEligibilityPolicy were built for but nothing filled in yet: only appoint_governor is wired today
-// (ResolutionCatalog.IsExecutable), so the remaining scoped kinds never surface here regardless of facts, and
-// this reader stays minimal until they land.
+// governable fief, whether any seated member is available or rides in the player's own party) into the facts
+// ResolutionEligibilityPolicy judges, so the set of resolution kinds a council turn TEACHES the LLM can never
+// promise a deed the lift cannot honour (the exact empty-promise class the whole catalogue exists to prevent).
+// This is the populator ResolutionCatalog and ResolutionEligibilityPolicy were built for; appoint_governor and,
+// mirroring it, assign_party_role are wired today (ResolutionCatalog.IsExecutable), so the remaining scoped
+// kinds never surface here regardless of facts, and this reader stays minimal until they land.
 
 #region
 
@@ -24,20 +24,24 @@ namespace CalradiaRemembers.Assemblies
    public static class ResolutionOfferingResolver
    {
       /// <summary>
-      ///   The kind keys (e.g. "quest", "appoint_governor") a council of <paramref name="scope" /> may currently
-      ///   teach the LLM. <paramref name="anySeatedMemberAvailable" /> should be true once the council has at
-      ///   least one filled seat: the roster already applies CouncilRosterPolicy's own availability gate before
-      ///   a member is seated (see CouncilRosterResolver.Seated), so a seated member IS the TargetAvailable case
-      ///   ResolutionEligibilityPolicy asks about, and there is no separate per-member re-check to do here. Never
-      ///   throws: any engine read failure degrades to no vacant fief, so a failing lookup only WITHHOLDS a
-      ///   motion, never over-offers one the lift cannot honour.
+      ///   The kind keys (e.g. "quest", "appoint_governor", "assign_party_role") a council of <paramref name="scope" />
+      ///   may currently teach the LLM. <paramref name="anySeatedMemberAvailable" /> should be true once the
+      ///   council has at least one filled seat: the roster already applies CouncilRosterPolicy's own
+      ///   availability gate before a member is seated (see CouncilRosterResolver.Seated), so a seated member IS
+      ///   the TargetAvailable case ResolutionEligibilityPolicy asks about, and there is no separate per-member
+      ///   re-check to do here. <paramref name="anySeatedMemberInPlayerParty" /> is the narrower TargetInPlayerParty
+      ///   fact assign_party_role needs: a seat alone does not prove party membership (a companion may be seated
+      ///   while governing a town), so the caller resolves each seat's live Hero and checks PartyBelongedTo for
+      ///   real (see ChatViewModel.AnySeatedMemberInPlayerParty). Never throws: any engine read failure degrades
+      ///   to no vacant fief, so a failing lookup only WITHHOLDS a motion, never over-offers one the lift cannot
+      ///   honour.
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false)
       {
          try
          {
             var facts = new ResolutionWorldFacts(
-               targetInPlayerParty: false,
+               targetInPlayerParty: anySeatedMemberInPlayerParty,
                targetAvailable: anySeatedMemberAvailable,
                playerHasVacantFief: HasVacantGovernableFief(),
                playerCanAffordStipend: false,

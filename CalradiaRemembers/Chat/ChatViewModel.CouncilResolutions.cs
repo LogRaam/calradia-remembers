@@ -135,7 +135,13 @@ namespace CalradiaRemembers.Chat
          }
 
          string id = Guid.NewGuid().ToString("N");
-         AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession, proposal.TargetSettlement);
+         // TargetHint is the entry's ONE grounding string, reused per kind rather than growing a second field:
+         // a "quest"/"appoint_governor" pledge grounds on the settlement named, while "assign_party_role" grounds
+         // on the ROLE named instead (see PartyRoleParser, read back by CouncilLift.SettleAssignPartyRole).
+         string targetHint = string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.AssignPartyRole), StringComparison.OrdinalIgnoreCase)
+            ? proposal.TargetRole
+            : proposal.TargetSettlement;
+         AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession, targetHint);
 
          if (entry == null)
          {
