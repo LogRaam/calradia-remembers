@@ -10,6 +10,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
@@ -263,6 +264,33 @@ namespace CalradiaRemembers.Chat
       ///   executor's own re-check.
       /// </summary>
       private static bool PlayerCanAffordStipend() => Hero.MainHero != null && Hero.MainHero.Gold >= StipendPolicy.MinTrancheCost;
+
+      /// <summary>
+      ///   The WarCouncil's own gate: declare_war's PlayerCanDeclareWar fact (ResolutionOfferingResolver.OfferedKindKeys).
+      ///   True once the player leads their own MapFaction (kingdom ruler, or an independent clan that IS its own
+      ///   faction, see Hero.IsFactionLeader) AND at least one other faction exists that is neither the player's
+      ///   own nor already at war. (Discovery note: vanilla Bannerlord v1.3.15 has no formal "allied faction"
+      ///   stance to also exclude here, see CouncilLift.SettleDeclareWar's own doc for the ilspycmd-confirmed
+      ///   FactionManager API surface.) Mirrors PlayerCanAffordStipend's own shape: proves only that SOME valid
+      ///   target exists, never which one the LLM will actually name; the real target named in target_faction is
+      ///   re-resolved and re-checked at the lift (CouncilLift.SettleDeclareWar, bridge is law).
+      /// </summary>
+      private static bool PlayerCanDeclareWar()
+      {
+         if (Hero.MainHero is not {IsFactionLeader: true}) return false;
+
+         IFaction playerFaction = Hero.MainHero.MapFaction;
+         if (playerFaction == null) return false;
+
+         bool anyKingdomTarget = Kingdom.All != null && Kingdom.All.Any(k =>
+            k != playerFaction && !FactionManager.IsAtWarAgainstFaction(playerFaction, k));
+
+         if (anyKingdomTarget) return true;
+
+         return Clan.All != null && Clan.All.Any(c =>
+            c.Kingdom == null && c != playerFaction && !c.IsEliminated
+            && !FactionManager.IsAtWarAgainstFaction(playerFaction, c));
+      }
 
       #region Scene image on the thinking placeholder
 

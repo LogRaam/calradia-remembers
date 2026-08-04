@@ -45,7 +45,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                       bool isImmediateFamily,
                                       bool isClanLord,
                                       bool isInArmy,
-                                      bool isOnMission)
+                                      bool isOnMission,
+                                      bool isAlliedLeader = false)
         {
             IsAlive = isAlive;
             IsPrisoner = isPrisoner;
@@ -55,6 +56,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             IsClanLord = isClanLord;
             IsInArmy = isInArmy;
             IsOnMission = isOnMission;
+            IsAlliedLeader = isAlliedLeader;
         }
 
         public bool IsAlive { get; }
@@ -77,6 +79,15 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>The hero is away on a companion errand (CompanionMissionBehavior.IsAway); cannot attend until they return.</summary>
         public bool IsOnMission { get; }
+
+        /// <summary>
+        ///   The WarCouncil's own roster fact: a clan LEADER allied to the player (a fellow clan's leader within
+        ///   the player's kingdom), or, for an independent player clan (no kingdom), one of the player's own clan
+        ///   lords (the roster's no-kingdom fallback, see CouncilRosterResolver.CandidatePool). Not mutually
+        ///   exclusive with the others: a sibling who leads his own clan could in principle also be an allied
+        ///   leader, though the common case is disjoint from IsClanLord (a DIFFERENT clan's leader).
+        /// </summary>
+        public bool IsAlliedLeader { get; }
     }
 
     /// <summary>Whether a hero is seated at a council, and if not, the reason to show on the roster.</summary>

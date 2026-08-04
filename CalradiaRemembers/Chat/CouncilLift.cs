@@ -86,6 +86,20 @@ namespace CalradiaRemembers.Chat
 
       private static void Settle(AssemblyLedger ledger, AssemblyResolutionEntry entry, CouncilScope scope, NpcMemoryCampaignBehavior behavior, int gameDay, Action<string, bool> report)
       {
+         // Faction-centric kinds (today, only declare_war, ResolutionCatalog.IsFactionCentric) are dispatched
+         // BEFORE the ordinary seated-member gate below: their pledge concerns two FACTIONS, not the fate of
+         // entry.TargetHeroId (that field still carries the PROPOSING member's id, for the M7 broken-pledge
+         // memory on failure, see Finalize), so re-validating THAT member's own council eligibility here would
+         // wrongly block a table decision that was never actually about them (e.g. a proposer who has since left
+         // the roster must not sink a war the rest of the table still agreed to). SettleDeclareWar re-validates
+         // the actual subject of the pledge instead: the FACTIONS.
+         if (ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind peekedKind) && ResolutionCatalog.IsFactionCentric(peekedKind))
+         {
+            SettleDeclareWar(ledger, entry, report);
+
+            return;
+         }
+
          Hero actorHero = Hero.FindFirst(h => h.StringId == entry.TargetHeroId);
          string actorName = actorHero?.Name?.ToString() ?? "One of the council";
 
@@ -542,6 +556,95 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"{actorName} will draw {clamped} denars a day from your coffers for the next {StipendPolicy.TrancheDays} days.", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} granted a stipend of {clamped}/day for {StipendPolicy.TrancheDays} days.");
+      }
+
+      /// <summary>
+      ///   The WarCouncil's own executor, and the FIRST FACTION-CENTRIC one: declares war on the faction named in
+      ///   <see cref="AssemblyResolutionEntry.TargetHint" /> (this kind's own grounding slot, mirroring how
+      ///   assign_party_role grounds on a role name, see RecordCouncilResolution). Author's guards (bridge is
+      ///   law, re-checked here rather than trusted from proposal/offer time, exactly like every other
+      ///   executor): the player must still lead their own faction (kingdom ruler, or an independent clan that
+      ///   IS its own faction, Hero.IsFactionLeader), the named faction must resolve among live Kingdoms and
+      ///   independent Clans, it must not be the player's own faction, and the player must not already be at war
+      ///   with it. (Discovery note: vanilla Bannerlord v1.3.15 has no formal "allied faction" stance to guard
+      ///   against, ilspycmd-decompiled TaleWorlds.CampaignSystem.FactionManager exposes only IsAtWarAgainstFaction
+      ///   / IsAtConstantWarAgainstFaction / IsNeutralWithFaction, and StanceType is Neutral/War only, so there is
+      ///   no IsAlliedWithFaction to call.) Any failing guard MarkFails with an honest reason; success calls the
+      ///   same native <see cref="DeclareWarAction.ApplyByDefault" /> the scenario system and cr.test both already use.
+      /// </summary>
+      private static void SettleDeclareWar(AssemblyLedger ledger, AssemblyResolutionEntry entry, Action<string, bool> report)
+      {
+         const string label = "The council's decision to declare war";
+
+         if (Hero.MainHero is not {IsFactionLeader: true})
+         {
+            const string reason = "the player no longer leads a faction that can declare war.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{label} could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         IFaction playerFaction = Hero.MainHero.MapFaction;
+
+         if (playerFaction == null)
+         {
+            const string reason = "the player belongs to no faction.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{label} could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         IFaction target = ResolveFactionByName(entry.TargetHint);
+
+         if (target == null)
+         {
+            const string reason = "no faction by that name could be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{label} could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (target == playerFaction)
+         {
+            const string reason = "that is the player's own faction.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{label} could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (FactionManager.IsAtWarAgainstFaction(playerFaction, target))
+         {
+            string reason = $"the player is already at war with {target.Name}.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{label} could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         DeclareWarAction.ApplyByDefault(playerFaction, target);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"Your council declares war on {target.Name}.", true);
+         ModLog.Info($"[COUNCIL] lift: war council declared war on {target.Name}.");
+      }
+
+      /// <summary>Resolves a faction by name (case-insensitive) among live Kingdoms and independent Clans, the same pool SettleDeclareWar's target must come from.</summary>
+      private static IFaction ResolveFactionByName(string name)
+      {
+         if (string.IsNullOrWhiteSpace(name)) return null;
+
+         string trimmed = name.Trim();
+
+         IFaction kingdom = Kingdom.All?.FirstOrDefault(k =>
+            string.Equals(k.Name?.ToString(), trimmed, StringComparison.OrdinalIgnoreCase));
+         if (kingdom != null) return kingdom;
+
+         return Clan.All?.FirstOrDefault(c =>
+            c.Kingdom == null && string.Equals(c.Name?.ToString(), trimmed, StringComparison.OrdinalIgnoreCase));
       }
 
       /// <summary>Maps the Logic-side <see cref="CouncilMissionType" /> to the mod's own <see cref="CompanionMissionType" />. None never reaches here (guarded in <see cref="SettleDispatchMission" />).</summary>

@@ -1135,6 +1135,7 @@ namespace CalradiaRemembers.Chat
             CouncilScope.Assembly => "Assembly",
             CouncilScope.Family => "Clan and family council",
             CouncilScope.ClanLords => "Council of your clan's lords",
+            CouncilScope.WarCouncil => "War council",
             _ => "Council of companions"
          };
          PopulateCouncilParticipants();
@@ -1173,6 +1174,12 @@ namespace CalradiaRemembers.Chat
                "the gathering settling in, briefly, then give the floor: one seated member may acknowledge the " +
                "summons and ask what business the player lays before the clan. The others are present and listening; " +
                "not all of them need speak yet.]",
+            CouncilScope.WarCouncil =>
+               "[The player has summoned a WAR COUNCIL: their allies are gathered at their word to decide war " +
+               "policy. Describe the gathering settling in, briefly, then give the floor: one seated ally may " +
+               "acknowledge the summons and ask what war matter the player lays before the table. The others are " +
+               "present and listening, each with their own stake in what war would cost them; not all of them need " +
+               "speak yet.]",
             _ =>
                "[The player has called their companions together: they are gathered at their word. Describe the " +
                "gathering settling in, briefly, then give the floor: one seated member may acknowledge the summons " +

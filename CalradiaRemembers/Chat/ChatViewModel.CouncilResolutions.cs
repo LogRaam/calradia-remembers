@@ -50,7 +50,13 @@ namespace CalradiaRemembers.Chat
             // Unlike an [ACTION]'s optional "actor" (absent = the current speaker), a [RESOLUTION] always
             // requires one: there is no natural "whoever is speaking" fallback for a table decision, and
             // guessing it onto the anchor is exactly the misattribution this whole feature exists to prevent.
-            int idx = CouncilActorPolicy.ResolveActor(proposal.Actor, names);
+            // declare_war is the one carve-out (ResolveDeclareWarActor): it is a FACTION-CENTRIC decision, not a
+            // member's own promise, so an OMITTED actor there defaults to the presiding member instead of being
+            // dropped; a NAMED-but-unmatched actor still refuses exactly like every other kind.
+            bool isDeclareWar = string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DeclareWar), StringComparison.OrdinalIgnoreCase);
+            int idx = isDeclareWar
+               ? CouncilActorPolicy.ResolveDeclareWarActor(proposal.Actor, names)
+               : CouncilActorPolicy.ResolveActor(proposal.Actor, names);
 
             if (idx < 0)
             {
@@ -139,8 +145,10 @@ namespace CalradiaRemembers.Chat
          // a "quest"/"appoint_governor" pledge grounds on the settlement named, "assign_party_role" grounds on the
          // ROLE named instead (see PartyRoleParser, read back by CouncilLift.SettleAssignPartyRole), "dispatch_mission"
          // grounds on the ERRAND named instead (see MissionTypeParser, read back by CouncilLift.SettleDispatchMission),
-         // and "grant_stipend" grounds on the proposed AMOUNT instead (read back by int.TryParse in
-         // CouncilLift.SettleGrantStipend, the FIRST executor that touches persisted save state).
+         // "grant_stipend" grounds on the proposed AMOUNT instead (read back by int.TryParse in
+         // CouncilLift.SettleGrantStipend, the FIRST executor that touches persisted save state), and "declare_war"
+         // grounds on the FACTION named instead (read back by CouncilLift.SettleDeclareWar, the FIRST FACTION-CENTRIC
+         // kind).
          string targetHint;
          if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.AssignPartyRole), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetRole;
@@ -148,6 +156,8 @@ namespace CalradiaRemembers.Chat
             targetHint = proposal.TargetMission;
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GrantStipend), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetAmount?.ToString();
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DeclareWar), StringComparison.OrdinalIgnoreCase))
+            targetHint = proposal.TargetFaction;
          else
             targetHint = proposal.TargetSettlement;
          AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession, targetHint);

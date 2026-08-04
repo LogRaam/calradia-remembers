@@ -101,5 +101,41 @@ namespace CalradiaRemembers.Tests.Assemblies
             CouncilActorPolicy.ResolveActor("Sley", new List<string>()).Should().Be(-1);
             CouncilActorPolicy.ResolveActor("Sley", null).Should().Be(-1);
         }
+
+        // declare_war's own carve-out: the pledge is the table's decision about two FACTIONS, not one seated
+        // member's promise, so nobody at the table is naturally "the actor". An omitted actor for THIS kind
+        // must default to the presiding member (seat 0) rather than being dropped, or the war council could
+        // never actually record a decision when the model (correctly) names nobody in particular.
+        [Test]
+        public void GIVEN_a_blank_actor_WHEN_resolving_a_declare_war_actor_THEN_the_presiding_seat_is_returned()
+        {
+            CouncilActorPolicy.ResolveDeclareWarActor(null, new List<string> {"Sley", "Aldric"}).Should().Be(0);
+            CouncilActorPolicy.ResolveDeclareWarActor("", new List<string> {"Sley", "Aldric"}).Should().Be(0);
+            CouncilActorPolicy.ResolveDeclareWarActor("   ", new List<string> {"Sley", "Aldric"}).Should().Be(0);
+        }
+
+        // A NAMED actor is resolved exactly like any other kind: this carve-out only widens what an OMITTED
+        // actor means, it never loosens the "never guess" rule for a name that was actually given.
+        [Test]
+        public void GIVEN_a_named_actor_WHEN_resolving_a_declare_war_actor_THEN_it_resolves_like_any_other_kind()
+        {
+            CouncilActorPolicy.ResolveDeclareWarActor("Aldric", new List<string> {"Sley", "Aldric"}).Should().Be(1);
+        }
+
+        // An actor naming somebody not seated must still refuse: the omitted-actor default is narrowly for a
+        // BLANK actor, never a signal to fall back on a hallucinated name.
+        [Test]
+        public void GIVEN_an_unmatched_named_actor_WHEN_resolving_a_declare_war_actor_THEN_it_is_still_refused()
+        {
+            CouncilActorPolicy.ResolveDeclareWarActor("Someone Else", new List<string> {"Sley", "Aldric"}).Should().Be(-1);
+        }
+
+        // No seats at all must still refuse cleanly rather than default to a nonexistent seat 0.
+        [Test]
+        public void GIVEN_no_seated_members_WHEN_resolving_a_declare_war_actor_THEN_it_is_refused_without_throwing()
+        {
+            CouncilActorPolicy.ResolveDeclareWarActor(null, new List<string>()).Should().Be(-1);
+            CouncilActorPolicy.ResolveDeclareWarActor(null, null).Should().Be(-1);
+        }
     }
 }

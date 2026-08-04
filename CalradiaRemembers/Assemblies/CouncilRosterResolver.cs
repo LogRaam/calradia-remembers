@@ -117,9 +117,27 @@ namespace CalradiaRemembers.Assemblies
                return ImmediateFamily();
             case CouncilScope.ClanLords:
                return clan.Heroes?.Where(h => h is {IsLord: true} && h != Hero.MainHero) ?? Enumerable.Empty<Hero>();
+            case CouncilScope.WarCouncil:
+               return WarCouncilCandidates(clan);
             default:
                return Enumerable.Empty<Hero>();
          }
+      }
+
+      // Roster default (author's decision): the war council gathers the player's ALLIES, i.e. the leaders of
+      // the OTHER clans in the player's kingdom. An independent clan (no kingdom, so no allies to gather) falls
+      // back to the player's own clan lords instead, mirroring CandidatePool's ClanLords case exactly, so a
+      // solo player can still convene a war council over his own house rather than seat nobody at all.
+      private static IEnumerable<Hero> WarCouncilCandidates(Clan clan)
+      {
+         if (clan.Kingdom != null)
+            return clan.Kingdom.Clans?
+                      .Where(c => c != null && c != clan)
+                      .Select(c => c.Leader)
+                      .Where(h => h != null)
+                  ?? Enumerable.Empty<Hero>();
+
+         return clan.Heroes?.Where(h => h is {IsLord: true} && h != Hero.MainHero) ?? Enumerable.Empty<Hero>();
       }
 
       // The player's spouse, siblings, and grown children. Children who are still minors are excluded here
@@ -150,6 +168,14 @@ namespace CalradiaRemembers.Assemblies
                         || (player.Siblings?.Contains(hero) ?? false)
                         || ((player.Children?.Contains(hero) ?? false) && !hero.IsChild));
 
+         // Mirrors WarCouncilCandidates exactly (a hero seated by that pool must also read true here): with a
+         // kingdom, an allied leader is a DIFFERENT clan's own leader within the player's kingdom; without one
+         // (independent clan, no allies), the same no-kingdom fallback as ClanLords applies.
+         bool isAlliedLeader = clan != null
+                             && (clan.Kingdom != null
+                                ? hero.Clan != null && hero.Clan != clan && hero.Clan.Kingdom == clan.Kingdom && hero.Clan.Leader == hero
+                                : hero.Clan == clan && hero.IsLord && hero != player);
+
          return new CouncilMembershipFacts(
             hero.IsAlive,
             hero.IsPrisoner,
@@ -158,7 +184,8 @@ namespace CalradiaRemembers.Assemblies
             isFamily,
             clan != null && hero.Clan == clan && hero.IsLord && hero != player,
             hero.PartyBelongedTo?.Army != null,
-            CompanionMissionBehavior.Instance?.IsAway(hero.StringId) ?? false);
+            CompanionMissionBehavior.Instance?.IsAway(hero.StringId) ?? false,
+            isAlliedLeader);
       }
 
       #endregion

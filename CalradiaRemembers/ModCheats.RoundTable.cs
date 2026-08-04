@@ -69,12 +69,14 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.council [companions|family|lords]
-      ///   Opens a REAL council of the player's own house (default: companions). Unlike cr.council_test, which
-      ///   bolts synthetic members onto whatever chat is already open, this seats the actual roster the scope
-      ///   gathers, gives the spoken reply to the member who regards the player best, and carries the
-      ///   whole-table framing for the WHOLE session (it ends with the window, nothing global is armed).
-      ///   Each turn is ONE call: the anchor answers and every other member may speak or merely gesture.
+      ///   cr.council [companions|family|lords|war]
+      ///   Opens a REAL council of the player's own house (default: companions), or, with "war", the WarCouncil
+      ///   scope: the player's ALLIES (the leaders of the OTHER clans in his kingdom, or, with no kingdom, his
+      ///   own clan lords) deciding war policy. Unlike cr.council_test, which bolts synthetic members onto
+      ///   whatever chat is already open, this seats the actual roster the scope gathers, gives the spoken
+      ///   reply to the member who regards the player best, and carries the whole-table framing for the WHOLE
+      ///   session (it ends with the window, nothing global is armed). Each turn is ONE call: the anchor
+      ///   answers and every other member may speak or merely gesture.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("council", "cr")]
       public static string Council(List<string> args)
@@ -99,8 +101,13 @@ namespace CalradiaRemembers
                   scope = CouncilScope.Companions;
 
                   break;
+               case "war":
+               case "warcouncil":
+                  scope = CouncilScope.WarCouncil;
+
+                  break;
                default:
-                  return $"Unknown council '{which}'. Use: companions | family | lords.";
+                  return $"Unknown council '{which}'. Use: companions | family | lords | war.";
             }
 
             // The refusals are worth showing: "nobody is seated" is a very different report from "your two

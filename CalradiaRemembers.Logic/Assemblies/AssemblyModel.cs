@@ -40,7 +40,15 @@ namespace CalradiaRemembers.Logic.Assemblies
         ClanLords,
 
         /// <summary>A convened ASSEMBLY: a mixed roster of whoever answered the summons and reached the hall (or sent an envoy), not one house.</summary>
-        Assembly
+        Assembly,
+
+        /// <summary>
+        ///   The player's ALLIES deciding war policy: the leaders of the OTHER clans in the player's kingdom, or,
+        ///   for an independent clan (no kingdom), the player's own clan's lords (see CouncilRosterResolver's
+        ///   CandidatePool). The first FACTION-CENTRIC scope: its motions (declare_war) concern two FACTIONS,
+        ///   not a seated member's own fate, unlike every other scope's member-pledge pattern.
+        /// </summary>
+        WarCouncil
     }
 
     /// <summary>

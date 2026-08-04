@@ -23,8 +23,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool vacantFief = false,
                                                   bool canAfford = false,
                                                   bool mission = false,
-                                                  bool outOfParty = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty);
+                                                  bool outOfParty = false,
+                                                  bool canDeclareWar = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -199,6 +200,25 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, Facts())
                 .Should().Contain("quest");
+        }
+
+        // The WarCouncil's own gate: declare_war must be TAUGHT to the LLM only when the mod's offering has
+        // proven the player actually leads a faction that could declare a new war, or the model promises a
+        // decision CouncilLift.SettleDeclareWar's own guard would refuse outright (bridge is law).
+        [Test]
+        public void GIVEN_the_player_can_declare_war_WHEN_offered_keys_are_asked_THEN_declare_war_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, Facts(canDeclareWar: true))
+                .Should().Contain("declare_war");
+        }
+
+        // Absent that fact (the player leads no faction able to declare war, e.g. not the kingdom's ruler) the
+        // key must be withheld, or the table could offer a war declaration nobody present has the standing to make.
+        [Test]
+        public void GIVEN_the_player_cannot_declare_war_WHEN_offered_keys_are_asked_THEN_declare_war_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, Facts(canDeclareWar: false))
+                .Should().NotContain("declare_war");
         }
     }
 }

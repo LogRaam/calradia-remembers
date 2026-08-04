@@ -40,6 +40,9 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case CouncilScope.ClanLords:
                     belongs = f.IsClanLord;
                     break;
+                case CouncilScope.WarCouncil:
+                    belongs = f.IsAlliedLeader;
+                    break;
                 default:
                     belongs = false;
                     break;

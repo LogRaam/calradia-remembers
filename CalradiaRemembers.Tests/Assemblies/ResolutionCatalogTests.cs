@@ -165,5 +165,53 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             ResolutionCatalog.KeyOf(ResolutionKind.Quest).Should().Be(CouncilResolutionPolicy.QuestKind);
         }
+
+        // The WarCouncil's first motion: it must appear under its own scope, and only there, exactly like
+        // GrantFief is ClanLords-only. Getting this wrong would put a war declaration on an internal council
+        // that has no business raising it, or hide it from the one council built for it.
+        [Test]
+        public void GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_only_declare_war_returns()
+        {
+            var kinds = ResolutionCatalog.ForScope(CouncilScope.WarCouncil).Select(d => d.Kind).ToList();
+
+            kinds.Should().Equal(ResolutionKind.DeclareWar);
+        }
+
+        // declare_war has a live lift executor (CouncilLift.SettleDeclareWar) from the day it lands, unlike the
+        // still-dormant GrantFief: the table must be able to actually carry the decision out, not just record it.
+        [Test]
+        public void GIVEN_declare_war_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.DeclareWar).Should().BeTrue();
+        }
+
+        // The mod's lift skips the ordinary seated-member re-validation ONLY for a faction-centric kind
+        // (CouncilLift.Settle's dispatch order), so the predicate must single out declare_war and nothing else,
+        // or a member-pledge kind would wrongly bypass the re-check that catches a proposer who has since died
+        // or been taken prisoner.
+        [Test]
+        public void GIVEN_declare_war_WHEN_asked_if_it_is_faction_centric_THEN_it_is()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.DeclareWar).Should().BeTrue();
+        }
+
+        [Test]
+        public void GIVEN_every_member_pledge_kind_WHEN_asked_if_it_is_faction_centric_THEN_none_of_them_are()
+        {
+            foreach (ResolutionKind kind in Enum.GetValues(typeof(ResolutionKind)).Cast<ResolutionKind>())
+            {
+                if (kind == ResolutionKind.DeclareWar) continue;
+
+                ResolutionCatalog.IsFactionCentric(kind).Should().BeFalse();
+            }
+        }
+
+        // Every scope, WarCouncil included, must expose at least one executable kind so a war council can act,
+        // not merely debate; declare_war rides alongside the universal quest key here.
+        [Test]
+        public void GIVEN_a_war_council_WHEN_asked_for_executable_kinds_THEN_declare_war_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.WarCouncil).Should().Contain("declare_war");
+        }
     }
 }

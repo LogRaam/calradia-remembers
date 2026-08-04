@@ -592,9 +592,11 @@ namespace CalradiaRemembers.Chat
                // TargetOutOfPlayerParty is the symmetric inverse, AnySeatedCompanionOutOfPlayerParty, rejoin_party
                // alone needs (bug d); PlayerCanAffordStipend is the fifth executor's own fact, grant_stipend,
                // proving only the cheapest possible tranche is affordable (the real proposed amount is unknown at
-               // offer time, re-checked at the lift).
+               // offer time, re-checked at the lift); PlayerCanDeclareWar is the WarCouncil's own fact, declare_war,
+               // the first FACTION-CENTRIC kind (proving the player leads a faction with a valid war target,
+               // never which faction the LLM will actually name).
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

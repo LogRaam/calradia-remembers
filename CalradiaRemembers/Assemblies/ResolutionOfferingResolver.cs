@@ -41,10 +41,13 @@ namespace CalradiaRemembers.Assemblies
       ///   unreachable by any executor, see ChatViewModel.AnySeatedCompanionOutOfPlayerParty). <paramref name="playerCanAffordStipend" />
       ///   is the fifth executor's own fact, grant_stipend (see ChatViewModel.PlayerCanAffordStipend): the player's
       ///   gold checked against StipendPolicy.MinTrancheCost, the cheapest possible tranche, since the real
-      ///   proposed amount is not known until the LLM names one. Never throws: any engine read failure degrades to
+      ///   proposed amount is not known until the LLM names one. <paramref name="playerCanDeclareWar" /> is the
+      ///   WarCouncil's own fact, declare_war (see ChatViewModel.PlayerCanDeclareWar): the player leads a faction
+      ///   AND at least one valid war target exists; the actual faction named is re-resolved and re-checked at
+      ///   the lift regardless. Never throws: any engine read failure degrades to
       ///   no vacant fief, so a failing lookup only WITHHOLDS a motion, never over-offers one the lift cannot honour.
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false)
       {
          try
          {
@@ -54,7 +57,8 @@ namespace CalradiaRemembers.Assemblies
                playerHasVacantFief: HasVacantGovernableFief(),
                playerCanAffordStipend: playerCanAffordStipend,
                missionAvailable: false,
-               targetOutOfPlayerParty: anySeatedCompanionOutOfPlayerParty);
+               targetOutOfPlayerParty: anySeatedCompanionOutOfPlayerParty,
+               playerCanDeclareWar: playerCanDeclareWar);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

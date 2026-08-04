@@ -583,6 +583,7 @@ namespace CalradiaRemembers.Chat
          => scope switch {
             CouncilScope.Family => "kin of the player's house, seated at this council",
             CouncilScope.ClanLords => "a lord of the player's clan, seated at this council",
+            CouncilScope.WarCouncil => "an allied lord seated at this war council",
             _ => "a companion in the player's service, seated at this council"
          };
 

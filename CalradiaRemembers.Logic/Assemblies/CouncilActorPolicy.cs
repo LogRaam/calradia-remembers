@@ -83,5 +83,25 @@ namespace CalradiaRemembers.Logic.Assemblies
 
             return partialCount == 1 ? partialIndex : -1;
         }
+
+        /// <summary>
+        ///   Council resolution attribution for a FACTION-CENTRIC kind (declare_war): unlike every member-pledge
+        ///   kind, the decision is the table's own about two FACTIONS, not one seated member's promise, so the
+        ///   ordinary "a blank actor is a drop signal" rule (see <see cref="ResolveActor" />'s own doc, and its
+        ///   own test WHEN_a_null_or_blank_actor) does not fit: there is no natural member to misattribute to,
+        ///   because none of them is the actual subject of the pledge. A NAMED actor still resolves exactly like
+        ///   any other kind (and an unmatched name still refuses, never guessing); only a genuinely OMITTED actor
+        ///   for THIS kind defaults to seat 0, the presiding member (<see cref="ResolveActor" /> never guesses a
+        ///   fallback for any other kind, so this is deliberately narrow rather than a change to that policy).
+        /// </summary>
+        public static int ResolveDeclareWarActor(string actor, IReadOnlyList<string> seatedNames)
+        {
+            int resolved = ResolveActor(actor, seatedNames);
+            if (resolved >= 0) return resolved;
+
+            bool actorOmitted = string.IsNullOrWhiteSpace(actor);
+
+            return actorOmitted && seatedNames is {Count: > 0} ? 0 : -1;
+        }
     }
 }

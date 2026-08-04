@@ -23,8 +23,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                      bool family = false,
                                                      bool clanLord = false,
                                                      bool inArmy = false,
-                                                     bool onMission = false)
-            => new CouncilMembershipFacts(alive, prisoner, inBattle, companion, family, clanLord, inArmy, onMission);
+                                                     bool onMission = false,
+                                                     bool alliedLeader = false)
+            => new CouncilMembershipFacts(alive, prisoner, inBattle, companion, family, clanLord, inArmy, onMission, alliedLeader);
 
         // The straight case: a companion is seated at a companions' council. If this failed the right-hand roster
         // would be empty and the player would have no one to address.
@@ -149,6 +150,53 @@ namespace CalradiaRemembers.Tests.Assemblies
 
             e.Eligible.Should().BeFalse();
             e.Reason.Should().Be(CouncilExclusionReason.InBattle);
+        }
+
+        // The WarCouncil scope, the first FACTION-CENTRIC council: an allied leader (a fellow clan's leader, or,
+        // for an independent player clan, one of the player's own clan lords, see CouncilRosterResolver's
+        // no-kingdom fallback) is seated. If this failed the war council would seat nobody and the player could
+        // never convene it.
+        [Test]
+        public void GIVEN_an_allied_leader_WHEN_a_war_council_is_gathered_THEN_he_is_seated()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.WarCouncil, Member(alliedLeader: true));
+
+            e.Eligible.Should().BeTrue();
+            e.Reason.Should().Be(CouncilExclusionReason.None);
+        }
+
+        // The scope is still a filter here too: an ordinary clan lord (not an allied leader) must not be seated
+        // at a war council just because he belongs to one of the OTHER internal rosters, or the war council would
+        // seat the player's own household rather than his allies.
+        [Test]
+        public void GIVEN_a_clan_lord_who_is_not_an_allied_leader_WHEN_a_war_council_is_gathered_THEN_he_is_not_of_that_council()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.WarCouncil, Member(clanLord: true));
+
+            e.Eligible.Should().BeFalse();
+            e.Reason.Should().Be(CouncilExclusionReason.NotOfThisCouncil);
+        }
+
+        // Availability still gates first at a war council exactly as at any other: an allied leader marching
+        // with an army cannot break away to debate war policy any more than a clan lord can, reusing the same
+        // "absent member acts as if present" guard the other scopes already enforce.
+        [Test]
+        public void GIVEN_an_allied_leader_in_an_army_WHEN_a_war_council_is_gathered_THEN_he_is_excluded_as_in_army()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.WarCouncil, Member(alliedLeader: true, inArmy: true));
+
+            e.Eligible.Should().BeFalse();
+            e.Reason.Should().Be(CouncilExclusionReason.InArmy);
+        }
+
+        // Same gate, the imprisoned leg: a captured ally cannot sit in on war policy either.
+        [Test]
+        public void GIVEN_an_allied_leader_held_prisoner_WHEN_a_war_council_is_gathered_THEN_he_is_excluded_as_imprisoned()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.WarCouncil, Member(alliedLeader: true, prisoner: true));
+
+            e.Eligible.Should().BeFalse();
+            e.Reason.Should().Be(CouncilExclusionReason.Imprisoned);
         }
     }
 }
