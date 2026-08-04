@@ -38,6 +38,19 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.CanOffer(assign, Facts(inParty: false)).Should().BeFalse();
         }
 
+        // The fourth executable motion: dispatch_mission REUSES assign_party_role's own TargetInPlayerParty fact
+        // (ResolutionCatalog's DispatchOnMission entry docs the reasoning), so a seated companion who travels
+        // with the player may be sent out the same as they may be assigned a role, and withheld the same way
+        // when nobody present rides in the party.
+        [Test]
+        public void GIVEN_dispatch_mission_WHEN_the_target_is_or_is_not_in_the_party_THEN_offer_follows()
+        {
+            ResolutionDefinition dispatch = ResolutionCatalog.Get(ResolutionKind.DispatchOnMission);
+
+            ResolutionEligibilityPolicy.CanOffer(dispatch, Facts(inParty: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(dispatch, Facts(inParty: false)).Should().BeFalse();
+        }
+
         // Bug d, the symmetric inverse: rejoining the party needs the OPPOSITE fact of assign_party_role, a
         // seated companion who is NOT in the party. Offering it while nobody is out (or withholding it while
         // someone is) would either promise a rejoin the lift finds nothing to settle, or hide the one deed that
@@ -76,8 +89,9 @@ namespace CalradiaRemembers.Tests.Assemblies
         }
 
         // The whole-council query composes scope and eligibility: with a companion in the party and gold to
-        // spare but no fief and no mission, only the two motions those facts satisfy are offered, and the
-        // out-of-scope GrantFief never appears whatever the facts.
+        // spare but no fief, the motions those facts satisfy are offered (assign_party_role and dispatch_mission
+        // share the same in-party fact, see ResolutionCatalog's DispatchOnMission entry), and the out-of-scope
+        // GrantFief never appears whatever the facts.
         [Test]
         public void GIVEN_a_companions_council_and_partial_facts_WHEN_offered_THEN_only_the_satisfied_motions_appear()
         {
@@ -87,9 +101,11 @@ namespace CalradiaRemembers.Tests.Assemblies
             var offered = ResolutionEligibilityPolicy.OffersFor(CouncilScope.Companions, facts)
                 .Select(d => d.Kind).ToList();
 
-            offered.Should().BeEquivalentTo(new[] {ResolutionKind.AssignPartyRole, ResolutionKind.GrantStipend});
+            offered.Should().BeEquivalentTo(new[]
+            {
+                ResolutionKind.AssignPartyRole, ResolutionKind.DispatchOnMission, ResolutionKind.GrantStipend
+            });
             offered.Should().NotContain(ResolutionKind.AppointGovernor); // no vacant fief
-            offered.Should().NotContain(ResolutionKind.DispatchOnMission); // no mission available
         }
 
         // The prompt-offering feature (2026-08-03): appoint_governor must be TAUGHT to the LLM only when both
@@ -134,6 +150,25 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, Facts(outOfParty: false))
                 .Should().NotContain("rejoin_party");
+        }
+
+        // The offering wire, mirroring assign_party_role's own: dispatch_mission must be TAUGHT to the LLM only
+        // when a seated companion actually travels with the player, or the model promises an errand
+        // CouncilLift.SettleDispatchMission then finds nobody eligible to send on.
+        [Test]
+        public void GIVEN_a_seated_member_in_the_party_WHEN_offered_keys_are_asked_THEN_dispatch_mission_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, Facts(inParty: true))
+                .Should().Contain("dispatch_mission");
+        }
+
+        // Absent that fact (no seated companion rides with the player) the key must be withheld, or the LLM
+        // could promise a dispatch for a companion who is not there to send.
+        [Test]
+        public void GIVEN_no_seated_member_in_the_party_WHEN_offered_keys_are_asked_THEN_dispatch_mission_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, Facts(inParty: false))
+                .Should().NotContain("dispatch_mission");
         }
 
         // Quest carries no ResolutionDefinition (it is universal, not a scoped catalogue motion), so it must

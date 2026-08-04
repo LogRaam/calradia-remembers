@@ -32,7 +32,17 @@ namespace CalradiaRemembers.Logic.Assemblies
         /// <summary>Send a companion to govern one of the player's fiefs.</summary>
         AppointGovernor,
 
-        /// <summary>Send a companion out on a companion mission.</summary>
+        /// <summary>
+        ///   Send a companion already riding in the player's own party out on one of the EXISTING companion-mission
+        ///   errands (CompanionMissionBehavior.Dispatch): they leave and return later on their own, the destination
+        ///   is chosen by the mission system, never named by the model. Reuses the TargetInPlayerParty fact
+        ///   <see cref="AssignPartyRole" /> already needs (a dispatchable companion travels with you, and
+        ///   CompanionMissionBehavior detaches an away companion into their OWN clan party, so PartyBelongedTo
+        ///   already excludes them in the normal case); the narrow reconciliation-window edge case (freshly
+        ///   rescued but not yet ticked off the mission list) is caught by the lift's own "already away" recheck,
+        ///   not the offering, mirroring how every other executor re-validates at the lift rather than trusting
+        ///   proposal-time facts alone.
+        /// </summary>
         DispatchOnMission,
 
         /// <summary>Grant a companion a purse from the player's coffers.</summary>
@@ -137,7 +147,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 "Appoint as governor", ResolutionRequirement.TargetAvailable | ResolutionRequirement.PlayerHasVacantFief),
 
             new ResolutionDefinition(ResolutionKind.DispatchOnMission, CouncilScope.Companions,
-                "Send on a mission", ResolutionRequirement.TargetAvailable | ResolutionRequirement.MissionAvailable),
+                "Send on a mission", ResolutionRequirement.TargetInPlayerParty),
 
             new ResolutionDefinition(ResolutionKind.GrantStipend, CouncilScope.Companions,
                 "Grant a stipend", ResolutionRequirement.PlayerCanAffordStipend),
@@ -199,15 +209,17 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   True when a passed motion of this kind has a LIVE lift executor. Council audit M4: <see cref="ResolutionKind.Quest" />
         ///   (a member set a task in the world), the first governance executor <see cref="ResolutionKind.AppointGovernor" />
         ///   (CouncilLift.SettleAppointGovernor), and, mirroring that same wiring, <see cref="ResolutionKind.AssignPartyRole" />
-        ///   (CouncilLift.SettleAssignPartyRole) are carried out; and, closing bug d, <see cref="ResolutionKind.RejoinParty" />
+        ///   (CouncilLift.SettleAssignPartyRole) are carried out; closing bug d, <see cref="ResolutionKind.RejoinParty" />
         ///   (CouncilLift.SettleRejoinParty) brings a seated companion who is out of the player's party back into
-        ///   it. The remaining scoped menu motions are recorded but not yet executed, so they arrive with their
-        ///   variant (Q5). The runtime teaches and lifts only executable kinds, so the table never promises a
-        ///   deed it cannot keep.
+        ///   it; and, the FOURTH executor, <see cref="ResolutionKind.DispatchOnMission" /> (CouncilLift.SettleDispatchMission)
+        ///   sends a seated companion out on one of the existing companion-mission errands. The remaining scoped
+        ///   menu motions are recorded but not yet executed, so they arrive with their variant (Q5). The runtime
+        ///   teaches and lifts only executable kinds, so the table never promises a deed it cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
             => kind == ResolutionKind.Quest || kind == ResolutionKind.AppointGovernor
-            || kind == ResolutionKind.AssignPartyRole || kind == ResolutionKind.RejoinParty;
+            || kind == ResolutionKind.AssignPartyRole || kind == ResolutionKind.RejoinParty
+            || kind == ResolutionKind.DispatchOnMission;
 
         /// <summary>
         ///   The string keys of the kinds a council of <paramref name="scope" /> may currently ACT on: the

@@ -13,7 +13,9 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Missions;
 using CalradiaRemembers.Quests;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -101,9 +103,9 @@ namespace CalradiaRemembers.Chat
          // B2/M4: the registry, not a magic string, decides what the table can carry out. Only executable kinds
          // reach an executor; anything else (an unmapped kind, or a catalogue kind whose executor has not landed
          // yet, Q5 "extend then migrate") is reported honestly instead of silently applied or dropped. Quest,
-         // AppointGovernor, AssignPartyRole and RejoinParty are executable today, so a passing entry here is one
-         // of those four; the switch below this gate is the per-kind dispatch, extended the day a fifth executor
-         // is wired.
+         // AppointGovernor, AssignPartyRole, RejoinParty and DispatchOnMission are executable today, so a passing
+         // entry here is one of those five; the switch below this gate is the per-kind dispatch, extended the
+         // day a sixth executor is wired.
          if (!ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind kind) || !ResolutionCatalog.IsExecutable(kind))
          {
             ledger.MarkFailed(entry.Id, "This kind of decision is not yet settled by the council.");
@@ -139,6 +141,11 @@ namespace CalradiaRemembers.Chat
 
             case ResolutionKind.RejoinParty:
                SettleRejoinParty(ledger, entry, actorHero, actorName, report);
+
+               return;
+
+            case ResolutionKind.DispatchOnMission:
+               SettleDispatchMission(ledger, entry, actorHero, actorName, report);
 
                return;
 
@@ -379,6 +386,105 @@ namespace CalradiaRemembers.Chat
             ? $"{actorName} steps down from governing {governedFief} and rejoins your party."
             : $"{actorName} rejoins your party.", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} rejoined the player's party.");
+      }
+
+      /// <summary>
+      ///   The FOURTH executable menu motion, mirroring AssignPartyRole and RejoinParty's own wiring: instant at
+      ///   the lift, REUSES the existing companion-mission system end to end (CompanionMissionBehavior.Dispatch)
+      ///   rather than inventing a new one. The mission TYPE is the single value <see cref="MissionTypeParser" />
+      ///   resolves from <see cref="AssemblyResolutionEntry.TargetHint" /> (mirroring PartyRoleParser for a role
+      ///   name); the DESTINATION is never named here, Dispatch's own <c>ResolveDestination</c> picks the nearest
+      ///   suitable town, exactly the "system chooses, the model never names a place" design call. The guards
+      ///   here are mechanical, bridge-is-law re-checks (alive, still a companion, still in the player's own
+      ///   party, not already away): Dispatch itself re-validates every one of these again internally
+      ///   (IsUsableCompanion, IsAway, CompanionMissions.CanAttempt), so a pledge that slips past this lift's own
+      ///   guards is still caught, never silently mis-dispatched.
+      /// </summary>
+      private static void SettleDispatchMission(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true})
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!actorHero.IsPlayerCompanion)
+         {
+            const string reason = "they no longer belong to the player's clan as a companion.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (actorHero.PartyBelongedTo != MobileParty.MainParty)
+         {
+            const string reason = "they no longer ride in the player's own party.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (CompanionMissionBehavior.Instance == null)
+         {
+            const string reason = "no mission system is available right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (CompanionMissionBehavior.Instance.IsAway(actorHero.StringId))
+         {
+            const string reason = "they are already away on an errand.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         CouncilMissionType type = MissionTypeParser.Parse(entry.TargetHint);
+
+         if (type == CouncilMissionType.None)
+         {
+            const string reason = "no valid errand was named.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         (bool dispatched, string message) = CompanionMissionBehavior.Instance.Dispatch(actorHero, ToEngineMissionType(type), null);
+
+         if (!dispatched)
+         {
+            ledger.MarkFailed(entry.Id, message ?? "This could not be carried out.");
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {message}", false);
+
+            return;
+         }
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke(message, true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} dispatched on a {type} errand.");
+      }
+
+      /// <summary>Maps the Logic-side <see cref="CouncilMissionType" /> to the mod's own <see cref="CompanionMissionType" />. None never reaches here (guarded in <see cref="SettleDispatchMission" />).</summary>
+      private static CompanionMissionType ToEngineMissionType(CouncilMissionType type)
+      {
+         switch (type)
+         {
+            case CouncilMissionType.GatherNews: return CompanionMissionType.GatherNews;
+            case CouncilMissionType.Spy:        return CompanionMissionType.Spy;
+            case CouncilMissionType.Steal:      return CompanionMissionType.Steal;
+            case CouncilMissionType.Barter:     return CompanionMissionType.Barter;
+            case CouncilMissionType.Envoy:      return CompanionMissionType.Envoy;
+            default:                            throw new ArgumentOutOfRangeException(nameof(type), type, "CouncilMissionType.None must be guarded before this is called.");
+         }
       }
 
       /// <summary>Maps the Logic-side <see cref="CouncilPartyRole" /> to the engine's own <see cref="PartyRole" />. None never reaches here (guarded in <see cref="SettleAssignPartyRole" />).</summary>

@@ -4,8 +4,10 @@
 // ResolutionEligibilityPolicy judges, so the set of resolution kinds a council turn TEACHES the LLM can never
 // promise a deed the lift cannot honour (the exact empty-promise class the whole catalogue exists to prevent).
 // This is the populator ResolutionCatalog and ResolutionEligibilityPolicy were built for; appoint_governor,
-// assign_party_role and, mirroring them, rejoin_party are wired today (ResolutionCatalog.IsExecutable), so the
-// remaining scoped kinds never surface here regardless of facts, and this reader stays minimal until they land.
+// assign_party_role, rejoin_party and, mirroring assign_party_role's own TargetInPlayerParty fact exactly (no
+// dedicated plumbing needed here, see ResolutionCatalog's DispatchOnMission entry), dispatch_mission are wired
+// today (ResolutionCatalog.IsExecutable), so the remaining scoped kinds never surface here regardless of facts,
+// and this reader stays minimal until they land.
 
 #region
 

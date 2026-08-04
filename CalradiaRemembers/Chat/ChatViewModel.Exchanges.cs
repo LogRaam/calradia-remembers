@@ -582,11 +582,15 @@ namespace CalradiaRemembers.Chat
                addressedCouncilMemberName: addressedCouncilMemberName,
                // Council resolution offering: computed ONLY for a REAL council (_councilScope set), never for the
                // console whole-table spike or an ordinary 1:1 turn, so appoint_governor/assign_party_role/
-               // rejoin_party can never be taught outside a real, eligible council. _councilParticipants is
-               // already the roster CouncilRosterResolver seated (available members only), so any filled seat
-               // satisfies TargetAvailable; TargetInPlayerParty is the narrower AnySeatedMemberInPlayerParty check
-               // assign_party_role alone needs; TargetOutOfPlayerParty is its symmetric inverse,
-               // AnySeatedCompanionOutOfPlayerParty, rejoin_party alone needs (bug d).
+               // rejoin_party/dispatch_mission can never be taught outside a real, eligible council.
+               // _councilParticipants is already the roster CouncilRosterResolver seated (available members
+               // only), so any filled seat satisfies TargetAvailable; TargetInPlayerParty is the narrower
+               // AnySeatedMemberInPlayerParty check assign_party_role needs, and dispatch_mission REUSES this
+               // same fact rather than growing its own (ResolutionCatalog's DispatchOnMission entry documents
+               // why: being in the main party already excludes an away companion in the normal case, and the
+               // narrow reconciliation-window edge case is caught at CouncilLift.SettleDispatchMission instead);
+               // TargetOutOfPlayerParty is the symmetric inverse, AnySeatedCompanionOutOfPlayerParty, rejoin_party
+               // alone needs (bug d).
                councilOfferedResolutionKinds: _councilScope != null
                   ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty())
                   : null,

@@ -94,19 +94,20 @@ namespace CalradiaRemembers.Tests.Assemblies
         }
 
         // M4: only a kind with a live executor is executable. Quest, AppointGovernor (CouncilLift.SettleAppointGovernor),
-        // AssignPartyRole (CouncilLift.SettleAssignPartyRole) and, closing bug d, RejoinParty (CouncilLift.SettleRejoinParty)
-        // qualify today; the remaining scoped menu motions are recorded but not yet carried out, so teaching them would
-        // promise a deed the lift silently drops (the MarkFailed "this kind of decision is not yet settled" path
-        // the audit flagged).
+        // AssignPartyRole (CouncilLift.SettleAssignPartyRole), closing bug d, RejoinParty (CouncilLift.SettleRejoinParty)
+        // and, the fourth executor, DispatchOnMission (CouncilLift.SettleDispatchMission) qualify today; the
+        // remaining scoped menu motions are recorded but not yet carried out, so teaching them would promise a
+        // deed the lift silently drops (the MarkFailed "this kind of decision is not yet settled" path the audit
+        // flagged).
         [Test]
-        public void GIVEN_the_kinds_WHEN_asked_which_execute_THEN_only_quest_appoint_governor_assign_party_role_and_rejoin_party_do_today()
+        public void GIVEN_the_kinds_WHEN_asked_which_execute_THEN_only_quest_appoint_governor_assign_party_role_rejoin_party_and_dispatch_mission_do_today()
         {
             ResolutionCatalog.IsExecutable(ResolutionKind.Quest).Should().BeTrue();
             ResolutionCatalog.IsExecutable(ResolutionKind.AppointGovernor).Should().BeTrue();
             ResolutionCatalog.IsExecutable(ResolutionKind.AssignPartyRole).Should().BeTrue();
             ResolutionCatalog.IsExecutable(ResolutionKind.RejoinParty).Should().BeTrue();
+            ResolutionCatalog.IsExecutable(ResolutionKind.DispatchOnMission).Should().BeTrue();
             ResolutionCatalog.IsExecutable(ResolutionKind.GrantFief).Should().BeFalse();
-            ResolutionCatalog.IsExecutable(ResolutionKind.DispatchOnMission).Should().BeFalse();
             ResolutionCatalog.IsExecutable(ResolutionKind.GrantStipend).Should().BeFalse();
         }
 
@@ -128,6 +129,14 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_a_companions_council_WHEN_asked_for_executable_kinds_THEN_rejoin_party_is_offered()
         {
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().Contain("rejoin_party");
+        }
+
+        // The fourth executable menu motion: dispatch_mission is also Companions-scoped, so its key must surface
+        // here too, or a dispatchable companion seated at the table would have no errand to pledge to.
+        [Test]
+        public void GIVEN_a_companions_council_WHEN_asked_for_executable_kinds_THEN_dispatch_mission_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().Contain("dispatch_mission");
         }
 
         // M4 (Family had ZERO catalogue kinds): every scope, Family included, must expose at least one executable
