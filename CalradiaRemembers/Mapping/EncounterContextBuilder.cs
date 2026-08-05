@@ -180,9 +180,15 @@ namespace CalradiaRemembers.Mapping
          bool npcAvailableForErrand = hero != null && CompanionMissionBehavior.Instance != null
             && CompanionMissionBehavior.Instance.IsAway(hero.StringId) != true;
 
+         // dispatch_mission absorbed gather_news (2026-08-05): the errand offer covers the SAME population the old
+         // gather_news gate did (CompanionMissionBehavior.IsUsableCompanion: a player companion OR a member of the
+         // player's own clan, e.g. the player's own kin who ride along but are not "companions"), so no one who could
+         // formerly be sent to gather news loses the offer. TryDispatchMission re-checks this same widened set.
+         bool npcCanRideForPlayer = npcIsPlayerCompanion || hero != null && hero.Clan == Clan.PlayerClan;
+
          bool npcCanBeAssignedPartyRole = PartyCommandOfferPolicy.CanOfferAssignRole(npcIsPlayerCompanion, npcInMainParty);
          bool npcCanRejoinParty = PartyCommandOfferPolicy.CanOfferRejoinParty(npcIsPlayerCompanion, npcAlive, npcIsPrisoner, npcInMainParty, npcLeadsOwnCompany);
-         bool npcCanBeDispatchedOnMission = PartyCommandOfferPolicy.CanOfferDispatchMission(npcIsPlayerCompanion, npcInMainParty, npcAvailableForErrand);
+         bool npcCanBeDispatchedOnMission = PartyCommandOfferPolicy.CanOfferDispatchMission(npcCanRideForPlayer, npcInMainParty, npcAvailableForErrand);
 
          // grant_fief / revoke_fief / expel_from_clan (2026-08-05, suzerain-command batch): the 1:1 teaching gates,
          // the same "prompt is advice, bridge is law" conditional-teaching contract as the verbs above. grant/revoke
@@ -392,7 +398,6 @@ namespace CalradiaRemembers.Mapping
             WorldRumorsBlock = ResolveWorldRumors(hero),
             RealmNewsLine = ResolveRealmNews(hero),
             PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
-            CanGatherNews = ResolveCanGatherNews(hero),
             CompanionOnErrand = ResolveCompanionOnErrand(hero),
             CompanionNewsReport = CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
             CompanionMoodNote = ResolveCompanionMoodNote(hero),
@@ -800,20 +805,6 @@ namespace CalradiaRemembers.Mapping
             return PregnancyNotePolicy.Describe(true, fatherIsPlayer, fatherName, fatherNamable, daysRemaining, totalDuration);
          }
          catch { return ""; }
-      }
-
-      /// <summary>
-      ///   True when the speaking hero is one of the player's own companions, in the party, and free of an
-      ///   active errand — so the errand offer is taught. The per-errand skill floor and every other guard
-      ///   are re-checked at dispatch (the prompt is advice, the bridge is law), so this stays type-agnostic.
-      /// </summary>
-      private static bool ResolveCanGatherNews(Hero hero)
-      {
-         if (hero == null || hero == Hero.MainHero || !hero.IsAlive) return false;
-         if (!(hero.IsPlayerCompanion || hero.Clan == Clan.PlayerClan)) return false;
-         if (hero.PartyBelongedTo != MobileParty.MainParty) return false;
-
-         return CompanionMissionBehavior.Instance?.IsAway(hero.StringId) != true;
       }
 
       /// <summary>

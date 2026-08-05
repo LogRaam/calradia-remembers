@@ -39,12 +39,15 @@ namespace CalradiaRemembers.Logic.Assemblies
             => npcIsPlayerCompanion && npcAlive && !npcIsPrisoner && !npcInMainParty && !npcLeadsOwnCompany;
 
         /// <summary>
-        ///   dispatch_mission: teach it only when the conversation NPC is a companion in the main party (the SAME
-        ///   TargetInPlayerParty fact assign_party_role reads) AND is free to ride out right now (a working mission
-        ///   system that has them at hand, not already away on an errand). Re-checked at commit by
+        ///   dispatch_mission: teach it only when the conversation NPC can ride an errand for the player
+        ///   (<paramref name="npcCanRideForPlayer" />, a player companion OR a member of the player's own clan, the
+        ///   SAME population CompanionMissionBehavior.IsUsableCompanion accepts and the old gather_news gate offered,
+        ///   so folding gather_news into dispatch_mission on 2026-08-05 dropped no one, including the player's own
+        ///   clan kin who are not "companions"), rides in the main party, AND is free to ride out right now (a working
+        ///   mission system that has them at hand, not already away on an errand). Re-checked at commit by
         ///   <c>CourtActionResolver.TryDispatchMission</c>, which itself defers to the mission behaviour's own guards.
         /// </summary>
-        public static bool CanOfferDispatchMission(bool npcIsPlayerCompanion, bool npcInMainParty, bool npcAvailableForErrand)
-            => npcIsPlayerCompanion && npcInMainParty && npcAvailableForErrand;
+        public static bool CanOfferDispatchMission(bool npcCanRideForPlayer, bool npcInMainParty, bool npcAvailableForErrand)
+            => npcCanRideForPlayer && npcInMainParty && npcAvailableForErrand;
     }
 }

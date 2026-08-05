@@ -50,15 +50,30 @@ namespace CalradiaRemembers.Tests.Assemblies
             MissionTypeParser.Parse("  Barter  \n").Should().Be(CouncilMissionType.Barter);
         }
 
+        // dispatch_mission absorbed gather_news on 2026-08-05, and gather_news used a different errand vocabulary
+        // (news/scout/steal/trade/envoy). This parser now also accepts those legacy words so a stray gather_news
+        // emission the bridge folds into dispatch_mission still resolves to the right errand and loses nothing: news
+        // is GatherNews, scout is Spy, trade is Barter (steal and envoy already share their spelling). If any of
+        // these regressed to None, the merged verb would silently refuse an errand the player and LLM both intended.
+        [TestCase("news", CouncilMissionType.GatherNews)]
+        [TestCase("scout", CouncilMissionType.Spy)]
+        [TestCase("trade", CouncilMissionType.Barter)]
+        [TestCase("SCOUT", CouncilMissionType.Spy)]
+        [TestCase("  news  ", CouncilMissionType.GatherNews)]
+        public void GIVEN_a_legacy_gather_news_errand_word_WHEN_parsed_THEN_it_resolves_to_the_merged_type(string type, CouncilMissionType expected)
+        {
+            MissionTypeParser.Parse(type).Should().Be(expected);
+        }
+
         // The stake this whole parser exists for: a mission type the model did not actually emit (blank, garbage,
         // or an errand outside the set CompanionMissionBehavior supports) must fail CLEANLY as None, never be
         // guessed at the lift. CouncilLift.SettleDispatchMission treats None as a guard failure, not a silent
-        // default dispatch.
+        // default dispatch. "scout"/"news"/"trade" are NOT here any more: they are the recognised legacy errand
+        // words covered by the case above.
         [TestCase(null)]
         [TestCase("")]
         [TestCase("   ")]
         [TestCase("Assassinate")]
-        [TestCase("scout")]
         public void GIVEN_blank_or_unrecognised_text_WHEN_parsed_THEN_it_resolves_to_none(string type)
         {
             MissionTypeParser.Parse(type).Should().Be(CouncilMissionType.None);

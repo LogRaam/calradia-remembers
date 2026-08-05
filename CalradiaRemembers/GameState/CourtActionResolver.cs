@@ -577,16 +577,23 @@ namespace CalradiaRemembers.GameState
       ///   mission system exists, they are not already away, and the <paramref name="missionName" /> resolves through
       ///   the pure <see cref="MissionTypeParser" /> to one of the supported errands (unrecognised fails cleanly).
       ///   The DESTINATION is never named here: Dispatch's own resolver picks the nearest suitable town (the
-      ///   "system chooses, the model never names a place" design call). Dispatch itself re-validates every one of
-      ///   these again internally, so a call that slips past these guards is still caught, never mis-dispatched. The
-      ///   verdict carries the resolved <see cref="CouncilMissionType" /> and Dispatch's own message for the caller.
+      ///   "system chooses, the model never names a place" design call). <paramref name="about" /> is the OPTIONAL
+      ///   topic the player named (a faction, culture, town, or lord to bring back word of), threaded to Dispatch's
+      ///   own <c>about</c> arg; null when the player left it open. This is the one capability the older gather_news
+      ///   verb had that dispatch_mission lacked before the two were merged (2026-08-05); the council caller passes
+      ///   no topic (its default), so it compiles and behaves unchanged. Dispatch itself re-validates every one of
+      ///   these guards again internally, so a call that slips past them is still caught, never mis-dispatched. The
+      ///   companion set matches <c>CompanionMissionBehavior.IsUsableCompanion</c> (a player companion OR a member of
+      ///   the player's own clan), the SAME population the old gather_news gate served, so folding gather_news in
+      ///   dropped no one. The verdict carries the resolved <see cref="CouncilMissionType" /> and Dispatch's own
+      ///   message for the caller.
       /// </summary>
-      public static DispatchMissionVerdict TryDispatchMission(Hero actor, string missionName)
+      public static DispatchMissionVerdict TryDispatchMission(Hero actor, string missionName, string about = null)
       {
          if (actor is not {IsAlive: true})
             return new DispatchMissionVerdict(DispatchMissionResult.ActorUnavailable, CouncilMissionType.None, null);
 
-         if (!actor.IsPlayerCompanion)
+         if (!(actor.IsPlayerCompanion || actor.Clan == Clan.PlayerClan))
             return new DispatchMissionVerdict(DispatchMissionResult.NotACompanion, CouncilMissionType.None, null);
 
          if (actor.PartyBelongedTo != MobileParty.MainParty)
@@ -605,7 +612,8 @@ namespace CalradiaRemembers.GameState
          if (type == CouncilMissionType.None)
             return new DispatchMissionVerdict(DispatchMissionResult.NoValidMission, CouncilMissionType.None, null);
 
-         (bool dispatched, string message) = behavior.Dispatch(actor, ToEngineMissionType(type), null);
+         string topic = string.IsNullOrWhiteSpace(about) ? null : about.Trim();
+         (bool dispatched, string message) = behavior.Dispatch(actor, ToEngineMissionType(type), topic);
 
          return dispatched
             ? new DispatchMissionVerdict(DispatchMissionResult.Dispatched, type, message)

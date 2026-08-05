@@ -105,14 +105,14 @@ namespace CalradiaRemembers.Tests.Assemblies
                 .Should().BeFalse();
         }
 
-        // dispatch_mission reuses the SAME in-party companion fact as assign_party_role, plus the errand-availability
-        // fact (a working mission system with the companion at hand, not already away). The all-clear case must
-        // offer, or a companion could never be sent on an errand in 1:1.
+        // dispatch_mission (which absorbed gather_news on 2026-08-05) offers to anyone who can ride an errand for the
+        // player, plus the errand-availability fact (a working mission system with them at hand, not already away).
+        // The all-clear case must offer, or a companion could never be sent on an errand in 1:1.
         [Test]
         public void GIVEN_an_available_companion_in_the_party_WHEN_offering_a_mission_THEN_it_is_taught()
         {
             PartyCommandOfferPolicy.CanOfferDispatchMission(
-                npcIsPlayerCompanion: true, npcInMainParty: true, npcAvailableForErrand: true)
+                npcCanRideForPlayer: true, npcInMainParty: true, npcAvailableForErrand: true)
                 .Should().BeTrue();
         }
 
@@ -123,17 +123,28 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_a_companion_not_free_to_ride_out_WHEN_offering_a_mission_THEN_it_is_withheld()
         {
             PartyCommandOfferPolicy.CanOfferDispatchMission(
-                npcIsPlayerCompanion: true, npcInMainParty: true, npcAvailableForErrand: false)
+                npcCanRideForPlayer: true, npcInMainParty: true, npcAvailableForErrand: false)
                 .Should().BeFalse();
         }
 
-        // The errand acts on a companion in the player's own party; one outside it cannot be sent from it. Mirrors
+        // The errand acts on someone in the player's own party; one outside it cannot be sent from it. Mirrors
         // assign_party_role's in-party requirement, so the two verbs offer on the same footing.
         [Test]
         public void GIVEN_a_companion_out_of_the_party_WHEN_offering_a_mission_THEN_it_is_withheld()
         {
             PartyCommandOfferPolicy.CanOfferDispatchMission(
-                npcIsPlayerCompanion: true, npcInMainParty: false, npcAvailableForErrand: true)
+                npcCanRideForPlayer: true, npcInMainParty: false, npcAvailableForErrand: true)
+                .Should().BeFalse();
+        }
+
+        // Someone who cannot ride an errand for the player at all (not a companion, not player-clan kin) is never
+        // offered the errand, even riding in the party and free: TryDispatchMission would decline with NotACompanion,
+        // so the offer must withhold rather than promise an errand the bridge refuses.
+        [Test]
+        public void GIVEN_someone_who_cannot_ride_for_the_player_WHEN_offering_a_mission_THEN_it_is_withheld()
+        {
+            PartyCommandOfferPolicy.CanOfferDispatchMission(
+                npcCanRideForPlayer: false, npcInMainParty: true, npcAvailableForErrand: true)
                 .Should().BeFalse();
         }
     }

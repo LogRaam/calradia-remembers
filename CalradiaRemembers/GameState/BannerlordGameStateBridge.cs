@@ -1323,30 +1323,52 @@ namespace CalradiaRemembers.GameState
       // routed identically.
 
       /// <summary>
-      ///   gather_news action: the player asked one of their companions to ride out and bring back word of
-      ///   the realm, and the companion agreed. Dispatches the errand (the behavior re-validates every guard
-      ///   — the prompt is advice, the bridge is law) and reports back to the player.
+      ///   gather_news is now a BACKWARD-COMPAT ALIAS of dispatch_mission (2026-08-05): the two overlapping errand
+      ///   verbs were merged, and gather_news stopped being taught in the 1:1 prompt. This case survives only so a
+      ///   stray or residual gather_news emission still works, routed through the SAME shared core
+      ///   (<see cref="CourtActionResolver.TryDispatchMission" />) dispatch_mission runs. It maps the legacy 'errand'
+      ///   vocabulary (news/scout/steal/trade/envoy) onto the merged mission set via <see cref="MissionTypeParser" />
+      ///   (which accepts both spellings), defaulting a blank errand to gathernews (the old gather_news default), and
+      ///   threads the optional 'about' topic through unchanged.
       /// </summary>
       private static ActionOutcome ExecuteGatherNews(GameAction action, Hero npcHero)
       {
          try
          {
-            if (npcHero == null) return null;
-            var behavior = CompanionMissionBehavior.Instance;
+            if (npcHero is not {IsAlive: true}) return null;
 
-            if (behavior == null) return null;
+            // Which errand the player asked for (news / scout / steal / trade / envoy); a blank one keeps the old
+            // gather_news default of "gathernews" rather than failing the merged verb's "name an errand" guard.
+            action.Parameters.TryGetValue("errand", out string errand);
+            if (string.IsNullOrWhiteSpace(errand)) errand = "gathernews";
 
-            // Optional topic the LLM extracted from the player's request ("news about Sturgia" → Sturgia);
-            // null means any/nearest town. The behavior resolves it to a destination.
+            // Optional topic the LLM extracted from the player's request ("news about Sturgia" -> Sturgia);
+            // null means any/nearest town. The core threads it to the mission behaviour.
             action.Parameters.TryGetValue("about", out string about);
 
-            // Which errand the player asked for (news / scout / steal / trade / envoy); defaults to news.
-            action.Parameters.TryGetValue("errand", out string errand);
+            DispatchMissionVerdict verdict = CourtActionResolver.TryDispatchMission(npcHero, errand, about);
 
-            (bool dispatched, string message) = behavior.Dispatch(npcHero, MapErrand(errand), about);
-            ModLog.Info($"[ACTION] gather_news: {npcHero.Name} → {(dispatched ? "dispatched" : "refused")}: {message}");
+            switch (verdict.Result)
+            {
+               case DispatchMissionResult.ActorUnavailable:
+                  return null;
+               case DispatchMissionResult.NoMissionSystem:
+                  return null;
+               case DispatchMissionResult.NotACompanion:
+                  return ActionOutcome.Refused($"({npcHero.Name} is not one of your companions to send.)");
+               case DispatchMissionResult.NotInPlayerParty:
+                  return ActionOutcome.Refused($"({npcHero.Name} does not ride in your party, and cannot be sent from it.)");
+               case DispatchMissionResult.AlreadyAway:
+                  return ActionOutcome.Refused($"({npcHero.Name} is already away on an errand.)");
+               case DispatchMissionResult.NoValidMission:
+                  return ActionOutcome.Refused(SilentRefusalMessages.DispatchMissionMissingErrand());
+               case DispatchMissionResult.DispatchFailed:
+                  return ActionOutcome.Refused($"({verdict.Message})");
+            }
 
-            return new ActionOutcome(message, dispatched);
+            ModLog.Info($"[ACTION] gather_news (alias -> dispatch_mission): {npcHero.Name} dispatched on a {verdict.Type} errand.");
+
+            return new ActionOutcome(verdict.Message, true);
          }
          catch (Exception ex)
          {
@@ -1885,7 +1907,11 @@ namespace CalradiaRemembers.GameState
             if (string.IsNullOrWhiteSpace(missionName))
                return ActionOutcome.Refused(SilentRefusalMessages.DispatchMissionMissingErrand());
 
-            DispatchMissionVerdict verdict = CourtActionResolver.TryDispatchMission(npcHero, missionName);
+            // Optional topic the player named ("word of Sturgia" -> Sturgia); the one capability gather_news had that
+            // dispatch_mission lacked before the two were merged (2026-08-05). Null when the player left it open.
+            action.Parameters.TryGetValue("about", out string about);
+
+            DispatchMissionVerdict verdict = CourtActionResolver.TryDispatchMission(npcHero, missionName, about);
 
             switch (verdict.Result)
             {
@@ -3212,21 +3238,6 @@ namespace CalradiaRemembers.GameState
                max = g.Magnitude;
 
          return max;
-      }
-
-      /// <summary>Maps the LLM's 'errand' keyword to a mission type; anything unrecognized falls back to news.</summary>
-      private static CompanionMissionType MapErrand(string errand)
-      {
-         switch ((errand ?? "").Trim().ToLowerInvariant())
-         {
-            case "scout":
-            case "spy": return CompanionMissionType.Spy;
-            case "steal": return CompanionMissionType.Steal;
-            case "trade":
-            case "barter": return CompanionMissionType.Barter;
-            case "envoy": return CompanionMissionType.Envoy;
-            default: return CompanionMissionType.GatherNews;
-         }
       }
 
       /// <summary>The deepest grudge the nemesis holds specifically against the player (0..100), or 0 when none.</summary>

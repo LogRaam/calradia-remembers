@@ -28,7 +28,9 @@ namespace CalradiaRemembers.Logic.Assemblies
         /// <summary>
         ///   Case-insensitive, tolerant of surrounding whitespace. Returns <see cref="CouncilMissionType.None" /> for
         ///   null, blank, or unrecognised text, so an unresolvable mission type fails the lift's guard instead of
-        ///   being silently dispatched as a guess.
+        ///   being silently dispatched as a guess. Also accepts the LEGACY gather_news errand words (news, scout,
+        ///   trade) so a stray gather_news emission the bridge folds into dispatch_mission (2026-08-05) still
+        ///   resolves to the matching errand, losing nothing when the two verbs were merged.
         /// </summary>
         public static CouncilMissionType Parse(string type)
         {
@@ -36,10 +38,13 @@ namespace CalradiaRemembers.Logic.Assemblies
 
             switch (type.Trim().ToLowerInvariant())
             {
-                case "gathernews":   return CouncilMissionType.GatherNews;
-                case "spy":          return CouncilMissionType.Spy;
+                case "gathernews":
+                case "news":         return CouncilMissionType.GatherNews;
+                case "spy":
+                case "scout":        return CouncilMissionType.Spy;
                 case "steal":        return CouncilMissionType.Steal;
-                case "barter":       return CouncilMissionType.Barter;
+                case "barter":
+                case "trade":        return CouncilMissionType.Barter;
                 case "envoy":        return CouncilMissionType.Envoy;
                 default:             return CouncilMissionType.None;
             }
