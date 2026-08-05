@@ -213,6 +213,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteFreePrisoner(npcHero, context);
             case "execute_prisoner":
                return ExecuteExecutePrisoner(npcHero);
+            case "execute_player":
+               return ExecuteExecutePlayer(npcHero);
             case "turn_nemesis":
                return ExecuteTurnNemesis(npcHero, context?.Profile);
             case "grant_blessing":
@@ -1120,6 +1122,77 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] execute_prisoner failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   execute_player (2026-08-04, player request via the "AI Executes" mod, COUNCIL_ACTIONS.md Partie
+      ///   10.6): the CAPTOR of the player, mid a Hardcore Torture/Domination captive scene, chose to actually
+      ///   end the player's life. HIGH STAKES AND IRREVERSIBLE, so every guard is RE-VALIDATED here from live
+      ///   engine facts, through the exact same pure <see cref="PlayerExecutionPolicy" /> the mod's own
+      ///   EncounterContextBuilder used to decide whether the action was even taught this turn ("the prompt
+      ///   is advice, the bridge is law", never trusted here): the MCM opt-in must be on, the player must be
+      ///   a genuine prisoner of THIS captor right now, the same Hardcore content floor every other
+      ///   captive-scene act requires must hold, and Bannerlord's own campaign death setting
+      ///   (<see cref="CampaignOptions.IsLifeDeathCycleDisabled" />) must permit a hero to die. Any missing
+      ///   guard REFUSES outright (surfaced to the player and the model, never silent) and kills no one.
+      ///   <para>
+      ///     Calls <see cref="KillCharacterAction.ApplyByExecution" /> with <c>isForced: false</c>
+      ///     (deliberately NOT true): decompiling the engine shows that for <see cref="Hero.MainHero" />
+      ///     specifically, <c>ApplyInternal</c> takes an early, dedicated branch when <c>isForced</c> is
+      ///     false, raising <c>CampaignEventDispatcher.OnBeforeMainCharacterDied</c> instead of the ordinary
+      ///     hero-death path. SandBox's own <c>HeirSelectionCampaignBehavior</c> listens for exactly that
+      ///     event and performs the real death (marks the hero dead, ends captivity, and either opens the
+      ///     game's own heir-selection screen when the clan has an heir apparent, or ends the run when it does
+      ///     not), the SAME vanilla path that already handles every other cause of the main hero's
+      ///     death, so it correctly triggers heir succession or game over. Passing <c>isForced: true</c>
+      ///     would skip that dedicated branch entirely and hard-kill the hero without ever notifying
+      ///     SandBox's heir-selection logic, leaving the campaign in a broken state. Bannerlord's own
+      ///     <c>CampaignOptions.IsLifeDeathCycleDisabled</c> (the "Death" campaign-creation option) only ever
+      ///     blocks a NATURAL old-age death in the engine's own <c>Hero.CanDie</c>; it never gates an
+      ///     execution. This action still honours it as an EXTRA, more conservative safety net of its own
+      ///     (see <see cref="PlayerExecutionPolicy" />), matching the spirit of a player who disabled death
+      ///     for their campaign, even though vanilla itself would not have stopped an execution.
+      ///   </para>
+      /// </summary>
+      private static ActionOutcome ExecuteExecutePlayer(Hero npcHero)
+      {
+         try
+         {
+            var player = Hero.MainHero;
+            if (npcHero == null || player == null) return null;
+
+            bool playerIsCaptiveOfThisCaptor = player.IsPrisoner
+               && player.PartyBelongedToAsPrisoner?.LeaderHero == npcHero;
+
+            bool permitted = PlayerExecutionPolicy.CanExecute(
+               ModSettings.AllowCaptorExecutions,
+               playerIsCaptiveOfThisCaptor,
+               ModSettings.AdultContentLevel == AdultContentLevel.Hardcore,
+               !CampaignOptions.IsLifeDeathCycleDisabled);
+
+            if (!permitted)
+            {
+               ModLog.Info($"[ACTION] execute_player refused by PlayerExecutionPolicy (MCM={ModSettings.AllowCaptorExecutions}, " +
+                           $"captive={playerIsCaptiveOfThisCaptor}, hardcore={ModSettings.AdultContentLevel == AdultContentLevel.Hardcore}, " +
+                           $"deathAllowed={!CampaignOptions.IsLifeDeathCycleDisabled}).");
+
+               return ActionOutcome.Refused("(Your fate was not truly sealed here. Nothing happened.)");
+            }
+
+            string npcName = npcHero.Name?.ToString() ?? "your captor";
+            ModLog.Info($"[ACTION] execute_player: {npcName} executed the player. Game over or heir succession follows.");
+            // isForced: false is deliberate (see the doc above): it is the same vanilla call that lets
+            // SandBox's HeirSelectionCampaignBehavior run the real death (heir screen or game over).
+            KillCharacterAction.ApplyByExecution(player, npcHero, showNotification: true, isForced: false);
+
+            return new ActionOutcome($"{npcName} makes good on it. Your story ends here.", false);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] execute_player failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

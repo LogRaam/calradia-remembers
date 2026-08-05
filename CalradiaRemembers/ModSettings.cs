@@ -42,6 +42,15 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   Whether a captor may, at their own deliberate choice deep in a Hardcore captive scene, end the
+      ///   player's character for real (player request via the "AI Executes" mod, COUNCIL_ACTIONS.md 10.6).
+      ///   Read live from the MCM menu; OFF by default, since this is IRREVERSIBLE: game over, or the
+      ///   player's clan heir succeeds them. See <see cref="Logic.PlayerExecutionPolicy" /> for the full gate
+      ///   the bridge re-checks before it ever calls KillCharacterAction.
+      /// </summary>
+      public static bool AllowCaptorExecutions => CrSettings.Instance?.AllowCaptorExecutions ?? false;
+
+      /// <summary>
       ///   The chat window skin prefab chosen in the MCM menu ("Chat Window Style"), mapped from its display
       ///   label to the prefab name. Read live; falls back to the Dark Leather (Manuscript) book when MCM has
       ///   not loaded, which is the shipped default.

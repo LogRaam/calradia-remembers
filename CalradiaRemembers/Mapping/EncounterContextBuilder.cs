@@ -202,6 +202,10 @@ namespace CalradiaRemembers.Mapping
             CaptiveFearCoerced = ResolveCaptiveFearCoerced(hero, profile, playerStatus),
             CaptorAllowsPersuasionRelease = ResolveCaptorReleaseVerdict(hero, playerStatus).AllowsPersuasion,
             CaptorAllowsRansomRelease = ResolveCaptorReleaseVerdict(hero, playerStatus).AllowsRansom,
+            // Captivity EXECUTION (2026-08-04, player request via the "AI Executes" mod): the mod-side half of
+            // the gate PlayerExecutionPolicy.CanExecute re-checks in full at the bridge before anything real
+            // happens. This only decides whether the LLM is even TAUGHT the execute_player action this turn.
+            CaptorMayExecutePlayer = ResolveCaptorMayExecutePlayer(hero, playerStatus),
             NativeQuestNote = ResolveNativeQuestNote(hero),
             NemesisRecaptureNote = ResolveNemesisRecaptureNote(hero, playerStatus),
             CaptiveIntent = captiveIntent,
@@ -797,6 +801,32 @@ namespace CalradiaRemembers.Mapping
             return CaptorReleasePolicy.Resolve(mercy, grudge, false);
          }
          catch { return new CaptorReleaseVerdict(false, false); }
+      }
+
+      /// <summary>
+      ///   Captivity EXECUTION (2026-08-04, player request via the "AI Executes" mod, COUNCIL_ACTIONS.md 10.6):
+      ///   whether the captor is even TAUGHT the execute_player action this turn. Every guard the pure
+      ///   <see cref="PlayerExecutionPolicy" /> exposes, re-composed here from live engine facts: the MCM
+      ///   opt-in (default OFF), the player genuinely captive to THIS hero right now, and the same Hardcore
+      ///   content gate the rest of the captive-scene vocabulary already requires (matching PromptBuilder's
+      ///   own <c>AdultLevel >= Hardcore</c> gate on <c>AppendCaptivePlayerRules</c>). This is advice only:
+      ///   the bridge re-runs the SAME pure policy, from its own live facts, before it ever calls
+      ///   KillCharacterAction, so a stale or premature "yes" here can never itself kill the player.
+      /// </summary>
+      private static bool ResolveCaptorMayExecutePlayer(Hero hero, PlayerStatusVsNpc playerStatus)
+      {
+         try
+         {
+            bool playerIsCaptiveOfThisHero = playerStatus == PlayerStatusVsNpc.Captive
+               && Hero.MainHero?.PartyBelongedToAsPrisoner?.LeaderHero == hero;
+
+            return PlayerExecutionPolicy.CanExecute(
+               ModSettings.AllowCaptorExecutions,
+               playerIsCaptiveOfThisHero,
+               ModSettings.AdultContentLevel == AdultContentLevel.Hardcore,
+               !CampaignOptions.IsLifeDeathCycleDisabled);
+         }
+         catch { return false; }
       }
 
       /// <summary>

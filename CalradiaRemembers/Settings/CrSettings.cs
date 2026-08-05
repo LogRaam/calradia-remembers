@@ -221,6 +221,16 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> LetterPacing { get; set; } =
          new(new[] {"Rarely", "Occasionally", "Often"}, 1); // default: Occasionally
 
+      // Player request (2026-08-04, "AI Executes" mod parity): a captive under torture wanted the scene able to
+      // end their character for real. High-stakes and IRREVERSIBLE (game over, or heir succession), so this is
+      // opt-in like AdultContentLevel/Hardcore, off by default, and re-validated by the bridge at the moment of
+      // execution regardless of what this reads (see CalradiaRemembers.Logic.PlayerExecutionPolicy).
+      [SettingPropertyBool("Allow Captor Executions", RequireRestart = false, Order = 8,
+         HintText = "Let a captor's scene end your character, at their own deliberate choice, deep in a Hardcore " +
+                    "captive scene. Off by default. Irreversible: game over, or your heir succeeds you.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool AllowCaptorExecutions { get; set; } = false;
+
       [SettingPropertyBool("Story Log", RequireRestart = false, Order = 2,
          HintText = "Writes a clean narrative transcript of every conversation and letter to " +
                     "CalradiaRemembers_story.log in your Logs folder. No timestamps, no noise: it reads like a novel.")]
