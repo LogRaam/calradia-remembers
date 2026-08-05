@@ -248,6 +248,11 @@ namespace CalradiaRemembers.Chat
 
                return;
 
+            case ResolutionKind.GiveTroops:
+               SettleGiveTroops(ledger, entry, actorHero, actorName, report);
+
+               return;
+
             case ResolutionKind.SwearOath:
                SettleSwearOath(ledger, entry, actorHero, actorName, gameDay, report);
 
@@ -1587,6 +1592,116 @@ namespace CalradiaRemembers.Chat
             report?.Invoke($"{actorName} sends {moved.Total} soldiers to you; word reaches you that riders slipped through in the night and they are already among your ranks.", true);
 
          ModLog.Info($"[COUNCIL] lift: {actorName} lent the player {moved.Total} troops ({moved.Low}/{moved.Medium}/{moved.High}), outcome {outcome}.");
+      }
+
+      /// <summary>
+      ///   Partie 1 (COUNCIL_ACTIONS.md's give_troops, the reciprocal of lend_troops): the PLAYER reinforces a
+      ///   seated lord with real soldiers from the PLAYER's OWN party. Gabriel's own written condition
+      ///   (COUNCIL_ACTIONS.md, Partie 1 give_troops) asks that the player pick the troops through the native
+      ///   party-transfer SCREEN; this v1 build documents that as a FOLLOW-UP rather than building it (reopening
+      ///   the screen at the lift, after the council window has already closed, is a fiddly UX sequencing
+      ///   problem, not a one-line change) and instead reuses <see cref="CouncilTroopLoanPolicy.ComputeLoan" />
+      ///   on the PLAYER's own LIVE roster, exactly the same pure 25%-cap tier-mixed math
+      ///   <see cref="SettleLendTroops" /> already uses for the opposite direction, never a re-tuning of it.
+      ///   Unlike SettleLendTroops, this is INSTANT: the player's own troops already stand at the council table,
+      ///   so no travelling delegation is needed for this direction, and the SAME <see cref="TroopTierBucketer.MoveLoan" />
+      ///   transfer helper LendTroops uses is reused here too, only with the donor/recipient parties swapped
+      ///   (MainParty -> the recipient's party). Guards re-checked here (bridge is law): the recipient is alive,
+      ///   leads a real party of their own with room to receive more, is not the player's own party (a no-op),
+      ///   and the two houses are not at war. No separate absolute floor is added on the player's own side beyond
+      ///   what ComputeLoan's own 25% cap already guarantees: capping the gift at a quarter of the PLAYER's own
+      ///   healthy troops means at least 75% always remains, comfortably above the 1:1 give_troops verb's own
+      ///   70% retain floor (CourtActionPolicy.GiveTroopsPlayerMinRetainFraction) - a documented v1 design call,
+      ///   not an oversight, mirroring how LendTroops' own CouncilTroopLoanPolicy already supersedes the 1:1
+      ///   verb's separate tuning rather than reusing it.
+      /// </summary>
+      private static void SettleGiveTroops(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         MobileParty recipientParty = actorHero.PartyBelongedTo;
+
+         if (recipientParty == null || recipientParty.LeaderHero != actorHero)
+         {
+            const string reason = "they no longer lead a party of their own.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         MobileParty playerParty = MobileParty.MainParty;
+
+         if (playerParty?.MemberRoster == null)
+         {
+            const string reason = "you have no party of your own right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"Your pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (recipientParty == playerParty)
+         {
+            const string reason = "that would just be your own troops changing hands with themselves.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"Your pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (actorHero.MapFaction != null && Hero.MainHero?.MapFaction != null &&
+             FactionManager.IsAtWarAgainstFaction(actorHero.MapFaction, Hero.MainHero.MapFaction))
+         {
+            const string reason = "your two houses are at war; you will not reinforce them now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (recipientParty.MemberRoster.TotalManCount >= recipientParty.Party.PartySizeLimit)
+         {
+            const string reason = "their party has no room left for more troops.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         TierTroopCounts playerCounts = TroopTierBucketer.BucketHealthyTroops(playerParty.MemberRoster);
+         TierTroopCounts gift = CouncilTroopLoanPolicy.ComputeLoan(playerCounts);
+
+         if (gift.Total <= 0)
+         {
+            const string reason = "you have no troops to spare right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"Your pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         TierTroopCounts moved = TroopTierBucketer.MoveLoan(playerParty, recipientParty, gift);
+
+         if (moved.Total <= 0)
+         {
+            const string reason = "you had no troops left to spare right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"Your pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"You reinforce {actorName} with {moved.Total} troops.", true);
+         ModLog.Info($"[COUNCIL] lift: player gave {actorName} {moved.Total} troops ({moved.Low}/{moved.Medium}/{moved.High}).");
       }
 
       /// <summary>

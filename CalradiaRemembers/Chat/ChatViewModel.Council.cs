@@ -358,6 +358,45 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Partie 1 (COUNCIL_ACTIONS.md's give_troops, the reciprocal of lend_troops): give_troops' own fact.
+      ///   True once the PLAYER's own party fields enough healthy troops that
+      ///   <see cref="CouncilTroopLoanPolicy.ComputeLoan" /> would yield more than zero from the PLAYER's own
+      ///   roster (never the seated lord's, the direction reversed from <see cref="AnySeatedMemberCanLendTroops" />)
+      ///   AND at least one seated lord (ClanLords or WarCouncil, mirroring AnySeatedMemberCanLendTroops' own
+      ///   two-scope entry) currently leads their own party with room to receive more, is not the player, and
+      ///   is not at war with the player. An APPROXIMATION, mirroring AnySeatedMemberCanLendTroops' own loose
+      ///   gate: proves only that SOME gift is possible, never the exact tier split or which seated lord ends
+      ///   up chosen, both computed fresh at the lift from the PLAYER's LIVE roster regardless
+      ///   (CouncilLift.SettleGiveTroops, bridge is law).
+      /// </summary>
+      private bool AnySeatedLordCanReceiveTroops()
+      {
+         MobileParty playerParty = MobileParty.MainParty;
+         if (playerParty?.MemberRoster == null) return false;
+
+         TierTroopCounts playerCounts = TroopTierBucketer.BucketHealthyTroops(playerParty.MemberRoster);
+         if (CouncilTroopLoanPolicy.ComputeLoan(playerCounts).Total <= 0) return false;
+
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero is not {IsAlive: true} || hero.IsPrisoner || hero == Hero.MainHero) continue;
+
+            MobileParty party = hero.PartyBelongedTo;
+            if (party == null || party.LeaderHero != hero || party == playerParty) continue;
+
+            if (hero.MapFaction != null && Hero.MainHero?.MapFaction != null &&
+                FactionManager.IsAtWarAgainstFaction(hero.MapFaction, Hero.MainHero.MapFaction)) continue;
+
+            if (party.MemberRoster.TotalManCount >= party.Party.PartySizeLimit) continue;
+
+            return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>
       ///   Partie 2's own fact, revoke_fief (COUNCIL_ACTIONS.md; ResolutionOfferingResolver.OfferedKindKeys). True
       ///   once any seated WarCouncil vassal's own clan currently owns a town or castle: without this, the model
       ///   could threaten a confiscation the lift then finds nobody present actually holds anything to strip.

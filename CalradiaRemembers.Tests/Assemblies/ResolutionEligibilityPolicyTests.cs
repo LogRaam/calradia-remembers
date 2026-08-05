@@ -36,8 +36,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool anySeatedAllyHasMarriageableKin = false,
                                                   bool anySeatedTributePayerAvailable = false,
                                                   bool anySeatedPrisonerAvailableToRelease = false,
-                                                  bool anySeatedMemberCanLendTroops = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin, anySeatedTributePayerAvailable, anySeatedPrisonerAvailableToRelease, anySeatedMemberCanLendTroops);
+                                                  bool anySeatedMemberCanLendTroops = false,
+                                                  bool anySeatedLordCanReceiveTroops = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin, anySeatedTributePayerAvailable, anySeatedPrisonerAvailableToRelease, anySeatedMemberCanLendTroops, anySeatedLordCanReceiveTroops: anySeatedLordCanReceiveTroops);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -782,6 +783,57 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("lend_troops");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("lend_troops");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("lend_troops");
+        }
+
+        // Partie 1 (COUNCIL_ACTIONS.md's give_troops, the reciprocal of lend_troops): a single-condition motion,
+        // mirroring lend_troops' own AnySeatedMemberCanLendTroops gate exactly, only the direction reversed (the
+        // PLAYER is the donor here). Present it when some seated lord could receive the player's own spare
+        // troops, withhold it when nobody present has room, or the player has nothing to spare.
+        [Test]
+        public void GIVEN_give_troops_WHEN_any_seated_lord_can_or_cannot_receive_troops_THEN_offer_follows()
+        {
+            ResolutionDefinition giveTroops = ResolutionCatalog.Get(ResolutionKind.GiveTroops);
+
+            ResolutionEligibilityPolicy.CanOffer(giveTroops, Facts(anySeatedLordCanReceiveTroops: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(giveTroops, Facts(anySeatedLordCanReceiveTroops: false)).Should().BeFalse();
+        }
+
+        // The offering wire: give_troops must be TAUGHT to the LLM only when the fact holds, or the model
+        // proposes a reinforcement CouncilLift.SettleGiveTroops's own re-check (the player must still have
+        // troops to spare, and the recipient must still lead a real party with room) would refuse outright.
+        [Test]
+        public void GIVEN_a_seated_lord_can_receive_troops_WHEN_offered_keys_are_asked_THEN_give_troops_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, Facts(anySeatedLordCanReceiveTroops: true))
+                .Should().Contain("give_troops");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, Facts(anySeatedLordCanReceiveTroops: true))
+                .Should().Contain("give_troops");
+        }
+
+        // Absent that fact (no seated lord has room, or the player has nothing to spare) the key must be
+        // withheld, or the table could offer a reinforcement the lift has already proven impossible. This is
+        // the STAKE the player-floor design pins: v1 leaves no separate absolute floor check here beyond what
+        // CouncilTroopLoanPolicy's own 25% cap guarantees (see CouncilLift.SettleGiveTroops's own doc); the fact
+        // being false already covers "the player has nothing worth giving" without a second, redundant gate.
+        [Test]
+        public void GIVEN_no_seated_lord_can_receive_troops_WHEN_offered_keys_are_asked_THEN_give_troops_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, Facts(anySeatedLordCanReceiveTroops: false))
+                .Should().NotContain("give_troops");
+        }
+
+        // The empty-promise guard, the other direction: Companions, Family and Parley carry no GiveTroops
+        // catalogue entry at all (a hired hand, dynastic kin, or negotiating enemy leader is not a lord fielding
+        // a real party worth reinforcing), so the key must never surface there even when the fact is
+        // (nonsensically) true.
+        [Test]
+        public void GIVEN_a_companions_family_or_parley_council_WHEN_offered_keys_are_asked_THEN_give_troops_is_never_included()
+        {
+            ResolutionWorldFacts facts = Facts(anySeatedLordCanReceiveTroops: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("give_troops");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("give_troops");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("give_troops");
         }
     }
 }

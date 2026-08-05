@@ -70,6 +70,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             if (required.HasFlag(ResolutionRequirement.AnySeatedMemberCanLendTroops) && !f.AnySeatedMemberCanLendTroops) return false;
             if (required.HasFlag(ResolutionRequirement.AnySeatedMemberCanSwearOath) && !f.AnySeatedMemberCanSwearOath) return false;
             if (required.HasFlag(ResolutionRequirement.AnySeatedHostageEligibleRelativeAvailable) && !f.AnySeatedHostageEligibleRelativeAvailable) return false;
+            if (required.HasFlag(ResolutionRequirement.AnySeatedLordCanReceiveTroops) && !f.AnySeatedLordCanReceiveTroops) return false;
 
             return true;
         }

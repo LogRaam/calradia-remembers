@@ -55,15 +55,16 @@ namespace CalradiaRemembers.Tests.Assemblies
         // fief belongs to the CLAN, so "granting" one within the player's own clan, ClanLords' own scope, is
         // mechanically vacant). PledgeAgainst (Partie 1's schemes kind) then joined GiveGold as the clan-lords'
         // SECOND motion, LendTroops (Partie 1's highest-detail item, COUNCIL_ACTIONS.md) joined as its THIRD,
-        // and SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined last as its FOURTH, so the scope must
-        // return exactly those four, in declaration order.
+        // GiveTroops (Partie 1's give_troops, the reciprocal of lend_troops) joined next as its FOURTH, and
+        // SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined last as its FIFTH, so the scope must
+        // return exactly those five, in declaration order.
         [Test]
         public void GIVEN_a_clan_lords_council_WHEN_the_catalogue_is_queried_THEN_give_gold_and_pledge_against_return()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.ClanLords).Select(d => d.Kind).ToList();
 
             kinds.Should().Equal(ResolutionKind.GiveGold, ResolutionKind.PledgeAgainst, ResolutionKind.LendTroops,
-                ResolutionKind.SwearOath);
+                ResolutionKind.GiveTroops, ResolutionKind.SwearOath);
         }
 
         // The family council carried NO motion at all until PledgeAgainst (Partie 1's schemes kind) became its
@@ -147,8 +148,9 @@ namespace CalradiaRemembers.Tests.Assemblies
         // ArrangeMarriage (Partie 1, "juste arrange_mariage qui est valide") joined the same WarCouncil scope
         // next, SwapFiefs (Partie 8, COUNCIL_ACTIONS.md's Kimi review, REUSING grant_fief's/revoke_fief's
         // own machinery) joined after it, LendTroops (Partie 1's highest-detail item, COUNCIL_ACTIONS.md)
-        // joined next, and SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined last, so the full
-        // declaration-order list now ends with it too.
+        // joined next, GiveTroops (Partie 1's give_troops, the reciprocal of lend_troops) joined after that,
+        // and SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined last, so the full declaration-order
+        // list now ends with it too.
         [Test]
         public void GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_grant_fief_and_revoke_fief_also_return()
         {
@@ -156,7 +158,7 @@ namespace CalradiaRemembers.Tests.Assemblies
 
             kinds.Should().Equal(ResolutionKind.DeclareWar, ResolutionKind.GiveGold, ResolutionKind.GiveInfluence,
                 ResolutionKind.GrantFief, ResolutionKind.RevokeFief, ResolutionKind.ArrangeMarriage, ResolutionKind.SwapFiefs,
-                ResolutionKind.LendTroops, ResolutionKind.SwearOath);
+                ResolutionKind.LendTroops, ResolutionKind.GiveTroops, ResolutionKind.SwearOath);
         }
 
         // The empty-promise guard: ClanLords, Companions and Family carry NO GrantFief/RevokeFief catalogue
@@ -746,6 +748,48 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("lend_troops");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("lend_troops");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Parley).Should().NotContain("lend_troops");
+        }
+
+        // Partie 1 (COUNCIL_ACTIONS.md's give_troops, the reciprocal of lend_troops): give_troops has a live
+        // lift executor (CouncilLift.SettleGiveTroops) from the day it lands; the table must be able to
+        // actually move the player's own troops, not just record the pledge.
+        [Test]
+        public void GIVEN_give_troops_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.GiveTroops).Should().BeTrue();
+        }
+
+        // give_troops is a seated lord's own reinforcement (the player's own party, moving to the lord's own
+        // party), not a decision about two FACTIONS, so it must never bypass the ordinary seated-member
+        // re-validation the way declare_war/make_peace do (covered generically by
+        // GIVEN_every_member_pledge_kind_WHEN_asked_if_it_is_faction_centric_THEN_none_of_them_are above; pinned
+        // here too for the kind's own documentation).
+        [Test]
+        public void GIVEN_give_troops_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.GiveTroops).Should().BeFalse();
+        }
+
+        // Both scopes give_troops was granted (mirroring lend_troops' own ClanLords/WarCouncil scoping) must
+        // actually surface its key alongside the universal quest, or a council seated with a lord whose party
+        // has room would have no way to reach CouncilLift.SettleGiveTroops at all.
+        [Test]
+        public void GIVEN_a_clan_lords_or_war_council_WHEN_asked_for_executable_kinds_THEN_give_troops_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().Contain("give_troops");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.WarCouncil).Should().Contain("give_troops");
+        }
+
+        // The empty-promise guard, the other direction: Companions, Family and Parley carry NO GiveTroops
+        // catalogue entry at all (a hired hand, dynastic kin, or negotiating enemy leader is not a lord fielding
+        // a real party of his own worth reinforcing), so their executable set must never surface it, whatever
+        // the world facts.
+        [Test]
+        public void GIVEN_a_companions_family_or_parley_council_WHEN_asked_for_executable_kinds_THEN_give_troops_is_absent()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("give_troops");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("give_troops");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Parley).Should().NotContain("give_troops");
         }
 
         // R7-light (COUNCIL_ACTIONS.md's Partie 8, "swear_oath"): swear_oath has a live lift executor

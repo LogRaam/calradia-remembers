@@ -637,9 +637,15 @@ namespace CalradiaRemembers.Chat
                // (COUNCIL_ACTIONS.md's Partie 8): Parley-only, the seated enemy leader has at least one eligible
                // relative (spouse, child, or sibling; never a minor, clan chief, or sole heir) to give as a
                // hostage of good faith; the named relative is re-resolved against that same eligible pool at the
-               // lift regardless (CouncilLift.SettleGiveHostage, bridge is law).
+               // lift regardless (CouncilLift.SettleGiveHostage, bridge is law). AnySeatedLordCanReceiveTroops is
+               // give_troops' own fact, the RECIPROCAL of lend_troops (COUNCIL_ACTIONS.md's give_troops):
+               // ClanLords/WarCouncil only, at least one seated lord currently leads a party with room and is
+               // not at war with the player, AND the PLAYER's own party fields enough healthy troops that
+               // CouncilTroopLoanPolicy.ComputeLoan would yield more than zero; the real tier split, and which
+               // seated lord ends up chosen, are both computed fresh at the lift from LIVE state regardless
+               // (CouncilLift.SettleGiveTroops).
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath(), AnySeatedHostageEligibleRelativeAvailable())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath(), AnySeatedHostageEligibleRelativeAvailable(), AnySeatedLordCanReceiveTroops())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic
