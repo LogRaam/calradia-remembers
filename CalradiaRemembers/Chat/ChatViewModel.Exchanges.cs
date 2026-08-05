@@ -659,8 +659,16 @@ namespace CalradiaRemembers.Chat
                // own two scopes), at least one seated lord currently leads their own party whose ItemRoster
                // carries a real (non-quest) item; the named item is resolved and re-checked fresh against the
                // giver's LIVE roster at the lift regardless (CouncilLift.SettleGiveItem, bridge is law).
+               // AnySeatedMemberCanSupportClaimant is Partie 8's LAST own fact, support_claimant
+               // (COUNCIL_ACTIONS.md's Kimi review, the riskiest catalogue kind, Kimi's own flagged spike over a
+               // live KingdomDecision/Election hook): WarCouncil only, mirroring AnySeatedMemberCanGrantInfluence's
+               // own single-scope entry, at least one seated vassal's own clan (a genuine OTHER clan of the
+               // player's OWN kingdom) could currently spare influence to back the player's own political
+               // standing; the real amount is computed fresh at the lift by the SAME reused CourtActionPolicy.InfluenceGrant
+               // (CouncilLift.SettleSupportClaimant, the SAFE v1 that reuses give_influence's own machinery end
+               // to end rather than the risky live-vote-injection spike).
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath(), AnySeatedHostageEligibleRelativeAvailable(), AnySeatedLordCanReceiveTroops(), AnySeatedPactPartnerAvailable(), AnySeatedMemberCanSponsorWard(), AnySeatedLordHasGiveableItem())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath(), AnySeatedHostageEligibleRelativeAvailable(), AnySeatedLordCanReceiveTroops(), AnySeatedPactPartnerAvailable(), AnySeatedMemberCanSponsorWard(), AnySeatedLordHasGiveableItem(), AnySeatedMemberCanSupportClaimant())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

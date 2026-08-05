@@ -152,8 +152,10 @@ namespace CalradiaRemembers.Tests.Assemblies
         // next, SwapFiefs (Partie 8, COUNCIL_ACTIONS.md's Kimi review, REUSING grant_fief's/revoke_fief's
         // own machinery) joined after it, LendTroops (Partie 1's highest-detail item, COUNCIL_ACTIONS.md)
         // joined next, GiveTroops (Partie 1's give_troops, the reciprocal of lend_troops) joined after that,
-        // SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined next, and GiveItem (COUNCIL_ACTIONS.md's
-        // give_item, "cadeau d'objet") joined last, so the full declaration-order list now ends with it too.
+        // SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined next, GiveItem (COUNCIL_ACTIONS.md's
+        // give_item, "cadeau d'objet") joined after that, and SupportClaimant (Partie 8's LAST catalogue kind,
+        // COUNCIL_ACTIONS.md's Kimi review, "support_claimant", the SAFE v1 over a risky live KingdomDecision/
+        // Election hook) joined last, so the full declaration-order list now ends with it.
         [Test]
         public void GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_grant_fief_and_revoke_fief_also_return()
         {
@@ -161,7 +163,8 @@ namespace CalradiaRemembers.Tests.Assemblies
 
             kinds.Should().Equal(ResolutionKind.DeclareWar, ResolutionKind.GiveGold, ResolutionKind.GiveInfluence,
                 ResolutionKind.GrantFief, ResolutionKind.RevokeFief, ResolutionKind.ArrangeMarriage, ResolutionKind.SwapFiefs,
-                ResolutionKind.LendTroops, ResolutionKind.GiveTroops, ResolutionKind.SwearOath, ResolutionKind.GiveItem);
+                ResolutionKind.LendTroops, ResolutionKind.GiveTroops, ResolutionKind.SwearOath, ResolutionKind.GiveItem,
+                ResolutionKind.SupportClaimant);
         }
 
         // The empty-promise guard: ClanLords, Companions and Family carry NO GrantFief/RevokeFief catalogue
@@ -1125,6 +1128,50 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("give_item");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("give_item");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("give_item");
+        }
+
+        // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "support_claimant"): the LAST catalogue kind, and the one
+        // Kimi flagged as a genuine API spike (a live vanilla KingdomDecision/Election hook). The SAFE v1 built
+        // instead (reusing give_influence's own machinery end to end, CouncilLift.SettleSupportClaimant) must
+        // actually be able to carry the pledge out, not just record it, or the table would promise a public
+        // backing it can never make good on.
+        [Test]
+        public void GIVEN_support_claimant_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.SupportClaimant).Should().BeTrue();
+        }
+
+        // support_claimant is a seated vassal's own promise (their own house's influence pledged behind the
+        // player), not a decision about two FACTIONS, so it must never bypass the ordinary seated-member
+        // re-validation the way declare_war/make_peace do (covered generically by
+        // GIVEN_every_member_pledge_kind_WHEN_asked_if_it_is_faction_centric_THEN_none_of_them_are above; pinned
+        // here too for the kind's own documentation).
+        [Test]
+        public void GIVEN_support_claimant_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.SupportClaimant).Should().BeFalse();
+        }
+
+        // WarCouncil is the ONLY scope support_claimant was granted (mirroring give_influence's own single-scope
+        // entry exactly: a genuine OTHER clan of the player's OWN kingdom is the only seat where a political
+        // backing pledge is meaningful): its key must surface alongside the universal quest, or a war council
+        // seated with an able vassal would have no way to reach CouncilLift.SettleSupportClaimant at all.
+        [Test]
+        public void GIVEN_a_war_council_WHEN_asked_for_executable_kinds_THEN_support_claimant_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.WarCouncil).Should().Contain("support_claimant");
+        }
+
+        // The empty-promise guard, the other direction: ClanLords, Companions and Family carry NO SupportClaimant
+        // catalogue entry at all (within the player's own clan, or a hired hand's/dynastic kin's council, there
+        // is no genuine OTHER kingdom-mate house to throw its weight behind the player), so their executable set
+        // must never surface it, whatever the world facts.
+        [Test]
+        public void GIVEN_a_clan_lords_companions_or_family_council_WHEN_asked_for_executable_kinds_THEN_support_claimant_is_absent()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().NotContain("support_claimant");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("support_claimant");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("support_claimant");
         }
     }
 }

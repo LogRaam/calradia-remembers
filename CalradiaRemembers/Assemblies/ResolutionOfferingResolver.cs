@@ -142,8 +142,18 @@ namespace CalradiaRemembers.Assemblies
       ///   only that SOME item is giveable, never which one the LLM will actually name; the exact item is
       ///   resolved and re-checked fresh against the giver's LIVE roster at the lift regardless
       ///   (CouncilLift.SettleGiveItem, bridge is law).
+      ///   <paramref name="anySeatedMemberCanSupportClaimant" /> is Partie 8's LAST own fact, support_claimant
+      ///   (COUNCIL_ACTIONS.md's Kimi review, "support_claimant"; see ChatViewModel.AnySeatedMemberCanSupportClaimant):
+      ///   WarCouncil only (mirroring anySeatedMemberCanGrantInfluence's own single-scope entry), at least one
+      ///   seated vassal's own clan (a genuine OTHER clan of the player's OWN kingdom) currently could spare
+      ///   influence to back the player's own political standing, under the SAME reused 1:1 give_influence gates.
+      ///   An APPROXIMATION, mirroring anySeatedMemberCanGrantInfluence's own loose gate: proves only that SOME
+      ///   backing is possible, never the exact amount, computed fresh at the lift regardless
+      ///   (CouncilLift.SettleSupportClaimant, bridge is law). This is the SAFE v1 recommended over a risky live
+      ///   KingdomDecision/Election hook (a real API spike, see ResolutionKind.SupportClaimant's own doc): the
+      ///   backing is a real, always-deliverable influence transfer, never a hollow claim.
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false, bool anySeatedPrisonerAvailableToRelease = false, bool anySeatedMemberCanLendTroops = false, bool anySeatedMemberCanSwearOath = false, bool anySeatedHostageEligibleRelativeAvailable = false, bool anySeatedLordCanReceiveTroops = false, bool anySeatedPactPartnerAvailable = false, bool anySeatedMemberCanSponsorWard = false, bool anySeatedLordHasGiveableItem = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false, bool anySeatedPrisonerAvailableToRelease = false, bool anySeatedMemberCanLendTroops = false, bool anySeatedMemberCanSwearOath = false, bool anySeatedHostageEligibleRelativeAvailable = false, bool anySeatedLordCanReceiveTroops = false, bool anySeatedPactPartnerAvailable = false, bool anySeatedMemberCanSponsorWard = false, bool anySeatedLordHasGiveableItem = false, bool anySeatedMemberCanSupportClaimant = false)
       {
          try
          {
@@ -172,7 +182,8 @@ namespace CalradiaRemembers.Assemblies
                anySeatedLordCanReceiveTroops: anySeatedLordCanReceiveTroops,
                anySeatedPactPartnerAvailable: anySeatedPactPartnerAvailable,
                anySeatedMemberCanSponsorWard: anySeatedMemberCanSponsorWard,
-               anySeatedLordHasGiveableItem: anySeatedLordHasGiveableItem);
+               anySeatedLordHasGiveableItem: anySeatedLordHasGiveableItem,
+               anySeatedMemberCanSupportClaimant: anySeatedMemberCanSupportClaimant);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

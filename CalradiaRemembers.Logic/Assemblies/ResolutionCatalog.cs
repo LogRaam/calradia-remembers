@@ -358,7 +358,32 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   made half-liable for the protege's own grudges, and sponsorship is not (yet) a bridge toward
         ///   <see cref="ArrangeMarriage" />.
         /// </summary>
-        SponsorWard
+        SponsorWard,
+
+        /// <summary>
+        ///   Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "support_claimant"): the LAST catalogue kind, and the
+        ///   riskiest one Kimi flagged (a live vanilla KingdomDecision/Election hook is a genuine API spike -
+        ///   see this kind's own SAFE v1 note below). A seated WarCouncil vassal (a genuine OTHER clan of the
+        ///   player's OWN kingdom, mirroring <see cref="GiveInfluence" />'s own WarCouncil-only scoping) publicly
+        ///   throws their house's political weight behind the PLAYER in kingdom politics. SAFE v1 (Gabriel's own
+        ///   instruction: prefer a real influence backing plus a tracked pledge over any risky vote injection):
+        ///   this is an HONEST, ALWAYS-DELIVERABLE core, REUSING give_influence's own machinery end to end
+        ///   (<see cref="CalradiaRemembers.Logic.CourtActionPolicy.InfluenceGrant" /> /
+        ///   <see cref="CalradiaRemembers.Logic.CourtActionPolicy.CanAffordInfluenceGrant" />) - the backer's
+        ///   clan influence moves straight to the PLAYER's own clan at the lift (CouncilLift.SettleSupportClaimant),
+        ///   a real political backing rather than a hollow claim. A SPIKE was probed before building this
+        ///   (decompiled TaleWorlds.CampaignSystem.Election.KingdomDecision): CampaignEvents.KingdomDecisionAdded
+        ///   DOES exist as a clean hook, but there is no simple "spend influence for candidate X" call -
+        ///   KingdomDecision/Supporter/DecisionOutcome is a whole AI-driven voting subsystem
+        ///   (DetermineSupportOption, Supporter.SupportWeights, likelihood-weighted merit), confirming Kimi's own
+        ///   caution - hooking a LIVE pending decision to spend the backer's influence on the player's specific
+        ///   claim is a DOCUMENTED FOLLOW-UP (v2), never built this slice. No LLM-chosen amount (mirrors
+        ///   <see cref="GiveInfluence" />'s own doc): the amount is computed fresh at the lift, never a figure
+        ///   the model proposes. Not FACTION-CENTRIC (see <see cref="IsFactionCentric" />): the pledge is the
+        ///   seated vassal's own promise, not a decision about two FACTIONS the way DeclareWar/MakePeace are, so
+        ///   it keeps the ordinary seated-member re-validation at the lift.
+        /// </summary>
+        SupportClaimant
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -538,7 +563,19 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   re-checked fresh against the giver's LIVE roster at the lift regardless (CouncilLift.SettleGiveItem,
         ///   bridge is law).
         /// </summary>
-        AnySeatedLordHasGiveableItem = 16777216
+        AnySeatedLordHasGiveableItem = 16777216,
+
+        /// <summary>
+        ///   At least one seated WarCouncil vassal's own clan (a genuine OTHER clan of the player's OWN kingdom)
+        ///   currently could spare influence to back the player's own political standing, under the SAME reused
+        ///   1:1 give_influence gates <see cref="MemberCanGrantInfluence" /> already reads (a living lord, a
+        ///   clan of their own distinct from the player's, both clans in the SAME kingdom, and the computed
+        ///   backing amount affordable under the clan's own reserve buffer): support_claimant's own gate. An
+        ///   APPROXIMATION, mirroring MemberCanGrantInfluence's own loose gate: proves only that SOME backing is
+        ///   possible, never the exact amount, computed fresh at the lift regardless
+        ///   (CouncilLift.SettleSupportClaimant, bridge is law).
+        /// </summary>
+        AnySeatedMemberCanSupportClaimant = 33554432
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -588,7 +625,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool anySeatedLordCanReceiveTroops = false,
                                     bool anySeatedPactPartnerAvailable = false,
                                     bool anySeatedMemberCanSponsorWard = false,
-                                    bool anySeatedLordHasGiveableItem = false)
+                                    bool anySeatedLordHasGiveableItem = false,
+                                    bool anySeatedMemberCanSupportClaimant = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -615,6 +653,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             AnySeatedPactPartnerAvailable = anySeatedPactPartnerAvailable;
             AnySeatedMemberCanSponsorWard = anySeatedMemberCanSponsorWard;
             AnySeatedLordHasGiveableItem = anySeatedLordHasGiveableItem;
+            AnySeatedMemberCanSupportClaimant = anySeatedMemberCanSupportClaimant;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -680,6 +719,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated lord (ClanLords or WarCouncil) leads their own party whose ItemRoster carries a real (non-quest) item. give_item's own fact, see ResolutionRequirement.AnySeatedLordHasGiveableItem.</summary>
         public bool AnySeatedLordHasGiveableItem { get; }
+
+        /// <summary>At least one seated WarCouncil vassal's own clan (a genuine OTHER clan of the player's OWN kingdom) could currently spare influence to back the player's own political standing. support_claimant's own fact, see ResolutionRequirement.AnySeatedMemberCanSupportClaimant.</summary>
+        public bool AnySeatedMemberCanSupportClaimant { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -864,7 +906,15 @@ namespace CalradiaRemembers.Logic.Assemblies
                 "Give you an item", ResolutionRequirement.AnySeatedLordHasGiveableItem),
 
             new ResolutionDefinition(ResolutionKind.GiveItem, CouncilScope.WarCouncil,
-                "Give you an item", ResolutionRequirement.AnySeatedLordHasGiveableItem)
+                "Give you an item", ResolutionRequirement.AnySeatedLordHasGiveableItem),
+
+            // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "support_claimant"): the LAST catalogue kind. WarCouncil
+            // ONLY, mirroring GiveInfluence's own single-scope entry exactly (a genuine OTHER clan of the
+            // player's OWN kingdom is the only seat where a political backing pledge is meaningful; never
+            // ClanLords/Companions/Family, where a seated member is either the player's own house already or a
+            // hired hand with no house of their own to throw behind the player).
+            new ResolutionDefinition(ResolutionKind.SupportClaimant, CouncilScope.WarCouncil,
+                "Pledge support for your claim", ResolutionRequirement.AnySeatedMemberCanSupportClaimant)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -909,6 +959,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.GiveHostage:          return "give_hostage";
                 case ResolutionKind.NonAggressionPact:    return "non_aggression_pact";
                 case ResolutionKind.SponsorWard:           return "sponsor_ward";
+                case ResolutionKind.SupportClaimant:        return "support_claimant";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -991,7 +1042,13 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   v1 ("sponsor_ward"), starts a mentor-protege bond (CouncilWardBehavior) between a seated ClanLords/
         ///   Family member and a named young companion of the player's own clan: no term, no cost, only a
         ///   tracked link plus a modest daily skill-XP trickle while the two travel together - never a change of
-        ///   parentage, heritage, or clan membership (see ResolutionKind.SponsorWard's own doc). The runtime
+        ///   parentage, heritage, or clan membership (see ResolutionKind.SponsorWard's own doc). SupportClaimant
+        ///   (CouncilLift.SettleSupportClaimant), Partie 8's LAST catalogue kind (COUNCIL_ACTIONS.md's Kimi
+        ///   review, "support_claimant"), is the SAFE v1 the Kimi spike recommended over a risky live
+        ///   KingdomDecision/Election hook: a seated WarCouncil vassal's own clan influence moves straight to
+        ///   the player's own clan at the lift, REUSING GiveInfluence's own machinery
+        ///   (CourtActionPolicy.InfluenceGrant/CanAffordInfluenceGrant) end to end - a real political backing,
+        ///   never a hollow claim. The runtime
         ///   teaches and lifts only
         ///   executable kinds, so the table never promises a deed it cannot keep.
         /// </summary>
@@ -1008,7 +1065,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.LendTroops || kind == ResolutionKind.SwearOath
             || kind == ResolutionKind.GiveHostage || kind == ResolutionKind.GiveTroops
             || kind == ResolutionKind.NonAggressionPact || kind == ResolutionKind.SponsorWard
-            || kind == ResolutionKind.GiveItem;
+            || kind == ResolutionKind.GiveItem || kind == ResolutionKind.SupportClaimant;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

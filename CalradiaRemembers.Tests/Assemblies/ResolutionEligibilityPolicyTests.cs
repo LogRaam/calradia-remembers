@@ -39,8 +39,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool anySeatedMemberCanLendTroops = false,
                                                   bool anySeatedLordCanReceiveTroops = false,
                                                   bool anySeatedPactPartnerAvailable = false,
-                                                  bool anySeatedLordHasGiveableItem = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin, anySeatedTributePayerAvailable, anySeatedPrisonerAvailableToRelease, anySeatedMemberCanLendTroops, anySeatedLordCanReceiveTroops: anySeatedLordCanReceiveTroops, anySeatedPactPartnerAvailable: anySeatedPactPartnerAvailable, anySeatedLordHasGiveableItem: anySeatedLordHasGiveableItem);
+                                                  bool anySeatedLordHasGiveableItem = false,
+                                                  bool anySeatedMemberCanSupportClaimant = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin, anySeatedTributePayerAvailable, anySeatedPrisonerAvailableToRelease, anySeatedMemberCanLendTroops, anySeatedLordCanReceiveTroops: anySeatedLordCanReceiveTroops, anySeatedPactPartnerAvailable: anySeatedPactPartnerAvailable, anySeatedLordHasGiveableItem: anySeatedLordHasGiveableItem, anySeatedMemberCanSupportClaimant: anySeatedMemberCanSupportClaimant);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -932,6 +933,51 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("give_item");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("give_item");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("give_item");
+        }
+
+        // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "support_claimant"): the LAST catalogue kind needs only
+        // that a seated WarCouncil vassal's own clan could currently spare influence to back the player's claim.
+        // Present it when one can, withhold it when nobody at the table has a clan able to spare any influence -
+        // the same empty-promise discipline give_influence's own fact test above pins.
+        [Test]
+        public void GIVEN_support_claimant_WHEN_a_member_can_or_cannot_support_the_players_claim_THEN_offer_follows()
+        {
+            ResolutionDefinition supportClaimant = ResolutionCatalog.Get(ResolutionKind.SupportClaimant);
+
+            ResolutionEligibilityPolicy.CanOffer(supportClaimant, Facts(anySeatedMemberCanSupportClaimant: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(supportClaimant, Facts(anySeatedMemberCanSupportClaimant: false)).Should().BeFalse();
+        }
+
+        // The offering wire: support_claimant must be TAUGHT to the LLM only when a seated vassal's clan
+        // actually could back the player, or the model promises a public pledge CouncilLift.SettleSupportClaimant
+        // then finds the backer's own clan cannot afford (reserve buffer) or belongs to a different kingdom to
+        // spare - the SAFE v1's own honesty discipline (a real influence transfer, never a hollow claim).
+        [Test]
+        public void GIVEN_a_seated_vassal_can_support_the_players_claim_WHEN_offered_keys_are_asked_THEN_support_claimant_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, Facts(anySeatedMemberCanSupportClaimant: true))
+                .Should().Contain("support_claimant");
+        }
+
+        // Absent that fact (no seated vassal's clan could currently spare any influence) the key must be
+        // withheld, or the table could offer a public backing nobody present could actually make good on.
+        [Test]
+        public void GIVEN_no_seated_vassal_can_support_the_players_claim_WHEN_offered_keys_are_asked_THEN_support_claimant_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, Facts(anySeatedMemberCanSupportClaimant: false))
+                .Should().NotContain("support_claimant");
+        }
+
+        // The empty-promise guard, the other direction: ClanLords carries no SupportClaimant catalogue entry at
+        // all (within the player's own clan the backing is clan-to-itself, the exact vacant-promise class
+        // COUNCIL_ACTIONS.md's Kimi review flags for give_influence's own single-scope entry), so the key must
+        // never surface there even when the fact is (nonsensically) true, proving the scope gate, not merely the
+        // fact, keeps the council from teaching a pledge that would lift to nothing.
+        [Test]
+        public void GIVEN_a_clan_lords_council_WHEN_offered_keys_are_asked_THEN_support_claimant_is_never_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, Facts(anySeatedMemberCanSupportClaimant: true))
+                .Should().NotContain("support_claimant");
         }
     }
 }

@@ -329,6 +329,48 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "support_claimant"), the LAST catalogue kind: true once
+      ///   any seated WarCouncil vassal's OWN clan currently holds influence it could spare to back the
+      ///   PLAYER's own political standing. REUSES the SAME gates <see cref="AnySeatedMemberCanGrantInfluence" />
+      ///   already checks (give_influence's own eligibility shape, COUNCIL_ACTIONS.md's own design call): a
+      ///   living lord, a clan of their own distinct from the player's, and BOTH clans seated in the SAME
+      ///   kingdom (the vassal must belong to the player's OWN kingdom, mirroring
+      ///   <see cref="ChatViewModel.AnySeatedMemberCanGrantInfluence" />'s doc, but this kind's own design
+      ///   deliberately requires kingdom EQUALITY rather than merely "both hold some kingdom", since a support
+      ///   pledge only makes sense within the player's own kingdom's politics), and the giver's clan holding
+      ///   comfortably more than the computed backing in reserve (<see cref="CourtActionPolicy.CanAffordInfluenceGrant" />).
+      ///   Design call (Gabriel's SAFE v1 instruction, adopted as-is): unlike GrantInfluence's own explicit
+      ///   relation floor (<see cref="CourtActionPolicy.InfluenceMinRelation" />), this fact does NOT gate on a
+      ///   separate relation minimum - the task's own design lists only kingdom membership and affordability as
+      ///   the offering shape to reuse, and <see cref="CourtActionPolicy.InfluenceGrant" /> already yields zero
+      ///   (refused below by the amount&lt;=0 check) for any relation at or below zero, so a hostile vassal can
+      ///   never appear to back the player regardless. Skips the 1:1 verb's own cooldown check, mirroring
+      ///   AnySeatedMemberCanGrantInfluence's own loose gate: a member whose cooldown has not elapsed is instead
+      ///   caught, and reported honestly, at the lift (CouncilLift.SettleSupportClaimant).
+      /// </summary>
+      private bool AnySeatedMemberCanSupportClaimant()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero is not {IsAlive: true, IsLord: true} || hero.IsPrisoner || hero == Hero.MainHero) continue;
+
+            Clan backer = hero.Clan;
+            if (backer == null || backer == Clan.PlayerClan) continue;
+            if (backer.Kingdom == null || Clan.PlayerClan?.Kingdom == null || backer.Kingdom != Clan.PlayerClan.Kingdom) continue;
+
+            int relation = hero.GetRelation(Hero.MainHero);
+            int amount = CourtActionPolicy.InfluenceGrant(relation);
+            if (amount <= 0) continue;
+            if (!CourtActionPolicy.CanAffordInfluenceGrant(backer.Influence, amount)) continue;
+
+            return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>
       ///   Partie 1 (COUNCIL_ACTIONS.md's lend_troops, Gabriel's own CONDITIONS): lend_troops' own fact. True
       ///   once any seated lord (ClanLords or WarCouncil, mirroring AnySeatedMemberHasGold's own two-scope entry)
       ///   currently leads their own party, is NOT at war with the player (Gabriel's condition D), and fields

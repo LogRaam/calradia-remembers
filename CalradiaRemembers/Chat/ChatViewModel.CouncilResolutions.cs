@@ -245,7 +245,12 @@ namespace CalradiaRemembers.Chat
          // beyond the actor, exactly like "give_influence"/"expel_from_clan" below: the faction pair is never an
          // LLM choice (the player's own live faction and the parley's own stored target, see
          // CouncilLift.SettleNonAggressionPact), so it falls through to this same default branch and carries a
-         // null TargetHint, never read by the lift.
+         // null TargetHint, never read by the lift. "support_claimant" (Partie 8's LAST catalogue kind,
+         // COUNCIL_ACTIONS.md's Kimi review, the SAFE v1 over a risky live KingdomDecision/Election hook) grounds
+         // on NOTHING beyond the actor too, exactly like "give_influence": the backing amount is never an LLM
+         // choice, it is computed fresh at the lift by the SAME CourtActionPolicy.InfluenceGrant
+         // (CouncilLift.SettleSupportClaimant), so it also falls through to this default branch with a null
+         // TargetHint, never read by the lift.
          else
             targetHint = proposal.TargetSettlement;
          AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession, targetHint);

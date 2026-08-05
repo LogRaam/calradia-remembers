@@ -140,9 +140,12 @@ namespace CalradiaRemembers.Chat
          // the player), GiveInfluence (SettleGiveInfluence, a seated ALLY's own clan influence pledged TO the
          // player's clan), and GiveItem (SettleGiveItem, a seated lord gives the player a named item from THEIR
          // OWN party's stores, the REVERSE of the 1:1 give_item action), Partie 2's GrantFief/RevokeFief, Partie 8's ExpelFromClan (SettleExpelFromClan, a
-         // seated companion cast out of the player's own clan), and Partie 1's schemes kind PledgeAgainst
+         // seated companion cast out of the player's own clan), Partie 1's schemes kind PledgeAgainst
          // (SettlePledgeAgainst, a seated member's own scheme against a rival, reusing the 1:1 pledge_against
-         // system end to end) are executable today, so a passing entry here is one of those; the switch below
+         // system end to end), and Partie 8's LAST catalogue kind, SupportClaimant (SettleSupportClaimant, the
+         // SAFE v1 over a risky live KingdomDecision/Election hook: a seated WarCouncil vassal's own clan
+         // influence pledged TO the player's clan, REUSING GiveInfluence's own machinery end to end) are
+         // executable today, so a passing entry here is one of those; the switch below
          // this gate is the per-kind dispatch, extended the day a new executor is wired.
          if (!ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind kind) || !ResolutionCatalog.IsExecutable(kind))
          {
@@ -278,6 +281,11 @@ namespace CalradiaRemembers.Chat
 
             case ResolutionKind.SponsorWard:
                SettleSponsorWard(ledger, entry, actorHero, actorName, report);
+
+               return;
+
+            case ResolutionKind.SupportClaimant:
+               SettleSupportClaimant(ledger, entry, actorHero, actorName, report);
 
                return;
 
@@ -799,6 +807,83 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"{actorName} lends their clan's influence to yours (+{amount}).", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} lent the player {amount} influence at court.");
+      }
+
+      /// <summary>
+      ///   Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "support_claimant"): the LAST catalogue kind, and the one
+      ///   Kimi flagged as a genuine API spike (a live vanilla KingdomDecision/Election hook). SAFE v1 (Gabriel's
+      ///   own instruction, autonomous build): rather than inject a vote into a live decision (a whole AI-driven
+      ///   voting subsystem, KingdomDecision/Supporter/DecisionOutcome, confirmed by decompiling
+      ///   TaleWorlds.CampaignSystem.Election.KingdomDecision - CampaignEvents.KingdomDecisionAdded DOES exist as
+      ///   a clean hook, but there is no simple "spend influence for candidate X" call), this executor REUSES
+      ///   SettleGiveInfluence's own machinery end to end: a seated WarCouncil vassal (a genuine OTHER clan of
+      ///   the player's OWN kingdom) throws their house's political weight behind the PLAYER, moving REAL clan
+      ///   influence from the backer's own house to the player's own clan, exactly like a give_influence pledge
+      ///   but framed as a public declaration of support rather than a private favour. Every gate
+      ///   AnySeatedMemberCanSupportClaimant already proves loosely at offer time is re-verified here against
+      ///   CURRENT state (bridge is law): the backer still leads a clan distinct from the player's, that clan
+      ///   still belongs to the SAME kingdom as the player's own (COUNCIL_ACTIONS.md's own design call: a
+      ///   support pledge only makes sense within the player's own kingdom's politics, stricter than
+      ///   SettleGiveInfluence's own bare "both hold some kingdom" check), and the backer's clan still holds
+      ///   comfortably more influence than the computed backing costs
+      ///   (CourtActionPolicy.CanAffordInfluenceGrant). The amount is NEVER an LLM choice (mirrors
+      ///   SettleGiveInfluence's own doc): CourtActionPolicy.InfluenceGrant(relation) computes it fresh here,
+      ///   scaled by the backer's own personal relation toward the player (zero or negative relation yields zero,
+      ///   so a hostile vassal can never appear to back the player). DOCUMENTED FOLLOW-UP (v2, not built this
+      ///   slice): spending this same influence directly inside a LIVE pending KingdomDecision when one exists
+      ///   for the player's own claim, once the KingdomDecision/Supporter API is properly spiked - this v1 always
+      ///   delivers the honest core (a real influence transfer) rather than a conditional promise tied to an
+      ///   event that might never fire.
+      /// </summary>
+      private static void SettleSupportClaimant(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true, IsLord: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         Clan backer = actorHero.Clan;
+
+         if (backer == null || backer == Clan.PlayerClan)
+         {
+            const string reason = "their own house is the player's own; there is no backing to lend.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (backer.Kingdom == null || Clan.PlayerClan?.Kingdom == null || backer.Kingdom != Clan.PlayerClan.Kingdom)
+         {
+            const string reason = "their house holds no seat in your own kingdom's court.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         int relation = actorHero.GetRelation(Hero.MainHero);
+         int amount = CourtActionPolicy.InfluenceGrant(relation);
+
+         if (amount <= 0 || !CourtActionPolicy.CanAffordInfluenceGrant(backer.Influence, amount))
+         {
+            const string reason = "their house cannot spare the influence just now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         ChangeClanInfluenceAction.Apply(backer, -amount);
+         ChangeClanInfluenceAction.Apply(Clan.PlayerClan, amount);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"{actorName} throws their house's weight behind you (+{amount} influence).", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} publicly backed the player's claim with {amount} influence.");
       }
 
       /// <summary>
