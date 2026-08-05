@@ -213,7 +213,26 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   decision about the two factions themselves the way MakePeace is, so it keeps the ordinary
         ///   seated-member re-validation at the lift (CouncilLift.SettleReleasePrisoner).
         /// </summary>
-        ReleasePrisoner
+        ReleasePrisoner,
+
+        /// <summary>
+        ///   Partie 1 (COUNCIL_ACTIONS.md's lend_troops, Gabriel's own CONDITIONS, the highest-detail item in the
+        ///   spec): a seated lord (ClanLords or WarCouncil, mirroring GiveGold's own two scopes) commits real
+        ///   soldiers from their own party to the player. THREE ways this deliberately differs from the existing
+        ///   1:1 lend_troops verb (<see cref="CalradiaRemembers.Verbs.LendTroopsVerb" />/
+        ///   <c>CourtActionResolver.TryLendTroops</c>, cap 10, relation >= 20, lowest tier first): (A) Gabriel's
+        ///   condition A, "il ne faut pas qu'un Lord du conseil se deplace lui-meme... il envoie une delegation":
+        ///   the troops travel with a TEMPORARY delegation party the mod spawns and steers
+        ///   (CalradiaRemembers.Assemblies.CouncilTroopDeliveryBehavior), never the donor lord in person, so this
+        ///   is an ETALED (delayed) executor, unlike every other member-pledge kind above which settles instantly
+        ///   at the lift; (B) the gift is PERMANENT (Gabriel: "le don de troupes est permanent"), never a loan
+        ///   that returns; (C) never more than 25% of the donor's own party, split across tiers (Gabriel: "doit
+        ///   avoir une distribution de tiers avec faible, moyen, haut"), computed by the dedicated
+        ///   <see cref="CouncilTroopLoanPolicy" /> rather than the 1:1 verb's own cap/tier rule. No LLM-chosen amount
+        ///   (mirrors <see cref="GiveInfluence" />'s own doc): the split is computed fresh at the lift from the
+        ///   donor's LIVE roster, never a figure the model proposes.
+        /// </summary>
+        LendTroops
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -317,7 +336,17 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   <see cref="AnySeatedTributePayerAvailable" />'s own single-scope entry (the one roster where a
         ///   concession to a named enemy faction is meaningful at all).
         /// </summary>
-        AnySeatedPrisonerAvailableToRelease = 131072
+        AnySeatedPrisonerAvailableToRelease = 131072,
+
+        /// <summary>
+        ///   At least one seated lord (ClanLords or WarCouncil, mirroring MemberHasGold's own two-scope entry)
+        ///   currently leads their own party, is not at war with the player, and fields enough healthy troops that
+        ///   <see cref="CouncilTroopLoanPolicy.ComputeLoan" /> would loan more than zero: lend_troops' own gate. An
+        ///   APPROXIMATION, mirroring MemberHasGold's own loose gate: proves only that SOME loan is possible, never
+        ///   the exact tier split, which is computed fresh at the lift from the donor's LIVE roster regardless
+        ///   (CouncilLift.SettleLendTroops, bridge is law).
+        /// </summary>
+        AnySeatedMemberCanLendTroops = 262144
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -360,7 +389,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool anySeatedMemberCanPledgeAgainst = false,
                                     bool anySeatedAllyHasMarriageableKin = false,
                                     bool anySeatedTributePayerAvailable = false,
-                                    bool anySeatedPrisonerAvailableToRelease = false)
+                                    bool anySeatedPrisonerAvailableToRelease = false,
+                                    bool anySeatedMemberCanLendTroops = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -380,6 +410,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             AnySeatedAllyHasMarriageableKin = anySeatedAllyHasMarriageableKin;
             AnySeatedTributePayerAvailable = anySeatedTributePayerAvailable;
             AnySeatedPrisonerAvailableToRelease = anySeatedPrisonerAvailableToRelease;
+            AnySeatedMemberCanLendTroops = anySeatedMemberCanLendTroops;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -424,6 +455,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>The player holds a hero prisoner of the parley enemy's own faction. release_prisoner's own fact, see ResolutionRequirement.AnySeatedPrisonerAvailableToRelease.</summary>
         public bool AnySeatedPrisonerAvailableToRelease { get; }
+
+        /// <summary>At least one seated lord currently leads a party with troops to spare and is not at war with the player. lend_troops' own fact, see ResolutionRequirement.AnySeatedMemberCanLendTroops.</summary>
+        public bool AnySeatedMemberCanLendTroops { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -537,7 +571,17 @@ namespace CalradiaRemembers.Logic.Assemblies
             // leader to negotiate a concession with at all). Unlike Tribute (funded from the SEATED leader's own
             // purse), the concession here is the PLAYER's own: an enemy lord they hold prisoner is set free.
             new ResolutionDefinition(ResolutionKind.ReleasePrisoner, CouncilScope.Parley,
-                "Free a captive lord", ResolutionRequirement.AnySeatedPrisonerAvailableToRelease)
+                "Free a captive lord", ResolutionRequirement.AnySeatedPrisonerAvailableToRelease),
+
+            // Partie 1 (COUNCIL_ACTIONS.md's lend_troops, Gabriel's own CONDITIONS): TWO entries, mirroring
+            // GiveGold's own ClanLords/WarCouncil scoping exactly (a seated lord's own party is exactly as
+            // plausible a source of spare troops in either council; never Companions or Family, where a seated
+            // member is a hired hand or dynastic kin, not a lord fielding a real party of his own).
+            new ResolutionDefinition(ResolutionKind.LendTroops, CouncilScope.ClanLords,
+                "Lend you troops", ResolutionRequirement.AnySeatedMemberCanLendTroops),
+
+            new ResolutionDefinition(ResolutionKind.LendTroops, CouncilScope.WarCouncil,
+                "Lend you troops", ResolutionRequirement.AnySeatedMemberCanLendTroops)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -575,6 +619,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.SwapFiefs:          return "swap_fiefs";
                 case ResolutionKind.Tribute:             return "tribute";
                 case ResolutionKind.ReleasePrisoner:     return "release_prisoner";
+                case ResolutionKind.LendTroops:          return "lend_troops";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -643,7 +688,12 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   free_prisoner mechanic end to end (EndCaptivityAction.ApplyByReleasedByChoice plus the SAME
         ///   +relation bump the 1:1 release_prisoner verb already gives a freed captive,
         ///   CourtActionPolicy.ReleasePrisonerRelationBump): the player frees an enemy lord they hold prisoner
-        ///   as a concession to the seated counterpart's own house. The runtime teaches and lifts only
+        ///   as a concession to the seated counterpart's own house. LendTroops (CouncilLift.SettleLendTroops),
+        ///   the highest-detail item in COUNCIL_ACTIONS.md's Partie 1, is the FIRST executor whose deed does not
+        ///   settle at the lift itself: it hands the tier-split loan (CouncilTroopLoanPolicy) to a temporary delegation
+        ///   party (CalradiaRemembers.Assemblies.CouncilTroopDeliveryBehavior) that physically travels to the
+        ///   player and transfers the troops (a PERMANENT gift, Gabriel's condition B) on arrival, never the
+        ///   donor lord in person (condition A). The runtime teaches and lifts only
         ///   executable kinds, so the table never promises a deed it cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
@@ -655,7 +705,8 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.GrantFief || kind == ResolutionKind.RevokeFief
             || kind == ResolutionKind.ExpelFromClan || kind == ResolutionKind.PledgeAgainst
             || kind == ResolutionKind.ArrangeMarriage || kind == ResolutionKind.SwapFiefs
-            || kind == ResolutionKind.Tribute || kind == ResolutionKind.ReleasePrisoner;
+            || kind == ResolutionKind.Tribute || kind == ResolutionKind.ReleasePrisoner
+            || kind == ResolutionKind.LendTroops;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

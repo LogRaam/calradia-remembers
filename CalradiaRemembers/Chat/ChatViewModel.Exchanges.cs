@@ -624,9 +624,13 @@ namespace CalradiaRemembers.Chat
                // at the lift and at every daily tick regardless. AnySeatedPrisonerAvailableToRelease rounds out
                // the Parley toolkit, release_prisoner (2026-08-04): Parley-only, the player holds a hero
                // prisoner of the SAME faction the parley was convened against; the named captive is re-resolved
-               // and re-checked against that same faction at the lift regardless.
+               // and re-checked against that same faction at the lift regardless. AnySeatedMemberCanLendTroops
+               // is Partie 1's own fact, lend_troops (COUNCIL_ACTIONS.md, Gabriel's own CONDITIONS, the
+               // highest-detail item in the spec): ClanLords/WarCouncil only, at least one seated lord currently
+               // leads a party with troops to spare and is not at war with the player; the real tier split is
+               // computed fresh at the lift from the donor's LIVE roster regardless (CouncilLift.SettleLendTroops).
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

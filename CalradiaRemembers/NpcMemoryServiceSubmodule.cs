@@ -258,6 +258,12 @@ namespace CalradiaRemembers
          // Idle (no active tributes) outside a Parley that actually strikes one, so it is not gated with the
          // rest of the Assembly pillar either.
          campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.CouncilTributeBehavior());
+         // Council troop delegation (Partie 1, "lend_troops", the highest-detail item in COUNCIL_ACTIONS.md): the
+         // first council executor whose deed does not settle at the lift itself - a real MobileParty travels the
+         // map with the loaned troops already aboard, always on, mirroring CouncilStipendBehavior/
+         // CouncilTributeBehavior above. Idle (no in-flight deliveries) outside a council that actually strikes
+         // one, so it is not gated with the rest of the Assembly pillar either.
+         campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.CouncilTroopDeliveryBehavior());
          // ASSEMBLY pillar: GATED OFF for release (built, not yet play-tested in a live campaign). To test it in
          // a DEV build, UNCOMMENT the two lines below, then stage a session fast with cr.assembly_test [n] and
          // cr.assembly_open (bypasses the travel wait). It ships as a real feature only once validated.

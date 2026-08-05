@@ -97,9 +97,14 @@ namespace CalradiaRemembers.Assemblies
       ///   An APPROXIMATION, mirroring anySeatedTributePayerAvailable's own loose gate: proves only that SOME
       ///   real concession exists, never the exact captive the LLM will actually name; the named captive is
       ///   re-resolved and re-checked against the SAME faction at the lift regardless (CouncilLift.SettleReleasePrisoner,
-      ///   bridge is law).
+      ///   bridge is law). <paramref name="anySeatedMemberCanLendTroops" /> is Partie 1's own fact, lend_troops
+      ///   (COUNCIL_ACTIONS.md, Gabriel's own CONDITIONS; see ChatViewModel.AnySeatedMemberCanLendTroops):
+      ///   ClanLords/WarCouncil only (mirroring anySeatedMemberHasGold's own two scopes), at least one seated
+      ///   lord currently leads a party with troops to spare and is not at war with the player; the real tier
+      ///   split (CouncilTroopLoanPolicy.ComputeLoan) is computed fresh at the lift from the donor's LIVE roster
+      ///   regardless (CouncilLift.SettleLendTroops, bridge is law).
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false, bool anySeatedPrisonerAvailableToRelease = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false, bool anySeatedPrisonerAvailableToRelease = false, bool anySeatedMemberCanLendTroops = false)
       {
          try
          {
@@ -121,7 +126,8 @@ namespace CalradiaRemembers.Assemblies
                anySeatedMemberCanPledgeAgainst: anySeatedMemberCanPledgeAgainst,
                anySeatedAllyHasMarriageableKin: anySeatedAllyHasMarriageableKin,
                anySeatedTributePayerAvailable: anySeatedTributePayerAvailable,
-               anySeatedPrisonerAvailableToRelease: anySeatedPrisonerAvailableToRelease);
+               anySeatedPrisonerAvailableToRelease: anySeatedPrisonerAvailableToRelease,
+               anySeatedMemberCanLendTroops: anySeatedMemberCanLendTroops);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

@@ -243,6 +243,11 @@ namespace CalradiaRemembers.Chat
 
                return;
 
+            case ResolutionKind.LendTroops:
+               SettleLendTroops(ledger, entry, actorHero, actorName, report);
+
+               return;
+
             case ResolutionKind.Quest:
             default:
                SettleQuest(ledger, entry, actorHero, actorName, giver, behavior, gameDay, report);
@@ -1422,6 +1427,88 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"You free {prisonerName}, returning them to {actorName}.", true);
          ModLog.Info($"[COUNCIL] lift: released {prisonerName} from captivity as a parley concession to {actorName}.");
+      }
+
+      /// <summary>
+      ///   Partie 1 (COUNCIL_ACTIONS.md's lend_troops, Gabriel's own CONDITIONS, the highest-detail item in the
+      ///   spec): a seated lord commits real soldiers from their own party to the player. No LLM-proposed amount
+      ///   to clamp (entry.TargetHint carries no grounding for this kind, mirrors GiveInfluence's own doc): the
+      ///   tier split is computed HERE, fresh, from the donor's LIVE roster (<see cref="TroopTierBucketer.BucketHealthyTroops" />
+      ///   -> <see cref="CouncilTroopLoanPolicy.ComputeLoan" />), never trusted from offer time. Guards re-checked here
+      ///   (bridge is law): alive, leads their own party, not at war with the player (Gabriel's condition D). The
+      ///   actual deed is NOT instantaneous like every other Partie 1 kind above: Gabriel's condition A ("il
+      ///   envoie une delegation") makes this an ETALED executor - <see cref="CouncilTroopDeliveryBehavior.TryStart" />
+      ///   either sets a real delegation party in motion (reported "on the way", Applied only once it actually
+      ///   arrives - the entry itself is marked Applied here because the PROMISE was kept the moment the
+      ///   delegation set out with the troops already aboard, mirroring how SettleDispatchMission marks a
+      ///   companion's errand Applied at departure, not at return) or falls back to an instant transfer (this
+      ///   build's own documented deviation, see CouncilTroopDeliveryBehavior's own header) when no minor hero of
+      ///   the donor's own house was free to lead one.
+      /// </summary>
+      private static void SettleLendTroops(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         MobileParty donorParty = actorHero.PartyBelongedTo;
+
+         if (donorParty == null || donorParty.LeaderHero != actorHero)
+         {
+            const string reason = "they no longer lead a party of their own.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (actorHero.MapFaction != null && Hero.MainHero?.MapFaction != null &&
+             FactionManager.IsAtWarAgainstFaction(actorHero.MapFaction, Hero.MainHero.MapFaction))
+         {
+            const string reason = "your two houses are at war; they will not send you soldiers now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         TierTroopCounts partyCounts = TroopTierBucketer.BucketHealthyTroops(donorParty.MemberRoster);
+         TierTroopCounts loan = CouncilTroopLoanPolicy.ComputeLoan(partyCounts);
+
+         if (loan.Total <= 0 || CouncilTroopDeliveryBehavior.Instance == null)
+         {
+            const string reason = "they have no troops left to spare right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         TroopDeliveryOutcome outcome = CouncilTroopDeliveryBehavior.Instance.TryStart(actorHero, loan, out TierTroopCounts moved, out string failReason);
+
+         if (outcome == TroopDeliveryOutcome.Failed)
+         {
+            ledger.MarkFailed(entry.Id, failReason ?? "the pledge could not be carried out.");
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {failReason}", false);
+
+            return;
+         }
+
+         ledger.MarkApplied(entry.Id);
+
+         if (outcome == TroopDeliveryOutcome.Delegation)
+            report?.Invoke($"{actorName} sends {moved.Total} soldiers to you; a delegation is already on the road and should reach you before long.", true);
+         else
+            // Instant fallback (this build's own documented deviation): honest about there being no delegation to
+            // watch for, never a silent substitution of the promise it actually kept.
+            report?.Invoke($"{actorName} sends {moved.Total} soldiers to you; word reaches you that riders slipped through in the night and they are already among your ranks.", true);
+
+         ModLog.Info($"[COUNCIL] lift: {actorName} lent the player {moved.Total} troops ({moved.Low}/{moved.Medium}/{moved.High}), outcome {outcome}.");
       }
 
       /// <summary>

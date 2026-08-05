@@ -15,6 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Commitments;
+using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
 using NpcMemoryService.Core.Compression;
@@ -321,6 +322,36 @@ namespace CalradiaRemembers.Chat
             if (!CourtActionPolicy.CanAffordInfluenceGrant(giver.Influence, amount)) continue;
 
             return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>
+      ///   Partie 1 (COUNCIL_ACTIONS.md's lend_troops, Gabriel's own CONDITIONS): lend_troops' own fact. True
+      ///   once any seated lord (ClanLords or WarCouncil, mirroring AnySeatedMemberHasGold's own two-scope entry)
+      ///   currently leads their own party, is NOT at war with the player (Gabriel's condition D), and fields
+      ///   enough healthy troops that <see cref="CouncilTroopLoanPolicy.ComputeLoan" /> would loan more than zero once
+      ///   bucketed by <see cref="TroopTierBucketer.BucketHealthyTroops" />. Mirrors AnySeatedMemberHasGold's own
+      ///   loose gate (proves only that SOME loan is possible, never the exact tier split): the real split is
+      ///   computed fresh at the lift from the donor's LIVE roster regardless (CouncilLift.SettleLendTroops,
+      ///   bridge is law).
+      /// </summary>
+      private bool AnySeatedMemberCanLendTroops()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero is not {IsAlive: true} || hero.IsPrisoner) continue;
+
+            MobileParty party = hero.PartyBelongedTo;
+            if (party == null || party.LeaderHero != hero) continue;
+
+            if (hero.MapFaction != null && Hero.MainHero?.MapFaction != null &&
+                FactionManager.IsAtWarAgainstFaction(hero.MapFaction, Hero.MainHero.MapFaction)) continue;
+
+            TierTroopCounts counts = TroopTierBucketer.BucketHealthyTroops(party.MemberRoster);
+            if (CouncilTroopLoanPolicy.ComputeLoan(counts).Total > 0) return true;
          }
 
          return false;
