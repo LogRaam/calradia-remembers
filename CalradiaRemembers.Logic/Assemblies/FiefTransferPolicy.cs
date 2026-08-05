@@ -67,5 +67,33 @@ namespace CalradiaRemembers.Logic.Assemblies
         /// </summary>
         public static bool CanSwap(bool playerIsKingdomLeader, bool playerFiefOwnedByPlayerClan, bool vassalFiefOwnedBySeatedVassalClan)
             => playerIsKingdomLeader && playerFiefOwnedByPlayerClan && vassalFiefOwnedBySeatedVassalClan;
+
+        /// <summary>
+        ///   grant_fief's 1:1 conversation TEACHING gate (2026-08-05, the suzerain-command batch brought to BOTH the
+        ///   council and 1:1 pipelines). It reduces the SAME eligibility the council's own offering proves before it
+        ///   teaches grant_fief at the table to the three facts the mod's EncounterContextBuilder reads about the ONE
+        ///   conversation NPC: the player must actually RULE a kingdom (only a suzerain grants a crown fief), the
+        ///   conversation NPC must be a VASSAL of a separate house in that same kingdom (a fief is granted ACROSS
+        ///   houses, never to one's own clan, and only to a lord who owes the crown fealty), and the player's own
+        ///   clan must hold at least one grantable town or castle. Pure and total, mirroring
+        ///   <see cref="GovernorAppointmentPolicy.CanOfferAppointment" />: the bridge re-checks every one of these
+        ///   again at commit time (<c>CourtActionResolver.TryGrantFief</c>), so a true answer here only ever OFFERS a
+        ///   teaching, it never seals a deed.
+        /// </summary>
+        public static bool CanOfferGrant(bool playerIsKingdomLeader, bool npcIsVassalInPlayerKingdom, bool hasGrantableFief)
+            => playerIsKingdomLeader && npcIsVassalInPlayerKingdom && hasGrantableFief;
+
+        /// <summary>
+        ///   revoke_fief's 1:1 conversation TEACHING gate (2026-08-05, the suzerain-command batch). It reduces the
+        ///   council's own revoke offering eligibility to the three facts the mod reads about the ONE conversation
+        ///   NPC: the player must actually RULE a kingdom (only a suzerain revokes a crown fief), the conversation NPC
+        ///   must be a VASSAL of a separate house in that same kingdom (a clan's own fiefs already belong to it, so
+        ///   there is nothing to revoke from one's own clan), and that vassal's own clan must currently hold at least
+        ///   one revocable town or castle. Pure and total, mirroring <see cref="CanOfferGrant" />; the bridge
+        ///   re-checks every fact again at commit time (<c>CourtActionResolver.TryRevokeFief</c>), so a true answer
+        ///   here only ever OFFERS a teaching.
+        /// </summary>
+        public static bool CanOfferRevoke(bool playerIsKingdomLeader, bool npcIsVassalInPlayerKingdom, bool npcHoldsRevocableFief)
+            => playerIsKingdomLeader && npcIsVassalInPlayerKingdom && npcHoldsRevocableFief;
     }
 }

@@ -7,8 +7,10 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Commitments;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.WorldEvents;
@@ -637,6 +639,178 @@ namespace CalradiaRemembers.GameState
          }
       }
 
+      // ── grant_fief (suzerain-command verb, council + 1:1, 2026-08-05) ──
+
+      /// <summary>
+      ///   The ONE shared code path both grant_fief callers run (the 1:1 action,
+      ///   <c>BannerlordGameStateBridge.ExecuteGrantFief</c>, and the council's own resolution,
+      ///   <c>CalradiaRemembers.Chat.CouncilLift.SettleGrantFief</c>), factored out here (2026-08-05, the
+      ///   suzerain-command batch, mirroring <see cref="TryAppointGovernor" />'s own extraction) so a fief grant
+      ///   behaves identically whichever path granted it. Every guard the council executor used to check inline is
+      ///   re-checked HERE, in the same order (the prompt is advice, the executor is law): the recipient is alive and
+      ///   not held prisoner, they belong to a SEPARATE house (a fief is CLAN-owned in vanilla, so a grant is
+      ///   inherently cross-clan; the player's own clan cannot grant a fief to itself), the player STILL rules a
+      ///   kingdom AND the named fief is a town or castle their own clan STILL holds - the pure
+      ///   <see cref="FiefTransferPolicy.CanGrant" /> gate. A governor in post on the ceded fief is released first
+      ///   (a released PLAYER companion is sent back to the main party rather than stranded in now-foreign land),
+      ///   then the fief passes via <see cref="ChangeOwnerOfSettlementAction.ApplyByKingDecision" /> and the FIXED
+      ///   influence cost (<see cref="FiefTransferPolicy.GrantInfluenceCost" />, "on ne veut pas que ce soit facile")
+      ///   is charged to the player's clan. Each caller writes its OWN message off the returned verdict.
+      /// </summary>
+      public static GrantFiefVerdict TryGrantFief(Hero recipient, string fiefName)
+      {
+         if (recipient is not {IsAlive: true} || recipient.IsPrisoner)
+            return new GrantFiefVerdict(GrantFiefResult.RecipientUnavailable, null);
+
+         // Defensive, adopted verbatim from the council executor: a fief passes to another HOUSE, so the recipient
+         // must be a genuine OTHER clan (the player's own clan cannot grant a crown fief to itself).
+         if (recipient.Clan == null || recipient.Clan == Clan.PlayerClan)
+            return new GrantFiefVerdict(GrantFiefResult.RecipientNotSeparateHouse, null);
+
+         bool playerIsKingdomLeader = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
+
+         // Town or castle only (a village is not cedable on its own), and STILL a crown fief the player's own clan
+         // holds right now: a fief already given or lost between the pledge/prompt and here must refuse rather than
+         // conjure a transfer from nothing.
+         Settlement fief = Settlement.All?.FirstOrDefault(s =>
+            (s.IsTown || s.IsCastle)
+            && s.OwnerClan == Clan.PlayerClan
+            && string.Equals(s.Name?.ToString(), fiefName, StringComparison.OrdinalIgnoreCase));
+
+         if (!FiefTransferPolicy.CanGrant(playerIsKingdomLeader, fief != null))
+            return new GrantFiefVerdict(playerIsKingdomLeader ? GrantFiefResult.NoSuchFief : GrantFiefResult.PlayerNotKingdomLeader, null);
+
+         // Kimi review (COUNCIL_ACTIONS.md, grant_fief cas limites): a fief ceded while a governor is in post would
+         // otherwise leave that governor a wandering hero in what is now foreign land. Release the post first
+         // (mirroring TryRejoinParty's own governor-release), and send a released PLAYER companion back to the main
+         // party so they are never simply stranded.
+         Hero formerGovernor = fief.Town?.Governor;
+         if (formerGovernor != null)
+         {
+            ChangeGovernorAction.RemoveGovernorOf(formerGovernor);
+
+            if (formerGovernor.IsPlayerCompanion && formerGovernor.PartyBelongedTo != MobileParty.MainParty)
+               AddHeroToPartyAction.Apply(formerGovernor, MobileParty.MainParty, false);
+         }
+
+         ChangeOwnerOfSettlementAction.ApplyByKingDecision(recipient, fief);
+
+         // Author's condition: "on ne veut pas que ce soit facile". A fixed, unconditional influence cost, never
+         // gated on the player's current reserve: the sovereign's OWN prerogative to grant is never blocked by a
+         // thin treasury, but it is never a free favour either.
+         if (Clan.PlayerClan != null) ChangeClanInfluenceAction.Apply(Clan.PlayerClan, -FiefTransferPolicy.GrantInfluenceCost);
+
+         return new GrantFiefVerdict(GrantFiefResult.Granted, fief);
+      }
+
+      // ── revoke_fief (suzerain-command verb, council + 1:1, 2026-08-05) ──
+
+      /// <summary>
+      ///   The ONE shared code path both revoke_fief callers run (the 1:1 action,
+      ///   <c>BannerlordGameStateBridge.ExecuteRevokeFief</c>, and the council's own resolution,
+      ///   <c>CalradiaRemembers.Chat.CouncilLift.SettleRevokeFief</c>), factored out here (2026-08-05, the
+      ///   suzerain-command batch, grant_fief's grim mirror). Every guard the council executor used to check inline is
+      ///   re-checked HERE, in the same order (the prompt is advice, the executor is law): the vassal is alive, they
+      ///   belong to a SEPARATE house (a clan's own fiefs already belong to it, so there is nothing to revoke from
+      ///   one's own clan), the player STILL rules a kingdom AND the named fief is a town or castle the SPOLIATED
+      ///   vassal's own clan STILL holds - the pure <see cref="FiefTransferPolicy.CanRevoke" /> gate. On success the
+      ///   fief returns to the crown via <see cref="ChangeOwnerOfSettlementAction.ApplyByKingDecision" />, and the
+      ///   council's grave side effects fire HERE so both paths land them identically: a MAXIMUM
+      ///   <see cref="GrudgeSource.FiefRevoked" /> grudge through the REAL gate
+      ///   (<see cref="GrudgeBehavior.TryPlant" />, anti-noise guardrails, per-holder cap, dated by
+      ///   <paramref name="gameDay" />) plus a real relation hit (<see cref="FiefTransferPolicy.RevokeRelationHit" />).
+      ///   Each caller writes its OWN message off the returned verdict.
+      /// </summary>
+      public static RevokeFiefVerdict TryRevokeFief(Hero vassal, string fiefName, int gameDay)
+      {
+         if (vassal is not {IsAlive: true})
+            return new RevokeFiefVerdict(RevokeFiefResult.VassalUnavailable, null);
+
+         if (vassal.Clan == null || vassal.Clan == Clan.PlayerClan)
+            return new RevokeFiefVerdict(RevokeFiefResult.VassalNotSeparateHouse, null);
+
+         bool playerIsKingdomLeader = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
+
+         Clan spoliatedClan = vassal.Clan;
+
+         // STILL owned by the SPOLIATED vassal's own clan right now: naming a fief they never held, or already lost,
+         // would confiscate nothing.
+         Settlement fief = Settlement.All?.FirstOrDefault(s =>
+            (s.IsTown || s.IsCastle)
+            && s.OwnerClan == spoliatedClan
+            && string.Equals(s.Name?.ToString(), fiefName, StringComparison.OrdinalIgnoreCase));
+
+         if (!FiefTransferPolicy.CanRevoke(playerIsKingdomLeader, fief != null))
+            return new RevokeFiefVerdict(playerIsKingdomLeader ? RevokeFiefResult.NoSuchFief : RevokeFiefResult.PlayerNotKingdomLeader, null);
+
+         ChangeOwnerOfSettlementAction.ApplyByKingDecision(Hero.MainHero, fief);
+
+         // Author's condition: one of the gravest punishments the table can hand down. Planted through the REAL
+         // grudge gate (anti-noise guardrails, per-holder cap) rather than force-inserted, so a maximum magnitude
+         // still respects the same admission rule every other grudge in the game does.
+         GrudgeBehavior.Instance?.TryPlant(vassal, Hero.MainHero, GrudgeSource.FiefRevoked,
+            $"stripped of {fief.Name} by the crown's own decision", FiefTransferPolicy.RevokeGrudgeMagnitude,
+            knownToPlayer: true, gameDay);
+
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(vassal, Hero.MainHero, FiefTransferPolicy.RevokeRelationHit, false);
+
+         return new RevokeFiefVerdict(RevokeFiefResult.Revoked, fief);
+      }
+
+      // ── expel_from_clan (suzerain-command verb, council + 1:1, 2026-08-05) ──
+
+      /// <summary>
+      ///   The ONE shared code path both expel_from_clan callers run (the 1:1 action,
+      ///   <c>BannerlordGameStateBridge.ExecuteExpelFromClan</c>, and the council's own resolution,
+      ///   <c>CalradiaRemembers.Chat.CouncilLift.SettleExpelFromClan</c>), factored out here (2026-08-05, the
+      ///   suzerain-command batch). Every guard the council executor used to check inline is re-checked HERE, in the
+      ///   same order (the prompt is advice, the executor is law): the companion is alive, the pure
+      ///   <see cref="ExpulsionPolicy.CanExpel" /> gate holds (the player STILL leads their clan, the target is a
+      ///   live COMPANION of that same clan, and is not the player's own spouse - that bond has its own dissolution
+      ///   channel), and they are not AWAY on a companion-mission errand (refused rather than expelled out from under
+      ///   an in-flight errand). On success the companion is cast out via
+      ///   <see cref="RemoveCompanionAction.ApplyByFire" /> (they become a Fugitive, ApplyByFire also releasing any
+      ///   held governorship internally; the explicit capture below only lets the caller name the vacated fief), and
+      ///   the council's side effects fire HERE so both paths land them identically: a
+      ///   <see cref="GrudgeSource.Expelled" /> grudge through the REAL gate (<see cref="GrudgeBehavior.TryPlant" />,
+      ///   dated by <paramref name="gameDay" />) plus a real relation hit (<see cref="ExpulsionPolicy.RelationHit" />).
+      ///   The verdict reports whether they governed a fief and its name so each caller can word its own message.
+      /// </summary>
+      public static ExpelFromClanVerdict TryExpelFromClan(Hero companion, int gameDay)
+      {
+         if (companion is not {IsAlive: true})
+            return new ExpelFromClanVerdict(ExpelFromClanResult.ActorUnavailable, false, null);
+
+         bool playerIsClanLeader = Clan.PlayerClan?.Leader == Hero.MainHero;
+         bool isSpouse = companion == Hero.MainHero?.Spouse;
+
+         if (!ExpulsionPolicy.CanExpel(playerIsClanLeader, companion.IsPlayerCompanion, isSpouse, companion.IsAlive))
+            return new ExpelFromClanVerdict(
+               !playerIsClanLeader ? ExpelFromClanResult.PlayerNotClanLeader
+                  : !companion.IsPlayerCompanion ? ExpelFromClanResult.NotACompanion
+                     : ExpelFromClanResult.IsSpouse,
+               false, null);
+
+         // Mechanical guard beyond the pure policy: a companion AWAY on a companion-mission errand is refused
+         // outright rather than expelled out from under an in-flight errand, mirroring TryDispatchMission's own
+         // re-check of the same state.
+         if (CompanionMissionBehavior.Instance != null && CompanionMissionBehavior.Instance.IsAway(companion.StringId))
+            return new ExpelFromClanVerdict(ExpelFromClanResult.AwayOnErrand, false, null);
+
+         bool wasGovernor = companion.GovernorOf != null;
+         string governedFief = wasGovernor ? companion.GovernorOf.Name?.ToString() : null;
+
+         RemoveCompanionAction.ApplyByFire(Clan.PlayerClan, companion);
+
+         GrudgeBehavior.Instance?.TryPlant(companion, Hero.MainHero, GrudgeSource.Expelled,
+            "cast out of the clan by its own chief", ExpulsionPolicy.GrudgeMagnitude,
+            knownToPlayer: true, gameDay);
+
+         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(companion, Hero.MainHero, ExpulsionPolicy.RelationHit, false);
+
+         return new ExpelFromClanVerdict(ExpelFromClanResult.Expelled, wasGovernor, governedFief);
+      }
+
       // ── release_prisoner ─────────────────────────────────────────────────
 
       /// <summary>
@@ -972,5 +1146,119 @@ namespace CalradiaRemembers.GameState
       public DispatchMissionResult Result { get; }
       public CouncilMissionType Type { get; }
       public string Message { get; }
+   }
+
+   /// <summary>The outcome of <see cref="CourtActionResolver.TryGrantFief" />, read by each caller to report its own message.</summary>
+   public enum GrantFiefResult
+   {
+      /// <summary>The fief passed to the recipient's house: <see cref="GrantFiefVerdict.Fief" /> is the settlement granted.</summary>
+      Granted,
+
+      /// <summary>The recipient is dead, missing, or held prisoner and cannot receive a fief.</summary>
+      RecipientUnavailable,
+
+      /// <summary>The recipient belongs to the player's own house; a crown fief is granted across houses, not to one's own clan.</summary>
+      RecipientNotSeparateHouse,
+
+      /// <summary>The player no longer rules a kingdom, so has no crown fief to grant.</summary>
+      PlayerNotKingdomLeader,
+
+      /// <summary>No town or castle the player's clan still holds answers to the fief name given.</summary>
+      NoSuchFief
+   }
+
+   /// <summary>
+   ///   The verdict of <see cref="CourtActionResolver.TryGrantFief" />: the result and, only on
+   ///   <see cref="GrantFiefResult.Granted" />, the resolved <see cref="Fief" /> so the caller can name it. Null
+   ///   <see cref="Fief" /> on every failure, where no fief was ever resolved or transferred.
+   /// </summary>
+   public readonly struct GrantFiefVerdict
+   {
+      public GrantFiefVerdict(GrantFiefResult result, Settlement fief)
+      {
+         Result = result;
+         Fief = fief;
+      }
+
+      public GrantFiefResult Result { get; }
+      public Settlement Fief { get; }
+   }
+
+   /// <summary>The outcome of <see cref="CourtActionResolver.TryRevokeFief" />, read by each caller to report its own message.</summary>
+   public enum RevokeFiefResult
+   {
+      /// <summary>The fief was stripped back to the crown: <see cref="RevokeFiefVerdict.Fief" /> is the settlement revoked.</summary>
+      Revoked,
+
+      /// <summary>The vassal is dead or missing and no fief could be revoked from them.</summary>
+      VassalUnavailable,
+
+      /// <summary>The vassal holds no separate house whose fief could be revoked (a clan's own fiefs already belong to it).</summary>
+      VassalNotSeparateHouse,
+
+      /// <summary>The player no longer rules a kingdom, so cannot revoke a fief in its name.</summary>
+      PlayerNotKingdomLeader,
+
+      /// <summary>No town or castle the vassal's own clan still holds answers to the fief name given.</summary>
+      NoSuchFief
+   }
+
+   /// <summary>
+   ///   The verdict of <see cref="CourtActionResolver.TryRevokeFief" />: the result and, only on
+   ///   <see cref="RevokeFiefResult.Revoked" />, the resolved <see cref="Fief" /> so the caller can name it. Null
+   ///   <see cref="Fief" /> on every failure, where no fief was ever resolved or confiscated.
+   /// </summary>
+   public readonly struct RevokeFiefVerdict
+   {
+      public RevokeFiefVerdict(RevokeFiefResult result, Settlement fief)
+      {
+         Result = result;
+         Fief = fief;
+      }
+
+      public RevokeFiefResult Result { get; }
+      public Settlement Fief { get; }
+   }
+
+   /// <summary>The outcome of <see cref="CourtActionResolver.TryExpelFromClan" />, read by each caller to report its own message.</summary>
+   public enum ExpelFromClanResult
+   {
+      /// <summary>The companion was cast out (see <see cref="ExpelFromClanVerdict.WasGovernor" /> for the governor-release side effect).</summary>
+      Expelled,
+
+      /// <summary>The companion is dead or missing and cannot be cast out.</summary>
+      ActorUnavailable,
+
+      /// <summary>The player no longer leads their clan, so cannot cast a companion out of it.</summary>
+      PlayerNotClanLeader,
+
+      /// <summary>The target is no longer one of the player's clan companions.</summary>
+      NotACompanion,
+
+      /// <summary>The target is the player's own spouse; that bond can only be ended through end_marriage/divorce.</summary>
+      IsSpouse,
+
+      /// <summary>The companion is away on a companion-mission errand and must be recalled before being cast out.</summary>
+      AwayOnErrand
+   }
+
+   /// <summary>
+   ///   The verdict of <see cref="CourtActionResolver.TryExpelFromClan" />: the result and, only on
+   ///   <see cref="ExpelFromClanResult.Expelled" />, whether the companion had to be relieved of a governorship first
+   ///   (<see cref="WasGovernor" />) and the <see cref="GovernedFief" /> they held, so the caller can word its message.
+   ///   False / null on every other result and when they governed nothing.
+   /// </summary>
+   public readonly struct ExpelFromClanVerdict
+   {
+      public ExpelFromClanVerdict(ExpelFromClanResult result, bool wasGovernor, string governedFief)
+      {
+         Result = result;
+         WasGovernor = wasGovernor;
+         GovernedFief = governedFief;
+      }
+
+      public ExpelFromClanResult Result { get; }
+      public bool WasGovernor { get; }
+      public string GovernedFief { get; }
    }
 }

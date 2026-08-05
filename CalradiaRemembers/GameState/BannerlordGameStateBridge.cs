@@ -16,6 +16,7 @@ using CalradiaRemembers.Items;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
+using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
@@ -233,6 +234,12 @@ namespace CalradiaRemembers.GameState
                return ExecuteRejoinParty(npcHero);
             case "dispatch_mission":
                return ExecuteDispatchMission(action, npcHero);
+            case "grant_fief":
+               return ExecuteGrantFief(action, npcHero, context);
+            case "revoke_fief":
+               return ExecuteRevokeFief(action, npcHero);
+            case "expel_from_clan":
+               return ExecuteExpelFromClan(npcHero);
             case "harm_prisoner":
                return ExecuteHarmPrisoner(action);
             case "impregnation_risk":
@@ -1905,6 +1912,175 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] dispatch_mission failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   grant_fief (2026-08-05, suzerain-command batch, council + 1:1): the player, AS SOVEREIGN, grants one of
+      ///   their crown fiefs to the conversation NPC's house. The conversation NPC IS the recipient vassal; the fief
+      ///   is named in the action's target_fief field. This 1:1 executor grounds the action from the conversation
+      ///   (the recipient must be of a SEPARATE house, since a crown fief is granted across houses, never to the
+      ///   player's own clan), then calls the SAME shared core the council resolution runs
+      ///   (<see cref="CourtActionResolver.TryGrantFief" />), which re-validates every remaining invariant (recipient
+      ///   free, player still rules a kingdom, the fief is still one of ours) and charges the influence cost before
+      ///   the fief passes. Only TAUGHT when <see cref="EncounterContext.NpcCanBeGrantedFief" /> holds, but every
+      ///   guard is re-checked here and in the core: the prompt is advice, the bridge is law. A blank or ungroundable
+      ///   grant is surfaced as a refusal (never a silent null) so the transcript OOC note fires.
+      /// </summary>
+      private static ActionOutcome ExecuteGrantFief(GameAction action, Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            NpcProfile profile = context?.Profile;
+
+            if (npcHero is not {IsAlive: true} || npcHero.IsPrisoner) return null;
+            if (profile == null || Hero.MainHero == null) return null;
+
+            // 1:1 grounding: a crown fief passes to another HOUSE, so the conversation NPC must belong to a clan
+            // other than the player's own. The shared core re-checks the player's rule, the fief, and everything
+            // else; this cross-house check is the 1:1 path's own grounding of WHO receives the grant.
+            if (npcHero.Clan == null || npcHero.Clan == Clan.PlayerClan)
+               return ActionOutcome.Refused($"({npcHero.Name} is of your own house; a crown fief is granted across houses.)");
+
+            action.Parameters.TryGetValue("target_fief", out string fiefName);
+
+            // Was a silent no-op class this project eliminates: a fief granted with none named.
+            if (string.IsNullOrWhiteSpace(fiefName))
+               return ActionOutcome.Refused(SilentRefusalMessages.GrantFiefMissingFief());
+
+            GrantFiefVerdict verdict = CourtActionResolver.TryGrantFief(npcHero, fiefName);
+
+            switch (verdict.Result)
+            {
+               case GrantFiefResult.RecipientUnavailable:
+                  return ActionOutcome.Refused($"({npcHero.Name} cannot receive a fief right now.)");
+               case GrantFiefResult.RecipientNotSeparateHouse:
+                  return ActionOutcome.Refused($"({npcHero.Name} is of your own house; a crown fief is granted across houses.)");
+               case GrantFiefResult.PlayerNotKingdomLeader:
+                  return ActionOutcome.Refused("(You no longer rule a kingdom, and cannot grant a crown fief.)");
+               case GrantFiefResult.NoSuchFief:
+                  return ActionOutcome.Refused($"(Your clan holds no crown fief called '{fiefName}' to grant.)");
+            }
+
+            string msg = $"{verdict.Fief.Name} passes to {npcHero.Name}'s house by your decree (-{FiefTransferPolicy.GrantInfluenceCost} influence).";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+            ModLog.Info($"[ACTION] grant_fief: {verdict.Fief.Name} granted to {npcHero.Name}'s clan by royal decision.");
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] grant_fief failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   revoke_fief (2026-08-05, suzerain-command batch, council + 1:1): the player, AS SOVEREIGN, strips a crown
+      ///   fief BACK from the conversation NPC's house. The conversation NPC IS the vassal losing the fief; the fief
+      ///   is named in the action's target_fief field. This 1:1 executor grounds the action from the conversation
+      ///   (the vassal must be of a SEPARATE house, since a clan's own fiefs already belong to it), then calls the
+      ///   SAME shared core the council resolution runs (<see cref="CourtActionResolver.TryRevokeFief" />), which
+      ///   re-validates every invariant (vassal alive, player still rules a kingdom, the fief is still theirs) and
+      ///   lands the grave side effects (a MAXIMUM FiefRevoked grudge through the real gate, the relation hit) before
+      ///   the fief returns to the crown. Only TAUGHT when <see cref="EncounterContext.NpcCanHaveFiefRevoked" />
+      ///   holds, but every guard is re-checked here and in the core: the prompt is advice, the bridge is law. A blank
+      ///   or ungroundable revocation is surfaced as a refusal so the OOC note fires.
+      /// </summary>
+      private static ActionOutcome ExecuteRevokeFief(GameAction action, Hero npcHero)
+      {
+         try
+         {
+            if (npcHero is not {IsAlive: true}) return null;
+
+            // 1:1 grounding: only a fief of a SEPARATE house can be revoked (a clan's own fiefs already belong to
+            // it). The shared core re-checks the player's rule and the fief itself.
+            if (npcHero.Clan == null || npcHero.Clan == Clan.PlayerClan)
+               return ActionOutcome.Refused($"({npcHero.Name} holds no separate house whose fief you could revoke.)");
+
+            action.Parameters.TryGetValue("target_fief", out string fiefName);
+
+            // Was a silent no-op class this project eliminates: a fief revoked with none named.
+            if (string.IsNullOrWhiteSpace(fiefName))
+               return ActionOutcome.Refused(SilentRefusalMessages.RevokeFiefMissingFief());
+
+            var today = (int) CampaignTime.Now.ToDays;
+            RevokeFiefVerdict verdict = CourtActionResolver.TryRevokeFief(npcHero, fiefName, today);
+
+            switch (verdict.Result)
+            {
+               case RevokeFiefResult.VassalUnavailable:
+                  return null;
+               case RevokeFiefResult.VassalNotSeparateHouse:
+                  return ActionOutcome.Refused($"({npcHero.Name} holds no separate house whose fief you could revoke.)");
+               case RevokeFiefResult.PlayerNotKingdomLeader:
+                  return ActionOutcome.Refused("(You no longer rule a kingdom, and cannot revoke a fief in its name.)");
+               case RevokeFiefResult.NoSuchFief:
+                  return ActionOutcome.Refused($"({npcHero.Name} holds no fief called '{fiefName}' to revoke.)");
+            }
+
+            string msg = $"{verdict.Fief.Name} is stripped from {npcHero.Name} and returns to the crown.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+            ModLog.Info($"[ACTION] revoke_fief: {npcHero.Name} was stripped of {verdict.Fief.Name} by royal decision; a grudge is planted.");
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] revoke_fief failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   expel_from_clan (2026-08-05, suzerain-command batch, council + 1:1): the player casts the conversation
+      ///   companion out of their own clan entirely. The conversation NPC IS the companion being expelled; actor only,
+      ///   no action field. Calls the SAME shared core the council resolution runs
+      ///   (<see cref="CourtActionResolver.TryExpelFromClan" />), which re-validates every invariant (the player still
+      ///   leads their clan, the target is a live companion of it, is not the player's own spouse, is not away on an
+      ///   errand), casts them out via RemoveCompanionAction.ApplyByFire (they become a Fugitive), and lands the side
+      ///   effects (an Expelled grudge through the real gate, the relation hit). Only TAUGHT when
+      ///   <see cref="EncounterContext.NpcCanBeExpelledFromClan" /> holds, but every guard is re-checked here and in
+      ///   the core: the prompt is advice, the bridge is law. A decline is surfaced as a refusal so the OOC note fires.
+      /// </summary>
+      private static ActionOutcome ExecuteExpelFromClan(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero is not {IsAlive: true}) return null;
+
+            var today = (int) CampaignTime.Now.ToDays;
+            ExpelFromClanVerdict verdict = CourtActionResolver.TryExpelFromClan(npcHero, today);
+
+            switch (verdict.Result)
+            {
+               case ExpelFromClanResult.ActorUnavailable:
+                  return null;
+               case ExpelFromClanResult.PlayerNotClanLeader:
+                  return ActionOutcome.Refused("(You no longer lead your clan, and cannot cast anyone out of it.)");
+               case ExpelFromClanResult.NotACompanion:
+                  return ActionOutcome.Refused($"({npcHero.Name} is not one of your clan's companions to cast out.)");
+               case ExpelFromClanResult.IsSpouse:
+                  return ActionOutcome.Refused($"({npcHero.Name} is your own spouse; that bond can only be ended another way.)");
+               case ExpelFromClanResult.AwayOnErrand:
+                  return ActionOutcome.Refused($"({npcHero.Name} is away on an errand; recall them before casting them out.)");
+            }
+
+            string msg = verdict.WasGovernor
+               ? $"{npcHero.Name} is stripped of the governorship of {verdict.GovernedFief} and cast out of your clan."
+               : $"{npcHero.Name} is cast out of your clan.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+            ModLog.Info($"[ACTION] expel_from_clan: {npcHero.Name} was expelled from the player's clan; a grudge is planted.");
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] expel_from_clan failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

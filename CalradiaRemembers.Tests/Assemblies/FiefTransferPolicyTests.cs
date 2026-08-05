@@ -5,6 +5,14 @@
 // when the named fief is actually where the pledge says it is (the player's own clan for a grant, the spoliated
 // vassal's own clan for a revoke). Getting either AND wrong either lets a non-sovereign clan leader hand out or
 // seize a fief that was never theirs to move, or refuses a legal transfer the lift should have carried out.
+//
+// CanOfferGrant/CanOfferRevoke are the 1:1 conversation TEACHING gates added when grant_fief/revoke_fief were
+// brought to the 1:1 pipeline (2026-08-05, the suzerain-command batch), alongside the council. Each is the
+// conjunction the mod's EncounterContextBuilder feeds from live engine facts to decide whether the LLM is even
+// shown the verb this turn. What they guard is the empty-promise class the whole conditional-teaching contract
+// exists to prevent: teach the verb only when the bridge's own re-check (CourtActionResolver.TryGrantFief /
+// TryRevokeFief) could actually honour it, so an NPC can never "agree" to a fief the game then silently declines.
+// Each fact below removes one way that could happen.
 
 #region
 
@@ -149,6 +157,83 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_any_single_condition_is_missing_WHEN_asked_to_swap_THEN_it_is_refused()
         {
             FiefTransferPolicy.CanSwap(playerIsKingdomLeader: false, playerFiefOwnedByPlayerClan: false, vassalFiefOwnedBySeatedVassalClan: false)
+                .Should().BeFalse();
+        }
+
+        // grant_fief 1:1 offer, the all-clear case: the player rules a kingdom, the NPC is a vassal of another house
+        // in it, and a crown fief is open to grant. If this did not offer, grant_fief would never be taught in 1:1 at
+        // all and would stay council-only, the exact regression this slice exists to fix.
+        [Test]
+        public void GIVEN_every_grant_teaching_fact_holds_WHEN_offering_THEN_the_action_is_taught()
+        {
+            FiefTransferPolicy.CanOfferGrant(playerIsKingdomLeader: true, npcIsVassalInPlayerKingdom: true, hasGrantableFief: true)
+                .Should().BeTrue();
+        }
+
+        // Only a suzerain grants a crown fief: a player who does not rule a kingdom cannot bestow one at all, so
+        // teaching the verb would promise a deed the bridge (which re-checks kingdom rule) then refuses.
+        [Test]
+        public void GIVEN_the_player_does_not_rule_a_kingdom_WHEN_offering_a_grant_THEN_the_action_is_withheld()
+        {
+            FiefTransferPolicy.CanOfferGrant(playerIsKingdomLeader: false, npcIsVassalInPlayerKingdom: true, hasGrantableFief: true)
+                .Should().BeFalse();
+        }
+
+        // A crown fief passes ACROSS houses, to a lord sworn to the player's own kingdom: an NPC who is not such a
+        // vassal (of the player's own clan, or of no kingdom, or of a foreign one) cannot lawfully receive one, and
+        // the bridge's grounding would decline it, so it must not be offered.
+        [Test]
+        public void GIVEN_the_npc_is_not_a_vassal_in_the_players_kingdom_WHEN_offering_a_grant_THEN_the_action_is_withheld()
+        {
+            FiefTransferPolicy.CanOfferGrant(playerIsKingdomLeader: true, npcIsVassalInPlayerKingdom: false, hasGrantableFief: true)
+                .Should().BeFalse();
+        }
+
+        // With no crown fief the player's own clan holds, there is nothing to grant: teaching the verb here is the
+        // textbook empty promise (a fief bestowed that does not exist), which is why the offering mirrors the commit's
+        // own has-a-fief gate.
+        [Test]
+        public void GIVEN_no_grantable_crown_fief_WHEN_offering_a_grant_THEN_the_action_is_withheld()
+        {
+            FiefTransferPolicy.CanOfferGrant(playerIsKingdomLeader: true, npcIsVassalInPlayerKingdom: true, hasGrantableFief: false)
+                .Should().BeFalse();
+        }
+
+        // revoke_fief 1:1 offer, the all-clear case: the player rules a kingdom, the NPC is a vassal of another house
+        // in it, and that vassal's own clan holds a fief the crown could strip. If this did not offer, revoke_fief
+        // would never be taught in 1:1 and would stay council-only.
+        [Test]
+        public void GIVEN_every_revoke_teaching_fact_holds_WHEN_offering_THEN_the_action_is_taught()
+        {
+            FiefTransferPolicy.CanOfferRevoke(playerIsKingdomLeader: true, npcIsVassalInPlayerKingdom: true, npcHoldsRevocableFief: true)
+                .Should().BeTrue();
+        }
+
+        // Only a suzerain revokes a crown fief: without kingdom rule a "royal" confiscation is a hollow threat the
+        // bridge refuses, so teaching it would let the model narrate a punishment the game never lands.
+        [Test]
+        public void GIVEN_the_player_does_not_rule_a_kingdom_WHEN_offering_a_revoke_THEN_the_action_is_withheld()
+        {
+            FiefTransferPolicy.CanOfferRevoke(playerIsKingdomLeader: false, npcIsVassalInPlayerKingdom: true, npcHoldsRevocableFief: true)
+                .Should().BeFalse();
+        }
+
+        // A revoke strips a SEPARATE house's fief: a clan's own fiefs already belong to it, so an NPC who is not a
+        // vassal of another house in the player's kingdom has nothing the crown could revoke, and the bridge's
+        // grounding would decline it.
+        [Test]
+        public void GIVEN_the_npc_is_not_a_vassal_in_the_players_kingdom_WHEN_offering_a_revoke_THEN_the_action_is_withheld()
+        {
+            FiefTransferPolicy.CanOfferRevoke(playerIsKingdomLeader: true, npcIsVassalInPlayerKingdom: false, npcHoldsRevocableFief: true)
+                .Should().BeFalse();
+        }
+
+        // With no fief the vassal's own clan holds, there is nothing to confiscate: naming one would strip nothing,
+        // so the offer must withhold, mirroring the commit's own has-a-fief gate.
+        [Test]
+        public void GIVEN_no_revocable_fief_WHEN_offering_a_revoke_THEN_the_action_is_withheld()
+        {
+            FiefTransferPolicy.CanOfferRevoke(playerIsKingdomLeader: true, npcIsVassalInPlayerKingdom: true, npcHoldsRevocableFief: false)
                 .Should().BeFalse();
         }
     }

@@ -84,6 +84,18 @@ namespace CalradiaRemembers.Logic
             return "(No errand was named, so none was sent.)";
         }
 
+        /// <summary>The prompt's grant_fief named no fief (a blank or missing target_fief), so nothing was granted.</summary>
+        public static string GrantFiefMissingFief()
+        {
+            return "(No fief was named, so nothing was granted.)";
+        }
+
+        /// <summary>The prompt's revoke_fief named no fief (a blank or missing target_fief), so nothing was revoked.</summary>
+        public static string RevokeFiefMissingFief()
+        {
+            return "(No fief was named, so nothing was revoked.)";
+        }
+
         /// <summary>
         ///   The named hero is not, in fact, the player's spouse. Shared by accept_divorce and
         ///   decline_divorce, whose bridge executors mirror this same first check.

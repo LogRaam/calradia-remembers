@@ -55,5 +55,19 @@ namespace CalradiaRemembers.Logic.Assemblies
         /// </summary>
         public static bool CanExpel(bool playerIsClanLeader, bool targetIsCompanion, bool targetIsSpouse, bool targetAlive)
             => playerIsClanLeader && targetIsCompanion && !targetIsSpouse && targetAlive;
+
+        /// <summary>
+        ///   expel_from_clan's 1:1 conversation TEACHING gate (2026-08-05, the suzerain-command batch brought to BOTH
+        ///   the council and 1:1 pipelines). It is the whole <see cref="CanExpel" /> conjunction (the player still
+        ///   leads their clan, the conversation NPC is a live COMPANION of it, and is not the player's own spouse)
+        ///   PLUS the one mechanical fact the council executor also re-checks before firing: the companion is not
+        ///   AWAY on a companion-mission errand (<paramref name="targetAvailable" />), since a companion cannot be
+        ///   cast out from under an in-flight errand. Pure and total, mirroring
+        ///   <see cref="GovernorAppointmentPolicy.CanOfferAppointment" />: the bridge re-checks every one of these
+        ///   again at commit time (<c>CourtActionResolver.TryExpelFromClan</c>), so a true answer here only ever
+        ///   OFFERS a teaching, it never seals a deed.
+        /// </summary>
+        public static bool CanOfferExpel(bool playerIsClanLeader, bool targetIsCompanion, bool targetIsSpouse, bool targetAlive, bool targetAvailable)
+            => CanExpel(playerIsClanLeader, targetIsCompanion, targetIsSpouse, targetAlive) && targetAvailable;
     }
 }

@@ -1027,73 +1027,60 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static void SettleGrantFief(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
       {
-         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner)
+         // The whole decision+mutation now lives in the shared core (CourtActionResolver.TryGrantFief), the SAME one
+         // the 1:1 grant_fief action runs (2026-08-05, the suzerain-command batch), so a fief grant behaves
+         // identically whichever path granted it. Every guard this executor used to check inline (recipient alive
+         // and free, a genuine OTHER house, the player still rules a kingdom, the fief is still a crown fief of ours),
+         // the governor-release side effect, and the influence cost are all handled there in the same order; this
+         // method only maps the verdict back onto the council's own ledger + reporting. TargetHint (m2) carries the
+         // FIEF NAME for this kind, the same grounding slot appoint_governor's own pledge uses.
+         GrantFiefVerdict verdict = CourtActionResolver.TryGrantFief(actorHero, entry.TargetHint);
+
+         switch (verdict.Result)
          {
-            const string reason = "they could not be found.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+            case GrantFiefResult.RecipientUnavailable:
+            {
+               const string reason = "they could not be found.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
 
-            return;
+               return;
+            }
+
+            case GrantFiefResult.RecipientNotSeparateHouse:
+            {
+               const string reason = "they belong to the player's own house; there is no fief to grant across houses.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case GrantFiefResult.PlayerNotKingdomLeader:
+            {
+               const string reason = "the player no longer rules a kingdom to grant a crown fief from.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case GrantFiefResult.NoSuchFief:
+            {
+               const string reason = "there is no crown fief of ours by that name left to grant.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case GrantFiefResult.Granted:
+               ledger.MarkApplied(entry.Id);
+               report?.Invoke($"{verdict.Fief.Name} passes to {actorName}'s house by the crown's own decision (-{FiefTransferPolicy.GrantInfluenceCost} influence).", true);
+               ModLog.Info($"[COUNCIL] lift: {verdict.Fief.Name} granted to {actorName}'s clan by royal decision.");
+
+               return;
          }
-
-         // Defensive, mirroring SettleGiveInfluence's own re-check: the beneficiary must be a genuine OTHER
-         // house. A true PlayerIsKingdomLeader already implies this (WarCouncilCandidates only falls back to the
-         // player's own clan lords when NO kingdom exists), but re-checking here costs nothing and keeps this
-         // executor honest even if the roster gate is ever relaxed.
-         if (actorHero.Clan == null || actorHero.Clan == Clan.PlayerClan)
-         {
-            const string reason = "they belong to the player's own house; there is no fief to grant across houses.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         bool playerIsKingdomLeader = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
-
-         // TargetHint (m2) carries the FIEF NAME, the same grounding slot appoint_governor's own pledge uses.
-         // Town or castle only (a village is not cedable on its own, COUNCIL_ACTIONS.md), and STILL a crown fief
-         // the player's own clan holds right now: a fief already given or lost between the pledge and the lift
-         // must refuse rather than conjure a transfer from nothing.
-         Settlement fief = Settlement.All?.FirstOrDefault(s =>
-            (s.IsTown || s.IsCastle)
-            && s.OwnerClan == Clan.PlayerClan
-            && string.Equals(s.Name?.ToString(), entry.TargetHint, StringComparison.OrdinalIgnoreCase));
-
-         if (!FiefTransferPolicy.CanGrant(playerIsKingdomLeader, fief != null))
-         {
-            string reason = !playerIsKingdomLeader
-               ? "the player no longer rules a kingdom to grant a crown fief from."
-               : "there is no crown fief of ours by that name left to grant.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         // Kimi review (COUNCIL_ACTIONS.md, grant_fief cas limites): a fief ceded while a governor is in post
-         // would otherwise leave that governor a wandering hero in what is now foreign land. Release the post
-         // first (mirroring SettleRejoinParty's own governor-release), and send a released PLAYER companion
-         // back to the main party so they are never simply stranded.
-         Hero formerGovernor = fief.Town?.Governor;
-         if (formerGovernor != null)
-         {
-            ChangeGovernorAction.RemoveGovernorOf(formerGovernor);
-
-            if (formerGovernor.IsPlayerCompanion && formerGovernor.PartyBelongedTo != MobileParty.MainParty)
-               AddHeroToPartyAction.Apply(formerGovernor, MobileParty.MainParty, false);
-         }
-
-         ChangeOwnerOfSettlementAction.ApplyByKingDecision(actorHero, fief);
-
-         // Author's condition: "on ne veut pas que ce soit facile". A fixed, unconditional influence cost
-         // (FiefTransferPolicy.GrantInfluenceCost), never gated on the player's current reserve: the sovereign's
-         // OWN prerogative to grant is never blocked by a thin treasury, but it is never a free favour either.
-         if (Clan.PlayerClan != null) ChangeClanInfluenceAction.Apply(Clan.PlayerClan, -FiefTransferPolicy.GrantInfluenceCost);
-
-         ledger.MarkApplied(entry.Id);
-         report?.Invoke($"{fief.Name} passes to {actorName}'s house by the crown's own decision (-{FiefTransferPolicy.GrantInfluenceCost} influence).", true);
-         ModLog.Info($"[COUNCIL] lift: {fief.Name} granted to {actorName}'s clan by royal decision.");
       }
 
       /// <summary>
@@ -1112,65 +1099,65 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static void SettleRevokeFief(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report, int gameDay)
       {
-         if (actorHero is not {IsAlive: true})
+         // The whole decision+mutation now lives in the shared core (CourtActionResolver.TryRevokeFief), the SAME one
+         // the 1:1 revoke_fief action runs (2026-08-05, the suzerain-command batch). Every guard this executor used to
+         // check inline (vassal alive, a genuine separate house, the player still rules a kingdom, the fief is still
+         // one the spoliated clan holds) is re-checked there in the same order, and the grave side effects (the
+         // MAXIMUM FiefRevoked grudge through the real gate, the relation hit) fire there too; this method only maps
+         // the verdict back onto the council's own ledger + reporting. TargetHint (m2) carries the FIEF NAME, exactly
+         // like grant_fief.
+         //
+         // TODO (deferred, unchanged by this extraction): a real probabilistic, delayed defection
+         // (ChangeKingdomAction.ApplyByLeaveKingdom, weighted by the spoliated lord's standing, some days after the
+         // confiscation) is a follow-up build, not hand-rolled here to avoid a fragile, unconditional exit that does
+         // not match Gabriel's own "fort probable... dans les jours qui suivent" description.
+         RevokeFiefVerdict verdict = CourtActionResolver.TryRevokeFief(actorHero, entry.TargetHint, gameDay);
+
+         switch (verdict.Result)
          {
-            const string reason = "they could not be found.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+            case RevokeFiefResult.VassalUnavailable:
+            {
+               const string reason = "they could not be found.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
 
-            return;
+               return;
+            }
+
+            case RevokeFiefResult.VassalNotSeparateHouse:
+            {
+               const string reason = "they hold no separate house whose fief could be revoked.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case RevokeFiefResult.PlayerNotKingdomLeader:
+            {
+               const string reason = "the player no longer rules a kingdom to revoke a fief in its name.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case RevokeFiefResult.NoSuchFief:
+            {
+               string reason = $"{actorName} holds no fief of that name to revoke.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case RevokeFiefResult.Revoked:
+               ledger.MarkApplied(entry.Id);
+               report?.Invoke($"{verdict.Fief.Name} is stripped from {actorName} and returns to the crown.", true);
+               ModLog.Info($"[COUNCIL] lift: {actorName} was stripped of {verdict.Fief.Name} by royal decision; a grudge is planted.");
+
+               return;
          }
-
-         if (actorHero.Clan == null || actorHero.Clan == Clan.PlayerClan)
-         {
-            const string reason = "they hold no separate house whose fief could be revoked.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         bool playerIsKingdomLeader = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
-
-         Clan spoliatedClan = actorHero.Clan;
-
-         // TargetHint (m2) carries the FIEF NAME, exactly like grant_fief. STILL owned by the SPOLIATED vassal's
-         // own clan right now: naming a fief they never held, or already lost, would confiscate nothing.
-         Settlement fief = Settlement.All?.FirstOrDefault(s =>
-            (s.IsTown || s.IsCastle)
-            && s.OwnerClan == spoliatedClan
-            && string.Equals(s.Name?.ToString(), entry.TargetHint, StringComparison.OrdinalIgnoreCase));
-
-         if (!FiefTransferPolicy.CanRevoke(playerIsKingdomLeader, fief != null))
-         {
-            string reason = !playerIsKingdomLeader
-               ? "the player no longer rules a kingdom to revoke a fief in its name."
-               : $"{actorName} holds no fief of that name to revoke.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         ChangeOwnerOfSettlementAction.ApplyByKingDecision(Hero.MainHero, fief);
-
-         // Author's condition: one of the gravest punishments the table can hand down. Planted through the
-         // REAL grudge gate (anti-noise guardrails, per-holder cap) rather than force-inserted, so a maximum
-         // magnitude pledge still respects the same admission rule every other grudge in the game does.
-         GrudgeBehavior.Instance?.TryPlant(actorHero, Hero.MainHero, GrudgeSource.FiefRevoked,
-            $"stripped of {fief.Name} by the crown's own decision", FiefTransferPolicy.RevokeGrudgeMagnitude,
-            knownToPlayer: true, gameDay);
-
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(actorHero, Hero.MainHero, FiefTransferPolicy.RevokeRelationHit, false);
-
-         // TODO (deferred, see this method's own doc): a real probabilistic, delayed defection
-         // (ChangeKingdomAction.ApplyByLeaveKingdom, weighted by the spoliated lord's standing, some days after
-         // the confiscation) is a follow-up build, not hand-rolled here to avoid a fragile, unconditional exit
-         // that does not match Gabriel's own "fort probable... dans les jours qui suivent" description.
-
-         ledger.MarkApplied(entry.Id);
-         report?.Invoke($"{fief.Name} is stripped from {actorName} and returns to the crown.", true);
-         ModLog.Info($"[COUNCIL] lift: {actorName} was stripped of {fief.Name} by royal decision; a grudge is planted.");
       }
 
       /// <summary>
@@ -1200,56 +1187,70 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static void SettleExpelFromClan(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report, int gameDay)
       {
-         if (actorHero is not {IsAlive: true})
+         // The whole decision+mutation now lives in the shared core (CourtActionResolver.TryExpelFromClan), the SAME
+         // one the 1:1 expel_from_clan action runs (2026-08-05, the suzerain-command batch). Every guard this executor
+         // used to check inline (companion alive, the ExpulsionPolicy gate, not away on an errand) is re-checked there
+         // in the same order, and the side effects (ApplyByFire making them a Fugitive, the Expelled grudge through
+         // the real gate, the relation hit) fire there too; this method only maps the verdict back onto the council's
+         // own ledger + reporting.
+         ExpelFromClanVerdict verdict = CourtActionResolver.TryExpelFromClan(actorHero, gameDay);
+
+         switch (verdict.Result)
          {
-            const string reason = "they could not be found.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+            case ExpelFromClanResult.ActorUnavailable:
+            {
+               const string reason = "they could not be found.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
 
-            return;
+               return;
+            }
+
+            case ExpelFromClanResult.PlayerNotClanLeader:
+            {
+               const string reason = "the player no longer leads the clan.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case ExpelFromClanResult.NotACompanion:
+            {
+               const string reason = "they no longer belong to the player's clan as a companion.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case ExpelFromClanResult.IsSpouse:
+            {
+               const string reason = "they are the player's own spouse; that bond can only be ended another way.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case ExpelFromClanResult.AwayOnErrand:
+            {
+               const string reason = "they are away on an errand; recall them before casting them out.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case ExpelFromClanResult.Expelled:
+               ledger.MarkApplied(entry.Id);
+               report?.Invoke(verdict.WasGovernor
+                  ? $"{actorName} is stripped of the governorship of {verdict.GovernedFief} and cast out of your clan."
+                  : $"{actorName} is cast out of your clan.", true);
+               ModLog.Info($"[COUNCIL] lift: {actorName} was expelled from the player's clan; a grudge is planted.");
+
+               return;
          }
-
-         bool playerIsClanLeader = Clan.PlayerClan?.Leader == Hero.MainHero;
-         bool isSpouse = actorHero == Hero.MainHero?.Spouse;
-
-         if (!ExpulsionPolicy.CanExpel(playerIsClanLeader, actorHero.IsPlayerCompanion, isSpouse, actorHero.IsAlive))
-         {
-            string reason = !playerIsClanLeader
-               ? "the player no longer leads the clan."
-               : !actorHero.IsPlayerCompanion
-                  ? "they no longer belong to the player's clan as a companion."
-                  : "they are the player's own spouse; that bond can only be ended another way.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         if (CompanionMissionBehavior.Instance != null && CompanionMissionBehavior.Instance.IsAway(actorHero.StringId))
-         {
-            const string reason = "they are away on an errand; recall them before casting them out.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         bool wasGovernor = actorHero.GovernorOf != null;
-         string governedFief = wasGovernor ? actorHero.GovernorOf.Name?.ToString() : null;
-
-         RemoveCompanionAction.ApplyByFire(Clan.PlayerClan, actorHero);
-
-         GrudgeBehavior.Instance?.TryPlant(actorHero, Hero.MainHero, GrudgeSource.Expelled,
-            "cast out of the clan by its own chief", ExpulsionPolicy.GrudgeMagnitude,
-            knownToPlayer: true, gameDay);
-
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(actorHero, Hero.MainHero, ExpulsionPolicy.RelationHit, false);
-
-         ledger.MarkApplied(entry.Id);
-         report?.Invoke(wasGovernor
-            ? $"{actorName} is stripped of the governorship of {governedFief} and cast out of your clan."
-            : $"{actorName} is cast out of your clan.", true);
-         ModLog.Info($"[COUNCIL] lift: {actorName} was expelled from the player's clan; a grudge is planted.");
       }
 
       /// <summary>

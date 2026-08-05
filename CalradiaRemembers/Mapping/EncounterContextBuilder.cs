@@ -184,6 +184,26 @@ namespace CalradiaRemembers.Mapping
          bool npcCanRejoinParty = PartyCommandOfferPolicy.CanOfferRejoinParty(npcIsPlayerCompanion, npcAlive, npcIsPrisoner, npcInMainParty, npcLeadsOwnCompany);
          bool npcCanBeDispatchedOnMission = PartyCommandOfferPolicy.CanOfferDispatchMission(npcIsPlayerCompanion, npcInMainParty, npcAvailableForErrand);
 
+         // grant_fief / revoke_fief / expel_from_clan (2026-08-05, suzerain-command batch): the 1:1 teaching gates,
+         // the same "prompt is advice, bridge is law" conditional-teaching contract as the verbs above. grant/revoke
+         // require the player to actually RULE a kingdom and the conversation NPC to be a vassal of a separate house
+         // in that same kingdom (the FiefTransferPolicy gates), with a real fief to grant (from the player's own
+         // clan) or revoke (from the NPC's own clan); the fief lists double as the target_fief grounding. expel
+         // requires the NPC to be a live, present companion of the player's clan (the ExpulsionPolicy gate). Each is
+         // re-checked at commit by CourtActionResolver.TryGrantFief / TryRevokeFief / TryExpelFromClan.
+         bool playerIsKingdomLeader = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
+         bool npcIsVassalInPlayerKingdom = hero?.Clan != null && hero.Clan != Clan.PlayerClan
+            && hero.Clan.Kingdom != null && hero.Clan.Kingdom == Clan.PlayerClan?.Kingdom;
+
+         string grantableFiefs = ResolveGrantableCrownFiefs();
+         string revocableFiefs = ResolveRevocableFiefsOf(hero);
+         bool npcCanBeGrantedFief = FiefTransferPolicy.CanOfferGrant(playerIsKingdomLeader, npcIsVassalInPlayerKingdom, !string.IsNullOrEmpty(grantableFiefs));
+         bool npcCanHaveFiefRevoked = FiefTransferPolicy.CanOfferRevoke(playerIsKingdomLeader, npcIsVassalInPlayerKingdom, !string.IsNullOrEmpty(revocableFiefs));
+
+         bool playerLeadsClan = Clan.PlayerClan?.Leader == Hero.MainHero;
+         bool npcIsSpouse = hero != null && hero == Hero.MainHero?.Spouse;
+         bool npcCanBeExpelledFromClan = ExpulsionPolicy.CanOfferExpel(playerLeadsClan, npcIsPlayerCompanion, npcIsSpouse, npcAlive, npcAvailableForErrand);
+
          return new() {
             PlayerStatus = playerStatus,
             SharedRealmName = bridge.GetSharedRealmName(hero),
@@ -323,6 +343,14 @@ namespace CalradiaRemembers.Mapping
             NpcCanBeAssignedPartyRole = npcCanBeAssignedPartyRole,
             NpcCanRejoinParty = npcCanRejoinParty,
             NpcCanBeDispatchedOnMission = npcCanBeDispatchedOnMission,
+            // grant_fief / revoke_fief / expel_from_clan: the 1:1 teaching gates + the fief-name grounding (see the
+            // computation just above the initializer). PromptBuilder also suppresses each on a council/round-table
+            // turn, where the [RESOLUTION] channel owns these instead, and in a captive scene.
+            NpcCanBeGrantedFief = npcCanBeGrantedFief,
+            GrantableFiefs = grantableFiefs,
+            NpcCanHaveFiefRevoked = npcCanHaveFiefRevoked,
+            RevocableFiefs = revocableFiefs,
+            NpcCanBeExpelledFromClan = npcCanBeExpelledFromClan,
             LordRecruitEligible = ResolveLordRecruitEligible(hero, profile),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
@@ -804,6 +832,53 @@ namespace CalradiaRemembers.Mapping
 
          List<string> names = clan.Settlements
             .Where(s => (s.IsTown || s.IsCastle) && s.Town?.Governor == null)
+            .Select(s => s.Name?.ToString())
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .ToList();
+
+         return names.Count > 0
+            ? string.Join(", ", names)
+            : null;
+      }
+
+      /// <summary>
+      ///   The player-clan towns and castles a sovereign could grant to a vassal, as a ready "Name, Name" list for
+      ///   the grant_fief teaching (grounds the target_fief field on a real crown fief). Null when the player's clan
+      ///   holds no such fief. Mirrors CourtActionResolver.TryGrantFief's own eligible-fief rule (a town or castle
+      ///   owned by the player's clan), so the 1:1 offering and the commit read the same fiefs.
+      /// </summary>
+      private static string ResolveGrantableCrownFiefs()
+      {
+         Clan clan = Clan.PlayerClan;
+
+         if (clan?.Settlements == null) return null;
+
+         List<string> names = clan.Settlements
+            .Where(s => s.IsTown || s.IsCastle)
+            .Select(s => s.Name?.ToString())
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .ToList();
+
+         return names.Count > 0
+            ? string.Join(", ", names)
+            : null;
+      }
+
+      /// <summary>
+      ///   The conversation NPC's own clan's towns and castles a sovereign could revoke, as a ready "Name, Name" list
+      ///   for the revoke_fief teaching (grounds the target_fief field on a real fief the vassal actually holds). Null
+      ///   when the NPC has no separate clan or that clan holds no such fief. Mirrors CourtActionResolver.TryRevokeFief's
+      ///   own eligible-fief rule (a town or castle owned by the spoliated vassal's clan), so the 1:1 offering and the
+      ///   commit read the same fiefs.
+      /// </summary>
+      private static string ResolveRevocableFiefsOf(Hero hero)
+      {
+         Clan clan = hero?.Clan;
+
+         if (clan == null || clan == Clan.PlayerClan || clan.Settlements == null) return null;
+
+         List<string> names = clan.Settlements
+            .Where(s => s.IsTown || s.IsCastle)
             .Select(s => s.Name?.ToString())
             .Where(n => !string.IsNullOrWhiteSpace(n))
             .ToList();

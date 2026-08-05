@@ -4,6 +4,13 @@
 // down (COUNCIL_ACTIONS.md's Kimi review, Partie 8), so getting the AND wrong either lets a non-leader force out
 // a companion that was never theirs to dismiss, exposes a marriage-ending loophole through the wrong channel, or
 // refuses a legal expulsion the lift should have carried out.
+//
+// CanOfferExpel is the 1:1 conversation TEACHING gate added when expel_from_clan was brought to the 1:1 pipeline
+// (2026-08-05, the suzerain-command batch), alongside the council. It is the whole CanExpel conjunction PLUS the
+// not-away-on-errand availability the council executor also re-checks before firing. What it guards is the
+// empty-promise class the conditional-teaching contract exists to prevent: teach the verb only when the bridge's
+// own re-check (CourtActionResolver.TryExpelFromClan) could actually honour it, so an NPC can never "agree" to an
+// expulsion the game then silently declines. Each fact below removes one way that could happen.
 
 #region
 
@@ -84,6 +91,44 @@ namespace CalradiaRemembers.Tests.Assemblies
             ExpulsionPolicy.GrudgeMagnitude.Should().BeLessThan(FiefTransferPolicy.RevokeGrudgeMagnitude);
             ExpulsionPolicy.RelationHit.Should().BeLessThan(0);
             ExpulsionPolicy.RelationHit.Should().BeGreaterThan(FiefTransferPolicy.RevokeRelationHit);
+        }
+
+        // The 1:1 offer, all-clear case: the player leads their clan and the NPC is a live, present companion who is
+        // not their spouse. If this did not offer, expel_from_clan would never be taught in 1:1 and would stay
+        // council-only, the exact regression this slice exists to fix.
+        [Test]
+        public void GIVEN_every_teaching_fact_holds_WHEN_offering_expel_THEN_the_action_is_taught()
+        {
+            ExpulsionPolicy.CanOfferExpel(playerIsClanLeader: true, targetIsCompanion: true, targetIsSpouse: false, targetAlive: true, targetAvailable: true)
+                .Should().BeTrue();
+        }
+
+        // The offer must inherit every CanExpel refusal: a player who does not lead the clan cannot cast anyone out,
+        // so teaching the verb would promise a deed the bridge (which re-checks leadership) then refuses.
+        [Test]
+        public void GIVEN_the_player_does_not_lead_the_clan_WHEN_offering_expel_THEN_the_action_is_withheld()
+        {
+            ExpulsionPolicy.CanOfferExpel(playerIsClanLeader: false, targetIsCompanion: true, targetIsSpouse: false, targetAlive: true, targetAvailable: true)
+                .Should().BeFalse();
+        }
+
+        // The spousal carve-out must survive into the offer too: end_marriage/divorce owns that channel, so a spouse
+        // is never offered expulsion even when every other fact holds.
+        [Test]
+        public void GIVEN_the_target_is_the_players_own_spouse_WHEN_offering_expel_THEN_the_action_is_withheld()
+        {
+            ExpulsionPolicy.CanOfferExpel(playerIsClanLeader: true, targetIsCompanion: true, targetIsSpouse: true, targetAlive: true, targetAvailable: true)
+                .Should().BeFalse();
+        }
+
+        // The one fact beyond CanExpel: a companion AWAY on a companion-mission errand is refused at commit (the core
+        // will not cast someone out from under an in-flight errand), so the offer must withhold rather than promise an
+        // expulsion the bridge then declines.
+        [Test]
+        public void GIVEN_the_companion_is_away_on_an_errand_WHEN_offering_expel_THEN_the_action_is_withheld()
+        {
+            ExpulsionPolicy.CanOfferExpel(playerIsClanLeader: true, targetIsCompanion: true, targetIsSpouse: false, targetAlive: true, targetAvailable: false)
+                .Should().BeFalse();
         }
     }
 }
