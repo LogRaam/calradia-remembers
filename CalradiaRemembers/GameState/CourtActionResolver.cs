@@ -8,6 +8,7 @@ using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
@@ -16,6 +17,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
+using TaleWorlds.CampaignSystem.Settlements;
 
 #endregion
 
@@ -427,6 +429,58 @@ namespace CalradiaRemembers.GameState
          return new ArrangeMarriageVerdict(ArrangeMarriageResult.Wed, a, b, aClanBefore, bClanBefore);
       }
 
+      // ── appoint_governor (personal-command verb, council + 1:1, 2026-08-05) ──
+
+      /// <summary>
+      ///   The ONE shared code path both appoint_governor callers run (the 1:1 action,
+      ///   <c>BannerlordGameStateBridge.ExecuteAppointGovernor</c>, and the council's own resolution,
+      ///   <c>CalradiaRemembers.Chat.CouncilLift.SettleAppointGovernor</c>), factored out here (2026-08-05, the
+      ///   reference slice for the personal-command verbs, mirroring <see cref="LaunchPledge" /> and
+      ///   <see cref="TryArrangeMarriage" />'s own extractions) so a governorship behaves identically whichever
+      ///   path granted it, rather than the two callers drifting apart over two copies of the same decision. Every
+      ///   guard the council executor used to check inline is re-checked HERE, in the same order (the prompt is
+      ///   advice, the executor is law): the prospective governor is alive and not held prisoner, the player STILL
+      ///   leads their own clan (only its head hands out its governorships), the fief named is a town or castle
+      ///   that clan STILL holds (villages carry no Governor slot), and the prospective governor's standing toward
+      ///   the player clears the pure <see cref="GovernorAppointmentPolicy" /> floor - decided BEFORE the post is
+      ///   ever applied, never a refusal narrated after the deed took effect. Only then is the post applied
+      ///   (<see cref="ChangeGovernorAction.Apply" />). <paramref name="appointeeRegard" /> is the mod's OWN
+      ///   personal ledger read (<see cref="NpcProfile.ReputationWithPlayer" />), supplied by each caller from its
+      ///   own source (the council's stored profile, the 1:1 conversation profile) exactly as the council path
+      ///   read it before this extraction. Each caller writes its OWN message off the returned verdict.
+      /// </summary>
+      public static AppointGovernorVerdict TryAppointGovernor(Hero appointee, int appointeeRegard, string fiefName)
+      {
+         if (appointee is not {IsAlive: true} || appointee.IsPrisoner)
+            return new AppointGovernorVerdict(AppointGovernorResult.AppointeeUnavailable, null);
+
+         // Author's condition (adopted verbatim from the council executor): only a player who still leads his own
+         // clan may hand out a governorship. Re-checked here, never trusted from the proposal or the prompt.
+         if (Clan.PlayerClan?.Leader != Hero.MainHero)
+            return new AppointGovernorVerdict(AppointGovernorResult.PlayerNotClanLeader, null);
+
+         // Town or castle only, and still ours: a village has no Governor slot, and re-checking ownership here
+         // (not just at teaching time) is the same bridge-is-law discipline the council path already applies.
+         Settlement fief = Settlement.All?.FirstOrDefault(s =>
+            (s.IsTown || s.IsCastle)
+            && s.OwnerClan == Clan.PlayerClan
+            && string.Equals(s.Name?.ToString(), fiefName, StringComparison.OrdinalIgnoreCase));
+
+         if (fief == null)
+            return new AppointGovernorVerdict(AppointGovernorResult.NoSuchFief, null);
+
+         // The refusal itself: standing toward the player is the mod's OWN personal regard, the same source the
+         // council executor reads, never the vanilla clan relation. Decided BEFORE the post is ever applied.
+         GovernorAppointmentVerdict decision = GovernorAppointmentPolicy.Decide(appointeeRegard);
+
+         if (!decision.Accepted)
+            return new AppointGovernorVerdict(AppointGovernorResult.Declined, fief);
+
+         ChangeGovernorAction.Apply(fief.Town, appointee);
+
+         return new AppointGovernorVerdict(AppointGovernorResult.Appointed, fief);
+      }
+
       // ── release_prisoner ─────────────────────────────────────────────────
 
       /// <summary>
@@ -602,5 +656,42 @@ namespace CalradiaRemembers.GameState
       public Hero B { get; }
       public Clan AClanBefore { get; }
       public Clan BClanBefore { get; }
+   }
+
+   /// <summary>The outcome of <see cref="CourtActionResolver.TryAppointGovernor" />, read by each caller to report its own message.</summary>
+   public enum AppointGovernorResult
+   {
+      /// <summary>The post was applied: <see cref="AppointGovernorVerdict.Fief" /> is now governed by the appointee.</summary>
+      Appointed,
+
+      /// <summary>The prospective governor is dead, missing, or held prisoner and cannot take a post.</summary>
+      AppointeeUnavailable,
+
+      /// <summary>The player no longer leads their clan, so cannot hand out one of its governorships.</summary>
+      PlayerNotClanLeader,
+
+      /// <summary>No town or castle the player's clan still holds answers to the fief name given.</summary>
+      NoSuchFief,
+
+      /// <summary>The prospective governor's standing toward the player is below the acceptance floor.</summary>
+      Declined
+   }
+
+   /// <summary>
+   ///   The verdict of <see cref="CourtActionResolver.TryAppointGovernor" />: the result and, whenever a real fief
+   ///   was resolved (<see cref="AppointGovernorResult.Declined" /> or <see cref="AppointGovernorResult.Appointed" />),
+   ///   that <see cref="Fief" /> so the caller can name it in its message. Null <see cref="Fief" /> on the earlier
+   ///   failures (no leadership, no such fief, appointee unavailable), where no fief was ever resolved.
+   /// </summary>
+   public readonly struct AppointGovernorVerdict
+   {
+      public AppointGovernorVerdict(AppointGovernorResult result, Settlement fief)
+      {
+         Result = result;
+         Fief = fief;
+      }
+
+      public AppointGovernorResult Result { get; }
+      public Settlement Fief { get; }
    }
 }

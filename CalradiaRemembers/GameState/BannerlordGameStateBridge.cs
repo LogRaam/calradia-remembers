@@ -225,6 +225,8 @@ namespace CalradiaRemembers.GameState
 
             case "arrange_marriage":
                return ExecuteArrangeMarriage(action, npcHero);
+            case "appoint_governor":
+               return ExecuteAppointGovernor(action, npcHero, context);
             case "harm_prisoner":
                return ExecuteHarmPrisoner(action);
             case "impregnation_risk":
@@ -1683,6 +1685,70 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] arrange_marriage failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   appoint_governor (2026-08-05, the FIRST of the personal-command verbs brought to BOTH the 1:1 and
+      ///   council pipelines): the player names the conversation NPC to govern one of their clan's fiefs. The
+      ///   conversation NPC IS the prospective governor; the fief is named in the action's target_fief field. This
+      ///   1:1 executor grounds the action from the conversation (the NPC must be of the player's own clan, since a
+      ///   governor holds one of that clan's OWN fiefs), then calls the SAME shared core the council resolution
+      ///   runs (<see cref="CourtActionResolver.TryAppointGovernor" />), which re-validates every remaining
+      ///   invariant (player still leads the clan, the fief is still a player-clan town or castle, the NPC's own
+      ///   standing clears the acceptance floor) before applying the post. Only TAUGHT when
+      ///   <see cref="EncounterContext.NpcCanBeAppointedGovernor" /> holds (EncounterContextBuilder's own
+      ///   GovernorAppointmentPolicy.CanOfferAppointment gate), but every guard is re-checked here and in the core:
+      ///   the prompt is advice, the bridge is law. A declined or ungroundable appointment is surfaced as a refusal
+      ///   (never a silent null) so the transcript OOC note fires and the model stops narrating a post it never got.
+      /// </summary>
+      private static ActionOutcome ExecuteAppointGovernor(GameAction action, Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            NpcProfile profile = context?.Profile;
+
+            if (npcHero is not {IsAlive: true} || npcHero.IsPrisoner) return null;
+            if (profile == null || Hero.MainHero == null) return null;
+
+            // 1:1 grounding, mirroring the council roster's own player-clan seating for this kind: a governor
+            // holds one of the CLAN's fiefs, so the conversation NPC must belong to the player's own clan (a
+            // companion or clan lord). The shared core re-checks the player's leadership, the fief, and the
+            // standing floor; this clan-membership check is the 1:1 path's own grounding of WHO is being seated.
+            if (npcHero.Clan == null || npcHero.Clan != Clan.PlayerClan)
+               return ActionOutcome.Refused($"({npcHero.Name} is not of your clan, and cannot govern one of its fiefs.)");
+
+            action.Parameters.TryGetValue("target_fief", out string fiefName);
+
+            // Was a silent no-op class this project eliminates: a governorship agreed with no fief named.
+            if (string.IsNullOrWhiteSpace(fiefName))
+               return ActionOutcome.Refused(SilentRefusalMessages.AppointGovernorMissingFief());
+
+            AppointGovernorVerdict verdict = CourtActionResolver.TryAppointGovernor(npcHero, profile.ReputationWithPlayer, fiefName);
+
+            switch (verdict.Result)
+            {
+               case AppointGovernorResult.AppointeeUnavailable:
+                  return ActionOutcome.Refused($"({npcHero.Name} cannot take a governorship right now.)");
+               case AppointGovernorResult.PlayerNotClanLeader:
+                  return ActionOutcome.Refused("(You no longer lead your clan, and cannot hand out its governorships.)");
+               case AppointGovernorResult.NoSuchFief:
+                  return ActionOutcome.Refused($"(Your clan holds no town or castle called '{fiefName}' with a post to fill.)");
+               case AppointGovernorResult.Declined:
+                  return ActionOutcome.Refused($"({npcHero.Name} does not yet trust you enough to take on governing {verdict.Fief.Name}.)");
+            }
+
+            string msg = $"{npcHero.Name} now governs {verdict.Fief.Name} in your name.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+            ModLog.Info($"[ACTION] appoint_governor: {npcHero.Name} appointed governor of {verdict.Fief.Name}.");
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] appoint_governor failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

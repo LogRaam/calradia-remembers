@@ -48,5 +48,21 @@ namespace CalradiaRemembers.Logic.Assemblies
             => standingTowardPlayer >= StandingFloor
                 ? new GovernorAppointmentVerdict(true, null)
                 : new GovernorAppointmentVerdict(false, BelowStandingReason);
+
+        /// <summary>
+        ///   Whether the 1:1 conversation path should TEACH this NPC the appoint_governor action this turn
+        ///   (2026-08-05, the reference personal-command verb brought to BOTH the council and 1:1 pipelines). It
+        ///   reduces the SAME eligibility the council's own offering proves before teaching it there
+        ///   (ResolutionOfferingResolver: a member is available AND the player's clan holds a fief with no
+        ///   governor) to the four facts the 1:1 grounding reads: the player must still lead their clan (only its
+        ///   head hands out its governorships), the prospective governor must be an available member of that same
+        ///   clan (a companion or clan lord, alive and free, since a governor holds one of the clan's OWN fiefs),
+        ///   and that clan must actually hold a town or castle with no governor seated. Pure and total, mirroring
+        ///   VassalageOfferPolicy.CanJoin / EscortEligibilityPolicy.CanEscort: the bridge re-checks the leadership,
+        ///   the fief, and the standing floor again at commit time (CourtActionResolver.TryAppointGovernor), so a
+        ///   true answer here only ever OFFERS a teaching, it never seals a deed.
+        /// </summary>
+        public static bool CanOfferAppointment(bool playerLeadsClan, bool appointeeInPlayerClan, bool appointeeAvailable, bool hasVacantGovernableFief)
+            => playerLeadsClan && appointeeInPlayerClan && appointeeAvailable && hasVacantGovernableFief;
     }
 }

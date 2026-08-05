@@ -345,54 +345,61 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static void SettleAppointGovernor(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, NpcProfile giver, Action<string, bool> report)
       {
-         // Author's condition: only a player who still leads his own clan may hand out a governorship at the
-         // lift. A pledge can sit Agreed for turns before the council closes, so this is re-checked here rather
-         // than trusted from proposal time (a clan-leadership change in that window must not silently execute).
-         if (Clan.PlayerClan?.Leader != Hero.MainHero)
+         // The whole decision+mutation now lives in the shared core (CourtActionResolver.TryAppointGovernor), the
+         // SAME one the 1:1 appoint_governor action runs (2026-08-05, the reference personal-command slice), so a
+         // governorship behaves identically whichever path granted it. Every guard this executor used to check
+         // inline (player still leads the clan, the fief is still one of ours, the appointee's standing clears the
+         // floor) is re-checked there in the same order; this method only maps the verdict back onto the council's
+         // own ledger + reporting. TargetHint (m2) carries the FIEF NAME for this kind (the same field a Quest
+         // pledge uses for a settlement); giver.ReputationWithPlayer is the mod's OWN personal regard, the source
+         // AssemblyInvitationFactsBuilder.RegardToInitiator reads too, exactly as this executor read it before.
+         AppointGovernorVerdict verdict = CourtActionResolver.TryAppointGovernor(actorHero, giver.ReputationWithPlayer, entry.TargetHint);
+
+         switch (verdict.Result)
          {
-            const string reason = "the player no longer leads the clan.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+            case AppointGovernorResult.PlayerNotClanLeader:
+            {
+               const string reason = "the player no longer leads the clan.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
 
-            return;
+               return;
+            }
+
+            case AppointGovernorResult.NoSuchFief:
+            {
+               const string reason = "there is no fief of ours by that name left to govern.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case AppointGovernorResult.AppointeeUnavailable:
+            {
+               // Unreachable on the council path: CouncilRosterResolver.EvaluateNow already proved the member
+               // alive and free before dispatch (see Settle's own eligibility gate). Handled for completeness so
+               // the shared core, which the 1:1 path relies on for this guard, stays honest.
+               const string reason = "they could not be found.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case AppointGovernorResult.Declined:
+               ledger.MarkFailed(entry.Id, $"{actorName} declined the post");
+               report?.Invoke($"{actorName} declines the council's offer to govern {verdict.Fief.Name}.", false);
+
+               return;
+
+            case AppointGovernorResult.Appointed:
+               ledger.MarkApplied(entry.Id);
+               report?.Invoke($"{actorName} now governs {verdict.Fief.Name}.", true);
+               ModLog.Info($"[COUNCIL] lift: {actorName} appointed governor of {verdict.Fief.Name}.");
+
+               return;
          }
-
-         // TargetHint (m2) carries the FIEF NAME for this kind (the same field a Quest pledge uses for a
-         // settlement). Town or castle only, and still ours: a village has no Governor slot, and re-checking
-         // ownership here (not just at proposal time) is the same bridge-is-law discipline the quest path
-         // already gets from CouncilRosterResolver.EvaluateNow above.
-         Settlement fief = Settlement.All?.FirstOrDefault(s =>
-            (s.IsTown || s.IsCastle)
-            && s.OwnerClan == Clan.PlayerClan
-            && string.Equals(s.Name?.ToString(), entry.TargetHint, StringComparison.OrdinalIgnoreCase));
-
-         if (fief == null)
-         {
-            const string reason = "there is no fief of ours by that name left to govern.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         // The refusal itself: standing toward the player is the mod's OWN personal regard
-         // (NpcProfile.ReputationWithPlayer), the same source AssemblyInvitationFactsBuilder.RegardToInitiator
-         // reads for a player-initiated summons, never the vanilla clan relation.
-         GovernorAppointmentVerdict verdict = GovernorAppointmentPolicy.Decide(giver.ReputationWithPlayer);
-
-         if (!verdict.Accepted)
-         {
-            ledger.MarkFailed(entry.Id, $"{actorName} declined the post");
-            report?.Invoke($"{actorName} declines the council's offer to govern {fief.Name}.", false);
-
-            return;
-         }
-
-         ChangeGovernorAction.Apply(fief.Town, actorHero);
-
-         ledger.MarkApplied(entry.Id);
-         report?.Invoke($"{actorName} now governs {fief.Name}.", true);
-         ModLog.Info($"[COUNCIL] lift: {actorName} appointed governor of {fief.Name}.");
       }
 
       /// <summary>

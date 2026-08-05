@@ -66,6 +66,12 @@ namespace CalradiaRemembers.Logic
             return "(The match was not clear enough to arrange; no betrothal was made.)";
         }
 
+        /// <summary>The prompt's appoint_governor named no fief (a blank or missing target_fief), so no post was granted.</summary>
+        public static string AppointGovernorMissingFief()
+        {
+            return "(No fief was named, so no governorship was granted.)";
+        }
+
         /// <summary>
         ///   The named hero is not, in fact, the player's spouse. Shared by accept_divorce and
         ///   decline_divorce, whose bridge executors mirror this same first check.

@@ -11,6 +11,13 @@
 // threshold for "the NPC risks exposing themselves on the player's word" (used for lending troops/influence):
 // governing a fief is the same kind of exposure, so this reuses that established number rather than inventing
 // a second one for the same class of trust.
+//
+// CanOfferAppointment is the 1:1 conversation TEACHING gate added when appoint_governor was brought to the 1:1
+// pipeline (2026-08-05), alongside the council. It is the conjunction the mod's EncounterContextBuilder feeds
+// from live engine facts to decide whether the LLM is even shown the action this turn. What it guards is the
+// empty-promise class the whole conditional-teaching contract exists to prevent: teach the verb only when the
+// bridge's own re-check (CourtActionResolver.TryAppointGovernor) could actually honour it, so an NPC can never
+// "agree" to a governorship the game then silently declines. Each fact below removes one way that could happen.
 
 #region
 
@@ -76,6 +83,65 @@ namespace CalradiaRemembers.Tests.Assemblies
             GovernorAppointmentVerdict verdict = GovernorAppointmentPolicy.Decide(standingTowardPlayer: -30);
 
             verdict.Accepted.Should().BeFalse();
+        }
+
+        // The all-clear case: player leads the clan, the NPC is an available member of it, and a fief sits vacant.
+        // If this did not offer, appoint_governor would never be taught in 1:1 at all, and the verb would stay
+        // council-only, the exact regression this whole slice exists to fix.
+        [Test]
+        public void GIVEN_every_teaching_fact_holds_WHEN_offering_THEN_the_action_is_taught()
+        {
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
+                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: true);
+
+            offered.Should().BeTrue();
+        }
+
+        // Only the clan's head hands out its governorships: a player who does not lead their clan cannot seat a
+        // governor at all, so teaching the verb would promise a deed the bridge (which re-checks leadership) then
+        // refuses. Without this fact an NPC could "accept" a post the player has no standing to grant.
+        [Test]
+        public void GIVEN_the_player_does_not_lead_the_clan_WHEN_offering_THEN_the_action_is_withheld()
+        {
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
+                playerLeadsClan: false, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: true);
+
+            offered.Should().BeFalse();
+        }
+
+        // A governor holds one of the clan's OWN fiefs, so the appointee must belong to the player's clan (a
+        // companion or clan lord). Teaching an outsider the verb would let them "agree" to govern a fief they can
+        // never lawfully hold, and the bridge's own clan-membership grounding would then decline it.
+        [Test]
+        public void GIVEN_the_appointee_is_not_of_the_players_clan_WHEN_offering_THEN_the_action_is_withheld()
+        {
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
+                playerLeadsClan: true, appointeeInPlayerClan: false, appointeeAvailable: true, hasVacantGovernableFief: true);
+
+            offered.Should().BeFalse();
+        }
+
+        // A dead, missing, or imprisoned member cannot take a post (ChangeGovernorAction itself will not seat a
+        // prisoner). Teaching the verb to an unavailable appointee would surface an offer the bridge cannot honour.
+        [Test]
+        public void GIVEN_the_appointee_is_unavailable_WHEN_offering_THEN_the_action_is_withheld()
+        {
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
+                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: false, hasVacantGovernableFief: true);
+
+            offered.Should().BeFalse();
+        }
+
+        // With no town or castle held without a governor, there is nothing to grant: teaching the verb here is the
+        // textbook empty promise (a governorship offered over a fief that does not exist or is already governed),
+        // which is why the offering mirrors the council's own HasVacantGovernableFief gate.
+        [Test]
+        public void GIVEN_no_vacant_governable_fief_WHEN_offering_THEN_the_action_is_withheld()
+        {
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
+                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: false);
+
+            offered.Should().BeFalse();
         }
     }
 }

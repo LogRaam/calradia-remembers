@@ -17,6 +17,7 @@ using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
+using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Logic.Escort;
 using CalradiaRemembers.Logic.Grudges;
@@ -153,6 +154,18 @@ namespace CalradiaRemembers.Mapping
          bool npcIsEscortingPlayer = ResolveNpcIsEscortingPlayer(hero);
          bool npcCanEscortPlayer = ResolveNpcCanEscortPlayer(hero, npcIsEscortingPlayer);
 
+         // appoint_governor (2026-08-05, the reference personal-command verb): the 1:1 teaching gate, the same
+         // "prompt is advice, bridge is law" conditional-teaching contract as the escort/duel offers above. The
+         // pure GovernorAppointmentPolicy.CanOfferAppointment (mirroring the council's own ResolutionOfferingResolver
+         // eligibility for the appointee) is the ONE gate CourtActionResolver.TryAppointGovernor re-checks at commit;
+         // the vacant-fief list doubles as the target_fief grounding the prompt names verbatim.
+         string appointableFiefs = ResolveAppointableGovernorFiefs();
+         bool npcCanBeAppointedGovernor = GovernorAppointmentPolicy.CanOfferAppointment(
+            playerLeadsClan: Clan.PlayerClan?.Leader == Hero.MainHero,
+            appointeeInPlayerClan: hero?.Clan != null && hero.Clan == Clan.PlayerClan,
+            appointeeAvailable: hero is {IsAlive: true} && !hero.IsPrisoner && hero != Hero.MainHero,
+            hasVacantGovernableFief: !string.IsNullOrEmpty(appointableFiefs));
+
          return new() {
             PlayerStatus = playerStatus,
             SharedRealmName = bridge.GetSharedRealmName(hero),
@@ -281,6 +294,11 @@ namespace CalradiaRemembers.Mapping
             // taught only while THIS lord's own party is genuinely escorting the player.
             NpcCanEscortPlayer = npcCanEscortPlayer,
             NpcIsEscortingPlayer = npcIsEscortingPlayer,
+            // appoint_governor: the 1:1 teaching gate + the vacant-fief grounding (see the computation just above
+            // the initializer). PromptBuilder also suppresses this on a council/round-table turn, where the
+            // [RESOLUTION] channel owns appoint_governor instead, and in a captive scene.
+            NpcCanBeAppointedGovernor = npcCanBeAppointedGovernor,
+            AppointableFiefs = appointableFiefs,
             LordRecruitEligible = ResolveLordRecruitEligible(hero, profile),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
@@ -744,6 +762,31 @@ namespace CalradiaRemembers.Mapping
          if (hero.PartyBelongedTo != MobileParty.MainParty) return false;
 
          return CompanionMissionBehavior.Instance?.IsAway(hero.StringId) != true;
+      }
+
+      /// <summary>
+      ///   The player-clan towns and castles with no governor seated, as a ready "Name, Name" list for the
+      ///   appoint_governor teaching (grounds the target_fief field on a real, currently-vacant holding). Null when
+      ///   the player leads no such clan or every fief already has a governor. Mirrors
+      ///   <see cref="Assemblies.ResolutionOfferingResolver" />'s own vacancy rule (a town or castle owned by the
+      ///   player's clan with no governor), so the 1:1 offering and the council's own offering read the same
+      ///   vacancy and can never disagree over what is open to grant.
+      /// </summary>
+      private static string ResolveAppointableGovernorFiefs()
+      {
+         Clan clan = Clan.PlayerClan;
+
+         if (clan?.Settlements == null) return null;
+
+         List<string> names = clan.Settlements
+            .Where(s => (s.IsTown || s.IsCastle) && s.Town?.Governor == null)
+            .Select(s => s.Name?.ToString())
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .ToList();
+
+         return names.Count > 0
+            ? string.Join(", ", names)
+            : null;
       }
 
       /// <summary>
