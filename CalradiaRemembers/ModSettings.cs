@@ -170,6 +170,25 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   How many times, at most, the NPCs may bounce a remark off each other (an NPC reacts to a witness who
+      ///   reacts back) before the turn returns to the player. 2 by default; 0 switches the cross-talk off
+      ///   entirely, so the main NPC answers and the witnesses fall silent until the player types again. Read
+      ///   live from the MCM menu; clamped to [0, 3] to match the slider even on a stale config. Falls back to 2
+      ///   when MCM has not loaded. This is the old hard-coded <c>WitnessExchangeCap</c> made adjustable after a
+      ///   player report that multi-NPC scenes ran on too long before he could reply.
+      /// </summary>
+      public static int NpcCrossTalkRounds
+      {
+         get
+         {
+            int n = CrSettings.Instance?.NpcCrossTalkRounds ?? 2;
+            if (n < 0) n = 0;
+            if (n > 3) n = 3;
+            return n;
+         }
+      }
+
+      /// <summary>
       ///   The OpenRouter providers the player has pinned (comma-separated slugs), or blank for OpenRouter's own
       ///   routing. Read live from the MCM menu. Lets a player avoid providers that moderate their own output
       ///   and cut a reply mid-sentence.

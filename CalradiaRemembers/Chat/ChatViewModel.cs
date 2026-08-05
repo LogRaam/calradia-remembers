@@ -64,7 +64,10 @@ namespace CalradiaRemembers.Chat
       // ── Sprint 15C: NPC→witness auto-exchange ─────────────────────────────
       // Maximum NPC→witness auto-exchanges per player turn. Each exchange is one
       // LLM call; the chain terminates early if witnesses fall silent.
-      private const int WitnessExchangeCap = 3;
+      // How many NPC-to-NPC witness exchanges may fire per player turn. Player-adjustable since a report
+      // (2026-08-05) that multi-NPC scenes ran on too long before he could reply; 2 by default, 0 turns
+      // cross-talk off. Read live from the MCM menu each turn (see ModSettings.NpcCrossTalkRounds).
+      private static int WitnessExchangeCap => ModSettings.NpcCrossTalkRounds;
 
       // Shortest gap between two wrapped-preview refreshes; ~150 ms is imperceptible for reading but turns a
       // per-keystroke re-layout of a long message into a handful per second.

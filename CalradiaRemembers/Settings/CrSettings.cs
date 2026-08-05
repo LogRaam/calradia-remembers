@@ -214,6 +214,17 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> InterceptionPacing { get; set; } =
          new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's behaviour)
 
+      // Player report (2026-08-05): in a scene with several NPCs, they kept talking to each other for a long
+      // stretch before he could get a word in. This dial caps how many NPC-to-NPC exchanges fire per player
+      // turn (was a hard-coded 3). 2 is the new shipped feel; 0 turns cross-talk off completely. See
+      // CalradiaRemembers.Chat.ChatViewModel (WitnessExchangeCap) and ModSettings.NpcCrossTalkRounds.
+      [SettingPropertyInteger("NPC Cross-Talk", 0, 3, "0", RequireRestart = false, Order = 10,
+         HintText = "How many times NPCs may talk amongst themselves (one reacting to another) before the turn " +
+                    "comes back to you, in a scene with witnesses. 2 is the default; 0 turns it off so only the " +
+                    "NPC you spoke to replies. Applies on your next message.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public int NpcCrossTalkRounds { get; set; } = 2;
+
       [SettingPropertyDropdown("Letters from NPCs", RequireRestart = false, Order = 6,
          HintText = "How many unprompted letters NPCs send you. Fewer keeps only what matters; the mod also learns " +
                     "from which letters you answer versus dismiss. Applies immediately.")]
