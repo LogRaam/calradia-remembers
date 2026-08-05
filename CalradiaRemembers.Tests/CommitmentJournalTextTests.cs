@@ -131,5 +131,79 @@ namespace CalradiaRemembers.Tests
             //Assert
             line.Should().Be(CommitmentJournalText.BuildBreachedLine("Derthert", "Raganvad"));
         }
+
+        // ── R7-light: kind-aware overloads (swear_oath) ─────────────────────
+
+        // STAKE: a pay_gold oath's journal mirror must name the actual sum, or the player reading their quest
+        // log has no idea how much is owed and by when they should expect it.
+        [Test]
+        public void GIVEN_a_pay_gold_oath_WHEN_the_oath_is_opened_THEN_the_line_names_the_sum()
+        {
+            //Arrange/Act
+            string line = CommitmentJournalText.BuildOpenedLine(CommitmentKind.PayGold, "Derthert", null, 300);
+
+            //Assert
+            line.Should().Be("Derthert swore to pay you 300 denars.");
+        }
+
+        // A keep_peace oath's own clause names the faction, never a rival's name; this is the field the mod
+        // resolves via CommitmentBehavior.FindFactionById, and the wording must reflect that it is a faction.
+        [Test]
+        public void GIVEN_a_keep_peace_oath_WHEN_the_oath_is_fulfilled_THEN_the_line_names_the_faction()
+        {
+            //Arrange/Act
+            string line = CommitmentJournalText.BuildFulfilledLine(CommitmentKind.KeepPeace, "Derthert", "Vlandia", null);
+
+            //Assert
+            line.Should().Be("Derthert kept their oath to keep the peace with Vlandia.");
+        }
+
+        // A protect oath names no target at all: the wording must never leave a dangling "with" or "against"
+        // clause when neither a rival nor a faction was ever recorded for this kind.
+        [Test]
+        public void GIVEN_a_protect_oath_WHEN_the_oath_is_breached_THEN_the_line_reads_without_a_target()
+        {
+            //Arrange/Act
+            string line = CommitmentJournalText.BuildBreachedLine(CommitmentKind.Protect, "Derthert", null, null);
+
+            //Assert
+            line.Should().Be("Derthert swore to stand at your side in battle, and broke that oath.");
+        }
+
+        // Guards the case a promisor Hero reference fails to resolve for a swear_oath kind too: the same
+        // "They" fallback the original MoveAgainst-only builders already use, never a blank or null tail.
+        [Test]
+        public void GIVEN_no_promisor_name_WHEN_a_pay_gold_oath_is_opened_THEN_it_falls_back_to_they()
+        {
+            //Arrange/Act
+            string line = CommitmentJournalText.BuildOpenedLine(CommitmentKind.PayGold, null, null, 300);
+
+            //Assert
+            line.Should().Be("They swore to pay you 300 denars.");
+        }
+
+        // A pay_gold oath with no readable amount (defensive: should never happen once ClampPromisedAmount has
+        // run, but the journal text must still read as a sentence rather than showing a blank or "0 denars").
+        [Test]
+        public void GIVEN_a_pay_gold_oath_with_no_amount_WHEN_opened_THEN_it_still_reads_as_a_plain_sentence()
+        {
+            //Arrange/Act
+            string line = CommitmentJournalText.BuildOpenedLine(CommitmentKind.PayGold, "Derthert", null, null);
+
+            //Assert
+            line.Should().Be("Derthert swore to pay you a sum of denars.");
+        }
+
+        // Confirms the kind-aware dispatcher (mirroring BuildLogLine's own two-name overload) routes to the
+        // matching wording for every lifecycle state, so CommitmentBehavior never has to duplicate this switch.
+        [Test]
+        public void GIVEN_the_active_state_WHEN_building_a_kind_aware_log_line_THEN_it_reads_as_the_opened_line()
+        {
+            //Arrange/Act
+            string line = CommitmentJournalText.BuildLogLine(CommitmentState.Active, CommitmentKind.Protect, "Derthert", null, null);
+
+            //Assert
+            line.Should().Be(CommitmentJournalText.BuildOpenedLine(CommitmentKind.Protect, "Derthert", null, null));
+        }
     }
 }

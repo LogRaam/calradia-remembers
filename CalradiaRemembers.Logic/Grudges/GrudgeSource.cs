@@ -105,6 +105,15 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   specifically, and a hired companion's expulsion, while still one of the gravest social costs the
         ///   table can hand down, is not quite that.
         /// </summary>
-        Expelled = 18
+        Expelled = 18,
+
+        /// <summary>
+        ///   "You swore before us and broke it": R7-light's own public-oath sanction (COUNCIL_ACTIONS.md's
+        ///   swear_oath section, "un serment prete devant temoins doit couter plus cher"). Planted only when the
+        ///   broken <see cref="CalradiaRemembers.Logic.TrackedCommitment" /> carried at least one recorded
+        ///   witness (a private oath's breach stays a plain relation hit, no grudge); magnitude fixed at
+        ///   <see cref="CalradiaRemembers.Logic.CommitmentPolicy.BrokenOathGrudgeMagnitude" />.
+        /// </summary>
+        BrokenOath = 19
     }
 }

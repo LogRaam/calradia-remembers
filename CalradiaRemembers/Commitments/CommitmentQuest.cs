@@ -52,7 +52,14 @@ namespace CalradiaRemembers.Commitments
             _promisorId = promisor.StringId;
             _commitmentId = commitment.Id;
 
-            AddLog(new TextObject(CommitmentJournalText.BuildOpenedLine(promisor.Name?.ToString(), ResolveRivalName(commitment))));
+            // R7-light: MoveAgainst keeps the ORIGINAL two-name opening line exactly as shipped; the three
+            // swear_oath kinds route through CommitmentBehavior's own kind-aware builder instead, so the
+            // player's vanilla quest log reads the actual oath sworn, never "moved against" for all four kinds.
+            string openedLine = commitment.Kind == CommitmentKind.MoveAgainst
+                ? CommitmentJournalText.BuildOpenedLine(promisor.Name?.ToString(), ResolveRivalName(commitment))
+                : CommitmentJournalText.BuildOpenedLine(commitment.Kind, promisor.Name?.ToString(),
+                    CommitmentBehavior.ResolveTargetDisplayName(commitment), commitment.PromisedAmount);
+            AddLog(new TextObject(openedLine));
             SetDialogs();
             StartQuest();
         }

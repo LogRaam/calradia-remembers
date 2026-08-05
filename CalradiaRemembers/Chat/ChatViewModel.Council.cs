@@ -436,6 +436,35 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   R7-light (COUNCIL_ACTIONS.md's Partie 8, "swear_oath"): true once any seated member, alive, free, not
+      ///   the player, and not already carrying a commitment (<see cref="CommitmentBehavior.HasActive" />, the
+      ///   SAME one-vow-at-a-time gate pledge_against already shares), plausibly qualifies for AT LEAST ONE of
+      ///   the three whitelisted oath kinds: holds gold (pay_gold), leads a party of their own (protect, mirrors
+      ///   <see cref="AnySeatedMemberCanLendTroops" />'s own party-leadership check), or leads their own
+      ///   kingdom/independent clan (keep_peace). An APPROXIMATION, mirroring <see cref="AnySeatedMemberCanPledgeAgainst" />'s
+      ///   own loose gate: proves only that SOME oath is plausible for SOME seat, never which kind the model
+      ///   will actually name or whether it fits THIS particular swearer, the full validation (and the honest
+      ///   refusal of a mismatched kind) happens at the lift regardless (CouncilLift.SettleSwearOath, bridge is
+      ///   law).
+      /// </summary>
+      private bool AnySeatedMemberCanSwearOath()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero is not {IsAlive: true} || hero.IsPrisoner || hero == Hero.MainHero) continue;
+            if (CommitmentBehavior.Instance?.HasActive(hero.StringId) == true) continue;
+
+            if (hero.Gold > 0) return true;
+            if (hero.PartyBelongedTo != null && hero.PartyBelongedTo.LeaderHero == hero) return true;
+            if (hero.Clan?.Kingdom != null && hero.Clan.Kingdom.Leader == hero) return true;
+            if (hero.Clan != null && hero.Clan.Kingdom == null && hero.Clan.Leader == hero) return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>
       ///   Partie 1 (COUNCIL_ACTIONS.md, "juste arrange_mariage qui est valide"): arrange_marriage's own fact,
       ///   WarCouncil only, REUSING the existing 1:1 arrange_marriage system end to end. True once the player's
       ///   own clan holds an unwed kin (<see cref="PlayerClanHasUnwedKin" />) AND at least one seated ally's own

@@ -55,6 +55,23 @@ namespace CalradiaRemembers.Tests.Grudges
          GrudgePolicy.ResolutionKindFor(GrudgeSource.Expelled, 90).Should().Be(GrudgeResolutionKind.Deed);
       }
 
+      // BrokenOath (R7-light's swear_oath, COUNCIL_ACTIONS.md's Partie 8) mirrors FailedQuest's own soft/hard
+      // split rather than FiefRevoked's/Expelled's unconditional Deed: both a broken oath and a failed quest are
+      // a broken WORD, not a seized possession or a severed clan bond, so a still-soft grudge can be talked down
+      // (Amends), but a hardened one needs a real deed (making good on the oath's substance, or an equivalent
+      // gesture) before it mends.
+      [Test]
+      public void GIVEN_a_broken_oath_grudge_WHEN_soft_THEN_it_wants_amends()
+      {
+         GrudgePolicy.ResolutionKindFor(GrudgeSource.BrokenOath, 5).Should().Be(GrudgeResolutionKind.Amends);
+      }
+
+      [Test]
+      public void GIVEN_a_broken_oath_grudge_WHEN_hardened_THEN_it_wants_a_real_deed()
+      {
+         GrudgePolicy.ResolutionKindFor(GrudgeSource.BrokenOath, 90).Should().Be(GrudgeResolutionKind.Deed);
+      }
+
       // If stale (resolved or fully decayed) entries counted toward the cap, an NPC whose old wounds
       // simply faded could get stuck refusing every new grievance forever, a "full house" that is
       // actually empty. TryAdmit filters to live grudges first so the cap only ever gates real ones.

@@ -209,6 +209,15 @@ namespace CalradiaRemembers.Chat
             // "release_prisoner" (rounding out the Parley toolkit alongside make_peace and tribute): grounds on
             // the CAPTIVE'S OWN NAME, this kind's own dedicated field (see this method's own doc above).
             targetHint = proposal.TargetPrisonerName;
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.SwearOath), StringComparison.OrdinalIgnoreCase))
+            // R7-light ("swear_oath", COUNCIL_ACTIONS.md's Partie 8): the ONE kind whose own grounding needs TWO
+            // pieces in this single slot, WHICH oath kind (proposal.OathKind, a dedicated field: "pay_gold" /
+            // "keep_peace" / "protect", read back by OathKindParser at the lift) and that kind's own target
+            // value, REUSING existing fields rather than growing new ones (proposal.TargetAmount for pay_gold's
+            // denars figure, proposal.TargetFaction for keep_peace's named faction; protect names neither, so
+            // the value half is simply blank). Composed by OathGroundingCodec.Compose, split apart again at the
+            // lift by the SAME codec (CouncilLift.SettleSwearOath).
+            targetHint = OathGroundingCodec.Compose(proposal.OathKind, proposal.TargetAmount?.ToString() ?? proposal.TargetFaction ?? "");
          else
             targetHint = proposal.TargetSettlement;
          AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession, targetHint);

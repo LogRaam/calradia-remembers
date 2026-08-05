@@ -54,24 +54,28 @@ namespace CalradiaRemembers.Tests.Assemblies
         // GrantFief was RE-SCOPED off ClanLords to WarCouncil (Partie 2, COUNCIL_ACTIONS.md's Kimi review: a
         // fief belongs to the CLAN, so "granting" one within the player's own clan, ClanLords' own scope, is
         // mechanically vacant). PledgeAgainst (Partie 1's schemes kind) then joined GiveGold as the clan-lords'
-        // SECOND motion, and LendTroops (Partie 1's highest-detail item, COUNCIL_ACTIONS.md) joined last as its
-        // THIRD, so the scope must return exactly those three, in declaration order.
+        // SECOND motion, LendTroops (Partie 1's highest-detail item, COUNCIL_ACTIONS.md) joined as its THIRD,
+        // and SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined last as its FOURTH, so the scope must
+        // return exactly those four, in declaration order.
         [Test]
         public void GIVEN_a_clan_lords_council_WHEN_the_catalogue_is_queried_THEN_give_gold_and_pledge_against_return()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.ClanLords).Select(d => d.Kind).ToList();
 
-            kinds.Should().Equal(ResolutionKind.GiveGold, ResolutionKind.PledgeAgainst, ResolutionKind.LendTroops);
+            kinds.Should().Equal(ResolutionKind.GiveGold, ResolutionKind.PledgeAgainst, ResolutionKind.LendTroops,
+                ResolutionKind.SwearOath);
         }
 
         // The family council carried NO motion at all until PledgeAgainst (Partie 1's schemes kind) became its
         // first: a seated lord's own standing rivalry is exactly as plausible within the player's inner circle
-        // as among the wider clan-lords' table. The query must now return exactly that one motion.
+        // as among the wider clan-lords' table. SwearOath (R7-light) joined as its SECOND motion (a personal
+        // vow of coin or protection is exactly as credible within the family as at the wider clan-lords' table).
+        // The query must now return exactly those two motions, in declaration order.
         [Test]
         public void GIVEN_the_family_council_WHEN_the_catalogue_is_queried_THEN_only_pledge_against_returns()
         {
             ResolutionCatalog.ForScope(CouncilScope.Family).Select(d => d.Kind)
-                .Should().Equal(ResolutionKind.PledgeAgainst);
+                .Should().Equal(ResolutionKind.PledgeAgainst, ResolutionKind.SwearOath);
         }
 
         // M4: the catalogue enum and the runtime string vocabulary used to be disjoint ("quest" existed only as a
@@ -142,8 +146,9 @@ namespace CalradiaRemembers.Tests.Assemblies
         // was. Both must surface alongside declare_war/give_gold/give_influence, in declaration order.
         // ArrangeMarriage (Partie 1, "juste arrange_mariage qui est valide") joined the same WarCouncil scope
         // next, SwapFiefs (Partie 8, COUNCIL_ACTIONS.md's Kimi review, REUSING grant_fief's/revoke_fief's
-        // own machinery) joined after it, and LendTroops (Partie 1's highest-detail item, COUNCIL_ACTIONS.md)
-        // joined last, so the full declaration-order list now ends with it too.
+        // own machinery) joined after it, LendTroops (Partie 1's highest-detail item, COUNCIL_ACTIONS.md)
+        // joined next, and SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined last, so the full
+        // declaration-order list now ends with it too.
         [Test]
         public void GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_grant_fief_and_revoke_fief_also_return()
         {
@@ -151,7 +156,7 @@ namespace CalradiaRemembers.Tests.Assemblies
 
             kinds.Should().Equal(ResolutionKind.DeclareWar, ResolutionKind.GiveGold, ResolutionKind.GiveInfluence,
                 ResolutionKind.GrantFief, ResolutionKind.RevokeFief, ResolutionKind.ArrangeMarriage, ResolutionKind.SwapFiefs,
-                ResolutionKind.LendTroops);
+                ResolutionKind.LendTroops, ResolutionKind.SwearOath);
         }
 
         // The empty-promise guard: ClanLords, Companions and Family carry NO GrantFief/RevokeFief catalogue
@@ -667,6 +672,83 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("lend_troops");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("lend_troops");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Parley).Should().NotContain("lend_troops");
+        }
+
+        // R7-light (COUNCIL_ACTIONS.md's Partie 8, "swear_oath"): swear_oath has a live lift executor
+        // (CouncilLift.SettleSwearOath) from the day it lands; the table must be able to actually track the
+        // vow, not just record the pledge.
+        [Test]
+        public void GIVEN_swear_oath_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.SwearOath).Should().BeTrue();
+        }
+
+        // swear_oath is a seated member's own vow (like give_gold or pledge_against), not a decision about two
+        // FACTIONS, so it must never bypass the ordinary seated-member re-validation the way declare_war/
+        // make_peace do (covered generically by
+        // GIVEN_every_member_pledge_kind_WHEN_asked_if_it_is_faction_centric_THEN_none_of_them_are above; pinned
+        // here too for the kind's own documentation).
+        [Test]
+        public void GIVEN_swear_oath_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.SwearOath).Should().BeFalse();
+        }
+
+        // All three scopes swear_oath was granted (ClanLords, Family, WarCouncil, mirroring pledge_against's
+        // own two scopes plus WarCouncil's own keep_peace need) must actually surface its key alongside the
+        // universal quest, or a council seated with a member who could plausibly swear one of the three
+        // whitelisted kinds would have no way to reach CouncilLift.SettleSwearOath at all.
+        [Test]
+        public void GIVEN_a_clan_lords_family_or_war_council_WHEN_asked_for_executable_kinds_THEN_swear_oath_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().Contain("swear_oath");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().Contain("swear_oath");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.WarCouncil).Should().Contain("swear_oath");
+        }
+
+        // The empty-promise guard, the other direction: Companions and Parley carry NO SwearOath catalogue entry
+        // at all (a hired hand has no standing purse, party, or faction of their own to swear against, and a
+        // negotiating enemy leader's own concessions are Parley's own separate toolkit), so their executable set
+        // must never surface it, whatever the world facts.
+        [Test]
+        public void GIVEN_a_companions_or_parley_council_WHEN_asked_for_executable_kinds_THEN_swear_oath_is_absent()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("swear_oath");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Parley).Should().NotContain("swear_oath");
+        }
+
+        // ── ResolutionEligibilityPolicy: the swear_oath offering fact actually gates the teaching ──
+
+        // STAKE: this is the "prove SOME oath is possible, never over-offer" discipline every other loose gate
+        // in the catalogue already follows (MemberHasGold, AnySeatedMemberCanPledgeAgainst...). If the fact were
+        // ignored, the table would teach swear_oath even when nobody seated could plausibly swear anything.
+        [Test]
+        public void GIVEN_the_swear_oath_fact_is_false_WHEN_asking_what_is_offered_THEN_it_is_withheld()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedMemberCanSwearOath: false);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
+                .Should().NotContain("swear_oath");
+        }
+
+        [Test]
+        public void GIVEN_the_swear_oath_fact_is_true_WHEN_asking_what_is_offered_THEN_it_is_included()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedMemberCanSwearOath: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
+                .Should().Contain("swear_oath");
+        }
+
+        // STAKE: even with the fact true, a scope the catalogue never seats a swear_oath entry for (Companions)
+        // must never offer it, since the by-scope lookup reads the catalogue FIRST, before facts are applied.
+        [Test]
+        public void GIVEN_the_swear_oath_fact_is_true_but_the_scope_is_companions_WHEN_asking_what_is_offered_THEN_it_is_still_withheld()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedMemberCanSwearOath: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts)
+                .Should().NotContain("swear_oath");
         }
     }
 }

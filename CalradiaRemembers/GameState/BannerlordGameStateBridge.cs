@@ -1283,6 +1283,9 @@ namespace CalradiaRemembers.GameState
 
          amount = ClampInt(amount, 1, payable);
          GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, amount);
+         // R7-light (swear_oath): this is ALSO the pay_gold oath's own verification hook, whichever channel
+         // the gold actually moved through (this 1:1 action, or the council's own give_gold resolution).
+         CalradiaRemembers.Commitments.CommitmentBehavior.Instance?.OnGoldGivenToPlayer(npcHero.StringId, amount);
          ModLog.Info($"[ACTION] give_gold: {npcHero.Name} → player {amount} gold");
 
          // The map bar does not refresh while campaign time is frozen under the chat

@@ -629,8 +629,12 @@ namespace CalradiaRemembers.Chat
                // highest-detail item in the spec): ClanLords/WarCouncil only, at least one seated lord currently
                // leads a party with troops to spare and is not at war with the player; the real tier split is
                // computed fresh at the lift from the donor's LIVE roster regardless (CouncilLift.SettleLendTroops).
+               // AnySeatedMemberCanSwearOath is R7-light's own fact, swear_oath (COUNCIL_ACTIONS.md's Partie 8):
+               // ClanLords/Family/WarCouncil, at least one seated member with no commitment already outstanding
+               // plausibly qualifies for one of the three whitelisted oath kinds (pay_gold/keep_peace/protect);
+               // which kind fits the swearer named is re-validated at the lift regardless (CouncilLift.SettleSwearOath).
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

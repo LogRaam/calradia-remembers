@@ -102,9 +102,14 @@ namespace CalradiaRemembers.Assemblies
       ///   ClanLords/WarCouncil only (mirroring anySeatedMemberHasGold's own two scopes), at least one seated
       ///   lord currently leads a party with troops to spare and is not at war with the player; the real tier
       ///   split (CouncilTroopLoanPolicy.ComputeLoan) is computed fresh at the lift from the donor's LIVE roster
-      ///   regardless (CouncilLift.SettleLendTroops, bridge is law).
+      ///   regardless (CouncilLift.SettleLendTroops, bridge is law). <paramref name="anySeatedMemberCanSwearOath" />
+      ///   is R7-light's own fact, swear_oath (COUNCIL_ACTIONS.md's Partie 8; see ChatViewModel.AnySeatedMemberCanSwearOath):
+      ///   ClanLords/Family/WarCouncil (see ResolutionCatalog's three SwearOath entries), at least one seated
+      ///   member with no commitment already outstanding plausibly qualifies for ONE of the three whitelisted
+      ///   oath kinds (pay_gold/keep_peace/protect); which kind, and whether it truly fits the swearer named, is
+      ///   re-validated at the lift regardless (CouncilLift.SettleSwearOath, bridge is law).
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false, bool anySeatedPrisonerAvailableToRelease = false, bool anySeatedMemberCanLendTroops = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false, bool anySeatedPrisonerAvailableToRelease = false, bool anySeatedMemberCanLendTroops = false, bool anySeatedMemberCanSwearOath = false)
       {
          try
          {
@@ -127,7 +132,8 @@ namespace CalradiaRemembers.Assemblies
                anySeatedAllyHasMarriageableKin: anySeatedAllyHasMarriageableKin,
                anySeatedTributePayerAvailable: anySeatedTributePayerAvailable,
                anySeatedPrisonerAvailableToRelease: anySeatedPrisonerAvailableToRelease,
-               anySeatedMemberCanLendTroops: anySeatedMemberCanLendTroops);
+               anySeatedMemberCanLendTroops: anySeatedMemberCanLendTroops,
+               anySeatedMemberCanSwearOath: anySeatedMemberCanSwearOath);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

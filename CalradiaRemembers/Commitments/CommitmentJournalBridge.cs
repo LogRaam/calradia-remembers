@@ -41,7 +41,14 @@ namespace CalradiaRemembers.Commitments
                 CommitmentQuest mirror = FindMirror(commitment.Id);
                 if (mirror == null) return;
 
-                string line = CommitmentJournalText.BuildBreachedLine(ResolveName(commitment.PromisorId), ResolveName(commitment.TargetId));
+                // R7-light: MoveAgainst keeps the ORIGINAL two-name line exactly as shipped; the three
+                // swear_oath kinds route through CommitmentBehavior's own kind-aware builder instead (the SAME
+                // one CommitmentBehavior.Breach itself uses for the profile-event/world-event text), so the
+                // player's vanilla quest log never says "moved against" for a pay_gold/keep_peace/protect oath.
+                string line = commitment.Kind == CommitmentKind.MoveAgainst
+                    ? CommitmentJournalText.BuildBreachedLine(ResolveName(commitment.PromisorId), ResolveName(commitment.TargetId))
+                    : CommitmentJournalText.BuildBreachedLine(commitment.Kind, ResolveName(commitment.PromisorId),
+                        CommitmentBehavior.ResolveTargetDisplayName(commitment), commitment.PromisedAmount);
                 mirror.UpdateStatus(line);
                 mirror.CloseBreached(line);
             }
@@ -61,7 +68,11 @@ namespace CalradiaRemembers.Commitments
                 CommitmentQuest mirror = FindMirror(commitment.Id);
                 if (mirror == null) return;
 
-                string line = CommitmentJournalText.BuildFulfilledLine(ResolveName(commitment.PromisorId), ResolveName(commitment.TargetId));
+                // R7-light: same kind-aware split as CloseBreached above.
+                string line = commitment.Kind == CommitmentKind.MoveAgainst
+                    ? CommitmentJournalText.BuildFulfilledLine(ResolveName(commitment.PromisorId), ResolveName(commitment.TargetId))
+                    : CommitmentJournalText.BuildFulfilledLine(commitment.Kind, ResolveName(commitment.PromisorId),
+                        CommitmentBehavior.ResolveTargetDisplayName(commitment), commitment.PromisedAmount);
                 mirror.UpdateStatus(line);
                 mirror.CloseFulfilled();
             }

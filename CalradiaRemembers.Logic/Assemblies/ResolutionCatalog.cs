@@ -232,7 +232,26 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   (mirrors <see cref="GiveInfluence" />'s own doc): the split is computed fresh at the lift from the
         ///   donor's LIVE roster, never a figure the model proposes.
         /// </summary>
-        LendTroops
+        LendTroops,
+
+        /// <summary>
+        ///   R7-light (COUNCIL_ACTIONS.md's Partie 8, "swear_oath"): a seated member swears a VERIFIABLE oath
+        ///   with a deadline, tracked by the GENERALIZED <see cref="CalradiaRemembers.Logic.TrackedCommitment" />/
+        ///   CommitmentBehavior engine that pledge_against already built (now carrying pay_gold/keep_peace/protect
+        ///   alongside move_against, see <see cref="CalradiaRemembers.Logic.CommitmentKind" />'s own doc for why
+        ///   each of the three is cheaply verifiable by a real event). THREE catalogue entries (ClanLords, Family,
+        ///   WarCouncil, see <see cref="ResolutionCatalog.All" />), one PER SCOPE rather than per oath kind: the
+        ///   catalogue only proves SOME oath is plausible for SOME seated member (mirroring
+        ///   <see cref="ResolutionKind.PledgeAgainst" />'s own loose gate), never which of the three the model
+        ///   will actually name, so a single requirement flag,
+        ///   <see cref="ResolutionRequirement.AnySeatedMemberCanSwearOath" />, covers all three kinds at once; the
+        ///   WRONG kind for a given swearer (e.g. a companion naming keep_peace, which only a faction leader can
+        ///   swear) is refused honestly at the lift (CouncilLift.SettleSwearOath), never taught or blocked here.
+        ///   A PUBLIC oath (this council's own witnesses) costs more to break than a private one: see
+        ///   <see cref="CalradiaRemembers.Logic.CommitmentPolicy.WitnessBreachPenalty" /> and
+        ///   <see cref="CalradiaRemembers.Logic.Grudges.GrudgeSource.BrokenOath" />.
+        /// </summary>
+        SwearOath
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -346,7 +365,15 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   the exact tier split, which is computed fresh at the lift from the donor's LIVE roster regardless
         ///   (CouncilLift.SettleLendTroops, bridge is law).
         /// </summary>
-        AnySeatedMemberCanLendTroops = 262144
+        AnySeatedMemberCanLendTroops = 262144,
+
+        /// <summary>
+        ///   At least one seated member (ClanLords/Family/WarCouncil, mirroring MemberHasGold's/AnySeatedMemberCanPledgeAgainst's
+        ///   own loose gate) currently holds no commitment already outstanding and plausibly qualifies for AT
+        ///   LEAST ONE of the three whitelisted oath kinds (holds gold, leads their own party, or leads their own
+        ///   faction). swear_oath's own fact, see ResolutionKind.SwearOath.
+        /// </summary>
+        AnySeatedMemberCanSwearOath = 524288
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -390,7 +417,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool anySeatedAllyHasMarriageableKin = false,
                                     bool anySeatedTributePayerAvailable = false,
                                     bool anySeatedPrisonerAvailableToRelease = false,
-                                    bool anySeatedMemberCanLendTroops = false)
+                                    bool anySeatedMemberCanLendTroops = false,
+                                    bool anySeatedMemberCanSwearOath = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -411,6 +439,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             AnySeatedTributePayerAvailable = anySeatedTributePayerAvailable;
             AnySeatedPrisonerAvailableToRelease = anySeatedPrisonerAvailableToRelease;
             AnySeatedMemberCanLendTroops = anySeatedMemberCanLendTroops;
+            AnySeatedMemberCanSwearOath = anySeatedMemberCanSwearOath;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -458,6 +487,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated lord currently leads a party with troops to spare and is not at war with the player. lend_troops' own fact, see ResolutionRequirement.AnySeatedMemberCanLendTroops.</summary>
         public bool AnySeatedMemberCanLendTroops { get; }
+
+        /// <summary>At least one seated member holds no commitment already outstanding and plausibly qualifies for one whitelisted oath kind. swear_oath's own fact, see ResolutionRequirement.AnySeatedMemberCanSwearOath.</summary>
+        public bool AnySeatedMemberCanSwearOath { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -581,7 +613,22 @@ namespace CalradiaRemembers.Logic.Assemblies
                 "Lend you troops", ResolutionRequirement.AnySeatedMemberCanLendTroops),
 
             new ResolutionDefinition(ResolutionKind.LendTroops, CouncilScope.WarCouncil,
-                "Lend you troops", ResolutionRequirement.AnySeatedMemberCanLendTroops)
+                "Lend you troops", ResolutionRequirement.AnySeatedMemberCanLendTroops),
+
+            // R7-light (COUNCIL_ACTIONS.md's Partie 8, "swear_oath"): THREE entries, one per scope where a
+            // seated member could plausibly swear at least one of the three whitelisted oath kinds (pay_gold,
+            // keep_peace, protect); ClanLords and Family mirror PledgeAgainst's own two scopes (a personal
+            // vow of coin or protection is exactly as credible in either), WarCouncil adds the one scope where
+            // keep_peace makes sense (a genuine faction leader is seated there). Never Companions: a hired
+            // hand has no standing purse, party, or faction to swear any of the three against.
+            new ResolutionDefinition(ResolutionKind.SwearOath, CouncilScope.ClanLords,
+                "Swear an oath", ResolutionRequirement.AnySeatedMemberCanSwearOath),
+
+            new ResolutionDefinition(ResolutionKind.SwearOath, CouncilScope.Family,
+                "Swear an oath", ResolutionRequirement.AnySeatedMemberCanSwearOath),
+
+            new ResolutionDefinition(ResolutionKind.SwearOath, CouncilScope.WarCouncil,
+                "Swear an oath", ResolutionRequirement.AnySeatedMemberCanSwearOath)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -620,6 +667,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.Tribute:             return "tribute";
                 case ResolutionKind.ReleasePrisoner:     return "release_prisoner";
                 case ResolutionKind.LendTroops:          return "lend_troops";
+                case ResolutionKind.SwearOath:           return "swear_oath";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -706,7 +754,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.ExpelFromClan || kind == ResolutionKind.PledgeAgainst
             || kind == ResolutionKind.ArrangeMarriage || kind == ResolutionKind.SwapFiefs
             || kind == ResolutionKind.Tribute || kind == ResolutionKind.ReleasePrisoner
-            || kind == ResolutionKind.LendTroops;
+            || kind == ResolutionKind.LendTroops || kind == ResolutionKind.SwearOath;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

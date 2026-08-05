@@ -248,6 +248,11 @@ namespace CalradiaRemembers.Chat
 
                return;
 
+            case ResolutionKind.SwearOath:
+               SettleSwearOath(ledger, entry, actorHero, actorName, gameDay, report);
+
+               return;
+
             case ResolutionKind.Quest:
             default:
                SettleQuest(ledger, entry, actorHero, actorName, giver, behavior, gameDay, report);
@@ -679,6 +684,10 @@ namespace CalradiaRemembers.Chat
          }
 
          GiveGoldAction.ApplyBetweenCharacters(actorHero, Hero.MainHero, payable);
+         // R7-light (swear_oath): this give_gold resolution ALSO counts toward any pay_gold oath this same
+         // member swore, whichever channel the gold actually moved through (this council pledge, or the 1:1
+         // give_gold action).
+         CommitmentBehavior.Instance?.OnGoldGivenToPlayer(actorHero.StringId, payable);
 
          ledger.MarkApplied(entry.Id);
          report?.Invoke(payable < proposed
@@ -1509,6 +1518,146 @@ namespace CalradiaRemembers.Chat
             report?.Invoke($"{actorName} sends {moved.Total} soldiers to you; word reaches you that riders slipped through in the night and they are already among your ranks.", true);
 
          ModLog.Info($"[COUNCIL] lift: {actorName} lent the player {moved.Total} troops ({moved.Low}/{moved.Medium}/{moved.High}), outcome {outcome}.");
+      }
+
+      /// <summary>
+      ///   R7-light (COUNCIL_ACTIONS.md's Partie 8, "swear_oath"): a seated member swears one of the THREE
+      ///   whitelisted, auto-verifiable oath kinds (pay_gold/keep_peace/protect, <see cref="OathKindParser" />),
+      ///   tracked from here on by the SAME generalized <see cref="TrackedCommitment" />/<see cref="CommitmentBehavior" />
+      ///   engine pledge_against already uses (one active commitment per member, <see cref="CommitmentBehavior.HasActive" />,
+      ///   shared across EVERY kind, so a member cannot swear a second oath, or a pledge_against, while one is
+      ///   already outstanding). Grounding is decomposed from <see cref="AssemblyResolutionEntry.TargetHint" />
+      ///   by <see cref="OathGroundingCodec" /> (WHICH kind, plus that kind's own target value: a denars figure
+      ///   for pay_gold, a faction name for keep_peace, nothing for protect). Every guard is re-checked here
+      ///   against LIVE state (bridge is law), never trusted from the moment the oath was proposed: an
+      ///   unverifiable or invalid oath (an unrecognised kind, no valid sum, a swearer who leads no faction of
+      ///   their own for keep_peace) is REFUSED outright rather than tracked and silently doomed to breach.
+      ///   Success carries <see cref="AssemblyResolutionEntry.WitnessIds" /> onto the new commitment (the OTHER
+      ///   seats present when this was sworn), so a later broken oath costs more than one sworn in private would
+      ///   (CommitmentBehavior's own witness-cost penalty and BrokenOath grudge).
+      /// </summary>
+      private static void SettleSwearOath(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, int gameDay, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner || actorHero == Hero.MainHero)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+            return;
+         }
+
+         var commitmentBehavior = CommitmentBehavior.Instance;
+
+         if (commitmentBehavior == null)
+         {
+            const string reason = "no commitment ledger is available right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+            return;
+         }
+
+         if (commitmentBehavior.HasActive(actorHero.StringId))
+         {
+            const string reason = "they already have a pledge outstanding, one vow at a time.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+            return;
+         }
+
+         if (!OathGroundingCodec.TryDecompose(entry.TargetHint, out string oathKindKey, out string targetValue))
+         {
+            const string reason = "no oath kind was named.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+            return;
+         }
+
+         // R7.2 (COUNCIL_ACTIONS.md): a kind not in the whitelist (e.g. an attempted "move_against", which is
+         // pledge_against's own separate resolution) is refused here rather than tracked, never rewritten as
+         // whatever it superficially resembles.
+         if (!OathKindParser.TryParse(oathKindKey, out CommitmentKind kind))
+         {
+            const string reason = "that is not an oath the table can hold anyone to.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+            return;
+         }
+
+         string targetId = null;
+         int? promisedAmount = null;
+         string swornLine;
+
+         switch (kind)
+         {
+            case CommitmentKind.PayGold:
+               if (!int.TryParse(targetValue, out int proposed) || CommitmentPolicy.ClampPromisedAmount(proposed) <= 0)
+               {
+                  const string reason = "no valid sum was named.";
+                  ledger.MarkFailed(entry.Id, reason);
+                  report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+                  return;
+               }
+
+               promisedAmount = CommitmentPolicy.ClampPromisedAmount(proposed);
+               swornLine = $"{actorName} swears to pay you {promisedAmount} denars within {CommitmentPolicy.DeadlineDays} days.";
+
+               break;
+
+            case CommitmentKind.KeepPeace:
+               bool leadsKingdom = actorHero.Clan?.Kingdom != null && actorHero.Clan.Kingdom.Leader == actorHero;
+               bool leadsIndependentClan = actorHero.Clan != null && actorHero.Clan.Kingdom == null && actorHero.Clan.Leader == actorHero;
+
+               if (!leadsKingdom && !leadsIndependentClan)
+               {
+                  const string reason = "they do not lead a faction of their own to swear peace for.";
+                  ledger.MarkFailed(entry.Id, reason);
+                  report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+                  return;
+               }
+
+               IFaction targetFaction = ResolveFactionByName(targetValue);
+
+               if (targetFaction == null || targetFaction == actorHero.MapFaction)
+               {
+                  string reason = targetFaction == null ? "no faction by that name could be found." : "that is their own house.";
+                  ledger.MarkFailed(entry.Id, reason);
+                  report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+                  return;
+               }
+
+               targetId = targetFaction.StringId;
+               swornLine = $"{actorName} swears to keep the peace with {targetFaction.Name} for {CommitmentPolicy.DeadlineDays} days.";
+
+               break;
+
+            case CommitmentKind.Protect:
+               swornLine = $"{actorName} swears to stand at your side in battle within {CommitmentPolicy.DeadlineDays} days.";
+
+               break;
+
+            default:
+               // Unreachable (OathKindParser only ever returns one of the three cases above), kept as an honest
+               // refusal rather than a silent fallthrough should the whitelist ever grow without this switch.
+               const string unreachableReason = "that oath is not yet settled by the council.";
+               ledger.MarkFailed(entry.Id, unreachableReason);
+               report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {unreachableReason}", false);
+
+               return;
+         }
+
+         commitmentBehavior.Create(actorHero.StringId, targetId, gameDay, kind, promisedAmount, entry.WitnessIds);
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke(swornLine, true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} swore a {kind} oath (witnesses={entry.WitnessIds?.Count ?? 0}).");
       }
 
       /// <summary>
