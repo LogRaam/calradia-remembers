@@ -275,6 +275,7 @@ namespace CalradiaRemembers.Mapping
             // above): whoever the player is talking to, the King who hired them (or the player) may raise
             // ending a contract that is currently real. See EncounterContext.PlayerIsMercenary.
             PlayerIsMercenary = Clan.PlayerClan?.IsUnderMercenaryService ?? false,
+            VassalOfferKingdom = ResolveVassalOfferKingdom(hero),
             // follow_me: taught only when EscortEligibilityPolicy.CanEscort says the game can truly honour it
             // right now (see the computation just above the object initializer). dismiss_escort is the mirror,
             // taught only while THIS lord's own party is genuinely escorting the player.
@@ -1336,6 +1337,29 @@ namespace CalradiaRemembers.Mapping
          if (Clan.PlayerClan?.Kingdom != null) return null;
 
          return npcKingdom.Name?.ToString();
+      }
+
+      /// <summary>
+      ///   Returns the NPC's kingdom name when the NPC truly RULES that kingdom (unlike
+      ///   <see cref="ResolveMercenaryOfferKingdom" />, any lord may offer a mercenary contract, but only the
+      ///   ruler may grant vassalage) AND the player's clan is not already a full vassal of a kingdom (see
+      ///   <see cref="VassalageOfferPolicy.CanJoin" />, the same pure gate <c>ExecuteJoinAsVassal</c> re-checks
+      ///   at commit time). Null otherwise, the vassalage-offer section is then not taught at all.
+      /// </summary>
+      private static string ResolveVassalOfferKingdom(Hero hero)
+      {
+         if (hero is not {IsLord: true}) return null;
+
+         Kingdom npcKingdom = hero.Clan?.Kingdom;
+
+         if (npcKingdom == null) return null;
+
+         Clan playerClan = Clan.PlayerClan;
+         bool playerAlreadyVassal = playerClan?.Kingdom != null && !playerClan.IsUnderMercenaryService;
+
+         return VassalageOfferPolicy.CanJoin(npcKingdom.Leader == hero, playerAlreadyVassal)
+            ? npcKingdom.Name?.ToString()
+            : null;
       }
 
       /// <summary>

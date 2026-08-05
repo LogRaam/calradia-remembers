@@ -194,6 +194,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteJoinAsMercenary(npcHero);
             case "end_mercenary":
                return ExecuteEndMercenary(npcHero);
+            case "join_as_vassal":
+               return ExecuteJoinAsVassal(npcHero);
             case "join_clan":
                return ExecuteJoinClan(npcHero, context?.Profile);
             case "scheme_assist":
@@ -1873,6 +1875,65 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] end_mercenary failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   join_as_vassal: the RULER of a kingdom has agreed, in conversation, to swear the player's clan
+      ///   into full vassalage under his banner (a permanent oath of fealty, distinct from a mercenary
+      ///   contract). Player report (2026-08-05): "asked the legitimate ruler to become her vassal, the LLM
+      ///   narrated acceptance and threw 6000 denars, but the game only ever registered the player as a
+      ///   mercenary", the same missing-executor class as end_mercenary. The prompt only teaches this action
+      ///   when the game confirms the speaking NPC truly rules a kingdom and the player's clan is not already
+      ///   a full vassal (EncounterContext.VassalOfferKingdom), but every guard is re-checked here, the bridge
+      ///   is the law. Only the ruler's word suffices here (a kingdom-decision/council-vote path is out of
+      ///   scope). A clan currently serving as a mercenary transitions cleanly: ApplyByJoinToKingdom itself
+      ///   ends any existing mercenary contract (EndMercenaryServiceAction.EndByDefault, decompile-confirmed)
+      ///   before binding the new kingdom, so no separate leave-mercenary step is needed here.
+      /// </summary>
+      private static ActionOutcome ExecuteJoinAsVassal(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            Kingdom kingdom = npcHero.Clan?.Kingdom;
+
+            if (kingdom == null)
+               return ActionOutcome.Refused($"({npcHero.Name} does not belong to a kingdom.)");
+
+            var playerClan = Clan.PlayerClan;
+
+            if (playerClan == null) return null;
+
+            bool npcIsKingdomRuler = kingdom.Leader == npcHero;
+
+            // "Already a full vassal" excludes mercenary service on purpose: a mercenary contract is paid
+            // service, not an oath, so a mercenary clan is still free to swear real fealty (see the
+            // ApplyByJoinToKingdom note above, which handles that transition on its own).
+            bool playerAlreadyVassal = playerClan.Kingdom != null && !playerClan.IsUnderMercenaryService;
+
+            if (!VassalageOfferPolicy.CanJoin(npcIsKingdomRuler, playerAlreadyVassal))
+            {
+               if (!npcIsKingdomRuler)
+                  return ActionOutcome.Refused(
+                     $"({npcHero.Name} does not rule {kingdom.Name}; only the ruler's word can swear your clan to their banner.)");
+
+               return ActionOutcome.Refused(
+                  $"(Your clan is already sworn to {playerClan.Kingdom.Name}. Settle that obligation first.)");
+            }
+
+            ChangeKingdomAction.ApplyByJoinToKingdom(playerClan, kingdom);
+
+            ModLog.Info($"[ACTION] join_as_vassal: player clan sworn as vassal of {kingdom.Name}.");
+
+            return new ActionOutcome($"Your clan is sworn as a vassal of {kingdom.Name}.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] join_as_vassal failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }
