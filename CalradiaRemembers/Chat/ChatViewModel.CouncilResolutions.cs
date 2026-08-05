@@ -178,7 +178,10 @@ namespace CalradiaRemembers.Chat
          // dedicated SDK field (ResolutionProposal.TargetPrisonerName, not a reuse of TargetRival, which is
          // pledge_against's own ADVERSARY grounding, a different relationship entirely), read back by
          // CouncilLift.SettleReleasePrisoner via BuyPrisonerVerb's own tolerant name match over the player's
-         // held prisoners.
+         // held prisoners. "sponsor_ward" (Kimi's design, MINIMAL v1, COUNCIL_ACTIONS.md's Partie 8) grounds on
+         // the NAMED YOUNG COMPANION'S OWN NAME, its own dedicated field (ResolutionProposal.TargetWardName, not
+         // a reuse of TargetHostageName or TargetRival - a ward is neither a Parley hostage nor a rival), read
+         // back by CalradiaRemembers.Assemblies.WardCandidateResolver.ResolveByName at the lift.
          string targetHint;
          if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.ArrangeMarriage), StringComparison.OrdinalIgnoreCase))
             targetHint = ArrangeMarriageGroundingCodec.Compose(proposal.PlayerKinName, proposal.TargetKinName);
@@ -216,6 +219,11 @@ namespace CalradiaRemembers.Chat
             // hostage is neither a captive the player holds nor a rival), read back by
             // CalradiaRemembers.Assemblies.HostageCandidateResolver.ResolveByName at the lift.
             targetHint = proposal.TargetHostageName;
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.SponsorWard), StringComparison.OrdinalIgnoreCase))
+            // "sponsor_ward" (Kimi's design, MINIMAL v1, COUNCIL_ACTIONS.md's Partie 8): grounds on the NAMED
+            // YOUNG COMPANION'S OWN NAME, this kind's own dedicated field (see this method's own doc above),
+            // read back by CalradiaRemembers.Assemblies.WardCandidateResolver.ResolveByName at the lift.
+            targetHint = proposal.TargetWardName;
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.SwearOath), StringComparison.OrdinalIgnoreCase))
             // R7-light ("swear_oath", COUNCIL_ACTIONS.md's Partie 8): the ONE kind whose own grounding needs TWO
             // pieces in this single slot, WHICH oath kind (proposal.OathKind, a dedicated field: "pay_gold" /

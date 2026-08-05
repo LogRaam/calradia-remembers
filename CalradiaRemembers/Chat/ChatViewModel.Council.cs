@@ -634,6 +634,30 @@ namespace CalradiaRemembers.Chat
          return false;
       }
 
+      /// <summary>
+      ///   Kimi's design, MINIMAL v1 (COUNCIL_ACTIONS.md's Partie 8, "sponsor_ward"): sponsor_ward's own fact.
+      ///   True once any seated member, alive, free, and not the player, could plausibly be a mentor (mirroring
+      ///   <see cref="AnySeatedMemberCanPledgeAgainst" />'s own IsLord gate exactly, since Family/ClanLords always
+      ///   seat a Hero.IsLord member of the player's own clan - ExpulsionPolicy's own header documents companions
+      ///   as disjoint from both rosters), AND the player's own clan currently has at least one eligible young
+      ///   companion (<see cref="CalradiaRemembers.Assemblies.WardCandidateResolver.AnyEligibleWard" />, the EXACT
+      ///   same predicate the lift re-runs, unlike most of the loose gates elsewhere in this file). The named
+      ///   companion itself is re-resolved and re-checked against that same pool at the lift regardless
+      ///   (CouncilLift.SettleSponsorWard, bridge is law).
+      /// </summary>
+      private bool AnySeatedMemberCanSponsorWard()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero is not {IsAlive: true, IsLord: true} || hero.IsPrisoner || hero == Hero.MainHero) continue;
+
+            if (CalradiaRemembers.Assemblies.WardCandidateResolver.AnyEligibleWard(hero)) return true;
+         }
+
+         return false;
+      }
+
       /// <summary>Whether the player's own clan currently holds any alive, unwed kin other than the player: the half of <see cref="AnySeatedAllyHasMarriageableKin" /> that never depends on who is seated.</summary>
       private static bool PlayerClanHasUnwedKin()
       {

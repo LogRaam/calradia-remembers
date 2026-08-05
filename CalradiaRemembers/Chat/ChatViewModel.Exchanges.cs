@@ -648,8 +648,13 @@ namespace CalradiaRemembers.Chat
                // AnySeatedTributePayerAvailable's own loose gate (a seated counterpart leads a clan distinct from
                // the player's own), plus a "not already under pact" check this kind adds; the real faction pair
                // is re-resolved and re-checked at the lift regardless (CouncilLift.SettleNonAggressionPact).
+               // AnySeatedMemberCanSponsorWard is Kimi's design's own MINIMAL v1 fact, sponsor_ward
+               // (COUNCIL_ACTIONS.md's Partie 8): ClanLords/Family only, at least one seated member is alive/free
+               // AND the player's own clan currently has at least one eligible young companion
+               // (WardCandidateResolver.AnyEligibleWard); the named companion is re-resolved and re-checked
+               // against that same pool at the lift regardless (CouncilLift.SettleSponsorWard, bridge is law).
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath(), AnySeatedHostageEligibleRelativeAvailable(), AnySeatedLordCanReceiveTroops(), AnySeatedPactPartnerAvailable())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath(), AnySeatedHostageEligibleRelativeAvailable(), AnySeatedLordCanReceiveTroops(), AnySeatedPactPartnerAvailable(), AnySeatedMemberCanSponsorWard())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

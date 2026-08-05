@@ -56,27 +56,29 @@ namespace CalradiaRemembers.Tests.Assemblies
         // mechanically vacant). PledgeAgainst (Partie 1's schemes kind) then joined GiveGold as the clan-lords'
         // SECOND motion, LendTroops (Partie 1's highest-detail item, COUNCIL_ACTIONS.md) joined as its THIRD,
         // GiveTroops (Partie 1's give_troops, the reciprocal of lend_troops) joined next as its FOURTH, and
-        // SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined last as its FIFTH, so the scope must
-        // return exactly those five, in declaration order.
+        // SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined as its FIFTH, and SponsorWard (Kimi's
+        // design, MINIMAL v1, COUNCIL_ACTIONS.md's Partie 8, "sponsor_ward") joined last as its SIXTH, so the
+        // scope must return exactly those six, in declaration order.
         [Test]
         public void GIVEN_a_clan_lords_council_WHEN_the_catalogue_is_queried_THEN_give_gold_and_pledge_against_return()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.ClanLords).Select(d => d.Kind).ToList();
 
             kinds.Should().Equal(ResolutionKind.GiveGold, ResolutionKind.PledgeAgainst, ResolutionKind.LendTroops,
-                ResolutionKind.GiveTroops, ResolutionKind.SwearOath);
+                ResolutionKind.GiveTroops, ResolutionKind.SwearOath, ResolutionKind.SponsorWard);
         }
 
         // The family council carried NO motion at all until PledgeAgainst (Partie 1's schemes kind) became its
         // first: a seated lord's own standing rivalry is exactly as plausible within the player's inner circle
         // as among the wider clan-lords' table. SwearOath (R7-light) joined as its SECOND motion (a personal
-        // vow of coin or protection is exactly as credible within the family as at the wider clan-lords' table).
-        // The query must now return exactly those two motions, in declaration order.
+        // vow of coin or protection is exactly as credible within the family as at the wider clan-lords' table),
+        // and SponsorWard (Kimi's design, MINIMAL v1, "sponsor_ward") joined as its THIRD. The query must now
+        // return exactly those three motions, in declaration order.
         [Test]
         public void GIVEN_the_family_council_WHEN_the_catalogue_is_queried_THEN_only_pledge_against_returns()
         {
             ResolutionCatalog.ForScope(CouncilScope.Family).Select(d => d.Kind)
-                .Should().Equal(ResolutionKind.PledgeAgainst, ResolutionKind.SwearOath);
+                .Should().Equal(ResolutionKind.PledgeAgainst, ResolutionKind.SwearOath, ResolutionKind.SponsorWard);
         }
 
         // M4: the catalogue enum and the runtime string vocabulary used to be disjoint ("quest" existed only as a
@@ -945,6 +947,90 @@ namespace CalradiaRemembers.Tests.Assemblies
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts)
                 .Should().NotContain("non_aggression_pact");
+        }
+
+        // Kimi's design, MINIMAL v1 (COUNCIL_ACTIONS.md's Partie 8, "sponsor_ward"): sponsor_ward has a live lift
+        // executor (CouncilLift.SettleSponsorWard) from the day it lands; the table must be able to actually
+        // start the mentorship bond, not just record the pledge.
+        [Test]
+        public void GIVEN_sponsor_ward_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.SponsorWard).Should().BeTrue();
+        }
+
+        // sponsor_ward is a seated member's own kindness taken up, not a decision about two FACTIONS the way
+        // make_peace/declare_war are, so it must never bypass the ordinary seated-member re-validation (covered
+        // generically above; pinned here too for the kind's own documentation).
+        [Test]
+        public void GIVEN_sponsor_ward_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.SponsorWard).Should().BeFalse();
+        }
+
+        // Mirrors PledgeAgainst's own two-scope entry exactly (ClanLords and Family, never Companions or
+        // WarCouncil): a companions' council or a war council must never see sponsor_ward, whatever the world
+        // facts, since neither catalogue carries an entry for it at all.
+        [Test]
+        public void GIVEN_a_clan_lords_or_family_council_WHEN_asked_for_executable_kinds_THEN_sponsor_ward_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().Contain("sponsor_ward");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().Contain("sponsor_ward");
+        }
+
+        [Test]
+        public void GIVEN_a_companions_or_war_council_WHEN_asked_for_executable_kinds_THEN_sponsor_ward_is_absent()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("sponsor_ward");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.WarCouncil).Should().NotContain("sponsor_ward");
+        }
+
+        // The empty-promise guard, the other direction: Parley never carries a SponsorWard catalogue entry
+        // either (a Parley seats only the enemy leader as a negotiation counterpart, never the player's own
+        // house), so the key must never surface there, whatever the world facts.
+        [Test]
+        public void GIVEN_a_parley_WHEN_asked_for_executable_kinds_THEN_sponsor_ward_is_absent()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Parley).Should().NotContain("sponsor_ward");
+        }
+
+        // ── ResolutionEligibilityPolicy: the sponsor_ward offering fact actually gates the teaching ──
+
+        // STAKE: mirrors the pledge_against/give_hostage fact-gating tests above. If the fact were ignored, the
+        // table would teach sponsor_ward even when no seated member is free to mentor, or the player's own clan
+        // has no eligible young companion at all - a hollow promise the lift would refuse outright.
+        [Test]
+        public void GIVEN_the_sponsor_ward_fact_is_false_WHEN_asking_what_is_offered_THEN_it_is_withheld()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedMemberCanSponsorWard: false);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
+                .Should().NotContain("sponsor_ward");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts)
+                .Should().NotContain("sponsor_ward");
+        }
+
+        [Test]
+        public void GIVEN_the_sponsor_ward_fact_is_true_WHEN_asking_what_is_offered_THEN_it_is_included()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedMemberCanSponsorWard: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
+                .Should().Contain("sponsor_ward");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts)
+                .Should().Contain("sponsor_ward");
+        }
+
+        // STAKE: even with the fact true, a scope the catalogue never seats a sponsor_ward entry for (Companions,
+        // WarCouncil, Parley) must never offer it, since the by-scope lookup reads the catalogue FIRST, before
+        // facts are applied.
+        [Test]
+        public void GIVEN_the_sponsor_ward_fact_is_true_but_the_scope_is_companions_war_council_or_parley_WHEN_asking_what_is_offered_THEN_it_is_still_withheld()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedMemberCanSponsorWard: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("sponsor_ward");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts).Should().NotContain("sponsor_ward");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("sponsor_ward");
         }
     }
 }

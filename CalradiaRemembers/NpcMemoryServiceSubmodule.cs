@@ -277,6 +277,12 @@ namespace CalradiaRemembers
          // above. Idle (no active pacts) outside a Parley that actually strikes one, so it is not gated with the
          // rest of the Assembly pillar either.
          campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.CouncilPactBehavior());
+         // Council ward (Partie 8, "sponsor_ward", Kimi's design MINIMAL v1): a ClanLords/Family-scoped,
+         // no-term mentor-protege bond between a seated clan member and a young companion of the player's own
+         // clan, always on, mirroring CouncilStipendBehavior/CouncilTributeBehavior/CouncilHostageBehavior above.
+         // Idle (no active bonds) outside a council that actually strikes one, so it is not gated with the rest
+         // of the Assembly pillar either.
+         campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.CouncilWardBehavior());
          // follow_me (1:1 bridge action, player wish: a companion "staying by my side", the map-escort half of
          // it, the battlefield version stays roadmapped): a lord's own party escorts the player's for a fixed
          // term, mirroring CouncilStipendBehavior/CouncilHostageBehavior's own SyncData shape. Always on, idle

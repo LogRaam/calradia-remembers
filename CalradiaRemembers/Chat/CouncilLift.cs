@@ -268,6 +268,11 @@ namespace CalradiaRemembers.Chat
 
                return;
 
+            case ResolutionKind.SponsorWard:
+               SettleSponsorWard(ledger, entry, actorHero, actorName, report);
+
+               return;
+
             case ResolutionKind.Quest:
             default:
                SettleQuest(ledger, entry, actorHero, actorName, giver, behavior, gameDay, report);
@@ -1576,6 +1581,68 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"Your companies and {enemyFaction.Name}'s will not attack each other for {NonAggressionPactPolicy.TermDays} days.", true);
          ModLog.Info($"[COUNCIL] lift: non-aggression pact struck between {playerFaction.Name} and {enemyFaction.Name} for {NonAggressionPactPolicy.TermDays} days.");
+      }
+
+      /// <summary>
+      ///   Kimi's design, MINIMAL v1 (COUNCIL_ACTIONS.md's Partie 8, "sponsor_ward"): the SEATED MENTOR (actorHero,
+      ///   a ClanLords or Family member) takes a named young companion of their own clan under their wing as a
+      ///   protege, re-resolved by name here via <see cref="WardCandidateResolver.ResolveByName" /> against
+      ///   actorHero's OWN eligible pool (bridge is law). Mirrors SettlePledgeAgainst's own actor gate (a genuine
+      ///   Family/ClanLords seat is always a Hero.IsLord member of the player's own clan), unlike
+      ///   SettleTribute's/SettleGiveHostage's own cross-clan guard: sponsor_ward's mentor is ALWAYS of the
+      ///   player's own house, never a foreign leader, so this checks Clan.PlayerClan directly instead.
+      /// </summary>
+      private static void SettleSponsorWard(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (actorHero.Clan != Clan.PlayerClan)
+         {
+            const string reason = "they no longer belong to the player's own clan to sponsor a ward from.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         Hero protege = WardCandidateResolver.ResolveByName(entry.TargetHint, actorHero);
+
+         if (protege == null)
+         {
+            const string reason = "no eligible young companion by that name is known to take on as a ward.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (CouncilWardBehavior.Instance == null)
+         {
+            const string reason = "no ward ledger is available right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!CouncilWardBehavior.Instance.TryStart(actorHero, protege, out string failReason))
+         {
+            ledger.MarkFailed(entry.Id, failReason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {failReason}", false);
+
+            return;
+         }
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"{actorName} takes {protege.Name} under their wing as a protege.", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} took {protege.Name} under their wing as a protege.");
       }
 
       /// <summary>

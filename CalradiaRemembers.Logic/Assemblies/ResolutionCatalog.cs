@@ -312,7 +312,28 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   (CouncilLift.SettleNonAggressionPact), which then resolves the ACTUAL faction pair (the player's
         ///   live faction and the parley's own stored target) the same way SettleReleasePrisoner already does.
         /// </summary>
-        NonAggressionPact
+        NonAggressionPact,
+
+        /// <summary>
+        ///   Kimi's design, MINIMAL v1 (COUNCIL_ACTIONS.md's Partie 8, "sponsor_ward"): a seated clan member
+        ///   (Family or ClanLords, see <see cref="ResolutionCatalog.All" />) takes a young companion of the
+        ///   player's own clan under their wing as a mentor-protege bond, tracked by
+        ///   <see cref="CalradiaRemembers.Assemblies.CouncilWardBehavior" /> (a fresh additive save key, no term:
+        ///   the bond persists until either party dies or leaves the clan, unlike every fixed-day sibling above).
+        ///   ADOPTION WARNING (Kimi's own review, read first): this is NEVER a change of parentage, heritage, or
+        ///   clan membership - only a mod-tracked LINK, plus a modest daily skill-XP bonus for the protege while
+        ///   they serve in the SAME live party as their mentor. Grounds on the protege's OWN NAME (the SDK's
+        ///   dedicated <c>ResolutionProposal.TargetWardName</c> field, mirroring TargetHostageName's own
+        ///   dedicated-field reasoning: a ward is neither a hostage nor a rival nor a captive, so folding the name
+        ///   into any existing field would be the same confusing lie those fields' own docs already warn
+        ///   against). Not FACTION-CENTRIC (see <see cref="IsFactionCentric" />): the pledge is the seated
+        ///   mentor's own kindness taken up, not a decision about two factions, so it keeps the ordinary
+        ///   seated-member re-validation at the lift (CouncilLift.SettleSponsorWard). Two DOCUMENTED FOLLOW-UPS,
+        ///   deliberately NOT built this slice (COUNCIL_ACTIONS.md's own fuller Kimi design): the mentor is not
+        ///   made half-liable for the protege's own grudges, and sponsorship is not (yet) a bridge toward
+        ///   <see cref="ArrangeMarriage" />.
+        /// </summary>
+        SponsorWard
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -471,7 +492,17 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   is already in flight between the same two factions - a real concession the table has ALREADY struck
         ///   is not a NEW one to offer again.
         /// </summary>
-        AnySeatedPactPartnerAvailable = 4194304
+        AnySeatedPactPartnerAvailable = 4194304,
+
+        /// <summary>
+        ///   At least one seated member (ClanLords or Family, mirroring AnySeatedMemberCanPledgeAgainst's own two
+        ///   scopes) is alive, free, not the player, AND the player's own clan currently has at least one
+        ///   companion who passes WardEligibilityPolicy right now (young, alive, free, not already sponsored).
+        ///   sponsor_ward's own gate. Unlike most of the loose gates above, this one is EXACT rather than
+        ///   approximate (WardCandidateResolver runs the SAME predicate the lift re-checks), so the only drift
+        ///   possible between offer and lift is the world itself moving in between.
+        /// </summary>
+        AnySeatedMemberCanSponsorWard = 8388608
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -519,7 +550,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool anySeatedMemberCanSwearOath = false,
                                     bool anySeatedHostageEligibleRelativeAvailable = false,
                                     bool anySeatedLordCanReceiveTroops = false,
-                                    bool anySeatedPactPartnerAvailable = false)
+                                    bool anySeatedPactPartnerAvailable = false,
+                                    bool anySeatedMemberCanSponsorWard = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -544,6 +576,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             AnySeatedHostageEligibleRelativeAvailable = anySeatedHostageEligibleRelativeAvailable;
             AnySeatedLordCanReceiveTroops = anySeatedLordCanReceiveTroops;
             AnySeatedPactPartnerAvailable = anySeatedPactPartnerAvailable;
+            AnySeatedMemberCanSponsorWard = anySeatedMemberCanSponsorWard;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -603,6 +636,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated Parley counterpart is alive, leads a clan distinct from the player's own, and is not already bound by a live pact. non_aggression_pact's own fact, see ResolutionRequirement.AnySeatedPactPartnerAvailable.</summary>
         public bool AnySeatedPactPartnerAvailable { get; }
+
+        /// <summary>At least one seated member (ClanLords or Family) is alive/free and the player's own clan has an eligible companion to sponsor. sponsor_ward's own fact, see ResolutionRequirement.AnySeatedMemberCanSponsorWard.</summary>
+        public bool AnySeatedMemberCanSponsorWard { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -765,7 +801,18 @@ namespace CalradiaRemembers.Logic.Assemblies
             // single-scope entry (the one roster that ever seats an enemy faction leader to negotiate a
             // concession with at all).
             new ResolutionDefinition(ResolutionKind.NonAggressionPact, CouncilScope.Parley,
-                "Pledge a non-aggression pact", ResolutionRequirement.AnySeatedPactPartnerAvailable)
+                "Pledge a non-aggression pact", ResolutionRequirement.AnySeatedPactPartnerAvailable),
+
+            // Kimi's design, MINIMAL v1 (COUNCIL_ACTIONS.md's Partie 8, "sponsor_ward"): TWO entries, mirroring
+            // PledgeAgainst's own ClanLords/Family scoping exactly (a seated member's own kindness toward a young
+            // companion is exactly as plausible in either council; never Companions, where a hired hand has no
+            // standing to sponsor a fellow companion, nor WarCouncil, which already carries its own faction-scale
+            // motions).
+            new ResolutionDefinition(ResolutionKind.SponsorWard, CouncilScope.ClanLords,
+                "Sponsor a young companion", ResolutionRequirement.AnySeatedMemberCanSponsorWard),
+
+            new ResolutionDefinition(ResolutionKind.SponsorWard, CouncilScope.Family,
+                "Sponsor a young companion", ResolutionRequirement.AnySeatedMemberCanSponsorWard)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -808,6 +855,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.SwearOath:           return "swear_oath";
                 case ResolutionKind.GiveHostage:          return "give_hostage";
                 case ResolutionKind.NonAggressionPact:    return "non_aggression_pact";
+                case ResolutionKind.SponsorWard:           return "sponsor_ward";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -886,7 +934,12 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   computed by the SAME CouncilTroopLoanPolicy but INSTANT at the lift (no travelling delegation,
         ///   since the player's own troops are already at the table); Gabriel's own condition that the player
         ///   choose the troops through the party-transfer screen is a documented v1 follow-up, not built this
-        ///   slice (system-selected instead). The runtime teaches and lifts only
+        ///   slice (system-selected instead). SponsorWard (CouncilLift.SettleSponsorWard), Kimi's design MINIMAL
+        ///   v1 ("sponsor_ward"), starts a mentor-protege bond (CouncilWardBehavior) between a seated ClanLords/
+        ///   Family member and a named young companion of the player's own clan: no term, no cost, only a
+        ///   tracked link plus a modest daily skill-XP trickle while the two travel together - never a change of
+        ///   parentage, heritage, or clan membership (see ResolutionKind.SponsorWard's own doc). The runtime
+        ///   teaches and lifts only
         ///   executable kinds, so the table never promises a deed it cannot keep.
         /// </summary>
         public static bool IsExecutable(ResolutionKind kind)
@@ -901,7 +954,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.Tribute || kind == ResolutionKind.ReleasePrisoner
             || kind == ResolutionKind.LendTroops || kind == ResolutionKind.SwearOath
             || kind == ResolutionKind.GiveHostage || kind == ResolutionKind.GiveTroops
-            || kind == ResolutionKind.NonAggressionPact;
+            || kind == ResolutionKind.NonAggressionPact || kind == ResolutionKind.SponsorWard;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric
