@@ -72,6 +72,18 @@ namespace CalradiaRemembers.Logic
             return "(No fief was named, so no governorship was granted.)";
         }
 
+        /// <summary>The prompt's assign_party_role named no role (a blank or missing target_role), so no post was given.</summary>
+        public static string AssignPartyRoleMissingRole()
+        {
+            return "(No role was named, so no post was given.)";
+        }
+
+        /// <summary>The prompt's dispatch_mission named no errand (a blank or missing target_mission), so none was sent.</summary>
+        public static string DispatchMissionMissingErrand()
+        {
+            return "(No errand was named, so none was sent.)";
+        }
+
         /// <summary>
         ///   The named hero is not, in fact, the player's spouse. Shared by accept_divorce and
         ///   decline_divorce, whose bridge executors mirror this same first check.

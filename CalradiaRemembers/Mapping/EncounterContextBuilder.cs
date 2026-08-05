@@ -166,6 +166,24 @@ namespace CalradiaRemembers.Mapping
             appointeeAvailable: hero is {IsAlive: true} && !hero.IsPrisoner && hero != Hero.MainHero,
             hasVacantGovernableFief: !string.IsNullOrEmpty(appointableFiefs));
 
+         // assign_party_role / rejoin_party / dispatch_mission (2026-08-05, party-command batch): the 1:1 teaching
+         // gates, the same "prompt is advice, bridge is law" conditional-teaching contract as appoint_governor above.
+         // Each pure PartyCommandOfferPolicy gate mirrors the council's own offering eligibility for that verb (the
+         // TargetInPlayerParty fact for assign/dispatch, the TargetOutOfPlayerParty fact for rejoin), reduced to
+         // facts about this ONE conversation NPC that CourtActionResolver.TryAssignPartyRole / TryRejoinParty /
+         // TryDispatchMission re-check at commit.
+         bool npcIsPlayerCompanion = hero?.IsPlayerCompanion == true;
+         bool npcInMainParty = hero != null && hero.PartyBelongedTo == MobileParty.MainParty;
+         bool npcAlive = hero is {IsAlive: true};
+         bool npcIsPrisoner = hero?.IsPrisoner == true;
+         bool npcLeadsOwnCompany = hero != null && hero.PartyBelongedTo?.LeaderHero == hero;
+         bool npcAvailableForErrand = hero != null && CompanionMissionBehavior.Instance != null
+            && CompanionMissionBehavior.Instance.IsAway(hero.StringId) != true;
+
+         bool npcCanBeAssignedPartyRole = PartyCommandOfferPolicy.CanOfferAssignRole(npcIsPlayerCompanion, npcInMainParty);
+         bool npcCanRejoinParty = PartyCommandOfferPolicy.CanOfferRejoinParty(npcIsPlayerCompanion, npcAlive, npcIsPrisoner, npcInMainParty, npcLeadsOwnCompany);
+         bool npcCanBeDispatchedOnMission = PartyCommandOfferPolicy.CanOfferDispatchMission(npcIsPlayerCompanion, npcInMainParty, npcAvailableForErrand);
+
          return new() {
             PlayerStatus = playerStatus,
             SharedRealmName = bridge.GetSharedRealmName(hero),
@@ -299,6 +317,12 @@ namespace CalradiaRemembers.Mapping
             // [RESOLUTION] channel owns appoint_governor instead, and in a captive scene.
             NpcCanBeAppointedGovernor = npcCanBeAppointedGovernor,
             AppointableFiefs = appointableFiefs,
+            // assign_party_role / rejoin_party / dispatch_mission: the 1:1 teaching gates (see the computation just
+            // above the initializer). PromptBuilder also suppresses each on a council/round-table turn, where the
+            // [RESOLUTION] channel owns these instead, and in a captive scene.
+            NpcCanBeAssignedPartyRole = npcCanBeAssignedPartyRole,
+            NpcCanRejoinParty = npcCanRejoinParty,
+            NpcCanBeDispatchedOnMission = npcCanBeDispatchedOnMission,
             LordRecruitEligible = ResolveLordRecruitEligible(hero, profile),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),

@@ -10,6 +10,7 @@ using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Marriage;
+using CalradiaRemembers.Missions;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -481,6 +482,161 @@ namespace CalradiaRemembers.GameState
          return new AppointGovernorVerdict(AppointGovernorResult.Appointed, fief);
       }
 
+      // ── assign_party_role (personal-command verb, council + 1:1, 2026-08-05) ──
+
+      /// <summary>
+      ///   The ONE shared code path both assign_party_role callers run (the 1:1 action,
+      ///   <c>BannerlordGameStateBridge.ExecuteAssignPartyRole</c>, and the council's own resolution,
+      ///   <c>CalradiaRemembers.Chat.CouncilLift.SettleAssignPartyRole</c>), factored out here (2026-08-05, the
+      ///   party-command batch, mirroring <see cref="TryAppointGovernor" />'s own extraction) so a party role behaves
+      ///   identically whichever path granted it. Every guard the council executor used to check inline is re-checked
+      ///   HERE, in the same order (the prompt is advice, the executor is law): the member is alive, still rides in
+      ///   the player's OWN party (Scout, Engineer, Quartermaster and Surgeon all act on the party the member travels
+      ///   with, so a role held outside it is meaningless), and the <paramref name="roleName" /> resolves through the
+      ///   pure <see cref="PartyRoleParser" /> to one of the four supported roles (an unrecognised role fails cleanly,
+      ///   never guessed). Author's stance (ratified 2026-08-03): instant, no cost, no trust gate, since this is a
+      ///   purely INTERNAL attribution (who rides doing what within the player's own party). Each caller writes its
+      ///   OWN message off the returned verdict, which carries the resolved <see cref="CouncilPartyRole" />.
+      /// </summary>
+      public static AssignPartyRoleVerdict TryAssignPartyRole(Hero actor, string roleName)
+      {
+         if (actor is not {IsAlive: true})
+            return new AssignPartyRoleVerdict(AssignPartyRoleResult.ActorUnavailable, CouncilPartyRole.None);
+
+         if (actor.PartyBelongedTo != MobileParty.MainParty)
+            return new AssignPartyRoleVerdict(AssignPartyRoleResult.NotInPlayerParty, CouncilPartyRole.None);
+
+         CouncilPartyRole role = PartyRoleParser.Parse(roleName);
+
+         if (role == CouncilPartyRole.None)
+            return new AssignPartyRoleVerdict(AssignPartyRoleResult.NoValidRole, CouncilPartyRole.None);
+
+         MobileParty.MainParty.SetHeroPartyRole(actor, ToEnginePartyRole(role));
+
+         return new AssignPartyRoleVerdict(AssignPartyRoleResult.Assigned, role);
+      }
+
+      // ── rejoin_party (personal-command verb, council + 1:1, 2026-08-05) ──
+
+      /// <summary>
+      ///   The ONE shared code path both rejoin_party callers run (the 1:1 action,
+      ///   <c>BannerlordGameStateBridge.ExecuteRejoinParty</c>, and the council's own resolution,
+      ///   <c>CalradiaRemembers.Chat.CouncilLift.SettleRejoinParty</c>), factored out here (2026-08-05, the
+      ///   party-command batch). Every guard the council executor used to check inline is re-checked HERE, in the
+      ///   same order (the prompt is advice, the executor is law): the member is alive, not held prisoner (a prisoner
+      ///   cannot travel), still a player companion (a clan LORD leads their own party and is out of scope), and
+      ///   genuinely OUTSIDE the main party (nothing to rejoin otherwise). A companion who LEADS their own separate
+      ///   party is refused rather than silently orphaning whoever they command. A companion currently holding a
+      ///   settlement GOVERNOR post has it released first (the inverse of <see cref="TryAppointGovernor" />'s grant,
+      ///   or the fief would claim a governor who has physically left it); the verdict reports whether that happened
+      ///   and the fief's name so each caller can word its OWN message and log.
+      /// </summary>
+      public static RejoinPartyVerdict TryRejoinParty(Hero actor)
+      {
+         if (actor is not {IsAlive: true})
+            return new RejoinPartyVerdict(RejoinPartyResult.ActorUnavailable, false, null);
+
+         if (actor.IsPrisoner)
+            return new RejoinPartyVerdict(RejoinPartyResult.ActorImprisoned, false, null);
+
+         if (!actor.IsPlayerCompanion)
+            return new RejoinPartyVerdict(RejoinPartyResult.NotACompanion, false, null);
+
+         if (actor.PartyBelongedTo == MobileParty.MainParty)
+            return new RejoinPartyVerdict(RejoinPartyResult.AlreadyInParty, false, null);
+
+         // A companion who leads their OWN party cannot be lifted out of it without orphaning whoever they command:
+         // refuse in v1 rather than silently disbanding a party the player never asked to break up.
+         if (actor.PartyBelongedTo?.LeaderHero == actor)
+            return new RejoinPartyVerdict(RejoinPartyResult.LeadsOwnCompany, false, null);
+
+         // The inverse of TryAppointGovernor's grant: a governor rejoining the party must first be relieved of the
+         // post, or the fief would be left claiming a governor who has physically left it.
+         bool wasGovernor = actor.GovernorOf != null;
+         string governedFief = wasGovernor ? actor.GovernorOf.Name?.ToString() : null;
+         if (wasGovernor)
+            ChangeGovernorAction.RemoveGovernorOf(actor);
+
+         AddHeroToPartyAction.Apply(actor, MobileParty.MainParty, false);
+
+         return new RejoinPartyVerdict(RejoinPartyResult.Rejoined, wasGovernor, governedFief);
+      }
+
+      // ── dispatch_mission (personal-command verb, council + 1:1, 2026-08-05) ──
+
+      /// <summary>
+      ///   The ONE shared code path both dispatch_mission callers run (the 1:1 action,
+      ///   <c>BannerlordGameStateBridge.ExecuteDispatchMission</c>, and the council's own resolution,
+      ///   <c>CalradiaRemembers.Chat.CouncilLift.SettleDispatchMission</c>), factored out here (2026-08-05, the
+      ///   party-command batch). REUSES the existing companion-mission system end to end
+      ///   (<see cref="CompanionMissionBehavior.Dispatch" />) rather than inventing a new one. Every guard the
+      ///   council executor used to check inline is re-checked HERE, in the same order (the prompt is advice, the
+      ///   executor is law): the member is alive, still a player companion, still rides in the player's OWN party, a
+      ///   mission system exists, they are not already away, and the <paramref name="missionName" /> resolves through
+      ///   the pure <see cref="MissionTypeParser" /> to one of the supported errands (unrecognised fails cleanly).
+      ///   The DESTINATION is never named here: Dispatch's own resolver picks the nearest suitable town (the
+      ///   "system chooses, the model never names a place" design call). Dispatch itself re-validates every one of
+      ///   these again internally, so a call that slips past these guards is still caught, never mis-dispatched. The
+      ///   verdict carries the resolved <see cref="CouncilMissionType" /> and Dispatch's own message for the caller.
+      /// </summary>
+      public static DispatchMissionVerdict TryDispatchMission(Hero actor, string missionName)
+      {
+         if (actor is not {IsAlive: true})
+            return new DispatchMissionVerdict(DispatchMissionResult.ActorUnavailable, CouncilMissionType.None, null);
+
+         if (!actor.IsPlayerCompanion)
+            return new DispatchMissionVerdict(DispatchMissionResult.NotACompanion, CouncilMissionType.None, null);
+
+         if (actor.PartyBelongedTo != MobileParty.MainParty)
+            return new DispatchMissionVerdict(DispatchMissionResult.NotInPlayerParty, CouncilMissionType.None, null);
+
+         CompanionMissionBehavior behavior = CompanionMissionBehavior.Instance;
+
+         if (behavior == null)
+            return new DispatchMissionVerdict(DispatchMissionResult.NoMissionSystem, CouncilMissionType.None, null);
+
+         if (behavior.IsAway(actor.StringId))
+            return new DispatchMissionVerdict(DispatchMissionResult.AlreadyAway, CouncilMissionType.None, null);
+
+         CouncilMissionType type = MissionTypeParser.Parse(missionName);
+
+         if (type == CouncilMissionType.None)
+            return new DispatchMissionVerdict(DispatchMissionResult.NoValidMission, CouncilMissionType.None, null);
+
+         (bool dispatched, string message) = behavior.Dispatch(actor, ToEngineMissionType(type), null);
+
+         return dispatched
+            ? new DispatchMissionVerdict(DispatchMissionResult.Dispatched, type, message)
+            : new DispatchMissionVerdict(DispatchMissionResult.DispatchFailed, type, message);
+      }
+
+      /// <summary>Maps the Logic-side <see cref="CouncilPartyRole" /> to the engine's own <see cref="PartyRole" />. None never reaches here (guarded in <see cref="TryAssignPartyRole" />).</summary>
+      private static PartyRole ToEnginePartyRole(CouncilPartyRole role)
+      {
+         switch (role)
+         {
+            case CouncilPartyRole.Scout:         return PartyRole.Scout;
+            case CouncilPartyRole.Engineer:      return PartyRole.Engineer;
+            case CouncilPartyRole.Quartermaster: return PartyRole.Quartermaster;
+            case CouncilPartyRole.Surgeon:       return PartyRole.Surgeon;
+            default:                             throw new ArgumentOutOfRangeException(nameof(role), role, "CouncilPartyRole.None must be guarded before this is called.");
+         }
+      }
+
+      /// <summary>Maps the Logic-side <see cref="CouncilMissionType" /> to the mod's own <see cref="CompanionMissionType" />. None never reaches here (guarded in <see cref="TryDispatchMission" />).</summary>
+      private static CompanionMissionType ToEngineMissionType(CouncilMissionType type)
+      {
+         switch (type)
+         {
+            case CouncilMissionType.GatherNews: return CompanionMissionType.GatherNews;
+            case CouncilMissionType.Spy:        return CompanionMissionType.Spy;
+            case CouncilMissionType.Steal:      return CompanionMissionType.Steal;
+            case CouncilMissionType.Barter:     return CompanionMissionType.Barter;
+            case CouncilMissionType.Envoy:      return CompanionMissionType.Envoy;
+            default:                            throw new ArgumentOutOfRangeException(nameof(type), type, "CouncilMissionType.None must be guarded before this is called.");
+         }
+      }
+
       // ── release_prisoner ─────────────────────────────────────────────────
 
       /// <summary>
@@ -693,5 +849,128 @@ namespace CalradiaRemembers.GameState
 
       public AppointGovernorResult Result { get; }
       public Settlement Fief { get; }
+   }
+
+   /// <summary>The outcome of <see cref="CourtActionResolver.TryAssignPartyRole" />, read by each caller to report its own message.</summary>
+   public enum AssignPartyRoleResult
+   {
+      /// <summary>The role was set on the party: <see cref="AssignPartyRoleVerdict.Role" /> is what the member now serves as.</summary>
+      Assigned,
+
+      /// <summary>The member is dead or missing and cannot take a post.</summary>
+      ActorUnavailable,
+
+      /// <summary>The member no longer rides in the player's own party, so a role in it is meaningless.</summary>
+      NotInPlayerParty,
+
+      /// <summary>The named role did not resolve to one of the four supported party roles (blank or unrecognised).</summary>
+      NoValidRole
+   }
+
+   /// <summary>
+   ///   The verdict of <see cref="CourtActionResolver.TryAssignPartyRole" />: the result and, only on
+   ///   <see cref="AssignPartyRoleResult.Assigned" />, the resolved <see cref="Role" /> so the caller can name it.
+   ///   <see cref="CouncilPartyRole.None" /> on every failure, where no role was ever set.
+   /// </summary>
+   public readonly struct AssignPartyRoleVerdict
+   {
+      public AssignPartyRoleVerdict(AssignPartyRoleResult result, CouncilPartyRole role)
+      {
+         Result = result;
+         Role = role;
+      }
+
+      public AssignPartyRoleResult Result { get; }
+      public CouncilPartyRole Role { get; }
+   }
+
+   /// <summary>The outcome of <see cref="CourtActionResolver.TryRejoinParty" />, read by each caller to report its own message.</summary>
+   public enum RejoinPartyResult
+   {
+      /// <summary>The member was added back to the main party (see <see cref="RejoinPartyVerdict.WasGovernor" /> for the governor-release side effect).</summary>
+      Rejoined,
+
+      /// <summary>The member is dead or missing and cannot travel.</summary>
+      ActorUnavailable,
+
+      /// <summary>The member is held prisoner and cannot travel to the player.</summary>
+      ActorImprisoned,
+
+      /// <summary>The member is no longer one of the player's companions.</summary>
+      NotACompanion,
+
+      /// <summary>The member already rides in the player's own party, so there is nothing to rejoin.</summary>
+      AlreadyInParty,
+
+      /// <summary>The member leads their own separate company, which the player must disband first.</summary>
+      LeadsOwnCompany
+   }
+
+   /// <summary>
+   ///   The verdict of <see cref="CourtActionResolver.TryRejoinParty" />: the result and, only on
+   ///   <see cref="RejoinPartyResult.Rejoined" />, whether the member had to be relieved of a governorship first
+   ///   (<see cref="WasGovernor" />) and the <see cref="GovernedFief" /> they stepped down from, so the caller can
+   ///   word its message and log. False / null on every other result and when they governed nothing.
+   /// </summary>
+   public readonly struct RejoinPartyVerdict
+   {
+      public RejoinPartyVerdict(RejoinPartyResult result, bool wasGovernor, string governedFief)
+      {
+         Result = result;
+         WasGovernor = wasGovernor;
+         GovernedFief = governedFief;
+      }
+
+      public RejoinPartyResult Result { get; }
+      public bool WasGovernor { get; }
+      public string GovernedFief { get; }
+   }
+
+   /// <summary>The outcome of <see cref="CourtActionResolver.TryDispatchMission" />, read by each caller to report its own message.</summary>
+   public enum DispatchMissionResult
+   {
+      /// <summary>The errand was dispatched: <see cref="DispatchMissionVerdict.Message" /> is the behaviour's own report.</summary>
+      Dispatched,
+
+      /// <summary>The member is dead or missing and cannot be sent.</summary>
+      ActorUnavailable,
+
+      /// <summary>The member is no longer one of the player's companions.</summary>
+      NotACompanion,
+
+      /// <summary>The member no longer rides in the player's own party.</summary>
+      NotInPlayerParty,
+
+      /// <summary>No companion-mission system is available right now.</summary>
+      NoMissionSystem,
+
+      /// <summary>The member is already away on an errand.</summary>
+      AlreadyAway,
+
+      /// <summary>The named errand did not resolve to one of the supported mission types (blank or unrecognised).</summary>
+      NoValidMission,
+
+      /// <summary>The mission system itself refused the dispatch; <see cref="DispatchMissionVerdict.Message" /> carries its reason.</summary>
+      DispatchFailed
+   }
+
+   /// <summary>
+   ///   The verdict of <see cref="CourtActionResolver.TryDispatchMission" />: the result, the resolved
+   ///   <see cref="Type" /> (whenever one was parsed), and the companion-mission behaviour's own <see cref="Message" />
+   ///   on <see cref="DispatchMissionResult.Dispatched" /> or <see cref="DispatchMissionResult.DispatchFailed" />, so
+   ///   the caller reports exactly what the system said. Null <see cref="Message" /> on the earlier guard failures.
+   /// </summary>
+   public readonly struct DispatchMissionVerdict
+   {
+      public DispatchMissionVerdict(DispatchMissionResult result, CouncilMissionType type, string message)
+      {
+         Result = result;
+         Type = type;
+         Message = message;
+      }
+
+      public DispatchMissionResult Result { get; }
+      public CouncilMissionType Type { get; }
+      public string Message { get; }
    }
 }

@@ -416,40 +416,50 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static void SettleAssignPartyRole(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
       {
-         if (actorHero is not {IsAlive: true})
+         // The whole decision+mutation now lives in the shared core (CourtActionResolver.TryAssignPartyRole), the
+         // SAME one the 1:1 assign_party_role action runs (2026-08-05, the party-command batch), so a role behaves
+         // identically whichever path granted it. Every guard this executor used to check inline (alive, still in
+         // the player's own party, the role resolves) is re-checked there in the same order; this method only maps
+         // the verdict back onto the council's own ledger + reporting. TargetHint carries the ROLE name for this
+         // kind (the same single grounding slot AppointGovernor uses for a fief name).
+         AssignPartyRoleVerdict verdict = CourtActionResolver.TryAssignPartyRole(actorHero, entry.TargetHint);
+
+         switch (verdict.Result)
          {
-            const string reason = "they could not be found.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+            case AssignPartyRoleResult.ActorUnavailable:
+            {
+               const string reason = "they could not be found.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
 
-            return;
+               return;
+            }
+
+            case AssignPartyRoleResult.NotInPlayerParty:
+            {
+               const string reason = "they no longer ride in the player's own party.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case AssignPartyRoleResult.NoValidRole:
+            {
+               const string reason = "no valid party role was named.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case AssignPartyRoleResult.Assigned:
+               ledger.MarkApplied(entry.Id);
+               report?.Invoke($"{actorName} now serves as your {verdict.Role}.", true);
+               ModLog.Info($"[COUNCIL] lift: {actorName} assigned party role {verdict.Role}.");
+
+               return;
          }
-
-         if (actorHero.PartyBelongedTo != MobileParty.MainParty)
-         {
-            const string reason = "they no longer ride in the player's own party.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         CouncilPartyRole role = PartyRoleParser.Parse(entry.TargetHint);
-
-         if (role == CouncilPartyRole.None)
-         {
-            const string reason = "no valid party role was named.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         MobileParty.MainParty.SetHeroPartyRole(actorHero, ToEnginePartyRole(role));
-
-         ledger.MarkApplied(entry.Id);
-         report?.Invoke($"{actorName} now serves as your {role}.", true);
-         ModLog.Info($"[COUNCIL] lift: {actorName} assigned party role {role}.");
       }
 
       /// <summary>
@@ -468,71 +478,73 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static void SettleRejoinParty(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
       {
-         if (actorHero is not {IsAlive: true})
+         // The whole decision+mutation now lives in the shared core (CourtActionResolver.TryRejoinParty), the SAME
+         // one the 1:1 rejoin_party action runs (2026-08-05, the party-command batch). Every guard this executor
+         // used to check inline (alive, not a prisoner, still a companion, genuinely outside the main party, not
+         // leading their own company) is re-checked there in the same order, and the governor-release side effect
+         // (the inverse of SettleAppointGovernor's grant) happens there too; this method only maps the verdict back
+         // onto the council's own ledger + reporting, and keeps the council's own release log line.
+         RejoinPartyVerdict verdict = CourtActionResolver.TryRejoinParty(actorHero);
+
+         switch (verdict.Result)
          {
-            const string reason = "they could not be found.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+            case RejoinPartyResult.ActorUnavailable:
+            {
+               const string reason = "they could not be found.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
 
-            return;
+               return;
+            }
+
+            case RejoinPartyResult.ActorImprisoned:
+            {
+               const string reason = "they are held prisoner and cannot travel.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case RejoinPartyResult.NotACompanion:
+            {
+               const string reason = "they no longer belong to the player's clan as a companion.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case RejoinPartyResult.AlreadyInParty:
+            {
+               const string reason = "they already ride in the player's own party.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case RejoinPartyResult.LeadsOwnCompany:
+            {
+               const string reason = "they lead their own company; disband it first.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case RejoinPartyResult.Rejoined:
+               if (verdict.WasGovernor)
+                  ModLog.Info($"[COUNCIL] lift: released {actorName} from governing {verdict.GovernedFief} so they could rejoin the party.");
+
+               ledger.MarkApplied(entry.Id);
+               report?.Invoke(verdict.WasGovernor
+                  ? $"{actorName} steps down from governing {verdict.GovernedFief} and rejoins your party."
+                  : $"{actorName} rejoins your party.", true);
+               ModLog.Info($"[COUNCIL] lift: {actorName} rejoined the player's party.");
+
+               return;
          }
-
-         if (actorHero.IsPrisoner)
-         {
-            const string reason = "they are held prisoner and cannot travel.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         if (!actorHero.IsPlayerCompanion)
-         {
-            const string reason = "they no longer belong to the player's clan as a companion.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         if (actorHero.PartyBelongedTo == MobileParty.MainParty)
-         {
-            const string reason = "they already ride in the player's own party.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         // A companion who leads their OWN party (not the main one) cannot simply be lifted out of it without
-         // orphaning whoever they command: refuse in v1 rather than silently disbanding a party the player never
-         // asked to break up.
-         if (actorHero.PartyBelongedTo?.LeaderHero == actorHero)
-         {
-            const string reason = "they lead their own company; disband it first.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         // The inverse of SettleAppointGovernor's own grant: a governor rejoining the party must first be
-         // relieved of their post, or the fief would be left claiming a governor who has physically left it.
-         bool wasGovernor = actorHero.GovernorOf != null;
-         string governedFief = wasGovernor ? actorHero.GovernorOf.Name?.ToString() : null;
-         if (wasGovernor)
-         {
-            ChangeGovernorAction.RemoveGovernorOf(actorHero);
-            ModLog.Info($"[COUNCIL] lift: released {actorName} from governing {governedFief} so they could rejoin the party.");
-         }
-
-         AddHeroToPartyAction.Apply(actorHero, MobileParty.MainParty, false);
-
-         ledger.MarkApplied(entry.Id);
-         report?.Invoke(wasGovernor
-            ? $"{actorName} steps down from governing {governedFief} and rejoins your party."
-            : $"{actorName} rejoins your party.", true);
-         ModLog.Info($"[COUNCIL] lift: {actorName} rejoined the player's party.");
       }
 
       /// <summary>
@@ -549,75 +561,83 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static void SettleDispatchMission(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
       {
-         if (actorHero is not {IsAlive: true})
+         // The whole decision+mutation now lives in the shared core (CourtActionResolver.TryDispatchMission), the
+         // SAME one the 1:1 dispatch_mission action runs (2026-08-05, the party-command batch). Every guard this
+         // executor used to check inline (alive, still a companion, still in the player's own party, a mission
+         // system exists, not already away, the errand resolves) is re-checked there in the same order, and the
+         // reused CompanionMissionBehavior.Dispatch call happens there too; this method only maps the verdict back
+         // onto the council's own ledger + reporting. TargetHint carries the MISSION name for this kind.
+         DispatchMissionVerdict verdict = CourtActionResolver.TryDispatchMission(actorHero, entry.TargetHint);
+
+         switch (verdict.Result)
          {
-            const string reason = "they could not be found.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+            case DispatchMissionResult.ActorUnavailable:
+            {
+               const string reason = "they could not be found.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
 
-            return;
+               return;
+            }
+
+            case DispatchMissionResult.NotACompanion:
+            {
+               const string reason = "they no longer belong to the player's clan as a companion.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case DispatchMissionResult.NotInPlayerParty:
+            {
+               const string reason = "they no longer ride in the player's own party.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case DispatchMissionResult.NoMissionSystem:
+            {
+               const string reason = "no mission system is available right now.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case DispatchMissionResult.AlreadyAway:
+            {
+               const string reason = "they are already away on an errand.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case DispatchMissionResult.NoValidMission:
+            {
+               const string reason = "no valid errand was named.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case DispatchMissionResult.DispatchFailed:
+               ledger.MarkFailed(entry.Id, verdict.Message ?? "This could not be carried out.");
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {verdict.Message}", false);
+
+               return;
+
+            case DispatchMissionResult.Dispatched:
+               ledger.MarkApplied(entry.Id);
+               report?.Invoke(verdict.Message, true);
+               ModLog.Info($"[COUNCIL] lift: {actorName} dispatched on a {verdict.Type} errand.");
+
+               return;
          }
-
-         if (!actorHero.IsPlayerCompanion)
-         {
-            const string reason = "they no longer belong to the player's clan as a companion.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         if (actorHero.PartyBelongedTo != MobileParty.MainParty)
-         {
-            const string reason = "they no longer ride in the player's own party.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         if (CompanionMissionBehavior.Instance == null)
-         {
-            const string reason = "no mission system is available right now.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         if (CompanionMissionBehavior.Instance.IsAway(actorHero.StringId))
-         {
-            const string reason = "they are already away on an errand.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         CouncilMissionType type = MissionTypeParser.Parse(entry.TargetHint);
-
-         if (type == CouncilMissionType.None)
-         {
-            const string reason = "no valid errand was named.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         (bool dispatched, string message) = CompanionMissionBehavior.Instance.Dispatch(actorHero, ToEngineMissionType(type), null);
-
-         if (!dispatched)
-         {
-            ledger.MarkFailed(entry.Id, message ?? "This could not be carried out.");
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {message}", false);
-
-            return;
-         }
-
-         ledger.MarkApplied(entry.Id);
-         report?.Invoke(message, true);
-         ModLog.Info($"[COUNCIL] lift: {actorName} dispatched on a {type} errand.");
       }
 
       /// <summary>
@@ -2337,33 +2357,6 @@ namespace CalradiaRemembers.Chat
 
          return Clan.All?.FirstOrDefault(c =>
             c.Kingdom == null && string.Equals(c.Name?.ToString(), trimmed, StringComparison.OrdinalIgnoreCase));
-      }
-
-      /// <summary>Maps the Logic-side <see cref="CouncilMissionType" /> to the mod's own <see cref="CompanionMissionType" />. None never reaches here (guarded in <see cref="SettleDispatchMission" />).</summary>
-      private static CompanionMissionType ToEngineMissionType(CouncilMissionType type)
-      {
-         switch (type)
-         {
-            case CouncilMissionType.GatherNews: return CompanionMissionType.GatherNews;
-            case CouncilMissionType.Spy:        return CompanionMissionType.Spy;
-            case CouncilMissionType.Steal:      return CompanionMissionType.Steal;
-            case CouncilMissionType.Barter:     return CompanionMissionType.Barter;
-            case CouncilMissionType.Envoy:      return CompanionMissionType.Envoy;
-            default:                            throw new ArgumentOutOfRangeException(nameof(type), type, "CouncilMissionType.None must be guarded before this is called.");
-         }
-      }
-
-      /// <summary>Maps the Logic-side <see cref="CouncilPartyRole" /> to the engine's own <see cref="PartyRole" />. None never reaches here (guarded in <see cref="SettleAssignPartyRole" />).</summary>
-      private static PartyRole ToEnginePartyRole(CouncilPartyRole role)
-      {
-         switch (role)
-         {
-            case CouncilPartyRole.Scout:         return PartyRole.Scout;
-            case CouncilPartyRole.Engineer:      return PartyRole.Engineer;
-            case CouncilPartyRole.Quartermaster: return PartyRole.Quartermaster;
-            case CouncilPartyRole.Surgeon:       return PartyRole.Surgeon;
-            default:                             throw new ArgumentOutOfRangeException(nameof(role), role, "CouncilPartyRole.None must be guarded before this is called.");
-         }
       }
 
       private static string DescribeUnavailability(CouncilExclusionReason reason, bool heroGone)

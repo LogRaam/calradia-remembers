@@ -227,6 +227,12 @@ namespace CalradiaRemembers.GameState
                return ExecuteArrangeMarriage(action, npcHero);
             case "appoint_governor":
                return ExecuteAppointGovernor(action, npcHero, context);
+            case "assign_party_role":
+               return ExecuteAssignPartyRole(action, npcHero);
+            case "rejoin_party":
+               return ExecuteRejoinParty(npcHero);
+            case "dispatch_mission":
+               return ExecuteDispatchMission(action, npcHero);
             case "harm_prisoner":
                return ExecuteHarmPrisoner(action);
             case "impregnation_risk":
@@ -1749,6 +1755,156 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] appoint_governor failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   assign_party_role (2026-08-05, party-command batch, council + 1:1): the player names the conversation
+      ///   companion to a role in their own party (Scout, Engineer, Quartermaster, Surgeon). The role is named in
+      ///   the action's target_role field. Calls the SAME shared core the council resolution runs
+      ///   (<see cref="CourtActionResolver.TryAssignPartyRole" />), which re-validates every invariant (alive, still
+      ///   in the player's own party, the role resolves) before setting it. Only TAUGHT when
+      ///   <see cref="EncounterContext.NpcCanBeAssignedPartyRole" /> holds, but every guard is re-checked here and in
+      ///   the core: the prompt is advice, the bridge is law. A blank or ungroundable role is surfaced as a refusal
+      ///   (never a silent null) so the transcript OOC note fires.
+      /// </summary>
+      private static ActionOutcome ExecuteAssignPartyRole(GameAction action, Hero npcHero)
+      {
+         try
+         {
+            if (npcHero is not {IsAlive: true}) return null;
+
+            action.Parameters.TryGetValue("target_role", out string roleName);
+
+            // Was a silent no-op class this project eliminates: a post agreed with no role named.
+            if (string.IsNullOrWhiteSpace(roleName))
+               return ActionOutcome.Refused(SilentRefusalMessages.AssignPartyRoleMissingRole());
+
+            AssignPartyRoleVerdict verdict = CourtActionResolver.TryAssignPartyRole(npcHero, roleName);
+
+            switch (verdict.Result)
+            {
+               case AssignPartyRoleResult.ActorUnavailable:
+                  return null;
+               case AssignPartyRoleResult.NotInPlayerParty:
+                  return ActionOutcome.Refused($"({npcHero.Name} does not ride in your party, and can hold no post in it.)");
+               case AssignPartyRoleResult.NoValidRole:
+                  return ActionOutcome.Refused(SilentRefusalMessages.AssignPartyRoleMissingRole());
+            }
+
+            string msg = $"{npcHero.Name} now serves as your {verdict.Role}.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+            ModLog.Info($"[ACTION] assign_party_role: {npcHero.Name} assigned party role {verdict.Role}.");
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] assign_party_role failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   rejoin_party (2026-08-05, party-command batch, council + 1:1): the conversation companion, currently away
+      ///   from the player's party, agrees to come back to it. Actor only, no action field. Calls the SAME shared
+      ///   core the council resolution runs (<see cref="CourtActionResolver.TryRejoinParty" />), which re-validates
+      ///   every invariant (alive, not a prisoner, still a companion, genuinely outside the main party, not leading
+      ///   their own company) and releases any governorship first before adding them back. Only TAUGHT when
+      ///   <see cref="EncounterContext.NpcCanRejoinParty" /> holds, but every guard is re-checked here and in the
+      ///   core: the prompt is advice, the bridge is law. A decline is surfaced as a refusal so the OOC note fires.
+      /// </summary>
+      private static ActionOutcome ExecuteRejoinParty(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null) return null;
+
+            RejoinPartyVerdict verdict = CourtActionResolver.TryRejoinParty(npcHero);
+
+            switch (verdict.Result)
+            {
+               case RejoinPartyResult.ActorUnavailable:
+                  return null;
+               case RejoinPartyResult.ActorImprisoned:
+                  return ActionOutcome.Refused($"({npcHero.Name} is held prisoner and cannot travel to you.)");
+               case RejoinPartyResult.NotACompanion:
+                  return ActionOutcome.Refused($"({npcHero.Name} is not one of your companions to recall.)");
+               case RejoinPartyResult.AlreadyInParty:
+                  return ActionOutcome.Refused($"({npcHero.Name} already rides in your party.)");
+               case RejoinPartyResult.LeadsOwnCompany:
+                  return ActionOutcome.Refused($"({npcHero.Name} leads their own company; disband it first.)");
+            }
+
+            string msg = verdict.WasGovernor
+               ? $"{npcHero.Name} steps down from governing {verdict.GovernedFief} and rejoins your party."
+               : $"{npcHero.Name} rejoins your party.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+            ModLog.Info($"[ACTION] rejoin_party: {npcHero.Name} rejoined the player's party.");
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] rejoin_party failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   dispatch_mission (2026-08-05, party-command batch, council + 1:1): the player sends the conversation
+      ///   companion on an errand (gather news, spy, steal, barter, envoy). The mission type is named in the action's
+      ///   target_mission field; the destination is never named (the mission system picks it). Calls the SAME shared
+      ///   core the council resolution runs (<see cref="CourtActionResolver.TryDispatchMission" />), which
+      ///   re-validates every invariant (alive, still a companion, still in the party, a mission system exists, not
+      ///   already away, the errand resolves) and reuses <see cref="CompanionMissionBehavior.Dispatch" /> end to end.
+      ///   Only TAUGHT when <see cref="EncounterContext.NpcCanBeDispatchedOnMission" /> holds, but every guard is
+      ///   re-checked here and in the core: the prompt is advice, the bridge is law. A blank, ungroundable, or
+      ///   refused errand is surfaced as a refusal so the OOC note fires.
+      /// </summary>
+      private static ActionOutcome ExecuteDispatchMission(GameAction action, Hero npcHero)
+      {
+         try
+         {
+            if (npcHero is not {IsAlive: true}) return null;
+
+            action.Parameters.TryGetValue("target_mission", out string missionName);
+
+            // Was a silent no-op class this project eliminates: an errand agreed with none named.
+            if (string.IsNullOrWhiteSpace(missionName))
+               return ActionOutcome.Refused(SilentRefusalMessages.DispatchMissionMissingErrand());
+
+            DispatchMissionVerdict verdict = CourtActionResolver.TryDispatchMission(npcHero, missionName);
+
+            switch (verdict.Result)
+            {
+               case DispatchMissionResult.ActorUnavailable:
+                  return null;
+               case DispatchMissionResult.NoMissionSystem:
+                  return null;
+               case DispatchMissionResult.NotACompanion:
+                  return ActionOutcome.Refused($"({npcHero.Name} is not one of your companions to send.)");
+               case DispatchMissionResult.NotInPlayerParty:
+                  return ActionOutcome.Refused($"({npcHero.Name} does not ride in your party, and cannot be sent from it.)");
+               case DispatchMissionResult.AlreadyAway:
+                  return ActionOutcome.Refused($"({npcHero.Name} is already away on an errand.)");
+               case DispatchMissionResult.NoValidMission:
+                  return ActionOutcome.Refused(SilentRefusalMessages.DispatchMissionMissingErrand());
+               case DispatchMissionResult.DispatchFailed:
+                  return ActionOutcome.Refused($"({verdict.Message})");
+            }
+
+            ModLog.Info($"[ACTION] dispatch_mission: {npcHero.Name} dispatched on a {verdict.Type} errand.");
+
+            return new ActionOutcome(verdict.Message, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] dispatch_mission failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }
