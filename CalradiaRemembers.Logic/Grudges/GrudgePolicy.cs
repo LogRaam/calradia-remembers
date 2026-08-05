@@ -307,6 +307,11 @@ namespace CalradiaRemembers.Logic.Grudges
                 // still-soft grudge can be talked down (Amends), but once it has hardened only a real deed
                 // (making good on the substance of the oath, or an equivalent gesture) will mend it.
                 case GrudgeSource.BrokenOath:         return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
+                // PactBroken (the council's own non_aggression_pact, COUNCIL_ACTIONS.md's Partie 8) mirrors
+                // BrokenOath's own treatment exactly: both are a broken WORD (a promise of restraint) rather than
+                // a seized possession or a severed bond, so a still-soft grudge can be talked down (Amends), but
+                // once it has hardened only a real deed will mend it.
+                case GrudgeSource.PactBroken:         return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
                 default:                              return GrudgeResolutionKind.Amends;
             }
         }

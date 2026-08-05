@@ -225,6 +225,11 @@ namespace CalradiaRemembers.Chat
             // the value half is simply blank). Composed by OathGroundingCodec.Compose, split apart again at the
             // lift by the SAME codec (CouncilLift.SettleSwearOath).
             targetHint = OathGroundingCodec.Compose(proposal.OathKind, proposal.TargetAmount?.ToString() ?? proposal.TargetFaction ?? "");
+         // "non_aggression_pact" (rounding out the Parley toolkit with a FIFTH concession) grounds on NOTHING
+         // beyond the actor, exactly like "give_influence"/"expel_from_clan" below: the faction pair is never an
+         // LLM choice (the player's own live faction and the parley's own stored target, see
+         // CouncilLift.SettleNonAggressionPact), so it falls through to this same default branch and carries a
+         // null TargetHint, never read by the lift.
          else
             targetHint = proposal.TargetSettlement;
          AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession, targetHint);

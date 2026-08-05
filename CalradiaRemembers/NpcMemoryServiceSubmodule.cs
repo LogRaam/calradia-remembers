@@ -270,6 +270,13 @@ namespace CalradiaRemembers
          // CouncilTributeBehavior above. Idle (no active hostage terms) outside a Parley that actually strikes
          // one, so it is not gated with the rest of the Assembly pillar either.
          campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.CouncilHostageBehavior());
+         // Council non-aggression pact (Partie 8, "non_aggression_pact", rounding out the Parley toolkit with a
+         // FIFTH concession): a Parley-scoped, fixed-term promise binding only the mod's OWN hostile-quest
+         // emission and a detected/sanctioned breach (see NonAggressionPactPolicy's own header - vanilla AI does
+         // NOT respect it), always on, mirroring CouncilStipendBehavior/CouncilTributeBehavior/CouncilHostageBehavior
+         // above. Idle (no active pacts) outside a Parley that actually strikes one, so it is not gated with the
+         // rest of the Assembly pillar either.
+         campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.CouncilPactBehavior());
          // follow_me (1:1 bridge action, player wish: a companion "staying by my side", the map-escort half of
          // it, the battlefield version stays roadmapped): a lord's own party escorts the player's for a fixed
          // term, mirroring CouncilStipendBehavior/CouncilHostageBehavior's own SyncData shape. Always on, idle

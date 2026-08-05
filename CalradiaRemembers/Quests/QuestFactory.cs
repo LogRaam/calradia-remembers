@@ -3,7 +3,9 @@
 #region
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Marriage;
@@ -30,6 +32,17 @@ namespace CalradiaRemembers.Quests
       // TUNE: generous radius (campaign-map units) around the named town within which a real, still-infested
       // hideout must exist for the giver to send the player after it. No lair in range => no such task to give.
       internal const float HideoutSearchRadius = 80f;
+
+      // non_aggression_pact's own gate (COUNCIL_ACTIONS.md's Partie 8, CalradiaRemembers.Logic.Assemblies.
+      // NonAggressionPactPolicy's own header): the CR-generated deed types that are genuinely HOSTILE toward a
+      // faction, refused outright here while that faction is a live pact partner of the player's own faction (see
+      // IsBlockedByNonAggressionPact below). DeliverPrisoner is deliberately EXCLUDED: its target faction is the
+      // RECIPIENT of a captive handed over as a favor, not a victim of an attack. ScoutArmy/RescuePrisoner are not
+      // hostile acts either.
+      private static readonly HashSet<QuestType> HostileQuestTypes = new HashSet<QuestType> {
+         QuestType.AttackFaction, QuestType.AttackLord, QuestType.RaidVillage, QuestType.AttackCaravan,
+         QuestType.Siege, QuestType.CapturePrisoner, QuestType.ExecuteEnemy, QuestType.DeclareWar
+      };
 
       /// <summary>Upper bound on an LLM-proposed item-barter value, for non-priced grants.</summary>
       private const int MaxRequiredItemValue = 100000;
@@ -60,10 +73,72 @@ namespace CalradiaRemembers.Quests
          };
 
          if (!ResolveReward(quest, proposal, giver)) return null;
+         if (!ResolveTargets(quest, proposal, giver)) return null;
 
-         return ResolveTargets(quest, proposal, giver)
-            ? quest
-            : null;
+         // non_aggression_pact's own gate (CalradiaRemembers.Logic.Assemblies.NonAggressionPactPolicy's own
+         // header): refuse a hostile CR-generated deed at the EMISSION point, never narrate it then silently
+         // drop it later. Checked LAST, after every other target/reward binding has already succeeded, so the
+         // refusal reason is always specifically "a pact protects them" rather than masking a different, earlier
+         // failure.
+         if (IsBlockedByNonAggressionPact(quest))
+         {
+            ModLog.Info($"[QUEST] '{quest.Type}' from {giver.Name} refused - the target faction is bound by a non-aggression pact right now.");
+
+            return null;
+         }
+
+         return quest;
+      }
+
+      /// <summary>
+      ///   True when <paramref name="quest" /> is a HOSTILE deed type (<see cref="HostileQuestTypes" />) whose
+      ///   already-resolved target faction is a current non-aggression pact partner of the player's own LIVE
+      ///   faction (<see cref="CalradiaRemembers.Assemblies.CouncilPactBehavior.IsUnderPact" />). Never throws: a
+      ///   missing pact ledger, an unresolvable faction, or a friendly deed type simply means "not blocked".
+      /// </summary>
+      private static bool IsBlockedByNonAggressionPact(InformalQuest quest)
+      {
+         if (quest == null || !HostileQuestTypes.Contains(quest.Type)) return false;
+         if (CouncilPactBehavior.Instance == null) return false;
+
+         IFaction playerFaction = Hero.MainHero?.MapFaction;
+         if (playerFaction == null) return false;
+
+         IFaction targetFaction = ResolveHostileTargetFaction(quest);
+         if (targetFaction == null) return false;
+
+         return CouncilPactBehavior.Instance.IsUnderPact(playerFaction, targetFaction);
+      }
+
+      /// <summary>
+      ///   The quest's own target faction, NORMALIZED to its top-level map faction (<see cref="IFaction.MapFaction" />
+      ///   - a vassal clan named directly resolves to its OWN kingdom, exactly like a pact's own stored faction
+      ///   id does), read from whichever field the deed type actually bound: <see cref="InformalQuest.TargetFactionId" />
+      ///   (attack_faction/attack_caravan/raid_village/declare_war), the target hero's own live faction
+      ///   (attack_lord/capture_prisoner/execute_enemy), or the named settlement's own faction (siege - the only
+      ///   hostile type binding neither field, see <see cref="ResolveTargets" />'s own Siege case).
+      /// </summary>
+      private static IFaction ResolveHostileTargetFaction(InformalQuest quest)
+      {
+         if (!string.IsNullOrEmpty(quest.TargetFactionId))
+         {
+            IFaction raw = Kingdom.All?.FirstOrDefault(k => k.StringId == quest.TargetFactionId);
+            if (raw == null) raw = Clan.All?.FirstOrDefault(c => c.StringId == quest.TargetFactionId);
+
+            return raw?.MapFaction;
+         }
+
+         if (!string.IsNullOrEmpty(quest.TargetHeroId))
+         {
+            Hero targetHero = Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == quest.TargetHeroId);
+
+            return targetHero?.MapFaction;
+         }
+
+         if (quest.Type == QuestType.Siege && !string.IsNullOrEmpty(quest.TargetSettlement))
+            return ResolveSettlement(quest.TargetSettlement)?.MapFaction;
+
+         return null;
       }
 
       /// <summary>The nearest still-infested (uncleared) bandit hideout within <paramref name="maxDistance" />, or null.</summary>

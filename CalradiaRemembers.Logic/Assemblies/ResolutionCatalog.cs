@@ -292,7 +292,27 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   a DOCUMENTED FOLLOW-UP, deliberately not built this slice: v1 is honest as long as the hostage is
         ///   never narrated as chained or guarded, since the engine genuinely gives them no such order.
         /// </summary>
-        GiveHostage
+        GiveHostage,
+
+        /// <summary>
+        ///   Rounds out the Parley toolkit with a FIFTH concession (COUNCIL_ACTIONS.md's Partie 8,
+        ///   "non_aggression_pact"), Parley-scoped ONLY (mirrors Tribute's/ReleasePrisoner's/GiveHostage's own
+        ///   single-scope entry): the seated enemy leader and the player agree their two FACTIONS will not raise
+        ///   arms against one another for a FIXED term (<see cref="CalradiaRemembers.Logic.Assemblies.NonAggressionPactPolicy.TermDays" />).
+        ///   HONEST-LIMITED BY DESIGN (see <see cref="CalradiaRemembers.Logic.Assemblies.NonAggressionPactPolicy" />'s
+        ///   own header, Kimi's warning read first): vanilla has NO native inter-clan non-aggression, and the
+        ///   vanilla AI will NOT respect one - this pact only ever binds (a) the mod's OWN hostile-quest emission
+        ///   against the partner faction, refused outright while the pact holds
+        ///   (<c>CalradiaRemembers.Quests.QuestFactory.Create</c>), and (b) a detected breach, sanctioned
+        ///   (<c>CalradiaRemembers.Assemblies.CouncilPactBehavior.OnMapEventEnded</c>). Never phrase it as "there
+        ///   will be peace": the prompt teaching (SDK PromptBuilder) must state the exact scope ("our companies
+        ///   will not attack each other for N days"). Not FACTION-CENTRIC (see <see cref="IsFactionCentric" />):
+        ///   the pledge is the seated leader's own promise struck at the table, not a decision about the two
+        ///   factions the way MakePeace is, so it keeps the ordinary seated-member re-validation at the lift
+        ///   (CouncilLift.SettleNonAggressionPact), which then resolves the ACTUAL faction pair (the player's
+        ///   live faction and the parley's own stored target) the same way SettleReleasePrisoner already does.
+        /// </summary>
+        NonAggressionPact
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -440,7 +460,18 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   exact tier split or which seated lord ends up chosen, both computed fresh at the lift from LIVE
         ///   state regardless (CouncilLift.SettleGiveTroops, bridge is law).
         /// </summary>
-        AnySeatedLordCanReceiveTroops = 2097152
+        AnySeatedLordCanReceiveTroops = 2097152,
+
+        /// <summary>
+        ///   At least one seated Parley counterpart is alive and leads a clan distinct from the player's own, AND
+        ///   the two are not already bound by a live pact: non_aggression_pact's own gate, Parley-scoped only,
+        ///   mirroring <see cref="AnySeatedTributePayerAvailable" />'s own single-scope entry (the one roster that
+        ///   ever seats an enemy faction leader to negotiate a concession with at all). The "not already under
+        ///   pact" half (beyond Tribute's own bare loose gate) avoids teaching a redundant second pact while one
+        ///   is already in flight between the same two factions - a real concession the table has ALREADY struck
+        ///   is not a NEW one to offer again.
+        /// </summary>
+        AnySeatedPactPartnerAvailable = 4194304
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -487,7 +518,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool anySeatedMemberCanLendTroops = false,
                                     bool anySeatedMemberCanSwearOath = false,
                                     bool anySeatedHostageEligibleRelativeAvailable = false,
-                                    bool anySeatedLordCanReceiveTroops = false)
+                                    bool anySeatedLordCanReceiveTroops = false,
+                                    bool anySeatedPactPartnerAvailable = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -511,6 +543,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             AnySeatedMemberCanSwearOath = anySeatedMemberCanSwearOath;
             AnySeatedHostageEligibleRelativeAvailable = anySeatedHostageEligibleRelativeAvailable;
             AnySeatedLordCanReceiveTroops = anySeatedLordCanReceiveTroops;
+            AnySeatedPactPartnerAvailable = anySeatedPactPartnerAvailable;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -567,6 +600,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated lord could receive troops from the PLAYER's own party, and the player's own party has troops to spare. give_troops' own fact, see ResolutionRequirement.AnySeatedLordCanReceiveTroops.</summary>
         public bool AnySeatedLordCanReceiveTroops { get; }
+
+        /// <summary>At least one seated Parley counterpart is alive, leads a clan distinct from the player's own, and is not already bound by a live pact. non_aggression_pact's own fact, see ResolutionRequirement.AnySeatedPactPartnerAvailable.</summary>
+        public bool AnySeatedPactPartnerAvailable { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -722,7 +758,14 @@ namespace CalradiaRemembers.Logic.Assemblies
                 "Swear an oath", ResolutionRequirement.AnySeatedMemberCanSwearOath),
 
             new ResolutionDefinition(ResolutionKind.SwearOath, CouncilScope.WarCouncil,
-                "Swear an oath", ResolutionRequirement.AnySeatedMemberCanSwearOath)
+                "Swear an oath", ResolutionRequirement.AnySeatedMemberCanSwearOath),
+
+            // Rounds out the Parley toolkit with a FIFTH concession (COUNCIL_ACTIONS.md's Partie 8,
+            // "non_aggression_pact"): Parley-scoped ONLY, mirroring Tribute's/ReleasePrisoner's/GiveHostage's own
+            // single-scope entry (the one roster that ever seats an enemy faction leader to negotiate a
+            // concession with at all).
+            new ResolutionDefinition(ResolutionKind.NonAggressionPact, CouncilScope.Parley,
+                "Pledge a non-aggression pact", ResolutionRequirement.AnySeatedPactPartnerAvailable)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -764,6 +807,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.GiveTroops:          return "give_troops";
                 case ResolutionKind.SwearOath:           return "swear_oath";
                 case ResolutionKind.GiveHostage:          return "give_hostage";
+                case ResolutionKind.NonAggressionPact:    return "non_aggression_pact";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -856,7 +900,8 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.ArrangeMarriage || kind == ResolutionKind.SwapFiefs
             || kind == ResolutionKind.Tribute || kind == ResolutionKind.ReleasePrisoner
             || kind == ResolutionKind.LendTroops || kind == ResolutionKind.SwearOath
-            || kind == ResolutionKind.GiveHostage || kind == ResolutionKind.GiveTroops;
+            || kind == ResolutionKind.GiveHostage || kind == ResolutionKind.GiveTroops
+            || kind == ResolutionKind.NonAggressionPact;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

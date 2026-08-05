@@ -121,8 +121,15 @@ namespace CalradiaRemembers.Assemblies
       ///   CouncilTroopLoanPolicy.ComputeLoan would yield more than zero; the real tier split, and which seated
       ///   lord ends up chosen, are both computed fresh at the lift from LIVE state regardless
       ///   (CouncilLift.SettleGiveTroops, bridge is law).
+      ///   <paramref name="anySeatedPactPartnerAvailable" /> rounds out the Parley toolkit with a FIFTH
+      ///   concession, non_aggression_pact (COUNCIL_ACTIONS.md's Partie 8; see ChatViewModel.AnySeatedPactPartnerAvailable):
+      ///   Parley-only, mirroring anySeatedTributePayerAvailable's own loose gate (the seated counterpart is
+      ///   alive and leads a clan distinct from the player's own), PLUS a "not already under a live pact" check
+      ///   this kind adds beyond that bare minimum (teaching a redundant second pact while one already binds the
+      ///   same two factions would just offer a promise with nothing new to give); the real faction pair is
+      ///   re-resolved and re-checked at the lift regardless (CouncilLift.SettleNonAggressionPact, bridge is law).
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false, bool anySeatedPrisonerAvailableToRelease = false, bool anySeatedMemberCanLendTroops = false, bool anySeatedMemberCanSwearOath = false, bool anySeatedHostageEligibleRelativeAvailable = false, bool anySeatedLordCanReceiveTroops = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false, bool anySeatedPrisonerAvailableToRelease = false, bool anySeatedMemberCanLendTroops = false, bool anySeatedMemberCanSwearOath = false, bool anySeatedHostageEligibleRelativeAvailable = false, bool anySeatedLordCanReceiveTroops = false, bool anySeatedPactPartnerAvailable = false)
       {
          try
          {
@@ -148,7 +155,8 @@ namespace CalradiaRemembers.Assemblies
                anySeatedMemberCanLendTroops: anySeatedMemberCanLendTroops,
                anySeatedMemberCanSwearOath: anySeatedMemberCanSwearOath,
                anySeatedHostageEligibleRelativeAvailable: anySeatedHostageEligibleRelativeAvailable,
-               anySeatedLordCanReceiveTroops: anySeatedLordCanReceiveTroops);
+               anySeatedLordCanReceiveTroops: anySeatedLordCanReceiveTroops,
+               anySeatedPactPartnerAvailable: anySeatedPactPartnerAvailable);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

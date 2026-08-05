@@ -37,8 +37,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool anySeatedTributePayerAvailable = false,
                                                   bool anySeatedPrisonerAvailableToRelease = false,
                                                   bool anySeatedMemberCanLendTroops = false,
-                                                  bool anySeatedLordCanReceiveTroops = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin, anySeatedTributePayerAvailable, anySeatedPrisonerAvailableToRelease, anySeatedMemberCanLendTroops, anySeatedLordCanReceiveTroops: anySeatedLordCanReceiveTroops);
+                                                  bool anySeatedLordCanReceiveTroops = false,
+                                                  bool anySeatedPactPartnerAvailable = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin, anySeatedTributePayerAvailable, anySeatedPrisonerAvailableToRelease, anySeatedMemberCanLendTroops, anySeatedLordCanReceiveTroops: anySeatedLordCanReceiveTroops, anySeatedPactPartnerAvailable: anySeatedPactPartnerAvailable);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -834,6 +835,54 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("give_troops");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("give_troops");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("give_troops");
+        }
+
+        // Rounds out the Parley toolkit with a FIFTH concession (COUNCIL_ACTIONS.md's Partie 8,
+        // "non_aggression_pact"): a single-condition motion, mirroring tribute's own AnySeatedTributePayerAvailable
+        // gate exactly (the fact itself already folds in the "not already under pact" check, see
+        // ChatViewModel.AnySeatedPactPartnerAvailable). Present it when some seated counterpart is available,
+        // withhold it when nobody at the table qualifies.
+        [Test]
+        public void GIVEN_non_aggression_pact_WHEN_a_seated_counterpart_is_or_is_not_available_THEN_offer_follows()
+        {
+            ResolutionDefinition pact = ResolutionCatalog.Get(ResolutionKind.NonAggressionPact);
+
+            ResolutionEligibilityPolicy.CanOffer(pact, Facts(anySeatedPactPartnerAvailable: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(pact, Facts(anySeatedPactPartnerAvailable: false)).Should().BeFalse();
+        }
+
+        // The offering wire: non_aggression_pact must be TAUGHT to the LLM only when the fact holds, or the
+        // model proposes a pact CouncilLift.SettleNonAggressionPact's own re-check (the two factions must
+        // resolve and differ) would refuse outright, a hollow promise the table never actually carries out.
+        [Test]
+        public void GIVEN_a_seated_counterpart_can_pact_WHEN_offered_keys_are_asked_THEN_non_aggression_pact_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, Facts(anySeatedPactPartnerAvailable: true))
+                .Should().Contain("non_aggression_pact");
+        }
+
+        // Absent that fact (nobody seated leads a house distinct from the player's own, or the two are already
+        // bound by a live pact) the key must be withheld, or the table could offer a pact the lift has already
+        // proven impossible or redundant.
+        [Test]
+        public void GIVEN_no_seated_counterpart_can_pact_WHEN_offered_keys_are_asked_THEN_non_aggression_pact_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, Facts(anySeatedPactPartnerAvailable: false))
+                .Should().NotContain("non_aggression_pact");
+        }
+
+        // The empty-promise guard, the other direction: Companions, Family, ClanLords and WarCouncil carry no
+        // NonAggressionPact catalogue entry at all (only a Parley ever seats an enemy faction leader to strike
+        // this pact with), so the key must never surface there even when the fact is (nonsensically) true.
+        [Test]
+        public void GIVEN_a_companions_family_clan_lords_or_war_council_WHEN_offered_keys_are_asked_THEN_non_aggression_pact_is_never_included()
+        {
+            ResolutionWorldFacts facts = Facts(anySeatedPactPartnerAvailable: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("non_aggression_pact");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("non_aggression_pact");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("non_aggression_pact");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts).Should().NotContain("non_aggression_pact");
         }
     }
 }

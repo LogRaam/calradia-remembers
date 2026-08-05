@@ -114,6 +114,16 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   witness (a private oath's breach stays a plain relation hit, no grudge); magnitude fixed at
         ///   <see cref="CalradiaRemembers.Logic.CommitmentPolicy.BrokenOathGrudgeMagnitude" />.
         /// </summary>
-        BrokenOath = 19
+        BrokenOath = 19,
+
+        /// <summary>
+        ///   "We swore not to raise arms, and you broke it": the council's own non_aggression_pact (COUNCIL_ACTIONS.md's
+        ///   Partie 8), planted ONLY when the PLAYER's own faction is the party that attacked during the pact's
+        ///   term (<c>NonAggressionPactPolicy.IsPlayerFactionAtFault</c>) - the one direction a grudge can honestly
+        ///   be planted, since an NPC resenting the player for THEIR OWN faction's attack would make no causal
+        ///   sense (see <c>NonAggressionPactPolicy</c>'s own header). The reverse breach still ends the pact and
+        ///   applies a relation hit and a WorldEvent note naming the true attacker, just never this grudge.
+        /// </summary>
+        PactBroken = 20
     }
 }

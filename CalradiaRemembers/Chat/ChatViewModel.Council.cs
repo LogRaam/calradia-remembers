@@ -605,6 +605,35 @@ namespace CalradiaRemembers.Chat
          return false;
       }
 
+      /// <summary>
+      ///   Rounds out the Parley toolkit with a FIFTH concession (COUNCIL_ACTIONS.md's Partie 8,
+      ///   "non_aggression_pact"): non_aggression_pact's own fact, Parley-only. True once any seated member is
+      ///   alive and leads a clan distinct from the player's own (mirroring <see cref="AnySeatedTributePayerAvailable" />'s
+      ///   own loose gate exactly), AND the two are not already bound by a live pact
+      ///   (<see cref="CalradiaRemembers.Assemblies.CouncilPactBehavior.IsUnderPact" />) - teaching a second,
+      ///   redundant pact while one already binds the same two factions would offer nothing new. The real
+      ///   faction pair is re-resolved and re-checked at the lift regardless (CouncilLift.SettleNonAggressionPact,
+      ///   bridge is law).
+      /// </summary>
+      private bool AnySeatedPactPartnerAvailable()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero is not {IsAlive: true} || hero.Clan == null || hero.Clan == Clan.PlayerClan) continue;
+
+            IFaction playerFaction = Hero.MainHero?.MapFaction;
+            IFaction theirFaction = hero.MapFaction;
+            if (playerFaction == null || theirFaction == null) continue;
+
+            if (CalradiaRemembers.Assemblies.CouncilPactBehavior.Instance?.IsUnderPact(playerFaction, theirFaction) == true) continue;
+
+            return true;
+         }
+
+         return false;
+      }
+
       /// <summary>Whether the player's own clan currently holds any alive, unwed kin other than the player: the half of <see cref="AnySeatedAllyHasMarriageableKin" /> that never depends on who is seated.</summary>
       private static bool PlayerClanHasUnwedKin()
       {

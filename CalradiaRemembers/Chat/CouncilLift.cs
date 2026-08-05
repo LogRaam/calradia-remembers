@@ -263,6 +263,11 @@ namespace CalradiaRemembers.Chat
 
                return;
 
+            case ResolutionKind.NonAggressionPact:
+               SettleNonAggressionPact(ledger, entry, actorHero, actorName, report, parleyTargetFactionId);
+
+               return;
+
             case ResolutionKind.Quest:
             default:
                SettleQuest(ledger, entry, actorHero, actorName, giver, behavior, gameDay, report);
@@ -1510,6 +1515,67 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"You free {prisonerName}, returning them to {actorName}.", true);
          ModLog.Info($"[COUNCIL] lift: released {prisonerName} from captivity as a parley concession to {actorName}.");
+      }
+
+      /// <summary>
+      ///   Rounds out the Parley toolkit with a FIFTH concession (COUNCIL_ACTIONS.md's Partie 8,
+      ///   "non_aggression_pact"): the player's own FACTION and the parley's own enemy FACTION agree not to raise
+      ///   arms against one another for a FIXED term (<see cref="NonAggressionPactPolicy.TermDays" />).
+      ///   HONEST-LIMITED BY DESIGN (see <see cref="NonAggressionPactPolicy" />'s own header, Kimi's warning):
+      ///   this binds ONLY the mod's own hostile-quest emission and a detected/sanctioned breach, never vanilla
+      ///   AI behaviour or a kingdom's own war council. Not FACTION-CENTRIC (see <see cref="ResolutionCatalog.IsFactionCentric" />),
+      ///   so <paramref name="actorHero" /> has already passed the ordinary seated-member re-validation (the
+      ///   seated enemy leader must still be present); THIS method resolves the actual FACTION pair, mirroring
+      ///   <see cref="SettleReleasePrisoner" />'s own preference for <paramref name="parleyTargetFactionId" /> (the
+      ///   parley's own stored target) over re-deriving one from prose. Guards: the player must still lead their
+      ///   own faction, the parley's target must still resolve to a live faction, and the two must not be the
+      ///   same (nothing else - deliberately NOT a war-status check, mirroring SettleTribute's own documented
+      ///   choice: a pact may be struck in the SAME turn as make_peace, or stand on its own while a standing war
+      ///   continues, see NonAggressionPactPolicy's own header).
+      /// </summary>
+      private static void SettleNonAggressionPact(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report, string parleyTargetFactionId)
+      {
+         if (Hero.MainHero is not {IsFactionLeader: true})
+         {
+            const string reason = "the player no longer leads a faction that can strike this pact.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         IFaction playerFaction = Hero.MainHero.MapFaction;
+         IFaction enemyFaction = ParleyFactionLookup.ByStringId(parleyTargetFactionId);
+
+         if (playerFaction == null || enemyFaction == null)
+         {
+            const string reason = "no faction by that name could be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (CouncilPactBehavior.Instance == null)
+         {
+            const string reason = "no pact ledger is available right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!CouncilPactBehavior.Instance.TryStart(playerFaction, enemyFaction, out string failReason))
+         {
+            ledger.MarkFailed(entry.Id, failReason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {failReason}", false);
+
+            return;
+         }
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"Your companies and {enemyFaction.Name}'s will not attack each other for {NonAggressionPactPolicy.TermDays} days.", true);
+         ModLog.Info($"[COUNCIL] lift: non-aggression pact struck between {playerFaction.Name} and {enemyFaction.Name} for {NonAggressionPactPolicy.TermDays} days.");
       }
 
       /// <summary>

@@ -320,14 +320,16 @@ namespace CalradiaRemembers.Tests.Assemblies
         // declare_war's symmetric counterpart: it must appear under its own scope, Parley, and only there, so a
         // parley (which exists specifically to negotiate peace) is the one council where make_peace can be
         // raised. Tribute (Partie 8) joined as Parley's second motion, ReleasePrisoner (rounding out the
-        // Parley toolkit, 2026-08-04) its third, and GiveHostage (Kimi's "v1 invite d'honneur", 2026-08-04) its
-        // fourth, so the query must now return all four, in declaration order.
+        // Parley toolkit, 2026-08-04) its third, GiveHostage (Kimi's "v1 invite d'honneur", 2026-08-04) its
+        // fourth, and NonAggressionPact (COUNCIL_ACTIONS.md's Partie 8, 2026-08-05) its fifth, so the query must
+        // now return all five, in declaration order.
         [Test]
-        public void GIVEN_a_parley_WHEN_the_catalogue_is_queried_THEN_make_peace_tribute_release_prisoner_and_give_hostage_return()
+        public void GIVEN_a_parley_WHEN_the_catalogue_is_queried_THEN_make_peace_tribute_release_prisoner_give_hostage_and_non_aggression_pact_return()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.Parley).Select(d => d.Kind).ToList();
 
-            kinds.Should().Equal(ResolutionKind.MakePeace, ResolutionKind.Tribute, ResolutionKind.ReleasePrisoner, ResolutionKind.GiveHostage);
+            kinds.Should().Equal(ResolutionKind.MakePeace, ResolutionKind.Tribute, ResolutionKind.ReleasePrisoner,
+                ResolutionKind.GiveHostage, ResolutionKind.NonAggressionPact);
         }
 
         // make_peace has a live lift executor (CouncilLift.SettleMakePeace) from the day it lands, mirroring
@@ -867,6 +869,82 @@ namespace CalradiaRemembers.Tests.Assemblies
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts)
                 .Should().NotContain("swear_oath");
+        }
+
+        // Rounds out the Parley toolkit with a FIFTH concession (COUNCIL_ACTIONS.md's Partie 8,
+        // "non_aggression_pact", 2026-08-05): it has a live lift executor (CouncilLift.SettleNonAggressionPact)
+        // from the day it lands; the table must be able to actually strike the pact, not just record the pledge.
+        [Test]
+        public void GIVEN_non_aggression_pact_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.NonAggressionPact).Should().BeTrue();
+        }
+
+        // non_aggression_pact is the seated enemy leader's own promise struck at the table, not a decision about
+        // two FACTIONS the way make_peace is (even though both are struck at the same Parley table, and this
+        // kind's OWN executor still resolves the actual faction pair), so it must never bypass the ordinary
+        // seated-member re-validation the way declare_war/make_peace do (covered generically by
+        // GIVEN_every_member_pledge_kind_WHEN_asked_if_it_is_faction_centric_THEN_none_of_them_are above; pinned
+        // here too for the kind's own documentation).
+        [Test]
+        public void GIVEN_non_aggression_pact_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.NonAggressionPact).Should().BeFalse();
+        }
+
+        // A parley must be able to strike a non-aggression pact, not merely make peace, bind a tribute, free a
+        // captive, or take a hostage: non_aggression_pact rides alongside the universal quest key and its four
+        // Parley siblings.
+        [Test]
+        public void GIVEN_a_parley_WHEN_asked_for_executable_kinds_THEN_non_aggression_pact_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Parley).Should().Contain("non_aggression_pact");
+        }
+
+        // The empty-promise guard, the other direction: no OTHER scope carries a NonAggressionPact catalogue
+        // entry at all (only a Parley ever seats an enemy faction leader to strike this pact with), so the key
+        // must never surface elsewhere, whatever the world facts.
+        [Test]
+        public void GIVEN_a_companions_family_clan_lords_or_war_council_WHEN_asked_for_executable_kinds_THEN_non_aggression_pact_is_absent()
+        {
+            foreach (CouncilScope scope in new[] {CouncilScope.Companions, CouncilScope.Family, CouncilScope.ClanLords, CouncilScope.WarCouncil})
+                ResolutionCatalog.ExecutableKindKeysForScope(scope).Should().NotContain("non_aggression_pact");
+        }
+
+        // ── ResolutionEligibilityPolicy: the non_aggression_pact offering fact actually gates the teaching ──
+
+        // STAKE: mirrors the tribute/give_hostage fact-gating tests above (the same "prove SOME concession is
+        // possible, never over-offer" discipline). If the fact were ignored, the table would teach
+        // non_aggression_pact even when nobody seated leads a house distinct from the player's own, or when the
+        // two are already bound by a live pact.
+        [Test]
+        public void GIVEN_the_non_aggression_pact_fact_is_false_WHEN_asking_what_is_offered_THEN_it_is_withheld()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedPactPartnerAvailable: false);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts)
+                .Should().NotContain("non_aggression_pact");
+        }
+
+        [Test]
+        public void GIVEN_the_non_aggression_pact_fact_is_true_WHEN_asking_what_is_offered_THEN_it_is_included()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedPactPartnerAvailable: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts)
+                .Should().Contain("non_aggression_pact");
+        }
+
+        // STAKE: even with the fact true, a scope the catalogue never seats a non_aggression_pact entry for
+        // (WarCouncil) must never offer it, since the by-scope lookup reads the catalogue FIRST, before facts
+        // are applied.
+        [Test]
+        public void GIVEN_the_non_aggression_pact_fact_is_true_but_the_scope_is_war_council_WHEN_asking_what_is_offered_THEN_it_is_still_withheld()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedPactPartnerAvailable: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts)
+                .Should().NotContain("non_aggression_pact");
         }
     }
 }
