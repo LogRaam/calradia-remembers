@@ -191,6 +191,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteJoinParty(action, npcHero);
             case "join_as_mercenary":
                return ExecuteJoinAsMercenary(npcHero);
+            case "end_mercenary":
+               return ExecuteEndMercenary(npcHero);
             case "join_clan":
                return ExecuteJoinClan(npcHero, context?.Profile);
             case "scheme_assist":
@@ -1738,6 +1740,50 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] join_as_mercenary failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   end_mercenary: the MIRROR of join_as_mercenary. The King who hired the player's clan, one of his
+      ///   lords speaking for him, or the player themselves, has agreed in conversation to end the mercenary
+      ///   contract. Player report (2026-08-04): "The King agreed to free me from my mercenary contract.
+      ///   Nothing happens." The prompt only teaches this action when the game confirms the player's clan is
+      ///   truly under mercenary service right now (EncounterContext.PlayerIsMercenary), but every guard is
+      ///   re-checked here, the bridge is the law. Deliberately NOT gated to the specific NPC being the exact
+      ///   employer: the fiction decides who may credibly raise it, the bridge only enacts the dissolution
+      ///   once the LLM judges the release is agreed.
+      /// </summary>
+      private static ActionOutcome ExecuteEndMercenary(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            var playerClan = Clan.PlayerClan;
+
+            if (playerClan == null) return null;
+
+            if (!MercenaryReleasePolicy.CanEnd(playerClan.IsUnderMercenaryService))
+               return ActionOutcome.Refused("(You are not serving anyone as a mercenary.)");
+
+            // Read the kingdom name BEFORE the leave call: ApplyByLeaveKingdomAsMercenary clears Clan.Kingdom.
+            string kingdomName = playerClan.Kingdom?.Name?.ToString() ?? "your former employer";
+
+            // The dedicated mercenary-leave overload (ChangeKingdomActionDetail.LeaveAsMercenary), confirmed by
+            // decompile against the shipped engine: it clears Clan.Kingdom AND runs
+            // EndMercenaryServiceAction.EndByLeavingKingdom internally, unlike the generic ApplyByLeaveKingdom
+            // (built for a sworn vassal's departure, incl. settlement hand-back logic a mercenary never needs).
+            ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(playerClan);
+
+            ModLog.Info($"[ACTION] end_mercenary: player clan's mercenary contract with {kingdomName} dissolved.");
+
+            return new ActionOutcome($"Your mercenary contract with {kingdomName} is dissolved.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] end_mercenary failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

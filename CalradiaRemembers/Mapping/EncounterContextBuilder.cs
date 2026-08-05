@@ -255,6 +255,10 @@ namespace CalradiaRemembers.Mapping
                ? hero.PartyBelongedToAsPrisoner?.MapFaction?.Name?.ToString()
                : null,
             MercenaryOfferKingdom = ResolveMercenaryOfferKingdom(hero),
+            // Global fact, deliberately NOT scoped to this NPC's own kingdom (unlike MercenaryOfferKingdom
+            // above): whoever the player is talking to, the King who hired them (or the player) may raise
+            // ending a contract that is currently real. See EncounterContext.PlayerIsMercenary.
+            PlayerIsMercenary = Clan.PlayerClan?.IsUnderMercenaryService ?? false,
             LordRecruitEligible = ResolveLordRecruitEligible(hero, profile),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
