@@ -209,6 +209,13 @@ namespace CalradiaRemembers.Chat
             // "release_prisoner" (rounding out the Parley toolkit alongside make_peace and tribute): grounds on
             // the CAPTIVE'S OWN NAME, this kind's own dedicated field (see this method's own doc above).
             targetHint = proposal.TargetPrisonerName;
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GiveHostage), StringComparison.OrdinalIgnoreCase))
+            // "give_hostage" (Kimi's "v1 invite d'honneur", COUNCIL_ACTIONS.md's Partie 8, the Parley toolkit's
+            // fourth concession): grounds on the ELIGIBLE RELATIVE'S OWN NAME, this kind's own dedicated field
+            // (ResolutionProposal.TargetHostageName, not a reuse of TargetPrisonerName or TargetRival - a
+            // hostage is neither a captive the player holds nor a rival), read back by
+            // CalradiaRemembers.Assemblies.HostageCandidateResolver.ResolveByName at the lift.
+            targetHint = proposal.TargetHostageName;
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.SwearOath), StringComparison.OrdinalIgnoreCase))
             // R7-light ("swear_oath", COUNCIL_ACTIONS.md's Partie 8): the ONE kind whose own grounding needs TWO
             // pieces in this single slot, WHICH oath kind (proposal.OathKind, a dedicated field: "pay_gold" /

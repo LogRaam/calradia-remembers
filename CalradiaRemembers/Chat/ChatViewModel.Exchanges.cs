@@ -633,8 +633,13 @@ namespace CalradiaRemembers.Chat
                // ClanLords/Family/WarCouncil, at least one seated member with no commitment already outstanding
                // plausibly qualifies for one of the three whitelisted oath kinds (pay_gold/keep_peace/protect);
                // which kind fits the swearer named is re-validated at the lift regardless (CouncilLift.SettleSwearOath).
+               // AnySeatedHostageEligibleRelativeAvailable is Kimi's "v1 invite d'honneur" own fact, give_hostage
+               // (COUNCIL_ACTIONS.md's Partie 8): Parley-only, the seated enemy leader has at least one eligible
+               // relative (spouse, child, or sibling; never a minor, clan chief, or sole heir) to give as a
+               // hostage of good faith; the named relative is re-resolved against that same eligible pool at the
+               // lift regardless (CouncilLift.SettleGiveHostage, bridge is law).
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath(), AnySeatedHostageEligibleRelativeAvailable())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

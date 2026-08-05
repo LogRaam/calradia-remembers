@@ -251,7 +251,28 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   <see cref="CalradiaRemembers.Logic.CommitmentPolicy.WitnessBreachPenalty" /> and
         ///   <see cref="CalradiaRemembers.Logic.Grudges.GrudgeSource.BrokenOath" />.
         /// </summary>
-        SwearOath
+        SwearOath,
+
+        /// <summary>
+        ///   Kimi's "v1 invite d'honneur" (COUNCIL_ACTIONS.md's Partie 8, "give_hostage"), rounding out the
+        ///   Parley toolkit with a FOURTH concession alongside MakePeace, Tribute, and ReleasePrisoner:
+        ///   Parley-scoped ONLY (mirrors Tribute's/ReleasePrisoner's own single-scope entry, the one roster that
+        ///   ever seats an enemy faction leader to negotiate a concession with at all). The seated enemy leader
+        ///   gives an ELIGIBLE RELATIVE of their own (<see cref="HostageEligibilityPolicy" />: an adult child,
+        ///   sibling, or spouse, never a minor, never a clan chief, never their clan's sole remaining heir) to
+        ///   reside at the player's own court as a living guarantee, for a FIXED term
+        ///   (<see cref="HostagePolicy.TermDays" />), then returns home. Grounds on the relative's OWN NAME (the
+        ///   SDK's dedicated ResolutionProposal.TargetHostageName field, mirroring TargetPrisonerName's own
+        ///   dedicated-field reasoning: a hostage is neither a captive the player holds nor a rival, so folding
+        ///   the name into either existing field would be the same confusing lie those fields' own docs already
+        ///   warn against). Not FACTION-CENTRIC (see <see cref="IsFactionCentric" />): the pledge is the seated
+        ///   leader's own kinsman given up, not a decision about the two factions themselves the way MakePeace
+        ///   is, so it keeps the ordinary seated-member re-validation at the lift (CouncilLift.SettleGiveHostage).
+        ///   v2 (execute/imprison the hostage on a broken accord, COUNCIL_ACTIONS.md's own "captif contraint") is
+        ///   a DOCUMENTED FOLLOW-UP, deliberately not built this slice: v1 is honest as long as the hostage is
+        ///   never narrated as chained or guarded, since the engine genuinely gives them no such order.
+        /// </summary>
+        GiveHostage
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -373,7 +394,20 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   LEAST ONE of the three whitelisted oath kinds (holds gold, leads their own party, or leads their own
         ///   faction). swear_oath's own fact, see ResolutionKind.SwearOath.
         /// </summary>
-        AnySeatedMemberCanSwearOath = 524288
+        AnySeatedMemberCanSwearOath = 524288,
+
+        /// <summary>
+        ///   At least one seated Parley counterpart currently has AT LEAST ONE eligible relative to give as a
+        ///   hostage (<see cref="HostageEligibilityPolicy" />: alive, free, adult, not a clan chief, not their
+        ///   clan's sole remaining heir). give_hostage's own gate, Parley-scoped only, mirroring
+        ///   <see cref="AnySeatedTributePayerAvailable" />'s own single-scope entry. Unlike that loose gate
+        ///   (which only proves SOME payer plausibly exists), this one is EXACT: every relative the mod's own
+        ///   HostageCandidateResolver enumerates is fully checked against the same policy the lift re-runs, so
+        ///   there is no separate approximation to narrow down at settlement time, only the world moving between
+        ///   offer and lift (a relative dying, being captured, or the pledger's own clan losing every other
+        ///   adult member in between).
+        /// </summary>
+        AnySeatedHostageEligibleRelativeAvailable = 1048576
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -418,7 +452,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool anySeatedTributePayerAvailable = false,
                                     bool anySeatedPrisonerAvailableToRelease = false,
                                     bool anySeatedMemberCanLendTroops = false,
-                                    bool anySeatedMemberCanSwearOath = false)
+                                    bool anySeatedMemberCanSwearOath = false,
+                                    bool anySeatedHostageEligibleRelativeAvailable = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -440,6 +475,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             AnySeatedPrisonerAvailableToRelease = anySeatedPrisonerAvailableToRelease;
             AnySeatedMemberCanLendTroops = anySeatedMemberCanLendTroops;
             AnySeatedMemberCanSwearOath = anySeatedMemberCanSwearOath;
+            AnySeatedHostageEligibleRelativeAvailable = anySeatedHostageEligibleRelativeAvailable;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -490,6 +526,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated member holds no commitment already outstanding and plausibly qualifies for one whitelisted oath kind. swear_oath's own fact, see ResolutionRequirement.AnySeatedMemberCanSwearOath.</summary>
         public bool AnySeatedMemberCanSwearOath { get; }
+
+        /// <summary>At least one seated Parley counterpart has at least one eligible relative to give as a hostage. give_hostage's own fact, see ResolutionRequirement.AnySeatedHostageEligibleRelativeAvailable.</summary>
+        public bool AnySeatedHostageEligibleRelativeAvailable { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -605,6 +644,13 @@ namespace CalradiaRemembers.Logic.Assemblies
             new ResolutionDefinition(ResolutionKind.ReleasePrisoner, CouncilScope.Parley,
                 "Free a captive lord", ResolutionRequirement.AnySeatedPrisonerAvailableToRelease),
 
+            // Kimi's "v1 invite d'honneur" (COUNCIL_ACTIONS.md's Partie 8, "give_hostage"): Parley-scoped ONLY,
+            // mirroring Tribute's/ReleasePrisoner's own single-scope entry (the one roster that ever seats an
+            // enemy faction leader to negotiate a concession with at all). A FOURTH Parley motion, rounding out
+            // the toolkit alongside MakePeace, Tribute, and ReleasePrisoner.
+            new ResolutionDefinition(ResolutionKind.GiveHostage, CouncilScope.Parley,
+                "Give a hostage of good faith", ResolutionRequirement.AnySeatedHostageEligibleRelativeAvailable),
+
             // Partie 1 (COUNCIL_ACTIONS.md's lend_troops, Gabriel's own CONDITIONS): TWO entries, mirroring
             // GiveGold's own ClanLords/WarCouncil scoping exactly (a seated lord's own party is exactly as
             // plausible a source of spare troops in either council; never Companions or Family, where a seated
@@ -668,6 +714,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.ReleasePrisoner:     return "release_prisoner";
                 case ResolutionKind.LendTroops:          return "lend_troops";
                 case ResolutionKind.SwearOath:           return "swear_oath";
+                case ResolutionKind.GiveHostage:          return "give_hostage";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -754,7 +801,8 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.ExpelFromClan || kind == ResolutionKind.PledgeAgainst
             || kind == ResolutionKind.ArrangeMarriage || kind == ResolutionKind.SwapFiefs
             || kind == ResolutionKind.Tribute || kind == ResolutionKind.ReleasePrisoner
-            || kind == ResolutionKind.LendTroops || kind == ResolutionKind.SwearOath;
+            || kind == ResolutionKind.LendTroops || kind == ResolutionKind.SwearOath
+            || kind == ResolutionKind.GiveHostage;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric

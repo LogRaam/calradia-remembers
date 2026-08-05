@@ -545,6 +545,27 @@ namespace CalradiaRemembers.Chat
          return false;
       }
 
+      /// <summary>
+      ///   Kimi's "v1 invite d'honneur" (COUNCIL_ACTIONS.md's Partie 8, "give_hostage"): give_hostage's own fact,
+      ///   Parley-only. True once any seated member (in practice the ONE seated Parley counterpart, mirroring
+      ///   <see cref="AnySeatedTributePayerAvailable" />'s own "reads exactly like the loose gate over whatever
+      ///   is seated" shape) currently has at least one eligible relative to give
+      ///   (<see cref="CalradiaRemembers.Assemblies.HostageCandidateResolver.AnyEligibleRelative" />, the EXACT
+      ///   same predicate the lift re-runs, unlike most of the loose gates elsewhere in this file). The named
+      ///   relative itself is re-resolved and re-checked against that same pool at the lift regardless
+      ///   (CouncilLift.SettleGiveHostage, bridge is law).
+      /// </summary>
+      private bool AnySeatedHostageEligibleRelativeAvailable()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero is {IsAlive: true} && CalradiaRemembers.Assemblies.HostageCandidateResolver.AnyEligibleRelative(hero)) return true;
+         }
+
+         return false;
+      }
+
       /// <summary>Whether the player's own clan currently holds any alive, unwed kin other than the player: the half of <see cref="AnySeatedAllyHasMarriageableKin" /> that never depends on who is seated.</summary>
       private static bool PlayerClanHasUnwedKin()
       {

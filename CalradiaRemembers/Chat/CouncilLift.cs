@@ -253,6 +253,11 @@ namespace CalradiaRemembers.Chat
 
                return;
 
+            case ResolutionKind.GiveHostage:
+               SettleGiveHostage(ledger, entry, actorHero, actorName, report);
+
+               return;
+
             case ResolutionKind.Quest:
             default:
                SettleQuest(ledger, entry, actorHero, actorName, giver, behavior, gameDay, report);
@@ -1371,6 +1376,70 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"{actorName} will pay you {clamped} denars a day for the next {TributePolicy.TributeDays} days.", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} pledged a tribute of {clamped}/day for {TributePolicy.TributeDays} days.");
+      }
+
+      /// <summary>
+      ///   Kimi's "v1 invite d'honneur" (COUNCIL_ACTIONS.md's Partie 8, "give_hostage"), rounding out the Parley
+      ///   toolkit's FOURTH concession alongside MakePeace, Tribute, and ReleasePrisoner: the SEATED ENEMY leader
+      ///   (actorHero, the parley's own counterpart) gives an eligible relative of their own
+      ///   (<see cref="HostageEligibilityPolicy" />, re-resolved by name here via
+      ///   <see cref="HostageCandidateResolver.ResolveByName" /> against actorHero's OWN eligible pool, bridge is
+      ///   law) to reside at the player's own court as a living guarantee, for a fixed term
+      ///   (<see cref="HostagePolicy.TermDays" />). Mirrors SettleTribute's own cross-clan guard (the pledger
+      ///   must lead a house distinct from the player's own): a Parley counterpart is always an enemy lord,
+      ///   never a companion, so this never uses the ordinary IsPlayerCompanion check other executors read.
+      /// </summary>
+      private static void SettleGiveHostage(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (actorHero.Clan == null || actorHero.Clan == Clan.PlayerClan)
+         {
+            const string reason = "they lead no house distinct from the player's own to give a kinsman from.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         Hero hostage = HostageCandidateResolver.ResolveByName(entry.TargetHint, actorHero);
+
+         if (hostage == null)
+         {
+            const string reason = "no eligible kinsman by that name is known to give as a hostage.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (CouncilHostageBehavior.Instance == null)
+         {
+            const string reason = "no hostage ledger is available right now.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (!CouncilHostageBehavior.Instance.TryStart(actorHero, hostage, out string failReason))
+         {
+            ledger.MarkFailed(entry.Id, failReason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {failReason}", false);
+
+            return;
+         }
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"{actorName} gives you their kin {hostage.Name} as a hostage of good faith, for {HostagePolicy.TermDays} days.", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} gave {hostage.Name} as a hostage of good faith for {HostagePolicy.TermDays} days.");
       }
 
       /// <summary>

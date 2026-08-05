@@ -317,14 +317,15 @@ namespace CalradiaRemembers.Tests.Assemblies
 
         // declare_war's symmetric counterpart: it must appear under its own scope, Parley, and only there, so a
         // parley (which exists specifically to negotiate peace) is the one council where make_peace can be
-        // raised. Tribute (Partie 8) joined as Parley's second motion, and ReleasePrisoner (rounding out the
-        // Parley toolkit, 2026-08-04) its third, so the query must now return all three, in declaration order.
+        // raised. Tribute (Partie 8) joined as Parley's second motion, ReleasePrisoner (rounding out the
+        // Parley toolkit, 2026-08-04) its third, and GiveHostage (Kimi's "v1 invite d'honneur", 2026-08-04) its
+        // fourth, so the query must now return all four, in declaration order.
         [Test]
-        public void GIVEN_a_parley_WHEN_the_catalogue_is_queried_THEN_make_peace_tribute_and_release_prisoner_return()
+        public void GIVEN_a_parley_WHEN_the_catalogue_is_queried_THEN_make_peace_tribute_release_prisoner_and_give_hostage_return()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.Parley).Select(d => d.Kind).ToList();
 
-            kinds.Should().Equal(ResolutionKind.MakePeace, ResolutionKind.Tribute, ResolutionKind.ReleasePrisoner);
+            kinds.Should().Equal(ResolutionKind.MakePeace, ResolutionKind.Tribute, ResolutionKind.ReleasePrisoner, ResolutionKind.GiveHostage);
         }
 
         // make_peace has a live lift executor (CouncilLift.SettleMakePeace) from the day it lands, mirroring
@@ -630,6 +631,79 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             foreach (CouncilScope scope in new[] {CouncilScope.Companions, CouncilScope.Family, CouncilScope.ClanLords, CouncilScope.WarCouncil})
                 ResolutionCatalog.ExecutableKindKeysForScope(scope).Should().NotContain("release_prisoner");
+        }
+
+        // Kimi's "v1 invite d'honneur" (COUNCIL_ACTIONS.md's Partie 8, "give_hostage", 2026-08-04): give_hostage
+        // has a live lift executor (CouncilLift.SettleGiveHostage) from the day it lands; the table must be able
+        // to actually move the relative into the player's court, not just record the pledge.
+        [Test]
+        public void GIVEN_give_hostage_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.GiveHostage).Should().BeTrue();
+        }
+
+        // give_hostage is the seated enemy leader's own kinsman given up, not a decision about two FACTIONS the
+        // way make_peace is (even though both are struck at the same Parley table), so it must never bypass the
+        // ordinary seated-member re-validation the way declare_war/make_peace do (covered generically by
+        // GIVEN_every_member_pledge_kind_WHEN_asked_if_it_is_faction_centric_THEN_none_of_them_are above; pinned
+        // here too for the kind's own documentation).
+        [Test]
+        public void GIVEN_give_hostage_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.GiveHostage).Should().BeFalse();
+        }
+
+        // A parley must be able to bind the enemy leader to a hostage of good faith, not merely make peace, bind
+        // a tribute, or free a captive: give_hostage rides alongside the universal quest key and its three Parley
+        // siblings.
+        [Test]
+        public void GIVEN_a_parley_WHEN_asked_for_executable_kinds_THEN_give_hostage_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Parley).Should().Contain("give_hostage");
+        }
+
+        // The empty-promise guard, the other direction: no OTHER scope carries a GiveHostage catalogue entry at
+        // all (only a Parley ever seats an enemy faction leader to give a kinsman as a hostage of good faith), so
+        // the key must never surface elsewhere, whatever the world facts.
+        [Test]
+        public void GIVEN_a_companions_family_clan_lords_or_war_council_WHEN_asked_for_executable_kinds_THEN_give_hostage_is_absent()
+        {
+            foreach (CouncilScope scope in new[] {CouncilScope.Companions, CouncilScope.Family, CouncilScope.ClanLords, CouncilScope.WarCouncil})
+                ResolutionCatalog.ExecutableKindKeysForScope(scope).Should().NotContain("give_hostage");
+        }
+
+        // ── ResolutionEligibilityPolicy: the give_hostage offering fact actually gates the teaching ──
+
+        // STAKE: mirrors the swear_oath fact-gating tests below (the same "prove SOME concession is possible,
+        // never over-offer" discipline). If the fact were ignored, the table would teach give_hostage even when
+        // the seated enemy leader has no eligible relative to give at all.
+        [Test]
+        public void GIVEN_the_give_hostage_fact_is_false_WHEN_asking_what_is_offered_THEN_it_is_withheld()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedHostageEligibleRelativeAvailable: false);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts)
+                .Should().NotContain("give_hostage");
+        }
+
+        [Test]
+        public void GIVEN_the_give_hostage_fact_is_true_WHEN_asking_what_is_offered_THEN_it_is_included()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedHostageEligibleRelativeAvailable: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts)
+                .Should().Contain("give_hostage");
+        }
+
+        // STAKE: even with the fact true, a scope the catalogue never seats a give_hostage entry for (ClanLords)
+        // must never offer it, since the by-scope lookup reads the catalogue FIRST, before facts are applied.
+        [Test]
+        public void GIVEN_the_give_hostage_fact_is_true_but_the_scope_is_clan_lords_WHEN_asking_what_is_offered_THEN_it_is_still_withheld()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedHostageEligibleRelativeAvailable: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
+                .Should().NotContain("give_hostage");
         }
 
         // Partie 1 (COUNCIL_ACTIONS.md's lend_troops, the highest-detail item in the spec): lend_troops has a live

@@ -108,8 +108,14 @@ namespace CalradiaRemembers.Assemblies
       ///   member with no commitment already outstanding plausibly qualifies for ONE of the three whitelisted
       ///   oath kinds (pay_gold/keep_peace/protect); which kind, and whether it truly fits the swearer named, is
       ///   re-validated at the lift regardless (CouncilLift.SettleSwearOath, bridge is law).
+      ///   <paramref name="anySeatedHostageEligibleRelativeAvailable" /> is Kimi's "v1 invite d'honneur" own fact,
+      ///   give_hostage (COUNCIL_ACTIONS.md's Partie 8; see ChatViewModel.AnySeatedHostageEligibleRelativeAvailable):
+      ///   Parley-only, the seated enemy leader currently has at least one relative (spouse, child, or sibling)
+      ///   who passes HostageEligibilityPolicy right now. Unlike most of the loose gates above, this one is
+      ///   EXACT rather than approximate (HostageCandidateResolver runs the SAME predicate the lift re-checks),
+      ///   so the only drift possible between offer and lift is the world itself moving in between.
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false, bool anySeatedPrisonerAvailableToRelease = false, bool anySeatedMemberCanLendTroops = false, bool anySeatedMemberCanSwearOath = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false, bool anySeatedPrisonerAvailableToRelease = false, bool anySeatedMemberCanLendTroops = false, bool anySeatedMemberCanSwearOath = false, bool anySeatedHostageEligibleRelativeAvailable = false)
       {
          try
          {
@@ -133,7 +139,8 @@ namespace CalradiaRemembers.Assemblies
                anySeatedTributePayerAvailable: anySeatedTributePayerAvailable,
                anySeatedPrisonerAvailableToRelease: anySeatedPrisonerAvailableToRelease,
                anySeatedMemberCanLendTroops: anySeatedMemberCanLendTroops,
-               anySeatedMemberCanSwearOath: anySeatedMemberCanSwearOath);
+               anySeatedMemberCanSwearOath: anySeatedMemberCanSwearOath,
+               anySeatedHostageEligibleRelativeAvailable: anySeatedHostageEligibleRelativeAvailable);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }
