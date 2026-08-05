@@ -139,7 +139,87 @@ namespace CalradiaRemembers.GameState
          }
       }
 
+      /// <summary>
+      ///   Reflectively reports how many days PAST <paramref name="mother" />'s due date it now is
+      ///   (negative when she is not yet due). Distinct from <see cref="TryGetPregnancyInfo" />'s
+      ///   daysRemaining, which clamps at zero and so cannot tell an overdue pregnancy from one merely due
+      ///   today - exactly the distinction <see cref="PregnancyBirthBehavior" />'s stuck-pregnancy cleanup
+      ///   needs to feed <see cref="CalradiaRemembers.Logic.PregnancyPolicy.ShouldEndStuckPregnancy" />.
+      ///   Never throws; returns false when she has no tracked pregnancy or reflection fails.
+      /// </summary>
+      internal static bool TryGetDaysOverdue(Hero mother, out int daysOverdue)
+      {
+         daysOverdue = 0;
+
+         try
+         {
+            if (mother == null || !ResolveReflection()) return false;
+
+            IList list = PregnancyList();
+            if (list == null) return false;
+
+            object pregnancy = FindPregnancyEntry(mother, list);
+            if (pregnancy == null) return false;
+
+            var dueDate = (CampaignTime) _dueDateField.GetValue(pregnancy);
+            daysOverdue = (int) (CampaignTime.Now.ToDays - dueDate.ToDays);
+
+            return true;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[PREGNANCY] TryGetDaysOverdue failed: {ex.Message}");
+            daysOverdue = 0;
+
+            return false;
+         }
+      }
+
+      /// <summary>
+      ///   Ends a STUCK pregnancy (one <see cref="CalradiaRemembers.Logic.PregnancyPolicy.ShouldEndStuckPregnancy" />
+      ///   has already judged overdue with births disabled) reflectively: removes her entry from the
+      ///   engine's own pregnancy list and clears <c>IsPregnant</c>, symmetric to <see cref="CreatePregnancy" />'s
+      ///   reflective add. Deliberately childless - respecting the player's own no-birth setting rather
+      ///   than overriding it, per Gabriel's design call (see the file header this fix belongs to). Never
+      ///   throws; returns false when there was nothing to remove or reflection failed. The caller
+      ///   (<see cref="PregnancyBirthBehavior" />) is responsible for dropping her from its own tracked-
+      ///   mothers set once this returns true.
+      /// </summary>
+      internal static bool TryEndStuckPregnancy(Hero mother)
+      {
+         try
+         {
+            if (mother == null || !ResolveReflection()) return false;
+
+            IList list = PregnancyList();
+            if (list == null) return false;
+
+            object pregnancy = FindPregnancyEntry(mother, list);
+            if (pregnancy == null) return false;
+
+            list.Remove(pregnancy);
+            mother.IsPregnant = false;
+
+            return true;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[PREGNANCY] TryEndStuckPregnancy failed: {ex.Message}");
+
+            return false;
+         }
+      }
+
       #region private
+
+      private static object FindPregnancyEntry(Hero mother, IList list)
+      {
+         foreach (object pregnancy in list)
+            if (_motherField.GetValue(pregnancy) as Hero == mother)
+               return pregnancy;
+
+         return null;
+      }
 
       private static bool CreatePregnancy(Hero mother, Hero father)
       {
@@ -315,8 +395,27 @@ namespace CalradiaRemembers.GameState
          if (IsAlreadyPregnant(mother)) return false;
          if (GaveBirthRecently(mother)) return false;
 
+         if (!PregnancyPolicy.MayConceive(BirthsDisabledInCampaign()))
+         {
+            ModLog.Info("[PREGNANCY] conception refused: this campaign's Life/Death Cycle option is " +
+                        "disabled, so vanilla would never deliver the child (see PregnancyPolicy.MayConceive).");
+
+            return false;
+         }
+
          return true;
       }
+
+      /// <summary>
+      ///   True when this campaign's "Life/Death Cycle" creation option is disabled (the player's "no
+      ///   aging / no death" choice). Decompiling <c>PregnancyCampaignBehavior.DailyTickHero</c> shows
+      ///   vanilla gates its ENTIRE offspring-delivery check behind this same flag
+      ///   (<c>if (hero.IsFemale &amp;&amp; !CampaignOptions.IsLifeDeathCycleDisabled &amp;&amp; ...)</c>),
+      ///   so a pregnancy created while this is true would sit forever unresolved. See
+      ///   <see cref="CalradiaRemembers.Logic.PregnancyPolicy" /> for the resulting conception guard and
+      ///   the stuck-pregnancy cleanup this makes necessary (<see cref="PregnancyBirthBehavior" />).
+      /// </summary>
+      private static bool BirthsDisabledInCampaign() => CampaignOptions.IsLifeDeathCycleDisabled;
 
       private static IList PregnancyList()
       {
