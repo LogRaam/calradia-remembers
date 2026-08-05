@@ -224,6 +224,14 @@ namespace CalradiaRemembers.Chat
             // YOUNG COMPANION'S OWN NAME, this kind's own dedicated field (see this method's own doc above),
             // read back by CalradiaRemembers.Assemblies.WardCandidateResolver.ResolveByName at the lift.
             targetHint = proposal.TargetWardName;
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GiveItem), StringComparison.OrdinalIgnoreCase))
+            // "give_item" (Partie 1, COUNCIL_ACTIONS.md's give_item, "cadeau d'objet... comme un pot de vin"):
+            // grounds on the NAMED ITEM a seated lord gives the player from their own party's stores, this
+            // kind's own dedicated field (ResolutionProposal.TargetItemName, not a reuse of TargetSettlement/
+            // TargetRival/TargetHostageName/TargetWardName - none of those name a THING held in a roster), read
+            // back by CouncilLift.SettleGiveItem via a tolerant, case-insensitive match over the giver's live
+            // ItemRoster.
+            targetHint = proposal.TargetItemName;
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.SwearOath), StringComparison.OrdinalIgnoreCase))
             // R7-light ("swear_oath", COUNCIL_ACTIONS.md's Partie 8): the ONE kind whose own grounding needs TWO
             // pieces in this single slot, WHICH oath kind (proposal.OathKind, a dedicated field: "pay_gold" /

@@ -653,8 +653,14 @@ namespace CalradiaRemembers.Chat
                // AND the player's own clan currently has at least one eligible young companion
                // (WardCandidateResolver.AnyEligibleWard); the named companion is re-resolved and re-checked
                // against that same pool at the lift regardless (CouncilLift.SettleSponsorWard, bridge is law).
+               // AnySeatedLordHasGiveableItem is Partie 1's give_item own fact (COUNCIL_ACTIONS.md's give_item,
+               // "cadeau d'objet... comme un pot de vin", the REVERSE of the 1:1 give_item action, player's party
+               // -> NPC): ClanLords/WarCouncil only (mirroring AnySeatedMemberHasGold's/AnySeatedMemberCanLendTroops'
+               // own two scopes), at least one seated lord currently leads their own party whose ItemRoster
+               // carries a real (non-quest) item; the named item is resolved and re-checked fresh against the
+               // giver's LIVE roster at the lift regardless (CouncilLift.SettleGiveItem, bridge is law).
                councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath(), AnySeatedHostageEligibleRelativeAvailable(), AnySeatedLordCanReceiveTroops(), AnySeatedPactPartnerAvailable(), AnySeatedMemberCanSponsorWard())
+                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath(), AnySeatedHostageEligibleRelativeAvailable(), AnySeatedLordCanReceiveTroops(), AnySeatedPactPartnerAvailable(), AnySeatedMemberCanSponsorWard(), AnySeatedLordHasGiveableItem())
                   : null,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

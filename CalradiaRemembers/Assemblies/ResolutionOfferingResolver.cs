@@ -134,8 +134,16 @@ namespace CalradiaRemembers.Assemblies
       ///   eligible young companion (WardEligibilityPolicy). Unlike most of the loose gates above, this one is
       ///   EXACT rather than approximate (WardCandidateResolver runs the SAME predicate the lift re-checks), so
       ///   the only drift possible between offer and lift is the world itself moving in between.
+      ///   <paramref name="anySeatedLordHasGiveableItem" /> is Partie 1's give_item own fact (COUNCIL_ACTIONS.md's
+      ///   give_item, "cadeau d'objet... comme un pot de vin"; see ChatViewModel.AnySeatedLordHasGiveableItem):
+      ///   ClanLords/WarCouncil only (mirroring anySeatedMemberHasGold's/anySeatedMemberCanLendTroops' own
+      ///   two-scope entry), at least one seated lord currently LEADS their own party whose ItemRoster carries a
+      ///   real (non-quest) item. An APPROXIMATION, mirroring anySeatedMemberHasGold's own loose gate: proves
+      ///   only that SOME item is giveable, never which one the LLM will actually name; the exact item is
+      ///   resolved and re-checked fresh against the giver's LIVE roster at the lift regardless
+      ///   (CouncilLift.SettleGiveItem, bridge is law).
       /// </summary>
-      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false, bool anySeatedPrisonerAvailableToRelease = false, bool anySeatedMemberCanLendTroops = false, bool anySeatedMemberCanSwearOath = false, bool anySeatedHostageEligibleRelativeAvailable = false, bool anySeatedLordCanReceiveTroops = false, bool anySeatedPactPartnerAvailable = false, bool anySeatedMemberCanSponsorWard = false)
+      public static IReadOnlyList<string> OfferedKindKeys(CouncilScope scope, bool anySeatedMemberAvailable, bool anySeatedMemberInPlayerParty = false, bool anySeatedCompanionOutOfPlayerParty = false, bool playerCanAffordStipend = false, bool playerCanDeclareWar = false, bool playerCanMakePeace = false, bool anySeatedMemberHasGold = false, bool anySeatedMemberCanGrantInfluence = false, bool anySeatedVassalOwnsFief = false, bool anySeatedCompanionExpellable = false, bool anySeatedMemberCanPledgeAgainst = false, bool anySeatedAllyHasMarriageableKin = false, bool anySeatedTributePayerAvailable = false, bool anySeatedPrisonerAvailableToRelease = false, bool anySeatedMemberCanLendTroops = false, bool anySeatedMemberCanSwearOath = false, bool anySeatedHostageEligibleRelativeAvailable = false, bool anySeatedLordCanReceiveTroops = false, bool anySeatedPactPartnerAvailable = false, bool anySeatedMemberCanSponsorWard = false, bool anySeatedLordHasGiveableItem = false)
       {
          try
          {
@@ -163,7 +171,8 @@ namespace CalradiaRemembers.Assemblies
                anySeatedHostageEligibleRelativeAvailable: anySeatedHostageEligibleRelativeAvailable,
                anySeatedLordCanReceiveTroops: anySeatedLordCanReceiveTroops,
                anySeatedPactPartnerAvailable: anySeatedPactPartnerAvailable,
-               anySeatedMemberCanSponsorWard: anySeatedMemberCanSponsorWard);
+               anySeatedMemberCanSponsorWard: anySeatedMemberCanSponsorWard,
+               anySeatedLordHasGiveableItem: anySeatedLordHasGiveableItem);
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

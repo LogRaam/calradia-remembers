@@ -22,6 +22,7 @@ using NpcMemoryService.Core.Compression;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -391,6 +392,39 @@ namespace CalradiaRemembers.Chat
             if (party.MemberRoster.TotalManCount >= party.Party.PartySizeLimit) continue;
 
             return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>
+      ///   Partie 1 (COUNCIL_ACTIONS.md's give_item, "cadeau d'objet... comme un pot de vin"): give_item's own
+      ///   fact, the REVERSE direction of the 1:1 give_item action (player's party -> NPC). True once any seated
+      ///   lord (ClanLords or WarCouncil, mirroring AnySeatedMemberHasGold's/AnySeatedMemberCanLendTroops' own
+      ///   two-scope entry) currently LEADS their own party (a hero with no party has no MobileParty.ItemRoster
+      ///   to draw a gift from at all, the "hero has no item roster" murkiness this kind exists to resolve)
+      ///   whose ItemRoster carries AT LEAST ONE real (non-quest) item, per <see cref="GiveItemPolicy.IsGiveableItem" />
+      ///   (mirroring <see cref="CalradiaRemembers.Items.ItemPickerService" />'s own Value&gt;0 filter). An APPROXIMATION,
+      ///   mirroring AnySeatedMemberHasGold's own loose gate: proves only that SOME giveable item exists, never
+      ///   which one the LLM will actually name; the exact item is resolved and re-checked fresh against the
+      ///   giver's LIVE roster at the lift regardless (CouncilLift.SettleGiveItem, bridge is law).
+      /// </summary>
+      private bool AnySeatedLordHasGiveableItem()
+      {
+         foreach (CouncilParticipantViewModel p in _councilParticipants)
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == p.HeroStringId);
+            if (hero is not {IsAlive: true} || hero.IsPrisoner) continue;
+
+            MobileParty party = hero.PartyBelongedTo;
+            if (party == null || party.LeaderHero != hero || party.ItemRoster == null) continue;
+
+            foreach (ItemRosterElement el in party.ItemRoster)
+            {
+               if (el.Amount <= 0) continue;
+               ItemObject item = el.EquipmentElement.Item;
+               if (item != null && GiveItemPolicy.IsGiveableItem(item.Value)) return true;
+            }
          }
 
          return false;

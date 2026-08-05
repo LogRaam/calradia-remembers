@@ -26,7 +26,9 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Core;
 
 #endregion
 
@@ -135,8 +137,9 @@ namespace CalradiaRemembers.Chat
          // AppointGovernor, AssignPartyRole, RejoinParty, DispatchOnMission, GrantStipend (the FIRST executor
          // that touches persisted save state), DeclareWar/MakePeace (the FACTION-CENTRIC pair, dispatched above
          // before this gate) and, Partie 1's own, GiveGold (SettleGiveGold, a seated lord's own purse pledged TO
-         // the player) and GiveInfluence (SettleGiveInfluence, a seated ALLY's own clan influence pledged TO the
-         // player's clan), Partie 2's GrantFief/RevokeFief, Partie 8's ExpelFromClan (SettleExpelFromClan, a
+         // the player), GiveInfluence (SettleGiveInfluence, a seated ALLY's own clan influence pledged TO the
+         // player's clan), and GiveItem (SettleGiveItem, a seated lord gives the player a named item from THEIR
+         // OWN party's stores, the REVERSE of the 1:1 give_item action), Partie 2's GrantFief/RevokeFief, Partie 8's ExpelFromClan (SettleExpelFromClan, a
          // seated companion cast out of the player's own clan), and Partie 1's schemes kind PledgeAgainst
          // (SettlePledgeAgainst, a seated member's own scheme against a rival, reusing the 1:1 pledge_against
          // system end to end) are executable today, so a passing entry here is one of those; the switch below
@@ -200,6 +203,11 @@ namespace CalradiaRemembers.Chat
 
             case ResolutionKind.GiveInfluence:
                SettleGiveInfluence(ledger, entry, actorHero, actorName, report);
+
+               return;
+
+            case ResolutionKind.GiveItem:
+               SettleGiveItem(ledger, entry, actorHero, actorName, report);
 
                return;
 
@@ -791,6 +799,107 @@ namespace CalradiaRemembers.Chat
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"{actorName} lends their clan's influence to yours (+{amount}).", true);
          ModLog.Info($"[COUNCIL] lift: {actorName} lent the player {amount} influence at court.");
+      }
+
+      /// <summary>
+      ///   Partie 1 (COUNCIL_ACTIONS.md's give_item, "cadeau d'objet... comme un pot de vin, ou encore un signe
+      ///   de generosite ou de recompense"): a seated LORD gives the PLAYER a named item from THEIR OWN PARTY's
+      ///   stores, the REVERSE of the 1:1 give_item action (BannerlordGameStateBridge.ExecuteGiveItem, player's
+      ///   party -> NPC). Resolves the "a hero has no item roster" murkiness the same way SettleLendTroops
+      ///   already does: only a hero who LEADS a party has a real <see cref="MobileParty.ItemRoster" /> (actual
+      ///   party stores) to give from, re-checked here rather than trusted from offer time (bridge is law). The
+      ///   item NAME the LLM proposed (AssemblyResolutionEntry.TargetHint, this kind's own dedicated SDK field,
+      ///   ResolutionProposal.TargetItemName -> "target_item") is resolved against the giver's LIVE roster,
+      ///   case-insensitive, EXCLUDING quest items (<see cref="GiveItemPolicy.IsGiveableItem" />, mirroring
+      ///   <see cref="CalradiaRemembers.Items.ItemPickerService" />'s own Value&gt;0 filter): a name that matches
+      ///   nothing the giver genuinely holds right now is REFUSED outright, never invented or substituted.
+      ///   Unlike SettleGiveGold, there is no amount to clamp: exactly ONE unit moves. No extra relation/
+      ///   appreciation bump beyond the transfer itself (mirrors SettleGiveGold's/SettleGiveInfluence's own
+      ///   discipline: the pledge's own value IS the effect) - the 1:1 give_item action's own
+      ///   StanceService.OnGiftReceived/TryPlantValueAppreciation calls credit the OPPOSITE direction (the
+      ///   PLAYER's own kindness toward the NPC), so reusing them here would wrongly reward the player for
+      ///   merely receiving a gift; a documented follow-up if Gabriel later wants a giver-side "generous lord"
+      ///   signal of their own.
+      /// </summary>
+      private static void SettleGiveItem(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
+      {
+         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner)
+         {
+            const string reason = "they could not be found.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         MobileParty party = actorHero.PartyBelongedTo;
+
+         if (party == null || party.LeaderHero != actorHero || party.ItemRoster == null)
+         {
+            const string reason = "they lead no party of their own to draw a gift from.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (string.IsNullOrWhiteSpace(entry.TargetHint))
+         {
+            const string reason = "no item was named.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         ItemRosterElement found = FindGiveableItem(party.ItemRoster, entry.TargetHint);
+
+         if (found.EquipmentElement.Item == null)
+         {
+            string reason = $"{actorName} has no such item to give ('{entry.TargetHint}').";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         if (MobileParty.MainParty?.ItemRoster == null)
+         {
+            const string reason = "the player has nowhere to stow the gift.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+            return;
+         }
+
+         party.ItemRoster.AddToCounts(found.EquipmentElement, -1);
+         MobileParty.MainParty.ItemRoster.AddToCounts(found.EquipmentElement, 1);
+
+         var itemName = found.EquipmentElement.Item.Name.ToString();
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke($"{actorName} gives you their {itemName}.", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} gave the player '{itemName}' from their own party's stores.");
+      }
+
+      /// <summary>
+      ///   Finds a real (non-quest, <see cref="GiveItemPolicy.IsGiveableItem" />) item in <paramref name="roster" />
+      ///   by name, case-insensitive, mirroring BannerlordGameStateBridge.FindItemInRoster's own tolerant match
+      ///   for the 1:1 give_item action, but over a SEATED LORD's own party roster rather than the player's.
+      /// </summary>
+      private static ItemRosterElement FindGiveableItem(ItemRoster roster, string itemName)
+      {
+         foreach (ItemRosterElement el in roster)
+         {
+            if (el.Amount <= 0) continue;
+            ItemObject item = el.EquipmentElement.Item;
+
+            if (item == null || !GiveItemPolicy.IsGiveableItem(item.Value)) continue;
+
+            if (string.Equals(item.Name.ToString(), itemName, StringComparison.OrdinalIgnoreCase)) return el;
+         }
+
+         return default;
       }
 
       /// <summary>

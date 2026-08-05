@@ -55,17 +55,18 @@ namespace CalradiaRemembers.Tests.Assemblies
         // fief belongs to the CLAN, so "granting" one within the player's own clan, ClanLords' own scope, is
         // mechanically vacant). PledgeAgainst (Partie 1's schemes kind) then joined GiveGold as the clan-lords'
         // SECOND motion, LendTroops (Partie 1's highest-detail item, COUNCIL_ACTIONS.md) joined as its THIRD,
-        // GiveTroops (Partie 1's give_troops, the reciprocal of lend_troops) joined next as its FOURTH, and
-        // SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined as its FIFTH, and SponsorWard (Kimi's
-        // design, MINIMAL v1, COUNCIL_ACTIONS.md's Partie 8, "sponsor_ward") joined last as its SIXTH, so the
-        // scope must return exactly those six, in declaration order.
+        // GiveTroops (Partie 1's give_troops, the reciprocal of lend_troops) joined next as its FOURTH,
+        // SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined as its FIFTH, SponsorWard (Kimi's
+        // design, MINIMAL v1, COUNCIL_ACTIONS.md's Partie 8, "sponsor_ward") joined as its SIXTH, and GiveItem
+        // (COUNCIL_ACTIONS.md's give_item, "cadeau d'objet") joined last as its SEVENTH, so the scope must
+        // return exactly those seven, in declaration order.
         [Test]
         public void GIVEN_a_clan_lords_council_WHEN_the_catalogue_is_queried_THEN_give_gold_and_pledge_against_return()
         {
             var kinds = ResolutionCatalog.ForScope(CouncilScope.ClanLords).Select(d => d.Kind).ToList();
 
             kinds.Should().Equal(ResolutionKind.GiveGold, ResolutionKind.PledgeAgainst, ResolutionKind.LendTroops,
-                ResolutionKind.GiveTroops, ResolutionKind.SwearOath, ResolutionKind.SponsorWard);
+                ResolutionKind.GiveTroops, ResolutionKind.SwearOath, ResolutionKind.SponsorWard, ResolutionKind.GiveItem);
         }
 
         // The family council carried NO motion at all until PledgeAgainst (Partie 1's schemes kind) became its
@@ -151,8 +152,8 @@ namespace CalradiaRemembers.Tests.Assemblies
         // next, SwapFiefs (Partie 8, COUNCIL_ACTIONS.md's Kimi review, REUSING grant_fief's/revoke_fief's
         // own machinery) joined after it, LendTroops (Partie 1's highest-detail item, COUNCIL_ACTIONS.md)
         // joined next, GiveTroops (Partie 1's give_troops, the reciprocal of lend_troops) joined after that,
-        // and SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined last, so the full declaration-order
-        // list now ends with it too.
+        // SwearOath (R7-light, COUNCIL_ACTIONS.md's Partie 8) joined next, and GiveItem (COUNCIL_ACTIONS.md's
+        // give_item, "cadeau d'objet") joined last, so the full declaration-order list now ends with it too.
         [Test]
         public void GIVEN_a_war_council_WHEN_the_catalogue_is_queried_THEN_grant_fief_and_revoke_fief_also_return()
         {
@@ -160,7 +161,7 @@ namespace CalradiaRemembers.Tests.Assemblies
 
             kinds.Should().Equal(ResolutionKind.DeclareWar, ResolutionKind.GiveGold, ResolutionKind.GiveInfluence,
                 ResolutionKind.GrantFief, ResolutionKind.RevokeFief, ResolutionKind.ArrangeMarriage, ResolutionKind.SwapFiefs,
-                ResolutionKind.LendTroops, ResolutionKind.GiveTroops, ResolutionKind.SwearOath);
+                ResolutionKind.LendTroops, ResolutionKind.GiveTroops, ResolutionKind.SwearOath, ResolutionKind.GiveItem);
         }
 
         // The empty-promise guard: ClanLords, Companions and Family carry NO GrantFief/RevokeFief catalogue
@@ -518,6 +519,17 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().NotContain("arrange_marriage");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("arrange_marriage");
             ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("arrange_marriage");
+        }
+
+        // GiveItem (COUNCIL_ACTIONS.md's give_item, "cadeau d'objet") joins the six ClanLords motions above,
+        // keeping the total at seven, in declaration order.
+        [Test]
+        public void GIVEN_a_clan_lords_council_WHEN_the_catalogue_is_queried_THEN_give_item_also_returns()
+        {
+            var kinds = ResolutionCatalog.ForScope(CouncilScope.ClanLords).Select(d => d.Kind).ToList();
+
+            kinds.Should().Contain(ResolutionKind.GiveItem);
+            kinds.Last().Should().Be(ResolutionKind.GiveItem);
         }
 
         // Partie 8 (COUNCIL_ACTIONS.md's Kimi review, "swap_fiefs"): swap_fiefs has a live lift executor
@@ -1031,6 +1043,88 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("sponsor_ward");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts).Should().NotContain("sponsor_ward");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("sponsor_ward");
+        }
+
+        // Partie 1 (COUNCIL_ACTIONS.md's give_item, "cadeau d'objet... comme un pot de vin"): give_item has a
+        // live lift executor (CouncilLift.SettleGiveItem) from the day it lands; the table must be able to
+        // actually hand the item over, not just record the pledge.
+        [Test]
+        public void GIVEN_give_item_WHEN_asked_if_it_executes_THEN_it_is_executable()
+        {
+            ResolutionCatalog.IsExecutable(ResolutionKind.GiveItem).Should().BeTrue();
+        }
+
+        // give_item is a seated lord's own promise (his own party's stores, his own pledge), not a decision
+        // about two FACTIONS, so it must never bypass the ordinary seated-member re-validation the way
+        // declare_war/make_peace do (covered generically by
+        // GIVEN_every_member_pledge_kind_WHEN_asked_if_it_is_faction_centric_THEN_none_of_them_are above; pinned
+        // here too for the kind's own documentation).
+        [Test]
+        public void GIVEN_give_item_WHEN_asked_if_it_is_faction_centric_THEN_it_is_not()
+        {
+            ResolutionCatalog.IsFactionCentric(ResolutionKind.GiveItem).Should().BeFalse();
+        }
+
+        // Both scopes give_item was granted (mirroring give_gold's/lend_troops' own ClanLords/WarCouncil
+        // scoping) must actually surface its key alongside the universal quest, or a council seated with a lord
+        // fielding a real party would have no way to reach CouncilLift.SettleGiveItem at all.
+        [Test]
+        public void GIVEN_a_clan_lords_or_war_council_WHEN_asked_for_executable_kinds_THEN_give_item_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.ClanLords).Should().Contain("give_item");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.WarCouncil).Should().Contain("give_item");
+        }
+
+        // The empty-promise guard, the other direction: Companions, Family and Parley carry NO GiveItem
+        // catalogue entry at all (a hired hand, dynastic kin, or negotiating enemy leader is not a lord fielding
+        // a real party of his own to give from), so their executable set must never surface it, whatever the
+        // world facts.
+        [Test]
+        public void GIVEN_a_companions_family_or_parley_council_WHEN_asked_for_executable_kinds_THEN_give_item_is_absent()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Companions).Should().NotContain("give_item");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Family).Should().NotContain("give_item");
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Parley).Should().NotContain("give_item");
+        }
+
+        // ── ResolutionEligibilityPolicy: the give_item offering fact actually gates the teaching ──
+
+        // STAKE: mirrors give_gold's own fact-gating discipline (MemberHasGold). If the fact were ignored, the
+        // table would teach give_item even when no seated lord leads a party holding a real item, a hollow
+        // promise the lift would refuse outright.
+        [Test]
+        public void GIVEN_the_give_item_fact_is_false_WHEN_asking_what_is_offered_THEN_it_is_withheld()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedLordHasGiveableItem: false);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
+                .Should().NotContain("give_item");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts)
+                .Should().NotContain("give_item");
+        }
+
+        [Test]
+        public void GIVEN_the_give_item_fact_is_true_WHEN_asking_what_is_offered_THEN_it_is_included()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedLordHasGiveableItem: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
+                .Should().Contain("give_item");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts)
+                .Should().Contain("give_item");
+        }
+
+        // STAKE: even with the fact true, a scope the catalogue never seats a give_item entry for (Companions,
+        // Family, Parley) must never offer it, since the by-scope lookup reads the catalogue FIRST, before facts
+        // are applied.
+        [Test]
+        public void GIVEN_the_give_item_fact_is_true_but_the_scope_is_companions_family_or_parley_WHEN_asking_what_is_offered_THEN_it_is_still_withheld()
+        {
+            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedLordHasGiveableItem: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("give_item");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("give_item");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("give_item");
         }
     }
 }

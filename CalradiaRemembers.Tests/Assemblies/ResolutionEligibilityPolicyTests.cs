@@ -38,8 +38,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                   bool anySeatedPrisonerAvailableToRelease = false,
                                                   bool anySeatedMemberCanLendTroops = false,
                                                   bool anySeatedLordCanReceiveTroops = false,
-                                                  bool anySeatedPactPartnerAvailable = false)
-            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin, anySeatedTributePayerAvailable, anySeatedPrisonerAvailableToRelease, anySeatedMemberCanLendTroops, anySeatedLordCanReceiveTroops: anySeatedLordCanReceiveTroops, anySeatedPactPartnerAvailable: anySeatedPactPartnerAvailable);
+                                                  bool anySeatedPactPartnerAvailable = false,
+                                                  bool anySeatedLordHasGiveableItem = false)
+            => new ResolutionWorldFacts(inParty, available, vacantFief, canAfford, mission, outOfParty, canDeclareWar, canMakePeace, memberHasGold, memberCanGrantInfluence, playerIsKingdomLeader, playerHasGiveableFief, seatedVassalOwnsFief, anySeatedCompanionExpellable, anySeatedMemberCanPledgeAgainst, anySeatedAllyHasMarriageableKin, anySeatedTributePayerAvailable, anySeatedPrisonerAvailableToRelease, anySeatedMemberCanLendTroops, anySeatedLordCanReceiveTroops: anySeatedLordCanReceiveTroops, anySeatedPactPartnerAvailable: anySeatedPactPartnerAvailable, anySeatedLordHasGiveableItem: anySeatedLordHasGiveableItem);
 
         // A single-condition motion: assigning a party role needs only that the companion travels with the
         // player. Present it when he does, withhold it when he does not (a governor away in a town has no party
@@ -883,6 +884,54 @@ namespace CalradiaRemembers.Tests.Assemblies
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("non_aggression_pact");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts).Should().NotContain("non_aggression_pact");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts).Should().NotContain("non_aggression_pact");
+        }
+
+        // Partie 1 (COUNCIL_ACTIONS.md's give_item, "cadeau d'objet"): a single-condition motion, mirroring
+        // lend_troops' own AnySeatedMemberCanLendTroops gate exactly (a seated lord's own party stores, rather
+        // than his troops, is what the gate checks here). Present it when some seated lord leads a party holding
+        // a real item, withhold it when nobody present has one to give.
+        [Test]
+        public void GIVEN_give_item_WHEN_any_seated_lord_has_or_has_not_a_giveable_item_THEN_offer_follows()
+        {
+            ResolutionDefinition giveItem = ResolutionCatalog.Get(ResolutionKind.GiveItem);
+
+            ResolutionEligibilityPolicy.CanOffer(giveItem, Facts(anySeatedLordHasGiveableItem: true)).Should().BeTrue();
+            ResolutionEligibilityPolicy.CanOffer(giveItem, Facts(anySeatedLordHasGiveableItem: false)).Should().BeFalse();
+        }
+
+        // The offering wire: give_item must be TAUGHT to the LLM only when the fact holds, or the model proposes
+        // a gift CouncilLift.SettleGiveItem's own re-check (the giver must still lead a real party whose roster
+        // still holds the named item) would refuse outright.
+        [Test]
+        public void GIVEN_a_seated_lord_has_a_giveable_item_WHEN_offered_keys_are_asked_THEN_give_item_is_included()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, Facts(anySeatedLordHasGiveableItem: true))
+                .Should().Contain("give_item");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, Facts(anySeatedLordHasGiveableItem: true))
+                .Should().Contain("give_item");
+        }
+
+        // Absent that fact (no seated lord leads a party holding a real, non-quest item) the key must be
+        // withheld, or the table could offer a gift the lift has already proven impossible.
+        [Test]
+        public void GIVEN_no_seated_lord_has_a_giveable_item_WHEN_offered_keys_are_asked_THEN_give_item_is_withheld()
+        {
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, Facts(anySeatedLordHasGiveableItem: false))
+                .Should().NotContain("give_item");
+        }
+
+        // The empty-promise guard, the other direction: Companions, Family and Parley carry no GiveItem
+        // catalogue entry at all (a hired hand, dynastic kin, or negotiating enemy leader is not a lord fielding
+        // a real party of his own to give from), so the key must never surface there even when the fact is
+        // (nonsensically) true.
+        [Test]
+        public void GIVEN_a_companions_family_or_parley_council_WHEN_offered_keys_are_asked_THEN_give_item_is_never_included()
+        {
+            ResolutionWorldFacts facts = Facts(anySeatedLordHasGiveableItem: true);
+
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("give_item");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("give_item");
+            ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts).Should().NotContain("give_item");
         }
     }
 }

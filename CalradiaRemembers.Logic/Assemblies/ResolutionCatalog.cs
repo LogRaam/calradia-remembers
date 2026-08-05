@@ -118,6 +118,31 @@ namespace CalradiaRemembers.Logic.Assemblies
         GiveInfluence,
 
         /// <summary>
+        ///   Partie 1 (COUNCIL_ACTIONS.md's give_item, "cadeau d'objet... comme un pot de vin, ou encore un
+        ///   signe de generosite ou de recompense"): a seated LORD gives the PLAYER a named item from THEIR OWN
+        ///   PARTY's stores, the REVERSE of the existing 1:1 give_item action (BannerlordGameStateBridge.ExecuteGiveItem,
+        ///   player's party -> NPC). Resolves the "a hero has no item roster" murkiness the same way LendTroops
+        ///   already does: a hero who merely holds a title has nothing to draw from, but a lord who LEADS a
+        ///   party has a real <c>MobileParty.ItemRoster</c> (actual party stores) to give from, so the actor
+        ///   here must LEAD their own party, exactly like <see cref="LendTroops" />'s own gate. Scoped to
+        ///   ClanLords and WarCouncil only (mirroring GiveGold's/LendTroops' own two-scope entries): never
+        ///   Companions or Family, where a seated member is a hired hand or dynastic kin, not a lord fielding a
+        ///   real party of his own to draw a gift from. The item NAME is an LLM choice (unlike GiveInfluence's
+        ///   own computed-at-lift amount): it rides the entry's <see cref="AssemblyResolutionEntry.TargetHint" />
+        ///   via the SDK's own dedicated <c>ResolutionProposal.TargetItemName</c> field (a new additive field,
+        ///   not a reuse of TargetRival/TargetHostageName/TargetWardName - none of those name a THING held in a
+        ///   roster), resolved against the giver's LIVE roster at the lift (bridge is law,
+        ///   CouncilLift.SettleGiveItem): a name matching nothing genuinely held, or a quest item (never
+        ///   giveable, mirroring <see cref="CalradiaRemembers.Items.ItemPickerService" />'s own Value&gt;0
+        ///   filter, see <see cref="GiveItemPolicy.IsGiveableItem" />), is REFUSED outright, never invented or
+        ///   substituted. No extra relation/appreciation bump beyond the transfer itself (mirrors GiveGold's/
+        ///   GiveInfluence's own discipline): the 1:1 give_item action's own StanceService.OnGiftReceived /
+        ///   TryPlantValueAppreciation calls credit the OPPOSITE direction (the PLAYER's own kindness toward the
+        ///   NPC), so reusing them here would wrongly reward the player for merely receiving a gift.
+        /// </summary>
+        GiveItem,
+
+        /// <summary>
         ///   Partie 8 (COUNCIL_ACTIONS.md's Kimi review): the council's harshest INTERNAL sanction, the
         ///   player-chief casting a seated COMPANION out of their own clan entirely. Companions scope only (see
         ///   <see cref="CalradiaRemembers.Logic.Assemblies.ExpulsionPolicy" />'s own header for why Family and
@@ -502,7 +527,18 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   approximate (WardCandidateResolver runs the SAME predicate the lift re-checks), so the only drift
         ///   possible between offer and lift is the world itself moving in between.
         /// </summary>
-        AnySeatedMemberCanSponsorWard = 8388608
+        AnySeatedMemberCanSponsorWard = 8388608,
+
+        /// <summary>
+        ///   At least one seated lord (ClanLords or WarCouncil, mirroring MemberHasGold's/AnySeatedMemberCanLendTroops'
+        ///   own two-scope entry) currently LEADS their own party whose ItemRoster carries at least one real
+        ///   (non-quest, <see cref="CalradiaRemembers.Logic.Assemblies.GiveItemPolicy.IsGiveableItem" />) item:
+        ///   give_item's own gate. An APPROXIMATION, mirroring MemberHasGold's own loose gate: proves only that
+        ///   SOME item is giveable, never which one the LLM will actually name, the exact item resolved and
+        ///   re-checked fresh against the giver's LIVE roster at the lift regardless (CouncilLift.SettleGiveItem,
+        ///   bridge is law).
+        /// </summary>
+        AnySeatedLordHasGiveableItem = 16777216
     }
 
     /// <summary>One catalogue entry: what the motion is, which council raises it, its label, and its conditions.</summary>
@@ -551,7 +587,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                     bool anySeatedHostageEligibleRelativeAvailable = false,
                                     bool anySeatedLordCanReceiveTroops = false,
                                     bool anySeatedPactPartnerAvailable = false,
-                                    bool anySeatedMemberCanSponsorWard = false)
+                                    bool anySeatedMemberCanSponsorWard = false,
+                                    bool anySeatedLordHasGiveableItem = false)
         {
             TargetInPlayerParty = targetInPlayerParty;
             TargetAvailable = targetAvailable;
@@ -577,6 +614,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             AnySeatedLordCanReceiveTroops = anySeatedLordCanReceiveTroops;
             AnySeatedPactPartnerAvailable = anySeatedPactPartnerAvailable;
             AnySeatedMemberCanSponsorWard = anySeatedMemberCanSponsorWard;
+            AnySeatedLordHasGiveableItem = anySeatedLordHasGiveableItem;
         }
 
         public bool TargetInPlayerParty { get; }
@@ -639,6 +677,9 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>At least one seated member (ClanLords or Family) is alive/free and the player's own clan has an eligible companion to sponsor. sponsor_ward's own fact, see ResolutionRequirement.AnySeatedMemberCanSponsorWard.</summary>
         public bool AnySeatedMemberCanSponsorWard { get; }
+
+        /// <summary>At least one seated lord (ClanLords or WarCouncil) leads their own party whose ItemRoster carries a real (non-quest) item. give_item's own fact, see ResolutionRequirement.AnySeatedLordHasGiveableItem.</summary>
+        public bool AnySeatedLordHasGiveableItem { get; }
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>
@@ -812,7 +853,18 @@ namespace CalradiaRemembers.Logic.Assemblies
                 "Sponsor a young companion", ResolutionRequirement.AnySeatedMemberCanSponsorWard),
 
             new ResolutionDefinition(ResolutionKind.SponsorWard, CouncilScope.Family,
-                "Sponsor a young companion", ResolutionRequirement.AnySeatedMemberCanSponsorWard)
+                "Sponsor a young companion", ResolutionRequirement.AnySeatedMemberCanSponsorWard),
+
+            // Partie 1 (COUNCIL_ACTIONS.md's give_item, "cadeau d'objet... comme un pot de vin"): TWO entries,
+            // mirroring GiveGold's/LendTroops' own ClanLords/WarCouncil scoping exactly (a seated lord's own
+            // party stores are exactly as plausible a source of a gift in either council; never Companions or
+            // Family, where a seated member is a hired hand or dynastic kin, not a lord fielding a real party of
+            // his own to give from).
+            new ResolutionDefinition(ResolutionKind.GiveItem, CouncilScope.ClanLords,
+                "Give you an item", ResolutionRequirement.AnySeatedLordHasGiveableItem),
+
+            new ResolutionDefinition(ResolutionKind.GiveItem, CouncilScope.WarCouncil,
+                "Give you an item", ResolutionRequirement.AnySeatedLordHasGiveableItem)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -844,6 +896,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.MakePeace:          return "make_peace";
                 case ResolutionKind.GiveGold:           return "give_gold";
                 case ResolutionKind.GiveInfluence:      return "give_influence";
+                case ResolutionKind.GiveItem:           return "give_item";
                 case ResolutionKind.ExpelFromClan:      return "expel_from_clan";
                 case ResolutionKind.PledgeAgainst:      return "pledge_against";
                 case ResolutionKind.ArrangeMarriage:    return "arrange_marriage";
@@ -954,7 +1007,8 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.Tribute || kind == ResolutionKind.ReleasePrisoner
             || kind == ResolutionKind.LendTroops || kind == ResolutionKind.SwearOath
             || kind == ResolutionKind.GiveHostage || kind == ResolutionKind.GiveTroops
-            || kind == ResolutionKind.NonAggressionPact || kind == ResolutionKind.SponsorWard;
+            || kind == ResolutionKind.NonAggressionPact || kind == ResolutionKind.SponsorWard
+            || kind == ResolutionKind.GiveItem;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric
