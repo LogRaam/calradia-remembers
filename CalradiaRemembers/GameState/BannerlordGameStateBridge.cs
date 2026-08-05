@@ -557,6 +557,14 @@ namespace CalradiaRemembers.GameState
                case RewardGrant.MarriageConsent:
                   return GrantMarriageConsent(npcHero, quest);
 
+               // COUNCIL_ACTIONS.md Partie 5 (the "Caladog" case): gated behind ModSettings.AllowFiefAndMarriageQuestRewards
+               // (default off) at every re-check inside these two methods, not merely trusted from issuance.
+               case RewardGrant.GrantFief:
+                  return GrantFiefReward(npcHero, profile, quest);
+
+               case RewardGrant.MarriageReward:
+                  return GrantMarriageRewardDirect(npcHero, profile, quest);
+
                // Recognized but not yet executable — declined cleanly rather than faked.
                // The quest factory refuses to issue these, so this is a defensive backstop.
                case RewardGrant.GiveItem:
@@ -2566,6 +2574,102 @@ namespace CalradiaRemembers.GameState
 
          return new ActionOutcome(
             $"{npcHero.Name} gives their blessing — you have earned {spouse.Name}'s hand. Their house stands with you.", true);
+      }
+
+      /// <summary>
+      ///   COUNCIL_ACTIONS.md Partie 5 (the "Caladog" case): pays out a RewardGrant.GrantFief quest. Re-reads
+      ///   every precondition live (never trusted from issuance, weeks may have passed) through the shared
+      ///   pure gate <see cref="QuestRewardGatePolicy.DecideFiefPayout" />, then delivers via the same
+      ///   ApplyByKingDecision detail the council's own grant_fief/revoke_fief executors already use
+      ///   (CalradiaRemembers.Chat.CouncilLift), only in the opposite direction: FROM the giver's own clan TO
+      ///   the player. A failed re-check never vanishes silently: <see cref="DegradeHeavyReward" /> records
+      ///   the debt and offers a modest consolation.
+      /// </summary>
+      private static ActionOutcome GrantFiefReward(Hero npcHero, NpcProfile profile, InformalQuest quest)
+      {
+         Settlement fief = string.IsNullOrEmpty(quest.PromisedSettlementId)
+            ? null
+            : Settlement.All?.FirstOrDefault(s => s.StringId == quest.PromisedSettlementId);
+
+         bool giverAlive = npcHero is {IsAlive: true} && !npcHero.IsPrisoner;
+         bool giverLeadsOwnClan = giverAlive && npcHero.Clan != null && npcHero.Clan.Leader == npcHero;
+         bool fiefStillOwned = fief != null && (fief.IsTown || fief.IsCastle) && fief.OwnerClan == npcHero.Clan;
+         bool atWar = IsAtWarWithPlayer(npcHero);
+
+         QuestRewardPayoutVerdict verdict = QuestRewardGatePolicy.DecideFiefPayout(
+            ModSettings.AllowFiefAndMarriageQuestRewards, giverAlive, giverLeadsOwnClan, fiefStillOwned, atWar);
+
+         if (verdict != QuestRewardPayoutVerdict.Deliver)
+            return DegradeHeavyReward(npcHero, profile, $"the fief of {quest.PromisedSettlementName ?? "the promised land"}", atWar);
+
+         ChangeOwnerOfSettlementAction.ApplyByKingDecision(Hero.MainHero, fief);
+         ModLog.Info($"[GRANT] grant_fief: {fief.Name} passes from {npcHero.Name}'s house to the player (quest reward honored).");
+
+         return new ActionOutcome($"{npcHero.Name} makes good on their word: {fief.Name} passes to you.", true);
+      }
+
+      /// <summary>
+      ///   COUNCIL_ACTIONS.md Partie 5 (Kimi review "Trou 2"): pays out a RewardGrant.MarriageReward quest by
+      ///   sealing the ACTUAL union directly (MarriageAction.Apply), unlike the lighter MarriageConsent grant
+      ///   above, which only records a blessing the player must still separately act on. Re-checks every
+      ///   precondition live through <see cref="QuestRewardGatePolicy.DecideMarriageRewardPayout" />, including
+      ///   the sovereignty guard again (the player's own standing may have changed since the promise).
+      /// </summary>
+      private static ActionOutcome GrantMarriageRewardDirect(Hero npcHero, NpcProfile profile, InformalQuest quest)
+      {
+         Hero spouse = string.IsNullOrEmpty(quest.MarriageSpouseId)
+            ? null
+            : Hero.FindFirst(h => h.StringId == quest.MarriageSpouseId);
+
+         bool giverAlive = npcHero is {IsAlive: true} && !npcHero.IsPrisoner;
+         bool hasAuthority = giverAlive && spouse != null && MarriageProspectResolver.HasAuthority(npcHero, spouse);
+         bool marriageable = spouse != null && MarriageProspectResolver.IsMarriageable(Hero.MainHero, spouse);
+         bool atWar = IsAtWarWithPlayer(npcHero);
+         bool playerReigns = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
+
+         QuestRewardPayoutVerdict verdict = QuestRewardGatePolicy.DecideMarriageRewardPayout(
+            ModSettings.AllowFiefAndMarriageQuestRewards, giverAlive, hasAuthority, marriageable, atWar, playerReigns);
+
+         if (verdict != QuestRewardPayoutVerdict.Deliver)
+            return DegradeHeavyReward(npcHero, profile, $"a marriage with {quest.MarriageSpouseName ?? "the promised spouse"}", atWar);
+
+         MarriageAction.Apply(Hero.MainHero, spouse);
+         ModLog.Info($"[GRANT] marriage_reward: player wed {spouse.Name}, sealed on {npcHero.Name}'s own word (quest reward honored).");
+
+         return new ActionOutcome($"{npcHero.Name} keeps their word: you and {spouse.Name} are wed.", true);
+      }
+
+      /// <summary>
+      ///   COUNCIL_ACTIONS.md Partie 5 (graceful degradation, v1 scope): when a promised fief or marriage
+      ///   cannot be honored at payout, this is NEVER a silent nothing. Records a permanent debt memory (it
+      ///   colors future conversation and can resurface in negotiation) and offers a modest, fixed gold and
+      ///   relation consolation, a small apology, never a substitute for the lost fief or match. Continuous
+      ///   surveillance that would catch the break the MOMENT it happens (rather than only discovering it
+      ///   here, at payout) is a documented FOLLOW-UP: this method only covers the payout-time half of the
+      ///   promise's lifecycle.
+      /// </summary>
+      private static ActionOutcome DegradeHeavyReward(Hero npcHero, NpcProfile profile, string promiseLabel, bool atWar)
+      {
+         const int compensationGold = 500;
+         const int compensationRelation = 5;
+
+         var day = (int) CampaignTime.Now.ToDays;
+         string cause = atWar
+            ? "the two of you are now at war"
+            : "the world has since moved against it";
+
+         profile?.Events.Add(new NotableEvent(day, NotableEventType.Conflict,
+            $"Could not honor the promise of {promiseLabel}: {cause}. The debt remains unpaid."));
+
+         if (npcHero is {IsAlive: true}) GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, compensationGold, true);
+         if (profile != null) ProfileMutator.ApplyReputationDelta(profile, compensationRelation);
+
+         ModLog.Info($"[GRANT] heavy reward could not be honored for {npcHero?.Name} ({promiseLabel}): {cause}. " +
+                     $"Compensated {compensationGold}g/+{compensationRelation} regard.");
+
+         return new ActionOutcome(
+            $"({npcHero?.Name} cannot honor the promise of {promiseLabel}: {cause}. They press {compensationGold} " +
+            "denars into your hand as amends, but the debt is not forgotten.)", false);
       }
 
       /// <summary>The magnitude of the heaviest LIVE grudge this hero holds against the player, or 0 when none.</summary>

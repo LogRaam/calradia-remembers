@@ -253,6 +253,10 @@ namespace CalradiaRemembers.Mapping
             ViableQuestMenu = playerStatus == PlayerStatusVsNpc.Captive
                ? null
                : ViableQuestScanner.BuildMenu(hero, bridge?.GetCurrentGameDay() ?? 0),
+            // COUNCIL_ACTIONS.md Partie 5 (the "Caladog" case): mirrors the MCM opt-in straight through, off by
+            // default so the existing "never a fief or marriage as the price of a task" guardrail stays intact
+            // for every player who never touches this menu.
+            FiefAndMarriageQuestRewardsAllowed = ModSettings.AllowFiefAndMarriageQuestRewards,
             HeldLordPrisoners = ResolveHeldLordPrisoners(),
             NpcIsPrisonerOfAnother = npcIsPrisonerOfAnother,
             NpcCaptorName = npcIsPrisonerOfAnother

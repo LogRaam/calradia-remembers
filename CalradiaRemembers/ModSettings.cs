@@ -51,6 +51,16 @@ namespace CalradiaRemembers
       public static bool AllowCaptorExecutions => CrSettings.Instance?.AllowCaptorExecutions ?? false;
 
       /// <summary>
+      ///   Whether a lord may promise one of their own clan's fiefs, or a marriage into their house (or
+      ///   themselves), as the delivered PRICE of a quest reward (COUNCIL_ACTIONS.md Partie 5, the "Caladog"
+      ///   case). Read live from the MCM menu; OFF by default, which keeps the existing "never promise a fief
+      ///   or marriage as the price of a task" guardrail fully intact. See
+      ///   <see cref="Logic.QuestRewardGatePolicy" /> for the emission/payout gates this only unlocks, never
+      ///   bypasses.
+      /// </summary>
+      public static bool AllowFiefAndMarriageQuestRewards => CrSettings.Instance?.AllowFiefAndMarriageQuestRewards ?? false;
+
+      /// <summary>
       ///   The chat window skin prefab chosen in the MCM menu ("Chat Window Style"), mapped from its display
       ///   label to the prefab name. Read live; falls back to the Dark Leather (Manuscript) book when MCM has
       ///   not loaded, which is the shipped default.

@@ -231,6 +231,17 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool AllowCaptorExecutions { get; set; } = false;
 
+      // COUNCIL_ACTIONS.md Partie 5 (the "Caladog" case): a king promised a fief and marriage to himself as
+      // the reward of a quest, and both evaporated on completion (no executor existed). Off by default so the
+      // existing guardrail (never promise a fief or marriage as the price of a task) stays fully intact for
+      // everyone who never touches this menu; on, the guardrail relaxes AND the reward is genuinely delivered
+      // (or honestly degrades) on completion, re-validated at both issuance and payout.
+      [SettingPropertyBool("Allow Fief And Marriage Quest Rewards", RequireRestart = false, Order = 9,
+         HintText = "Let a lord promise one of their own fiefs, or a marriage into their house, as a quest " +
+                    "reward, delivered when you complete it. Off by default.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool AllowFiefAndMarriageQuestRewards { get; set; } = false;
+
       [SettingPropertyBool("Story Log", RequireRestart = false, Order = 2,
          HintText = "Writes a clean narrative transcript of every conversation and letter to " +
                     "CalradiaRemembers_story.log in your Logs folder. No timestamps, no noise: it reads like a novel.")]

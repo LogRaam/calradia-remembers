@@ -322,6 +322,32 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>
+      ///   COUNCIL_ACTIONS.md Partie 5 (the "Caladog" case, Kimi review): true when SOME giver, anywhere,
+      ///   already holds an active (outstanding or awaiting-reward) grant_fief quest promising this exact
+      ///   settlement. Mirrors <see cref="HasActiveBountyFor" />'s own store-wide scan, so two lords can never
+      ///   both promise the same fief (or the same lord promise it twice) at once.
+      /// </summary>
+      public static bool IsFiefAlreadyPromised(string settlementId, BannerlordNpcMemoryStore store)
+      {
+         if (string.IsNullOrEmpty(settlementId) || store == null) return false;
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile == null) continue;
+
+            if (profile.ActiveQuests.Any(q =>
+                   q.Reward == RewardGrant.GrantFief
+                   && q.Status == QuestStatus.Active
+                   && string.Equals(q.PromisedSettlementId, settlementId, StringComparison.Ordinal)))
+               return true;
+         }
+
+         return false;
+      }
+
+      /// <summary>
       ///   Nemesis pillar increment 3 (bounty missions): issues a scripted bounty on a tracked nemesis,
       ///   never proposed by the LLM (the target and reward are already known, deterministically, before
       ///   the offer is even shown), so this bypasses <see cref="QuestFactory" /> and builds the
@@ -602,6 +628,18 @@ namespace CalradiaRemembers.Quests
          {
             ModLog.Info($"[QUEST] {giver.Name} offered a task that could not be grounded (type {proposal.Type}) — ignored.");
             notify?.Invoke("No task was recorded: what they offered could not be matched to the world. Ask them to restate it.", false);
+
+            return;
+         }
+
+         // COUNCIL_ACTIONS.md Partie 5 (Kimi review): the same fief can never be promised twice at once, by
+         // one lord or two. QuestFactory validates OWNERSHIP/authority but has no store to scan for a rival
+         // promise, so the uniqueness check lives here, the one caller that has both the new quest and the
+         // store in hand.
+         if (quest.Reward == RewardGrant.GrantFief && IsFiefAlreadyPromised(quest.PromisedSettlementId, store))
+         {
+            ModLog.Info($"[QUEST] {giver.Name} offered {quest.PromisedSettlementName} as a reward, but it is already promised elsewhere, ignored.");
+            notify?.Invoke($"No task was recorded: {quest.PromisedSettlementName} is already promised elsewhere.", false);
 
             return;
          }

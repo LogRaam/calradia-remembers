@@ -332,6 +332,68 @@ namespace CalradiaRemembers.Quests
                return true;
             }
 
+            // COUNCIL_ACTIONS.md Partie 5 (the "Caladog" case): grant_fief/marriage_reward are gated ALL THE
+            // WAY DOWN behind ModSettings.AllowFiefAndMarriageQuestRewards (default off). With the toggle off
+            // this refuses exactly like the still-STUB grants below, so the existing anti-Caladog guardrail
+            // (PromptBuilder.AppendQuestInstructions) is never contradicted by a bridge that would honor what
+            // the prompt forbids promising.
+            case RewardGrant.GrantFief:
+            {
+               if (!ModSettings.AllowFiefAndMarriageQuestRewards)
+               {
+                  ModLog.Info("[QUEST] grant_fief refused, the heavy-reward toggle is off.");
+
+                  return false;
+               }
+
+               bool giverLeadsOwnClan = giver.Clan != null && giver.Clan.Leader == giver;
+               Settlement fief = ResolveSettlement(proposal.RewardSettlement);
+               bool fiefOwnedByGiverClan = fief != null && (fief.IsTown || fief.IsCastle) && fief.OwnerClan == giver.Clan;
+
+               if (!QuestRewardGatePolicy.CanPromiseFief(true, giverLeadsOwnClan, fiefOwnedByGiverClan))
+               {
+                  ModLog.Info($"[QUEST] grant_fief refused, {giver.Name} cannot truly give '{proposal.RewardSettlement}' away.");
+
+                  return false;
+               }
+
+               quest.PromisedSettlementId = fief.StringId;
+               quest.PromisedSettlementName = fief.Name?.ToString();
+               // A heavy reward must always expire (Kimi review: an open-ended fief promise is a save-rot
+               // time bomb): overrides whatever deadline Create() already computed from the LLM's own words.
+               quest.DeadlineDay = quest.IssuedOnDay + QuestRewardGatePolicy.ClampHeavyRewardDeadlineDays(proposal.DeadlineDays);
+
+               return true;
+            }
+
+            case RewardGrant.MarriageReward:
+            {
+               if (!ModSettings.AllowFiefAndMarriageQuestRewards)
+               {
+                  ModLog.Info("[QUEST] marriage_reward refused, the heavy-reward toggle is off.");
+
+                  return false;
+               }
+
+               Hero spouse = MarriageProspectResolver.ResolveCandidate(giver, proposal.MarriageSpouse);
+               bool hasAuthority = spouse != null && MarriageProspectResolver.HasAuthority(giver, spouse);
+               bool marriageable = spouse != null && MarriageProspectResolver.IsMarriageable(Hero.MainHero, spouse);
+               bool playerReigns = Hero.MainHero?.Clan?.Kingdom != null && Hero.MainHero.Clan.Kingdom.Leader == Hero.MainHero;
+
+               if (!QuestRewardGatePolicy.CanPromiseMarriageReward(true, spouse != null, hasAuthority, marriageable, playerReigns))
+               {
+                  ModLog.Info($"[QUEST] marriage_reward refused, {giver.Name} cannot truly wed/give '{proposal.MarriageSpouse}'.");
+
+                  return false;
+               }
+
+               quest.MarriageSpouseId = spouse.StringId;
+               quest.MarriageSpouseName = spouse.Name?.ToString();
+               quest.DeadlineDay = quest.IssuedOnDay + QuestRewardGatePolicy.ClampHeavyRewardDeadlineDays(proposal.DeadlineDays);
+
+               return true;
+            }
+
             // Recognized but not yet executable — refuse at issuance so no broken promise.
             case RewardGrant.GiveItem:
             case RewardGrant.GiveTroops:
