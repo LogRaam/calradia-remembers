@@ -10,6 +10,7 @@ using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.Escort;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Items;
 using CalradiaRemembers.Jealousy;
@@ -232,6 +233,10 @@ namespace CalradiaRemembers.GameState
                return ExecuteReassureCompanion(npcHero);
             case "recall_companion":
                return ExecuteRecallCompanion(npcHero);
+            case "follow_me":
+               return ExecuteFollowMe(npcHero);
+            case "dismiss_escort":
+               return ExecuteDismissEscort(npcHero);
             // give_influence, lend_troops, sway_opinion, release_prisoner: migrated to the
             // IConversationVerb contract (CalradiaRemembers.Verbs): VerbRegistry routes by Name,
             // reusing the same CourtActionResolver/CourtActionPolicy eligibility and math as before.
@@ -2159,6 +2164,68 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] recall_companion failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   follow_me: a lord has agreed, in conversation, to have their OWN party escort the player's across
+      ///   the map for a while, keeping their own troops and command, distinct from join_party (they never
+      ///   join the player's party or clan). Only taught when the game confirms the game can truly honour it
+      ///   (see EncounterContextBuilder's EscortEligibilityPolicy.CanEscort check, mirrored 1:1 here), but every
+      ///   guard is re-checked by FollowMeBehavior.TryStart: the prompt is advice, the bridge is law.
+      /// </summary>
+      private static ActionOutcome ExecuteFollowMe(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            var behavior = FollowMeBehavior.Instance;
+
+            if (behavior == null) return null;
+
+            if (!behavior.TryStart(npcHero, out string failReason))
+               return ActionOutcome.Refused($"({npcHero.Name} cannot ride with you right now: {failReason})");
+
+            ModLog.Info($"[ACTION] follow_me: {npcHero.Name} begins escorting the player.");
+
+            return new ActionOutcome($"{npcHero.Name} will ride with you for a time.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] follow_me failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   dismiss_escort: the MIRROR of follow_me, the player (or the escorting lord themselves) ends an
+      ///   active escort early, before its term runs out. Only taught when the game confirms this NPC is
+      ///   genuinely escorting right now (EncounterContext.NpcIsEscortingPlayer), but re-checked here regardless.
+      /// </summary>
+      private static ActionOutcome ExecuteDismissEscort(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null) return null;
+
+            var behavior = FollowMeBehavior.Instance;
+
+            if (behavior == null) return null;
+
+            if (!behavior.TryDismiss(npcHero, out string failReason))
+               return ActionOutcome.Refused($"({npcHero.Name} is not riding with you: {failReason})");
+
+            ModLog.Info($"[ACTION] dismiss_escort: {npcHero.Name} breaks off the escort.");
+
+            return new ActionOutcome($"{npcHero.Name} takes leave and turns back to their own business.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] dismiss_escort failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

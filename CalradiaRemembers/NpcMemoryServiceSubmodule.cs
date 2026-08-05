@@ -17,6 +17,7 @@ using CalradiaRemembers.Chronicle;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Dynasty;
+using CalradiaRemembers.Escort;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
@@ -269,6 +270,11 @@ namespace CalradiaRemembers
          // CouncilTributeBehavior above. Idle (no active hostage terms) outside a Parley that actually strikes
          // one, so it is not gated with the rest of the Assembly pillar either.
          campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.CouncilHostageBehavior());
+         // follow_me (1:1 bridge action, player wish: a companion "staying by my side", the map-escort half of
+         // it, the battlefield version stays roadmapped): a lord's own party escorts the player's for a fixed
+         // term, mirroring CouncilStipendBehavior/CouncilHostageBehavior's own SyncData shape. Always on, idle
+         // (no active escorts) outside a conversation that actually strikes one.
+         campaignStarter.AddBehavior(new FollowMeBehavior());
          // ASSEMBLY pillar: GATED OFF for release (built, not yet play-tested in a live campaign). To test it in
          // a DEV build, UNCOMMENT the two lines below, then stage a session fast with cr.assembly_test [n] and
          // cr.assembly_open (bypasses the travel wait). It ships as a real feature only once validated.

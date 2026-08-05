@@ -11,12 +11,14 @@ using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Duels;
+using CalradiaRemembers.Escort;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Duels;
+using CalradiaRemembers.Logic.Escort;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Social;
 using CalradiaRemembers.Marriage;
@@ -145,6 +147,12 @@ namespace CalradiaRemembers.Mapping
          if (duelChallengeAvailable)
             ModLog.Info($"[DUEL] challenge_duel taught this turn vs {hero?.Name} ({duelVenueLabel}).");
 
+         // follow_me / dismiss_escort: the same "prompt is advice, bridge is law" conditional-teaching contract
+         // as CompanionAskingPrice/DuelChallengeAvailable above. EscortEligibilityPolicy.CanEscort is the ONE
+         // shared gate FollowMeBehavior.TryStart re-checks at commit time, so the two can never quietly diverge.
+         bool npcIsEscortingPlayer = ResolveNpcIsEscortingPlayer(hero);
+         bool npcCanEscortPlayer = ResolveNpcCanEscortPlayer(hero, npcIsEscortingPlayer);
+
          return new() {
             PlayerStatus = playerStatus,
             SharedRealmName = bridge.GetSharedRealmName(hero),
@@ -267,6 +275,11 @@ namespace CalradiaRemembers.Mapping
             // above): whoever the player is talking to, the King who hired them (or the player) may raise
             // ending a contract that is currently real. See EncounterContext.PlayerIsMercenary.
             PlayerIsMercenary = Clan.PlayerClan?.IsUnderMercenaryService ?? false,
+            // follow_me: taught only when EscortEligibilityPolicy.CanEscort says the game can truly honour it
+            // right now (see the computation just above the object initializer). dismiss_escort is the mirror,
+            // taught only while THIS lord's own party is genuinely escorting the player.
+            NpcCanEscortPlayer = npcCanEscortPlayer,
+            NpcIsEscortingPlayer = npcIsEscortingPlayer,
             LordRecruitEligible = ResolveLordRecruitEligible(hero, profile),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
@@ -1324,6 +1337,29 @@ namespace CalradiaRemembers.Mapping
 
          return npcKingdom.Name?.ToString();
       }
+
+      /// <summary>
+      ///   follow_me's own conditional-teaching gate: restricted to lords (a wanderer or bandit leading a
+      ///   scratch party is not who "escort me for a while" is meant for), re-running the exact
+      ///   <see cref="EscortEligibilityPolicy.CanEscort" /> guard <see cref="Escort.FollowMeBehavior.TryStart" />
+      ///   re-checks at commit time.
+      /// </summary>
+      private static bool ResolveNpcCanEscortPlayer(Hero hero, bool alreadyEscorting)
+      {
+         if (hero is not {IsLord: true}) return false;
+
+         MobileParty party = hero.PartyBelongedTo;
+         bool leadsParty = party != null && party.LeaderHero == hero;
+         bool atWar = hero.MapFaction != null && Hero.MainHero?.MapFaction != null &&
+                      FactionManager.IsAtWarAgainstFaction(hero.MapFaction, Hero.MainHero.MapFaction);
+         bool inArmy = party?.Army != null || party?.SiegeEvent != null;
+
+         return EscortEligibilityPolicy.CanEscort(leadsParty, atWar, inArmy, alreadyEscorting);
+      }
+
+      /// <summary>True while THIS lord's own party is genuinely escorting the player right now (drives dismiss_escort).</summary>
+      private static bool ResolveNpcIsEscortingPlayer(Hero hero)
+         => hero != null && FollowMeBehavior.Instance != null && FollowMeBehavior.Instance.IsEscorting(hero.StringId);
 
       /// <summary>
       ///   Builds a prompt note listing the native/vanilla quests THIS NPC gave the player that are still
