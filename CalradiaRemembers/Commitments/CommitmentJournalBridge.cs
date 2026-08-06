@@ -82,6 +82,29 @@ namespace CalradiaRemembers.Commitments
             }
         }
 
+        /// <summary>
+        ///   Closes the mirror neutrally (v1.34.1 hotfix): a keep-peace oath whose peace was broken by the
+        ///   OTHER house, so the promisor is the victim, not an oathbreaker. Cancels the journal entry with a
+        ///   neutral banner, never the fail banner <see cref="CloseBreached" /> raises.
+        /// </summary>
+        public static void CloseNeutral(TrackedCommitment commitment, string reason)
+        {
+            if (commitment == null) return;
+
+            try
+            {
+                CommitmentQuest mirror = FindMirror(commitment.Id);
+                if (mirror == null) return;
+
+                mirror.UpdateStatus(reason);
+                mirror.CloseNeutral(reason);
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[COMMITMENT-JOURNAL] CloseNeutral failed for {commitment.Id}: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
         /// <summary>Creates and starts a mirror for a just-issued pledge. Requires a live promisor Hero.</summary>
         public static void OpenMirror(TrackedCommitment commitment, Hero promisor)
         {

@@ -96,6 +96,17 @@ namespace CalradiaRemembers.Commitments
             catch (Exception ex) { ModLog.Error($"[COMMITMENT-JOURNAL] CloseFulfilled failed: {ex.Message}"); }
         }
 
+        /// <summary>
+        ///   Closes the mirror neutrally, neither honored nor broken (v1.34.1 hotfix): a keep-peace oath whose
+        ///   peace was broken by the OTHER house (the promisor was invaded). Cancel, never fail, so the player
+        ///   is not shown a broken-faith banner for a war their sworn lord did not start.
+        /// </summary>
+        public void CloseNeutral(string reason)
+        {
+            try { CompleteQuestWithCancel(new TextObject(reason)); }
+            catch (Exception ex) { ModLog.Error($"[COMMITMENT-JOURNAL] CloseNeutral failed: {ex.Message}"); }
+        }
+
         /// <summary>Pushes a new status line to the journal log; called just before either closing method.</summary>
         public void UpdateStatus(string logLine)
         {

@@ -189,6 +189,9 @@ namespace CalradiaRemembers.Commitments
          IFaction promisorFaction = promisor?.MapFaction;
          if (promisorFaction == null) return;
 
+         // Only a war between the promisor's OWN faction and the very house named in the oath can bear on it;
+         // any other war declared elsewhere in the world (WarDeclared fires for every one) leaves this oath
+         // untouched, still Active.
          bool nameFaction1 = string.Equals(faction1.StringId, commitment.TargetId, StringComparison.Ordinal);
          bool nameFaction2 = string.Equals(faction2.StringId, commitment.TargetId, StringComparison.Ordinal);
          if (!nameFaction1 && !nameFaction2) return;
@@ -196,7 +199,40 @@ namespace CalradiaRemembers.Commitments
          bool promisorInvolved = promisorFaction == faction1 || promisorFaction == faction2;
          if (!promisorInvolved) return;
 
-         Breach(commitment, "their own faction declared war on the very house they swore to keep the peace with");
+         // v1.34.1 hotfix: read WHO DECLARED before punishing anyone. faction1 is the DECLARER/aggressor,
+         // faction2 the DEFENDER, CR's established WarDeclared convention (the same one
+         // QuestDeedTracker.OnWarDeclared and WarDeedMatcher already rely on). The oath breaks ONLY when the
+         // promisor's OWN faction was the one that marched; a promisor who swore peace and was then INVADED is
+         // the victim, never an oathbreaker, so the oath retires as a clean NEUTRAL resolution below (no
+         // relation hit, no BrokenOath grudge, no per-witness cost), never a false breach.
+         bool shouldBreach = KeepPeaceBreachPolicy.ShouldBreach(
+            promisorFaction.StringId, commitment.TargetId, faction1.StringId, faction2.StringId);
+
+         if (shouldBreach)
+         {
+            Breach(commitment, "their own faction declared war on the very house they swore to keep the peace with");
+
+            return;
+         }
+
+         ResolveKeepPeaceNeutral(commitment);
+      }
+
+      /// <summary>
+      ///   Retires a KeepPeace oath with NO consequence: the peace between the two houses was broken by the
+      ///   OTHER side (the promisor was invaded), so the promisor is the victim, never an oathbreaker (v1.34.1
+      ///   hotfix). The deliberate mirror of <see cref="Breach" /> for the wrong-party case: no relation
+      ///   penalty, no <see cref="GrudgeSource.BrokenOath" /> grudge, no per-witness cost, no profile mutation
+      ///   at all. The journal mirror is CANCELLED (a neutral banner, never the fail banner a breach would
+      ///   raise), so the player is not told their sworn lord broke faith.
+      /// </summary>
+      private void ResolveKeepPeaceNeutral(TrackedCommitment commitment)
+      {
+         CommitmentJournalBridge.CloseNeutral(commitment,
+            "War came to them: the peace was broken by the other house, no fault of their own.");
+
+         _active.Remove(commitment);
+         ModLog.Info($"[COMMITMENT] keep-peace oath retired neutrally (promisor was invaded, not the aggressor): promisor={commitment.PromisorId} target={commitment.TargetId}.");
       }
 
       // ── Lifecycle ─────────────────────────────────────────────────────────
