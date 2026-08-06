@@ -8,6 +8,11 @@
 // ledger at all, so what the verb calls a loan has always been a permanent gift.
 //
 // Every boundary below is one of Gabriel's calls (2026-07-18), so each test names which one it pins.
+//
+// STILL NOT WIRED (noted v1.34.1, 2026-08-06): TroopLoanPolicy has no production caller, and the v1.34.1
+// hotfix ships lend_troops as a PERMANENT reinforcement, so the "loan returns" contract these tests assert
+// matches no shipped behaviour yet. Kept green and intact pending the v1.34.2 decision (wire a real
+// returnable loan onto this policy, or remove it).
 
 #region
 

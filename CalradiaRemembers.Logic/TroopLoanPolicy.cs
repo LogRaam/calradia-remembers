@@ -18,6 +18,13 @@ using NpcMemoryService.Core.Models;
 
 namespace CalradiaRemembers.Logic
 {
+    // DEAD, PENDING v1.34.2 (marked 2026-08-06). Still wired to NOTHING: no production code calls ShouldReturn,
+    // ReturnableCounts, or LoansToReturn (verified by grep). The v1.34.1 hotfix made the 1:1 lend_troops verb
+    // HONEST by shipping it as a PERMANENT reinforcement (a gift the player keeps), so no soldier is ever
+    // returned and this return-logic is exercised only by its own tests. Do NOT delete it or its tests here:
+    // v1.34.2 is the deliberate decision to either wire a real returnable loan onto this policy or remove it.
+    // The tests below still assert the "loan returns" contract, which currently matches no shipped behaviour.
+
     /// <summary>Decides the fate of a <see cref="TroopLoan" /> when the task it served moves on.</summary>
     public static class TroopLoanPolicy
     {

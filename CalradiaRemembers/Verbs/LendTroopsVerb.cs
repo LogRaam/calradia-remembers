@@ -16,8 +16,12 @@ using TaleWorlds.CampaignSystem.Party;
 namespace CalradiaRemembers.Verbs
 {
     /// <summary>
-    ///   lend_troops (RP with teeth, increment 1): an NPC leading their own party hands the player some
-    ///   soldiers for the road. Eligibility and the count lent are entirely <see cref="CourtActionResolver.TryLendTroops" />
+    ///   lend_troops (RP with teeth, increment 1): an NPC leading their own party gives the player some of
+    ///   their own soldiers to keep. This is a PERMANENT reinforcement, not a loan that returns (v1.34.1
+    ///   honesty fix: the transfer is one-way via <see cref="CourtActionResolver.MoveLowestTierTroops" /> and no
+    ///   return mechanic is wired; a real returnable loan is the deferred v1.34.2 decision, see
+    ///   <see cref="CalradiaRemembers.Logic.TroopLoanPolicy" />). The action KEY stays lend_troops; only the
+    ///   player-facing wording was made truthful. Eligibility and the count given are entirely <see cref="CourtActionResolver.TryLendTroops" />
     ///   / <see cref="CourtActionResolver.MoveLowestTierTroops" /> (re-checked and re-computed against the
     ///   LIVE roster at execution: "the bridge is law"); this class only orchestrates.
     ///   Stance mechanical behaviour-gating (increment 2, Trust, ratified 2026-07-04): this is the NPC
@@ -39,15 +43,16 @@ namespace CalradiaRemembers.Verbs
             if (!CourtActionResolver.TryLendTroops(ctx.Npc, ctx.Profile, out int count)) return null;
 
             var sb = new StringBuilder();
-            sb.AppendLine("LEND_TROOPS, HANDING THE PLAYER SOME SOLDIERS FOR THE ROAD:");
+            sb.AppendLine("REINFORCING THE PLAYER'S PARTY, A PERMANENT GIFT OF SOME OF YOUR OWN SOLDIERS:");
             sb.AppendLine("You lead enough of a healthy force, and think well enough of the player, that you could");
             sb.AppendLine("part with a handful of your own rank and file to strengthen their party. You would keep");
-            sb.AppendLine("the bulk of your own men, not gut your household guard.");
+            sb.AppendLine("the bulk of your own men, not gut your household guard. These soldiers are the player's");
+            sb.AppendLine("to keep: a permanent gift, never a loan that returns. Do not promise them back.");
             sb.AppendLine("When you have genuinely resolved to do this in this conversation, and only then, emit:");
             sb.AppendLine("[ACTION]");
             sb.AppendLine("type: lend_troops");
             sb.AppendLine("[/ACTION]");
-            sb.AppendLine($"The game moves {count} of your own soldiers into their ranks.");
+            sb.AppendLine($"The game moves {count} of your own soldiers permanently into their ranks.");
             sb.AppendLine();
 
             return sb.ToString();
@@ -81,12 +86,12 @@ namespace CalradiaRemembers.Verbs
 
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
-                    $"Lent the player {moved} soldiers for the road. {CourtActionResolver.TroopsMarker}"));
+                    $"Reinforced the player's party with {moved} of my own soldiers, given to keep. {CourtActionResolver.TroopsMarker}"));
                 CourtActionResolver.RecordCourtAction(profile, CourtActionResolver.TroopsMarker, today); // M-B6
 
-                ModLog.Info($"[ACTION] lend_troops: {npcHero.Name} lent the player {moved} troops.");
+                ModLog.Info($"[ACTION] lend_troops: {npcHero.Name} gave the player {moved} troops to keep.");
 
-                return new ActionOutcome($"{npcHero.Name} lends you {moved} soldiers.", true);
+                return new ActionOutcome($"{npcHero.Name} reinforces your party with {moved} of their soldiers.", true);
             }
             catch (Exception ex)
             {
