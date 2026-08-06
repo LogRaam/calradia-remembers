@@ -4,6 +4,14 @@
 // stake across every test here is the same: a promise that outruns the player's purse must be refused before the
 // lift ever touches the world, never applied partially and never left to fail silently mid-term (COUNCIL_ACTIONS.md
 // "grant_stipend", ESCROW model - Kimi review, adopted as-is).
+//
+// CanOfferStipend is the 1:1 conversation TEACHING gate added when grant_stipend was brought to the 1:1 pipeline
+// (2026-08-05), alongside the council. It is the conjunction the mod's EncounterContextBuilder feeds from live engine
+// facts to decide whether the LLM is even shown the action this turn. What it guards is the empty-promise class the
+// whole conditional-teaching contract exists to prevent PLUS the double-escrow bug this persisted-behaviour verb is
+// most exposed to: teach the verb only when the bridge's own re-check (CourtActionResolver.TryGrantStipend ->
+// CouncilStipendBehavior) could actually honour it, so an NPC can never "agree" to a wage the game then declines, and
+// a second concurrent stipend is never funded on top of one already running. Each fact below removes one such way.
 
 #region
 
@@ -76,6 +84,45 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_the_minimum_tranche_cost_WHEN_computed_THEN_it_matches_the_floor_rate_over_the_full_tranche()
         {
             StipendPolicy.MinTrancheCost.Should().Be(StipendPolicy.MinAmountPerDay * StipendPolicy.TrancheDays);
+        }
+
+        // The all-clear case: the NPC is a player-clan companion, no stipend runs for them yet, and the player can
+        // cover the cheapest tranche. If this did not offer, grant_stipend would never be taught in 1:1 at all and the
+        // verb would stay council-only, the exact regression this slice exists to fix.
+        [Test]
+        public void GIVEN_every_teaching_fact_holds_WHEN_offering_a_stipend_THEN_the_action_is_taught()
+        {
+            StipendPolicy.CanOfferStipend(npcIsPlayerCompanion: true, npcHasActiveStipend: false, playerCanAffordMinTranche: true)
+                .Should().BeTrue();
+        }
+
+        // A stipend is a clan-internal keep: only the player's own clan companions draw one. Teaching it to an outsider
+        // would let them "agree" to a wage the bridge (which re-checks IsPlayerCompanion) then declines.
+        [Test]
+        public void GIVEN_the_npc_is_not_a_player_companion_WHEN_offering_a_stipend_THEN_it_is_withheld()
+        {
+            StipendPolicy.CanOfferStipend(npcIsPlayerCompanion: false, npcHasActiveStipend: false, playerCanAffordMinTranche: true)
+                .Should().BeFalse();
+        }
+
+        // The double-escrow guard, the one this persisted-behaviour verb is most exposed to: a companion already on a
+        // stipend must not be offered a second, or a fresh 30-day tranche would be funded on top of the running one.
+        // The bridge re-checks this against live persisted state, so the offer must withhold to match.
+        [Test]
+        public void GIVEN_a_stipend_already_runs_for_the_npc_WHEN_offering_a_stipend_THEN_it_is_withheld()
+        {
+            StipendPolicy.CanOfferStipend(npcIsPlayerCompanion: true, npcHasActiveStipend: true, playerCanAffordMinTranche: true)
+                .Should().BeFalse();
+        }
+
+        // With not even the cheapest tranche affordable, there is nothing to grant: teaching the verb here is the
+        // textbook empty promise (a wage offered the player cannot fund), which is why the offering mirrors the
+        // council's own PlayerCanAffordStipend floor. The bridge still re-checks the real proposed amount at commit.
+        [Test]
+        public void GIVEN_the_player_cannot_afford_the_floor_tranche_WHEN_offering_a_stipend_THEN_it_is_withheld()
+        {
+            StipendPolicy.CanOfferStipend(npcIsPlayerCompanion: true, npcHasActiveStipend: false, playerCanAffordMinTranche: false)
+                .Should().BeFalse();
         }
     }
 }

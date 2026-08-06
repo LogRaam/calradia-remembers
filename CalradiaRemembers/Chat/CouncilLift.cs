@@ -654,24 +654,13 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static void SettleGrantStipend(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
       {
-         if (actorHero is not {IsAlive: true})
-         {
-            const string reason = "they could not be found.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         if (!actorHero.IsPlayerCompanion)
-         {
-            const string reason = "they no longer belong to the player's clan as a companion.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
+         // The whole decision+mutation now lives in the shared core (CourtActionResolver.TryGrantStipend), the SAME
+         // one the 1:1 grant_stipend action runs (2026-08-05), so a stipend behaves identically whichever path
+         // granted it and neither can double-escrow a second concurrent tranche. Every guard this executor used to
+         // check inline (alive, still a player companion, the escrow ledger exists, the amount clamps and funds
+         // within the player's purse) is re-checked there in the same order, PLUS the new already-running guard; this
+         // method only parses the proposed amount (TargetHint, this kind's own grounding slot) and maps the verdict
+         // back onto the council's own ledger + reporting.
          if (!int.TryParse(entry.TargetHint, out int amount))
          {
             const string reason = "no valid stipend amount was named.";
@@ -681,28 +670,59 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         if (CouncilStipendBehavior.Instance == null)
+         GrantStipendVerdict verdict = CourtActionResolver.TryGrantStipend(actorHero, amount);
+
+         switch (verdict.Result)
          {
-            const string reason = "no stipend ledger is available right now.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+            case GrantStipendResult.RecipientUnavailable:
+            {
+               const string reason = "they could not be found.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
 
-            return;
+               return;
+            }
+
+            case GrantStipendResult.NotPlayerCompanion:
+            {
+               const string reason = "they no longer belong to the player's clan as a companion.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case GrantStipendResult.NoLedger:
+            {
+               const string reason = "no stipend ledger is available right now.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case GrantStipendResult.AlreadyActive:
+            {
+               const string reason = "they already draw a stipend from your coffers.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case GrantStipendResult.CouldNotFund:
+               ledger.MarkFailed(entry.Id, verdict.FailReason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {verdict.FailReason}", false);
+
+               return;
+
+            case GrantStipendResult.Started:
+               ledger.MarkApplied(entry.Id);
+               report?.Invoke($"{actorName} will draw {verdict.ClampedAmountPerDay} denars a day from your coffers for the next {StipendPolicy.TrancheDays} days.", true);
+               ModLog.Info($"[COUNCIL] lift: {actorName} granted a stipend of {verdict.ClampedAmountPerDay}/day for {StipendPolicy.TrancheDays} days.");
+
+               return;
          }
-
-         if (!CouncilStipendBehavior.Instance.TryStart(actorHero, amount, out string failReason))
-         {
-            ledger.MarkFailed(entry.Id, failReason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {failReason}", false);
-
-            return;
-         }
-
-         int clamped = StipendPolicy.ClampAmountPerDay(amount);
-
-         ledger.MarkApplied(entry.Id);
-         report?.Invoke($"{actorName} will draw {clamped} denars a day from your coffers for the next {StipendPolicy.TrancheDays} days.", true);
-         ModLog.Info($"[COUNCIL] lift: {actorName} granted a stipend of {clamped}/day for {StipendPolicy.TrancheDays} days.");
       }
 
       /// <summary>
@@ -2077,35 +2097,14 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static void SettleSwearOath(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, int gameDay, Action<string, bool> report)
       {
-         if (actorHero is not {IsAlive: true} || actorHero.IsPrisoner || actorHero == Hero.MainHero)
-         {
-            const string reason = "they could not be found.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
-
-            return;
-         }
-
-         var commitmentBehavior = CommitmentBehavior.Instance;
-
-         if (commitmentBehavior == null)
-         {
-            const string reason = "no commitment ledger is available right now.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
-
-            return;
-         }
-
-         if (commitmentBehavior.HasActive(actorHero.StringId))
-         {
-            const string reason = "they already have a pledge outstanding, one vow at a time.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
-
-            return;
-         }
-
+         // The whole decision+mutation now lives in the shared core (CourtActionResolver.TrySwearOath), the SAME one
+         // the 1:1 swear_oath action runs (2026-08-05), so an oath behaves identically whichever path recorded it.
+         // Every guard this executor used to check inline (alive/free/not-the-player, the commitment ledger exists,
+         // no oath already outstanding, the kind resolves through the whitelist, and that kind's own payload
+         // validates) is re-checked there in the same order; this method only decomposes the grounding
+         // (OathGroundingCodec: WHICH kind plus that kind's own target value) and maps the verdict back onto the
+         // council's own ledger + reporting, carrying the WitnessIds (the other seats present) onto the oath so a
+         // later breach costs more than one sworn in private.
          if (!OathGroundingCodec.TryDecompose(entry.TargetHint, out string oathKindKey, out string targetValue))
          {
             const string reason = "no oath kind was named.";
@@ -2115,88 +2114,112 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         // R7.2 (COUNCIL_ACTIONS.md): a kind not in the whitelist (e.g. an attempted "move_against", which is
-         // pledge_against's own separate resolution) is refused here rather than tracked, never rewritten as
-         // whatever it superficially resembles.
-         if (!OathKindParser.TryParse(oathKindKey, out CommitmentKind kind))
+         SwearOathVerdict verdict = CourtActionResolver.TrySwearOath(actorHero, oathKindKey, targetValue, gameDay, entry.WitnessIds);
+
+         switch (verdict.Result)
          {
-            const string reason = "that is not an oath the table can hold anyone to.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+            case SwearOathResult.SwearerUnavailable:
+            {
+               const string reason = "they could not be found.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
 
-            return;
-         }
+               return;
+            }
 
-         string targetId = null;
-         int? promisedAmount = null;
-         string swornLine;
+            case SwearOathResult.NoLedger:
+            {
+               const string reason = "no commitment ledger is available right now.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
 
-         switch (kind)
-         {
-            case CommitmentKind.PayGold:
-               if (!int.TryParse(targetValue, out int proposed) || CommitmentPolicy.ClampPromisedAmount(proposed) <= 0)
+               return;
+            }
+
+            case SwearOathResult.AlreadyCommitted:
+            {
+               const string reason = "they already have a pledge outstanding, one vow at a time.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+               return;
+            }
+
+            case SwearOathResult.UnknownKind:
+            {
+               // R7.2 (COUNCIL_ACTIONS.md): a kind not in the whitelist (e.g. an attempted "move_against", which is
+               // pledge_against's own separate resolution) is refused rather than tracked, never rewritten as
+               // whatever it superficially resembles.
+               const string reason = "that is not an oath the table can hold anyone to.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+               return;
+            }
+
+            case SwearOathResult.InvalidAmount:
+            {
+               const string reason = "no valid sum was named.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+               return;
+            }
+
+            case SwearOathResult.CannotSwearPeace:
+            {
+               const string reason = "they do not lead a faction of their own to swear peace for.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+               return;
+            }
+
+            case SwearOathResult.NoSuchFaction:
+            {
+               const string reason = "no faction by that name could be found.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+               return;
+            }
+
+            case SwearOathResult.OwnFaction:
+            {
+               const string reason = "that is their own house.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+
+               return;
+            }
+
+            case SwearOathResult.Sworn:
+               string swornLine;
+
+               switch (verdict.Kind)
                {
-                  const string reason = "no valid sum was named.";
-                  ledger.MarkFailed(entry.Id, reason);
-                  report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
+                  case CommitmentKind.PayGold:
+                     swornLine = $"{actorName} swears to pay you {verdict.PromisedAmount} denars within {CommitmentPolicy.DeadlineDays} days.";
 
-                  return;
+                     break;
+
+                  case CommitmentKind.KeepPeace:
+                     swornLine = $"{actorName} swears to keep the peace with {verdict.TargetFactionName} for {CommitmentPolicy.DeadlineDays} days.";
+
+                     break;
+
+                  default:
+                     swornLine = $"{actorName} swears to stand at your side in battle within {CommitmentPolicy.DeadlineDays} days.";
+
+                     break;
                }
 
-               promisedAmount = CommitmentPolicy.ClampPromisedAmount(proposed);
-               swornLine = $"{actorName} swears to pay you {promisedAmount} denars within {CommitmentPolicy.DeadlineDays} days.";
-
-               break;
-
-            case CommitmentKind.KeepPeace:
-               bool leadsKingdom = actorHero.Clan?.Kingdom != null && actorHero.Clan.Kingdom.Leader == actorHero;
-               bool leadsIndependentClan = actorHero.Clan != null && actorHero.Clan.Kingdom == null && actorHero.Clan.Leader == actorHero;
-
-               if (!leadsKingdom && !leadsIndependentClan)
-               {
-                  const string reason = "they do not lead a faction of their own to swear peace for.";
-                  ledger.MarkFailed(entry.Id, reason);
-                  report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
-
-                  return;
-               }
-
-               IFaction targetFaction = ResolveFactionByName(targetValue);
-
-               if (targetFaction == null || targetFaction == actorHero.MapFaction)
-               {
-                  string reason = targetFaction == null ? "no faction by that name could be found." : "that is their own house.";
-                  ledger.MarkFailed(entry.Id, reason);
-                  report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {reason}", false);
-
-                  return;
-               }
-
-               targetId = targetFaction.StringId;
-               swornLine = $"{actorName} swears to keep the peace with {targetFaction.Name} for {CommitmentPolicy.DeadlineDays} days.";
-
-               break;
-
-            case CommitmentKind.Protect:
-               swornLine = $"{actorName} swears to stand at your side in battle within {CommitmentPolicy.DeadlineDays} days.";
-
-               break;
-
-            default:
-               // Unreachable (OathKindParser only ever returns one of the three cases above), kept as an honest
-               // refusal rather than a silent fallthrough should the whitelist ever grow without this switch.
-               const string unreachableReason = "that oath is not yet settled by the council.";
-               ledger.MarkFailed(entry.Id, unreachableReason);
-               report?.Invoke($"{actorName}'s oath ({entry.Detail}) could not be sworn: {unreachableReason}", false);
+               ledger.MarkApplied(entry.Id);
+               report?.Invoke(swornLine, true);
+               ModLog.Info($"[COUNCIL] lift: {actorName} swore a {verdict.Kind} oath (witnesses={entry.WitnessIds?.Count ?? 0}).");
 
                return;
          }
-
-         commitmentBehavior.Create(actorHero.StringId, targetId, gameDay, kind, promisedAmount, entry.WitnessIds);
-
-         ledger.MarkApplied(entry.Id);
-         report?.Invoke(swornLine, true);
-         ModLog.Info($"[COUNCIL] lift: {actorName} swore a {kind} oath (witnesses={entry.WitnessIds?.Count ?? 0}).");
       }
 
       /// <summary>

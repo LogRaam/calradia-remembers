@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Grudges;
@@ -819,6 +820,129 @@ namespace CalradiaRemembers.GameState
          return new ExpelFromClanVerdict(ExpelFromClanResult.Expelled, wasGovernor, governedFief);
       }
 
+      // ── grant_stipend (personal-command verb, council + 1:1, 2026-08-05) ──
+
+      /// <summary>
+      ///   The ONE shared code path both grant_stipend callers run (the 1:1 action,
+      ///   <c>BannerlordGameStateBridge.ExecuteGrantStipend</c>, and the council's own resolution,
+      ///   <c>CalradiaRemembers.Chat.CouncilLift.SettleGrantStipend</c>), factored out here (2026-08-05, mirroring
+      ///   <see cref="TryAppointGovernor" />'s own extraction) so a stipend behaves identically whichever path
+      ///   granted it, and neither path can ever double-escrow a second tranche on top of one already running. Every
+      ///   guard the council executor used to check inline is re-checked HERE, in the same order (the prompt is
+      ///   advice, the executor is law): the recipient is alive, still one of the player's OWN clan companions, the
+      ///   escrow ledger (<see cref="CouncilStipendBehavior" />) exists, and NO stipend is already outstanding for
+      ///   them - the ONE new invariant this extraction adds to BOTH paths, so a fresh 30-day tranche is never funded
+      ///   on top of a running one (re-checked against LIVE persisted state, never trusted from the offer). Only then
+      ///   does <see cref="CouncilStipendBehavior.TryStart" /> re-clamp the amount to <see cref="StipendPolicy" />'s
+      ///   [50, 500] range and re-check the player's purse against the FULL tranche before deducting it up front. Each
+      ///   caller writes its OWN message off the returned verdict, which carries the clamped daily amount.
+      /// </summary>
+      public static GrantStipendVerdict TryGrantStipend(Hero recipient, int amountPerDay)
+      {
+         if (recipient is not {IsAlive: true})
+            return new GrantStipendVerdict(GrantStipendResult.RecipientUnavailable, 0, null);
+
+         if (!recipient.IsPlayerCompanion)
+            return new GrantStipendVerdict(GrantStipendResult.NotPlayerCompanion, 0, null);
+
+         CouncilStipendBehavior behavior = CouncilStipendBehavior.Instance;
+
+         if (behavior == null)
+            return new GrantStipendVerdict(GrantStipendResult.NoLedger, 0, null);
+
+         // The ONE invariant this shared core ADDS to both paths: never fund a second concurrent stipend on top of
+         // one already running for this hero (a double-escrow bug the 1:1 path could otherwise introduce, since the
+         // player can grant a stipend both here and at a council). Re-checked against the LIVE persisted escrow.
+         if (behavior.HasActive(recipient.StringId))
+            return new GrantStipendVerdict(GrantStipendResult.AlreadyActive, 0, null);
+
+         if (!behavior.TryStart(recipient, amountPerDay, out string failReason))
+            return new GrantStipendVerdict(GrantStipendResult.CouldNotFund, 0, failReason);
+
+         return new GrantStipendVerdict(GrantStipendResult.Started, StipendPolicy.ClampAmountPerDay(amountPerDay), null);
+      }
+
+      // ── swear_oath (personal-command verb, council + 1:1, 2026-08-05) ──
+
+      /// <summary>
+      ///   The ONE shared code path both swear_oath callers run (the 1:1 action,
+      ///   <c>BannerlordGameStateBridge.ExecuteSwearOath</c>, and the council's own resolution,
+      ///   <c>CalradiaRemembers.Chat.CouncilLift.SettleSwearOath</c>), factored out here (2026-08-05, mirroring
+      ///   <see cref="TryAppointGovernor" />'s own extraction) so a sworn oath behaves identically whichever path
+      ///   recorded it. Every guard the council executor used to check inline is re-checked HERE, in the same order
+      ///   (the prompt is advice, the executor is law): the swearer is alive, not held prisoner, not the player, the
+      ///   commitment ledger exists, they carry NO oath already outstanding (one vow at a time,
+      ///   <see cref="CommitmentBehavior.HasActive" />), the <paramref name="oathKindKey" /> resolves through the
+      ///   whitelist (<see cref="OathKindParser" />, so an unverifiable kind fails cleanly), and that kind's own
+      ///   payload validates (a positive clamped sum for pay_gold; a swearer who leads a faction of their own and a
+      ///   real OTHER faction named for keep_peace; nothing for protect). Only then is the oath recorded through the
+      ///   SAME generalized <see cref="CommitmentBehavior.Create" /> engine, carrying <paramref name="witnessIds" />
+      ///   (the OTHER seats present at a council table, or null for a private 1:1 oath, which costs less to break).
+      ///   Each caller writes its OWN sworn line off the returned verdict, which carries the resolved kind, the
+      ///   clamped promised amount (pay_gold), and the target faction's display name (keep_peace).
+      /// </summary>
+      public static SwearOathVerdict TrySwearOath(Hero swearer, string oathKindKey, string targetValue, int gameDay, List<string> witnessIds)
+      {
+         if (swearer is not {IsAlive: true} || swearer.IsPrisoner || swearer == Hero.MainHero)
+            return new SwearOathVerdict(SwearOathResult.SwearerUnavailable, default, null, null);
+
+         CommitmentBehavior behavior = CommitmentBehavior.Instance;
+
+         if (behavior == null)
+            return new SwearOathVerdict(SwearOathResult.NoLedger, default, null, null);
+
+         if (behavior.HasActive(swearer.StringId))
+            return new SwearOathVerdict(SwearOathResult.AlreadyCommitted, default, null, null);
+
+         if (!OathKindParser.TryParse(oathKindKey, out CommitmentKind kind))
+            return new SwearOathVerdict(SwearOathResult.UnknownKind, default, null, null);
+
+         string targetId = null;
+         int? promisedAmount = null;
+         string targetFactionName = null;
+
+         switch (kind)
+         {
+            case CommitmentKind.PayGold:
+               if (!int.TryParse(targetValue, out int proposed) || CommitmentPolicy.ClampPromisedAmount(proposed) <= 0)
+                  return new SwearOathVerdict(SwearOathResult.InvalidAmount, kind, null, null);
+
+               promisedAmount = CommitmentPolicy.ClampPromisedAmount(proposed);
+
+               break;
+
+            case CommitmentKind.KeepPeace:
+               bool leadsKingdom = swearer.Clan?.Kingdom != null && swearer.Clan.Kingdom.Leader == swearer;
+               bool leadsIndependentClan = swearer.Clan != null && swearer.Clan.Kingdom == null && swearer.Clan.Leader == swearer;
+
+               if (!leadsKingdom && !leadsIndependentClan)
+                  return new SwearOathVerdict(SwearOathResult.CannotSwearPeace, kind, null, null);
+
+               IFaction targetFaction = CalradiaRemembers.Chat.CouncilLift.ResolveFactionByName(targetValue);
+
+               if (targetFaction == null)
+                  return new SwearOathVerdict(SwearOathResult.NoSuchFaction, kind, null, null);
+
+               if (targetFaction == swearer.MapFaction)
+                  return new SwearOathVerdict(SwearOathResult.OwnFaction, kind, null, null);
+
+               targetId = targetFaction.StringId;
+               targetFactionName = targetFaction.Name?.ToString();
+
+               break;
+
+            case CommitmentKind.Protect:
+               break;
+
+            default:
+               return new SwearOathVerdict(SwearOathResult.UnknownKind, default, null, null);
+         }
+
+         behavior.Create(swearer.StringId, targetId, gameDay, kind, promisedAmount, witnessIds);
+
+         return new SwearOathVerdict(SwearOathResult.Sworn, kind, promisedAmount, targetFactionName);
+      }
+
       // ── release_prisoner ─────────────────────────────────────────────────
 
       /// <summary>
@@ -1268,5 +1392,99 @@ namespace CalradiaRemembers.GameState
       public ExpelFromClanResult Result { get; }
       public bool WasGovernor { get; }
       public string GovernedFief { get; }
+   }
+
+   /// <summary>The outcome of <see cref="CourtActionResolver.TryGrantStipend" />, read by each caller to report its own message.</summary>
+   public enum GrantStipendResult
+   {
+      /// <summary>The stipend was started: <see cref="GrantStipendVerdict.ClampedAmountPerDay" /> denars/day are now escrowed for the tranche.</summary>
+      Started,
+
+      /// <summary>The recipient is dead or missing and cannot be kept on a stipend.</summary>
+      RecipientUnavailable,
+
+      /// <summary>The recipient is not one of the player's own clan companions, so no clan stipend applies.</summary>
+      NotPlayerCompanion,
+
+      /// <summary>No stipend escrow ledger is available right now.</summary>
+      NoLedger,
+
+      /// <summary>A stipend is already running for this hero; a second concurrent one would double-escrow.</summary>
+      AlreadyActive,
+
+      /// <summary>The escrow could not be funded (the player's purse cannot cover the full tranche); see <see cref="GrantStipendVerdict.FailReason" />.</summary>
+      CouldNotFund
+   }
+
+   /// <summary>
+   ///   The verdict of <see cref="CourtActionResolver.TryGrantStipend" />: the result, the clamped daily amount on
+   ///   <see cref="GrantStipendResult.Started" /> (zero otherwise), and <see cref="FailReason" /> - the escrow's own
+   ///   player-facing reason - only on <see cref="GrantStipendResult.CouldNotFund" /> (null on every other result).
+   /// </summary>
+   public readonly struct GrantStipendVerdict
+   {
+      public GrantStipendVerdict(GrantStipendResult result, int clampedAmountPerDay, string failReason)
+      {
+         Result = result;
+         ClampedAmountPerDay = clampedAmountPerDay;
+         FailReason = failReason;
+      }
+
+      public GrantStipendResult Result { get; }
+      public int ClampedAmountPerDay { get; }
+      public string FailReason { get; }
+   }
+
+   /// <summary>The outcome of <see cref="CourtActionResolver.TrySwearOath" />, read by each caller to report its own message.</summary>
+   public enum SwearOathResult
+   {
+      /// <summary>The oath was recorded: <see cref="SwearOathVerdict.Kind" /> (and its payload) is what was sworn.</summary>
+      Sworn,
+
+      /// <summary>The swearer is dead, missing, held prisoner, or is the player themselves, and cannot swear.</summary>
+      SwearerUnavailable,
+
+      /// <summary>No commitment ledger is available right now.</summary>
+      NoLedger,
+
+      /// <summary>The swearer already carries an oath outstanding; one vow at a time.</summary>
+      AlreadyCommitted,
+
+      /// <summary>The named oath kind did not resolve to one of the three whitelisted, verifiable kinds.</summary>
+      UnknownKind,
+
+      /// <summary>A pay_gold oath named no valid sum (unparseable, or non-positive once clamped).</summary>
+      InvalidAmount,
+
+      /// <summary>A keep_peace oath from a swearer who leads no faction of their own to swear peace for.</summary>
+      CannotSwearPeace,
+
+      /// <summary>A keep_peace oath named no faction that could be found.</summary>
+      NoSuchFaction,
+
+      /// <summary>A keep_peace oath named the swearer's OWN faction, which is meaningless.</summary>
+      OwnFaction
+   }
+
+   /// <summary>
+   ///   The verdict of <see cref="CourtActionResolver.TrySwearOath" />: the result, the resolved <see cref="Kind" />
+   ///   (whenever one was parsed), the clamped <see cref="PromisedAmount" /> for a pay_gold oath, and the
+   ///   <see cref="TargetFactionName" /> for a keep_peace oath, so each caller can word its OWN sworn line. Null
+   ///   amount/faction on the kinds and failures where they do not apply.
+   /// </summary>
+   public readonly struct SwearOathVerdict
+   {
+      public SwearOathVerdict(SwearOathResult result, CommitmentKind kind, int? promisedAmount, string targetFactionName)
+      {
+         Result = result;
+         Kind = kind;
+         PromisedAmount = promisedAmount;
+         TargetFactionName = targetFactionName;
+      }
+
+      public SwearOathResult Result { get; }
+      public CommitmentKind Kind { get; }
+      public int? PromisedAmount { get; }
+      public string TargetFactionName { get; }
    }
 }

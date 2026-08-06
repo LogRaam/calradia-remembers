@@ -96,6 +96,24 @@ namespace CalradiaRemembers.Logic
             return "(No fief was named, so nothing was revoked.)";
         }
 
+        /// <summary>The prompt's grant_stipend carried no amount that parsed (a blank or missing target_amount), so no stipend was set.</summary>
+        public static string GrantStipendMissingAmount()
+        {
+            return "(No amount was named, so no stipend was set.)";
+        }
+
+        /// <summary>The prompt's swear_oath named no oath kind (a blank or missing oath_kind), so nothing was sworn.</summary>
+        public static string SwearOathMissingKind()
+        {
+            return "(No oath was named, so nothing was sworn.)";
+        }
+
+        /// <summary>The prompt's swear_oath named a kind the game cannot verify and hold anyone to, so nothing was sworn.</summary>
+        public static string SwearOathUnknownKind()
+        {
+            return "(That is not an oath that can be held to account, so nothing was sworn.)";
+        }
+
         /// <summary>
         ///   The named hero is not, in fact, the player's spouse. Shared by accept_divorce and
         ///   decline_divorce, whose bridge executors mirror this same first check.

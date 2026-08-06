@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Appreciations;
+using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Duels;
@@ -210,6 +211,28 @@ namespace CalradiaRemembers.Mapping
          bool npcIsSpouse = hero != null && hero == Hero.MainHero?.Spouse;
          bool npcCanBeExpelledFromClan = ExpulsionPolicy.CanOfferExpel(playerLeadsClan, npcIsPlayerCompanion, npcIsSpouse, npcAlive, npcAvailableForErrand);
 
+         // grant_stipend / swear_oath (2026-08-05, the two personal-command verbs that touch PERSISTED save state):
+         // the 1:1 teaching gates, the same "prompt is advice, bridge is law" conditional-teaching contract as the
+         // verbs above. Each pure gate mirrors the council's own offering eligibility (StipendPolicy.CanOfferStipend
+         // reduces ChatViewModel.PlayerCanAffordStipend + the seated-companion fact; OathOfferPolicy.CanOfferOath
+         // reduces ChatViewModel.AnySeatedMemberCanSwearOath), and each is re-checked at commit by
+         // CourtActionResolver.TryGrantStipend / TrySwearOath against LIVE persisted state, so neither can ever
+         // double-fund a stipend or double-record an oath already outstanding for this hero.
+         bool npcHasActiveStipend = hero != null && CouncilStipendBehavior.Instance?.HasActive(hero.StringId) == true;
+         bool playerCanAffordMinTranche = Hero.MainHero != null && Hero.MainHero.Gold >= StipendPolicy.MinTrancheCost;
+         bool npcCanBeGrantedStipend = StipendPolicy.CanOfferStipend(npcIsPlayerCompanion, npcHasActiveStipend, playerCanAffordMinTranche);
+
+         bool npcHasActiveCommitment = hero != null && CommitmentBehavior.Instance?.HasActive(hero.StringId) == true;
+         // Plausibly qualifies for at least ONE whitelisted oath kind, mirroring AnySeatedMemberCanSwearOath's own
+         // disjunction: holds gold (pay_gold), leads a party of their own (protect), or leads their own kingdom or
+         // independent clan (keep_peace). WHICH kind actually fits is re-validated at the bridge.
+         bool npcQualifiesForSomeOath = hero != null && (
+            hero.Gold > 0
+            || hero.PartyBelongedTo != null && hero.PartyBelongedTo.LeaderHero == hero
+            || hero.Clan?.Kingdom != null && hero.Clan.Kingdom.Leader == hero
+            || hero.Clan != null && hero.Clan.Kingdom == null && hero.Clan.Leader == hero);
+         bool npcCanSwearOath = OathOfferPolicy.CanOfferOath(npcAlive, npcIsPrisoner, hero == Hero.MainHero, npcHasActiveCommitment, npcQualifiesForSomeOath);
+
          return new() {
             PlayerStatus = playerStatus,
             SharedRealmName = bridge.GetSharedRealmName(hero),
@@ -357,6 +380,11 @@ namespace CalradiaRemembers.Mapping
             NpcCanHaveFiefRevoked = npcCanHaveFiefRevoked,
             RevocableFiefs = revocableFiefs,
             NpcCanBeExpelledFromClan = npcCanBeExpelledFromClan,
+            // grant_stipend / swear_oath: the 1:1 teaching gates for the two persisted-behaviour verbs (see the
+            // computation just above the initializer). PromptBuilder also suppresses each on a council/round-table
+            // turn, where the [RESOLUTION] channel owns these instead, and in a captive scene.
+            NpcCanBeGrantedStipend = npcCanBeGrantedStipend,
+            NpcCanSwearOath = npcCanSwearOath,
             LordRecruitEligible = ResolveLordRecruitEligible(hero, profile),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),

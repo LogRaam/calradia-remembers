@@ -240,6 +240,10 @@ namespace CalradiaRemembers.GameState
                return ExecuteRevokeFief(action, npcHero);
             case "expel_from_clan":
                return ExecuteExpelFromClan(npcHero);
+            case "grant_stipend":
+               return ExecuteGrantStipend(action, npcHero);
+            case "swear_oath":
+               return ExecuteSwearOath(action, npcHero);
             case "harm_prisoner":
                return ExecuteHarmPrisoner(action);
             case "impregnation_risk":
@@ -2107,6 +2111,153 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] expel_from_clan failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   grant_stipend (2026-08-05, personal-command verb brought to BOTH the 1:1 and council pipelines, and one of
+      ///   the two that touch PERSISTED save state): the player puts the conversation NPC, one of their own clan
+      ///   companions, on a recurring daily wage. The daily amount is named in the action's target_amount field
+      ///   (clamped to <see cref="StipendPolicy" />'s [50, 500] range). Calls the SAME shared core the council
+      ///   resolution runs (<see cref="CourtActionResolver.TryGrantStipend" />), which re-validates every invariant
+      ///   (alive, still a player companion, the escrow ledger exists, NO stipend already running, the full 30-day
+      ///   tranche affordable) before funding it up front through the persisted <see cref="CouncilStipendBehavior" />.
+      ///   The already-running guard is the load-bearing one here: it re-checks LIVE persisted state so a 1:1 grant can
+      ///   never double-escrow a second tranche on top of one the player already funded (at a council or in an earlier
+      ///   exchange). Only TAUGHT when <see cref="EncounterContext.NpcCanBeGrantedStipend" /> holds, but every guard is
+      ///   re-checked here and in the core: the prompt is advice, the bridge is law. A blank amount or a refused grant
+      ///   is surfaced as a refusal (never a silent null) so the transcript OOC note fires.
+      /// </summary>
+      private static ActionOutcome ExecuteGrantStipend(GameAction action, Hero npcHero)
+      {
+         try
+         {
+            if (npcHero is not {IsAlive: true}) return null;
+
+            if (!npcHero.IsPlayerCompanion)
+               return ActionOutcome.Refused($"({npcHero.Name} is not a companion of your clan to keep on a stipend.)");
+
+            // Was a silent no-op class this project eliminates: a wage agreed with no amount named.
+            if (!TryGetInt(action.Parameters, "target_amount", out int amount))
+               return ActionOutcome.Refused(SilentRefusalMessages.GrantStipendMissingAmount());
+
+            GrantStipendVerdict verdict = CourtActionResolver.TryGrantStipend(npcHero, amount);
+
+            switch (verdict.Result)
+            {
+               case GrantStipendResult.RecipientUnavailable:
+                  return null;
+               case GrantStipendResult.NoLedger:
+                  return null;
+               case GrantStipendResult.NotPlayerCompanion:
+                  return ActionOutcome.Refused($"({npcHero.Name} is not a companion of your clan to keep on a stipend.)");
+               case GrantStipendResult.AlreadyActive:
+                  return ActionOutcome.Refused($"({npcHero.Name} already draws a stipend from your coffers.)");
+               case GrantStipendResult.CouldNotFund:
+                  return ActionOutcome.Refused($"({verdict.FailReason})");
+            }
+
+            string msg = $"{npcHero.Name} will draw {verdict.ClampedAmountPerDay} denars a day from your coffers for the next {StipendPolicy.TrancheDays} days.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+            ModLog.Info($"[ACTION] grant_stipend: {npcHero.Name} granted {verdict.ClampedAmountPerDay}/day for {StipendPolicy.TrancheDays} days.");
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] grant_stipend failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   swear_oath (2026-08-05, personal-command verb brought to BOTH the 1:1 and council pipelines, and one of the
+      ///   two that touch PERSISTED save state): the conversation NPC swears a VERIFIABLE oath to the player, tracked
+      ///   from here by the persisted <see cref="CommitmentBehavior" />. The oath kind is named in the action's
+      ///   oath_kind field (pay_gold / keep_peace / protect); pay_gold also carries target_amount (the denars owed),
+      ///   keep_peace also carries target_faction (the house to keep peace with). Calls the SAME shared core the
+      ///   council resolution runs (<see cref="CourtActionResolver.TrySwearOath" />), which re-validates every
+      ///   invariant (alive, free, not the player, the ledger exists, NO oath already outstanding, the kind resolves
+      ///   through the whitelist, and that kind's own payload validates) before recording it. The 1:1 oath carries no
+      ///   witnesses (a private vow costs less to break than one sworn before a full council table). Only TAUGHT when
+      ///   <see cref="EncounterContext.NpcCanSwearOath" /> holds, but every guard is re-checked here and in the core:
+      ///   the prompt is advice, the bridge is law. A blank, unknown, or invalid oath is surfaced as a refusal (never
+      ///   a silent null) so the transcript OOC note fires.
+      /// </summary>
+      private static ActionOutcome ExecuteSwearOath(GameAction action, Hero npcHero)
+      {
+         try
+         {
+            if (npcHero is not {IsAlive: true} || npcHero.IsPrisoner) return null;
+
+            action.Parameters.TryGetValue("oath_kind", out string oathKind);
+
+            // Was a silent no-op class this project eliminates: an oath agreed with no kind named.
+            if (string.IsNullOrWhiteSpace(oathKind))
+               return ActionOutcome.Refused(SilentRefusalMessages.SwearOathMissingKind());
+
+            // The one grounding slot each kind fills differently, mirroring the council's own grounding
+            // (OathGroundingCodec over proposal.TargetAmount / proposal.TargetFaction): pay_gold names a sum,
+            // keep_peace names a faction, protect names nothing. The core re-validates which value the resolved
+            // kind actually needs.
+            action.Parameters.TryGetValue("target_amount", out string amountRaw);
+            action.Parameters.TryGetValue("target_faction", out string factionRaw);
+            string targetValue = !string.IsNullOrWhiteSpace(amountRaw) ? amountRaw : factionRaw ?? string.Empty;
+
+            int gameDay = (int) CampaignTime.Now.ToDays;
+            SwearOathVerdict verdict = CourtActionResolver.TrySwearOath(npcHero, oathKind, targetValue, gameDay, null);
+
+            switch (verdict.Result)
+            {
+               case SwearOathResult.SwearerUnavailable:
+                  return null;
+               case SwearOathResult.NoLedger:
+                  return null;
+               case SwearOathResult.AlreadyCommitted:
+                  return ActionOutcome.Refused($"({npcHero.Name} has already given their word on another matter, and will swear no second oath until it is settled.)");
+               case SwearOathResult.UnknownKind:
+                  return ActionOutcome.Refused(SilentRefusalMessages.SwearOathUnknownKind());
+               case SwearOathResult.InvalidAmount:
+                  return ActionOutcome.Refused($"({npcHero.Name} named no clear sum to swear to pay.)");
+               case SwearOathResult.CannotSwearPeace:
+                  return ActionOutcome.Refused($"({npcHero.Name} leads no faction of their own, and cannot swear a peace.)");
+               case SwearOathResult.NoSuchFaction:
+                  return ActionOutcome.Refused("(No faction by that name could be found to swear peace with.)");
+               case SwearOathResult.OwnFaction:
+                  return ActionOutcome.Refused($"({npcHero.Name} cannot swear to keep the peace with their own house.)");
+            }
+
+            string msg;
+
+            switch (verdict.Kind)
+            {
+               case CommitmentKind.PayGold:
+                  msg = $"{npcHero.Name} swears to pay you {verdict.PromisedAmount} denars within {CommitmentPolicy.DeadlineDays} days.";
+
+                  break;
+
+               case CommitmentKind.KeepPeace:
+                  msg = $"{npcHero.Name} swears to keep the peace with {verdict.TargetFactionName} for {CommitmentPolicy.DeadlineDays} days.";
+
+                  break;
+
+               default:
+                  msg = $"{npcHero.Name} swears to stand at your side in battle within {CommitmentPolicy.DeadlineDays} days.";
+
+                  break;
+            }
+
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+            ModLog.Info($"[ACTION] swear_oath: {npcHero.Name} swore a {verdict.Kind} oath.");
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] swear_oath failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

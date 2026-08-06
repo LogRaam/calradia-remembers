@@ -48,6 +48,16 @@ namespace CalradiaRemembers.Assemblies
         public int ActiveCount => _active.Count;
 
         /// <summary>
+        ///   True when <paramref name="payeeId" /> already has a stipend running (2026-08-05, grant_stipend brought to
+        ///   the 1:1 pipeline alongside the council): the duplicate gate BOTH paths re-check through the shared
+        ///   CourtActionResolver.TryGrantStipend, so a second concurrent grant can never double-escrow a fresh 30-day
+        ///   tranche on top of one already funded for this hero. Mirrors CommitmentBehavior.HasActive's own
+        ///   one-at-a-time gate.
+        /// </summary>
+        public bool HasActive(string payeeId)
+            => !string.IsNullOrEmpty(payeeId) && _active.Any(s => s.PayeeId == payeeId);
+
+        /// <summary>
         ///   Starts a new stipend for <paramref name="payee" /> at <paramref name="amountPerDay" /> denars/day
         ///   (re-clamped here to StipendPolicy's [50, 500] range - "the prompt is advice, the bridge is law"),
         ///   funding the WHOLE 30-day tranche up front out of the player's own gold into this behavior's escrow.
