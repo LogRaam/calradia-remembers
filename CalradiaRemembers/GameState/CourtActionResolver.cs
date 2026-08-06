@@ -404,6 +404,14 @@ namespace CalradiaRemembers.GameState
          if (Campaign.Current?.Models?.MarriageModel?.IsCoupleSuitableForMarriage(a, b) != true)
             return new ArrangeMarriageVerdict(ArrangeMarriageResult.NotSuitable, a, b, null, null);
 
+         // v1.34.2 marriage hardening (finding 1): the direct marry action re-applies MarriageGuardPolicy (no
+         // captive on either side, no active war between the two houses), but arrange_marriage used to delegate
+         // ALL hard legality to the engine's IsCoupleSuitableForMarriage, which does NOT bar a captive kin or
+         // kin whose houses are at war. Re-apply the SAME shared pure guard to BOTH parties so an arranged match
+         // cannot wed a captive or across a war in one click when the direct action forbids exactly that.
+         if (!MarriageGuardPolicy.MarriageAllowed(a.IsPrisoner, b.IsPrisoner, HousesAtWar(a, b)))
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.BlockedByGuard, a, b, null, null);
+
          // CR consent: the target family weighs the player's standing. The regard read is the mod's own
          // personal ledger (what the player built in chat), per the two-ledger rule, with the vanilla clan
          // relation as a fallback only when no profile exists yet.
@@ -1127,6 +1135,20 @@ namespace CalradiaRemembers.GameState
 
       private static int Today() => (int) CampaignTime.Now.ToDays;
 
+      /// <summary>
+      ///   Whether the two prospective spouses' houses are on opposite sides of an active war (finding 1's war
+      ///   half). Mirrors <c>AssemblyInvitationFactsBuilder.AtWar</c>: read each hero's map faction and ask the
+      ///   engine's own <see cref="IFaction.IsAtWarWith" />. False when either faction is unresolved (no war we
+      ///   can see is no war to block on).
+      /// </summary>
+      private static bool HousesAtWar(Hero a, Hero b)
+      {
+         IFaction fa = a?.MapFaction;
+         IFaction fb = b?.MapFaction;
+
+         return fa != null && fb != null && fa.IsAtWarWith(fb);
+      }
+
       #endregion
    }
 
@@ -1152,7 +1174,14 @@ namespace CalradiaRemembers.GameState
       NotCrossClan,
 
       /// <summary>The target family declines: the player's standing does not warrant the match.</summary>
-      RefusedStanding
+      RefusedStanding,
+
+      /// <summary>
+      ///   The captivity/war guard (<see cref="Logic.MarriageGuardPolicy.MarriageAllowed" />) forbids the match:
+      ///   one of the pair is held captive, or their two houses are on opposite sides of an active war. The direct
+      ///   marry action already refuses exactly these states; arrange_marriage now honours the same law (v1.34.2).
+      /// </summary>
+      BlockedByGuard
    }
 
    /// <summary>

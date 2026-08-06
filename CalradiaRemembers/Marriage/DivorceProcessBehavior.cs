@@ -561,12 +561,14 @@ namespace CalradiaRemembers.Marriage
 
          if (!MarriageDissolutionService.TryDissolve(npc, spouse, out string failReason))
          {
+            DivorceBlock block = MarriageDissolutionService.ClassifyBlock(npc, spouse);
+
             // M-D6: a pregnancy or captivity in play is TRANSIENT, not the household resisting; the marriage
             // simply cannot dissolve yet. Defer and retry once it clears (birth, release, or death; a death is
             // caught by Advance's alive-guard, so this never loops forever) instead of a false "closed ranks"
             // abort that would cost the player an unearned relation hit. A conception early in a 15-30 day
             // process would otherwise GUARANTEE that false failure, since a pregnancy runs far longer.
-            if (MarriageDissolutionService.ClassifyBlock(npc, spouse) == DivorceBlock.Transient)
+            if (block == DivorceBlock.Transient)
             {
                process.EndDay = DivorcePolicy.ExtendEndDay(process.EndDay);
                ModLog.Info($"[DIVORCE] {npc.Name} / {spouse.Name}: dissolution deferred ({failReason}); end day pushed to {process.EndDay}, no penalty.");
@@ -574,6 +576,24 @@ namespace CalradiaRemembers.Marriage
                return;
             }
 
+            // v1.34.2 marriage hardening (finding 3): a STRUCTURAL block (the leaving spouse was handed a party or
+            // a governorship mid-process) is NOT the household closing ranks. Treating it as one used to abort with
+            // a false "closed ranks" record plus an unearned player penalty, and never released the blocking role,
+            // so the divorce could be frozen forever merely by giving the spouse a post. Mirror the willing
+            // spouse-walkout handling (SpouseDivorceDemandBehavior): release what can be released, then defer and
+            // retry so tomorrow's attempt can complete honestly instead of punishing the player.
+            if (block == DivorceBlock.Structural)
+            {
+               Hero leaving = DivorceEligibilityResolver.ResolveLeavingSpouse(npc, spouse);
+               MarriageDissolutionService.ReleaseStructuralRoles(leaving);
+               process.EndDay = DivorcePolicy.ExtendEndDay(process.EndDay);
+               ModLog.Info($"[DIVORCE] {npc.Name} / {spouse.Name}: structural block ({failReason}); released the blocking role, end day pushed to {process.EndDay}, no penalty.");
+
+               return;
+            }
+
+            // Only a genuine block-free refusal reaches here: the spouse's own resistance won. This is the one case
+            // that honestly earns the "the household closed ranks" record and the player relation hit.
             ModLog.Info($"[DIVORCE] dissolution at deadline failed for {npc.Name} / {spouse.Name}: {failReason}.");
             TerminateAborted(process, npc, spouse);
 

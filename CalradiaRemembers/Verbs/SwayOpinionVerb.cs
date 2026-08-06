@@ -74,7 +74,15 @@ namespace CalradiaRemembers.Verbs
                     return ActionOutcome.Refused($"({npcHero.Name}'s opinion of {target.Name} was only just moved; give it time.)");
 
                 action.Parameters.TryGetValue("stance", out string stanceRaw);
-                bool against = !string.Equals(stanceRaw?.Trim(), "for", StringComparison.OrdinalIgnoreCase);
+
+                // v1.34.2 resilience: never default to the harmful direction. A malformed, blank, or hallucinated
+                // stance used to fall through to "against" (a -6 hit, a Rivalry rumour, grudge exposure); now an
+                // unrecognized stance is refused outright rather than wounding a third party by accident.
+                SwayStance stance = SwayStanceParser.Parse(stanceRaw);
+                if (stance == SwayStance.Unrecognized)
+                    return ActionOutcome.Refused($"(No clear stance was given for {npcHero.Name}'s opinion of {target.Name}; nothing changes.)");
+
+                bool against = stance == SwayStance.Against;
                 int delta = CourtActionPolicy.SwayDelta(against);
 
                 ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npcHero, target, delta, false);

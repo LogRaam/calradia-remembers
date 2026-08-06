@@ -1749,6 +1749,8 @@ namespace CalradiaRemembers.GameState
                   return ActionOutcome.Refused($"({verdict.B.Name} is already of your own clan.)");
                case ArrangeMarriageResult.RefusedStanding:
                   return ActionOutcome.Refused($"({npcHero.Name} will not give {verdict.B.Name} to your house on your present standing.)");
+               case ArrangeMarriageResult.BlockedByGuard:
+                  return ActionOutcome.Refused($"({verdict.A.Name} and {verdict.B.Name} cannot be wed now: not across a war, nor from captivity.)");
             }
 
             string msg = $"{npcHero.Name} consents: {verdict.A.Name} of your clan and {verdict.B.Name} of {verdict.B.Clan?.Name} are wed.";

@@ -1482,6 +1482,7 @@ namespace CalradiaRemembers.Chat
             case ArrangeMarriageResult.NotSuitable: return "the two named could not lawfully wed (age, kinship, or one is already promised elsewhere).";
             case ArrangeMarriageResult.NotCrossClan: return "the kin named is already of the player's own clan.";
             case ArrangeMarriageResult.RefusedStanding: return $"{actorName}'s house will not give their kin to the player's house on its present standing.";
+            case ArrangeMarriageResult.BlockedByGuard: return "the two named cannot be wed now: not across a war, nor from captivity.";
             default: return "the match could not be arranged.";
          }
       }

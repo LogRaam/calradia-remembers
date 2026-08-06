@@ -37,6 +37,20 @@ namespace CalradiaRemembers.Tests
          MarriageGuardPolicy.MarriageAllowed(false, false, true).Should().BeFalse();  // at war
       }
 
+      // v1.34.2 finding 1: arrange_marriage (CourtActionResolver.TryArrangeMarriage) now re-applies THIS same
+      // predicate to BOTH kin, having delegated all legality to the engine's IsCoupleSuitableForMarriage before,
+      // which does not bar a captive kin or kin whose houses are at war. Mapping the two prospective spouses onto
+      // the predicate's args, a captive on either side or a war between their houses must forbid the match exactly
+      // as the direct marry action already does, so the arranged path cannot wed a captive or across a war.
+      [Test]
+      public void GIVEN_an_arranged_match_with_a_captive_kin_or_warring_houses_WHEN_checking_THEN_it_is_forbidden()
+      {
+         MarriageGuardPolicy.MarriageAllowed(candidatePrisoner: true, playerPrisoner: false, atWarWithCandidate: false).Should().BeFalse();  // player-kin captive
+         MarriageGuardPolicy.MarriageAllowed(candidatePrisoner: false, playerPrisoner: true, atWarWithCandidate: false).Should().BeFalse();  // target-kin captive
+         MarriageGuardPolicy.MarriageAllowed(candidatePrisoner: false, playerPrisoner: false, atWarWithCandidate: true).Should().BeFalse();  // houses at war
+         MarriageGuardPolicy.MarriageAllowed(candidatePrisoner: false, playerPrisoner: false, atWarWithCandidate: false).Should().BeTrue();  // clean match still allowed
+      }
+
       // A blessing from a lord who is alive, free, at peace, and holds the player in at least neutral regard is
       // the one valid case, so an earned blessing still lands.
       [Test]
