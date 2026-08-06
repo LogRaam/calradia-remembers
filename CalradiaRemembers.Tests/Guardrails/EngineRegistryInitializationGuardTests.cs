@@ -50,17 +50,27 @@ namespace CalradiaRemembers.Tests.Guardrails
         {
             string? dllPath = TryLocateModAssembly();
 
-            // A missing DLL is an inability to run the check, not a passed check. Silently ignoring here would let
-            // this guardrail no-op exactly where it matters most (a CI or clean checkout where the mod was not
-            // built), so we FAIL loudly with the one action that fixes it rather than Assert.Ignore. The mod and
-            // this test project are one solution; building the mod is a documented prerequisite.
+            // A missing DLL is an inability to run the check, not a passed check. Under nCrunch the test runs from
+            // an isolated workspace with no path back to the repo tree (neither TestDirectory nor this file's
+            // CallerFilePath resolves to it), and a net10 test project cannot reference the net472 mod to get its
+            // DLL copied in, so the built assembly is genuinely unreachable there: SKIP (Ignore), since the real
+            // gate runs under `dotnet test` / CI on every batch. Everywhere else a missing DLL means the mod was
+            // simply not built, so FAIL loudly with the one action that fixes it rather than silently no-opping
+            // the guardrail in CI or a clean checkout.
             if (dllPath == null)
             {
-                Assert.Fail(
+                string message =
                     "Could not locate a compiled CalradiaRemembers.dll to scan. Build the mod project first, e.g.\n" +
                     "  dotnet build \"CalradiaRemembers\\CalradiaRemembers.csproj\"\n" +
                     "then re-run the tests. This guardrail inspects the built assembly's IL; without it the " +
-                    "save-load crash check cannot run.");
+                    "save-load crash check cannot run.";
+
+                if (Environment.GetEnvironmentVariable("NCrunch") == "1")
+                    Assert.Ignore("nCrunch runs this test from an isolated workspace with no path to the mod's " +
+                                  "build output, so the IL scan cannot run here; it runs under dotnet test / CI. " + message);
+                else
+                    Assert.Fail(message);
+
                 return;
             }
 
