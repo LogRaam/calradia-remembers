@@ -41,7 +41,8 @@ namespace CalradiaRemembers.GameState
             HasLiege = hasLiege,
             RelationWithLiege = hasLiege
                ? lord.GetRelation(liege)
-               : 0
+               : 0,
+            IsClanLeader = clan != null && clan.Leader == lord
          };
       }
    }

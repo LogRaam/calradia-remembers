@@ -19,6 +19,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 
 #endregion
@@ -86,13 +87,20 @@ namespace CalradiaRemembers.Verbs
                 // Captured BEFORE the transfer (the grudge rule reads the captive's prior regard).
                 int captiveRegardForPlayer = captive.GetRelation(Hero.MainHero);
 
-                // The gold, then the man: the NPC pays the player, and the captive changes hands to the
-                // buyer's party (or simply leaves the player's custody when the buyer rides with none).
-                GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, price);
+                // Resolve a REAL destination prison the buyer can hold the captive in BEFORE any gold moves.
+                // A buyer with nowhere to keep a prisoner is REFUSED here, never paid: the old code fell back
+                // to AddToCounts(-1) on the PLAYER's roster, which deleted the captive and left them a
+                // prisoner of no one (IsPrisoner with no captor party, verified state corruption).
+                PartyBase dest = ResolveCaptorPrison(npcHero);
+                if (dest == null)
+                    return ActionOutcome.Refused($"({npcHero.Name} has no party or holding to keep a prisoner in.)");
+
                 CharacterObject captiveChar = captive.CharacterObject;
-                PartyBase dest = npcHero.PartyBelongedTo?.Party;
-                if (dest != null) TransferPrisonerAction.Apply(captiveChar, MobileParty.MainParty.Party, dest);
-                else MobileParty.MainParty.PrisonRoster.AddToCounts(captiveChar, -1);
+
+                // The gold, then the man: the NPC pays the player, and the captive changes hands into the
+                // buyer's custody (a real +1 to a real roster, never a phantom deletion).
+                GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, price);
+                TransferPrisonerAction.Apply(captiveChar, MobileParty.MainParty.Party, dest);
 
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
@@ -129,6 +137,32 @@ namespace CalradiaRemembers.Verbs
 
                 return null;
             }
+        }
+
+        /// <summary>
+        ///   A prison-holding party that can actually RECEIVE a bought or handed-over captive, or null when
+        ///   the receiver has nowhere to keep one. Resolved BEFORE any gold or transfer: the receiver's own
+        ///   party, else the settlement they stand in, else a town or castle their clan owns. Returning null
+        ///   (so the caller refuses) is what stops a receiver with no party from being paid while the captive
+        ///   is deleted and left a prisoner of no one. Shared with the give_prisoner twin in the bridge.
+        /// </summary>
+        internal static PartyBase ResolveCaptorPrison(Hero receiver)
+        {
+            if (receiver == null) return null;
+
+            PartyBase own = receiver.PartyBelongedTo?.Party;
+            if (own != null) return own;
+
+            PartyBase here = receiver.CurrentSettlement?.Party;
+            if (here != null) return here;
+
+            Clan clan = receiver.Clan;
+            if (clan?.Settlements != null)
+                foreach (Settlement s in clan.Settlements)
+                    if (s?.Party != null && (s.IsTown || s.IsCastle))
+                        return s.Party;
+
+            return null;
         }
 
         // ── Shared with the teaching: the player's hero captives, and the game's own valuation ──

@@ -176,6 +176,22 @@ namespace CalradiaRemembers.Tests
          LordRecruitment.Evaluate(f).Should().Be(LordRecruitmentBlock.PlayerRankTooLow);
       }
 
+      // v1.34.1 hotfix: reassigning a clan LEADER's Clan to the player's house orphans their old clan, leaving
+      // Clan.Leader / Kingdom.Leader dangling (a verified save-corruption bug the executor's old guard missed:
+      // it only caught a different-kingdom leader, letting an independent or same-kingdom leader through). The
+      // rule is categorical and must fire even when every warmth/rank/vulnerability gate would otherwise pass,
+      // so a deeply-trusted, outranked, landless lord who happens to lead their house is still refused.
+      [Test]
+      public void GIVEN_a_lord_who_leads_their_own_clan_WHEN_evaluating_THEN_they_cannot_be_recruited_even_if_otherwise_eligible()
+      {
+         //Arrange: every other gate passes (deep trust, outranked, landless), but they lead their own house.
+         LordRecruitmentFacts f = Facts(90, 6, 1, landless: true, isClanLeader: true);
+
+         //Act/Assert
+         LordRecruitment.Evaluate(f).Should().Be(LordRecruitmentBlock.LordLeadsOwnClan);
+         LordRecruitment.IsEligible(f).Should().BeFalse();
+      }
+
       #region private
 
       private static LordRecruitmentFacts Facts(
@@ -185,7 +201,8 @@ namespace CalradiaRemembers.Tests
          bool landless = false,
          bool clanWeak = false,
          bool hasLiege = false,
-         int relWithLiege = 0)
+         int relWithLiege = 0,
+         bool isClanLeader = false)
          => new() {
             Relation = relation,
             PlayerClanTier = playerTier,
@@ -193,7 +210,8 @@ namespace CalradiaRemembers.Tests
             LordIsLandless = landless,
             LordClanWeakOrDestroyed = clanWeak,
             HasLiege = hasLiege,
-            RelationWithLiege = relWithLiege
+            RelationWithLiege = relWithLiege,
+            IsClanLeader = isClanLeader
          };
 
       #endregion

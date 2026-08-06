@@ -19,7 +19,10 @@ namespace CalradiaRemembers.Logic
         PlayerRankTooLow,
 
         /// <summary>The lord is too comfortable to leave: landed, in a strong clan, and content with their liege.</summary>
-        LordNotVulnerable
+        LordNotVulnerable,
+
+        /// <summary>The lord IS their own clan's leader: dissolving their house into the player's by a chat line would orphan the clan.</summary>
+        LordLeadsOwnClan
     }
 
     /// <summary>The engine-gathered facts a lord-recruitment decision rests on — pure to reason over.</summary>
@@ -45,6 +48,13 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>The lord's relation toward their current liege; only weighed when <see cref="HasLiege"/>.</summary>
         public int RelationWithLiege { get; set; }
+
+        /// <summary>
+        ///   True when the lord IS the leader of their own clan. Such a lord can never be recruited into the
+        ///   player's clan: reassigning their Clan would leave Clan.Leader / Kingdom.Leader dangling on the
+        ///   abandoned house (save corruption). Only a non-leader member may defect.
+        /// </summary>
+        public bool IsClanLeader { get; set; }
     }
 
     /// <summary>
@@ -66,6 +76,10 @@ namespace CalradiaRemembers.Logic
         public static LordRecruitmentBlock Evaluate(LordRecruitmentFacts f)
         {
             if (f == null) return LordRecruitmentBlock.TrustTooLow;
+
+            // Categorical, checked before every warmth/rank/vulnerability gate: a clan LEADER cannot be
+            // uprooted into the player's house at all (it would orphan their own clan), however deep the bond.
+            if (f.IsClanLeader) return LordRecruitmentBlock.LordLeadsOwnClan;
 
             if (f.Relation < MinRelation) return LordRecruitmentBlock.TrustTooLow;
             if (f.PlayerClanTier < f.LordClanTier) return LordRecruitmentBlock.PlayerRankTooLow;

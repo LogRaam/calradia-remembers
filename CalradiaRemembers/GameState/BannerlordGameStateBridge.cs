@@ -156,9 +156,18 @@ namespace CalradiaRemembers.GameState
             if (captor == null) return false;
 
             // The prompt only PROPOSES; the bridge is the law. Re-validate the same gate the teaching used.
+            // BOTH taught release paths are honored symmetrically: a captor talked round (AllowsPersuasion)
+            // OR bought off with gold (AllowsRansom) frees the player. Only a vendetta captor, open to
+            // neither, refuses. Honoring persuasion alone left a ransom-only captor (cruel, moderate grudge)
+            // pocketing an agreed ransom yet keeping the player caged, a silent no-op.
             CaptorReleaseVerdict verdict = ResolveCaptorReleaseVerdict(captor);
 
-            if (!verdict.AllowsPersuasion) return false;
+            if (verdict.RefusesAll)
+            {
+               ModLog.Info($"[RELEASE] {captor.Name} refuses every release (vendetta): player stays captive, nothing granted.");
+
+               return false;
+            }
 
             _pendingRelease = true;
             _pendingReleaseCaptor = captor;
@@ -288,9 +297,11 @@ namespace CalradiaRemembers.GameState
             case "end_own_marriage":
                return ExecuteEndOwnMarriage(npcHero);
             default:
-               ModLog.Info($"[ACTION] Unknown type '{action.Type}' — ignored.");
+               // Safety net: an unknown / hallucinated verb must SURFACE a refusal (player line + transcript
+               // OOC note), never vanish as a silent null, or the model's invented deed goes uncorrected.
+               ModLog.Info($"[ACTION] Unknown type '{action.Type}' refused (no executor).");
 
-               return null;
+               return ActionOutcome.Refused("(That cannot be done here. Nothing happened.)");
          }
       }
 
@@ -712,6 +723,22 @@ namespace CalradiaRemembers.GameState
             ModLog.Info($"[BARGAIN] {giverHero?.Name}: accepted goods worth {total} denars " + $"(required {quest.RequiredItemValue}) for {quest.Reward}.");
 
             ActionOutcome grant = GrantConditionalReward(giverHero, giver, quest);
+
+            // A rewarded bargain (e.g. RewardGrant.JoinParty) can still be REFUSED at the grant seam
+            // (not recruitable, clan full). The goods were already removed above, so a failed grant must
+            // put back EXACTLY what was taken: a refused hire never destroys the player's goods, and the
+            // quest stays open to try again. RewardGrant.None returns a null grant that is a legitimate
+            // "goods simply accepted", so only a non-null-but-unsuccessful grant triggers the refund.
+            bool grantFailed = quest.Reward != RewardGrant.None && (grant == null || !grant.IsPositive);
+            if (grantFailed)
+            {
+               foreach ((ItemObject item, int count) in toRemove)
+                  roster.AddToCounts(item, count);
+
+               ModLog.Info($"[BARGAIN] {giverHero?.Name}: reward '{quest.Reward}' refused after tally; goods returned to the player.");
+
+               return grant ?? ActionOutcome.Refused($"({giverHero?.Name} cannot honor that bargain; your goods are returned.)");
+            }
 
             return grant ?? new ActionOutcome($"{giverHero?.Name} accepts your goods.", true);
          }
@@ -2551,10 +2578,16 @@ namespace CalradiaRemembers.GameState
 
             Clan oldClan = npcHero.Clan;
 
-            // Pull them out of any kingdom obligation first, then move them under the player's banner.
-            if (oldClan?.Kingdom != null && oldClan.Leader == npcHero && oldClan.Kingdom != playerClan.Kingdom)
+            // A clan LEADER cannot dissolve their own house into the player's by a chat line: reassigning
+            // npcHero.Clan would leave Clan.Leader / Kingdom.Leader dangling on the abandoned clan (save
+            // corruption). Independent leaders (Kingdom == null), same-kingdom leaders and different-kingdom
+            // leaders alike are ALL refused; only a non-leader member may defect. Re-checked against the same
+            // IsClanLeader fact the teaching gate reads (LordRecruitmentFactsBuilder): the prompt is advice,
+            // the bridge is law. The narrow old guard only caught a different-kingdom leader and let the other
+            // two orphan a clan.
+            if (oldClan?.Leader == npcHero)
                return ActionOutcome.Refused(
-                  $"({npcHero.Name} leads a clan sworn to {oldClan.Kingdom.Name}; such a defection cannot be sealed in mere conversation.)");
+                  $"({npcHero.Name} leads the house of {oldClan?.Name?.ToString() ?? "their birth"}; a lord cannot dissolve their own clan into yours with a word.)");
 
             npcHero.Clan = playerClan;
 
@@ -3722,10 +3755,16 @@ namespace CalradiaRemembers.GameState
                ? prisonerHero.GetRelation(Hero.MainHero)
                : 0;
 
-            // Hand the captive to the lord's party; if they ride with none, take them off the player's hands.
-            PartyBase dest = npcHero.PartyBelongedTo?.Party;
-            if (dest != null) TransferPrisonerAction.Apply(prisonerChar, MobileParty.MainParty.Party, dest);
-            else MobileParty.MainParty.PrisonRoster.AddToCounts(prisonerChar, -1);
+            // Resolve a REAL destination prison BEFORE settling anything: the lord's own party, else the
+            // settlement they stand in, else a holding their clan owns. A lord with nowhere to keep a
+            // prisoner is REFUSED here (quest left open, captive untouched), never handed a phantom: the old
+            // AddToCounts(-1) fallback deleted the captive and left them a prisoner of no one while the
+            // bargain still paid out (verified state corruption).
+            PartyBase dest = BuyPrisonerVerb.ResolveCaptorPrison(npcHero);
+            if (dest == null)
+               return ActionOutcome.Refused($"({npcHero.Name} has no party or holding to keep {prisonerHero.Name} in.)");
+
+            TransferPrisonerAction.Apply(prisonerChar, MobileParty.MainParty.Party, dest);
 
             var today = (int) CampaignTime.Now.ToDays;
             quest.SatisfiedOnDay = today;
