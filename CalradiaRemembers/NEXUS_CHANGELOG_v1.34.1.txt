@@ -1,0 +1,18 @@
+Version 1.34.1
+
+A hardening release: many conversation actions are now safer and fairer, and letters survive the road better. Your saves carry over untouched.
+
+Fixed
+- Fiefs stay within your realm. Granting or revoking a fief in conversation now checks that the other party is a vassal of your own kingdom, so a ruler can no longer be talked into handing a crown fief to a foreign or enemy house, or confiscating an enemy's holding with no siege.
+- No more vanishing prisoners. A prisoner handed over or bought in conversation now always ends up with a real captor, instead of a lord with nowhere to hold one taking your coin and leaving the captive in limbo.
+- Ransom is honored. A captor open to ransom now actually frees you once the terms are met, instead of taking the payment and keeping you caged.
+- Goods returned on a failed hire. Wares you offer to seal a recruitment that then falls through are returned to you, rather than lost.
+- A clan keeps its head. A lord can no longer be persuaded to dissolve their own clan into yours.
+- The peace oath blames the aggressor, not the victim. A lord who swore to keep the peace and is then attacked is no longer branded an oathbreaker for a war waged against them; only the one who marches breaks the oath.
+- Honest reinforcements. Troops a lord gives your party are now described as a permanent gift, not a loan that never returned.
+- No silent non-actions. When the AI proposes something the game cannot actually do, it now says so plainly instead of quietly doing nothing.
+- Letters survive the road. A letter carried a long way (when you are far from the sender) is far less likely to be lost to bandits; interception no longer piles up with distance.
+
+New
+- Send letters under armed escort. When you hire a courier, you can pay for an armed escort; that whole correspondence, both directions and every later reply, then always gets through, safe from interception.
+- New option: Invulnerable couriers. A single switch in the mod options that makes your letters never get lost to bandits at all.
