@@ -360,25 +360,30 @@ namespace CalradiaRemembers.Quests
                                 KillCharacterAction.KillCharacterActionDetail detail,
                                 bool showNotification)
       {
-         if (victim == null || killer != Hero.MainHero) return; // the player struck the blow
+         // v1.34.2 fault/no-fault hardening (audit Pattern 2): return only on a missing victim, NOT on any
+         // non-player kill. The old "killer != MainHero" early-out made the ExecuteEnemy branch below
+         // unreachable for a THIRD-PARTY kill, so a named target slain by another lord left the quest a zombie
+         // that later expired with an unjust penalty. Player-causation is now weighed per quest KIND
+         // (QuestKillCreditPolicy): a paid NemesisBounty still pays ONLY for the player's own hand, while an
+         // ExecuteEnemy is satisfied by the target's death whoever dealt it (the giver's end is met either way).
+         if (victim == null) return;
 
          int day = CurrentDay();
+         bool killerIsPlayer = killer == Hero.MainHero;
          ForEachOutstandingQuest((profile, quest) =>
          {
             if (!string.Equals(quest.TargetHeroId, victim.StringId, StringComparison.Ordinal)) return;
+            if (!QuestKillCreditPolicy.IsSatisfiedByKill(quest.Type, killerIsPlayer)) return;
 
-            // Nemesis pillar increment 3 (bounty missions): a NemesisBounty quest is satisfied by EITHER
-            // this hook or OnHeroPrisonerTaken below, whichever fires first (a bounty is "capture OR execute",
-            // never both required). Ratified 2026-07-24 (audit M2): a bounty pays ONLY when the PLAYER is the
-            // cause, so a nemesis cut down by a third hand does not hand the player a reward he did not earn;
-            // NemesisResolutionBehavior then CANCELS that now-uncompletable bounty. NemesisResolutionBehavior's
-            // own HeroKilledEvent listener separately resolves the identity (IsAlive/DeathDay) regardless.
-            if (quest.Type == QuestType.NemesisBounty && killer == Hero.MainHero)
-               Stamp(profile, quest, $"Killed {victim.Name} on day {day}", day);
-            // An ExecuteEnemy quest (a named target the giver wanted dead) is satisfied by the target's death
-            // whoever dealt it: the giver's end is met either way. Only the paid bounty demands player causation.
-            else if (quest.Type == QuestType.ExecuteEnemy)
-               Stamp(profile, quest, $"Killed {victim.Name} on day {day}", day);
+            // A NemesisBounty pays for the player's own kill (a nemesis cut down by a third hand is left for
+            // NemesisResolutionBehavior to cancel, never rewarded here); an ExecuteEnemy simply needed the
+            // target dead, so its evidence stays honest about causation when another hand dealt the blow.
+            string evidence = quest.Type == QuestType.NemesisBounty
+               ? $"Killed {victim.Name} on day {day}"
+               : killerIsPlayer
+                  ? $"Killed {victim.Name} on day {day}"
+                  : $"{victim.Name} was slain on day {day}";
+            Stamp(profile, quest, evidence, day);
          });
       }
 

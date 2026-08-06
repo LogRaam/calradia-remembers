@@ -375,9 +375,14 @@ namespace CalradiaRemembers.WorldEvents
             Hero plotter = FindHero(scheme.PlotterId);
             Hero target = FindHero(scheme.TargetId);
 
-            // A dead or vanished party ends the plot quietly.
+            // A dead or vanished party ends the plot quietly. v1.34.2 fault/no-fault hardening (audit Pattern 2):
+            // before dropping the scheme, resolve any pledge linked to this exact pair as a NEUTRAL VOID, so a
+            // MoveAgainst promise whose rival just died does not survive to be branded a public parjury by the
+            // commitment breach sweep (the target's death is an act of the world, not the promisor's breach).
             if (plotter is not {IsAlive: true} || target is not {IsAlive: true})
             {
+               CommitmentBehavior.Instance?.OnSchemeVoided(scheme.PlotterId, scheme.TargetId,
+                  "The rival is beyond reach now: the pledge is set aside, no fault to answer for.");
                _schemes.Remove(scheme);
 
                continue;

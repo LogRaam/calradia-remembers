@@ -197,6 +197,22 @@ namespace CalradiaRemembers.Quests
                   continue;
                }
 
+               // v1.34.2 fault/no-fault hardening (audit Pattern 2): a capture/attack/execute/rescue/deliver
+               // quest whose TARGET hero died or vanished (or, for a rescue, is no longer held) between the
+               // promise and now can never be answered through any fault of the player. Cancel it as a clean
+               // NEUTRAL VOID (no penalty, no grudge, no fail banner), exactly like a dead giver's quest above,
+               // instead of letting the deadline lapse into an unjust breach with a lasting grudge.
+               if (quest.IsOutstanding && TargetLostToVoid(quest))
+               {
+                  quest.Status = QuestStatus.Cancelled;
+                  AddEvent(profile, gameDay, NotableEventType.Other,
+                     $"Set aside the task to {Describe(quest)}: it can no longer be answered.");
+                  QuestJournalBridge.CloseAsCancelled(quest, giverHero, "The mark of this task is gone from the world. It can no longer be answered.");
+                  changed = true;
+
+                  continue;
+               }
+
                if (!quest.IsOutstanding || !quest.DeadlineDay.HasValue || gameDay <= quest.DeadlineDay.Value) continue;
 
                quest.Status = QuestStatus.Expired;
@@ -669,6 +685,26 @@ namespace CalradiaRemembers.Quests
          if (target == null) return false;
 
          return !FactionManager.IsAtWarAgainstFaction(giverHero.MapFaction, target);
+      }
+
+      /// <summary>
+      ///   v1.34.2 fault/no-fault hardening (audit Pattern 2): true when a hero-bound quest's TARGET has left
+      ///   the board (died, vanished, or, for a rescue, is no longer a prisoner), so the task is impossible
+      ///   through no fault of the player. The pure rule lives in
+      ///   <see cref="CalradiaRemembers.Logic.QuestTargetVoidPolicy" />; this only resolves the live hero state.
+      /// </summary>
+      private static bool TargetLostToVoid(InformalQuest quest)
+      {
+         if (string.IsNullOrEmpty(quest.TargetHeroId)) return false;
+
+         Hero target = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+
+         return CalradiaRemembers.Logic.QuestTargetVoidPolicy.ShouldVoid(
+            quest.Type,
+            hasTargetHero: true,
+            targetResolved: target != null,
+            targetAlive: target is {IsAlive: true},
+            targetIsPrisoner: target is {IsPrisoner: true});
       }
 
       private static bool Prune(NpcProfile profile)

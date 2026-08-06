@@ -194,5 +194,89 @@ namespace CalradiaRemembers.Tests
       {
          CommitmentPolicy.BrokenOathGrudgeMagnitude.Should().BePositive();
       }
+
+      // ── v1.34.2 fault/no-fault hardening (audit Pattern 2): captivity + target-gone ──
+
+      // STAKE: this is the whole point of the hardening. When the world is calm (promisor free, player free,
+      // rival alive), the breach-bound kinds must still breach on an empty deadline exactly as before, or the
+      // no-fault escapes below would have quietly disarmed every real oathbreaker too.
+      [TestCase(CommitmentKind.MoveAgainst)]
+      [TestCase(CommitmentKind.PayGold)]
+      [TestCase(CommitmentKind.Protect)]
+      public void GIVEN_a_calm_world_WHEN_a_breach_bound_kind_lapses_THEN_it_still_breaches(CommitmentKind kind)
+      {
+         CommitmentPolicy.OnOverdue(kind, promisorIsPrisoner: false, playerIsPrisoner: false, targetGone: false)
+            .Should().Be(OverdueOutcome.Breach);
+      }
+
+      // STAKE (audit Pattern 2, finding 1): a promisor sitting in a dungeon could do NOTHING to move against a
+      // rival, pay a sum, or fight at anyone's side. Breaching him for the deadline lapsing punishes the innocent
+      // for an event outside his control; the clock must suspend instead, and resume when he is freed.
+      [TestCase(CommitmentKind.MoveAgainst)]
+      [TestCase(CommitmentKind.PayGold)]
+      [TestCase(CommitmentKind.Protect)]
+      public void GIVEN_the_promisor_is_a_prisoner_WHEN_a_breach_bound_kind_lapses_THEN_it_suspends(CommitmentKind kind)
+      {
+         CommitmentPolicy.OnOverdue(kind, promisorIsPrisoner: true, playerIsPrisoner: false, targetGone: false)
+            .Should().Be(OverdueOutcome.Suspend);
+      }
+
+      // STAKE (audit Pattern 2, finding 1): a Protect oath is "I will stand at YOUR side in battle". If the PLAYER
+      // is the one captive, the promisor cannot fulfil it through no fault of his own, so a captured player must
+      // suspend a Protect oath too, not breach it. (Only Protect keys on the player's captivity, tested below.)
+      [Test]
+      public void GIVEN_the_player_is_a_prisoner_WHEN_a_protect_oath_lapses_THEN_it_suspends()
+      {
+         CommitmentPolicy.OnOverdue(CommitmentKind.Protect, promisorIsPrisoner: false, playerIsPrisoner: true, targetGone: false)
+            .Should().Be(OverdueOutcome.Suspend);
+      }
+
+      // STAKE: the player's captivity is meaningless to a PayGold oath (paying a sum needs no battle and no free
+      // player), so a captured player must NOT suspend a PayGold oath a free promisor simply never honored, or an
+      // oathbreaker would escape every time the player happened to be a prisoner elsewhere.
+      [Test]
+      public void GIVEN_only_the_player_is_a_prisoner_WHEN_a_pay_gold_oath_lapses_THEN_it_still_breaches()
+      {
+         CommitmentPolicy.OnOverdue(CommitmentKind.PayGold, promisorIsPrisoner: false, playerIsPrisoner: true, targetGone: false)
+            .Should().Be(OverdueOutcome.Breach);
+      }
+
+      // STAKE (audit Pattern 2, finding 2): a lord cannot move against a corpse. When the rival a MoveAgainst
+      // pledge named is dead or gone, the obligation must void CLEANLY, never breach into a public parjury the
+      // player is penalised for; the rival's death is an act of the world, not the promisor's broken faith.
+      [Test]
+      public void GIVEN_the_move_against_rival_is_gone_WHEN_the_pledge_lapses_THEN_it_is_a_neutral_void()
+      {
+         CommitmentPolicy.OnOverdue(CommitmentKind.MoveAgainst, promisorIsPrisoner: false, playerIsPrisoner: false, targetGone: true)
+            .Should().Be(OverdueOutcome.NeutralVoid);
+      }
+
+      // STAKE: a dead rival is a stronger, more certain end than a captive promisor, so the void must win over a
+      // suspend when BOTH apply, or a MoveAgainst pledge against a rival who is already dead would linger
+      // suspended forever waiting on a promisor who has nothing left to do.
+      [Test]
+      public void GIVEN_the_rival_is_gone_AND_the_promisor_is_captive_WHEN_the_pledge_lapses_THEN_void_wins_over_suspend()
+      {
+         CommitmentPolicy.OnOverdue(CommitmentKind.MoveAgainst, promisorIsPrisoner: true, playerIsPrisoner: false, targetGone: true)
+            .Should().Be(OverdueOutcome.NeutralVoid);
+      }
+
+      // STAKE: KeepPeace's baseline is Fulfill (silence IS success), so NONE of the no-fault escapes may apply to
+      // it. A captured lord who never marched to war still kept the peace; suspending or voiding it would rob him
+      // of a deserved fulfilment, so the overload must short-circuit to Fulfill regardless of captivity.
+      [Test]
+      public void GIVEN_keep_peace_WHEN_the_deadline_lapses_even_with_a_captive_promisor_THEN_it_still_fulfills()
+      {
+         CommitmentPolicy.OnOverdue(CommitmentKind.KeepPeace, promisorIsPrisoner: true, playerIsPrisoner: true, targetGone: true)
+            .Should().Be(OverdueOutcome.Fulfill);
+      }
+
+      // The suspend grace window must be a real, forward extension (positive), or a "suspended" oath would be
+      // pushed to today-or-earlier and re-breach on the very next sweep, defeating the whole pause.
+      [Test]
+      public void GIVEN_the_captivity_suspend_grace_WHEN_read_THEN_it_is_a_positive_forward_window()
+      {
+         CommitmentPolicy.CaptivitySuspendGraceDays.Should().BePositive();
+      }
    }
 }

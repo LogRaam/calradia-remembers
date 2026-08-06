@@ -71,6 +71,15 @@ namespace CalradiaRemembers.Logic
         public static int WitnessBreachPenalty(int witnessCount)
             => witnessCount <= 0 ? 0 : Math.Max(PerWitnessBreachPenalty * witnessCount, MaxWitnessBreachPenalty);
 
+        /// <summary>
+        ///   Tuning (v1.34.2 fault/no-fault hardening, audit Pattern 2): the grace window a SUSPENDED oath's
+        ///   deadline is pushed forward to while its promisor (or, for Protect, the player) sits captive, so a
+        ///   lord freed after a long captivity still has real days to make good and the sweep does not re-breach
+        ///   him the instant he walks out of the cell. Re-applied each day the captivity persists; because the
+        ///   promisor is already past the old deadline when this fires, the deadline only ever moves forward.
+        /// </summary>
+        public const int CaptivitySuspendGraceDays = 7;
+
         /// <summary>The deadline day for a commitment issued on <paramref name="issuedDay" />.</summary>
         public static int ComputeDeadline(int issuedDay) => issuedDay + DeadlineDays;
 
@@ -88,6 +97,30 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public static OverdueOutcome OnOverdue(CommitmentKind kind)
             => kind == CommitmentKind.KeepPeace ? OverdueOutcome.Fulfill : OverdueOutcome.Breach;
+
+        /// <summary>
+        ///   The overdue-sweep outcome once the WORLD that moved between promise and deadline is taken into
+        ///   account (v1.34.2 fault/no-fault hardening, audit Pattern 2): a commitment must never be branded a
+        ///   breach for an event outside the promisor's control. KeepPeace still honors itself by its own silence
+        ///   even from a cell (its baseline is never a breach, so it short-circuits first). For every breach-bound
+        ///   kind: a MoveAgainst pledge whose rival is now dead or gone (<paramref name="targetGone" />) is a clean
+        ///   <see cref="OverdueOutcome.NeutralVoid" /> (a lord cannot move against a corpse, and the death is an act
+        ///   of the world, never his breach); a promisor who is a PRISONER, or (for Protect) a PLAYER who is a
+        ///   prisoner, could do nothing to honor the vow, so the clock is <see cref="OverdueOutcome.Suspend" />ed,
+        ///   never run out under him, resuming when he is freed. Only when none of these no-fault escapes apply does
+        ///   silence at the deadline read as a genuine <see cref="OverdueOutcome.Breach" />.
+        /// </summary>
+        public static OverdueOutcome OnOverdue(CommitmentKind kind, bool promisorIsPrisoner, bool playerIsPrisoner, bool targetGone)
+        {
+            OverdueOutcome baseline = OnOverdue(kind);
+            if (baseline != OverdueOutcome.Breach) return baseline; // KeepPeace: silence IS success, cell or no cell
+
+            if (kind == CommitmentKind.MoveAgainst && targetGone) return OverdueOutcome.NeutralVoid;
+            if (promisorIsPrisoner) return OverdueOutcome.Suspend;
+            if (kind == CommitmentKind.Protect && playerIsPrisoner) return OverdueOutcome.Suspend;
+
+            return OverdueOutcome.Breach;
+        }
     }
 
     /// <summary>What the daily overdue sweep should do once a commitment's deadline lapses. See <see cref="CommitmentPolicy.OnOverdue" />.</summary>
@@ -97,6 +130,20 @@ namespace CalradiaRemembers.Logic
         Breach,
 
         /// <summary>An oath honored by its own silence: the deadline passed with the forbidden act never happening.</summary>
-        Fulfill
+        Fulfill,
+
+        /// <summary>
+        ///   The obligation ends CLEANLY, with no fault to answer for: the world moved between promise and deadline
+        ///   (the rival the pledge named died or vanished), so there is nothing left to honor and no breach to
+        ///   punish (v1.34.2 fault/no-fault hardening).
+        /// </summary>
+        NeutralVoid,
+
+        /// <summary>
+        ///   The clock is PAUSED, not run out: the promisor (or, for a Protect oath, the player) is a captive and
+        ///   could do nothing to honor the vow. Extend the deadline and leave the pledge alive; it resumes its
+        ///   normal course once they are freed (v1.34.2 fault/no-fault hardening).
+        /// </summary>
+        Suspend
     }
 }

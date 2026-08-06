@@ -131,6 +131,28 @@ namespace CalradiaRemembers.Commitments
       }
 
       /// <summary>
+      ///   v1.34.2 fault/no-fault hardening (audit Pattern 2): called by <see cref="WorldEvents.SchemeStore" />
+      ///   when a scheme is dropped because one of its two lords died or vanished. If a MoveAgainst pledge is
+      ///   linked to that exact plotter/target pair, it is retired as a NEUTRAL VOID (see
+      ///   <see cref="ResolvePledgeNeutral" />): the rival the promisor swore to move against is beyond reach,
+      ///   so the obligation ends cleanly, never the public parjury the later breach sweep would otherwise
+      ///   inflict for a death no one could prevent. Defensive by design: never throws into the scheme pipeline.
+      /// </summary>
+      public void OnSchemeVoided(string plotterId, string targetId, string reason)
+      {
+         try
+         {
+            if (string.IsNullOrEmpty(plotterId) || string.IsNullOrEmpty(targetId)) return;
+
+            TrackedCommitment commitment = FindActivePledge(plotterId, targetId);
+            if (commitment == null) return;
+
+            ResolvePledgeNeutral(commitment, reason);
+         }
+         catch (Exception ex) { ModLog.Error($"[COMMITMENT] OnSchemeVoided failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
       ///   PayGold's own verification hook (R7-light, COUNCIL_ACTIONS.md's swear_oath): called from BOTH
       ///   gold-giving paths (<see cref="GameState.BannerlordGameStateBridge.ExecuteAction" />'s 1:1
       ///   give_gold, and the council's own <c>CouncilLift.SettleGiveGold</c>) right after the real
@@ -562,10 +584,69 @@ namespace CalradiaRemembers.Commitments
          // R7-light: KeepPeace is the ONE kind whose silence at the deadline is a KEPT oath (the vow was
          // never to go to war, and a war is caught immediately by OnWarDeclared, not here); every other
          // kind's silence at the deadline is a BROKEN one, the original rule this sweep always enforced.
-         if (CommitmentPolicy.OnOverdue(commitment.Kind) == OverdueOutcome.Fulfill)
-            Fulfill(commitment, "the deadline passed with the peace unbroken");
-         else
-            Breach(commitment, "the deadline passed with nothing done");
+         // v1.34.2 fault/no-fault hardening (audit Pattern 2): before branding any breach, weigh the world
+         // that moved between promise and deadline. A captured promisor (or, for Protect, a captured PLAYER)
+         // could do nothing, so the clock is SUSPENDED, not run out; a MoveAgainst pledge whose rival is now
+         // dead or gone is a clean NEUTRAL VOID, never a public parjury for an act of the world.
+         bool promisorIsPrisoner = promisor.IsPrisoner;
+         bool playerIsPrisoner = Hero.MainHero is {IsPrisoner: true};
+         bool targetGone = commitment.Kind == CommitmentKind.MoveAgainst && FindHero(commitment.TargetId) is not {IsAlive: true};
+
+         switch (CommitmentPolicy.OnOverdue(commitment.Kind, promisorIsPrisoner, playerIsPrisoner, targetGone))
+         {
+            case OverdueOutcome.Fulfill:
+               Fulfill(commitment, "the deadline passed with the peace unbroken");
+
+               break;
+
+            case OverdueOutcome.Suspend:
+               SuspendForCaptivity(commitment, today);
+
+               break;
+
+            case OverdueOutcome.NeutralVoid:
+               ResolvePledgeNeutral(commitment,
+                  "The rival is beyond reach now: the pledge is set aside, no fault to answer for.");
+
+               break;
+
+            default:
+               Breach(commitment, "the deadline passed with nothing done");
+
+               break;
+         }
+      }
+
+      /// <summary>
+      ///   v1.34.2 fault/no-fault hardening (audit Pattern 2): the promisor (or, for a Protect oath, the
+      ///   player) is a PRISONER and could do nothing to honor the vow, so the deadline is a clock that must
+      ///   pause, never run out under them. Pushes the deadline forward by
+      ///   <see cref="CommitmentPolicy.CaptivitySuspendGraceDays" /> (only ever forward: today is already past
+      ///   the old deadline) and leaves the pledge Active, so the oath resumes its normal course the first
+      ///   sweep after they are freed. Re-applied each day the captivity lasts. No breach, no penalty, no
+      ///   grudge, no journal change (the mirror stays open exactly as it was).
+      /// </summary>
+      private void SuspendForCaptivity(TrackedCommitment commitment, int today)
+      {
+         commitment.DeadlineDay = today + CommitmentPolicy.CaptivitySuspendGraceDays;
+         ModLog.Info($"[COMMITMENT] deadline suspended (captivity, no breach): promisor={commitment.PromisorId} kind={commitment.Kind}, extended to day {commitment.DeadlineDay}.");
+      }
+
+      /// <summary>
+      ///   v1.34.2 fault/no-fault hardening (audit Pattern 2): retires a MoveAgainst pledge as a clean NEUTRAL
+      ///   VOID because the rival it named is dead or gone from the world (an act of the world, never the
+      ///   promisor's breach). The deliberate mirror of <see cref="ResolveKeepPeaceNeutral" /> for the
+      ///   target-gone case: no relation penalty, no <see cref="GrudgeSource.BrokenOath" /> grudge, no
+      ///   per-witness cost, no profile mutation at all. The journal mirror is CANCELLED with a neutral banner,
+      ///   never the fail banner <see cref="Breach" /> raises, so the player is never told their lord broke
+      ///   faith over a death no one could prevent.
+      /// </summary>
+      private void ResolvePledgeNeutral(TrackedCommitment commitment, string reason)
+      {
+         CommitmentJournalBridge.CloseNeutral(commitment, reason);
+
+         _active.Remove(commitment);
+         ModLog.Info($"[COMMITMENT] pledge retired neutrally (the rival is dead/gone, no fault): promisor={commitment.PromisorId} target={commitment.TargetId}.");
       }
 
       // ── Fulfillment via any real hostile act (recognizes, never causes) ────
