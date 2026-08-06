@@ -480,7 +480,7 @@ namespace CalradiaRemembers.Behaviors
                   continue;
                }
 
-               if (CourierService.TrySpawnReplyCourier(letter, sender))
+               if (CourierService.TrySpawnReplyCourier(letter, sender, escorted: profile.EscortedChannel))
                   changed = true;
             }
 

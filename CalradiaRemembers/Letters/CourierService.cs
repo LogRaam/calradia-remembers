@@ -84,6 +84,14 @@ namespace CalradiaRemembers.Letters
       // Rebuilt from live letters on session launch to survive save/load cycles.
       private static readonly HashSet<string> ActiveCourierIds = new();
 
+      // StringIds of couriers riding an ESCORTED correspondence thread (the player paid an armed escort for that
+      // correspondent, NpcProfile.EscortedChannel). ScanForWaylayers never rolls a band against these, so they are
+      // immune to interception. Populated on spawn from the owning profile's flag, forgotten on the same
+      // delivery/destroy/recall/orphan-clear beats as ActiveCourierIds. Runtime-only like ActiveCourierIds: couriers
+      // are never saved (they go invisible after a load), so there is nothing to persist; the durable truth is the
+      // per-correspondent flag on the profile, which both spawn directions re-read to re-escort every later leg.
+      private static readonly HashSet<string> EscortedCourierIds = new();
+
       // Position of each courier captured at the last pre-save despawn, keyed by the
       // courier's (now stale) party id, so RespawnInFlight can restore it where it stood
       // rather than teleporting it back to its source. Empty after a load (couriers were
@@ -146,6 +154,10 @@ namespace CalradiaRemembers.Letters
             // so a player who never wants to lose a letter switches interception off entirely.
             if (ModSettings.InvulnerableCouriers) return;
 
+            // Per-correspondent armed escort (the player paid for this thread): the courier is under guard and is
+            // never rolled against. It stays IgnoreByOtherParties'd from the line above, so it is fully safe.
+            if (EscortedCourierIds.Contains(courier.StringId)) return;
+
             if (!RolledBandits.TryGetValue(courier.StringId, out HashSet<string> rolled))
             {
                rolled = new HashSet<string>();
@@ -191,6 +203,7 @@ namespace CalradiaRemembers.Letters
          if (string.IsNullOrEmpty(courierId)) return;
          RolledBandits.Remove(courierId);
          LastMovements.Remove(courierId);
+         EscortedCourierIds.Remove(courierId); // forgotten on destroy alongside the other per-courier runtime state
       }
 
       /// <summary>
@@ -481,6 +494,7 @@ namespace CalradiaRemembers.Letters
       public static void RebuildActiveCourierSet(BannerlordNpcMemoryStore store)
       {
          ActiveCourierIds.Clear();
+         EscortedCourierIds.Clear(); // couriers were never saved; the durable escort truth is NpcProfile.EscortedChannel.
          RolledBandits.Clear(); // 4.6: a static keyed by courier id, never purged, leaked slowly across campaigns in one process.
          LastMovements.Clear(); // same lesson: runtime cache keyed by courier id, reset with the set it shadows.
 
@@ -532,7 +546,7 @@ namespace CalradiaRemembers.Letters
                   Hero recipient = Hero.FindFirst(h => h != null && h.StringId == letter.RecipientId);
                   Vec2? at = TakePosition(letter.CourierPartyId);
 
-                  if (!TrySpawnCourier(letter, recipient, spawnOverride: at)) continue;
+                  if (!TrySpawnCourier(letter, recipient, spawnOverride: at, escorted: profile.EscortedChannel)) continue;
                   respawned++;
                   changed = true;
                }
@@ -554,7 +568,7 @@ namespace CalradiaRemembers.Letters
 
                   Vec2? at = TakePosition(letter.CourierPartyId);
 
-                  if (!TrySpawnReplyCourier(letter, sender, at))
+                  if (!TrySpawnReplyCourier(letter, sender, at, profile.EscortedChannel))
                   {
                      // 1.6 (courier audit): the respawn failed, so the stale party id points at a courier that no
                      // longer exists. Clear it, so date-based delivery (which requires an empty CourierPartyId) can
@@ -783,7 +797,8 @@ namespace CalradiaRemembers.Letters
                                          Hero recipient,
                                          float? speedOverride = null,
                                          bool avoidHostile = true,
-                                         Vec2? spawnOverride = null)
+                                         Vec2? spawnOverride = null,
+                                         bool escorted = false)
       {
          try
          {
@@ -818,7 +833,10 @@ namespace CalradiaRemembers.Letters
                return false;
             }
 
-            MobileParty courier = TravelingParty.Spawn(spawnPos, home, name, speed, recipient.Culture, avoidHostile);
+            // An escorted thread rides under a larger, mounted guard detail (cosmetic justification for its
+            // interception immunity); an ordinary courier keeps the small, defeatable escort.
+            int escortSize = escorted ? TravelingParty.HeavyEscortSize : TravelingParty.EscortSize;
+            MobileParty courier = TravelingParty.Spawn(spawnPos, home, name, speed, recipient.Culture, avoidHostile, escortSize);
 
             if (courier == null) return false;
 
@@ -826,8 +844,9 @@ namespace CalradiaRemembers.Letters
             courier.IgnoreByOtherPartiesTill(CampaignTime.DaysFromNow(3f)); // ignored until a band is rolled to chase it
             letter.CourierPartyId = courier.StringId;
             ActiveCourierIds.Add(courier.StringId);
+            if (escorted) EscortedCourierIds.Add(courier.StringId); // never rolled against in ScanForWaylayers
 
-            ModLog.Info($"[COURIER] spawned '{courier.StringId}' → {recipient.Name} " + $"(speed {speed}, escort {CourierEscortSize}, avoidHostile {avoidHostile}).");
+            ModLog.Info($"[COURIER] spawned '{courier.StringId}' → {recipient.Name} " + $"(speed {speed}, escort {escortSize}, escorted {escorted}, avoidHostile {avoidHostile}).");
 
             return true;
          }
@@ -845,7 +864,7 @@ namespace CalradiaRemembers.Letters
       ///   <see cref="PendingLetter.DispatchDay" /> has arrived.
       ///   Returns false on any failure (letter retains its date-based fallback).
       /// </summary>
-      public static bool TrySpawnReplyCourier(PendingLetter letter, Hero sender, Vec2? spawnOverride = null)
+      public static bool TrySpawnReplyCourier(PendingLetter letter, Hero sender, Vec2? spawnOverride = null, bool escorted = false)
       {
          try
          {
@@ -874,7 +893,9 @@ namespace CalradiaRemembers.Letters
             Settlement home = sender.HomeSettlement ?? sender.CurrentSettlement ?? Hero.MainHero?.HomeSettlement;
             var name = new TextObject($"Letter from {sender.Name}");
 
-            MobileParty courier = TravelingParty.Spawn(spawnPos, home, name, CourierBaseSpeed, sender.Culture, true);
+            // The reply inherits the thread's escort for free: same larger guard detail, same interception immunity.
+            int escortSize = escorted ? TravelingParty.HeavyEscortSize : TravelingParty.EscortSize;
+            MobileParty courier = TravelingParty.Spawn(spawnPos, home, name, CourierBaseSpeed, sender.Culture, true, escortSize);
 
             if (courier == null) return false;
 
@@ -882,8 +903,9 @@ namespace CalradiaRemembers.Letters
             courier.IgnoreByOtherPartiesTill(CampaignTime.DaysFromNow(3f)); // ignored until a band is rolled to chase it
             letter.CourierPartyId = courier.StringId;
             ActiveCourierIds.Add(courier.StringId);
+            if (escorted) EscortedCourierIds.Add(courier.StringId); // never rolled against in ScanForWaylayers
 
-            ModLog.Info($"[COURIER-REPLY] spawned '{courier.StringId}' from {sender.Name} → player (speed {CourierBaseSpeed}).");
+            ModLog.Info($"[COURIER-REPLY] spawned '{courier.StringId}' from {sender.Name} → player (speed {CourierBaseSpeed}, escorted {escorted}).");
 
             return true;
          }
@@ -1100,6 +1122,7 @@ namespace CalradiaRemembers.Letters
          {
             if (courier == null) return;
             ActiveCourierIds.Remove(courier.StringId);
+            EscortedCourierIds.Remove(courier.StringId); // delivery/recall/orphan-clear all route through here
             LastMovements.Remove(courier.StringId);
             TravelingParty.Destroy(courier);
          }

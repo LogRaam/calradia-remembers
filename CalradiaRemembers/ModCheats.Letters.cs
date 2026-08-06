@@ -230,6 +230,31 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.escort_channel [name]
+      ///   Toggles and reports the ARMED ESCORT flag on a correspondent's whole thread (NpcProfile.EscortedChannel).
+      ///   An escorted thread's couriers (both directions, all later legs) ride immune to bandit interception, so
+      ///   this exercises the immunity without paying the tavern premium or waiting for a real dispatch.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("escort_channel", "cr")]
+      public static string ToggleEscortChannel(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         profile.EscortedChannel = !profile.EscortedChannel;
+         behavior.Store.Set(profile);
+
+         return profile.EscortedChannel
+            ? $"{hero.Name}'s correspondence is now ESCORTED: its couriers are immune to interception."
+            : $"{hero.Name}'s correspondence is no longer escorted: its couriers are vulnerable again.";
+      }
+
+      /// <summary>
       ///   cr.letter_read [name]
       ///   Delivers a synthetic letter from the given NPC through the real delivery path
       ///   (<see cref="LetterPopupManager.Show" />): the parchment window opens in READ mode with

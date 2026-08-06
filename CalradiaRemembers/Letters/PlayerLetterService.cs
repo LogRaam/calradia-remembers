@@ -110,8 +110,9 @@ namespace CalradiaRemembers.Letters
          }
 
          // Spawn a visible courier carrying this letter. On success the courier drives
-         // delivery (on arrival); on spawn failure the date-based fallback delivers.
-         CourierService.TrySpawnCourier(letter, recipient);
+         // delivery (on arrival); on spawn failure the date-based fallback delivers. An escorted
+         // correspondence thread (the player paid for a guard) rides immune to interception.
+         CourierService.TrySpawnCourier(letter, recipient, escorted: recipientProfile.EscortedChannel);
 
          store.Set(recipientProfile);
          ModLog.Info($"[PLAYER LETTER] queued to {recipientProfile.Name} — " + $"delivery day {today + deliveryDays} ({deliveryDays}d), " + $"courier={letter.CourierPartyId ?? "none"}.");

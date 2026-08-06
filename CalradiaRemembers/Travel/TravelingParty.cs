@@ -30,6 +30,13 @@ namespace CalradiaRemembers.Travel
       /// <summary>A small, weak escort so the party is a real (defeatable) target, not invincible.</summary>
       public const int EscortSize = 3;
 
+      /// <summary>
+      ///   A larger mounted escort for a courier the player has paid to guard (an escorted correspondence thread).
+      ///   Purely the visible, cosmetic justification for that courier's interception immunity: a few times the
+      ///   base so it plainly reads as an armed guard detail, while still riding at full map speed.
+      /// </summary>
+      public const int HeavyEscortSize = 12;
+
       // Extra sumpter horses on top of the escort, to hold max map speed even with foot-bound troops.
       private const int SumpterExtra = 2;
 
@@ -102,9 +109,10 @@ namespace CalradiaRemembers.Travel
                                       TextObject name,
                                       float speed,
                                       CultureObject preferredCulture,
-                                      bool avoidHostile)
+                                      bool avoidHostile,
+                                      int escortSize = EscortSize)
       {
-         TroopRoster roster = BuildEscortRoster(preferredCulture);
+         TroopRoster roster = BuildEscortRoster(preferredCulture, escortSize);
 
          MobileParty party = CustomPartyComponent.CreateCustomPartyWithTroopRoster(
             new CampaignVec2(spawnPos, true),
@@ -123,7 +131,7 @@ namespace CalradiaRemembers.Travel
          if (party == null) return null;
 
          var sumpter = Game.Current.ObjectManager.GetObject<ItemObject>("sumpter_horse");
-         if (sumpter != null) party.ItemRoster.AddToCounts(sumpter, EscortSize + SumpterExtra);
+         if (sumpter != null) party.ItemRoster.AddToCounts(sumpter, escortSize + SumpterExtra);
 
          // C3: feed the escort so a long or stalled trip never starves the party into a false "bandit waylay".
          var grain = Game.Current.ObjectManager.GetObject<ItemObject>("grain");
@@ -134,13 +142,13 @@ namespace CalradiaRemembers.Travel
 
       #region private
 
-      private static TroopRoster BuildEscortRoster(CultureObject preferred)
+      private static TroopRoster BuildEscortRoster(CultureObject preferred, int escortSize)
       {
          var roster = TroopRoster.CreateDummyTroopRoster();
          // Prefer mounted troops so the party rides faster than foot-bound parties and can keep pace;
          // fall back through the player's culture to the basic recruit.
          CharacterObject troop = FindMountedTroop(preferred) ?? FindMountedTroop(Hero.MainHero?.Culture) ?? preferred?.BasicTroop ?? Hero.MainHero?.Culture?.BasicTroop;
-         if (troop != null) roster.AddToCounts(troop, EscortSize);
+         if (troop != null) roster.AddToCounts(troop, escortSize);
 
          return roster;
       }
