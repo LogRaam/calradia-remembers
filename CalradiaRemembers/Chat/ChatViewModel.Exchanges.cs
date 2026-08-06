@@ -14,6 +14,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Lore;
@@ -487,6 +488,91 @@ namespace CalradiaRemembers.Chat
          QuestAbandoned = source.QuestAbandoned,
          WitnessReactions = source.WitnessReactions
       };
+
+      /// <summary>
+      ///   v1.34.2 log-only execution audit (Pattern 1): maps the live <paramref name="context" /> onto the pure
+      ///   <see cref="TaughtActionFacts" /> and returns the set of action types this ordinary 1:1 turn taught, so
+      ///   an [ACTION] that runs yet was never taught can be observed. Best-effort and fully guarded: any fault
+      ///   yields null, which disables the audit for the turn rather than ever disturbing the exchange.
+      /// </summary>
+      private static ISet<string> TryBuildTaughtActionSet(EncounterContext context)
+      {
+         if (context == null) return null;
+
+         try
+         {
+            var facts = new TaughtActionFacts {
+               PlayerIsCaptive = context.PlayerStatus == PlayerStatusVsNpc.Captive,
+               PlayerHoldsThisNpcCaptive = context.PlayerStatus == PlayerStatusVsNpc.NpcIsCaptive,
+               NpcCanBeAppointedGovernor = context.NpcCanBeAppointedGovernor,
+               NpcCanBeAssignedPartyRole = context.NpcCanBeAssignedPartyRole,
+               NpcCanRejoinParty = context.NpcCanRejoinParty,
+               NpcCanBeDispatchedOnMission = context.NpcCanBeDispatchedOnMission,
+               NpcCanBeGrantedStipend = context.NpcCanBeGrantedStipend,
+               NpcCanSwearOath = context.NpcCanSwearOath,
+               NpcCanBeGrantedFief = context.NpcCanBeGrantedFief,
+               NpcCanHaveFiefRevoked = context.NpcCanHaveFiefRevoked,
+               NpcCanBeExpelledFromClan = context.NpcCanBeExpelledFromClan,
+               CompanionRecruitable = context.CompanionAskingPrice.HasValue,
+               MercenaryOffered = !string.IsNullOrWhiteSpace(context.MercenaryOfferKingdom),
+               PlayerIsMercenary = context.PlayerIsMercenary,
+               VassalOffered = !string.IsNullOrWhiteSpace(context.VassalOfferKingdom),
+               NpcCanEscortPlayer = context.NpcCanEscortPlayer,
+               NpcIsEscortingPlayer = context.NpcIsEscortingPlayer,
+               LordRecruitEligible = context.LordRecruitEligible,
+               CompanionOnErrand = context.CompanionOnErrand,
+               ConsortEligible = context.ConsortEligible,
+               SecretLoverEligible = context.SecretLoverEligible,
+               LoveMatchEligible = context.LoveMatchEligible,
+               MatchmakerAvailable = !string.IsNullOrWhiteSpace(context.MatchmakerNpcKin)
+                                     && !string.IsNullOrWhiteSpace(context.MatchmakerPlayerKin),
+               DuelChallengeAvailable = context.DuelChallengeAvailable,
+               PlayerHoldsLordPrisoners = !string.IsNullOrWhiteSpace(context.HeldLordPrisoners),
+               CaptorAllowsPersuasionRelease = context.CaptorAllowsPersuasionRelease,
+               CaptorMayExecutePlayer = context.CaptorMayExecutePlayer,
+               SchemeAgentActive = !string.IsNullOrWhiteSpace(context.SchemeAgentTargetName),
+               SchemeTargetsThisNpc = context.SchemeTargetsThisNpc,
+               SpouseDivorceDemandActive = !string.IsNullOrWhiteSpace(context.SpouseDivorceDemandNote),
+               PlayerEndOwnMarriageOffered = !string.IsNullOrWhiteSpace(context.PlayerEndOwnMarriageNote),
+               SpouseEstrangementActive = !string.IsNullOrWhiteSpace(context.SpouseEstrangementNote),
+               CourtVerbsOffered = !string.IsNullOrWhiteSpace(context.ExtraActionTeachings)
+            };
+
+            return TaughtActionSet.ForTurn(facts);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION-AUDIT] taught-set build failed (audit skipped this turn): {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Log-only (v1.34.2, Pattern 1): leaves a single trace line when <paramref name="action" /> is about to
+      ///   execute yet was not in <paramref name="taughtThisTurn" /> and is not a base/flow type the audit never
+      ///   reports on. Never throws, never refuses, never alters control flow. A null set (a council turn or a
+      ///   build fault) simply skips the check, and every path is wrapped so the audit can never disturb the turn.
+      /// </summary>
+      private void AuditActionTaught(GameAction action, ISet<string> taughtThisTurn, NpcProfile profile)
+      {
+         try
+         {
+            if (taughtThisTurn == null || action == null) return;
+
+            string type = action.Type;
+            if (string.IsNullOrEmpty(type)) return;
+            if (TaughtActionSet.IsNeverAudited(type)) return;
+            if (taughtThisTurn.Contains(type)) return;
+
+            string npcName = profile?.Name ?? _npcHero?.Name?.ToString() ?? "this NPC";
+            ModLog.Info($"[ACTION-AUDIT] '{type}' executed but was not taught this turn (NPC: {npcName}).");
+         }
+         catch
+         {
+            /* the audit must never disturb the exchange */
+         }
+      }
 
       private async Task RunLlmExchangeAsync(string playerMessage,
                                              ChatSpeaker speaker,
@@ -1095,6 +1181,12 @@ namespace CalradiaRemembers.Chat
                // several negative blocks cannot pile the RelationGate's per-call -15 floor into -75.
                var relationChangedThisTurn = false;
                var worstAppliedRelation = 0; // 2.1: the steepest regard change actually applied this turn, for the affront rumor.
+               // v1.34.2 log-only execution audit (Pattern 1, observability): the set of action types this
+               // ordinary turn actually taught, so an [ACTION] that runs yet was never taught can be LOGGED
+               // (never refused, no control-flow change). Only for a real 1:1 turn: a council turn teaches
+               // through the [RESOLUTION] offering instead, a different set, so it is out of scope here. Null
+               // when unavailable (council, or a mapping fault), which disables the audit entirely for the turn.
+               ISet<string> taughtThisTurn = _councilScope == null ? TryBuildTaughtActionSet(context) : null;
                foreach (GameAction action in response.Actions)
                {
                   // request_privacy, end_conversation and witness_leaves are
@@ -1120,6 +1212,11 @@ namespace CalradiaRemembers.Chat
 
                      continue;
                   }
+
+                  // v1.34.2 log-only audit: this action is about to be dispatched. If it was never taught this
+                  // turn, leave a trace so hallucinated / untaught executions are visible for a future enforcing
+                  // pass. Purely observational: it does not skip, refuse, or reorder anything.
+                  AuditActionTaught(action, taughtThisTurn, profile);
 
                   // Council: deeds are NOT sealed at the table (ratified 2026-07-24). Only PERCEPTION runs on
                   // the spot here (change_relation): a lord you anger IS angrier at once, and that shift must
