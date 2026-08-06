@@ -582,14 +582,31 @@ namespace CalradiaRemembers.Missions
 
             case CompanionMissionPhase.AwaitingReunion:
             {
-               // Captured. Wait until they are free AND back in the player's party (escape/ransom/rescue),
+               // Stamp when the wait began (lazily, so every entry path and any pre-v1.34.2 save is covered),
+               // then measure the timeout from there.
+               if (m.AwaitingSinceDay <= 0) m.AwaitingSinceDay = Today;
+
+               // Captured. Resolve the moment they are free AND back in the player's party (escape/ransom/rescue),
                // then deliver whatever news they had managed to gather.
-               if (companion.IsPrisoner || companion.PartyBelongedTo != MobileParty.MainParty) return false;
+               if (!companion.IsPrisoner && companion.PartyBelongedTo == MobileParty.MainParty)
+               {
+                  CompanionHappinessService.ApplyDriver(companion, HappinessDriver.Freed);
+                  DeliverReport(m, companion);
 
-               CompanionHappinessService.ApplyDriver(companion, HappinessDriver.Freed);
-               DeliverReport(m, companion);
+                  return true;
+               }
 
-               return true;
+               // But never wait forever: a ransomed/escaped companion who never re-entered your party, or one
+               // whose errand party dissolved, was stranded IsAway == true for good, blocking re-dispatch, expel,
+               // and their journal. After the timeout, close the errand cleanly so they stop being counted abroad.
+               if (AwaitingReunionPolicy.ShouldForceClose(Today - m.AwaitingSinceDay))
+               {
+                  ForceCloseAwaiting(m, companion);
+
+                  return true;
+               }
+
+               return false;
             }
 
             default:
@@ -827,12 +844,55 @@ namespace CalradiaRemembers.Missions
       /// <summary>Brings the hero back into the player's party, disbands the errand party, and reports.</summary>
       private void Reunite(CompanionMission m, Hero companion, MobileParty party)
       {
+         // Expelled from the clan or defected while away: do NOT force them back into the party. Tear the errand
+         // down and tell the player, rather than silently reappear someone who is no longer theirs.
+         if (!CompanionLifecyclePolicy.MayReintegrate(companion.IsPlayerCompanion, companion.Clan == Clan.PlayerClan))
+         {
+            TravelingParty.Destroy(party);
+            m.PartyId = null;
+            _pendingReports.Remove(companion.StringId);
+            CompanionErrandJournalBridge.CloseMirrorRecalled(m, companion, "no longer of your clan");
+            MBInformationManager.AddQuickInformation(
+               new TextObject($"{m.CompanionName} is no longer of your clan and does not rejoin you; the errand is closed."),
+               0, companion.CharacterObject);
+            ModLog.Info($"[MISSION] {m.CompanionName} returned but is no longer a player companion of your clan, dropping the errand without re-adding.");
+
+            return;
+         }
+
          try { AddHeroToPartyAction.Apply(companion, MobileParty.MainParty, false); }
          catch (Exception ex) { ModLog.Error($"[MISSION] rejoin failed for {m.CompanionName}: {ex.Message}"); }
 
          TravelingParty.Destroy(party); // now leaderless — remove the escort party from the world
          m.PartyId = null;
          DeliverReport(m, companion);
+      }
+
+      /// <summary>
+      ///   Closes an errand that has sat in AwaitingReunion past its timeout so the companion stops being counted
+      ///   away. If they are free and still one of your clan companions but not with you, they make their own way
+      ///   back; otherwise the tracking is simply dropped. Always notifies, so the away-status never clears unseen.
+      /// </summary>
+      private void ForceCloseAwaiting(CompanionMission m, Hero companion)
+      {
+         bool free = !companion.IsPrisoner;
+         bool eligible = CompanionLifecyclePolicy.MayReintegrate(companion.IsPlayerCompanion, companion.Clan == Clan.PlayerClan);
+         bool cameBack = free && eligible;
+
+         if (cameBack && companion.PartyBelongedTo != MobileParty.MainParty)
+            try { AddHeroToPartyAction.Apply(companion, MobileParty.MainParty, false); }
+            catch (Exception ex) { ModLog.Error($"[MISSION] force-close rejoin failed for {m.CompanionName}: {ex.Message}"); }
+
+         DestroyParty(m);
+         _pendingReports.Remove(companion.StringId);
+         CompanionErrandJournalBridge.CloseMirrorRecalled(m, companion, "made their own way back");
+
+         string tail = cameBack
+            ? "has made their own way back to your side, their errand long since abandoned."
+            : "has been out of contact too long; you close the errand and no longer count them away.";
+         MBInformationManager.AddQuickInformation(
+            new TextObject($"{m.CompanionName} {tail}"), 0, companion.CharacterObject);
+         ModLog.Info($"[MISSION] {m.CompanionName}'s awaited reunion timed out after {AwaitingReunionPolicy.TimeoutDays} days, closing the errand and clearing away-status (returned={cameBack}).");
       }
 
       #endregion

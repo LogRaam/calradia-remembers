@@ -11,6 +11,10 @@ namespace CalradiaRemembers.Logic.Assemblies
     public sealed class CouncilStipend
     {
         public string PayeeId { get; set; }
+
+        /// <summary>Cached display name of the payee, so a refund notice can name them even after they have died (additive: null in saves predating v1.34.2).</summary>
+        public string PayeeName { get; set; }
+
         public int AmountPerDay { get; set; }
         public int DaysRemaining { get; set; }
         public int EscrowBalance { get; set; }

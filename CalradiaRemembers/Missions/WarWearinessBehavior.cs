@@ -297,9 +297,15 @@ namespace CalradiaRemembers.Missions
                   return; // a stepped-back companion is not asked to retire again
                }
 
+               // A companion AWAY on an errand cannot be asked to retire mid-errand: they are abroad on your
+               // business and cannot resolve to leave until they are back (else a retirement grant would depart
+               // someone still away).
+               bool away = CompanionMissionBehavior.Instance?.IsAway(companion.StringId) == true;
+
                // A companion cannot be asked to retire before 2 years of service (player report 2026-07-25):
                // a young recruit must never ask to leave in their first two years, however hard the toll.
-               if (toAsk == null && WarWeariness.WantsToRetire(WarWearinessService.Get(companion), Valor(companion)) &&
+               if (toAsk == null && CompanionLifecyclePolicy.MayDepartNow(away) &&
+                   WarWeariness.WantsToRetire(WarWearinessService.Get(companion), Valor(companion)) &&
                    WarWeariness.HasServedLongEnough(DaysServed(companion)) && !DeclinedRecently(companion))
                   toAsk = companion;
             });

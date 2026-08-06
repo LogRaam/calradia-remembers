@@ -183,10 +183,21 @@ namespace CalradiaRemembers.Missions
          {
             if (Today < _farewellDay[id]) continue;
 
-            _farewellDay.Remove(id);
             Hero h = Hero.FindFirst(x => x != null && x.StringId == id);
 
-            if (h is not {IsAlive: true, IsPlayerCompanion: true}) continue;
+            if (h is not {IsAlive: true, IsPlayerCompanion: true})
+            {
+               _farewellDay.Remove(id);
+
+               continue;
+            }
+
+            // Dispatched on an errand after the farewell was scheduled: hold the departure until they are back,
+            // so a companion away on your business is never removed mid-errand (the letter waits for them).
+            bool away = CompanionMissionBehavior.Instance?.IsAway(id) == true;
+            if (!CompanionLifecyclePolicy.MayDepartNow(away)) continue;
+
+            _farewellDay.Remove(id);
             Hero companion = h;
             // One companion's departure throwing must not strand the rest of the queue.
             SafeRun.Step($"CompanionHappinessBehavior.Depart({companion.Name})", () => Depart(companion));
@@ -308,6 +319,11 @@ namespace CalradiaRemembers.Missions
 
       private void RunRetention(Hero h)
       {
+         // A companion AWAY on an errand cannot organically quit mid-errand: they are abroad on your business.
+         // Leave their grievance state untouched until they are back, or they would depart while still away.
+         bool away = CompanionMissionBehavior.Instance?.IsAway(h.StringId) == true;
+         if (!CompanionLifecyclePolicy.MayDepartNow(away)) return;
+
          bool wantsToLeave = CompanionHappiness.WantsToLeave(CompanionHappinessService.Get(h));
          if (!wantsToLeave)
          {

@@ -26,6 +26,8 @@ using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
+using TaleWorlds.Localization;
 
 #endregion
 
@@ -93,6 +95,7 @@ namespace CalradiaRemembers.Assemblies
 
             _active.Add(new CouncilStipend {
                 PayeeId = payee.StringId,
+                PayeeName = payee.Name?.ToString(),
                 AmountPerDay = clamped,
                 DaysRemaining = StipendPolicy.TrancheDays,
                 EscrowBalance = totalCost
@@ -164,16 +167,29 @@ namespace CalradiaRemembers.Assemblies
 
         /// <summary>
         ///   Pays one day out of the escrow, decrements the tranche, and drops the stipend once its days or its
-        ///   escrow run out. A payee who has died simply ends the stipend (no early revoke this slice, see
-        ///   COUNCIL_ACTIONS.md's revoke_stipend follow-up note); the remaining escrow is not refunded.
+        ///   escrow run out. A payee who has died before the tranche ends has their UNSPENT escrow refunded to the
+        ///   player (the tranche was financed from the player's own purse up front, so a dead payee must not keep
+        ///   it), and the player is told; a normal completion also notifies the player. StipendClosurePolicy makes
+        ///   the pure closure call so neither path silently swallows escrow or ends unseen.
         /// </summary>
         private void Advance(CouncilStipend s)
         {
             Hero payee = Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == s.PayeeId);
 
-            if (payee == null)
+            if (StipendClosurePolicy.Classify(payee != null, s.DaysRemaining, s.EscrowBalance) == StipendEnd.PayeeGone)
             {
+                int refund = StipendClosurePolicy.RefundOnPayeeGone(s.EscrowBalance);
+                if (refund > 0 && Hero.MainHero != null)
+                    Hero.MainHero.ChangeHeroGold(refund); // the unpaid remainder goes back to the purse it was escrowed from
+
                 _active.Remove(s);
+
+                string name = string.IsNullOrEmpty(s.PayeeName)
+                    ? "your stipended companion"
+                    : s.PayeeName;
+                MBInformationManager.AddQuickInformation(
+                    new TextObject($"The stipend for {name} ends: {refund} denars of unspent escrow return to your coffers."));
+                ModLog.Info($"[STIPEND] payee gone ({s.PayeeId}) - refunded {refund} unspent denars to the player and closed the stipend.");
 
                 return;
             }
@@ -194,9 +210,11 @@ namespace CalradiaRemembers.Assemblies
 
             s.DaysRemaining--;
 
-            if (s.DaysRemaining <= 0 || s.EscrowBalance <= 0)
+            if (StipendClosurePolicy.Classify(true, s.DaysRemaining, s.EscrowBalance) == StipendEnd.Completed)
             {
                 _active.Remove(s);
+                MBInformationManager.AddQuickInformation(
+                    new TextObject($"The stipend for {payee.Name} has run its course."), 0, payee.CharacterObject);
                 ModLog.Info($"[STIPEND] ended for {payee.Name} (days remaining {s.DaysRemaining}, escrow {s.EscrowBalance}).");
             }
         }

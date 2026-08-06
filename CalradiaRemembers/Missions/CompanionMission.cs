@@ -34,6 +34,14 @@ namespace CalradiaRemembers.Missions
       /// <summary>Cached display name, so the report still reads right if the hero is gone on return.</summary>
       public string CompanionName { get; set; }
 
+      /// <summary>
+      ///   In-game day this mission entered <see cref="CompanionMissionPhase.AwaitingReunion" /> (0 = not awaiting
+      ///   / lazily backfilled on the first awaiting tick for saves predating v1.34.2). Drives the AwaitingReunion
+      ///   timeout so a companion who was ransomed/escaped, or whose errand party dissolved, is never stranded
+      ///   IsAway forever.
+      /// </summary>
+      public int AwaitingSinceDay { get; set; }
+
       public string DestinationName { get; set; }
 
       /// <summary>The town they ride to for news (StringId + cached name).</summary>
