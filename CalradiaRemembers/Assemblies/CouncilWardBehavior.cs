@@ -50,8 +50,18 @@ namespace CalradiaRemembers.Assemblies
     {
         private const string SaveKey = "CalradiaRemembers_CouncilWards_v1bytes";
 
-        /// <summary>The daily bonus (see this file's own header) is split across exactly these two skills: a fixed universal one plus the mentor's own specialty (see SelectMentorSpecialty).</summary>
-        private static readonly SkillObject[] SelectableSpecialties = {
+        private static SkillObject[] _selectableSpecialties;
+
+        /// <summary>
+        ///   The daily bonus (see this file's own header) is split across exactly these two skills: a fixed
+        ///   universal one plus the mentor's own specialty (see SelectMentorSpecialty). Built LAZILY on first use
+        ///   (a daily tick, long after load), never in a static field initializer: the ctor's Instance= write
+        ///   triggers this type's initializer, and touching DefaultSkills there crashed the game when LOADING a
+        ///   save (TypeInitializationException), because the engine's skill registry is not yet populated when
+        ///   OnGameStart adds this behavior on the load path, unlike a fresh campaign where it already is.
+        /// </summary>
+        private static SkillObject[] SelectableSpecialties => _selectableSpecialties ??= new[]
+        {
             DefaultSkills.OneHanded, DefaultSkills.TwoHanded, DefaultSkills.Polearm, DefaultSkills.Bow,
             DefaultSkills.Crossbow, DefaultSkills.Throwing, DefaultSkills.Riding, DefaultSkills.Athletics,
             DefaultSkills.Crafting, DefaultSkills.Scouting, DefaultSkills.Tactics, DefaultSkills.Roguery,
