@@ -2,6 +2,27 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.34.0.. 2026-08-05
+
+Characters can now act on what you agree to in a one-to-one conversation, not only at a council, plus a new
+cross-talk option and a pregnancy fix. Your saves carry over untouched.
+
+### New
+- **Characters carry out commands and appointments right in conversation.** When it genuinely fits your situation,
+  a character may act on what you agree to, one to one, instead of only at a council: name a companion or vassal as
+  governor of one of your fiefs, give a companion a party role (scout, engineer, quartermaster, surgeon), call a
+  companion back into your party, send a companion off on an errand (bring back word of the realm, spy, and so on),
+  set a standing stipend, or take a sworn oath; and as a ruler, grant or revoke a vassal's fief, or dismiss a
+  companion from your clan. Each is only offered when it truly applies, and the game re-checks it before anything
+  actually happens.
+- **New option: NPC Cross-Talk.** Controls how many times the NPCs in a scene may bounce a remark off one another
+  before the turn comes back to you (0 to 3, default 2; set it to 0 so only the character you spoke to replies).
+
+### Fixed
+- **Pregnancies no longer last forever on a no-births campaign.** If your campaign has the Life and Death cycle
+  turned off, a pregnancy could never be delivered and a character would keep bringing it up with no end; such a
+  pregnancy now quietly ends on its own, and none is started while births are disabled.
+
 ## v1.33.6.. 2026-08-02
 
 More fixes and a safeguard, all from your feedback. Your saves carry over untouched.
