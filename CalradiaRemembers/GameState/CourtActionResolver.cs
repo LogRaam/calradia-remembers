@@ -473,6 +473,23 @@ namespace CalradiaRemembers.GameState
          if (fief == null)
             return new AppointGovernorVerdict(AppointGovernorResult.NoSuchFief, null);
 
+         // v1.34.2 governance hardening (finding 1): the post must be VACANT. Matching a fief by name alone would
+         // otherwise silently EVICT its sitting governor when the player mis-named the target, so refuse rather
+         // than unseat someone the player never meant to touch. The offer only ever names vacant fiefs; this is
+         // the commit re-check (the prompt is advice, the executor is law).
+         if (fief.Town?.Governor != null)
+            return new AppointGovernorVerdict(AppointGovernorResult.PostOccupied, fief);
+
+         // v1.34.2 governance hardening (finding 2): one governor, one seat. A hero already governing another fief
+         // cannot be double-posted, or the first fief would silently lose its governor to the second.
+         if (appointee.GovernorOf != null)
+            return new AppointGovernorVerdict(AppointGovernorResult.AppointeeAlreadyGoverns, fief);
+
+         // v1.34.2 governance hardening (finding 2): a companion away on a companion-mission errand cannot be
+         // seated in absentia. Same IsAway fact TryDispatchMission and the expel guard already consult.
+         if (CompanionMissionBehavior.Instance?.IsAway(appointee.StringId) == true)
+            return new AppointGovernorVerdict(AppointGovernorResult.AppointeeAway, fief);
+
          // The refusal itself: standing toward the player is the mod's OWN personal regard, the same source the
          // council executor reads, never the vanilla clan relation. Decided BEFORE the post is ever applied.
          GovernorAppointmentVerdict decision = GovernorAppointmentPolicy.Decide(appointeeRegard);
@@ -648,6 +665,27 @@ namespace CalradiaRemembers.GameState
          }
       }
 
+      /// <summary>
+      ///   Releases whatever governor is currently seated on <paramref name="fief" /> before its ownership passes
+      ///   to another house (v1.34.2 governance hardening, finding 3): factored out of <see cref="TryGrantFief" />
+      ///   so the grant, the revoke (<see cref="TryRevokeFief" />), and the quest fief payout
+      ///   (<c>BannerlordGameStateBridge.GrantFiefReward</c>) all land the same release rather than a spoliated or
+      ///   ceded hero keeping the crown fief they govern. A released PLAYER companion (only ever the case on a
+      ///   grant of the player's own fief) is sent back to the main party so they are never stranded; a governor of
+      ///   any other house is simply relieved of the post. Total and null-safe: a null fief or an unseated post is
+      ///   a no-op, so every caller may invoke it unconditionally just before the ownership transfer.
+      /// </summary>
+      internal static void ReleaseSittingGovernor(Settlement fief)
+      {
+         Hero formerGovernor = fief?.Town?.Governor;
+         if (formerGovernor == null) return;
+
+         ChangeGovernorAction.RemoveGovernorOf(formerGovernor);
+
+         if (formerGovernor.IsPlayerCompanion && formerGovernor.PartyBelongedTo != MobileParty.MainParty)
+            AddHeroToPartyAction.Apply(formerGovernor, MobileParty.MainParty, false);
+      }
+
       // ── grant_fief (suzerain-command verb, council + 1:1, 2026-08-05) ──
 
       /// <summary>
@@ -699,16 +737,10 @@ namespace CalradiaRemembers.GameState
 
          // Kimi review (COUNCIL_ACTIONS.md, grant_fief cas limites): a fief ceded while a governor is in post would
          // otherwise leave that governor a wandering hero in what is now foreign land. Release the post first
-         // (mirroring TryRejoinParty's own governor-release), and send a released PLAYER companion back to the main
+         // (shared helper, also used by TryRevokeFief and the quest fief payout so no owner transfer strands a
+         // governor over land that is no longer theirs), and send a released PLAYER companion back to the main
          // party so they are never simply stranded.
-         Hero formerGovernor = fief.Town?.Governor;
-         if (formerGovernor != null)
-         {
-            ChangeGovernorAction.RemoveGovernorOf(formerGovernor);
-
-            if (formerGovernor.IsPlayerCompanion && formerGovernor.PartyBelongedTo != MobileParty.MainParty)
-               AddHeroToPartyAction.Apply(formerGovernor, MobileParty.MainParty, false);
-         }
+         ReleaseSittingGovernor(fief);
 
          ChangeOwnerOfSettlementAction.ApplyByKingDecision(recipient, fief);
 
@@ -767,6 +799,11 @@ namespace CalradiaRemembers.GameState
                !playerIsKingdomLeader ? RevokeFiefResult.PlayerNotKingdomLeader
                   : !targetInPlayerKingdom ? RevokeFiefResult.VassalNotInKingdom
                   : RevokeFiefResult.NoSuchFief, null);
+
+         // v1.34.2 governance hardening (finding 3): release the spoliated vassal's own governor before the fief
+         // returns to the crown, or that hostile hero would keep governing a fief that is no longer theirs (the
+         // grant path already did this; the revoke and the quest payout did not).
+         ReleaseSittingGovernor(fief);
 
          ChangeOwnerOfSettlementAction.ApplyByKingDecision(Hero.MainHero, fief);
 
@@ -1150,6 +1187,15 @@ namespace CalradiaRemembers.GameState
 
       /// <summary>No town or castle the player's clan still holds answers to the fief name given.</summary>
       NoSuchFief,
+
+      /// <summary>The named fief already has a governor seated; appointing here would silently evict them (v1.34.2 governance hardening, finding 1).</summary>
+      PostOccupied,
+
+      /// <summary>The prospective governor already governs another fief; one hero cannot hold two seats (v1.34.2 governance hardening, finding 2).</summary>
+      AppointeeAlreadyGoverns,
+
+      /// <summary>The prospective governor is away on a companion-mission errand and cannot be seated in absentia (v1.34.2 governance hardening, finding 2).</summary>
+      AppointeeAway,
 
       /// <summary>The prospective governor's standing toward the player is below the acceptance floor.</summary>
       Declined

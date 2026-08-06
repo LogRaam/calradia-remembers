@@ -27,8 +27,14 @@ namespace CalradiaRemembers.Logic
         ///   not an oath), so it may still swear real fealty. The bridge must refuse (never silently ignore)
         ///   when this is false, so a lord who is not the ruler, or a clan already sworn elsewhere, gets an
         ///   honest in-character refusal instead of a game state that quietly does not match the fiction.
+        ///   <para>
+        ///   v1.34.2 governance hardening: <paramref name="playerAtWarWithKingdom" /> forbids swearing fealty to
+        ///   a kingdom the player is actively fighting (player report class: a clan signing allegiance to an
+        ///   enemy it is at war with, a state the fiction can never justify). Re-checked at commit in
+        ///   ExecuteJoinAsVassal against FactionManager.IsAtWarAgainstFaction, the bridge being the law.
+        ///   </para>
         /// </summary>
-        public static bool CanJoin(bool npcIsKingdomRuler, bool playerAlreadyVassal) =>
-            npcIsKingdomRuler && !playerAlreadyVassal;
+        public static bool CanJoin(bool npcIsKingdomRuler, bool playerAlreadyVassal, bool playerAtWarWithKingdom) =>
+            npcIsKingdomRuler && !playerAlreadyVassal && !playerAtWarWithKingdom;
     }
 }

@@ -1802,6 +1802,12 @@ namespace CalradiaRemembers.GameState
                   return ActionOutcome.Refused("(You no longer lead your clan, and cannot hand out its governorships.)");
                case AppointGovernorResult.NoSuchFief:
                   return ActionOutcome.Refused($"(Your clan holds no town or castle called '{fiefName}' with a post to fill.)");
+               case AppointGovernorResult.PostOccupied:
+                  return ActionOutcome.Refused($"({verdict.Fief.Name} already has a governor seated; relieve them first before naming another.)");
+               case AppointGovernorResult.AppointeeAlreadyGoverns:
+                  return ActionOutcome.Refused($"({npcHero.Name} already governs {npcHero.GovernorOf?.Name}, and cannot hold a second seat.)");
+               case AppointGovernorResult.AppointeeAway:
+                  return ActionOutcome.Refused($"({npcHero.Name} is away on an errand and cannot take up a governorship now.)");
                case AppointGovernorResult.Declined:
                   return ActionOutcome.Refused($"({npcHero.Name} does not yet trust you enough to take on governing {verdict.Fief.Name}.)");
             }
@@ -2413,6 +2419,15 @@ namespace CalradiaRemembers.GameState
                return ActionOutcome.Refused(
                   $"(Your clan is already sworn to {playerClan.Kingdom.Name}. " + "Settle that obligation first.)");
 
+            // v1.34.2 governance hardening (finding 4): a realm the player is at war with does not take them on as
+            // its hired swords. Re-checked here through the same pure gate the teaching consults, the bridge being
+            // the law; a refused enrolment is surfaced (never a silent no-op).
+            bool playerAtWarWithKingdom = Hero.MainHero?.MapFaction != null
+               && FactionManager.IsAtWarAgainstFaction(Hero.MainHero.MapFaction, kingdom);
+            if (!MercenaryEnlistmentPolicy.CanJoin(playerClan.Kingdom == null, playerAtWarWithKingdom))
+               return ActionOutcome.Refused(
+                  $"(You are at war with {kingdom.Name}; they will not take your clan into their service while you fight them.)");
+
             // The 4th argument is the clan's MercenaryAwardMultiplier: the influence-to-denars CONVERSION
             // RATE of the contract (persisted on Clan.MercenaryAwardMultiplier), NOT a wage scalar. The engine
             // default is 50 (confirmed by reflection against the shipped ApplyByJoinFactionAsMercenary on game
@@ -2521,11 +2536,21 @@ namespace CalradiaRemembers.GameState
             // ApplyByJoinToKingdom note above, which handles that transition on its own).
             bool playerAlreadyVassal = playerClan.Kingdom != null && !playerClan.IsUnderMercenaryService;
 
-            if (!VassalageOfferPolicy.CanJoin(npcIsKingdomRuler, playerAlreadyVassal))
+            // v1.34.2 governance hardening (finding 4): the player cannot swear fealty to a kingdom they are
+            // actively fighting. Re-checked here through the same pure gate the teaching consults, the bridge
+            // being the law.
+            bool playerAtWarWithKingdom = Hero.MainHero?.MapFaction != null
+               && FactionManager.IsAtWarAgainstFaction(Hero.MainHero.MapFaction, kingdom);
+
+            if (!VassalageOfferPolicy.CanJoin(npcIsKingdomRuler, playerAlreadyVassal, playerAtWarWithKingdom))
             {
                if (!npcIsKingdomRuler)
                   return ActionOutcome.Refused(
                      $"({npcHero.Name} does not rule {kingdom.Name}; only the ruler's word can swear your clan to their banner.)");
+
+               if (playerAtWarWithKingdom)
+                  return ActionOutcome.Refused(
+                     $"(You are at war with {kingdom.Name}; you cannot swear fealty to a realm you are fighting.)");
 
                return ActionOutcome.Refused(
                   $"(Your clan is already sworn to {playerClan.Kingdom.Name}. Settle that obligation first.)");
@@ -3341,6 +3366,11 @@ namespace CalradiaRemembers.GameState
 
          if (verdict != QuestRewardPayoutVerdict.Deliver)
             return DegradeHeavyReward(npcHero, profile, $"the fief of {quest.PromisedSettlementName ?? "the promised land"}", atWar);
+
+         // v1.34.2 governance hardening (finding 3): release the giver's own governor before the fief passes to
+         // the player, or that hostile hero would keep governing a fief that is no longer theirs. Same shared
+         // helper the grant and revoke paths use.
+         CourtActionResolver.ReleaseSittingGovernor(fief);
 
          ChangeOwnerOfSettlementAction.ApplyByKingDecision(Hero.MainHero, fief);
          ModLog.Info($"[GRANT] grant_fief: {fief.Name} passes from {npcHero.Name}'s house to the player (quest reward honored).");

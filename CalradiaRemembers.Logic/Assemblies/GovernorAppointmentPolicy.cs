@@ -61,8 +61,18 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   VassalageOfferPolicy.CanJoin / EscortEligibilityPolicy.CanEscort: the bridge re-checks the leadership,
         ///   the fief, and the standing floor again at commit time (CourtActionResolver.TryAppointGovernor), so a
         ///   true answer here only ever OFFERS a teaching, it never seals a deed.
+        ///   <para>
+        ///   v1.34.2 governance hardening: two more appointee facts join the conjunction so the offer is withheld
+        ///   whenever the bridge would refuse for them. <paramref name="appointeeNotGoverningElsewhere" /> keeps a
+        ///   hero already seated over one fief from being double-posted to a second (one governor, one seat), and
+        ///   <paramref name="appointeeNotAway" /> keeps a companion currently away on an errand from being seated
+        ///   in absentia. Both are re-checked at commit (CourtActionResolver.TryAppointGovernor), the same
+        ///   prompt-is-advice, executor-is-law discipline every other fact here follows.
+        ///   </para>
         /// </summary>
-        public static bool CanOfferAppointment(bool playerLeadsClan, bool appointeeInPlayerClan, bool appointeeAvailable, bool hasVacantGovernableFief)
-            => playerLeadsClan && appointeeInPlayerClan && appointeeAvailable && hasVacantGovernableFief;
+        public static bool CanOfferAppointment(bool playerLeadsClan, bool appointeeInPlayerClan, bool appointeeAvailable, bool hasVacantGovernableFief,
+            bool appointeeNotGoverningElsewhere, bool appointeeNotAway)
+            => playerLeadsClan && appointeeInPlayerClan && appointeeAvailable && hasVacantGovernableFief
+               && appointeeNotGoverningElsewhere && appointeeNotAway;
     }
 }

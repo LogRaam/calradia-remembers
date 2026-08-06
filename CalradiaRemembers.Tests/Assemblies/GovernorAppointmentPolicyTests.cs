@@ -92,7 +92,8 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_every_teaching_fact_holds_WHEN_offering_THEN_the_action_is_taught()
         {
             bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
-                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: true);
+                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: true,
+                appointeeNotGoverningElsewhere: true, appointeeNotAway: true);
 
             offered.Should().BeTrue();
         }
@@ -104,7 +105,8 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_the_player_does_not_lead_the_clan_WHEN_offering_THEN_the_action_is_withheld()
         {
             bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
-                playerLeadsClan: false, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: true);
+                playerLeadsClan: false, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: true,
+                appointeeNotGoverningElsewhere: true, appointeeNotAway: true);
 
             offered.Should().BeFalse();
         }
@@ -116,7 +118,8 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_the_appointee_is_not_of_the_players_clan_WHEN_offering_THEN_the_action_is_withheld()
         {
             bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
-                playerLeadsClan: true, appointeeInPlayerClan: false, appointeeAvailable: true, hasVacantGovernableFief: true);
+                playerLeadsClan: true, appointeeInPlayerClan: false, appointeeAvailable: true, hasVacantGovernableFief: true,
+                appointeeNotGoverningElsewhere: true, appointeeNotAway: true);
 
             offered.Should().BeFalse();
         }
@@ -127,7 +130,8 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_the_appointee_is_unavailable_WHEN_offering_THEN_the_action_is_withheld()
         {
             bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
-                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: false, hasVacantGovernableFief: true);
+                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: false, hasVacantGovernableFief: true,
+                appointeeNotGoverningElsewhere: true, appointeeNotAway: true);
 
             offered.Should().BeFalse();
         }
@@ -139,7 +143,34 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_no_vacant_governable_fief_WHEN_offering_THEN_the_action_is_withheld()
         {
             bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
-                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: false);
+                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: false,
+                appointeeNotGoverningElsewhere: true, appointeeNotAway: true);
+
+            offered.Should().BeFalse();
+        }
+
+        // STAKE (v1.34.2 governance hardening, finding 2): one governor, one seat. An appointee who already governs
+        // another fief must NOT be offered a second post, or the bridge (which re-checks GovernorOf at commit) would
+        // refuse the very deed the model was taught to promise, reopening the empty-promise class. Withhold the offer.
+        [Test]
+        public void GIVEN_the_appointee_already_governs_another_fief_WHEN_offering_THEN_the_action_is_withheld()
+        {
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
+                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: true,
+                appointeeNotGoverningElsewhere: false, appointeeNotAway: true);
+
+            offered.Should().BeFalse();
+        }
+
+        // STAKE (v1.34.2 governance hardening, finding 2): a companion away on a companion-mission errand cannot be
+        // seated in absentia (the bridge re-checks CompanionMissionBehavior.IsAway at commit and refuses). Teaching
+        // the verb to an away appointee would surface an offer the bridge cannot honour, the empty-promise class.
+        [Test]
+        public void GIVEN_the_appointee_is_away_on_an_errand_WHEN_offering_THEN_the_action_is_withheld()
+        {
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
+                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: true,
+                appointeeNotGoverningElsewhere: true, appointeeNotAway: false);
 
             offered.Should().BeFalse();
         }

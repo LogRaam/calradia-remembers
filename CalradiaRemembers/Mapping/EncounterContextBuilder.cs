@@ -165,7 +165,12 @@ namespace CalradiaRemembers.Mapping
             playerLeadsClan: Clan.PlayerClan?.Leader == Hero.MainHero,
             appointeeInPlayerClan: hero?.Clan != null && hero.Clan == Clan.PlayerClan,
             appointeeAvailable: hero is {IsAlive: true} && !hero.IsPrisoner && hero != Hero.MainHero,
-            hasVacantGovernableFief: !string.IsNullOrEmpty(appointableFiefs));
+            hasVacantGovernableFief: !string.IsNullOrEmpty(appointableFiefs),
+            // v1.34.2 governance hardening (finding 2): withhold the offer for an appointee already governing
+            // another fief (one seat per governor) or away on an errand (cannot be seated in absentia). Both are
+            // re-checked at commit by CourtActionResolver.TryAppointGovernor, the same prompt-is-advice contract.
+            appointeeNotGoverningElsewhere: hero?.GovernorOf == null,
+            appointeeNotAway: hero != null && CompanionMissionBehavior.Instance?.IsAway(hero.StringId) != true);
 
          // assign_party_role / rejoin_party / dispatch_mission (2026-08-05, party-command batch): the 1:1 teaching
          // gates, the same "prompt is advice, bridge is law" conditional-teaching contract as appoint_governor above.
@@ -1494,10 +1499,15 @@ namespace CalradiaRemembers.Mapping
 
          if (npcKingdom == null) return null;
 
-         // Player must not already be in any kingdom (vassal or mercenary).
-         if (Clan.PlayerClan?.Kingdom != null) return null;
+         // v1.34.2 governance hardening (finding 4): a realm the player is at war with does not take them on as
+         // its hired swords. Withhold the offer so it is never taught; ExecuteJoinAsMercenary re-checks the same
+         // war fact at commit through MercenaryEnlistmentPolicy.
+         bool playerFreeOfKingdom = Clan.PlayerClan?.Kingdom == null;
+         bool playerAtWar = Hero.MainHero?.MapFaction != null && FactionManager.IsAtWarAgainstFaction(Hero.MainHero.MapFaction, npcKingdom);
 
-         return npcKingdom.Name?.ToString();
+         return MercenaryEnlistmentPolicy.CanJoin(playerFreeOfKingdom, playerAtWar)
+            ? npcKingdom.Name?.ToString()
+            : null;
       }
 
       /// <summary>
@@ -1518,7 +1528,11 @@ namespace CalradiaRemembers.Mapping
          Clan playerClan = Clan.PlayerClan;
          bool playerAlreadyVassal = playerClan?.Kingdom != null && !playerClan.IsUnderMercenaryService;
 
-         return VassalageOfferPolicy.CanJoin(npcKingdom.Leader == hero, playerAlreadyVassal)
+         // v1.34.2 governance hardening (finding 4): the player cannot swear fealty to a kingdom they are actively
+         // fighting. Withhold the offer; ExecuteJoinAsVassal re-checks the same war fact at commit.
+         bool playerAtWar = Hero.MainHero?.MapFaction != null && FactionManager.IsAtWarAgainstFaction(Hero.MainHero.MapFaction, npcKingdom);
+
+         return VassalageOfferPolicy.CanJoin(npcKingdom.Leader == hero, playerAlreadyVassal, playerAtWar)
             ? npcKingdom.Name?.ToString()
             : null;
       }

@@ -387,6 +387,39 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
+            case AppointGovernorResult.PostOccupied:
+            {
+               // v1.34.2 governance hardening (finding 1): the named fief already has a governor seated. Refuse
+               // rather than silently evict them, and report it as a failed pledge, never a success.
+               const string reason = "that fief already has a governor seated.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case AppointGovernorResult.AppointeeAlreadyGoverns:
+            {
+               // v1.34.2 governance hardening (finding 2): one governor, one seat. A hero already governing another
+               // fief cannot be double-posted, so this is a failed pledge, not a success.
+               const string reason = "they already govern another fief.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case AppointGovernorResult.AppointeeAway:
+            {
+               // v1.34.2 governance hardening (finding 2): a companion away on an errand cannot be seated in
+               // absentia. Reported as a failed pledge so it never falls through to the success path.
+               const string reason = "they are away on an errand.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
             case AppointGovernorResult.Declined:
                ledger.MarkFailed(entry.Id, $"{actorName} declined the post");
                report?.Invoke($"{actorName} declines the council's offer to govern {verdict.Fief.Name}.", false);
