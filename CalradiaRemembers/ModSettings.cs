@@ -61,6 +61,15 @@ namespace CalradiaRemembers
       public static bool AllowFiefAndMarriageQuestRewards => CrSettings.Instance?.AllowFiefAndMarriageQuestRewards ?? false;
 
       /// <summary>
+      ///   When true, letter couriers are never intercepted: they stay un-auto-targeted AND no bandit band is
+      ///   ever rolled against them (see CourierService.ScanForWaylayers). The total opt-out for a player who
+      ///   never wants to lose a letter. Read live from the MCM menu; OFF by default, which keeps today's
+      ///   vulnerable-courier behaviour (then subject to the distance-independent
+      ///   <see cref="Logic.CourierWaylayPolicy.MaxWaylayAttemptsPerCourier" /> cap).
+      /// </summary>
+      public static bool InvulnerableCouriers => CrSettings.Instance?.InvulnerableCouriers ?? false;
+
+      /// <summary>
       ///   The chat window skin prefab chosen in the MCM menu ("Chat Window Style"), mapped from its display
       ///   label to the prefab name. Read live; falls back to the Dark Leather (Manuscript) book when MCM has
       ///   not loaded, which is the shipped default.

@@ -75,5 +75,34 @@ namespace CalradiaRemembers.Tests
                                * (CourierWaylayPolicy.ChaseCatchesCourierPercent / 100.0);
             effective.Should().BeLessThan(0.15);
         }
+
+        // The whole point of the cap (player report 2026-08-05: letters lost almost every time when far). The
+        // per-band roll is independent, so on a LONG trip the courier passes MANY bands and the ~10% per-band
+        // loss compounds toward near-certain (10 bands ~65%, 20 bands ~88%). Before any band has rolled, the
+        // budget must be open so a courier is never immune from the very first band it passes.
+        [Test]
+        public void GIVEN_no_band_has_rolled_yet_WHEN_checking_the_budget_THEN_a_band_may_still_roll()
+        {
+            CourierWaylayPolicy.HasWaylayBudget(0).Should().BeTrue();
+        }
+
+        // The second band must still get its roll: the cap is 2, not 1, so interception stays possible (the
+        // design keeps it rare-but-real) rather than collapsing to a single all-or-nothing chance per courier.
+        [Test]
+        public void GIVEN_one_band_has_rolled_WHEN_checking_the_budget_THEN_a_second_band_may_still_roll()
+        {
+            CourierWaylayPolicy.HasWaylayBudget(1).Should().BeTrue();
+        }
+
+        // The boundary that makes loss distance-independent: once MaxWaylayAttemptsPerCourier (2) bands have
+        // decided, the courier is through the gauntlet and no further band rolls, whatever the remaining
+        // distance. Without this exact cutoff a far sender's letter keeps compounding losses band after band,
+        // which is precisely the reported "almost every time when far" failure.
+        [TestCase(2)]
+        [TestCase(3)]
+        public void GIVEN_the_cap_of_bands_has_rolled_WHEN_checking_the_budget_THEN_no_further_band_may_roll(int bandsRolled)
+        {
+            CourierWaylayPolicy.HasWaylayBudget(bandsRolled).Should().BeFalse();
+        }
     }
 }

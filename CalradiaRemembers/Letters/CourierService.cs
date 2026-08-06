@@ -142,11 +142,20 @@ namespace CalradiaRemembers.Letters
 
             courier.IgnoreByOtherPartiesTill(CampaignTime.DaysFromNow(3f)); // no band auto-targets it
 
+            // Player option: an invulnerable courier stays un-auto-targeted (above) but is never rolled against,
+            // so a player who never wants to lose a letter switches interception off entirely.
+            if (ModSettings.InvulnerableCouriers) return;
+
             if (!RolledBandits.TryGetValue(courier.StringId, out HashSet<string> rolled))
             {
                rolled = new HashSet<string>();
                RolledBandits[courier.StringId] = rolled;
             }
+
+            // Distance-independent cap (player report 2026-08-05: letters lost almost every time when far). Only
+            // the first few bands the courier EVER passes may decide; past that it is through the gauntlet, so a
+            // long trip no longer compounds the loss (the rolled set persists across ticks for this courier).
+            if (!CourierWaylayPolicy.HasWaylayBudget(rolled.Count)) return;
 
             Vec2 pos = courier.GetPosition2D;
             foreach (MobileParty bandit in MobileParty.AllBanditParties)

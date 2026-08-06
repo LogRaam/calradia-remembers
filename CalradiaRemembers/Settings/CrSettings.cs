@@ -232,6 +232,15 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> LetterPacing { get; set; } =
          new(new[] {"Rarely", "Occasionally", "Often"}, 1); // default: Occasionally
 
+      // Player report (2026-08-05): letters get lost too often (almost every time) when the sender is far. The
+      // per-band waylay roll compounds over a long trip. A distance-independent cap now blunts that; this toggle
+      // is the total opt-out for a player who never wants a letter intercepted at all. Off = today's behaviour.
+      [SettingPropertyBool("Invulnerable Couriers", RequireRestart = false, Order = 11,
+         HintText = "Off: your letter couriers can be waylaid by bandits on the road (as advertised). On: your " +
+                    "letters always get through, no interception.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool InvulnerableCouriers { get; set; } = false;
+
       // Player request (2026-08-04, "AI Executes" mod parity): a captive under torture wanted the scene able to
       // end their character for real. High-stakes and IRREVERSIBLE (game over, or heir succession), so this is
       // opt-in like AdultContentLevel/Hardcore, off by default, and re-validated by the bridge at the moment of

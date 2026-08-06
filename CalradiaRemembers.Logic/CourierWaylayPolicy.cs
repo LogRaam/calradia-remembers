@@ -26,5 +26,25 @@ namespace CalradiaRemembers.Logic
         /// <summary>True when a 0..99 roll means a chasing band catches the fast courier (it escapes otherwise).</summary>
         public static bool ChaseCatchesCourier(int rollPercent)
             => rollPercent >= 0 && rollPercent < ChaseCatchesCourierPercent;
+
+        /// <summary>
+        ///   CAP: the most bandit bands that may ever roll against a single courier, whatever the trip length.
+        ///   Player report (2026-08-05): letters get lost too often (almost every time) when the sender is far
+        ///   away. The per-band roll above is INDEPENDENT, so its ~10% per-band loss (33% hostile x 30% catch)
+        ///   COMPOUNDS with distance: a short trip passes few bands (low loss), a long trip passes many bands and
+        ///   the cumulative loss climbs toward near-certain (10 bands ~65%, 20 bands ~88%). That breaks the
+        ///   original design intent that interception stay rare and speed-rewarding. Capping the number of bands
+        ///   that ever roll at N=2 makes the worst-case loss distance-independent: 1 - (1 - 0.10)^2 = ~19%,
+        ///   regardless of how far the courier must travel.
+        /// </summary>
+        public const int MaxWaylayAttemptsPerCourier = 2;
+
+        /// <summary>
+        ///   True while this courier still has bands left that may roll against it (fewer than
+        ///   <see cref="MaxWaylayAttemptsPerCourier" /> have decided so far). Once the budget is spent the
+        ///   courier is past the gauntlet and no further band rolls, so long trips no longer compound the loss.
+        /// </summary>
+        public static bool HasWaylayBudget(int bandsAlreadyRolled)
+            => bandsAlreadyRolled < MaxWaylayAttemptsPerCourier;
     }
 }
