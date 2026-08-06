@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Actions;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -159,10 +160,26 @@ namespace CalradiaRemembers.Chat
                .ExecuteAction(p.Action, p.Npc, p.Context);
             if (outcome != null) host.AppendSystemMessageLine(outcome.Message, outcome.IsPositive);
 
-            if (string.Equals(p.Action.Type, "give_gold", StringComparison.OrdinalIgnoreCase))
-               StoryLog.WriteGoldTransfer(p.Profile?.Name, p.Amount, true);
-            else if (string.Equals(p.Action.Type, "take_gold", StringComparison.OrdinalIgnoreCase))
-               StoryLog.WriteGoldTransfer(p.Profile?.Name, p.Amount, false);
+            // A CONFIRMED action can still be REFUSED at the bridge (an active war, insolvency, a gate the
+            // prompt let through). Mirror the inline path (ChatViewModel action loop): the refusal must reach
+            // the TRANSCRIPT as an out-of-character note, not only the UI line, or the model believes the
+            // transfer it just confirmed happened and the next turns build on the lie.
+            string refusalNote = ActionRefusalNote.For(outcome?.WasRefused == true, outcome?.Message);
+            if (refusalNote != null)
+            {
+               try { host.RecordTranscriptLine(true, "You", Hero.MainHero?.StringId, refusalNote); }
+               catch (Exception ex) { ModLog.Error($"[CONFIRM] refusal note failed: {ex.GetType().Name}: {ex.Message}"); }
+            }
+
+            // Story log: only when the coin ACTUALLY moved, and the amount the bridge APPLIED (clamped to the
+            // real purse), never the raw proposed sum, so the journal agrees with the purse.
+            if (outcome != null && !outcome.WasRefused && outcome.AppliedGoldAmount is int moved && moved > 0)
+            {
+               if (string.Equals(p.Action.Type, "give_gold", StringComparison.OrdinalIgnoreCase))
+                  StoryLog.WriteGoldTransfer(p.Profile?.Name, moved, true);
+               else if (string.Equals(p.Action.Type, "take_gold", StringComparison.OrdinalIgnoreCase))
+                  StoryLog.WriteGoldTransfer(p.Profile?.Name, moved, false);
+            }
          }
          catch (Exception ex)
          {

@@ -1247,13 +1247,16 @@ namespace CalradiaRemembers.Chat
                   }
                   else if (string.Equals(action.Type, "give_gold", StringComparison.OrdinalIgnoreCase))
                   {
-                     if (action.Parameters.TryGetValue("amount", out string ags) && int.TryParse(ags, out int ag))
-                        StoryLog.WriteGoldTransfer(actorProfile.Name, ag, true);
+                     // Pattern 3: log the coin ACTUALLY moved (clamped to the giver's purse at the bridge),
+                     // never the raw proposal, and only when the transfer really happened. A refused or
+                     // insolvent give leaves no "hands you N denars" line the purse cannot back.
+                     if (outcome != null && !outcome.WasRefused && outcome.AppliedGoldAmount is int given && given > 0)
+                        StoryLog.WriteGoldTransfer(actorProfile.Name, given, true);
                   }
                   else if (string.Equals(action.Type, "take_gold", StringComparison.OrdinalIgnoreCase))
                   {
-                     if (action.Parameters.TryGetValue("amount", out string ats) && int.TryParse(ats, out int at))
-                        StoryLog.WriteGoldTransfer(actorProfile.Name, at, false);
+                     if (outcome != null && !outcome.WasRefused && outcome.AppliedGoldAmount is int taken && taken > 0)
+                        StoryLog.WriteGoldTransfer(actorProfile.Name, taken, false);
                   }
                }
 

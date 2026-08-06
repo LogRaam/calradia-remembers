@@ -1455,7 +1455,8 @@ namespace CalradiaRemembers.GameState
 
          // The map bar does not refresh while campaign time is frozen under the chat
          // overlay — showing the balance here is the player's only live confirmation.
-         return new ActionOutcome($"{npcHero.Name} gives you {amount} denars (purse: {Hero.MainHero.Gold}).", true);
+         return new ActionOutcome($"{npcHero.Name} gives you {amount} denars (purse: {Hero.MainHero.Gold}).", true,
+            appliedGoldAmount: amount);
       }
 
       /// <summary>
@@ -3184,14 +3185,16 @@ namespace CalradiaRemembers.GameState
                   ? $" It is not enough: she wants {owed} denars for her silence."
                   : grudgeTail;
 
-            return new ActionOutcome($"You give {npcHero.Name} {amount} denars (purse: {Hero.MainHero.Gold}).{tail}", false);
+            return new ActionOutcome($"You give {npcHero.Name} {amount} denars (purse: {Hero.MainHero.Gold}).{tail}", false,
+               appliedGoldAmount: amount);
          }
 
          // No hero recipient (e.g. a synthesized bandit captor) — the coin is simply taken.
          Hero.MainHero.ChangeHeroGold(-amount);
          ModLog.Info($"[ACTION] take_gold: {amount} gold extorted (no hero recipient).");
 
-         return new ActionOutcome($"They take {amount} denars from you (purse: {Hero.MainHero.Gold}).", false);
+         return new ActionOutcome($"They take {amount} denars from you (purse: {Hero.MainHero.Gold}).", false,
+            appliedGoldAmount: amount);
       }
 
       /// <summary>

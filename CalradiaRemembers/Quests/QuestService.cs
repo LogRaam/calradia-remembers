@@ -493,6 +493,11 @@ namespace CalradiaRemembers.Quests
          if (quest == null)
          {
             ModLog.Info($"[QUEST] {giver.Name} claimed completion with no verified quest to match — ignored.");
+            // Pattern 3: the NPC narrated a completion that paid nothing. Tell the PLAYER plainly (no silent
+            // purse), and feed the MODEL a correction so next turn it stops treating the task as done. Only an
+            // IsAwaitingReward quest (a real game event verified the deed) ever pays, so nothing is granted here.
+            notify?.Invoke($"No reward was paid: no task of {giver.Name}'s is verified complete and awaiting one.", false);
+            LlmFeedbackNotes.Set(giver.Id, "You spoke of a task as complete, but the game has recorded no finished task of yours awaiting a reward. Do not treat that task as done or paid.");
 
             return;
          }

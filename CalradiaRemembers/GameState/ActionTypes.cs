@@ -38,11 +38,12 @@ namespace CalradiaRemembers.GameState
     /// </summary>
     public sealed class ActionOutcome
     {
-        public ActionOutcome(string message, bool isPositive, int? appliedRelationDelta = null)
+        public ActionOutcome(string message, bool isPositive, int? appliedRelationDelta = null, int? appliedGoldAmount = null)
         {
             Message = message;
             IsPositive = isPositive;
             AppliedRelationDelta = appliedRelationDelta;
+            AppliedGoldAmount = appliedGoldAmount;
         }
 
         private ActionOutcome(string message)
@@ -90,5 +91,13 @@ namespace CalradiaRemembers.GameState
         ///   and an affront that never applied never becomes a rumor.
         /// </summary>
         public int? AppliedRelationDelta { get; }
+
+        /// <summary>
+        ///   Truthful-channels (Pattern 3): for a give_gold / take_gold action, the coin actually MOVED after
+        ///   clamping to the real purse (which may be smaller than the LLM proposed, or 0). Null for every other
+        ///   action. The StoryLog reads THIS, not the raw parsed amount, so the journal never claims a sum the
+        ///   purse never saw. Mirrors <see cref="AppliedRelationDelta" />.
+        /// </summary>
+        public int? AppliedGoldAmount { get; }
     }
 }
