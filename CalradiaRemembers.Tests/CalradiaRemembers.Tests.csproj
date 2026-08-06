@@ -13,6 +13,12 @@
     <PackageReference Include="NUnit" Version="4.6.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
     <PackageReference Include="FluentAssertions" Version="8.9.0" />
+    <!-- Mono.Cecil reads IL straight from the mod DLL on disk WITHOUT loading or executing it, so the
+         otherwise-"untestable" engine-facing assembly becomes statically inspectable here without ever
+         dragging the TaleWorlds DLLs into this test process. Backs the engine-registry init guardrail
+         (see Guardrails/EngineRegistryInitializationGuardTests). 0.11.x targets netstandard2.0 and loads
+         cleanly under this net10.0 test host. -->
+    <PackageReference Include="Mono.Cecil" Version="0.11.5" />
   </ItemGroup>
 
   <ItemGroup>
