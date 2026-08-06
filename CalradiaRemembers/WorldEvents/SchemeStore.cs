@@ -283,12 +283,11 @@ namespace CalradiaRemembers.WorldEvents
       {
          if (scheme is not {PlayerAbetted: true}) return;
 
-         bool sameFaction = target?.MapFaction != null && Hero.MainHero?.MapFaction != null && target.MapFaction == Hero.MainHero.MapFaction;
          int relation = target != null && Hero.MainHero != null
             ? target.GetRelation(Hero.MainHero)
             : 0;
 
-         int penalty = SchemeBacklash.AbettorPenalty(scheme.State, sameFaction, relation);
+         int penalty = SchemeBacklash.AbettorPenalty(scheme.State, relation);
          scheme.PlayerAbetted = false; // one-shot regardless of outcome
 
          if (penalty <= 0 || target == null || Hero.MainHero == null) return;
@@ -304,7 +303,7 @@ namespace CalradiaRemembers.WorldEvents
 
          // 2. Word of the treachery spreads as a disgrace rumour — fed to commoners and to lords'
          //    "what you've heard", so they speak of the player as a known schemer. Reach scales with
-         //    gravity (treason carries furthest); InvolvesPlayer=false so it spreads then fades.
+         //    gravity (a graver betrayal carries furthest); InvolvesPlayer=false so it spreads then fades.
          var today = (int) CampaignTime.Now.ToDays;
          WorldEventStore.Instance?.Record(new WorldEvent {
             Type = WorldEventType.Affront,
@@ -319,15 +318,7 @@ namespace CalradiaRemembers.WorldEvents
                : new List<string>()
          });
 
-         // 3. A treason against one's OWN realm also cools the betrayed crown.
-         if (sameFaction)
-         {
-            Hero crown = Hero.MainHero.MapFaction?.Leader;
-            if (crown != null && crown != Hero.MainHero && crown != target)
-               ChangeRelationAction.ApplyRelationChangeBetweenHeroes(crown, Hero.MainHero, -SchemeBacklash.TreasonCrownPenalty, false);
-         }
-
-         ModLog.Info($"[SCHEME] abettor backlash: {target.Name} turns on the player (-{penalty}); treachery rumour recorded{(sameFaction ? "; crown displeased" : "")}.");
+         ModLog.Info($"[SCHEME] abettor backlash: {target.Name} turns on the player (-{penalty}); treachery rumour recorded.");
          try
          {
             MBInformationManager.AddQuickInformation(

@@ -17,9 +17,6 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public static class SchemeBacklash
     {
-        /// <summary>Caught conspiring against one's OWN realm — high treason, the gravest.</summary>
-        public const int AbettorTreasonPenalty = 25;
-
         /// <summary>Caught betraying a friend (of another realm) — a grave personal treachery.</summary>
         public const int AbettorFriendPenalty = 18;
 
@@ -45,9 +42,6 @@ namespace CalradiaRemembers.Logic
         public static int WarnedTargetGratitude(int honor, int calculating)
             => Math.Max(16, Math.Min(34, 25 + honor * 3 - calculating * 2));
 
-        /// <summary>How much the betrayed crown (the player's own faction leader) cools on a discovered treason.</summary>
-        public const int TreasonCrownPenalty = 10;
-
         // Relation tiers, matching the rest of the mod's "a friend" / "an enemy" thresholds.
         private const int FriendThreshold = 10;
         private const int EnemyThreshold = -10;
@@ -57,14 +51,13 @@ namespace CalradiaRemembers.Logic
         ///   that shows the player's hand — it SUCCEEDED (the deed, with the player in it, is known) or
         ///   was DISCOVERED mid-flight. A plot that simply fizzled (Failed without exposure) never
         ///   surfaces the player's role, so it costs nothing. The gravity scales with WHO was wronged:
-        ///   betraying one's own realm is treason; betraying a friend is grave; moving against an
-        ///   existing enemy is half-expected. Magnitude only; the host negates it.
+        ///   betraying a friend is grave; a stranger, moderate; moving against an existing enemy is
+        ///   half-expected. Magnitude only; the host negates it.
         /// </summary>
-        public static int AbettorPenalty(SchemeState outcome, bool targetSharesPlayerFaction, int playerRelationWithTarget)
+        public static int AbettorPenalty(SchemeState outcome, int playerRelationWithTarget)
         {
             if (outcome != SchemeState.Succeeded && outcome != SchemeState.Discovered) return 0;
 
-            if (targetSharesPlayerFaction) return AbettorTreasonPenalty;            // treason, whatever the personal feud
             if (playerRelationWithTarget >= FriendThreshold) return AbettorFriendPenalty;
             if (playerRelationWithTarget <= EnemyThreshold) return AbettorEnemyPenalty;
             return AbettorNeutralPenalty;

@@ -19,8 +19,7 @@ namespace CalradiaRemembers.Verbs
     ///   lend_troops (RP with teeth, increment 1): an NPC leading their own party gives the player some of
     ///   their own soldiers to keep. This is a PERMANENT reinforcement, not a loan that returns (v1.34.1
     ///   honesty fix: the transfer is one-way via <see cref="CourtActionResolver.MoveLowestTierTroops" /> and no
-    ///   return mechanic is wired; a real returnable loan is the deferred v1.34.2 decision, see
-    ///   <see cref="CalradiaRemembers.Logic.TroopLoanPolicy" />). The action KEY stays lend_troops; only the
+    ///   return mechanic is wired). The action KEY stays lend_troops; only the
     ///   player-facing wording was made truthful. Eligibility and the count given are entirely <see cref="CourtActionResolver.TryLendTroops" />
     ///   / <see cref="CourtActionResolver.MoveLowestTierTroops" /> (re-checked and re-computed against the
     ///   LIVE roster at execution: "the bridge is law"); this class only orchestrates.
