@@ -168,6 +168,80 @@ Romance can leave more than memories. A liaison may quietly produce a [b][color=
 A single setting controls how much romantic and intimate content NPCs may express.. from [color=#dd7e6b][b]Off[/b][/color] (none) through [color=#dd7e6b][b]Mature[/b][/color] (romance, nothing explicit) to [color=#dd7e6b][b]Explicit[/b][/color] and [b][color=#dd7e6b]Hardcore[/color][/b]. Higher tiers unlock orientation and preference discovery, genuine intimacy gated by trust, and.. at Hardcore only.. captor/captive scenes for players who want darker, adult-only roleplay. At Hardcore, captivity alongside your companions carries its own dread: the captor may drag [b]one of them[/b] before you instead.. tormented in person, given to the soldiers, or your own hands forced to it.. and it leaves marks: your companion's trust in you is scarred, the atrocity enters the world's memory and your chronicle, and against a named captor the companion swears a [b]revenge of their own[/b], joining your vendetta. All of it is [b][color=#dd7e6b]off the explicit path by default[/color][/b] and entirely your choice.
 
 [line]
+[size=4]Everything a character can do.. the full list[/size]
+
+A conversation can lead to real action. Here is the full set of things that can happen when you talk, so you can see at a glance what is supported. Each is offered only when it truly fits the moment, and the game checks it again before anything changes.. the talk proposes, the game decides. Think of something a character ought to be able to do that isn't here? Say so in the [b]Posts[/b] tab.. this list grows with player feedback.
+
+[b][color=#e69138]Money & goods[/color][/b]
+[list]
+[*]Give you gold, or take a purse you offer[/*]
+[*]Give you an item, or accept one from your inventory as a gift[/*]
+[*]Settle a blackmail demand[/*]
+[/list]
+
+[b][color=#e69138]Companions & your party[/color][/b]
+[list]
+[*]Be recruited into your party (haggled, paid in coin or in goods)[/*]
+[*]Be assigned a party role.. scout, engineer, quartermaster, or surgeon[/*]
+[*]Be called back into your party[/*]
+[*]Be recalled from an errand they are away on[/*]
+[*]Be sent on an errand.. word of the realm, spying, theft, trade, or an envoy[/*]
+[*]Be set a standing daily stipend[/*]
+[*]Escort you, or be dismissed from the escort[/*]
+[*]Be heard out when unhappy or war-weary (retire, or step back to their holdings)[/*]
+[*]Be expelled from your clan[/*]
+[/list]
+
+[b][color=#e69138]Rule & holdings[/color][/b]
+[list]
+[*]Be appointed governor of one of your fiefs[/*]
+[*]Be granted a fief, or have one revoked (when you rule)[/*]
+[/list]
+
+[b][color=#e69138]Allegiance & career[/color][/b]
+[list]
+[*]Take you into a kingdom as a mercenary, or release you from the contract[/*]
+[*]Take you on as a vassal[/*]
+[*]Join a clan[/*]
+[/list]
+
+[b][color=#e69138]Prisoners & captives[/color][/b]
+[list]
+[*]Take, free, buy, or sell a hero prisoner[/*]
+[*]Negotiate a captive's release, or a rescue[/*]
+[*][b]Hardcore only[/b].. captive-scene acts (harming a prisoner, a chance of pregnancy) and, only if you switch it on, a captor ending a prisoner's life[/*]
+[/list]
+
+[b][color=#e69138]Marriage, family & romance[/color][/b]
+[list]
+[*]Arrange a marriage between two houses[/*]
+[*]Marry you, take you as a consort, or as a secret lover[/*]
+[*]Grant a family blessing for a marriage[/*]
+[*]Raise, accept, or refuse a divorce, or end their own marriage[/*]
+[*]Make amends for a past wrong[/*]
+[/list]
+
+[b][color=#e69138]Court & influence[/color][/b]
+[list]
+[*]Lend or grant troops[/*]
+[*]Lend or spend political influence at court[/*]
+[*]Be swayed in their opinion of a third party[/*]
+[*]Swear a verifiable oath.. to keep a peace, to protect you, or to pay a debt[/*]
+[/list]
+
+[b][color=#e69138]Intrigue & rivalry[/color][/b]
+[list]
+[*]Draw you into a secret scheme, heed one, or be warned of one aimed at them[/*]
+[*]Pledge to move against a shared rival[/*]
+[*]Be spared, executed, or turned to your side as a beaten nemesis[/*]
+[/list]
+
+[b][color=#e69138]Tasks & talk[/color][/b]
+[list]
+[*]Offer you a real, verified quest or errand[/*]
+[*]Grant you privacy, send a witness away, or end the conversation[/*]
+[/list]
+
 [size=4]Requirements[/size]
 
 [list]
