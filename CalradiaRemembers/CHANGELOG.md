@@ -2,6 +2,36 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.34.2.. 2026-08-06
+
+A resilience release. The conversation actions are now more robust and fairer when the world changes between
+what is said and what is done. No new features; your saves carry over untouched.
+
+### Fixed and hardened
+- **Actions re-check the world at the moment they happen.** Naming a governor now respects an already-filled
+  post and a companion who is away on an errand; joining a kingdom you are at war with is refused; revoking a
+  fief releases its sitting governor.
+- **You are no longer blamed for what the world does.** An oath to keep the peace is not broken when someone
+  attacks YOU (only the one who marches breaks it); a promisor taken captive is not branded an oathbreaker while
+  he can do nothing; a quest whose target dies, or a pledge whose rival dies, is quietly voided instead of
+  penalizing you.
+- **Prisoner and gold dealings are safe and honest.** No captive is handed over or sold without a real holder to
+  receive them; gold moves only after the trade is certain, and is refunded if it fails; a lord cannot buy a
+  captive for a pittance while claiming the full price; and a member of your own house is never merchandise.
+- **Captive-scene actions respect their own rules again** (the darker ones only apply while you are genuinely a
+  prisoner in a Hardcore scene).
+- **Companions are looked after.** A stipend refunds the remainder and tells you if its recipient dies; a
+  companion away on an errand can no longer wrongly quit or stay away forever; an expelled companion will not
+  reappear in your party.
+- **Marriage and persuasion are fairer.** Arranging a match now respects captivity and war; a divorce blocked
+  only because your spouse was handed a role now proceeds instead of falsely closing ranks against you; swaying
+  a lord no longer defaults to the harmful direction on a garbled request.
+- **The channels tell one truth.** The chat, the story log, and the quest journal now agree with the game: no
+  logged sum the purse never saw, a refused action leaves a clear note, and an unverified quest-complete claim
+  tells you plainly that nothing was paid.
+- **Under the hood:** unreachable dead code removed, and a new quiet diagnostic watches for actions the AI
+  proposes out of context (log only, for future tuning).
+
 ## v1.34.1.. 2026-08-06
 
 A hardening release: many conversation actions are now safer and fairer, and letters survive the road better.

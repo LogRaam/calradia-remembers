@@ -236,6 +236,7 @@ A conversation can lead to real action. Here is the full set of things that can 
 [*]Draw you into a secret scheme, heed one, or be warned of one aimed at them[/*]
 [*]Pledge to move against a shared rival[/*]
 [*]Be spared, executed, or turned to your side as a beaten nemesis[/*]
+[*]Challenge you to a duel, or take up the one you offer, to settle a quarrel by the sword[/*]
 [/list]
 
 [b][color=#e69138]Tasks & talk[/color][/b]
