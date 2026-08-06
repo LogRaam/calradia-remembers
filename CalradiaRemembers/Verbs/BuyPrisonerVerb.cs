@@ -82,7 +82,8 @@ namespace CalradiaRemembers.Verbs
 
                 action.Parameters.TryGetValue("price", out string priceStr);
                 int.TryParse(priceStr?.Trim(), out int proposed);
-                int price = PrisonerTradePolicy.ClampPrice(proposed, RansomAnchor(captive));
+                int anchor = RansomAnchor(captive);
+                int price = PrisonerTradePolicy.ClampPrice(proposed, anchor);
 
                 // Captured BEFORE the transfer (the grudge rule reads the captive's prior regard).
                 int captiveRegardForPlayer = captive.GetRelation(Hero.MainHero);
@@ -95,16 +96,37 @@ namespace CalradiaRemembers.Verbs
                 if (dest == null)
                     return ActionOutcome.Refused($"({npcHero.Name} has no party or holding to keep a prisoner in.)");
 
+                // NPC solvency: GiveGoldAction self-clamps a payment to the payer's purse, so a broke buyer
+                // would otherwise "buy" the captive for its last few denars while the player was told the full
+                // agreed price. Pay the TRUE amount the buyer can raise, and REFUSE below the honest floor
+                // rather than hand a valuable captive over for a pittance.
+                int floor = PrisonerTradePolicy.MinAcceptablePayment(anchor);
+                int payment = Math.Min(price, npcHero.Gold);
+                if (payment < floor)
+                    return ActionOutcome.Refused($"({npcHero.Name} cannot raise a fair price for {captive.Name} and will not take them for a pittance.)");
+
                 CharacterObject captiveChar = captive.CharacterObject;
 
-                // The gold, then the man: the NPC pays the player, and the captive changes hands into the
-                // buyer's custody (a real +1 to a real roster, never a phantom deletion).
-                GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, price);
-                TransferPrisonerAction.Apply(captiveChar, MobileParty.MainParty.Party, dest);
+                // The gold, then the man, ATOMICALLY: the NPC pays the player the true amount, then the captive
+                // changes hands into the buyer's custody (a real +1 to a real roster, never a phantom deletion).
+                // If the transfer still throws, the payment is refunded and the sale refused, never a silent
+                // half-trade (gold paid, no captive moved, player told nothing).
+                GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, payment);
+                try
+                {
+                    TransferPrisonerAction.Apply(captiveChar, MobileParty.MainParty.Party, dest);
+                }
+                catch (Exception transferEx)
+                {
+                    GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, payment); // refund the failed purchase
+                    ModLog.Error($"[ACTION] buy_prisoner transfer failed, payment refunded: {transferEx.GetType().Name}: {transferEx.Message}");
+
+                    return ActionOutcome.Refused($"(The handover of {captive.Name} fell through. {npcHero.Name}'s payment is returned.)");
+                }
 
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
-                    $"Bought the captive {captive.Name} from the player for {price} denars."));
+                    $"Bought the captive {captive.Name} from the player for {payment} denars."));
 
                 // The SOLD captive resents being traded like goods, heavier when sold to their own enemy.
                 // Guarded so a plant failure never claws back the sale that already succeeded.
@@ -127,15 +149,17 @@ namespace CalradiaRemembers.Verbs
                     ModLog.Error($"[ACTION] buy_prisoner grudge plant failed: {ex.GetType().Name}: {ex.Message}");
                 }
 
-                ModLog.Info($"[ACTION] buy_prisoner: {npcHero.Name} bought {captive.Name} from the player for {price} denars.");
+                ModLog.Info($"[ACTION] buy_prisoner: {npcHero.Name} bought {captive.Name} from the player for {payment} denars.");
 
-                return new ActionOutcome($"{npcHero.Name} pays you {price} denars and takes {captive.Name} into their custody.", true);
+                return new ActionOutcome($"{npcHero.Name} pays you {payment} denars and takes {captive.Name} into their custody.", true);
             }
             catch (Exception ex)
             {
                 ModLog.Error($"[ACTION] buy_prisoner failed: {ex.GetType().Name}: {ex.Message}");
 
-                return null;
+                // A pre-payment failure moved nothing (gold only leaves the buyer after every guard passes),
+                // so surface a refusal rather than vanish as a silent null.
+                return ActionOutcome.Refused("(The sale could not be completed. Nothing happened.)");
             }
         }
 

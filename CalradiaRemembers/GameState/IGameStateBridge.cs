@@ -185,6 +185,13 @@ namespace CalradiaRemembers.GameState
         void BeginCaptiveSceneTracking();
 
         /// <summary>
+        ///   Marks the captive scene closed at scene end, so harm_prisoner (which deducts REAL health)
+        ///   re-validates that a scene is genuinely running before wounding the player. Prevents a stray
+        ///   or late emission from harming the player during ordinary captivity conversation.
+        /// </summary>
+        void EndCaptiveSceneTracking();
+
+        /// <summary>
         ///   Applies the guaranteed body toll for a forced sexual captive scene: if no
         ///   harm_prisoner action wounded the player during the scene, deducts a moderate amount
         ///   of health so an aggression is never bloodless. No-op when harm was already applied.

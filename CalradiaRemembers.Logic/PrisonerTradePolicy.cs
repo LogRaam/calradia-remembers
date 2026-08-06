@@ -42,5 +42,21 @@ namespace CalradiaRemembers.Logic
 
          return proposedPrice;
       }
+
+      /// <summary>
+      ///   The honest MINIMUM a buyer must actually be able to pay for this captive: the same floor
+      ///   <see cref="ClampPrice" /> uses (<see cref="FloorFactor" /> of the anchor, never below
+      ///   <see cref="MinPrice" />). A buyer who cannot raise this much is REFUSED rather than handed the
+      ///   captive for whatever pittance they hold: GiveGoldAction self-clamps a payment to the payer's purse,
+      ///   so without this a broke NPC would "buy" a valuable hostage for its last few denars while the player
+      ///   was told the full agreed price. The executor pays the true amount and never below this floor.
+      /// </summary>
+      public static int MinAcceptablePayment(int ransomAnchor)
+      {
+         int anchor = ransomAnchor > 0 ? ransomAnchor : FallbackAnchor;
+         var floor = (int) (anchor * FloorFactor);
+
+         return floor < MinPrice ? MinPrice : floor;
+      }
    }
 }

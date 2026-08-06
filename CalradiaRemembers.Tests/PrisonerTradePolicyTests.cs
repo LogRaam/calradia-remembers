@@ -71,5 +71,33 @@ namespace CalradiaRemembers.Tests
             // Anchor 60: raw floor would be 24, held up to the MinPrice of 50.
             PrisonerTradePolicy.ClampPrice(1, ransomAnchor: 60).Should().Be(PrisonerTradePolicy.MinPrice);
         }
+
+        // STAKE: GiveGoldAction self-clamps a payment to the payer's purse, so a broke NPC buyer would "buy" a
+        // valuable captive for its last few denars while the player was told the full agreed price. buy_prisoner
+        // refuses below this honest floor; it must match the same 40% band ClampPrice uses so a captive is never
+        // given away for a pittance. Anchor 1000 -> floor 400.
+        [Test]
+        public void GIVEN_a_valuable_captive_WHEN_reading_the_minimum_acceptable_payment_THEN_it_is_the_forty_percent_floor()
+        {
+            PrisonerTradePolicy.MinAcceptablePayment(ransomAnchor: 1000).Should().Be(400);
+        }
+
+        // STAKE: for a very low-value captive the 40% floor collapses below MinPrice; the absolute backstop must
+        // still hold so a buyer can never acquire even a lowly prisoner for a trivial sum. Anchor 60 -> raw 24,
+        // held up to MinPrice.
+        [Test]
+        public void GIVEN_a_worthless_captive_WHEN_reading_the_minimum_acceptable_payment_THEN_the_absolute_minimum_holds()
+        {
+            PrisonerTradePolicy.MinAcceptablePayment(ransomAnchor: 60).Should().Be(PrisonerTradePolicy.MinPrice);
+        }
+
+        // STAKE: RansomAnchor falls back to FallbackAnchor when the game's ransom model is unreadable; a raw
+        // anchor of 0 must not collapse the minimum acceptable payment to nothing (which would let a buyer take
+        // the captive for a single denar). Fallback 500 -> floor 200.
+        [Test]
+        public void GIVEN_an_unreadable_ransom_anchor_WHEN_reading_the_minimum_acceptable_payment_THEN_the_fallback_rules()
+        {
+            PrisonerTradePolicy.MinAcceptablePayment(ransomAnchor: 0).Should().Be(200);
+        }
     }
 }

@@ -82,13 +82,28 @@ namespace CalradiaRemembers.Verbs
                 if (Hero.MainHero.Gold < price)
                     return ActionOutcome.Refused($"(You cannot pay the {price} denars {npcHero.Name} asks for {captive.Name}.)");
 
-                // The gold, then the man: the player pays, and the captive changes custody into the
-                // player's own prison roster.
-                GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, price);
+                // Every failable guard is resolved BEFORE any gold moves (valid captive, held by the clan,
+                // purse sufficient, source roster read), so the payment only ever leaves the player's purse
+                // once the handover is certain to be attempted.
                 CharacterObject captiveChar = captive.CharacterObject;
                 PartyBase from = captive.PartyBelongedToAsPrisoner;
-                if (from != null) TransferPrisonerAction.Apply(captiveChar, from, MobileParty.MainParty.Party);
-                else TakePrisonerAction.Apply(MobileParty.MainParty.Party, captive);
+
+                // The gold, then the man, ATOMICALLY: the player pays, then the captive changes custody into
+                // the player's own prison roster. If the transfer still throws, the payment is refunded and the
+                // sale refused, never a silent half-trade (gold gone, no captive, player told nothing).
+                GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, price);
+                try
+                {
+                    if (from != null) TransferPrisonerAction.Apply(captiveChar, from, MobileParty.MainParty.Party);
+                    else TakePrisonerAction.Apply(MobileParty.MainParty.Party, captive);
+                }
+                catch (Exception transferEx)
+                {
+                    GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, price); // refund the failed purchase
+                    ModLog.Error($"[ACTION] sell_prisoner transfer failed, payment refunded: {transferEx.GetType().Name}: {transferEx.Message}");
+
+                    return ActionOutcome.Refused($"({captive.Name} could not be delivered into your custody. Your {price} denars are returned.)");
+                }
 
                 // A purchase is a custody handoff, not a battle capture: TransferPrisonerAction raises no
                 // HeroPrisonerTaken, so capture quests would never stamp. We do NOT dispatch that event by
@@ -110,7 +125,9 @@ namespace CalradiaRemembers.Verbs
             {
                 ModLog.Error($"[ACTION] sell_prisoner failed: {ex.GetType().Name}: {ex.Message}");
 
-                return null;
+                // A pre-payment failure moved nothing (gold only leaves the purse after every guard passes),
+                // so surface a refusal rather than vanish as a silent null.
+                return ActionOutcome.Refused("(The sale could not be completed. Nothing happened.)");
             }
         }
     }

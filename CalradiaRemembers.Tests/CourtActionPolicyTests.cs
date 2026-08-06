@@ -434,5 +434,32 @@ namespace CalradiaRemembers.Tests
       {
          CourtActionPolicy.CooldownElapsed(100, 200, 7).Should().BeTrue();
       }
+
+      // ── player household exclusion (v1.34.2 hardening, prisoner/gold audit finding 4) ──
+
+      // STAKE: the held-prisoner pool (sell_prisoner / release_prisoner) excluded only the player, not the
+      // player's CLAN. A captured brother or child of the player's own house could then be "bought" back into
+      // the player's own cage or handled as merchandise; a member of your own house is never stock to trade.
+      [Test]
+      public void GIVEN_a_member_of_the_players_own_clan_WHEN_testing_the_household_gate_THEN_they_are_excluded()
+      {
+         CourtActionPolicy.IsPlayerHousehold(isMainHero: false, sharesPlayerClan: true).Should().BeTrue();
+      }
+
+      // STAKE: the original exclusion (the player themself) must survive the widening to the whole clan, or the
+      // player could be listed as their own merchandise.
+      [Test]
+      public void GIVEN_the_player_themself_WHEN_testing_the_household_gate_THEN_they_are_excluded()
+      {
+         CourtActionPolicy.IsPlayerHousehold(isMainHero: true, sharesPlayerClan: false).Should().BeTrue();
+      }
+
+      // STAKE: the gate must stay narrow: an ordinary captured lord of another house IS legitimate merchandise,
+      // so widening the exclusion must not accidentally swallow every prisoner and empty the trade pool.
+      [Test]
+      public void GIVEN_an_unrelated_captured_lord_WHEN_testing_the_household_gate_THEN_they_remain_tradeable()
+      {
+         CourtActionPolicy.IsPlayerHousehold(isMainHero: false, sharesPlayerClan: false).Should().BeFalse();
+      }
    }
 }

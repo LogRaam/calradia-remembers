@@ -1972,6 +1972,10 @@ namespace CalradiaRemembers.Chat
 
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
+         // The scene is closing: mark it inactive so a later harm_prisoner emission during ordinary
+         // captivity conversation can no longer deduct the player's health.
+         behavior?.GameStateBridge?.EndCaptiveSceneTracking();
+
          // A committed escape is applied now, as the scene closes — deferred from the moment it
          // was rolled so freeing the player never popped an encounter over the open scene window.
          behavior?.GameStateBridge?.FinalizePendingEscape();

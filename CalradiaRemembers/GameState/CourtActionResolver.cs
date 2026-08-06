@@ -1010,7 +1010,9 @@ namespace CalradiaRemembers.GameState
 
          foreach (Hero h in Hero.AllAliveHeroes)
          {
-            if (h == npc || h == Hero.MainHero || !h.IsLord || !h.IsPrisoner) continue;
+            if (h == npc || !h.IsLord || !h.IsPrisoner) continue;
+            // A member of the player's own house is never merchandise: exclude the player AND player-clan kin.
+            if (CourtActionPolicy.IsPlayerHousehold(h == Hero.MainHero, h.Clan == Clan.PlayerClan)) continue;
             if (!IsHeldByClan(h, npc.Clan)) continue;
 
             result.Add(h);
@@ -1020,9 +1022,14 @@ namespace CalradiaRemembers.GameState
          return result;
       }
 
-      /// <summary>Re-validates that <paramref name="target" /> is genuinely held by this NPC's clan right now.</summary>
+      /// <summary>
+      ///   Re-validates that <paramref name="target" /> is genuinely held by this NPC's clan right now AND is
+      ///   not a member of the player's own house (a captured relative is never merchandise the player buys
+      ///   back into their own cage).
+      /// </summary>
       public static bool CanRelease(Hero target, Hero npc)
-         => target?.IsPrisoner == true && npc?.Clan != null && IsHeldByClan(target, npc.Clan);
+         => target?.IsPrisoner == true && npc?.Clan != null && IsHeldByClan(target, npc.Clan)
+            && !CourtActionPolicy.IsPlayerHousehold(target == Hero.MainHero, target.Clan == Clan.PlayerClan);
 
       /// <summary>
       ///   Resolves the named captive by a tolerant, case-insensitive name match among EVERY hero
@@ -1037,7 +1044,8 @@ namespace CalradiaRemembers.GameState
          string query = name.Trim();
 
          return Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != npc && h != Hero.MainHero && h is {IsLord: true, IsPrisoner: true} &&
+            h != npc && !CourtActionPolicy.IsPlayerHousehold(h == Hero.MainHero, h.Clan == Clan.PlayerClan) &&
+            h is {IsLord: true, IsPrisoner: true} &&
             IsHeldByClan(h, npc.Clan) &&
             h.Name != null && h.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
       }

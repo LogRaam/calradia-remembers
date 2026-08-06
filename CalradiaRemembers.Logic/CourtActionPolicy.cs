@@ -251,6 +251,17 @@ namespace CalradiaRemembers.Logic
         /// <summary>Tuning: relation bump granted to the freed hero toward the player who interceded.</summary>
         public const int ReleasePrisonerRelationBump = 5;
 
+        /// <summary>
+        ///   True when a captive belongs to the player's OWN household and so is never merchandise: the player
+        ///   themself (<paramref name="isMainHero" />) or any member of <c>Clan.PlayerClan</c>
+        ///   (<paramref name="sharesPlayerClan" />). The held-prisoner pool (sell_prisoner / release_prisoner)
+        ///   must exclude these: a member of the player's own house is not a hostage to be bought back into the
+        ///   player's own cage or handled as goods. Excluding only the player left kin (a captured brother or
+        ///   child) exposed as tradeable stock.
+        /// </summary>
+        public static bool IsPlayerHousehold(bool isMainHero, bool sharesPlayerClan)
+            => isMainHero || sharesPlayerClan;
+
         // ── shared cooldown math ────────────────────────────────────────────
 
         /// <summary>

@@ -87,6 +87,11 @@ namespace CalradiaRemembers.GameState
       // Set when a harm_prisoner action wounds the player during the current captive scene, so
       // ApplyForcedSceneToll knows not to double up. Reset at each scene's start.
       private static bool _captiveHarmApplied;
+
+      // True only WHILE a captive scene is running (set at BeginCaptiveSceneTracking, cleared at scene close).
+      // harm_prisoner deducts REAL health, so it re-validates against this so a stray emission outside a live
+      // scene can never wound the player during an ordinary conversation.
+      private static bool _captiveSceneActive;
       private static bool _forceNextEscape; // console test hook (cr.escape_force)
       private static bool _pendingEscape;
       private static bool _pendingRelease; // captor chose to free the player; applied at scene close
@@ -142,11 +147,15 @@ namespace CalradiaRemembers.GameState
       public void BeginCaptiveSceneTracking()
       {
          _captiveHarmApplied = false;
+         _captiveSceneActive = true;
          _sceneHarmCount = 0;
          _pendingEscape = false;
          _pendingRelease = false;
          _pendingReleaseCaptor = null;
       }
+
+      /// <inheritdoc />
+      public void EndCaptiveSceneTracking() => _captiveSceneActive = false;
 
       /// <inheritdoc />
       public bool CommitCaptorRelease(Hero captor)
@@ -254,7 +263,7 @@ namespace CalradiaRemembers.GameState
             case "swear_oath":
                return ExecuteSwearOath(action, npcHero);
             case "harm_prisoner":
-               return ExecuteHarmPrisoner(action);
+               return ExecuteHarmPrisoner(action, npcHero);
             case "impregnation_risk":
                return ExecuteImpregnationRisk(npcHero);
             case "gather_news":
@@ -2300,11 +2309,27 @@ namespace CalradiaRemembers.GameState
          }
       }
 
-      private static ActionOutcome ExecuteHarmPrisoner(GameAction action)
+      private static ActionOutcome ExecuteHarmPrisoner(GameAction action, Hero npcHero)
       {
          var player = Hero.MainHero;
 
          if (player == null) return null;
+
+         // The prompt is advice, the bridge is law: harm_prisoner deducts REAL health, so re-validate the
+         // captivity, the live scene, and the Hardcore floor here (mirrors PlayerExecutionPolicy for
+         // execute_player). A stray or premature emission outside a real captive scene must wound no one, and
+         // the action is advertised Hardcore-only.
+         bool playerIsCaptiveOfCaptor = player.IsPrisoner
+            && player.PartyBelongedToAsPrisoner?.LeaderHero == npcHero;
+         bool hardcore = ModSettings.AdultContentLevel == AdultContentLevel.Hardcore;
+
+         if (!HarmPrisonerPolicy.CanHarm(playerIsCaptiveOfCaptor, _captiveSceneActive, hardcore))
+         {
+            ModLog.Info($"[ACTION] harm_prisoner refused by HarmPrisonerPolicy (captive={playerIsCaptiveOfCaptor}, " +
+                        $"sceneActive={_captiveSceneActive}, hardcore={hardcore}).");
+
+            return ActionOutcome.Refused("(No true harm befalls you here. Nothing happened.)");
+         }
 
          action.Parameters.TryGetValue("severity", out string severity);
          int damage;
