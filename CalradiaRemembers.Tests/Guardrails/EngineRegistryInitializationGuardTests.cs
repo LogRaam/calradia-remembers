@@ -26,6 +26,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using FluentAssertions;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -140,21 +141,37 @@ namespace CalradiaRemembers.Tests.Guardrails
         }
 
         /// <summary>
-        ///   Finds a compiled CalradiaRemembers.dll to scan by PATH (never a ProjectReference, which would pull
-        ///   the TaleWorlds runtime into this process and defeat the point). The mod's configured OutputPath can
-        ///   live OUTSIDE the repo, but its obj\Debug|Release copies are the same compiled IL and always land
-        ///   inside the repo after a build, so a bounded recursion of the repo root reliably finds a scannable
-        ///   copy. Newest write time wins so the scan always reflects the latest build. Returns null if none
-        ///   exists (the caller turns that into a clear "build the mod first" failure).
+        ///   Finds a compiled CalradiaRemembers.dll to scan by PATH (never a ProjectReference: this net10.0 test
+        ///   project cannot reference the net472 mod, and doing so would pull the TaleWorlds runtime into the
+        ///   process and defeat the point). The mod's configured OutputPath can live OUTSIDE the repo, but its
+        ///   obj\Debug|Release copies are the same compiled IL and always land inside the repo after a build, so a
+        ///   bounded recursion of the repo root finds a scannable copy. The search is anchored FIRST on this test
+        ///   file's own <see cref="CallerFilePathAttribute" /> source path, a compile-time constant that points at
+        ///   the real repo tree even under nCrunch (whose runtime TestDirectory sits in an isolated workspace far
+        ///   from the repo, which is why the plain TestDirectory anchor found nothing there); the runtime
+        ///   TestDirectory is kept as a second anchor for a plain `dotnet test` / CI layout. Newest write time
+        ///   wins so the scan reflects the latest build. Returns null only when no built copy exists at all (the
+        ///   caller turns that into a clear "build the mod first" failure).
         /// </summary>
-        private static string? TryLocateModAssembly()
+        private static string? TryLocateModAssembly([CallerFilePath] string sourceFilePath = "")
         {
-            var start = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
-            DirectoryInfo? repoRoot = WalkUp(start, IsRepoRoot);
+            var anchors = new List<DirectoryInfo>();
+            if (!string.IsNullOrEmpty(sourceFilePath))
+            {
+                string? sourceDir = Path.GetDirectoryName(sourceFilePath);
+                if (!string.IsNullOrEmpty(sourceDir) && Directory.Exists(sourceDir))
+                    anchors.Add(new DirectoryInfo(sourceDir));
+            }
+
+            anchors.Add(new DirectoryInfo(TestContext.CurrentContext.TestDirectory));
 
             var searchRoots = new List<DirectoryInfo>();
-            if (repoRoot != null) searchRoots.Add(repoRoot);
-            searchRoots.Add(start); // fallback if the repo-root marker is not found
+            foreach (DirectoryInfo start in anchors)
+            {
+                DirectoryInfo? repoRoot = WalkUp(start, IsRepoRoot);
+                if (repoRoot != null) searchRoots.Add(repoRoot);
+                searchRoots.Add(start); // fallback if the repo-root marker is not found from this anchor
+            }
 
             FileInfo? best = null;
             foreach (DirectoryInfo root in Distinct(searchRoots))
