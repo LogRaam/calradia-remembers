@@ -37,20 +37,27 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>
         ///   grant_fief's gate: legal only when the player actually RULES a kingdom (Kingdom.Leader == the
-        ///   player, not merely a member or an independent clan's own head) AND the named fief is a town or
-        ///   castle the player's OWN clan currently owns (a genuine crown fief to give away, never a fief
-        ///   another vassal already holds, which would not be the player's to give).
+        ///   player, not merely a member or an independent clan's own head) AND the recipient's clan is a vassal
+        ///   of THAT SAME kingdom (a crown fief passes only to a lord who owes this crown fealty, never a
+        ///   foreign or enemy house) AND the named fief is a town or castle the player's OWN clan currently owns
+        ///   (a genuine crown fief to give away, never a fief another vassal already holds, which would not be
+        ///   the player's to give). The <paramref name="recipientInPlayerKingdom" /> fact is the v1.34.1 hotfix
+        ///   invariant: without it a hallucinated or coaxed grant_fief token could hand a crown fief to an enemy.
         /// </summary>
-        public static bool CanGrant(bool playerIsKingdomLeader, bool fiefOwnedByPlayerClan)
-            => playerIsKingdomLeader && fiefOwnedByPlayerClan;
+        public static bool CanGrant(bool playerIsKingdomLeader, bool recipientInPlayerKingdom, bool fiefOwnedByPlayerClan)
+            => playerIsKingdomLeader && recipientInPlayerKingdom && fiefOwnedByPlayerClan;
 
         /// <summary>
-        ///   revoke_fief's gate: legal only when the player actually RULES a kingdom AND the named fief is a
-        ///   town or castle the SEATED vassal's own clan currently owns (a real fief to strip; naming a fief
-        ///   the vassal never held would confiscate nothing, an empty punishment the table never actually paid).
+        ///   revoke_fief's gate: legal only when the player actually RULES a kingdom AND the target's clan is a
+        ///   vassal of THAT SAME kingdom (the crown confiscates only from its own sworn lords, never seizes an
+        ///   enemy's fief mid-war without a siege) AND the named fief is a town or castle the SEATED vassal's own
+        ///   clan currently owns (a real fief to strip; naming a fief the vassal never held would confiscate
+        ///   nothing, an empty punishment the table never actually paid). The <paramref name="targetInPlayerKingdom" />
+        ///   fact is the v1.34.1 hotfix invariant: without it a hallucinated revoke_fief token could annex an
+        ///   enemy holding by decree.
         /// </summary>
-        public static bool CanRevoke(bool playerIsKingdomLeader, bool fiefOwnedBySpoliatedClan)
-            => playerIsKingdomLeader && fiefOwnedBySpoliatedClan;
+        public static bool CanRevoke(bool playerIsKingdomLeader, bool targetInPlayerKingdom, bool fiefOwnedBySpoliatedClan)
+            => playerIsKingdomLeader && targetInPlayerKingdom && fiefOwnedBySpoliatedClan;
 
         /// <summary>
         ///   swap_fiefs' gate (COUNCIL_ACTIONS.md Partie 8, Kimi review): legal only when the player actually

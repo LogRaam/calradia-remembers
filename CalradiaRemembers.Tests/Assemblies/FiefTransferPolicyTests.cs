@@ -27,11 +27,12 @@ namespace CalradiaRemembers.Tests.Assemblies
     [TestFixture]
     public sealed class FiefTransferPolicyTests
     {
-        // The ordinary case: a true sovereign giving away a fief their own clan actually holds is legal.
+        // The ordinary case: a true sovereign giving away a fief their own clan actually holds, to a lord sworn to
+        // their own kingdom, is legal.
         [Test]
         public void GIVEN_a_sovereign_and_a_player_owned_fief_WHEN_asked_to_grant_THEN_it_is_legal()
         {
-            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: true, fiefOwnedByPlayerClan: true).Should().BeTrue();
+            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: true, recipientInPlayerKingdom: true, fiefOwnedByPlayerClan: true).Should().BeTrue();
         }
 
         // Gabriel's own condition, corrected by the Kimi review: "chef de clan" is not enough, since a clan's
@@ -40,7 +41,16 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_is_not_the_kingdom_sovereign_WHEN_asked_to_grant_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: false, fiefOwnedByPlayerClan: true).Should().BeFalse();
+            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: false, recipientInPlayerKingdom: true, fiefOwnedByPlayerClan: true).Should().BeFalse();
+        }
+
+        // The v1.34.1 hotfix invariant. Without it, an LLM emitting grant_fief (hallucinated or coaxed) could hand
+        // a crown fief to a FOREIGN or ENEMY clan that owes the player's crown no fealty: a save-corrupting exploit.
+        // A crown fief passes only to a vassal of the player's own realm, so an out-of-kingdom recipient is refused.
+        [Test]
+        public void GIVEN_the_recipient_is_not_a_vassal_of_the_players_kingdom_WHEN_asked_to_grant_THEN_it_is_refused()
+        {
+            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: true, recipientInPlayerKingdom: false, fiefOwnedByPlayerClan: true).Should().BeFalse();
         }
 
         // The fief must be a REAL crown fief the player's own clan holds right now: naming a fief already given
@@ -48,22 +58,23 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_named_fief_is_not_the_players_own_WHEN_asked_to_grant_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: true, fiefOwnedByPlayerClan: false).Should().BeFalse();
+            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: true, recipientInPlayerKingdom: true, fiefOwnedByPlayerClan: false).Should().BeFalse();
         }
 
-        // Neither condition alone suffices: a non-sovereign naming a fief they do not even own must still be
+        // No single condition alone suffices: a non-sovereign, out-of-kingdom recipient, no owned fief must still be
         // refused (the AND, not an OR, is the whole point of this gate).
         [Test]
         public void GIVEN_neither_condition_holds_WHEN_asked_to_grant_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: false, fiefOwnedByPlayerClan: false).Should().BeFalse();
+            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: false, recipientInPlayerKingdom: false, fiefOwnedByPlayerClan: false).Should().BeFalse();
         }
 
-        // The ordinary case: a true sovereign stripping a fief the SPOLIATED vassal's own clan actually holds is legal.
+        // The ordinary case: a true sovereign stripping a fief the SPOLIATED vassal's own clan actually holds, a
+        // vassal sworn to the player's own kingdom, is legal.
         [Test]
         public void GIVEN_a_sovereign_and_a_vassal_owned_fief_WHEN_asked_to_revoke_THEN_it_is_legal()
         {
-            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: true, fiefOwnedBySpoliatedClan: true).Should().BeTrue();
+            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: true, targetInPlayerKingdom: true, fiefOwnedBySpoliatedClan: true).Should().BeTrue();
         }
 
         // Gabriel's own condition (COUNCIL_ACTIONS.md): "uniquement si on est le chef du clan", corrected by the
@@ -73,7 +84,16 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_is_not_the_kingdom_sovereign_WHEN_asked_to_revoke_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: false, fiefOwnedBySpoliatedClan: true).Should().BeFalse();
+            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: false, targetInPlayerKingdom: true, fiefOwnedBySpoliatedClan: true).Should().BeFalse();
+        }
+
+        // The v1.34.1 hotfix invariant. Without it, an LLM emitting revoke_fief (hallucinated or coaxed) could
+        // ANNEX an ENEMY clan's holding by decree, mid-war, with no siege: a save-corrupting exploit. The crown
+        // confiscates only from its own sworn lords, so a target outside the player's kingdom is refused.
+        [Test]
+        public void GIVEN_the_target_is_not_a_vassal_of_the_players_kingdom_WHEN_asked_to_revoke_THEN_it_is_refused()
+        {
+            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: true, targetInPlayerKingdom: false, fiefOwnedBySpoliatedClan: true).Should().BeFalse();
         }
 
         // The named fief must be a REAL holding of the spoliated vassal's own clan right now: naming a fief they
@@ -81,15 +101,15 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_named_fief_is_not_the_vassals_own_WHEN_asked_to_revoke_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: true, fiefOwnedBySpoliatedClan: false).Should().BeFalse();
+            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: true, targetInPlayerKingdom: true, fiefOwnedBySpoliatedClan: false).Should().BeFalse();
         }
 
-        // Neither condition alone suffices: a non-sovereign naming a fief the vassal does not even hold must
-        // still be refused.
+        // No single condition alone suffices: a non-sovereign, out-of-kingdom target, no owned fief must still be
+        // refused.
         [Test]
         public void GIVEN_neither_condition_holds_WHEN_asked_to_revoke_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: false, fiefOwnedBySpoliatedClan: false).Should().BeFalse();
+            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: false, targetInPlayerKingdom: false, fiefOwnedBySpoliatedClan: false).Should().BeFalse();
         }
 
         // The relation hit and grudge magnitude are documented, testable constants (COUNCIL_ACTIONS.md's Kimi

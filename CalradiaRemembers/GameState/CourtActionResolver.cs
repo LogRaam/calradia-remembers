@@ -678,6 +678,11 @@ namespace CalradiaRemembers.GameState
 
          bool playerIsKingdomLeader = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
 
+         // v1.34.1 hotfix invariant: a crown fief passes only to a lord who owes THIS crown fealty. The recipient's
+         // clan must be a vassal of the player's OWN kingdom, never a foreign or enemy house. Re-checked here, at
+         // commit, regardless of what the prompt taught (the prompt is advice, the executor is law).
+         bool recipientInPlayerKingdom = recipient.Clan.Kingdom != null && recipient.Clan.Kingdom == Clan.PlayerClan?.Kingdom;
+
          // Town or castle only (a village is not cedable on its own), and STILL a crown fief the player's own clan
          // holds right now: a fief already given or lost between the pledge/prompt and here must refuse rather than
          // conjure a transfer from nothing.
@@ -686,8 +691,11 @@ namespace CalradiaRemembers.GameState
             && s.OwnerClan == Clan.PlayerClan
             && string.Equals(s.Name?.ToString(), fiefName, StringComparison.OrdinalIgnoreCase));
 
-         if (!FiefTransferPolicy.CanGrant(playerIsKingdomLeader, fief != null))
-            return new GrantFiefVerdict(playerIsKingdomLeader ? GrantFiefResult.NoSuchFief : GrantFiefResult.PlayerNotKingdomLeader, null);
+         if (!FiefTransferPolicy.CanGrant(playerIsKingdomLeader, recipientInPlayerKingdom, fief != null))
+            return new GrantFiefVerdict(
+               !playerIsKingdomLeader ? GrantFiefResult.PlayerNotKingdomLeader
+                  : !recipientInPlayerKingdom ? GrantFiefResult.RecipientNotVassal
+                  : GrantFiefResult.NoSuchFief, null);
 
          // Kimi review (COUNCIL_ACTIONS.md, grant_fief cas limites): a fief ceded while a governor is in post would
          // otherwise leave that governor a wandering hero in what is now foreign land. Release the post first
@@ -742,6 +750,11 @@ namespace CalradiaRemembers.GameState
 
          Clan spoliatedClan = vassal.Clan;
 
+         // v1.34.1 hotfix invariant: the crown confiscates only from its OWN sworn lords. The target's clan must be
+         // a vassal of the player's own kingdom, never an enemy house whose fief would otherwise be annexed by
+         // decree, mid-war, with no siege. Re-checked here, at commit (the prompt is advice, the executor is law).
+         bool targetInPlayerKingdom = spoliatedClan.Kingdom != null && spoliatedClan.Kingdom == Clan.PlayerClan?.Kingdom;
+
          // STILL owned by the SPOLIATED vassal's own clan right now: naming a fief they never held, or already lost,
          // would confiscate nothing.
          Settlement fief = Settlement.All?.FirstOrDefault(s =>
@@ -749,8 +762,11 @@ namespace CalradiaRemembers.GameState
             && s.OwnerClan == spoliatedClan
             && string.Equals(s.Name?.ToString(), fiefName, StringComparison.OrdinalIgnoreCase));
 
-         if (!FiefTransferPolicy.CanRevoke(playerIsKingdomLeader, fief != null))
-            return new RevokeFiefVerdict(playerIsKingdomLeader ? RevokeFiefResult.NoSuchFief : RevokeFiefResult.PlayerNotKingdomLeader, null);
+         if (!FiefTransferPolicy.CanRevoke(playerIsKingdomLeader, targetInPlayerKingdom, fief != null))
+            return new RevokeFiefVerdict(
+               !playerIsKingdomLeader ? RevokeFiefResult.PlayerNotKingdomLeader
+                  : !targetInPlayerKingdom ? RevokeFiefResult.VassalNotInKingdom
+                  : RevokeFiefResult.NoSuchFief, null);
 
          ChangeOwnerOfSettlementAction.ApplyByKingDecision(Hero.MainHero, fief);
 
@@ -1292,6 +1308,9 @@ namespace CalradiaRemembers.GameState
       /// <summary>The recipient belongs to the player's own house; a crown fief is granted across houses, not to one's own clan.</summary>
       RecipientNotSeparateHouse,
 
+      /// <summary>The recipient's clan is not a vassal of the player's own kingdom; a crown fief passes only to a lord sworn to this realm (v1.34.1 hotfix invariant).</summary>
+      RecipientNotVassal,
+
       /// <summary>The player no longer rules a kingdom, so has no crown fief to grant.</summary>
       PlayerNotKingdomLeader,
 
@@ -1327,6 +1346,9 @@ namespace CalradiaRemembers.GameState
 
       /// <summary>The vassal holds no separate house whose fief could be revoked (a clan's own fiefs already belong to it).</summary>
       VassalNotSeparateHouse,
+
+      /// <summary>The vassal's clan is not a vassal of the player's own kingdom; the crown confiscates only from its own sworn lords, never an enemy holding (v1.34.1 hotfix invariant).</summary>
+      VassalNotInKingdom,
 
       /// <summary>The player no longer rules a kingdom, so cannot revoke a fief in its name.</summary>
       PlayerNotKingdomLeader,

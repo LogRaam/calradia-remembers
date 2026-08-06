@@ -1076,6 +1076,15 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
+            case GrantFiefResult.RecipientNotVassal:
+            {
+               const string reason = "they are not a vassal of the player's kingdom; a crown fief passes only to a lord sworn to the realm.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
             case GrantFiefResult.PlayerNotKingdomLeader:
             {
                const string reason = "the player no longer rules a kingdom to grant a crown fief from.";
@@ -1147,6 +1156,15 @@ namespace CalradiaRemembers.Chat
             case RevokeFiefResult.VassalNotSeparateHouse:
             {
                const string reason = "they hold no separate house whose fief could be revoked.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case RevokeFiefResult.VassalNotInKingdom:
+            {
+               const string reason = "they are not a vassal of the player's kingdom; a fief outside the realm cannot be revoked in its name.";
                ledger.MarkFailed(entry.Id, reason);
                report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
 

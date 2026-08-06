@@ -1988,6 +1988,8 @@ namespace CalradiaRemembers.GameState
                   return ActionOutcome.Refused($"({npcHero.Name} cannot receive a fief right now.)");
                case GrantFiefResult.RecipientNotSeparateHouse:
                   return ActionOutcome.Refused($"({npcHero.Name} is of your own house; a crown fief is granted across houses.)");
+               case GrantFiefResult.RecipientNotVassal:
+                  return ActionOutcome.Refused($"({npcHero.Name} is not a vassal of your kingdom; a crown fief passes only to a lord sworn to your realm.)");
                case GrantFiefResult.PlayerNotKingdomLeader:
                   return ActionOutcome.Refused("(You no longer rule a kingdom, and cannot grant a crown fief.)");
                case GrantFiefResult.NoSuchFief:
@@ -2046,6 +2048,8 @@ namespace CalradiaRemembers.GameState
                   return null;
                case RevokeFiefResult.VassalNotSeparateHouse:
                   return ActionOutcome.Refused($"({npcHero.Name} holds no separate house whose fief you could revoke.)");
+               case RevokeFiefResult.VassalNotInKingdom:
+                  return ActionOutcome.Refused($"({npcHero.Name} is not a vassal of your kingdom; you cannot revoke a fief that lies outside your realm.)");
                case RevokeFiefResult.PlayerNotKingdomLeader:
                   return ActionOutcome.Refused("(You no longer rule a kingdom, and cannot revoke a fief in its name.)");
                case RevokeFiefResult.NoSuchFief:
