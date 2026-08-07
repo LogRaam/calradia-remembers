@@ -67,6 +67,9 @@ namespace CalradiaRemembers.Letters
             profile.Events.Add(new NotableEvent(today, NotableEventType.Other,
                 $"Received a letter from {profile.Name} ({letter.Reason})."));
 
+            // Retention: this letter now joins the readable archive; keep the contact's history bounded.
+            LetterArchiveRetention.EnforceCap(profile);
+
             NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
             behavior?.Store.Set(profile);
 

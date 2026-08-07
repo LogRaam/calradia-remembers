@@ -163,6 +163,11 @@ namespace CalradiaRemembers.Letters
             : $"Received a letter from {player}: \"{snippet}\"";
 
          profile.Events.Add(new NotableEvent(today, NotableEventType.Other, summary));
+
+         // Retention: the delivered player letter now joins the readable archive; keep it bounded. Mutates the
+         // profile in place; every caller of RecordReceipt persists the profile immediately afterward.
+         LetterArchiveRetention.EnforceCap(profile);
+
          ModLog.Info($"[PLAYER LETTER] filed a receipt memory on {profile.Name}.");
       }
 

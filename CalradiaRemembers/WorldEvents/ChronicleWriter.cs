@@ -30,8 +30,6 @@ namespace CalradiaRemembers.WorldEvents
             "the oaths you swore and the crowns you won, the marriages and births of your line, the judgements you passed, " +
             "and the captivities and peaces that shaped your fate.";
 
-        private static readonly string[] Seasons = { "spring", "summer", "autumn", "winter" };
-        private const int DaysPerSeason = 21;
 
         /// <summary>The full chronicle as chronicler-voice prose, dated and in order, grouped by year.</summary>
         public static string Render()
@@ -88,30 +86,13 @@ namespace CalradiaRemembers.WorldEvents
 
         /// <summary>"In the {season} of the {Nth} year" for an in-game day (shared with the viewer).</summary>
         public static string DatePhrase(int day)
-            => $"{SeasonPhrase(day)} of the {Ordinal(ChronicleCalendar.YearOf(day))} year";
+            => $"{SeasonPhrase(day)} of the {ChronicleCalendar.Ordinal(ChronicleCalendar.YearOf(day))} year";
 
         /// <summary>"In the {season}", without the year — used inside a year heading, which already names the year.</summary>
         private static string SeasonPhrase(int day)
-        {
-            int season = day % ChronicleCalendar.DaysPerYear / DaysPerSeason;
-            if (season < 0 || season > 3) season = 0;
-            return $"In the {Seasons[season]}";
-        }
+            => $"In the {ChronicleCalendar.SeasonNameOf(day)}";
 
         /// <summary>"In the {Nth} year" — the chapter heading grouping entries by chronicle year (shared with the viewer).</summary>
-        public static string YearHeading(int year) => $"In the {Ordinal(year)} year";
-
-        /// <summary>The English ordinal suffix for a small positive number ("1st", "2nd", "3rd", "4th"...).</summary>
-        public static string Ordinal(int n)
-        {
-            if (n % 100 >= 11 && n % 100 <= 13) return $"{n}th";
-            switch (n % 10)
-            {
-                case 1:  return $"{n}st";
-                case 2:  return $"{n}nd";
-                case 3:  return $"{n}rd";
-                default: return $"{n}th";
-            }
-        }
+        public static string YearHeading(int year) => $"In the {ChronicleCalendar.Ordinal(year)} year";
     }
 }

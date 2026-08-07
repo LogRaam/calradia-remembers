@@ -1,0 +1,22 @@
+<DummyRoot>
+  <ListPanel HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren"
+             MarginTop="14" MarginLeft="30"
+             IsVisible="@HasLetters">
+    <Children>
+      <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                    SuggestedWidth="240" SuggestedHeight="40"
+                    Brush="ButtonBrush1"
+                    DoNotPassEventsToChildren="true"
+                    UpdateChildrenStates="true"
+                    Command.Click="ExecuteOpenLetters">
+        <Children>
+          <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                      Brush="Popup.Button.Text"
+                      Brush.FontSize="18"
+                      Text="@LettersButtonText" />
+        </Children>
+      </ButtonWidget>
+    </Children>
+  </ListPanel>
+</DummyRoot>

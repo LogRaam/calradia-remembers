@@ -1,0 +1,220 @@
+<Prefab>
+  <Constants>
+    <!-- Wider and taller than the single-letter popup: this is the "bigger window" the player asked for. -->
+    <Constant Name="Archive.Width" Value="820" />
+  </Constants>
+
+  <Window Id="CalradiaRemembersLetterArchiveWindow" Layer="Overlay">
+
+    <Widget Id="ArchivePanel"
+            WidthSizePolicy="Fixed"
+            HeightSizePolicy="StretchToParent"
+            SuggestedWidth="!Archive.Width"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            MarginTop="70"
+            MarginBottom="70"
+            Sprite="BlankWhiteSquare_9"
+            Color="#E2D6B4FF">
+
+      <Children>
+
+        <!-- Opportunistic paper grain over the solid parchment (invisible if the sprite isn't resident). -->
+        <Widget Id="ArchivePaperGrain"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                Sprite="paper_texture_tile"
+                Color="#C8B488FF"
+                AlphaFactor="0.30"
+                IsDisabled="true" />
+
+        <!-- Gilded edge over the parchment -->
+        <Widget Id="ArchiveFrame"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                Sprite="frame_9"
+                ExtendLeft="10" ExtendTop="10" ExtendRight="10" ExtendBottom="10"
+                AlphaFactor="0.65"
+                IsDisabled="true" />
+
+        <!-- Title -->
+        <TextWidget Id="ArchiveTitle"
+                    WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="Fixed"
+                    SuggestedHeight="48"
+                    VerticalAlignment="Top"
+                    MarginTop="22"
+                    MarginLeft="40"
+                    MarginRight="40"
+                    Brush="CR.Letter.Heading"
+                    Brush.FontSize="30"
+                    Text="@Title"
+                    IsDisabled="true" />
+
+        <Widget Id="TitleDivider"
+                WidthSizePolicy="Fixed"
+                SuggestedWidth="680"
+                HeightSizePolicy="Fixed"
+                SuggestedHeight="2"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                PositionYOffset="78"
+                Sprite="BlankWhiteSquare_9"
+                Color="#6A5028FF"
+                AlphaFactor="0.7"
+                IsDisabled="true" />
+
+        <!-- Empty-state line -->
+        <TextWidget Id="ArchiveEmpty"
+                    WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="Fixed"
+                    SuggestedHeight="40"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    IsVisible="@IsEmpty"
+                    Brush="CR.Letter.Heading"
+                    Brush.FontSize="20"
+                    Text="@EmptyText"
+                    IsDisabled="true" />
+
+        <!-- Scrollable list of correspondence entries -->
+        <Widget Id="EntriesArea"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                VerticalAlignment="Top"
+                MarginTop="98"
+                MarginBottom="88"
+                MarginLeft="44"
+                MarginRight="30">
+          <Children>
+
+            <ChatScrollablePanel Id="EntriesScrollPanel"
+                                 WidthSizePolicy="StretchToParent"
+                                 HeightSizePolicy="StretchToParent"
+                                 MarginRight="28"
+                                 AutoHideScrollBars="true"
+                                 ClipRect="EntriesClipRect"
+                                 InnerPanel="EntriesClipRect\EntriesList"
+                                 VerticalScrollbar="..\EntriesScrollbar\Scrollbar">
+              <Children>
+                <Widget Id="EntriesClipRect"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        ClipContents="true">
+                  <Children>
+
+                    <NavigatableListPanel Id="EntriesList"
+                                          DataSource="{Entries}"
+                                          WidthSizePolicy="StretchToParent"
+                                          HeightSizePolicy="CoverChildren"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Top"
+                                          StackLayout.LayoutMethod="VerticalTopToBottom">
+                      <ItemTemplate>
+
+                        <ListPanel Id="EntryRow"
+                                   WidthSizePolicy="StretchToParent"
+                                   HeightSizePolicy="CoverChildren"
+                                   HorizontalAlignment="Left"
+                                   MarginTop="10"
+                                   MarginBottom="14"
+                                   MarginRight="20"
+                                   StackLayout.LayoutMethod="VerticalTopToBottom">
+                          <Children>
+
+                            <!-- Incoming attribution (a letter from the NPC): deep gold ink -->
+                            <TextWidget Id="EntryHeaderIn"
+                                        WidthSizePolicy="StretchToParent"
+                                        HeightSizePolicy="Fixed"
+                                        SuggestedHeight="26"
+                                        HorizontalAlignment="Left"
+                                        IsVisible="@IsIncoming"
+                                        Brush="CR.Letter.Body"
+                                        Brush.FontSize="17"
+                                        Brush.FontColor="#7A4E14FF"
+                                        Brush.TextHorizontalAlignment="Left"
+                                        Text="@Header"
+                                        IsDisabled="true" />
+
+                            <!-- Outgoing attribution (the player's own letter/reply): muted blue-grey ink -->
+                            <TextWidget Id="EntryHeaderOut"
+                                        WidthSizePolicy="StretchToParent"
+                                        HeightSizePolicy="Fixed"
+                                        SuggestedHeight="26"
+                                        HorizontalAlignment="Left"
+                                        IsVisible="@IsOutgoing"
+                                        Brush="CR.Letter.Body"
+                                        Brush.FontSize="17"
+                                        Brush.FontColor="#3B4A63FF"
+                                        Brush.TextHorizontalAlignment="Left"
+                                        Text="@Header"
+                                        IsDisabled="true" />
+
+                            <RichTextWidget Id="EntryBody"
+                                            WidthSizePolicy="StretchToParent"
+                                            HeightSizePolicy="CoverChildren"
+                                            HorizontalAlignment="Left"
+                                            MarginTop="3"
+                                            MarginLeft="8"
+                                            Brush="CR.Letter.Body"
+                                            Brush.FontSize="21"
+                                            Text="@Body"
+                                            IsDisabled="true" />
+
+                            <Widget Id="EntryDivider"
+                                    WidthSizePolicy="StretchToParent"
+                                    HeightSizePolicy="Fixed"
+                                    SuggestedHeight="1"
+                                    MarginTop="10"
+                                    Sprite="BlankWhiteSquare_9"
+                                    Color="#6A502840"
+                                    IsDisabled="true" />
+
+                          </Children>
+                        </ListPanel>
+
+                      </ItemTemplate>
+                    </NavigatableListPanel>
+
+                  </Children>
+                </Widget>
+              </Children>
+            </ChatScrollablePanel>
+
+            <Standard.VerticalScrollbar Id="EntriesScrollbar"
+                                        HeightSizePolicy="StretchToParent"
+                                        HorizontalAlignment="Right"
+                                        MarginRight="0" />
+
+          </Children>
+        </Widget>
+
+        <!-- Close -->
+        <ButtonWidget Id="CloseButton"
+                      WidthSizePolicy="Fixed"
+                      HeightSizePolicy="Fixed"
+                      SuggestedWidth="230"
+                      SuggestedHeight="44"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Bottom"
+                      MarginBottom="22"
+                      DoNotPassEventsToChildren="true"
+                      Brush="ButtonBrush1"
+                      UpdateChildrenStates="true"
+                      Command.Click="ExecuteClose">
+          <Children>
+            <TextWidget WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Brush="Popup.Button.Text"
+                        Brush.FontSize="20"
+                        Text="@CloseButtonText" />
+          </Children>
+        </ButtonWidget>
+
+      </Children>
+    </Widget>
+
+  </Window>
+</Prefab>
