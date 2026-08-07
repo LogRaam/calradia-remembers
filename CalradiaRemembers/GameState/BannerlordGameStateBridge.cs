@@ -215,6 +215,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteEndMercenary(npcHero);
             case "join_as_vassal":
                return ExecuteJoinAsVassal(npcHero);
+            case "mediate_peace":
+               return ExecuteMediatePeace(action, npcHero, context);
             case "join_clan":
                return ExecuteJoinClan(npcHero, context?.Profile);
             case "scheme_assist":
@@ -2006,6 +2008,88 @@ namespace CalradiaRemembers.GameState
       ///   guard is re-checked here and in the core: the prompt is advice, the bridge is law. A blank or ungroundable
       ///   grant is surfaced as a refusal (never a silent null) so the transcript OOC note fires.
       /// </summary>
+      /// <summary>
+      ///   mediate_peace (third-party war mediation, 2026-08-06): the player, acting as a MEDIATOR in a 1:1
+      ///   conversation with a FACTION LEADER (a king/ruler), brokers peace between that leader's faction and a
+      ///   NAMED enemy faction (the action's target_faction field). The player's own faction need not be involved.
+      ///   This is the third-party diplomacy verb that make_peace never covered: make_peace exists only as a
+      ///   council Parley motion for the player's OWN faction, whereas this ends a war between OTHER realms. In v1
+      ///   only the talked-to leader consents; the enemy's assent is abstracted (the mediator brokered acceptable
+      ///   terms), so success applies peace mutually via the SAME native <see cref="MakePeaceAction.Apply" /> call
+      ///   CouncilLift.SettleMakePeace already uses. Only TAUGHT when
+      ///   <see cref="EncounterContext.PlayerCanMediatePeace" /> holds, but the bridge is law: EVERY guard is
+      ///   re-checked here against live state (the NPC still leads their faction, that faction is still at war with
+      ///   the resolved target, the target resolves and is not the leader's own faction, and the player still meets
+      ///   the mediation gate). No gold cost: mediation is prestige and trust, not a purchase. Every failing gate
+      ///   returns a refusal so the OOC "it did not happen" note fires and the model cannot claim a peace it never
+      ///   brokered.
+      /// </summary>
+      private static ActionOutcome ExecuteMediatePeace(GameAction action, Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            if (npcHero is not {IsAlive: true} || npcHero.IsPrisoner) return null;
+            if (Hero.MainHero == null) return null;
+
+            // The verb is scoped to kings/rulers: only a faction leader can commit their whole realm to peace.
+            if (!npcHero.IsFactionLeader || npcHero.MapFaction == null)
+               return ActionOutcome.Refused($"({npcHero.Name} speaks for no realm, and cannot be brought to a peace they do not command.)");
+
+            IFaction leaderFaction = npcHero.MapFaction;
+
+            action.Parameters.TryGetValue("target_faction", out string targetName);
+
+            // Was a silent no-op class this project eliminates: a peace brokered with no enemy realm named. Since
+            // a leader may hold several wars, the model must name WHICH one, so a blank target is refused honestly.
+            if (string.IsNullOrWhiteSpace(targetName))
+               return ActionOutcome.Refused($"(Which realm is the peace to be brokered with? {npcHero.Name}'s war has no named enemy here.)");
+
+            // Same faction pool CouncilLift.SettleMakePeace/SettleDeclareWar resolve from (live Kingdoms and
+            // independent Clans), so the console, the council lift, and this 1:1 verb ground a typed faction name
+            // identically and can never disagree over what counts as a realm.
+            IFaction target = CalradiaRemembers.Chat.CouncilLift.ResolveFactionByName(targetName);
+
+            if (target == null)
+               return ActionOutcome.Refused($"(There is no realm called '{targetName}' for {npcHero.Name} to make peace with.)");
+
+            // Guard against brokering a "peace" of a faction with itself (a hallucinated or coaxed self-target).
+            if (target == leaderFaction)
+               return ActionOutcome.Refused($"(That is {npcHero.Name}'s own realm; there is no war there to end.)");
+
+            if (!FactionManager.IsAtWarAgainstFaction(leaderFaction, target))
+               return ActionOutcome.Refused($"({leaderFaction.Name} is not at war with {target.Name}, so there is no peace to broker.)");
+
+            // The mediation gate (the same pure policy the teaching side runs): the leader must lead a realm at war
+            // with the target (proven above), the player must carry genuine noble weight, and the leader must hold
+            // them in deep trust. Regard reads the mod's OWN personal ledger (ReputationWithPlayer), falling back
+            // to the vanilla relation when no profile exists for this leader.
+            int regard = context?.Profile?.ReputationWithPlayer ?? npcHero.GetRelation(Hero.MainHero);
+            int playerTier = Clan.PlayerClan?.Tier ?? 0;
+
+            switch (PeaceMediationPolicy.Evaluate(true, true, regard, playerTier))
+            {
+               case PeaceMediationBlock.StatureTooLow:
+                  return ActionOutcome.Refused($"({npcHero.Name} will not be lectured on peace by one of no standing. Raise your house before you presume to broker between realms.)");
+               case PeaceMediationBlock.RegardTooLow:
+                  return ActionOutcome.Refused($"({npcHero.Name} does not trust you nearly enough to heed your counsel on so grave a matter as ending a war. Earn their deep trust first.)");
+            }
+
+            MakePeaceAction.Apply(leaderFaction, target);
+
+            string msg = $"By your mediation, {leaderFaction.Name} and {target.Name} lay down their arms and make peace.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+            ModLog.Info($"[ACTION] mediate_peace: brokered peace between {leaderFaction.Name} and {target.Name}.");
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] mediate_peace failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
       private static ActionOutcome ExecuteGrantFief(GameAction action, Hero npcHero, ActionContext context)
       {
          try

@@ -238,6 +238,23 @@ namespace CalradiaRemembers.Mapping
             || hero.Clan != null && hero.Clan.Kingdom == null && hero.Clan.Leader == hero);
          bool npcCanSwearOath = OathOfferPolicy.CanOfferOath(npcAlive, npcIsPrisoner, hero == Hero.MainHero, npcHasActiveCommitment, npcQualifiesForSomeOath);
 
+         // mediate_peace (2026-08-06, third-party war mediation): the 1:1 teaching gate, the same "prompt is advice,
+         // bridge is law" conditional-teaching contract as the verbs above. The pure PeaceMediationPolicy.CanMediate
+         // is the ONE gate BannerlordGameStateBridge.ExecuteMediatePeace re-checks at commit; the list of enemy
+         // realms this leader is at war with doubles as the target_faction grounding the prompt names verbatim. Only
+         // a FACTION LEADER can be mediated with, and only when the player carries genuine noble standing (clan tier)
+         // and the leader holds them in deep trust. Regard reads the mod's OWN personal ledger, falling back to the
+         // vanilla relation when no profile exists yet for this leader.
+         bool npcIsFactionLeader = hero?.IsFactionLeader == true;
+         string mediatablePeaceFactions = npcIsFactionLeader ? ResolveMediatablePeaceFactions(hero) : null;
+         int playerRegardWithLeader = profile?.ReputationWithPlayer ?? (hero != null && Hero.MainHero != null ? hero.GetRelation(Hero.MainHero) : 0);
+         int playerStatureTier = Clan.PlayerClan?.Tier ?? 0;
+         bool playerCanMediatePeace = PeaceMediationPolicy.CanMediate(
+            npcIsFactionLeader,
+            !string.IsNullOrEmpty(mediatablePeaceFactions),
+            playerRegardWithLeader,
+            playerStatureTier);
+
          return new() {
             PlayerStatus = playerStatus,
             SharedRealmName = bridge.GetSharedRealmName(hero),
@@ -390,6 +407,11 @@ namespace CalradiaRemembers.Mapping
             // turn, where the [RESOLUTION] channel owns these instead, and in a captive scene.
             NpcCanBeGrantedStipend = npcCanBeGrantedStipend,
             NpcCanSwearOath = npcCanSwearOath,
+            // mediate_peace: the 1:1 teaching gate + the enemy-realm grounding (see the computation just above the
+            // initializer). PromptBuilder also suppresses this on a council/round-table turn and in a captive scene,
+            // the same carve-out every sibling 1:1 offer applies.
+            PlayerCanMediatePeace = playerCanMediatePeace,
+            MediatablePeaceFactions = mediatablePeaceFactions,
             LordRecruitEligible = ResolveLordRecruitEligible(hero, profile),
             CanRecruitPrisoner = ResolveCanRecruitPrisoner(hero, profile, playerStatus),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
@@ -911,6 +933,47 @@ namespace CalradiaRemembers.Mapping
          return names.Count > 0
             ? string.Join(", ", names)
             : null;
+      }
+
+      /// <summary>
+      ///   The enemy realms this faction LEADER's own faction is currently at war with, as a ready "Name, Name" list
+      ///   for the mediate_peace teaching (grounds the target_faction field on a real war). Null when the hero leads
+      ///   no faction or holds no war. Resolves from the SAME pool CouncilLift.ResolveFactionByName draws from (live
+      ///   Kingdoms and independent Clans), so the grounded list and the bridge's own name resolution can never
+      ///   disagree over which realms count. Since a leader may hold several wars at once, the whole set is offered
+      ///   so the model can name WHICH enemy realm the peace is brokered with.
+      /// </summary>
+      private static string ResolveMediatablePeaceFactions(Hero hero)
+      {
+         try
+         {
+            IFaction leaderFaction = hero?.MapFaction;
+
+            if (leaderFaction == null) return null;
+
+            var names = new List<string>();
+
+            if (Kingdom.All != null)
+               foreach (Kingdom k in Kingdom.All)
+                  if (k != leaderFaction && FactionManager.IsAtWarAgainstFaction(leaderFaction, k))
+                  {
+                     string n = k.Name?.ToString();
+                     if (!string.IsNullOrWhiteSpace(n)) names.Add(n);
+                  }
+
+            if (Clan.All != null)
+               foreach (Clan c in Clan.All)
+                  if (c.Kingdom == null && c != leaderFaction && FactionManager.IsAtWarAgainstFaction(leaderFaction, c))
+                  {
+                     string n = c.Name?.ToString();
+                     if (!string.IsNullOrWhiteSpace(n)) names.Add(n);
+                  }
+
+            return names.Count > 0
+               ? string.Join(", ", names)
+               : null;
+         }
+         catch { return null; }
       }
 
       /// <summary>
