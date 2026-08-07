@@ -2,6 +2,23 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.34.3.. 2026-08-06
+
+Three fixes from player feedback. Your saves carry over untouched.
+
+### New
+- **Recruit a captured lord to your side.** Persuade a hero prisoner you hold, once you have earned enough
+  standing with them, to switch sides: they are freed, swear into your clan, and join your party. Before, a
+  captured noble could be talked into joining but nothing actually happened.
+
+### Fixed
+- **Your narrative style is remembered.** The writing style you pick is now saved and restored on the next
+  launch, and survives a mod update, instead of resetting to Default on every restart.
+- **Asking a lord to ride out with you is more reliable.** When a lord agrees to follow you on the map, the
+  model is now pushed to actually set the escort in motion rather than only describing it in prose (a weaker
+  model used to just narrate riding out and nothing followed); and it will no longer pretend you rode out
+  together when the lord has no field party to bring along.
+
 ## v1.34.2.. 2026-08-06
 
 A resilience release. The conversation actions are now more robust and fairer when the world changes between
