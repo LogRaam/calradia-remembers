@@ -239,6 +239,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteExecutePlayer(npcHero);
             case "turn_nemesis":
                return ExecuteTurnNemesis(npcHero, context?.Profile);
+            case "recruit_prisoner":
+               return ExecuteRecruitPrisoner(npcHero, context?.Profile);
             case "grant_blessing":
                return ExecuteGrantBlessing(action, npcHero);
 
@@ -3284,6 +3286,87 @@ namespace CalradiaRemembers.GameState
 
             return null;
          }
+      }
+
+      /// <summary>
+      ///   recruit_prisoner (v1.34.3): a captured HERO the player holds prisoner has been persuaded, in
+      ///   conversation, to switch sides and swear into the player's clan, and the LLM recognized a genuine
+      ///   acceptance. Player report (Nexus): this exact turn was narrated but never happened, because no
+      ///   executor existed for it (<see cref="ExecuteJoinClan" /> excludes prisoners; <see cref="ExecuteTurnNemesis" />
+      ///   is reserved for a tracked bandit nemesis in a captor scene). Mirrors turn_nemesis for the
+      ///   release+swear mechanic. The prompt is advice, the bridge is law: this re-runs the ratified gate
+      ///   (<see cref="PrisonerRecruitmentPolicy" />) on LIVE facts, custody (held by the player's own party OR
+      ///   a settlement the player's clan owns), leadership (a clan leader cannot dissolve their house, the same
+      ///   anti-orphan guard as join_clan), and the mod's personal regard (a strong floor, so a captured enemy
+      ///   is never trivially flipped). A refusal is honoured in character and changes nothing. On success the
+      ///   prisoner is freed from captivity, sworn into the player's clan, and added to the player's party (the
+      ///   "in my party" the player expected); the old clan cools as vanilla handles a defection.
+      /// </summary>
+      private static ActionOutcome ExecuteRecruitPrisoner(Hero npcHero, NpcProfile profile)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            var playerClan = Clan.PlayerClan;
+
+            if (playerClan == null) return null;
+
+            NpcProfile p = profile ?? NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
+            int regard = p?.ReputationWithPlayer ?? 0;
+
+            bool heldByPlayer = IsHeldByPlayer(npcHero);
+            bool isClanLeader = npcHero.Clan?.Leader == npcHero;
+
+            switch (PrisonerRecruitmentPolicy.Evaluate(heldByPlayer, isClanLeader, regard))
+            {
+               case PrisonerRecruitmentBlock.NotHeldByPlayer:
+                  return ActionOutcome.Refused(
+                     $"({npcHero.Name} is not a prisoner you hold, and cannot swear to your clan from a cell that is not yours.)");
+               case PrisonerRecruitmentBlock.IsClanLeader:
+                  return ActionOutcome.Refused(
+                     $"({npcHero.Name} leads the house of {npcHero.Clan?.Name?.ToString() ?? "their birth"}; a lord cannot dissolve their own clan into yours with a word.)");
+               case PrisonerRecruitmentBlock.RegardTooLow:
+                  return ActionOutcome.Refused(
+                     $"({npcHero.Name} does not esteem you nearly enough to turn their coat and join you. Earn their deep trust first.)");
+            }
+
+            // They turn. Free them, swear them into the player's clan, and bring them into the party.
+            Clan oldClan = npcHero.Clan;
+            EndCaptivityAction.ApplyByReleasedByChoice(npcHero, Hero.MainHero);
+            npcHero.Clan = playerClan;
+            if (MobileParty.MainParty != null) AddHeroToPartyAction.Apply(npcHero, MobileParty.MainParty);
+
+            ModLog.Info($"[ACTION] recruit_prisoner: {npcHero.Name} freed from captivity and sworn to the player's clan (left {oldClan?.StringId ?? "?"}).");
+
+            return new ActionOutcome(
+               $"{npcHero.Name} forsakes the house of {oldClan?.Name?.ToString() ?? "their birth"} and swears to your clan. The prisoner now rides at your side.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] recruit_prisoner failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   True when this hero is a prisoner genuinely held by the player right now: either in the player's own
+      ///   party, or in a settlement the player's clan owns. Mirrors CourtActionResolver's held-by-clan custody
+      ///   test so recruit_prisoner honours the same "held by the player" fact the rest of the mod uses.
+      /// </summary>
+      private static bool IsHeldByPlayer(Hero prisoner)
+      {
+         if (prisoner?.IsPrisoner != true) return false;
+
+         var captor = prisoner.PartyBelongedToAsPrisoner;
+
+         if (captor == null) return false;
+         if (captor.LeaderHero == Hero.MainHero) return true;
+
+         Clan captorClan = captor.LeaderHero?.Clan ?? captor.Settlement?.OwnerClan;
+
+         return captorClan != null && captorClan == Clan.PlayerClan;
       }
 
       private static ItemRosterElement FindItemInRoster(string itemName)

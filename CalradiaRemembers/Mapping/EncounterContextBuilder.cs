@@ -391,6 +391,7 @@ namespace CalradiaRemembers.Mapping
             NpcCanBeGrantedStipend = npcCanBeGrantedStipend,
             NpcCanSwearOath = npcCanSwearOath,
             LordRecruitEligible = ResolveLordRecruitEligible(hero, profile),
+            CanRecruitPrisoner = ResolveCanRecruitPrisoner(hero, profile, playerStatus),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
             // One-shot and consumed on read, so ONLY resolve it on a real LLM turn, never on the dead
@@ -1393,6 +1394,30 @@ namespace CalradiaRemembers.Mapping
             if (profile == null) return true; // no stance profile to gate on — inherit prior behaviour
 
             return StanceGatePolicy.CommandsRespectToJoinClan(StanceService.ToStance(profile).Respect, profile.ClanRelationWithPlayer ?? 0);
+         }
+         catch { return false; }
+      }
+
+      /// <summary>
+      ///   v1.34.3 recruit_prisoner: true when this NPC is a hero the player currently holds prisoner, is not
+      ///   their own clan's leader, and the player's personal regard has reached the strong floor needed to
+      ///   persuade a captured enemy to switch sides. The teaching gate half of the shared
+      ///   <see cref="PrisonerRecruitmentPolicy" /> decision the bridge re-runs before executing
+      ///   (<see cref="GameState.BannerlordGameStateBridge.ExecuteRecruitPrisoner" />). Held-by-player is read
+      ///   from <paramref name="playerStatus" /> (<see cref="PlayerStatusVsNpc.NpcIsCaptive" />, the bridge's
+      ///   real-custody verdict), the same custody fact <c>execute_prisoner</c> is taught on, so the offer only
+      ///   ever appears in a conversation with a prisoner the player genuinely holds. Regard is the mod's own
+      ///   personal ledger, never the possibly-unsynced clan relation.
+      /// </summary>
+      private static bool ResolveCanRecruitPrisoner(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus)
+      {
+         try
+         {
+            if (hero == null || playerStatus != PlayerStatusVsNpc.NpcIsCaptive) return false;
+
+            bool notLeader = hero.Clan?.Leader != hero;
+
+            return PrisonerRecruitmentPolicy.CanRecruit(true, !notLeader, profile?.ReputationWithPlayer ?? 0);
          }
          catch { return false; }
       }
