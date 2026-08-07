@@ -4,10 +4,18 @@
 // conversation, adult scenes included) and purely RUNTIME (picked in the chat, never an MCM setting), and the
 // file is re-read ONLY when the player picks another style or edits the .txt during play. Everything else is
 // served from memory, so the per-message cost is a single timestamp check, never a directory scan or a read.
+//
+// v1.34.3: the SELECTION is now persisted (player report: the style reset to "Default" on every restart and
+// every mod update). The chosen NAME is written to a tiny file under the player's Bannerlord user data
+// (Configs, resolved via the same GetFolderPath route ModLog uses so a OneDrive-redirected Documents still
+// works) and reloaded once at first access, so it survives a restart AND an update (the file lives OUTSIDE the
+// module folder, which an update wipes). Only the SELECTION persists; the style CONTENT caching is unchanged.
 
 #region
 
+using System;
 using System.Collections.Generic;
+using System.IO;
 using CalradiaRemembers.Logic.Styles;
 using NpcMemoryService.Core.Prompts;
 
@@ -23,6 +31,20 @@ namespace CalradiaRemembers.Styles
         private static long _cachedStampTicks;
         private static string _selectedName;
         private static bool _activeFileMissing;
+        private static bool _selectionLoaded;
+
+        /// <summary>
+        ///   Where the chat-picked style NAME is persisted: a tiny text file under the player's Bannerlord
+        ///   user data, NOT inside the module folder (a module-folder file is wiped on every update, which is
+        ///   half the bug this fixes). Resolved through <see cref="Environment.GetFolderPath" /> exactly like
+        ///   <see cref="ModLog" />, because a player's Documents can be OneDrive-redirected, so a literal
+        ///   C:\Users\...\Documents path would be wrong.
+        /// </summary>
+        private static readonly string SelectionFilePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "Mount and Blade II Bannerlord",
+            "Configs",
+            "CalradiaRemembers_style.txt");
 
         /// <summary>
         ///   Whether the chat window shows its style picker button. ON by default since Gabriel validated the
@@ -32,22 +54,80 @@ namespace CalradiaRemembers.Styles
         public static bool PickerEnabled { get; set; } = true;
 
         /// <summary>The style currently in force, resolved against the files actually present.</summary>
-        public static string ActiveName => string.IsNullOrWhiteSpace(_selectedName)
-            ? StyleCatalogPolicy.DefaultStyleName
-            : _selectedName;
+        public static string ActiveName
+        {
+            get
+            {
+                EnsureSelectionLoaded();
+
+                return string.IsNullOrWhiteSpace(_selectedName)
+                    ? StyleCatalogPolicy.DefaultStyleName
+                    : _selectedName;
+            }
+        }
 
         /// <summary>
         ///   Picks a style by name (case-insensitive). Scans the folder, so this belongs to the picker and the
         ///   console, never the per-message path. An unknown name degrades to the default rather than failing.
-        ///   Returns the name that actually took effect.
+        ///   Returns the name that actually took effect. The choice is persisted so it survives a restart and a
+        ///   mod update (v1.34.3).
         /// </summary>
         public static string Select(string requested)
         {
+            // Mark the persisted selection as consumed BEFORE overwriting it, so a later first read cannot
+            // reload the old file over the fresh pick (the load runs at most once per session either way).
+            _selectionLoaded = true;
+
             IReadOnlyList<string> available = StyleCatalog.AvailableNames();
             _selectedName = StyleCatalogPolicy.ResolveName(requested, available);
             ModLog.Info($"[STYLE] selected '{_selectedName}' (asked for '{requested}').");
 
+            PersistSelection(_selectedName);
+
             return _selectedName;
+        }
+
+        /// <summary>
+        ///   Restores the persisted style selection ONCE, before the first read a conversation makes. A
+        ///   missing file (first run), a blank one, or a name that no longer matches a style on disk all
+        ///   degrade to the default via the pure <see cref="StylePersistencePolicy" />; it never throws, so a
+        ///   hand-edited or corrupt file can only cost the persisted choice, never a conversation.
+        /// </summary>
+        private static void EnsureSelectionLoaded()
+        {
+            if (_selectionLoaded) return;
+            _selectionLoaded = true;
+
+            try
+            {
+                string raw = File.Exists(SelectionFilePath) ? File.ReadAllText(SelectionFilePath) : null;
+                _selectedName = StylePersistencePolicy.ResolvePersistedName(raw, StyleCatalog.AvailableNames());
+                ModLog.Info($"[STYLE] restored persisted selection '{_selectedName}'.");
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[STYLE] could not restore the persisted selection: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        ///   Writes the chosen style NAME to the persistence file, creating the Configs folder if needed.
+        ///   Never throws: a failed write only costs the persisted choice for next launch, never the pick the
+        ///   player just made this session.
+        /// </summary>
+        private static void PersistSelection(string name)
+        {
+            try
+            {
+                string dir = Path.GetDirectoryName(SelectionFilePath);
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
+                File.WriteAllText(SelectionFilePath, StylePersistencePolicy.Serialize(name));
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[STYLE] could not persist the selection '{name}': {ex.GetType().Name}: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -58,7 +138,10 @@ namespace CalradiaRemembers.Styles
         /// </summary>
         public static string CurrentRules()
         {
-            // First call of the session: nothing has been picked yet, so resolve once against what is on disk.
+            // First call of the session: restore the persisted pick (v1.34.3) before anything reads the style.
+            EnsureSelectionLoaded();
+
+            // Still nothing (no persisted file and nothing picked yet): resolve once against what is on disk.
             if (string.IsNullOrWhiteSpace(_selectedName)) Select(null);
 
             long stamp = StyleCatalog.StampTicksOf(_selectedName);
