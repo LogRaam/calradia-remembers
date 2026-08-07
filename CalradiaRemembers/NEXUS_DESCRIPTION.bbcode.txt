@@ -211,6 +211,7 @@ A conversation can lead to real action. Here is the full set of things that can 
 [list]
 [*]Take, free, buy, or sell a hero prisoner[/*]
 [*]Negotiate a captive's release, or a rescue[/*]
+[*]Be won over, as a captured lord, to switch sides.. freed, sworn into your clan, and riding in your party[/*]
 [*][b]Hardcore only[/b].. captive-scene acts (harming a prisoner, a chance of pregnancy) and, only if you switch it on, a captor ending a prisoner's life[/*]
 [/list]
 
