@@ -2,6 +2,16 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.34.4.. 2026-08-07
+
+A new diplomatic action. Your saves carry over untouched.
+
+### New
+- **Broker peace between realms.** In conversation with a faction leader (a king or ruler) whose realm is at
+  war, you can now mediate peace between their faction and a named enemy realm, even when your own faction is
+  not part of that war. It takes standing: you must be a noble of rank (clan tier 3 or higher) whom that leader
+  deeply trusts.
+
 ## v1.34.3.. 2026-08-06
 
 Three fixes from player feedback. Your saves carry over untouched.

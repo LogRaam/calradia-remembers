@@ -230,6 +230,7 @@ A conversation can lead to real action. Here is the full set of things that can 
 [*]Lend or spend political influence at court[/*]
 [*]Be swayed in their opinion of a third party[/*]
 [*]Swear a verifiable oath.. to keep a peace, to protect you, or to pay a debt[/*]
+[*]Broker peace between two OTHER realms at war, as a mediator, if you have the rank and their deep trust[/*]
 [/list]
 
 [b][color=#e69138]Intrigue & rivalry[/color][/b]
