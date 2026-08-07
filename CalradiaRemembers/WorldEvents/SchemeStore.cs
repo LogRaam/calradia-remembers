@@ -48,7 +48,6 @@ namespace CalradiaRemembers.WorldEvents
       private const int SchemeWarnedGrudgeMagnitude = 45;
 
       private const int SuccessInfluenceHit = 15; // standing damage the target's clan takes on success
-      private const int SuccessRelationHit = 5; // and the feud deepens a little more
       public static SchemeStore Instance;
       private readonly Dictionary<string, int> _pairCooldown = new(); // non-persisted; reload is rare
 
@@ -129,7 +128,8 @@ namespace CalradiaRemembers.WorldEvents
 
          if (scheme.State == SchemeState.Succeeded)
          {
-            ApplyStandingDamage(plotter, target);
+            ApplyStandingDamage(target);
+            ApplyFeud(scheme, plotter, target, SchemeState.Succeeded, today);
             RecordRumor(scheme, plotter, target, today, "succeeded", 34, scheme.Kind == SchemeKind.Slander
                ? $"{plotter.Name} has blackened {target.Name}'s name, and it has cost them dearly."
                : $"{plotter.Name} has undermined {target.Name}, weakening their standing.");
@@ -243,17 +243,71 @@ namespace CalradiaRemembers.WorldEvents
 
       #region private
 
-      /// <summary>The v1 effect: a hit to the target clan's influence, and the feud deepens.</summary>
-      private static void ApplyStandingDamage(Hero plotter, Hero target)
+      /// <summary>
+      ///   The v1 effect: a hit to the target clan's influence. The plotter/target relation rupture is no
+      ///   longer applied here: it is now the feud's job (<see cref="ApplyFeud" />), sized by
+      ///   <see cref="FeudRelationPolicy" /> and applied by the caller on the same resolution.
+      /// </summary>
+      private static void ApplyStandingDamage(Hero target)
       {
          try
          {
             if (target.Clan != null)
                ChangeClanInfluenceAction.Apply(target.Clan, -SuccessInfluenceHit);
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(plotter, target, -SuccessRelationHit, false);
-            ModLog.Info($"[SCHEME] success effect: {target.Name} clan influence -{SuccessInfluenceHit}, {plotter.Name}<->{target.Name} relation -{SuccessRelationHit}.");
+            ModLog.Info($"[SCHEME] success effect: {target.Name} clan influence -{SuccessInfluenceHit}.");
          }
          catch (Exception ex) { ModLog.Error($"[SCHEME] effect failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Living World pillar, Increment 1: a resolved scheme becomes a VISIBLE feud. Worsens the REAL
+      ///   plotter/target relation (the lever vanilla's <c>GetScoreOfDeclaringWar</c> reads, so a feud that
+      ///   holds lets the kingdom AI escalate to war on its OWN; no war is ever declared here), cools the
+      ///   target's closest clan allies toward the plotter so third parties learn and adjust, and records the
+      ///   feud as news so it spreads by the rumour network and lands in the chronicle. All sizes come from
+      ///   the pure <see cref="FeudRelationPolicy" />; this method only feeds it facts and applies the deltas.
+      /// </summary>
+      private static void ApplyFeud(Scheme scheme, Hero plotter, Hero target, SchemeState outcome, int today)
+      {
+         if (scheme == null || plotter == null || target == null) return;
+
+         FeudRelationOutcome feud = FeudRelationPolicy.Resolve(scheme.Kind, outcome);
+         if (!feud.CreatesFeud) return;
+
+         try
+         {
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(plotter, target, feud.PlotterTargetDelta, false);
+            CoolTargetAllies(plotter, target, feud.AllyCoolingDelta, feud.AllyFanOutCap);
+
+            int magnitude = Math.Min(60, 20 + Math.Abs(feud.PlotterTargetDelta));
+            RecordRumor(scheme, plotter, target, today, "feud", magnitude,
+               $"{plotter.Name} and {target.Name} are now locked in open feud.");
+
+            ModLog.Info($"[SCHEME] feud ({outcome}): {plotter.Name} vs {target.Name} relation {feud.PlotterTargetDelta}, allies cooled {feud.AllyCoolingDelta} (cap {feud.AllyFanOutCap}).");
+         }
+         catch (Exception ex) { ModLog.Error($"[SCHEME] feud effect failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Cools the target's closest clan-mates toward the plotter by a small, bounded delta so the feud is
+      ///   visible to third parties. Closest allies first (highest regard for the target), capped so a feud
+      ///   never ripples across a whole clan; the player is never touched by this NPC-to-NPC adjustment.
+      /// </summary>
+      private static void CoolTargetAllies(Hero plotter, Hero target, int delta, int cap)
+      {
+         if (cap <= 0 || delta == 0 || target?.Clan == null) return;
+
+         var allies = target.Clan.Heroes
+                             .Where(h => h is {IsAlive: true, IsLord: true} && h != target && h != plotter && h != Hero.MainHero)
+                             .OrderByDescending(h => h.GetRelation(target))
+                             .Take(cap)
+                             .ToList();
+
+         foreach (Hero ally in allies)
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(ally, plotter, delta, false);
+
+         if (allies.Count > 0)
+            ModLog.Info($"[SCHEME] feud fan-out: {allies.Count} of {target.Name}'s clan cooled toward {plotter.Name} ({delta}).");
       }
 
       // ── Factors (engine traits → pure SchemeFactors) ──────────────────────
@@ -421,13 +475,15 @@ namespace CalradiaRemembers.WorldEvents
                ModLog.Info($"[SCHEME] {plotter.Name} → {target.Name} ({scheme.Kind}) Discovered (progress {scheme.Progress}).");
                RecordRumor(scheme, plotter, target, today, "discovered", 28,
                   $"{plotter.Name}'s plot against {target.Name} has come to light.");
+               ApplyFeud(scheme, plotter, target, SchemeState.Discovered, today);
                MaybeAbettorBacklash(scheme, target);
 
                break;
 
             case SchemeState.Succeeded:
                ModLog.Info($"[SCHEME] {plotter.Name} → {target.Name} ({scheme.Kind}) Succeeded — applying standing damage.");
-               ApplyStandingDamage(plotter, target);
+               ApplyStandingDamage(target);
+               ApplyFeud(scheme, plotter, target, SchemeState.Succeeded, today);
                RecordRumor(scheme, plotter, target, today, "succeeded", 34, scheme.Kind == SchemeKind.Slander
                   ? $"{plotter.Name} has blackened {target.Name}'s name, and it has cost them dearly."
                   : $"{plotter.Name} has undermined {target.Name}, weakening their standing.");
