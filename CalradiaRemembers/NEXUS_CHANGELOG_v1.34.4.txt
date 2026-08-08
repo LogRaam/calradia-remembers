@@ -1,6 +1,7 @@
 Version 1.34.4
 
-A new diplomatic action. Your saves carry over untouched.
+A new diplomatic action, and your letters are now kept and re-readable. Your saves carry over untouched.
 
 New
 - Broker peace between realms. In conversation with a faction leader (a king or ruler) whose realm is at war, you can now mediate peace between their faction and a named enemy realm, even when your own faction is not part of that war. It takes standing: you must be a noble of rank (clan tier 3 or higher) whom that leader deeply trusts.
+- Your letters, kept and re-readable. Every letter you exchange with someone is now saved as a dated thread. Open a character's Encyclopedia page and press "Letters" to read your whole correspondence with them, oldest first, each headed with the season and day it was sent, in a larger scrollable window styled after the conversation view.

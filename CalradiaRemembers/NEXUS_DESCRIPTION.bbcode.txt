@@ -136,6 +136,8 @@ Correspondence has a home of its own now: a dedicated [b][color=#d5a6bd]parchmen
 
 [i]New.. guard your letters against the road.[/i] A courier carried a long way, when you are far from the sender, used to be waylaid too often. Interception no longer piles up with distance, so ordinary letters get through far more reliably. And when a letter truly matters, you can pay for an [b][color=#d5a6bd]armed escort[/color][/b] at the moment you hire the courier: that whole correspondence, both directions and every reply after it, then rides guarded and always arrives, safe from bandits. If you would rather never lose one at all, a single [b]Invulnerable couriers[/b] switch in the mod options turns interception off entirely.
 
+[i]New.. every letter is kept.[/i] Your correspondence is no longer lost once read. Open a character's encyclopedia page and press [b][color=#d5a6bd]Letters[/color][/b] to reread your whole exchange with them as a dated thread, oldest first, each letter headed with the season and day it was sent, in a larger scrollable window styled after the conversation view.
+
 [color=#e69138][b]Encyclopedia integration[/b][/color]
 What you learn about a character surfaces on their own encyclopedia page. Alongside their standing toward you, a "[b][color=#d5a6bd]Discoveries[/color][/b]" panel fills in over time: as conversations turn personal, NPCs let slip who they really are.. their temperament, their romantic nature, their preferences, and (with adult content enabled) the more intimate traits and [color=#ff00ff][b]kinks[/b][/color] they reveal. Nothing is handed to you on a plate.. you earn this portrait through trust and talk, one character at a time, and each thing learned is written into their Encyclopedia page for good.
 
