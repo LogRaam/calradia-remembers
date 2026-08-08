@@ -495,6 +495,28 @@ namespace CalradiaRemembers
          return towns[MBRandom.RandomInt(towns.Count)];
       }
 
+      /// <summary>
+      ///   cr.letter_tidings [name]
+      ///   Runs the realm-tidings evaluation for one writer NOW: scores the world events they plausibly know,
+      ///   picks the most worth-telling one they have not already relayed, and enqueues an unbidden "news of the
+      ///   realm" letter into the mailbox (competing in the normal budget). Reports which event was chosen, or why
+      ///   none was. Seed some conditions first with cr.worldcond if the store is empty.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("letter_tidings", "cr")]
+      public static string EvaluateRealmTidings(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+
+         return RealmTidings.RealmTidingsBehavior.DebugEvaluate(behavior.Store, profile, hero);
+      }
+
       /// <summary>A synthetic delivered letter for the cr.letter_* test commands.</summary>
       private static PendingLetter BuildTestLetter(Hero hero, int today) => new() {
          SenderId = hero.StringId,

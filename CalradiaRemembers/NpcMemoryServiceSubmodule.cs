@@ -204,6 +204,10 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new StanceBehavior());
          // Stance with teeth: weekly, a hardened posture becomes an unbidden hostile/favourable letter.
          campaignStarter.AddBehavior(new StanceConsequenceBehavior());
+         // Realm tidings: weekly, a friendly lord relays a real known world event (looming war, town hardship,
+         // a rumour) by unbidden letter, competing in the same mailbox budget. Registered AFTER WorldEventStore
+         // (it reads from it) and reuses the LetterCandidateIntent mailbox path.
+         campaignStarter.AddBehavior(new CalradiaRemembers.RealmTidings.RealmTidingsBehavior());
          // Stance with teeth, increment 3: murderous intent can spring a street ambush when the player is in town.
          campaignStarter.AddBehavior(new TownAmbushBehavior());
          // Stance with teeth, increment 3.2a: losing the ambush -> captured and convoyed to the paymaster lord.
