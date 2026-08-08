@@ -126,10 +126,18 @@ namespace CalradiaRemembers.WorldEvents
             {
                Hero h = mp.Party?.LeaderHero;
 
-               if (h == null || h == Hero.MainHero || !h.IsLord || IsBandit(h)) continue;
+               if (h == null || h == Hero.MainHero || IsBandit(h)) continue;
+
+               // Enemy lords faced, and allied lords who led their own party, are recorded. On the
+               // player's OWN side a companion or kin leading a DETACHED party is a wanderer (not IsLord)
+               // yet one of the player's own people, so they earn the ally memory too; everywhere else a
+               // real lord is still required. (Companions riding inside the main party are handled below.)
+               bool playerKin = ally && h.Clan != null && h.Clan == Hero.MainHero?.Clan;
+
+               if (!h.IsLord && !playerKin) continue;
                NpcProfile profile = behavior.Store.Get(h.StringId);
 
-               if (profile == null) continue; // only lords the player has actually met
+               if (profile == null) continue; // only those the player has actually met
 
                // NB: the enemy-lost phrase "put their host to flight" is also read by
                // EncounterContextBuilder.LostBattleToPlayerRecently to feed the POWER BALANCE
