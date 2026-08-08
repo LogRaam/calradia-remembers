@@ -100,7 +100,10 @@ namespace CalradiaRemembers.WorldEvents
             ? a.StringId + "|" + b.StringId
             : b.StringId + "|" + a.StringId;
 
-      /// <summary>Leaves a memory of the player's battlefield showing in the profiles of lords who were present.</summary>
+      /// <summary>
+      ///   Leaves a memory of the player's battlefield in the profiles of those who were present: the lords
+      ///   who led their own party (either side), and the companions who rode inside the player's own party.
+      /// </summary>
       private static void RecordBattlePerformanceIntoProfiles(MapEvent mapEvent, bool playerAttacker, bool playerWon, string near)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
@@ -132,7 +135,7 @@ namespace CalradiaRemembers.WorldEvents
                // EncounterContextBuilder.LostBattleToPlayerRecently to feed the POWER BALANCE
                // note — keep the two in sync if this wording changes.
                string summary = ally
-                  ? $"Fought at your side when you {(playerWon ? "broke the enemy" : "stood against the enemy")}{near}."
+                  ? BattleMemoryText.AllySummary(playerWon, near)
                   : $"Faced you in battle and {(playerWon ? "saw you put their host to flight" : "held the field against you")}{near}.";
                profile.Events.Add(new NotableEvent(day, NotableEventType.Other, summary));
 
@@ -145,6 +148,32 @@ namespace CalradiaRemembers.WorldEvents
 
                behavior.Store.Set(profile);
             }
+         }
+
+         // Companions ride INSIDE the player's own party, so they are never party LEADERS and the loop
+         // above (which reads each party's leader) never visits them. A player asked for the "fought
+         // together" memory to reach them too, so walk the main party's own hero members here. Family
+         // riding with the party qualifies the same way; the notable-battle gate upstream already keeps
+         // this from firing on every skirmish.
+         var roster = MobileParty.MainParty?.MemberRoster?.GetTroopRoster();
+
+         if (roster == null) return;
+
+         foreach (var el in roster)
+         {
+            Hero h = el.Character?.HeroObject;
+
+            if (h == null || h == Hero.MainHero || IsBandit(h)) continue;
+            NpcProfile companion = behavior.Store.Get(h.StringId);
+
+            if (companion == null) continue; // only companions the player has actually met
+
+            companion.Events.Add(new NotableEvent(day, NotableEventType.Other, BattleMemoryText.AllySummary(playerWon, near)));
+
+            // A victory earns the same respect a lord who fought beside the player would feel.
+            if (playerWon) StanceService.OnFoughtBesideYou(companion);
+
+            behavior.Store.Set(companion);
          }
       }
 
