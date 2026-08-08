@@ -46,6 +46,7 @@ namespace CalradiaRemembers.Tests
             { LetterReason.RomanticCorrespondence, LetterWeights.WeightRomanticCorrespondence },
             { LetterReason.SpouseCorrespondence, LetterWeights.WeightSpouseCorrespondence },
             { LetterReason.StanceFavor, LetterWeights.WeightStanceFavor },
+            { LetterReason.RealmTidings, LetterWeights.WeightRealmTidings },
 
             { LetterReason.BirthAnnouncement, LetterWeights.WeightBirthAnnouncement },
             { LetterReason.TournamentVictory, LetterWeights.WeightTournamentVictory },

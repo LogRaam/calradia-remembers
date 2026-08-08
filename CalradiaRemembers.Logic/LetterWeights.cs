@@ -69,6 +69,13 @@ namespace CalradiaRemembers.Logic
         /// <summary>A lord's unbidden goodwill or warning: welcome, but never as urgent as open hostility.</summary>
         public const int WeightStanceFavor = 50;
 
+        /// <summary>
+        ///   A friend relaying news of the realm (a looming war, hard times, a rumour that reached them):
+        ///   ambient realm news, pleasant to receive and not urgent, so it sits above pure flavor like a birth
+        ///   announcement or a tournament win yet below a personal note such as a lord's unbidden goodwill.
+        /// </summary>
+        public const int WeightRealmTidings = 40;
+
         // ── Flavor: pleasant, never urgent, the first tier to yield when the mailbox is full ────────────
 
         /// <summary>A birth announcement: a lovely thing to read, never something the player must act on today.</summary>
@@ -153,6 +160,7 @@ namespace CalradiaRemembers.Logic
                 case LetterReason.RomanticCorrespondence: return WeightRomanticCorrespondence;
                 case LetterReason.SpouseCorrespondence: return WeightSpouseCorrespondence;
                 case LetterReason.StanceFavor: return WeightStanceFavor;
+                case LetterReason.RealmTidings: return WeightRealmTidings;
 
                 case LetterReason.BirthAnnouncement: return WeightBirthAnnouncement;
                 case LetterReason.TournamentVictory: return WeightTournamentVictory;
