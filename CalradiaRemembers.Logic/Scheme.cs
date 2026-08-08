@@ -58,5 +58,14 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>True once the player has thrown in with this plot — so its exposure can implicate them.</summary>
         public bool PlayerAbetted { get; set; }
+
+        /// <summary>
+        ///   True when a lord launched this plot on their OWN initiative (Living World pillar, Increment 2),
+        ///   as opposed to a player-abetted or console-forced one. Counted distinctly so the autonomous
+        ///   generator's global cap governs only the world's independent intrigue, never the player's own
+        ///   plots. Additive and save-safe: absent in older saves, it deserializes to false, so a plot from
+        ///   before this field existed simply does not count against the autonomous budget.
+        /// </summary>
+        public bool Autonomous { get; set; }
     }
 }

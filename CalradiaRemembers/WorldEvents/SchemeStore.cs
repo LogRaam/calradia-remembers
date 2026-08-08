@@ -9,6 +9,7 @@ using System.Text;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
@@ -33,14 +34,16 @@ namespace CalradiaRemembers.WorldEvents
    /// </summary>
    public sealed class SchemeStore : CampaignBehaviorBase
    {
-      private const int DailySpawnChancePercent = 8; // most days, no new plot is hatched
-
-      private const int MaxActiveSchemes = 3; // keep the world's intrigue ambient, not a flood
-      private const int MaxLordsPerKingdomScan = 40;
-      private const int PairCooldownDays = 40; // don't immediately re-plot the same feud
-      private const int RivalryThreshold = -30; // mutual relation at/below = bitter rivals (matches the gossip feeder)
+      // Living World pillar, Increment 2: the autonomous generator's only engine-side bound, how many living
+      // lords a single weekly pass will consider as instigators before giving up. A curated generator, not a
+      // simulation: the eligibility/budget/cooldown DECISIONS all live in the pure AutonomousSchemePolicy.
+      private const int MaxInstigatorScan = 60;
 
       private const string SaveKey = "CalradiaRemembers_Schemes_v1bytes";
+
+      // Additive, save-safe key for the per-instigator autonomous-plot cooldown (Increment 2): absent in older
+      // saves, it degrades to an empty ledger, so nothing is on cooldown after an upgrade.
+      private const string CooldownSaveKey = "CalradiaRemembers_SchemeAutoCooldown_v1bytes";
       private const int SchemeAbettedGrudgeMagnitude = 55;
 
       // Grudges pillar (Tier 1, unrecoverable from a save — live-planted only): the plotter conceals their
@@ -49,7 +52,10 @@ namespace CalradiaRemembers.WorldEvents
 
       private const int SuccessInfluenceHit = 15; // standing damage the target's clan takes on success
       public static SchemeStore Instance;
-      private readonly Dictionary<string, int> _pairCooldown = new(); // non-persisted; reload is rare
+
+      // Per-instigator last-autonomous-launch day (Increment 2), persisted so one lord's ~30-day plot cooldown
+      // survives save/load rather than resetting on every reload (the old non-persisted pair cooldown did not).
+      private Dictionary<string, int> _autonomousCooldown = new();
 
       private List<Scheme> _schemes = new();
 
@@ -65,18 +71,21 @@ namespace CalradiaRemembers.WorldEvents
       public void DebugAdvance() => AdvanceActive((int) CampaignTime.Now.ToDays);
 
       /// <summary>
-      ///   Plots a scheme by force (console testing) — bypasses the spawn roll but uses the real
+      ///   Launches a scheme through the ONE shared launch path (console testing forces it, pledge_against
+      ///   drives it, and the Living World autonomous generator drives it): it uses the real
       ///   advance/effect/rumour pipeline from the next daily tick. Returns a short status line.
+      ///   <paramref name="autonomous" /> marks a plot a lord launched on their own initiative (Increment 2)
+      ///   so it counts against the autonomous budget; every existing caller keeps the default (false).
       /// </summary>
-      public string ForcePlot(Hero plotter, Hero target, SchemeKind kind)
+      public string ForcePlot(Hero plotter, Hero target, SchemeKind kind, bool autonomous = false)
       {
          if (plotter == null || target == null || plotter == target) return "Need two distinct heroes.";
          if (HasActiveBetween(plotter.StringId, target.StringId)) return $"A scheme between {plotter.Name} and {target.Name} is already afoot.";
 
          _schemes.Add(new Scheme {
-            PlotterId = plotter.StringId, TargetId = target.StringId, Kind = kind, State = SchemeState.Plotted
+            PlotterId = plotter.StringId, TargetId = target.StringId, Kind = kind, State = SchemeState.Plotted, Autonomous = autonomous
          });
-         ModLog.Info($"[SCHEME] plotted (forced): {plotter.Name} → {target.Name} ({kind}).");
+         ModLog.Info($"[SCHEME] plotted{(autonomous ? " (autonomous)" : " (forced)")}: {plotter.Name} → {target.Name} ({kind}).");
 
          return $"{plotter.Name} now plots {kind} against {target.Name}. Advance a day to see it move.";
       }
@@ -153,6 +162,9 @@ namespace CalradiaRemembers.WorldEvents
       public override void RegisterEvents()
       {
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+         // Living World pillar, Increment 2: the autonomous scheme generator runs on a weekly cadence (the daily
+         // tick only ADVANCES plots already in motion). Weekly keeps it a light, curated pass, never per-hero daily work.
+         CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
       }
 
       // ── Persistence (mirrors WorldEventStore) ─────────────────────────────
@@ -177,6 +189,17 @@ namespace CalradiaRemembers.WorldEvents
 
             try { dataStore.SyncData(SaveKey, ref bytes); }
             catch (Exception ex) { ModLog.Error($"[SCHEME] byte[] save failed: {ex.GetType().Name}: {ex.Message}"); }
+
+            byte[] cooldownBytes;
+            try { cooldownBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Dictionary<string, int>(_autonomousCooldown), Formatting.None)); }
+            catch (Exception ex)
+            {
+               ModLog.Error($"[SCHEME] cooldown serialize failed, persisting nothing this save. {ex.GetType().Name}: {ex.Message}");
+               cooldownBytes = Encoding.UTF8.GetBytes("{}");
+            }
+
+            try { dataStore.SyncData(CooldownSaveKey, ref cooldownBytes); }
+            catch (Exception ex) { ModLog.Error($"[SCHEME] cooldown byte[] save failed: {ex.GetType().Name}: {ex.Message}"); }
          }
          else
          {
@@ -195,7 +218,24 @@ namespace CalradiaRemembers.WorldEvents
                   ModLog.Error($"[SCHEME] load failed — schemes dropped for this load so the campaign can still open. {ex.GetType().Name}: {ex.Message}");
                }
 
-            ModLog.Info($"[SCHEME] loaded {_schemes.Count} active scheme(s) from save.");
+            byte[] cooldownBytes = null;
+            try { dataStore.SyncData(CooldownSaveKey, ref cooldownBytes); }
+            catch
+            {
+               /* key absent in saves written before Increment 2: degrades to an empty ledger */
+            }
+
+            if (cooldownBytes is {Length: > 0})
+               try { _autonomousCooldown = JsonConvert.DeserializeObject<Dictionary<string, int>>(Encoding.UTF8.GetString(cooldownBytes)) ?? new Dictionary<string, int>(); }
+               catch (Exception ex)
+               {
+                  _autonomousCooldown = new Dictionary<string, int>();
+                  ModLog.Error($"[SCHEME] cooldown load failed, dropped so the campaign can still open (a lord may plot again sooner). {ex.GetType().Name}: {ex.Message}");
+               }
+            else
+               _autonomousCooldown = new Dictionary<string, int>();
+
+            ModLog.Info($"[SCHEME] loaded {_schemes.Count} active scheme(s) and {_autonomousCooldown.Count} instigator cooldown(s) from save.");
          }
       }
 
@@ -384,11 +424,6 @@ namespace CalradiaRemembers.WorldEvents
          }
       }
 
-      private static string PairKey(string a, string b)
-         => string.CompareOrdinal(a, b) < 0
-            ? a + "|" + b
-            : b + "|" + a;
-
       private static void RecordRumor(Scheme scheme, Hero plotter, Hero target, int today, string status, int magnitude, string summary)
       {
          WorldEventStore.Instance?.Record(new WorldEvent {
@@ -455,9 +490,14 @@ namespace CalradiaRemembers.WorldEvents
       private void OnDailyTick()
       {
          var today = (int) CampaignTime.Now.ToDays;
-         // Each pass runs behind its own guard: one throwing must not skip the other this tick.
+         // The daily tick only ADVANCES plots already in motion; the autonomous generator that STARTS new ones
+         // runs weekly (OnWeeklyTick), a lighter, curated cadence.
          SafeRun.Step("SchemeStore.AdvanceActive", () => AdvanceActive(today));
-         SafeRun.Step("SchemeStore.TrySpawn", () => TrySpawn(today));
+      }
+
+      private void OnWeeklyTick()
+      {
+         SafeRun.Step("SchemeStore.TryLaunchAutonomousScheme", () => TryLaunchAutonomousScheme((int) CampaignTime.Now.ToDays));
       }
 
       private void OnStateChanged(Scheme scheme, Hero plotter, Hero target, int today)
@@ -525,65 +565,96 @@ namespace CalradiaRemembers.WorldEvents
             : null;
       }
 
-      private bool TryPlotAmong(List<Hero> lords, int today)
+      // ── Launching autonomous schemes (Living World pillar, Increment 2) ────
+
+      /// <summary>
+      ///   Once a week, a bitter rival lord may LAUNCH a plot on their own initiative against a genuine enemy,
+      ///   feeding the very front of the Increment 1 feud chain (a plot that ripens or is exposed sours the real
+      ///   relation and lets vanilla escalate to war on its own; no war is ever decreed here). Curated and
+      ///   capped, never a simulation: the pure <see cref="AutonomousSchemePolicy" /> owns every boundary (a
+      ///   global cap on concurrent AUTONOMOUS plots, counted distinctly from player-abetted ones; a persisted
+      ///   per-instigator cooldown; and a low per-eligible-pair roll), so the world feels alive rather than a
+      ///   plot-storm. Reuses the SAME launch path pledge_against uses (<see cref="ForcePlot" />). One new plot
+      ///   per weekly pass keeps the intrigue ambient.
+      /// </summary>
+      private void TryLaunchAutonomousScheme(int today)
       {
-         for (var i = 0; i < lords.Count; i++)
-            for (int j = i + 1; j < lords.Count; j++)
-            {
-               Hero a = lords[i],
-                    b = lords[j];
+         int activeAutonomous = _schemes.Count(s => s.Autonomous);
+         if (!AutonomousSchemePolicy.BudgetAllowsLaunch(activeAutonomous)) return;
 
-               if (a.GetRelation(b) > RivalryThreshold) continue;
+         foreach (Hero instigator in EligibleInstigators(today))
+         {
+            string targetId = SelectAutonomousTargetFor(instigator);
+            if (targetId == null) continue;
+            if (HasActiveBetween(instigator.StringId, targetId)) continue;
 
-               string key = PairKey(a.StringId, b.StringId);
+            // A low per-eligible-pair roll: even a real rivalry only occasionally boils over into a fresh plot.
+            if (MBRandom.RandomInt(100) >= AutonomousSchemePolicy.PerPairLaunchChancePercent) continue;
 
-               if (_pairCooldown.TryGetValue(key, out int last) && today - last < PairCooldownDays) continue;
-               if (HasActiveBetween(a.StringId, b.StringId)) continue;
+            Hero target = FindHero(targetId);
+            if (target is not {IsAlive: true}) continue;
 
-               // The bolder schemer of the two moves first against the other.
-               Hero plotter = Cunning(a) >= Cunning(b)
-                  ? a
-                  : b;
-               Hero target = plotter == a
-                  ? b
-                  : a;
-               SchemeKind kind = MBRandom.RandomInt(2) == 0
-                  ? SchemeKind.Slander
-                  : SchemeKind.Sabotage;
+            SchemeKind kind = MBRandom.RandomInt(2) == 0
+               ? SchemeKind.Slander
+               : SchemeKind.Sabotage;
 
-               _schemes.Add(new Scheme {
-                  PlotterId = plotter.StringId, TargetId = target.StringId, Kind = kind, State = SchemeState.Plotted
-               });
-               _pairCooldown[key] = today;
-               ModLog.Info($"[SCHEME] plotted: {plotter.Name} → {target.Name} ({kind}).");
+            ForcePlot(instigator, target, kind, true); // the shared launch path; marks the plot autonomous
+            _autonomousCooldown[instigator.StringId] = today;
 
-               return true;
-            }
-
-         return false;
+            return; // one new autonomous plot per weekly pass
+         }
       }
 
-      // ── Spawning new schemes ──────────────────────────────────────────────
-
-      private void TrySpawn(int today)
+      /// <summary>
+      ///   The living, free lords with standing to plot autonomously whose per-instigator cooldown has elapsed:
+      ///   never the player nor a member of the player's own clan (they plot only via the player-driven path).
+      ///   Bounded by <see cref="MaxInstigatorScan" />, a curated candidate set, not per-hero simulation.
+      /// </summary>
+      private List<Hero> EligibleInstigators(int today)
       {
-         if (_schemes.Count >= MaxActiveSchemes) return;
-         if (MBRandom.RandomInt(100) >= DailySpawnChancePercent) return;
+         var result = new List<Hero>();
 
-         foreach (Kingdom kingdom in Kingdom.All)
+         foreach (Hero h in Hero.AllAliveHeroes)
          {
-            var lords = new List<Hero>();
-            foreach (Clan clan in kingdom.Clans)
-            {
-               foreach (Hero h in clan.Heroes)
-                  if (h is {IsAlive: true, IsLord: true} && h != Hero.MainHero)
-                     lords.Add(h);
+            bool isPlayerClan = h.Clan != null && h.Clan == Clan.PlayerClan;
 
-               if (lords.Count >= MaxLordsPerKingdomScan) break;
-            }
+            if (!AutonomousSchemePolicy.IsEligibleInstigator(h.IsAlive, h.IsLord, h.IsPrisoner, h == Hero.MainHero, isPlayerClan)) continue;
+            if (!AutonomousSchemePolicy.InstigatorCooldownElapsed(LastAutonomousDay(h.StringId), today)) continue;
 
-            if (TryPlotAmong(lords, today)) return; // one new plot per spawning day
+            result.Add(h);
+            if (result.Count >= MaxInstigatorScan) break;
          }
+
+         return result;
+      }
+
+      private int? LastAutonomousDay(string instigatorId)
+         => _autonomousCooldown.TryGetValue(instigatorId, out int day)
+            ? day
+            : (int?) null;
+
+      /// <summary>
+      ///   The grounded target this instigator would autonomously plot against, or null. Reuses the same kin-safe,
+      ///   already-disliked, no-faction-leader selection pledge_against relies on
+      ///   (<see cref="AutonomousSchemePolicy.SelectAutonomousTarget" />), and never the player or the player's clan.
+      /// </summary>
+      private string SelectAutonomousTargetFor(Hero instigator)
+      {
+         var candidates = new List<AutonomousSchemePolicy.SchemeTargetCandidate>();
+
+         foreach (Hero other in Hero.AllAliveHeroes)
+         {
+            if (other == instigator || !other.IsLord) continue;
+
+            bool isPlayerSide = other == Hero.MainHero || other.Clan != null && other.Clan == Clan.PlayerClan;
+            bool isKin = CourtActionResolver.IsCloseKin(instigator, other);
+            bool isFactionLeader = other.MapFaction?.Leader == other;
+
+            candidates.Add(new AutonomousSchemePolicy.SchemeTargetCandidate(
+               other.StringId, instigator.GetRelation(other), isKin, isPlayerSide, isFactionLeader));
+         }
+
+         return AutonomousSchemePolicy.SelectAutonomousTarget(candidates);
       }
 
       #endregion
