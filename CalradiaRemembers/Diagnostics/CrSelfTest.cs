@@ -35,6 +35,7 @@ using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
+using CalradiaRemembers.RealmTidings;
 using CalradiaRemembers.Scenarios;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Settings;
@@ -55,6 +56,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Localization;
 using TaleWorlds.ObjectSystem;
 using TraitFacts = CalradiaRemembers.Logic.Appreciations.TraitFacts;
 
@@ -129,6 +131,9 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("presence_gate", Severity.Light, "Mechanical: the ONE behaviour v1.30.14 changed, guarded across the WHOLE living roster with no preconditions. The letter system's facade and the single presence authority must give the same answer for every hero alive (before this, letters asked a wide question and jealousy a party-only one), and beside/away must be exact opposites. If they ever disagree again, the systems have drifted apart and this fires", TestPresenceGate),
          new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
+         new SelfTest("world_conditions", Severity.Light, "Mechanical: the engine reads the weekly world-conditions feeder depends on still work against the live game (a renamed field or a changed model signature would silently swallow to 0 inside the feeder's own guards, recording nothing forever). Reads GetScoreOfDeclaringWar in both directions between two live kingdoms and a live town's FoodStocks/FoodChange/Prosperity DIRECTLY, asserts each is finite, then runs the real RunScan and asserts both scanners ran. Skips when the world has fewer than two kingdoms or no town", TestWorldConditions),
+         new SelfTest("realm_tidings", Severity.Light, "Mechanical: drives the REAL RealmTidingsBehavior.DebugEvaluate end to end and proves per-NPC dedup. Seeds a dominant known event for a friendly landed lord (regard forced to 30), asserts a RealmTidings letter candidate is queued and the event id enters the dedup ledger, then re-evaluates and asserts the same event is never relayed twice. Restores the writer's regard, ledger and candidates and removes the seed", TestRealmTidings),
+         new SelfTest("companion_battle_memory", Severity.Light, "Mechanical: the companion 'fought together' memory (WorldEventFeeders' main-party companion loop), which a real MapEvent drives in game. Borrows a companion into the party if none rides along, calls the DebugRecordCompanionBattleMemories seam, and asserts the companion's profile gained a fresh 'Fought at your side' memory. Removes the memory it added and returns any borrowed companion", TestCompanionBattleMemory),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
          new SelfTest("reasoning_scrub", Severity.Light, "Mechanical: the inline <think> leak (tthheerroocckk, nemotron on High reasoning). The save/load itself is STUBBED: corrupted memories are written straight into the store as an old save would carry them (a trace before real prose, a memory that is ONLY a truncated trace, a corrupted background paragraph) -> the REAL session-launch scrub runs -> assert the prose is recovered, the all-trace memory becomes the honest 'faded' line (never invented content), the background returns to null, and a second pass is a no-op. Removes its seeds afterwards", TestReasoningScrub),
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
@@ -6212,6 +6217,201 @@ namespace CalradiaRemembers.Diagnostics
             // Scope=sender never touched subject/global, so only CorrespondenceInterest needs restoring.
             profile.CorrespondenceInterest = baseInterest;
             behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The weekly world-conditions feeder reads live engine facts (GetScoreOfDeclaringWar, a town's
+      ///   FoodStocks / FoodChange / Prosperity) behind guards that swallow any exception to 0, so a renamed field or
+      ///   a changed model signature would fail SILENTLY in game (every scan quietly recording nothing). This reads
+      ///   those exact seams DIRECTLY, so a break is a loud FAIL here, then runs the real RunScan to prove both
+      ///   scanners execute. The recorded events are the genuine weekly behaviour and dedup themselves, so nothing is
+      ///   cleaned up.
+      /// </summary>
+      private static string TestWorldConditions(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("world_conditions");
+
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+         WorldConditionsFeeder feeder = NpcMemoryCampaignBehavior.Instance?.WorldConditions;
+
+         if (t.Abort(feeder == null, "WorldConditionsFeeder not active")) return t.Line();
+
+         var diplomacy = Campaign.Current?.Models?.DiplomacyModel;
+
+         if (t.Abort(diplomacy == null, "no DiplomacyModel to read war scores from")) return t.Line();
+
+         // War-score read, in both directions, exactly as ScanWarLooming does it (each side evaluated by its own
+         // ruling clan). A NaN / Infinity here means the model's signature or return contract shifted under us.
+         List<Kingdom> kingdoms = Kingdom.All?.Where(k => k is {IsEliminated: false}).Take(2).ToList();
+
+         if (t.Skip(kingdoms == null || kingdoms.Count < 2, "fewer than two live kingdoms to score a war between")) return t.Line();
+
+         Kingdom a = kingdoms[0], b = kingdoms[1];
+         float scoreAB = diplomacy.GetScoreOfDeclaringWar(a, b, a.RulingClan, out TextObject _);
+         float scoreBA = diplomacy.GetScoreOfDeclaringWar(b, a, b.RulingClan, out TextObject _);
+         t.Note($"warScore {a.Name}->{b.Name}={scoreAB:0.#}, {b.Name}->{a.Name}={scoreBA:0.#}");
+         t.Expect("warScoreReadable", !float.IsNaN(scoreAB) && !float.IsInfinity(scoreAB) && !float.IsNaN(scoreBA) && !float.IsInfinity(scoreBA), true);
+
+         // Town economy reads, exactly as ScanHardship does them.
+         Settlement town = Settlement.All?.FirstOrDefault(s => s is {IsTown: true});
+
+         if (t.Skip(town?.Town == null, "no town on the map to read economy from")) return t.Line();
+
+         float food = town.Town.FoodStocks, foodChange = town.Town.FoodChange, prosperity = town.Town.Prosperity;
+         t.Note($"{town.Name}: food={food:0.#}, foodChange={foodChange:0.#}, prosperity={prosperity:0.#}");
+         t.Expect("townEconomyReadable", !float.IsNaN(food) && !float.IsNaN(foodChange) && !float.IsNaN(prosperity), true);
+
+         // The real feeder: both scanners (war-looming + hardship) must run, each returning a tally.
+         IReadOnlyList<WorldConditionsFeeder.ConditionScanResult> results = feeder.RunScan();
+         t.Note("scan: " + string.Join(", ", results.Select(r => $"{r.Label}={r.Recorded}")));
+         t.Expect("scannersRan", results.Count, 2);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Drives the real RealmTidingsBehavior.DebugEvaluate end to end and proves the per-NPC dedup ledger holds.
+      ///   A friendly landed lord (regard forced to 30) is handed a dominant seeded event (magnitude 100, tagged to
+      ///   his own kingdom) so the pure salience pick chooses it deterministically over any real world event (which
+      ///   top out well below): the first evaluation must queue a RealmTidings letter candidate and record the seed
+      ///   in RelayedWorldEventIds, and a second evaluation (its pending candidate cleared so the anti-stacking guard
+      ///   does not short-circuit) must NOT relay the same event again. Restores the writer's regard, ledger and
+      ///   candidates and removes the seed.
+      /// </summary>
+      private static string TestRealmTidings(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("realm_tidings");
+
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+         if (t.Abort(behavior.Store == null, "memory store not active")) return t.Line();
+
+         Hero writer = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan && h.Clan.Kingdom != null);
+
+         if (t.Skip(writer == null, "no eligible landed lord of a kingdom to write realm tidings")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, writer);
+         int origRegard = profile.ReputationWithPlayer;
+         var origLedger = new List<string>(profile.RelayedWorldEventIds);
+         const string seedId = "selftest_realmtidings_evt";
+         const string seedSummary = "A great host gathers at the border, and men whisper of war to come.";
+
+         try
+         {
+            profile.ReputationWithPlayer = 30; // above MinRegardToWrite (20)
+            profile.RelayedWorldEventIds.Clear();
+            profile.LetterCandidates.RemoveAll(c => c.Reason == LetterReason.RealmTidings);
+            behavior.Store.Set(profile);
+
+            // Magnitude 100 + the writer's own kingdom: its salience beats any real event, so the pure policy picks
+            // it deterministically. Stable id so the seed is predictable and removable.
+            Feed.Record(new ExternalWorldEvent {
+               Id = seedId,
+               SourceMod = "SelfTest",
+               Summary = seedSummary,
+               Magnitude = 100,
+               FactionIds = new List<string> {writer.Clan.Kingdom.StringId}
+            });
+
+            // FIRST eval: the seed should be picked, queued as a candidate, and recorded in the dedup ledger.
+            RealmTidingsBehavior.DebugEvaluate(behavior.Store, profile, writer);
+            profile = behavior.Store.Get(writer.StringId);
+            bool queued = profile.LetterCandidates.Any(c => c.Reason == LetterReason.RealmTidings);
+            t.Note($"writer={writer.Name}: firstEval queued={queued}");
+            t.Expect("tidingsQueued", queued, true);
+            t.Expect("seedRecordedInLedger", profile.RelayedWorldEventIds.Contains(seedId), true);
+
+            // DEDUP eval: clear the pending candidate so the anti-stacking guard does not short-circuit, then
+            // evaluate again. The seed is now in the ledger, so it must never be relayed a second time.
+            profile.LetterCandidates.RemoveAll(c => c.Reason == LetterReason.RealmTidings);
+            behavior.Store.Set(profile);
+            RealmTidingsBehavior.DebugEvaluate(behavior.Store, profile, writer);
+            profile = behavior.Store.Get(writer.StringId);
+            int seedRelays = profile.RelayedWorldEventIds.Count(x => x == seedId);
+            t.Note($"secondEval seedRelayCount={seedRelays}");
+            t.Expect("seedNotRelayedTwice", seedRelays, 1);
+         }
+         finally
+         {
+            WorldEventStore.Instance.Remove(seedId);
+            profile = behavior.Store.Get(writer.StringId) ?? profile;
+            // Setup had cleared every RealmTidings candidate, so restoring that state means removing them all again
+            // (covers a second, different event a dedup pass may have queued, which the seed-summary match misses).
+            profile.LetterCandidates.RemoveAll(c => c.Reason == LetterReason.RealmTidings);
+            profile.ReputationWithPlayer = origRegard;
+            profile.RelayedWorldEventIds.Clear();
+            profile.RelayedWorldEventIds.AddRange(origLedger);
+            behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The companion "fought together" memory (WorldEventFeeders' main-party companion loop) is driven by a real
+      ///   MapEvent in game, so a unit test cannot reach it: this drives the DebugRecordCompanionBattleMemories seam
+      ///   (the exact path the battle feeder uses) against a real party. Borrows a companion into the party if none
+      ///   rides along, and asserts the companion's profile gained a fresh "Fought at your side" memory. Removes the
+      ///   memory it added and returns any borrowed companion.
+      /// </summary>
+      private static string TestCompanionBattleMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("companion_battle_memory");
+
+         if (t.Abort(behavior.Store == null, "memory store not active")) return t.Line();
+         if (t.Abort(MobileParty.MainParty == null, "no main party to hold a companion")) return t.Line();
+
+         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(
+            h => h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && h.PartyBelongedTo == MobileParty.MainParty);
+
+         // A test that only runs when a companion happens to be riding along is a test that rarely runs; BORROW one
+         // and put them back afterwards, the way the rest of this harness seeds the state it needs.
+         MobileParty borrowedFrom = null;
+         var borrowed = false;
+
+         if (companion == null)
+         {
+            Hero spare = Hero.AllAliveHeroes.FirstOrDefault(
+               h => h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner);
+
+            if (t.Skip(spare == null, "the player has no companion at all to place in the party")) return t.Line();
+
+            borrowedFrom = spare.PartyBelongedTo;
+            borrowed = true;
+            AddHeroToPartyAction.Apply(spare, MobileParty.MainParty, false);
+            companion = spare;
+            t.Note($"(borrowed {spare.Name} into the player's party for this test)");
+         }
+
+         NpcProfile profile = GetOrCreate(behavior, companion);
+         int eventsBefore = profile.Events.Count;
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+         string expected = BattleMemoryText.AllySummary(true, "");
+
+         int gained = WorldEventFeeders.DebugRecordCompanionBattleMemories(true);
+
+         profile = behavior.Store.Get(companion.StringId);
+         t.Note($"{companion.Name}: events {eventsBefore}->{profile.Events.Count}, companionsGained={gained}, last='{profile.Events.LastOrDefault()?.summary ?? "(none)"}'");
+         t.Expect("companionGainedMemory", profile.Events.Count > eventsBefore, true);
+         t.Expect("memoryReadsFoughtBeside", profile.Events.Last().summary.Contains("Fought at your side"), true);
+
+         // Cleanup: drop only the ally memory this test planted (this exact summary, dated today), then return the
+         // borrowed companion so the test does not quietly conscript someone.
+         profile.Events.RemoveAll(e => e.gameDay == today && e.summary == expected);
+         behavior.Store.Set(profile);
+
+         if (borrowed)
+         {
+            if (borrowedFrom != null && borrowedFrom != MobileParty.MainParty)
+            {
+               AddHeroToPartyAction.Apply(companion, borrowedFrom, false);
+               t.Note($"(returned {companion.Name} to their party)");
+            }
+            else t.Note($"(NOTE: {companion.Name} had no party to return to and remains in yours; reload to discard)");
          }
 
          return t.Line();

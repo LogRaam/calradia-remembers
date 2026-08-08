@@ -160,9 +160,25 @@ namespace CalradiaRemembers.WorldEvents
 
          // Companions ride INSIDE the player's own party, so they are never party LEADERS and the loop
          // above (which reads each party's leader) never visits them. A player asked for the "fought
-         // together" memory to reach them too, so walk the main party's own hero members here. Family
-         // riding with the party qualifies the same way; the notable-battle gate upstream already keeps
-         // this from firing on every skirmish.
+         // together" memory to reach them too, so this is its own seam a self-test can drive directly
+         // (see DebugRecordCompanionBattleMemories) without staging a real battle.
+         RecordCompanionBattleMemories(day, playerWon, near);
+      }
+
+      /// <summary>
+      ///   Leaves the "fought at your side" ally memory on the profiles of the player's own companions, who ride
+      ///   INSIDE the main party and so are never the party LEADERS the leader loop in
+      ///   <see cref="RecordBattlePerformanceIntoProfiles" /> visits. Family riding with the party qualifies the
+      ///   same way; the notable-battle gate upstream already keeps this from firing on every skirmish. Split out
+      ///   (behaviour unchanged) so the self-test seam <see cref="DebugRecordCompanionBattleMemories" /> can drive
+      ///   exactly this path against a real party without a staged <see cref="MapEvent" />.
+      /// </summary>
+      private static void RecordCompanionBattleMemories(int day, bool playerWon, string near)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (behavior?.Store == null) return;
+
          var roster = MobileParty.MainParty?.MemberRoster?.GetTroopRoster();
 
          if (roster == null) return;
@@ -183,6 +199,50 @@ namespace CalradiaRemembers.WorldEvents
 
             behavior.Store.Set(companion);
          }
+      }
+
+      /// <summary>
+      ///   Self-test seam (cr.testall companion_battle_memory): records the companion "fought at your side" memory
+      ///   for the current main party as if a notable battle had just ended, and returns how many main-party
+      ///   companion profiles gained a fresh memory this call. Drives the exact
+      ///   <see cref="RecordCompanionBattleMemories" /> path the battle feeder uses; no <see cref="MapEvent" /> is
+      ///   staged, and <c>near</c> is empty (no settlement).
+      /// </summary>
+      public static int DebugRecordCompanionBattleMemories(bool playerWon)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (behavior?.Store == null) return 0;
+
+         int day = Today;
+         string expected = BattleMemoryText.AllySummary(playerWon, "");
+         int before = CountCompanionAllyMemories(behavior, day, expected);
+         RecordCompanionBattleMemories(day, playerWon, "");
+
+         return CountCompanionAllyMemories(behavior, day, expected) - before;
+      }
+
+      /// <summary>Counts, across the main party's own companion profiles, the ally-memory events dated <paramref name="day" /> whose summary equals <paramref name="summary" /> (so a delta isolates the ones this pass added).</summary>
+      private static int CountCompanionAllyMemories(NpcMemoryCampaignBehavior behavior, int day, string summary)
+      {
+         var roster = MobileParty.MainParty?.MemberRoster?.GetTroopRoster();
+
+         if (roster == null) return 0;
+
+         var count = 0;
+
+         foreach (var el in roster)
+         {
+            Hero h = el.Character?.HeroObject;
+
+            if (h == null || h == Hero.MainHero || IsBandit(h)) continue;
+            NpcProfile companion = behavior.Store.Get(h.StringId);
+
+            if (companion?.Events == null) continue;
+            count += companion.Events.Count(e => e.gameDay == day && e.summary == summary);
+         }
+
+         return count;
       }
 
       private static void RecordDiplomacy(IFaction f1, IFaction f2, WorldEventType type, int magnitude, string verb)
