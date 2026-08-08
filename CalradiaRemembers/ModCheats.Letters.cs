@@ -329,6 +329,109 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.letters [name]
+      ///   Seeds a small dated correspondence thread with the NPC (if one does not already exist) and opens
+      ///   the letter-archive thread view (<see cref="LetterArchiveManager.Open" />). The seed injects four
+      ///   DELIVERED letters, both directions (NPC to player, and the player's letters to the NPC), dated to
+      ///   varied PAST days so the archive shows a real chronological back-and-forth with dated headers.
+      ///   Idempotent-ish: if the contact already holds a couple of archived letters, seeding is skipped and
+      ///   the existing thread is simply opened, so repeated calls do not spam duplicate seeds.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("letters", "cr")]
+      public static string OpenLetterArchive(List<string> args)
+      {
+         try
+         {
+            if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+               return error;
+
+            Hero hero = ResolveHero(args);
+
+            if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, hero);
+            int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+            int existing = profile.SentLetters.Count(LetterArchivePolicy.IsArchived)
+                           + profile.ReceivedPlayerLetters.Count(LetterArchivePolicy.IsArchived);
+
+            int seeded = 0;
+            if (existing < 2)
+            {
+               seeded = SeedTestCorrespondence(profile, hero, today);
+               behavior.Store.Set(profile);
+            }
+
+            LetterArchiveManager.Open(profile);
+
+            string what = seeded > 0
+               ? $"seeded {seeded} test letters (both directions, days {today - 60}/{today - 40}/{today - 20}/{today - 5})"
+               : $"kept {existing} existing archived letter(s), no seed";
+
+            return $"Letter archive opened for {hero.Name}: {what}.";
+         }
+         catch (Exception ex)
+         {
+            return $"cr.letters failed: {ex.GetType().Name}: {ex.Message}";
+         }
+      }
+
+      /// <summary>
+      ///   Injects a four-letter dated correspondence (both directions) marked DELIVERED so the archive
+      ///   thread renders a real chronological exchange. Bodies are clearly labelled "(test)" seeds.
+      ///   Returns the number of letters added.
+      /// </summary>
+      private static int SeedTestCorrespondence(NpcProfile profile, Hero hero, int today)
+      {
+         string npcName = hero.Name?.ToString();
+
+         // Oldest first: NPC -> player (d-60), player -> NPC (d-40), NPC -> player (d-20), player -> NPC (d-5).
+         profile.SentLetters.Add(new PendingLetter {
+            SenderId = hero.StringId,
+            SenderName = npcName,
+            Reason = LetterReason.RomanticCorrespondence,
+            Content = $"(test) It has been too long since we last spoke. I think of our time together often. - {npcName}",
+            SentOnDay = today - 60,
+            DeliveryDay = today - 57,
+            DeliveredOnDay = today - 57,
+            IsDelivered = true
+         });
+
+         profile.ReceivedPlayerLetters.Add(new PlayerLetter {
+            RecipientId = profile.Id,
+            RecipientName = profile.Name,
+            Content = "(test) Your letter found me on the road. Know that you are not far from my thoughts either.",
+            SentOnDay = today - 40,
+            DeliveryDay = today - 37,
+            IsDelivered = true,
+            HasBeenRead = true
+         });
+
+         profile.SentLetters.Add(new PendingLetter {
+            SenderId = hero.StringId,
+            SenderName = npcName,
+            Reason = LetterReason.RomanticCorrespondence,
+            Content = $"(test) The season turns and still I wait for word of your return. Write soon. - {npcName}",
+            SentOnDay = today - 20,
+            DeliveryDay = today - 17,
+            DeliveredOnDay = today - 17,
+            IsDelivered = true
+         });
+
+         profile.ReceivedPlayerLetters.Add(new PlayerLetter {
+            RecipientId = profile.Id,
+            RecipientName = profile.Name,
+            Content = "(test) A short line to say the campaign keeps me late, but I will come to you once it ends.",
+            SentOnDay = today - 5,
+            DeliveryDay = today - 2,
+            IsDelivered = true,
+            HasBeenRead = true
+         });
+
+         return 4;
+      }
+
+      /// <summary>
       ///   cr.letter_where [name]
       ///   Whereabouts grounding test (player-reported bug: a correspondent kept writing as if still in a
       ///   town both parties had left). Plants a memory placing the last meeting in a DIFFERENT settlement
