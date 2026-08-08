@@ -105,6 +105,18 @@ namespace CalradiaRemembers.WorldEvents
          => _events.Where(e => e.InvolvesPlayer).OrderBy(e => e.Day).ToList();
 
       /// <summary>
+      ///   The most recently recorded event of <paramref name="type" /> whose subject matches
+      ///   <paramref name="match" />, or null when none exists. Lets a feeder ask the PERSISTED store "did we
+      ///   already record this same standing condition, and how long ago?" so its dedup survives save/reload for
+      ///   free (the store persists), without a separate serialized cooldown ledger. Used by the weekly
+      ///   world-conditions feeder to gate WarLooming / Hardship re-records.
+      /// </summary>
+      public WorldEvent MostRecentMatching(WorldEventType type, Func<WorldEvent, bool> match)
+         => match == null
+            ? null
+            : _events.Where(e => e.Type == type && match(e)).OrderByDescending(e => e.Day).FirstOrDefault();
+
+      /// <summary>
       ///   Recent events worth a roving agent's report — the freshest happenings at/above a magnitude,
       ///   regardless of who would passively know them. A companion sent to GATHER news digs past the
       ///   player's own horizon, so this is NOT awareness-gated (unlike <see cref="GetKnownEvents" />).

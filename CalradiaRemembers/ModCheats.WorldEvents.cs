@@ -275,6 +275,24 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.worldcond
+      ///   Force-runs the weekly world-conditions scan immediately (war looming between kingdoms, town hardship)
+      ///   and reports how many events each condition recorded. The same scan runs on its own weekly cadence.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("worldcond", "cr")]
+      public static string ScanWorldConditions(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         IReadOnlyList<WorldConditionsFeeder.ConditionScanResult> results = behavior.WorldConditions.RunScan();
+
+         string report = string.Join(", ", results.Select(r => $"{r.Recorded} {r.Label}"));
+
+         return $"World-conditions scan complete: recorded {report}.";
+      }
+
+      /// <summary>
       ///   cr.chronicle
       ///   Renders the player's chronicle (their recorded deeds, in chronicler voice) to the console
       ///   and writes it to CalradiaRemembers_chronicle.log. Phase-1 test path for the world-event

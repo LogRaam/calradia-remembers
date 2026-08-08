@@ -34,7 +34,21 @@ namespace CalradiaRemembers.WorldEvents
       ///   A hidden birth come to light — a bastard scandal that dents the player's name and spreads as
       ///   gossip. Added last to preserve the serialized ordinals of existing saves.
       /// </summary>
-      Scandal
+      Scandal,
+
+      /// <summary>
+      ///   A standing world condition (no vanilla event of its own): two kingdoms not yet at war but tense
+      ///   enough that war seems near. Recorded by the weekly world-conditions feeder. Added last to preserve
+      ///   the serialized ordinals of existing saves.
+      /// </summary>
+      WarLooming,
+
+      /// <summary>
+      ///   A standing world condition (no vanilla event of its own): a town in real economic distress (a food
+      ///   shortage and/or collapsing prosperity). Recorded by the weekly world-conditions feeder. Added last
+      ///   to preserve the serialized ordinals of existing saves.
+      /// </summary>
+      Hardship
    }
 
    /// <summary>

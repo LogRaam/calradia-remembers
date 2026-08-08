@@ -78,6 +78,11 @@ namespace CalradiaRemembers.Behaviors
       // (battles, sieges, marriages, executions, wars) into the WorldEventStore (v1.2).
       public readonly WorldEventFeeders WorldFeeders = new();
 
+      // ONE WorldConditionsFeeder, owned by the behavior. On a weekly cadence, scans for standing world
+      // conditions with no vanilla event of their own (war looming, town hardship) and records them into the
+      // same WorldEventStore pipeline, so they surface as rumour / "what you've heard" / chronicle uniformly.
+      public readonly WorldConditionsFeeder WorldConditions = new();
+
       public NpcMemoryCampaignBehavior()
       {
          Instance = this;
@@ -297,6 +302,7 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.QuestTracker.ReconcileHeldTargetsOnLoad", QuestTracker.ReconcileHeldTargetsOnLoad);
          SafeRun.Step("OnSessionLaunched.LetterEvaluator.Subscribe", LetterEvaluator.Subscribe);
          SafeRun.Step("OnSessionLaunched.WorldFeeders.Subscribe", WorldFeeders.Subscribe);
+         SafeRun.Step("OnSessionLaunched.WorldConditions.Subscribe", WorldConditions.Subscribe);
          SafeRun.Step("OnSessionLaunched.TaverneLetterBehavior.Register", () => new TaverneLetterBehavior().Register(campaignGameStarter));
          SafeRun.Step("OnSessionLaunched.CommonsDialogBehavior.Register", () => new CommonsDialogBehavior().Register(campaignGameStarter));
          SafeRun.Step("OnSessionLaunched.CourierService.RebuildActiveCourierSet", () => CourierService.RebuildActiveCourierSet(Store));
