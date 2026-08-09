@@ -205,6 +205,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_conviction", Severity.Light, "LLM: give an NPC a false, ruinous belief (your clan plots against him), then offer him free grain -> does he weigh the KINDNESS as a move in the game he thinks is afoot, instead of merely thanking you, and still keep the suspicion to himself? The proof that a conviction moves conduct and not just voice", TestChatConviction, true),
          new SelfTest("chat_bastard_mother", Severity.Light, "LLM: force a mercenary bastard-mother context -> does she raise/extort the child?", TestChatBastardMother, true),
          new SelfTest("chat_worldevent", Severity.Light, "LLM: Feed a fresh event -> ask for news -> does the NPC surface it?", TestChatWorldEvent, true),
+         new SelfTest("chat_regard_tone", Severity.Light, "LLM: a warm, approving message must NOT yield a negative change_relation (the 'responds positively but applies negative regard' player report)", TestRegardTone, true),
          new SelfTest("chat_recruit_companion", Severity.Light, "LLM: ask where to find a companion -> assert the gate fired + REAL wanderers gathered, judge the reply names one (never invents)", TestChatRecruitCompanion, true),
          new SelfTest("chat_rp_influence", Severity.Light, "LLM: eligible lord + a court-weight ask -> does he actually emit give_influence?", TestChatRpInfluence, true),
          new SelfTest("chat_rp_troops", Severity.Light, "LLM: eligible lord + a plea for soldiers -> does he actually emit lend_troops?", TestChatRpTroops, true),
@@ -2795,6 +2796,43 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Note($"fed the Pravend granary fire; judge in log: does {npc.Name} mention it (as hearsay)? | A: {Show(reply)}");
          t.Expect("gotNonEmptyReply", reply.Length > 0, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Player report: a character answers warmly yet emits a NEGATIVE change_relation, so a positive
+      ///   exchange lowers regard. The tone/delta consistency rule in the change_relation instruction
+      ///   (LlmServices.ChangeRelationDescription) forbids that. Sends a plainly warm, approving message and
+      ///   asserts the model does NOT emit a negative delta (no change_relation at all, or a non-negative one,
+      ///   both pass). Model-dependent (an LLM lane test), so it is a smoke check, not a proof.
+      /// </summary>
+      private static string TestRegardTone(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("chat_regard_tone");
+
+         if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC to converse with")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         const string warm = "I want you to know how deeply I admire your courage and your honour. You have been a true " +
+                             "friend to me, and it is a genuine pleasure to stand at your side.";
+         EncounterContext ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, warm);
+
+         var (ok, resp, err) = AskLlmParsed(behavior, "chat_regard_tone", npc, profile, ctx, warm);
+
+         if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+         GameAction cr = resp.Actions?.FirstOrDefault(a => string.Equals(a.Type, "change_relation", StringComparison.OrdinalIgnoreCase));
+         var delta = 0;
+         bool hasDelta = cr?.Parameters != null && cr.Parameters.TryGetValue("delta", out string ds) && int.TryParse(ds, out delta);
+
+         t.Note($"warm approving message to {npc.Name}: change_relation={(cr == null ? "none" : hasDelta ? delta.ToString("+#;-#;0") : "no delta")}");
+         // The bug is a warm reply paired with a NEGATIVE delta. Neutral (no action) or a positive delta both pass.
+         t.Expect("noNegativeRegardOnWarmExchange", !hasDelta || delta >= 0, true);
 
          return t.Line();
       }

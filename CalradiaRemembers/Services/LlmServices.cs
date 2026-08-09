@@ -347,7 +347,10 @@ namespace CalradiaRemembers.Services
             "Do NOT stay neutral when the player is disrespectful, vulgar, or presses an advance you have already refused — your regard must fall. ";
 
          const string closing =
-            "The game enforces pacing and limits, so state what you feel honestly and let it decide what lands.";
+            "CONSISTENCY: the sign of 'delta' must match the tone of your OWN reply this turn. If you answer the player " +
+            "warmly, with approval or affection, 'delta' is 0 or positive, never negative; make it negative ONLY when " +
+            "your reply itself is cold, hurt, angry, or displeased. A friendly reply paired with a negative delta is a " +
+            "contradiction. The game enforces pacing and limits, so state what you feel honestly and let it decide what lands.";
 
          return opening + positive + negative + closing;
       }
