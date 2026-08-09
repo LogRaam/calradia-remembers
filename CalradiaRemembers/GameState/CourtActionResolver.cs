@@ -1091,6 +1091,14 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
+      ///   True when this prisoner is currently held by the player's OWN clan, whether in a party or in a fief
+      ///   dungeon. Public so the RELATIONSHIPS block can tell a captive's kin, truthfully, that the person
+      ///   before them is the captor (a player report: an NPC denied a captivity the player had caused).
+      /// </summary>
+      public static bool IsHeldByPlayerClan(Hero prisoner)
+         => prisoner is {IsPrisoner: true} && Clan.PlayerClan != null && IsHeldByClan(prisoner, Clan.PlayerClan);
+
+      /// <summary>
       ///   Stamps a court action's cooldown clock in the STRUCTURED store (romance audit M-B6), the source of
       ///   truth memory compaction cannot rewrite. Every court-action verb calls this when it fires, alongside
       ///   the human-readable event it records. Safe to call with a null profile/marker (no-op).

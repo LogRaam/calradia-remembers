@@ -124,6 +124,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("recruit", Severity.Heavy, "eligible lord -> join_clan -> assert he moved into your clan", TestRecruit),
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
          new SelfTest("free_prisoner", Severity.Heavy, "capture -> free_prisoner -> assert released", TestFreePrisoner),
+         new SelfTest("captive_kin", Severity.Heavy, "capture an in-party enemy lord who has a living parent -> build that parent's RELATIONSHIPS -> assert the captured child is marked as held by the player (the 'you are a liar, my child is safe' denial bug), then release", TestCaptiveKinAwareness),
          new SelfTest("give_item", Severity.Light, "pick a player item -> give_item -> assert it left the inventory", TestGiveItem),
          new SelfTest("gift_equip", Severity.Light, "gift an equippable weapon to a companion/spouse -> assert they equipped it", TestGiftEquip),
          new SelfTest("style_reload", Severity.Light, "select a style, edit its file -> assert the next message picks the edit up", TestStyleReload),
@@ -3364,6 +3365,53 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Note($"{captive.Name}");
          t.Expect("freed", !captive.IsPrisoner, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   A player report (09/08/2026): the player held enemy lords prisoner, then met their parent, who
+      ///   called the player a liar ("my child is safe within our walls") because the RELATIONSHIPS block named
+      ///   the captured child with no captivity marker. Captures a real in-party lord who has a living parent,
+      ///   rebuilds that parent's block, and asserts the captured child now reads as held by the player.
+      ///   Releases the captive in cleanup so the sweep leaves no one caged.
+      /// </summary>
+      private static string TestCaptiveKinAwareness(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("captive_kin");
+
+         // A capturable in-party lord (see TestFreePrisoner's note on why off-map lords are unreliable) who
+         // ALSO has a living parent (not the player) to voice the denial: that parent is the NPC whose block
+         // must reveal the captivity.
+         Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != null && h.Clan?.Leader != h &&
+            ((h.Father is {IsAlive: true} && h.Father != Hero.MainHero) || (h.Mother is {IsAlive: true} && h.Mother != Hero.MainHero)));
+
+         if (t.Skip(captive == null, "no capturable in-party lord with a living parent to test")) return t.Line();
+
+         Hero parent = captive.Father is {IsAlive: true} && captive.Father != Hero.MainHero
+            ? captive.Father
+            : captive.Mother;
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, captive);
+         bool captured = captive.IsPrisoner && captive.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+
+         if (t.Abort(!captured, $"capture failed for {captive.Name}")) return t.Line();
+
+         try
+         {
+            string block = RelationshipsBuilder.Build(parent);
+            bool namesChild = block.IndexOf(captive.Name.ToString(), StringComparison.OrdinalIgnoreCase) >= 0;
+            bool marksHeld = block.IndexOf("hold prisoner", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            t.Note($"parent={parent.Name} lists captive={captive.Name}: names={namesChild}, markedHeld={marksHeld}");
+            t.Expect("parentNamesTheChild", namesChild, true);
+            t.Expect("childMarkedHeldByPlayer", marksHeld, true);
+         }
+         finally
+         {
+            behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "free_prisoner"}, captive, null);
+         }
 
          return t.Line();
       }

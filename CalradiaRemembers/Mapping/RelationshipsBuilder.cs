@@ -5,6 +5,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.GameState;
+using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
 
 #endregion
@@ -89,7 +91,7 @@ namespace CalradiaRemembers.Mapping
          // Spouse, with their own parentage so in-laws are known (tester: a wife did not realize
          // her husband was the ruler's eldest son, and invented his family).
          if (hero.Spouse is {IsAlive: true})
-            parts.Add($"Spouse: {hero.Spouse.Name}{DescribeParentage(hero.Spouse)}");
+            parts.Add($"Spouse: {hero.Spouse.Name}{DescribeParentage(hero.Spouse)}{CaptiveClause(hero.Spouse)}");
 
          // Parents are listed whether alive or dead, but a deceased one is marked as such —
          // otherwise the NPC reads "Father: X" and speaks of a dead parent as living,
@@ -163,15 +165,27 @@ namespace CalradiaRemembers.Mapping
             ? $"{child.Name} ({sex}, age {(int) child.Age}"
             : $"the late {child.Name} ({sex}";
 
+         string captive = CaptiveClause(child);
+
          if (other == null || other == npcHero.Spouse)
-            return baseName + ")";
+            return baseName + ")" + captive;
 
          string coParent = other.IsAlive
             ? other.Name.ToString()
             : $"the late {other.Name}";
 
-         return $"{baseName}, by {coParent})";
+         return $"{baseName}, by {coParent})" + captive;
       }
+
+      /// <summary>
+      ///   The captivity clause for a kinsman named in the block: empty when free, a plain "currently held
+      ///   prisoner" when captive elsewhere, and one naming the player as the captor when the player's own
+      ///   clan holds them, so an NPC can never truthfully deny a captivity the player caused.
+      /// </summary>
+      private static string CaptiveClause(Hero h)
+         => h == null
+            ? ""
+            : CaptiveKinDescriber.Marker(h.IsPrisoner, CourtActionResolver.IsHeldByPlayerClan(h));
 
       /// <summary>
       ///   How and how long ago a dead relative died — " (who fell in battle 6 days ago)".
@@ -234,14 +248,14 @@ namespace CalradiaRemembers.Mapping
             : "male";
 
          return h.IsAlive
-            ? $"{h.Name} ({sex}, age {(int) h.Age})"
+            ? $"{h.Name} ({sex}, age {(int) h.Age}){CaptiveClause(h)}"
             : $"the late {h.Name} ({sex})";
       }
 
       /// <summary>Names a relative, marking the deceased as "the late …" so the NPC speaks of them accurately.</summary>
       private static string FormatKin(Hero kin)
          => kin.IsAlive
-            ? $"{kin.Name} (age {(int) kin.Age})"
+            ? $"{kin.Name} (age {(int) kin.Age}){CaptiveClause(kin)}"
             : $"the late {kin.Name}{DescribeDeath(kin)}";
 
       #endregion
