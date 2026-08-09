@@ -95,6 +95,14 @@ namespace CalradiaRemembers
       public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
 
       /// <summary>
+      ///   Master switch for the whole jealousy system (the daily competition loop AND event-triggered
+      ///   reactions). Read live from the MCM menu; ON by default, and default-safe (treated as ON) when MCM
+      ///   has not loaded. When false, <see cref="Jealousy.JealousyBehavior" /> early-returns from its daily
+      ///   tick and its marriage hook, so no jealousy of any kind ever fires.
+      /// </summary>
+      public static bool EnableJealousy => CrSettings.Instance?.EnableJealousy ?? true;
+
+      /// <summary>
       ///   The player-chosen base folder for prompt/style overrides (MCM), or "" for the default ModuleData/Custom.
       ///   Read by <see cref="Mapping.NarrativeLoader.CustomBaseFolder" /> so a player can keep their edits outside
       ///   the module and survive an update that replaces it (player report v1.33.5).

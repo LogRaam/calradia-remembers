@@ -129,6 +129,13 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
       public bool EnableLogging { get; set; } = false;
 
+      [SettingPropertyBool("Enable Jealousy", RequireRestart = false, Order = 0,
+         HintText = "On (default): the world is richer, partners react to being favoured or slighted, a neglected " +
+                    "co-partner can feel wronged, and open-relationship pacts matter. Off: a drama-free household, " +
+                    "no jealousy of any kind, from any partner.")]
+      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      public bool EnableJealousy { get; set; } = true;
+
       public override string FolderName => "CalradiaRemembers";
       public override string FormatType => "json2";
       public override string Id => "CalradiaRemembers";

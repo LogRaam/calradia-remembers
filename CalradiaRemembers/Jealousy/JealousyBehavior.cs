@@ -154,6 +154,32 @@ namespace CalradiaRemembers.Jealousy
                 "(grudge + grievance memory + threat letter queued).";
       }
 
+      /// <summary>
+      ///   Test seam (cr.testall open_relationship): runs the competition SELECTION only, firing no reaction,
+      ///   and returns the StringId of the partner who would be chosen as aggrieved (null when none). Lets a
+      ///   self-test prove a neglected NON-open partner is chosen while an open-arrangement partner is excluded.
+      /// </summary>
+      public string DebugSelectAggrieved(int today) => SelectAggrieved(today)?.worst?.StringId;
+
+      /// <summary>Test seam (cr.testall): runs the REAL daily tick through its MCM gate, so the EnableJealousy toggle can be observed suppressing (OFF) or allowing (ON) every jealousy pass.</summary>
+      public void DebugRunDailyTick() => OnDailyTick();
+
+      /// <summary>Test seam (cr.testall): how many jealousy reactions are queued to fire, so the EnableJealousy gate self-test can watch one fire (ON) or stay pending (OFF).</summary>
+      public int DebugPendingCount => _state.Pending.Count;
+
+      /// <summary>Test seam (cr.testall): enqueue one due jealousy reaction against <paramref name="partyId" /> for the EnableJealousy gate self-test.</summary>
+      public void DebugEnqueuePending(string partyId, string courtedName, int reactDay)
+         => _state.Pending.Add(new PendingJealousy {
+            PartyId = partyId,
+            Stake = (int) JealousStake.PlayerPartner,
+            CourtedId = null,
+            CourtedName = courtedName ?? "another",
+            OtherId = null,
+            Tier = (int) RomanticActTier.Flirt,
+            ReactDay = reactDay,
+            WithLetter = false
+         });
+
       // ── Triggers ──────────────────────────────────────────────────────────
 
       /// <summary>
@@ -306,6 +332,19 @@ namespace CalradiaRemembers.Jealousy
          bool competition = stake == JealousStake.PlayerPartner && culture.ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0);
 
          NpcProfile profile = behavior.Store.Get(pj.PartyId) ?? HeroProfileMapper.FromHero(party);
+
+         // Open relationship (Inc 2): a partner who holds reciprocal open terms with the player is not jealous
+         // of the player's other loves. Suppress her OWN event-triggered reaction entirely (the competition
+         // path excludes her separately, both via the one pure OpenRelationshipPolicy check so they cannot
+         // drift). Only a player-partner stake carries such a bond; a third-party jealous party (courted's
+         // spouse, a rival, a spurned admirer) is unaffected.
+         if ((stake == JealousStake.PlayerPartner || stake == JealousStake.SecretLover)
+             && OpenRelationshipPolicy.SuppressesJealousy(profile.Romantic?.IsOpenArrangement ?? false))
+         {
+            ModLog.Info($"[JEALOUSY] {party.Name} holds open terms with the player, no jealousy ({stake}).");
+
+            return;
+         }
 
          // A wound of the heart, not clan politics — routed to this NPC's PERSONAL regard
          // (ReputationWithPlayer), not the vanilla clan-relation ledger.
@@ -509,58 +548,81 @@ namespace CalradiaRemembers.Jealousy
       {
          try
          {
-            var behavior = NpcMemoryCampaignBehavior.Instance;
+            (Hero worst, bool isSenior, int neglect)? pick = SelectAggrieved(today);
 
-            if (behavior?.Store == null) return;
+            if (pick == null) return;
 
-            Hero spouse = Hero.MainHero?.Spouse;
-            var partners = new List<Hero>();
-            if (spouse is {IsAlive: true}) partners.Add(spouse);
-            foreach (string id in behavior.Store.ListIds())
-            {
-               NpcProfile p = behavior.Store.Get(id);
-
-               if (p?.Romantic is not {IsConsort: true} || p.Romantic.Status != RomanticStatus.Committed) continue;
-               Hero h = Hero.FindFirst(x => x.StringId == id);
-               if (h is {IsAlive: true} && h != spouse) partners.Add(h);
-            }
-
-            if (partners.Count < 2) return; // no rivalry without a household of several
-
-            // Senior = the native spouse, else the highest-regarded consort.
-            Hero senior = spouse is {IsAlive: true}
-               ? spouse
-               : partners.OrderByDescending(h => h.GetRelationWithPlayer()).FirstOrDefault();
-
-            // Gather each partner's standing, then let the pure selector pick the single most-
-            // aggrieved sharing-culture partner with a real, relative slight (respecting cooldown).
-            var standings = new List<PartnerStanding>(partners.Count);
-            var byId = new Dictionary<string, Hero>(partners.Count);
-            foreach (Hero h in partners)
-            {
-               JealousyCulture c = JealousyCultureLoader.GetCulture(h.Culture?.Name?.ToString());
-               bool onCooldown = _state.CompetitionCooldown.TryGetValue(h.StringId, out int last) && today - last < CompetitionCooldownDays;
-               standings.Add(new PartnerStanding {
-                  PartnerId = h.StringId,
-                  ToleratesSharing = c.ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0),
-                  NeglectDays = NeglectDays(h, behavior, today),
-                  OnCooldown = onCooldown
-               });
-               byId[h.StringId] = h;
-            }
-
-            string worstId = CompetitionSelector.SelectAggrieved(standings);
-
-            if (worstId == null) return;
-
-            Hero worst = byId[worstId];
-            int worstNeglect = standings.First(s => s.PartnerId == worstId).NeglectDays;
-            FireCompetition(worst, ReferenceEquals(worst, senior), worstNeglect, today);
+            FireCompetition(pick.Value.worst, pick.Value.isSenior, pick.Value.neglect, today);
          }
          catch (Exception ex)
          {
             ModLog.Error($"[JEALOUSY] competition pass failed: {ex.GetType().Name}: {ex.Message}");
          }
+      }
+
+      /// <summary>
+      ///   The competition SELECTION, shared by the live daily pass (<see cref="EvaluateCompetition" />) and
+      ///   the test seam (<see cref="DebugSelectAggrieved" />) so the two cannot drift: gathers the household's
+      ///   standings, marks each open-arrangement partner (via the one pure
+      ///   <see cref="OpenRelationshipPolicy.SuppressesJealousy" /> check) so she is never chosen, then asks
+      ///   the pure <see cref="CompetitionSelector" /> for the single most-slighted partner. Returns null when
+      ///   there is no rivalry or no real slight. Fires nothing itself.
+      /// </summary>
+      private (Hero worst, bool isSenior, int neglect)? SelectAggrieved(int today)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (behavior?.Store == null) return null;
+
+         Hero spouse = Hero.MainHero?.Spouse;
+         var partners = new List<Hero>();
+         if (spouse is {IsAlive: true}) partners.Add(spouse);
+         foreach (string id in behavior.Store.ListIds())
+         {
+            NpcProfile p = behavior.Store.Get(id);
+
+            if (p?.Romantic is not {IsConsort: true} || p.Romantic.Status != RomanticStatus.Committed) continue;
+            Hero h = Hero.FindFirst(x => x.StringId == id);
+            if (h is {IsAlive: true} && h != spouse) partners.Add(h);
+         }
+
+         if (partners.Count < 2) return null; // no rivalry without a household of several
+
+         // Senior = the native spouse, else the highest-regarded consort.
+         Hero senior = spouse is {IsAlive: true}
+            ? spouse
+            : partners.OrderByDescending(h => h.GetRelationWithPlayer()).FirstOrDefault();
+
+         // Gather each partner's standing, then let the pure selector pick the single most-
+         // aggrieved sharing-culture partner with a real, relative slight (respecting cooldown).
+         var standings = new List<PartnerStanding>(partners.Count);
+         var byId = new Dictionary<string, Hero>(partners.Count);
+         foreach (Hero h in partners)
+         {
+            JealousyCulture c = JealousyCultureLoader.GetCulture(h.Culture?.Name?.ToString());
+            bool onCooldown = _state.CompetitionCooldown.TryGetValue(h.StringId, out int last) && today - last < CompetitionCooldownDays;
+            // Open relationship (Inc 2): an open partner still counts toward the household size and the
+            // most-attended baseline, but is flagged so CompetitionSelector never chooses her as aggrieved.
+            bool isOpen = OpenRelationshipPolicy.SuppressesJealousy(
+               behavior.Store.Get(h.StringId)?.Romantic?.IsOpenArrangement ?? false);
+            standings.Add(new PartnerStanding {
+               PartnerId = h.StringId,
+               ToleratesSharing = c.ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0),
+               NeglectDays = NeglectDays(h, behavior, today),
+               OnCooldown = onCooldown,
+               IsOpenArrangement = isOpen
+            });
+            byId[h.StringId] = h;
+         }
+
+         string worstId = CompetitionSelector.SelectAggrieved(standings);
+
+         if (worstId == null) return null;
+
+         Hero worst = byId[worstId];
+         int worstNeglect = standings.First(s => s.PartnerId == worstId).NeglectDays;
+
+         return (worst, ReferenceEquals(worst, senior), worstNeglect);
       }
 
       private void FireCompetition(Hero partner, bool isSenior, int neglect, int today)
@@ -621,6 +683,10 @@ namespace CalradiaRemembers.Jealousy
 
       private void OnBeforeHeroesMarried(Hero firstHero, Hero secondHero, bool showNotification)
       {
+         // Inc 1: the jealousy MCM toggle also gates the marriage hook, so an OFF household sees no wedding-day
+         // jealousy either. Default-safe: treated as ON when settings are unavailable.
+         if (!ModSettings.EnableJealousy) return;
+
          var player = Hero.MainHero;
 
          if (player == null) return;
@@ -634,6 +700,11 @@ namespace CalradiaRemembers.Jealousy
 
       private void OnDailyTick()
       {
+         // Inc 1: the whole jealousy system sits behind an MCM toggle. When it is OFF, NEITHER the competition
+         // loop NOR any event-triggered reaction runs (a drama-free household). Default-safe: treated as ON
+         // when settings are unavailable.
+         if (!ModSettings.EnableJealousy) return;
+
          var today = (int) CampaignTime.Now.ToDays;
          // Each pass runs behind its own guard: one throwing must not skip the others this tick.
          SafeRun.Step("JealousyBehavior.EvaluateAwareness", () => EvaluateAwareness(today)); // unwitnessed rumours that have now reached the jealous party

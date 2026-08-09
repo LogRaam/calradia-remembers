@@ -444,6 +444,7 @@ namespace CalradiaRemembers.Mapping
             SpouseMarriedUnwillingly = ResolveSpouseMarriedUnwillingly(hero),
             ConsortEligible = ResolveConsortEligible(hero, profile),
             SecretLoverEligible = ResolveSecretLoverEligible(hero, profile),
+            OpenRelationshipEligible = ResolveOpenRelationshipEligible(hero, profile),
             ConceptionRisk = ResolveConceptionRisk(hero),
             PowerBalanceNote = ResolvePowerBalanceNote(hero, profile),
             MarriageProspects = MarriageProspectResolver.Build(hero),
@@ -1180,6 +1181,25 @@ namespace CalradiaRemembers.Mapping
       ///   that a consort bond is conceivable. Available even if the player is already wed —
       ///   the consort path bypasses the native marriage engine entirely.
       /// </summary>
+      /// <summary>
+      ///   Open relationship (Inc 2): true only for a COMMITTED partner of the player (the player's own spouse,
+      ///   or a consort/committed bond) who is not ALREADY on open terms. Gates the prompt's open_relationship
+      ///   teaching so it is offered only where a real bond exists to open, never to a stranger or a mere
+      ///   flirtation. The bridge re-validates the same guard at execution (the prompt is advice, the bridge is
+      ///   law).
+      /// </summary>
+      private static bool ResolveOpenRelationshipEligible(Hero hero, NpcProfile profile)
+      {
+         if (hero == null || Hero.MainHero == null) return false;
+         if (profile?.Romantic == null) return false;
+         if (profile.Romantic.IsOpenArrangement) return false; // already open
+
+         bool isSpouse = hero == Hero.MainHero.Spouse;
+         bool isCommittedConsort = profile.Romantic.IsConsort || profile.Romantic.Status == RomanticStatus.Committed;
+
+         return isSpouse || isCommittedConsort;
+      }
+
       private static bool ResolveConsortEligible(Hero hero, NpcProfile profile)
       {
          if (hero == null || Hero.MainHero == null) return false;

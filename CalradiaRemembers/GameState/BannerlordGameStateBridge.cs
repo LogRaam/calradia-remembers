@@ -229,6 +229,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteTakeAsConsort(npcHero, context);
             case "take_as_secret_lover":
                return ExecuteTakeAsSecretLover(npcHero, context);
+            case "open_relationship":
+               return ExecuteOpenRelationship(npcHero, context);
             case "give_item":
                return ExecuteGiveItem(action, npcHero, context);
             case "give_prisoner":
@@ -3208,6 +3210,55 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] take_as_secret_lover failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   open_relationship (Inc 2): the player and this COMMITTED partner have openly and mutually agreed to
+      ///   reciprocal OPEN terms, each free to love another. Sets <c>IsOpenArrangement = true</c> on the
+      ///   partner's romantic profile and persists it, so the jealousy system no longer counts her among the
+      ///   aggrieved (see <see cref="Logic.OpenRelationshipPolicy" />). GUARD (the bridge is law): the target
+      ///   must be the player's spouse, or a committed consort (<c>IsConsort</c> / <c>Status == Committed</c>);
+      ///   anything less is refused, never a silent no-op. Mirrors <see cref="ExecuteTakeAsConsort" />'s
+      ///   commitment path (mod-tracked only, no engine marriage call), with a hard partner-only guard.
+      /// </summary>
+      private static ActionOutcome ExecuteOpenRelationship(Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null || context?.Profile == null) return null;
+
+            NpcProfile profile = context.Profile;
+
+            if (profile.Romantic == null)
+               return ActionOutcome.Refused($"({npcHero.Name} has no bond with you to open.)");
+
+            // The bridge is law: only a real committed partner (the player's own spouse, or a consort/committed
+            // bond) can hold OPEN terms. A mere flirtation or an intimate-but-uncommitted bond cannot.
+            bool isSpouse = npcHero == Hero.MainHero.Spouse;
+            bool isCommittedConsort = profile.Romantic.IsConsort || profile.Romantic.Status == RomanticStatus.Committed;
+
+            if (!isSpouse && !isCommittedConsort)
+               return ActionOutcome.Refused($"({npcHero.Name} is not a committed partner of yours, so there is no bond to open.)");
+
+            if (profile.Romantic.IsOpenArrangement)
+               return ActionOutcome.Refused($"(You and {npcHero.Name} already hold open terms.)");
+
+            profile.Romantic.IsOpenArrangement = true;
+            NpcMemoryCampaignBehavior.Instance?.Store?.Set(profile);
+
+            ModLog.Info($"[ACTION] open_relationship: {npcHero.Name} and the player now hold reciprocal open terms.");
+
+            var msg = $"You and {npcHero.Name} now hold open terms: each free to love another, and neither wronged by it.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] open_relationship failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

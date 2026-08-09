@@ -22,6 +22,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Items;
+using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
@@ -168,6 +169,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("player_divorce", Severity.Heavy, "marry the player (test spouse, happy) -> end_own_marriage -> assert dissolved + a Divorce grudge on the player; second test spouse (miserable) -> end_own_marriage -> assert dissolved + NO grudge", TestPlayerDivorce),
          new SelfTest("spouse_estrangement", Severity.Heavy, "marry the player (test spouse) -> force-escalate -> force deadline to today -> tick -> assert dissolved + spouse-side Divorce grudge + escalation cleared; second test spouse -> force-escalate -> raise relation above the reconciliation threshold -> tick -> assert marriage SURVIVES + escalation cleared", TestSpouseEstrangement),
          new SelfTest("grudge_backfill", Severity.Light, "seed a synthetic Jealousy NotableEvent -> force backfill -> assert a Jealousy grudge exists -> force it again -> assert no duplicate", TestGrudgeBackfill),
+         new SelfTest("open_relationship", Severity.Light, "open relationship (Inc 2): EnableJealousy=false gates the real daily tick so a queued reaction never fires (and ON fires it); then seed several committed consorts, run the REAL competition selection twice, and assert marking the naturally-aggrieved partner as IsOpenArrangement excludes her so a different NON-open partner is chosen instead. Restores all borrowed state", TestOpenRelationship),
          new SelfTest("grudge_tier2", Severity.Heavy, "capture+give_prisoner (real path) -> assert a DeliveredPrisoner grudge on the captive; direct severity-3 player-perpetrator CaptiveAbuse plant -> assert it exists", TestGrudgeTier2),
          new SelfTest("grudge_resolve", Severity.Light, "plant a FailedQuest grudge -> resolve w/ its matching gesture -> assert it moved; plant an ExecutedKin (vendetta) grudge -> assert an amends is Rejected; plant a DeliveredPrisoner (always Deed-kind) grudge -> resolve w/ the Deed gesture -> assert it moved", TestGrudgeResolve),
          new SelfTest("grudge_terms", Severity.Light, "plant a known grudge -> assert hint undiscovered -> grudge_terms reveal -> assert hint discovered -> reveal again -> assert nothing new", TestGrudgeTerms),
@@ -3615,6 +3617,135 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("jealousyGrudgeFormed", jealousyGrudgeExists, true);
          t.Expect("secondPassFormsNothingNew", formed2, 0);
          t.Expect("noDuplicateForThisEvent", countAfterBoth, 1);
+
+         return t.Line();
+      }
+
+      // ── Open relationship (Inc 2): the MCM jealousy gate + the competition open-exclusion, both on the ──
+      // ── REAL daily-tick / selection path no dotnet unit test can reach (they read the live store, the ──
+      // ── live culture data, and the MCM setting). The pure rules they call ARE unit-tested separately: ──
+      // ── OpenRelationshipPolicy + CompetitionSelector; this proves only the WIRING and the MCM gate. ─────
+
+      private static string TestOpenRelationship(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("open_relationship");
+
+         if (t.Abort(JealousyBehavior.Instance == null || behavior?.Store == null, "JealousyBehavior/store not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+
+         void Seed(Hero h, int attentionDay)
+         {
+            NpcProfile p = GetOrCreate(behavior, h);
+            ArrangeCleanNpc(behavior, p, h);
+            if (p.Romantic == null) p.Romantic = new RomanticProfile();
+            p.Romantic.IsConsort = true;
+            p.Romantic.Status = RomanticStatus.Committed;
+            p.Romantic.IsOpenArrangement = false;
+            p.Events.Add(new NotableEvent(attentionDay, NotableEventType.Collaboration, "[SELFTEST] attended"));
+            behavior.Store.Set(p);
+         }
+
+         void Restore(IEnumerable<Hero> heroes)
+         {
+            foreach (Hero h in heroes)
+            {
+               NpcProfile p = behavior.Store.Get(h.StringId);
+               if (p?.Romantic == null) continue;
+               p.Romantic.IsConsort = false;
+               p.Romantic.IsOpenArrangement = false;
+               p.Romantic.Status = RomanticStatus.None;
+               p.Events.Clear();
+               behavior.Store.Set(p);
+            }
+         }
+
+         // ── Part 1: the EnableJealousy MCM gate on the REAL daily tick ──
+         CrSettings settings = CrSettings.Instance;
+         if (t.Skip(settings == null, "MCM settings not loaded, cannot flip EnableJealousy")) return t.Line();
+
+         bool savedEnable = settings.EnableJealousy;
+         Hero gateNpc = ConversationNpc();
+         if (t.Skip(gateNpc == null, "no NPC to seed a pending reaction on")) return t.Line();
+
+         NpcProfile gateProfile = GetOrCreate(behavior, gateNpc);
+         ArrangeCleanNpc(behavior, gateProfile, gateNpc);
+
+         int JealousyEvents() => behavior.Store.Get(gateNpc.StringId)?.Events.Count(e => e.type == NotableEventType.Jealousy) ?? 0;
+         int jealousyBefore = JealousyEvents();
+
+         // OFF: a queued reaction must NOT fire (the whole daily tick early-returns).
+         settings.EnableJealousy = false;
+         JealousyBehavior.Instance.DebugEnqueuePending(gateNpc.StringId, "another love", today);
+         int pendingAfterEnqueue = JealousyBehavior.Instance.DebugPendingCount;
+         JealousyBehavior.Instance.DebugRunDailyTick();
+         int pendingWhileOff = JealousyBehavior.Instance.DebugPendingCount;
+         int jealousyWhileOff = JealousyEvents();
+
+         // ON: the same queued reaction now fires (pending consumed, a Jealousy memory recorded).
+         settings.EnableJealousy = true;
+         JealousyBehavior.Instance.DebugRunDailyTick();
+         int pendingWhileOn = JealousyBehavior.Instance.DebugPendingCount;
+         int jealousyWhileOn = JealousyEvents();
+
+         t.Note($"gate: pending {pendingAfterEnqueue}->OFF {pendingWhileOff}->ON {pendingWhileOn}; jealousy events {jealousyBefore}/OFF {jealousyWhileOff}/ON {jealousyWhileOn}");
+         t.Expect("offSuppressedPending", pendingWhileOff, pendingAfterEnqueue);
+         t.Expect("offRecordedNoJealousy", jealousyWhileOff, jealousyBefore);
+         t.Expect("onFiredThePending", pendingWhileOn, pendingAfterEnqueue - 1);
+         t.Expect("onRecordedAJealousy", jealousyWhileOn > jealousyBefore, true);
+
+         ArrangeCleanNpc(behavior, behavior.Store.Get(gateNpc.StringId) ?? gateProfile, gateNpc); // undo the gate seed
+
+         // ── Part 2: the competition open-exclusion on the REAL selection path ──
+         int playerTier = Hero.MainHero?.Clan?.Tier ?? 0;
+
+         bool Tolerant(Hero h) => JealousyCultureLoader.GetCulture(h.Culture?.Name?.ToString()).ToleratesSharedPartners(playerTier);
+
+         List<Hero> pool = Hero.AllAliveHeroes
+                               .Where(h => h != null && h != Hero.MainHero && h.IsAlive && h.IsLord && !h.IsPrisoner
+                                           && h != Hero.MainHero.Spouse && !PlayerPresenceResolver.IsBeside(h) && Tolerant(h))
+                               .Take(3).ToList();
+
+         if (t.Skip(pool.Count < 3, $"need 3 tolerant-culture lords away from the player (found {pool.Count}, playerTier={playerTier})")) return t.Line();
+
+         Hero favoured = pool[0]; // well attended: sets the most-attended baseline
+         Hero slighted = pool[1]; // neglected, non-open
+         Hero mostNeglected = pool[2]; // most neglected: naturally aggrieved, then marked open
+         var seeded = new List<Hero> {favoured, slighted, mostNeglected};
+
+         Seed(favoured, today - 2);
+         Seed(slighted, today - 25);
+         Seed(mostNeglected, today - 45);
+
+         // Run 1 (no open flags): the naturally most-slighted partner is chosen.
+         string selected1 = JealousyBehavior.Instance.DebugSelectAggrieved(today);
+
+         if (selected1 == null)
+         {
+            t.Note("Part 2 skipped: no aggrieved partner formed on the real path (culture/tier/presence did not cooperate)");
+            Restore(seeded);
+            settings.EnableJealousy = savedEnable;
+
+            return t.Line();
+         }
+
+         // Mark whoever was chosen as holding OPEN terms, then re-run: she must now be excluded, and a
+         // DIFFERENT, non-open partner chosen in her place (the reported no-jealousy pact, on the real path).
+         NpcProfile openProfile = behavior.Store.Get(selected1);
+         if (openProfile?.Romantic != null)
+         {
+            openProfile.Romantic.IsOpenArrangement = true;
+            behavior.Store.Set(openProfile);
+         }
+
+         string selected2 = JealousyBehavior.Instance.DebugSelectAggrieved(today);
+
+         t.Note($"run1 aggrieved={selected1}, after marking her open run2 aggrieved={selected2 ?? "none"}");
+         t.Expect("secondRunStillPicksSomeone", selected2 != null, true);
+         t.Expect("openPartnerExcluded", selected2 != selected1, true);
+
+         Restore(seeded);
+         settings.EnableJealousy = savedEnable;
 
          return t.Line();
       }

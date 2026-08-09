@@ -141,14 +141,50 @@ namespace CalradiaRemembers.Tests
          CompetitionSelector.SelectAggrieved(partners).Should().BeNull();
       }
 
+      // Open relationship (Inc 2), the core exclusion: a partner on reciprocal open terms must NEVER be the
+      // aggrieved party, even when she is the single most-neglected partner in the house. This is the reported
+      // no-jealousy pact honoured at the selection seam: without it, the open wife the player leaves longest
+      // would still fire competition jealousy she explicitly renounced.
+      [Test]
+      public void GIVEN_the_most_neglected_partner_is_open_WHEN_selecting_THEN_a_different_non_open_partner_is_chosen()
+      {
+         //Arrange: the open partner is the most neglected of all, yet accepts sharing; the next-most-neglected,
+         //non-open partner is the one who is really slighted.
+         var partners = new List<PartnerStanding> {
+            Standing("favoured", 0, false),
+            Standing("slighted", 25),
+            Standing("open_and_neglected", 40, open: true)
+         };
+
+         //Act/Assert: the open partner is skipped, and the non-open slighted one wins instead.
+         CompetitionSelector.SelectAggrieved(partners).Should().Be("slighted");
+      }
+
+      // The open partner must still COUNT toward the most-attended baseline she helps set (she is part of the
+      // household), only never be CHOSEN. Here she is the sole neglected partner; excluding her from selection
+      // leaves no one aggrieved, which is exactly the drama-free result an all-open household should give.
+      [Test]
+      public void GIVEN_the_only_neglected_partner_is_open_WHEN_selecting_THEN_no_one_competes()
+      {
+         //Arrange: the only partner past the floor is on open terms; the rest are well attended.
+         var partners = new List<PartnerStanding> {
+            Standing("favoured", 0, false),
+            Standing("open_and_neglected", 30, open: true)
+         };
+
+         //Act/Assert
+         CompetitionSelector.SelectAggrieved(partners).Should().BeNull("an open partner never competes for attention");
+      }
+
       #region private
 
-      private static PartnerStanding Standing(string id, int neglect, bool tolerates = true, bool onCooldown = false)
+      private static PartnerStanding Standing(string id, int neglect, bool tolerates = true, bool onCooldown = false, bool open = false)
          => new() {
             PartnerId = id,
             ToleratesSharing = tolerates,
             NeglectDays = neglect,
-            OnCooldown = onCooldown
+            OnCooldown = onCooldown,
+            IsOpenArrangement = open
          };
 
       #endregion

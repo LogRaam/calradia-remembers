@@ -12,6 +12,14 @@ namespace CalradiaRemembers.Logic
    /// <summary>One partner's standing as the competition pass sees it (engine-gathered, pure to reason over).</summary>
    public sealed class PartnerStanding
    {
+      /// <summary>
+      ///   True when this partner and the player hold reciprocal OPEN terms (an open couple). Such a partner
+      ///   still counts toward the household size and the most-attended baseline, but is never chosen as the
+      ///   aggrieved party: she accepts the player's other loves. Set from
+      ///   <c>OpenRelationshipPolicy.SuppressesJealousy</c> so the two jealousy paths share one rule.
+      /// </summary>
+      public bool IsOpenArrangement { get; set; }
+
       /// <summary>Days since the player last attended to this partner (0 = riding with the player).</summary>
       public int NeglectDays { get; set; }
 
@@ -55,6 +63,10 @@ namespace CalradiaRemembers.Logic
          foreach (PartnerStanding p in partners)
          {
             if (p is not {ToleratesSharing: true}) continue;
+            // Open relationship (Inc 2): a partner on reciprocal open terms is never the aggrieved party, even
+            // when she is the most neglected. She still shaped mostAttended above (she is part of the
+            // household), but she accepts the player's other loves, so she is skipped as a selection candidate.
+            if (p.IsOpenArrangement) continue;
             if (p.NeglectDays < NeglectThresholdDays) continue; // still being seen
             if (p.NeglectDays - mostAttended < InequityGapDays) continue; // everyone equally (un)attended — no slight
             if (p.OnCooldown) continue;
