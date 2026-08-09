@@ -3511,7 +3511,9 @@ namespace CalradiaRemembers.Diagnostics
       private static string TestStyleReload(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("style_reload");
-         const string probe = "__CrSelfTestStyle";
+         // No leading underscore: StyleCatalogPolicy.IsSelectableStyleFile treats a leading '_' as a draft and
+         // hides it from the picker (player report 2026-07-26), so an underscore probe is correctly unselectable.
+         const string probe = "CrSelfTestStyleProbe";
          string path = Styles.StyleCatalog.PathOf(probe);
          string restore = Styles.StyleService.ActiveName;
 
@@ -4687,10 +4689,12 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("pregnancy");
 
-         Hero mother = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsFemale && !h.IsPregnant && h.Age >= 18f && h.Age <= 45f);
+         // Pick a mother CR ACTUALLY accepts (PregnancyService.IsEligible), not merely one that looks fertile:
+         // a loose 'not IsPregnant + age' filter can land on a hero CR refuses silently (freshly given birth, or
+         // its own reflective already-pregnant read), which used to read as a false FAIL.
+         Hero mother = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && PregnancyService.IsEligible(h));
 
-         if (t.Skip(mother == null, "no fertile (18-45, not pregnant) female NPC")) return t.Line();
+         if (t.Skip(mother == null, "no CR-eligible (fertile, not already carrying, birth-enabled) female NPC")) return t.Line();
 
          // Assert on CR's own success signal (a non-null note = the reflective MakePregnant created
          // the pregnancy), NOT Hero.IsPregnant — a vanilla flag CR's reflective path may not flip.

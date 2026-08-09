@@ -388,7 +388,14 @@ namespace CalradiaRemembers.GameState
          return false;
       }
 
-      private static bool IsEligible(Hero mother)
+      /// <summary>
+      ///   Every gate a mother must clear before CR will conceive a child on her: female, alive, within the
+      ///   fertile age window, not already carrying (CR's own reflective check, which can differ from the vanilla
+      ///   <see cref="Hero.IsPregnant" /> flag), not fresh from a birth, and this campaign's Life/Death Cycle
+      ///   enabled so vanilla will actually deliver. Public so a caller (and the self-test) can pick a mother CR
+      ///   truly accepts rather than guessing at a looser subset and getting a silent refusal.
+      /// </summary>
+      public static bool IsEligible(Hero mother)
       {
          if (mother is not {IsFemale: true} || !mother.IsAlive) return false;
          if (mother.Age < MinFertileAge || mother.Age > MaxFertileAge) return false;
