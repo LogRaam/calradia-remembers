@@ -171,6 +171,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("grudge_backfill", Severity.Light, "seed a synthetic Jealousy NotableEvent -> force backfill -> assert a Jealousy grudge exists -> force it again -> assert no duplicate", TestGrudgeBackfill),
          new SelfTest("open_relationship", Severity.Light, "open relationship (Inc 2): EnableJealousy=false gates the real daily tick so a queued reaction never fires (and ON fires it); then seed several committed consorts, run the REAL competition selection twice, and assert marking the naturally-aggrieved partner as IsOpenArrangement excludes her so a different NON-open partner is chosen instead. Restores all borrowed state", TestOpenRelationship),
          new SelfTest("open_partner_lover", Severity.Light, "open relationship (Inc 3a): make a partner an open committed consort and force high neglect, then drive the REAL OpenPartnerLoverBehavior.DebugTakeLover selection and assert she now carries a TakenLoverId pointing at a plausible eligible hero (alive, not the player, unwed, outside the player's own household). MANUAL when the live world has no compatible candidate. Restores all borrowed state", TestOpenPartnerLover),
+         new SelfTest("harem_secret_lover", Severity.Light, "open relationship culture branch (Inc 3a): a neglected harem-culture wife (Aserai) with NO open arrangement takes a SECRET lover when EnableJealousy is ON (LoverIsSecret set, NO public rumour laid), takes none when the toggle is OFF, and an egalitarian wife with no pact never strays. MANUAL when the world has no harem lady or no compatible candidate. Restores all borrowed state incl. the MCM toggle", TestHaremSecretLover),
          new SelfTest("grudge_tier2", Severity.Heavy, "capture+give_prisoner (real path) -> assert a DeliveredPrisoner grudge on the captive; direct severity-3 player-perpetrator CaptiveAbuse plant -> assert it exists", TestGrudgeTier2),
          new SelfTest("grudge_resolve", Severity.Light, "plant a FailedQuest grudge -> resolve w/ its matching gesture -> assert it moved; plant an ExecutedKin (vendetta) grudge -> assert an amends is Rejected; plant a DeliveredPrisoner (always Deed-kind) grudge -> resolve w/ the Deed gesture -> assert it moved", TestGrudgeResolve),
          new SelfTest("grudge_terms", Severity.Light, "plant a known grudge -> assert hint undiscovered -> grudge_terms reveal -> assert hint discovered -> reveal again -> assert nothing new", TestGrudgeTerms),
@@ -3812,11 +3813,114 @@ namespace CalradiaRemembers.Diagnostics
          NpcProfile p = behavior.Store.Get(partner.StringId);
          if (p?.Romantic == null) return;
          p.Romantic.TakenLoverId = null;
+         p.Romantic.LoverIsSecret = false;
          p.Romantic.IsConsort = false;
          p.Romantic.IsOpenArrangement = false;
          p.Romantic.Status = RomanticStatus.None;
          p.Events.Clear();
          behavior.Store.Set(p);
+      }
+
+      // ── Culture branch (Inc 3a): a harem / patriarchal (submissive-wife) culture (Aserai) takes a SECRET ──
+      // ── lover, and may stray even WITHOUT an open arrangement when neglected, gated by the EnableJealousy ──
+      // ── toggle; an egalitarian partner stays faithful with no pact. The pure culture rule is unit-tested ──
+      // ── (OpenPartnerLoverPolicy.CanTakeLover / LoverIsSecret); this proves only the WIRING through the ──
+      // ── real DebugTakeLover: the right partner strays, the affair is marked secret, and NO public rumour ──
+      // ── is laid, while the toggle-off and egalitarian-no-pact cases produce no lover at all. ──────────────
+
+      private static string TestHaremSecretLover(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("harem_secret_lover");
+
+         if (t.Abort(OpenPartnerLover.OpenPartnerLoverBehavior.Instance == null || behavior?.Store == null, "OpenPartnerLoverBehavior/store not active")) return t.Line();
+
+         CrSettings settings = CrSettings.Instance;
+         if (t.Skip(settings == null, "MCM settings not loaded, cannot flip EnableJealousy")) return t.Line();
+
+         bool HaremCulture(Hero h) => JealousyCultureLoader.IsHaremCulture(h?.Culture?.Name?.ToString());
+
+         var today = (int) CampaignTime.Now.ToDays;
+
+         Hero harem = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h.IsAlive && h.IsLord
+                                                           && h.IsFemale && !h.IsChild && HaremCulture(h));
+
+         if (t.Skip(harem == null, "no live adult female lady of a harem culture (e.g. Aserai) to stand as the wife")) return t.Line();
+
+         bool savedEnable = settings.EnableJealousy;
+
+         void ArrangeNeglectedConsort(Hero partner)
+         {
+            NpcProfile p = GetOrCreate(behavior, partner);
+            ArrangeCleanNpc(behavior, p, partner);
+            if (p.Romantic == null) p.Romantic = new RomanticProfile();
+            p.Romantic.IsConsort = true;
+            p.Romantic.Status = RomanticStatus.Committed;
+            p.Romantic.IsOpenArrangement = false; // NO pact: this is the uninvited / cultural-submission path
+            p.Romantic.TakenLoverId = null;
+            p.Romantic.LoverIsSecret = false;
+            p.Events.Add(new NotableEvent(today - 45, NotableEventType.Collaboration, "[SELFTEST] attended long ago"));
+            behavior.Store.Set(p);
+         }
+
+         // ── Case (B) ON: a neglected harem wife with no pact takes a SECRET lover, and lays NO public rumour ──
+         ArrangeNeglectedConsort(harem);
+         settings.EnableJealousy = true;
+         int eventsBefore = WorldEventStore.Instance?.Count ?? 0;
+         Hero secretLover = OpenPartnerLover.OpenPartnerLoverBehavior.DebugTakeLover(harem);
+
+         if (t.Skip(secretLover == null, $"no plausible lover in the live world for {harem.Name} (needs an unwed, orientation-compatible, acquainted adult lord outside your household)"))
+         {
+            RestoreOpenPartner(behavior, harem);
+            settings.EnableJealousy = savedEnable;
+
+            return t.Line();
+         }
+
+         NpcProfile afterSecret = behavior.Store.Get(harem.StringId);
+         int eventsAfterSecret = WorldEventStore.Instance?.Count ?? 0;
+
+         t.Note($"harem={harem.Name} [{harem.Culture?.Name}] took secret lover={secretLover.Name}; world-events {eventsBefore}->{eventsAfterSecret}");
+         t.Expect("secretTakenLoverIdSet", afterSecret?.Romantic?.TakenLoverId, secretLover.StringId);
+         t.Expect("loverMarkedSecret", afterSecret?.Romantic?.LoverIsSecret, true);
+         t.Expect("secretAffairLaysNoPublicRumour", eventsAfterSecret, eventsBefore);
+
+         // ── Case OFF: the SAME wife with no pact stays faithful once the jealousy toggle is off ──
+         RestoreOpenPartner(behavior, harem);
+         ArrangeNeglectedConsort(harem);
+         settings.EnableJealousy = false;
+         Hero noneWhenOff = OpenPartnerLover.OpenPartnerLoverBehavior.DebugTakeLover(harem);
+         string takenWhenOff = behavior.Store.Get(harem.StringId)?.Romantic?.TakenLoverId;
+
+         t.Note($"toggle off: lover={(noneWhenOff?.Name?.ToString() ?? "none")} takenId={takenWhenOff ?? "null"}");
+         t.Expect("toggleOffTakesNoLover", noneWhenOff == null, true);
+         t.Expect("toggleOffLeavesNoTakenLoverId", string.IsNullOrEmpty(takenWhenOff), true);
+
+         // ── Egalitarian control: a non-harem wife with no pact never strays, toggle on or off ──
+         Hero egalitarian = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h != harem && h.IsAlive && h.IsLord
+                                                                 && h.IsFemale && !h.IsChild && !HaremCulture(h));
+
+         if (egalitarian != null)
+         {
+            ArrangeNeglectedConsort(egalitarian);
+            settings.EnableJealousy = true; // even with drama allowed, an egalitarian wife needs an open pact
+            Hero egalLover = OpenPartnerLover.OpenPartnerLoverBehavior.DebugTakeLover(egalitarian);
+            string egalTaken = behavior.Store.Get(egalitarian.StringId)?.Romantic?.TakenLoverId;
+
+            t.Note($"egalitarian={egalitarian.Name} [{egalitarian.Culture?.Name}] with no pact: lover={(egalLover?.Name?.ToString() ?? "none")}");
+            t.Expect("egalitarianNoPactTakesNoLover", egalLover == null, true);
+            t.Expect("egalitarianNoPactLeavesNoTakenLoverId", string.IsNullOrEmpty(egalTaken), true);
+
+            RestoreOpenPartner(behavior, egalitarian);
+         }
+         else
+         {
+            t.Note("egalitarian control skipped: no non-harem female lady available");
+         }
+
+         RestoreOpenPartner(behavior, harem);
+         settings.EnableJealousy = savedEnable;
+
+         return t.Line();
       }
 
       // ── Duel consequences: the applier is engine glue (renown, stance, attraction, world-event) that no ──

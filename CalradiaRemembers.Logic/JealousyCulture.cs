@@ -38,18 +38,20 @@ namespace CalradiaRemembers.Logic
                               JealousyHierarchy hierarchy,
                               bool equityExpectation,
                               int polygamyEliteTier,
-                              string promptHint)
+                              string promptHint,
+                              bool patriarchalHousehold)
       {
          Outrage = outrage;
          Hierarchy = hierarchy;
          EquityExpectation = equityExpectation;
          PolygamyEliteTier = polygamyEliteTier;
          PromptHint = promptHint ?? "";
+         PatriarchalHousehold = patriarchalHousehold;
       }
 
       /// <summary>The strictly-monogamous fallback used for any culture not present in the file.</summary>
       public static JealousyCulture Monogamous { get; } =
-         new(JealousyOutrage.High, JealousyHierarchy.Low, false, 99, "");
+         new(JealousyOutrage.High, JealousyHierarchy.Low, false, 99, "", false);
 
       /// <summary>True when the offence is UNEQUAL treatment of partners rather than rank itself (Aserai).</summary>
       public bool EquityExpectation { get; }
@@ -63,8 +65,25 @@ namespace CalradiaRemembers.Logic
       /// <summary>Minimum clan tier (0..6) at/above which sharing partners is culturally tolerated.</summary>
       public int PolygamyEliteTier { get; }
 
+      /// <summary>
+      ///   True for a PATRIARCHAL, harem-accepting culture whose wives are culturally submissive to their
+      ///   husbands (Aserai): a neglected wife may take a lover, but keeps it SECRET rather than open. Read
+      ///   through <see cref="IsHaremCulture" />. Defaults false, so any unlisted culture is egalitarian.
+      /// </summary>
+      public bool PatriarchalHousehold { get; }
+
       /// <summary>One-sentence cultural framing injected into the jealous party's reaction prompt.</summary>
       public string PromptHint { get; }
+
+      /// <summary>
+      ///   True when this is a HAREM culture: it accepts shared partners (a non-High exclusivity stance) AND is
+      ///   patriarchal with a submissive wife (<see cref="PatriarchalHousehold" />). A wife of such a culture
+      ///   hides her lover (a SECRET affair) and may stray even without an open arrangement when neglected; an
+      ///   egalitarian culture instead takes an OPEN lover, and only under a reciprocal open arrangement. This
+      ///   is culture-level (no clan tier): the elite-tier gate governs WHO shares partners, not whether the
+      ///   people are a harem culture at all.
+      /// </summary>
+      public bool IsHaremCulture => Outrage != JealousyOutrage.High && PatriarchalHousehold;
 
       /// <summary>
       ///   Builds a culture from the raw JSON values. Unrecognised or missing strings degrade to
@@ -75,13 +94,15 @@ namespace CalradiaRemembers.Logic
          int polygamyEliteTier,
          string hierarchySensitivity,
          bool equityExpectation,
-         string promptHint)
+         string promptHint,
+         bool patriarchalHousehold = false)
          => new(
             ParseOutrage(exclusivityOutrage),
             ParseHierarchy(hierarchySensitivity),
             equityExpectation,
             polygamyEliteTier,
-            promptHint);
+            promptHint,
+            patriarchalHousehold);
 
       /// <summary>
       ///   True when a partner of this culture, at <paramref name="clanTier" />, tolerates the

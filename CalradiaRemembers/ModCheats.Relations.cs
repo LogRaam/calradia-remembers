@@ -521,10 +521,12 @@ namespace CalradiaRemembers
 
       /// <summary>
       ///   cr.take_lover [name]
-      ///   Open relationship (Inc 3a) dev command: forces the named OPEN committed partner (or the conversation
-      ///   NPC) to take a lover of her own now, driving the REAL selection through the debug seam (bypassing only
-      ///   the weekly neglect roll) and reporting the chosen lover. Refuses when she is not an eligible open
-      ///   partner or no plausible candidate exists, never a silent no-op.
+      ///   Open relationship (Inc 3a) dev command: forces the named committed partner (or the conversation NPC)
+      ///   to take a lover of her own now, driving the REAL selection through the debug seam (bypassing only the
+      ///   weekly neglect roll) and reporting whether the taken lover is OPEN or SECRET. Her culture decides:
+      ///   an egalitarian partner needs open terms (use open_relationship first) and takes an OPEN lover; a
+      ///   harem / patriarchal culture (e.g. Aserai) takes a SECRET lover and may stray even without open terms
+      ///   (that uninvited path also needs the Jealousy MCM toggle on). Refuses, never a silent no-op.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("take_lover", "cr")]
       public static string ForceTakeLover(List<string> args)
@@ -537,20 +539,26 @@ namespace CalradiaRemembers
 
          NpcProfile profile = behavior.Store?.Get(partner.StringId);
 
-         if (profile?.Romantic is not {IsOpenArrangement: true})
-            return $"{partner.Name} does not hold open terms with you (use open_relationship first). No lover taken.";
+         if (profile?.Romantic == null)
+            return $"{partner.Name} has no romantic profile. No lover taken.";
          if (!string.IsNullOrEmpty(profile.Romantic.TakenLoverId))
          {
             Hero existing = Hero.FindFirst(h => h.StringId == profile.Romantic.TakenLoverId);
 
-            return $"{partner.Name} already has a lover: {existing?.Name?.ToString() ?? profile.Romantic.TakenLoverId}.";
+            return $"{partner.Name} already has a {(profile.Romantic.LoverIsSecret ? "secret" : "open")} lover: {existing?.Name?.ToString() ?? profile.Romantic.TakenLoverId}.";
          }
 
          Hero lover = OpenPartnerLover.OpenPartnerLoverBehavior.DebugTakeLover(partner);
 
-         return lover != null
-            ? $"{partner.Name} has taken {lover.Name} as her own lover (silent to the player this increment; TakenLoverId set + a faint rumour recorded)."
-            : $"{partner.Name}: no plausible lover found (needs an unwed, orientation-compatible, acquainted adult lord outside your household).";
+         if (lover == null)
+            return $"{partner.Name}: no lover taken. Either her culture bars it (an egalitarian partner needs open terms; a harem-culture affair without open terms needs the Jealousy toggle on) or no plausible candidate exists (needs an unwed, orientation-compatible, acquainted adult lord outside your household).";
+
+         NpcProfile after = behavior.Store?.Get(partner.StringId);
+         bool secret = after?.Romantic?.LoverIsSecret ?? false;
+
+         return secret
+            ? $"{partner.Name} has taken {lover.Name} as her SECRET lover (hidden from the player; TakenLoverId + LoverIsSecret set, NO public rumour laid). Silent this increment."
+            : $"{partner.Name} has taken {lover.Name} as her OPEN lover (TakenLoverId set + a faint public rumour recorded). Silent this increment.";
       }
 
       private static string SimulateGold(string type, List<string> args, string usage)

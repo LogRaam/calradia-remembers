@@ -50,6 +50,32 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
+        ///   Whether a committed partner is ELIGIBLE at all to take a lover this week, before the neglect roll.
+        ///   Her CULTURE decides: an egalitarian wife strays ONLY under a reciprocal open arrangement
+        ///   (<paramref name="hasOpenArrangement" />), never otherwise; a harem / patriarchal (submissive-wife)
+        ///   culture (<paramref name="isHaremCulture" />) may stray when neglected WHETHER OR NOT there is an
+        ///   arrangement, but the unsolicited-infidelity path (no arrangement) is gated by
+        ///   <paramref name="unsolicitedInfidelityAllowed" /> (the host's EnableJealousy toggle, so a drama-free
+        ///   household keeps wives faithful). The open-arrangement paths are never gated: the player opted into
+        ///   openness. The host still rolls <see cref="ShouldTakeLover" /> afterwards for the neglect chance.
+        /// </summary>
+        public static bool CanTakeLover(bool hasOpenArrangement, bool isHaremCulture, bool unsolicitedInfidelityAllowed)
+        {
+            if (hasOpenArrangement) return true;
+            return isHaremCulture && unsolicitedInfidelityAllowed;
+        }
+
+        /// <summary>
+        ///   Whether the lover this partner takes is SECRET (hidden from the player) rather than an OPEN,
+        ///   acknowledged one. A harem / patriarchal-culture wife (<paramref name="isHaremCulture" />) always
+        ///   hides her lover, even within an open arrangement (cultural submission); an egalitarian wife takes
+        ///   an OPEN lover under her reciprocal open arrangement. Drives RomanticProfile.LoverIsSecret on the
+        ///   mod side: a secret affair lays no public rumour and must be DISCOVERED later; an open lover keeps
+        ///   the faint public rumour.
+        /// </summary>
+        public static bool LoverIsSecret(bool isHaremCulture) => isHaremCulture;
+
+        /// <summary>
         ///   Whether an open partner takes a lover this week. Refuses unless she is an open committed partner with
         ///   no existing lover; then true when <paramref name="rollPercent" /> (0..99) falls under
         ///   <see cref="ChancePercent" /> for <paramref name="neglectDays" />. The host rolls the percent

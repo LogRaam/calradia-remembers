@@ -1,5 +1,5 @@
 {
-  "_comment": "Per-culture jealousy norms for Calradia Remembers. Entries live under 'cultures', keyed by culture DISPLAY NAME (same convention as cultural_traditions.json) so faction/conversion mods can add or override entries without touching code. Any culture absent from this file falls back to a strictly monogamous profile (High exclusivity, no shared partners) — the conservative default. Fields (all optional; omitted fields take the monogamous default): exclusivityOutrage = High|Medium|Low (how strongly a liaison elsewhere reads as betrayal); polygamyEliteTier = minimum clan tier 0..6 at/above which sharing partners is culturally tolerated (below it the culture behaves monogamously; use 0 for 'always tolerated', leave high/omit for monogamous); hierarchySensitivity = High|Medium|Low (how strongly senior-vs-secondary partner rank drives competition jealousy); equityExpectation = true when the offence is UNEQUAL treatment rather than rank itself; promptHint = one-sentence cultural framing injected into the jealous party's reaction.",
+  "_comment": "Per-culture jealousy norms for Calradia Remembers. Entries live under 'cultures', keyed by culture DISPLAY NAME (same convention as cultural_traditions.json) so faction/conversion mods can add or override entries without touching code. Any culture absent from this file falls back to a strictly monogamous profile (High exclusivity, no shared partners), the conservative default. Fields (all optional; omitted fields take the monogamous default): exclusivityOutrage = High|Medium|Low (how strongly a liaison elsewhere reads as betrayal); polygamyEliteTier = minimum clan tier 0..6 at/above which sharing partners is culturally tolerated (below it the culture behaves monogamously; use 0 for 'always tolerated', leave high/omit for monogamous); hierarchySensitivity = High|Medium|Low (how strongly senior-vs-secondary partner rank drives competition jealousy); equityExpectation = true when the offence is UNEQUAL treatment rather than rank itself; patriarchalHousehold = true for a harem-accepting, patriarchal culture whose wives are culturally submissive (Aserai), so a neglected wife takes a SECRET lover (and may stray even without an open arrangement) instead of an open one (defaults false = egalitarian; combined with a non-High exclusivityOutrage it marks a 'harem culture'); promptHint = one-sentence cultural framing injected into the jealous party's reaction.",
 
   "cultures": {
     "Vlandia": {
@@ -36,6 +36,7 @@
       "polygamyEliteTier": 1,
       "hierarchySensitivity": "Medium",
       "equityExpectation": true,
+      "patriarchalHousehold": true,
       "promptHint": "Your customs permit several wives, but each must be treated with equal honour; the wound is in being slighted or neglected, not in being one of several."
     },
 

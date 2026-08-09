@@ -166,5 +166,64 @@ namespace CalradiaRemembers.Tests
                                       isThePlayer: false, isSameClanAsPlayerHousehold: false)
                                   .Should().BeFalse("she takes a lover she is actually drawn to");
         }
+
+        // ── Culture branch (Inc 3a): WHO may stray, and whether her lover is open or secret ─────────────────
+
+        // An egalitarian wife with NO open pact stays faithful: her culture does not accept a wife straying
+        // uninvited, so the ONLY way she takes a lover is a reciprocal open arrangement the player granted.
+        // If this leaked, a monogamous-culture wife would start an affair the player never consented to, the
+        // exact non-consensual mechanic the design keeps out (she would instead negotiate openness in chat).
+        [Test]
+        public void GIVEN_an_egalitarian_partner_with_no_open_arrangement_WHEN_asked_THEN_she_may_not_take_a_lover()
+        {
+            OpenPartnerLoverPolicy.CanTakeLover(hasOpenArrangement: false, isHaremCulture: false, unsolicitedInfidelityAllowed: true)
+                                  .Should().BeFalse("an egalitarian wife strays only under an open arrangement, never uninvited");
+        }
+
+        // An egalitarian wife WITH an open pact may take a lover, and that lover is OPEN (known), never secret:
+        // the pact is mutual, so she has nothing to hide. Pins that the egalitarian branch keeps Inc 3a's
+        // original visible-lover behaviour (a faint public rumour, later surfaced as an already-known lover).
+        [Test]
+        public void GIVEN_an_egalitarian_partner_with_an_open_arrangement_WHEN_asked_THEN_she_may_take_an_open_lover()
+        {
+            OpenPartnerLoverPolicy.CanTakeLover(hasOpenArrangement: true, isHaremCulture: false, unsolicitedInfidelityAllowed: false)
+                                  .Should().BeTrue("an open arrangement lets either culture take a lover, and it is not gated by the jealousy toggle");
+            OpenPartnerLoverPolicy.LoverIsSecret(isHaremCulture: false)
+                                  .Should().BeFalse("an egalitarian wife under an open pact takes an OPEN lover, nothing to hide");
+        }
+
+        // A harem-culture wife WITHIN an open arrangement may take a lover, but it is SECRET despite the
+        // openness: cultural submission means she hides it from her husband. Pins case (A) of the design, and
+        // that the open-arrangement path is not gated by the jealousy toggle (the player opted into openness).
+        [Test]
+        public void GIVEN_a_harem_partner_with_an_open_arrangement_WHEN_asked_THEN_she_takes_a_secret_lover()
+        {
+            OpenPartnerLoverPolicy.CanTakeLover(hasOpenArrangement: true, isHaremCulture: true, unsolicitedInfidelityAllowed: false)
+                                  .Should().BeTrue("the open arrangement makes her eligible regardless of the jealousy toggle");
+            OpenPartnerLoverPolicy.LoverIsSecret(isHaremCulture: true)
+                                  .Should().BeTrue("a harem/patriarchal wife hides her lover even within an open pact");
+        }
+
+        // A harem-culture wife with NO open pact, neglected, DOES stray when the jealousy toggle is on, and her
+        // affair is SECRET: case (B), the unsolicited-infidelity path. This is the one path the design gates by
+        // EnableJealousy; here it is ON, so a neglected harem wife may take a hidden lover the player never sanctioned.
+        [Test]
+        public void GIVEN_a_harem_partner_with_no_pact_and_the_toggle_on_WHEN_asked_THEN_she_takes_a_secret_affair()
+        {
+            OpenPartnerLoverPolicy.CanTakeLover(hasOpenArrangement: false, isHaremCulture: true, unsolicitedInfidelityAllowed: true)
+                                  .Should().BeTrue("a neglected harem wife strays even without a pact when the jealousy toggle allows drama");
+            OpenPartnerLoverPolicy.LoverIsSecret(isHaremCulture: true)
+                                  .Should().BeTrue("an uninvited harem affair is hidden, never an open lover");
+        }
+
+        // The safety gate: the SAME harem wife with no pact stays faithful when the jealousy toggle is OFF. A
+        // player who turned jealousy off asked for a drama-free household, so no wife starts an unsolicited
+        // affair; only the open-arrangement paths (which the player granted) survive the toggle being off.
+        [Test]
+        public void GIVEN_a_harem_partner_with_no_pact_and_the_toggle_off_WHEN_asked_THEN_she_stays_faithful()
+        {
+            OpenPartnerLoverPolicy.CanTakeLover(hasOpenArrangement: false, isHaremCulture: true, unsolicitedInfidelityAllowed: false)
+                                  .Should().BeFalse("jealousy off means a drama-free household: no unsolicited infidelity");
+        }
     }
 }

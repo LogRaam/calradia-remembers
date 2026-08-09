@@ -45,8 +45,18 @@ namespace CalradiaRemembers.Jealousy
       [JsonProperty("promptHint")]
       public string PromptHint { get; set; } = "";
 
+      /// <summary>
+      ///   True for a PATRIARCHAL, harem-accepting culture whose wives are culturally submissive to their
+      ///   husbands (Aserai is the archetype). Combined with a permissive exclusivity stance it marks a
+      ///   "harem culture": a neglected wife may take a lover, but she keeps it SECRET rather than declaring
+      ///   an open one. Optional; defaults false (an egalitarian culture), so old configs and any culture
+      ///   absent from the file stay save-safe and behave egalitarian.
+      /// </summary>
+      [JsonProperty("patriarchalHousehold")]
+      public bool PatriarchalHousehold { get; set; }
+
       /// <summary>Parses this DTO into the pure, testable culture value object.</summary>
       public JealousyCulture ToCulture()
-         => JealousyCulture.FromRaw(ExclusivityOutrage, PolygamyEliteTier, HierarchySensitivity, EquityExpectation, PromptHint);
+         => JealousyCulture.FromRaw(ExclusivityOutrage, PolygamyEliteTier, HierarchySensitivity, EquityExpectation, PromptHint, PatriarchalHousehold);
    }
 }

@@ -69,6 +69,14 @@ namespace CalradiaRemembers.Jealousy
         /// <summary>The parsed, testable culture for <paramref name="cultureName" /> (monogamous when unknown).</summary>
         public static JealousyCulture GetCulture(string cultureName) => Get(cultureName).ToCulture();
 
+        /// <summary>
+        ///   True when <paramref name="cultureName" /> is a HAREM culture (harem-accepting AND patriarchal with a
+        ///   submissive wife, e.g. Aserai): a neglected wife may take a SECRET lover even without an open pact.
+        ///   Any unknown or unlisted culture resolves to the egalitarian monogamous fallback (false), so faction
+        ///   mods keep control via the JSON without a code change.
+        /// </summary>
+        public static bool IsHaremCulture(string cultureName) => GetCulture(cultureName).IsHaremCulture;
+
         /// <summary>Wrapper matching the on-disk shape: a doc <c>_comment</c> plus the keyed profiles.</summary>
         private sealed class JealousyCultureFile
         {
