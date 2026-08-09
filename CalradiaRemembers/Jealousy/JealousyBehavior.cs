@@ -161,6 +161,21 @@ namespace CalradiaRemembers.Jealousy
       /// </summary>
       public string DebugSelectAggrieved(int today) => SelectAggrieved(today)?.worst?.StringId;
 
+      /// <summary>
+      ///   Public seam over the competition loop's OWN neglect measure (days since <paramref name="h" /> was
+      ///   last genuinely attended; 0 for a partner riding with the player or held captive). Exposed so the
+      ///   open-partner autonomy (Inc 3a) reads the SAME notion of neglect the jealousy competition uses,
+      ///   rather than forking a second, drifting formula. Returns 0 when the store is unavailable.
+      /// </summary>
+      public static int NeglectDaysFor(Hero h, int today)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         return h == null || behavior?.Store == null
+            ? 0
+            : NeglectDays(h, behavior, today);
+      }
+
       /// <summary>Test seam (cr.testall): runs the REAL daily tick through its MCM gate, so the EnableJealousy toggle can be observed suppressing (OFF) or allowing (ON) every jealousy pass.</summary>
       public void DebugRunDailyTick() => OnDailyTick();
 

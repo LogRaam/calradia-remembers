@@ -170,6 +170,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("spouse_estrangement", Severity.Heavy, "marry the player (test spouse) -> force-escalate -> force deadline to today -> tick -> assert dissolved + spouse-side Divorce grudge + escalation cleared; second test spouse -> force-escalate -> raise relation above the reconciliation threshold -> tick -> assert marriage SURVIVES + escalation cleared", TestSpouseEstrangement),
          new SelfTest("grudge_backfill", Severity.Light, "seed a synthetic Jealousy NotableEvent -> force backfill -> assert a Jealousy grudge exists -> force it again -> assert no duplicate", TestGrudgeBackfill),
          new SelfTest("open_relationship", Severity.Light, "open relationship (Inc 2): EnableJealousy=false gates the real daily tick so a queued reaction never fires (and ON fires it); then seed several committed consorts, run the REAL competition selection twice, and assert marking the naturally-aggrieved partner as IsOpenArrangement excludes her so a different NON-open partner is chosen instead. Restores all borrowed state", TestOpenRelationship),
+         new SelfTest("open_partner_lover", Severity.Light, "open relationship (Inc 3a): make a partner an open committed consort and force high neglect, then drive the REAL OpenPartnerLoverBehavior.DebugTakeLover selection and assert she now carries a TakenLoverId pointing at a plausible eligible hero (alive, not the player, unwed, outside the player's own household). MANUAL when the live world has no compatible candidate. Restores all borrowed state", TestOpenPartnerLover),
          new SelfTest("grudge_tier2", Severity.Heavy, "capture+give_prisoner (real path) -> assert a DeliveredPrisoner grudge on the captive; direct severity-3 player-perpetrator CaptiveAbuse plant -> assert it exists", TestGrudgeTier2),
          new SelfTest("grudge_resolve", Severity.Light, "plant a FailedQuest grudge -> resolve w/ its matching gesture -> assert it moved; plant an ExecutedKin (vendetta) grudge -> assert an amends is Rejected; plant a DeliveredPrisoner (always Deed-kind) grudge -> resolve w/ the Deed gesture -> assert it moved", TestGrudgeResolve),
          new SelfTest("grudge_terms", Severity.Light, "plant a known grudge -> assert hint undiscovered -> grudge_terms reveal -> assert hint discovered -> reveal again -> assert nothing new", TestGrudgeTerms),
@@ -3748,6 +3749,74 @@ namespace CalradiaRemembers.Diagnostics
          settings.EnableJealousy = savedEnable;
 
          return t.Line();
+      }
+
+      // ── Open partner takes a lover (Inc 3a): the weekly autonomy is engine glue (it walks the live store, ──
+      // ── reads the jealousy loop's neglect measure, scans Hero.AllAliveHeroes for a compatible match) that ──
+      // ── no dotnet unit test can reach. The pure rules it calls ARE unit-tested (OpenPartnerLoverPolicy); ──
+      // ── this proves only the WIRING: an open committed partner ends up with a real, plausible lover link. ──
+
+      private static string TestOpenPartnerLover(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("open_partner_lover");
+
+         if (t.Abort(OpenPartnerLover.OpenPartnerLoverBehavior.Instance == null || behavior?.Store == null, "OpenPartnerLoverBehavior/store not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Hero partner = ConversationNpc();
+
+         if (t.Skip(partner == null, "no NPC to stand as the open partner")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, partner);
+         ArrangeCleanNpc(behavior, profile, partner);
+         if (profile.Romantic == null) profile.Romantic = new RomanticProfile();
+         profile.Romantic.IsConsort = true;
+         profile.Romantic.Status = RomanticStatus.Committed;
+         profile.Romantic.IsOpenArrangement = true;
+         profile.Romantic.TakenLoverId = null;
+         // Force high neglect: the last attention is long ago, so she is exactly the partner the autonomy is
+         // likeliest to move on. The debug seam bypasses the roll, but the neglect is real and reported.
+         profile.Events.Add(new NotableEvent(today - 45, NotableEventType.Collaboration, "[SELFTEST] attended long ago"));
+         behavior.Store.Set(profile);
+
+         int neglect = JealousyBehavior.NeglectDaysFor(partner, today);
+
+         // Drive the REAL selection + link (bypasses only the weekly roll).
+         Hero lover = OpenPartnerLover.OpenPartnerLoverBehavior.DebugTakeLover(partner);
+
+         if (t.Skip(lover == null, $"no plausible lover in the live world for {partner.Name} (needs an unwed, orientation-compatible, acquainted adult lord outside your household)"))
+         {
+            RestoreOpenPartner(behavior, partner);
+
+            return t.Line();
+         }
+
+         NpcProfile after = behavior.Store.Get(partner.StringId);
+         string takenId = after?.Romantic?.TakenLoverId;
+
+         t.Note($"partner={partner.Name} (neglect {neglect}d) took lover={lover.Name} [{takenId}]");
+         t.Expect("takenLoverIdSet", takenId, lover.StringId);
+         t.Expect("loverIsAlive", lover.IsAlive, true);
+         t.Expect("loverIsNotThePlayer", lover != Hero.MainHero, true);
+         t.Expect("loverIsUnwed", lover.Spouse == null, true);
+         t.Expect("loverOutsidePlayerHousehold", lover.Clan != Clan.PlayerClan, true);
+
+         RestoreOpenPartner(behavior, partner);
+
+         return t.Line();
+      }
+
+      /// <summary>Undoes the open-partner-lover self-test's borrowed state on the partner's profile.</summary>
+      private static void RestoreOpenPartner(NpcMemoryCampaignBehavior behavior, Hero partner)
+      {
+         NpcProfile p = behavior.Store.Get(partner.StringId);
+         if (p?.Romantic == null) return;
+         p.Romantic.TakenLoverId = null;
+         p.Romantic.IsConsort = false;
+         p.Romantic.IsOpenArrangement = false;
+         p.Romantic.Status = RomanticStatus.None;
+         p.Events.Clear();
+         behavior.Store.Set(p);
       }
 
       // ── Duel consequences: the applier is engine glue (renown, stance, attraction, world-event) that no ──

@@ -116,6 +116,13 @@ namespace CalradiaRemembers
          // Jealousy (Sprint 24): a romantic act can provoke a third party with a real stake.
          // Knowledge-gated, probabilistic, delayed; reactions are a grudge + optional threat letter.
          campaignStarter.AddBehavior(new JealousyBehavior());
+         // Open relationship (Inc 3a): the symmetry of the jealousy suppression. A partner who holds reciprocal
+         // open terms with the player autonomously takes a lover of her OWN over time, the likelier the more the
+         // player neglects her (reusing the jealousy loop's neglect measure). Silent this increment: it only
+         // forms the lover link (RomanticProfile.TakenLoverId) + a faint rumour for a later increment to surface.
+         // Registered after JealousyBehavior (it reads its public NeglectDaysFor seam); Instance is set in the
+         // constructor so load order is harmless. Not gated by the jealousy MCM toggle (it is her own agency).
+         campaignStarter.AddBehavior(new OpenPartnerLover.OpenPartnerLoverBehavior());
          // Rescue awareness: freeing a captive lord by force makes the lord, their family and a few close
          // friends grateful (memory + regard), and the captor may trace it back and hold a grudge. Registered
          // after GrudgeBehavior below? No: it reads GrudgeBehavior.Instance at runtime, so order is harmless.

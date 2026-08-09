@@ -519,6 +519,40 @@ namespace CalradiaRemembers
          return $"{hero.Name}: fired={fired}, StanceFavor letters {lettersBefore}->{lettersAfter}\n{latest ?? "(no letter queued)"}";
       }
 
+      /// <summary>
+      ///   cr.take_lover [name]
+      ///   Open relationship (Inc 3a) dev command: forces the named OPEN committed partner (or the conversation
+      ///   NPC) to take a lover of her own now, driving the REAL selection through the debug seam (bypassing only
+      ///   the weekly neglect roll) and reporting the chosen lover. Refuses when she is not an eligible open
+      ///   partner or no plausible candidate exists, never a silent no-op.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("take_lover", "cr")]
+      public static string ForceTakeLover(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero partner = ResolveHero(args);
+
+         if (partner == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = behavior.Store?.Get(partner.StringId);
+
+         if (profile?.Romantic is not {IsOpenArrangement: true})
+            return $"{partner.Name} does not hold open terms with you (use open_relationship first). No lover taken.";
+         if (!string.IsNullOrEmpty(profile.Romantic.TakenLoverId))
+         {
+            Hero existing = Hero.FindFirst(h => h.StringId == profile.Romantic.TakenLoverId);
+
+            return $"{partner.Name} already has a lover: {existing?.Name?.ToString() ?? profile.Romantic.TakenLoverId}.";
+         }
+
+         Hero lover = OpenPartnerLover.OpenPartnerLoverBehavior.DebugTakeLover(partner);
+
+         return lover != null
+            ? $"{partner.Name} has taken {lover.Name} as her own lover (silent to the player this increment; TakenLoverId set + a faint rumour recorded)."
+            : $"{partner.Name}: no plausible lover found (needs an unwed, orientation-compatible, acquainted adult lord outside your household).";
+      }
+
       private static string SimulateGold(string type, List<string> args, string usage)
       {
          if (args == null || args.Count == 0 || !int.TryParse(args[0], out int amount))
