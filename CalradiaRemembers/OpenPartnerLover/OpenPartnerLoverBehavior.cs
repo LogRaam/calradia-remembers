@@ -10,11 +10,14 @@ using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Social;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 
 #endregion
 
@@ -43,6 +46,17 @@ namespace CalradiaRemembers.OpenPartnerLover
       // to surface the affair; this increment only lays it down.
       private const int LiaisonRumorMagnitude = 18;
 
+      // A tryst nudges the wife-to-lover bond a little each time, never past a ceiling: enough to read as a
+      // warming attachment (and to seed the later pregnancy hook), never a runaway relation the tryst loop would
+      // pump to the maximum. The bump only applies while their relation is still below the cap.
+      private const int TrystRelationBump = 2;
+      private const int TrystRelationCap = 30;
+
+      // The discovered-affair scandal is chronicle material (it involves the player), so it carries far and is
+      // kept; the gentle open-lover beat is a quieter chronicle note. Both distinct from the faint Inc 3a rumour.
+      private const int AffairScandalMagnitude = 55;
+      private const int OpenLoverKnownMagnitude = 22;
+
       public static OpenPartnerLoverBehavior Instance;
 
       public OpenPartnerLoverBehavior()
@@ -68,6 +82,50 @@ namespace CalradiaRemembers.OpenPartnerLover
          if (profile?.Romantic == null) return null;
 
          return TakeLover(partner, profile, (int) CampaignTime.Now.ToDays, forced: true);
+      }
+
+      /// <summary>
+      ///   Test / console seam (cr.tryst, cr.testall): forces ONE tryst between <paramref name="partner" /> and
+      ///   her taken lover NOW, bypassing only the "player is away" gate and the weekly meeting roll (so a
+      ///   self-test need not stage the player's position or wait for a hit). Every other step is the production
+      ///   path: the bond bump, the counter, the private memory, and, for a SECRET affair, the discovery check.
+      ///   <paramref name="discoveryRoll" /> lets a test drive that check deterministically; -1 (the default)
+      ///   uses a live <see cref="MBRandom" /> roll like production. Returns null when she has no lover to meet.
+      /// </summary>
+      public static NpcProfile DebugTryst(Hero partner, int discoveryRoll = -1)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (partner == null || behavior?.Store == null) return null;
+
+         NpcProfile profile = behavior.Store.Get(partner.StringId);
+
+         if (profile?.Romantic == null || string.IsNullOrEmpty(profile.Romantic.TakenLoverId)) return null;
+
+         DoTryst(partner, profile, (int) CampaignTime.Now.ToDays, discoveryRoll);
+
+         return behavior.Store.Get(partner.StringId);
+      }
+
+      /// <summary>
+      ///   Test / console seam (cr.tryst, cr.testall): runs the OPEN-lover awareness step for
+      ///   <paramref name="partner" /> now (word of an openly held lover reaching the player), the same one the
+      ///   weekly pass runs. A no-op for a secret affair (which surfaces only on discovery) or one already known.
+      ///   Returns whether the player now knows of the lover.
+      /// </summary>
+      public static bool DebugSurfaceOpenLover(Hero partner)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (partner == null || behavior?.Store == null) return false;
+
+         NpcProfile profile = behavior.Store.Get(partner.StringId);
+
+         if (profile?.Romantic == null) return false;
+
+         MaybeSurfaceOpenLover(partner, profile, (int) CampaignTime.Now.ToDays);
+
+         return behavior.Store.Get(partner.StringId)?.Romantic?.LoverKnownToPlayer ?? false;
       }
 
       public override void RegisterEvents()
@@ -261,6 +319,192 @@ namespace CalradiaRemembers.OpenPartnerLover
          foreach ((Hero partner, NpcProfile profile) in EligibleCommittedPartners(behavior))
             // Each partner behind its own guard: one throwing must not skip the others this tick.
             SafeRun.Step("OpenPartnerLoverBehavior.TakeLover", () => TakeLover(partner, profile, today, forced: false));
+
+         // Second pass (Inc 3b-a): for every partner who ALREADY carries a lover, surface an open lover to the
+         // player once, and roll a tryst when the player is away (which may leak a secret affair over time).
+         foreach ((Hero partner, NpcProfile profile) in PartnersWithLover(behavior))
+            SafeRun.Step("OpenPartnerLoverBehavior.AwarenessAndTryst", () => AwarenessAndTryst(partner, profile, today));
+      }
+
+      /// <summary>
+      ///   The weekly per-partner Inc 3b-a step for a partner who already has a lover: first surface an OPEN
+      ///   lover to the player once (gently, she was free), then, when the player is NOT with her, roll the
+      ///   modest tryst chance and, on a hit, run the tryst (which may in turn expose a secret affair).
+      /// </summary>
+      private static void AwarenessAndTryst(Hero partner, NpcProfile profile, int today)
+      {
+         MaybeSurfaceOpenLover(partner, profile, today);
+
+         if (PlayerPresenceResolver.IsBeside(partner)) return; // she does not meet her lover while the player is with her
+
+         int roll = MBRandom.RandomInt(100);
+         if (TrystPolicy.ShouldMeet(hasLover: true, playerIsAway: true, rollPercent: roll))
+            DoTryst(partner, profile, today, discoveryRoll: MBRandom.RandomInt(100));
+      }
+
+      /// <summary>
+      ///   One tryst: the partner meets her taken lover while the player is away. Nudges the wife-to-lover bond
+      ///   a little (capped, never a runaway relation), increments the persisted tryst counter, and records a
+      ///   PRIVATE memory of the meeting. A secret tryst lays NO public rumour (it is secret); it instead runs
+      ///   the rising discovery check (<see cref="AffairDiscoveryPolicy" />) that may expose the affair to the
+      ///   player. <paramref name="discoveryRoll" /> of -1 uses a live roll; a test may pass a fixed value.
+      ///   This is the mechanical/narrative hook Inc 3c (pregnancy by the lover) will build on; not a scene.
+      /// </summary>
+      private static void DoTryst(Hero partner, NpcProfile profile, int today, int discoveryRoll)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (partner == null || profile?.Romantic == null || behavior?.Store == null) return;
+         if (string.IsNullOrEmpty(profile.Romantic.TakenLoverId)) return;
+
+         Hero lover = ResolveLover(profile);
+
+         // Warm the bond a little, but only while it is still below the ceiling (a tryst deepens attachment; it
+         // does not pump the relation to the maximum over time). Guarded: a relation read must never crash the tick.
+         if (lover != null && lover.IsAlive && partner.GetRelation(lover) < TrystRelationCap)
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(partner, lover, TrystRelationBump, false);
+
+         profile.Romantic.LoverTrystCount++;
+
+         bool secret = profile.Romantic.LoverIsSecret;
+         string loverName = lover?.Name?.ToString() ?? "her lover";
+         profile.Events.Add(new NotableEvent(today, NotableEventType.Other, secret
+            ? $"I stole away to be with {loverName} again while my husband was far off, and told no one."
+            : $"I spent quiet hours with {loverName} while the player was away, as our open terms allow."));
+         behavior.Store.Set(profile);
+
+         ModLog.Info($"[OPEN-LOVER] {partner.Name} met {loverName} (tryst #{profile.Romantic.LoverTrystCount}, {(secret ? "secret" : "open")}).");
+
+         // A secret affair may LEAK, the likelier the more trysts it has seen. An open lover is never discovered
+         // (he is already, or about to be, known). The scandal fires once (gated on LoverKnownToPlayer).
+         int roll = discoveryRoll < 0 ? MBRandom.RandomInt(100) : discoveryRoll;
+         if (AffairDiscoveryPolicy.IsDiscovered(secret, profile.Romantic.LoverKnownToPlayer, profile.Romantic.LoverTrystCount, roll))
+            DiscoverSecretAffair(partner, profile, lover, today);
+      }
+
+      /// <summary>
+      ///   Surfaces a discovered SECRET affair to the player as a scandal beat: a notification, a chronicle
+      ///   world-event (it involves the player), and a private memory on the partner. Sets
+      ///   <see cref="RomanticProfile.LoverKnownToPlayer" /> and <see cref="RomanticProfile.AffairDiscovered" />
+      ///   so it fires once and Inc 3b-b's confrontation can gate on the discovery. No mechanical penalty and no
+      ///   standing hit this increment: a purely surfaced narrative beat.
+      /// </summary>
+      private static void DiscoverSecretAffair(Hero partner, NpcProfile profile, Hero lover, int today)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (behavior?.Store == null || profile?.Romantic == null) return;
+
+         profile.Romantic.LoverKnownToPlayer = true;
+         profile.Romantic.AffairDiscovered = true;
+         string loverName = lover?.Name?.ToString() ?? "another";
+         profile.Events.Add(new NotableEvent(today, NotableEventType.Betrayal,
+            $"My husband has learned of {loverName}. My secret is a secret no longer."));
+         behavior.Store.Set(profile);
+
+         InformationManager.DisplayMessage(new InformationMessage(
+            $"Word reaches you that {partner.Name} has been unfaithful, taking {loverName} as a secret lover.", Colors.Red));
+
+         RecordAffairChronicle(partner, lover, today, WorldEventType.Scandal, AffairScandalMagnitude,
+            $"It came to light that {partner.Name} had taken {lover?.Name?.ToString() ?? "another"} as a secret lover, betraying the player.");
+
+         ModLog.Info($"[OPEN-LOVER] the player DISCOVERED {partner.Name}'s secret affair with {loverName} (after {profile.Romantic.LoverTrystCount} trysts).");
+      }
+
+      /// <summary>
+      ///   Surfaces an OPEN lover to the player the first time it is known-worthy: a gentle notification and a
+      ///   quiet chronicle note that word has reached him she has grown close to another, with no scandal (she
+      ///   was free under their open terms). Sets <see cref="RomanticProfile.LoverKnownToPlayer" /> so it fires
+      ///   once, and never <see cref="RomanticProfile.AffairDiscovered" /> (an open lover is no betrayal). A
+      ///   no-op for a secret affair (surfaced only on discovery) or a lover already known.
+      /// </summary>
+      private static void MaybeSurfaceOpenLover(Hero partner, NpcProfile profile, int today)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (behavior?.Store == null || profile?.Romantic == null) return;
+         if (profile.Romantic.LoverIsSecret) return; // a secret affair surfaces only when DISCOVERED
+         if (profile.Romantic.LoverKnownToPlayer) return; // already surfaced once
+         if (string.IsNullOrEmpty(profile.Romantic.TakenLoverId)) return;
+
+         Hero lover = ResolveLover(profile);
+         string loverName = lover?.Name?.ToString() ?? "another";
+
+         profile.Romantic.LoverKnownToPlayer = true;
+         behavior.Store.Set(profile);
+
+         InformationManager.DisplayMessage(new InformationMessage(
+            $"Word reaches you that {partner.Name} has grown close to {loverName}, as is her right under your open terms."));
+
+         RecordAffairChronicle(partner, lover, today, WorldEventType.Other, OpenLoverKnownMagnitude,
+            $"Word reached the player that {partner.Name} had grown close to {lover?.Name?.ToString() ?? "another"}, an openly held lover under their terms.");
+
+         ModLog.Info($"[OPEN-LOVER] the player now knows of {partner.Name}'s open lover {loverName}.");
+      }
+
+      /// <summary>The hero <paramref name="profile" />'s partner has taken as her lover, or null when unresolved.</summary>
+      private static Hero ResolveLover(NpcProfile profile)
+      {
+         string id = profile?.Romantic?.TakenLoverId;
+
+         return string.IsNullOrEmpty(id) ? null : Hero.FindFirst(h => h.StringId == id);
+      }
+
+      /// <summary>
+      ///   Every partner who ALREADY carries a lover link, alive and not the player: the population of the Inc
+      ///   3b-a awareness / tryst pass. Snapshotted so the tick can mutate profiles while iterating.
+      /// </summary>
+      private static IEnumerable<(Hero partner, NpcProfile profile)> PartnersWithLover(NpcMemoryCampaignBehavior behavior)
+      {
+         var results = new List<(Hero, NpcProfile)>();
+
+         foreach (string id in behavior.Store.ListIds().ToList())
+         {
+            NpcProfile p = behavior.Store.Get(id);
+
+            if (p?.Romantic == null || string.IsNullOrEmpty(p.Romantic.TakenLoverId)) continue;
+
+            Hero h = Hero.FindFirst(x => x.StringId == id);
+
+            if (h is not {IsAlive: true} || h == Hero.MainHero) continue;
+
+            results.Add((h, p));
+         }
+
+         return results;
+      }
+
+      /// <summary>
+      ///   Records a player-facing chronicle world-event for a surfaced lover (open or discovered).
+      ///   <see cref="WorldEvent.InvolvesPlayer" /> is true so it is kept long-term as chronicle material.
+      /// </summary>
+      private static void RecordAffairChronicle(Hero partner, Hero lover, int today, WorldEventType type, int magnitude, string summary)
+      {
+         var store = WorldEventStore.Instance;
+
+         if (store == null) return;
+
+         Settlement place = partner.CurrentSettlement ?? lover?.CurrentSettlement;
+
+         var factions = new List<string>();
+         if (partner.MapFaction != null) factions.Add(partner.MapFaction.StringId);
+         if (lover?.MapFaction != null && !factions.Contains(lover.MapFaction.StringId)) factions.Add(lover.MapFaction.StringId);
+
+         var actors = new List<string> {partner.StringId};
+         if (lover != null) actors.Add(lover.StringId);
+
+         store.Record(new WorldEvent {
+            Id = Guid.NewGuid().ToString("N"),
+            Type = type,
+            Day = today,
+            PlaceId = place?.StringId,
+            InvolvesPlayer = true,
+            Magnitude = magnitude,
+            Summary = summary,
+            ChronicleLine = summary,
+            ActorIds = actors,
+            FactionIds = factions
+         });
       }
 
       #endregion

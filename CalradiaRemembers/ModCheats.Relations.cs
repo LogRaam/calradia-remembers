@@ -561,6 +561,46 @@ namespace CalradiaRemembers
             : $"{partner.Name} has taken {lover.Name} as her OPEN lover (TakenLoverId set + a faint public rumour recorded). Silent this increment.";
       }
 
+      /// <summary>
+      ///   cr.tryst [name]
+      ///   Open relationship (Inc 3b-a) dev command: forces the named partner (or the conversation NPC), who must
+      ///   already carry a taken lover (use cr.take_lover first), to have a tryst with him NOW, bypassing only the
+      ///   "player is away" gate and the weekly meeting roll. Runs the REAL tryst: it warms the bond, increments
+      ///   the tryst counter, records a private memory, and (for a SECRET affair) rolls the rising discovery
+      ///   chance that may expose it. First surfaces an OPEN lover to the player. Reports the tryst count and
+      ///   whether the lover is now known / the affair discovered. Refuses, never a silent no-op.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("tryst", "cr")]
+      public static string ForceTryst(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero partner = ResolveHero(args);
+
+         if (partner == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = behavior.Store?.Get(partner.StringId);
+
+         if (profile?.Romantic == null)
+            return $"{partner.Name} has no romantic profile. Use cr.take_lover first.";
+         if (string.IsNullOrEmpty(profile.Romantic.TakenLoverId))
+            return $"{partner.Name} has no taken lover to meet. Use cr.take_lover first.";
+
+         // An open lover is surfaced gently the first time; a secret affair stays hidden until discovery.
+         OpenPartnerLover.OpenPartnerLoverBehavior.DebugSurfaceOpenLover(partner);
+
+         NpcProfile after = OpenPartnerLover.OpenPartnerLoverBehavior.DebugTryst(partner);
+
+         if (after?.Romantic == null) return $"{partner.Name}: no tryst (no lover resolved).";
+
+         Hero lover = Hero.FindFirst(h => h.StringId == after.Romantic.TakenLoverId);
+         bool secret = after.Romantic.LoverIsSecret;
+
+         return $"{partner.Name} met {(lover?.Name?.ToString() ?? after.Romantic.TakenLoverId)} " +
+                $"({(secret ? "secret" : "open")} lover): trysts={after.Romantic.LoverTrystCount}, " +
+                $"knownToPlayer={after.Romantic.LoverKnownToPlayer}, affairDiscovered={after.Romantic.AffairDiscovered}.";
+      }
+
       private static string SimulateGold(string type, List<string> args, string usage)
       {
          if (args == null || args.Count == 0 || !int.TryParse(args[0], out int amount))

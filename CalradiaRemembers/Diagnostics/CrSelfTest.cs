@@ -172,6 +172,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("open_relationship", Severity.Light, "open relationship (Inc 2): EnableJealousy=false gates the real daily tick so a queued reaction never fires (and ON fires it); then seed several committed consorts, run the REAL competition selection twice, and assert marking the naturally-aggrieved partner as IsOpenArrangement excludes her so a different NON-open partner is chosen instead. Restores all borrowed state", TestOpenRelationship),
          new SelfTest("open_partner_lover", Severity.Light, "open relationship (Inc 3a): make a partner an open committed consort and force high neglect, then drive the REAL OpenPartnerLoverBehavior.DebugTakeLover selection and assert she now carries a TakenLoverId pointing at a plausible eligible hero (alive, not the player, unwed, outside the player's own household). MANUAL when the live world has no compatible candidate. Restores all borrowed state", TestOpenPartnerLover),
          new SelfTest("harem_secret_lover", Severity.Light, "open relationship culture branch (Inc 3a): a neglected harem-culture wife (Aserai) with NO open arrangement takes a SECRET lover when EnableJealousy is ON (LoverIsSecret set, NO public rumour laid), takes none when the toggle is OFF, and an egalitarian wife with no pact never strays. MANUAL when the world has no harem lady or no compatible candidate. Restores all borrowed state incl. the MCM toggle", TestHaremSecretLover),
+         new SelfTest("affair_discovery", Severity.Light, "trysts + discovery (Inc 3b-a): give a partner a SECRET lover, force several trysts while away (each bumps the tryst counter + a private memory), and assert discovery eventually flips AffairDiscovered + LoverKnownToPlayer and lays a scandal chronicle world-event; then an OPEN lover becomes LoverKnownToPlayer WITHOUT an AffairDiscovered scandal. MANUAL when the world has no compatible candidate. Restores all borrowed state", TestAffairDiscovery),
          new SelfTest("grudge_tier2", Severity.Heavy, "capture+give_prisoner (real path) -> assert a DeliveredPrisoner grudge on the captive; direct severity-3 player-perpetrator CaptiveAbuse plant -> assert it exists", TestGrudgeTier2),
          new SelfTest("grudge_resolve", Severity.Light, "plant a FailedQuest grudge -> resolve w/ its matching gesture -> assert it moved; plant an ExecutedKin (vendetta) grudge -> assert an amends is Rejected; plant a DeliveredPrisoner (always Deed-kind) grudge -> resolve w/ the Deed gesture -> assert it moved", TestGrudgeResolve),
          new SelfTest("grudge_terms", Severity.Light, "plant a known grudge -> assert hint undiscovered -> grudge_terms reveal -> assert hint discovered -> reveal again -> assert nothing new", TestGrudgeTerms),
@@ -3852,6 +3853,9 @@ namespace CalradiaRemembers.Diagnostics
          if (p?.Romantic == null) return;
          p.Romantic.TakenLoverId = null;
          p.Romantic.LoverIsSecret = false;
+         p.Romantic.LoverTrystCount = 0;
+         p.Romantic.LoverKnownToPlayer = false;
+         p.Romantic.AffairDiscovered = false;
          p.Romantic.IsConsort = false;
          p.Romantic.IsOpenArrangement = false;
          p.Romantic.Status = RomanticStatus.None;
@@ -3957,6 +3961,94 @@ namespace CalradiaRemembers.Diagnostics
 
          RestoreOpenPartner(behavior, harem);
          settings.EnableJealousy = savedEnable;
+
+         return t.Line();
+      }
+
+      // ── Trysts + affair discovery (Inc 3b-a): the weekly awareness/tryst pass is engine glue (walks the ──
+      // ── store, reads live presence, bumps a relation, surfaces to the player) that no dotnet unit test can ──
+      // ── reach. The pure rules ARE unit-tested (TrystPolicy / AffairDiscoveryPolicy); this proves only the ──
+      // ── WIRING: forced trysts advance the counter + lay a private memory, a secret affair eventually leaks ──
+      // ── (AffairDiscovered + LoverKnownToPlayer flip, a scandal chronicle lands), and an OPEN lover becomes ──
+      // ── known WITHOUT any scandal. Discovery is driven by a fixed roll so the rising curve is deterministic. ──
+
+      private static string TestAffairDiscovery(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("affair_discovery");
+
+         if (t.Abort(OpenPartnerLover.OpenPartnerLoverBehavior.Instance == null || behavior?.Store == null || WorldEventStore.Instance == null, "OpenPartnerLoverBehavior / store / world-event store not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Hero partner = ConversationNpc();
+
+         if (t.Skip(partner == null, "no NPC to stand as the partner")) return t.Line();
+
+         Hero lover = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h != partner && h.IsAlive && h.IsLord && h.Clan != Clan.PlayerClan);
+
+         if (t.Skip(lover == null, "no live lord outside the player's household to stand as the lover")) return t.Line();
+
+         int loverRelBefore = partner.GetRelation(lover);
+
+         // ── Secret affair: seed it directly, then force trysts that leak it ─────────────────────────────────
+         // Seed the SECRET lover link directly: this test exercises the tryst/discovery WIRING, not who strays
+         // (the culture gate is covered by harem_secret_lover), so it bypasses TakeLover's selection.
+         NpcProfile profile = GetOrCreate(behavior, partner);
+         ArrangeCleanNpc(behavior, profile, partner);
+         if (profile.Romantic == null) profile.Romantic = new RomanticProfile();
+         profile.Romantic.IsConsort = true;
+         profile.Romantic.Status = RomanticStatus.Committed;
+         profile.Romantic.TakenLoverId = lover.StringId;
+         profile.Romantic.LoverIsSecret = true;
+         profile.Romantic.LoverTrystCount = 0;
+         profile.Romantic.LoverKnownToPlayer = false;
+         profile.Romantic.AffairDiscovered = false;
+         behavior.Store.Set(profile);
+
+         int eventsBefore = WorldEventStore.Instance.Count;
+
+         // A fixed discovery roll of 20 against the rising curve (8, 15, 22, ...): the first two trysts miss and
+         // the THIRD exposes it, proving both the rising chance and that the reveal fires only once.
+         OpenPartnerLover.OpenPartnerLoverBehavior.DebugTryst(partner, discoveryRoll: 20);
+         bool discoveredAfterOne = behavior.Store.Get(partner.StringId)?.Romantic?.AffairDiscovered ?? false;
+         OpenPartnerLover.OpenPartnerLoverBehavior.DebugTryst(partner, discoveryRoll: 20);
+         OpenPartnerLover.OpenPartnerLoverBehavior.DebugTryst(partner, discoveryRoll: 20);
+
+         NpcProfile afterSecret = behavior.Store.Get(partner.StringId);
+         int eventsAfter = WorldEventStore.Instance.Count;
+
+         t.Note($"secret: partner={partner.Name} lover={lover.Name}; trysts={afterSecret?.Romantic?.LoverTrystCount}; memories={afterSecret?.Events?.Count}; world-events {eventsBefore}->{eventsAfter}");
+         t.Expect("trystCounterAdvanced", afterSecret?.Romantic?.LoverTrystCount, 3);
+         t.Expect("notDiscoveredOnFirstTryst", discoveredAfterOne, false);
+         t.Expect("affairDiscovered", afterSecret?.Romantic?.AffairDiscovered, true);
+         t.Expect("loverKnownToPlayer", afterSecret?.Romantic?.LoverKnownToPlayer, true);
+         t.Expect("scandalChronicleRecorded", eventsAfter > eventsBefore, true);
+         t.Expect("privateTrystMemoriesRecorded", (afterSecret?.Events?.Count ?? 0) >= 3, true);
+
+         // ── Open lover: becomes known WITHOUT a scandal ───────────────────────────────────────────────────
+         RestoreOpenPartner(behavior, partner);
+         NpcProfile openProfile = GetOrCreate(behavior, partner);
+         ArrangeCleanNpc(behavior, openProfile, partner);
+         if (openProfile.Romantic == null) openProfile.Romantic = new RomanticProfile();
+         openProfile.Romantic.IsConsort = true;
+         openProfile.Romantic.Status = RomanticStatus.Committed;
+         openProfile.Romantic.IsOpenArrangement = true;
+         openProfile.Romantic.TakenLoverId = lover.StringId;
+         openProfile.Romantic.LoverIsSecret = false;
+         openProfile.Romantic.LoverKnownToPlayer = false;
+         openProfile.Romantic.AffairDiscovered = false;
+         behavior.Store.Set(openProfile);
+
+         bool openKnown = OpenPartnerLover.OpenPartnerLoverBehavior.DebugSurfaceOpenLover(partner);
+         NpcProfile afterOpen = behavior.Store.Get(partner.StringId);
+
+         t.Note($"open: known={openKnown} affairDiscovered={afterOpen?.Romantic?.AffairDiscovered}");
+         t.Expect("openLoverBecomesKnown", openKnown, true);
+         t.Expect("openLoverNoScandal", afterOpen?.Romantic?.AffairDiscovered, false);
+
+         // Restore all borrowed state, including the partner-to-lover relation the trysts warmed.
+         RestoreOpenPartner(behavior, partner);
+         NeutralizeRelation(partner, lover);
+         if (loverRelBefore != 0) ChangeRelationAction.ApplyRelationChangeBetweenHeroes(partner, lover, loverRelBefore, false);
 
          return t.Line();
       }
