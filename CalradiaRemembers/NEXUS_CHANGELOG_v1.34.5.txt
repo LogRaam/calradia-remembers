@@ -1,0 +1,14 @@
+Version 1.34.5
+
+Open relationships, a jealousy you can turn off, and several fixes from player reports. Your saves carry over untouched.
+
+New
+- Open relationships. You and a committed partner (a spouse or consort) can agree to open terms, and either of you may raise it: you may offer reciprocal freedom, or she may ask leave to love another, or urge you to take another spouse. An open partner no longer grows jealous of your other loves, and over time she takes a lover of her own, the more so the more you have neglected her. You can learn of it, speak of it with her, ask her to end the affair, or revoke the open terms entirely. In a harem-minded culture (such as the Aserai) a wife keeps such an affair secret, and it may come to light as a scandal. A child she conceives by her lover belongs to his line, never yours.
+- Turn jealousy off. A new option in the mod settings disables the whole jealousy and competition system for a drama-free household. The world is richer with it on (partners react to being favoured or slighted), but the choice is yours.
+- Companions remember fighting beside you. After a notable battle, the companions riding in your party (and your kin) gain a memory of having fought at your side, just as allied lords already did.
+- News of the realm reaches you. A friendly lord may write to share word stirring in their kingdom: a war looming, hard times fallen on a town, or a rumour that reached them, relayed in their own voice.
+
+Fixed
+- Kin know when you hold their relative prisoner. A character whose child, sibling, or spouse you hold captive no longer calls you a liar for it; they know their kin is in your hands.
+- No more impossible quests. A task can no longer hinge on an item that does not exist in the game, and a task you tell the giver you cannot or will not carry out is now always released.
+- A warm word no longer costs you regard. A character who answers you warmly will not, in the same breath, lower their opinion of you.
