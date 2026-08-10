@@ -171,6 +171,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("grudge_backfill", Severity.Light, "seed a synthetic Jealousy NotableEvent -> force backfill -> assert a Jealousy grudge exists -> force it again -> assert no duplicate", TestGrudgeBackfill),
          new SelfTest("open_relationship", Severity.Light, "open relationship (Inc 2): EnableJealousy=false gates the real daily tick so a queued reaction never fires (and ON fires it); then seed several committed consorts, run the REAL competition selection twice, and assert marking the naturally-aggrieved partner as IsOpenArrangement excludes her so a different NON-open partner is chosen instead. Restores all borrowed state", TestOpenRelationship),
          new SelfTest("open_partner_lover", Severity.Light, "open relationship (Inc 3a): make a partner an open committed consort and force high neglect, then drive the REAL OpenPartnerLoverBehavior.DebugTakeLover selection and assert she now carries a TakenLoverId pointing at a plausible eligible hero (alive, not the player, unwed, outside the player's own household). MANUAL when the live world has no compatible candidate. Restores all borrowed state", TestOpenPartnerLover),
+         new SelfTest("close_relationship", Severity.Light, "open relationship (Inc 3b-b): an OPEN committed consort run through the REAL bridge close_relationship action has IsOpenArrangement cleared (existing lover untouched); a committed partner who is NOT open is refused (no open terms to revoke). Restores all borrowed state", TestCloseRelationship),
+         new SelfTest("end_affair", Severity.Light, "open relationship (Inc 3b-b): a committed partner carrying a DISCOVERED lover run through the REAL bridge end_affair action has TakenLoverId cleared and every affair-tracking field reset (LoverIsSecret / LoverTrystCount / AffairDiscovered / LoverKnownToPlayer) plus an ended-affair memory recorded; a partner with no lover is refused. Restores all borrowed state", TestEndAffair),
          new SelfTest("harem_secret_lover", Severity.Light, "open relationship culture branch (Inc 3a): a neglected harem-culture wife (Aserai) with NO open arrangement takes a SECRET lover when EnableJealousy is ON (LoverIsSecret set, NO public rumour laid), takes none when the toggle is OFF, and an egalitarian wife with no pact never strays. MANUAL when the world has no harem lady or no compatible candidate. Restores all borrowed state incl. the MCM toggle", TestHaremSecretLover),
          new SelfTest("affair_discovery", Severity.Light, "trysts + discovery (Inc 3b-a): give a partner a SECRET lover, force several trysts while away (each bumps the tryst counter + a private memory), and assert discovery eventually flips AffairDiscovered + LoverKnownToPlayer and lays a scandal chronicle world-event; then an OPEN lover becomes LoverKnownToPlayer WITHOUT an AffairDiscovered scandal. MANUAL when the world has no compatible candidate. Restores all borrowed state", TestAffairDiscovery),
          new SelfTest("grudge_tier2", Severity.Heavy, "capture+give_prisoner (real path) -> assert a DeliveredPrisoner grudge on the captive; direct severity-3 player-perpetrator CaptiveAbuse plant -> assert it exists", TestGrudgeTier2),
@@ -3861,6 +3863,113 @@ namespace CalradiaRemembers.Diagnostics
          p.Romantic.Status = RomanticStatus.None;
          p.Events.Clear();
          behavior.Store.Set(p);
+      }
+
+      // ── Player levers (Inc 3b-b): the two conversation OUTCOMES the model emits when a partner agrees, driven ──
+      // ── through the REAL BannerlordGameStateBridge.ExecuteAction so the switch wiring, the guards, and the ──
+      // ── field mutations are all exercised end to end. close_relationship revokes the open terms (leaving any ──
+      // ── existing lover in place); a non-open committed partner is refused. ──────────────────────────────────
+
+      private static string TestCloseRelationship(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("close_relationship");
+
+         if (t.Abort(behavior?.Store == null || behavior.GameStateBridge == null, "store/bridge not active")) return t.Line();
+
+         Hero partner = ConversationNpc();
+         if (t.Skip(partner == null, "no NPC to stand as the partner")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, partner);
+         ArrangeCleanNpc(behavior, profile, partner);
+         if (profile.Romantic == null) profile.Romantic = new RomanticProfile();
+
+         // ── An open committed consort: the action must lift the open terms and leave any lover untouched ──
+         profile.Romantic.IsConsort = true;
+         profile.Romantic.Status = RomanticStatus.Committed;
+         profile.Romantic.IsOpenArrangement = true;
+         profile.Romantic.TakenLoverId = "selftest_close_lover"; // a placeholder lover: close must NOT clear it
+         behavior.Store.Set(profile);
+
+         ActionOutcome closed = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "close_relationship"}, partner, new ActionContext(profile, null));
+         NpcProfile afterClose = behavior.Store.Get(partner.StringId);
+
+         t.Note($"open consort {partner.Name}: close outcome={(closed?.WasRefused == true ? "refused" : closed?.IsPositive == true ? "applied" : "none")}");
+         t.Expect("openConsortAccepted", closed?.WasRefused, false);
+         t.Expect("openTermsRevoked", afterClose?.Romantic?.IsOpenArrangement, false);
+         t.Expect("existingLoverUntouched", afterClose?.Romantic?.TakenLoverId, "selftest_close_lover");
+
+         // ── A committed partner who is NOT open: refused, nothing to revoke ──
+         profile.Romantic.IsOpenArrangement = false;
+         profile.Romantic.TakenLoverId = null;
+         behavior.Store.Set(profile);
+
+         ActionOutcome refused = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "close_relationship"}, partner, new ActionContext(profile, null));
+
+         t.Note($"non-open consort: {refused?.Message}");
+         t.Expect("nonOpenRefused", refused?.WasRefused, true);
+
+         RestoreOpenPartner(behavior, partner);
+
+         return t.Line();
+      }
+
+      // ── end_affair (Inc 3b-b): a partner carrying a discovered lover, run through the REAL bridge, gives him ──
+      // ── up, and EVERY affair-tracking field resets so no stale scandal state lingers; a partner with no lover ──
+      // ── is refused (never a silent no-op that would let the model narrate an ending that never happened). ──────
+
+      private static string TestEndAffair(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("end_affair");
+
+         if (t.Abort(behavior?.Store == null || behavior.GameStateBridge == null, "store/bridge not active")) return t.Line();
+
+         Hero partner = ConversationNpc();
+         if (t.Skip(partner == null, "no NPC to stand as the partner")) return t.Line();
+
+         Hero lover = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h != partner && h.IsAlive && h.IsLord);
+         string loverId = lover?.StringId ?? "selftest_end_affair_lover";
+
+         NpcProfile profile = GetOrCreate(behavior, partner);
+         ArrangeCleanNpc(behavior, profile, partner);
+         if (profile.Romantic == null) profile.Romantic = new RomanticProfile();
+
+         // ── A DISCOVERED secret affair, fully populated, so the reset must clear ALL of it ──
+         profile.Romantic.IsConsort = true;
+         profile.Romantic.Status = RomanticStatus.Committed;
+         profile.Romantic.TakenLoverId = loverId;
+         profile.Romantic.LoverIsSecret = true;
+         profile.Romantic.LoverTrystCount = 4;
+         profile.Romantic.AffairDiscovered = true;
+         profile.Romantic.LoverKnownToPlayer = true;
+         behavior.Store.Set(profile);
+
+         int eventsBefore = behavior.Store.Get(partner.StringId)?.Events?.Count ?? 0;
+
+         ActionOutcome ended = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "end_affair"}, partner, new ActionContext(profile, null));
+         NpcProfile after = behavior.Store.Get(partner.StringId);
+
+         t.Note($"{partner.Name} with lover [{loverId}]: end outcome={(ended?.WasRefused == true ? "refused" : ended?.IsPositive == true ? "applied" : "none")}; memories {eventsBefore}->{after?.Events?.Count}");
+         t.Expect("affairEndAccepted", ended?.WasRefused, false);
+         t.Expect("takenLoverCleared", string.IsNullOrEmpty(after?.Romantic?.TakenLoverId), true);
+         t.Expect("loverSecretReset", after?.Romantic?.LoverIsSecret, false);
+         t.Expect("trystCountReset", after?.Romantic?.LoverTrystCount, 0);
+         t.Expect("affairDiscoveredReset", after?.Romantic?.AffairDiscovered, false);
+         t.Expect("loverKnownReset", after?.Romantic?.LoverKnownToPlayer, false);
+         t.Expect("endedAffairMemoryRecorded", (after?.Events?.Count ?? 0) > eventsBefore, true);
+
+         // ── A partner with no lover: refused ──
+         ActionOutcome refused = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "end_affair"}, partner, new ActionContext(after ?? profile, null));
+
+         t.Note($"no lover: {refused?.Message}");
+         t.Expect("noLoverRefused", refused?.WasRefused, true);
+
+         RestoreOpenPartner(behavior, partner);
+
+         return t.Line();
       }
 
       // ── Culture branch (Inc 3a): a harem / patriarchal (submissive-wife) culture (Aserai) takes a SECRET ──

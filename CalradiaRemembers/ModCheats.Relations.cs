@@ -601,6 +601,32 @@ namespace CalradiaRemembers
                 $"knownToPlayer={after.Romantic.LoverKnownToPlayer}, affairDiscovered={after.Romantic.AffairDiscovered}.";
       }
 
+      /// <summary>
+      ///   cr.close_relationship [name]
+      ///   Open relationship (Inc 3b-b) dev command: forces the named committed partner (or the conversation NPC)
+      ///   through the REAL bridge close_relationship action, revoking the open terms so she takes no new lovers
+      ///   (an existing lover, if any, is left in place: use cr.end_affair to end the current affair). Reports the
+      ///   outcome, including the refusal reason when the target is not a committed partner or holds no open terms.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("close_relationship", "cr")]
+      public static string ForceCloseRelationship(List<string> args)
+      {
+         return Dispatch(new GameAction {Type = "close_relationship"}, args, NotableEventType.Other, "close_relationship");
+      }
+
+      /// <summary>
+      ///   cr.end_affair [name]
+      ///   Open relationship (Inc 3b-b) dev command: forces the named partner (or the conversation NPC) through the
+      ///   REAL bridge end_affair action, ending her current affair (clears TakenLoverId and resets every
+      ///   affair-tracking field, records an ended-affair memory). Reports the outcome, including the refusal
+      ///   reason when the partner has no taken lover to give up.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("end_affair", "cr")]
+      public static string ForceEndAffair(List<string> args)
+      {
+         return Dispatch(new GameAction {Type = "end_affair"}, args, NotableEventType.Other, "end_affair");
+      }
+
       private static string SimulateGold(string type, List<string> args, string usage)
       {
          if (args == null || args.Count == 0 || !int.TryParse(args[0], out int amount))

@@ -231,6 +231,10 @@ namespace CalradiaRemembers.GameState
                return ExecuteTakeAsSecretLover(npcHero, context);
             case "open_relationship":
                return ExecuteOpenRelationship(npcHero, context);
+            case "close_relationship":
+               return ExecuteCloseRelationship(npcHero, context);
+            case "end_affair":
+               return ExecuteEndAffair(npcHero, context);
             case "give_item":
                return ExecuteGiveItem(action, npcHero, context);
             case "give_prisoner":
@@ -3259,6 +3263,103 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] open_relationship failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   close_relationship (Inc 3b-b): the player REVOKES the open arrangement with this committed partner.
+      ///   Sets <c>IsOpenArrangement = false</c> and persists it, so she takes no NEW lovers and Inc 2's jealousy
+      ///   suppression naturally lifts (<see cref="Logic.OpenRelationshipPolicy" /> stops counting her among the
+      ///   spared). Does NOT touch an existing <c>TakenLoverId</c>: ending the CURRENT affair is the separate
+      ///   <see cref="ExecuteEndAffair" />. GUARD (the bridge is law): the target must be the player's spouse or a
+      ///   committed consort who IS currently open; anything less is refused, never a silent no-op. The mirror of
+      ///   <see cref="ExecuteOpenRelationship" />.
+      /// </summary>
+      private static ActionOutcome ExecuteCloseRelationship(Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null || context?.Profile == null) return null;
+
+            NpcProfile profile = context.Profile;
+
+            if (profile.Romantic == null)
+               return ActionOutcome.Refused($"({npcHero.Name} has no bond with you to close.)");
+
+            bool isSpouse = npcHero == Hero.MainHero.Spouse;
+            bool isCommittedConsort = profile.Romantic.IsConsort || profile.Romantic.Status == RomanticStatus.Committed;
+
+            if (!isSpouse && !isCommittedConsort)
+               return ActionOutcome.Refused($"({npcHero.Name} is not a committed partner of yours, so there are no open terms to revoke.)");
+
+            if (!profile.Romantic.IsOpenArrangement)
+               return ActionOutcome.Refused($"(You and {npcHero.Name} hold no open terms to revoke.)");
+
+            profile.Romantic.IsOpenArrangement = false;
+            NpcMemoryCampaignBehavior.Instance?.Store?.Set(profile);
+
+            ModLog.Info($"[ACTION] close_relationship: {npcHero.Name} and the player no longer hold open terms (existing lover, if any, untouched).");
+
+            var msg = $"You and {npcHero.Name} no longer hold open terms: she will take no new lovers.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] close_relationship failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   end_affair (Inc 3b-b): the current affair ENDS, at the player's asking, when this partner agrees (the
+      ///   mechanical outcome the model emits on her assent; a refusal is simply no action). Clears
+      ///   <c>TakenLoverId</c> and <c>LoverIsSecret</c> and resets the affair-tracking fields
+      ///   (<c>LoverTrystCount</c>, <c>AffairDiscovered</c>, <c>LoverKnownToPlayer</c>), then persists. Records a
+      ///   memory that the affair ended. Does NOT revoke the open arrangement itself (that is
+      ///   <see cref="ExecuteCloseRelationship" />). GUARD (the bridge is law): the target must actually HAVE a
+      ///   <c>TakenLoverId</c>; else refused, never a silent no-op.
+      /// </summary>
+      private static ActionOutcome ExecuteEndAffair(Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null || context?.Profile == null) return null;
+
+            NpcProfile profile = context.Profile;
+
+            if (profile.Romantic == null || string.IsNullOrEmpty(profile.Romantic.TakenLoverId))
+               return ActionOutcome.Refused($"({npcHero.Name} has no lover to give up.)");
+
+            Hero lover = Hero.FindFirst(h => h.StringId == profile.Romantic.TakenLoverId);
+            string loverName = lover?.Name?.ToString() ?? "her lover";
+
+            profile.Romantic.TakenLoverId = null;
+            profile.Romantic.LoverIsSecret = false;
+            profile.Romantic.LoverTrystCount = 0;
+            profile.Romantic.AffairDiscovered = false;
+            profile.Romantic.LoverKnownToPlayer = false;
+
+            var day = (int) CampaignTime.Now.ToDays;
+            profile.Events.Add(new NotableEvent(day, NotableEventType.Agreement,
+               $"She gave up {loverName}, ending the affair at my asking."));
+
+            NpcMemoryCampaignBehavior.Instance?.Store?.Set(profile);
+
+            ModLog.Info($"[ACTION] end_affair: {npcHero.Name} gave up {loverName}; lover link and tracking fields reset.");
+
+            var msg = $"{npcHero.Name} gives up {loverName}. The affair is ended.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] end_affair failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

@@ -445,6 +445,9 @@ namespace CalradiaRemembers.Mapping
             ConsortEligible = ResolveConsortEligible(hero, profile),
             SecretLoverEligible = ResolveSecretLoverEligible(hero, profile),
             OpenRelationshipEligible = ResolveOpenRelationshipEligible(hero, profile),
+            PartnerLoverKnown = ResolvePartnerLoverKnown(profile),
+            PartnerLoverName = ResolvePartnerLoverName(profile),
+            PartnerLoverIsSecret = profile?.Romantic?.LoverIsSecret ?? false,
             ConceptionRisk = ResolveConceptionRisk(hero),
             PowerBalanceNote = ResolvePowerBalanceNote(hero, profile),
             MarriageProspects = MarriageProspectResolver.Build(hero),
@@ -1198,6 +1201,33 @@ namespace CalradiaRemembers.Mapping
          bool isCommittedConsort = profile.Romantic.IsConsort || profile.Romantic.Status == RomanticStatus.Committed;
 
          return isSpouse || isCommittedConsort;
+      }
+
+      /// <summary>
+      ///   Inc 3b-b: true when this partner has a lover the player already KNOWS about (TakenLoverId set AND
+      ///   LoverKnownToPlayer). Gates the prompt's conversation-around-a-known-lover teaching (open mention vs
+      ///   secret-affair confrontation, plus the end_affair / close_relationship vocabulary). Never before the
+      ///   lover is surfaced to the player, so a still-secret affair never leaks through the prompt.
+      /// </summary>
+      private static bool ResolvePartnerLoverKnown(NpcProfile profile)
+      {
+         if (profile?.Romantic == null) return false;
+
+         return !string.IsNullOrEmpty(profile.Romantic.TakenLoverId) && profile.Romantic.LoverKnownToPlayer;
+      }
+
+      /// <summary>
+      ///   Inc 3b-b: the known lover named through <see cref="HeroLabel" /> (namesake-safe), so the partner can
+      ///   speak of him by name. Null when the lover is not currently known to the player or cannot be resolved.
+      /// </summary>
+      private static string ResolvePartnerLoverName(NpcProfile profile)
+      {
+         if (!ResolvePartnerLoverKnown(profile)) return null;
+
+         Hero lover = Hero.FindFirst(h => h.StringId == profile.Romantic.TakenLoverId);
+         if (lover == null) return null;
+
+         return HeroLabel.Describe(lover.Name?.ToString(), lover.Clan?.Name?.ToString(), lover.Culture?.Name?.ToString());
       }
 
       private static bool ResolveConsortEligible(Hero hero, NpcProfile profile)
