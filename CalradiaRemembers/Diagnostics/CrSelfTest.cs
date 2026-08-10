@@ -210,6 +210,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_bastard_mother", Severity.Light, "LLM: force a mercenary bastard-mother context -> does she raise/extort the child?", TestChatBastardMother, true),
          new SelfTest("chat_worldevent", Severity.Light, "LLM: Feed a fresh event -> ask for news -> does the NPC surface it?", TestChatWorldEvent, true),
          new SelfTest("chat_regard_tone", Severity.Light, "LLM: a warm, approving message must NOT yield a negative change_relation (the 'responds positively but applies negative regard' player report)", TestRegardTone, true),
+         new SelfTest("chat_quest_abandon", Severity.Light, "LLM: with an outstanding task, a player who says they cannot do it must be RELEASED (the giver emits [QUEST_ABANDON]) so no quest gets stuck (the phantom-ring report)", TestQuestAbandonChat, true),
          new SelfTest("chat_recruit_companion", Severity.Light, "LLM: ask where to find a companion -> assert the gate fired + REAL wanderers gathered, judge the reply names one (never invents)", TestChatRecruitCompanion, true),
          new SelfTest("chat_rp_influence", Severity.Light, "LLM: eligible lord + a court-weight ask -> does he actually emit give_influence?", TestChatRpInfluence, true),
          new SelfTest("chat_rp_troops", Severity.Light, "LLM: eligible lord + a plea for soldiers -> does he actually emit lend_troops?", TestChatRpTroops, true),
@@ -2837,6 +2838,58 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"warm approving message to {npc.Name}: change_relation={(cr == null ? "none" : hasDelta ? delta.ToString("+#;-#;0") : "no delta")}");
          // The bug is a warm reply paired with a NEGATIVE delta. Neutral (no action) or a positive delta both pass.
          t.Expect("noNegativeRegardOnWarmExchange", !hasDelta || delta >= 0, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Player report (the phantom ring): the AI invented a quest requiring a non-existent item, and the
+      ///   player could not get the giver to drop it. The giver IS taught to emit [QUEST_ABANDON] on a clear
+      ///   refusal; this pins that the teaching actually fires. Seeds an outstanding task, has the player plainly
+      ///   refuse it, and asserts the parsed reply carries a QuestAbandoned claim (the giver let them go). An LLM
+      ///   lane test, so model-dependent; it removes its seeded quest afterward.
+      /// </summary>
+      private static string TestQuestAbandonChat(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("chat_quest_abandon");
+
+         if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+
+         Hero giver = ConversationNpc() ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+
+         if (t.Skip(giver == null, "no lord to hold an outstanding task")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         var quest = new InformalQuest {
+            Type = QuestType.BanditClear,
+            Description = "[SELFTEST] Clear the bandits raiding the roads nearby.",
+            IssuedOnDay = behavior.GameStateBridge.GetCurrentGameDay(),
+            RewardGold = 200,
+            RewardRelation = 3,
+            Status = QuestStatus.Active
+         };
+         profile.ActiveQuests.Add(quest);
+         behavior.Store.Set(profile);
+
+         try
+         {
+            const string refuse = "I have given it real thought, and I cannot carry out that task for you. Please release me " +
+                                  "from it; I will not be doing it.";
+            EncounterContext ctx = EncounterContextBuilder.Build(giver, profile, behavior.GameStateBridge, refuse);
+
+            var (ok, resp, err) = AskLlmParsed(behavior, "chat_quest_abandon", giver, profile, ctx, refuse);
+
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            t.Note($"{giver.Name} on a clear refusal: QuestAbandoned={(resp.QuestAbandoned != null ? "yes" : "no")}");
+            t.Expect("giverReleasedTheTask", resp.QuestAbandoned != null, true);
+         }
+         finally
+         {
+            NpcProfile after = behavior.Store.Get(giver.StringId);
+            after?.ActiveQuests.RemoveAll(q => q.Description != null && q.Description.StartsWith("[SELFTEST]", StringComparison.Ordinal));
+            if (after != null) behavior.Store.Set(after);
+         }
 
          return t.Line();
       }
