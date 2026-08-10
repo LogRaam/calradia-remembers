@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.GameState;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
@@ -105,6 +106,34 @@ namespace CalradiaRemembers.OpenPartnerLover
          DoTryst(partner, profile, (int) CampaignTime.Now.ToDays, discoveryRoll);
 
          return behavior.Store.Get(partner.StringId);
+      }
+
+      /// <summary>
+      ///   Test / console seam (cr.lover_child, cr.testall): forces <paramref name="partner" /> to conceive a child
+      ///   BY HER TAKEN LOVER now, bypassing only the per-tryst conception roll (so a self-test need not stage a
+      ///   fertile hit). She must already carry a lover (use cr.take_lover first) and be fertile
+      ///   (<see cref="PregnancyService.IsEligible" />). Runs the REAL conception path: the child's father is the
+      ///   lover (never the player), the pregnancy is registered as a lover-child so it lands in the lover's line
+      ///   at birth, and a SECRET affair is revealed by the pregnancy. Returns the lover on a conception, else
+      ///   null (no lover, infertile, or the engine refused).
+      /// </summary>
+      public static Hero DebugConceiveByLover(Hero partner)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (partner == null || behavior?.Store == null) return null;
+
+         NpcProfile profile = behavior.Store.Get(partner.StringId);
+
+         if (profile?.Romantic == null || string.IsNullOrEmpty(profile.Romantic.TakenLoverId)) return null;
+
+         Hero lover = ResolveLover(profile);
+
+         if (lover == null) return null;
+
+         return ConceiveByLover(partner, profile, lover, (int) CampaignTime.Now.ToDays, forced: true)
+            ? lover
+            : null;
       }
 
       /// <summary>
@@ -375,11 +404,79 @@ namespace CalradiaRemembers.OpenPartnerLover
 
          ModLog.Info($"[OPEN-LOVER] {partner.Name} met {loverName} (tryst #{profile.Romantic.LoverTrystCount}, {(secret ? "secret" : "open")}).");
 
+         // Inc 3c: a tryst may conceive a child BY THE LOVER. The child is the lover's (its genetic father) and
+         // its mother's, never the player-husband's. A conception by a SECRET lover reveals the affair outright
+         // (a pregnancy visibly not the husband's cannot stay hidden), so it may pre-empt the discovery roll below.
+         if (lover != null && lover.IsAlive)
+            ConceiveByLover(partner, profile, lover, today, forced: false);
+
          // A secret affair may LEAK, the likelier the more trysts it has seen. An open lover is never discovered
-         // (he is already, or about to be, known). The scandal fires once (gated on LoverKnownToPlayer).
+         // (he is already, or about to be, known). The scandal fires once (gated on LoverKnownToPlayer, which a
+         // conception above may already have set, in which case IsDiscovered short-circuits and it never re-fires).
          int roll = discoveryRoll < 0 ? MBRandom.RandomInt(100) : discoveryRoll;
          if (AffairDiscoveryPolicy.IsDiscovered(secret, profile.Romantic.LoverKnownToPlayer, profile.Romantic.LoverTrystCount, roll))
             DiscoverSecretAffair(partner, profile, lover, today);
+      }
+
+      /// <summary>
+      ///   Inc 3c: rolls (or forces, via the debug seam) a conception BY THE LOVER when the partner is fertile,
+      ///   and, on a conception, attributes the child to the lover (its genetic father) and the mother, NEVER the
+      ///   player-husband. The fertility read is the engine's own <see cref="PregnancyService.IsEligible" />; the
+      ///   WHETHER-she-conceives roll is the pure <see cref="LoverConceptionPolicy" />. The reflective conception
+      ///   sets the vanilla pregnancy Father to the lover; registering the pregnancy as a LOVER-CHILD
+      ///   (<see cref="PregnancyBirthBehavior.TrackLoverChild" />) then makes the birth pipeline place it in the
+      ///   lover's line rather than the mother's clan (which, for a wife married into the player's house, would be
+      ///   the player's clan). A conception by a SECRET lover reveals the affair (undeniable proof). Returns
+      ///   whether a child was conceived. Guarded: never throws out of the weekly tick.
+      /// </summary>
+      private static bool ConceiveByLover(Hero partner, NpcProfile profile, Hero lover, int today, bool forced)
+      {
+         try
+         {
+            var behavior = NpcMemoryCampaignBehavior.Instance;
+
+            if (partner == null || profile?.Romantic == null || lover == null || !lover.IsAlive || behavior?.Store == null) return false;
+            if (string.IsNullOrEmpty(profile.Romantic.TakenLoverId)) return false;
+
+            // Fertility is the engine's read; the roll+gate is the pure policy. The debug seam forces past only
+            // the roll, never the fertility gate (an infertile mother the engine would never deliver is refused).
+            if (!PregnancyService.IsEligible(partner)) return false;
+
+            if (!forced)
+            {
+               int roll = MBRandom.RandomInt(100);
+               if (!LoverConceptionPolicy.ShouldConceive(affairActive: true, motherFertile: true, rollPercent: roll)) return false;
+            }
+
+            // force: true skips PregnancyService's OWN conception chance (LoverConceptionPolicy already decided).
+            // The explicit father is the lover, so the reflective conception sets the vanilla Father to him.
+            string outcome = PregnancyService.TryConceive(partner, lover, force: true);
+            if (outcome == null) return false; // engine refused (reflection failure or ineligible after all)
+
+            // Remember this is a lover-child so it lands in the lover's line, not the mother's (player's) clan.
+            PregnancyBirthBehavior.Instance?.TrackLoverChild(partner, lover);
+
+            bool secret = profile.Romantic.LoverIsSecret;
+            profile.Events.Add(new NotableEvent(today, NotableEventType.Other, secret
+               ? $"I am carrying {lover.Name}'s child, got in secret while my husband was away. It can belong to no one else."
+               : $"I am carrying {lover.Name}'s child, conceived under the open terms the player and I hold."));
+            behavior.Store.Set(profile);
+
+            ModLog.Info($"[OPEN-LOVER] {partner.Name} has conceived a child by her lover {lover.Name} (father is the lover, never the player; the child will follow his line).");
+
+            // Discovery via a child: a pregnancy visibly not the husband's is undeniable proof. Reuse the Inc 3b-a
+            // surfacing path so a hidden affair cannot stay secret once a lover-child is on the way.
+            if (secret && !profile.Romantic.LoverKnownToPlayer)
+               DiscoverSecretAffair(partner, profile, lover, today);
+
+            return true;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[OPEN-LOVER] lover-conception failed for {partner?.Name}: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
       }
 
       /// <summary>

@@ -175,6 +175,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("end_affair", Severity.Light, "open relationship (Inc 3b-b): a committed partner carrying a DISCOVERED lover run through the REAL bridge end_affair action has TakenLoverId cleared and every affair-tracking field reset (LoverIsSecret / LoverTrystCount / AffairDiscovered / LoverKnownToPlayer) plus an ended-affair memory recorded; a partner with no lover is refused. Restores all borrowed state", TestEndAffair),
          new SelfTest("harem_secret_lover", Severity.Light, "open relationship culture branch (Inc 3a): a neglected harem-culture wife (Aserai) with NO open arrangement takes a SECRET lover when EnableJealousy is ON (LoverIsSecret set, NO public rumour laid), takes none when the toggle is OFF, and an egalitarian wife with no pact never strays. MANUAL when the world has no harem lady or no compatible candidate. Restores all borrowed state incl. the MCM toggle", TestHaremSecretLover),
          new SelfTest("affair_discovery", Severity.Light, "trysts + discovery (Inc 3b-a): give a partner a SECRET lover, force several trysts while away (each bumps the tryst counter + a private memory), and assert discovery eventually flips AffairDiscovered + LoverKnownToPlayer and lays a scandal chronicle world-event; then an OPEN lover becomes LoverKnownToPlayer WITHOUT an AffairDiscovered scandal. MANUAL when the world has no compatible candidate. Restores all borrowed state", TestAffairDiscovery),
+         new SelfTest("lover_child", Severity.Light, "pregnancy by the lover (Inc 3c): give a fertile female partner a SECRET lover, force a conception BY HIM through the REAL path, and assert the engine's own pregnancy list names the LOVER as father (never the player), the persisted lover-child marker names the lover, the resolved birth clan is NOT the player's clan, and the affair is now discovered (a pregnancy not the husband's cannot stay secret). MANUAL when the world has no fertile female or no lord lover outside the player's household. Ends the seeded pregnancy and restores all borrowed state", TestLoverChild),
          new SelfTest("grudge_tier2", Severity.Heavy, "capture+give_prisoner (real path) -> assert a DeliveredPrisoner grudge on the captive; direct severity-3 player-perpetrator CaptiveAbuse plant -> assert it exists", TestGrudgeTier2),
          new SelfTest("grudge_resolve", Severity.Light, "plant a FailedQuest grudge -> resolve w/ its matching gesture -> assert it moved; plant an ExecutedKin (vendetta) grudge -> assert an amends is Rejected; plant a DeliveredPrisoner (always Deed-kind) grudge -> resolve w/ the Deed gesture -> assert it moved", TestGrudgeResolve),
          new SelfTest("grudge_terms", Severity.Light, "plant a known grudge -> assert hint undiscovered -> grudge_terms reveal -> assert hint discovered -> reveal again -> assert nothing new", TestGrudgeTerms),
@@ -4160,6 +4161,107 @@ namespace CalradiaRemembers.Diagnostics
          if (loverRelBefore != 0) ChangeRelationAction.ApplyRelationChangeBetweenHeroes(partner, lover, loverRelBefore, false);
 
          return t.Line();
+      }
+
+      // ── Pregnancy by the lover (Inc 3c): the conception + birth-attribution is engine glue (reflective ──
+      // ── pregnancy, the vanilla Father field, the birth-pipeline clan placement) that no dotnet unit test can ──
+      // ── reach. The pure rules ARE unit-tested (LoverConceptionPolicy / LoverChildClanPolicy); this proves the ──
+      // ── WIRING: a forced conception names the LOVER as father (never the player), the persisted lover-child ──
+      // ── marker names him, the resolved birth clan is never the player's, and the pregnancy outs a secret affair. ──
+      // ── A birth cannot be forced in a self-test, so the CLAN outcome is asserted via the policy + the marker. ──
+
+      private static string TestLoverChild(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("lover_child");
+
+         if (t.Abort(OpenPartnerLover.OpenPartnerLoverBehavior.Instance == null || PregnancyBirthBehavior.Instance == null || behavior?.Store == null, "OpenPartnerLoverBehavior / PregnancyBirthBehavior / store not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+
+         // The mother must be a FERTILE female CR truly accepts (IsEligible is the same gate production uses), so
+         // the forced conception is not silently refused. MANUAL when the live world offers none.
+         Hero partner = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h.IsFemale && PregnancyService.IsEligible(h));
+
+         if (t.Skip(partner == null, "no fertile female hero to stand as the mother (needs IsEligible: female, fertile age, not already pregnant, births enabled)")) return t.Line();
+
+         Hero lover = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h != partner && h.IsAlive && h.IsLord && h.Clan != null && h.Clan != Clan.PlayerClan);
+
+         if (t.Skip(lover == null, "no live lord with a clan outside the player's household to stand as the lover")) return t.Line();
+
+         int loverRelBefore = partner.GetRelation(lover);
+
+         // Seed a SECRET affair directly: this test exercises the conception + attribution WIRING, not who strays
+         // (the culture gate is covered elsewhere), so it bypasses TakeLover's selection.
+         NpcProfile profile = GetOrCreate(behavior, partner);
+         ArrangeCleanNpc(behavior, profile, partner);
+         if (profile.Romantic == null) profile.Romantic = new RomanticProfile();
+         profile.Romantic.IsConsort = true;
+         profile.Romantic.Status = RomanticStatus.Committed;
+         profile.Romantic.TakenLoverId = lover.StringId;
+         profile.Romantic.LoverIsSecret = true;
+         profile.Romantic.LoverKnownToPlayer = false;
+         profile.Romantic.AffairDiscovered = false;
+         behavior.Store.Set(profile);
+
+         // Drive the REAL conception by the lover (bypasses only the per-tryst roll, never the fertility gate).
+         Hero conceivedBy = OpenPartnerLover.OpenPartnerLoverBehavior.DebugConceiveByLover(partner);
+
+         if (t.Skip(conceivedBy == null, $"the engine refused the conception for {partner.Name} (no eligible pregnancy could be created)"))
+         {
+            RestoreLoverChild(behavior, partner, lover, loverRelBefore);
+
+            return t.Line();
+         }
+
+         // The engine's OWN pregnancy list must name the LOVER as father, never the player.
+         PregnancyService.TryGetPregnancyInfo(partner, out Hero father, out int daysRemaining);
+
+         // The persisted lover-child marker must name the lover as the genetic father.
+         string markerFatherId = PregnancyBirthBehavior.Instance.DebugLoverChildFatherId(partner);
+
+         // The resolved birth clan, via the SAME pure rule the birth pipeline uses: it must be the lover's line
+         // and must never be the player's clan.
+         Clan playerClan = Clan.PlayerClan;
+         LoverChildClanTarget verdict = LoverChildClanPolicy.Resolve(
+            loverHasClan: lover.Clan != null,
+            loverClanIsPlayer: lover.Clan != null && lover.Clan == playerClan,
+            motherHasClan: partner.Clan != null,
+            motherClanIsPlayer: partner.Clan != null && partner.Clan == playerClan);
+         Clan destination = verdict switch {
+            LoverChildClanTarget.LoverClan => lover.Clan,
+            LoverChildClanTarget.MotherClan => partner.Clan,
+            _ => null
+         };
+
+         NpcProfile after = behavior.Store.Get(partner.StringId);
+
+         t.Note($"mother={partner.Name} lover={lover.Name}; engineFather={father?.Name?.ToString() ?? "(none)"}; marker={markerFatherId}; verdict={verdict} dest={destination?.Name?.ToString() ?? "-"} playerClan={playerClan?.Name?.ToString() ?? "-"}; due~{daysRemaining}d");
+         t.Expect("conceivedByLover", conceivedBy == lover, true);
+         t.Expect("engineFatherIsLover", father == lover, true);
+         t.Expect("engineFatherIsNotPlayer", father != Hero.MainHero, true);
+         t.Expect("loverChildMarkerNamesLover", markerFatherId, lover.StringId);
+         t.Expect("birthClanIsLoversLine", verdict, LoverChildClanTarget.LoverClan);
+         t.Expect("birthClanIsNotPlayerClan", destination != null && destination != playerClan, true);
+         t.Expect("affairDiscoveredByChild", after?.Romantic?.AffairDiscovered, true);
+         t.Expect("loverKnownByChild", after?.Romantic?.LoverKnownToPlayer, true);
+
+         // Clean up: end the seeded pregnancy, drop CR tracking, and restore every borrowed field + relation.
+         RestoreLoverChild(behavior, partner, lover, loverRelBefore);
+
+         return t.Line();
+      }
+
+      /// <summary>Ends the lover-child self-test's seeded pregnancy, drops CR tracking, and restores the partner's borrowed state.</summary>
+      private static void RestoreLoverChild(NpcMemoryCampaignBehavior behavior, Hero partner, Hero lover, int loverRelBefore)
+      {
+         PregnancyService.TryEndStuckPregnancy(partner); // reflective remove of the seeded engine pregnancy + clears IsPregnant
+         PregnancyBirthBehavior.Instance?.DebugForgetTracking(partner);
+         RestoreOpenPartner(behavior, partner);
+         if (lover != null)
+         {
+            NeutralizeRelation(partner, lover);
+            if (loverRelBefore != 0) ChangeRelationAction.ApplyRelationChangeBetweenHeroes(partner, lover, loverRelBefore, false);
+         }
       }
 
       // ── Duel consequences: the applier is engine glue (renown, stance, attraction, world-event) that no ──

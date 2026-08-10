@@ -602,6 +602,55 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.lover_child [name]
+      ///   Open relationship (Inc 3c) dev command: forces the named partner (or the conversation NPC), who must
+      ///   already carry a taken lover (use cr.take_lover first) and be fertile, to conceive a child BY HER LOVER
+      ///   now, bypassing only the per-tryst conception roll. Runs the REAL path: the child's father is the lover
+      ///   (never the player), the pregnancy is registered as a lover-child so it lands in the LOVER's line at
+      ///   birth, and a SECRET affair is revealed by the pregnancy. Reports the confirmed father (read back out of
+      ///   the engine's own pregnancy list), the intended clan the child will join, and the discovery state.
+      ///   Refuses with a reason, never a silent no-op.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("lover_child", "cr")]
+      public static string ForceLoverChild(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         Hero partner = ResolveHero(args);
+
+         if (partner == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = behavior.Store?.Get(partner.StringId);
+
+         if (profile?.Romantic == null)
+            return $"{partner.Name} has no romantic profile. Use cr.take_lover first.";
+         if (string.IsNullOrEmpty(profile.Romantic.TakenLoverId))
+            return $"{partner.Name} has no taken lover to father a child. Use cr.take_lover first.";
+         if (!PregnancyService.IsEligible(partner))
+            return $"{partner.Name} is not fertile right now (needs a living female of fertile age, not already pregnant nor freshly delivered, with this campaign's Life/Death Cycle enabled). No child conceived.";
+
+         Hero lover = OpenPartnerLover.OpenPartnerLoverBehavior.DebugConceiveByLover(partner);
+
+         if (lover == null)
+            return $"{partner.Name}: no child conceived (the engine refused the conception). See the log for detail.";
+
+         PregnancyService.TryGetPregnancyInfo(partner, out Hero father, out int daysRemaining);
+         Clan intended = lover.Clan != null && lover.Clan != Clan.PlayerClan
+            ? lover.Clan
+            : partner.Clan != null && partner.Clan != Clan.PlayerClan
+               ? partner.Clan
+               : null;
+         NpcProfile after = behavior.Store?.Get(partner.StringId);
+
+         return $"{partner.Name} has conceived a child by {lover.Name}. " +
+                $"Confirmed father (from the engine's pregnancy list): {father?.Name?.ToString() ?? "(none)"} " +
+                $"({(father == lover ? "the LOVER" : father == Hero.MainHero ? "THE PLAYER (BUG!)" : "someone else")}), NOT the player. " +
+                $"Intended clan at birth: {intended?.Name?.ToString() ?? "(the lover's line; never the player's clan)"} " +
+                $"(player clan is {Clan.PlayerClan?.Name?.ToString() ?? "-"}). " +
+                $"Due in ~{daysRemaining} day(s). Affair known to player: {after?.Romantic?.LoverKnownToPlayer}, discovered: {after?.Romantic?.AffairDiscovered}.";
+      }
+
+      /// <summary>
       ///   cr.close_relationship [name]
       ///   Open relationship (Inc 3b-b) dev command: forces the named committed partner (or the conversation NPC)
       ///   through the REAL bridge close_relationship action, revoking the open terms so she takes no new lovers
