@@ -136,6 +136,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("world_conditions", Severity.Light, "Mechanical: the engine reads the weekly world-conditions feeder depends on still work against the live game (a renamed field or a changed model signature would silently swallow to 0 inside the feeder's own guards, recording nothing forever). Reads GetScoreOfDeclaringWar in both directions between two live kingdoms and a live town's FoodStocks/FoodChange/Prosperity DIRECTLY, asserts each is finite, then runs the real RunScan and asserts both scanners ran. Skips when the world has fewer than two kingdoms or no town", TestWorldConditions),
          new SelfTest("realm_tidings", Severity.Light, "Mechanical: drives the REAL RealmTidingsBehavior.DebugEvaluate end to end and proves per-NPC dedup. Seeds a dominant known event for a friendly landed lord (regard forced to 30), asserts a RealmTidings letter candidate is queued and the event id enters the dedup ledger, then re-evaluates and asserts the same event is never relayed twice. Restores the writer's regard, ledger and candidates and removes the seed", TestRealmTidings),
          new SelfTest("companion_battle_memory", Severity.Light, "Mechanical: the companion 'fought together' memory (WorldEventFeeders' main-party companion loop), which a real MapEvent drives in game. Borrows a companion into the party if none rides along, calls the DebugRecordCompanionBattleMemories seam, and asserts the companion's profile gained a fresh 'Fought at your side' memory. Removes the memory it added and returns any borrowed companion", TestCompanionBattleMemory),
+         new SelfTest("war_council_offer", Severity.Light, "Mechanical: the war-council OFFER trigger's arm + policy + persisted-cooldown decision (WarCouncilOfferBehavior.DebugWouldOffer), WITHOUT opening the council UI. Arms the flag and asserts a notable action while leading an army WOULD offer, that not-in-army / non-notable / disarmed all refuse, and that stamping an offer today blocks a fresh one (cooldown) while a stale stamp clears it. Restores the flag + the persisted last-offer day", TestWarCouncilOffer),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
          new SelfTest("reasoning_scrub", Severity.Light, "Mechanical: the inline <think> leak (tthheerroocckk, nemotron on High reasoning). The save/load itself is STUBBED: corrupted memories are written straight into the store as an old save would carry them (a trace before real prose, a memory that is ONLY a truncated trace, a corrupted background paragraph) -> the REAL session-launch scrub runs -> assert the prose is recovered, the all-trace memory becomes the honest 'faded' line (never invented content), the background returns to null, and a second pass is a no-op. Removes its seeds afterwards", TestReasoningScrub),
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
@@ -7162,6 +7163,58 @@ namespace CalradiaRemembers.Diagnostics
                t.Note($"(returned {companion.Name} to their party)");
             }
             else t.Note($"(NOTE: {companion.Name} had no party to return to and remains in yours; reload to discard)");
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   War-council OFFER trigger (mechanical, no LLM, no UI): drives the REAL arm + policy + persisted-cooldown
+      ///   decision through <see cref="CalradiaRemembers.WarCouncil.WarCouncilOfferBehavior.DebugWouldOffer" />. The
+      ///   council window is a Gauntlet screen, so this test never opens it; it asserts only the decision that
+      ///   precedes it. Restores the kill-switch and the persisted last-offer day afterwards.
+      /// </summary>
+      private static string TestWarCouncilOffer(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("war_council_offer");
+
+         CalradiaRemembers.WarCouncil.WarCouncilOfferBehavior offer = CalradiaRemembers.WarCouncil.WarCouncilOfferBehavior.Instance;
+
+         if (t.Abort(offer == null, "war-council offer behavior not registered")) return t.Line();
+
+         // Borrow the two pieces of state this test drives, to restore them exactly afterwards.
+         bool prevEnabled = CalradiaRemembers.WarCouncil.WarCouncilOfferBehavior.Enabled;
+         int prevLastOfferDay = offer.DebugLastOfferDay;
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         try
+         {
+            // Armed + never offered: a notable action while leading an army WOULD offer (the whole point).
+            CalradiaRemembers.WarCouncil.WarCouncilOfferBehavior.Enabled = true;
+            offer.DebugSetLastOfferDay(-1);
+            t.Expect("armedNotableInArmyOffers", offer.DebugWouldOffer(true, true), true);
+
+            // Not commanding an army, or a routine action, must not summon the captains.
+            t.Expect("notInArmyRefuses", offer.DebugWouldOffer(false, true), false);
+            t.Expect("nonNotableRefuses", offer.DebugWouldOffer(true, false), false);
+
+            // Anti-spam: an offer stamped today blocks a fresh notable action; a stale stamp past the cooldown clears it.
+            offer.DebugSetLastOfferDay(today);
+            t.Expect("withinCooldownRefuses", offer.DebugWouldOffer(true, true), false);
+            offer.DebugSetLastOfferDay(today - (WarCouncilTriggerPolicy.DefaultCooldownDays + 1));
+            t.Expect("afterCooldownOffers", offer.DebugWouldOffer(true, true), true);
+
+            // The kill-switch overrides everything: nothing reaches players while disarmed.
+            CalradiaRemembers.WarCouncil.WarCouncilOfferBehavior.Enabled = false;
+            offer.DebugSetLastOfferDay(-1);
+            t.Expect("disarmedNeverOffers", offer.DebugWouldOffer(true, true), false);
+
+            t.Note("Decision-only: the council UI is never opened here (DebugWouldOffer runs the arm+policy+cooldown gate without staging a scene).");
+         }
+         finally
+         {
+            CalradiaRemembers.WarCouncil.WarCouncilOfferBehavior.Enabled = prevEnabled;
+            offer.DebugSetLastOfferDay(prevLastOfferDay);
          }
 
          return t.Line();

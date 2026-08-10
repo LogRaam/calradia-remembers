@@ -299,6 +299,13 @@ namespace CalradiaRemembers
          // term, mirroring CouncilStipendBehavior/CouncilHostageBehavior's own SyncData shape. Always on, idle
          // (no active escorts) outside a conversation that actually strikes one.
          campaignStarter.AddBehavior(new FollowMeBehavior());
+         // War-council OFFER trigger (player suggestion): after the player's army forms or takes a considerable
+         // action (settlement captured, notable battle won), offer to convene the already-built WarCouncil instead
+         // of typing cr.council war. GATED OFF by default (WarCouncilOfferBehavior.Enabled) since the council window
+         // is still being validated in-game; armed for a session with cr.warcouncil on. The behavior only decides
+         // WHEN to offer (pure WarCouncilTriggerPolicy + a save-safe cooldown) and reuses cr.council war's own
+         // convening path on acceptance. Always registered (idle while disarmed). Console: cr.warcouncil [on|off|now].
+         campaignStarter.AddBehavior(new CalradiaRemembers.WarCouncil.WarCouncilOfferBehavior());
          // ASSEMBLY pillar: GATED OFF for release (built, not yet play-tested in a live campaign). To test it in
          // a DEV build, UNCOMMENT the two lines below, then stage a session fast with cr.assembly_test [n] and
          // cr.assembly_open (bypasses the travel wait). It ships as a real feature only once validated.
