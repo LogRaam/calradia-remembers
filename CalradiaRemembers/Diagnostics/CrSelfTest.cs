@@ -123,6 +123,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
          new SelfTest("succession", Severity.Light, "seed private+public events -> Apply -> assert private dropped", TestSuccession),
          new SelfTest("recruit", Severity.Heavy, "eligible lord -> join_clan -> assert he moved into your clan", TestRecruit),
+         new SelfTest("recruit_notable", Severity.Heavy, "find a settlement NOTABLE (gang leader/headman/merchant...) that has an eligible successor in its town, force regard to the floor, run the REAL bridge recruit_notable -> assert the notable is now a companion in your CLAN and PARTY, a starting relation bonus was applied, and the chosen successor holds the vacated notable post (settlement.Notables). Best-effort restore afterwards (recruit_notable is not cleanly reversible: the alley transfer cannot be undone). Skips when no disposable notable+successor pair exists rather than wreck a real campaign", TestRecruitNotable),
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
          new SelfTest("free_prisoner", Severity.Heavy, "capture -> free_prisoner -> assert released", TestFreePrisoner),
          new SelfTest("captive_kin", Severity.Heavy, "capture an in-party enemy lord who has a living parent -> build that parent's RELATIONSHIPS -> assert the captured child is marked as held by the player (the 'you are a liar, my child is safe' denial bug), then release", TestCaptiveKinAwareness),
@@ -5777,6 +5778,78 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Note($"{lord.Name}: {oldClan} -> {lord.Clan?.Name?.ToString() ?? "—"}");
          t.Expect("joinedYourClan", lord.Clan == playerClan, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   recruit_notable: persuade a settlement NOTABLE to leave their post and swear into the player's clan
+      ///   as a companion, with succession (a successor inherits the gang/role so the town keeps a notable) and
+      ///   a starting relation bonus. Drives the REAL bridge verb on live facts. recruit_notable cannot be
+      ///   cleanly reversed (a notable is converted to a companion and their alleys pass to the successor), so
+      ///   this restores what it can (regard, occupations, power, seating) BEST-EFFORT and SKIPS when no
+      ///   disposable notable+successor pair is available rather than force the change on a real campaign.
+      /// </summary>
+      private static string TestRecruitNotable(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("recruit_notable");
+
+         var playerClan = Clan.PlayerClan;
+
+         if (t.Abort(playerClan == null, "no player clan")) return t.Line();
+
+         // A notable in a settlement that ALSO has an eligible successor (the bridge's own succession authority,
+         // so teaching gate, executor and test all agree on who can inherit).
+         Hero notable = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != null && h != Hero.MainHero && h.IsAlive && h.IsNotable && !h.IsPrisoner
+            && h.Clan != playerClan && h.CurrentSettlement != null
+            && BannerlordGameStateBridge.FindNotableSuccessor(h) != null);
+
+         if (t.Skip(notable == null, "no recruitable notable with an eligible successor in a settlement (nothing disposable to test on)")) return t.Line();
+
+         // Predict the successor the bridge will pick (deterministic) and capture state to restore afterwards.
+         Hero successor = BannerlordGameStateBridge.FindNotableSuccessor(notable);
+         Settlement settlement = notable.CurrentSettlement;
+         Occupation role = notable.Occupation;
+         Occupation successorRole = successor.Occupation;
+         float successorPowerBefore = successor.Power;
+
+         // Force the mod's own regard ledger to the floor so the shared gate passes on live facts.
+         NpcProfile profile = GetOrCreate(behavior, notable);
+         int regardBefore = profile.ReputationWithPlayer;
+         profile.ReputationWithPlayer = NotableRecruitmentPolicy.RegardFloor;
+         behavior.Store.Set(profile);
+         int relBefore = notable.GetRelation(Hero.MainHero);
+
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "recruit_notable"}, notable, new ActionContext(profile, null));
+
+         int relAfter = notable.GetRelation(Hero.MainHero);
+         t.Note($"{notable.Name} ({role}) in {settlement?.Name?.ToString() ?? "?"} -> successor {successor.Name}; rel {relBefore}->{relAfter}");
+         t.Expect("outcomePositive", outcome?.IsPositive, true);
+         t.Expect("inPlayerClan", notable.Clan == playerClan, true);
+         t.Expect("isCompanion", notable.IsPlayerCompanion, true);
+         t.Expect("inMainParty", notable.PartyBelongedTo == MobileParty.MainParty, true);
+         t.Expect("relationBonusApplied", relAfter > relBefore, true);
+         t.Expect("successorIsNotable", successor.IsNotable, true);
+         t.Expect("successorHoldsPost", settlement != null && settlement.Notables.Contains(successor), true);
+
+         // Best-effort restore. recruit_notable is not cleanly reversible (the alley transfer especially), so
+         // this only reduces the campaign impact; it is guarded so a restore failure never fails the test.
+         try
+         {
+            if (notable.IsPlayerCompanion) RemoveCompanionAction.ApplyByFire(playerClan, notable);
+            notable.SetNewOccupation(role);
+            if (settlement != null) EnterSettlementAction.ApplyForCharacterOnly(notable, settlement);
+            successor.SetNewOccupation(successorRole);
+            successor.AddPower(successorPowerBefore - successor.Power);
+            if (settlement != null) EnterSettlementAction.ApplyForCharacterOnly(successor, settlement);
+            t.Note("restored(best-effort)");
+         }
+         catch (Exception ex) { t.Note($"restore skipped: {ex.GetType().Name}"); }
+
+         profile.ReputationWithPlayer = regardBefore;
+         behavior.Store.Set(profile);
 
          return t.Line();
       }

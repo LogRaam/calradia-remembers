@@ -414,6 +414,7 @@ namespace CalradiaRemembers.Mapping
             MediatablePeaceFactions = mediatablePeaceFactions,
             LordRecruitEligible = ResolveLordRecruitEligible(hero, profile),
             CanRecruitPrisoner = ResolveCanRecruitPrisoner(hero, profile, playerStatus),
+            CanRecruitNotable = ResolveCanRecruitNotable(hero, profile),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
             // One-shot and consumed on read, so ONLY resolve it on a real LLM turn, never on the dead
@@ -1531,6 +1532,31 @@ namespace CalradiaRemembers.Mapping
             bool notLeader = hero.Clan?.Leader != hero;
 
             return PrisonerRecruitmentPolicy.CanRecruit(true, !notLeader, profile?.ReputationWithPlayer ?? 0);
+         }
+         catch { return false; }
+      }
+
+      /// <summary>
+      ///   recruit_notable: true when this NPC is a settlement notable the player can persuade to leave their
+      ///   post and take service. The teaching-gate half of the shared <see cref="NotableRecruitmentPolicy" />
+      ///   decision the bridge re-runs before executing
+      ///   (<see cref="GameState.BannerlordGameStateBridge.ExecuteRecruitNotable" />). The successor fact is read
+      ///   from the SAME authority the executor uses
+      ///   (<see cref="GameState.BannerlordGameStateBridge.FindNotableSuccessor" />), so the offer never appears
+      ///   unless a real replacement exists for the town. Regard is the mod's own personal ledger, never the
+      ///   possibly-unsynced clan relation. Never taught to a lord, wanderer, prisoner or stranger.
+      /// </summary>
+      private static bool ResolveCanRecruitNotable(Hero hero, NpcProfile profile)
+      {
+         try
+         {
+            if (hero == null || !hero.IsNotable) return false;
+
+            bool hasSuccessor = BannerlordGameStateBridge.FindNotableSuccessor(hero) != null;
+
+            return NotableRecruitmentPolicy.CanRecruit(
+               hero.IsNotable, hero.IsAlive, hero.IsPrisoner,
+               hero.Clan == Clan.PlayerClan, profile?.ReputationWithPlayer ?? 0, hasSuccessor);
          }
          catch { return false; }
       }

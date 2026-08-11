@@ -249,6 +249,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteTurnNemesis(npcHero, context?.Profile);
             case "recruit_prisoner":
                return ExecuteRecruitPrisoner(npcHero, context?.Profile);
+            case "recruit_notable":
+               return ExecuteRecruitNotable(npcHero, context?.Profile);
             case "grant_blessing":
                return ExecuteGrantBlessing(action, npcHero);
 
@@ -3603,6 +3605,166 @@ namespace CalradiaRemembers.GameState
          Clan captorClan = captor.LeaderHero?.Clan ?? captor.Settlement?.OwnerClan;
 
          return captorClan != null && captorClan == Clan.PlayerClan;
+      }
+
+      /// <summary>
+      ///   recruit_notable: a settlement NOTABLE (a town gang leader, headman, merchant, artisan, rural notable
+      ///   or preacher) has been persuaded, in conversation, to leave their post and swear into the player's
+      ///   clan as a COMPANION. Two author calls are honoured here: (1) the notable BEQUEATHS their gang/role to
+      ///   one of their own people in the SAME settlement, who is promoted so the town keeps a notable of that
+      ///   kind (never left vacant); (2) a starting RELATION BONUS is applied to represent the standing the
+      ///   notable brings from their gang. The prompt is advice, the bridge is law: the shared gate
+      ///   (<see cref="NotableRecruitmentPolicy" />) is re-run on LIVE facts (is a notable, alive, free, not
+      ///   already the player's, deep regard, and a real successor exists), and a refusal changes nothing.
+      ///   ORDERING (all-or-nothing as far as practical): the succession is attempted FIRST and must succeed
+      ///   before the notable joins, so a failed succession never leaves the recruit half-joined; only once the
+      ///   town has its replacement notable is the departing hero converted to a companion (occupation set to
+      ///   Wanderer so they read as a companion, not a notable, then <see cref="AddCompanionAction" /> +
+      ///   <see cref="AddHeroToPartyAction" />, which also removes them from the settlement's notable list).
+      ///
+      ///   LIMITS (documented): the successor is an EXISTING hero of the same settlement (a non-notable commoner
+      ///   when one is present, so no other post is disturbed; otherwise a fellow notable, whose own former
+      ///   specialty the engine's periodic notable spawn refills over time). A gang leader's alleys and any open
+      ///   issue are transferred to the successor; individual gang-member rosters are not modelled by the engine
+      ///   as heroes, so "the gang" is represented by the alleys, the role, and the standing (Power) that pass
+      ///   to the successor.
+      /// </summary>
+      private static ActionOutcome ExecuteRecruitNotable(Hero npcHero, NpcProfile profile)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            var playerClan = Clan.PlayerClan;
+
+            if (playerClan == null) return null;
+
+            NpcProfile p = profile ?? NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
+            int regard = p?.ReputationWithPlayer ?? 0;
+
+            Settlement settlement = npcHero.CurrentSettlement;
+            Hero successor = FindNotableSuccessor(npcHero);
+
+            switch (NotableRecruitmentPolicy.Evaluate(
+                       npcHero.IsNotable, npcHero.IsAlive, npcHero.IsPrisoner,
+                       npcHero.Clan == playerClan, regard, successor != null))
+            {
+               case NotableRecruitmentBlock.NotANotable:
+                  return ActionOutcome.Refused(
+                     $"({npcHero.Name} is not a settlement notable, and cannot hand over a post they do not hold.)");
+               case NotableRecruitmentBlock.NotAlive:
+                  return null;
+               case NotableRecruitmentBlock.IsPrisoner:
+                  return ActionOutcome.Refused(
+                     $"({npcHero.Name} is a captive; a prisoner cannot bequeath a post and walk free to your side.)");
+               case NotableRecruitmentBlock.AlreadyPlayerClan:
+                  return ActionOutcome.Refused($"({npcHero.Name} already rides with your clan.)");
+               case NotableRecruitmentBlock.NoEligibleSuccessor:
+                  return ActionOutcome.Refused(
+                     $"({npcHero.Name} will not leave their people leaderless; there is no one here to take up the gang after them.)");
+               case NotableRecruitmentBlock.RegardTooLow:
+                  return ActionOutcome.Refused(
+                     $"({npcHero.Name} does not esteem you nearly enough to give up their standing and follow you. Earn their deep trust first.)");
+            }
+
+            Occupation role = npcHero.Occupation;
+
+            // Succession FIRST: if the role cannot be handed on, the recruit does NOT join (no half-join).
+            if (!TryBequeathNotableRole(npcHero, successor, settlement, role))
+               return ActionOutcome.Refused(
+                  $"({npcHero.Name} would not leave until their people were provided for, and that could not be arranged.)");
+
+            // Now convert the departing notable and bring them in. Occupation to Wanderer so they read as a
+            // companion, not a lingering notable; AddHeroToPartyAction nulls StayingInSettlement, which drops
+            // them from the settlement's notable cache.
+            npcHero.SetNewOccupation(Occupation.Wanderer);
+            AddCompanionAction.Apply(playerClan, npcHero);
+            if (MobileParty.MainParty != null) AddHeroToPartyAction.Apply(npcHero, MobileParty.MainParty);
+
+            // The standing the notable brings from their gang: they arrive an ally, not a stranger.
+            ChangeRelationAction.ApplyPlayerRelation(npcHero, NotableRecruitmentPolicy.StartingRelationBonus, false, false);
+
+            ModLog.Info(
+               $"[ACTION] recruit_notable: {npcHero.Name} left their post in {settlement?.Name?.ToString() ?? "?"} " +
+               $"(role {role} -> {successor.Name}) and joined the player's clan + party; starting relation +{NotableRecruitmentPolicy.StartingRelationBonus}.");
+
+            return new ActionOutcome(
+               $"{npcHero.Name} hands the gang to {successor.Name} and takes service in your clan, riding at your side.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] recruit_notable failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Picks a plausible successor for a departing notable: an EXISTING hero staying in the SAME settlement
+      ///   (one of their own people) who is free to take up the role. Prefers a non-notable commoner (a clean
+      ///   promotion that leaves no other post disturbed); failing that, the strongest fellow notable. Null when
+      ///   nobody in the settlement can inherit, which is the <see cref="NotableRecruitmentPolicy" />'s
+      ///   no-successor refusal. Public so the teaching gate (<see cref="Mapping.EncounterContextBuilder" />)
+      ///   and this executor share ONE succession decision and cannot drift.
+      /// </summary>
+      public static Hero FindNotableSuccessor(Hero departing)
+      {
+         Settlement settlement = departing?.CurrentSettlement;
+
+         if (settlement == null) return null;
+
+         bool Eligible(Hero h)
+            => h != null && h != departing && h != Hero.MainHero && h.IsAlive && !h.IsChild && !h.IsPrisoner
+               && !h.IsPlayerCompanion && h.Clan != Clan.PlayerClan && !h.IsLord && h.PartyBelongedTo == null;
+
+         List<Hero> pool = settlement.HeroesWithoutParty.Where(Eligible).ToList();
+
+         if (pool.Count == 0) return null;
+
+         Hero commoner = pool.Where(h => !h.IsNotable).OrderByDescending(h => h.Power).FirstOrDefault();
+
+         return commoner ?? pool.Where(h => h.IsNotable).OrderByDescending(h => h.Power).FirstOrDefault();
+      }
+
+      /// <summary>
+      ///   Hands the departing notable's role to the chosen successor, mirroring the engine's own death-succession
+      ///   (<c>NotablesCampaignBehavior.ChangeDeadNotable</c>): the gang leader's alleys and any open issue pass
+      ///   to the successor, then the successor is promoted into the vacated role and (re)seated as a notable of
+      ///   the settlement so the town keeps a notable of that kind. Returns true only when the succession is
+      ///   verifiably in place (the successor is a notable and now listed among the settlement's notables), which
+      ///   is the guarantee the executor requires before it lets the departing notable leave. Any failure is
+      ///   caught and reported as false, so the recruit is refused rather than left half-joined.
+      /// </summary>
+      private static bool TryBequeathNotableRole(Hero departing, Hero successor, Settlement settlement, Occupation role)
+      {
+         if (successor == null || settlement == null) return false;
+
+         try
+         {
+            // The gang's holdings: a gang leader owns alleys. SetOwner maintains both heroes' alley lists.
+            if (departing.OwnedAlleys != null)
+               foreach (Alley alley in departing.OwnedAlleys.ToList())
+                  alley.SetOwner(successor);
+
+            // Any open issue the notable was hosting moves to the successor (same as ChangeDeadNotable).
+            if (departing.Issue != null)
+               Campaign.Current?.IssueManager?.ChangeIssueOwner(departing.Issue, successor);
+
+            // Promote + reseat: null then re-enter forces the settlement's notable cache to recompute with the
+            // successor's new (notable) occupation, whether or not they were already a notable.
+            successor.StayingInSettlement = null;
+            successor.SetNewOccupation(role);
+            if (successor.Power < departing.Power) successor.AddPower(departing.Power - successor.Power);
+            EnterSettlementAction.ApplyForCharacterOnly(successor, settlement);
+
+            return successor.IsNotable && settlement.Notables.Contains(successor);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] recruit_notable succession failed: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
       }
 
       private static ItemRosterElement FindItemInRoster(string itemName)
