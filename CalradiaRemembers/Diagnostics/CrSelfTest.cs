@@ -141,6 +141,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("war_council_offer", Severity.Light, "Mechanical: the war-council OFFER trigger's arm + policy + persisted-cooldown decision (WarCouncilOfferBehavior.DebugWouldOffer), WITHOUT opening the council UI. Arms the flag and asserts a notable action while leading an army WOULD offer, that not-in-army / non-notable / disarmed all refuse, and that stamping an offer today blocks a fresh one (cooldown) while a stale stamp clears it. Restores the flag + the persisted last-offer day", TestWarCouncilOffer),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
          new SelfTest("retainer_spike", Severity.Heavy, "FEASIBILITY SPIKE: take a real OTHER-CLAN, partyless lord/lady into MobileParty.MainParty via AddHeroToPartyAction, assert (a) they are in the main member roster and (b) their Hero.Clan is UNCHANGED (still their own, NOT the player clan) with occupation still Lord; drive one RunDailyObservation (this behavior's daily handler) and assert they SURVIVED it at peace (reports honestly - this drives only the mod's own daily seam, not vanilla's full party-spawn tick); assert the pure RetainerLeavePolicy forces a leave on war; then release and assert they left the roster and are partyless again. Restores all borrowed state; skips MANUAL when no partyless other-clan lord exists (a party-leading lord's own party would be disbanded, which is not cleanly reversible in a live campaign)", TestRetainerSpike),
+         new SelfTest("ride_with_me", Severity.Heavy, "the PLAYER-FACING ride_with_me / part_ways path through the REAL bridge (not the raw mechanism the retainer_spike test drives): (e) while RetainerBehavior.Enabled is OFF the verb REFUSES and takes no one; (a) enabled, an idle at-peace other-clan lord ends up in MainParty.MemberRoster with Hero.Clan UNCHANGED (not the player clan); (b) a party-LEADING lord is REFUSED (that is follow_me's job) with their own party intact, proving the two verbs are mutually exclusive on the leads-a-party fact; (c) part_ways removes them (out of the roster, partyless, untracked); (d) the pure RetainerLeavePolicy forces a leave on war. Restores regard + the feature switch in a finally; skips MANUAL when no partyless at-peace other-clan lord exists to borrow", TestRideWithMe),
          new SelfTest("reasoning_scrub", Severity.Light, "Mechanical: the inline <think> leak (tthheerroocckk, nemotron on High reasoning). The save/load itself is STUBBED: corrupted memories are written straight into the store as an old save would carry them (a trace before real prose, a memory that is ONLY a truncated trace, a corrupted background paragraph) -> the REAL session-launch scrub runs -> assert the prose is recovered, the all-trace memory becomes the honest 'faded' line (never invented content), the background returns to null, and a second pass is a no-op. Removes its seeds afterwards", TestReasoningScrub),
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
@@ -6751,8 +6752,8 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("retainer_spike");
 
-         RetainerSpikeBehavior spike = RetainerSpikeBehavior.Instance;
-         if (t.Abort(spike == null || MobileParty.MainParty == null, "the retainer spike behavior or the player's party is not available")) return t.Line();
+         RetainerBehavior spike = RetainerBehavior.Instance;
+         if (t.Abort(spike == null || MobileParty.MainParty == null, "the retainer behavior or the player's party is not available")) return t.Line();
 
          // The pure rule the spike hangs on, asserted directly (it is also unit-tested in the Logic project): a war
          // with the retainer's faction MUST force a leave, and peace must not.
@@ -6818,6 +6819,124 @@ namespace CalradiaRemembers.Diagnostics
          {
             spike.TryRelease(lord, out string _);
             t.Note($"(restored: released the still-tracked borrowed lord {lord.Name})");
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The PLAYER-FACING ride_with_me / part_ways path, driven through the REAL BannerlordGameStateBridge so
+      ///   the switch wiring, the Enabled gate, the RideWithMeEligibilityPolicy re-check and the take/release are
+      ///   all exercised (the retainer_spike test above drives only the raw TryTake/TryRelease mechanism). Proves
+      ///   the five things the feature must guarantee: (e) while disabled the verb refuses and takes no one; (a)
+      ///   enabled, an idle other-clan lord ends up in MainParty.MemberRoster with Hero.Clan UNCHANGED; (b) a
+      ///   party-LEADING lord is REFUSED (that is follow_me's job) so the two verbs are mutually exclusive and a
+      ///   lord's command is never orphaned; (c) part_ways removes them; (d) the pure war-leave rule holds. Borrows
+      ///   only reversible state (a partyless lord for the take; a party-leader is only ever refused, never taken)
+      ///   and restores regard + the feature switch in a finally. Skips MANUAL when no partyless other-clan lord
+      ///   exists to borrow.
+      /// </summary>
+      private static string TestRideWithMe(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("ride_with_me");
+
+         RetainerBehavior retainer = RetainerBehavior.Instance;
+         if (t.Abort(retainer == null || MobileParty.MainParty == null || behavior?.GameStateBridge == null,
+                "the retainer behavior, the player's party, or the bridge is not available")) return t.Line();
+
+         // (d) the pure rule the whole arrangement hangs on, asserted directly (also unit-tested in Logic): a war
+         // with the retainer's faction MUST force a leave.
+         t.Expect("policyForcesLeaveOnWar", RetainerLeavePolicy.MustLeave(true, true, true), true);
+
+         // Borrow an idle (partyless) other-clan lord AT PEACE with the player: taking one never disbands a party,
+         // and peace means ride_with_me will actually be honoured rather than refused on the war guard.
+         Hero idle = Hero.AllAliveHeroes.FirstOrDefault(
+            h => h != Hero.MainHero && h.IsAlive && h.IsLord && !h.IsPrisoner
+                 && h.Clan != null && h.Clan != Clan.PlayerClan
+                 && h.PartyBelongedTo == null && !retainer.IsRetainer(h.StringId)
+                 && !(h.MapFaction != null && Hero.MainHero?.MapFaction != null
+                      && FactionManager.IsAtWarAgainstFaction(h.MapFaction, Hero.MainHero.MapFaction)));
+
+         if (t.Skip(idle == null, "no partyless, at-peace other-clan lord exists to borrow without disbanding a live party")) return t.Line();
+
+         // A party-LEADING other-clan lord for the mutual-exclusivity half. They are only ever REFUSED here, so
+         // their party is never disbanded and nothing about them needs restoring beyond their forced regard.
+         Hero leader = Hero.AllAliveHeroes.FirstOrDefault(
+            h => h != Hero.MainHero && h != idle && h.IsAlive && h.IsLord && !h.IsPrisoner
+                 && h.Clan != null && h.Clan != Clan.PlayerClan
+                 && h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h);
+
+         NpcProfile idleProfile = GetOrCreate(behavior, idle);
+         int originalRegard = idleProfile.ReputationWithPlayer;
+         idleProfile.ReputationWithPlayer = RideWithMeEligibilityPolicy.RegardFloor + 10;
+         behavior.Store.Set(idleProfile);
+
+         Clan originalClan = idle.Clan;
+         bool originalEnabled = RetainerBehavior.Enabled;
+
+         try
+         {
+            // (e) DISABLED: the bridge must refuse and conscript no one, so an emission on a build with the path
+            // off never silently drops a foreign lord into the player's roster.
+            RetainerBehavior.Enabled = false;
+            ActionOutcome disabled = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "ride_with_me"}, idle, new ActionContext(idleProfile, null));
+            t.Expect("disabledIsRefused", disabled?.WasRefused, true);
+            t.Expect("disabledTookNoOne", retainer.IsRetainer(idle.StringId), false);
+
+            RetainerBehavior.Enabled = true;
+
+            // (a) idle other-clan lord, enabled -> ride_with_me puts them in the roster, clan UNCHANGED.
+            ActionOutcome took = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "ride_with_me"}, idle, new ActionContext(idleProfile, null));
+            t.Note($"take: {took?.Message}");
+            t.Expect("takeWasNotRefused", took?.WasRefused, false);
+            t.Expect("theyAreInTheMainPartyRoster", MobileParty.MainParty.MemberRoster.Contains(idle.CharacterObject), true);
+            t.Expect("theyAreTrackedAsRetainer", retainer.IsRetainer(idle.StringId), true);
+            t.Expect("theirClanIsUnchanged", idle.Clan == originalClan, true);
+            t.Expect("theirClanIsNOTThePlayerClan", idle.Clan == Clan.PlayerClan, false);
+
+            // (b) mutual exclusivity: a party-LEADING lord is REFUSED (follow_me's case), never taken, party intact.
+            if (leader != null)
+            {
+               NpcProfile leaderProfile = GetOrCreate(behavior, leader);
+               int leaderOriginalRegard = leaderProfile.ReputationWithPlayer;
+               leaderProfile.ReputationWithPlayer = RideWithMeEligibilityPolicy.RegardFloor + 10;
+               behavior.Store.Set(leaderProfile);
+               MobileParty leaderParty = leader.PartyBelongedTo;
+
+               ActionOutcome refusedLeader = behavior.GameStateBridge.ExecuteAction(
+                  new GameAction {Type = "ride_with_me"}, leader, new ActionContext(leaderProfile, null));
+               t.Expect("partyLeaderIsRefused", refusedLeader?.WasRefused, true);
+               t.Expect("partyLeaderWasNotTaken", retainer.IsRetainer(leader.StringId), false);
+               t.Expect("partyLeadersOwnPartySurvived", leader.PartyBelongedTo == leaderParty && leaderParty != null && leaderParty.IsActive, true);
+
+               leaderProfile.ReputationWithPlayer = leaderOriginalRegard;
+               behavior.Store.Set(leaderProfile);
+            }
+            else
+            {
+               t.Note("(no party-leading other-clan lord to prove mutual exclusivity against; skipped that half)");
+            }
+
+            // (c) part_ways removes them: out of the roster, partyless, no longer tracked.
+            ActionOutcome parted = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "part_ways"}, idle, new ActionContext(idleProfile, null));
+            t.Note($"part_ways: {parted?.Message}");
+            t.Expect("partWaysWasNotRefused", parted?.WasRefused, false);
+            t.Expect("theyLeftTheMainPartyRoster", MobileParty.MainParty.MemberRoster.Contains(idle.CharacterObject), false);
+            t.Expect("theyArePartylessAgain", idle.PartyBelongedTo == null, true);
+            t.Expect("theyAreNoLongerTracked", retainer.IsRetainer(idle.StringId), false);
+            t.Expect("theirClanSurvivedTheWholeRound", idle.Clan == originalClan, true);
+         }
+         finally
+         {
+            // Restore every borrowed piece of state whichever assertion bailed: release if still tracked, put the
+            // regard back, and return the feature switch to how it was found (default off).
+            if (retainer.IsRetainer(idle.StringId)) retainer.TryRelease(idle, out string _);
+            idleProfile.ReputationWithPlayer = originalRegard;
+            behavior.Store.Set(idleProfile);
+            RetainerBehavior.Enabled = originalEnabled;
          }
 
          return t.Line();

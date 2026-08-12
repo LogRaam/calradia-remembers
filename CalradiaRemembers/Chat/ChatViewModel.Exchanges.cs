@@ -519,6 +519,8 @@ namespace CalradiaRemembers.Chat
                VassalOffered = !string.IsNullOrWhiteSpace(context.VassalOfferKingdom),
                NpcCanEscortPlayer = context.NpcCanEscortPlayer,
                NpcIsEscortingPlayer = context.NpcIsEscortingPlayer,
+               NpcCanRideWithPlayer = context.NpcCanRideWithPlayer,
+               NpcIsRidingWithPlayer = context.NpcIsRidingWithPlayer,
                LordRecruitEligible = context.LordRecruitEligible,
                CompanionOnErrand = context.CompanionOnErrand,
                ConsortEligible = context.ConsortEligible,

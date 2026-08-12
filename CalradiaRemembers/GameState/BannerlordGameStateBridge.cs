@@ -23,6 +23,7 @@ using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
+using CalradiaRemembers.Retainer;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.Verbs;
@@ -288,6 +289,10 @@ namespace CalradiaRemembers.GameState
                return ExecuteFollowMe(npcHero);
             case "dismiss_escort":
                return ExecuteDismissEscort(npcHero);
+            case "ride_with_me":
+               return ExecuteRideWithMe(npcHero, context?.Profile);
+            case "part_ways":
+               return ExecutePartWays(npcHero);
             // give_influence, lend_troops, sway_opinion, release_prisoner: migrated to the
             // IConversationVerb contract (CalradiaRemembers.Verbs): VerbRegistry routes by Name,
             // reusing the same CourtActionResolver/CourtActionPolicy eligibility and math as before.
@@ -3046,6 +3051,106 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] dismiss_escort failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   ride_with_me: the idle-lord complement of follow_me. A lord/lady WITHOUT a field party of their own has
+      ///   agreed, in conversation, to ride IN the player's OWN party for a time, keeping their OWN clan (no
+      ///   marriage, no clan-join), for whatever reason the scene gave. Only taught when the game confirms it (see
+      ///   EncounterContextBuilder's RideWithMeEligibilityPolicy.CanRideWithPlayer check, mirrored here) AND only
+      ///   while the path is enabled; every guard is re-checked before the take: the prompt is advice, the bridge
+      ///   is law. The leadsParty re-check is what keeps ride_with_me and follow_me mutually exclusive, so a
+      ///   party-leader is refused here (that is follow_me's job) and their command is never orphaned.
+      /// </summary>
+      private static ActionOutcome ExecuteRideWithMe(Hero npcHero, NpcProfile profile)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            // Gate: while the player-facing path is off it is never taught, so an emission here means the model
+            // invented it. Refuse plainly rather than silently letting the narration stand.
+            if (!RetainerBehavior.Enabled)
+               return ActionOutcome.Refused($"({npcHero.Name} cannot ride in your party right now.)");
+
+            RetainerBehavior behavior = RetainerBehavior.Instance;
+
+            if (behavior == null) return null;
+
+            NpcProfile p = profile ?? NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
+            int regard = p?.ReputationWithPlayer ?? 0;
+            MobileParty party = npcHero.PartyBelongedTo;
+            bool leadsParty = party != null && party.LeaderHero == npcHero;
+            bool atWar = npcHero.MapFaction != null && Hero.MainHero.MapFaction != null &&
+                         FactionManager.IsAtWarAgainstFaction(npcHero.MapFaction, Hero.MainHero.MapFaction);
+
+            if (!RideWithMeEligibilityPolicy.CanRideWithPlayer(
+                   isLord: npcHero.IsLord,
+                   isAlive: npcHero.IsAlive,
+                   isPrisoner: npcHero.IsPrisoner,
+                   leadsParty: leadsParty,
+                   isPlayerClan: npcHero.Clan == Clan.PlayerClan,
+                   atWar: atWar,
+                   alreadyRiding: behavior.IsRetainer(npcHero.StringId),
+                   regard: regard))
+            {
+               // The one refusal worth naming precisely: a lord who leads their own party belongs to follow_me,
+               // not this verb. Every other block is a plain "not right now" so the model never narrates it done.
+               if (leadsParty)
+                  return ActionOutcome.Refused(
+                     $"({npcHero.Name} leads their own party; they would ride ALONGSIDE you with follow_me, not inside your party.)");
+
+               return ActionOutcome.Refused($"({npcHero.Name} will not ride in your party right now.)");
+            }
+
+            // Reuse the proven spike take: AddHeroToPartyAction into MobileParty.MainParty, Hero.Clan untouched,
+            // tracked for the war/death/part_ways end conditions. No starting relation nudge is applied: unlike a
+            // permanent clan-join (recruit_notable/recruit_prisoner), this is a temporary, clan-preserving
+            // arrangement and the close-friend regard was already earned, so there is nothing new to represent.
+            if (!behavior.TryTake(npcHero, out string report))
+               return ActionOutcome.Refused($"({npcHero.Name} cannot ride in your party right now: {report})");
+
+            ModLog.Info($"[ACTION] ride_with_me: {npcHero.Name} joins the player's party as a retainer.");
+
+            return new ActionOutcome($"{npcHero.Name} rides at your side for a time, still of their own house.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] ride_with_me failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   part_ways: the MIRROR of ride_with_me, the player (or the retainer themselves) ends the arrangement and
+      ///   the lord returns to their own clan and business. Only taught while THIS NPC is genuinely riding as a
+      ///   retainer (EncounterContext.NpcIsRidingWithPlayer), but re-checked here regardless: TryRelease refuses
+      ///   when they are not tracked.
+      /// </summary>
+      private static ActionOutcome ExecutePartWays(Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null) return null;
+
+            RetainerBehavior behavior = RetainerBehavior.Instance;
+
+            if (behavior == null) return null;
+
+            if (!behavior.TryRelease(npcHero, out string report))
+               return ActionOutcome.Refused($"({npcHero.Name} is not riding in your party: {report})");
+
+            ModLog.Info($"[ACTION] part_ways: {npcHero.Name} leaves the player's party.");
+
+            return new ActionOutcome($"{npcHero.Name} takes their leave and returns to their own affairs.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] part_ways failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

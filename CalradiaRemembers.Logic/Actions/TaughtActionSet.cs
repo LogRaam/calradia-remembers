@@ -58,6 +58,13 @@ namespace CalradiaRemembers.Logic.Actions
 
       public bool NpcCanEscortPlayer;
       public bool NpcIsEscortingPlayer;
+
+      /// <summary>NpcCanRideWithPlayer is set: the idle-lord retainer offer, ride_with_me is taught.</summary>
+      public bool NpcCanRideWithPlayer;
+
+      /// <summary>NpcIsRidingWithPlayer is set: this NPC currently rides as a retainer, part_ways is taught.</summary>
+      public bool NpcIsRidingWithPlayer;
+
       public bool LordRecruitEligible;
       public bool CompanionOnErrand;
 
@@ -199,6 +206,8 @@ namespace CalradiaRemembers.Logic.Actions
          if (facts.VassalOffered) set.Add("join_as_vassal");
          if (facts.NpcCanEscortPlayer) set.Add("follow_me");
          if (facts.NpcIsEscortingPlayer) set.Add("dismiss_escort");
+         if (facts.NpcCanRideWithPlayer) set.Add("ride_with_me");
+         if (facts.NpcIsRidingWithPlayer) set.Add("part_ways");
          if (facts.LordRecruitEligible) set.Add("join_clan");
          if (facts.CompanionOnErrand) set.Add("recall_companion");
 

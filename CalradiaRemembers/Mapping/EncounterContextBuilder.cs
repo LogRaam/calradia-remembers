@@ -28,6 +28,7 @@ using CalradiaRemembers.Styles;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
+using CalradiaRemembers.Retainer;
 using CalradiaRemembers.Social;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Verbs;
@@ -154,6 +155,14 @@ namespace CalradiaRemembers.Mapping
          // shared gate FollowMeBehavior.TryStart re-checks at commit time, so the two can never quietly diverge.
          bool npcIsEscortingPlayer = ResolveNpcIsEscortingPlayer(hero);
          bool npcCanEscortPlayer = ResolveNpcCanEscortPlayer(hero, npcIsEscortingPlayer);
+
+         // ride_with_me / part_ways: the idle-lord complement of follow_me, gated behind RetainerBehavior.Enabled
+         // (default OFF) so neither the teaching nor the executor lights up until the party-screen feel is
+         // validated in-game. RideWithMeEligibilityPolicy.CanRideWithPlayer is the ONE shared gate the bridge
+         // re-checks at commit time, and it is the exact complement of EscortEligibilityPolicy (inverted on the
+         // leads-a-party fact), so a hero is ever offered follow_me OR ride_with_me, never both.
+         bool npcIsRidingWithPlayer = ResolveNpcIsRidingWithPlayer(hero);
+         bool npcCanRideWithPlayer = ResolveNpcCanRideWithPlayer(hero, profile, npcIsRidingWithPlayer);
 
          // appoint_governor (2026-08-05, the reference personal-command verb): the 1:1 teaching gate, the same
          // "prompt is advice, bridge is law" conditional-teaching contract as the escort/duel offers above. The
@@ -383,6 +392,12 @@ namespace CalradiaRemembers.Mapping
             // taught only while THIS lord's own party is genuinely escorting the player.
             NpcCanEscortPlayer = npcCanEscortPlayer,
             NpcIsEscortingPlayer = npcIsEscortingPlayer,
+            // ride_with_me / part_ways: the idle-lord complement of follow_me, taught only when
+            // RideWithMeEligibilityPolicy says the game can honour it right now AND RetainerBehavior.Enabled is on
+            // (see the computation just above the object initializer). part_ways is the mirror, taught only while
+            // THIS lord is genuinely riding in the player's party as a retainer.
+            NpcCanRideWithPlayer = npcCanRideWithPlayer,
+            NpcIsRidingWithPlayer = npcIsRidingWithPlayer,
             // appoint_governor: the 1:1 teaching gate + the vacant-fief grounding (see the computation just above
             // the initializer). PromptBuilder also suppresses this on a council/round-table turn, where the
             // [RESOLUTION] channel owns appoint_governor instead, and in a captive scene.
@@ -1723,6 +1738,42 @@ namespace CalradiaRemembers.Mapping
       /// <summary>True while THIS lord's own party is genuinely escorting the player right now (drives dismiss_escort).</summary>
       private static bool ResolveNpcIsEscortingPlayer(Hero hero)
          => hero != null && FollowMeBehavior.Instance != null && FollowMeBehavior.Instance.IsEscorting(hero.StringId);
+
+      /// <summary>
+      ///   ride_with_me's conditional-teaching gate: the exact complement of
+      ///   <see cref="ResolveNpcCanEscortPlayer" />, re-running the shared
+      ///   <see cref="RideWithMeEligibilityPolicy.CanRideWithPlayer" /> guard the bridge re-checks at commit time.
+      ///   Returns false unconditionally while the feature is disabled, so an other-clan lord riding in the
+      ///   player's roster is never even taught until the author switches the path on with cr.retainer enable on.
+      /// </summary>
+      private static bool ResolveNpcCanRideWithPlayer(Hero hero, NpcProfile profile, bool alreadyRiding)
+      {
+         if (!RetainerBehavior.Enabled) return false;
+         if (hero == null) return false;
+
+         MobileParty party = hero.PartyBelongedTo;
+         bool leadsParty = party != null && party.LeaderHero == hero;
+         bool atWar = hero.MapFaction != null && Hero.MainHero?.MapFaction != null &&
+                      FactionManager.IsAtWarAgainstFaction(hero.MapFaction, Hero.MainHero.MapFaction);
+
+         return RideWithMeEligibilityPolicy.CanRideWithPlayer(
+            isLord: hero.IsLord,
+            isAlive: hero.IsAlive,
+            isPrisoner: hero.IsPrisoner,
+            leadsParty: leadsParty,
+            isPlayerClan: hero.Clan == Clan.PlayerClan,
+            atWar: atWar,
+            alreadyRiding: alreadyRiding,
+            regard: profile?.ReputationWithPlayer ?? 0);
+      }
+
+      /// <summary>
+      ///   True while THIS lord is genuinely riding in the player's party as a retainer right now (drives
+      ///   part_ways). Also gated behind the feature switch so the parting offer never appears while disabled.
+      /// </summary>
+      private static bool ResolveNpcIsRidingWithPlayer(Hero hero)
+         => RetainerBehavior.Enabled && hero != null && RetainerBehavior.Instance != null
+            && RetainerBehavior.Instance.IsRetainer(hero.StringId);
 
       /// <summary>
       ///   Builds a prompt note listing the native/vanilla quests THIS NPC gave the player that are still

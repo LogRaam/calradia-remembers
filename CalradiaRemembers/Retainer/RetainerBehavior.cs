@@ -1,8 +1,15 @@
 // Code written by Gabriel Mailhot, 11/08/2026.
-// RETAINER FEASIBILITY SPIKE (console-gated, NOT a player feature). Question: can a lord/lady of ANOTHER clan
-// ride IN the player's own party for a time, WITHOUT marriage and WITHOUT joining the player's clan, staying
-// affiliated to their OWN clan, and break off cleanly (the author's rule: a war with their faction forces them
-// to leave)? This behavior is the minimal mechanism plus the observation seam that answers it honestly.
+// RETAINER (the idle-lord half of "a lord accompanies you", the complement of the follow_me escort). A lord/lady
+// of ANOTHER clan rides IN the player's own party for a time, WITHOUT marriage and WITHOUT joining the player's
+// clan, staying affiliated to their OWN clan, and breaks off cleanly (the author's rule: a war with their faction
+// forces them to leave). This behavior is the persisted mechanism plus the observation/safety seam behind the
+// player-facing ride_with_me / part_ways verbs (BannerlordGameStateBridge.ExecuteRideWithMe / ExecutePartWays).
+//
+// GATED OFF by default (<see cref="Enabled" />, default false): an other-clan lord sitting in the player's
+// roster is an unusual state whose party-screen/UI feel is not yet validated in-game. While disabled, the verbs
+// are neither taught (EncounterContextBuilder never sets NpcCanRideWithPlayer) nor executed; the console probe
+// (cr.retainer) and the self-test still exercise the raw take/release mechanism regardless, so the mechanism can
+// be verified before the player-facing path is switched on with cr.retainer enable on.
 //
 // TAKE / RELEASE (decompile-confirmed against the shipped TaleWorlds.CampaignSystem.dll):
 //   * AddHeroToPartyAction.Apply(hero, MobileParty.MainParty) is the correct primitive: it removes the hero
@@ -42,16 +49,26 @@ using TaleWorlds.CampaignSystem.Party;
 
 namespace CalradiaRemembers.Retainer
 {
-    /// <summary>Console-gated spike: tracks foreign lords riding IN the player's party, observes them daily, and releases on war.</summary>
-    public sealed class RetainerSpikeBehavior : CampaignBehaviorBase
+    /// <summary>Tracks foreign lords riding IN the player's party (the ride_with_me retainer), observes them daily, and releases on war.</summary>
+    public sealed class RetainerBehavior : CampaignBehaviorBase
     {
         private const string SaveKey = "CalradiaRemembers_Retainers_v1bytes";
 
-        public static RetainerSpikeBehavior Instance;
+        /// <summary>
+        ///   Master switch for the whole ride_with_me / part_ways player-facing path, DEFAULT false. When off, the
+        ///   verb is neither taught (EncounterContextBuilder leaves NpcCanRideWithPlayer/NpcIsRidingWithPlayer
+        ///   false) nor executed by the bridge; the raw take/release mechanism the console and self-test drive is
+        ///   deliberately NOT gated by this, so the mechanism stays verifiable while the player path is held back
+        ///   pending the author's in-game party-screen/UI check. Toggled via cr.retainer enable [on|off]. A plain
+        ///   static (not persisted): an unusual, experimental path defaults off on every boot until switched on.
+        /// </summary>
+        public static bool Enabled;
+
+        public static RetainerBehavior Instance;
 
         private List<string> _retainerIds = new List<string>();
 
-        public RetainerSpikeBehavior()
+        public RetainerBehavior()
         {
             Instance = this;
         }
@@ -289,7 +306,7 @@ namespace CalradiaRemembers.Retainer
         private void OnDailyTick()
         {
             // One retainer's observation throwing must not stall the rest, mirroring FollowMeBehavior.OnDailyTick.
-            SafeRun.Step("RetainerSpikeBehavior.RunDailyObservation", RunDailyObservation);
+            SafeRun.Step("RetainerBehavior.RunDailyObservation", RunDailyObservation);
         }
 
         /// <summary>
@@ -299,7 +316,7 @@ namespace CalradiaRemembers.Retainer
         /// </summary>
         private void OnSessionLaunched(CampaignGameStarter starter)
         {
-            SafeRun.Step("RetainerSpikeBehavior.OnSessionLaunched", () =>
+            SafeRun.Step("RetainerBehavior.OnSessionLaunched", () =>
             {
                 if (_retainerIds.Count == 0) return;
                 ModLog.Info($"[RETAINER] session launched with {_retainerIds.Count} tracked retainer(s); re-observing (roster persisted natively, no re-add needed).");
@@ -311,7 +328,7 @@ namespace CalradiaRemembers.Retainer
         {
             // A war anywhere may be the one that puts a retainer's faction against the player. Rather than reason
             // about which faction is which, re-run the same pure gate over every tracked retainer.
-            SafeRun.Step("RetainerSpikeBehavior.OnWarDeclared", RunDailyObservation);
+            SafeRun.Step("RetainerBehavior.OnWarDeclared", RunDailyObservation);
         }
 
         /// <summary>

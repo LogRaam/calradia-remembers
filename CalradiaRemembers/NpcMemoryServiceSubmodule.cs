@@ -299,12 +299,13 @@ namespace CalradiaRemembers
          // term, mirroring CouncilStipendBehavior/CouncilHostageBehavior's own SyncData shape. Always on, idle
          // (no active escorts) outside a conversation that actually strikes one.
          campaignStarter.AddBehavior(new FollowMeBehavior());
-         // Retainer feasibility SPIKE (console-gated, NOT a player feature): probes whether a lord/lady of ANOTHER
-         // clan can ride IN the player's own party (MobileParty.MainParty member roster) for a time WITHOUT marriage
-         // and WITHOUT joining the player's clan, staying affiliated to their OWN clan, and break off when their
-         // faction goes to war with the player. Additive, save-safe StringId track; every read guarded. Reachable
-         // only via cr.retainer [take|release|status] and the retainer_spike self-test; idle otherwise.
-         campaignStarter.AddBehavior(new CalradiaRemembers.Retainer.RetainerSpikeBehavior());
+         // Retainer (the idle-lord ride_with_me path, complement of the follow_me escort): a lord/lady of ANOTHER
+         // clan rides IN the player's own party (MobileParty.MainParty member roster) for a time WITHOUT marriage
+         // and WITHOUT joining the player's clan, staying affiliated to their OWN clan, and breaks off when their
+         // faction goes to war with the player. Additive, save-safe StringId track; every read guarded. The
+         // player-facing verb is GATED OFF by default (RetainerBehavior.Enabled) pending an in-game UI check; the
+         // console cr.retainer and the self-test drive the raw mechanism regardless. Idle otherwise.
+         campaignStarter.AddBehavior(new CalradiaRemembers.Retainer.RetainerBehavior());
          // War-council OFFER trigger (player suggestion): after the player's army forms or takes a considerable
          // action (settlement captured, notable battle won), offer to convene the already-built WarCouncil instead
          // of typing cr.council war. GATED OFF by default (WarCouncilOfferBehavior.Enabled) since the council window
