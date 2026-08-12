@@ -129,6 +129,13 @@ namespace CalradiaRemembers.Marriage
 
             npc.Spouse = null; // self-cleaning: nulls both sides, appends each to the other's ExSpouses
 
+            // "Marry your own companion", divorce half: a wanderer companion promoted to Lord to wed the player
+            // carries the player's own clan as their OriginClan (stamped by the engine's Clan setter at promotion),
+            // so ResolveLeavingSpouse saw no clan move and the relocation above never ran. Left as-is they would
+            // linger as a permanent Lord of the player's house; return them instead to the free-wanderer pool they
+            // were recruited from, alive and clanless, unless a structural post now pins them.
+            TryReturnExCompanionToWandererPool(npc, spouse);
+
             TryClearRomanticState(npc, spouse);
             ClearPlayerConsortFlag(npc, spouse);
 
@@ -250,6 +257,58 @@ namespace CalradiaRemembers.Marriage
       }
 
       #region private
+
+      /// <summary>
+      ///   "Marry your own companion", divorce half: when one of the divorcing pair is the player and the other
+      ///   is a promoted ex-companion (derived, not persisted: their OriginClan is the player's own clan or none
+      ///   at all, the signature a born noble never has), return that ex-companion to the free-wanderer pool they
+      ///   were recruited from (clanless, no longer a companion, <see cref="Occupation.Wanderer" />) instead of
+      ///   leaving them a permanent Lord of the player's house. Skipped when the game build hides
+      ///   <c>Hero.OriginClan</c> (the derivation cannot be trusted then) or when the ex-companion holds a
+      ///   structural post (a clan they lead, a party they command, a fief they govern): those are left in place,
+      ///   still a sane un-scattered state. Best-effort and fully guarded: the marriage has already legally ended
+      ///   by this point, this is only the ex-companion's landing state.
+      /// </summary>
+      private static void TryReturnExCompanionToWandererPool(Hero a, Hero b)
+      {
+         try
+         {
+            Hero player = Hero.MainHero;
+
+            if (player == null) return;
+
+            Hero other = a == player
+               ? b
+               : b == player
+                  ? a
+                  : null;
+
+            if (other == null) return; // NPC-NPC divorce: no player companion involved
+
+            // Derive ex-companion-ness from the origin house, and only when the build exposes it: a promoted
+            // companion's origin is the player's own clan (stamped at promotion) or none; a born noble's origin
+            // is their real birth house, so they are relocated the ordinary way instead.
+            Clan origin = HeroClanCompat.OriginClanOrNull(other);
+            bool originIsPlayerClanOrNone = HeroClanCompat.IsAvailable && (origin == null || origin == Clan.PlayerClan);
+
+            bool holdsStructuralRole = other.IsClanLeader
+               || (other.PartyBelongedTo != null && other.PartyBelongedTo.LeaderHero == other)
+               || other.GovernorOf != null;
+
+            if (!ExCompanionDivorcePolicy.ReturnsToWandererPool(true, false, originIsPlayerClanOrNone, holdsStructuralRole))
+               return;
+
+            other.CompanionOf = null; // defensive: already null since promotion nulled it
+            other.Clan = null;        // clanless free wanderer; _clan was the player's clan, origin is left as-is (harmless)
+            other.SetNewOccupation(Occupation.Wanderer);
+
+            ModLog.Info($"[DIVORCE] returned ex-companion {other.Name} to the free-wanderer pool (no birth house to relocate to).");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[DIVORCE] ex-companion wanderer-return failed (non-fatal): {ex.GetType().Name}: {ex.Message}");
+         }
+      }
 
       /// <summary>
       ///   Mirrors Hero.AfterLoad()'s own clan-restore ladder: the leaving spouse's OriginClan when

@@ -456,6 +456,11 @@ namespace CalradiaRemembers.Mapping
             MarriageBlockedBecause = ResolveMarriageBlockReason(hero, profile),
             LoveMatchReluctant = ResolveLoveMatchReluctant(hero, profile),
             LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
+            // "Marry your own companion": when the eligible partner is one of the player's OWN companions, the
+            // marriage teaching adds a line so the model knows the wedding turns them from a hired retainer into
+            // the player's spouse and a full member of the house (they must not narrate themselves still a mere
+            // companion afterward). Only meaningful when LoveMatchEligible is true.
+            PartnerIsOwnCompanion = MarryCompanionResolver.IsEligibleCompanionMatch(hero),
             NpcSpouseIsPlayer = hero?.Spouse == Hero.MainHero && Hero.MainHero != null,
             SpouseMarriedUnwillingly = ResolveSpouseMarriedUnwillingly(hero),
             ConsortEligible = ResolveConsortEligible(hero, profile),
@@ -1615,7 +1620,17 @@ namespace CalradiaRemembers.Mapping
       {
          if (hero == null || Hero.MainHero == null) return MarriageBlockReason.NotMarriageable;
          if (Hero.MainHero.Spouse != null) return MarriageBlockReason.PlayerAlreadyWed;
-         if (hero.Clan == Clan.PlayerClan) return MarriageBlockReason.SameClan;
+
+         // "Marry your own companion" carve-out (2026-08-11): the SameClan bar exists to forbid wedding blood
+         // KIN, and a hired wanderer companion who happens to share the clan banner is not the case that custom
+         // is about. So an ELIGIBLE non-kin companion (MarryCompanionResolver, the single authority the bridge's
+         // marry re-check shares) does NOT emit SameClan and falls through to the ordinary gates below; a genuine
+         // blood-kin clan member (a sibling, child, or parent in your house) still returns SameClan, so the one
+         // line the bar truly holds is untouched. MarriageBlockOverridePolicy's SameClan=HARD split is left as-is:
+         // this is a more specific path that stops the resolver EMITTING SameClan for a companion, not an override.
+         if (hero.Clan == Clan.PlayerClan && !MarryCompanionResolver.IsEligibleCompanionMatch(hero))
+            return MarriageBlockReason.SameClan;
+
          if (!MarriageProspectResolver.IsMarriageable(Hero.MainHero, hero)) return MarriageBlockReason.NotMarriageable;
 
          bool atWar = BannerlordGameStateBridge.IsAtWarWithPlayer(hero);

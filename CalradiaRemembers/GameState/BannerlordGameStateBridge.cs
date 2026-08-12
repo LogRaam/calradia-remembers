@@ -2826,7 +2826,14 @@ namespace CalradiaRemembers.GameState
                return ActionOutcome.Refused(
                   "(You are already wed — no second marriage can be sealed in law.)");
 
-            if (npcHero.Clan == Clan.PlayerClan)
+            // "Marry your own companion" carve-out (2026-08-11): the SameClan bar exists to forbid wedding blood
+            // kin, not a hired wanderer companion who shares the clan banner. An ELIGIBLE non-kin companion
+            // (the SAME MarryCompanionResolver authority the prompt's carve-out consulted) is allowed past this
+            // re-check and PROMOTED below before MarriageAction.Apply; a genuine blood-kin clan member is still
+            // refused here, so the one line the bar truly holds stays intact.
+            bool eligibleCompanionMatch = MarryCompanionResolver.IsEligibleCompanionMatch(npcHero);
+
+            if (npcHero.Clan == Clan.PlayerClan && !eligibleCompanionMatch)
                return ActionOutcome.Refused(
                   $"({npcHero.Name} belongs to your own clan — custom forbids it.)");
 
@@ -2857,7 +2864,31 @@ namespace CalradiaRemembers.GameState
                   $"({npcHero.Name} does not yet hold you dear enough to take this step, " +
                   "and no family blessing compels them to.)");
 
+            // "Marry your own companion": a wanderer companion is Occupation.Wanderer, which the engine's own
+            // Hero.CanMarry()/IsSuitableForMarriage refuses, so a raw MarriageAction.Apply would silently no-op.
+            // Promote them to Lord in the player's own clan first (decompile-verified recipe), refusing cleanly
+            // if the promotion cannot be honoured, so the union is never left half-sealed.
+            if (eligibleCompanionMatch && !TryPromoteCompanionForMarriage(npcHero, out string promotionRefusal))
+               return ActionOutcome.Refused(promotionRefusal);
+
             MarriageAction.Apply(player, npcHero);
+
+            // "Marry your own companion": assert the engine actually sealed the union and the ex-companion's
+            // state is coherent (a promoted Lord, no longer a companion, in the player's clan, wed to the player).
+            // If any of that failed, refuse cleanly rather than leave a half-married state; the promotion above is
+            // idempotent enough that a retry after the block clears is safe.
+            if (eligibleCompanionMatch && !(player.Spouse == npcHero
+                  && npcHero.Occupation == Occupation.Lord
+                  && npcHero.CompanionOf == null
+                  && npcHero.Clan == Clan.PlayerClan
+                  && !npcHero.IsPlayerCompanion))
+            {
+               ModLog.Error($"[ACTION] marry: companion {npcHero.Name} was promoted but the engine did not seal a coherent marriage "
+                          + $"(spouse={(player.Spouse == npcHero)}, occ={npcHero.Occupation}, companionOf={(npcHero.CompanionOf == null ? "null" : "set")}).");
+
+               return ActionOutcome.Refused(
+                  $"(The union with {npcHero.Name} could not be sealed cleanly and was not recorded.)");
+            }
 
             // The political match is sealed, and the bride's unwon heart takes shape as a real, visible,
             // RESOLVABLE grievance: it colours her prompt, shows on her encyclopedia page, tarnishes her
@@ -2897,6 +2928,70 @@ namespace CalradiaRemembers.GameState
             ModLog.Error($"[ACTION] marry failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
+         }
+      }
+
+      /// <summary>
+      ///   "Marry your own companion": promotes a wanderer companion out of <see cref="Occupation.Wanderer" />
+      ///   into <see cref="Occupation.Lord" /> in the player's own clan so the engine's
+      ///   <c>Hero.CanMarry()</c> / <c>IsSuitableForMarriage</c> will accept the union (a wanderer is refused;
+      ///   a raw <see cref="MarriageAction.Apply" /> on one silently no-ops). The recipe is decompile-verified
+      ///   (Bannerlord 1.3.15): set <c>Clan = PlayerClan</c> (the engine's <c>Clan</c> setter writes the backing
+      ///   <c>_clan</c>, and stamps <c>_originClan</c> to the player's clan too since a companion's <c>_clan</c>
+      ///   started null), null <c>CompanionOf</c>, then <c>SetNewOccupation(Lord)</c>. Because the couple then
+      ///   shares the player's clan, <c>GetClanAfterMarriage</c> returns the player's clan and
+      ///   <c>HandleClanChangeAfterMarriageForHero</c> never runs, so the companion stays in the party with no
+      ///   fugitive/roster side effect. Refuses cleanly (no mutation) when the engine precondition
+      ///   <c>PartyBelongedTo?.Army == null</c> is not met: a companion in the player's party while the player
+      ///   leads an ARMY would make <c>IsSuitableForMarriage</c> false and no-op the wedding.
+      /// </summary>
+      private static bool TryPromoteCompanionForMarriage(Hero companion, out string refusal)
+      {
+         refusal = null;
+
+         try
+         {
+            Hero player = Hero.MainHero;
+
+            if (companion == null || player == null)
+            {
+               refusal = "(The match could not be made.)";
+
+               return false;
+            }
+
+            // IsSuitableForMarriage requires PartyBelongedTo?.Army == null for BOTH parties. The companion rides
+            // in the player's own party, so an army on either party is the same campaign obstacle; refuse before
+            // any mutation rather than let Apply silently no-op.
+            if (companion.PartyBelongedTo?.Army != null || player.PartyBelongedTo?.Army != null)
+            {
+               refusal = $"(You cannot wed {companion.Name} while on campaign in an army; leave or disband the army first.)";
+
+               return false;
+            }
+
+            // A hero already caught up in a battle cannot be wed either (IsSuitableForMarriage: MapEvent == null).
+            if (companion.PartyBelongedTo?.MapEvent != null || player.PartyBelongedTo?.MapEvent != null)
+            {
+               refusal = $"(You cannot wed {companion.Name} in the middle of a battle.)";
+
+               return false;
+            }
+
+            companion.Clan = Clan.PlayerClan;
+            companion.CompanionOf = null;
+            companion.SetNewOccupation(Occupation.Lord);
+
+            ModLog.Info($"[ACTION] marry: promoted companion {companion.Name} from Wanderer to Lord of the player's clan before the wedding.");
+
+            return true;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] marry: companion promotion failed: {ex.GetType().Name}: {ex.Message}");
+            refusal = "(The companion could not be raised to a station fit for marriage.)";
+
+            return false;
          }
       }
 
