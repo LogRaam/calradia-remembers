@@ -9,6 +9,7 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Localization;
+using TaleWorlds.ObjectSystem;
 using TaleWorlds.SaveSystem;
 
 #endregion
@@ -148,32 +149,58 @@ namespace CalradiaRemembers.Quests
 
       /// <summary>
       ///   Places a map marker on the deed's target so the player can actually find where to go: the hero to
-      ///   capture / kill / rescue / deliver to / scout (preferred when the quest is hero-bound), otherwise the
-      ///   settlement to clear bandits around, besiege, or raid. Faction-bound deeds (attack a kingdom, a
-      ///   caravan) have no single point and simply show no marker. Best-effort and never throws: an
+      ///   capture / kill / rescue / deliver to / scout (preferred when the quest is hero-bound), the specific
+      ///   hidden lair of a bandit-hideout deed (so the player is led to the fight, not the anchor town), or
+      ///   otherwise the settlement to clear bandits around, besiege, or raid. Faction-bound deeds (attack a
+      ///   kingdom, a caravan) have no single point and simply show no marker. Best-effort and never throws: an
       ///   unresolvable target just leaves the quest markerless, as before.
       /// </summary>
       private void TrackTarget(InformalQuest quest)
       {
          try
          {
-            if (!string.IsNullOrWhiteSpace(quest.TargetHeroId))
+            switch (ResolveMapMarkerTarget(quest))
             {
-               Hero hero = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
-               if (hero != null)
-               {
+               case Hero hero:
                   AddTrackedObject(hero);
 
-                  return;
-               }
+                  break;
+               case Settlement settlement:
+                  AddTrackedObject(settlement);
+
+                  break;
             }
-
-            if (string.IsNullOrWhiteSpace(quest.TargetSettlement)) return;
-
-            Settlement settlement = ResolveSettlementByName(quest.TargetSettlement);
-            if (settlement != null) AddTrackedObject(settlement);
          }
          catch (Exception ex) { ModLog.Error($"[QUEST-JOURNAL] TrackTarget failed: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   The single map object this quest should mark, or null for a markerless (faction-bound) deed. A
+      ///   BanditHideout deed points at its bound lair (<see cref="InformalQuest.TargetHideoutId" />) rather than
+      ///   the anchor town, so the marker sits on the actual base the player must clear (player report: told to
+      ///   clear a base "south of the village" but the marker sat on the village). A lair that no longer resolves
+      ///   (already cleared, or a save from before hideouts were bound) falls back to the anchor town. Split out so
+      ///   the marker choice is drivable by the self-test without opening a live journal.
+      /// </summary>
+      internal static MBObjectBase ResolveMapMarkerTarget(InformalQuest quest)
+      {
+         if (quest == null) return null;
+
+         if (!string.IsNullOrWhiteSpace(quest.TargetHeroId))
+         {
+            Hero hero = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+            if (hero != null) return hero;
+         }
+
+         if (quest.Type == QuestType.BanditHideout && !string.IsNullOrWhiteSpace(quest.TargetHideoutId))
+         {
+            Settlement hideout = Settlement.Find(quest.TargetHideoutId);
+            if (hideout != null) return hideout;
+         }
+
+         if (string.IsNullOrWhiteSpace(quest.TargetSettlement)) return null;
+
+         return ResolveSettlementByName(quest.TargetSettlement);
       }
 
       /// <summary>Resolves a settlement by display name (exact preferred), matching how QuestFactory bound it.</summary>

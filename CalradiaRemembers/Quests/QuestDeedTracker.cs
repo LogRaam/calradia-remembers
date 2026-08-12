@@ -40,7 +40,9 @@ namespace CalradiaRemembers.Quests
 
       // TUNE: generous radius (campaign-map units) around the quest's named town within which bandits felled in
       // the open count as clearing them "near" that town, replacing the brittle exact-settlement-name match.
-      private const float BanditClearZoneRadius = 80f;
+      // Internal so ViableQuestScanner offers a bandit_clear deed only when a bandit party roams within this SAME
+      // radius, keeping the "offered => completable" invariant true by construction (single source of truth).
+      internal const float BanditClearZoneRadius = 80f;
 
       public void Subscribe()
       {

@@ -121,6 +121,7 @@ namespace CalradiaRemembers.Diagnostics
       private static readonly List<SelfTest> Tests = new() {
          new SelfTest("providegold", Severity.Light, "seed ProvideGold -> take_gold -> assert stamped", TestProvideGold),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
+         new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
          new SelfTest("succession", Severity.Light, "seed private+public events -> Apply -> assert private dropped", TestSuccession),
          new SelfTest("recruit", Severity.Heavy, "eligible lord -> join_clan -> assert he moved into your clan", TestRecruit),
@@ -191,6 +192,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("companion_revenge", Severity.Light, "companion-victim Phase 3: plant a CaptiveAbuse grudge (companion vs PLAYER) AND a CaptorCruelty grudge (companion vs CAPTOR) on the SAME holder the SAME day -> assert BOTH survive, since they use distinct sources so the holder+source+day dedup does not collapse them", TestCompanionRevenge),
          new SelfTest("appearance", Severity.Light, "extract the player's body facts -> compose the appearance block in Subject (3rd person, read by an NPC) and Self (2nd person) voices, with authored prose -> assert the facts extract, the authored prose is carried, and the Self voice reads in the second person", TestAppearance),
          new SelfTest("quest_menu", Severity.Light, "viable-quest referential: scan a live lord's grounded quest menu -> assert it is non-empty (there is always something to do), every line carries a known type token, and a named settlement target truly resolves (so QuestFactory will ground the offer by construction)", TestQuestMenu),
+         new SelfTest("bandit_clear_gate", Severity.Light, "increment 2b (player report: a village sent me after bandits that were not there, then turned hostile when I reported none): read the LIVE world, count bandit parties within the completion radius of a lord's anchor via the scanner's own counter, build the grounded menu, and assert bandit_clear is offered IFF at least one bandit party roams nearby. Seeds nothing", TestBanditClearGate),
          new SelfTest("provide_gold", Severity.Heavy, "child-support fix: seed a ProvideGold quest -> real take_gold via the bridge (player pays the giver) -> assert the quest is CLOSED (Completed, not stuck 'awaiting reward') and the goodwill regard was paid, since the payment IS the completion (no [QUEST_COMPLETE] needed). Restores gold so the economy is unchanged", TestProvideGoldCompletes),
          new SelfTest("reward_net", Severity.Heavy, "quest audit B1: the reward SAFETY NET. Seed a quest the game already VERIFIED as done (IsAwaitingReward, as if a lair was cleared days ago) but that the LLM never closed with [QUEST_COMPLETE] -> run the REAL QuestService.ApplyResponse with NO completion claim -> assert the net settles it anyway (Completed, no longer awaiting) and pays the owed reward (gold or regard moves), so the player's 'Done' quest never pays out never. Restores the seed + gold", TestRewardNet),
          new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster", TestSupplyQuest),
@@ -5864,6 +5866,72 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
+      ///   Increment 2a (player report: told to clear a base "south of the village" but the map marker sat on the
+      ///   village). A BanditHideout quest must mark the bound LAIR, not the anchor town. Issues one through the
+      ///   real pipeline against a town with a live infested lair, then drives the marker-resolution seam
+      ///   (CalradiaRemembersQuest.ResolveMapMarkerTarget) and asserts it points at the hideout settlement and NOT
+      ///   the anchor town. Cleans up: closes the journal mirror and removes the seeded quest.
+      /// </summary>
+      private static string TestQuestHideoutMarker(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("quest_hideout_marker");
+
+
+         bool Infested(Settlement h)
+         {
+            try { return h.Hideout != null && h.Hideout.IsInfested; }
+            catch { return false; }
+         }
+
+
+         Hero giver = FreeQuestGiver(behavior);
+
+         if (t.Skip(giver == null, "every live lord already holds an outstanding task, so none can be given a new one")) return t.Line();
+
+         Settlement town = Settlement.All.FirstOrDefault(s =>
+            s.IsTown && Settlement.All.Any(h => h.IsHideout && Infested(h) && h.GetPosition2D.Distance(s.GetPosition2D) <= 70f));
+
+         if (t.Skip(town == null, "no town has an infested hideout in range; the marker fix is only meaningful with a bound lair")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         const string desc = "[SELFTEST] a lair to clear (marker).";
+         QuestService.ApplyResponse(
+            profile, giver,
+            new ParsedResponse {
+               Dialogue = "",
+               QuestGiven = new QuestProposal {
+                  Type = QuestType.BanditHideout,
+                  TargetSettlement = town.Name?.ToString(),
+                  Description = desc,
+                  RewardGold = 200
+               }
+            },
+            behavior.GameStateBridge.GetCurrentGameDay(),
+            behavior.GameStateBridge, behavior.Store, null);
+
+         profile = behavior.Store.Get(giver.StringId);
+         InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.BanditHideout && q.Description == desc);
+
+         if (t.Abort(quest == null, $"the pipeline seeded no hideout quest for {giver.Name} despite an in-range lair")) return t.Line();
+
+         Settlement lair = Settlement.Find(quest.TargetHideoutId);
+         MBObjectBase marker = CalradiaRemembersQuest.ResolveMapMarkerTarget(quest);
+
+         t.Note($"giver={giver.Name} anchor={quest.TargetSettlement} lair={lair?.Name} marker={(marker as Settlement)?.Name?.ToString() ?? marker?.StringId}");
+         t.Expect("boundRealLair", lair != null && lair.IsHideout, true);
+         t.Expect("markerIsTheLair", ReferenceEquals(marker, lair), true);
+         t.Expect("markerIsNotTheAnchorTown", !ReferenceEquals(marker, town), true);
+
+         // Cleanup: close the journal mirror and drop the seeded quest so no phantom errand lingers.
+         QuestJournalBridge.CloseAsCancelled(quest, giver, "[SELFTEST] cleanup.");
+         NpcProfile clean = behavior.Store.Get(giver.StringId);
+         clean.ActiveQuests.RemoveAll(q => q.Description == desc);
+         behavior.Store.Set(clean);
+
+         return t.Line();
+      }
+
+      /// <summary>
       ///   Viable-quest referential: proves the world scan yields a grounded, non-empty menu for a live
       ///   lord, and that its named settlement targets truly resolve (the by-construction guarantee that
       ///   QuestFactory will ground whatever the model offers from the menu).
@@ -5918,6 +5986,37 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Expect("allTypeTokensKnown", allKnown, true);
          t.Expect("settlementTargetsResolve", settlementsResolve, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Increment 2b (player report: a village sent me after bandits that were not there, then turned hostile
+      ///   when I reported none). ViableQuestScanner must offer bandit_clear ONLY when a bandit party actually
+      ///   roams within QuestDeedTracker's completion radius of the anchor. Staging a real bandit party by a town
+      ///   is impractical, so this reads the LIVE world: it counts nearby bandit parties for a lord's anchor via
+      ///   the scanner's own counter, builds the grounded menu, and asserts bandit_clear appears iff the count is
+      ///   positive. No state seeded, nothing to clean up.
+      /// </summary>
+      private static string TestBanditClearGate(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("bandit_clear_gate");
+
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+
+         if (t.Skip(giver == null, "no live free lord in this campaign")) return t.Line();
+
+         Settlement anchor = QuestFactory.NearestTownTo(giver);
+
+         if (t.Skip(anchor == null, "the giver has no anchor settlement to scan around")) return t.Line();
+
+         int nearby = ViableQuestScanner.CountBanditPartiesNear(anchor);
+         int day = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
+         string menu = ViableQuestScanner.BuildMenu(giver, day) ?? "";
+         bool offered = menu.Contains("bandit_clear");
+
+         t.Note($"giver={giver.Name} anchor={anchor.Name} nearbyBanditParties={nearby} offered={offered}");
+         t.Expect("offeredIffBanditsRoam", offered, nearby > 0);
 
          return t.Line();
       }

@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Library;
 
@@ -71,9 +72,13 @@ namespace CalradiaRemembers.Quests
                   $"a bandit lair infests the country {bearing} of {anchor.Name}"));
             }
 
-            // 2. Open-field bandit clearing near the same anchor: groundable for any named settlement.
-            entries.Add(new QuestMenuEntry("bandit_clear", "target_settlement", anchor.Name?.ToString(),
-               $"bandits prey on travellers around {anchor.Name}"));
+            // 2. Open-field bandit clearing near the same anchor: offered ONLY when a bandit party actually roams
+            // within the SAME radius QuestDeedTracker credits a clear in, so an offered bandit_clear is always
+            // completable by construction (player report: a village sent me after bandits that were not there,
+            // then turned hostile when I reported none). No roaming bandits nearby means no such task to give.
+            if (BanditClearOfferPolicy.ShouldOffer(CountBanditPartiesNear(anchor)))
+               entries.Add(new QuestMenuEntry("bandit_clear", "target_settlement", anchor.Name?.ToString(),
+                  $"bandits prey on travellers around {anchor.Name}"));
          }
 
          // 3. Wartime deeds: only when the giver's realm truly wars, targets pulled from the live enemy.
@@ -91,6 +96,30 @@ namespace CalradiaRemembers.Quests
             "have the player bring you a supply of horses, livestock, or grain (set category + required_count)"));
 
          return entries;
+      }
+
+      /// <summary>
+      ///   Counts the bandit parties currently roaming within QuestDeedTracker's own bandit-clear completion
+      ///   radius (<see cref="QuestDeedTracker.BanditClearZoneRadius" />) of <paramref name="anchor" />, using the
+      ///   SAME bandit predicate the completion path uses (<see cref="IFaction.IsBanditFaction" />), so an offered
+      ///   bandit_clear deed is one a real fight in this zone can satisfy. Internal so the self-test drives the
+      ///   exact count the scanner gates on. Never throws: an unreadable party is simply skipped.
+      /// </summary>
+      internal static int CountBanditPartiesNear(Settlement anchor)
+      {
+         if (anchor == null) return 0;
+
+         Vec2 at = anchor.GetPosition2D;
+         var count = 0;
+         foreach (MobileParty party in MobileParty.All)
+         {
+            if (party is not {IsActive: true}) continue;
+            if (party.MapFaction?.IsBanditFaction != true) continue;
+            if (party.GetPosition2D.Distance(at) > QuestDeedTracker.BanditClearZoneRadius) continue;
+            count++;
+         }
+
+         return count;
       }
 
       private static void AddWarEntries(List<QuestMenuEntry> entries, Hero giver)

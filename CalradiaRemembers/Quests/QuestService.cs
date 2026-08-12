@@ -216,20 +216,33 @@ namespace CalradiaRemembers.Quests
                if (!quest.IsOutstanding || !quest.DeadlineDay.HasValue || gameDay <= quest.DeadlineDay.Value) continue;
 
                quest.Status = QuestStatus.Expired;
-               ApplyPenalty(profile);
-               Stance.StanceService.OnPromiseBroken(profile); // a lapsed deadline is a broken word too
-               AddEvent(profile, gameDay, NotableEventType.Conflict,
-                  $"The player let the deadline lapse on the task to {Describe(quest)} — a disappointment.");
+
+               // No-fault forgiveness (same rule as AbandonQuest): a lapsed deadline on a hard-to-find bandit
+               // deed is a mild disappointment, not a broken word, since the target can hide until scouted. Every
+               // other quest keeps the full consequence with this path's own DeadlineFailurePenalty.
+               CalradiaRemembers.Logic.QuestFailureLeniency leniency =
+                  CalradiaRemembers.Logic.QuestFailureLeniencyPolicy.Resolve(quest.Type, DeadlineFailurePenalty);
+
+               ProfileMutator.ApplyReputationDelta(profile, -leniency.RegardPenalty); // 5.1: single clamp path.
+
+               if (leniency.SpendPromiseTrust)
+                  Stance.StanceService.OnPromiseBroken(profile); // a lapsed deadline is a broken word too
+
+               if (leniency.RecordBrokenWordMemory)
+                  AddEvent(profile, gameDay, NotableEventType.Conflict,
+                     $"The player let the deadline lapse on the task to {Describe(quest)}, a disappointment.");
+
                QuestJournalBridge.CloseAsFailed(quest, giverHero, $"You did not complete this task in time. {profile.Name} is disappointed.");
-               ModLog.Info($"[QUEST] expired for {profile.Name}: {Describe(quest)} (-{DeadlineFailurePenalty} regard).");
+               ModLog.Info($"[QUEST] expired for {profile.Name}: {Describe(quest)} (-{leniency.RegardPenalty} regard).");
                // Grudges pillar: adds RESOLVABILITY on top of the regard hit above, never a second penalty.
                // C6: anchor the grudge on the SAME day the backfill uses (DeadlineDay ?? IssuedOnDay), not the
                // detection day, so the holder+source+day dedup matches and a future MigrationVersion bump cannot
                // plant a SECOND FailedQuest grudge for this same lapse. (A future EventDay reads as full magnitude
-               // until it passes, per GrudgePolicy.EffectiveMagnitude, so this is safe.)
-               GrudgeBehavior.Instance?.TryPlant(giverHero, Hero.MainHero, GrudgeSource.FailedQuest,
-                  $"The player let the deadline lapse on the task to {Describe(quest)}.", GrudgeBackfillRules.FailedQuestMagnitude,
-                  knownToPlayer: true, quest.DeadlineDay ?? quest.IssuedOnDay);
+               // until it passes, per GrudgePolicy.EffectiveMagnitude, so this is safe.) Skipped for the bandit class.
+               if (leniency.PlantGrudge)
+                  GrudgeBehavior.Instance?.TryPlant(giverHero, Hero.MainHero, GrudgeSource.FailedQuest,
+                     $"The player let the deadline lapse on the task to {Describe(quest)}.", GrudgeBackfillRules.FailedQuestMagnitude,
+                     knownToPlayer: true, quest.DeadlineDay ?? quest.IssuedOnDay);
                changed = true;
             }
 
@@ -445,30 +458,41 @@ namespace CalradiaRemembers.Quests
          }
 
          quest.Status = QuestStatus.Abandoned;
-         ProfileMutator.ApplyReputationDelta(giver, -AbandonPenalty); // 5.1: single clamp path.
-         AddEvent(giver, gameDay, NotableEventType.Conflict,
-            $"The player gave up the task to {Describe(quest)} — a broken word, however honest.");
+
+         // No-fault forgiveness (player report: reporting you could not find an unfindable bandit base turned the
+         // giver disgusted and hostile). A bandit deed whose target hides until scouted is a mild disappointment,
+         // not a broken word: no grudge, no broken-word memory, no trust spent, only a token regard nick. Every
+         // other quest keeps the full broken-word consequence with this path's own AbandonPenalty.
+         CalradiaRemembers.Logic.QuestFailureLeniency leniency =
+            CalradiaRemembers.Logic.QuestFailureLeniencyPolicy.Resolve(quest.Type, AbandonPenalty);
+
+         ProfileMutator.ApplyReputationDelta(giver, -leniency.RegardPenalty); // 5.1: single clamp path.
          Hero giverHero = FindGiverHero(giver);
          QuestJournalBridge.CloseAsFailed(quest, giverHero, "You chose not to complete this task.");
-         Stance.StanceService.OnPromiseBroken(giver); // a broken word spends trust
+
+         if (leniency.RecordBrokenWordMemory)
+            AddEvent(giver, gameDay, NotableEventType.Conflict,
+               $"The player gave up the task to {Describe(quest)}, a broken word, however honest.");
+
+         if (leniency.SpendPromiseTrust)
+            Stance.StanceService.OnPromiseBroken(giver); // a broken word spends trust
+
          store.Set(giver);
 
          // Grudges pillar: adds RESOLVABILITY on top of the regard hit above, never a second penalty.
          // C6: same day anchor as the backfill (DeadlineDay ?? IssuedOnDay), so a later migration does not plant a
-         // duplicate of this same abandonment.
-         GrudgeBehavior.Instance?.TryPlant(giverHero, Hero.MainHero, GrudgeSource.FailedQuest,
-            $"The player gave up the task to {Describe(quest)}.", AbandonedQuestGrudgeMagnitude,
-            knownToPlayer: true, quest.DeadlineDay ?? quest.IssuedOnDay);
+         // duplicate of this same abandonment. Skipped entirely for the forgiven bandit class.
+         if (leniency.PlantGrudge)
+            GrudgeBehavior.Instance?.TryPlant(giverHero, Hero.MainHero, GrudgeSource.FailedQuest,
+               $"The player gave up the task to {Describe(quest)}.", AbandonedQuestGrudgeMagnitude,
+               knownToPlayer: true, quest.DeadlineDay ?? quest.IssuedOnDay);
 
-         ModLog.Info($"[QUEST] {giver.Name}: player abandoned '{quest.Type}' (-{AbandonPenalty} regard).");
-         notify?.Invoke($"You abandoned {giver.Name}'s task ({Describe(quest)}). −{AbandonPenalty} regard.", false);
+         ModLog.Info($"[QUEST] {giver.Name}: player abandoned '{quest.Type}' (-{leniency.RegardPenalty} regard{(leniency.PlantGrudge ? "" : ", no-fault bandit forgiveness")}).");
+         notify?.Invoke($"You abandoned {giver.Name}'s task ({Describe(quest)}). -{leniency.RegardPenalty} regard.", false);
       }
 
       private static void AddEvent(NpcProfile profile, int gameDay, NotableEventType type, string summary)
          => profile.Events.Add(new NotableEvent(gameDay, type, summary));
-
-      private static void ApplyPenalty(NpcProfile profile) // 5.1: single clamp path (ApplyReputationDelta clamps to [-100, 100]).
-         => ProfileMutator.ApplyReputationDelta(profile, -DeadlineFailurePenalty);
 
       private static void CompleteQuest(NpcProfile giver,
                                         Hero giverHero,
