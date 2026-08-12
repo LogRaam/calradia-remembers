@@ -235,6 +235,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("assembly_revalidate", Severity.Light, "Mechanical (ASSEMBLY Inc 1 robustness): the daily re-validation reads the live host + traveller state and leaves a healthy assembly intact (host/traveller edge combinations are pinned by the pure policy tests)", TestAssemblyRevalidate),
          new SelfTest("council_parley_snapshot", Severity.Light, "Mechanical (Parley council): CouncilSessionSnapshot's additive ParleyTargetFactionId field round-trips through the exact JsonConvert path CouncilSessionBehavior.SyncData uses, both WITH a value set and WITHOUT one present in the JSON at all (an old pre-Parley snapshot) -> the missing-field case must deserialize to null rather than throw. No live campaign state touched", TestCouncilParleySnapshot),
          new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate),
+         new SelfTest("courtship_trial", Severity.Light, "Mechanical (COURTSHIP TRIAL): the pure override table proves a passed trial clears ONLY soft RegardTooLow and NEVER a hard blocker; a REAL hard-blocked hero force-marked passed still resolves to that hard reason (offer stays CLOSED); then a real soft-blocked prospect (regard forced low) is driven through the behavior's own daily-eval seam for the full term -> assert the trial passes, a MarriageProposal letter is queued FROM her, and MarriageBlockedBecause becomes None; a trial that STOPS accompanying before the term lapses (no completion). Restores regard + trial + letter; skips MANUAL when the player is already wed or no soft-blockable prospect exists", TestCourtshipTrial),
          new SelfTest("chat_captor_break", Severity.Light, "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?", TestChatCaptorBreak, true, 3),
          new SelfTest("chat_captor_torture", Severity.Light, "LLM: the player whips the prisoner over 3 beats -> real suffering + does defiance erode to pleading?", TestChatCaptorTorture, true, 3),
          new SelfTest("chat_captor_cnc", Severity.Light, "LLM: 3-beat sexual coercion (Hardcore) -> does the NPC play CNC reactions in character, never breaking?", TestChatCaptorCnc, true, 3),
@@ -6937,6 +6938,136 @@ namespace CalradiaRemembers.Diagnostics
             idleProfile.ReputationWithPlayer = originalRegard;
             behavior.Store.Set(idleProfile);
             RetainerBehavior.Enabled = originalEnabled;
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   COURTSHIP TRIAL end to end, LLM-free. Proves the safety rail and the happy path in one sweep: (1) the
+      ///   pure override table clears ONLY soft RegardTooLow and never a hard blocker; (2) a REAL hard-blocked hero
+      ///   force-marked passed STILL resolves to that hard reason through the real resolver (the offer stays CLOSED,
+      ///   the exact failure the feature was written to prevent); (3) a real soft-blocked prospect (regard forced
+      ///   low so the block is RegardTooLow) is driven through the behavior's own daily-evaluation seam for the full
+      ///   term, and the trial passes, a MarriageProposal letter is queued FROM her, and MarriageBlockedBecause
+      ///   becomes None for that pairing; (4) a trial that STOPS accompanying before the term lapses and never
+      ///   completes. Restores regard, the trial record, and any queued acceptance letter in a finally. Skips MANUAL
+      ///   when the player is already wed or no soft-blockable prospect exists.
+      /// </summary>
+      private static string TestCourtshipTrial(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("courtship_trial");
+
+         CourtshipTrialBehavior trial = CourtshipTrialBehavior.Instance;
+         if (t.Abort(trial == null || behavior?.Store == null || Hero.MainHero == null,
+                "the courtship-trial behavior, the store, or the player is not available")) return t.Line();
+
+         // (1) The pure override table, asserted directly (also unit-tested in Logic): a passed trial clears ONLY
+         // the soft RegardTooLow gate and NEVER a hard blocker. The safety rail the whole feature rests on.
+         t.Expect("overrideClearsSoftRegard", MarriageBlockOverridePolicy.CanOverride(MarriageBlockReason.RegardTooLow, true), true);
+         t.Expect("overrideRefusesAtWar", MarriageBlockOverridePolicy.CanOverride(MarriageBlockReason.AtWar, true), false);
+         t.Expect("overrideRefusesPlayerAlreadyWed", MarriageBlockOverridePolicy.CanOverride(MarriageBlockReason.PlayerAlreadyWed, true), false);
+
+         var today = (int) CampaignTime.Now.ToDays;
+
+         // (2) A REAL hard-blocked hero, force-marked passed, must STILL resolve to that hard reason through the
+         // real resolver: the passed flag can never open a hard-blocked pairing (married lords are always
+         // NotMarriageable, so one almost always exists).
+         Hero hardBlocked = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsAlive &&
+            MarriageBlockOverridePolicy.IsHardBlock(EncounterContextBuilder.ResolveMarriageBlockReason(h, behavior.Store.Get(h.StringId))));
+
+         if (hardBlocked != null)
+         {
+            MarriageBlockReason before = EncounterContextBuilder.ResolveMarriageBlockReason(hardBlocked, behavior.Store.Get(hardBlocked.StringId));
+            trial.DebugSetPassed(hardBlocked.StringId, true);
+            MarriageBlockReason after = EncounterContextBuilder.ResolveMarriageBlockReason(hardBlocked, behavior.Store.Get(hardBlocked.StringId));
+            t.Note($"hardBlocked={hardBlocked.Name} reason={before}");
+            t.Expect("passedFlagDidNotOpenAHardBlock", after, before);
+            t.Expect("hardBlockStaysClosed", after == MarriageBlockReason.None, false);
+            trial.DebugForget(hardBlocked.StringId);
+         }
+         else
+         {
+            t.Note("(no hard-blocked hero found to prove the closed case against; the policy table above still proves it)");
+         }
+
+         // (3) The happy path needs an UNWED player and a real soft-blockable prospect.
+         if (t.Skip(Hero.MainHero.Spouse != null, "the player is already wed, so every match is the hard PlayerAlreadyWed and none can be soft-blocked")) return t.Line();
+
+         Hero prospect = null;
+         NpcProfile profile = null;
+         var originalRegard = 0;
+         foreach (Hero h in Hero.AllAliveHeroes)
+         {
+            if (h == Hero.MainHero || !h.IsAlive || h.IsPrisoner) continue;
+            if (h.Clan == null || h.Clan == Clan.PlayerClan) continue;
+            if (!MarriageProspectResolver.IsMarriageable(Hero.MainHero, h)) continue;
+
+            NpcProfile p = GetOrCreate(behavior, h);
+            int savedRegard = p.ReputationWithPlayer;
+            p.ReputationWithPlayer = 0; // force the mod's own regard below the bar so only the SOFT gate can stand
+            behavior.Store.Set(p);
+
+            MarriageBlockReason r = EncounterContextBuilder.ResolveMarriageBlockReason(h, p);
+            if (r == MarriageBlockReason.RegardTooLow && !trial.IsTrialPassed(h.StringId))
+            {
+               prospect = h;
+               profile = p;
+               originalRegard = savedRegard;
+
+               break;
+            }
+
+            // Not soft-blockable (regard met via the live vanilla relation, at war, etc.): put the regard back and move on.
+            p.ReputationWithPlayer = savedRegard;
+            behavior.Store.Set(p);
+         }
+
+         if (t.Skip(prospect == null, "no soft-blockable marriage prospect exists to test (all are hard-blocked or already above the regard bar)")) return t.Line();
+
+         try
+         {
+            trial.DebugForget(prospect.StringId);
+
+            // Baseline: the offer is CLOSED on the soft gate the player reported ("MARRIAGE NOT YET AN OFFER").
+            t.Expect("baselineReasonIsRegardTooLow", EncounterContextBuilder.ResolveMarriageBlockReason(prospect, profile), MarriageBlockReason.RegardTooLow);
+
+            // Begin the trial in the past, then step to today: the first call must NOT pass it, the second must.
+            trial.DebugEvaluate(prospect, profile, true, today - CourtshipTrialPolicy.TrialDays);
+            t.Expect("notPassedAtStart", trial.IsTrialPassed(prospect.StringId), false);
+
+            bool passedNow = trial.DebugEvaluate(prospect, profile, true, today);
+            t.Expect("theTrialPassedAtTerm", passedNow, true);
+            t.Expect("trialPassedFlagSet", trial.IsTrialPassed(prospect.StringId), true);
+
+            // The gate now opens for THIS pairing: the soft block is cleared, so the marriage is on offer.
+            t.Expect("marriageIsNowOnOffer", EncounterContextBuilder.ResolveMarriageBlockReason(prospect, profile), MarriageBlockReason.None);
+
+            // She reaches out: a MarriageProposal letter is queued from her. The placeholder is added synchronously
+            // when the chat service is present, so this asserts for real with an API key and is only noted without one.
+            bool llmReady = behavior.LlmServices?.ChatService != null;
+            if (llmReady)
+               t.Expect("aMarriageProposalLetterWasQueuedFromHer", profile.SentLetters.Any(l => l.Reason == LetterReason.MarriageProposal), true);
+            else
+               t.Note("(no chat service / API key: her acceptance letter could not be queued, so that half is unverified this run)");
+
+            // (4) LAPSE: a fresh trial that STOPS accompanying before the term must NOT complete, and the offer closes again.
+            trial.DebugForget(prospect.StringId);
+            trial.DebugEvaluate(prospect, profile, true, today - CourtshipTrialPolicy.TrialDays); // begin
+            bool lapsedComplete = trial.DebugEvaluate(prospect, profile, false, today);           // stopped accompanying
+            t.Expect("aLapsedTrialDoesNotComplete", lapsedComplete, false);
+            t.Expect("aLapsedTrialLeavesNoPassedFlag", trial.IsTrialPassed(prospect.StringId), false);
+            t.Expect("offerClosedAgainAfterLapse", EncounterContextBuilder.ResolveMarriageBlockReason(prospect, profile), MarriageBlockReason.RegardTooLow);
+         }
+         finally
+         {
+            // Restore every borrowed piece of state whichever assertion bailed: forget the trial, drop any acceptance
+            // letter this test queued, and put the prospect's own regard back.
+            trial.DebugForget(prospect.StringId);
+            profile.SentLetters?.RemoveAll(l => l.Reason == LetterReason.MarriageProposal);
+            profile.ReputationWithPlayer = originalRegard;
+            behavior.Store.Set(profile);
          }
 
          return t.Line();

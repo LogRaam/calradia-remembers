@@ -1630,7 +1630,25 @@ namespace CalradiaRemembers.Mapping
          // Ratified 2026-07-23: the family's blessing OPENS the match even below the regard bar (a political
          // union; the bride's unwon heart becomes a ForcedMarriage grudge at the wedding, planted by the
          // bridge). Only a match with neither her heart nor her family behind it stays barred.
-         return ResolveLoveMatchBlessed(hero) ? MarriageBlockReason.None : MarriageBlockReason.RegardTooLow;
+         if (ResolveLoveMatchBlessed(hero)) return MarriageBlockReason.None;
+
+         // Courtship trial (author's story): a prospect who rode at the player's side long enough to serve the
+         // trial she set has reached out to accept, so the match opens even below the regard bar. This overrides
+         // ONLY the soft RegardTooLow gate reached here; every HARD blocker was already returned above, so the
+         // trial is beyond their reach by construction. MarriageBlockOverridePolicy states that soft/hard split
+         // explicitly so it can never silently widen.
+         if (MarriageBlockOverridePolicy.CanOverride(MarriageBlockReason.RegardTooLow, ResolveCourtshipTrialPassed(hero)))
+            return MarriageBlockReason.None;
+
+         return MarriageBlockReason.RegardTooLow;
+      }
+
+      /// <summary>True when this NPC has SERVED a courtship trial (rode with the player long enough to accept the match).</summary>
+      private static bool ResolveCourtshipTrialPassed(Hero hero)
+      {
+         if (hero == null) return false;
+
+         return CourtshipTrialBehavior.Instance?.IsTrialPassed(hero.StringId) ?? false;
       }
 
       /// <summary>The two-sided regard read every marriage gate shares: the mod's personal ledger OR the live vanilla relation reaching the bar.</summary>
@@ -1642,10 +1660,13 @@ namespace CalradiaRemembers.Mapping
       ///   True when marriage is on offer ONLY through the family's blessing: the match is otherwise clear but
       ///   the NPC's own regard is still below the bar. Tells the prompt this would be a POLITICAL union, so
       ///   the NPC may accept out of duty, coldly, and never has to pretend a love that is not there.
+      ///   A match opened by a COURTSHIP TRIAL is deliberately NOT reluctant: the prospect set the trial and
+      ///   passing it settled her heart, so she accepts of her own will, not as duty her house imposed.
       /// </summary>
       private static bool ResolveLoveMatchReluctant(Hero hero, NpcProfile profile)
          => ResolveMarriageBlockReason(hero, profile) == MarriageBlockReason.None
-            && !RegardMeetsMarriageBar(hero, profile);
+            && !RegardMeetsMarriageBar(hero, profile)
+            && !ResolveCourtshipTrialPassed(hero);
 
       /// <summary>
       ///   True when this NPC is the player's spouse AND still carries a live ForcedMarriage grudge over how

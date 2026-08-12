@@ -306,6 +306,12 @@ namespace CalradiaRemembers
          // player-facing verb is GATED OFF by default (RetainerBehavior.Enabled) pending an in-game UI check; the
          // console cr.retainer and the self-test drive the raw mechanism regardless. Idle otherwise.
          campaignStarter.AddBehavior(new CalradiaRemembers.Retainer.RetainerBehavior());
+         // Courtship trial (author's story): a marriage prospect who agrees to wed BUT first rides at the player's
+         // side to test him. Records the day a valid, not-hard-blocked prospect BEGINS accompanying (follow_me or
+         // ride_with_me), lapses a trial abandoned early, and once ~two seasons are served latches a passed flag
+         // AND has her reach out (a MarriageProposal letter in her own voice) to accept; the flag then opens the
+         // marriage gate by clearing ONLY the soft RegardTooLow block (hard blockers stay shut). Additive, save-safe.
+         campaignStarter.AddBehavior(new CalradiaRemembers.Marriage.CourtshipTrialBehavior());
          // War-council OFFER trigger (player suggestion): after the player's army forms or takes a considerable
          // action (settlement captured, notable battle won), offer to convene the already-built WarCouncil instead
          // of typing cr.council war. GATED OFF by default (WarCouncilOfferBehavior.Enabled) since the council window

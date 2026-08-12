@@ -53,6 +53,9 @@ namespace CalradiaRemembers.Escort
         public bool IsEscorting(string lordId)
             => !string.IsNullOrEmpty(lordId) && _active.Any(e => e.LordId == lordId);
 
+        /// <summary>The StringIds of every lord currently escorting the player (a snapshot copy, safe to enumerate).</summary>
+        public IEnumerable<string> EscortingLordIds => _active.Select(e => e.LordId).ToList();
+
         /// <summary>A one-line-per-escort summary, for diagnostics.</summary>
         public string DescribeActive()
         {

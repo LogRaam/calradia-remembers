@@ -77,6 +77,9 @@ namespace CalradiaRemembers.Retainer
         public bool IsRetainer(string heroId)
             => !string.IsNullOrEmpty(heroId) && _retainerIds.Contains(heroId);
 
+        /// <summary>The StringIds of every lord currently riding with the player as a retainer (a snapshot copy, safe to enumerate).</summary>
+        public IEnumerable<string> RetainerIds => _retainerIds.ToList();
+
         /// <summary>
         ///   TAKE: adds an other-clan lord/lady to <see cref="MobileParty.MainParty" /> via the reverse-engineered
         ///   correct call (<see cref="AddHeroToPartyAction" />), keeping their <see cref="Hero.Clan" /> unchanged,
