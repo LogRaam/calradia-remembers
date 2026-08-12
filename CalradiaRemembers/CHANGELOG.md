@@ -2,6 +2,26 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v1.34.7.. 2026-08-12
+
+Marry one of your own companions, and household who stay behind no longer feel forgotten. Your saves carry over
+untouched.
+
+### New
+- **Marry your own companion.** You can now wed a wanderer you recruited into your clan, not only a born noble.
+  Once your regard is high enough and neither of you is otherwise wed, the companion is raised to a lordship of
+  your house and the marriage proceeds like any other. Blood relatives are always off-limits, and a marriage will
+  not be arranged while either of you is bound up in an army. Should such a marriage later end, the former spouse
+  (who had no birth house of their own) returns to the pool of wanderers you could recruit again, rather than
+  lingering as a stranded noble.
+
+### Fixed
+- **A spouse or family who stays behind no longer feels left behind.** Your wife, consort, or close kin who is
+  keeping your household while you are away on campaign now understands that this is a married life split between
+  road and hearth, not an absence they resent. Previously a household member apart could open a conversation as
+  though you had abandoned them, counting the days since they last saw you; now they speak as one of your own
+  house, awaiting your return. Household who ride with you were already handled; this covers those who stay home.
+
 ## v1.34.6.. 2026-08-11
 
 Lords who ride with you, courtship trials, and recruiting a notable. Your saves carry over untouched.
