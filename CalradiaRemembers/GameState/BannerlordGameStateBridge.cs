@@ -3146,7 +3146,10 @@ namespace CalradiaRemembers.GameState
 
             ModLog.Info($"[ACTION] part_ways: {npcHero.Name} leaves the player's party.");
 
-            return new ActionOutcome($"{npcHero.Name} takes their leave and returns to their own affairs.", true);
+            var leaveMsg = $"{npcHero.Name} takes their leave and returns to their own affairs.";
+            MBInformationManager.AddQuickInformation(new TextObject(leaveMsg), 0, npcHero.CharacterObject);
+
+            return new ActionOutcome(leaveMsg, true);
          }
          catch (Exception ex)
          {

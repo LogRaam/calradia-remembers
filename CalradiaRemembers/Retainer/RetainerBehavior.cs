@@ -5,11 +5,10 @@
 // forces them to leave). This behavior is the persisted mechanism plus the observation/safety seam behind the
 // player-facing ride_with_me / part_ways verbs (BannerlordGameStateBridge.ExecuteRideWithMe / ExecutePartWays).
 //
-// GATED OFF by default (<see cref="Enabled" />, default false): an other-clan lord sitting in the player's
-// roster is an unusual state whose party-screen/UI feel is not yet validated in-game. While disabled, the verbs
-// are neither taught (EncounterContextBuilder never sets NpcCanRideWithPlayer) nor executed; the console probe
-// (cr.retainer) and the self-test still exercise the raw take/release mechanism regardless, so the mechanism can
-// be verified before the player-facing path is switched on with cr.retainer enable on.
+// ON by default (<see cref="Enabled" />, default true): the party-screen/UI feel of an other-clan lord riding in
+// the player's roster was validated in-game 2026-08-11 (he shows as a party member and leaves cleanly). The flag
+// is kept so a player can still turn the path off with cr.retainer enable off; while disabled, the verbs are
+// neither taught (EncounterContextBuilder never sets NpcCanRideWithPlayer) nor executed.
 //
 // TAKE / RELEASE (decompile-confirmed against the shipped TaleWorlds.CampaignSystem.dll):
 //   * AddHeroToPartyAction.Apply(hero, MobileParty.MainParty) is the correct primitive: it removes the hero
@@ -44,6 +43,8 @@ using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.Core;
+using TaleWorlds.Localization;
 
 #endregion
 
@@ -62,7 +63,18 @@ namespace CalradiaRemembers.Retainer
         ///   pending the author's in-game party-screen/UI check. Toggled via cr.retainer enable [on|off]. A plain
         ///   static (not persisted): an unusual, experimental path defaults off on every boot until switched on.
         /// </summary>
-        public static bool Enabled;
+        public static bool Enabled = true;
+
+        /// <summary>
+        ///   Shows the player a brief on-screen line when a retainer joins or leaves. Both are things the player
+        ///   should always notice: a war breaking off their companion happens on its own, so a silent departure
+        ///   would read as a bug. Best-effort and guarded.
+        /// </summary>
+        private static void NotifyPlayer(Hero lord, string text)
+        {
+            try { MBInformationManager.AddQuickInformation(new TextObject(text), 0, lord?.CharacterObject); }
+            catch { /* a missing notification is never worth a thrown tick */ }
+        }
 
         public static RetainerBehavior Instance;
 
@@ -133,6 +145,7 @@ namespace CalradiaRemembers.Retainer
             }
 
             _retainerIds.Add(lord.StringId);
+            NotifyPlayer(lord, $"{lord.Name} now rides at your side, keeping their own house and colours.");
 
             bool inMainParty = lord.PartyBelongedTo == MobileParty.MainParty;
             bool clanUnchanged = lord.Clan == originalClan && lord.Clan != Clan.PlayerClan;
@@ -231,12 +244,18 @@ namespace CalradiaRemembers.Retainer
                             $"clan={lord?.Clan?.Name}, ownClanKept={alive && lord.Clan != Clan.PlayerClan}, alive={alive}, atWar={atWar}.");
 
                 if (alive && !inMainParty && !atWar)
+                {
                     ModLog.Info($"[RETAINER-EJECT] {lord.Name} is tracked but NO LONGER in MainParty - a vanilla behavior removed them. Dropping the stale track.");
+                    NotifyPlayer(lord, $"{lord.Name} no longer rides with you.");
+                }
 
                 if (RetainerLeavePolicy.MustLeave(atWar, alive, IsRetainer(id)))
                 {
                     if (alive)
                     {
+                        if (atWar)
+                            NotifyPlayer(lord, $"{lord.Name} breaks from your company: their people are now at war with yours.");
+
                         TryRelease(lord, out string _);
                         ModLog.Info($"[RETAINER] {lord.Name} released by rule ({(atWar ? "their faction is at war with the player" : "left the party")}).");
                     }
