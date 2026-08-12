@@ -37,6 +37,7 @@ using CalradiaRemembers.Missions;
 using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.RealmTidings;
+using CalradiaRemembers.Retainer;
 using CalradiaRemembers.Scenarios;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Settings;
@@ -139,6 +140,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("companion_battle_memory", Severity.Light, "Mechanical: the companion 'fought together' memory (WorldEventFeeders' main-party companion loop), which a real MapEvent drives in game. Borrows a companion into the party if none rides along, calls the DebugRecordCompanionBattleMemories seam, and asserts the companion's profile gained a fresh 'Fought at your side' memory. Removes the memory it added and returns any borrowed companion", TestCompanionBattleMemory),
          new SelfTest("war_council_offer", Severity.Light, "Mechanical: the war-council OFFER trigger's arm + policy + persisted-cooldown decision (WarCouncilOfferBehavior.DebugWouldOffer), WITHOUT opening the council UI. Arms the flag and asserts a notable action while leading an army WOULD offer, that not-in-army / non-notable / disarmed all refuse, and that stamping an offer today blocks a fresh one (cooldown) while a stale stamp clears it. Restores the flag + the persisted last-offer day", TestWarCouncilOffer),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
+         new SelfTest("retainer_spike", Severity.Heavy, "FEASIBILITY SPIKE: take a real OTHER-CLAN, partyless lord/lady into MobileParty.MainParty via AddHeroToPartyAction, assert (a) they are in the main member roster and (b) their Hero.Clan is UNCHANGED (still their own, NOT the player clan) with occupation still Lord; drive one RunDailyObservation (this behavior's daily handler) and assert they SURVIVED it at peace (reports honestly - this drives only the mod's own daily seam, not vanilla's full party-spawn tick); assert the pure RetainerLeavePolicy forces a leave on war; then release and assert they left the roster and are partyless again. Restores all borrowed state; skips MANUAL when no partyless other-clan lord exists (a party-leading lord's own party would be disbanded, which is not cleanly reversible in a live campaign)", TestRetainerSpike),
          new SelfTest("reasoning_scrub", Severity.Light, "Mechanical: the inline <think> leak (tthheerroocckk, nemotron on High reasoning). The save/load itself is STUBBED: corrupted memories are written straight into the store as an old save would carry them (a trace before real prose, a memory that is ONLY a truncated trace, a corrupted background paragraph) -> the REAL session-launch scrub runs -> assert the prose is recovered, the all-trace memory becomes the honest 'faded' line (never invented content), the background returns to null, and a second pass is a no-op. Removes its seeds afterwards", TestReasoningScrub),
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
@@ -6737,6 +6739,90 @@ namespace CalradiaRemembers.Diagnostics
       ///   contrast half of the test matters just as much: a lord who is genuinely away must STILL hear the time
       ///   apart, or the fix would have silenced the feature instead of correcting it.
       /// </summary>
+      /// <summary>
+      ///   The retainer feasibility spike, exercised end to end against the LIVE campaign: an other-clan lord/lady
+      ///   ridden IN the player's party (member roster) while their Hero.Clan stays their own, surviving the mod's
+      ///   daily observation at peace, and cleanly released. Deliberately borrows only a PARTYLESS other-clan lord
+      ///   so the restore (release -> partyless again) returns the campaign exactly as it was; a party-leading
+      ///   lord's own party would be disbanded on take, which a live campaign cannot cleanly undo, so that case is
+      ///   skipped MANUAL rather than wrecked.
+      /// </summary>
+      private static string TestRetainerSpike(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("retainer_spike");
+
+         RetainerSpikeBehavior spike = RetainerSpikeBehavior.Instance;
+         if (t.Abort(spike == null || MobileParty.MainParty == null, "the retainer spike behavior or the player's party is not available")) return t.Line();
+
+         // The pure rule the spike hangs on, asserted directly (it is also unit-tested in the Logic project): a war
+         // with the retainer's faction MUST force a leave, and peace must not.
+         t.Expect("policyForcesLeaveOnWar", RetainerLeavePolicy.MustLeave(true, true, true), true);
+         t.Expect("policyKeepsThemAtPeace", RetainerLeavePolicy.MustLeave(false, true, true), false);
+
+         // Borrow a real OTHER-CLAN, alive, non-prisoner, PARTYLESS lord (a clan member sitting without a party):
+         // taking one of these never disbands a party, so the release fully restores the campaign.
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(
+            h => h != Hero.MainHero && h.IsAlive && h.IsLord && !h.IsPrisoner
+                 && h.Clan != null && h.Clan != Clan.PlayerClan
+                 && h.PartyBelongedTo == null && !spike.IsRetainer(h.StringId));
+
+         if (t.Skip(lord == null, "no partyless other-clan lord exists to borrow without disbanding a live party")) return t.Line();
+
+         Clan originalClan = lord.Clan;
+
+         bool took = spike.TryTake(lord, out string takeReport);
+         t.Note($"take: {takeReport}");
+         if (t.Abort(!took, "TryTake refused the borrowed lord")) return t.Line();
+
+         // (a) they are actually in the player's own member roster, and (b) their clan did NOT change - the whole
+         // point of a retainer (rides with you, stays THEIRS), plus their occupation is still Lord.
+         t.Expect("theyAreInTheMainPartyRoster", MobileParty.MainParty.MemberRoster.Contains(lord.CharacterObject), true);
+         t.Expect("theirPartyBelongedToIsTheMainParty", lord.PartyBelongedTo == MobileParty.MainParty, true);
+         t.Expect("theirClanIsUnchanged", lord.Clan == originalClan, true);
+         t.Expect("theirClanIsNOTThePlayerClan", lord.Clan == Clan.PlayerClan, false);
+         t.Expect("theyAreStillALord", lord.CharacterObject?.Occupation, Occupation.Lord);
+
+         // Drive the behavior's OWN daily handler once and assert they survived it at peace. HONEST SCOPE: this
+         // drives only the mod's daily observation seam, not the vanilla ConsiderSpawningLordParties tick, which
+         // the harness cannot invoke - so this proves the mod does not itself eject a peaceful retainer, NOT that
+         // the full engine tick leaves them untouched (that needs an in-game campaign run to confirm).
+         bool atWar = lord.MapFaction != null && Hero.MainHero?.MapFaction != null
+                      && FactionManager.IsAtWarAgainstFaction(lord.MapFaction, Hero.MainHero.MapFaction);
+         spike.RunDailyObservation();
+
+         if (atWar)
+         {
+            // The borrowed lord happens to already be at war with the player: the rule then REQUIRES they left.
+            t.Note("(borrowed lord's faction was already at war with the player; asserting the war-leave path instead)");
+            t.Expect("aWarringRetainerWasReleasedByTheDailyRule", spike.IsRetainer(lord.StringId), false);
+            t.Expect("aWarringRetainerLeftTheRoster", MobileParty.MainParty.MemberRoster.Contains(lord.CharacterObject), false);
+         }
+         else
+         {
+            t.Expect("aPeacefulRetainerSurvivedTheDailyObservation", spike.IsRetainer(lord.StringId), true);
+            t.Expect("andIsStillInTheRosterAfterTheTick", MobileParty.MainParty.MemberRoster.Contains(lord.CharacterObject), true);
+
+            // Release and assert the clean reverse: out of the roster, partyless again (vanilla will respawn their
+            // lord party on a later tick), no longer tracked.
+            bool released = spike.TryRelease(lord, out string releaseReport);
+            t.Note($"release: {releaseReport}");
+            t.Expect("releaseSucceeded", released, true);
+            t.Expect("theyLeftTheMainPartyRoster", MobileParty.MainParty.MemberRoster.Contains(lord.CharacterObject), false);
+            t.Expect("theyArePartylessAgain", lord.PartyBelongedTo == null, true);
+            t.Expect("theyAreNoLongerTracked", spike.IsRetainer(lord.StringId), false);
+            t.Expect("theirClanSurvivedTheWholeRound", lord.Clan == originalClan, true);
+         }
+
+         // Belt and suspenders: never leave the borrowed lord conscripted or tracked if any branch above bailed.
+         if (spike.IsRetainer(lord.StringId))
+         {
+            spike.TryRelease(lord, out string _);
+            t.Note($"(restored: released the still-tracked borrowed lord {lord.Name})");
+         }
+
+         return t.Line();
+      }
+
       private static string TestPresence(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("presence");
