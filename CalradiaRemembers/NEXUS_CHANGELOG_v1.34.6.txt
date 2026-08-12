@@ -1,0 +1,9 @@
+Version 1.34.6
+
+Lords who ride with you, courtship trials, and recruiting a notable. Your saves carry over untouched.
+
+New
+- A lord or lady can ride with you. A friendly noble of another clan may agree, in conversation, to accompany you for a time, for whatever reason the moment gives (friendship, a shared cause, a courtship). If they command an army of their own, their party escorts yours and they keep their command; if they have no party, they ride in your own party while remaining of their own house and colours. You are told when one joins or leaves, and if their people go to war with yours, they break off to answer that call. Ask them to part ways whenever you wish.
+- Courtship trials. Court someone and have them ride at your side, and after a couple of seasons the time spent together settles them: they write to you themselves to accept the match, and the marriage opens. The trial only clears the "not close enough yet" gate, never a real barrier such as an existing marriage, a war, or kinship.
+- Recruit a notable into your clan. Persuade a settlement notable (a gang leader and the like), once you have earned their deep trust, to leave their post and swear into your clan as a companion. They bequeath their gang and standing to one of their own people, who takes up the post after them, and they arrive already an ally.
+- The Empire's collapse reads as recent, not ancient. Characters now treat the Empire's civil war as the fresh wound it is, a few years old and within living memory, rather than an old ruin fallen generations past.
