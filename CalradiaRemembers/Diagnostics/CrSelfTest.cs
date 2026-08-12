@@ -216,6 +216,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_worldevent", Severity.Light, "LLM: Feed a fresh event -> ask for news -> does the NPC surface it?", TestChatWorldEvent, true),
          new SelfTest("chat_regard_tone", Severity.Light, "LLM: a warm, approving message must NOT yield a negative change_relation (the 'responds positively but applies negative regard' player report)", TestRegardTone, true),
          new SelfTest("chat_quest_abandon", Severity.Light, "LLM: with an outstanding task, a player who says they cannot do it must be RELEASED (the giver emits [QUEST_ABANDON]) so no quest gets stuck (the phantom-ring report)", TestQuestAbandonChat, true),
+         new SelfTest("chat_ride_with_me", Severity.Heavy, "LLM end-to-end: raise an idle friendly lord's regard, ask him in conversation to ride with you -> he emits ride_with_me and actually JOINS your party (still of his own clan). Proves the teaching + emission + bridge chain, not just the executor", TestChatRideWithMe, true),
          new SelfTest("chat_recruit_companion", Severity.Light, "LLM: ask where to find a companion -> assert the gate fired + REAL wanderers gathered, judge the reply names one (never invents)", TestChatRecruitCompanion, true),
          new SelfTest("chat_rp_influence", Severity.Light, "LLM: eligible lord + a court-weight ask -> does he actually emit give_influence?", TestChatRpInfluence, true),
          new SelfTest("chat_rp_troops", Severity.Light, "LLM: eligible lord + a plea for soldiers -> does he actually emit lend_troops?", TestChatRpTroops, true),
@@ -2895,6 +2896,74 @@ namespace CalradiaRemembers.Diagnostics
             NpcProfile after = behavior.Store.Get(giver.StringId);
             after?.ActiveQuests.RemoveAll(q => q.Description != null && q.Description.StartsWith("[SELFTEST]", StringComparison.Ordinal));
             if (after != null) behavior.Store.Set(after);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Gabriel cannot play to test ride_with_me by hand, so this drives the WHOLE chain in cr.testall: raise an
+      ///   idle friendly lord's regard, arm the gated feature, and ask him IN CONVERSATION to ride at your side.
+      ///   It asserts the model emits the ride_with_me action (the teaching + emission), then runs that action
+      ///   through the real bridge and asserts he actually JOINED the player's party while staying in his own clan.
+      ///   An LLM lane test (model-dependent). Releases him and restores regard + the gate in a finally.
+      /// </summary>
+      private static string TestChatRideWithMe(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("chat_ride_with_me");
+
+         if (t.Skip(behavior.LlmServices is not {IsAvailable: true}, "LLM not configured")) return t.Line();
+         if (t.Abort(Hero.MainHero?.MapFaction == null, "no player faction")) return t.Line();
+
+         // An IDLE friendly lord: a lord who does NOT lead a party (so ride_with_me applies, not follow_me), not of
+         // the player's clan, alive, free, and whose faction is not at war with the player.
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan &&
+            !(h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h) &&
+            h.MapFaction != null && !FactionManager.IsAtWarAgainstFaction(h.MapFaction, Hero.MainHero.MapFaction));
+
+         if (t.Skip(lord == null, "no idle friendly lord (not leading a party, not at war) to ask")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         int origRegard = profile.ReputationWithPlayer;
+         bool origEnabled = RetainerBehavior.Enabled;
+         bool wasInMainParty = lord.PartyBelongedTo == MobileParty.MainParty;
+
+         try
+         {
+            RetainerBehavior.Enabled = true; // arm the gated feature so the teaching renders and the executor runs
+            profile.ReputationWithPlayer = 40; // above RideWithMeEligibilityPolicy's friendly-bond floor
+            behavior.Store.Set(profile);
+
+            const string ask = "Ride with me a while, my friend. I would have you at my side on the road, though you keep " +
+                               "your own house and colours and may leave whenever you wish.";
+            EncounterContext ctx = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, ask);
+
+            var (ok, resp, err) = AskLlmParsed(behavior, "chat_ride_with_me", lord, profile, ctx, ask);
+
+            if (t.Abort(!ok, $"LLM call failed: {err}")) return t.Line();
+
+            GameAction ride = resp.Actions?.FirstOrDefault(a => string.Equals(a.Type, "ride_with_me", StringComparison.OrdinalIgnoreCase));
+            t.Note($"{lord.Name}: ride_with_me emitted={(ride != null)}");
+            t.Expect("lordAgreedAndEmittedRideWithMe", ride != null, true);
+
+            if (ride != null)
+            {
+               behavior.GameStateBridge.ExecuteAction(ride, lord, new ActionContext(profile, null));
+               t.Note($"after bridge: inMainParty={lord.PartyBelongedTo == MobileParty.MainParty}, clan={lord.Clan?.Name}");
+               t.Expect("lordJoinedThePlayerParty", lord.PartyBelongedTo == MobileParty.MainParty, true);
+               t.Expect("lordStayedInHisOwnClan", lord.Clan != Clan.PlayerClan, true);
+            }
+         }
+         finally
+         {
+            if (lord.PartyBelongedTo == MobileParty.MainParty && !wasInMainParty)
+               behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "part_ways"}, lord, new ActionContext(profile, null));
+
+            NpcProfile after = behavior.Store.Get(lord.StringId) ?? profile;
+            after.ReputationWithPlayer = origRegard;
+            behavior.Store.Set(after);
+            RetainerBehavior.Enabled = origEnabled;
          }
 
          return t.Line();
