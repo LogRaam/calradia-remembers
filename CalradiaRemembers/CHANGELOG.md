@@ -21,6 +21,16 @@ untouched.
   road and hearth, not an absence they resent. Previously a household member apart could open a conversation as
   though you had abandoned them, counting the days since they last saw you; now they speak as one of your own
   house, awaiting your return. Household who ride with you were already handled; this covers those who stay home.
+- **Characters are no longer relentlessly cold, especially on lighter AI models.** Players on smaller local models
+  reported that almost everyone they met acted mean, with no good people anywhere. The guidance that shapes how
+  every character behaves now states plainly that being guarded is not being cruel: a stranger who has given no
+  offense is met with ordinary courtesy, and coldness or insult is a response to a real slight, a threat, or a bad
+  history, never the opening manner toward someone who has done nothing. This restores the range of decent, warm,
+  and neutral people the world is meant to have.
+- **Bandit tasks are findable, and reporting an unfindable one no longer earns a grudge.** A "clear the hideout"
+  task now puts its map marker on the actual lair instead of the nearby town; a "clear the bandits" task is only
+  ever offered when bandits are truly roaming near that town; and if you tell the giver you could not find the
+  target, they take it as a mild disappointment rather than a broken word, with no lasting grudge held against you.
 
 ## v1.34.6.. 2026-08-11
 
