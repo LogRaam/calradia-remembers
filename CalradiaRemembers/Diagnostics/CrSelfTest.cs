@@ -172,6 +172,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("divorce_process", Severity.Heavy, "married couple -> end_marriage -> force endDay -> tick -> assert dissolved + exSpouses + no one clanless + scandal + relation hits", TestDivorceProcess),
          new SelfTest("spouse_divorce", Severity.Heavy, "marry the player (test spouse) -> force demand -> accept_divorce -> assert dissolved + flag cleared; second test spouse -> force demand -> decline_divorce -> assert refusal grudge planted", TestSpouseDivorceDemand),
          new SelfTest("player_divorce", Severity.Heavy, "marry the player (test spouse, happy) -> end_own_marriage -> assert dissolved + a Divorce grudge on the player; second test spouse (miserable) -> end_own_marriage -> assert dissolved + NO grudge", TestPlayerDivorce),
+         new SelfTest("marry_companion_spike", Severity.Light, "FEASIBILITY SPIKE (marry your own companion): assert the pure MarryCompanionEligibilityPolicy carve-out (a non-kin companion is admitted, each refusal bars). Then, against a live disposable wanderer companion, assert the engine's own MarriageModel.IsCoupleSuitableForMarriage REFUSES a raw companion (a wanderer is not Occupation.Lord) and that a guaranteed-no-op MarriageAction.Apply leaves the player UNWED (the SameClan bar is a mod/UI rule, not an engine one). The live marriage+divorce ROUND-TRIP is deliberately NOT driven here: sealing it needs an occupation promotion whose reversal cannot be guaranteed clean without an in-game check, so the safe live half asserts the refusal and mutates nothing. MANUAL when no disposable companion exists", TestMarryCompanionSpike),
          new SelfTest("spouse_estrangement", Severity.Heavy, "marry the player (test spouse) -> force-escalate -> force deadline to today -> tick -> assert dissolved + spouse-side Divorce grudge + escalation cleared; second test spouse -> force-escalate -> raise relation above the reconciliation threshold -> tick -> assert marriage SURVIVES + escalation cleared", TestSpouseEstrangement),
          new SelfTest("grudge_backfill", Severity.Light, "seed a synthetic Jealousy NotableEvent -> force backfill -> assert a Jealousy grudge exists -> force it again -> assert no duplicate", TestGrudgeBackfill),
          new SelfTest("open_relationship", Severity.Light, "open relationship (Inc 2): EnableJealousy=false gates the real daily tick so a queued reaction never fires (and ON fires it); then seed several committed consorts, run the REAL competition selection twice, and assert marking the naturally-aggrieved partner as IsOpenArrangement excludes her so a different NON-open partner is chosen instead. Restores all borrowed state", TestOpenRelationship),
@@ -5454,6 +5455,61 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("mutualOutcomePositive", mutualOutcome is {IsPositive: true}, true);
          t.Expect("dissolvedAfterMutual", dissolvedMutual, true);
          t.Expect("noGrudgeAfterMutual", noGrudgeAfterMutual, true);
+
+         return t.Line();
+      }
+
+      private static string TestMarryCompanionSpike(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("marry_companion_spike");
+
+         // ── The pure carve-out rule, asserted directly (also covered by the NUnit suite) ────────────
+         // The one match the feature exists to admit: a compatible, unwed, adult, non-kin companion while the
+         // player is free. If this flips the whole carve-out is dead.
+         t.Expect("policy_admits_compatible_companion",
+            MarryCompanionEligibilityPolicy.CanMarry(true, true, true, true, false, false, true), true);
+         // The line the SameClan bar must always hold: a companion who is also blood kin stays barred (no incest).
+         t.Expect("policy_bars_blood_kin",
+            MarryCompanionEligibilityPolicy.CanMarry(true, true, true, true, false, true, true), false);
+         // A second spouse onto an already-wed player is impossible in law; the carve-out defers to that.
+         t.Expect("policy_bars_when_player_not_free",
+            MarryCompanionEligibilityPolicy.CanMarry(true, true, true, true, false, false, false), false);
+
+         if (t.Skip(Hero.MainHero == null, "no player hero")) return t.Line();
+         if (t.Skip(Hero.MainHero.Spouse != null,
+                $"player already wed to {Hero.MainHero.Spouse?.Name}; the live marriage half cannot be probed")) return t.Line();
+
+         // A DISPOSABLE companion: an opposite-sex (so orientation is not the confound), adult, unwed, free
+         // wanderer of the player's own clan. Opposite sex isolates the real finding (a wanderer is not a Lord)
+         // from the engine's separate same-sex refusal.
+         bool playerFemale = Hero.MainHero.IsFemale;
+         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != null && h != Hero.MainHero && h.IsAlive && !h.IsChild && h.Spouse == null && !h.IsPrisoner
+            && (h.IsPlayerCompanion || (h.Clan == Clan.PlayerClan && h.IsWanderer)) && h.IsFemale != playerFemale);
+
+         if (t.Skip(companion == null, "no disposable opposite-sex unwed adult companion in the player's clan to probe"))
+            return t.Line();
+
+         // The engine's OWN suitability does NOT check same-clan; it refuses because CanMarry() -> IsSuitableForMarriage
+         // requires Occupation.Lord and a companion is Occupation.Wanderer. This is the crux of the spike verdict.
+         bool engineSuitable = Campaign.Current?.Models?.MarriageModel?.IsCoupleSuitableForMarriage(Hero.MainHero, companion) ?? false;
+         t.Note($"companion={companion.Name}, occupation={companion.Occupation}, clan==player={companion.Clan == Clan.PlayerClan}");
+         t.Expect("engineRefusesRawCompanion", engineSuitable, false);
+
+         // Only drive the REAL Apply when the engine has already declared the couple unsuitable: then Apply is a
+         // GUARANTEED no-op (its first line bails on !IsCoupleSuitableForMarriage), so it mutates nothing and can
+         // never leave the player wed. If the engine unexpectedly reported suitable, the Expect above already fails
+         // the test and we do NOT call Apply, so no accidental marriage is sealed.
+         if (t.Skip(engineSuitable,
+                "engine unexpectedly reports the raw companion suitable; live Apply withheld so no marriage is sealed by a self-test"))
+            return t.Line();
+
+         Hero spouseBefore = Hero.MainHero.Spouse;
+         MarriageAction.Apply(Hero.MainHero, companion);
+         t.Expect("rawApplyLeftPlayerUnwed", Hero.MainHero.Spouse == spouseBefore, true);
+         t.Expect("companionNotWedToPlayer", companion.Spouse == Hero.MainHero, false);
+         t.Note("live marriage+divorce round-trip deliberately NOT driven: wedding a companion needs an occupation "
+              + "promotion whose reversal cannot be guaranteed clean without an in-game check (see the decompiled verdict)");
 
          return t.Line();
       }
