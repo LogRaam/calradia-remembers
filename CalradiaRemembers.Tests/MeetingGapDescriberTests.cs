@@ -68,5 +68,40 @@ namespace CalradiaRemembers.Tests
             MeetingGapDescriber.Describe(84).Should().Be("It has been roughly a year since you last saw the player.");
             MeetingGapDescriber.Describe(200).Should().Be("It has been roughly 2 years since you last saw the player.");
         }
+
+        // The reported bug: wives (and other household) opened conversations convinced they were "getting left
+        // behind any time i leave a city", even while married to and travelling with the player. A household bond
+        // must NEVER be handed an elapsed-gap note that reads as a fading acquaintance; it gets the "of your
+        // house, apart only while you campaign" framing instead. Pinned by its plain wording, never the day math.
+        [Test]
+        public void GIVEN_a_household_member_WHEN_describing_THEN_the_gap_is_reframed_as_a_shared_house()
+        {
+            string note = MeetingGapDescriber.Describe(30, isHousehold: true);
+
+            note.Should().Contain("own house");
+            note.Should().Contain("never abandoned, forgotten, or left behind");
+            note.Should().NotContain("since you last saw the player");
+        }
+
+        // The whole point of the reframe is that it does NOT hinge on how long it has been: a wife feels "left
+        // behind" the moment the player rides out of town (a fresh gap that would be silent for an acquaintance),
+        // so the reassuring household note must still be present at a same-day gap, not just a long one.
+        [Test]
+        public void GIVEN_a_household_member_with_a_fresh_gap_WHEN_describing_THEN_the_reassurance_is_still_given()
+        {
+            MeetingGapDescriber.Describe(1, isHousehold: true).Should().NotBeNull();
+            MeetingGapDescriber.Describe(0, isHousehold: true).Should()
+                               .Be(MeetingGapDescriber.Describe(30, isHousehold: true));
+        }
+
+        // A non-household caller must be untouched by the new overload: the default Describe(int) is exactly the
+        // isHousehold:false path, so everyone who is not spouse/consort/kin keeps the ordinary day-gated note the
+        // rest of this fixture pins.
+        [Test]
+        public void GIVEN_a_non_household_member_WHEN_describing_THEN_it_matches_the_ordinary_note()
+        {
+            MeetingGapDescriber.Describe(8, isHousehold: false).Should().Be(MeetingGapDescriber.Describe(8));
+            MeetingGapDescriber.Describe(4, isHousehold: false).Should().BeNull();
+        }
     }
 }

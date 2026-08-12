@@ -7302,6 +7302,21 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"{away.Name} (away): gapNote='{actx.MeetingGapNote}'");
             t.Expect("anAwayLordStillHearsTheTimeApart", !string.IsNullOrWhiteSpace(actx.MeetingGapNote), true);
             t.Expect("anAwayLordGetsNoPresenceLine", actx.PresenceNote, null);
+
+            // The reported-wife case: a spouse or consort who is genuinely AWAY must NOT be handed the same
+            // "it has been X since you last saw the player" note as a fading acquaintance (players saw wives act
+            // "left behind" the moment they rode out of town). Stage the household bond through a THROWAWAY profile
+            // marked as a consort, exercising the real EncounterContextBuilder wiring without arranging a marriage
+            // or touching the save. Contrast it against the plain away note just proven above: same hero, same
+            // gap, only the bond differs, so a pass proves the reframe (not blanket silence) is doing the work.
+            NpcProfile consort = AgedProfile(away, today);
+            consort.Romantic = consort.Romantic ?? new RomanticProfile();
+            consort.Romantic.IsConsort = true;
+
+            EncounterContext hctx = EncounterContextBuilder.Build(away, consort, behavior.GameStateBridge, "hello");
+            t.Note($"{away.Name} (away consort): gapNote='{hctx.MeetingGapNote}'");
+            t.Expect("anAwayConsortIsNeverToldHowLongSinceTheyMet", hctx.MeetingGapNote?.Contains("since you last saw the player") != true, true);
+            t.Expect("anAwayConsortIsFramedAsOfYourHouse", hctx.MeetingGapNote?.Contains("own house") == true, true);
          }
          else t.Note("no away lord to contrast against");
 

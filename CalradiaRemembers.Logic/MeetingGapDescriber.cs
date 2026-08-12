@@ -35,8 +35,24 @@ namespace CalradiaRemembers.Logic
         ///   non-null note with its own "do not dwell on it" guidance, so the model is aware of the time apart
         ///   without leading every conversation with it.
         /// </summary>
-        public static string Describe(int daysSinceLastMeeting)
+        public static string Describe(int daysSinceLastMeeting) => Describe(daysSinceLastMeeting, isHousehold: false);
+
+        /// <summary>
+        ///   As <see cref="Describe(int)" />, but relationship-aware. When <paramref name="isHousehold" /> is
+        ///   true (the player's spouse, consort, or close kin), an absence is NOT framed as a fading acquaintance
+        ///   they have not seen in a while (a player report: wives felt "left behind" the moment the player rode
+        ///   out of town). Instead it is the plain truth of a married life split between the road and the hearth:
+        ///   they are of the player's own house, apart while the player campaigns, keeping matters here and
+        ///   awaiting a return, never abandoned. Rendered whatever the day count, since a household bond does not
+        ///   turn on how many days it has been. The ordinary day-gated note still serves everyone else.
+        /// </summary>
+        public static string Describe(int daysSinceLastMeeting, bool isHousehold)
         {
+            if (isHousehold)
+                return "You belong to the player's own house (their spouse, consort, or close kin). You are apart " +
+                       "only because the player is away on campaign while you keep matters here; you await their " +
+                       "return and are never abandoned, forgotten, or left behind.";
+
             if (daysSinceLastMeeting <= RemarkThresholdDays) return null;
 
             return $"It has been roughly {HumanizeSpan(daysSinceLastMeeting)} since you last saw the player.";

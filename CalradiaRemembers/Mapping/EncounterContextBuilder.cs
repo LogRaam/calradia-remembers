@@ -270,7 +270,7 @@ namespace CalradiaRemembers.Mapping
             WarStatus = bridge.GetDiplomaticStatus(hero),
             DaysSinceLastMeeting = daysSinceLastMeeting,
             MeetingGapNote = PresenceDescriber.ShowsElapsedGap(presence)
-               ? MeetingGapDescriber.Describe(daysSinceLastMeeting)
+               ? MeetingGapDescriber.Describe(daysSinceLastMeeting, IsPlayerHousehold(hero, profile))
                : null,
             PresenceNote = PresenceDescriber.Describe(presence, presencePlace, atSea),
             Scene = bridge.GetCurrentScene(),
@@ -612,6 +612,23 @@ namespace CalradiaRemembers.Mapping
          int currentDay = bridge.GetCurrentGameDay();
 
          return Math.Max(0, currentDay - latestEventDay);
+      }
+
+      /// <summary>
+      ///   True when this hero belongs to the player's own house: their spouse, a committed consort, or close
+      ///   kin (a parent, child, or sibling). Such a bond apart is framed as a married life split between road
+      ///   and hearth, never as a fading acquaintance the player has not seen in a while (the "wives feel left
+      ///   behind" report). Everyone else keeps the ordinary elapsed-gap note.
+      /// </summary>
+      private static bool IsPlayerHousehold(Hero hero, NpcProfile profile)
+      {
+         if (hero == null || Hero.MainHero == null) return false;
+         if (Hero.MainHero.Spouse == hero) return true;
+         if (profile?.Romantic is {IsConsort: true}) return true;
+         if (Hero.MainHero.Father == hero || Hero.MainHero.Mother == hero) return true;
+         if (hero.Father == Hero.MainHero || hero.Mother == Hero.MainHero) return true;
+
+         return Hero.MainHero.Siblings != null && Hero.MainHero.Siblings.Contains(hero);
       }
 
       /// <summary>Counts towns and castles belonging to a kingdom; returns 0 for a null kingdom.</summary>
