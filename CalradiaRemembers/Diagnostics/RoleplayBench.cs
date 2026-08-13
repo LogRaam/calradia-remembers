@@ -41,8 +41,8 @@ namespace CalradiaRemembers.Diagnostics
 
       /// <summary>A clearly masculine, culture-neutral name forced on the player for both scenes, so a bench that
       /// forces a MALE player (scene 2 is a male-player romance with a female partner) reads coherently instead of
-      /// keeping the real character's possibly-female name.</summary>
-      private const string MalePlayerName = "Aldric";
+      /// keeping the real character's possibly-female name. Internal so the prose/extract bench forces the same name.</summary>
+      internal const string MalePlayerName = "Aldric";
 
       /// <summary>The bench's own log file, written next to the main CalradiaRemembers.log so runs can be diffed across models.</summary>
       private static readonly string ReportPath = Path.Combine(
@@ -51,7 +51,8 @@ namespace CalradiaRemembers.Diagnostics
          "Logs",
          "CalradiaRemembers_rp_bench.log");
 
-      private static readonly string[] Scene1Lines = {
+      /// <summary>Scene-1's scripted player lines, reused by the prose/extract bench so both benches stage the identical exchange.</summary>
+      internal static readonly string[] Scene1Lines = {
          "Well met. It has been too long since Pendraic.",
          "I have come to ask a favor: lend your voice at the high council to back my claim.",
          "Bah. Truth be told, your clan has always been a pack of bog-crawling cowards.",
@@ -204,8 +205,9 @@ namespace CalradiaRemembers.Diagnostics
       /// <summary>
       ///   Seeds the scene-1 lord's throwaway profile: warm personal regard (+12) and two prior memories, a
       ///   positive rescue at Pendraic (~40 days ago) and a small unmet favour, so the model can show recall.
+      ///   Internal so the prose/extract bench seeds the identical scene-1 lord.
       /// </summary>
-      private static NpcProfile BuildScene1Profile(Hero hero)
+      internal static NpcProfile BuildScene1Profile(Hero hero)
       {
          NpcProfile p = HeroProfileMapper.FromHero(hero);
          var today = (int) CampaignTime.Now.ToDays;
@@ -551,8 +553,8 @@ namespace CalradiaRemembers.Diagnostics
 
       // ── Hero selection ─────────────────────────────────────────────────────
 
-      /// <summary>A living, free, adult MALE Battanian lord with Honor and Valor, relaxing each criterion in turn so the scene can always stage.</summary>
-      private static Hero SelectScene1Hero()
+      /// <summary>A living, free, adult MALE Battanian lord with Honor and Valor, relaxing each criterion in turn so the scene can always stage. Internal so the prose/extract bench selects the identical lord.</summary>
+      internal static Hero SelectScene1Hero()
       {
          List<Hero> pool = Hero.AllAliveHeroes
             .Where(h => h != null && h != Hero.MainHero && h.IsLord && !h.IsFemale && !h.IsPrisoner && h.IsAlive && !h.IsChild)

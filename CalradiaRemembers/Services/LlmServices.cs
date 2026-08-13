@@ -72,6 +72,15 @@ namespace CalradiaRemembers.Services
       public static string TestPlayerNameOverride { get; set; }
 
       /// <summary>
+      ///   Test-only override for the MODEL ID a request resolves to. Set by the prose/extract bench
+      ///   (cr.prose_extract_test) to point a SINGLE LLM call at an arbitrary model id (the prose model), then
+      ///   cleared so the next call resolves normally (the MCM-configured extractor). When non-null/non-whitespace
+      ///   it wins over the ActiveModelMode/NsfwModel resolution in <see cref="ResolveModel" />. Null or blank =
+      ///   normal resolution (no behaviour change). Invalidate the chat service after setting/clearing it.
+      /// </summary>
+      public static string TestModelOverride { get; set; }
+
+      /// <summary>
       ///   Lazily-constructed chat service. The PromptBuilder and action vocabulary
       ///   inside are built on first access, and rebuilt whenever the adult-content
       ///   level, relationship-warmth, or reply-language setting changes, so options
@@ -443,6 +452,10 @@ namespace CalradiaRemembers.Services
       /// </summary>
       private static string ResolveModel()
       {
+         // TEST SEAM: a non-blank override points a single call at an arbitrary model id (cr.prose_extract_test),
+         // ahead of the normal mode/NSFW resolution. Blank or null falls through to the usual resolution below.
+         if (!string.IsNullOrWhiteSpace(TestModelOverride)) return TestModelOverride;
+
          CrSettings s = CrSettings.Instance;
          string provider = ResolveProvider();
          string mcmModel = s?.Model?.Trim() ?? string.Empty;
