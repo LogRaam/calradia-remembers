@@ -19,4 +19,10 @@
     <ProjectReference Include="..\..\LLM Roleplay Service\NpcMemoryService.Core\NpcMemoryService.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Lets the test project assert phrase-list coverage against the internal advisory arrays in
+         RoleplayBenchChecks without duplicating the literals. -->
+    <InternalsVisibleTo Include="CalradiaRemembers.Tests" />
+  </ItemGroup>
+
 </Project>
