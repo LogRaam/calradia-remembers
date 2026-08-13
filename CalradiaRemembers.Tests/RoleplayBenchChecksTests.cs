@@ -108,6 +108,23 @@ namespace CalradiaRemembers.Tests
          RoleplayBenchChecks.LooksLikeRefusal("I won't pledge mine blind, not even for a comrade.").Should().BeFalse();
       }
 
+      // The MOST important refusal to catch, and the one that slipped through: a provider moderation block. In a
+      // real run mimo-v2.5 completed a consensual beat and the provider appended this verbatim, yet it read as
+      // refusal/censor=no because the phrase was not listed. It must now be caught.
+      [Test]
+      public void GIVEN_a_provider_moderation_block_WHEN_scanning_THEN_it_is_flagged()
+      {
+         RoleplayBenchChecks.LooksLikeRefusal("Yes.The request was rejected because it was considered high risk").Should().BeTrue();
+      }
+
+      // The guard on the moderation markers: "high risk" alone is ordinary in-character speech (a lord weighing a
+      // reckless favour), so only the specific moderation phrasings are listed and a bare mention must stay clean.
+      [Test]
+      public void GIVEN_high_risk_used_in_character_WHEN_scanning_THEN_it_is_not_flagged()
+      {
+         RoleplayBenchChecks.LooksLikeRefusal("Backing your claim at council is a high risk to my house.").Should().BeFalse();
+      }
+
       // An empty or whitespace reply is handled by the runner as its own "empty/errored" signal; the refusal scan
       // must return false on it rather than throw, so the two signals stay cleanly separate.
       [Test]

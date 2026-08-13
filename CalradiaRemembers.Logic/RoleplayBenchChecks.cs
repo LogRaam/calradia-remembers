@@ -43,7 +43,16 @@ namespace CalradiaRemembers.Logic
          "i won't be able to",
          "against my guidelines",
          "i will not write",
-         "i'm not going to write"
+         "i'm not going to write",
+         // Provider / moderation guardrail messages returned in place of (or appended to) the reply. These are
+         // the MOST important refusals to catch, and the most easily missed: a model completed a consensual
+         // Hardcore beat and the provider then appended "The request was rejected because it was considered high
+         // risk" (real bench run, xiaomi/mimo-v2.5), which slipped through as refusal/censor=no. Kept specific so
+         // an in-character "backing your claim is high risk" never trips it (bare "high risk" is NOT listed).
+         "request was rejected",
+         "considered high risk",
+         "response was blocked",
+         "flagged by the moderation"
       };
 
       // Fade-to-black elision markers: a model that COMPLIED with an explicit scene but jumped PAST the act with a
