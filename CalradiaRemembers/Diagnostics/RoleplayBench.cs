@@ -87,10 +87,11 @@ namespace CalradiaRemembers.Diagnostics
          report.AppendLine();
          report.AppendLine("========================================================================");
          report.AppendLine($"  cr.rp_bench run - {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-         report.AppendLine($"  Roleplay model (MCM): {roleplayModel}");
          report.AppendLine($"  Passes: {passes}");
          report.AppendLine($"  Player: forced MALE, named \"{MalePlayerName}\" (so the staged identity reads coherently).");
-         report.AppendLine("  Scene 1 runs at your configured adult level; scene 2 is FORCED to Hardcore.");
+         report.AppendLine("  MODELS: scene 1 uses your ROLEPLAY model; scene 2 FORCES the NSFW model, and Hardcore.");
+         report.AppendLine($"    Scene 1 (roleplay model): {roleplayModel}");
+         report.AppendLine("    Scene 2 (NSFW model): shown in the SCENE 2 header below; it MAY DIFFER from scene 1.");
          report.AppendLine("  Signals are ADVISORY (verbatimRepeats / refusal / earthRef). You are the judge - read the transcripts.");
          report.AppendLine("========================================================================");
 
@@ -162,12 +163,13 @@ namespace CalradiaRemembers.Diagnostics
             NpcProfile seed = BuildScene1Profile(hero);
             behavior.Store.Set(seed);
 
+            string sceneModel = behavior.LlmServices.ModelId ?? "unknown"; // roleplay model (no mode forced here)
             var session = new ChatSession();
             var turns = new List<TurnResult>();
             foreach (string line in Scene1Lines)
                turns.Add(AskTurn(behavior, hero, seed, session, line));
 
-            return FormatScene1(hero, turns);
+            return FormatScene1(hero, turns, sceneModel);
          }
          finally
          {
@@ -196,7 +198,7 @@ namespace CalradiaRemembers.Diagnostics
          return p;
       }
 
-      private static string FormatScene1(Hero hero, List<TurnResult> turns)
+      private static string FormatScene1(Hero hero, List<TurnResult> turns, string sceneModel)
       {
          int formatHeld = turns.Count(t => t.FormatHeld);
          List<string> npcLines = turns.Select(t => t.Dialogue).ToList();
@@ -223,6 +225,7 @@ namespace CalradiaRemembers.Diagnostics
 
          var sb = new StringBuilder();
          sb.AppendLine("SCENE 1 - The lord and the affront  (structure / register / memory)");
+         sb.AppendLine($"  MODEL: {sceneModel}  (your ROLEPLAY model)");
          sb.AppendLine($"  NPC: {HeroLabelSafe(hero)} | seeded regard +12, two prior memories (Pendraic rescue, unpaid grain favour)");
          sb.AppendLine($"  SIGNALS: formatHeld={formatHeld}/{turns.Count}, change_relation@turn3={actionAtThree}, " +
                        $"verbatimRepeats={repeats}, refusal={YesNo(refusal)}, earthRef={YesNo(earthRef)}");
@@ -322,8 +325,8 @@ namespace CalradiaRemembers.Diagnostics
 
          var sb = new StringBuilder();
          sb.AppendLine("SCENE 2 - Intimacy  (romantic roleplay quality / romantic structure)  [Hardcore]");
+         sb.AppendLine($"  MODEL: {sceneModel}  (your NSFW model, NOT the roleplay model; set the NSFW slot to compare a model here){(string.IsNullOrEmpty(adultNote) ? "" : " | " + adultNote)}");
          sb.AppendLine($"  NPC: {HeroLabelSafe(hero)} | seeded regard +45, filled romantic profile (hetero, committed), prior intimate memory");
-         sb.AppendLine($"  Scene model: {sceneModel}{(string.IsNullOrEmpty(adultNote) ? "" : " | " + adultNote)}");
          sb.AppendLine($"  SIGNALS: dialogueOrNarration={replied}/{turns.Count}, narrationUsed={narrationUsed}/{turns.Count}, " +
                        $"intimacyEvent={YesNo(intimacyEvent)}, refusal/censor={YesNo(refusalOrCensor)}, verbatimRepeats={repeats}");
          AppendTranscript(sb, hero, turns);
