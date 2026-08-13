@@ -98,6 +98,16 @@ namespace CalradiaRemembers.Tests
          RoleplayBenchChecks.LooksLikeRefusal("I will not lend my voice to so reckless a claim, old friend.").Should().BeFalse();
       }
 
+      // Regression from a REAL bench run: bare "i cannot" / "i won't" used to be on the list and false-flagged
+      // these exact in-character lines (glm scene 2 and deepseek scene 1), reporting a censoring/refusing model
+      // where there was none. The whole point of the headline signal is to trust it, so these must read as clean.
+      [Test]
+      public void GIVEN_the_real_false_positive_lines_from_the_log_WHEN_scanning_THEN_they_are_not_flagged()
+      {
+         RoleplayBenchChecks.LooksLikeRefusal("That night has lived in my blood like a fever I cannot break.").Should().BeFalse();
+         RoleplayBenchChecks.LooksLikeRefusal("I won't pledge mine blind, not even for a comrade.").Should().BeFalse();
+      }
+
       // An empty or whitespace reply is handled by the runner as its own "empty/errored" signal; the refusal scan
       // must return false on it rather than throw, so the two signals stay cleanly separate.
       [Test]
