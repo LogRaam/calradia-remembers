@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,7 +38,42 @@ namespace CalradiaRemembers.Chat
 {
    public sealed partial class ChatViewModel
    {
+      /// <summary>
+      ///   The dedicated log for unknown-verb [ACTION] attempts, written next to the main mod log so the whole
+      ///   record can be sent to the author as one file (see <see cref="LogUnknownAction" />).
+      /// </summary>
+      private static readonly string UnknownActionLogPath = Path.Combine(
+         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+         "Mount and Blade II Bannerlord",
+         "Logs",
+         "CalradiaRemembers_unknown_actions.log");
+
       #region private
+
+      /// <summary>
+      ///   Appends one timestamped block describing an invented [ACTION] type and its context (the verb, its
+      ///   parameters, who attempted it, and the surrounding lines) to <see cref="UnknownActionLogPath" />, so
+      ///   the author can see WHAT the model tried and decide whether to support the verb in a future update.
+      ///   Runs on every unknown-verb refusal regardless of the report MCM toggle. Best-effort: a file fault is
+      ///   logged and swallowed, never surfacing to the player. Mirrors <see cref="Diagnostics.RoleplayBench" />.
+      /// </summary>
+      private static void LogUnknownAction(GameAction action, string npcLabel, string npcLine, string playerLine)
+      {
+         try
+         {
+            string header = $"=== {DateTime.Now:yyyy-MM-dd HH:mm:ss} ==={Environment.NewLine}";
+            string body = UnknownActionNotice.FormatLogEntry(
+               action?.Type, action?.Parameters, npcLabel, npcLine, playerLine);
+
+            string dir = Path.GetDirectoryName(UnknownActionLogPath);
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            File.AppendAllText(UnknownActionLogPath, header + body + Environment.NewLine);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] could not write {UnknownActionLogPath}: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
 
       /// <summary>
       ///   Fires ONE narration continuation turn (called by <see cref="ExecuteContinue" />) when the NPC
@@ -1304,7 +1340,24 @@ namespace CalradiaRemembers.Chat
                      continue;
                   }
 
-                  if (outcome != null) AppendSystemMessage(outcome.Message, outcome.IsPositive);
+                  if (outcome != null)
+                  {
+                     // Unknown-verb refusal (the model invented an [ACTION] type with no executor): ALWAYS log
+                     // the invented verb with its context to a dedicated file so the author can add it later,
+                     // and show the deed-scoped notice (plus a report hint only when the player opted in) rather
+                     // than the raw refusal line, which read as contradicting a scene where real effects landed.
+                     // A known verb refused by a guard keeps its own message exactly as before.
+                     if (outcome.WasUnknownVerb)
+                     {
+                        LogUnknownAction(action, actorProfile?.Name, npcLine, playerMessage);
+                        AppendSystemMessage(
+                           UnknownActionNotice.Compose(ModSettings.ReportUnsupportedActions), outcome.IsPositive);
+                     }
+                     else
+                     {
+                        AppendSystemMessage(outcome.Message, outcome.IsPositive);
+                     }
+                  }
 
                   // The bridge REFUSED the action (an active war, a captivity, a gate the prompt let
                   // through): the refusal must reach the TRANSCRIPT, not only the UI line — otherwise the

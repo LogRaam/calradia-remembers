@@ -544,6 +544,7 @@ LLM Provider:
 [*][b]Enable Logging[/b] (off by default).. master switch for all mod logging (on-screen messages and the CalradiaRemembers.log file). Leave off for normal play; turn on only to capture a bug report.[/*]
 [*][b]Verbose Logging[/b] (off).. logs the full prompt and NPC response on every exchange. Floods the log; for bug reports only. Requires Enable Logging.[/*]
 [*][b][color=#b6d7a8]Story Log[/color][/b] (off).. writes the clean, novel-style transcript described above to CalradiaRemembers_story.log in your Bannerlord Logs folder.[/*]
+[*][b]Report unsupported actions[/b] (off).. if the AI ever tries something the mod cannot do yet (an action it was not taught), it is always logged to CalradiaRemembers_unknown_actions.log in your Bannerlord Logs folder, with what it was trying to do. Turn this on to also see a small note in chat when it happens. Either way, send me that log on the [b]Posts[/b] tab to request the action be supported in a future update.[/*]
 [/list]
 
 [line]

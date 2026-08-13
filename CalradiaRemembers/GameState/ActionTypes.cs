@@ -46,11 +46,12 @@ namespace CalradiaRemembers.GameState
             AppliedGoldAmount = appliedGoldAmount;
         }
 
-        private ActionOutcome(string message)
+        private ActionOutcome(string message, bool unknownVerb = false)
         {
             Message = message;
             IsPositive = false;
             WasRefused = true;
+            WasUnknownVerb = unknownVerb;
         }
 
         /// <summary>
@@ -69,6 +70,15 @@ namespace CalradiaRemembers.GameState
         /// </summary>
         public static ActionOutcome Refused(string message) => new(message);
 
+        /// <summary>
+        ///   The bridge refused this action because its type is not a real mod verb (the model invented one,
+        ///   e.g. "grant a fief" / "bless a marriage" with no executor). Like <see cref="Refused" /> it changed
+        ///   nothing and earns the transcript note, but it ALSO flags <see cref="WasUnknownVerb" /> so the chat
+        ///   can (a) always log the invented verb with its context for the author and (b) show a deed-scoped
+        ///   base message plus, when the player opts in, a report hint, instead of the raw refusal line.
+        /// </summary>
+        public static ActionOutcome RefusedUnknownVerb(string message) => new(message, true);
+
         /// <summary>Short, in-character-adjacent description, e.g. "Martira regards you more warmly. (+1)".</summary>
         public string Message { get; }
 
@@ -82,6 +92,14 @@ namespace CalradiaRemembers.GameState
         ///   the model that something which really happened did not.
         /// </summary>
         public bool WasRefused { get; }
+
+        /// <summary>
+        ///   True only when the refusal was an UNKNOWN VERB: the model emitted an [ACTION] whose type has no
+        ///   executor (see <see cref="RefusedUnknownVerb" />). Distinct from a known verb refused by a guard,
+        ///   because the chat handles it differently: it logs the invented verb for the author and shows a
+        ///   deed-scoped notice. Defaults to false, so an ordinary guard refusal is never mistaken for one.
+        /// </summary>
+        public bool WasUnknownVerb { get; }
 
         /// <summary>
         ///   Regard audit 2.1: for a change_relation action, the regard actually APPLIED after gating and clamping

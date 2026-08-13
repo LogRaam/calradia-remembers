@@ -327,7 +327,7 @@ namespace CalradiaRemembers.GameState
                // OOC note), never vanish as a silent null, or the model's invented deed goes uncorrected.
                ModLog.Info($"[ACTION] Unknown type '{action.Type}' refused (no executor).");
 
-               return ActionOutcome.Refused("(That cannot be done here. Nothing happened.)");
+               return ActionOutcome.RefusedUnknownVerb(UnknownActionNotice.BaseMessage);
          }
       }
 

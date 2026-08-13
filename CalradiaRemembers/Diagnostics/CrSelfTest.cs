@@ -120,6 +120,7 @@ namespace CalradiaRemembers.Diagnostics
       /// <summary>The registry. To add a test: write a method, then add one line here.</summary>
       private static readonly List<SelfTest> Tests = new() {
          new SelfTest("providegold", Severity.Light, "seed ProvideGold -> take_gold -> assert stamped", TestProvideGold),
+         new SelfTest("unknown_action_notice", Severity.Light, "feedback funnel: drive the REAL bridge with an invented [ACTION] type (no executor) against a live lord -> assert the outcome is refused AND flagged WasUnknownVerb, with the deed-scoped base message (the old '(That cannot be done here. Nothing happened.)' contradicted a scene where real effects also landed). A refusal mutates nothing, so no cleanup", TestUnknownActionNotice),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
          new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
@@ -5655,6 +5656,35 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       // ── Tests ─────────────────────────────────────────────────────────────
+
+      // ── Unknown-verb refusal (feedback funnel). The model can emit an [ACTION] whose type has no executor ──
+      // ── (an invented "grant a fief" / "bless a marriage"). The bridge must refuse it AND flag it as an ──
+      // ── unknown verb, carrying the deed-scoped base message, so the chat can log the invented verb for the ──
+      // ── author and show the immersive notice instead of the old "(That cannot be done here. Nothing ──
+      // ── happened.)" that read as contradicting a triumphant scene where a +1 regard and a quest DID land. ──
+      // ── A refusal touches no game state, so nothing needs restoring. ──────────────────────────────────────
+
+      private static string TestUnknownActionNotice(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("unknown_action_notice");
+
+         Hero npc = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+
+         if (t.Abort(npc == null, "no live lord to address")) return t.Line();
+
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "grant_fief_to_player_xyz"},
+            npc, null);
+
+         if (t.Abort(outcome == null, "the bridge returned null instead of a refusal")) return t.Line();
+
+         t.Note($"npc={npc.Name}");
+         t.Expect("refused", outcome.WasRefused, true);
+         t.Expect("unknownVerb", outcome.WasUnknownVerb, true);
+         t.Expect("message", outcome.Message, UnknownActionNotice.BaseMessage);
+
+         return t.Line();
+      }
 
       private static string TestProvideGold(NpcMemoryCampaignBehavior behavior)
       {

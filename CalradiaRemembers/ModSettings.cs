@@ -387,5 +387,13 @@ namespace CalradiaRemembers
       ///   exchange. Read live from the MCM menu; off by default.
       /// </summary>
       public static bool VerboseLogging => CrSettings.Instance?.VerboseLogging ?? false;
+
+      /// <summary>
+      ///   When true, the chat shows a sober report hint after the immersive notice whenever the AI attempts an
+      ///   [ACTION] type the mod does not support (an invented verb). The attempt is logged to
+      ///   CalradiaRemembers_unknown_actions.log regardless of this toggle; this only gates the in-chat hint.
+      ///   Read live from the MCM menu; off by default. See <see cref="Logic.UnknownActionNotice" />.
+      /// </summary>
+      public static bool ReportUnsupportedActions => CrSettings.Instance?.ReportUnsupportedActions ?? false;
    }
 }

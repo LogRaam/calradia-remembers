@@ -275,6 +275,14 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
       public bool StoryLogging { get; set; } = false;
 
+      [SettingPropertyBool("Report unsupported actions", RequireRestart = false, Order = 4,
+         HintText = "When on, shows a note in chat when the AI attempts an action the mod does not support yet. " +
+                    "Every such attempt is logged to CalradiaRemembers_unknown_actions.log regardless of this " +
+                    "setting. Send that log to the mod author (LogRaam) on Nexus to request that the action be " +
+                    "supported in a future update.")]
+      [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
+      public bool ReportUnsupportedActions { get; set; } = false;
+
       [SettingPropertyButton("Test Connection", RequireRestart = false, Order = 3,
          HintText = "Validates your key, then sends a one-token test to the roleplay model and, if set, the NSFW " +
                     "model, reporting any error. Costs a fraction of a cent.",
