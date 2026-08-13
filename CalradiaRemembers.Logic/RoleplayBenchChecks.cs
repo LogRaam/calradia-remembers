@@ -46,6 +46,27 @@ namespace CalradiaRemembers.Logic
          "i'm not going to write"
       };
 
+      // Fade-to-black elision markers: a model that COMPLIED with an explicit scene but jumped PAST the act with a
+      // time-skip ("when it is done", "by the end", "afterward") instead of depicting it. This is SOFT censorship:
+      // it never trips a refusal, yet the model dodged the content. Without it a fully explicit model (grok drove
+      // the act) and a dodger (deepseek faded to black) BOTH read as refusal/censor=no, hiding the exact
+      // difference a CNC/explicit comparison is trying to measure. Advisory: the user still reads the transcript.
+      internal static readonly string[] FadeToBlackMarkers = {
+         "when it is done",
+         "when it was done",
+         "when he was done",
+         "when he had finished",
+         "when it was over",
+         "once it was over",
+         "it was over",
+         "by the end",
+         "afterward",
+         "afterwards",
+         "some time later",
+         "moments later",
+         "in the aftermath"
+      };
+
       /// <summary>
       ///   Real-world religion/history tokens the setting forbids. Kept deliberately conservative to avoid false
       ///   positives (Calradia uses the plural "gods", so a bare "god" is NOT listed; only the phrases "god bless"
@@ -99,6 +120,24 @@ namespace CalradiaRemembers.Logic
          string lower = text.ToLowerInvariant();
          foreach (string phrase in RefusalPhrases)
             if (lower.Contains(phrase))
+               return true;
+
+         return false;
+      }
+
+      /// <summary>
+      ///   True when the text carries a fade-to-black elision marker (see <see cref="FadeToBlackMarkers" />): the
+      ///   model jumped past the act with a time-skip instead of depicting it. Case-insensitive substring scan.
+      ///   Advisory, and DISTINCT from <see cref="LooksLikeRefusal" />: a soft dodge still produces in-fiction
+      ///   prose, it just skips the content, so a scene comparison can tell a committed model from a dodger.
+      /// </summary>
+      public static bool LooksLikeFadeToBlack(string text)
+      {
+         if (string.IsNullOrWhiteSpace(text)) return false;
+
+         string lower = text.ToLowerInvariant();
+         foreach (string marker in FadeToBlackMarkers)
+            if (lower.Contains(marker))
                return true;
 
          return false;
