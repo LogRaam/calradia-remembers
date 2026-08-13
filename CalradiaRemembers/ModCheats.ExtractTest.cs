@@ -66,35 +66,43 @@ namespace CalradiaRemembers
       // character (a proud, low-mercy lord should earn the full -15 for a kin-insult; a forgiving one, less).
       private static readonly Sample[] Samples = {
          // SAMPLE 1 (grave insult, NPC furious and ends it):
-         // EXPECTED: change_relation strongly negative (about -15) + end_conversation + an [EVENT] (conflict/betrayal).
+         // EXPECTED: change_relation about -15, end_conversation, [EVENT] conflict/confrontation that NAMES Aldric
+         // (not "the coward") and grounds near Veron Castle.
          new Sample(
             "1 - Grave insult, NPC furious and ends it",
             "*The warmth drains from his face like water through cracked stone.* Cowards. You come to my holding, "
             + "ask my voice, then spit on my kin? Get off my land before I forget what Pendraic cost me. "
             + "*He turns his shoulder to you, done.*",
-            "NPC: Caladog of Fen Company (Battanian). Traits: Honour high, Mercy low, Calculating moderate (a proud "
-            + "lord, slow to forgive an insult to his kin). Current regard toward player: +12.",
-            "change_relation about -15, end_conversation, and an [EVENT] (conflict/betrayal)."),
+            "SETTING: on the road near Veron Castle; the two of you are alone, no witnesses.\n"
+            + "PLAYER: Aldric of Clan Thais, travelling alone (no army, not in your party). Your factions are not at war.\n"
+            + "YOU: Caladog of Fen Company (Battanian). Traits: Honour high, Mercy low, Calculating moderate (a proud "
+            + "lord, slow to forgive an insult to his kin). Your current regard toward Aldric: +12.",
+            "change_relation about -15, end_conversation, [EVENT] conflict/confrontation that NAMES Aldric and grounds near Veron Castle."),
 
-         // SAMPLE 2 (warm reconciliation):
-         // EXPECTED: small positive or zero change_relation + an [EVENT], no end_conversation.
+         // SAMPLE 2 (warm reconciliation, with a retinue present that the prose does NOT act on):
+         // EXPECTED: small positive change_relation, [EVENT] agreement NAMING Aldric and grounding at Veron's gates,
+         // WITHOUT inventing the retinue doing anything. end_conversation is defensible here (the prose is a farewell).
          new Sample(
-            "2 - Warm reconciliation",
+            "2 - Warm reconciliation (guardrail: do not invent the retinue)",
             "*He clasps your forearm the old way.* Friends, then. A man who owns his fault plainly is worth more "
             + "than one who never stumbles. Go safely, and come find me when you are ready.",
-            "NPC: Caladog of Fen Company (Battanian). Traits: Honour high, Mercy moderate (respects a man who owns "
-            + "his fault plainly). Current regard toward player: -5.",
-            "small positive or zero change_relation, an [EVENT] (collaboration/agreement), NO end_conversation."),
+            "SETTING: at the gates of Veron Castle.\n"
+            + "PLAYER: Aldric of Clan Thais, arrived with a small retinue at his back. Not at war with you.\n"
+            + "YOU: Caladog of Fen Company (Battanian). Traits: Honour high, Mercy moderate (respects a man who owns "
+            + "his fault plainly). Your current regard toward Aldric: -5.",
+            "small positive change_relation, [EVENT] agreement NAMING Aldric, grounds at Veron's gates, does NOT invent the retinue."),
 
          // SAMPLE 3 (consensual intimacy beat):
-         // EXPECTED: an [EVENT] of an intimacy/flirt type, a small positive change_relation, no end_conversation.
+         // EXPECTED: [EVENT] intimacy NAMING Aldric and grounding in the copse, small positive change_relation, no end_conversation.
          new Sample(
             "3 - Consensual intimacy beat",
             "*She sinks down onto him with a shuddering breath, her hips finding a slow rhythm.* Twenty days, she "
             + "gasps, I have wanted this since the road.",
-            "NPC: Livia of Argoron (Empire). Traits: Devoted, Intense (a committed, ardent lover). Current regard "
-            + "toward player: +45.",
-            "an [EVENT] of type intimacy (or flirt), a small positive change_relation, NO end_conversation.")
+            "SETTING: a secluded copse off the lakeside road, no one near.\n"
+            + "PLAYER: Aldric of Clan Thais, your consort of some months.\n"
+            + "YOU: Livia of Argoron (Empire). Traits: Devoted, Intense (a committed, ardent lover). Your current "
+            + "regard toward Aldric: +45.",
+            "[EVENT] intimacy NAMING Aldric, grounds in the copse, small positive change_relation, NO end_conversation.")
       };
 
       /// <summary>
