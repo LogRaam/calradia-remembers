@@ -39,6 +39,11 @@ namespace CalradiaRemembers.Diagnostics
    {
       private const int MaxPasses = 5;
 
+      /// <summary>A clearly masculine, culture-neutral name forced on the player for both scenes, so a bench that
+      /// forces a MALE player (scene 2 is a male-player romance with a female partner) reads coherently instead of
+      /// keeping the real character's possibly-female name.</summary>
+      private const string MalePlayerName = "Aldric";
+
       /// <summary>The bench's own log file, written next to the main CalradiaRemembers.log so runs can be diffed across models.</summary>
       private static readonly string ReportPath = Path.Combine(
          Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
@@ -84,6 +89,7 @@ namespace CalradiaRemembers.Diagnostics
          report.AppendLine($"  cr.rp_bench run - {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
          report.AppendLine($"  Roleplay model (MCM): {roleplayModel}");
          report.AppendLine($"  Passes: {passes}");
+         report.AppendLine($"  Player: forced MALE, named \"{MalePlayerName}\" (so the staged identity reads coherently).");
          report.AppendLine("  Scene 1 runs at your configured adult level; scene 2 is FORCED to Hardcore.");
          report.AppendLine("  Signals are ADVISORY (verbatimRepeats / refusal / earthRef). You are the judge - read the transcripts.");
          report.AppendLine("========================================================================");
@@ -91,7 +97,9 @@ namespace CalradiaRemembers.Diagnostics
          // Force a MALE player for both scenes so the scripted register (scene 1) and the male-player romance
          // (scene 2) are deterministic regardless of who the user actually plays. Restored in the finally.
          bool? priorGender = LlmServices.TestPlayerGenderOverride;
+         string priorName = LlmServices.TestPlayerNameOverride;
          LlmServices.TestPlayerGenderOverride = false;
+         LlmServices.TestPlayerNameOverride = MalePlayerName;
          behavior.LlmServices.Invalidate();
 
          try
@@ -118,6 +126,7 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             LlmServices.TestPlayerGenderOverride = priorGender;
+            LlmServices.TestPlayerNameOverride = priorName;
             behavior.LlmServices.Invalidate();
          }
 

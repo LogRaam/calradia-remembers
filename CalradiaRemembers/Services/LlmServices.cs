@@ -65,6 +65,13 @@ namespace CalradiaRemembers.Services
       public static bool? TestPlayerGenderOverride { get; set; }
 
       /// <summary>
+      ///   Test-only override for the player's NAME used when building the prompt. Set by the roleplay bench
+      ///   (cr.rp_bench) so a forced-male scene reads with a masculine name instead of the real character's,
+      ///   keeping the staged identity coherent. Null or blank = use the real Hero.MainHero name.
+      /// </summary>
+      public static string TestPlayerNameOverride { get; set; }
+
+      /// <summary>
       ///   Lazily-constructed chat service. The PromptBuilder and action vocabulary
       ///   inside are built on first access, and rebuilt whenever the adult-content
       ///   level, relationship-warmth, or reply-language setting changes, so options
@@ -516,7 +523,9 @@ namespace CalradiaRemembers.Services
             // Name and clan are injected from the live Hero so NPCs can address the player by
             // their actual in-game name and reference their lineage, regardless of what the user
             // has written (or not written) in player_description.txt.
-            PlayerName = Hero.MainHero?.Name?.ToString() ?? "",
+            PlayerName = string.IsNullOrWhiteSpace(TestPlayerNameOverride)
+               ? Hero.MainHero?.Name?.ToString() ?? ""
+               : TestPlayerNameOverride,
             PlayerClanName = Hero.MainHero?.Clan?.Name?.ToString() ?? "",
             PlayerFactionName = Hero.MainHero?.MapFaction?.Name?.ToString() ?? "",
             WorldDescription = NarrativeLoader.WorldDescription,
