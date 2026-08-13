@@ -21,7 +21,6 @@ using NpcMemoryService.Core.Parsing;
 using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.Library;
 
 #endregion
@@ -107,7 +106,7 @@ namespace CalradiaRemembers
             NpcProfile seed = RoleplayBench.BuildScene1Profile(hero);
             behavior.Store.Set(seed);
 
-            string contextFacts = BuildContextFacts(hero);
+            string contextFacts = BuildContextFacts(behavior, hero, seed);
             var session = new ChatSession();
 
             // Read the extractor model with the override cleared: this is the MCM-configured model every EXTRACT
@@ -346,24 +345,27 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   Assembles the SETTING/PLAYER/YOU digest the extractor receives, from the SEEDED scene-1 hero: the real
-      ///   trait levels (Honor/Mercy/Calculating, banded via <see cref="TraitBand" />) and the seeded +12 regard,
-      ///   the same shape cr.extract_test's canned samples use.
+      ///   Assembles the SETTING/PLAYER/YOU digest the extractor receives by building a REAL
+      ///   <see cref="EncounterContext" /> for the seeded scene-1 hero (the same <see cref="EncounterContextBuilder.Build" />
+      ///   seam <see cref="DriveProse" /> uses each turn) and projecting it through the shared
+      ///   <see cref="ExtractionContextBuilder.Project(EncounterContext, NpcProfile, string)" />. Built ONCE for the
+      ///   run: the staged scene does not move, so the digest is stable across turns. This is the point of the
+      ///   increment: the spike now exercises the SAME projector the full two-call mode will use, not a hand-written
+      ///   string. The real player label (matching <c>PromptBuilder.PlayerName</c>) is threaded so the extractor
+      ///   names the player by "Aldric", never an epithet.
       /// </summary>
-      private static string BuildContextFacts(Hero hero)
+      private static string BuildContextFacts(NpcMemoryCampaignBehavior behavior, Hero hero, NpcProfile seed)
       {
-         string honour = TraitBand.Describe(hero.GetTraitLevel(DefaultTraits.Honor));
-         string mercy = TraitBand.Describe(hero.GetTraitLevel(DefaultTraits.Mercy));
-         string calculating = TraitBand.Describe(hero.GetTraitLevel(DefaultTraits.Calculating));
+         EncounterContext context = EncounterContextBuilder.Build(hero, seed, behavior.GameStateBridge);
 
-         var sb = new StringBuilder();
-         sb.AppendLine("SETTING: on the road near Veron Castle; the two of you are alone, no witnesses.");
-         sb.AppendLine("PLAYER: Aldric of Clan Thais, travelling alone (no army, not in your party). Not at war.");
-         sb.Append($"YOU: {HeroLabelSafe(hero)}. Traits: Honour {honour}, Mercy {mercy}, Calculating {calculating}. " +
-                   "Your current regard toward Aldric: +12.");
-
-         return sb.ToString();
+         return ExtractionContextBuilder.Project(context, seed, ResolvePlayerLabel());
       }
+
+      /// <summary>The prompt-safe player label, resolved exactly as <c>LlmServices</c> feeds <c>PromptBuilder.PlayerName</c> (test override, else the live hero name).</summary>
+      private static string ResolvePlayerLabel()
+         => string.IsNullOrWhiteSpace(LlmServices.TestPlayerNameOverride)
+            ? Hero.MainHero?.Name?.ToString() ?? ""
+            : LlmServices.TestPlayerNameOverride;
 
       /// <summary>Combines the NPC's narration (physical action) then dialogue into one prose block for the extractor to read.</summary>
       private static string CombineProse(string dialogue, string narration)
