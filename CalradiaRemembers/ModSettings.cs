@@ -346,6 +346,16 @@ namespace CalradiaRemembers
          ChatCompositionModePolicy.Parse(CrSettings.Instance?.ChatCompositionModeSetting?.SelectedValue);
 
       /// <summary>
+      ///   In <see cref="Logic.ChatCompositionMode.ProseExtract" /> mode, WHEN the extractor's tags are applied:
+      ///   <see cref="Logic.ExtractionTiming.Synchronous" /> (in-turn, recommended) or
+      ///   <see cref="Logic.ExtractionTiming.Asynchronous" /> (reply shows first, tags apply a moment later).
+      ///   Read live from the MCM menu; defaults to Synchronous on anything unexpected. No effect in Integrated
+      ///   mode (there is only one call to time).
+      /// </summary>
+      public static ExtractionTiming ExtractionTiming =>
+         ExtractionTimingPolicy.Parse(CrSettings.Instance?.ExtractionTimingSetting?.SelectedValue);
+
+      /// <summary>
       ///   The reasoning-effort keyword for NSFW mode, read live from the MCM menu. The default
       ///   sentinel ("Same as roleplay") makes NSFW reuse <see cref="ReasoningEffort" />; players
       ///   typically set it LOWER than roleplay (fewer moralizing refusals, faster scene beats).

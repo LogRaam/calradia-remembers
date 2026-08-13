@@ -203,6 +203,13 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> ChatCompositionModeSetting { get; set; } =
          new(new[] {ChatCompositionModePolicy.IntegratedLabel, ChatCompositionModePolicy.ProseExtractLabel}, 0); // default: Integrated
 
+      [SettingPropertyDropdown("Extraction Timing", RequireRestart = false, Order = 10,
+         HintText = "Only in Prose + Extract mode. Synchronous: tags apply with the reply (recommended). " +
+                    "Asynchronous: the reply shows instantly, tags apply a moment later.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public Dropdown<string> ExtractionTimingSetting { get; set; } =
+         new(new[] {ExtractionTimingPolicy.SynchronousLabel, ExtractionTimingPolicy.AsynchronousLabel}, 0); // default: Synchronous
+
       [SettingPropertyDropdown("Reasoning Effort (NSFW)", RequireRestart = false, Order = 2,
          HintText = "Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less " +
                     "prone to moralizing refusals, and speeds up scenes. OpenRouter only.")]
