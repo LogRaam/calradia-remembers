@@ -371,8 +371,9 @@ namespace CalradiaRemembers.Chat
          _messages.ListChanged += OnMessagesListChanged;
 
          // Every chat opens on the roleplay model; the explicit-scene activators
-         // (captive encounter, player-as-captor) flip the mode to NSFW right after.
-         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(false);
+         // (captive encounter, player-as-captor) flip the mode to an explicit one right after.
+         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(
+            SceneContentKind.Ordinary, ModSettings.AdultContentLevel != AdultContentLevel.Off);
 
          RefreshStyleUi(); // the header's style button: hidden unless armed, labelled with the live voice
       }
@@ -548,7 +549,9 @@ namespace CalradiaRemembers.Chat
       [DataSourceProperty]
       public bool IsModelModeToggleVisible =>
          ModelModePolicy.ToggleVisible(
-            !string.IsNullOrWhiteSpace(ModSettings.NsfwModel),
+            !string.IsNullOrWhiteSpace(ModSettings.ConsensualModel)
+            || !string.IsNullOrWhiteSpace(ModSettings.CncModel)
+            || !string.IsNullOrWhiteSpace(ModSettings.NsfwModel),
             !string.IsNullOrWhiteSpace(ModSettings.OpenRouterNsfwProviderPin),
             ModSettings.AdultContentLevel != AdultContentLevel.Off);
 
@@ -811,7 +814,7 @@ namespace CalradiaRemembers.Chat
       ///   it, got the same chaste writing the Mature prompt asks for, and concluded the button was broken.
       /// </summary>
       public string ModelModeText =>
-         LlmServices.ActiveModelMode == ModelMode.Nsfw
+         LlmServices.ActiveModelMode != ModelMode.Roleplay
             ? "Model: NSFW"
             : "Model: Roleplay";
 
@@ -992,8 +995,11 @@ namespace CalradiaRemembers.Chat
          // is configured). The player can still flip it back. Audit M10/M11: "captive" is not "sexual", and
          // the adult dial has the last word, so a ransom, an intimidation, or any scene at all with adult
          // content Off is no longer served by the specialised erotic model behind the player's back.
+         // A captive/captor scene is CNC by construction; a sexual intent routes it to the CNC model, a
+         // non-sexual one stays ordinary (roleplay). NEXT INCREMENT: finer scene->mode routing (auto-detecting
+         // a ConsensualIntimate case, splitting Cnc detection) replaces this structural true->Cnc mapping.
          LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(
-            CaptiveSceneIntentRules.IsSexual(intent),
+            CaptiveSceneIntentRules.IsSexual(intent) ? SceneContentKind.Cnc : SceneContentKind.Ordinary,
             ModSettings.AdultContentLevel != AdultContentLevel.Off);
          OnPropertyChanged(nameof(ModelModeText));
 
@@ -1079,8 +1085,11 @@ namespace CalradiaRemembers.Chat
          // is configured). The player can still flip it back. Audit M10/M11: "captive" is not "sexual", and
          // the adult dial has the last word, so a ransom, an intimidation, or any scene at all with adult
          // content Off is no longer served by the specialised erotic model behind the player's back.
+         // A player-as-captor scene is CNC by construction; a sexual intent routes it to the CNC model, a
+         // non-sexual one stays ordinary (roleplay). NEXT INCREMENT: finer scene->mode routing (auto-detecting
+         // a ConsensualIntimate case, splitting Cnc detection) replaces this structural true->Cnc mapping.
          LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(
-            CaptiveSceneIntentRules.IsSexual(intent),
+            CaptiveSceneIntentRules.IsSexual(intent) ? SceneContentKind.Cnc : SceneContentKind.Ordinary,
             ModSettings.AdultContentLevel != AdultContentLevel.Off);
          OnPropertyChanged(nameof(ModelModeText));
 
@@ -1926,15 +1935,17 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Flips the active model mode (roleplay/NSFW): the manual override for scenes the automatic
-      ///   selection cannot see coming, e.g. a consensual conversation that escalates. The model is
+      ///   Flips the active model mode: the manual override for scenes the automatic selection cannot see coming,
+      ///   e.g. a consensual conversation that escalates. This increment flips Roleplay &lt;-&gt;
+      ///   ConsensualIntimate (the consensual-escalation case); Cnc stays reserved for automatic scene routing
+      ///   (the NEXT increment brings auto Cnc for captor/captive and ConsensualIntimate detection). The model is
       ///   resolved live on every request, so the switch takes effect on the very next exchange.
       /// </summary>
       public void ExecuteToggleModelMode()
       {
-         LlmServices.ActiveModelMode = LlmServices.ActiveModelMode == ModelMode.Nsfw
-            ? ModelMode.Roleplay
-            : ModelMode.Nsfw;
+         LlmServices.ActiveModelMode = LlmServices.ActiveModelMode == ModelMode.Roleplay
+            ? ModelMode.ConsensualIntimate
+            : ModelMode.Roleplay;
 
          OnPropertyChanged(nameof(ModelModeText));
          ModLog.Info($"[MODEL] mode switched to {LlmServices.ActiveModelMode}, resolves to {LlmServices.ActiveModelId}.");

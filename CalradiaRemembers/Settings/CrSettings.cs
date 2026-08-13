@@ -178,6 +178,31 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string NsfwModel { get; set; } = "";
 
+      [SettingPropertyText("Consensual model (optional)", RequireRestart = false, Order = 6,
+         HintText = "Model id for consensual intimate scenes. Same provider as above. Blank = use the roleplay " +
+                    "model (or, until you set this, the NSFW model above).")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public string ConsensualModel { get; set; } = "";
+
+      [SettingPropertyText("CNC / captive model (optional)", RequireRestart = false, Order = 7,
+         HintText = "Model id for CNC and captive scenes (captor, captive, companion-victim). Same provider as " +
+                    "above. Blank = use the roleplay model (or, until you set this, the NSFW model above).")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public string CncModel { get; set; } = "";
+
+      [SettingPropertyText("Extractor model (optional)", RequireRestart = false, Order = 8,
+         HintText = "Used only in Prose + Extract composition mode: a small, cheap model that pulls the structured " +
+                    "actions out of the prose. Blank = reuse the scene's model.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public string ExtractorModel { get; set; } = "";
+
+      [SettingPropertyDropdown("Chat Composition", RequireRestart = false, Order = 9,
+         HintText = "Integrated (default): one call writes the reply and its actions together. Prose + Extract: one " +
+                    "call writes the prose, a second pulls the actions out. Leave on Integrated for now.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public Dropdown<string> ChatCompositionModeSetting { get; set; } =
+         new(new[] {ChatCompositionModePolicy.IntegratedLabel, ChatCompositionModePolicy.ProseExtractLabel}, 0); // default: Integrated
+
       [SettingPropertyDropdown("Reasoning Effort (NSFW)", RequireRestart = false, Order = 2,
          HintText = "Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less " +
                     "prone to moralizing refusals, and speeds up scenes. OpenRouter only.")]

@@ -215,15 +215,20 @@ namespace CalradiaRemembers
       [CommandLineFunctionality.CommandLineArgumentFunction("model", "cr")]
       public static string ModelModeInfo(List<string> args)
       {
+         // This increment flips Roleplay <-> ConsensualIntimate (the consensual-escalation case); Cnc is
+         // reserved for automatic scene routing (the NEXT increment).
          if (args is {Count: > 0} && string.Equals(args[0], "toggle", StringComparison.OrdinalIgnoreCase))
-            LlmServices.ActiveModelMode = LlmServices.ActiveModelMode == ModelMode.Nsfw
-               ? ModelMode.Roleplay
-               : ModelMode.Nsfw;
+            LlmServices.ActiveModelMode = LlmServices.ActiveModelMode == ModelMode.Roleplay
+               ? ModelMode.ConsensualIntimate
+               : ModelMode.Roleplay;
 
+         bool anyExplicitModel = !string.IsNullOrWhiteSpace(ModSettings.ConsensualModel)
+                                 || !string.IsNullOrWhiteSpace(ModSettings.CncModel)
+                                 || !string.IsNullOrWhiteSpace(ModSettings.NsfwModel);
          bool nsfwConfigured = !string.IsNullOrWhiteSpace(ModSettings.NsfwModel);
          bool nsfwPinConfigured = !string.IsNullOrWhiteSpace(ModSettings.OpenRouterNsfwProviderPin);
          bool toggleVisible = ModelModePolicy.ToggleVisible(
-            nsfwConfigured, nsfwPinConfigured, ModSettings.AdultContentLevel != AdultContentLevel.Off);
+            anyExplicitModel, nsfwPinConfigured, ModSettings.AdultContentLevel != AdultContentLevel.Off);
 
          string nsfwPart = nsfwConfigured
             ? $"NSFW model configured ('{ModSettings.NsfwModel.Trim()}')"

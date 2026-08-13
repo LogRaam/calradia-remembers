@@ -289,9 +289,61 @@ namespace CalradiaRemembers
 
       /// <summary>
       ///   The optional NSFW model id: used automatically in explicit scenes and via the in-chat mode button.
-      ///   Blank (the default) means the roleplay model serves everything. Read live from the MCM menu.
+      ///   Blank (the default) means the roleplay model serves everything. Read live from the MCM menu. Kept as
+      ///   the MIGRATION SOURCE for <see cref="ConsensualModel" /> / <see cref="CncModel" /> and the shared
+      ///   explicit effort/pin until those are differentiated.
       /// </summary>
       public static string NsfwModel => CrSettings.Instance?.NsfwModel ?? "";
+
+      /// <summary>
+      ///   The model id for consensual-intimate scenes. Its own MCM field when set; otherwise it MIGRATES from
+      ///   <see cref="NsfwModel" /> so an existing config that only set the old NSFW model keeps serving explicit
+      ///   scenes exactly as before. Blank overall means the roleplay model serves everything.
+      /// </summary>
+      public static string ConsensualModel
+      {
+         get
+         {
+            string v = CrSettings.Instance?.ConsensualModel?.Trim();
+
+            return string.IsNullOrWhiteSpace(v)
+               ? NsfwModel
+               : v;
+         }
+      }
+
+      /// <summary>
+      ///   The model id for CNC / captive scenes. Its own MCM field when set; otherwise it MIGRATES from
+      ///   <see cref="NsfwModel" /> so an existing NSFW-only config is unchanged. Blank overall means the
+      ///   roleplay model serves everything.
+      /// </summary>
+      public static string CncModel
+      {
+         get
+         {
+            string v = CrSettings.Instance?.CncModel?.Trim();
+
+            return string.IsNullOrWhiteSpace(v)
+               ? NsfwModel
+               : v;
+         }
+      }
+
+      /// <summary>
+      ///   The optional small/cheap model that pulls structured actions out of the prose in the Prose + Extract
+      ///   composition mode. Blank (the default) means the scene's own model does the extraction. Read live from
+      ///   the MCM menu. Not yet consumed (the prose+extract orchestration is a later increment).
+      /// </summary>
+      public static string ExtractorModel => CrSettings.Instance?.ExtractorModel?.Trim() ?? "";
+
+      /// <summary>
+      ///   How a chat reply is composed: <see cref="Logic.ChatCompositionMode.Integrated" /> (one call, today's
+      ///   behaviour) or <see cref="Logic.ChatCompositionMode.ProseExtract" /> (prose then a separate extraction
+      ///   call). Read live from the MCM menu; defaults to Integrated on anything unexpected. Not yet consumed
+      ///   (the prose+extract orchestration is a later increment).
+      /// </summary>
+      public static ChatCompositionMode ChatCompositionMode =>
+         ChatCompositionModePolicy.Parse(CrSettings.Instance?.ChatCompositionModeSetting?.SelectedValue);
 
       /// <summary>
       ///   The reasoning-effort keyword for NSFW mode, read live from the MCM menu. The default

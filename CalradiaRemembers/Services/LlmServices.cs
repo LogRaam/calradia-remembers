@@ -475,7 +475,9 @@ namespace CalradiaRemembers.Services
                : mcmModel;
          }
 
-         return ModelModePolicy.ResolveModelId(ActiveModelMode, roleplayModel, ModSettings.NsfwModel);
+         // The consensual/CNC facade getters fall back to NsfwModel, so a config that only set the old NSFW
+         // model resolves EXACTLY as before for both explicit modes (migration-safe).
+         return ModelModePolicy.ResolveModelId(ActiveModelMode, roleplayModel, ModSettings.ConsensualModel, ModSettings.CncModel);
       }
 
       /// <summary>
