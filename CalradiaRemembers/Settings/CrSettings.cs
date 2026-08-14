@@ -167,15 +167,16 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string Model { get; set; } = "x-ai/grok-4.20";
 
-      // Per-role provider (2026-08-13): each model role may go to its OWN provider. "(default)" inherits the
-      // Provider dropdown above, so an upgraded config behaves exactly as before. Values reuse the
-      // ProviderRolePolicy constants so the dropdown strings and the resolver can never drift.
+      // Per-role provider (2026-08-13): each model role may go to its OWN provider. The roleplay / prose role is
+      // the BASE: it is the Provider dropdown below (property name kept for save compatibility), presented right
+      // here as "Roleplay / Prose provider". The other three roles keep a "(default)" option that inherits this
+      // base, so an upgraded config behaves exactly as before and there is no redundant global provider field.
       [SettingPropertyDropdown("Roleplay / Prose provider", RequireRestart = false, Order = 3,
-         HintText = "Which provider the roleplay and prose model above is sent to. (default) uses the Provider " +
-                    "chosen at the top. Applies immediately.")]
+         HintText = "Which provider the roleplay and prose model above is sent to. It is also the base every other " +
+                    "role inherits when left on (default). Each provider keeps its own key further down. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
-      public Dropdown<string> RoleplayProvider { get; set; } =
-         new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
+      public Dropdown<string> Provider { get; set; } =
+         new(new[] {ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0); // default: OpenRouter
 
       [SettingPropertyText("NanoGPT API Key", RequireRestart = false, Order = 0,
          HintText = "Paste your key from nano-gpt.com. Stored locally on this machine only. NEVER share your config " +
@@ -201,8 +202,8 @@ namespace CalradiaRemembers.Settings
       public string NsfwModel { get; set; } = "";
 
       [SettingPropertyDropdown("Consensual provider", RequireRestart = false, Order = 5,
-         HintText = "Which provider the consensual model above is sent to. (default) uses the Provider chosen at " +
-                    "the top. Applies immediately.")]
+         HintText = "Which provider the consensual model above is sent to. (default) uses the Roleplay / Prose " +
+                    "provider. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public Dropdown<string> ConsensualProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
@@ -214,8 +215,8 @@ namespace CalradiaRemembers.Settings
       public string CncModel { get; set; } = "";
 
       [SettingPropertyDropdown("CNC provider", RequireRestart = false, Order = 7,
-         HintText = "Which provider the CNC / captive model above is sent to. (default) uses the Provider chosen " +
-                    "at the top. Applies immediately.")]
+         HintText = "Which provider the CNC / captive model above is sent to. (default) uses the Roleplay / Prose " +
+                    "provider. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public Dropdown<string> CncProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
@@ -227,8 +228,8 @@ namespace CalradiaRemembers.Settings
       public string ActionInterpreterModel { get; set; } = "";
 
       [SettingPropertyDropdown("Actions Interpreter provider", RequireRestart = false, Order = 9,
-         HintText = "Which provider the actions interpreter model above is sent to. (default) uses the Provider " +
-                    "chosen at the top. Applies immediately.")]
+         HintText = "Which provider the actions interpreter model above is sent to. (default) uses the Roleplay / " +
+                    "Prose provider (set it to a local OpenAI-Compatible endpoint to run the interpreter locally). Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public Dropdown<string> ActionInterpreterProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
@@ -246,13 +247,6 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public Dropdown<string> NsfwReasoningEffort { get; set; } =
          new(new[] {ModelModePolicy.SameAsRoleplay, "Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Same as roleplay
-
-      [SettingPropertyDropdown("LLM Provider", RequireRestart = false, Order = 0,
-         HintText = "The DEFAULT provider, used by any role left on (default) in its own provider dropdown below. " +
-                    "The model fields are shared; each provider keeps its own key further down. Applies immediately.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
-      public Dropdown<string> Provider { get; set; } =
-         new(new[] {ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0); // default: OpenRouter
 
       [SettingPropertyDropdown("Reasoning Effort (roleplay)", RequireRestart = false, Order = 1,
          HintText = "How hard a reasoning model thinks before replying. Higher can mean finer dialogue but slower " +

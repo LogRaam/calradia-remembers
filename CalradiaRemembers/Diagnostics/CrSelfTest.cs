@@ -6978,7 +6978,7 @@ namespace CalradiaRemembers.Diagnostics
          LlmServices llm = behavior?.LlmServices;
          if (t.Skip(llm == null, "LLM services not initialized")) return t.Line();
 
-         int priorRoleplay = s.RoleplayProvider.SelectedIndex;
+         int priorRoleplay = s.Provider.SelectedIndex;
          int priorConsensual = s.ConsensualProvider.SelectedIndex;
          int priorCnc = s.CncProvider.SelectedIndex;
          int priorInterpreter = s.ActionInterpreterProvider.SelectedIndex;
@@ -6988,9 +6988,10 @@ namespace CalradiaRemembers.Diagnostics
          {
             // STAKE: the whole round is "a different provider per role". If DISTINCT selections did not yield
             // distinct base URLs + kinds, every request would still go to one provider and the feature is a no-op.
+            // The roleplay / prose role is the base (property still named Provider); the others carry "(default)".
             const string dummyEndpoint = "http://localhost:9999/v1";
             s.CustomEndpointUrl = dummyEndpoint;
-            s.RoleplayProvider.SelectedValue = ProviderRolePolicy.OpenRouterValue;
+            s.Provider.SelectedValue = ProviderRolePolicy.OpenRouterValue;
             s.ConsensualProvider.SelectedValue = ProviderRolePolicy.NanoGptValue;
             s.ActionInterpreterProvider.SelectedValue = ProviderRolePolicy.OpenAiCompatibleValue;
 
@@ -7007,10 +7008,10 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("interpreterBaseUrlIsTheCustomEndpoint", interp.baseUrl, dummyEndpoint);
             t.Note($"rp={rp.baseUrl} | consensual={con.baseUrl} | interpreter={interp.baseUrl}");
 
-            // STAKE (MIGRATION): the "(default)" sentinel MUST make every role inherit the one global provider, or
-            // a config upgraded from the single-provider era, which never touched these dropdowns, would silently
-            // split its roles across providers with no setting changed to explain it.
-            s.RoleplayProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
+            // STAKE (MIGRATION): the "(default)" sentinel MUST make the other roles inherit the roleplay / prose
+            // base, or a config upgraded from the single-provider era, which never touched these dropdowns, would
+            // silently split its roles across providers with no setting changed to explain it.
+            s.Provider.SelectedValue = ProviderRolePolicy.OpenRouterValue;
             s.ConsensualProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
             s.CncProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
             s.ActionInterpreterProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
@@ -7026,7 +7027,7 @@ namespace CalradiaRemembers.Diagnostics
          }
          finally
          {
-            s.RoleplayProvider.SelectedIndex = priorRoleplay;
+            s.Provider.SelectedIndex = priorRoleplay;
             s.ConsensualProvider.SelectedIndex = priorConsensual;
             s.CncProvider.SelectedIndex = priorCnc;
             s.ActionInterpreterProvider.SelectedIndex = priorInterpreter;

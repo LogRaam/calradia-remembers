@@ -320,13 +320,13 @@ namespace CalradiaRemembers
       public static string ActionInterpreterModel => CrSettings.Instance?.ActionInterpreterModel?.Trim() ?? "";
 
       /// <summary>
-      ///   The RAW per-role provider dropdown value for the roleplay / prose role (the "Roleplay / Prose provider"
-      ///   MCM field), or <see cref="Logic.ProviderRolePolicy.DefaultSelection" /> when MCM has not loaded. Fed to
-      ///   <see cref="Logic.ProviderRolePolicy.ResolveRoleKind" /> by <see cref="Services.LlmServices" />; the
-      ///   default "(default)" makes the role inherit the global provider, so an upgraded config is a no-op.
+      ///   The RAW provider value for the roleplay / prose role: the "Roleplay / Prose provider" MCM field, whose
+      ///   property is still named <c>Provider</c> for save compatibility (it was the released global provider). This
+      ///   role is the BASE the other three inherit when left on "(default)"; it carries no "(default)" itself, so a
+      ///   concrete provider value is always returned (OpenRouter when MCM has not loaded).
       /// </summary>
       public static string RoleplayProviderSelection =>
-         CrSettings.Instance?.RoleplayProvider?.SelectedValue ?? ProviderRolePolicy.DefaultSelection;
+         CrSettings.Instance?.Provider?.SelectedValue ?? ProviderRolePolicy.OpenRouterValue;
 
       /// <summary>
       ///   The RAW per-role provider dropdown value for the consensual-intimate role (the "Consensual provider" MCM
