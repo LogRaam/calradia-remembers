@@ -3,6 +3,9 @@
 // worth an extra LLM call only once an NPC's event history has grown past the threshold, and even then, a
 // fruitless pass (the model kept every event) must not immediately re-trigger, or CR would pay for a fresh
 // call after every single new memory. RetryGrowth caps that cost at one call per handful of new events.
+// 14/08/2026: also pins the isAlive gate added for the player report "memory compression is still being
+// carried out for deceased characters" (a dead character is never spoken to again, so compressing its
+// memory buys nothing).
 
 #region
 
@@ -77,6 +80,32 @@ namespace CalradiaRemembers.Tests
             MemoryCompressionPolicy.ShouldCompress(MemoryCompressionPolicy.DefaultThreshold - 1, 0, 0).Should().BeFalse();
             MemoryCompressionPolicy.ShouldCompress(MemoryCompressionPolicy.DefaultThreshold - 1, 0, -5).Should().BeFalse();
             MemoryCompressionPolicy.ShouldCompress(MemoryCompressionPolicy.DefaultThreshold, 0, 0).Should().BeTrue();
+        }
+
+        // STAKE: the reported bug itself, an LLM call burned once a day on a hero the player can never
+        // talk to again. A dead character's history can be arbitrarily long and never attempted before
+        // (the two conditions that would otherwise force compression); isAlive:false must still win.
+        [Test]
+        public void GIVEN_a_dead_character_WHEN_checking_regardless_of_history_THEN_compression_never_runs()
+        {
+            int threshold = MemoryCompressionPolicy.DefaultThreshold;
+
+            MemoryCompressionPolicy.ShouldCompress(threshold, 0, threshold, isAlive: false).Should().BeFalse();
+            MemoryCompressionPolicy.ShouldCompress(threshold * 10, 0, threshold, isAlive: false).Should().BeFalse();
+            MemoryCompressionPolicy.ShouldCompress(threshold + MemoryCompressionPolicy.RetryGrowth, threshold, threshold, isAlive: false).Should().BeFalse();
+        }
+
+        // STAKE: proves the gate is the ONLY new behaviour: an alive character at the exact same counts
+        // that the dead-character test above refuses must still compress exactly as it did before this
+        // fix, so the isAlive gate cannot be hiding a change to the existing threshold/retry rules.
+        [Test]
+        public void GIVEN_an_alive_character_WHEN_checking_at_the_same_counts_THEN_compression_runs_unchanged()
+        {
+            int threshold = MemoryCompressionPolicy.DefaultThreshold;
+
+            MemoryCompressionPolicy.ShouldCompress(threshold, 0, threshold, isAlive: true).Should().BeTrue();
+            MemoryCompressionPolicy.ShouldCompress(threshold, 0, threshold, isAlive: true)
+                .Should().Be(MemoryCompressionPolicy.ShouldCompress(threshold, 0, threshold));
         }
     }
 }

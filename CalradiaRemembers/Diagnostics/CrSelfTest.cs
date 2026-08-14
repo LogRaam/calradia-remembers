@@ -140,6 +140,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
          new SelfTest("world_conditions", Severity.Light, "Mechanical: the engine reads the weekly world-conditions feeder depends on still work against the live game (a renamed field or a changed model signature would silently swallow to 0 inside the feeder's own guards, recording nothing forever). Reads GetScoreOfDeclaringWar in both directions between two live kingdoms and a live town's FoodStocks/FoodChange/Prosperity DIRECTLY, asserts each is finite, then runs the real RunScan and asserts both scanners ran. Skips when the world has fewer than two kingdoms or no town", TestWorldConditions),
          new SelfTest("realm_tidings", Severity.Light, "Mechanical: drives the REAL RealmTidingsBehavior.DebugEvaluate end to end and proves per-NPC dedup. Seeds a dominant known event for a friendly landed lord (regard forced to 30), asserts a RealmTidings letter candidate is queued and the event id enters the dedup ledger, then re-evaluates and asserts the same event is never relayed twice. Restores the writer's regard, ledger and candidates and removes the seed", TestRealmTidings),
+         new SelfTest("siege_tidings_participation", Severity.Light, "Mechanical (player report: told by letter of a siege they FOUGHT IN, days later, as if it were news): stamps the REAL WorldEventFeeders siege-participation marker for a live settlement, then drives the REAL RecordSiegeCapture construction with a NON-player taker (a mere participant, never the credited capturer) -> assert the recorded WorldEvent has InvolvesPlayer true (so realm-tidings' own InvolvesPlayer filter will never relay it back) while Type stays SettlementCaptured and Aggrieved* stay empty (the conquest's attribution is NOT stolen from the real taker). Removes the seeded event afterwards", TestSiegeTidingsParticipation),
          new SelfTest("companion_battle_memory", Severity.Light, "Mechanical: the companion 'fought together' memory (WorldEventFeeders' main-party companion loop), which a real MapEvent drives in game. Borrows a companion into the party if none rides along, calls the DebugRecordCompanionBattleMemories seam, and asserts the companion's profile gained a fresh 'Fought at your side' memory. Removes the memory it added and returns any borrowed companion", TestCompanionBattleMemory),
          new SelfTest("war_council_offer", Severity.Light, "Mechanical: the war-council OFFER trigger's arm + policy + persisted-cooldown decision (WarCouncilOfferBehavior.DebugWouldOffer), WITHOUT opening the council UI. Arms the flag and asserts a notable action while leading an army WOULD offer, that not-in-army / non-notable / disarmed all refuse, and that stamping an offer today blocks a fresh one (cooldown) while a stale stamp clears it. Restores the flag + the persisted last-offer day", TestWarCouncilOffer),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
@@ -7938,6 +7939,61 @@ namespace CalradiaRemembers.Diagnostics
             profile.RelayedWorldEventIds.Clear();
             profile.RelayedWorldEventIds.AddRange(origLedger);
             behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Player report: "the monarch notified me per letter of a successful siege after a few days when I was
+      ///   part of the force that took it." WorldEventFeeders.OnSettlementOwnerChanged only ever recognised the
+      ///   player as involved when they were the officially credited capturer, so a mere participant in the
+      ///   besieging force never set InvolvesPlayer and RealmTidingsBehavior's own InvolvesPlayer filter let the
+      ///   player's own conquest boomerang back as unbidden news. This drives the REAL engine-bound seam end to
+      ///   end (a live MapEvent cannot be staged in a self-test): DebugSetPlayerSiegeMarker stamps the marker
+      ///   exactly as OnMapEventEnded would after an assault, then DebugRecordSiegeCapture runs the exact
+      ///   RecordSiegeCapture construction OnSettlementOwnerChanged uses, with a NON-player taker (proving the
+      ///   marker path, not the trivial playerIsTaker path). Asserts InvolvesPlayer flips true (the fix) while
+      ///   Type/Aggrieved* stay keyed on the real taker (the conquest's attribution is not stolen, the nuance
+      ///   the fix must not break). Removes the seeded WorldEvent afterwards.
+      /// </summary>
+      private static string TestSiegeTidingsParticipation(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("siege_tidings_participation");
+
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+         WorldEventFeeders feeders = behavior?.WorldFeeders;
+         if (t.Abort(feeders == null, "WorldEventFeeders not active")) return t.Line();
+
+         Settlement settlement = Settlement.All?.FirstOrDefault(s => s.IsTown || s.IsCastle);
+         if (t.Skip(settlement == null, "no town/castle settlement exists to stage the marker against")) return t.Line();
+
+         Hero taker = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         if (t.Skip(taker == null, "no non-player lord to stand in as the credited capturer")) return t.Line();
+
+         WorldEvent recorded = null;
+
+         try
+         {
+            feeders.DebugSetPlayerSiegeMarker(settlement.StringId, (int) CampaignTime.Now.ToDays);
+            recorded = feeders.DebugRecordSiegeCapture(settlement, taker, null);
+
+            if (t.Abort(recorded == null, "RecordSiegeCapture returned no WorldEvent")) return t.Line();
+
+            t.Note($"settlement={settlement.Name}, taker={taker.Name} (not the player)");
+            // The fix: a mere participant (marker matched, not the credited taker) still flips InvolvesPlayer,
+            // so realm-tidings' own filter will never relay this siege back as news.
+            t.Expect("involvesPlayer", recorded.InvolvesPlayer, true);
+            // The nuance the fix must not break: attribution stays with the real taker, not the participant.
+            t.Expect("type", recorded.Type, WorldEventType.SettlementCaptured);
+            t.Expect("aggrievedFactionIdsEmpty", recorded.AggrievedFactionIds?.Count ?? 0, 0);
+            t.Expect("aggrievedActorIdsEmpty", recorded.AggrievedActorIds?.Count ?? 0, 0);
+            t.Expect("chronicleLineAbsent", recorded.ChronicleLine == null, true);
+         }
+         finally
+         {
+            if (recorded?.Id != null) WorldEventStore.Instance.Remove(recorded.Id);
          }
 
          return t.Line();

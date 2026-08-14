@@ -20,6 +20,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Compression;
 using NpcMemoryService.Core.Models;
+using TaleWorlds.CampaignSystem;
 
 #endregion
 
@@ -43,10 +44,20 @@ namespace CalradiaRemembers.Memory
         /// <summary>
         ///   The character whose memory most needs compressing right now, or null when none qualifies. Picks the
         ///   longest history so the worst offender (the character the player actually talks to) is served first.
+        ///   A dead character is never talked to again, so its memory is never read by any future conversation:
+        ///   MemoryCompressionPolicy's isAlive gate skips it here regardless of how long-lived its history is
+        ///   (player report: "memory compression is still being carried out for deceased characters").
         /// </summary>
         public static string PickCandidate(BannerlordNpcMemoryStore store)
         {
             if (store == null) return null;
+
+            // Resolved once per pass rather than a per-id engine call, mirroring
+            // RealmTidingsBehavior.OnWeeklyTick's own alive-lookup.
+            var aliveIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (Hero h in Hero.AllAliveHeroes)
+                if (h?.StringId != null)
+                    aliveIds.Add(h.StringId);
 
             string best = null;
             var bestCount = 0;
@@ -62,7 +73,9 @@ namespace CalradiaRemembers.Memory
                     ? n
                     : 0;
 
-                if (!MemoryCompressionPolicy.ShouldCompress(count, lastAttempt)) continue;
+                bool isAlive = aliveIds.Contains(id);
+
+                if (!MemoryCompressionPolicy.ShouldCompress(count, lastAttempt, MemoryCompressionPolicy.DefaultThreshold, isAlive)) continue;
 
                 best = id;
                 bestCount = count;
@@ -91,7 +104,13 @@ namespace CalradiaRemembers.Memory
                 ? n
                 : 0;
 
-            if (!force && !MemoryCompressionPolicy.ShouldCompress(snapshotCount, lastAttempt)) return;
+            // The hero may have died between selection (PickCandidate, checked at that moment) and this call
+            // actually running. Only the automatic daily/weekly path is gated on being alive right now: `force`
+            // (the console diagnostic path) still bypasses the dead check on purpose, same as it bypasses the
+            // rest of the spending policy (a forced test on a dead hero is a legitimate diagnostic).
+            bool isAlive = Hero.AllAliveHeroes.Any(h => h?.StringId == npcId);
+
+            if (!force && !MemoryCompressionPolicy.ShouldCompress(snapshotCount, lastAttempt, MemoryCompressionPolicy.DefaultThreshold, isAlive)) return;
 
             // Recorded BEFORE the call, so a second trigger cannot queue the same expensive pass twice.
             LastAttemptedAtCount[npcId] = snapshotCount;

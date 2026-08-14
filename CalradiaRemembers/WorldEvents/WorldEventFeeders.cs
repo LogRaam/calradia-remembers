@@ -50,6 +50,16 @@ namespace CalradiaRemembers.WorldEvents
       // The player got out DURING the fight rather than being cut loose by its winner, which is what the
       // engine reports for "you slipped away in the confusion". Changes the wording, not the credit.
       private bool _playerBrokeFree;
+
+      // The settlement the player just helped storm (fought on the winning attacking side of a siege
+      // assault) and the day it happened. OnSettlementOwnerChanged consumes this to recognise a mere
+      // besieging PARTICIPANT, as opposed to the officially credited capturer (the only case the old code
+      // recognised), so the conquest is never relayed back to the player as unbidden "news". Player report:
+      // "the monarch notified me per letter of a successful siege ... when I was part of the force that
+      // took it." See SiegeParticipationMarker for the pure match rule (settlement + recency).
+      private string _pendingPlayerSiegeSettlementId;
+      private int _pendingPlayerSiegeDay;
+
       private static string PlayerName => Hero.MainHero?.Name?.ToString() ?? "the player";
 
       private static WorldEventStore Store => WorldEventStore.Instance;
@@ -383,6 +393,12 @@ namespace CalradiaRemembers.WorldEvents
             bool attackerHasArmy = SideHasArmy(mapEvent, BattleSideEnum.Attacker);
             bool defenderHasArmy = SideHasArmy(mapEvent, BattleSideEnum.Defender);
 
+            // Before the notability gate on purpose (mirrors ResolvePendingPlayerRelease above): the
+            // settlement-owner-changed event that follows a captured siege fires regardless of whether THIS
+            // battle clears the chronicle-worthy bar below, so the marker must be stamped here rather than
+            // after the `if (!notable) return;` a few lines down.
+            StashPlayerSiegeMarker(mapEvent, isSiege, playerAttacker);
+
             // Only a siege or a clash of two armies is worth recording (into world-events, the
             // chronicle, and lords' profiles) — a field skirmish or a bandit chase is noise that
             // would bloat the save. This also skips the per-lord profile memory + stance bumps below.
@@ -481,32 +497,7 @@ namespace CalradiaRemembers.WorldEvents
             if (isSiege)
             {
                Hero taker = capturerHero ?? newOwner;
-               bool playerIn = taker == Hero.MainHero;
-               var e = new WorldEvent {
-                  Type = playerIn
-                     ? WorldEventType.PlayerFeat
-                     : WorldEventType.SettlementCaptured,
-                  Day = Today,
-                  PlaceId = settlement.StringId,
-                  Magnitude = settlement.IsTown ? 70 : settlement.IsCastle ? 55 : 35,
-                  InvolvesPlayer = playerIn,
-                  Summary = $"{(taker == null ? "A host" : Named(taker))} took {settlement.Name}" +
-                            (oldOwner != null
-                               ? $" from {Named(oldOwner)}."
-                               : "."),
-                  ActorIds = Ids(taker, oldOwner),
-                  FactionIds = FactionIds(taker, oldOwner),
-                  // Influence loop: a conquest by the player wounds the dispossessed lord's faction.
-                  AggrievedFactionIds = playerIn
-                     ? FactionIds(oldOwner)
-                     : new List<string>(),
-                  AggrievedActorIds = playerIn
-                     ? Ids(oldOwner)
-                     : new List<string>()
-               };
-               if (playerIn)
-                  e.ChronicleLine = $"{PlayerName} laid siege to {settlement.Name} and wrested it from {oldOwner?.Name?.ToString() ?? "its lord"}, and the banners were changed upon its walls";
-               Store.Record(e);
+               RecordSiegeCapture(settlement, taker, newOwner, oldOwner);
             }
             else
             {
@@ -528,6 +519,114 @@ namespace CalradiaRemembers.WorldEvents
             }
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] siege feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Records the SettlementCaptured/PlayerFeat WorldEvent for a siege capture. Splits TWO separate
+      ///   facts that the old code conflated into one <c>playerIn</c> flag: <c>playerIsTaker</c> (the
+      ///   player is the officially credited capturer, drives Type, ChronicleLine, and Aggrieved*, exactly
+      ///   as before this fix) versus <c>playerParticipated</c> (the player fought for this conquest even
+      ///   when someone else, an army leader, got the fief, which drives ONLY InvolvesPlayer, so the
+      ///   realm-tidings feature never relays the player's own siege back to them as unbidden news, without
+      ///   stealing the conquest's attribution from its real taker). Participation is proven by the fresh
+      ///   "just stormed this settlement" marker OnMapEventEnded stamps for the assault case, or, failing
+      ///   that, a cheap fallback for a starvation/surrender capture with no assault MapEvent: the player's
+      ///   own party riding in the taker's army under a different leader. Driven directly by the self-test
+      ///   seam <see cref="DebugRecordSiegeCapture" /> so it can be exercised without a real MapEvent.
+      /// </summary>
+      private WorldEvent RecordSiegeCapture(Settlement settlement, Hero taker, Hero newOwner, Hero oldOwner)
+      {
+         bool playerIsTaker = taker == Hero.MainHero;
+
+         bool markerMatches = SiegeParticipationMarker.Matches(_pendingPlayerSiegeSettlementId, _pendingPlayerSiegeDay, settlement.StringId, Today);
+         // Consumed on a match so a later, unrelated recapture of the same settlement can never
+         // false-positive against a marker that already did its job here.
+         if (markerMatches) _pendingPlayerSiegeSettlementId = null;
+
+         bool playerParticipated = playerIsTaker || markerMatches || PlayerInTakersArmy(taker, newOwner);
+
+         var e = new WorldEvent {
+            Type = playerIsTaker
+               ? WorldEventType.PlayerFeat
+               : WorldEventType.SettlementCaptured,
+            Day = Today,
+            PlaceId = settlement.StringId,
+            Magnitude = settlement.IsTown ? 70 : settlement.IsCastle ? 55 : 35,
+            InvolvesPlayer = playerParticipated,
+            Summary = $"{(taker == null ? "A host" : Named(taker))} took {settlement.Name}" +
+                      (oldOwner != null
+                         ? $" from {Named(oldOwner)}."
+                         : "."),
+            ActorIds = Ids(taker, oldOwner),
+            FactionIds = FactionIds(taker, oldOwner),
+            // Influence loop: a conquest by the player wounds the dispossessed lord's faction. Keyed on
+            // playerIsTaker (not playerParticipated): a mere participant did not personally dispossess
+            // anyone, so attribution must stay with the real taker.
+            AggrievedFactionIds = playerIsTaker
+               ? FactionIds(oldOwner)
+               : new List<string>(),
+            AggrievedActorIds = playerIsTaker
+               ? Ids(oldOwner)
+               : new List<string>()
+         };
+         if (playerIsTaker)
+            e.ChronicleLine = $"{PlayerName} laid siege to {settlement.Name} and wrested it from {oldOwner?.Name?.ToString() ?? "its lord"}, and the banners were changed upon its walls";
+         Store.Record(e);
+
+         return e;
+      }
+
+      /// <summary>
+      ///   Buffers "the player just stormed this settlement" when a siege assault's winning side was the
+      ///   ATTACKER and the player fought on it: the signal <see cref="RecordSiegeCapture" /> later matches
+      ///   against the settlement-owner-changed event the engine fires for the same conquest.
+      /// </summary>
+      private void StashPlayerSiegeMarker(MapEvent mapEvent, bool isSiege, bool playerAttacker)
+      {
+         if (!isSiege || !playerAttacker || mapEvent.WinningSide != BattleSideEnum.Attacker) return;
+
+         Settlement stormed = mapEvent.MapEventSettlement;
+         if (stormed?.StringId == null) return;
+
+         _pendingPlayerSiegeSettlementId = stormed.StringId;
+         _pendingPlayerSiegeDay = Today;
+      }
+
+      /// <summary>
+      ///   Cheap fallback participation signal for a starvation/surrender capture, which has no assault
+      ///   MapEvent to stamp <see cref="StashPlayerSiegeMarker" />'s marker: true when the player's own
+      ///   party is riding inside the taker's army under a DIFFERENT leader (the player did not personally
+      ///   take the fief, but marched with the force that did).
+      /// </summary>
+      private static bool PlayerInTakersArmy(Hero taker, Hero newOwner)
+      {
+         Hero armyLeader = MobileParty.MainParty?.Army?.LeaderParty?.LeaderHero;
+
+         return armyLeader != null && (armyLeader == taker || armyLeader == newOwner);
+      }
+
+      /// <summary>
+      ///   Self-test seam (cr.testall siege_tidings_participation): stamps the "player just stormed this
+      ///   settlement" marker as <see cref="StashPlayerSiegeMarker" /> would from a real siege assault,
+      ///   without needing a real <see cref="MapEvent" />.
+      /// </summary>
+      public void DebugSetPlayerSiegeMarker(string settlementId, int day)
+      {
+         _pendingPlayerSiegeSettlementId = settlementId;
+         _pendingPlayerSiegeDay = day;
+      }
+
+      /// <summary>
+      ///   Self-test seam (cr.testall siege_tidings_participation): runs the exact
+      ///   <see cref="RecordSiegeCapture" /> construction <see cref="OnSettlementOwnerChanged" /> uses for a
+      ///   siege, without a real MapEvent/ChangeOwnerOfSettlementAction, and returns the recorded event so
+      ///   the caller can assert on it (and remove it from the store afterwards).
+      /// </summary>
+      public WorldEvent DebugRecordSiegeCapture(Settlement settlement, Hero taker, Hero oldOwner)
+      {
+         if (settlement == null || Store == null) return null;
+
+         return RecordSiegeCapture(settlement, taker, taker, oldOwner);
       }
 
       // ── Political ascent (vassalage, defection, rulership) — player clan only ───
