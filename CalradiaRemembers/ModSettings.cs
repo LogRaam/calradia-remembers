@@ -320,6 +320,36 @@ namespace CalradiaRemembers
       public static string ActionInterpreterModel => CrSettings.Instance?.ActionInterpreterModel?.Trim() ?? "";
 
       /// <summary>
+      ///   The RAW per-role provider dropdown value for the roleplay / prose role (the "Roleplay / Prose provider"
+      ///   MCM field), or <see cref="Logic.ProviderRolePolicy.DefaultSelection" /> when MCM has not loaded. Fed to
+      ///   <see cref="Logic.ProviderRolePolicy.ResolveRoleKind" /> by <see cref="Services.LlmServices" />; the
+      ///   default "(default)" makes the role inherit the global provider, so an upgraded config is a no-op.
+      /// </summary>
+      public static string RoleplayProviderSelection =>
+         CrSettings.Instance?.RoleplayProvider?.SelectedValue ?? ProviderRolePolicy.DefaultSelection;
+
+      /// <summary>
+      ///   The RAW per-role provider dropdown value for the consensual-intimate role (the "Consensual provider" MCM
+      ///   field), or <see cref="Logic.ProviderRolePolicy.DefaultSelection" /> when MCM has not loaded.
+      /// </summary>
+      public static string ConsensualProviderSelection =>
+         CrSettings.Instance?.ConsensualProvider?.SelectedValue ?? ProviderRolePolicy.DefaultSelection;
+
+      /// <summary>
+      ///   The RAW per-role provider dropdown value for the CNC / captive role (the "CNC provider" MCM field), or
+      ///   <see cref="Logic.ProviderRolePolicy.DefaultSelection" /> when MCM has not loaded.
+      /// </summary>
+      public static string CncProviderSelection =>
+         CrSettings.Instance?.CncProvider?.SelectedValue ?? ProviderRolePolicy.DefaultSelection;
+
+      /// <summary>
+      ///   The RAW per-role provider dropdown value for the action-interpreter role (the "Actions Interpreter
+      ///   provider" MCM field), or <see cref="Logic.ProviderRolePolicy.DefaultSelection" /> when MCM has not loaded.
+      /// </summary>
+      public static string ActionInterpreterProviderSelection =>
+         CrSettings.Instance?.ActionInterpreterProvider?.SelectedValue ?? ProviderRolePolicy.DefaultSelection;
+
+      /// <summary>
       ///   How a chat reply is composed: <see cref="Logic.ChatCompositionMode.Integrated" /> (one call, today's
       ///   behaviour) or <see cref="Logic.ChatCompositionMode.ProseInterpret" /> (prose then a separate action-
       ///   interpreter call). Read live from the MCM menu; defaults to Integrated on anything unexpected.

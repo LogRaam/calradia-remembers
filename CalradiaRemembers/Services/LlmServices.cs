@@ -56,6 +56,14 @@ namespace CalradiaRemembers.Services
 
       private HttpClient _httpClient;
 
+      // Dedicated action-interpreter client (Prose + Interpreter mode). Built lazily for the interpreter role's
+      // provider kind + resolved model, and rebuilt when either changes, mirroring how ChatService tracks its
+      // built AdultLevel. It exists even when the interpreter kind equals the default kind, so the caller always
+      // has one uniform path.
+      private ILlmClient _interpreterClient;
+      private ProviderKind _builtInterpreterKind;
+      private string _builtInterpreterModel;
+
       /// <summary>
       ///   Test-only override for the player's gender used when building the prompt.
       ///   Set by the cr.crc_scene console command to exercise the female/male captive
@@ -118,6 +126,43 @@ namespace CalradiaRemembers.Services
 
       public ILlmClient LlmClient { get; private set; }
 
+      /// <summary>
+      ///   The dedicated client for the ACTION INTERPRETER role (Prose + Interpreter composition). Its base URL,
+      ///   API key, caching, and parameter shape are fixed to the interpreter role's provider kind, and its model
+      ///   is <see cref="ResolveInterpreterModel" />. Built lazily and rebuilt only when the interpreter provider
+      ///   selection or the resolved interpreter model changes. Never returns null and never throws: a build fault
+      ///   falls back to the main <see cref="LlmClient" /> so the caller (which already degrades to no-tags on any
+      ///   interpreter failure) is never disturbed.
+      /// </summary>
+      public ILlmClient InterpreterClient
+      {
+         get
+         {
+            try
+            {
+               if (_httpClient == null) return LlmClient;
+
+               ProviderKind kind = ResolveKindForRole(ServiceRole.ActionInterpreter);
+               string model = ResolveInterpreterModel();
+
+               if (_interpreterClient != null && _builtInterpreterKind == kind && _builtInterpreterModel == model)
+                  return _interpreterClient;
+
+               _interpreterClient = BuildInterpreterClient(kind, model);
+               _builtInterpreterKind = kind;
+               _builtInterpreterModel = model;
+
+               return _interpreterClient;
+            }
+            catch (Exception ex)
+            {
+               ModLog.Error($"Failed to build the action-interpreter client; falling back to the main client: {ex.Message}");
+
+               return LlmClient;
+            }
+         }
+      }
+
       /// <summary>The model currently in effect — read live from the MCM menu.</summary>
       public string ModelId => ResolveModel();
 
@@ -160,11 +205,15 @@ namespace CalradiaRemembers.Services
          if (LlmClient == null)
             return "(The AI stack failed to initialize — check CalradiaRemembers.log.)";
 
+         // Availability is judged for the DEFAULT provider only (the one an ordinary turn uses). A misconfigured
+         // NON-default role degrades gracefully instead: the live call fails and the in-chat guidance / the
+         // interpreter's own try-catch absorb it. Per-role availability messages are a follow-up.
          string provider = ResolveProvider();
+         ProviderKind kind = DefaultKind();
 
          if (provider == ProviderCustom)
          {
-            if (string.IsNullOrWhiteSpace(ResolveBaseUrl()))
+            if (string.IsNullOrWhiteSpace(BaseUrlFor(kind)))
                return "(No endpoint URL is set. Open Mods → Mod Options → Calradia Remembers, " +
                       "paste your server URL (e.g. http://localhost:1234/v1), then return here — it applies immediately.)";
             if (string.IsNullOrWhiteSpace(ResolveModel()))
@@ -174,7 +223,7 @@ namespace CalradiaRemembers.Services
             return null;
          }
 
-         if (string.IsNullOrWhiteSpace(ResolveApiKey()))
+         if (string.IsNullOrWhiteSpace(ApiKeyFor(kind)))
             return $"(No {provider} API key is set. Open Mods → Mod Options → Calradia Remembers, " +
                    $"paste your {provider} API key, then return here — it applies immediately, no restart needed.)";
 
@@ -206,21 +255,25 @@ namespace CalradiaRemembers.Services
             // The client reads key/model/base-URL live on every request, so a provider,
             // key or model picked in the MCM menu applies immediately — no restart, no
             // save reload. The cache_control extension is disabled for providers that do
-            // not accept the content-array system message (e.g. NanoGPT).
+            // not accept the content-array system message (e.g. NanoGPT). Every lambda
+            // resolves for the ACTIVE role's provider kind (ProviderRolePolicy.RoleForMode
+            // over ActiveModelMode): an ordinary turn uses the Roleplay role's provider, a
+            // consensual scene the Consensual role's, a CNC scene the CNC role's. Calls are
+            // sequential, so one live-reading client is safe.
             var config = new OpenRouterConfig {
-               ApiKeyProvider = ResolveApiKey,
+               ApiKeyProvider = () => ApiKeyFor(ActiveRoleKind()),
                ModelProvider = ResolveModel,
-               BaseUrlProvider = ResolveBaseUrl,
-               UseSystemPromptCachingProvider = ResolveUseSystemPromptCaching,
+               BaseUrlProvider = () => BaseUrlFor(ActiveRoleKind()),
+               UseSystemPromptCachingProvider = () => UseCachingFor(ActiveRoleKind()),
                ReasoningProvider = ResolveReasoning,
                TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
-               ParameterOptionsProvider = ResolveParameterOptions,
+               ParameterOptionsProvider = () => ParameterOptionsFor(ActiveRoleKind(), ResolveModel()),
                ProviderSlugsProvider = ResolveProviderPin,
                AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
             };
             LlmClient = new OpenRouterClient(_httpClient, config);
 
-            if (ResolveProvider() != ProviderCustom && string.IsNullOrWhiteSpace(ResolveApiKey()))
+            if (ResolveProvider() != ProviderCustom && string.IsNullOrWhiteSpace(ApiKeyFor(DefaultKind())))
                ModLog.Info($"LLM stack built, but no {ResolveProvider()} API key is set yet. " +
                            "Add it in Mods → Mod Options → Calradia Remembers (applies immediately).");
             else
@@ -373,17 +426,62 @@ namespace CalradiaRemembers.Services
       }
 
       /// <summary>
-      ///   Resolves the active provider's API key. A key entered in the MCM menu wins;
-      ///   the provider's environment variable (<c>OPENROUTER_API_KEY</c> /
-      ///   <c>NANOGPT_API_KEY</c>) remains a fallback for developer setups and power
-      ///   users. Whitespace is treated as unset.
+      ///   The DEFAULT provider kind, parsed from the global "Provider" dropdown. Every role left on "(default)"
+      ///   inherits this, which is the migration no-op: an upgraded single-provider config resolves every role to
+      ///   this kind exactly as before per-role routing existed. Falls back to OpenRouter when MCM has not loaded.
       /// </summary>
-      private static string ResolveApiKey()
+      private static ProviderKind DefaultKind()
+         => ProviderRolePolicy.ParseKind(CrSettings.Instance?.Provider?.SelectedValue, ProviderKind.OpenRouter);
+
+      /// <summary>
+      ///   The provider kind a given <see cref="ServiceRole" /> resolves to: its own per-role dropdown selection
+      ///   layered over <see cref="DefaultKind" /> via <see cref="ProviderRolePolicy.ResolveRoleKind" />. A role
+      ///   left on "(default)" returns the default kind. Read live so an MCM change applies immediately.
+      /// </summary>
+      private static ProviderKind ResolveKindForRole(ServiceRole role)
+      {
+         string selection;
+         switch (role)
+         {
+            case ServiceRole.ConsensualIntimate:
+               selection = ModSettings.ConsensualProviderSelection;
+
+               break;
+            case ServiceRole.Cnc:
+               selection = ModSettings.CncProviderSelection;
+
+               break;
+            case ServiceRole.ActionInterpreter:
+               selection = ModSettings.ActionInterpreterProviderSelection;
+
+               break;
+            default:
+               selection = ModSettings.RoleplayProviderSelection;
+
+               break;
+         }
+
+         return ProviderRolePolicy.ResolveRoleKind(selection, DefaultKind());
+      }
+
+      /// <summary>
+      ///   The provider kind the CURRENT turn uses: the role for <see cref="ActiveModelMode" /> resolved to a
+      ///   kind. The main client's lambdas key off this, so an ordinary turn uses the Roleplay role's provider, a
+      ///   consensual scene the Consensual role's, a CNC scene the CNC role's.
+      /// </summary>
+      private static ProviderKind ActiveRoleKind()
+         => ResolveKindForRole(ProviderRolePolicy.RoleForMode(ActiveModelMode));
+
+      /// <summary>
+      ///   Resolves a provider kind's API key. A key entered in the MCM menu wins; the provider's environment
+      ///   variable (<c>OPENROUTER_API_KEY</c> / <c>NANOGPT_API_KEY</c>) remains a fallback for developer setups
+      ///   and power users. Whitespace is treated as unset.
+      /// </summary>
+      private static string ApiKeyFor(ProviderKind kind)
       {
          CrSettings s = CrSettings.Instance;
-         string provider = ResolveProvider();
 
-         if (provider == ProviderCustom)
+         if (kind == ProviderKind.OpenAiCompatible)
          {
             string customKey = s?.CustomApiKey?.Trim();
 
@@ -392,7 +490,7 @@ namespace CalradiaRemembers.Services
                : customKey;
          }
 
-         bool nano = provider == ProviderNanoGpt;
+         bool nano = kind == ProviderKind.NanoGpt;
          string mcmKey = nano
             ? s?.NanoGptApiKey
             : s?.ApiKey;
@@ -405,51 +503,65 @@ namespace CalradiaRemembers.Services
       }
 
       /// <summary>
-      ///   Resolves the chat-completion parameter shape for the active request. The aggregators (OpenRouter,
+      ///   Resolves the chat-completion parameter shape for a provider kind + model. The aggregators (OpenRouter,
       ///   NanoGPT) normalize parameter names and accept temperature, so they always get the classic shape;
       ///   only the direct OpenAI-Compatible endpoint applies the player's compatibility policy — letting a
       ///   gpt-5/o-series model reached at api.openai.com receive 'max_completion_tokens' with no temperature.
       /// </summary>
-      private static ChatParameterOptions ResolveParameterOptions()
+      private static ChatParameterOptions ParameterOptionsFor(ProviderKind kind, string modelId)
       {
-         if (ResolveProvider() != ProviderCustom) return ChatParameterOptions.Standard;
+         if (kind != ProviderKind.OpenAiCompatible) return ChatParameterOptions.Standard;
 
-         LlmWireParameters p = LlmParameterPolicy.Resolve(ResolveModel(), ModSettings.CustomParameterCompatibility);
+         LlmWireParameters p = LlmParameterPolicy.Resolve(modelId, ModSettings.CustomParameterCompatibility);
 
          return new ChatParameterOptions(p.UseMaxCompletionTokens, p.IncludeTemperature);
       }
 
       /// <summary>
-      ///   The OpenRouter providers the player pinned, and ONLY when OpenRouter is the active provider: the
+      ///   The OpenRouter providers the player pinned, and ONLY when the ACTIVE role's kind is OpenRouter: the
       ///   field is meaningless to NanoGPT or a local OpenAI-compatible server, so they must never receive it.
       ///   Mode-aware like the model id and the reasoning effort: NSFW mode can pin a different (typically
-      ///   uncensored) provider than roleplay via <see cref="ModelModePolicy.ResolveProviderPin" />. Read live
-      ///   per request, so flipping the mode mid-conversation just works.
+      ///   uncensored) provider than roleplay via <see cref="ModelModePolicy.ResolveProviderPin" />. This round
+      ///   the pin stays exactly as before, keyed off the active role's kind rather than a per-role dropdown.
       /// </summary>
       private static string ResolveProviderPin()
-         => ResolveProvider() == ProviderOpenRouter
+         => ActiveRoleKind() == ProviderKind.OpenRouter
             ? ModelModePolicy.ResolveProviderPin(ActiveModelMode, ModSettings.OpenRouterProviderPin, ModSettings.OpenRouterNsfwProviderPin)
             : "";
 
-      /// <summary>Resolves the active provider's OpenAI-compatible base URL. Read live per request.</summary>
-      private static string ResolveBaseUrl()
+      /// <summary>Resolves a provider kind's OpenAI-compatible base URL. Read live per request.</summary>
+      private static string BaseUrlFor(ProviderKind kind)
       {
-         string provider = ResolveProvider();
-
-         if (provider == ProviderNanoGpt) return NanoGptBaseUrl;
-         if (provider == ProviderCustom) return CrSettings.Instance?.CustomEndpointUrl?.Trim() ?? "";
+         if (kind == ProviderKind.NanoGpt) return NanoGptBaseUrl;
+         if (kind == ProviderKind.OpenAiCompatible) return CrSettings.Instance?.CustomEndpointUrl?.Trim() ?? "";
 
          return OpenRouterBaseUrl;
       }
 
       /// <summary>
-      ///   Resolves the model id: the shared "Model (roleplay)" MCM field serves every provider
-      ///   (ids are pasted in the active provider's own namespace). OpenRouter falls back to the
-      ///   built-in default; the other providers treat a blank field or the untouched OpenRouter
-      ///   default as unconfigured and resolve blank, so the provider-aware in-chat guidance fires
-      ///   instead of a cryptic API error. When <see cref="ActiveModelMode" /> is NSFW and the player
-      ///   configured an NSFW model, that model overrides the roleplay one (any provider). Read live
-      ///   on every request via <c>ModelProvider</c>, so flipping the mode mid-conversation just works.
+      ///   The roleplay model id for a provider kind: the shared "Roleplay and Prose model" MCM field serves every
+      ///   provider (ids are pasted in the provider's own namespace). OpenRouter falls back to the built-in
+      ///   default; the other kinds treat a blank field or the untouched OpenRouter default as unconfigured and
+      ///   resolve blank, so the provider-aware in-chat guidance fires instead of a cryptic API error.
+      /// </summary>
+      private static string ResolveRoleplayModelForKind(ProviderKind kind)
+      {
+         string mcmModel = CrSettings.Instance?.Model?.Trim() ?? string.Empty;
+
+         if (kind == ProviderKind.OpenAiCompatible || kind == ProviderKind.NanoGpt)
+            // The untouched OpenRouter default means "never configured for this provider", not a
+            // choice: model namespaces differ, and a wrong id is worse than an explicit blank.
+            return mcmModel == DefaultModel ? string.Empty : mcmModel;
+
+         return string.IsNullOrWhiteSpace(mcmModel)
+            ? DefaultModel
+            : mcmModel;
+      }
+
+      /// <summary>
+      ///   Resolves the model id for the ACTIVE turn: the roleplay model for the active role's kind, then the
+      ///   consensual/CNC override when <see cref="ActiveModelMode" /> is an explicit mode and one is configured.
+      ///   Read live on every request via <c>ModelProvider</c>, so flipping the mode mid-conversation just works.
       /// </summary>
       private static string ResolveModel()
       {
@@ -457,24 +569,7 @@ namespace CalradiaRemembers.Services
          // ahead of the normal mode/NSFW resolution. Blank or null falls through to the usual resolution below.
          if (!string.IsNullOrWhiteSpace(TestModelOverride)) return TestModelOverride;
 
-         CrSettings s = CrSettings.Instance;
-         string provider = ResolveProvider();
-         string mcmModel = s?.Model?.Trim() ?? string.Empty;
-
-         string roleplayModel;
-
-         if (provider == ProviderCustom || provider == ProviderNanoGpt)
-         {
-            // The untouched OpenRouter default means "never configured for this provider", not a
-            // choice: model namespaces differ, and a wrong id is worse than an explicit blank.
-            roleplayModel = mcmModel == DefaultModel ? string.Empty : mcmModel;
-         }
-         else
-         {
-            roleplayModel = string.IsNullOrWhiteSpace(mcmModel)
-               ? DefaultModel
-               : mcmModel;
-         }
+         string roleplayModel = ResolveRoleplayModelForKind(ActiveRoleKind());
 
          // The consensual/CNC facade getters read the legacy NsfwModel storage (consensual) with CNC falling back
          // to it, so a config that only set the old NSFW model resolves EXACTLY as before for both explicit modes.
@@ -482,8 +577,24 @@ namespace CalradiaRemembers.Services
       }
 
       /// <summary>
-      ///   The selected provider id from the MCM menu. Falls back to OpenRouter when
-      ///   MCM has not loaded. Read live so a provider change applies immediately.
+      ///   The model id the ACTION INTERPRETER client uses: the configured "Actions Interpreter model" when set,
+      ///   otherwise a blank field reuses the scene's own resolved model (byte-for-byte the pre-feature behaviour,
+      ///   where a null ModelOverride let the main client resolve the scene model). The <see cref="TestModelOverride" />
+      ///   seam is honoured through <see cref="ResolveModel" />.
+      /// </summary>
+      public string ResolveInterpreterModel()
+      {
+         string configured = ModSettings.ActionInterpreterModel;
+
+         return string.IsNullOrWhiteSpace(configured)
+            ? ResolveModel()
+            : configured;
+      }
+
+      /// <summary>
+      ///   The selected provider id from the MCM menu (display string). Falls back to OpenRouter when MCM has not
+      ///   loaded. Kept for the boot log and <see cref="DescribeUnavailability" />; routing itself goes through the
+      ///   kind helpers above.
       /// </summary>
       private static string ResolveProvider()
       {
@@ -496,23 +607,85 @@ namespace CalradiaRemembers.Services
       }
 
       /// <summary>
-      ///   Resolves the reasoning-effort keyword for the request. The <c>reasoning</c> parameter
-      ///   is OpenRouter-specific, so it is suppressed (null) for NanoGPT. Mode-aware like the
-      ///   model id: NSFW mode can run a lower effort than roleplay (fewer moralizing refusals,
-      ///   faster scene beats) via its own MCM dropdown. Read live per request.
+      ///   Resolves the reasoning-effort keyword for the request. The <c>reasoning</c> parameter is
+      ///   OpenRouter-specific, so it is suppressed (null) unless the ACTIVE role's kind is OpenRouter. Mode-aware
+      ///   like the model id: NSFW mode can run a lower effort than roleplay via its own MCM dropdown. This round
+      ///   the effort stays exactly as before, keyed off the active role's kind rather than a per-role dropdown.
       /// </summary>
       private static string ResolveReasoning() =>
-         ResolveProvider() == ProviderOpenRouter
+         ActiveRoleKind() == ProviderKind.OpenRouter
             ? ModelModePolicy.ResolveReasoningEffort(ActiveModelMode, ModSettings.ReasoningEffort, ModSettings.NsfwReasoningEffort)
             : null;
 
       /// <summary>
-      ///   Whether to send the cacheable content-array system message. OpenRouter honors
-      ///   the <c>cache_control</c> breakpoint; other providers route to arbitrary backends
-      ///   where the array form is untested, so we send a plain string to stay portable.
+      ///   Whether to send the cacheable content-array system message for a provider kind. OpenRouter honors the
+      ///   <c>cache_control</c> breakpoint; other providers route to arbitrary backends where the array form is
+      ///   untested, so we send a plain string to stay portable.
       /// </summary>
-      private static bool ResolveUseSystemPromptCaching() =>
-         ResolveProvider() == ProviderOpenRouter;
+      private static bool UseCachingFor(ProviderKind kind) => kind == ProviderKind.OpenRouter;
+
+      /// <summary>
+      ///   Builds the dedicated action-interpreter client for a provider <paramref name="kind" /> and a fixed
+      ///   <paramref name="model" />. Every lambda is bound to that ONE kind so the interpreter never rides the
+      ///   scene's provider; reasoning and provider-pin mirror the main client's (OpenRouter-only, mode-aware),
+      ///   so the all-"(default)" case reproduces exactly what the interpreter got when it rode the main client.
+      /// </summary>
+      private ILlmClient BuildInterpreterClient(ProviderKind kind, string model)
+      {
+         var config = new OpenRouterConfig {
+            ApiKeyProvider = () => ApiKeyFor(kind),
+            ModelProvider = () => model,
+            BaseUrlProvider = () => BaseUrlFor(kind),
+            UseSystemPromptCachingProvider = () => UseCachingFor(kind),
+            ReasoningProvider = () => kind == ProviderKind.OpenRouter
+               ? ModelModePolicy.ResolveReasoningEffort(ActiveModelMode, ModSettings.ReasoningEffort, ModSettings.NsfwReasoningEffort)
+               : null,
+            TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
+            ParameterOptionsProvider = () => ParameterOptionsFor(kind, model),
+            ProviderSlugsProvider = () => kind == ProviderKind.OpenRouter
+               ? ModelModePolicy.ResolveProviderPin(ActiveModelMode, ModSettings.OpenRouterProviderPin, ModSettings.OpenRouterNsfwProviderPin)
+               : "",
+            AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
+         };
+
+         return new OpenRouterClient(_httpClient, config);
+      }
+
+      /// <summary>
+      ///   Debug seam (cr.provider_routing / the provider_routing self-test): reports what a role WOULD resolve to
+      ///   (provider kind, base URL, model id) with NO network call, so a test can prove the roles route to
+      ///   distinct providers and that all-"(default)" collapses them onto the default provider's base URL.
+      /// </summary>
+      public (ProviderKind kind, string baseUrl, string model) DebugDescribeRoleRouting(ServiceRole role)
+      {
+         ProviderKind kind = ResolveKindForRole(role);
+         string baseUrl = BaseUrlFor(kind);
+         string model;
+
+         switch (role)
+         {
+            case ServiceRole.ActionInterpreter:
+               model = ResolveInterpreterModel();
+
+               break;
+            case ServiceRole.ConsensualIntimate:
+               model = ModelModePolicy.ResolveModelId(ModelMode.ConsensualIntimate, ResolveRoleplayModelForKind(kind),
+                  ModSettings.ConsensualModel, ModSettings.CncModel);
+
+               break;
+            case ServiceRole.Cnc:
+               model = ModelModePolicy.ResolveModelId(ModelMode.Cnc, ResolveRoleplayModelForKind(kind),
+                  ModSettings.ConsensualModel, ModSettings.CncModel);
+
+               break;
+            default:
+               model = ResolveRoleplayModelForKind(kind);
+
+               break;
+         }
+
+         return (kind, baseUrl, model);
+      }
 
       /// <summary>
       ///   TUNE. Adult-prompt audit M13: the mod's anti-repetition rested entirely on prompt text, which is

@@ -250,6 +250,25 @@ namespace CalradiaRemembers
                 "Use 'cr.model toggle' to flip the mode.";
       }
 
+      [CommandLineFunctionality.CommandLineArgumentFunction("provider_routing", "cr")]
+      public static string ProviderRouting(List<string> args)
+      {
+         LlmServices llm = NpcMemoryCampaignBehavior.Instance?.LlmServices;
+         if (llm == null) return "LLM services not initialized.";
+
+         var sb = new StringBuilder("Per-role provider routing (what each role WOULD use, no network call):");
+         foreach (ServiceRole role in new[] {
+                     ServiceRole.Roleplay, ServiceRole.ConsensualIntimate, ServiceRole.Cnc, ServiceRole.ActionInterpreter
+                  })
+         {
+            (ProviderKind kind, string baseUrl, string model) = llm.DebugDescribeRoleRouting(role);
+            sb.Append($"\n  {role}: {kind} | {(string.IsNullOrWhiteSpace(baseUrl) ? "(no base url)" : baseUrl)} " +
+                      $"| model '{(string.IsNullOrWhiteSpace(model) ? "(unconfigured)" : model)}'");
+         }
+
+         return sb.ToString();
+      }
+
       [CommandLineFunctionality.CommandLineArgumentFunction("open_chat", "campaign")]
       public static string OpenChat(List<string> args)
       {

@@ -140,13 +140,13 @@ namespace CalradiaRemembers.Settings
       public override string FormatType => "json2";
       public override string Id => "CalradiaRemembers";
 
-      [SettingPropertyBool("Compact prompt for small models", RequireRestart = false, Order = 8,
+      [SettingPropertyBool("Compact prompt for small models", RequireRestart = false, Order = 12,
          HintText = "Trims the prompt to fit a SMALL, short-context model (4k to 8k). Turn ON if the AI stays silent: " +
                     "the full prompt is overflowing it. Replies grow less richly grounded. Leave OFF for cloud models.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public bool LeanPrompt { get; set; } = false;
 
-      [SettingPropertyBool("Compress old memories", RequireRestart = false, Order = 9,
+      [SettingPropertyBool("Compress old memories", RequireRestart = false, Order = 13,
          HintText = "Lets characters fold old, superseded memories into a short background outline, so a long " +
                     "campaign stops inflating every prompt (the usual cause of slow replies on a local model). " +
                     "First meetings, recent events, and grave moments are never dropped. Turn OFF if another mod " +
@@ -154,7 +154,7 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public bool MemoryCompression { get; set; } = true;
 
-      [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 7,
+      [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 11,
          HintText = "How long to wait for a reply, in seconds (default 120). Raise it for a slow local or reasoning " +
                     "model; lower it to fail fast. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
@@ -166,6 +166,16 @@ namespace CalradiaRemembers.Settings
                     "Integrated mode and the prose in Prose + Interpreter mode. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string Model { get; set; } = "x-ai/grok-4.20";
+
+      // Per-role provider (2026-08-13): each model role may go to its OWN provider. "(default)" inherits the
+      // Provider dropdown above, so an upgraded config behaves exactly as before. Values reuse the
+      // ProviderRolePolicy constants so the dropdown strings and the resolver can never drift.
+      [SettingPropertyDropdown("Roleplay / Prose provider", RequireRestart = false, Order = 3,
+         HintText = "Which provider the roleplay and prose model above is sent to. (default) uses the Provider " +
+                    "chosen at the top. Applies immediately.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public Dropdown<string> RoleplayProvider { get; set; } =
+         new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
 
       [SettingPropertyText("NanoGPT API Key", RequireRestart = false, Order = 0,
          HintText = "Paste your key from nano-gpt.com. Stored locally on this machine only. NEVER share your config " +
@@ -184,25 +194,46 @@ namespace CalradiaRemembers.Settings
       // its property name) keeps loading the value an existing config saved under the old single "NSFW model" field.
       // It is now PRESENTED as the consensual slot; ModSettings.ConsensualModel exposes it under the ubiquitous name,
       // and CncModel falls back to it. Renaming this property would orphan the stored value, so it stays put.
-      [SettingPropertyText("NSFW Consensual model (optional)", RequireRestart = false, Order = 3,
+      [SettingPropertyText("NSFW Consensual model (optional)", RequireRestart = false, Order = 4,
          HintText = "Model id for consensual intimate scenes (and CNC scenes when the field below is blank). Same " +
                     "provider as above. Blank = use the roleplay model.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string NsfwModel { get; set; } = "";
 
-      [SettingPropertyText("NSFW CNC / captive Model (optional)", RequireRestart = false, Order = 4,
+      [SettingPropertyDropdown("Consensual provider", RequireRestart = false, Order = 5,
+         HintText = "Which provider the consensual model above is sent to. (default) uses the Provider chosen at " +
+                    "the top. Applies immediately.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public Dropdown<string> ConsensualProvider { get; set; } =
+         new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
+
+      [SettingPropertyText("NSFW CNC / captive Model (optional)", RequireRestart = false, Order = 6,
          HintText = "Model id for CNC and captive scenes (captor, captive, companion-victim). Same provider as " +
                     "above. Blank = use the NSFW Consensual model above (or the roleplay model if that is blank too).")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string CncModel { get; set; } = "";
 
-      [SettingPropertyText("Actions Interpreter model (optional)", RequireRestart = false, Order = 5,
+      [SettingPropertyDropdown("CNC provider", RequireRestart = false, Order = 7,
+         HintText = "Which provider the CNC / captive model above is sent to. (default) uses the Provider chosen " +
+                    "at the top. Applies immediately.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public Dropdown<string> CncProvider { get; set; } =
+         new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
+
+      [SettingPropertyText("Actions Interpreter model (optional)", RequireRestart = false, Order = 8,
          HintText = "Used only in Prose + Interpreter composition mode: a small, cheap model that reads the structured " +
                     "actions out of the prose. Blank = reuse the scene's model.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string ActionInterpreterModel { get; set; } = "";
 
-      [SettingPropertyDropdown("Actions Interpreter Timing", RequireRestart = false, Order = 6,
+      [SettingPropertyDropdown("Actions Interpreter provider", RequireRestart = false, Order = 9,
+         HintText = "Which provider the actions interpreter model above is sent to. (default) uses the Provider " +
+                    "chosen at the top. Applies immediately.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public Dropdown<string> ActionInterpreterProvider { get; set; } =
+         new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
+
+      [SettingPropertyDropdown("Actions Interpreter Timing", RequireRestart = false, Order = 10,
          HintText = "Only in Prose + Interpreter mode. Synchronous: tags apply with the reply (recommended). " +
                     "Asynchronous: the reply shows instantly, tags apply a moment later.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
@@ -217,11 +248,11 @@ namespace CalradiaRemembers.Settings
          new(new[] {ModelModePolicy.SameAsRoleplay, "Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Same as roleplay
 
       [SettingPropertyDropdown("LLM Provider", RequireRestart = false, Order = 0,
-         HintText = "Which OpenAI-compatible service to send requests to. The model fields are shared; each provider " +
-                    "keeps its own key further down. Applies immediately.")]
+         HintText = "The DEFAULT provider, used by any role left on (default) in its own provider dropdown below. " +
+                    "The model fields are shared; each provider keeps its own key further down. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public Dropdown<string> Provider { get; set; } =
-         new(new[] {"OpenRouter", "NanoGPT", "OpenAI-Compatible"}, 0); // default: OpenRouter
+         new(new[] {ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0); // default: OpenRouter
 
       [SettingPropertyDropdown("Reasoning Effort (roleplay)", RequireRestart = false, Order = 1,
          HintText = "How hard a reasoning model thinks before replying. Higher can mean finer dialogue but slower " +

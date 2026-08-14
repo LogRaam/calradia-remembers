@@ -147,6 +147,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("reasoning_scrub", Severity.Light, "Mechanical: the inline <think> leak (tthheerroocckk, nemotron on High reasoning). The save/load itself is STUBBED: corrupted memories are written straight into the store as an old save would carry them (a trace before real prose, a memory that is ONLY a truncated trace, a corrupted background paragraph) -> the REAL session-launch scrub runs -> assert the prose is recovered, the all-trace memory becomes the honest 'faded' line (never invented content), the background returns to null, and a second pass is a no-op. Removes its seeds afterwards", TestReasoningScrub),
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
+         new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the custom endpoint URL", TestProviderRouting),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
          new SelfTest("stance_letter", Severity.Heavy, "hostile stance -> weekly eval -> assert a cold StanceHostility letter is queued", TestStanceLetter),
@@ -6953,6 +6954,83 @@ namespace CalradiaRemembers.Diagnostics
             CrSettings.Instance.UseCustomTraits = wasEnabled;
             CharacterOverrideLoader.SyncAuthoredProse(profile, npc);
             behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Per-role provider routing (2026-08-13). The feature lets the player send each TEXT role to a DIFFERENT
+      ///   provider. This drives <see cref="LlmServices.DebugDescribeRoleRouting" /> (which reports what a role
+      ///   WOULD use with NO network call) to prove BOTH halves: distinct selections produce distinct base URLs +
+      ///   kinds (the feature works at all), and leaving every role on "(default)" collapses them onto the ONE
+      ///   default provider (the migration guarantee: an upgraded single-provider config behaves exactly as
+      ///   before). Snapshots and restores every dropdown + the custom endpoint URL it touches, so a real campaign
+      ///   is unchanged.
+      /// </summary>
+      private static string TestProviderRouting(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("provider_routing");
+
+         CrSettings s = CrSettings.Instance;
+         if (t.Skip(s == null, "MCM settings unavailable, cannot set the per-role provider dropdowns")) return t.Line();
+
+         LlmServices llm = behavior?.LlmServices;
+         if (t.Skip(llm == null, "LLM services not initialized")) return t.Line();
+
+         int priorRoleplay = s.RoleplayProvider.SelectedIndex;
+         int priorConsensual = s.ConsensualProvider.SelectedIndex;
+         int priorCnc = s.CncProvider.SelectedIndex;
+         int priorInterpreter = s.ActionInterpreterProvider.SelectedIndex;
+         string priorEndpoint = s.CustomEndpointUrl;
+
+         try
+         {
+            // STAKE: the whole round is "a different provider per role". If DISTINCT selections did not yield
+            // distinct base URLs + kinds, every request would still go to one provider and the feature is a no-op.
+            const string dummyEndpoint = "http://localhost:9999/v1";
+            s.CustomEndpointUrl = dummyEndpoint;
+            s.RoleplayProvider.SelectedValue = ProviderRolePolicy.OpenRouterValue;
+            s.ConsensualProvider.SelectedValue = ProviderRolePolicy.NanoGptValue;
+            s.ActionInterpreterProvider.SelectedValue = ProviderRolePolicy.OpenAiCompatibleValue;
+
+            (ProviderKind kind, string baseUrl, string model) rp = llm.DebugDescribeRoleRouting(ServiceRole.Roleplay);
+            (ProviderKind kind, string baseUrl, string model) con = llm.DebugDescribeRoleRouting(ServiceRole.ConsensualIntimate);
+            (ProviderKind kind, string baseUrl, string model) interp = llm.DebugDescribeRoleRouting(ServiceRole.ActionInterpreter);
+
+            t.Expect("roleplayKind", rp.kind, ProviderKind.OpenRouter);
+            t.Expect("consensualKind", con.kind, ProviderKind.NanoGpt);
+            t.Expect("interpreterKind", interp.kind, ProviderKind.OpenAiCompatible);
+
+            bool distinct = rp.baseUrl != con.baseUrl && con.baseUrl != interp.baseUrl && rp.baseUrl != interp.baseUrl;
+            t.Expect("theThreeBaseUrlsAreDistinct", distinct, true);
+            t.Expect("interpreterBaseUrlIsTheCustomEndpoint", interp.baseUrl, dummyEndpoint);
+            t.Note($"rp={rp.baseUrl} | consensual={con.baseUrl} | interpreter={interp.baseUrl}");
+
+            // STAKE (MIGRATION): the "(default)" sentinel MUST make every role inherit the one global provider, or
+            // a config upgraded from the single-provider era, which never touched these dropdowns, would silently
+            // split its roles across providers with no setting changed to explain it.
+            s.RoleplayProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
+            s.ConsensualProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
+            s.CncProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
+            s.ActionInterpreterProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
+
+            string dRp = llm.DebugDescribeRoleRouting(ServiceRole.Roleplay).baseUrl;
+            string dCon = llm.DebugDescribeRoleRouting(ServiceRole.ConsensualIntimate).baseUrl;
+            string dCnc = llm.DebugDescribeRoleRouting(ServiceRole.Cnc).baseUrl;
+            string dInterp = llm.DebugDescribeRoleRouting(ServiceRole.ActionInterpreter).baseUrl;
+
+            bool allSame = dRp == dCon && dCon == dCnc && dCnc == dInterp;
+            t.Expect("allDefaultRolesShareOneBaseUrl", allSame, true);
+            t.Note($"default base url = {(string.IsNullOrWhiteSpace(dRp) ? "(none)" : dRp)}");
+         }
+         finally
+         {
+            s.RoleplayProvider.SelectedIndex = priorRoleplay;
+            s.ConsensualProvider.SelectedIndex = priorConsensual;
+            s.CncProvider.SelectedIndex = priorCnc;
+            s.ActionInterpreterProvider.SelectedIndex = priorInterpreter;
+            s.CustomEndpointUrl = priorEndpoint;
          }
 
          return t.Line();

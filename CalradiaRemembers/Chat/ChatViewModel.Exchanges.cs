@@ -569,9 +569,10 @@ namespace CalradiaRemembers.Chat
             SystemPrompt = prompt,
             Messages = new[] {new LlmMessage(MessageRole.User, "Output the tags now.")},
             Parameters = new LlmParameters {MaxTokens = 400, Creativity = 0.2f},
-            // Blank ActionInterpreterModel => null override => the scene's normally-resolved model does the
-            // interpretation (Part A: null/blank ModelOverride is byte-for-byte the pre-feature model resolution).
-            ModelOverride = string.IsNullOrWhiteSpace(ModSettings.ActionInterpreterModel) ? null : ModSettings.ActionInterpreterModel
+            // The dedicated InterpreterClient below owns the interpreter's provider, key, base URL AND model
+            // (ResolveInterpreterModel: the configured Actions Interpreter model, or the scene's model when blank),
+            // so no ModelOverride is needed here. Its ModelProvider still honours the TestModelOverride bench seam.
+            ModelOverride = null
          };
 
          string content = null;
@@ -581,7 +582,9 @@ namespace CalradiaRemembers.Chat
          {
             try
             {
-               LlmResponse resp = await Task.Run(() => behavior.LlmServices.LlmClient.CompleteAsync(request, cts.Token))
+               // Route to the interpreter's OWN client: its base URL / key / model are the interpreter provider's,
+               // which may differ from the scene (prose) provider. Never null (falls back to the main client).
+               LlmResponse resp = await Task.Run(() => behavior.LlmServices.InterpreterClient.CompleteAsync(request, cts.Token))
                                             .ConfigureAwait(false);
                if (resp is {IsSuccess: true}) content = resp.Content;
                else error = resp?.ErrorMessage ?? "no result";
@@ -616,7 +619,7 @@ namespace CalradiaRemembers.Chat
 
          ModLog.Info($"[PROSE-INTERPRET] interpreter supplied {interpreted.Actions?.Count ?? 0} action(s)"
                      + (interpreted.NewEventData != null ? $" + 1 event ({interpreted.NewEventData.Type})" : "")
-                     + $" (model: {request.ModelOverride ?? behavior.LlmServices.ModelId ?? "resolved"}).");
+                     + $" (model: {behavior.LlmServices.ResolveInterpreterModel() ?? "resolved"}).");
 
          return WithInterpretedTags(proseResponse, interpreted);
       }
