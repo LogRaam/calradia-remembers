@@ -37,4 +37,41 @@
     </Styles>
   </Brush>
 
+  <!--
+    Cyrillic-safe siblings (player report: Galahad has no proper Cyrillic glyphs, so Russian rendered
+    a broken per-glyph fallback). Font="FiraSansExtraCondensed-Regular", verified against this engine
+    build's own Modules/Native/GUI/Fonts/NativeLanguages.xml, where it is BOTH the game's overall
+    DefaultFont for English (the font "Default"-brushed widgets resolve to when no Font is set) and the
+    id="Русский" entry's own DefaultFont/Galahad-mapping target. Same ink/size/alignment as their Galahad
+    twin above; only the font differs. LetterViewModel picks between a brush and its .Plain sibling via
+    LetterFontPolicy, see Letters/LetterFontResolver.cs.
+  -->
+
+  <Brush Name="CR.Letter.Body.Plain" Font="FiraSansExtraCondensed-Regular" TextHorizontalAlignment="Left" TextVerticalAlignment="Top">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontColor="#2A1A0EFF" FontSize="23"
+             TextGlowRadius="0" TextBlur="0" TextShadowOffset="0"
+             TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+    </Styles>
+  </Brush>
+
+  <Brush Name="CR.Letter.Heading.Plain" Font="FiraSansExtraCondensed-Regular" TextHorizontalAlignment="Center">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontColor="#5A3C1CFF" FontSize="22"
+             TextGlowRadius="0" TextBlur="0" TextShadowOffset="0"
+             TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+    </Styles>
+  </Brush>
+
+  <Brush Name="CR.Letter.Input.Plain" Font="FiraSansExtraCondensed-Regular" TextHorizontalAlignment="Left" TextVerticalAlignment="Center">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontColor="#2A1A0EFF" FontSize="22"
+             TextGlowRadius="0" TextBlur="0" TextShadowOffset="0"
+             TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+    </Styles>
+  </Brush>
+
 </Brushes>

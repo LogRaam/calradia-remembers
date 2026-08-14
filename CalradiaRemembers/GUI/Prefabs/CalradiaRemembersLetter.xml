@@ -72,7 +72,7 @@
                     MarginTop="234"
                     MarginLeft="34"
                     MarginRight="34"
-                    Brush="CR.Letter.Heading"
+                    Brush="@HeadingBrush"
                     Brush.FontSize="19"
                     Text="@SenderHeading"
                     IsDisabled="true" />
@@ -127,7 +127,7 @@
                                         WidthSizePolicy="StretchToParent"
                                         HeightSizePolicy="CoverChildren"
                                         HorizontalAlignment="Left"
-                                        Brush="CR.Letter.Body"
+                                        Brush="@BodyBrush"
                                         Brush.FontSize="21"
                                         Text="@ReceivedBody"
                                         IsDisabled="true" />
@@ -155,7 +155,7 @@
                     VerticalAlignment="Bottom"
                     MarginBottom="166"
                     IsVisible="@HasCourierNote"
-                    Brush="CR.Letter.Heading"
+                    Brush="@HeadingBrush"
                     Brush.FontSize="15"
                     Text="@CourierNote"
                     IsDisabled="true" />
@@ -190,7 +190,7 @@
                                 MarginRight="26"
                                 MarginTop="8"
                                 MarginBottom="8"
-                                Brush="CR.Letter.Input"
+                                Brush="@InputBrush"
                                 MaxLength="8000"
                                 Text="@InputText" />
           </Children>

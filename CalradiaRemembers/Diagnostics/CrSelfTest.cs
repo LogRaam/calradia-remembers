@@ -253,7 +253,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_captive_continue", Severity.Light, "LLM: a captive scene OPENER + several Continue beats -> assert each beat advances, is described, and never repeats (the reported Continue-quality faults)", TestChatCaptiveContinue, true, 4),
          new SelfTest("chat_companion_continue", Severity.Light, "LLM: a COMPANION-VICTIM scene OPENER + Continue beats -> assert the victim is voiced (own lines), correctly gendered, and beats don't repeat", TestChatCompanionContinue, true, 4),
          new SelfTest("chat_captive_variety", Severity.Light, "LLM (T6): two scenes with the SAME captor + one with a DIFFERENT captor (fresh writing lens each) -> score cross-scene phrase reuse; logs the ratio + worst offenders, rejects only a gross echo regression", TestChatCaptiveVariety, true, 9),
-         new SelfTest("conv_summary_queue", Severity.Light, "LLM: seed a base 'Spoke with X.' event + a job whose transcript states a PLAN, run the queue worker -> assert the event is ENRICHED by value match (a promised plan reaches durable memory, not lost)", TestConvSummaryQueueJob, true, 1)
+         new SelfTest("conv_summary_queue", Severity.Light, "LLM: seed a base 'Spoke with X.' event + a job whose transcript states a PLAN, run the queue worker -> assert the event is ENRICHED by value match (a promised plan reaches durable memory, not lost)", TestConvSummaryQueueJob, true, 1),
+         new SelfTest("letter_font", Severity.Light, "player report: Russian letters rendered Galahad's broken per-glyph fallback (no Cyrillic glyphs). Mechanical: LetterFontPolicy prefers the plain font for the game's own Russian language id and keeps the decorative Galahad look for English; then forces LetterViewModel's language seam (LetterFontResolver.LanguageIdProvider, no real language switch) and asserts the VM's BodyBrush/HeadingBrush/InputBrush bindings actually pick the plain sibling brushes for Russian and the Galahad ones for English, proving the wiring end to end and not just the pure policy. Restores the seam", TestLetterFont)
       };
 
       /// <summary>The configured budget for the running test, in seconds, for the "timed out after Ns (budget Ns)" message.</summary>
@@ -6850,6 +6851,51 @@ namespace CalradiaRemembers.Diagnostics
          // Only assertable when a scene happens to be loaded; on the bare map there is no mission to carry a view.
          if (missionRunning) t.Expect("aRunningMissionCarriesItsEscapeView", escapeViewPresent, true);
          else t.Note("no mission running during the test, so the mission-side view could not be inspected live: open the chat inside a settlement and click Options to confirm by eye");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Player report: the letter view's decorative Galahad font has no proper Cyrillic glyphs, so a Russian
+      ///   game language rendered it through a broken per-glyph fallback (miscentered, unreadable). Proves both
+      ///   halves: the pure <see cref="LetterFontPolicy" /> decision, and the actual wiring into
+      ///   <see cref="LetterViewModel" />'s BodyBrush/HeadingBrush/InputBrush bindings via
+      ///   <see cref="LetterFontResolver.LanguageIdProvider" /> forced to the Russian id (no real game-language
+      ///   switch, so this never disturbs a live campaign). Restores the seam in a finally.
+      /// </summary>
+      private static string TestLetterFont(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("letter_font");
+
+         // STAKE: this policy's whole purpose. "Русский" is the id TaleWorlds.Localization.MBTextManager
+         // .ActiveTextLanguage actually returns for Russian (verified against this engine build's own
+         // Native/ModuleData/Languages/RU/language_data.xml, id="Русский").
+         t.Expect("policyPrefersPlainFontForRussian", LetterFontPolicy.PreferPlainFont("Русский"), true);
+
+         // STAKE: the decorative parchment look (Galahad) must survive for the game's default/dev language.
+         t.Expect("policyKeepsDecorativeFontForEnglish", LetterFontPolicy.PreferPlainFont("English"), false);
+
+         Func<string> priorProvider = LetterFontResolver.LanguageIdProvider;
+         try
+         {
+            var vm = new LetterViewModel();
+
+            // STAKE: the pure policy alone does not prove the VM actually reads it: a wiring slip (wrong brush
+            // name, a binding never refreshed) would leave the player's letters broken even with a correct policy.
+            LetterFontResolver.LanguageIdProvider = () => "Русский";
+            t.Expect("vmBodyBrushIsPlainForRussian", vm.BodyBrush, "CR.Letter.Body.Plain");
+            t.Expect("vmHeadingBrushIsPlainForRussian", vm.HeadingBrush, "CR.Letter.Heading.Plain");
+            t.Expect("vmInputBrushIsPlainForRussian", vm.InputBrush, "CR.Letter.Input.Plain");
+
+            LetterFontResolver.LanguageIdProvider = () => "English";
+            t.Expect("vmBodyBrushStaysDecorativeForEnglish", vm.BodyBrush, "CR.Letter.Body");
+            t.Expect("vmHeadingBrushStaysDecorativeForEnglish", vm.HeadingBrush, "CR.Letter.Heading");
+            t.Expect("vmInputBrushStaysDecorativeForEnglish", vm.InputBrush, "CR.Letter.Input");
+         }
+         finally
+         {
+            LetterFontResolver.LanguageIdProvider = priorProvider;
+         }
 
          return t.Line();
       }

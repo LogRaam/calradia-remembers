@@ -35,6 +35,10 @@ namespace CalradiaRemembers.Letters
       [DataSourceProperty]
       public string CloseButtonText => "Close";
 
+      /// <summary>The heading brush name (window title and the empty-state line), swapped to its plain Cyrillic-safe sibling for a Cyrillic game language, same rule as the compose/read letter view.</summary>
+      [DataSourceProperty]
+      public string HeadingBrush => LetterFontResolver.Resolve("CR.Letter.Heading", "CR.Letter.Heading.Plain");
+
       [DataSourceProperty]
       public MBBindingList<LetterArchiveEntryViewModel> Entries
       {
@@ -165,5 +169,9 @@ namespace CalradiaRemembers.Letters
       /// <summary>A letter (or reply) the player sent to the NPC.</summary>
       [DataSourceProperty]
       public bool IsOutgoing => !_isIncoming;
+
+      /// <summary>The body brush name for this thread entry, swapped to its plain Cyrillic-safe sibling for a Cyrillic game language so archived Russian letters stay legible (Galahad has no proper Cyrillic glyphs).</summary>
+      [DataSourceProperty]
+      public string BodyBrush => LetterFontResolver.Resolve("CR.Letter.Body", "CR.Letter.Body.Plain");
    }
 }

@@ -71,6 +71,18 @@ namespace CalradiaRemembers.Letters
       [DataSourceProperty]
       public bool HasCourierNote => !string.IsNullOrEmpty(_courierNote);
 
+      /// <summary>The letter-body brush name: CR.Letter.Body, or its plain Cyrillic-safe sibling for a Cyrillic game language.</summary>
+      [DataSourceProperty]
+      public string BodyBrush => LetterFontResolver.Resolve("CR.Letter.Body", "CR.Letter.Body.Plain");
+
+      /// <summary>The small "From X" heading brush name (also used by the courier-note line), same Galahad/plain choice as <see cref="BodyBrush" />.</summary>
+      [DataSourceProperty]
+      public string HeadingBrush => LetterFontResolver.Resolve("CR.Letter.Heading", "CR.Letter.Heading.Plain");
+
+      /// <summary>The compose/reply writing-field brush name, same Galahad/plain choice as <see cref="BodyBrush" />.</summary>
+      [DataSourceProperty]
+      public string InputBrush => LetterFontResolver.Resolve("CR.Letter.Input", "CR.Letter.Input.Plain");
+
       /// <summary>True while the correspondent portrait still holds a rendered tableau (a GPU render-target).</summary>
       public bool HasLivePortrait => _showPortrait && !string.IsNullOrEmpty(_portraitId);
 
@@ -366,6 +378,9 @@ namespace CalradiaRemembers.Letters
          OnPropertyChanged(nameof(ShowAcknowledge));
          OnPropertyChanged(nameof(ShowReplyButton));
          OnPropertyChanged(nameof(HasCourierNote));
+         OnPropertyChanged(nameof(BodyBrush));
+         OnPropertyChanged(nameof(HeadingBrush));
+         OnPropertyChanged(nameof(InputBrush));
          OnPropertyChanged(nameof(CloseButtonText));
          OnPropertyChanged(nameof(PanelHeight));
          OnPropertyChanged(nameof(ShowPortrait));
