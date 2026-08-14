@@ -3830,9 +3830,12 @@ namespace CalradiaRemembers.GameState
       /// <summary>
       ///   True when this hero is a prisoner genuinely held by the player right now: either in the player's own
       ///   party, or in a settlement the player's clan owns. Mirrors CourtActionResolver's held-by-clan custody
-      ///   test so recruit_prisoner honours the same "held by the player" fact the rest of the mod uses.
+      ///   test so recruit_prisoner honours the same "held by the player" fact the rest of the mod uses. Public
+      ///   so the teaching gate (<see cref="Mapping.EncounterContextBuilder" />) reads the SAME custody fact this
+      ///   executor re-checks, closing the settlement-held-prisoner gap where the offer was taught on the
+      ///   party-only NpcIsCaptive standing but executed on this broader test.
       /// </summary>
-      private static bool IsHeldByPlayer(Hero prisoner)
+      public static bool IsHeldByPlayer(Hero prisoner)
       {
          if (prisoner?.IsPrisoner != true) return false;
 

@@ -268,8 +268,12 @@ namespace CalradiaRemembers.Mapping
          // and CaptiveLordWithheldFromDefection below are derived from THIS SAME verdict, computed once, so the
          // two can never both be true. A held captive lord who is not (yet) eligible (regard too low, or their
          // own clan's leader) must still never be taught to CLAIM acceptance.
-         bool canRecruitPrisoner = ResolveCanRecruitPrisoner(hero, profile, playerStatus);
-         bool captiveLordWithheldFromDefection = playerStatus == PlayerStatusVsNpc.NpcIsCaptive
+         // Custody is the executor's OWN broad test (party OR a player-clan settlement), not the party-only
+         // NpcIsCaptive standing: a lord held in a player-clan dungeon was accepted by the executor yet never
+         // taught, so the offer (and this negative) were silently withheld for him (2026-08-14 settlement gap).
+         bool playerHoldsPrisoner = BannerlordGameStateBridge.IsHeldByPlayer(hero);
+         bool canRecruitPrisoner = ResolveCanRecruitPrisoner(hero, profile, playerHoldsPrisoner);
+         bool captiveLordWithheldFromDefection = playerHoldsPrisoner
             && hero != null && hero.IsLord
             && !canRecruitPrisoner;
 
@@ -1565,19 +1569,21 @@ namespace CalradiaRemembers.Mapping
       ///   their own clan's leader, and the player's personal regard has reached the strong floor needed to
       ///   persuade a captured enemy to switch sides. The teaching gate half of the shared
       ///   <see cref="PrisonerRecruitmentPolicy" /> decision the bridge re-runs before executing
-      ///   (<see cref="GameState.BannerlordGameStateBridge.ExecuteRecruitPrisoner" />). Held-by-player is read
-      ///   from <paramref name="playerStatus" /> (<see cref="PlayerStatusVsNpc.NpcIsCaptive" />, the bridge's
-      ///   real-custody verdict), the same custody fact <c>execute_prisoner</c> is taught on, so the offer only
-      ///   ever appears in a conversation with a prisoner the player genuinely holds. Regard is the mod's own
-      ///   personal ledger, never the possibly-unsynced clan relation. This result is also the source the
-      ///   caller derives <c>CaptiveLordWithheldFromDefection</c> from (the "cannot yet defect" negative
-      ///   teaching, 2026-08-14): see the shared computation right above the <c>Build</c> initializer.
+      ///   (<see cref="GameState.BannerlordGameStateBridge.ExecuteRecruitPrisoner" />). Held-by-player is the
+      ///   caller-supplied <paramref name="playerHoldsPrisoner" />, the executor's OWN broad custody test
+      ///   (<see cref="GameState.BannerlordGameStateBridge.IsHeldByPlayer" />: the player's party OR a
+      ///   player-clan settlement), NOT the party-only <see cref="PlayerStatusVsNpc.NpcIsCaptive" /> standing:
+      ///   before this the offer was withheld for a lord held in a player-clan dungeon even though the executor
+      ///   would have honoured him. Regard is the mod's own personal ledger, never the possibly-unsynced clan
+      ///   relation. This result is also the source the caller derives <c>CaptiveLordWithheldFromDefection</c>
+      ///   from (the "cannot yet defect" negative teaching, 2026-08-14): see the shared computation right above
+      ///   the <c>Build</c> initializer.
       /// </summary>
-      private static bool ResolveCanRecruitPrisoner(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus)
+      private static bool ResolveCanRecruitPrisoner(Hero hero, NpcProfile profile, bool playerHoldsPrisoner)
       {
          try
          {
-            if (hero == null || playerStatus != PlayerStatusVsNpc.NpcIsCaptive) return false;
+            if (hero == null || !playerHoldsPrisoner) return false;
 
             bool notLeader = hero.Clan?.Leader != hero;
 
