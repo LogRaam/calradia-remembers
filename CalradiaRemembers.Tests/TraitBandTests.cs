@@ -2,10 +2,10 @@
 // Pins how a Bannerlord trait level (the small signed integer hero.GetTraitLevel returns) becomes the plain
 // band word "low"/"moderate"/"high".
 //
-// WHY IT MATTERS: per TraitBand's own header, this word is what the prose/extract bench (cr.prose_extract_test)
-// writes into the extractor's context digest to describe the seeded lord ("Honour high, Mercy low"), so the
-// extractor can calibrate a change_relation delta to the character. If the sign-to-word mapping were wrong, the
-// digest would misrepresent the very disposition the bench is trying to measure the extractor against, and the
+// WHY IT MATTERS: per TraitBand's own header, this word is what the prose + interpreter bench (cr.prose_interpret_test)
+// writes into the action interpreter's context digest to describe the seeded lord ("Honour high, Mercy low"), so the
+// interpreter can calibrate a change_relation delta to the character. If the sign-to-word mapping were wrong, the
+// digest would misrepresent the very disposition the bench is trying to measure the interpreter against, and the
 // comparison between prose models would rest on a lie about who the NPC is.
 
 #region

@@ -526,52 +526,52 @@ namespace CalradiaRemembers.Chat
       };
 
       /// <summary>
-      ///   PROSE + EXTRACT composition: the prose reply is already on screen; this runs the MCM-configured
-      ///   EXTRACTOR over that prose ONE shot and returns a <see cref="ParsedResponse" /> that keeps every prose
-      ///   field but REPLACES the machine tags (<see cref="ParsedResponse.Actions" /> and
-      ///   <see cref="ParsedResponse.NewEventData" />) with what the extractor read, for the caller to feed into
+      ///   PROSE + INTERPRETER composition: the prose reply is already on screen; this runs the MCM-configured
+      ///   ACTION INTERPRETER over that prose ONE shot and returns a <see cref="ParsedResponse" /> that keeps every
+      ///   prose field but REPLACES the machine tags (<see cref="ParsedResponse.Actions" /> and
+      ///   <see cref="ParsedResponse.NewEventData" />) with what the interpreter read, for the caller to feed into
       ///   the SAME consumption pipeline. On ANY failure (empty prose, prompt build, call, or parse) it returns
       ///   the prose with NO tags: the prose already showed, so a missed tag is applied as nothing rather than
       ///   disturbing the scene, and v1 never falls back to the prose model's own tags (the two modes stay cleanly
       ///   separated). Resumes on the main thread before returning, so the caller's game-state work is safe.
       /// </summary>
-      private async Task<ParsedResponse> ComposeByExtractionAsync(
+      private async Task<ParsedResponse> ComposeByInterpretationAsync(
          ParsedResponse proseResponse, EncounterContext context, NpcProfile profile,
          NpcMemoryCampaignBehavior behavior)
       {
          // TIMING: Asynchronous (show the reply, apply the tags off the turn) is NOT yet wired. Applying the
          // tags back after control returned would mean lifting the inline consumption block out of this
          // load-bearing method, a separate increment. Until then Asynchronous FALLS THROUGH to Synchronous: the
-         // player still waits the one short extract call, and no half-working async can corrupt state.
-         // TODO(prose-extract async): run the extractor on a background Task after control returns and apply only
-         // the safe outcomes (memory/regard), skipping flow-control (end_conversation) if the conversation moved on.
-         if (ModSettings.ExtractionTiming == ExtractionTiming.Asynchronous)
-            ModLog.Info("[PROSE-EXTRACT] Asynchronous timing selected; running synchronously for now (async apply-back is a later increment).");
+         // player still waits the one short interpreter call, and no half-working async can corrupt state.
+         // TODO(prose-interpret async): run the interpreter on a background Task after control returns and apply
+         // only the safe outcomes (memory/regard), skipping flow-control (end_conversation) if the conversation moved on.
+         if (ModSettings.ActionInterpreterTiming == ActionInterpreterTiming.Asynchronous)
+            ModLog.Info("[PROSE-INTERPRET] Asynchronous timing selected; running synchronously for now (async apply-back is a later increment).");
 
-         string prose = CombineProseForExtraction(proseResponse.Dialogue, proseResponse.Narration);
+         string prose = CombineProseForInterpretation(proseResponse.Dialogue, proseResponse.Narration);
          if (string.IsNullOrWhiteSpace(prose))
-            return WithExtractedTags(proseResponse, null); // nothing to read -> apply no tags
+            return WithInterpretedTags(proseResponse, null); // nothing to read -> apply no tags
 
          string prompt;
          try
          {
-            string contextFacts = ExtractionContextBuilder.Project(context, profile, ResolveExtractionPlayerLabel());
-            prompt = ExtractionPromptBuilder.Build(prose, contextFacts);
+            string contextFacts = ActionInterpreterContextBuilder.Project(context, profile, ResolveInterpreterPlayerLabel());
+            prompt = ActionInterpreterPromptBuilder.Build(prose, contextFacts);
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[PROSE-EXTRACT] extraction prompt build failed; applying no tags: {ex.GetType().Name}: {ex.Message}");
+            ModLog.Error($"[PROSE-INTERPRET] interpreter prompt build failed; applying no tags: {ex.GetType().Name}: {ex.Message}");
 
-            return WithExtractedTags(proseResponse, null);
+            return WithInterpretedTags(proseResponse, null);
          }
 
          var request = new LlmRequest {
             SystemPrompt = prompt,
             Messages = new[] {new LlmMessage(MessageRole.User, "Output the tags now.")},
             Parameters = new LlmParameters {MaxTokens = 400, Creativity = 0.2f},
-            // Blank ExtractorModel => null override => the scene's normally-resolved model does the extraction
-            // (Part A: null/blank ModelOverride is byte-for-byte the pre-feature model resolution).
-            ModelOverride = string.IsNullOrWhiteSpace(ModSettings.ExtractorModel) ? null : ModSettings.ExtractorModel
+            // Blank ActionInterpreterModel => null override => the scene's normally-resolved model does the
+            // interpretation (Part A: null/blank ModelOverride is byte-for-byte the pre-feature model resolution).
+            ModelOverride = string.IsNullOrWhiteSpace(ModSettings.ActionInterpreterModel) ? null : ModSettings.ActionInterpreterModel
          };
 
          string content = null;
@@ -597,48 +597,48 @@ namespace CalradiaRemembers.Chat
 
          if (error != null || string.IsNullOrWhiteSpace(content))
          {
-            ModLog.Error($"[PROSE-EXTRACT] extract call produced no tags; applying none: {error ?? "empty reply"}");
+            ModLog.Error($"[PROSE-INTERPRET] interpreter call produced no tags; applying none: {error ?? "empty reply"}");
 
-            return WithExtractedTags(proseResponse, null);
+            return WithInterpretedTags(proseResponse, null);
          }
 
-         ParsedResponse extracted;
+         ParsedResponse interpreted;
          try
          {
-            extracted = new SectionResponseParser().Parse(content);
+            interpreted = new SectionResponseParser().Parse(content);
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[PROSE-EXTRACT] extractor output could not be parsed; applying no tags: {ex.GetType().Name}: {ex.Message}");
+            ModLog.Error($"[PROSE-INTERPRET] interpreter output could not be parsed; applying no tags: {ex.GetType().Name}: {ex.Message}");
 
-            return WithExtractedTags(proseResponse, null);
+            return WithInterpretedTags(proseResponse, null);
          }
 
-         ModLog.Info($"[PROSE-EXTRACT] extractor supplied {extracted.Actions?.Count ?? 0} action(s)"
-                     + (extracted.NewEventData != null ? $" + 1 event ({extracted.NewEventData.Type})" : "")
+         ModLog.Info($"[PROSE-INTERPRET] interpreter supplied {interpreted.Actions?.Count ?? 0} action(s)"
+                     + (interpreted.NewEventData != null ? $" + 1 event ({interpreted.NewEventData.Type})" : "")
                      + $" (model: {request.ModelOverride ?? behavior.LlmServices.ModelId ?? "resolved"}).");
 
-         return WithExtractedTags(proseResponse, extracted);
+         return WithInterpretedTags(proseResponse, interpreted);
       }
 
       /// <summary>
-      ///   Splices <paramref name="extracted" />'s machine tags (<see cref="ParsedResponse.Actions" /> and
+      ///   Splices <paramref name="interpreted" />'s machine tags (<see cref="ParsedResponse.Actions" /> and
       ///   <see cref="ParsedResponse.NewEventData" />) onto the prose turn, keeping every OTHER field of
       ///   <paramref name="prose" /> (dialogue, narration, stance, discovery, quests, witness reactions) exactly
-      ///   as the prose model wrote it. A null <paramref name="extracted" /> means "apply no tags": Actions empty
+      ///   as the prose model wrote it. A null <paramref name="interpreted" /> means "apply no tags": Actions empty
       ///   and NewEventData null, so the turn runs the prose with no ACTION/EVENT effect. Mirrors the field list
       ///   of <see cref="WithoutEventData" /> (plus Resolutions), so a field ADDED to <see cref="ParsedResponse" />
       ///   must be added here too, or this path would silently drop it.
       /// </summary>
-      private static ParsedResponse WithExtractedTags(ParsedResponse prose, ParsedResponse extracted) => new() {
+      private static ParsedResponse WithInterpretedTags(ParsedResponse prose, ParsedResponse interpreted) => new() {
          Dialogue = prose.Dialogue,
          Narration = prose.Narration,
          NarrationBeforeDialogue = prose.NarrationBeforeDialogue,
          Memory = prose.Memory,
-         NewEventData = extracted?.NewEventData,
+         NewEventData = interpreted?.NewEventData,
          Reputation = prose.Reputation,
          StanceShift = prose.StanceShift,
-         Actions = extracted?.Actions ?? new List<GameAction>(),
+         Actions = interpreted?.Actions ?? new List<GameAction>(),
          Discovery = prose.Discovery,
          QuestGiven = prose.QuestGiven,
          QuestBlockMalformed = prose.QuestBlockMalformed,
@@ -649,11 +649,11 @@ namespace CalradiaRemembers.Chat
       };
 
       /// <summary>
-      ///   Combines the NPC's narration (physical action) then dialogue into one prose block for the extractor to
-      ///   read, exactly as the cr.prose_extract_test bench's CombineProse does, so the live path and the bench
-      ///   feed the extractor identically.
+      ///   Combines the NPC's narration (physical action) then dialogue into one prose block for the interpreter to
+      ///   read, exactly as the cr.prose_interpret_test bench's CombineProse does, so the live path and the bench
+      ///   feed the interpreter identically.
       /// </summary>
-      private static string CombineProseForExtraction(string dialogue, string narration)
+      private static string CombineProseForInterpretation(string dialogue, string narration)
       {
          var sb = new System.Text.StringBuilder();
          if (!string.IsNullOrWhiteSpace(narration)) sb.AppendLine(narration.Trim());
@@ -663,11 +663,11 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   The prompt-safe player label the extractor names the player by, resolved exactly as
+      ///   The prompt-safe player label the interpreter names the player by, resolved exactly as
       ///   <see cref="LlmServices" /> feeds <c>PromptBuilder.PlayerName</c> (the test override when set, else the
-      ///   live hero name), so the extracted memory names the player the same way the prose prompt did.
+      ///   live hero name), so the interpreted memory names the player the same way the prose prompt did.
       /// </summary>
-      private static string ResolveExtractionPlayerLabel()
+      private static string ResolveInterpreterPlayerLabel()
          => string.IsNullOrWhiteSpace(LlmServices.TestPlayerNameOverride)
             ? Hero.MainHero?.Name?.ToString() ?? ""
             : LlmServices.TestPlayerNameOverride;
@@ -1206,20 +1206,20 @@ namespace CalradiaRemembers.Chat
                ModLog.Info($"  [WITNESS] {wn}: \"{wt}\"");
             }
 
-            // ── PROSE + EXTRACT composition (ADDITIVE; the Integrated default is byte-for-byte unchanged) ──
+            // ── PROSE + INTERPRETER composition (ADDITIVE; the Integrated default is byte-for-byte unchanged) ──
             // Integrated mode (the shipped default) skips this block entirely and consumes the prose model's own
-            // [ACTION]/[EVENT] below exactly as before. In ProseExtract mode a separate EXTRACTOR reads the prose
-            // just displayed and SUPPLIES those tags instead; the merged response then flows through the SAME
-            // consumption pipeline below (no duplicated execution code). Confined to an ordinary main-NPC 1:1
+            // [ACTION]/[EVENT] below exactly as before. In ProseInterpret mode a separate ACTION INTERPRETER reads
+            // the prose just displayed and SUPPLIES those tags instead; the merged response then flows through the
+            // SAME consumption pipeline below (no duplicated execution code). Confined to an ordinary main-NPC 1:1
             // turn on a real player message: captive/captor scenes, councils, routed-witness turns and synthetic
             // openers deliberately stay Integrated for now (a later increment), so those guarded paths are untouched.
-            if (ModSettings.ChatCompositionMode == ChatCompositionMode.ProseExtract
+            if (ModSettings.ChatCompositionMode == ChatCompositionMode.ProseInterpret
                 && speaker.IsMain && !suppressPlayerLine
                 && !IsCaptiveEncounter && !_captorScene && _councilScope == null)
             {
-               response = await ComposeByExtractionAsync(response, context, profile, behavior);
+               response = await ComposeByInterpretationAsync(response, context, profile, behavior);
 
-               // The extract call added an await: the chat may have closed or been replaced meanwhile, so run
+               // The interpreter call added an await: the chat may have closed or been replaced meanwhile, so run
                // the same stale-VM guard the main call uses before any game state is touched below.
                if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
             }

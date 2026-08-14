@@ -4,7 +4,7 @@ namespace CalradiaRemembers.Logic
 {
    /// <summary>
    ///   Maps a Bannerlord trait level (the small signed integer <c>hero.GetTraitLevel</c> returns, roughly
-   ///   -2..+2) to the plain band word ("low"/"moderate"/"high") the extractor's context digest uses to describe
+   ///   -2..+2) to the plain band word ("low"/"moderate"/"high") the action interpreter's context digest uses to describe
    ///   a character's disposition (for example "Honour high, Mercy low, Calculating moderate"). Pure so the
    ///   console digest and any test read the same word for the same level.
    /// </summary>

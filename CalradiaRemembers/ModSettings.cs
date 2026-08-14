@@ -288,34 +288,17 @@ namespace CalradiaRemembers
       public static int LlmResponseTimeoutSeconds => CrSettings.Instance?.LlmTimeoutSeconds ?? 120;
 
       /// <summary>
-      ///   The optional NSFW model id: used automatically in explicit scenes and via the in-chat mode button.
-      ///   Blank (the default) means the roleplay model serves everything. Read live from the MCM menu. Kept as
-      ///   the MIGRATION SOURCE for <see cref="ConsensualModel" /> / <see cref="CncModel" /> and the shared
-      ///   explicit effort/pin until those are differentiated.
+      ///   The model id for consensual-intimate scenes (the "NSFW Consensual model" MCM field). Its stored value
+      ///   lives under the legacy <c>CrSettings.NsfwModel</c> persistence identity (see that property's comment), so
+      ///   an existing config that set the old single "NSFW model" is preserved as the consensual model after an
+      ///   upgrade. Read live from the MCM menu. Blank (the default) means the roleplay model serves these scenes.
       /// </summary>
-      public static string NsfwModel => CrSettings.Instance?.NsfwModel ?? "";
+      public static string ConsensualModel => CrSettings.Instance?.NsfwModel?.Trim() ?? "";
 
       /// <summary>
-      ///   The model id for consensual-intimate scenes. Its own MCM field when set; otherwise it MIGRATES from
-      ///   <see cref="NsfwModel" /> so an existing config that only set the old NSFW model keeps serving explicit
-      ///   scenes exactly as before. Blank overall means the roleplay model serves everything.
-      /// </summary>
-      public static string ConsensualModel
-      {
-         get
-         {
-            string v = CrSettings.Instance?.ConsensualModel?.Trim();
-
-            return string.IsNullOrWhiteSpace(v)
-               ? NsfwModel
-               : v;
-         }
-      }
-
-      /// <summary>
-      ///   The model id for CNC / captive scenes. Its own MCM field when set; otherwise it MIGRATES from
-      ///   <see cref="NsfwModel" /> so an existing NSFW-only config is unchanged. Blank overall means the
-      ///   roleplay model serves everything.
+      ///   The model id for CNC / captive scenes. Its own MCM field when set; otherwise it falls back to
+      ///   <see cref="ConsensualModel" /> (and thus to the roleplay model when that too is blank), so a config that
+      ///   set only the consensual (old NSFW) model keeps serving CNC scenes exactly as before.
       /// </summary>
       public static string CncModel
       {
@@ -324,36 +307,35 @@ namespace CalradiaRemembers
             string v = CrSettings.Instance?.CncModel?.Trim();
 
             return string.IsNullOrWhiteSpace(v)
-               ? NsfwModel
+               ? ConsensualModel
                : v;
          }
       }
 
       /// <summary>
-      ///   The optional small/cheap model that pulls structured actions out of the prose in the Prose + Extract
-      ///   composition mode. Blank (the default) means the scene's own model does the extraction. Read live from
-      ///   the MCM menu. Not yet consumed (the prose+extract orchestration is a later increment).
+      ///   The optional small/cheap model that reads structured actions out of the prose in the Prose + Interpreter
+      ///   composition mode. Blank (the default) means the scene's own model does the interpretation. Read live from
+      ///   the MCM menu.
       /// </summary>
-      public static string ExtractorModel => CrSettings.Instance?.ExtractorModel?.Trim() ?? "";
+      public static string ActionInterpreterModel => CrSettings.Instance?.ActionInterpreterModel?.Trim() ?? "";
 
       /// <summary>
       ///   How a chat reply is composed: <see cref="Logic.ChatCompositionMode.Integrated" /> (one call, today's
-      ///   behaviour) or <see cref="Logic.ChatCompositionMode.ProseExtract" /> (prose then a separate extraction
-      ///   call). Read live from the MCM menu; defaults to Integrated on anything unexpected. Not yet consumed
-      ///   (the prose+extract orchestration is a later increment).
+      ///   behaviour) or <see cref="Logic.ChatCompositionMode.ProseInterpret" /> (prose then a separate action-
+      ///   interpreter call). Read live from the MCM menu; defaults to Integrated on anything unexpected.
       /// </summary>
       public static ChatCompositionMode ChatCompositionMode =>
          ChatCompositionModePolicy.Parse(CrSettings.Instance?.ChatCompositionModeSetting?.SelectedValue);
 
       /// <summary>
-      ///   In <see cref="Logic.ChatCompositionMode.ProseExtract" /> mode, WHEN the extractor's tags are applied:
-      ///   <see cref="Logic.ExtractionTiming.Synchronous" /> (in-turn, recommended) or
-      ///   <see cref="Logic.ExtractionTiming.Asynchronous" /> (reply shows first, tags apply a moment later).
+      ///   In <see cref="Logic.ChatCompositionMode.ProseInterpret" /> mode, WHEN the action interpreter's tags are
+      ///   applied: <see cref="Logic.ActionInterpreterTiming.Synchronous" /> (in-turn, recommended) or
+      ///   <see cref="Logic.ActionInterpreterTiming.Asynchronous" /> (reply shows first, tags apply a moment later).
       ///   Read live from the MCM menu; defaults to Synchronous on anything unexpected. No effect in Integrated
       ///   mode (there is only one call to time).
       /// </summary>
-      public static ExtractionTiming ExtractionTiming =>
-         ExtractionTimingPolicy.Parse(CrSettings.Instance?.ExtractionTimingSetting?.SelectedValue);
+      public static ActionInterpreterTiming ActionInterpreterTiming =>
+         ActionInterpreterTimingPolicy.Parse(CrSettings.Instance?.ActionInterpreterTimingSetting?.SelectedValue);
 
       /// <summary>
       ///   The reasoning-effort keyword for NSFW mode, read live from the MCM menu. The default

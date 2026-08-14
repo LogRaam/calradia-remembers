@@ -2,8 +2,8 @@
 // Documents how the "Chat Composition" MCM dropdown string maps to the ChatCompositionMode enum. This decides
 // whether a reply is produced in one integrated call (today's behaviour) or the two-call prose+extract path.
 //
-// WHY IT MATTERS: the prose+extract orchestration is not built yet, so anything the parser does NOT firmly
-// recognise as "Prose + Extract" must degrade to Integrated. A stale or hand-edited config (or a future rename)
+// WHY IT MATTERS: the prose + interpreter orchestration is not built yet, so anything the parser does NOT firmly
+// recognise as "Prose + Interpreter" must degrade to Integrated. A stale or hand-edited config (or a future rename)
 // that resolved to the unfinished path would break every conversation. The dropdown itself is built from the
 // same label constants this parser matches, so the two can never drift.
 
@@ -29,24 +29,24 @@ namespace CalradiaRemembers.Tests
         }
 
         // The only value that may unlock the two-call path is the exact opt-in label; if this stops matching, a
-        // player who chose Prose + Extract would silently keep the integrated path.
+        // player who chose Prose + Interpreter would silently keep the integrated path.
         [Test]
-        public void GIVEN_the_prose_extract_label_WHEN_parsing_THEN_prose_extract_is_returned()
+        public void GIVEN_the_prose_interpret_label_WHEN_parsing_THEN_prose_interpret_is_returned()
         {
-            ChatCompositionModePolicy.Parse(ChatCompositionModePolicy.ProseExtractLabel)
-                .Should().Be(ChatCompositionMode.ProseExtract);
+            ChatCompositionModePolicy.Parse(ChatCompositionModePolicy.ProseInterpretLabel)
+                .Should().Be(ChatCompositionMode.ProseInterpret);
         }
 
         // An MCM value can arrive with stray casing/spacing across MCM versions; the opt-in must survive that
         // rather than silently reverting to Integrated behind the player's back.
         [Test]
-        public void GIVEN_a_padded_or_recased_prose_extract_value_WHEN_parsing_THEN_prose_extract_is_still_returned()
+        public void GIVEN_a_padded_or_recased_prose_interpret_value_WHEN_parsing_THEN_prose_interpret_is_still_returned()
         {
-            ChatCompositionModePolicy.Parse("  prose + extract  ").Should().Be(ChatCompositionMode.ProseExtract);
+            ChatCompositionModePolicy.Parse("  prose + interpreter  ").Should().Be(ChatCompositionMode.ProseInterpret);
         }
 
-        // The prose+extract orchestration does not exist yet, so a blank, null, or unrecognised value must NEVER
-        // land a player on the unfinished path; it degrades to Integrated (today's behaviour).
+        // The prose + interpreter orchestration does not exist yet, so a blank, null, or unrecognised value must
+        // NEVER land a player on the unfinished path; it degrades to Integrated (today's behaviour).
         [Test]
         public void GIVEN_a_blank_null_or_unknown_value_WHEN_parsing_THEN_it_degrades_to_integrated()
         {

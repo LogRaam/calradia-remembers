@@ -24,17 +24,17 @@ namespace CalradiaRemembers
    public static partial class ModCheats
    {
       /// <summary>
-      ///   cr.extract_test
-      ///   PROSE+EXTRACT spike: runs three CANNED roleplay-prose samples (each with its EXPECTED tags stated
-      ///   inline) through whatever model is configured in MCM, used here as an EXTRACTOR. For each sample it
-      ///   builds an extraction prompt via <see cref="ExtractionPromptBuilder" />, calls the model one-shot,
-      ///   parses the raw output with the SAME <see cref="SectionResponseParser" /> the live chat uses, and writes
-      ///   expected-vs-actual to CalradiaRemembers_extract_test.log so Gabriel can judge extraction fidelity by
-      ///   reading. This changes NOTHING in the live chat pipeline: it is a real-LLM bench, deliberately NOT part
-      ///   of cr.testall. Set an extractor model (e.g. Grok) in MCM, run this, then read the log.
+      ///   cr.interpret_test
+      ///   PROSE + INTERPRETER spike: runs three CANNED roleplay-prose samples (each with its EXPECTED tags stated
+      ///   inline) through whatever model is configured in MCM, used here as an ACTION INTERPRETER. For each sample
+      ///   it builds an interpreter prompt via <see cref="ActionInterpreterPromptBuilder" />, calls the model
+      ///   one-shot, parses the raw output with the SAME <see cref="SectionResponseParser" /> the live chat uses, and
+      ///   writes expected-vs-actual to CalradiaRemembers_interpret_test.log so Gabriel can judge interpretation
+      ///   fidelity by reading. This changes NOTHING in the live chat pipeline: it is a real-LLM bench, deliberately
+      ///   NOT part of cr.testall. Set an interpreter model (e.g. Grok) in MCM, run this, then read the log.
       /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("extract_test", "cr")]
-      public static string RunExtractTest(List<string> args)
+      [CommandLineFunctionality.CommandLineArgumentFunction("interpret_test", "cr")]
+      public static string RunInterpretTest(List<string> args)
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
             return error;
@@ -42,27 +42,27 @@ namespace CalradiaRemembers
          if (behavior.LlmServices is not {IsAvailable: true})
             return "LLM services not available. Set your OpenRouter API key and model in MCM first.";
 
-         return ExtractTestRunner.Run(behavior);
+         return InterpretTestRunner.Run(behavior);
       }
    }
 
    /// <summary>
-   ///   The runner behind cr.extract_test. Holds the canned prose samples and drives each one through the
-   ///   extractor: build prompt, one-shot LLM call, parse, report. Kept out of the thin console-command method so
+   ///   The runner behind cr.interpret_test. Holds the canned prose samples and drives each one through the
+   ///   interpreter: build prompt, one-shot LLM call, parse, report. Kept out of the thin console-command method so
    ///   the sample data and the report formatting read as one piece.
    /// </summary>
-   internal static class ExtractTestRunner
+   internal static class InterpretTestRunner
    {
       /// <summary>The bench's own log file, written next to the main CalradiaRemembers.log.</summary>
       private static readonly string ReportPath = Path.Combine(
          Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
          "Mount and Blade II Bannerlord",
          "Logs",
-         "CalradiaRemembers_extract_test.log");
+         "CalradiaRemembers_interpret_test.log");
 
-      // The three canned samples, drawn from real bench transcripts. Each states the tags a faithful extractor
+      // The three canned samples, drawn from real bench transcripts. Each states the tags a faithful interpreter
       // SHOULD emit, so the log shows expected-vs-actual side by side for eyeballing. contextFacts carries a
-      // short TRAIT line as well as the regard, so we can watch whether the extractor calibrates the delta to the
+      // short TRAIT line as well as the regard, so we can watch whether the interpreter calibrates the delta to the
       // character (a proud, low-mercy lord should earn the full -15 for a kin-insult; a forgiving one, less).
       private static readonly Sample[] Samples = {
          // SAMPLE 1 (grave insult, NPC furious and ends it):
@@ -106,7 +106,7 @@ namespace CalradiaRemembers
       };
 
       /// <summary>
-      ///   Runs every sample through the configured model as an extractor and writes the full report. Returns a
+      ///   Runs every sample through the configured model as an interpreter and writes the full report. Returns a
       ///   one-line pointer to the log file.
       /// </summary>
       public static string Run(NpcMemoryCampaignBehavior behavior)
@@ -117,8 +117,8 @@ namespace CalradiaRemembers
 
          report.AppendLine();
          report.AppendLine("========================================================================");
-         report.AppendLine($"  cr.extract_test run - {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-         report.AppendLine($"  EXTRACTOR MODEL (from MCM): {model}");
+         report.AppendLine($"  cr.interpret_test run - {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+         report.AppendLine($"  INTERPRETER MODEL (from MCM): {model}");
          report.AppendLine("  Reads pre-written prose, emits [ACTION]/[EVENT] tags. Live chat pipeline UNCHANGED.");
          report.AppendLine("========================================================================");
 
@@ -128,9 +128,9 @@ namespace CalradiaRemembers
          string text = report.ToString();
          WriteReportFile(text);
          foreach (string line in text.Split('\n'))
-            ModLog.Info($"[extract_test] {line.TrimEnd()}");
+            ModLog.Info($"[interpret_test] {line.TrimEnd()}");
 
-         return $"cr.extract_test done (extractor model {model}). Expected-vs-actual: {ReportPath}";
+         return $"cr.interpret_test done (interpreter model {model}). Expected-vs-actual: {ReportPath}";
       }
 
       #region private
@@ -144,8 +144,8 @@ namespace CalradiaRemembers
          sb.AppendLine($"  PROSE: {sample.Prose}");
          sb.AppendLine($"  EXPECTED: {sample.Expected}");
 
-         string prompt = ExtractionPromptBuilder.Build(sample.Prose, sample.ContextFacts);
-         string raw = CallExtractor(behavior, prompt, out string callError);
+         string prompt = ActionInterpreterPromptBuilder.Build(sample.Prose, sample.ContextFacts);
+         string raw = CallInterpreter(behavior, prompt, out string callError);
 
          if (callError != null)
          {
@@ -168,19 +168,19 @@ namespace CalradiaRemembers
          else
             sb.AppendLine("    [EVENT] none");
 
-         sb.AppendLine("  RAW EXTRACTOR OUTPUT:");
+         sb.AppendLine("  RAW INTERPRETER OUTPUT:");
          sb.AppendLine(Indent(string.IsNullOrWhiteSpace(raw) ? "(empty)" : raw.Trim()));
 
          return sb.ToString();
       }
 
       /// <summary>
-      ///   Calls the configured model one-shot as the extractor, reusing the same seam the mod's summarizers use
+      ///   Calls the configured model one-shot as the interpreter, reusing the same seam the mod's summarizers use
       ///   (<see cref="LlmServices.LlmClient" />.CompleteAsync), driven on a background task with a
       ///   CancellationTokenSource budget and error handling mirroring RoleplayBench.AskTurn. Returns the raw
       ///   content, or null with <paramref name="callError" /> set on any failure/timeout.
       /// </summary>
-      private static string CallExtractor(NpcMemoryCampaignBehavior behavior, string prompt, out string callError)
+      private static string CallInterpreter(NpcMemoryCampaignBehavior behavior, string prompt, out string callError)
       {
          callError = null;
 
@@ -211,16 +211,16 @@ namespace CalradiaRemembers
          }
          catch (OperationCanceledException)
          {
-            callError = "extractor timed out";
+            callError = "interpreter timed out";
          }
          catch (AggregateException ex)
          {
             Exception inner = ex.InnerException ?? ex;
-            callError = $"extractor errored ({inner.GetType().Name}: {inner.Message})";
+            callError = $"interpreter errored ({inner.GetType().Name}: {inner.Message})";
          }
          catch (Exception ex)
          {
-            callError = $"extractor errored ({ex.GetType().Name}: {ex.Message})";
+            callError = $"interpreter errored ({ex.GetType().Name}: {ex.Message})";
          }
 
          return null;
@@ -246,13 +246,13 @@ namespace CalradiaRemembers
          }
          catch (Exception ex)
          {
-            ModLog.Error($"cr.extract_test could not write {ReportPath}: {ex.Message}");
+            ModLog.Error($"cr.interpret_test could not write {ReportPath}: {ex.Message}");
          }
       }
 
       #endregion
 
-      /// <summary>One canned prose sample: a label, the prose, the caller-supplied context facts, and the tags a faithful extractor should emit.</summary>
+      /// <summary>One canned prose sample: a label, the prose, the caller-supplied context facts, and the tags a faithful interpreter should emit.</summary>
       private sealed class Sample
       {
          public Sample(string label, string prose, string contextFacts, string expected)

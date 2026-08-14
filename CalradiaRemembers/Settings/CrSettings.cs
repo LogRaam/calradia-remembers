@@ -20,7 +20,7 @@ namespace CalradiaRemembers.Settings
    ///   Read through the <see cref="ModSettings" /> façade, which falls back to safe
    ///   defaults when MCM has not yet loaded.
    ///   Menu layout (GroupOrder): the shared LLM Provider group first (provider choice,
-   ///   the two model fields, timeout, compact prompt), then one connection section per
+   ///   the model fields, timeout, compact prompt), then one connection section per
    ///   provider (key, endpoint, provider-specific options, Test button), then gameplay
    ///   (Content, Character, Companions), Diagnostics last. Within each group, Order runs
    ///   ascending. The model fields are SHARED across providers: ids are pasted in the
@@ -140,13 +140,13 @@ namespace CalradiaRemembers.Settings
       public override string FormatType => "json2";
       public override string Id => "CalradiaRemembers";
 
-      [SettingPropertyBool("Compact prompt for small models", RequireRestart = false, Order = 4,
+      [SettingPropertyBool("Compact prompt for small models", RequireRestart = false, Order = 8,
          HintText = "Trims the prompt to fit a SMALL, short-context model (4k to 8k). Turn ON if the AI stays silent: " +
                     "the full prompt is overflowing it. Replies grow less richly grounded. Leave OFF for cloud models.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public bool LeanPrompt { get; set; } = false;
 
-      [SettingPropertyBool("Compress old memories", RequireRestart = false, Order = 5,
+      [SettingPropertyBool("Compress old memories", RequireRestart = false, Order = 9,
          HintText = "Lets characters fold old, superseded memories into a short background outline, so a long " +
                     "campaign stops inflating every prompt (the usual cause of slow replies on a local model). " +
                     "First meetings, recent events, and grave moments are never dropped. Turn OFF if another mod " +
@@ -154,15 +154,16 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public bool MemoryCompression { get; set; } = true;
 
-      [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 3,
+      [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 7,
          HintText = "How long to wait for a reply, in seconds (default 120). Raise it for a slow local or reasoning " +
                     "model; lower it to fail fast. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public int LlmTimeoutSeconds { get; set; } = 120;
 
-      [SettingPropertyText("Model (roleplay)", RequireRestart = false, Order = 1,
+      [SettingPropertyText("Roleplay and Prose model", RequireRestart = false, Order = 2,
          HintText = "Model id for ordinary conversations, in the ACTIVE provider's own format (OpenRouter: " +
-                    "x-ai/grok-4.20; NanoGPT: deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). Applies immediately.")]
+                    "x-ai/grok-4.20; NanoGPT: deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). It writes the reply in " +
+                    "Integrated mode and the prose in Prose + Interpreter mode. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string Model { get; set; } = "x-ai/grok-4.20";
 
@@ -172,43 +173,41 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("NanoGPT", GroupOrder = 2)]
       public string NanoGptApiKey { get; set; } = "";
 
-      [SettingPropertyText("NSFW model (optional)", RequireRestart = false, Order = 2,
-         HintText = "Model id used automatically in explicit scenes, and when you flip the in-chat NSFW button. Same " +
-                    "provider as above. Leave empty to always use the roleplay model.")]
+      [SettingPropertyDropdown("Chat Composition", RequireRestart = false, Order = 1,
+         HintText = "Integrated (default): one call writes the reply and its actions together. Prose + Interpreter: " +
+                    "one call writes the prose, a second reads the actions out of it. Leave on Integrated for now.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public Dropdown<string> ChatCompositionModeSetting { get; set; } =
+         new(new[] {ChatCompositionModePolicy.IntegratedLabel, ChatCompositionModePolicy.ProseInterpretLabel}, 0); // default: Integrated
+
+      // LEGACY STORAGE IDENTITY: this property is still named NsfwModel so MCM (which persists a global setting by
+      // its property name) keeps loading the value an existing config saved under the old single "NSFW model" field.
+      // It is now PRESENTED as the consensual slot; ModSettings.ConsensualModel exposes it under the ubiquitous name,
+      // and CncModel falls back to it. Renaming this property would orphan the stored value, so it stays put.
+      [SettingPropertyText("NSFW Consensual model (optional)", RequireRestart = false, Order = 3,
+         HintText = "Model id for consensual intimate scenes (and CNC scenes when the field below is blank). Same " +
+                    "provider as above. Blank = use the roleplay model.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string NsfwModel { get; set; } = "";
 
-      [SettingPropertyText("Consensual model (optional)", RequireRestart = false, Order = 6,
-         HintText = "Model id for consensual intimate scenes. Same provider as above. Blank = use the roleplay " +
-                    "model (or, until you set this, the NSFW model above).")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
-      public string ConsensualModel { get; set; } = "";
-
-      [SettingPropertyText("CNC / captive model (optional)", RequireRestart = false, Order = 7,
+      [SettingPropertyText("NSFW CNC / captive Model (optional)", RequireRestart = false, Order = 4,
          HintText = "Model id for CNC and captive scenes (captor, captive, companion-victim). Same provider as " +
-                    "above. Blank = use the roleplay model (or, until you set this, the NSFW model above).")]
+                    "above. Blank = use the NSFW Consensual model above (or the roleplay model if that is blank too).")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string CncModel { get; set; } = "";
 
-      [SettingPropertyText("Extractor model (optional)", RequireRestart = false, Order = 8,
-         HintText = "Used only in Prose + Extract composition mode: a small, cheap model that pulls the structured " +
+      [SettingPropertyText("Actions Interpreter model (optional)", RequireRestart = false, Order = 5,
+         HintText = "Used only in Prose + Interpreter composition mode: a small, cheap model that reads the structured " +
                     "actions out of the prose. Blank = reuse the scene's model.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
-      public string ExtractorModel { get; set; } = "";
+      public string ActionInterpreterModel { get; set; } = "";
 
-      [SettingPropertyDropdown("Chat Composition", RequireRestart = false, Order = 9,
-         HintText = "Integrated (default): one call writes the reply and its actions together. Prose + Extract: one " +
-                    "call writes the prose, a second pulls the actions out. Leave on Integrated for now.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
-      public Dropdown<string> ChatCompositionModeSetting { get; set; } =
-         new(new[] {ChatCompositionModePolicy.IntegratedLabel, ChatCompositionModePolicy.ProseExtractLabel}, 0); // default: Integrated
-
-      [SettingPropertyDropdown("Extraction Timing", RequireRestart = false, Order = 10,
-         HintText = "Only in Prose + Extract mode. Synchronous: tags apply with the reply (recommended). " +
+      [SettingPropertyDropdown("Actions Interpreter Timing", RequireRestart = false, Order = 6,
+         HintText = "Only in Prose + Interpreter mode. Synchronous: tags apply with the reply (recommended). " +
                     "Asynchronous: the reply shows instantly, tags apply a moment later.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
-      public Dropdown<string> ExtractionTimingSetting { get; set; } =
-         new(new[] {ExtractionTimingPolicy.SynchronousLabel, ExtractionTimingPolicy.AsynchronousLabel}, 0); // default: Synchronous
+      public Dropdown<string> ActionInterpreterTimingSetting { get; set; } =
+         new(new[] {ActionInterpreterTimingPolicy.SynchronousLabel, ActionInterpreterTimingPolicy.AsynchronousLabel}, 0); // default: Synchronous
 
       [SettingPropertyDropdown("Reasoning Effort (NSFW)", RequireRestart = false, Order = 2,
          HintText = "Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less " +
@@ -316,14 +315,14 @@ namespace CalradiaRemembers.Settings
       public bool ReportUnsupportedActions { get; set; } = false;
 
       [SettingPropertyButton("Test Connection", RequireRestart = false, Order = 3,
-         HintText = "Validates your key, then sends a one-token test to the roleplay model and, if set, the NSFW " +
+         HintText = "Validates your key, then sends a one-token test to the roleplay model and, if set, the consensual " +
                     "model, reporting any error. Costs a fraction of a cent.",
          Content = "Test")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public Action TestConnection { get; set; } = ApiKeyTester.Run;
 
       [SettingPropertyButton("Test Endpoint", RequireRestart = false, Order = 3,
-         HintText = "Sends a one-token test to your endpoint with the roleplay model and, if set, the NSFW model. " +
+         HintText = "Sends a one-token test to your endpoint with the roleplay model and, if set, the consensual model. " +
                     "Your server must be running. OpenAI-Compatible only.",
          Content = "Test")]
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]

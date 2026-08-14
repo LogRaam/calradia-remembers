@@ -208,8 +208,8 @@ namespace CalradiaRemembers
 
       /// <summary>
       ///   cr.model [toggle]
-      ///   Reports the active model mode (Roleplay or NSFW), the model id it resolves to, whether an NSFW model
-      ///   is configured in Mod Options, and whether the in-chat mode button would show. Pass "toggle" to flip
+      ///   Reports the active model mode (Roleplay or NSFW), the model id it resolves to, whether an explicit
+      ///   (consensual/CNC) model is configured in Mod Options, and whether the in-chat mode button would show. Pass "toggle" to flip
       ///   the mode (the same override as the button). Reads settings only; no campaign required.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("model", "cr")]
@@ -223,16 +223,14 @@ namespace CalradiaRemembers
                : ModelMode.Roleplay;
 
          bool anyExplicitModel = !string.IsNullOrWhiteSpace(ModSettings.ConsensualModel)
-                                 || !string.IsNullOrWhiteSpace(ModSettings.CncModel)
-                                 || !string.IsNullOrWhiteSpace(ModSettings.NsfwModel);
-         bool nsfwConfigured = !string.IsNullOrWhiteSpace(ModSettings.NsfwModel);
+                                 || !string.IsNullOrWhiteSpace(ModSettings.CncModel);
          bool nsfwPinConfigured = !string.IsNullOrWhiteSpace(ModSettings.OpenRouterNsfwProviderPin);
          bool toggleVisible = ModelModePolicy.ToggleVisible(
             anyExplicitModel, nsfwPinConfigured, ModSettings.AdultContentLevel != AdultContentLevel.Off);
 
-         string nsfwPart = nsfwConfigured
-            ? $"NSFW model configured ('{ModSettings.NsfwModel.Trim()}')"
-            : "NSFW model not configured (the roleplay model serves everything)";
+         string nsfwPart = anyExplicitModel
+            ? $"explicit model configured (consensual '{ModSettings.ConsensualModel}', CNC '{ModSettings.CncModel}')"
+            : "no explicit model configured (the roleplay model serves everything)";
 
          string effort = ModelModePolicy.ResolveReasoningEffort(
             LlmServices.ActiveModelMode, ModSettings.ReasoningEffort, ModSettings.NsfwReasoningEffort);

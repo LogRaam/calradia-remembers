@@ -9,9 +9,9 @@
 // on adult fiction (ModelModePolicy.ResolveReasoningEffort). Get DefaultForScene or ResolveModelId wrong and an
 // explicit scene opens on the roleplay model instead (stock refusals), or an ordinary chat silently burns an
 // explicit model for nothing. A wrong fallback (blank/unconfigured explicit model not caught) sends an empty
-// model id straight to the API. Migration: the consensual and CNC slots start blank and, via the ModSettings
-// facade, fall back to the existing NsfwModel, so a config that only set the old NSFW model behaves exactly as
-// before for both explicit modes.
+// model id straight to the API. Migration: the consensual slot is backed by the legacy NsfwModel storage identity
+// and the CNC slot falls back to it via the ModSettings facade, so a config that only set the old NSFW model
+// behaves exactly as before for both explicit modes.
 
 #region
 

@@ -30,20 +30,20 @@ namespace CalradiaRemembers
    public static partial class ModCheats
    {
       /// <summary>
-      ///   cr.prose_extract_test [proseModelId]
-      ///   Runs the REAL two-call PROSE+EXTRACT loop on the scripted scene-1 lord so Gabriel can compare how
-      ///   faithfully the MCM-configured EXTRACTOR (e.g. Grok) reads tags out of FRESH prose from different PROSE
-      ///   models. Each scripted turn makes two calls: (a) a PROSE call, forced to the argument model id via
+      ///   cr.prose_interpret_test [proseModelId]
+      ///   Runs the REAL two-call PROSE + INTERPRETER loop on the scripted scene-1 lord so Gabriel can compare how
+      ///   faithfully the MCM-configured ACTION INTERPRETER (e.g. Grok) reads tags out of FRESH prose from different
+      ///   PROSE models. Each scripted turn makes two calls: (a) a PROSE call, forced to the argument model id via
       ///   <see cref="LlmServices.TestModelOverride" />, through the same seam the roleplay bench uses; (b) an
-      ///   EXTRACT call, with the override cleared so it resolves the MCM model, using
-      ///   <see cref="ExtractionPromptBuilder" /> + the same one-shot pattern as cr.extract_test. Expected use:
-      ///   set Grok in MCM, run "cr.prose_extract_test deepseek/deepseek-v4-pro" then
-      ///   "cr.prose_extract_test z-ai/glm-5.2", and read the log. This changes NOTHING in the live chat pipeline
+      ///   INTERPRET call, with the override cleared so it resolves the MCM model, using
+      ///   <see cref="ActionInterpreterPromptBuilder" /> + the same one-shot pattern as cr.interpret_test. Expected
+      ///   use: set Grok in MCM, run "cr.prose_interpret_test deepseek/deepseek-v4-pro" then
+      ///   "cr.prose_interpret_test z-ai/glm-5.2", and read the log. This changes NOTHING in the live chat pipeline
       ///   and is deliberately NOT part of cr.testall. The optional argument is the prose model id (default
       ///   "z-ai/glm-5.2").
       /// </summary>
-      [CommandLineFunctionality.CommandLineArgumentFunction("prose_extract_test", "cr")]
-      public static string RunProseExtractTest(List<string> args)
+      [CommandLineFunctionality.CommandLineArgumentFunction("prose_interpret_test", "cr")]
+      public static string RunProseInterpretTest(List<string> args)
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
             return error;
@@ -55,27 +55,27 @@ namespace CalradiaRemembers
             ? args[0].Trim()
             : "z-ai/glm-5.2";
 
-         return ProseExtractTestRunner.Run(behavior, proseModelId);
+         return ProseInterpretTestRunner.Run(behavior, proseModelId);
       }
    }
 
    /// <summary>
-   ///   The runner behind cr.prose_extract_test. Stages the scripted scene-1 lord (reusing the roleplay bench's
-   ///   selection, seeding, and script), drives each turn through the PROSE model then the EXTRACT model, and
+   ///   The runner behind cr.prose_interpret_test. Stages the scripted scene-1 lord (reusing the roleplay bench's
+   ///   selection, seeding, and script), drives each turn through the PROSE model then the INTERPRET model, and
    ///   writes a readable per-turn report. Kept out of the thin console-command method so the two-call flow and
    ///   the report formatting read as one piece.
    /// </summary>
-   internal static class ProseExtractTestRunner
+   internal static class ProseInterpretTestRunner
    {
       /// <summary>The bench's own log file, written next to the main CalradiaRemembers.log so runs can be diffed across prose models.</summary>
       private static readonly string ReportPath = Path.Combine(
          Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
          "Mount and Blade II Bannerlord",
          "Logs",
-         "CalradiaRemembers_prose_extract_test.log");
+         "CalradiaRemembers_prose_interpret_test.log");
 
       /// <summary>
-      ///   Runs the scene-1 scenario through the PROSE model then the EXTRACT model, one pair of calls per
+      ///   Runs the scene-1 scenario through the PROSE model then the INTERPRET model, one pair of calls per
       ///   scripted turn, and writes the full report. Forces a male "Aldric" player for the whole run and restores
       ///   the player-name/gender/model overrides (and the seeded profile) in the finally. Returns a one-line
       ///   pointer to the log file.
@@ -85,7 +85,7 @@ namespace CalradiaRemembers
          Hero hero = RoleplayBench.SelectScene1Hero();
 
          if (hero == null)
-            return "cr.prose_extract_test: no male lord available to stage the scene-1 scenario. Load a campaign with lords present.";
+            return "cr.prose_interpret_test: no male lord available to stage the scene-1 scenario. Load a campaign with lords present.";
 
          string id = hero.StringId;
          NpcProfile original = behavior.Store.Get(id);
@@ -109,23 +109,23 @@ namespace CalradiaRemembers
             string contextFacts = BuildContextFacts(behavior, hero, seed);
             var session = new ChatSession();
 
-            // Read the extractor model with the override cleared: this is the MCM-configured model every EXTRACT
+            // Read the interpreter model with the override cleared: this is the MCM-configured model every INTERPRET
             // call resolves to, and what the header must name.
             LlmServices.TestModelOverride = null;
             behavior.LlmServices.Invalidate();
-            string extractorModel = behavior.LlmServices.ModelId ?? "unknown";
+            string interpreterModel = behavior.LlmServices.ModelId ?? "unknown";
 
             report.AppendLine();
             report.AppendLine("========================================================================");
-            report.AppendLine($"  cr.prose_extract_test run - {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            report.AppendLine($"  PROSE model: {proseModelId} | EXTRACTOR model (MCM): {extractorModel}");
+            report.AppendLine($"  cr.prose_interpret_test run - {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            report.AppendLine($"  PROSE model: {proseModelId} | INTERPRETER model (MCM): {interpreterModel}");
             report.AppendLine($"  NPC: {HeroLabelSafe(hero)} | seeded regard +12 (scene-1 lord).");
-            report.AppendLine("  Per turn: (a) PROSE from the prose model, (b) tags EXTRACTED by the MCM model.");
-            report.AppendLine("  The prose model's own [ACTION]/[EVENT] are IGNORED; only the extractor supplies tags.");
+            report.AppendLine("  Per turn: (a) PROSE from the prose model, (b) tags INTERPRETED by the MCM model.");
+            report.AppendLine("  The prose model's own [ACTION]/[EVENT] are IGNORED; only the interpreter supplies tags.");
             report.AppendLine("  Live chat pipeline UNCHANGED. Not part of cr.testall.");
             report.AppendLine("========================================================================");
             report.AppendLine();
-            report.AppendLine("CONTEXT FACTS (given to the extractor each turn):");
+            report.AppendLine("CONTEXT FACTS (given to the interpreter each turn):");
             report.AppendLine(Indent(contextFacts));
 
             var turn = 0;
@@ -154,16 +154,16 @@ namespace CalradiaRemembers
          string text = report.ToString();
          WriteReportFile(text);
          foreach (string logLine in text.Split('\n'))
-            ModLog.Info($"[prose_extract_test] {logLine.TrimEnd()}");
+            ModLog.Info($"[prose_interpret_test] {logLine.TrimEnd()}");
 
-         return $"cr.prose_extract_test done (prose model {proseModelId}). Prose-vs-extracted tags: {ReportPath}";
+         return $"cr.prose_interpret_test done (prose model {proseModelId}). Prose-vs-interpreted tags: {ReportPath}";
       }
 
       #region private
 
       /// <summary>
       ///   One scripted turn: forces the prose model and drives the turn to get the NPC's prose, then clears the
-      ///   override and runs the extractor over that prose. A failure on either call is recorded and the turn
+      ///   override and runs the interpreter over that prose. A failure on either call is recorded and the turn
       ///   still returns, so one bad call never crashes the bench. The shared <paramref name="session" /> carries
       ///   the scene forward across turns.
       /// </summary>
@@ -193,29 +193,29 @@ namespace CalradiaRemembers
 
          if (string.IsNullOrWhiteSpace(prose))
          {
-            sb.AppendLine("  EXTRACTED: skipped (prose was empty).");
+            sb.AppendLine("  INTERPRETED: skipped (prose was empty).");
 
             return sb.ToString();
          }
 
-         // (b) EXTRACT call: clear the override so it resolves the MCM-configured extractor, rebuild, then run the
-         // one-shot extraction over the fresh prose.
+         // (b) INTERPRET call: clear the override so it resolves the MCM-configured interpreter, rebuild, then run
+         // the one-shot interpretation over the fresh prose.
          LlmServices.TestModelOverride = null;
          behavior.LlmServices.Invalidate();
 
-         string prompt = ExtractionPromptBuilder.Build(prose, contextFacts);
-         string raw = CallExtractor(behavior, prompt, out string extractError);
+         string prompt = ActionInterpreterPromptBuilder.Build(prose, contextFacts);
+         string raw = CallInterpreter(behavior, prompt, out string interpretError);
 
-         if (extractError != null)
+         if (interpretError != null)
          {
-            sb.AppendLine($"  EXTRACTED: extract call failed: {extractError}");
+            sb.AppendLine($"  INTERPRETED: interpret call failed: {interpretError}");
 
             return sb.ToString();
          }
 
          ParsedResponse parsed = parser.Parse(raw ?? string.Empty);
 
-         sb.AppendLine("  EXTRACTED (MCM extractor):");
+         sb.AppendLine("  INTERPRETED (MCM interpreter):");
          if (parsed.Actions == null || parsed.Actions.Count == 0)
             sb.AppendLine("    [ACTION] none");
          else
@@ -236,7 +236,7 @@ namespace CalradiaRemembers
       ///   <paramref name="session" />, and returns the NPC's prose (its [NARRATION] then [DIALOGUE], combined).
       ///   Any throw or timeout is caught and reported via <paramref name="error" />, so one bad turn never
       ///   crashes the bench. The prose model's own emitted [ACTION]/[EVENT] are intentionally ignored here: the
-      ///   extractor supplies the tags.
+      ///   interpreter supplies the tags.
       /// </summary>
       private static string DriveProse(NpcMemoryCampaignBehavior behavior, Hero npc, NpcProfile profile, ChatSession session, string playerLine, out string error)
       {
@@ -293,12 +293,12 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   Calls the configured model one-shot as the extractor, reusing the same seam cr.extract_test uses
+      ///   Calls the configured model one-shot as the interpreter, reusing the same seam cr.interpret_test uses
       ///   (<see cref="LlmServices.LlmClient" />.CompleteAsync), on a background task with a CancellationTokenSource
       ///   budget and error handling mirroring RoleplayBench.AskTurn. Returns the raw content, or null with
       ///   <paramref name="callError" /> set on any failure/timeout.
       /// </summary>
-      private static string CallExtractor(NpcMemoryCampaignBehavior behavior, string prompt, out string callError)
+      private static string CallInterpreter(NpcMemoryCampaignBehavior behavior, string prompt, out string callError)
       {
          callError = null;
 
@@ -329,36 +329,36 @@ namespace CalradiaRemembers
          }
          catch (OperationCanceledException)
          {
-            callError = "extractor timed out";
+            callError = "interpreter timed out";
          }
          catch (AggregateException ex)
          {
             Exception inner = ex.InnerException ?? ex;
-            callError = $"{inner.GetType().Name}: {inner.Message}";
+            callError = $"interpreter errored ({inner.GetType().Name}: {inner.Message})";
          }
          catch (Exception ex)
          {
-            callError = $"{ex.GetType().Name}: {ex.Message}";
+            callError = $"interpreter errored ({ex.GetType().Name}: {ex.Message})";
          }
 
          return null;
       }
 
       /// <summary>
-      ///   Assembles the SETTING/PLAYER/YOU digest the extractor receives by building a REAL
+      ///   Assembles the SETTING/PLAYER/YOU digest the interpreter receives by building a REAL
       ///   <see cref="EncounterContext" /> for the seeded scene-1 hero (the same <see cref="EncounterContextBuilder.Build" />
       ///   seam <see cref="DriveProse" /> uses each turn) and projecting it through the shared
-      ///   <see cref="ExtractionContextBuilder.Project(EncounterContext, NpcProfile, string)" />. Built ONCE for the
-      ///   run: the staged scene does not move, so the digest is stable across turns. This is the point of the
+      ///   <see cref="ActionInterpreterContextBuilder.Project(EncounterContext, NpcProfile, string)" />. Built ONCE for
+      ///   the run: the staged scene does not move, so the digest is stable across turns. This is the point of the
       ///   increment: the spike now exercises the SAME projector the full two-call mode will use, not a hand-written
-      ///   string. The real player label (matching <c>PromptBuilder.PlayerName</c>) is threaded so the extractor
+      ///   string. The real player label (matching <c>PromptBuilder.PlayerName</c>) is threaded so the interpreter
       ///   names the player by "Aldric", never an epithet.
       /// </summary>
       private static string BuildContextFacts(NpcMemoryCampaignBehavior behavior, Hero hero, NpcProfile seed)
       {
          EncounterContext context = EncounterContextBuilder.Build(hero, seed, behavior.GameStateBridge);
 
-         return ExtractionContextBuilder.Project(context, seed, ResolvePlayerLabel());
+         return ActionInterpreterContextBuilder.Project(context, seed, ResolvePlayerLabel());
       }
 
       /// <summary>The prompt-safe player label, resolved exactly as <c>LlmServices</c> feeds <c>PromptBuilder.PlayerName</c> (test override, else the live hero name).</summary>
@@ -367,7 +367,7 @@ namespace CalradiaRemembers
             ? Hero.MainHero?.Name?.ToString() ?? ""
             : LlmServices.TestPlayerNameOverride;
 
-      /// <summary>Combines the NPC's narration (physical action) then dialogue into one prose block for the extractor to read.</summary>
+      /// <summary>Combines the NPC's narration (physical action) then dialogue into one prose block for the interpreter to read.</summary>
       private static string CombineProse(string dialogue, string narration)
       {
          var sb = new StringBuilder();
@@ -404,7 +404,7 @@ namespace CalradiaRemembers
          }
          catch (Exception ex)
          {
-            ModLog.Error($"cr.prose_extract_test could not write {ReportPath}: {ex.Message}");
+            ModLog.Error($"cr.prose_interpret_test could not write {ReportPath}: {ex.Message}");
          }
       }
 

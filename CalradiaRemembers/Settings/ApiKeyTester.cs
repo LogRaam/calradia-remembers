@@ -159,8 +159,8 @@ namespace CalradiaRemembers.Settings
       }
 
       /// <summary>
-      ///   One-token-tests every configured model: the roleplay model, then the NSFW model when
-      ///   it is set and different. Two model fields are two chances at a typo, and an NSFW id
+      ///   One-token-tests every configured model: the roleplay model, then the consensual model when
+      ///   it is set and different. Two model fields are two chances at a typo, and an explicit id
       ///   that only fails when a scene flips the mode is the worst place to find out — so the
       ///   Test button exercises both up front. Returns the popup title and body.
       /// </summary>
@@ -172,13 +172,13 @@ namespace CalradiaRemembers.Settings
       {
          (bool rpOk, string rpErr) = await testModel(roleplayModel).ConfigureAwait(false);
 
-         string nsfwModel = CrSettings.Instance?.NsfwModel?.Trim() ?? string.Empty;
-         bool hasDistinctNsfw = nsfwModel.Length > 0 && !string.Equals(nsfwModel, roleplayModel, StringComparison.Ordinal);
+         string consensualModel = ModSettings.ConsensualModel;
+         bool hasDistinctConsensual = consensualModel.Length > 0 && !string.Equals(consensualModel, roleplayModel, StringComparison.Ordinal);
 
-         if (!hasDistinctNsfw)
+         if (!hasDistinctConsensual)
          {
-            string note = nsfwModel.Length > 0
-               ? " The NSFW model is the same id, so it is covered."
+            string note = consensualModel.Length > 0
+               ? " The consensual model is the same id, so it is covered."
                : string.Empty;
 
             return rpOk
@@ -186,20 +186,20 @@ namespace CalradiaRemembers.Settings
                : ("Model test failed", $"The model '{roleplayModel}' did not work:\n\n{rpErr}\n\n{failureAdvice}");
          }
 
-         (bool nsfwOk, string nsfwErr) = await testModel(nsfwModel).ConfigureAwait(false);
+         (bool consensualOk, string consensualErr) = await testModel(consensualModel).ConfigureAwait(false);
 
-         if (rpOk && nsfwOk)
+         if (rpOk && consensualOk)
             return ("Connection OK",
-               $"{successPrefix}. Roleplay model '{roleplayModel}' responded. NSFW model '{nsfwModel}' responded. " +
+               $"{successPrefix}. Roleplay model '{roleplayModel}' responded. Consensual model '{consensualModel}' responded. " +
                "You're ready to play.");
 
          var sb = new StringBuilder();
          sb.Append(rpOk
             ? $"Roleplay model '{roleplayModel}': OK.\n"
             : $"Roleplay model '{roleplayModel}' FAILED:\n{rpErr}\n");
-         sb.Append(nsfwOk
-            ? $"NSFW model '{nsfwModel}': OK.\n"
-            : $"NSFW model '{nsfwModel}' FAILED:\n{nsfwErr}\n");
+         sb.Append(consensualOk
+            ? $"Consensual model '{consensualModel}': OK.\n"
+            : $"Consensual model '{consensualModel}' FAILED:\n{consensualErr}\n");
          sb.Append('\n').Append(failureAdvice);
 
          return ("Model test failed", sb.ToString());

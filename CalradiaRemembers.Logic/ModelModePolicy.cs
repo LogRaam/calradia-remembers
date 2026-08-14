@@ -41,8 +41,8 @@ namespace CalradiaRemembers.Logic
         /// <summary>One LLM call produces prose and structured tags together (today's behaviour).</summary>
         Integrated,
 
-        /// <summary>A prose call followed by a separate extraction call (a future increment consumes this).</summary>
-        ProseExtract
+        /// <summary>A prose call followed by a separate action-interpreter call (a future increment consumes this).</summary>
+        ProseInterpret
     }
 
     /// <summary>Decides which model mode a scene starts in and which model id a mode resolves to.</summary>

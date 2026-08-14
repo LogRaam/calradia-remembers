@@ -543,15 +543,14 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>
       ///   True when the mode button should be shown: adult content must be on, and the flip must actually
-      ///   change something, which an NSFW model OR an NSFW provider pin both do (a player may keep one model
-      ///   and merely route explicit scenes to an uncensored provider).
+      ///   change something, which an explicit (consensual or CNC) model OR an NSFW provider pin both do (a player
+      ///   may keep one model and merely route explicit scenes to an uncensored provider).
       /// </summary>
       [DataSourceProperty]
       public bool IsModelModeToggleVisible =>
          ModelModePolicy.ToggleVisible(
             !string.IsNullOrWhiteSpace(ModSettings.ConsensualModel)
-            || !string.IsNullOrWhiteSpace(ModSettings.CncModel)
-            || !string.IsNullOrWhiteSpace(ModSettings.NsfwModel),
+            || !string.IsNullOrWhiteSpace(ModSettings.CncModel),
             !string.IsNullOrWhiteSpace(ModSettings.OpenRouterNsfwProviderPin),
             ModSettings.AdultContentLevel != AdultContentLevel.Off);
 

@@ -72,11 +72,12 @@ namespace CalradiaRemembers.Services
       public static string TestPlayerNameOverride { get; set; }
 
       /// <summary>
-      ///   Test-only override for the MODEL ID a request resolves to. Set by the prose/extract bench
-      ///   (cr.prose_extract_test) to point a SINGLE LLM call at an arbitrary model id (the prose model), then
-      ///   cleared so the next call resolves normally (the MCM-configured extractor). When non-null/non-whitespace
-      ///   it wins over the ActiveModelMode/NsfwModel resolution in <see cref="ResolveModel" />. Null or blank =
-      ///   normal resolution (no behaviour change). Invalidate the chat service after setting/clearing it.
+      ///   Test-only override for the MODEL ID a request resolves to. Set by the prose + interpreter bench
+      ///   (cr.prose_interpret_test) to point a SINGLE LLM call at an arbitrary model id (the prose model), then
+      ///   cleared so the next call resolves normally (the MCM-configured action interpreter). When
+      ///   non-null/non-whitespace it wins over the ActiveModelMode/consensual/CNC resolution in
+      ///   <see cref="ResolveModel" />. Null or blank = normal resolution (no behaviour change). Invalidate the chat
+      ///   service after setting/clearing it.
       /// </summary>
       public static string TestModelOverride { get; set; }
 
@@ -452,7 +453,7 @@ namespace CalradiaRemembers.Services
       /// </summary>
       private static string ResolveModel()
       {
-         // TEST SEAM: a non-blank override points a single call at an arbitrary model id (cr.prose_extract_test),
+         // TEST SEAM: a non-blank override points a single call at an arbitrary model id (cr.prose_interpret_test),
          // ahead of the normal mode/NSFW resolution. Blank or null falls through to the usual resolution below.
          if (!string.IsNullOrWhiteSpace(TestModelOverride)) return TestModelOverride;
 
@@ -475,8 +476,8 @@ namespace CalradiaRemembers.Services
                : mcmModel;
          }
 
-         // The consensual/CNC facade getters fall back to NsfwModel, so a config that only set the old NSFW
-         // model resolves EXACTLY as before for both explicit modes (migration-safe).
+         // The consensual/CNC facade getters read the legacy NsfwModel storage (consensual) with CNC falling back
+         // to it, so a config that only set the old NSFW model resolves EXACTLY as before for both explicit modes.
          return ModelModePolicy.ResolveModelId(ActiveModelMode, roleplayModel, ModSettings.ConsensualModel, ModSettings.CncModel);
       }
 
