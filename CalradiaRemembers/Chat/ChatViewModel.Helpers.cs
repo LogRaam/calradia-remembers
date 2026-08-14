@@ -288,7 +288,7 @@ namespace CalradiaRemembers.Chat
          IsPrivateRequestVisible = false;
          CloseButtonText = "Leave";
          IsPleaseContinueVisible = true;
-         OnPropertyChanged(nameof(IsOfferItemVisible));
+         NotifyConversationEndedChanged();
          AppendSystemMessage($"{profile?.Name} has ended the conversation.", false);
          ModLog.Info($"[SCENE] model refusal intercepted — scene concluded in character for {profile?.Name}.");
       }
@@ -329,7 +329,7 @@ namespace CalradiaRemembers.Chat
          IsPrivateRequestVisible = false;
          CloseButtonText = "Leave";
          IsPleaseContinueVisible = true;
-         OnPropertyChanged(nameof(IsOfferItemVisible));
+         NotifyConversationEndedChanged();
          ModLog.Info($"[SCENE] director reached Conclude — scene ended after {_captiveBeatCount} beat(s).");
       }
 
@@ -341,7 +341,7 @@ namespace CalradiaRemembers.Chat
          IsScenePaused = false;
          IsPrivateRequestVisible = false;
          CloseButtonText = "Leave";
-         OnPropertyChanged(nameof(IsOfferItemVisible));
+         NotifyConversationEndedChanged();
          AppendSystemMessage("You tear free and escape into the night. (The actual release applies as you leave.)", true);
          ModLog.Info($"[ESCAPE] scene ended — player escaped from {profile?.Name}.");
       }
@@ -378,7 +378,7 @@ namespace CalradiaRemembers.Chat
          IsPrivateRequestVisible = false;
          CloseButtonText = "Leave";
          IsPleaseContinueVisible = true;
-         OnPropertyChanged(nameof(IsOfferItemVisible));
+         NotifyConversationEndedChanged();
          AppendSystemMessage($"{profile?.Name} has ended the conversation.", false);
          ModLog.Info($"[SCENE] safety cap reached ({_captiveBeatCount} beats) — scene force-concluded with a summary.");
       }
@@ -763,7 +763,7 @@ namespace CalradiaRemembers.Chat
          IsPleaseContinueVisible = false;
          IsSendEnabled = false;
          CloseButtonText = "Break for it";
-         OnPropertyChanged(nameof(IsOfferItemVisible));
+         NotifyConversationEndedChanged();
          AppendSystemMessage("You steel yourself, and make your break for it...", false);
          ModLog.Info($"[ESCAPE] armed from chat; captor={speaker.Name}, {roster.Count} aggressor(s). Awaiting the 'Break for it' click.");
       }
@@ -798,7 +798,7 @@ namespace CalradiaRemembers.Chat
          IsPrivateRequestVisible = false;
          CloseButtonText = "Leave";
          IsPleaseContinueVisible = true;
-         OnPropertyChanged(nameof(IsOfferItemVisible));
+         NotifyConversationEndedChanged();
          AppendSystemMessage(freed ? $"{profile?.Name} has set you free." : $"{profile?.Name} has ended the conversation.", false);
       }
 
@@ -830,6 +830,21 @@ namespace CalradiaRemembers.Chat
             AppendNarration(response.Narration);
 
          Hero opponent = speaker.Hero;
+
+         // A witness present in the room but not this turn's interlocutor is speaking on their OWN turn: a
+         // quarrel with someone else in the room, not the player (challenge_duel carries no target parameter,
+         // so whoever speaks becomes "opponent" no matter who the fiction actually names). Player report
+         // 2026-08-14: with player+A+B+C present, the quarrel was written A-vs-C, but the mod armed C-vs-player.
+         // Absorb it into the fiction instead: the line already stands, nothing is armed. TRUE NPC-vs-NPC
+         // duels (A challenges C, player spectates) are a deliberately-separate FUTURE increment of the Duels
+         // pillar; this guard only prevents the player being dragged into a fight that was never theirs.
+         if (!DuelInterlocutorPolicy.IsDirectInterlocutor(speaker.IsMain, speaker.Hero?.StringId, _currentSpeakerHeroId))
+         {
+            IsSendEnabled = !_conversationEnded;
+            ModLog.Info($"[DUEL] {speaker.Name} called for steel on their own turn (not the player's interlocutor), absorbed into fiction, nothing armed.");
+
+            return;
+         }
 
          // The prompt is advice, the bridge is law. The verb was taught from a context built at the START of
          // the turn, and a model can reach for it several turns later, by which time the two may have moved
@@ -878,10 +893,10 @@ namespace CalradiaRemembers.Chat
          IsPleaseContinueVisible = false;
          IsSendEnabled = false;
          CloseButtonText = playerIssued ? "Take the field" : "Answer him";
-         OnPropertyChanged(nameof(IsOfferItemVisible));
+         NotifyConversationEndedChanged();
          AppendSystemMessage(playerIssued
-            ? $"{profile?.Name ?? speaker.Name} takes up your challenge."
-            : $"{profile?.Name ?? speaker.Name} demands satisfaction of you.", false);
+            ? $"{profile?.Name ?? speaker.Name} takes up your challenge. Close this conversation to take the field."
+            : $"{profile?.Name ?? speaker.Name} demands satisfaction of you. Close this conversation to take the field.", false);
          ModLog.Info($"[DUEL] armed from chat against {speaker.Name}: venue={venue}, "
                    + $"challenger={(playerIssued ? "player" : "npc")}, {_witnesses.Count} witness(es).");
       }

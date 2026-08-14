@@ -230,7 +230,7 @@ namespace CalradiaRemembers.Chat
                   IsPrivateRequestVisible = false;
                   CloseButtonText = "Leave";
                   if (IsCaptiveEncounter) IsPleaseContinueVisible = true;
-                  OnPropertyChanged(nameof(IsOfferItemVisible));
+                  NotifyConversationEndedChanged();
                   AppendSystemMessage($"{profile.Name} has ended the conversation.", false);
                   ModLog.Info($"[SCENE] {profile.Name} ended the conversation.");
 
@@ -1563,7 +1563,7 @@ namespace CalradiaRemembers.Chat
                   IsPrivateRequestVisible = false;
                   CloseButtonText = "Leave";
                   if (IsCaptiveEncounter) IsPleaseContinueVisible = true;
-                  OnPropertyChanged(nameof(IsOfferItemVisible));
+                  NotifyConversationEndedChanged();
                   AppendSystemMessage($"{profile.Name} has ended the conversation.", false);
                   ModLog.Info($"[CONVERSATION] {profile.Name} ended the conversation.");
 
@@ -1576,7 +1576,7 @@ namespace CalradiaRemembers.Chat
                IsSendEnabled = false;
                IsPrivateRequestVisible = false;
                CloseButtonText = "Leave";
-               OnPropertyChanged(nameof(IsOfferItemVisible));
+               NotifyConversationEndedChanged();
                // The lock used to be silent, on the reasoning that the NPC had just said goodbye in
                // character. In play it reads as the chat going dead: Gabriel reported having to leave a
                // conversation Mina HAD already closed (2026-07-18), because a greyed input and a changed
@@ -1595,7 +1595,7 @@ namespace CalradiaRemembers.Chat
                IsSendEnabled = false;
                IsPrivateRequestVisible = false;
                CloseButtonText = "Leave";
-               OnPropertyChanged(nameof(IsOfferItemVisible));
+               NotifyConversationEndedChanged();
                ModLog.Info(nemesisTurned
                   ? "[CAPTOR SCENE] turn_nemesis ended the scene; the nemesis is turned."
                   : "[CAPTOR SCENE] execute_prisoner ended the scene.");
@@ -1908,7 +1908,7 @@ namespace CalradiaRemembers.Chat
                      _conversationEnded = true;
                      IsPrivateRequestVisible = false;
                      CloseButtonText = "Leave";
-                     OnPropertyChanged(nameof(IsOfferItemVisible));
+                     NotifyConversationEndedChanged();
                      AppendSystemMessage($"{profile.Name} has ended the conversation.", false);
                      ModLog.Info($"[15C] {profile.Name} ended the conversation.");
 
@@ -2050,7 +2050,7 @@ namespace CalradiaRemembers.Chat
          _conversationEnded = true;
          IsPrivateRequestVisible = false;
          CloseButtonText = "Leave";
-         OnPropertyChanged(nameof(IsOfferItemVisible));
+         NotifyConversationEndedChanged();
          AppendSystemMessage($"{speakerName} has ended the conversation.", false);
       }
 

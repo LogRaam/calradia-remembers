@@ -461,12 +461,21 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>
       ///   The chat input (small box + Send + the "&lt;" toggle) — shown only when the player may actually type:
-      ///   the normal input is available AND we are not still waiting on the NPC's opening turn (a captive scene or
-      ///   companion audience where the NPC speaks first). Hidden during "(considering…)" so it does not appear
-      ///   before the LLM has given its introduction.
+      ///   the normal input is available, we are not still waiting on the NPC's opening turn (a captive scene or
+      ///   companion audience where the NPC speaks first), and the conversation has not ended. Hidden during
+      ///   "(considering…)" so it does not appear before the LLM has given its introduction.
+      ///   The <see cref="_conversationEnded" /> clause closes a bug (player report, duel arming 2026-08-14): every
+      ///   end state (farewell, end_conversation, captor release, escape, duel arm...) sets IsSendEnabled false but
+      ///   leaves IsScenePaused false, so without this clause the box stayed visible and editable while doing
+      ///   nothing on Enter, a dead control the player could not tell apart from a live one. Every site that sets
+      ///   _conversationEnded = true already means "lock to the close button only" (verified: farewell lock,
+      ///   end_conversation, execute_prisoner/nemesis-turned, captive-scene endings, captor release, escape,
+      ///   duel arm, round-table MarkConversationEndedBySpeaker), so hiding the input there is safe everywhere;
+      ///   "Please continue" and the close button are separate controls (IsPleaseContinueVisible / CloseButtonText)
+      ///   unaffected by this flag.
       /// </summary>
       [DataSourceProperty]
-      public bool IsChatInputVisible => IsNormalInputVisible && !_awaitingOpener;
+      public bool IsChatInputVisible => IsNormalInputVisible && !_awaitingOpener && !_conversationEnded;
 
       /// <summary>True while the left review panel (a wrapped, read-only view of the message) is open.</summary>
       [DataSourceProperty]
@@ -571,6 +580,19 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       [DataSourceProperty]
       public bool IsOfferItemVisible => _mode == ChatMode.Conversation && !_conversationEnded;
+
+      /// <summary>
+      ///   Raises every binding that reads <see cref="_conversationEnded" /> (a plain field, not a property, so
+      ///   no setter does this automatically). Called at every site that locks the conversation, right after
+      ///   setting the field to true, so the "Offer item" button AND the chat input (Fix A, duel-arming dead
+      ///   input bug) hide together the instant the close button becomes the only interactive control.
+      /// </summary>
+      private void NotifyConversationEndedChanged()
+      {
+         OnPropertyChanged(nameof(IsOfferItemVisible));
+         OnPropertyChanged(nameof(IsChatInputVisible));
+         OnPropertyChanged(nameof(IsComposeToggleVisible));
+      }
 
       /// <summary>
       ///   True once a captive scene has ended (other than by escape): shows a "Please continue"
