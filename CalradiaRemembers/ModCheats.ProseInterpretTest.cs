@@ -109,11 +109,12 @@ namespace CalradiaRemembers
             string contextFacts = BuildContextFacts(behavior, hero, seed);
             var session = new ChatSession();
 
-            // Read the interpreter model with the override cleared: this is the MCM-configured model every INTERPRET
-            // call resolves to, and what the header must name.
+            // Name the ACTION INTERPRETER role's OWN model (MCM "Actions Interpreter model", e.g. grok), which the
+            // interpret call below resolves through LlmServices.InterpreterClient, NOT the active Roleplay/Prose
+            // model. Clear the prose override first so nothing from a prior turn leaks into this header read.
             LlmServices.TestModelOverride = null;
             behavior.LlmServices.Invalidate();
-            string interpreterModel = behavior.LlmServices.ModelId ?? "unknown";
+            string interpreterModel = behavior.LlmServices.ResolveInterpreterModel() ?? "unknown";
 
             report.AppendLine();
             report.AppendLine("========================================================================");
@@ -198,7 +199,8 @@ namespace CalradiaRemembers
             return sb.ToString();
          }
 
-         // (b) INTERPRET call: clear the override so it resolves the MCM-configured interpreter, rebuild, then run
+         // (b) INTERPRET call: route through the dedicated interpreter client (the ACTION INTERPRETER role's own
+         // model, e.g. grok), NOT the active prose model. Clear the prose override so it does not leak, then run
          // the one-shot interpretation over the fresh prose.
          LlmServices.TestModelOverride = null;
          behavior.LlmServices.Invalidate();
@@ -307,14 +309,18 @@ namespace CalradiaRemembers
             var request = new LlmRequest {
                SystemPrompt = prompt,
                Messages = new[] {new LlmMessage(MessageRole.User, "Output the tags now.")},
-               Parameters = new LlmParameters {MaxTokens = 400, Creativity = 0.2f}
+               Parameters = new LlmParameters {MaxTokens = 600, Creativity = 0.2f}
             };
 
             int budgetSeconds = Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) + 5;
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(budgetSeconds));
             CancellationToken ct = cts.Token;
 
-            Task<LlmResponse> task = Task.Run(() => behavior.LlmServices.LlmClient.CompleteAsync(request, ct), ct);
+            // The DEDICATED interpreter client: the ACTION INTERPRETER role's own model, base URL, key, and its
+            // reasoning-Off pin, exactly what the live chat's ActionInterpreterComposer uses. The main LlmClient
+            // would resolve the active Roleplay/Prose model instead (the bug this fixes: the log named GLM, the
+            // prose model, as the interpreter when grok was configured).
+            Task<LlmResponse> task = Task.Run(() => behavior.LlmServices.InterpreterClient.CompleteAsync(request, ct), ct);
             task.Wait(ct);
             LlmResponse response = task.GetAwaiter().GetResult();
 

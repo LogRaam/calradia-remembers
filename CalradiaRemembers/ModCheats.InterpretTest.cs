@@ -111,7 +111,7 @@ namespace CalradiaRemembers
       /// </summary>
       public static string Run(NpcMemoryCampaignBehavior behavior)
       {
-         string model = behavior.LlmServices.ModelId ?? "unknown";
+         string model = behavior.LlmServices.ResolveInterpreterModel() ?? "unknown";
          var parser = new SectionResponseParser();
          var report = new StringBuilder();
 
@@ -189,14 +189,17 @@ namespace CalradiaRemembers
             var request = new LlmRequest {
                SystemPrompt = prompt,
                Messages = new[] {new LlmMessage(MessageRole.User, "Output the tags now.")},
-               Parameters = new LlmParameters {MaxTokens = 400, Creativity = 0.2f}
+               Parameters = new LlmParameters {MaxTokens = 600, Creativity = 0.2f}
             };
 
             int budgetSeconds = Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) + 5;
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(budgetSeconds));
             CancellationToken ct = cts.Token;
 
-            Task<LlmResponse> task = Task.Run(() => behavior.LlmServices.LlmClient.CompleteAsync(request, ct), ct);
+            // The DEDICATED interpreter client: the ACTION INTERPRETER role's own model (MCM "Actions Interpreter
+            // model") and its reasoning-Off pin, matching the live pipeline. The main LlmClient would resolve the
+            // active Roleplay/Prose model instead, so this bench must not use it.
+            Task<LlmResponse> task = Task.Run(() => behavior.LlmServices.InterpreterClient.CompleteAsync(request, ct), ct);
             task.Wait(ct);
             LlmResponse response = task.GetAwaiter().GetResult();
 
