@@ -264,6 +264,15 @@ namespace CalradiaRemembers.Mapping
             playerRegardWithLeader,
             playerStatureTier);
 
+         // recruit_prisoner + its symmetric negative (empty-promise fix, 2026-08-14): both CanRecruitPrisoner
+         // and CaptiveLordWithheldFromDefection below are derived from THIS SAME verdict, computed once, so the
+         // two can never both be true. A held captive lord who is not (yet) eligible (regard too low, or their
+         // own clan's leader) must still never be taught to CLAIM acceptance.
+         bool canRecruitPrisoner = ResolveCanRecruitPrisoner(hero, profile, playerStatus);
+         bool captiveLordWithheldFromDefection = playerStatus == PlayerStatusVsNpc.NpcIsCaptive
+            && hero != null && hero.IsLord
+            && !canRecruitPrisoner;
+
          return new() {
             PlayerStatus = playerStatus,
             SharedRealmName = bridge.GetSharedRealmName(hero),
@@ -428,7 +437,9 @@ namespace CalradiaRemembers.Mapping
             PlayerCanMediatePeace = playerCanMediatePeace,
             MediatablePeaceFactions = mediatablePeaceFactions,
             LordRecruitEligible = ResolveLordRecruitEligible(hero, profile),
-            CanRecruitPrisoner = ResolveCanRecruitPrisoner(hero, profile, playerStatus),
+            CanRecruitPrisoner = canRecruitPrisoner,
+            // The negative teaching's gate: see the shared computation just above the initializer.
+            CaptiveLordWithheldFromDefection = captiveLordWithheldFromDefection,
             CanRecruitNotable = ResolveCanRecruitNotable(hero, profile),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
@@ -1558,7 +1569,9 @@ namespace CalradiaRemembers.Mapping
       ///   from <paramref name="playerStatus" /> (<see cref="PlayerStatusVsNpc.NpcIsCaptive" />, the bridge's
       ///   real-custody verdict), the same custody fact <c>execute_prisoner</c> is taught on, so the offer only
       ///   ever appears in a conversation with a prisoner the player genuinely holds. Regard is the mod's own
-      ///   personal ledger, never the possibly-unsynced clan relation.
+      ///   personal ledger, never the possibly-unsynced clan relation. This result is also the source the
+      ///   caller derives <c>CaptiveLordWithheldFromDefection</c> from (the "cannot yet defect" negative
+      ///   teaching, 2026-08-14): see the shared computation right above the <c>Build</c> initializer.
       /// </summary>
       private static bool ResolveCanRecruitPrisoner(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus)
       {

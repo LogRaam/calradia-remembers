@@ -128,6 +128,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("succession", Severity.Light, "seed private+public events -> Apply -> assert private dropped", TestSuccession),
          new SelfTest("recruit", Severity.Heavy, "eligible lord -> join_clan -> assert he moved into your clan", TestRecruit),
          new SelfTest("recruit_notable", Severity.Heavy, "find a settlement NOTABLE (gang leader/headman/merchant...) that has an eligible successor in its town, force regard to the floor, run the REAL bridge recruit_notable -> assert the notable is now a companion in your CLAN and PARTY, a starting relation bonus was applied, and the chosen successor holds the vacated notable post (settlement.Notables). Best-effort restore afterwards (recruit_notable is not cleanly reversible: the alley transfer cannot be undone). Skips when no disposable notable+successor pair exists rather than wreck a real campaign", TestRecruitNotable),
+         new SelfTest("captive_lord_withheld_from_defection", Severity.Heavy, "player report: a held captive lord below the recruit_prisoner regard floor could still narrate accepting the player's offer to defect, though nothing happened (an empty promise). Really captures a capturable in-party lord who is not their own clan's leader, drives EncounterContextBuilder.Build with regard just BELOW PrisonerRecruitmentPolicy.RegardFloor -> assert CanRecruitPrisoner is false and the new CaptiveLordWithheldFromDefection flag is true, then raises regard to the floor -> assert they FLIP (CanRecruitPrisoner true, the new flag false), proving the two are mutually exclusive on live engine facts. Releases the captive and restores regard afterwards", TestCaptiveLordWithheldFromDefection),
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
          new SelfTest("free_prisoner", Severity.Heavy, "capture -> free_prisoner -> assert released", TestFreePrisoner),
          new SelfTest("captive_kin", Severity.Heavy, "capture an in-party enemy lord who has a living parent -> build that parent's RELATIONSHIPS -> assert the captured child is marked as held by the player (the 'you are a liar, my child is safe' denial bug), then release", TestCaptiveKinAwareness),
@@ -6154,6 +6155,70 @@ namespace CalradiaRemembers.Diagnostics
 
          profile.ReputationWithPlayer = regardBefore;
          behavior.Store.Set(profile);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Player report + owner decision (14/08/2026): recruit_prisoner's regard gate stays deliberately
+      ///   strict, with NO player-facing feedback, but the NPC must never CLAIM to accept a defection it
+      ///   cannot make. EncounterContextBuilder.Build derives CanRecruitPrisoner and the new
+      ///   CaptiveLordWithheldFromDefection flag from the SAME PrisonerRecruitmentPolicy verdict, computed
+      ///   once, so a wiring drift between the two is structurally impossible. Drives this on a REAL captured
+      ///   lord (not a raw policy call) so the assertion covers the whole engine-bound path: below the
+      ///   regard floor, only the negative flag is set; once regard clears the floor, they flip.
+      /// </summary>
+      private static string TestCaptiveLordWithheldFromDefection(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("captive_lord_withheld_from_defection");
+
+         // Same filter TestFreePrisoner/TestPrisonerTrade use: a capturable in-party lord who is NOT their
+         // own clan's leader, so raising regard past the floor can genuinely flip CanRecruitPrisoner to true
+         // (a clan leader never can, whatever the regard, which would make the flip half of this test moot).
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != null && h.Clan?.Leader != h);
+
+         if (t.Skip(lord == null, "no capturable in-party lord who is not their own clan's leader")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         int regardBefore = profile.ReputationWithPlayer;
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, lord);
+         bool captured = lord.IsPrisoner && lord.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+
+         if (t.Abort(!captured, $"capture failed for {lord.Name} (party={lord.PartyBelongedTo?.StringId ?? "none"})")) return t.Line();
+
+         try
+         {
+            profile.ReputationWithPlayer = PrisonerRecruitmentPolicy.RegardFloor - 1;
+            behavior.Store.Set(profile);
+            EncounterContext below = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "hello");
+
+            profile.ReputationWithPlayer = PrisonerRecruitmentPolicy.RegardFloor;
+            behavior.Store.Set(profile);
+            EncounterContext above = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "hello");
+
+            t.Note($"{lord.Name}: below-floor CanRecruitPrisoner={below.CanRecruitPrisoner} withheld={below.CaptiveLordWithheldFromDefection}; " +
+                   $"above-floor CanRecruitPrisoner={above.CanRecruitPrisoner} withheld={above.CaptiveLordWithheldFromDefection}");
+            t.Expect("belowFloorCannotRecruit", below.CanRecruitPrisoner, false);
+            t.Expect("belowFloorWithheld", below.CaptiveLordWithheldFromDefection, true);
+            t.Expect("aboveFloorCanRecruit", above.CanRecruitPrisoner, true);
+            t.Expect("aboveFloorNotWithheld", above.CaptiveLordWithheldFromDefection, false);
+         }
+         finally
+         {
+            try
+            {
+               if (lord.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(lord, Hero.MainHero);
+            }
+            catch
+            {
+               /* best-effort cleanup */
+            }
+
+            profile.ReputationWithPlayer = regardBefore;
+            behavior.Store.Set(profile);
+         }
 
          return t.Line();
       }
