@@ -47,6 +47,7 @@ using CalradiaRemembers.Travel;
 using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
+using NpcMemoryService.Core.Actions;
 using NpcMemoryService.Core.Captivity;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
@@ -148,6 +149,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the custom endpoint URL", TestProviderRouting),
+         new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
          new SelfTest("stance_letter", Severity.Heavy, "hostile stance -> weekly eval -> assert a cold StanceHostility letter is queued", TestStanceLetter),
@@ -7033,6 +7035,47 @@ namespace CalradiaRemembers.Diagnostics
             s.ActionInterpreterProvider.SelectedIndex = priorInterpreter;
             s.CustomEndpointUrl = priorEndpoint;
          }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   action_catalog_parity (Unified Action Catalog, Stage 1, 14/08/2026): the Action Interpreter is taught
+      ///   ONLY the verbs listed in <see cref="GameActionCatalog" />, so any bridge verb missing from that catalog
+      ///   would be silently unreachable by the LLM (the exact class of bug this whole increment exists to close),
+      ///   and any catalog entry the bridge no longer dispatches would teach a dead action. The comparison itself
+      ///   cannot live as a pure SDK unit test: <see cref="BannerlordGameStateBridge.HandledActionTypes" /> is
+      ///   engine-bound (it lives beside the ExecuteAction switch it documents), so this self-test is the only
+      ///   place the two sides can be checked against each other. Reads both static sets directly; mutates
+      ///   nothing, so it needs no cleanup.
+      /// </summary>
+      private static string TestActionCatalogParity(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("action_catalog_parity");
+
+         HashSet<string> bridgeTypes = BannerlordGameStateBridge.HandledActionTypes;
+         IReadOnlyCollection<string> catalogTypes = GameActionCatalog.Types;
+
+         if (t.Abort(bridgeTypes == null, "BannerlordGameStateBridge.HandledActionTypes is null")) return t.Line();
+         if (t.Abort(catalogTypes == null, "GameActionCatalog.Types is null")) return t.Line();
+
+         var catalogSet = new HashSet<string>(catalogTypes);
+
+         List<string> missingFromCatalog = bridgeTypes.Where(x => !catalogSet.Contains(x)).OrderBy(x => x).ToList();
+         List<string> extraInCatalog = catalogSet.Where(x => !bridgeTypes.Contains(x)).OrderBy(x => x).ToList();
+
+         t.Note($"bridgeCount={bridgeTypes.Count}");
+         t.Note($"catalogCount={catalogSet.Count}");
+
+         // The two directions of drift: a verb the bridge dispatches that the LLM was never taught (the bug
+         // report this whole increment answers), and a verb the catalog still teaches that the bridge no longer
+         // dispatches (a dead action the LLM could be steered into emitting for nothing).
+         t.Expect("missingFromCatalog", missingFromCatalog.Count == 0
+            ? "(none)"
+            : string.Join(", ", missingFromCatalog), "(none)");
+         t.Expect("extraInCatalog", extraInCatalog.Count == 0
+            ? "(none)"
+            : string.Join(", ", extraInCatalog), "(none)");
 
          return t.Line();
       }

@@ -194,6 +194,42 @@ namespace CalradiaRemembers.GameState
       }
       // ── Sprint 10: action execution ───────────────────────────────────────
 
+      /// <summary>
+      ///   Unified Action Catalog, Stage 1 (14/08/2026): the AUTHORITATIVE set of every action <c>type</c> this
+      ///   switch below actually dispatches (the 60 cases, counting the shared VerbRegistry cases individually),
+      ///   plus the two ChatViewModel chat-flow controls that are real LLM-emittable actions but never reach this
+      ///   switch: <c>witness_leaves</c> (handled by <c>ChatViewModel.HandleWitnessLeaves</c> in
+      ///   <c>ChatViewModel.Helpers.cs</c>) and <c>request_privacy</c> (resolved in
+      ///   <c>ChatViewModel.Exchanges.cs</c>). Deliberately EXCLUDES <c>end_conversation</c>: it is a third
+      ///   ChatViewModel chat-flow control, but it is already one of the Action Interpreter's five hand-tuned core
+      ///   reactive signals (see <c>NpcMemoryService.Core.Prompts.ActionInterpreterPromptBuilder</c>), so it never
+      ///   needed a catalog entry of its own.
+      ///   <para>
+      ///     This set is engine-bound (references live nowhere the pure SDK could reach), so it cannot be compared
+      ///     against <c>NpcMemoryService.Core.Actions.GameActionCatalog.Types</c> (the SDK's own single source of
+      ///     truth for the SAME verbs) by a pure unit test. The comparison instead runs as the in-game self-test
+      ///     <c>action_catalog_parity</c> (<see cref="Diagnostics.CrSelfTest" />), part of <c>cr.testall</c>: any
+      ///     verb added to this switch (or to the two chat-flow controls) without a matching catalog entry, or vice
+      ///     versa, is reported by name so the drift this file header exists to prevent is caught immediately
+      ///     rather than silently teaching a stale or incomplete vocabulary to the LLM.
+      ///   </para>
+      /// </summary>
+      public static readonly HashSet<string> HandledActionTypes = new HashSet<string> {
+         "change_relation", "give_gold", "take_gold", "pay_blackmail", "join_party", "join_as_mercenary",
+         "end_mercenary", "join_as_vassal", "mediate_peace", "join_clan", "scheme_assist", "scheme_heed",
+         "marry", "take_as_consort", "take_as_secret_lover", "open_relationship", "close_relationship",
+         "end_affair", "give_item", "give_prisoner", "free_prisoner", "execute_prisoner", "execute_player",
+         "turn_nemesis", "recruit_prisoner", "recruit_notable", "grant_blessing", "arrange_marriage",
+         "appoint_governor", "assign_party_role", "rejoin_party", "dispatch_mission", "grant_fief",
+         "revoke_fief", "expel_from_clan", "grant_stipend", "swear_oath", "harm_prisoner", "impregnation_risk",
+         "gather_news", "reassure_companion", "recall_companion", "follow_me", "dismiss_escort", "ride_with_me",
+         "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
+         "release_prisoner", "buy_prisoner", "sell_prisoner", "end_marriage", "make_amends", "pledge_against",
+         "accept_divorce", "decline_divorce", "end_own_marriage",
+         // ChatViewModel chat-flow controls: real LLM-emittable actions, never dispatched by the switch below.
+         "witness_leaves", "request_privacy", "retire"
+      };
+
       public ActionOutcome ExecuteAction(GameAction action, Hero npcHero, ActionContext context)
       {
          if (action == null) return null;
