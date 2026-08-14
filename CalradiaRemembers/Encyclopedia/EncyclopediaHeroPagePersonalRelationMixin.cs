@@ -2,6 +2,7 @@
 
 #region
 
+using System;
 using System.Reflection;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
@@ -10,6 +11,8 @@ using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Encyclopedia.Pages;
+using TaleWorlds.Core;
+using TaleWorlds.Core.ViewModelCollection.Generic;
 using TaleWorlds.Library;
 
 #endregion
@@ -91,6 +94,43 @@ namespace CalradiaRemembers.Encyclopedia
             CalradiaPersonalRelation = profile == null
                 ? "unknown"
                 : $"{RegardBands.Describe(profile.ReputationWithPlayer)} ({profile.ReputationWithPlayer:+#;-#;0})";
+
+            RelabelClanRelation();
+        }
+
+        /// <summary>
+        ///   Renames the vanilla "Relation" stat on this page to "Clan Relation", so it reads as visibly distinct
+        ///   from the "Personal regard:" row above (players confuse the clan-level relation Bannerlord shows with
+        ///   CR's own personal ledger). Done from this mixin's own refresh, which UIExtenderEx already runs after
+        ///   the VM rebuilds its Stats list, rather than a raw Harmony patch on <c>EncyclopediaHeroPageVM.Refresh</c>:
+        ///   that patch hard-crashed on load under game 1.4.8 (a MonoMod detour fault), while this mixin path is
+        ///   the same one the personal-regard row already uses safely. Mutates only the one Stats entry; the shared
+        ///   localization string is untouched, so no other screen changes. Defensive: does nothing if the row is
+        ///   absent (e.g. the player's own page, handled by the early return above).
+        /// </summary>
+        private void RelabelClanRelation()
+        {
+            try
+            {
+                string vanillaRelationLabel = GameTexts.FindText("str_enc_sf_relation")?.ToString();
+                if (string.IsNullOrEmpty(vanillaRelationLabel)) return;
+
+                MBBindingList<StringPairItemVM> stats = ViewModel?.Stats;
+                if (stats == null) return;
+
+                foreach (StringPairItemVM stat in stats)
+                {
+                    if (stat.Definition != vanillaRelationLabel) continue;
+
+                    stat.Definition = "Clan Relation";
+
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[ENCYCLOPEDIA] clan-relation relabel (mixin) failed (non-fatal): {ex.GetType().Name}: {ex.Message}");
+            }
         }
 
         #endregion
