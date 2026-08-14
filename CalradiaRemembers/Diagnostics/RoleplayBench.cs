@@ -741,25 +741,31 @@ namespace CalradiaRemembers.Diagnostics
                 ?? adults.FirstOrDefault();
       }
 
+      /// <summary>The Empire noble the intimacy scene was designed around: a young, sadistic Lady of the Argoros
+      /// (Northern Empire). Targeted by name when she exists in the save, with a graceful fallback for other saves.</summary>
+      private const string Scene2PreferredNpcName = "Adrichea";
+
       /// <summary>
-      ///   A living, free, adult FEMALE lord for the intimacy scene, preferring a Northern-Empire lady (culture
-      ///   "empire", and, when determinable, the Northern Empire kingdom), then any Empire lady, then any lady,
-      ///   then any adult woman.
+      ///   The intimacy-scene partner. Prefers the real Empire noble <see cref="Scene2PreferredNpcName" /> (Adrichea,
+      ///   a young sadistic Lady of the Argoros the scene was written for) when she exists; otherwise a living, free,
+      ///   adult FEMALE lord, preferring a Northern-Empire lady (culture "empire", and, when determinable, the
+      ///   Northern Empire kingdom), then any Empire lady, then any lady, then any adult woman.
       /// </summary>
       private static Hero SelectScene2Hero()
       {
-         List<Hero> ladies = Hero.AllAliveHeroes
-            .Where(h => h != null && h != Hero.MainHero && h.IsFemale && h.IsLord && !h.IsPrisoner && h.IsAlive && !h.IsChild)
+         List<Hero> women = Hero.AllAliveHeroes
+            .Where(h => h != null && h != Hero.MainHero && h.IsFemale && !h.IsPrisoner && h.IsAlive && !h.IsChild)
             .ToList();
+         List<Hero> ladies = women.Where(h => h.IsLord).ToList();
 
          bool IsEmpire(Hero h) => string.Equals(h.Culture?.StringId, "empire", StringComparison.OrdinalIgnoreCase);
          bool IsNorthernEmpire(Hero h) => string.Equals(h.Clan?.Kingdom?.StringId, "empire", StringComparison.OrdinalIgnoreCase);
 
-         return ladies.FirstOrDefault(h => IsEmpire(h) && IsNorthernEmpire(h))
+         return women.FirstOrDefault(h => string.Equals(h.Name?.ToString(), Scene2PreferredNpcName, StringComparison.OrdinalIgnoreCase))
+                ?? ladies.FirstOrDefault(h => IsEmpire(h) && IsNorthernEmpire(h))
                 ?? ladies.FirstOrDefault(IsEmpire)
                 ?? ladies.FirstOrDefault()
-                ?? Hero.AllAliveHeroes.FirstOrDefault(h =>
-                   h != null && h != Hero.MainHero && h.IsFemale && !h.IsPrisoner && h.IsAlive && !h.IsChild);
+                ?? women.FirstOrDefault();
       }
 
       /// <summary>A living, free, adult FEMALE prisoner-stand-in, preferring a non-lord (commoner) woman so the log does not reuse scene 2's lady.</summary>
