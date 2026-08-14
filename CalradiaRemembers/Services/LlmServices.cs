@@ -624,11 +624,19 @@ namespace CalradiaRemembers.Services
       /// </summary>
       private static bool UseCachingFor(ProviderKind kind) => kind == ProviderKind.OpenRouter;
 
+      // The interpreter is a MECHANICAL extraction task: read the prose, emit the tags. It must NOT reason. A
+      // reasoning model told to think (inheriting the scene's effort) burns the whole small reply budget on
+      // internal reasoning and emits no text, so the interpreter call produced no tags in play (2026-08-13,
+      // kimi-k2.6 on OpenRouter with the roleplay effort). The interpreter therefore pins reasoning OFF regardless
+      // of the scene, independent of the prose model's own effort.
+      private const string InterpreterReasoningEffort = "Off";
+
       /// <summary>
       ///   Builds the dedicated action-interpreter client for a provider <paramref name="kind" /> and a fixed
       ///   <paramref name="model" />. Every lambda is bound to that ONE kind so the interpreter never rides the
-      ///   scene's provider; reasoning and provider-pin mirror the main client's (OpenRouter-only, mode-aware),
-      ///   so the all-"(default)" case reproduces exactly what the interpreter got when it rode the main client.
+      ///   scene's provider. Reasoning is pinned OFF (extraction is mechanical, and a thinking model would spend
+      ///   the small reply budget on reasoning and emit no tags); the provider-pin still mirrors the main client's
+      ///   OpenRouter-only routing.
       /// </summary>
       private ILlmClient BuildInterpreterClient(ProviderKind kind, string model)
       {
@@ -638,7 +646,7 @@ namespace CalradiaRemembers.Services
             BaseUrlProvider = () => BaseUrlFor(kind),
             UseSystemPromptCachingProvider = () => UseCachingFor(kind),
             ReasoningProvider = () => kind == ProviderKind.OpenRouter
-               ? ModelModePolicy.ResolveReasoningEffort(ActiveModelMode, ModSettings.ReasoningEffort, ModSettings.NsfwReasoningEffort)
+               ? InterpreterReasoningEffort
                : null,
             TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
             ParameterOptionsProvider = () => ParameterOptionsFor(kind, model),

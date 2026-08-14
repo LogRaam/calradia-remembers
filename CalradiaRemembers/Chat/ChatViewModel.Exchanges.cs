@@ -568,7 +568,10 @@ namespace CalradiaRemembers.Chat
          var request = new LlmRequest {
             SystemPrompt = prompt,
             Messages = new[] {new LlmMessage(MessageRole.User, "Output the tags now.")},
-            Parameters = new LlmParameters {MaxTokens = 400, Creativity = 0.2f},
+            // 600, not 400: even with reasoning pinned off (LlmServices.InterpreterReasoningEffort) some models
+            // emit a few stray reasoning tokens, and the tag block itself (multi-line [EVENT] + [ACTION]) needs
+            // headroom. A model that stalled on reasoning at 400 (kimi-k2.6, 2026-08-13) has room to finish here.
+            Parameters = new LlmParameters {MaxTokens = 600, Creativity = 0.2f},
             // The dedicated InterpreterClient below owns the interpreter's provider, key, base URL AND model
             // (ResolveInterpreterModel: the configured Actions Interpreter model, or the scene's model when blank),
             // so no ModelOverride is needed here. Its ModelProvider still honours the TestModelOverride bench seam.
