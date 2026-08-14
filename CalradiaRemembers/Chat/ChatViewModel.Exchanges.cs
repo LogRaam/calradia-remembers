@@ -548,135 +548,16 @@ namespace CalradiaRemembers.Chat
          if (ModSettings.ActionInterpreterTiming == ActionInterpreterTiming.Asynchronous)
             ModLog.Info("[PROSE-INTERPRET] Asynchronous timing selected; running synchronously for now (async apply-back is a later increment).");
 
-         string prose = CombineProseForInterpretation(proseResponse.Dialogue, proseResponse.Narration);
-         if (string.IsNullOrWhiteSpace(prose))
-            return WithInterpretedTags(proseResponse, null); // nothing to read -> apply no tags
-
-         string prompt;
-         try
-         {
-            string contextFacts = ActionInterpreterContextBuilder.Project(context, profile, ResolveInterpreterPlayerLabel());
-            prompt = ActionInterpreterPromptBuilder.Build(prose, contextFacts);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[PROSE-INTERPRET] interpreter prompt build failed; applying no tags: {ex.GetType().Name}: {ex.Message}");
-
-            return WithInterpretedTags(proseResponse, null);
-         }
-
-         var request = new LlmRequest {
-            SystemPrompt = prompt,
-            Messages = new[] {new LlmMessage(MessageRole.User, "Output the tags now.")},
-            // 600, not 400: even with reasoning pinned off (LlmServices.InterpreterReasoningEffort) some models
-            // emit a few stray reasoning tokens, and the tag block itself (multi-line [EVENT] + [ACTION]) needs
-            // headroom. A model that stalled on reasoning at 400 (kimi-k2.6, 2026-08-13) has room to finish here.
-            Parameters = new LlmParameters {MaxTokens = 600, Creativity = 0.2f},
-            // The dedicated InterpreterClient below owns the interpreter's provider, key, base URL AND model
-            // (ResolveInterpreterModel: the configured Actions Interpreter model, or the scene's model when blank),
-            // so no ModelOverride is needed here. Its ModelProvider still honours the TestModelOverride bench seam.
-            ModelOverride = null
-         };
-
-         string content = null;
-         string error = null;
-         int budgetSeconds = Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) + 5;
-         using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(budgetSeconds)))
-         {
-            try
-            {
-               // Route to the interpreter's OWN client: its base URL / key / model are the interpreter provider's,
-               // which may differ from the scene (prose) provider. Never null (falls back to the main client).
-               LlmResponse resp = await Task.Run(() => behavior.LlmServices.InterpreterClient.CompleteAsync(request, cts.Token))
-                                            .ConfigureAwait(false);
-               if (resp is {IsSuccess: true}) content = resp.Content;
-               else error = resp?.ErrorMessage ?? "no result";
-            }
-            catch (Exception ex)
-            {
-               error = $"{ex.GetType().Name}: {ex.Message}";
-            }
-         }
-
-         // Resume on the main thread before the caller touches any UI / game state below.
+         // The interpreter core lives in the shared ActionInterpreterComposer so the live path and cr.rp_bench feed
+         // the ACTION INTERPRETER through ONE code path. It does not switch threads; resume the main thread here,
+         // exactly as this method always did, before the caller touches any UI / game state.
+         ParsedResponse result = await ActionInterpreterComposer.InterpretAsync(
+            proseResponse, context, profile, ActionInterpreterComposer.ResolveDefaultPlayerLabel(),
+            behavior.LlmServices, CancellationToken.None);
          await MainThreadDispatcher.SwitchToMainThread();
 
-         if (error != null || string.IsNullOrWhiteSpace(content))
-         {
-            ModLog.Error($"[PROSE-INTERPRET] interpreter call produced no tags; applying none: {error ?? "empty reply"}");
-
-            return WithInterpretedTags(proseResponse, null);
-         }
-
-         ParsedResponse interpreted;
-         try
-         {
-            interpreted = new SectionResponseParser().Parse(content);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[PROSE-INTERPRET] interpreter output could not be parsed; applying no tags: {ex.GetType().Name}: {ex.Message}");
-
-            return WithInterpretedTags(proseResponse, null);
-         }
-
-         ModLog.Info($"[PROSE-INTERPRET] interpreter supplied {interpreted.Actions?.Count ?? 0} action(s)"
-                     + (interpreted.NewEventData != null ? $" + 1 event ({interpreted.NewEventData.Type})" : "")
-                     + $" (model: {behavior.LlmServices.ResolveInterpreterModel() ?? "resolved"}).");
-
-         return WithInterpretedTags(proseResponse, interpreted);
+         return result;
       }
-
-      /// <summary>
-      ///   Splices <paramref name="interpreted" />'s machine tags (<see cref="ParsedResponse.Actions" /> and
-      ///   <see cref="ParsedResponse.NewEventData" />) onto the prose turn, keeping every OTHER field of
-      ///   <paramref name="prose" /> (dialogue, narration, stance, discovery, quests, witness reactions) exactly
-      ///   as the prose model wrote it. A null <paramref name="interpreted" /> means "apply no tags": Actions empty
-      ///   and NewEventData null, so the turn runs the prose with no ACTION/EVENT effect. Mirrors the field list
-      ///   of <see cref="WithoutEventData" /> (plus Resolutions), so a field ADDED to <see cref="ParsedResponse" />
-      ///   must be added here too, or this path would silently drop it.
-      /// </summary>
-      private static ParsedResponse WithInterpretedTags(ParsedResponse prose, ParsedResponse interpreted) => new() {
-         Dialogue = prose.Dialogue,
-         Narration = prose.Narration,
-         NarrationBeforeDialogue = prose.NarrationBeforeDialogue,
-         Memory = prose.Memory,
-         NewEventData = interpreted?.NewEventData,
-         Reputation = prose.Reputation,
-         StanceShift = prose.StanceShift,
-         Actions = interpreted?.Actions ?? new List<GameAction>(),
-         Discovery = prose.Discovery,
-         QuestGiven = prose.QuestGiven,
-         QuestBlockMalformed = prose.QuestBlockMalformed,
-         QuestCompleted = prose.QuestCompleted,
-         QuestAbandoned = prose.QuestAbandoned,
-         WitnessReactions = prose.WitnessReactions,
-         Resolutions = prose.Resolutions
-      };
-
-      /// <summary>
-      ///   Combines the NPC's narration (physical action) then dialogue into one prose block for the interpreter to
-      ///   read, exactly as the cr.prose_interpret_test bench's CombineProse does, so the live path and the bench
-      ///   feed the interpreter identically.
-      /// </summary>
-      private static string CombineProseForInterpretation(string dialogue, string narration)
-      {
-         var sb = new System.Text.StringBuilder();
-         if (!string.IsNullOrWhiteSpace(narration)) sb.AppendLine(narration.Trim());
-         if (!string.IsNullOrWhiteSpace(dialogue)) sb.Append(dialogue.Trim());
-
-         return sb.ToString().Trim();
-      }
-
-      /// <summary>
-      ///   The prompt-safe player label the interpreter names the player by, resolved exactly as
-      ///   <see cref="LlmServices" /> feeds <c>PromptBuilder.PlayerName</c> (the test override when set, else the
-      ///   live hero name), so the interpreted memory names the player the same way the prose prompt did.
-      /// </summary>
-      private static string ResolveInterpreterPlayerLabel()
-         => string.IsNullOrWhiteSpace(LlmServices.TestPlayerNameOverride)
-            ? Hero.MainHero?.Name?.ToString() ?? ""
-            : LlmServices.TestPlayerNameOverride;
 
       /// <summary>
       ///   v1.34.2 log-only execution audit (Pattern 1): maps the live <paramref name="context" /> onto the pure
