@@ -36,10 +36,15 @@ namespace CalradiaRemembers.Chat
       ///   cleanly separated). It does NOT switch threads: the caller resumes the main thread before touching UI or
       ///   game state. The interpreter is routed to <paramref name="services" />'s dedicated InterpreterClient (its
       ///   own provider, key, base URL AND model) and named by <paramref name="playerLabel" />.
+      ///   <paramref name="conversationInProgress" /> is the hard fact the interpreter otherwise has no way to
+      ///   read (a stranger scene reads "regard +0, never met before" on EVERY turn): the CALLER knows the turn
+      ///   index / session state, so it computes this and passes it through to
+      ///   <see cref="ActionInterpreterContextBuilder.Project(EncounterContext, NpcProfile, string, bool)" />,
+      ///   fixing the rp_bench scene-1 bug where every turn of an ongoing exchange kept being tagged first_meeting.
       /// </summary>
       public static async Task<ParsedResponse> InterpretAsync(
          ParsedResponse proseResponse, EncounterContext context, NpcProfile profile,
-         string playerLabel, LlmServices services, CancellationToken ct)
+         string playerLabel, LlmServices services, CancellationToken ct, bool conversationInProgress)
       {
          string prose = CombineProseForInterpretation(proseResponse.Dialogue, proseResponse.Narration);
          if (string.IsNullOrWhiteSpace(prose))
@@ -48,7 +53,7 @@ namespace CalradiaRemembers.Chat
          string prompt;
          try
          {
-            string contextFacts = ActionInterpreterContextBuilder.Project(context, profile, playerLabel);
+            string contextFacts = ActionInterpreterContextBuilder.Project(context, profile, playerLabel, conversationInProgress);
             prompt = ActionInterpreterPromptBuilder.Build(prose, contextFacts);
          }
          catch (Exception ex)

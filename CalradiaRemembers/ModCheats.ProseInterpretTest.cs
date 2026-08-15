@@ -106,7 +106,10 @@ namespace CalradiaRemembers
             NpcProfile seed = RoleplayBench.BuildScene1Profile(hero);
             behavior.Store.Set(seed);
 
-            string contextFacts = BuildContextFacts(behavior, hero, seed);
+            // Header display only (turn 1's facts, conversationInProgress:false); RunTurn below rebuilds the facts
+            // PER TURN with the real flag (turn index > 1), since the scene does not stand still across turns 2+
+            // any more.
+            string contextFacts = BuildContextFacts(behavior, hero, seed, false);
             var session = new ChatSession();
 
             // Name the ACTION INTERPRETER role's OWN model (MCM "Actions Interpreter model", e.g. grok), which the
@@ -126,14 +129,14 @@ namespace CalradiaRemembers
             report.AppendLine("  Live chat pipeline UNCHANGED. Not part of cr.testall.");
             report.AppendLine("========================================================================");
             report.AppendLine();
-            report.AppendLine("CONTEXT FACTS (given to the interpreter each turn):");
+            report.AppendLine("CONTEXT FACTS, turn 1 (turn 2+ additionally states the conversation is already under way):");
             report.AppendLine(Indent(contextFacts));
 
             var turn = 0;
             foreach (string line in RoleplayBench.Scene1Lines)
             {
                turn++;
-               report.Append(RunTurn(behavior, hero, seed, session, parser, contextFacts, proseModelId, line, turn));
+               report.Append(RunTurn(behavior, hero, seed, session, parser, proseModelId, line, turn));
             }
          }
          catch (Exception ex)
@@ -166,12 +169,16 @@ namespace CalradiaRemembers
       ///   One scripted turn: forces the prose model and drives the turn to get the NPC's prose, then clears the
       ///   override and runs the interpreter over that prose. A failure on either call is recorded and the turn
       ///   still returns, so one bad call never crashes the bench. The shared <paramref name="session" /> carries
-      ///   the scene forward across turns.
+      ///   the scene forward across turns. The context facts are rebuilt HERE, per turn (not once for the whole
+      ///   run): conversationInProgress is turnNumber &gt; 1, exactly the "opener is false, every later turn is
+      ///   true" rule the live chat and cr.rp_bench also follow, so turn 1 alone can legitimately read first_meeting.
       /// </summary>
       private static string RunTurn(NpcMemoryCampaignBehavior behavior, Hero hero, NpcProfile profile,
-                                    ChatSession session, SectionResponseParser parser, string contextFacts,
+                                    ChatSession session, SectionResponseParser parser,
                                     string proseModelId, string playerLine, int turnNumber)
       {
+         string contextFacts = BuildContextFacts(behavior, hero, profile, turnNumber > 1);
+
          var sb = new StringBuilder();
          sb.AppendLine();
          sb.AppendLine($"  --- Turn {turnNumber} ---");
@@ -354,17 +361,17 @@ namespace CalradiaRemembers
       ///   Assembles the SETTING/PLAYER/YOU digest the interpreter receives by building a REAL
       ///   <see cref="EncounterContext" /> for the seeded scene-1 hero (the same <see cref="EncounterContextBuilder.Build" />
       ///   seam <see cref="DriveProse" /> uses each turn) and projecting it through the shared
-      ///   <see cref="ActionInterpreterContextBuilder.Project(EncounterContext, NpcProfile, string)" />. Built ONCE for
-      ///   the run: the staged scene does not move, so the digest is stable across turns. This is the point of the
-      ///   increment: the spike now exercises the SAME projector the full two-call mode will use, not a hand-written
-      ///   string. The real player label (matching <c>PromptBuilder.PlayerName</c>) is threaded so the interpreter
-      ///   names the player by "Aldric", never an epithet.
+      ///   <see cref="ActionInterpreterContextBuilder.Project(EncounterContext, NpcProfile, string, bool)" />. Rebuilt
+      ///   PER TURN (the staged scene itself does not move, only <paramref name="conversationInProgress" /> does): the
+      ///   spike exercises the SAME projector the full two-call mode will use, not a hand-written string. The real
+      ///   player label (matching <c>PromptBuilder.PlayerName</c>) is threaded so the interpreter names the player by
+      ///   "Aldric", never an epithet.
       /// </summary>
-      private static string BuildContextFacts(NpcMemoryCampaignBehavior behavior, Hero hero, NpcProfile seed)
+      private static string BuildContextFacts(NpcMemoryCampaignBehavior behavior, Hero hero, NpcProfile seed, bool conversationInProgress)
       {
          EncounterContext context = EncounterContextBuilder.Build(hero, seed, behavior.GameStateBridge);
 
-         return ActionInterpreterContextBuilder.Project(context, seed, ResolvePlayerLabel());
+         return ActionInterpreterContextBuilder.Project(context, seed, ResolvePlayerLabel(), conversationInProgress);
       }
 
       /// <summary>The prompt-safe player label, resolved exactly as <c>LlmServices</c> feeds <c>PromptBuilder.PlayerName</c> (test override, else the live hero name).</summary>

@@ -537,7 +537,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private async Task<ParsedResponse> ComposeByInterpretationAsync(
          ParsedResponse proseResponse, EncounterContext context, NpcProfile profile,
-         NpcMemoryCampaignBehavior behavior)
+         NpcMemoryCampaignBehavior behavior, bool conversationInProgress)
       {
          // TIMING: Asynchronous (show the reply, apply the tags off the turn) is NOT yet wired. Applying the
          // tags back after control returned would mean lifting the inline consumption block out of this
@@ -553,7 +553,7 @@ namespace CalradiaRemembers.Chat
          // exactly as this method always did, before the caller touches any UI / game state.
          ParsedResponse result = await ActionInterpreterComposer.InterpretAsync(
             proseResponse, context, profile, ActionInterpreterComposer.ResolveDefaultPlayerLabel(),
-            behavior.LlmServices, CancellationToken.None);
+            behavior.LlmServices, CancellationToken.None, conversationInProgress);
          await MainThreadDispatcher.SwitchToMainThread();
 
          return result;
@@ -670,6 +670,13 @@ namespace CalradiaRemembers.Chat
             NpcProfile profile = speaker.Profile;
             await EnsureTranscriptCompressedAsync();
             ChatSession session = BuildSessionFor(speaker);
+
+            // PROSE + INTERPRETER (ComposeByInterpretationAsync below): whether this speaker already has at least
+            // one prior turn in the session BEFORE this one is added. Captured HERE, before ChatAsync mutates
+            // `session` in place by appending this turn's own player/NPC messages, so it reads the state as it was
+            // going into this turn, not after. This is the hard "already under way" fact the interpreter has no
+            // other way to know (a stranger scene reads "regard +0, never met before" on every turn alike).
+            bool conversationInProgress = !session.IsEmpty;
 
             if (behavior == null || profile == null || session == null)
             {
@@ -1152,7 +1159,7 @@ namespace CalradiaRemembers.Chat
             // interpreter over them again would be redundant (and would target the wrong prose, the fallback's).
             if (proseInterpretEligible && !usedProseFallback)
             {
-               response = await ComposeByInterpretationAsync(response, context, profile, behavior);
+               response = await ComposeByInterpretationAsync(response, context, profile, behavior, conversationInProgress);
 
                // The interpreter call added an await: the chat may have closed or been replaced meanwhile, so run
                // the same stale-VM guard the main call uses before any game state is touched below.
