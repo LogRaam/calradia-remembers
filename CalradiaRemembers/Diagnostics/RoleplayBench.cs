@@ -1030,7 +1030,7 @@ namespace CalradiaRemembers.Diagnostics
                                          string composition,
                                          string adultNote,
                                          CaptiveSceneIntent intent,
-                                         bool directorConcluded)
+                                         int arcsConcluded)
       {
          int replied = turns.Count(t => t.HasDialogueOrNarration);
          int narrationUsed = turns.Count(t => !string.IsNullOrWhiteSpace(t.Narration));
@@ -1044,7 +1044,8 @@ namespace CalradiaRemembers.Diagnostics
          sb.AppendLine($"  MODEL: {composition}  (Hardcore forced){(string.IsNullOrEmpty(adultNote) ? "" : " | " + adultNote)}");
          sb.AppendLine($"  NPC: {HeroLabelSafe(hero)} | a female captor AND HER BAND abusing the CAPTIVE player TOGETHER (collective, intent {intent}). Drives the REAL CaptiveSceneDirector: a group scene is harder for a reluctant prose model to soft-dodge into an interrogation. Does the captor drive every beat and does the arc conclude?");
          sb.AppendLine($"  SIGNALS: dialogueOrNarration={replied}/{turns.Count}, narrationUsed={narrationUsed}/{turns.Count}, " +
-                       $"directorConcluded={YesNo(directorConcluded)}, refusal/censor={YesNo(refusalOrCensor)}, fadeToBlack={YesNo(fadeToBlack)}, verbatimRepeats={repeats}");
+                       $"directorConcluded={YesNo(arcsConcluded > 0)} (arcs={arcsConcluded}, fresh cycles relaunched like 'Please continue'), " +
+                       $"refusal/censor={YesNo(refusalOrCensor)}, fadeToBlack={YesNo(fadeToBlack)}, verbatimRepeats={repeats}");
          AppendTranscript(sb, hero, turns);
 
          return sb.ToString();
@@ -1273,17 +1274,29 @@ namespace CalradiaRemembers.Diagnostics
             turns.Add(AskDirectorBeat(behavior, hero, seed, session, "[Director opener]", opener, intent, director, true));
 
             // Continuation beats - advance the director and send the shared continuation stimulus, mirroring
-            // RunCaptiveSceneContinuationAsync / RunCaptiveContinueBeats. Stop early once the director concludes.
+            // RunCaptiveSceneContinuationAsync / RunCaptiveContinueBeats. When the director reaches its
+            // conclusion BEFORE the beat budget is spent, do NOT cut the scene off: emulate the live "Please
+            // continue" button (ChatViewModel.ExecutePleaseContinue), which relaunches a FRESH director cycle
+            // (new arc, aggressors re-queued) with the same captor. The director's beat budget was calibrated on
+            // Grok 4.20, which reaches the content quickly; a richer, slower prose model develops the scene more
+            // slowly, so a single cycle can conclude while the encounter still has room. Running fresh cycles up
+            // to Scene4MaxContinueBeats lets the bench reflect a full session the way a determined player would
+            // drive it, and makes Scene4MaxContinueBeats actually govern the scene length.
+            var arcsConcluded = 0;
             for (var i = 0; i < Scene4MaxContinueBeats; i++)
             {
                director.AdvanceStory();
                string stimulus = CaptiveSceneText.BuildContinuationStimulus();
                turns.Add(AskDirectorBeat(behavior, hero, seed, session, $"[Director beat {i + 1}]", stimulus, intent, director, true));
 
-               if (director.IsConcluding) break;
+               if (director.IsConcluding)
+               {
+                  arcsConcluded++;
+                  director = new CaptiveSceneDirector(true, 2, MBRandomSource.Instance, false, intent);
+               }
             }
 
-            return FormatScene4(hero, turns, composition, adultNote, intent, director.IsConcluding);
+            return FormatScene4(hero, turns, composition, adultNote, intent, arcsConcluded);
          }
          finally
          {
