@@ -755,8 +755,12 @@ namespace CalradiaRemembers.Services
             promptBuilder) {
             // Audit M13. The MaxTokens/Creativity values restate the SDK defaults deliberately: the whole
             // generation shape is one decision, and splitting it across two projects is how it drifts.
+            // MaxTokens raised 1500->3000 (2026-08-15): long explicit captive/Director beats were truncated
+            // mid-sentence at 1500 (a beat's prose plus, on a reasoning model, its thinking can exceed it). This
+            // is a CEILING, not a target: an ordinary chat reply still stops on its own, so cost only rises on
+            // the rare long beat that actually needs the room. Kept in sync with NpcChatService's default.
             ChatParameters = new LlmParameters {
-               MaxTokens = 1500,
+               MaxTokens = 3000,
                Creativity = 0.7f,
                PresencePenalty = ScenePresencePenalty
             }
