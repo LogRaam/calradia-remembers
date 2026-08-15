@@ -58,6 +58,34 @@ namespace CalradiaRemembers.Tests
             TruncationFallbackPolicy.ShouldFallBack("stop", true).Should().BeFalse();
         }
 
+        // STAKE: the exact rp_bench scene-4 report that prompted this rule - a captor Director beat came back on a
+        // clean "stop" finish with a full [NARRATION] block but NO spoken line ("Susada: (no spoken line)"). A pure
+        // finish-reason gate treats that as complete and ships a silent captor; the fallback must fire so the driving
+        // character is redone into the scene rather than vanishing from it.
+        [Test]
+        public void GIVEN_a_clean_stop_but_no_spoken_dialogue_WHEN_a_fallback_model_is_configured_THEN_it_falls_back()
+        {
+            TruncationFallbackPolicy.ShouldFallBack("stop", true, false).Should().BeTrue();
+        }
+
+        // STAKE: the no-dialogue trigger must still respect the "nowhere to send the redo" guard, exactly like the
+        // finish-reason path: with no fallback model configured a silent beat has to ship as-is rather than call out
+        // to an empty model id.
+        [Test]
+        public void GIVEN_no_spoken_dialogue_WHEN_no_fallback_model_is_configured_THEN_it_does_not_fall_back()
+        {
+            TruncationFallbackPolicy.ShouldFallBack("stop", false, false).Should().BeFalse();
+        }
+
+        // STAKE: pins the byte-for-byte-unchanged happy path of the 3-arg overload: an ordinary complete beat (clean
+        // "stop" AND a real spoken line) must never pay for the fallback's extra call. This is the common case on
+        // every non-degenerate turn, so a regression here would tax every Prose+Interpret turn.
+        [Test]
+        public void GIVEN_a_clean_stop_with_a_spoken_line_WHEN_a_fallback_model_is_configured_THEN_it_does_not_fall_back()
+        {
+            TruncationFallbackPolicy.ShouldFallBack("stop", true, true).Should().BeFalse();
+        }
+
         // STAKE: the MCM field defaults BLANK, and blank means "use the Action Interpreter model" (resolved one
         // layer up, by LlmServices.ResolveProseFallbackModel), never "no fallback configured at all". But if
         // that resolution somehow still yields nothing, there is nowhere to send the redo, so a truncated beat

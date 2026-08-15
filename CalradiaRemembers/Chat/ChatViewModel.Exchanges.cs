@@ -976,9 +976,11 @@ namespace CalradiaRemembers.Chat
                string fallbackModel = behavior.LlmServices.ResolveProseFallbackModel();
                bool fallbackConfigured = !string.IsNullOrWhiteSpace(fallbackModel);
 
-               if (TruncationFallbackPolicy.ShouldFallBack(result.FinishReason, fallbackConfigured))
+               bool hasSpokenDialogue = !string.IsNullOrWhiteSpace(result.Response?.Dialogue);
+               if (TruncationFallbackPolicy.ShouldFallBack(result.FinishReason, fallbackConfigured, hasSpokenDialogue))
                {
-                  ModLog.Info($"[PROSE-FALLBACK] prose model truncated (finish={result.FinishReason ?? "empty"}); " +
+                  string why = hasSpokenDialogue ? $"truncated (finish={result.FinishReason ?? "empty"})" : "produced no spoken line";
+                  ModLog.Info($"[PROSE-FALLBACK] prose model {why}; " +
                               $"completing this beat on {fallbackModel} in Integrated mode.");
 
                   NpcChatResult fallbackResult = await ProseFallbackComposer.RunIntegratedFallbackAsync(

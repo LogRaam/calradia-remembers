@@ -7175,6 +7175,8 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("emptyFallsBackWhenConfigured", TruncationFallbackPolicy.ShouldFallBack(null, true), true);
          t.Expect("stopNeverFallsBack", TruncationFallbackPolicy.ShouldFallBack("stop", true), false);
          t.Expect("noModelConfiguredNeverFallsBack", TruncationFallbackPolicy.ShouldFallBack("length", false), false);
+         t.Expect("cleanStopButNoSpokenLineFallsBack", TruncationFallbackPolicy.ShouldFallBack("stop", true, false), true);
+         t.Expect("cleanStopWithSpokenLineNeverFallsBack", TruncationFallbackPolicy.ShouldFallBack("stop", true, true), false);
 
          CrSettings s = CrSettings.Instance;
          if (t.Skip(s == null, "MCM settings unavailable, cannot read the Prose fallback model field")) return t.Line();

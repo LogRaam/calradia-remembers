@@ -414,7 +414,7 @@ namespace CalradiaRemembers.Diagnostics
             sb.AppendLine($"  {npcName}: {(string.IsNullOrWhiteSpace(t.Dialogue) ? "(no spoken line)" : t.Dialogue.Trim())}");
 
             if (t.FallbackModel != null)
-               sb.AppendLine($"  [PROSE-FALLBACK] prose truncated -> completed on {t.FallbackModel}");
+               sb.AppendLine($"  [PROSE-FALLBACK] prose incomplete (truncated or no spoken line) -> completed on {t.FallbackModel}");
 
             if (!string.IsNullOrWhiteSpace(t.Narration))
                sb.AppendLine($"  [NARRATION] {t.Narration.Trim()}");
@@ -573,7 +573,8 @@ namespace CalradiaRemembers.Diagnostics
                string fallbackModel = services.ResolveProseFallbackModel();
                bool fallbackConfigured = !string.IsNullOrWhiteSpace(fallbackModel);
 
-               if (TruncationFallbackPolicy.ShouldFallBack(result.FinishReason, fallbackConfigured))
+               if (TruncationFallbackPolicy.ShouldFallBack(result.FinishReason, fallbackConfigured,
+                      !string.IsNullOrWhiteSpace(result.Response?.Dialogue)))
                {
                   NpcChatResult fbResult = ProseFallbackComposer.RunIntegratedFallbackAsync(
                      profile, world, session, stimulus, result.Response?.Dialogue,
@@ -696,7 +697,8 @@ namespace CalradiaRemembers.Diagnostics
                string fallbackModel = services.ResolveProseFallbackModel();
                bool fallbackConfigured = !string.IsNullOrWhiteSpace(fallbackModel);
 
-               if (TruncationFallbackPolicy.ShouldFallBack(result.FinishReason, fallbackConfigured))
+               if (TruncationFallbackPolicy.ShouldFallBack(result.FinishReason, fallbackConfigured,
+                      !string.IsNullOrWhiteSpace(result.Response?.Dialogue)))
                {
                   NpcChatResult fbResult = ProseFallbackComposer.RunIntegratedFallbackAsync(
                      profile, world, session, playerLine, result.Response?.Dialogue,
