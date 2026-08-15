@@ -59,11 +59,19 @@ namespace CalradiaRemembers.Chat
          using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
          cts.CancelAfter(TimeSpan.FromSeconds(budgetSeconds));
 
+         // The fallback COMPLETES a beat the primary model started; on back-to-back fallbacks the fallback model
+         // (grok) tended to echo the previous beat's imagery/positions. Append an out-of-fiction anti-repeat cue to
+         // the message the fallback call sees (never to the ORIGINAL playerMessage the restore/UI use), so the
+         // completed beat moves somewhere concretely new instead of re-narrating the last one.
+         string fallbackMessage = (playerMessage ?? string.Empty)
+            + " [Complete THIS beat FRESH: do NOT reuse any image, phrase, position, or gesture from the previous"
+            + " beat; move the action somewhere concretely new.]";
+
          NpcChatResult result;
          try
          {
             result = await Task.Run(() => fallbackService.ChatAsync(
-                                 profile, world, session, playerMessage, context, cts.Token,
+                                 profile, world, session, fallbackMessage, context, cts.Token,
                                  allowTruncationRetry: true, modelOverride: fallbackModel))
                              .ConfigureAwait(false);
          }
