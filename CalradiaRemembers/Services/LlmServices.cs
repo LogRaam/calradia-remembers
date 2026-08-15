@@ -592,6 +592,21 @@ namespace CalradiaRemembers.Services
       }
 
       /// <summary>
+      ///   The model that completes a beat the PROSE model cut off mid-sentence (Prose + Interpreter mode only,
+      ///   see <see cref="Logic.TruncationFallbackPolicy" />): the configured "Prose fallback model" field, or
+      ///   <see cref="ResolveInterpreterModel" /> when blank (grok, the Action Interpreter's own model, is already
+      ///   the most explicit configured model, so no new config is needed by default).
+      /// </summary>
+      public string ResolveProseFallbackModel()
+      {
+         string configured = ModSettings.ProseFallbackModel;
+
+         return string.IsNullOrWhiteSpace(configured)
+            ? ResolveInterpreterModel()
+            : configured;
+      }
+
+      /// <summary>
       ///   The selected provider id from the MCM menu (display string). Falls back to OpenRouter when MCM has not
       ///   loaded. Kept for the boot log and <see cref="DescribeUnavailability" />; routing itself goes through the
       ///   kind helpers above.

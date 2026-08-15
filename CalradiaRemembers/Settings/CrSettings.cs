@@ -154,6 +154,13 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public bool MemoryCompression { get; set; } = true;
 
+      [SettingPropertyText("Prose fallback model (on truncation)", RequireRestart = false, Order = 14,
+         HintText = "Used only in Prose + Interpreter composition mode: when the prose model cuts a beat off " +
+                    "mid-sentence, this turn is redone in one call on this model instead. Blank (default) = reuse " +
+                    "the Actions Interpreter model above, which is already your most explicit configured model.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public string ProseFallbackModel { get; set; } = "";
+
       [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 11,
          HintText = "How long to wait for a reply, in seconds (default 120). Raise it for a slow local or reasoning " +
                     "model; lower it to fail fast. Applies immediately.")]

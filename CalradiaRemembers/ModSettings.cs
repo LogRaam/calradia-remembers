@@ -320,6 +320,15 @@ namespace CalradiaRemembers
       public static string ActionInterpreterModel => CrSettings.Instance?.ActionInterpreterModel?.Trim() ?? "";
 
       /// <summary>
+      ///   The model that completes a beat the PROSE model cut off mid-sentence (Prose + Interpreter mode only,
+      ///   see <see cref="Logic.TruncationFallbackPolicy" />): the "Prose fallback model" MCM field. Blank (the
+      ///   default) means "use the Action Interpreter model" (resolved by
+      ///   <see cref="Services.LlmServices.ResolveProseFallbackModel" />), so no new config is needed to get the
+      ///   safety net. Read live from the MCM menu.
+      /// </summary>
+      public static string ProseFallbackModel => CrSettings.Instance?.ProseFallbackModel?.Trim() ?? "";
+
+      /// <summary>
       ///   The RAW provider value for the roleplay / prose role: the "Roleplay / Prose provider" MCM field, whose
       ///   property is still named <c>Provider</c> for save compatibility (it was the released global provider). This
       ///   role is the BASE the other three inherit when left on "(default)"; it carries no "(default)" itself, so a

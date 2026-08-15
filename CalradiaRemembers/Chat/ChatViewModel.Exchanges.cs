@@ -912,6 +912,16 @@ namespace CalradiaRemembers.Chat
 
             long startMs = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
 
+            // PROSE FALLBACK eligibility (same gate ComposeByInterpretationAsync's call site checks below): only
+            // an ordinary main-NPC 1:1 turn on a real player message, never captive/captor scenes or councils.
+            // Computed here (not just at the interpret call site) because the PROSE call itself needs it: only
+            // an eligible turn is issued with allowTruncationRetry:false (fail fast instead of the SDK's own
+            // slow double-budget retry), so the mod's own fallback can take over immediately.
+            bool proseInterpretEligible = ModSettings.ChatCompositionMode == ChatCompositionMode.ProseInterpret
+                                          && speaker.IsMain && !suppressPlayerLine
+                                          && !IsCaptiveEncounter && !_captorScene && _councilScope == null;
+            bool usedProseFallback = false;
+
             NpcChatResult result;
             using (var cts = new CancellationTokenSource())
             {
@@ -921,7 +931,8 @@ namespace CalradiaRemembers.Chat
                {
                   result = await Task.Run(() =>
                                         behavior.LlmServices.ChatService.ChatAsync(
-                                           profile, world, session, playerMessage, context, cts.Token))
+                                           profile, world, session, playerMessage, context, cts.Token,
+                                           allowTruncationRetry: !proseInterpretEligible))
                                      .ConfigureAwait(false);
                }
                catch (Exception netEx)
@@ -948,6 +959,42 @@ namespace CalradiaRemembers.Chat
 
                return;
             }
+
+            // ── PROSE FALLBACK (ADDITIVE; the clean-finish path below is byte-for-byte unchanged) ──
+            // The prose call above failed fast (allowTruncationRetry:false) on an eligible turn; decide from its
+            // FinishReason alone whether the beat needs completing on the fallback model. A "stop" finish (the
+            // ordinary case) never enters this block, so nothing here runs for a clean reply.
+            if (proseInterpretEligible)
+            {
+               string fallbackModel = behavior.LlmServices.ResolveProseFallbackModel();
+               bool fallbackConfigured = !string.IsNullOrWhiteSpace(fallbackModel);
+
+               if (TruncationFallbackPolicy.ShouldFallBack(result.FinishReason, fallbackConfigured))
+               {
+                  ModLog.Info($"[PROSE-FALLBACK] prose model truncated (finish={result.FinishReason ?? "empty"}); " +
+                              $"completing this beat on {fallbackModel} in Integrated mode.");
+
+                  NpcChatResult fallbackResult = await ProseFallbackComposer.RunIntegratedFallbackAsync(
+                     profile, world, session, playerMessage, result.Response?.Dialogue,
+                     context, behavior.LlmServices, fallbackModel, CancellationToken.None);
+
+                  // The fallback call added an await: the chat may have closed or been replaced meanwhile, so run
+                  // the same stale-VM guard the main call uses before any game state below is touched.
+                  await MainThreadDispatcher.SwitchToMainThread();
+                  if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
+
+                  if (fallbackResult.IsSuccess)
+                  {
+                     result = fallbackResult;
+                     usedProseFallback = true;
+                  }
+                  else
+                  {
+                     ModLog.Error($"[PROSE-FALLBACK] fallback call on {fallbackModel} failed too; keeping the truncated prose reply: {fallbackResult.ErrorMessage}");
+                  }
+               }
+            }
+            // ─────────────────────────────────────────────────────────────────────────────────────
 
             ParsedResponse response = result.Response;
             // Empty when the model produced no spoken line; RenderNpcTurn below turns that into
@@ -1100,9 +1147,10 @@ namespace CalradiaRemembers.Chat
             // SAME consumption pipeline below (no duplicated execution code). Confined to an ordinary main-NPC 1:1
             // turn on a real player message: captive/captor scenes, councils, routed-witness turns and synthetic
             // openers deliberately stay Integrated for now (a later increment), so those guarded paths are untouched.
-            if (ModSettings.ChatCompositionMode == ChatCompositionMode.ProseInterpret
-                && speaker.IsMain && !suppressPlayerLine
-                && !IsCaptiveEncounter && !_captorScene && _councilScope == null)
+            // usedProseFallback: the PROSE FALLBACK block above already redid this turn as a single INTEGRATED call
+            // (prose + tags together) on the fallback model, so `response` already carries real tags: running the
+            // interpreter over them again would be redundant (and would target the wrong prose, the fallback's).
+            if (proseInterpretEligible && !usedProseFallback)
             {
                response = await ComposeByInterpretationAsync(response, context, profile, behavior);
 

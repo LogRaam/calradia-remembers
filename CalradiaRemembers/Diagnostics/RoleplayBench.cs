@@ -348,6 +348,13 @@ namespace CalradiaRemembers.Diagnostics
          public string Dialogue => Response?.Dialogue ?? "";
          public string Error { get; set; }
 
+         /// <summary>
+         ///   Non-null when the PROSE FALLBACK fired for this turn (Prose + Interpreter mode, the prose model
+         ///   truncated its beat): names the model that actually completed it, so the bench transcript is honest
+         ///   about which model produced the beat rather than crediting the prose model that choked on it.
+         /// </summary>
+         public string FallbackModel { get; set; }
+
          public bool FormatHeld => Error == null && !string.IsNullOrWhiteSpace(Dialogue);
          public bool HasDialogueOrNarration => Error == null && (!string.IsNullOrWhiteSpace(Dialogue) || !string.IsNullOrWhiteSpace(Narration));
 
@@ -388,6 +395,9 @@ namespace CalradiaRemembers.Diagnostics
             }
 
             sb.AppendLine($"  {npcName}: {(string.IsNullOrWhiteSpace(t.Dialogue) ? "(no spoken line)" : t.Dialogue.Trim())}");
+
+            if (t.FallbackModel != null)
+               sb.AppendLine($"  [PROSE-FALLBACK] prose truncated -> completed on {t.FallbackModel}");
 
             if (!string.IsNullOrWhiteSpace(t.Narration))
                sb.AppendLine($"  [NARRATION] {t.Narration.Trim()}");
@@ -444,7 +454,10 @@ namespace CalradiaRemembers.Diagnostics
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(budgetSeconds));
             CancellationToken ct = cts.Token;
 
-            Task<NpcChatResult> task = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, stimulus, ctx, ct), ct);
+            bool proseInterpretMode = ModSettings.ChatCompositionMode == ChatCompositionMode.ProseInterpret;
+
+            Task<NpcChatResult> task = Task.Run(() => services.ChatService.ChatAsync(
+               profile, world, session, stimulus, ctx, ct, allowTruncationRetry: !proseInterpretMode), ct);
             task.Wait(ct);
             NpcChatResult result = task.GetAwaiter().GetResult();
 
@@ -457,13 +470,33 @@ namespace CalradiaRemembers.Diagnostics
 
             turn.Response = result.Response ?? new ParsedResponse {Dialogue = ""};
 
-            // PROSE + INTERPRETER: same as AskTurn, run the shared interpreter core over the beat's prose when that
-            // composition is selected, so scene 4's director beats also test the Action Interpreter with the prose
-            // model. Off the UI thread, so no SwitchToMainThread; the helper never throws (prose + no tags on any
-            // failure), so the beat is preserved either way.
-            if (ModSettings.ChatCompositionMode == ChatCompositionMode.ProseInterpret)
-               turn.Response = ActionInterpreterComposer.InterpretAsync(
-                  turn.Response, ctx, profile, ActionInterpreterComposer.ResolveDefaultPlayerLabel(), services, ct).GetAwaiter().GetResult();
+            // PROSE + INTERPRETER: same as AskTurn, either the PROSE FALLBACK fires (see ProseFallbackComposer)
+            // when this beat truncated, or the shared interpreter core runs over the beat's prose, so scene 4's
+            // director beats also test the Action Interpreter (or the fallback) with the prose model. Off the UI
+            // thread, so no SwitchToMainThread; neither helper throws (prose + no tags on any failure), so the
+            // beat is preserved either way.
+            if (proseInterpretMode)
+            {
+               string fallbackModel = services.ResolveProseFallbackModel();
+               bool fallbackConfigured = !string.IsNullOrWhiteSpace(fallbackModel);
+
+               if (TruncationFallbackPolicy.ShouldFallBack(result.FinishReason, fallbackConfigured))
+               {
+                  NpcChatResult fbResult = ProseFallbackComposer.RunIntegratedFallbackAsync(
+                     profile, world, session, stimulus, result.Response?.Dialogue,
+                     ctx, services, fallbackModel, ct).GetAwaiter().GetResult();
+
+                  if (fbResult is {IsSuccess: true})
+                  {
+                     turn.Response = fbResult.Response ?? new ParsedResponse {Dialogue = ""};
+                     turn.FallbackModel = fallbackModel;
+                  }
+                  // else: keep the truncated prose reply, exactly like the live chat's fallback-failure path.
+               }
+               else
+                  turn.Response = ActionInterpreterComposer.InterpretAsync(
+                     turn.Response, ctx, profile, ActionInterpreterComposer.ResolveDefaultPlayerLabel(), services, ct).GetAwaiter().GetResult();
+            }
          }
          catch (OperationCanceledException)
          {
@@ -523,7 +556,10 @@ namespace CalradiaRemembers.Diagnostics
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(budgetSeconds));
             CancellationToken ct = cts.Token;
 
-            Task<NpcChatResult> task = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, playerLine, ctx, ct), ct);
+            bool proseInterpretMode = ModSettings.ChatCompositionMode == ChatCompositionMode.ProseInterpret;
+
+            Task<NpcChatResult> task = Task.Run(() => services.ChatService.ChatAsync(
+               profile, world, session, playerLine, ctx, ct, allowTruncationRetry: !proseInterpretMode), ct);
             task.Wait(ct);
             NpcChatResult result = task.GetAwaiter().GetResult();
 
@@ -536,14 +572,34 @@ namespace CalradiaRemembers.Diagnostics
 
             turn.Response = result.Response ?? new ParsedResponse {Dialogue = ""};
 
-            // PROSE + INTERPRETER: when that composition is selected in MCM, run the SAME shared interpreter core
-            // the live chat uses over the prose just produced, so the bench tests the Action Interpreter with the
-            // prose model and the per-scene signals (change_relation deltas, intimacyEvent, [ACTION]/[EVENT]) now
-            // reflect the interpreter's tags. Off the UI thread here, so no SwitchToMainThread; the helper never
-            // throws (it degrades to prose + no tags), so the prose turn is preserved either way.
-            if (ModSettings.ChatCompositionMode == ChatCompositionMode.ProseInterpret)
-               turn.Response = ActionInterpreterComposer.InterpretAsync(
-                  turn.Response, ctx, profile, ActionInterpreterComposer.ResolveDefaultPlayerLabel(), services, ct).GetAwaiter().GetResult();
+            // PROSE + INTERPRETER: when that composition is selected in MCM, either the PROSE FALLBACK fires (same
+            // seam the live chat uses, see ProseFallbackComposer) when this beat truncated, or the SAME shared
+            // interpreter core the live chat uses reads the prose just produced, so the bench tests the Action
+            // Interpreter with the prose model and the per-scene signals (change_relation deltas, intimacyEvent,
+            // [ACTION]/[EVENT]) now reflect the interpreter's (or the fallback's) tags. Off the UI thread here, so
+            // no SwitchToMainThread; neither helper throws, so the prose turn is preserved either way.
+            if (proseInterpretMode)
+            {
+               string fallbackModel = services.ResolveProseFallbackModel();
+               bool fallbackConfigured = !string.IsNullOrWhiteSpace(fallbackModel);
+
+               if (TruncationFallbackPolicy.ShouldFallBack(result.FinishReason, fallbackConfigured))
+               {
+                  NpcChatResult fbResult = ProseFallbackComposer.RunIntegratedFallbackAsync(
+                     profile, world, session, playerLine, result.Response?.Dialogue,
+                     ctx, services, fallbackModel, ct).GetAwaiter().GetResult();
+
+                  if (fbResult is {IsSuccess: true})
+                  {
+                     turn.Response = fbResult.Response ?? new ParsedResponse {Dialogue = ""};
+                     turn.FallbackModel = fallbackModel;
+                  }
+                  // else: keep the truncated prose reply, exactly like the live chat's fallback-failure path.
+               }
+               else
+                  turn.Response = ActionInterpreterComposer.InterpretAsync(
+                     turn.Response, ctx, profile, ActionInterpreterComposer.ResolveDefaultPlayerLabel(), services, ct).GetAwaiter().GetResult();
+            }
          }
          catch (OperationCanceledException)
          {

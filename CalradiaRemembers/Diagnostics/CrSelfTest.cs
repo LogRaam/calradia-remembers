@@ -151,6 +151,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the custom endpoint URL", TestProviderRouting),
+         new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel falls back to the Action Interpreter model when the Prose fallback field is blank and honours a distinct configured value instead. Restores both MCM fields", TestProseFallback),
          new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
@@ -7146,6 +7147,57 @@ namespace CalradiaRemembers.Diagnostics
             s.CncProvider.SelectedIndex = priorCnc;
             s.ActionInterpreterProvider.SelectedIndex = priorInterpreter;
             s.CustomEndpointUrl = priorEndpoint;
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   prose_fallback (Prose + Interpreter truncation safety net, 15/08/2026): the fast-fail + redo-once-
+      ///   elsewhere decision the live chat and cr.rp_bench both rely on before ever placing a real LLM call
+      ///   (TruncationFallbackPolicy is pure, so its own clean/not-clean rule is covered by
+      ///   TruncationFallbackPolicyTests; this drives it again here so cr.testall proves the wiring reaches this
+      ///   assembly at all), plus the ONE piece that genuinely needs a live MCM instance:
+      ///   LlmServices.ResolveProseFallbackModel falling back to the configured Action Interpreter model when the
+      ///   Prose fallback field is left blank (Piece 3's whole "no new config needed by default" claim), and
+      ///   honouring a distinct configured value instead. No engine state is mutated beyond the two MCM fields,
+      ///   both restored in the finally.
+      /// </summary>
+      private static string TestProseFallback(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("prose_fallback");
+
+         LlmServices llm = behavior?.LlmServices;
+         if (t.Skip(llm == null, "LLM services not initialized")) return t.Line();
+
+         t.Expect("lengthFallsBackWhenConfigured", TruncationFallbackPolicy.ShouldFallBack("length", true), true);
+         t.Expect("contentFilterFallsBackWhenConfigured", TruncationFallbackPolicy.ShouldFallBack("content_filter", true), true);
+         t.Expect("emptyFallsBackWhenConfigured", TruncationFallbackPolicy.ShouldFallBack(null, true), true);
+         t.Expect("stopNeverFallsBack", TruncationFallbackPolicy.ShouldFallBack("stop", true), false);
+         t.Expect("noModelConfiguredNeverFallsBack", TruncationFallbackPolicy.ShouldFallBack("length", false), false);
+
+         CrSettings s = CrSettings.Instance;
+         if (t.Skip(s == null, "MCM settings unavailable, cannot read the Prose fallback model field")) return t.Line();
+
+         string priorFallback = s.ProseFallbackModel;
+         string priorInterpreter = s.ActionInterpreterModel;
+         try
+         {
+            // STAKE: the field ships BLANK by default; if this resolution stopped reusing the Action Interpreter
+            // model, a player who never touched the new field would get no safety net at all.
+            s.ProseFallbackModel = "";
+            s.ActionInterpreterModel = "x-ai/grok-4.20-fast";
+            t.Expect("blankFallbackReusesInterpreterModel", llm.ResolveProseFallbackModel(), "x-ai/grok-4.20-fast");
+
+            // STAKE: a player who DOES set a distinct fallback model must have it win, or the field would be
+            // dead configuration that silently does nothing.
+            s.ProseFallbackModel = "some/distinct-model";
+            t.Expect("configuredFallbackWins", llm.ResolveProseFallbackModel(), "some/distinct-model");
+         }
+         finally
+         {
+            s.ProseFallbackModel = priorFallback;
+            s.ActionInterpreterModel = priorInterpreter;
          }
 
          return t.Line();
