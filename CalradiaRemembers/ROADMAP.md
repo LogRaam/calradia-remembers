@@ -32,6 +32,36 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## WISHED (player-session finding, 2026-08-15): an NPC can TEACH the player a skill, and it grants real skill XP
+
+In a bench run an NPC spontaneously offered to teach the player:
+> [EVENT] Other: I offered to teach Arwa basic swordsmanship once she recovers her strength, and promised to
+> introduce her to a captain who might train her further if she proves capable.
+
+The LLM already OFFERS instruction organically (swordsmanship, reading an opponent's stance, court politics,
+riding). The gap is the same empty-promise class the mod closes elsewhere: the offer never becomes real. The wish
+is to make a teaching offer actually grant SKILL XP to the player, so a lord who says "I will teach you the blade"
+leaves a mark on the character sheet, not only in the transcript.
+
+Shape (NOT started):
+- A `teach_skill` action verb (GameActionCatalog) the interpreter emits when the prose shows the NPC actually
+  instructing the player THIS beat (not merely promising a future lesson). Params: skill, amount.
+- Bridge executor: `Hero.MainHero.HeroDeveloper.AddSkillXp(skill, amount)`, re-validated ("the prompt is advice,
+  the bridge is law"). The NPC must plausibly know the skill (gate on the NPC's OWN skill level or role: a captain
+  teaches One-Handed, a merchant Trade, a scholar Medicine or Engineering). The amount stays bounded and modest,
+  with a cooldown or per-NPC cap so it cannot be farmed by re-asking (mirror RelationGate's cap plus cooldown).
+- Promise vs lesson distinction: "I WILL teach you once you recover" is a future commitment (Commitment or quest
+  territory); "here, hold the blade like THIS" is an executable lesson this turn. Only the latter grants XP now;
+  the former could seed a Commitment the NPC later honors (ties into the escort/errand commitment machinery).
+- Pure policy `TeachSkillPolicy` (who can teach what, how much, cooldown) isolated in .Logic with tests; a
+  cr.testall self-test via a DebugEvaluate seam; a cr.teach_info console command.
+
+Fits the mission: a spoken offer shows up on the character sheet, verified by a real engine grant, bounded so it
+cannot be abused. Related: the anti-empty-promise rule (STAY WITHIN WHAT YOU KNOW), join_party's re-validation
+pattern, and the Commitment/errand machinery for the "future lesson" half.
+
+---
+
 ## WISHED, DEFERRED (player wish, 2026-08-03): NPC behaviors DURING battles (a promise to stay by your side, honored in combat)
 
 A player pledged a companion to "stay by my side in battle" and noted, correctly, that the engine will not honor
