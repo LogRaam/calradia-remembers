@@ -25,7 +25,10 @@ namespace CalradiaRemembers.Mapping
             IsFemale = hero.IsFemale,
             Age = (int) hero.Age,
             Faction = hero.MapFaction?.Name?.ToString() ?? "Unaligned",
-            Clan = hero.Clan?.Name?.ToString() ?? "No clan",
+            // Empty, not a "No clan" phrase: a clanless hero has no house name, and every consumer already treats
+            // an empty clan as "no clan" (the prompt renders "of no noble clan", the digest drops the "of X" tail).
+            // The old "No clan" sentinel leaked into templates as "of the No clan clan".
+            Clan = hero.Clan?.Name?.ToString() ?? "",
             Personality = BuildPersonality(hero),
             Trait = archetype,
             SpouseName = hero.Spouse?.IsAlive == true
