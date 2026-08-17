@@ -34,11 +34,13 @@ namespace CalradiaRemembers.Diagnostics
       ///   scoreboard log. The scored comparison is the SDK's pure code; this only supplies the live client and
       ///   writes the result where the user can read and diff it across interpreter models.
       /// </summary>
-      public static string Run(NpcMemoryCampaignBehavior behavior)
+      public static string Run(NpcMemoryCampaignBehavior behavior, int passes = 1)
       {
          if (behavior == null) return "Calradia Remembers behavior not active. Start a campaign first.";
          if (behavior.LlmServices is not {IsAvailable: true})
             return "LLM services not available. Set your OpenRouter API key and model in MCM first.";
+
+         if (passes < 1) passes = 1;
 
          ILlmClient interpreter = behavior.LlmServices.InterpreterClient;
          string model = behavior.LlmServices.ResolveInterpreterModel() ?? "unknown";
@@ -46,7 +48,7 @@ namespace CalradiaRemembers.Diagnostics
          ActionBenchReport report;
          try
          {
-            report = Task.Run(() => ActionBenchRunner.RunAsync(interpreter, ActionBenchCatalog.All)).GetAwaiter().GetResult();
+            report = Task.Run(() => ActionBenchRunner.RunAsync(interpreter, ActionBenchCatalog.All, passes)).GetAwaiter().GetResult();
          }
          catch (Exception ex)
          {
@@ -58,15 +60,15 @@ namespace CalradiaRemembers.Diagnostics
          sb.AppendLine("========================================================================");
          sb.AppendLine($"  cr.action_bench run - {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
          sb.AppendLine($"  Interpreter model: {model}");
-         sb.AppendLine($"  Cases: {ActionBenchCatalog.All.Count} (static prose read by the interpreter, then scored)");
+         sb.AppendLine($"  Cases: {ActionBenchCatalog.All.Count}, passes each: {passes} (static prose read by the interpreter, then scored)");
          sb.AppendLine("========================================================================");
          sb.Append(report.Format());
 
          try { File.AppendAllText(ReportPath, sb.ToString()); }
          catch (Exception ex) { ModLog.Error($"[ACTION-BENCH] could not write the report log: {ex.GetType().Name}: {ex.Message}"); }
 
-         return $"cr.action_bench: {report.Passed}/{report.Total} passed "
-              + $"({report.Misses} miss, {report.ParamMismatches} param-mismatch, {report.FalsePositives} false-positive, "
+         return $"cr.action_bench: {report.CasesPassed}/{report.TotalCases} cases passed "
+              + $"({report.Misses} miss, {report.PartialHits} partial, {report.FalsePositives} false-positive, "
               + $"{report.CallFailures} call-fail). Full scoreboard -> {ReportPath}";
       }
    }
