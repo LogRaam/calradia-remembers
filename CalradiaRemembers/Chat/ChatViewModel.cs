@@ -1732,6 +1732,41 @@ namespace CalradiaRemembers.Chat
          _ = RunRoundTableLapAsync(AllPresentSpeakers());
       }
 
+      // A player asked for tooltips on the chat buttons; a single "?" popup was preferred over per-button hints
+      // that get repetitive with use. One place to explain the whole window, opened only when the player wants it.
+      private static readonly string HelpText =
+         "Type anything you like and the character answers in their own voice. The whole conversation stays on "
+       + "screen, not just their last line.\n\n"
+       + "Buttons:\n"
+       + "- Encyclopedia: open this character's page without leaving the chat.\n"
+       + "- Memories: everything this character remembers of you, dated, oldest first.\n"
+       + "- The < review panel: read your whole message back before you send it.\n"
+       + "- Quill (styles): choose the narrative voice the AI writes in.\n"
+       + "- Bag (give item) and Give Gold: hand over goods or coin, as a gift or to settle a deal.\n"
+       + "- Request Private: ask the character to clear any onlookers so you can speak alone.\n"
+       + "- Leave / End: close the conversation.\n\n"
+       + "In a captive or paced scene: Continue advances the moment, Try something lets you act in your own "
+       + "words, and Please continue nudges a stalled scene forward.\n\n"
+       + "What you say has real weight: relations shift, coin changes hands, and promises can become quests. "
+       + "The character remembers all of it next time you meet.";
+
+      /// <summary>Opens the "?" help popup that explains the chat window, so the buttons need no per-button tooltips.</summary>
+      public void ExecuteShowHelp()
+      {
+         try
+         {
+            InformationManager.ShowInquiry(new InquiryData(
+               "How the chat window works", HelpText,
+               true, false,
+               "Close", null,
+               () => { }, null), false);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ExecuteShowHelp threw {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
       /// <summary>
       ///   The in-window "Voices" control. SUPERSEDED by the council narrator model (2026-08-02): every real
       ///   council turn now fires the single narrator call regardless of this setting (see

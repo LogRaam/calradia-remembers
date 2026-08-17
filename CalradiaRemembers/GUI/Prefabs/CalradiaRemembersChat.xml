@@ -56,6 +56,21 @@
                         Brush.TextHorizontalAlignment="Center"
                         Text="@TitleText"
                         IsDisabled="true" />
+            <!-- Help: a small "?" opening a popup that explains the window (preferred over per-button tooltips). -->
+            <ButtonWidget Id="HelpButton"
+                          WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                          SuggestedWidth="34" SuggestedHeight="34"
+                          HorizontalAlignment="Right" VerticalAlignment="Top"
+                          MarginTop="8" MarginRight="12"
+                          DoNotPassEventsToChildren="true"
+                          Brush="ButtonBrush1"
+                          Command.Click="ExecuteShowHelp">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Brush="Popup.Button.Text" Brush.FontSize="20"
+                            Brush.TextHorizontalAlignment="Center" Text="?" IsDisabled="true" />
+              </Children>
+            </ButtonWidget>
             <TextWidget Id="WitnessesTextWidget"
                         WidthSizePolicy="StretchToParent"
                         HeightSizePolicy="Fixed"
