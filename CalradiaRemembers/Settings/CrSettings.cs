@@ -244,9 +244,10 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> NsfwReasoningEffort { get; set; } =
          new(new[] {ModelModePolicy.SameAsProse, "Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Same as roleplay
 
-      [SettingPropertyDropdown("Reasoning Effort (roleplay)", RequireRestart = false, Order = 1,
-         HintText = "How hard a reasoning model thinks before replying. Higher can mean finer dialogue but slower " +
-                    "replies. Default leaves it to the model. OpenRouter only.")]
+      [SettingPropertyDropdown("Reasoning Effort (PROSE)", RequireRestart = false, Order = 1,
+         HintText = "How hard the PROSE model thinks before replying. Higher can mean finer dialogue but slower " +
+                    "replies, more truncation, and MORE refusals on adult content - and in Enhanced mode the PROSE " +
+                    "model writes captivity scenes too, so keep it LOW or Medium. Default leaves it to the model. OpenRouter only.")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public Dropdown<string> ReasoningEffort { get; set; } =
          new(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 3); // default: Low
