@@ -100,7 +100,7 @@ namespace CalradiaRemembers.Chat
 
             string stimulus = CaptiveSceneText.BuildContinuationStimulus();
             ModLog.Info($"[SCENE] continuation {_sceneContinuations} → {behavior.LlmServices.ModelId} " +
-                        $"(mode {LlmServices.ActiveModelMode})...");
+                        $"(scene {LlmServices.ActiveSceneKind})...");
 
             await EnsureTranscriptCompressedAsync();
             ChatSession session = BuildSessionFor(speaker);
@@ -924,7 +924,7 @@ namespace CalradiaRemembers.Chat
             // Computed here (not just at the interpret call site) because the PROSE call itself needs it: only
             // an eligible turn is issued with allowTruncationRetry:false (fail fast instead of the SDK's own
             // slow double-budget retry), so the mod's own fallback can take over immediately.
-            bool proseInterpretEligible = ModSettings.ChatCompositionMode == ChatCompositionMode.ProseInterpret
+            bool proseInterpretEligible = ModSettings.ChatCompositionMode == ChatCompositionMode.Enhanced
                                           && speaker.IsMain && !suppressPlayerLine
                                           && !IsCaptiveEncounter && !_captorScene && _councilScope == null;
             bool usedProseFallback = false;

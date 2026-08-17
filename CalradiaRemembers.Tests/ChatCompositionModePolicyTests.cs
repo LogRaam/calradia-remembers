@@ -1,11 +1,11 @@
-// Code written by Gabriel Mailhot, 13/08/2026.
-// Documents how the "Chat Composition" MCM dropdown string maps to the ChatCompositionMode enum. This decides
-// whether a reply is produced in one integrated call (today's behaviour) or the two-call prose+extract path.
+// Code written by Gabriel Mailhot, 16/08/2026.
+// Documents how the "Chat Composition" MCM dropdown string maps to the ChatCompositionMode enum (Phase 2): the
+// cheap single-call STANDARD, or the full ENHANCED pipeline (PROSE + INTERPRET + NSFW fallback), which is the
+// default.
 //
-// WHY IT MATTERS: the prose + interpreter orchestration is not built yet, so anything the parser does NOT firmly
-// recognise as "Prose + Interpreter" must degrade to Integrated. A stale or hand-edited config (or a future rename)
-// that resolved to the unfinished path would break every conversation. The dropdown itself is built from the
-// same label constants this parser matches, so the two can never drift.
+// WHY IT MATTERS: ENHANCED is the richest experience and the shipped default, so anything blank or unrecognised
+// must degrade to it, not to the cheaper Standard. The legacy labels "Integrated" and "Prose + Interpreter" must
+// still map to Standard and Enhanced so a config upgraded from the old two-mode era keeps its intent.
 
 #region
 
@@ -20,40 +20,47 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class ChatCompositionModePolicyTests
     {
-        // The shipped default is the single-call path; a config that never touched this setting must keep it.
+        // The cheap single-call mode is opt-in; its exact label must resolve to Standard.
         [Test]
-        public void GIVEN_the_integrated_label_WHEN_parsing_THEN_integrated_is_returned()
+        public void GIVEN_the_standard_label_WHEN_parsing_THEN_standard_is_returned()
         {
-            ChatCompositionModePolicy.Parse(ChatCompositionModePolicy.IntegratedLabel)
-                .Should().Be(ChatCompositionMode.Integrated);
+            ChatCompositionModePolicy.Parse(ChatCompositionModePolicy.StandardLabel)
+                .Should().Be(ChatCompositionMode.Standard);
         }
 
-        // The only value that may unlock the two-call path is the exact opt-in label; if this stops matching, a
-        // player who chose Prose + Interpreter would silently keep the integrated path.
+        // The full pipeline label resolves to Enhanced.
         [Test]
-        public void GIVEN_the_prose_interpret_label_WHEN_parsing_THEN_prose_interpret_is_returned()
+        public void GIVEN_the_enhanced_label_WHEN_parsing_THEN_enhanced_is_returned()
         {
-            ChatCompositionModePolicy.Parse(ChatCompositionModePolicy.ProseInterpretLabel)
-                .Should().Be(ChatCompositionMode.ProseInterpret);
+            ChatCompositionModePolicy.Parse(ChatCompositionModePolicy.EnhancedLabel)
+                .Should().Be(ChatCompositionMode.Enhanced);
         }
 
-        // An MCM value can arrive with stray casing/spacing across MCM versions; the opt-in must survive that
-        // rather than silently reverting to Integrated behind the player's back.
+        // A padded/recased Standard value must survive rather than silently falling to the default Enhanced.
         [Test]
-        public void GIVEN_a_padded_or_recased_prose_interpret_value_WHEN_parsing_THEN_prose_interpret_is_still_returned()
+        public void GIVEN_a_padded_or_recased_standard_value_WHEN_parsing_THEN_standard_is_still_returned()
         {
-            ChatCompositionModePolicy.Parse("  prose + interpreter  ").Should().Be(ChatCompositionMode.ProseInterpret);
+            ChatCompositionModePolicy.Parse("  standard  ").Should().Be(ChatCompositionMode.Standard);
         }
 
-        // The prose + interpreter orchestration does not exist yet, so a blank, null, or unrecognised value must
-        // NEVER land a player on the unfinished path; it degrades to Integrated (today's behaviour).
+        // Migration: a config from the old two-mode dropdown must keep its intent - "Integrated" was the single
+        // call (Standard) and "Prose + Interpreter" was the full pipeline (Enhanced).
         [Test]
-        public void GIVEN_a_blank_null_or_unknown_value_WHEN_parsing_THEN_it_degrades_to_integrated()
+        public void GIVEN_a_legacy_label_WHEN_parsing_THEN_it_maps_to_the_matching_new_mode()
         {
-            ChatCompositionModePolicy.Parse(null).Should().Be(ChatCompositionMode.Integrated);
-            ChatCompositionModePolicy.Parse("").Should().Be(ChatCompositionMode.Integrated);
-            ChatCompositionModePolicy.Parse("   ").Should().Be(ChatCompositionMode.Integrated);
-            ChatCompositionModePolicy.Parse("something else").Should().Be(ChatCompositionMode.Integrated);
+            ChatCompositionModePolicy.Parse("Integrated").Should().Be(ChatCompositionMode.Standard);
+            ChatCompositionModePolicy.Parse("Prose + Interpreter").Should().Be(ChatCompositionMode.Enhanced);
+        }
+
+        // Enhanced is the shipped default: a blank, null, or unrecognised value must land on it (the richest
+        // experience), never on the cheaper Standard behind the player's back.
+        [Test]
+        public void GIVEN_a_blank_null_or_unknown_value_WHEN_parsing_THEN_it_degrades_to_enhanced()
+        {
+            ChatCompositionModePolicy.Parse(null).Should().Be(ChatCompositionMode.Enhanced);
+            ChatCompositionModePolicy.Parse("").Should().Be(ChatCompositionMode.Enhanced);
+            ChatCompositionModePolicy.Parse("   ").Should().Be(ChatCompositionMode.Enhanced);
+            ChatCompositionModePolicy.Parse("something else").Should().Be(ChatCompositionMode.Enhanced);
         }
     }
 }

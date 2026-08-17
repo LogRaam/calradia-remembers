@@ -94,15 +94,5 @@ namespace CalradiaRemembers.Tests
             ProviderRolePolicy.ParseKind("something-else", ProviderKind.OpenRouter).Should().Be(ProviderKind.OpenRouter);
         }
 
-        // A turn's provider must be chosen from the SAME dial that picks its model id, or a consensual scene could
-        // draw the consensual model while billing the roleplay provider (or vice-versa). Each explicit mode maps
-        // to its own role; everything else (Roleplay) to the Roleplay role.
-        [Test]
-        public void GIVEN_each_model_mode_WHEN_mapping_to_a_service_role_THEN_it_matches_the_scene_kind()
-        {
-            ProviderRolePolicy.RoleForMode(ModelMode.Roleplay).Should().Be(ServiceRole.Roleplay);
-            ProviderRolePolicy.RoleForMode(ModelMode.ConsensualIntimate).Should().Be(ServiceRole.ConsensualIntimate);
-            ProviderRolePolicy.RoleForMode(ModelMode.Cnc).Should().Be(ServiceRole.Cnc);
-        }
     }
 }

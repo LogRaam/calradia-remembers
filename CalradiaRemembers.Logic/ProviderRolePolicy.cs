@@ -36,17 +36,14 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public enum ServiceRole
     {
-        /// <summary>Ordinary conversations, letters, background summaries, and the prose call in Prose + Interpreter.</summary>
-        Roleplay,
+        /// <summary>The everyday composition model: ordinary conversations, letters, summaries, and the prose call in Enhanced.</summary>
+        Prose,
 
-        /// <summary>Consensual-intimate adult scenes between willing partners.</summary>
-        ConsensualIntimate,
+        /// <summary>The explicit model: captivity content in Standard, the hard-failure fallback in Enhanced.</summary>
+        Nsfw,
 
-        /// <summary>CNC / captive scenes (captor, captive, companion-victim).</summary>
-        Cnc,
-
-        /// <summary>The small, cheap model that reads structured actions out of prose in Prose + Interpreter mode.</summary>
-        ActionInterpreter
+        /// <summary>The small model that reads structured actions out of prose in Enhanced (Prose + Interpreter).</summary>
+        Interpret
     }
 
     /// <summary>Maps the per-role provider dropdown strings to a <see cref="ProviderKind" />, honouring the "(default)" inherit sentinel.</summary>
@@ -94,21 +91,6 @@ namespace CalradiaRemembers.Logic
             if (string.Equals(roleSelection.Trim(), DefaultSelection, StringComparison.OrdinalIgnoreCase)) return defaultKind;
 
             return ParseKind(roleSelection, defaultKind);
-        }
-
-        /// <summary>
-        ///   The <see cref="ServiceRole" /> an active <see cref="ModelMode" /> belongs to, so a turn's provider is
-        ///   chosen from the same dial that already picks its model id: an ordinary turn uses the Roleplay role, a
-        ///   consensual scene the ConsensualIntimate role, a CNC scene the Cnc role.
-        /// </summary>
-        public static ServiceRole RoleForMode(ModelMode mode)
-        {
-            switch (mode)
-            {
-                case ModelMode.ConsensualIntimate: return ServiceRole.ConsensualIntimate;
-                case ModelMode.Cnc: return ServiceRole.Cnc;
-                default: return ServiceRole.Roleplay;
-            }
         }
     }
 }

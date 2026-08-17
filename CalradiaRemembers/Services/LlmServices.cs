@@ -142,7 +142,7 @@ namespace CalradiaRemembers.Services
             {
                if (_httpClient == null) return LlmClient;
 
-               ProviderKind kind = ResolveKindForRole(ServiceRole.ActionInterpreter);
+               ProviderKind kind = ResolveKindForRole(ServiceRole.Interpret);
                string model = ResolveInterpreterModel();
 
                if (_interpreterClient != null && _builtInterpreterKind == kind && _builtInterpreterModel == model)
@@ -174,7 +174,15 @@ namespace CalradiaRemembers.Services
       ///   refuse and lose the memory). Background calls between conversations therefore inherit the last
       ///   mode, which is the safe direction; an ordinary conversation open sets Roleplay, so it self-corrects.
       /// </summary>
-      public static ModelMode ActiveModelMode { get; set; } = ModelMode.Roleplay;
+      public static SceneContentKind ActiveSceneKind { get; set; } = SceneContentKind.Ordinary;
+
+      /// <summary>
+      ///   The model role the MAIN chat call uses this turn: the composition mode + the active scene kind. In
+      ///   Standard, a captivity scene routes to the NSFW model; in Enhanced (and every non-captivity scene) it is
+      ///   the PROSE model. The interpreter and the fallback are reached through their own paths, not this.
+      /// </summary>
+      private static ServiceRole ActiveMainRole()
+         => ModelModePolicy.ActiveMainRole(ModSettings.ChatCompositionMode, ActiveSceneKind);
 
       /// <summary>
       ///   The model id the current mode resolves to, read live (same value every request sees via
@@ -443,15 +451,11 @@ namespace CalradiaRemembers.Services
          string selection;
          switch (role)
          {
-            case ServiceRole.ConsensualIntimate:
-               selection = ModSettings.ConsensualProviderSelection;
-
-               break;
-            case ServiceRole.Cnc:
+            case ServiceRole.Nsfw:
                selection = ModSettings.CncProviderSelection;
 
                break;
-            case ServiceRole.ActionInterpreter:
+            case ServiceRole.Interpret:
                selection = ModSettings.ActionInterpreterProviderSelection;
 
                break;
@@ -470,7 +474,7 @@ namespace CalradiaRemembers.Services
       ///   consensual scene the Consensual role's, a CNC scene the CNC role's.
       /// </summary>
       private static ProviderKind ActiveRoleKind()
-         => ResolveKindForRole(ProviderRolePolicy.RoleForMode(ActiveModelMode));
+         => ResolveKindForRole(ActiveMainRole());
 
       /// <summary>
       ///   Resolves a provider kind's API key. A key entered in the MCM menu wins; the provider's environment
@@ -526,7 +530,7 @@ namespace CalradiaRemembers.Services
       /// </summary>
       private static string ResolveProviderPin()
          => ActiveRoleKind() == ProviderKind.OpenRouter
-            ? ModelModePolicy.ResolveProviderPin(ActiveModelMode, ModSettings.OpenRouterProviderPin, ModSettings.OpenRouterNsfwProviderPin)
+            ? ModelModePolicy.ResolveProviderPin(ActiveMainRole(), ModSettings.OpenRouterProviderPin, ModSettings.OpenRouterNsfwProviderPin, "")
             : "";
 
       /// <summary>Resolves a provider kind's OpenAI-compatible base URL. Read live per request.</summary>
@@ -569,11 +573,11 @@ namespace CalradiaRemembers.Services
          // ahead of the normal mode/NSFW resolution. Blank or null falls through to the usual resolution below.
          if (!string.IsNullOrWhiteSpace(TestModelOverride)) return TestModelOverride;
 
-         string roleplayModel = ResolveRoleplayModelForKind(ActiveRoleKind());
+         string proseModel = ResolveRoleplayModelForKind(ActiveRoleKind());
 
-         // The consensual/CNC facade getters read the legacy NsfwModel storage (consensual) with CNC falling back
-         // to it, so a config that only set the old NSFW model resolves EXACTLY as before for both explicit modes.
-         return ModelModePolicy.ResolveModelId(ActiveModelMode, roleplayModel, ModSettings.ConsensualModel, ModSettings.CncModel);
+         // Phase 2: PROSE = the base model (per provider kind), NSFW = the CncModel storage (migrated from the old
+         // CNC/NSFW slot), INTERPRET = the ActionInterpreterModel storage. The main call is only ever Prose or Nsfw.
+         return ModelModePolicy.ResolveModelId(ActiveMainRole(), proseModel, ModSettings.CncModel, ModSettings.ActionInterpreterModel);
       }
 
       /// <summary>
@@ -599,11 +603,13 @@ namespace CalradiaRemembers.Services
       /// </summary>
       public string ResolveProseFallbackModel()
       {
-         string configured = ModSettings.ProseFallbackModel;
+         // Phase 2: the hard-failure fallback is the NSFW model (the explicit one), reached only when the PROSE
+         // beat fails hard. Blank NSFW falls back to the current scene model so a single-model config still works.
+         string nsfw = ModSettings.CncModel;
 
-         return string.IsNullOrWhiteSpace(configured)
-            ? ResolveInterpreterModel()
-            : configured;
+         return string.IsNullOrWhiteSpace(nsfw)
+            ? ResolveModel()
+            : nsfw;
       }
 
       /// <summary>
@@ -629,7 +635,7 @@ namespace CalradiaRemembers.Services
       /// </summary>
       private static string ResolveReasoning() =>
          ActiveRoleKind() == ProviderKind.OpenRouter
-            ? ModelModePolicy.ResolveReasoningEffort(ActiveModelMode, ModSettings.ReasoningEffort, ModSettings.NsfwReasoningEffort)
+            ? ModelModePolicy.ResolveReasoningEffort(ActiveMainRole(), ModSettings.ReasoningEffort, ModSettings.NsfwReasoningEffort, InterpreterReasoningEffort)
             : null;
 
       /// <summary>
@@ -666,7 +672,7 @@ namespace CalradiaRemembers.Services
             TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
             ParameterOptionsProvider = () => ParameterOptionsFor(kind, model),
             ProviderSlugsProvider = () => kind == ProviderKind.OpenRouter
-               ? ModelModePolicy.ResolveProviderPin(ActiveModelMode, ModSettings.OpenRouterProviderPin, ModSettings.OpenRouterNsfwProviderPin)
+               ? ModelModePolicy.ResolveProviderPin(ServiceRole.Interpret, ModSettings.OpenRouterProviderPin, ModSettings.OpenRouterNsfwProviderPin, "")
                : "",
             AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
          };
@@ -687,18 +693,13 @@ namespace CalradiaRemembers.Services
 
          switch (role)
          {
-            case ServiceRole.ActionInterpreter:
+            case ServiceRole.Interpret:
                model = ResolveInterpreterModel();
 
                break;
-            case ServiceRole.ConsensualIntimate:
-               model = ModelModePolicy.ResolveModelId(ModelMode.ConsensualIntimate, ResolveRoleplayModelForKind(kind),
-                  ModSettings.ConsensualModel, ModSettings.CncModel);
-
-               break;
-            case ServiceRole.Cnc:
-               model = ModelModePolicy.ResolveModelId(ModelMode.Cnc, ResolveRoleplayModelForKind(kind),
-                  ModSettings.ConsensualModel, ModSettings.CncModel);
+            case ServiceRole.Nsfw:
+               model = ModelModePolicy.ResolveModelId(ServiceRole.Nsfw, ResolveRoleplayModelForKind(kind),
+                  ModSettings.CncModel, ModSettings.ActionInterpreterModel);
 
                break;
             default:

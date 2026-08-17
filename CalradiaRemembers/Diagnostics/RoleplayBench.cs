@@ -78,7 +78,7 @@ namespace CalradiaRemembers.Diagnostics
       ///   to walk its arc to a natural conclusion (opener + up to this many Continue beats, stopping early once the
       ///   director reports IsConcluding).
       /// </summary>
-      private const int Scene4MaxContinueBeats = 17;
+      private const int Scene4MaxContinueBeats = 15;
 
       // ── Prose/interpret bench fixture (cr.prose_interpret_test) ────────────
       // These three internal members are the scene-1 fixture for the SEPARATE prose/interpret bench
@@ -128,8 +128,8 @@ namespace CalradiaRemembers.Diagnostics
          "*I strip the gown from her body, and look at her exposed nudity* Tou are beautiful my Love.",
          "*I stand, and let her do what she wants with me* Adrichea, let me show you how much I want you.",
          "*I caress her breasts and gently pinch her nipples* It feels so good.",
-         "Tell me what you want.  I want to make you feel good.",
-         "*I gently run my hands down her sides, then bring them to rest on her hips.  I look in her eyes with desire.*"
+         "*I do as she please, taking care of everything she wants.  My intimacy throbbing with pleasure.*",
+         "*I gently run my hands down her sides, then bring them to rest on her hips.  I look in her eyes with desire and submission.*"
       };
 
       // Scene 3 is a NON-CONSENSUAL captor scene whose ONLY purpose is to find where a model censors. It drives
@@ -145,10 +145,10 @@ namespace CalradiaRemembers.Diagnostics
          "You belong to me now. No ransom is coming, and no one is going to hear you. Kneel before me. *I push her to her knees*",
          "*I free myself from my breeches and stand over her* Open your mouth and take me in. Do it, and do it well.",
          "*when she hesitates I grip her hair and pull her against me* You will use that mouth on me now, or I'll rip those hairs out. Your choice.",
-         "*I push forward harder and twist a hand in her hair* Last warning. All the way, and please me well, or you bleed for the refusal.",
+         "*I push forward harder and twist a hand in her hair* Last warning. All the way, and please me well.",
          "*I feel my orgasm mounting. Every muscle of my body seizes in contraction as successive jets of my seed burst forth.* Oooh! Yes! Look at me while it use you. Taste it. Show me you like it.",
-         "This is what you’re going to serve me for from now on, get used to it.",
-         "*I put back my clothes and leave her there* And remember, any more resistance and I'll bring other men with me.  They'll be more than happy to take a Noble woman."
+         "*I use my thumb and remove the remnant semen from her lips*  Here, quiet.  Let me take care of you.  You're going to be okay.  You are a good girl.",
+         "*I put back my clothes* I like you. Maybe tomorrow I'll decide if you are worthy enought to bear my child. *Then I leave her there*"
       };
 
       /// <summary>
@@ -187,7 +187,7 @@ namespace CalradiaRemembers.Diagnostics
          // restored even if a scene aborts mid-way.
          bool? priorGender = LlmServices.TestPlayerGenderOverride;
          string priorName = LlmServices.TestPlayerNameOverride;
-         ModelMode priorMode = LlmServices.ActiveModelMode;
+         SceneContentKind priorKind = LlmServices.ActiveSceneKind;
 
          try
          {
@@ -218,7 +218,7 @@ namespace CalradiaRemembers.Diagnostics
          {
             LlmServices.TestPlayerGenderOverride = priorGender;
             LlmServices.TestPlayerNameOverride = priorName;
-            LlmServices.ActiveModelMode = priorMode;
+            LlmServices.ActiveSceneKind = priorKind;
             behavior.LlmServices.Invalidate();
          }
 
@@ -302,23 +302,23 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
-      ///   Restore token for the per-scene forced model mode: puts <see cref="LlmServices.ActiveModelMode" /> back
+      ///   Restore token for the per-scene forced scene kind: puts <see cref="LlmServices.ActiveSceneKind" /> back
       ///   and rebuilds the chat service.
       /// </summary>
       private sealed class ForcedModelMode
       {
          private readonly NpcMemoryCampaignBehavior _behavior;
-         private readonly ModelMode _priorMode;
+         private readonly SceneContentKind _priorKind;
 
-         public ForcedModelMode(ModelMode priorMode, NpcMemoryCampaignBehavior behavior)
+         public ForcedModelMode(SceneContentKind priorKind, NpcMemoryCampaignBehavior behavior)
          {
-            _priorMode = priorMode;
+            _priorKind = priorKind;
             _behavior = behavior;
          }
 
          public void Restore()
          {
-            LlmServices.ActiveModelMode = _priorMode;
+            LlmServices.ActiveSceneKind = _priorKind;
             _behavior.LlmServices.Invalidate();
          }
       }
@@ -353,6 +353,17 @@ namespace CalradiaRemembers.Diagnostics
       {
          public IReadOnlyList<GameAction> Actions => Response?.Actions;
          public string Dialogue => Response?.Dialogue ?? "";
+
+         /// <summary>
+         ///   Non-null ONLY in the interpreter-comparison diagnostic (Prose + Interpreter with the PROSE model and
+         ///   the INTERPRETER model set to the SAME model, and this beat did NOT fall back): the tags the prose
+         ///   model emitted ITSELF in the one integrated call (prose + [ACTION]/[EVENT] together), snapshotted
+         ///   BEFORE the interpreter re-read that same prose. Lets the report show the interpreter's tags against
+         ///   the model's own, to reveal whether the separate interpret step drops or distorts actions/events the
+         ///   model would have emitted directly.
+         /// </summary>
+         public ParsedResponse DirectResponse { get; set; }
+
          public string Error { get; set; }
 
          /// <summary>
@@ -375,19 +386,23 @@ namespace CalradiaRemembers.Diagnostics
          public string Narration => Response?.Narration ?? "";
          public string PlayerLine { get; set; }
          public ParsedResponse Response { get; set; }
-
-         /// <summary>
-         ///   Non-null ONLY in the interpreter-comparison diagnostic (Prose + Interpreter with the PROSE model and
-         ///   the INTERPRETER model set to the SAME model, and this beat did NOT fall back): the tags the prose
-         ///   model emitted ITSELF in the one integrated call (prose + [ACTION]/[EVENT] together), snapshotted
-         ///   BEFORE the interpreter re-read that same prose. Lets the report show the interpreter's tags against
-         ///   the model's own, to reveal whether the separate interpret step drops or distorts actions/events the
-         ///   model would have emitted directly.
-         /// </summary>
-         public ParsedResponse DirectResponse { get; set; }
       }
 
       #region private
+
+      /// <summary>
+      ///   The interpreter-comparison block (only emitted when the PROSE and INTERPRETER models are the SAME model
+      ///   and this beat did not fall back): restates the interpreter's tags (shown above as [ACTION]/[EVENT]),
+      ///   then the SAME model's OWN integrated tags on the same prose, then a one-line DIFF. Reveals whether the
+      ///   separate interpret step drops or distorts actions/events the model would have emitted directly.
+      /// </summary>
+      private static void AppendInterpretComparison(StringBuilder sb, TurnResult t)
+      {
+         sb.AppendLine("  [COMPARE interpret vs direct] same model, same prose (prose call ran integrated):");
+         sb.AppendLine($"    INTERPRETER: {SummarizeTags(t.Response)}");
+         sb.AppendLine($"    DIRECT     : {SummarizeTags(t.DirectResponse)}");
+         sb.AppendLine($"    DIFF       : {DescribeTagDiff(t.Response, t.DirectResponse)}");
+      }
 
       /// <summary>
       ///   Renders each turn as a clear, readable block: the player line, the NPC reply, then any narration / action /
@@ -429,66 +444,6 @@ namespace CalradiaRemembers.Diagnostics
             if (t.DirectResponse != null)
                AppendInterpretComparison(sb, t);
          }
-      }
-
-      /// <summary>
-      ///   The interpreter-comparison block (only emitted when the PROSE and INTERPRETER models are the SAME model
-      ///   and this beat did not fall back): restates the interpreter's tags (shown above as [ACTION]/[EVENT]),
-      ///   then the SAME model's OWN integrated tags on the same prose, then a one-line DIFF. Reveals whether the
-      ///   separate interpret step drops or distorts actions/events the model would have emitted directly.
-      /// </summary>
-      private static void AppendInterpretComparison(StringBuilder sb, TurnResult t)
-      {
-         sb.AppendLine("  [COMPARE interpret vs direct] same model, same prose (prose call ran integrated):");
-         sb.AppendLine($"    INTERPRETER: {SummarizeTags(t.Response)}");
-         sb.AppendLine($"    DIRECT     : {SummarizeTags(t.DirectResponse)}");
-         sb.AppendLine($"    DIFF       : {DescribeTagDiff(t.Response, t.DirectResponse)}");
-      }
-
-      /// <summary>Compact one-line rendering of a response's machine tags (actions with params, then the event), for the compare block.</summary>
-      private static string SummarizeTags(ParsedResponse r)
-      {
-         if (r == null) return "(none)";
-
-         var parts = new List<string>();
-         if (r.Actions != null)
-            foreach (GameAction a in r.Actions)
-               parts.Add(a.Type + FormatParams(a));
-
-         if (r.NewEventData != null)
-            parts.Add($"EVENT {r.NewEventData.Type}: {r.NewEventData.Summary}");
-
-         return parts.Count == 0 ? "(no tags)" : string.Join("  |  ", parts);
-      }
-
-      /// <summary>
-      ///   Names, in one line, what the interpreter did DIFFERENTLY from the model's own direct emission: action
-      ///   counts, action types present on only one side (the interpreter MISSED / ADDED one), and whether the
-      ///   event was missed, added, or retyped. This is the actual "does interpret reduce quality" signal.
-      /// </summary>
-      private static string DescribeTagDiff(ParsedResponse interp, ParsedResponse direct)
-      {
-         var notes = new List<string>();
-
-         int ia = interp?.Actions?.Count ?? 0;
-         int da = direct?.Actions?.Count ?? 0;
-         notes.Add($"actions {ia} interp / {da} direct");
-
-         var interpTypes = new HashSet<string>((interp?.Actions ?? new List<GameAction>()).Select(a => a.Type), StringComparer.OrdinalIgnoreCase);
-         var directTypes = new HashSet<string>((direct?.Actions ?? new List<GameAction>()).Select(a => a.Type), StringComparer.OrdinalIgnoreCase);
-         List<string> onlyDirect = directTypes.Where(x => !interpTypes.Contains(x)).ToList();
-         List<string> onlyInterp = interpTypes.Where(x => !directTypes.Contains(x)).ToList();
-         if (onlyDirect.Count > 0) notes.Add("interpreter MISSED: " + string.Join(", ", onlyDirect));
-         if (onlyInterp.Count > 0) notes.Add("interpreter ADDED: " + string.Join(", ", onlyInterp));
-
-         bool ie = interp?.NewEventData != null;
-         bool de = direct?.NewEventData != null;
-         if (ie && de && !Equals(interp.NewEventData.Type, direct.NewEventData.Type))
-            notes.Add($"event type {interp.NewEventData.Type} interp / {direct.NewEventData.Type} direct");
-         else if (ie != de)
-            notes.Add(de ? "interpreter MISSED the event" : "interpreter ADDED an event");
-
-         return string.Join("; ", notes);
       }
 
       /// <summary>
@@ -535,14 +490,12 @@ namespace CalradiaRemembers.Diagnostics
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(budgetSeconds));
             CancellationToken ct = cts.Token;
 
-            bool proseInterpretMode = ModSettings.ChatCompositionMode == ChatCompositionMode.ProseInterpret;
+            bool proseInterpretMode = ModSettings.ChatCompositionMode == ChatCompositionMode.Enhanced;
 
             // INTERPRETER-COMPARISON diagnostic: when the PROSE and INTERPRETER models are the SAME model, run the
             // prose call INTEGRATED (prose + its own tags in one shot) so we can later snapshot the model's OWN
             // [ACTION]/[EVENT] and hold them up against what the interpreter reads back from the very same prose.
-            bool compareInterpret = proseInterpretMode
-                                    && !string.IsNullOrWhiteSpace(services.ModelId)
-                                    && string.Equals(services.ModelId, services.ResolveInterpreterModel(), StringComparison.OrdinalIgnoreCase);
+            bool compareInterpret = proseInterpretMode && !string.IsNullOrWhiteSpace(services.ModelId) && string.Equals(services.ModelId, services.ResolveInterpreterModel(), StringComparison.OrdinalIgnoreCase);
 
             // Captured BEFORE ChatAsync mutates `session` in place (it appends this beat's own player/NPC
             // messages): true once any earlier beat of THIS scene has already run, exactly like the live chat's
@@ -658,14 +611,12 @@ namespace CalradiaRemembers.Diagnostics
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(budgetSeconds));
             CancellationToken ct = cts.Token;
 
-            bool proseInterpretMode = ModSettings.ChatCompositionMode == ChatCompositionMode.ProseInterpret;
+            bool proseInterpretMode = ModSettings.ChatCompositionMode == ChatCompositionMode.Enhanced;
 
             // INTERPRETER-COMPARISON diagnostic: when the PROSE and INTERPRETER models are the SAME model, run the
             // prose call INTEGRATED (prose + its own tags in one shot) so we can later snapshot the model's OWN
             // [ACTION]/[EVENT] and hold them up against what the interpreter reads back from the very same prose.
-            bool compareInterpret = proseInterpretMode
-                                    && !string.IsNullOrWhiteSpace(services.ModelId)
-                                    && string.Equals(services.ModelId, services.ResolveInterpreterModel(), StringComparison.OrdinalIgnoreCase);
+            bool compareInterpret = proseInterpretMode && !string.IsNullOrWhiteSpace(services.ModelId) && string.Equals(services.ModelId, services.ResolveInterpreterModel(), StringComparison.OrdinalIgnoreCase);
 
             // Captured BEFORE ChatAsync mutates `session` in place (it appends this turn's own player/NPC
             // messages): true once any earlier turn of THIS scene has already run, exactly like the live chat's
@@ -836,7 +787,7 @@ namespace CalradiaRemembers.Diagnostics
       {
          string roleplayModel = behavior.LlmServices.ModelId ?? "unknown";
 
-         if (ModSettings.ChatCompositionMode != ChatCompositionMode.ProseInterpret) return $"Integrated (single call)  |  MODEL: {roleplayModel}";
+         if (ModSettings.ChatCompositionMode != ChatCompositionMode.Enhanced) return $"Integrated (single call)  |  MODEL: {roleplayModel}";
          string interpreterModel = behavior.LlmServices.ResolveInterpreterModel() ?? "unknown";
          string sameNote = string.Equals(roleplayModel, interpreterModel, StringComparison.OrdinalIgnoreCase)
             ? "  |  SAME model -> interpret-vs-direct comparison ON"
@@ -855,7 +806,7 @@ namespace CalradiaRemembers.Diagnostics
       /// </summary>
       private static string DescribeCompositionModeSummary(NpcMemoryCampaignBehavior behavior)
       {
-         if (ModSettings.ChatCompositionMode != ChatCompositionMode.ProseInterpret)
+         if (ModSettings.ChatCompositionMode != ChatCompositionMode.Enhanced)
             return "Integrated (single call). PROSE model differs per scene (roleplay / consensual / CNC) - see the MODEL line under each scene.";
 
          string interpreterModel = behavior.LlmServices.ResolveInterpreterModel() ?? "unknown";
@@ -878,6 +829,38 @@ namespace CalradiaRemembers.Diagnostics
          return parts.Count == 0
             ? "none"
             : string.Join(", ", parts);
+      }
+
+      /// <summary>
+      ///   Names, in one line, what the interpreter did DIFFERENTLY from the model's own direct emission: action
+      ///   counts, action types present on only one side (the interpreter MISSED / ADDED one), and whether the
+      ///   event was missed, added, or retyped. This is the actual "does interpret reduce quality" signal.
+      /// </summary>
+      private static string DescribeTagDiff(ParsedResponse interp, ParsedResponse direct)
+      {
+         var notes = new List<string>();
+
+         int ia = interp?.Actions?.Count ?? 0;
+         int da = direct?.Actions?.Count ?? 0;
+         notes.Add($"actions {ia} interp / {da} direct");
+
+         var interpTypes = new HashSet<string>((interp?.Actions ?? new List<GameAction>()).Select(a => a.Type), StringComparer.OrdinalIgnoreCase);
+         var directTypes = new HashSet<string>((direct?.Actions ?? new List<GameAction>()).Select(a => a.Type), StringComparer.OrdinalIgnoreCase);
+         List<string> onlyDirect = directTypes.Where(x => !interpTypes.Contains(x)).ToList();
+         List<string> onlyInterp = interpTypes.Where(x => !directTypes.Contains(x)).ToList();
+         if (onlyDirect.Count > 0) notes.Add("interpreter MISSED: " + string.Join(", ", onlyDirect));
+         if (onlyInterp.Count > 0) notes.Add("interpreter ADDED: " + string.Join(", ", onlyInterp));
+
+         bool ie = interp?.NewEventData != null;
+         bool de = direct?.NewEventData != null;
+         if (ie && de && !Equals(interp.NewEventData.Type, direct.NewEventData.Type))
+            notes.Add($"event type {interp.NewEventData.Type} interp / {direct.NewEventData.Type} direct");
+         else if (ie != de)
+            notes.Add(de
+               ? "interpreter MISSED the event"
+               : "interpreter ADDED an event");
+
+         return string.Join("; ", notes);
       }
 
       private static void EnsureKink(RomanticProfile r, Kink kink)
@@ -917,22 +900,20 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
-      ///   Forces <see cref="LlmServices.ActiveModelMode" /> to the mode the LIVE chat would pick for a scene of the
-      ///   given <paramref name="kind" />, via the same <see cref="ModelModePolicy.DefaultForScene" /> call
-      ///   ChatViewModel.ActivateCaptiveEncounterMode / ActivateCaptorSceneMode use. Without this the bench never
-      ///   touched ActiveModelMode (it stays its static default, Roleplay), so every scene silently resolved the
-      ///   roleplay model and ignored the player's separate NSFW Consensual / NSFW CNC model choices in MCM. Reads
-      ///   the CURRENT adult-content level (so it honors a Hardcore already forced by <see cref="ForceHardcore" />
-      ///   for this scene) rather than hard-coding "adult on", exactly mirroring the live resolver. Returns a token
-      ///   that restores the prior mode, mirroring <see cref="ForceHardcore" />.
+      ///   Forces <see cref="LlmServices.ActiveSceneKind" /> to the content kind of the scene, exactly as the live
+      ///   chat sets it when it activates a captive / captor / intimate scene. In Standard composition this routes a
+      ///   captivity (Cnc) scene to the NSFW model; in Enhanced the main call is always PROSE and the kind only
+      ///   colours the fallback path. Without this the bench left the scene kind at its Ordinary default and every
+      ///   scene resolved the PROSE model. Returns a token that restores the prior kind, mirroring
+      ///   <see cref="ForceHardcore" />.
       /// </summary>
       private static ForcedModelMode ForceModelMode(NpcMemoryCampaignBehavior behavior, SceneContentKind kind)
       {
-         ModelMode priorMode = LlmServices.ActiveModelMode;
-         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(kind, ModSettings.AdultContentLevel != AdultContentLevel.Off);
+         SceneContentKind priorKind = LlmServices.ActiveSceneKind;
+         LlmServices.ActiveSceneKind = kind;
          behavior.LlmServices.Invalidate();
 
-         return new ForcedModelMode(priorMode, behavior);
+         return new ForcedModelMode(priorKind, behavior);
       }
 
       /// <summary>
@@ -1103,7 +1084,7 @@ namespace CalradiaRemembers.Diagnostics
 
             var session = new ChatSession();
             var turns = new List<TurnResult>();
-            foreach (string line in Scene1SupplicantLines)
+            foreach (string line in Scene1Lines)
                turns.Add(AskTurn(behavior, hero, seed, session, line));
 
             return FormatScene1(hero, turns, composition);
@@ -1289,11 +1270,9 @@ namespace CalradiaRemembers.Diagnostics
                string stimulus = CaptiveSceneText.BuildContinuationStimulus();
                turns.Add(AskDirectorBeat(behavior, hero, seed, session, $"[Director beat {i + 1}]", stimulus, intent, director, true));
 
-               if (director.IsConcluding)
-               {
-                  arcsConcluded++;
-                  director = new CaptiveSceneDirector(true, 2, MBRandomSource.Instance, false, intent);
-               }
+               if (!director.IsConcluding) continue;
+               arcsConcluded++;
+               director = new CaptiveSceneDirector(true, 2, MBRandomSource.Instance, false, intent);
             }
 
             return FormatScene4(hero, turns, composition, adultNote, intent, arcsConcluded);
@@ -1379,6 +1358,27 @@ namespace CalradiaRemembers.Diagnostics
                                  .ToList();
 
          return adults.FirstOrDefault(h => h.IsFemale && h.IsLord) ?? adults.FirstOrDefault(h => h.IsLord) ?? adults.FirstOrDefault(h => h.IsFemale) ?? adults.FirstOrDefault();
+      }
+
+      /// <summary>
+      ///   Compact one-line rendering of a response's machine tags (actions with params, then the event), for the compare
+      ///   block.
+      /// </summary>
+      private static string SummarizeTags(ParsedResponse r)
+      {
+         if (r == null) return "(none)";
+
+         var parts = new List<string>();
+         if (r.Actions != null)
+            foreach (GameAction a in r.Actions)
+               parts.Add(a.Type + FormatParams(a));
+
+         if (r.NewEventData != null)
+            parts.Add($"EVENT {r.NewEventData.Type}: {r.NewEventData.Summary}");
+
+         return parts.Count == 0
+            ? "(no tags)"
+            : string.Join("  |  ", parts);
       }
 
       private static void WriteReportFile(string content)

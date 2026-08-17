@@ -7107,21 +7107,21 @@ namespace CalradiaRemembers.Diagnostics
             const string dummyEndpoint = "http://localhost:9999/v1";
             s.CustomEndpointUrl = dummyEndpoint;
             s.Provider.SelectedValue = ProviderRolePolicy.OpenRouterValue;
-            s.ConsensualProvider.SelectedValue = ProviderRolePolicy.NanoGptValue;
+            s.CncProvider.SelectedValue = ProviderRolePolicy.NanoGptValue;
             s.ActionInterpreterProvider.SelectedValue = ProviderRolePolicy.OpenAiCompatibleValue;
 
-            (ProviderKind kind, string baseUrl, string model) rp = llm.DebugDescribeRoleRouting(ServiceRole.Roleplay);
-            (ProviderKind kind, string baseUrl, string model) con = llm.DebugDescribeRoleRouting(ServiceRole.ConsensualIntimate);
-            (ProviderKind kind, string baseUrl, string model) interp = llm.DebugDescribeRoleRouting(ServiceRole.ActionInterpreter);
+            (ProviderKind kind, string baseUrl, string model) rp = llm.DebugDescribeRoleRouting(ServiceRole.Prose);
+            (ProviderKind kind, string baseUrl, string model) nsfw = llm.DebugDescribeRoleRouting(ServiceRole.Nsfw);
+            (ProviderKind kind, string baseUrl, string model) interp = llm.DebugDescribeRoleRouting(ServiceRole.Interpret);
 
-            t.Expect("roleplayKind", rp.kind, ProviderKind.OpenRouter);
-            t.Expect("consensualKind", con.kind, ProviderKind.NanoGpt);
+            t.Expect("proseKind", rp.kind, ProviderKind.OpenRouter);
+            t.Expect("nsfwKind", nsfw.kind, ProviderKind.NanoGpt);
             t.Expect("interpreterKind", interp.kind, ProviderKind.OpenAiCompatible);
 
-            bool distinct = rp.baseUrl != con.baseUrl && con.baseUrl != interp.baseUrl && rp.baseUrl != interp.baseUrl;
+            bool distinct = rp.baseUrl != nsfw.baseUrl && nsfw.baseUrl != interp.baseUrl && rp.baseUrl != interp.baseUrl;
             t.Expect("theThreeBaseUrlsAreDistinct", distinct, true);
             t.Expect("interpreterBaseUrlIsTheCustomEndpoint", interp.baseUrl, dummyEndpoint);
-            t.Note($"rp={rp.baseUrl} | consensual={con.baseUrl} | interpreter={interp.baseUrl}");
+            t.Note($"prose={rp.baseUrl} | nsfw={nsfw.baseUrl} | interpreter={interp.baseUrl}");
 
             // STAKE (MIGRATION): the "(default)" sentinel MUST make the other roles inherit the roleplay / prose
             // base, or a config upgraded from the single-provider era, which never touched these dropdowns, would
@@ -7131,12 +7131,11 @@ namespace CalradiaRemembers.Diagnostics
             s.CncProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
             s.ActionInterpreterProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
 
-            string dRp = llm.DebugDescribeRoleRouting(ServiceRole.Roleplay).baseUrl;
-            string dCon = llm.DebugDescribeRoleRouting(ServiceRole.ConsensualIntimate).baseUrl;
-            string dCnc = llm.DebugDescribeRoleRouting(ServiceRole.Cnc).baseUrl;
-            string dInterp = llm.DebugDescribeRoleRouting(ServiceRole.ActionInterpreter).baseUrl;
+            string dRp = llm.DebugDescribeRoleRouting(ServiceRole.Prose).baseUrl;
+            string dNsfw = llm.DebugDescribeRoleRouting(ServiceRole.Nsfw).baseUrl;
+            string dInterp = llm.DebugDescribeRoleRouting(ServiceRole.Interpret).baseUrl;
 
-            bool allSame = dRp == dCon && dCon == dCnc && dCnc == dInterp;
+            bool allSame = dRp == dNsfw && dNsfw == dInterp;
             t.Expect("allDefaultRolesShareOneBaseUrl", allSame, true);
             t.Note($"default base url = {(string.IsNullOrWhiteSpace(dRp) ? "(none)" : dRp)}");
          }

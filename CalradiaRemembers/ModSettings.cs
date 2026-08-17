@@ -359,15 +359,15 @@ namespace CalradiaRemembers
          CrSettings.Instance?.ActionInterpreterProvider?.SelectedValue ?? ProviderRolePolicy.DefaultSelection;
 
       /// <summary>
-      ///   How a chat reply is composed: <see cref="Logic.ChatCompositionMode.Integrated" /> (one call, today's
-      ///   behaviour) or <see cref="Logic.ChatCompositionMode.ProseInterpret" /> (prose then a separate action-
+      ///   How a chat reply is composed: <see cref="Logic.ChatCompositionMode.Standard" /> (one call, today's
+      ///   behaviour) or <see cref="Logic.ChatCompositionMode.Enhanced" /> (prose then a separate action-
       ///   interpreter call). Read live from the MCM menu; defaults to Integrated on anything unexpected.
       /// </summary>
       public static ChatCompositionMode ChatCompositionMode =>
          ChatCompositionModePolicy.Parse(CrSettings.Instance?.ChatCompositionModeSetting?.SelectedValue);
 
       /// <summary>
-      ///   In <see cref="Logic.ChatCompositionMode.ProseInterpret" /> mode, WHEN the action interpreter's tags are
+      ///   In <see cref="Logic.ChatCompositionMode.Enhanced" /> mode, WHEN the action interpreter's tags are
       ///   applied: <see cref="Logic.ActionInterpreterTiming.Synchronous" /> (in-turn, recommended) or
       ///   <see cref="Logic.ActionInterpreterTiming.Asynchronous" /> (reply shows first, tags apply a moment later).
       ///   Read live from the MCM menu; defaults to Synchronous on anything unexpected. No effect in Integrated
@@ -388,7 +388,7 @@ namespace CalradiaRemembers
             string v = CrSettings.Instance?.NsfwReasoningEffort?.SelectedValue;
 
             return string.IsNullOrWhiteSpace(v)
-               ? ModelModePolicy.SameAsRoleplay
+               ? ModelModePolicy.SameAsProse
                : v;
          }
       }

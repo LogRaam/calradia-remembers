@@ -154,11 +154,8 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public bool MemoryCompression { get; set; } = true;
 
-      [SettingPropertyText("Prose fallback model (on truncation)", RequireRestart = false, Order = 14,
-         HintText = "Used only in Prose + Interpreter composition mode: when the prose model cuts a beat off " +
-                    "mid-sentence, this turn is redone in one call on this model instead. Blank (default) = reuse " +
-                    "the Actions Interpreter model above, which is already your most explicit configured model.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      // Phase 2: the hard-failure fallback is the NSFW model, so this legacy field is no longer shown in MCM or
+      // read anywhere. Kept as a plain (un-attributed) property so an old stored value loads without orphaning.
       public string ProseFallbackModel { get; set; } = "";
 
       [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 11,
@@ -167,10 +164,10 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public int LlmTimeoutSeconds { get; set; } = 120;
 
-      [SettingPropertyText("Roleplay and Prose model", RequireRestart = false, Order = 2,
-         HintText = "Model id for ordinary conversations, in the ACTIVE provider's own format (OpenRouter: " +
-                    "x-ai/grok-4.20; NanoGPT: deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). It writes the reply in " +
-                    "Integrated mode and the prose in Prose + Interpreter mode. Applies immediately.")]
+      [SettingPropertyText("PROSE model", RequireRestart = false, Order = 2,
+         HintText = "Model id for the everyday PROSE model, in the ACTIVE provider's own format (OpenRouter: " +
+                    "x-ai/grok-4.20; NanoGPT: deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). It writes ordinary chat " +
+                    "and, in Enhanced mode, the prose of every scene. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string Model { get; set; } = "x-ai/grok-4.20";
 
@@ -192,51 +189,43 @@ namespace CalradiaRemembers.Settings
       public string NanoGptApiKey { get; set; } = "";
 
       [SettingPropertyDropdown("Chat Composition", RequireRestart = false, Order = 1,
-         HintText = "Integrated (default): one call writes the reply and its actions together. Prose + Interpreter: " +
-                    "one call writes the prose, a second reads the actions out of it. Leave on Integrated for now.")]
+         HintText = "Enhanced (default): the PROSE model writes, the INTERPRET model tags, the NSFW model is a " +
+                    "hard-failure fallback - richest, but more tokens and slower. Standard: one integrated call, " +
+                    "the PROSE model for chat and the NSFW model for captivity - cheapest and fastest.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public Dropdown<string> ChatCompositionModeSetting { get; set; } =
-         new(new[] {ChatCompositionModePolicy.IntegratedLabel, ChatCompositionModePolicy.ProseInterpretLabel}, 0); // default: Integrated
+         new(new[] {ChatCompositionModePolicy.StandardLabel, ChatCompositionModePolicy.EnhancedLabel}, 1); // default: Enhanced
 
-      // LEGACY STORAGE IDENTITY: this property is still named NsfwModel so MCM (which persists a global setting by
-      // its property name) keeps loading the value an existing config saved under the old single "NSFW model" field.
-      // It is now PRESENTED as the consensual slot; ModSettings.ConsensualModel exposes it under the ubiquitous name,
-      // and CncModel falls back to it. Renaming this property would orphan the stored value, so it stays put.
-      [SettingPropertyText("NSFW Consensual model (optional)", RequireRestart = false, Order = 4,
-         HintText = "Model id for consensual intimate scenes (and CNC scenes when the field below is blank). Same " +
-                    "provider as above. Blank = use the roleplay model.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      // Phase 2: consensual scenes are now "chat" (the PROSE model), so this separate consensual model and its
+      // provider are no longer shown in MCM or read anywhere. Kept as plain (un-attributed) properties, still named
+      // NsfwModel for its legacy save-identity, so an old stored value loads without orphaning.
       public string NsfwModel { get; set; } = "";
 
-      [SettingPropertyDropdown("Consensual provider", RequireRestart = false, Order = 5,
-         HintText = "Which provider the consensual model above is sent to. (default) uses the Roleplay / Prose " +
-                    "provider. Applies immediately.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public Dropdown<string> ConsensualProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
 
-      [SettingPropertyText("NSFW CNC / captive Model (optional)", RequireRestart = false, Order = 6,
-         HintText = "Model id for CNC and captive scenes (captor, captive, companion-victim). Same provider as " +
-                    "above. Blank = use the NSFW Consensual model above (or the roleplay model if that is blank too).")]
+      [SettingPropertyText("NSFW model", RequireRestart = false, Order = 6,
+         HintText = "Model id for explicit content: captivity scenes in Standard mode, and the hard-failure fallback " +
+                    "in Enhanced mode (when the PROSE model truncates, empties, or refuses a beat). Default " +
+                    "x-ai/grok-4.20. Blank = use the PROSE model.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
-      public string CncModel { get; set; } = "";
+      public string CncModel { get; set; } = "x-ai/grok-4.20";
 
-      [SettingPropertyDropdown("CNC provider", RequireRestart = false, Order = 7,
-         HintText = "Which provider the CNC / captive model above is sent to. (default) uses the Roleplay / Prose " +
-                    "provider. Applies immediately.")]
+      [SettingPropertyDropdown("NSFW provider", RequireRestart = false, Order = 7,
+         HintText = "Which provider the NSFW model above is sent to. (default) uses the PROSE provider. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public Dropdown<string> CncProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
 
-      [SettingPropertyText("Actions Interpreter model (optional)", RequireRestart = false, Order = 8,
-         HintText = "Used only in Prose + Interpreter composition mode: a small, cheap model that reads the structured " +
-                    "actions out of the prose. Blank = reuse the scene's model.")]
+      [SettingPropertyText("Interpret model", RequireRestart = false, Order = 8,
+         HintText = "Enhanced mode only: the model that reads the structured actions out of the prose. Default " +
+                    "x-ai/grok-4.20. Blank = use the PROSE model.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
-      public string ActionInterpreterModel { get; set; } = "";
+      public string ActionInterpreterModel { get; set; } = "x-ai/grok-4.20";
 
-      [SettingPropertyDropdown("Actions Interpreter provider", RequireRestart = false, Order = 9,
-         HintText = "Which provider the actions interpreter model above is sent to. (default) uses the Roleplay / " +
-                    "Prose provider (set it to a local OpenAI-Compatible endpoint to run the interpreter locally). Applies immediately.")]
+      [SettingPropertyDropdown("Interpret provider", RequireRestart = false, Order = 9,
+         HintText = "Which provider the Interpret model above is sent to. (default) uses the PROSE provider (set it " +
+                    "to a local OpenAI-Compatible endpoint to run the interpreter locally). Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public Dropdown<string> ActionInterpreterProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
@@ -253,7 +242,7 @@ namespace CalradiaRemembers.Settings
                     "prone to moralizing refusals, and speeds up scenes. OpenRouter only.")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public Dropdown<string> NsfwReasoningEffort { get; set; } =
-         new(new[] {ModelModePolicy.SameAsRoleplay, "Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Same as roleplay
+         new(new[] {ModelModePolicy.SameAsProse, "Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Same as roleplay
 
       [SettingPropertyDropdown("Reasoning Effort (roleplay)", RequireRestart = false, Order = 1,
          HintText = "How hard a reasoning model thinks before replying. Higher can mean finer dialogue but slower " +

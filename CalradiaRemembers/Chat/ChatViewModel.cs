@@ -370,10 +370,9 @@ namespace CalradiaRemembers.Chat
          // distinct speaker present, freeing the render-targets of that speaker's older lines.
          _messages.ListChanged += OnMessagesListChanged;
 
-         // Every chat opens on the roleplay model; the explicit-scene activators
-         // (captive encounter, player-as-captor) flip the mode to an explicit one right after.
-         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(
-            SceneContentKind.Ordinary, ModSettings.AdultContentLevel != AdultContentLevel.Off);
+         // Every chat opens as an ordinary scene; the captive/captor activators set the scene kind to Cnc when
+         // the scene is sexual, which (in Standard composition) routes it to the NSFW model.
+         LlmServices.ActiveSceneKind = SceneContentKind.Ordinary;
 
          RefreshStyleUi(); // the header's style button: hidden unless armed, labelled with the live voice
       }
@@ -551,17 +550,12 @@ namespace CalradiaRemembers.Chat
       public bool IsMemoryToggleVisible => _npcHero != null && !_isMemoryPanelOpen;
 
       /// <summary>
-      ///   True when the mode button should be shown: adult content must be on, and the flip must actually
-      ///   change something, which an explicit (consensual or CNC) model OR an NSFW provider pin both do (a player
-      ///   may keep one model and merely route explicit scenes to an uncensored provider).
+      ///   Phase 2 removed the manual model-mode toggle: model routing is now automatic (Standard content-routes
+      ///   captivity to the NSFW model; Enhanced always writes on PROSE with the NSFW model as a fallback). The
+      ///   property remains, always false, so the XML binding stays valid and the button never shows.
       /// </summary>
       [DataSourceProperty]
-      public bool IsModelModeToggleVisible =>
-         ModelModePolicy.ToggleVisible(
-            !string.IsNullOrWhiteSpace(ModSettings.ConsensualModel)
-            || !string.IsNullOrWhiteSpace(ModSettings.CncModel),
-            !string.IsNullOrWhiteSpace(ModSettings.OpenRouterNsfwProviderPin),
-            ModSettings.AdultContentLevel != AdultContentLevel.Off);
+      public bool IsModelModeToggleVisible => false;
 
       /// <summary>Inverse of <see cref="IsScenePaused" /> — drives the normal InputBox + SendButton.</summary>
       [DataSourceProperty]
@@ -834,10 +828,7 @@ namespace CalradiaRemembers.Chat
       ///   built from that. Labelled "Mode: NSFW" it read as a content switch, so a player at Mature clicked
       ///   it, got the same chaste writing the Mature prompt asks for, and concluded the button was broken.
       /// </summary>
-      public string ModelModeText =>
-         LlmServices.ActiveModelMode != ModelMode.Roleplay
-            ? "Model: NSFW"
-            : "Model: Roleplay";
+      public string ModelModeText => ""; // Phase 2: the manual toggle is gone; the label is unused (button hidden).
 
       public Action OnCloseRequested { get; set; }
 
@@ -1019,9 +1010,8 @@ namespace CalradiaRemembers.Chat
          // A captive/captor scene is CNC by construction; a sexual intent routes it to the CNC model, a
          // non-sexual one stays ordinary (roleplay). NEXT INCREMENT: finer scene->mode routing (auto-detecting
          // a ConsensualIntimate case, splitting Cnc detection) replaces this structural true->Cnc mapping.
-         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(
-            CaptiveSceneIntentRules.IsSexual(intent) ? SceneContentKind.Cnc : SceneContentKind.Ordinary,
-            ModSettings.AdultContentLevel != AdultContentLevel.Off);
+         LlmServices.ActiveSceneKind =
+            CaptiveSceneIntentRules.IsSexual(intent) ? SceneContentKind.Cnc : SceneContentKind.Ordinary;
          OnPropertyChanged(nameof(ModelModeText));
 
          _captiveEncounterProfile = captorProfile;
@@ -1109,9 +1099,8 @@ namespace CalradiaRemembers.Chat
          // A player-as-captor scene is CNC by construction; a sexual intent routes it to the CNC model, a
          // non-sexual one stays ordinary (roleplay). NEXT INCREMENT: finer scene->mode routing (auto-detecting
          // a ConsensualIntimate case, splitting Cnc detection) replaces this structural true->Cnc mapping.
-         LlmServices.ActiveModelMode = ModelModePolicy.DefaultForScene(
-            CaptiveSceneIntentRules.IsSexual(intent) ? SceneContentKind.Cnc : SceneContentKind.Ordinary,
-            ModSettings.AdultContentLevel != AdultContentLevel.Off);
+         LlmServices.ActiveSceneKind =
+            CaptiveSceneIntentRules.IsSexual(intent) ? SceneContentKind.Cnc : SceneContentKind.Ordinary;
          OnPropertyChanged(nameof(ModelModeText));
 
          _captorScene = true;
@@ -1956,21 +1945,10 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Flips the active model mode: the manual override for scenes the automatic selection cannot see coming,
-      ///   e.g. a consensual conversation that escalates. This increment flips Roleplay &lt;-&gt;
-      ///   ConsensualIntimate (the consensual-escalation case); Cnc stays reserved for automatic scene routing
-      ///   (the NEXT increment brings auto Cnc for captor/captive and ConsensualIntimate detection). The model is
-      ///   resolved live on every request, so the switch takes effect on the very next exchange.
+      ///   Phase 2 removed the manual model-mode toggle (routing is automatic now). The command remains as a
+      ///   no-op so the XML button binding stays valid; the button itself is hidden (IsModelModeToggleVisible).
       /// </summary>
-      public void ExecuteToggleModelMode()
-      {
-         LlmServices.ActiveModelMode = LlmServices.ActiveModelMode == ModelMode.Roleplay
-            ? ModelMode.ConsensualIntimate
-            : ModelMode.Roleplay;
-
-         OnPropertyChanged(nameof(ModelModeText));
-         ModLog.Info($"[MODEL] mode switched to {LlmServices.ActiveModelMode}, resolves to {LlmServices.ActiveModelId}.");
-      }
+      public void ExecuteToggleModelMode() { }
 
       /// <summary>
       ///   Player chose "Try something" during a captive scene pause. Restores the normal

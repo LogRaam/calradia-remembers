@@ -207,47 +207,29 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.model [toggle]
-      ///   Reports the active model mode (Roleplay or NSFW), the model id it resolves to, whether an explicit
-      ///   (consensual/CNC) model is configured in Mod Options, and whether the in-chat mode button would show. Pass "toggle" to flip
-      ///   the mode (the same override as the button). Reads settings only; no campaign required.
+      ///   cr.model
+      ///   Reports the composition mode (Standard/Enhanced), the active scene kind, and the model each role resolves
+      ///   to (PROSE / NSFW / INTERPRET). Reads settings only; no campaign required. Phase 2 removed the manual
+      ///   toggle: routing is automatic (Standard content-routes captivity to NSFW; Enhanced always writes on PROSE
+      ///   with the NSFW model as a hard-failure fallback).
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("model", "cr")]
       public static string ModelModeInfo(List<string> args)
       {
-         // This increment flips Roleplay <-> ConsensualIntimate (the consensual-escalation case); Cnc is
-         // reserved for automatic scene routing (the NEXT increment).
-         if (args is {Count: > 0} && string.Equals(args[0], "toggle", StringComparison.OrdinalIgnoreCase))
-            LlmServices.ActiveModelMode = LlmServices.ActiveModelMode == ModelMode.Roleplay
-               ? ModelMode.ConsensualIntimate
-               : ModelMode.Roleplay;
+         ChatCompositionMode mode = ModSettings.ChatCompositionMode;
+         SceneContentKind kind = LlmServices.ActiveSceneKind;
+         LlmServices llm = NpcMemoryCampaignBehavior.Instance?.LlmServices;
 
-         bool anyExplicitModel = !string.IsNullOrWhiteSpace(ModSettings.ConsensualModel)
-                                 || !string.IsNullOrWhiteSpace(ModSettings.CncModel);
-         bool nsfwPinConfigured = !string.IsNullOrWhiteSpace(ModSettings.OpenRouterNsfwProviderPin);
-         bool toggleVisible = ModelModePolicy.ToggleVisible(
-            anyExplicitModel, nsfwPinConfigured, ModSettings.AdultContentLevel != AdultContentLevel.Off);
+         string prose = llm != null ? llm.DebugDescribeRoleRouting(ServiceRole.Prose).model : "(services not ready)";
+         string nsfw = llm != null ? llm.DebugDescribeRoleRouting(ServiceRole.Nsfw).model : "";
+         string interp = llm != null ? llm.DebugDescribeRoleRouting(ServiceRole.Interpret).model : "";
 
-         string nsfwPart = anyExplicitModel
-            ? $"explicit model configured (consensual '{ModSettings.ConsensualModel}', CNC '{ModSettings.CncModel}')"
-            : "no explicit model configured (the roleplay model serves everything)";
+         string modeLine = mode == ChatCompositionMode.Standard
+            ? "one integrated call - PROSE for chat, NSFW for captivity, no interpret, no fallback"
+            : "PROSE writes, INTERPRET tags, NSFW is the hard-failure fallback";
 
-         string effort = ModelModePolicy.ResolveReasoningEffort(
-            LlmServices.ActiveModelMode, ModSettings.ReasoningEffort, ModSettings.NsfwReasoningEffort);
-
-         // The provider the request would actually go to, which the mode now moves as well as the model: a
-         // player routing ordinary chat to the cheapest provider and explicit scenes to an uncensored one has
-         // no other way to see WHICH of the two a flip just selected.
-         string pin = ModelModePolicy.ResolveProviderPin(
-            LlmServices.ActiveModelMode, ModSettings.OpenRouterProviderPin, ModSettings.OpenRouterNsfwProviderPin);
-         string pinPart = string.IsNullOrWhiteSpace(pin)
-            ? "No provider pinned for this mode (OpenRouter routes freely, so a ':floor' model id can pick the cheapest)"
-            : $"Providers pinned for this mode: {pin}";
-
-         return $"Model mode = {LlmServices.ActiveModelMode}, resolves to '{LlmServices.ActiveModelId}', " +
-                $"reasoning effort {effort}. " +
-                $"{nsfwPart}. {pinPart}. In-chat mode button {(toggleVisible ? "visible" : "hidden")}. " +
-                "Use 'cr.model toggle' to flip the mode.";
+         return $"Composition = {mode} ({modeLine}). Active scene kind = {kind}. " +
+                $"Models: PROSE '{prose}', NSFW '{nsfw}', INTERPRET '{interp}'.";
       }
 
       [CommandLineFunctionality.CommandLineArgumentFunction("provider_routing", "cr")]
@@ -258,7 +240,7 @@ namespace CalradiaRemembers
 
          var sb = new StringBuilder("Per-role provider routing (what each role WOULD use, no network call):");
          foreach (ServiceRole role in new[] {
-                     ServiceRole.Roleplay, ServiceRole.ConsensualIntimate, ServiceRole.Cnc, ServiceRole.ActionInterpreter
+                     ServiceRole.Prose, ServiceRole.Nsfw, ServiceRole.Interpret
                   })
          {
             (ProviderKind kind, string baseUrl, string model) = llm.DebugDescribeRoleRouting(role);
