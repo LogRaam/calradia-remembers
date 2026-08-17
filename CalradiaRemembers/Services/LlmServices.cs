@@ -597,9 +597,10 @@ namespace CalradiaRemembers.Services
 
       /// <summary>
       ///   The model that completes a beat the PROSE model cut off mid-sentence (Prose + Interpreter mode only,
-      ///   see <see cref="Logic.TruncationFallbackPolicy" />): the configured "Prose fallback model" field, or
-      ///   <see cref="ResolveInterpreterModel" /> when blank (grok, the Action Interpreter's own model, is already
-      ///   the most explicit configured model, so no new config is needed by default).
+      ///   see <see cref="Logic.TruncationFallbackPolicy" />). Phase 2: this is the NSFW model (the explicit one),
+      ///   reached only when the PROSE beat fails hard; when the NSFW field is blank it reuses the current scene
+      ///   model via <see cref="ResolveModel" />, so a single-model config still keeps a safety net (the NSFW
+      ///   model itself defaults to grok, so no new config is needed by default).
       /// </summary>
       public string ResolveProseFallbackModel()
       {
