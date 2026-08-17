@@ -114,7 +114,19 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
       public string CustomEndpointUrl { get; set; } = "";
 
-      [SettingPropertyDropdown("Parameter Compatibility", RequireRestart = false, Order = 2,
+      [SettingPropertyText("Endpoint URL (NSFW)", RequireRestart = false, Order = 2,
+         HintText = "Optional. A separate OpenAI-Compatible server URL for the NSFW role only, so you can split roles " +
+                    "across two local machines. Blank = use the shared Endpoint URL above. Applies immediately.")]
+      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      public string CustomEndpointUrlNsfw { get; set; } = "";
+
+      [SettingPropertyText("Endpoint URL (Interpret)", RequireRestart = false, Order = 3,
+         HintText = "Optional. A separate OpenAI-Compatible server URL for the Interpret role only, so the interpreter " +
+                    "can run on its own local machine. Blank = use the shared Endpoint URL above. Applies immediately.")]
+      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      public string CustomEndpointUrlInterpret { get; set; } = "";
+
+      [SettingPropertyDropdown("Parameter Compatibility", RequireRestart = false, Order = 4,
          HintText = "Which sampling parameters to send. Auto detects OpenAI reasoning models (gpt-5, o1/o3/o4), which " +
                     "reject the classic max_tokens. Leave on Auto unless your endpoint rejects a field.")]
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
@@ -343,7 +355,7 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public Action TestConnection { get; set; } = ApiKeyTester.Run;
 
-      [SettingPropertyButton("Test Endpoint", RequireRestart = false, Order = 3,
+      [SettingPropertyButton("Test Endpoint", RequireRestart = false, Order = 5,
          HintText = "Sends a one-token test to your endpoint with the roleplay model and, if set, the consensual model. " +
                     "Your server must be running. OpenAI-Compatible only.",
          Content = "Test")]

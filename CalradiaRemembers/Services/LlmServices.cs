@@ -221,7 +221,7 @@ namespace CalradiaRemembers.Services
 
          if (provider == ProviderCustom)
          {
-            if (string.IsNullOrWhiteSpace(BaseUrlFor(kind)))
+            if (string.IsNullOrWhiteSpace(BaseUrlFor(ServiceRole.Prose, kind)))
                return "(No endpoint URL is set. Open Mods → Mod Options → Calradia Remembers, " +
                       "paste your server URL (e.g. http://localhost:1234/v1), then return here — it applies immediately.)";
             if (string.IsNullOrWhiteSpace(ResolveModel()))
@@ -271,7 +271,7 @@ namespace CalradiaRemembers.Services
             var config = new OpenRouterConfig {
                ApiKeyProvider = () => ApiKeyFor(ActiveRoleKind()),
                ModelProvider = ResolveModel,
-               BaseUrlProvider = () => BaseUrlFor(ActiveRoleKind()),
+               BaseUrlProvider = () => BaseUrlFor(ActiveMainRole(), ActiveRoleKind()),
                UseSystemPromptCachingProvider = () => UseCachingFor(ActiveRoleKind()),
                ReasoningProvider = ResolveReasoning,
                TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
@@ -533,13 +533,32 @@ namespace CalradiaRemembers.Services
             ? ModelModePolicy.ResolveProviderPin(ActiveMainRole(), ModSettings.OpenRouterProviderPin, ModSettings.OpenRouterNsfwProviderPin, "")
             : "";
 
-      /// <summary>Resolves a provider kind's OpenAI-compatible base URL. Read live per request.</summary>
-      private static string BaseUrlFor(ProviderKind kind)
+      /// <summary>
+      ///   Resolves the base URL for a <paramref name="role" /> on a provider <paramref name="kind" />, read live
+      ///   per request. Only the OpenAI-Compatible kind varies by role: a role may carry its own endpoint override
+      ///   (so two local servers can be split across roles), falling back to the shared Endpoint URL. The
+      ///   aggregators (OpenRouter, NanoGPT) have one fixed base URL for every role.
+      /// </summary>
+      private static string BaseUrlFor(ServiceRole role, ProviderKind kind)
       {
          if (kind == ProviderKind.NanoGpt) return NanoGptBaseUrl;
-         if (kind == ProviderKind.OpenAiCompatible) return CrSettings.Instance?.CustomEndpointUrl?.Trim() ?? "";
+         if (kind == ProviderKind.OpenAiCompatible)
+            return OpenAiEndpointPolicy.Resolve(CrSettings.Instance?.CustomEndpointUrl, CustomEndpointOverrideFor(role));
 
          return OpenRouterBaseUrl;
+      }
+
+      /// <summary>The per-role OpenAI-Compatible endpoint override, or null for the Prose role (which uses the shared endpoint).</summary>
+      private static string CustomEndpointOverrideFor(ServiceRole role)
+      {
+         CrSettings s = CrSettings.Instance;
+
+         switch (role)
+         {
+            case ServiceRole.Nsfw: return s?.CustomEndpointUrlNsfw;
+            case ServiceRole.Interpret: return s?.CustomEndpointUrlInterpret;
+            default: return null;
+         }
       }
 
       /// <summary>
@@ -665,7 +684,7 @@ namespace CalradiaRemembers.Services
          var config = new OpenRouterConfig {
             ApiKeyProvider = () => ApiKeyFor(kind),
             ModelProvider = () => model,
-            BaseUrlProvider = () => BaseUrlFor(kind),
+            BaseUrlProvider = () => BaseUrlFor(ServiceRole.Interpret, kind),
             UseSystemPromptCachingProvider = () => UseCachingFor(kind),
             ReasoningProvider = () => kind == ProviderKind.OpenRouter
                ? InterpreterReasoningEffort
@@ -689,7 +708,7 @@ namespace CalradiaRemembers.Services
       public (ProviderKind kind, string baseUrl, string model) DebugDescribeRoleRouting(ServiceRole role)
       {
          ProviderKind kind = ResolveKindForRole(role);
-         string baseUrl = BaseUrlFor(kind);
+         string baseUrl = BaseUrlFor(role, kind);
          string model;
 
          switch (role)
