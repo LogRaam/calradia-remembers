@@ -473,8 +473,8 @@ Popular options:
   1. Launch Bannerlord with the mod enabled, then open Options → Mod Options → Calradia Remembers.
   2. Set `LLM Provider` to OpenRouter or NanoGPT.. whichever you set up.
   3. Paste your key into that provider's API Key field.
-  4. Set the shared `Model (roleplay)` field (OpenRouter has a default; NanoGPT needs an id you paste from its catalog). Optionally set `NSFW model` too if you want a different, more permissive model just for Explicit/Hardcore scenes.. leave it blank to use one model for everything. [i](Updating from an older version? See the one-time note in "What's new in v1.20.0" above.)[/i]
-  5. Click that provider's `Test Connection` button.. it validates your key and tests every model you've configured (roleplay, and NSFW if set) with a one-token prompt, so a mistyped model id is caught before you play.
+  4. Set the [b]PROSE model[/b] field.. the model that writes ordinary conversation (OpenRouter has a default, x-ai/grok-4.20; NanoGPT needs an id you paste from its catalog). That is all you need to start: on the default [b]Enhanced[/b] composition the [b]NSFW model[/b] (a reliable fallback for explicit beats) and the [b]Interpret model[/b] (which reads actions) both default to Grok 4.20 and simply work. Point any of the three at a different model, or its own provider, only if you want to. [i](Upgrading? Your provider, key and PROSE model carry over; the NSFW-fallback and Interpret roles default to Grok 4.20.)[/i]
+  5. Click that provider's `Test Connection` button.. it validates your key and tests your configured models with a one-token prompt, so a mistyped model id is caught before you play.
   6. That's it. Settings apply immediately.. no restart, no save reload. Walk up to any lord and talk.
 
 [b]Local server (OpenAI-Compatible):[/b]
@@ -482,7 +482,7 @@ Popular options:
   2. Open Options → Mod Options → Calradia Remembers.
   3. Set `LLM Provider` to [b]OpenAI-Compatible[/b].
   4. Paste the server URL into [b]Endpoint URL[/b] (e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama). Include the /v1 path.. the mod appends /chat/completions automatically.
-  5. Paste the model id into the shared [b]Model (roleplay)[/b] field (LM Studio shows it in its server panel; Ollama uses the name you pulled, e.g. llama3.1:8b). Running a small short-context model? Turn on [b]Compact prompt for small models[/b] if the AI stays silent.
+  5. Paste the model id into the [b]PROSE model[/b] field (LM Studio shows it in its server panel; Ollama uses the name you pulled, e.g. llama3.1:8b). Running a small short-context model? Turn on [b]Compact prompt for small models[/b] if the AI stays silent.
   6. Leave [b]API Key[/b] blank unless your server is configured to require one.
   7. Click [b]Test Endpoint[/b].. it sends a one-token completion to confirm the server is up and the model id is correct.
   8. That's it. Settings apply immediately.
@@ -494,11 +494,15 @@ LLM Provider:
 [*]LLM Provider.. which backend to use: OpenRouter (default), NanoGPT, or OpenAI-Compatible (any local server). Switching here doesn't make you re-enter your model. Applies immediately.[/*]
 [/list]
 
-[b][color=#b6d7a8]Model (shared across providers)[/color][/b]:
+[b][color=#b6d7a8]Models & composition (in the LLM Provider group)[/color][/b]:
 [list]
-[*]Model (roleplay).. the model id ordinary conversation uses. Default on OpenRouter: x-ai/grok-4.20; NanoGPT and OpenAI-Compatible need an id you paste yourself. See "Which model should I use?" below for picks by quality, price, and adult-content tolerance.[/*]
-[*]NSFW model (optional).. a second, more permissive model used automatically for captive and other explicit scenes, and switchable mid-conversation with the chat's Mode button. Leave blank to use the roleplay model for everything.[/*]
-[*]Reasoning Effort (roleplay) / Reasoning Effort (NSFW).. how hard a reasoning model (like Grok) "thinks" before replying. Lower or Off makes such models markedly less prone to moralizing refusals on adult/Hardcore content. Keep roleplay high for finer dialogue; NSFW defaults to "Same as roleplay" and is worth dropping to Low/Off for fewer refusals and faster scenes. OpenRouter only.[/*]
+[*]Chat Composition.. how each reply is assembled. [b]Enhanced[/b] (default): your PROSE model writes, a dedicated INTERPRET model reads the actions out of the prose, and the NSFW model stands by as a reliable fallback that finishes any beat the PROSE model truncates, empties, or refuses. Richest quality, at the cost of more tokens and a little more time. [b]Standard[/b]: one integrated call.. the PROSE model for ordinary chat and the NSFW model for captivity. Cheapest and fastest. There is no manual mode button any more; the mod routes for you.[/*]
+[*]PROSE model.. the model that writes ordinary conversation, and in Enhanced mode the prose of every scene. Default on OpenRouter: x-ai/grok-4.20; NanoGPT and OpenAI-Compatible need an id you paste yourself. See "Which model should I use?" below for picks by quality, price, and adult-content tolerance.[/*]
+[*]NSFW model.. the more permissive model for explicit content: captivity scenes in Standard mode, and the hard-failure fallback in Enhanced mode (when the PROSE model truncates, empties, or refuses a beat). Default x-ai/grok-4.20; leave blank to reuse the PROSE model.[/*]
+[*]Interpret model.. Enhanced mode only.. the model whose sole job is to read the structured actions (relation shifts, gold, quests, duels…) out of the prose, so they fire reliably whatever writer you run. Default x-ai/grok-4.20; leave blank to reuse the PROSE model.[/*]
+[*]Per-role providers ([i]Roleplay / Prose provider[/i], [i]NSFW provider[/i], [i]Interpret provider[/i]).. each role can go to its own backend. The prose provider is the base; the other two inherit it on [i](default)[/i], or pick their own.. for instance prose in the cloud and the interpreter on a local model. Applies immediately.[/*]
+[*]Actions Interpreter Timing.. Enhanced mode only. [b]Synchronous[/b] (recommended): the actions apply together with the reply. [b]Asynchronous[/b]: the reply shows instantly and the actions land a moment later.[/*]
+[*]Reasoning Effort (PROSE) / Reasoning Effort (NSFW).. how hard a reasoning model (like Grok) "thinks" before replying. In Enhanced mode the PROSE model writes captivity scenes too, so keep PROSE effort [b]Low or Medium[/b] (its default is Low).. higher can mean finer dialogue but slower replies, more truncation, and more refusals on adult content. NSFW defaults to "Same as PROSE" and is worth dropping to Low/Off for fewer refusals and faster scenes. OpenRouter only.[/*]
 [/list]
 
 [b][color=#b6d7a8]OpenRouter[/color] [/b](used when Provider is set to OpenRouter):
@@ -550,7 +554,7 @@ LLM Provider:
 [line]
 [size=4]Which model should I use?[/size]
 
-The mod works with any text model your provider offers.. you just paste its id into the Model (roleplay) field, and you can switch anytime in one click. Two things matter for this mod: the model must follow instructions reliably (it quietly drives memory, actions, and quests behind the scenes), and.. if you play the Explicit / Hardcore tiers.. it must be permissive, because heavily-filtered models will flat-out refuse adult scenes. Since v1.20.0 you don't have to pick one model that does both: set a separate, more permissive [b]NSFW model[/b] for Explicit/Hardcore scenes (see "How to configure" above) and keep a stronger writer for everyday roleplay. The ids below are OpenRouter ids; on NanoGPT the same model families are available but use NanoGPT's own ids from nano-gpt.com/models. Prices below are a rough guide; check your provider's model page for current rates.
+The mod works with any text model your provider offers.. you just paste its id into the PROSE model field, and you can switch anytime in one click. Two things matter for this mod: the model must follow instructions reliably (it quietly drives memory, actions, and quests behind the scenes), and.. if you play the Explicit / Hardcore tiers.. it must be permissive, because heavily-filtered models will flat-out refuse adult scenes. You no longer have to pick one model that does both: on the default [b]Enhanced[/b] composition a stronger writer carries the [b]PROSE[/b], while a more permissive [b]NSFW model[/b] quietly finishes any explicit beat that writer would dodge or cut short (see "How to configure" above). The ids below are OpenRouter ids; on NanoGPT the same model families are available but use NanoGPT's own ids from nano-gpt.com/models. Prices below are a rough guide; check your provider's model page for current rates.
 
 [b]GROK 4.20[/b].. the safe default    (model id: x-ai/grok-4.20)
 Proven with everything this mod does, adult tiers included. Balanced quality, permissive, and already tested. If in doubt, stay here.
