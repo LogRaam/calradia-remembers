@@ -1,0 +1,18 @@
+Version 2.0.0
+
+A new two-model roleplay engine, and the largest pass yet on how intimate and captive scenes read. Your saves carry over untouched.
+
+New
+- Give each job its own AI model, and let a reliable model finish what a strong writer dodges. You can now set three models: one for prose (the writing), one for explicit content, and one that reads each turn to detect actions. The new default "Enhanced" mode lets your chosen writing model carry every conversation, and when that model stalls or cuts an explicit beat short, as many capable writing models do, a reliable second model quietly completes the beat and hands the scene back. You get better prose without losing the follow-through, and nothing to toggle by hand. A lighter "Standard" mode keeps the older single-call behaviour when you would rather spend less.
+- Each model role can use its own provider. Prose on one service, explicit content on another, the action reader on a local model, whatever suits you. Set it once in the mod options.
+- Actions are read by a dedicated pass. Relation changes, gold, duels, recruiting a companion and the rest are now detected by a model whose only job is to read the scene, so they fire reliably no matter which writing model you use.
+
+Fixed
+- Captive and coercive scenes read far better. When your men act on your order, it is written as them acting, not as you; the band speaks to the prisoner as they use them; each man's finish is depicted and spread across the scene rather than everyone at once; a blow that draws blood now registers as real harm; a captor never assumes the prisoner obeyed a command they in fact refused; a captor uses only what is actually at hand instead of conjuring implements out of nowhere.
+- A captor who has just won a battle no longer invents a false past for the loser. Previously one might claim he had captured you "two moons past" and already sold you off, moments after the fight; now he speaks the plain truth of who he is holding right now.
+- Characters narrate their own gestures in the first person. A character now writes "I narrow my eyes" rather than "your eyes narrow", which used to read as though you had done it; and a stray narration label no longer leaks into a spoken line.
+- Warning a character of danger, or helping them, no longer costs you their regard. Guidance now separates what the player earned from the character's own wary mood: a helpful act met with suspicion is still helpful. Over-generous relation jumps have also been calmed.
+- A character with no noble clan no longer calls themselves "of the No clan clan"; they read as being of no noble house.
+- Fixed a crash on loading with the current game version (War Sails), and letters written in Russian now use a legible font instead of a decorative one that could not render Cyrillic.
+- Memory upkeep is quieter and cheaper. The memory of characters who have died is no longer compressed (it is never read again), and a memory task that simply times out no longer shows an alarming red error; it retries later.
+- Long explicit beats are no longer cut off mid-sentence.
