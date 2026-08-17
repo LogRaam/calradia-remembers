@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
 #endregion
@@ -61,7 +62,7 @@ namespace CalradiaRemembers.Mapping
          if (messageTokens.Count == 0) return null;
 
          var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-         var matches = new List<(string FullName, string Gender, string Relationship, string Whereabouts)>();
+         var matches = new List<(string FullName, string Gender, string Relationship, string Whereabouts, string Prisoner)>();
 
          foreach (Hero other in Hero.AllAliveHeroes)
          {
@@ -75,7 +76,7 @@ namespace CalradiaRemembers.Mapping
             if (!NameSharesTokenWithMessage(fullName, messageTokens)) continue;
             seen.Add(other.StringId);
             matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(other.IsFemale),
-               Categorize(npc, other), ResolveWhereabouts(npc, other, bridge)));
+               Categorize(npc, other), ResolveWhereabouts(npc, other, bridge), PrisonerStatusClause(npc, other, fullName)));
          }
 
          return matches.Count == 0
@@ -85,7 +86,7 @@ namespace CalradiaRemembers.Mapping
 
       #region private
 
-      private static string BuildHint(List<(string FullName, string Gender, string Relationship, string Whereabouts)> matches)
+      private static string BuildHint(List<(string FullName, string Gender, string Relationship, string Whereabouts, string Prisoner)> matches)
       {
          var sb = new StringBuilder();
          sb.AppendLine("NAMES MENTIONED IN THE PLAYER'S MESSAGE:");
@@ -97,15 +98,21 @@ namespace CalradiaRemembers.Mapping
                $", {matches[0].Gender}, {matches[0].Relationship}.");
             if (!string.IsNullOrEmpty(matches[0].Whereabouts))
                sb.Append($" Whereabouts: {matches[0].Whereabouts}.");
+            if (!string.IsNullOrEmpty(matches[0].Prisoner))
+               sb.Append($" {matches[0].Prisoner}");
          }
          else
          {
             sb.AppendLine(
                "The following people may be relevant to what the player just said:");
-            foreach (var (name, gender, rel, where) in matches)
+            foreach (var (name, gender, rel, where, prisoner) in matches)
+            {
                sb.AppendLine(string.IsNullOrEmpty(where)
                   ? $"  - {name}, {gender}, {rel}"
                   : $"  - {name}, {gender}, {rel}. Whereabouts: {where}");
+               if (!string.IsNullOrEmpty(prisoner))
+                  sb.AppendLine($"    {prisoner}");
+            }
 
             if (HasAmbiguousFirstName(matches))
                sb.AppendLine(
@@ -169,7 +176,7 @@ namespace CalradiaRemembers.Mapping
       }
 
       private static bool HasAmbiguousFirstName(
-         List<(string FullName, string Gender, string Relationship, string Whereabouts)> matches)
+         List<(string FullName, string Gender, string Relationship, string Whereabouts, string Prisoner)> matches)
       {
          List<string> firstNames = matches
                                    .Select(m => m.FullName.Split(' ')[0])
@@ -248,6 +255,41 @@ namespace CalradiaRemembers.Mapping
             : LocationOf(other, bridge);
 
          return ThirdPartyDescriptor.WhereaboutsClause(tier, place, npc.CurrentSettlement?.Name?.ToString());
+      }
+
+      /// <summary>
+      ///   A CURRENT, hard fact when a mentioned person is a prisoner: whether THIS NPC (or their party/clan) holds
+      ///   them, the player holds them, or a third party does. Given so a captor who has just taken someone states
+      ///   it plainly instead of inventing a false capture-and-sale backstory (player report 2026-08-16). Null when
+      ///   the person is free.
+      /// </summary>
+      private static string PrisonerStatusClause(Hero npc, Hero other, string fullName)
+      {
+         if (other == null || !other.IsPrisoner) return null;
+
+         PartyBase party = other.PartyBelongedToAsPrisoner;
+         Hero captor = party?.LeaderHero ?? party?.Owner;
+
+         ThirdPartyDescriptor.PrisonerHolder holder;
+         string captorLabel = null;
+
+         if (captor == Hero.MainHero || (party != null && party.MobileParty == MobileParty.MainParty))
+         {
+            holder = ThirdPartyDescriptor.PrisonerHolder.Player;
+         }
+         else if (captor == npc || (npc?.Clan != null && captor?.Clan == npc.Clan))
+         {
+            holder = ThirdPartyDescriptor.PrisonerHolder.ThisNpc;
+         }
+         else
+         {
+            holder = ThirdPartyDescriptor.PrisonerHolder.Other;
+            captorLabel = captor != null
+               ? HeroLabel.Describe(captor.Name?.ToString(), captor.Clan?.Name?.ToString(), captor.Culture?.Name?.ToString())
+               : party?.Name?.ToString();
+         }
+
+         return ThirdPartyDescriptor.PrisonerClause(holder, captorLabel, fullName);
       }
 
       #endregion

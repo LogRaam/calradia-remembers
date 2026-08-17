@@ -124,5 +124,45 @@ namespace CalradiaRemembers.Logic
                     }
             }
         }
+
+        /// <summary>Who currently holds a mentioned person prisoner, if anyone.</summary>
+        public enum PrisonerHolder
+        {
+            /// <summary>Not a prisoner (or unknown).</summary>
+            None,
+
+            /// <summary>THIS NPC (or their party/clan) holds them.</summary>
+            ThisNpc,
+
+            /// <summary>The player holds them.</summary>
+            Player,
+
+            /// <summary>A third party holds them.</summary>
+            Other
+        }
+
+        /// <summary>
+        ///   A CURRENT, hard fact about a mentioned person's captivity, so an NPC who has just taken someone
+        ///   prisoner states it plainly instead of inventing a false backstory (player report 2026-08-16: a captor
+        ///   who had just won a battle claimed he had held the loser "two moons past" and already sold her off).
+        ///   Distinct from the whereabouts clause, which is stale hearsay; this is present-tense truth. Null when
+        ///   the person is not held.
+        /// </summary>
+        public static string PrisonerClause(PrisonerHolder holder, string captorName, string name)
+        {
+            switch (holder)
+            {
+                case PrisonerHolder.ThisNpc:
+                    return $"You are holding {name} prisoner RIGHT NOW. If asked, say so plainly; do NOT invent a past capture, a sale, or any other fate for them.";
+                case PrisonerHolder.Player:
+                    return $"The player is currently holding {name} prisoner.";
+                case PrisonerHolder.Other:
+                    return string.IsNullOrWhiteSpace(captorName)
+                        ? $"{name} is currently being held prisoner by someone else."
+                        : $"{name} is currently being held prisoner by {captorName}.";
+                default:
+                    return null;
+            }
+        }
     }
 }

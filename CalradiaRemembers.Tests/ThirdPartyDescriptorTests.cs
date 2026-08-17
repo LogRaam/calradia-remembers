@@ -255,5 +255,50 @@ namespace CalradiaRemembers.Tests
         {
             ThirdPartyDescriptor.GenderNoun(isFemale: false).Should().Be("a man");
         }
+
+        // Player report 2026-08-16: a captor who had just won a battle confabulated that he had held the loser
+        // "two moons past" and already sold her off. When THIS NPC is the current holder, the prompt must carry a
+        // present-tense truth AND a hard bar against inventing a past capture or sale, or the model fills the gap.
+        [Test]
+        public void GIVEN_this_npc_holds_the_prisoner_WHEN_clausing_THEN_it_is_present_tense_and_forbids_a_false_backstory()
+        {
+            string clause = ThirdPartyDescriptor.PrisonerClause(
+                ThirdPartyDescriptor.PrisonerHolder.ThisNpc, captorName: null, name: "Leontia");
+
+            clause.Should().Contain("holding Leontia prisoner RIGHT NOW");
+            clause.Should().Contain("do NOT invent a past capture, a sale");
+        }
+
+        [Test]
+        public void GIVEN_the_player_holds_the_prisoner_WHEN_clausing_THEN_it_names_the_player()
+        {
+            ThirdPartyDescriptor.PrisonerClause(
+                    ThirdPartyDescriptor.PrisonerHolder.Player, captorName: null, name: "Leontia")
+                .Should().Be("The player is currently holding Leontia prisoner.");
+        }
+
+        [Test]
+        public void GIVEN_a_third_party_holds_the_prisoner_WHEN_clausing_THEN_it_names_the_captor()
+        {
+            ThirdPartyDescriptor.PrisonerClause(
+                    ThirdPartyDescriptor.PrisonerHolder.Other, captorName: "Ulman of the Khuzait", name: "Leontia")
+                .Should().Be("Leontia is currently being held prisoner by Ulman of the Khuzait.");
+        }
+
+        // A known captivity with an unknown captor still reports the fact, so the NPC does not fill the blank with a name.
+        [Test]
+        public void GIVEN_a_third_party_holds_the_prisoner_but_the_captor_is_unknown_WHEN_clausing_THEN_it_says_someone_else()
+        {
+            ThirdPartyDescriptor.PrisonerClause(
+                    ThirdPartyDescriptor.PrisonerHolder.Other, captorName: "   ", name: "Leontia")
+                .Should().Be("Leontia is currently being held prisoner by someone else.");
+        }
+
+        [Test]
+        public void GIVEN_the_person_is_free_WHEN_clausing_THEN_there_is_no_clause()
+        {
+            ThirdPartyDescriptor.PrisonerClause(
+                ThirdPartyDescriptor.PrisonerHolder.None, captorName: null, name: "Leontia").Should().BeNull();
+        }
     }
 }
