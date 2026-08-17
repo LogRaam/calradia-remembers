@@ -67,9 +67,9 @@ namespace CalradiaRemembers.Diagnostics
          try { File.AppendAllText(ReportPath, sb.ToString()); }
          catch (Exception ex) { ModLog.Error($"[ACTION-BENCH] could not write the report log: {ex.GetType().Name}: {ex.Message}"); }
 
-         return $"cr.action_bench: {report.CasesPassed}/{report.TotalCases} cases passed "
-              + $"({report.Misses} miss, {report.PartialHits} partial, {report.FalsePositives} false-positive, "
-              + $"{report.CallFailures} call-fail). Full scoreboard -> {ReportPath}";
+         return $"cr.action_bench: {report.CasesPassed}/{report.TotalCases} passed "
+              + $"({report.CasesSolid} solid 100%, {report.CasesFlaky} flaky), "
+              + $"{report.TotalCases - report.CasesPassed} failing. Full scoreboard -> {ReportPath}";
       }
    }
 }
