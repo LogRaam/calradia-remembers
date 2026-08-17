@@ -142,6 +142,18 @@ namespace CalradiaRemembers.Memory
 
                 Apply(behavior, npcId, result, snapshotCount);
             }
+            catch (OperationCanceledException)
+            {
+                // The 90s timeout (or a teardown) cancelled the call before it finished. TaskCanceledException
+                // derives from this, so both our own timeout and the HTTP client's own timeout land here. Nothing
+                // broke and nothing was compressed, so this is not an error: it was logged as one and alarmed a
+                // player. Roll the attempt marker back to what it was before this pass, so the pass is retried on
+                // the next trigger instead of being suppressed until RetryGrowth more events accumulate.
+                if (lastAttempt > 0) LastAttemptedAtCount[npcId] = lastAttempt;
+                else LastAttemptedAtCount.Remove(npcId);
+
+                ModLog.Info($"[MEMORY] compression timed out for {profile.Name} after {TimeoutSeconds}s; will retry later.");
+            }
             catch (Exception ex)
             {
                 ModLog.Error($"[MEMORY] compression threw for {npcId}: {ex.GetType().Name}: {ex.Message}");
