@@ -8236,7 +8236,7 @@ namespace CalradiaRemembers.Diagnostics
          NpcProfile profile = GetOrCreate(behavior, companion);
          int eventsBefore = profile.Events.Count;
          int today = behavior.GameStateBridge.GetCurrentGameDay();
-         string expected = BattleMemoryText.AllySummary(true, "");
+         string expected = BattleMemoryText.AllySummary(true, "", false);
 
          int gained = WorldEventFeeders.DebugRecordCompanionBattleMemories(true);
 

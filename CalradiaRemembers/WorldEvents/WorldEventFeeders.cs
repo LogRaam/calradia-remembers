@@ -114,7 +114,7 @@ namespace CalradiaRemembers.WorldEvents
       ///   Leaves a memory of the player's battlefield in the profiles of those who were present: the lords
       ///   who led their own party (either side), and the companions who rode inside the player's own party.
       /// </summary>
-      private static void RecordBattlePerformanceIntoProfiles(MapEvent mapEvent, bool playerAttacker, bool playerWon, string near)
+      private static void RecordBattlePerformanceIntoProfiles(MapEvent mapEvent, bool playerAttacker, bool playerWon, string placeClause, bool sharedEffort)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
@@ -153,8 +153,8 @@ namespace CalradiaRemembers.WorldEvents
                // EncounterContextBuilder.LostBattleToPlayerRecently to feed the POWER BALANCE
                // note — keep the two in sync if this wording changes.
                string summary = ally
-                  ? BattleMemoryText.AllySummary(playerWon, near)
-                  : $"Faced you in battle and {(playerWon ? "saw you put their host to flight" : "held the field against you")}{near}.";
+                  ? BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort)
+                  : $"Faced you in battle and {(playerWon ? "saw you put their host to flight" : "held the field against you")}{placeClause}.";
                profile.Events.Add(new NotableEvent(day, NotableEventType.Other, summary));
 
                // Stance: a victory the player won earns respect (and, from a beaten foe, fear).
@@ -172,7 +172,7 @@ namespace CalradiaRemembers.WorldEvents
          // above (which reads each party's leader) never visits them. A player asked for the "fought
          // together" memory to reach them too, so this is its own seam a self-test can drive directly
          // (see DebugRecordCompanionBattleMemories) without staging a real battle.
-         RecordCompanionBattleMemories(day, playerWon, near);
+         RecordCompanionBattleMemories(day, playerWon, placeClause, sharedEffort);
       }
 
       /// <summary>
@@ -183,7 +183,7 @@ namespace CalradiaRemembers.WorldEvents
       ///   (behaviour unchanged) so the self-test seam <see cref="DebugRecordCompanionBattleMemories" /> can drive
       ///   exactly this path against a real party without a staged <see cref="MapEvent" />.
       /// </summary>
-      private static void RecordCompanionBattleMemories(int day, bool playerWon, string near)
+      private static void RecordCompanionBattleMemories(int day, bool playerWon, string placeClause, bool sharedEffort)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
@@ -202,7 +202,7 @@ namespace CalradiaRemembers.WorldEvents
 
             if (companion == null) continue; // only companions the player has actually met
 
-            companion.Events.Add(new NotableEvent(day, NotableEventType.Other, BattleMemoryText.AllySummary(playerWon, near)));
+            companion.Events.Add(new NotableEvent(day, NotableEventType.Other, BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort)));
 
             // A victory earns the same respect a lord who fought beside the player would feel.
             if (playerWon) StanceService.OnFoughtBesideYou(companion);
@@ -225,9 +225,9 @@ namespace CalradiaRemembers.WorldEvents
          if (behavior?.Store == null) return 0;
 
          int day = Today;
-         string expected = BattleMemoryText.AllySummary(playerWon, "");
+         string expected = BattleMemoryText.AllySummary(playerWon, "", false);
          int before = CountCompanionAllyMemories(behavior, day, expected);
-         RecordCompanionBattleMemories(day, playerWon, "");
+         RecordCompanionBattleMemories(day, playerWon, "", false);
 
          return CountCompanionAllyMemories(behavior, day, expected) - before;
       }
@@ -430,9 +430,15 @@ namespace CalradiaRemembers.WorldEvents
                                 : BattleSideEnum.Defender);
 
             Settlement place = mapEvent.MapEventSettlement;
-            string near = place != null
-               ? $" near {place.Name}"
-               : "";
+            BattleSetting setting = isSiege
+               ? BattleSetting.Siege
+               : mapEvent.EventType == MapEvent.BattleTypes.Raid
+                  ? BattleSetting.Raid
+                  : BattleSetting.OpenField;
+            string placeClause = BattleMemoryText.PlaceClause(setting, place?.Name?.ToString());
+            // The player fought within a larger host when their own side fielded an army (more than one party), so a
+            // siege or pitched battle won that way is a shared triumph, never the solo one lords used to congratulate.
+            bool sharedEffort = playerAttacker ? attackerHasArmy : defenderHasArmy;
             string winName = LeaderName(winLeader);
             string loseName = LeaderName(loseLeader);
 
@@ -446,7 +452,7 @@ namespace CalradiaRemembers.WorldEvents
                   ? Math.Max(40, BattleMagnitude(mapEvent))
                   : BattleMagnitude(mapEvent),
                InvolvesPlayer = playerIn,
-               Summary = $"{winName} defeated {loseName} in battle{near}.",
+               Summary = $"{winName} defeated {loseName}{(placeClause.Length > 0 ? placeClause : " in battle")}.",
                ActorIds = Ids(winLeader, loseLeader),
                FactionIds = FactionIds(winLeader, loseLeader),
                // Influence loop: a battle the player WON harms the beaten side; a loss harms no one
@@ -459,13 +465,16 @@ namespace CalradiaRemembers.WorldEvents
                   : new List<string>()
             };
             if (playerIn)
+            {
+               string engagement = BattleMemoryText.ChronicleEngagement(setting, place?.Name?.ToString());
                e.ChronicleLine = playerWon
-                  ? $"the lord {PlayerName} met {loseName} in open battle{near}, and by sword and valour put the foe to flight"
-                  : $"the lord {PlayerName} gave battle to {winName}{near}, but fortune turned against him and the field was lost";
+                  ? $"the lord {PlayerName} met {loseName} in {engagement}, and by sword and valour put the foe to flight"
+                  : $"the lord {PlayerName} gave battle to {winName} in {engagement}, but fortune turned against him and the field was lost";
+            }
 
             Store.Record(e);
 
-            if (playerIn) RecordBattlePerformanceIntoProfiles(mapEvent, playerAttacker, playerWon, near);
+            if (playerIn) RecordBattlePerformanceIntoProfiles(mapEvent, playerAttacker, playerWon, placeClause, sharedEffort);
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] battle feeder failed: {ex.GetType().Name}: {ex.Message}"); }
       }
