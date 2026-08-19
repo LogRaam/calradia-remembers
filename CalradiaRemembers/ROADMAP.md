@@ -3575,6 +3575,37 @@ otherwise extract outsized advantage at no cost).
 
 ---
 
+## Fragmented, mergeable prompt files (fixes stop being shadowed by Custom edits)
+
+Player report (2026-08-19): the `ModuleData/Custom` folder overrides a whole file, so a player who copies
+`behavior_guidelines.txt` into Custom to change one line keeps their old copy and MISSES every later fix we
+ship in that file (the decency baseline, grounding rules, etc.). "Saves carry over untouched" is only about
+save data, not these editable files. This is a real architectural weakness: the most-customized file is also
+the most-patched, and the two collide.
+
+The fix (deferred, not urgent): move from one monolithic file to **additive fragments**, so our fixes and the
+player's edits coexist without shadowing.
+
+- **`.txt` prompt files** (`behavior_guidelines*`, `world.txt`, `post_history_instructions.txt`,
+  `player_description.txt`, `chronicle_style.txt`): a folder of fragments (e.g. `behavior_guidelines.d/`),
+  shipped fragments + Custom fragments, all concatenated. Ordering by **numeric filename prefix**
+  (`010_decency.txt`, `020_grounding.txt`), NOT raw GUID (GUIDs sort randomly and scramble prompt order).
+- **Per-fragment override / opt-out:** a Custom fragment of the SAME name as a shipped one REPLACES it (the
+  same Custom-first shadow, but per fragment, not per whole file), so the player masks only the ONE rule they
+  change and still gets updates to all the others. An empty Custom fragment disables that rule. (A shipped
+  fragment cannot be deleted durably: an update restores it, hence override-by-shadow rather than delete.)
+- **Back-compat:** keep loading the legacy monolithic file as one more fragment so existing setups do not
+  break; migrate over time.
+- **`.json` files** (`cultural_traditions.json`, `jealousy_cultures.json`, `character_overrides.json`) are
+  keyed by faction/hero, so the right model there is NOT text concat but **merge/override by key** (a Custom
+  entry adds or replaces one culture/hero without shadowing the whole file). Two mechanisms, not one.
+- **Cheap stopgap to ship first if wanted:** a staleness warning, stamp shipped files with a version and, at
+  load, warn when a Custom copy has fallen behind ("your Custom behavior_guidelines.txt is N updates behind").
+
+Aligns with the "make it your own" principle by making customization SAFE (customize without losing fixes).
+
+---
+
 ## Governing principles (carried across every layer)
 
 - **The hero is the PLAYER.** Spend tokens on what surrounds the player, not on NPC↔NPC scenes the player
