@@ -32,6 +32,27 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## BUILT, untested in game (player report, 2026-08-20): a letter-borne agreement must survive into the in-person conversation
+
+A player negotiated a marriage over three letters with Desporion ("we agreed on the terms"), then met him in
+person and he denied everything and called the player a liar. Cause pinned: `LetterPopupManager.MarkReceived`
+records only a GENERIC memory ("Received a letter from X (Reason)"), never the SUBSTANCE, so the live chat prompt
+(which reads the NPC's profile events) has no idea a marriage was proposed or agreed and the NPC contradicts it.
+This is the known "letter-borne agreement invisible to live chat" gap, now seen in the wild. It is the sharpest
+possible violation of the mod's core promise (what is said is remembered), and the fix makes the drama BETTER: an
+NPC who remembers can honor OR deliberately renege, instead of having amnesia.
+
+Level 1 (BUILT + unit-tested 2026-08-20, untested in game): substantive letters leave a real first-person memory, mirroring
+the two-stage CaptiveSceneSummarizer pattern. Pure `LetterMemoryPolicy` (which LetterReason values warrant a memory,
+excluding pure re-pings AwaitingReply/QuestUpdate; a synchronous first-person BaseMemory as guaranteed capture) +
+SDK `LetterMemorySummarizer` (one-shot LLM, first-person past-tense NPC POV of what the letter proposed/agreed/
+reported) + mod wiring at the letter-received and PlayerLetterReply sites + a `letter_memory` cr.testall self-test.
+
+Level 2 (LATER, separate, larger): a letter-agreed marriage actually SEEDS the real arrange_marriage / a Commitment,
+so it is not only remembered but executed. Ties into the "letters carry actions" extension.
+
+---
+
 ## WISHED (player-session finding, 2026-08-15): an NPC can TEACH the player a skill, and it grants real skill XP
 
 In a bench run an NPC spontaneously offered to teach the player:

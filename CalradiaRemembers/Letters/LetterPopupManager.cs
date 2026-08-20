@@ -64,13 +64,19 @@ namespace CalradiaRemembers.Letters
         {
             letter.IsDelivered = true;
             letter.DeliveredOnDay = today; // 2.3: anchor the romantic follow-up on the REAL arrival, not the frozen due day.
-            profile.Events.Add(new NotableEvent(today, NotableEventType.Other,
-                $"Received a letter from {profile.Name} ({letter.Reason})."));
+
+            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+
+            // Player report (Desporion): a substantive letter (a marriage proposal, agreed over several
+            // letters) left only a generic "Received a letter from X (Reason)" memory on the SENDER's own
+            // profile, so he later denied ever having written it. Records the letter's actual substance as
+            // the sender's own first-person memory instead. profile IS the letter's author here (whether an
+            // initial letter or a PlayerLetterReply, both arrive to the player through this one site).
+            LetterMemoryFinalizer.RecordLetterMemory(profile, letter.Reason, letter.Content, true, today, behavior);
 
             // Retention: this letter now joins the readable archive; keep the contact's history bounded.
             LetterArchiveRetention.EnforceCap(profile);
 
-            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
             behavior?.Store.Set(profile);
 
             if (letter.Reason == LetterReason.ChildSupportRequest)

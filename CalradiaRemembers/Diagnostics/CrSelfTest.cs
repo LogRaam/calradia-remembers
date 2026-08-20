@@ -139,6 +139,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("presence_gate", Severity.Light, "Mechanical: the ONE behaviour v1.30.14 changed, guarded across the WHOLE living roster with no preconditions. The letter system's facade and the single presence authority must give the same answer for every hero alive (before this, letters asked a wide question and jealousy a party-only one), and beside/away must be exact opposites. If they ever disagree again, the systems have drifted apart and this fires", TestPresenceGate),
          new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
+         new SelfTest("letter_memory", Severity.Light, "Player report (Desporion): a marriage proposal 'agreed on the terms' over three letters was denied face to face because letters left only a generic 'Received a letter (Reason)' memory, never their substance. Pure half: LetterMemoryPolicy.ShouldRemember excludes the two re-ping reasons (AwaitingReply, QuestUpdate) and includes MarriageProposal; BaseMemory is first-person and reflects direction. Real-path half: drives the REAL LetterMemoryFinalizer.RecordLetterMemory (LetterPopupManager.MarkReceived's own seam) with a ShouldRemember=false reason (QuestUpdate), so the run can never fall through to the async LLM summarizer (Lane C, kept out of cr.testall), and asserts the base event actually lands on profile.Events. Removes the event it added", TestLetterMemory),
          new SelfTest("world_conditions", Severity.Light, "Mechanical: the engine reads the weekly world-conditions feeder depends on still work against the live game (a renamed field or a changed model signature would silently swallow to 0 inside the feeder's own guards, recording nothing forever). Reads GetScoreOfDeclaringWar in both directions between two live kingdoms and a live town's FoodStocks/FoodChange/Prosperity DIRECTLY, asserts each is finite, then runs the real RunScan and asserts both scanners ran. Skips when the world has fewer than two kingdoms or no town", TestWorldConditions),
          new SelfTest("realm_tidings", Severity.Light, "Mechanical: drives the REAL RealmTidingsBehavior.DebugEvaluate end to end and proves per-NPC dedup. Seeds a dominant known event for a friendly landed lord (regard forced to 30), asserts a RealmTidings letter candidate is queued and the event id enters the dedup ledger, then re-evaluates and asserts the same event is never relayed twice. Restores the writer's regard, ledger and candidates and removes the seed", TestRealmTidings),
          new SelfTest("siege_tidings_participation", Severity.Light, "Mechanical (player report: told by letter of a siege they FOUGHT IN, days later, as if it were news): stamps the REAL WorldEventFeeders siege-participation marker for a live settlement, then drives the REAL RecordSiegeCapture construction with a NON-player taker (a mere participant, never the credited capturer) -> assert the recorded WorldEvent has InvolvesPlayer true (so realm-tidings' own InvolvesPlayer filter will never relay it back) while Type stays SettlementCaptured and Aggrieved* stay empty (the conquest's attribution is NOT stolen from the real taker). Removes the seeded event afterwards", TestSiegeTidingsParticipation),
@@ -8068,6 +8069,70 @@ namespace CalradiaRemembers.Diagnostics
             // Scope=sender never touched subject/global, so only CorrespondenceInterest needs restoring.
             profile.CorrespondenceInterest = baseInterest;
             behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Player report (Desporion): an NPC proposed marriage by letter, "agreed on the terms" over three
+      ///   letters, then denied it all in person because LetterPopupManager.MarkReceived recorded only a
+      ///   generic "Received a letter from X (Reason)" memory, never the substance. Pure-policy half:
+      ///   ShouldRemember correctly excludes the two re-ping reasons (AwaitingReply, QuestUpdate) and includes
+      ///   a substantive one (MarriageProposal); BaseMemory is first-person, names the player, and reflects
+      ///   the write/reply direction. Real-path half: drives the REAL LetterMemoryFinalizer.RecordLetterMemory
+      ///   (the seam LetterPopupManager.MarkReceived itself calls) with a ShouldRemember=false reason
+      ///   (QuestUpdate), so the run can never fall through to the async LLM summarizer (Lane C, kept out of
+      ///   cr.testall) even against a live LLM client, while still proving the base event actually lands on
+      ///   profile.Events. Removes the event it added.
+      /// </summary>
+      private static string TestLetterMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("letter_memory");
+
+         // ── Pure policy: the two re-ping reasons carry no substance beyond what an earlier letter already ──
+         // ── recorded; MarriageProposal is the exact reason from the player report and MUST be remembered. ──
+         t.Expect("awaitingReplyIsNotRemembered", LetterMemoryPolicy.ShouldRemember(LetterReason.AwaitingReply), false);
+         t.Expect("questUpdateIsNotRemembered", LetterMemoryPolicy.ShouldRemember(LetterReason.QuestUpdate), false);
+         t.Expect("marriageProposalIsRemembered", LetterMemoryPolicy.ShouldRemember(LetterReason.MarriageProposal), true);
+
+         string sentBase = LetterMemoryPolicy.BaseMemory(LetterReason.MarriageProposal, "Desporion", "Aldric", true);
+         t.Expect("baseMemoryIsFirstPerson", sentBase.StartsWith("I wrote to", StringComparison.Ordinal), true);
+         t.Expect("baseMemoryNamesThePlayer", sentBase.Contains("Aldric"), true);
+
+         string receivedBase = LetterMemoryPolicy.BaseMemory(LetterReason.MarriageProposal, "Desporion", "Aldric", false);
+         t.Expect("baseMemoryReflectsReceivedDirection", receivedBase.StartsWith("Aldric wrote to me", StringComparison.Ordinal), true);
+
+         // ── Real path: LetterMemoryFinalizer.RecordLetterMemory, the exact seam MarkReceived calls ──
+         string id = behavior.Store.ListIds().FirstOrDefault();
+         NpcProfile profile = id != null ? behavior.Store.Get(id) : null;
+
+         if (t.Skip(profile == null, "no NPC profile exists yet (chat with someone once to seed one, then re-run)")) return t.Line();
+
+         int before = profile.Events.Count;
+         int today = behavior.GameStateBridge?.GetCurrentGameDay() ?? (int)CampaignTime.Now.ToDays;
+
+         try
+         {
+            // QuestUpdate: ShouldRemember is false, so this can never fall through to the async LLM
+            // summarizer, even against a live, configured LLM client.
+            LetterMemoryFinalizer.RecordLetterMemory(profile, LetterReason.QuestUpdate, "The bandits have been dealt with.", true, today, behavior);
+
+            NpcProfile fresh = behavior.Store.Get(profile.Id);
+            string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
+            string expected = LetterMemoryPolicy.BaseMemory(LetterReason.QuestUpdate, profile.Name, playerName, true);
+
+            t.Expect("theRealPathAddedOneEvent", fresh?.Events.Count, before + 1);
+            t.Expect("theBaseEventIsTheExpectedPhrase", fresh?.Events.LastOrDefault()?.summary, expected);
+         }
+         finally
+         {
+            NpcProfile cleanup = behavior.Store.Get(profile.Id);
+            if (cleanup != null && cleanup.Events.Count > before)
+            {
+               cleanup.Events.RemoveAt(cleanup.Events.Count - 1);
+               behavior.Store.Set(cleanup);
+            }
          }
 
          return t.Line();
