@@ -2,6 +2,24 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.1.1.. 2026-08-20
+
+More life from your companions, and letters that are remembered. Your saves from 2.1.0 carry over untouched.
+
+### New
+- **Companions seek you out for good reasons, not only when unhappy.** Three new private-audience occasions: a
+  companion may come to **thank you** warmly for a kindness you did them and reaffirm their loyalty; a loyal one
+  may **warn you of a secret plot** against you (heeding it brings the plot into the open); and an ambitious one
+  may **ask to rise**, for a command of their own to lead, a post in your party, a fief to govern in your name, or
+  your blessing to wed. They come at a settlement, gated so they never pester, and refusing costs nothing.
+- **Separate API keys per model role.** The explicit model and the action reader can each carry their own API key
+  now, not just their own endpoint, so you can split them across local servers that each require a key.
+
+### Fixed
+- **A promise made by letter is remembered in person.** An NPC who proposed a match or agreed to something by
+  letter now recalls it face to face instead of denying it happened: a substantive letter leaves a real,
+  first-person memory of what was written, not just a note that a letter arrived.
+
 ## v2.1.0.. 2026-08-20
 
 Some requested features, and a big sharpening of how the mod reads what actually happens in a scene. Your saves

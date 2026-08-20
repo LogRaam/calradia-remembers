@@ -1,0 +1,10 @@
+Version 2.1.1
+
+More life from your companions, and letters that are remembered. Your saves from 2.1.0 carry over untouched.
+
+New
+- Your companions seek you out for good reasons now, not only when they are unhappy. Three new occasions can bring a companion to ask for a private word: one may come simply to thank you, warmly, for a real kindness you did them and to reaffirm their loyalty; a loyal one may pull you aside to warn you that someone is secretly plotting against you, and heeding that warning brings the plot into the open; and an ambitious one may ask to rise, for a command of their own to lead, a post in your party, a fief to govern in your name, or your blessing to wed. These come at a settlement, gated so they never pester, and refusing one costs you nothing.
+- Separate API keys for each model role. If you run the explicit model and the action reader on different local servers, each can now carry its own API key, not only its own endpoint address, so you can finally split them across servers that each require a key.
+
+Fixed
+- A promise made by letter is now remembered in person. An NPC who proposed a match, or agreed to something with you by letter, will recall it when you next speak face to face, instead of denying it ever happened. Substantive letters now leave a real, first-person memory of what was written, not just a note that a letter arrived.
