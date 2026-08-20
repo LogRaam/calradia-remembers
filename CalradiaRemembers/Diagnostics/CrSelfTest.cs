@@ -7121,13 +7121,17 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
-      ///   Per-role provider routing (2026-08-13). The feature lets the player send each TEXT role to a DIFFERENT
-      ///   provider. This drives <see cref="LlmServices.DebugDescribeRoleRouting" /> (which reports what a role
-      ///   WOULD use with NO network call) to prove BOTH halves: distinct selections produce distinct base URLs +
-      ///   kinds (the feature works at all), and leaving every role on "(default)" collapses them onto the ONE
-      ///   default provider (the migration guarantee: an upgraded single-provider config behaves exactly as
-      ///   before). Snapshots and restores every dropdown + the custom endpoint URL it touches, so a real campaign
-      ///   is unchanged.
+      ///   Per-role provider routing (2026-08-13) + per-role API keys (player request, 2026-08-17: "I also need the
+      ///   ability to have separate API keys for those endpoints, too, otherwise I can't use them"). The feature
+      ///   lets the player send each TEXT role to a DIFFERENT provider, and (for OpenAI-Compatible) authenticate
+      ///   each role with its OWN key. This drives <see cref="LlmServices.DebugDescribeRoleRouting" /> (which
+      ///   reports what a role WOULD use with NO network call) to prove BOTH halves: distinct selections produce
+      ///   distinct base URLs + kinds (the feature works at all), and leaving every role on "(default)" collapses
+      ///   them onto the ONE default provider (the migration guarantee: an upgraded single-provider config behaves
+      ///   exactly as before); then <see cref="LlmServices.DebugResolveApiKeyFor" /> (same no-network-call shape,
+      ///   NEVER surfaced to any player-facing command) proves the twin claim for keys, using dummy sentinel
+      ///   strings only, never a real key. Snapshots and restores every dropdown + the custom endpoint/key fields it
+      ///   touches, so a real campaign is unchanged.
       /// </summary>
       private static string TestProviderRouting(NpcMemoryCampaignBehavior behavior)
       {
@@ -7146,6 +7150,9 @@ namespace CalradiaRemembers.Diagnostics
          string priorEndpoint = s.CustomEndpointUrl;
          string priorNsfwEndpoint = s.CustomEndpointUrlNsfw;
          string priorInterpEndpoint = s.CustomEndpointUrlInterpret;
+         string priorApiKey = s.CustomApiKey;
+         string priorNsfwApiKey = s.CustomApiKeyNsfw;
+         string priorInterpApiKey = s.CustomApiKeyInterpret;
 
          try
          {
@@ -7192,6 +7199,26 @@ namespace CalradiaRemembers.Diagnostics
             s.CustomEndpointUrlNsfw = "";
             t.Expect("blankOverrideInheritsTheSharedEndpoint", llm.DebugDescribeRoleRouting(ServiceRole.Nsfw).baseUrl, sharedEp);
 
+            // STAKE (per-role API keys, player request 2026-08-17): two roles both on OpenAI-Compatible must each be
+            // able to authenticate against their OWN server, or a player who split roles across two local machines
+            // could set the endpoints but still fail to log in against the second one. Dummy sentinel strings only:
+            // this must never touch or log a real key. With a shared key plus a per-role override, each role
+            // resolves to its own key; a role left without an override still inherits the shared one.
+            const string sharedKey = "cr-selftest-shared-key";
+            const string nsfwKey = "cr-selftest-nsfw-key";
+            const string interpKey = "cr-selftest-interp-key";
+            s.CustomApiKey = sharedKey;
+            s.CustomApiKeyNsfw = nsfwKey;
+            s.CustomApiKeyInterpret = interpKey;
+
+            t.Expect("proseUsesTheSharedApiKey", llm.DebugResolveApiKeyFor(ServiceRole.Prose), sharedKey);
+            t.Expect("nsfwUsesItsOwnApiKey", llm.DebugResolveApiKeyFor(ServiceRole.Nsfw), nsfwKey);
+            t.Expect("interpreterUsesItsOwnApiKey", llm.DebugResolveApiKeyFor(ServiceRole.Interpret), interpKey);
+
+            // A blank override falls back to the shared key (the default that keeps single-key setups working).
+            s.CustomApiKeyNsfw = "";
+            t.Expect("blankApiKeyOverrideInheritsTheSharedKey", llm.DebugResolveApiKeyFor(ServiceRole.Nsfw), sharedKey);
+
             // STAKE (MIGRATION): the "(default)" sentinel MUST make the other roles inherit the roleplay / prose
             // base, or a config upgraded from the single-provider era, which never touched these dropdowns, would
             // silently split its roles across providers with no setting changed to explain it.
@@ -7217,6 +7244,9 @@ namespace CalradiaRemembers.Diagnostics
             s.CustomEndpointUrl = priorEndpoint;
             s.CustomEndpointUrlNsfw = priorNsfwEndpoint;
             s.CustomEndpointUrlInterpret = priorInterpEndpoint;
+            s.CustomApiKey = priorApiKey;
+            s.CustomApiKeyNsfw = priorNsfwApiKey;
+            s.CustomApiKeyInterpret = priorInterpApiKey;
          }
 
          return t.Line();

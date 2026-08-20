@@ -244,7 +244,7 @@ namespace CalradiaRemembers.Services
             return null;
          }
 
-         if (string.IsNullOrWhiteSpace(ApiKeyFor(kind)))
+         if (string.IsNullOrWhiteSpace(ApiKeyFor(ServiceRole.Prose, kind)))
             return $"(No {provider} API key is set. Open Mods → Mod Options → Calradia Remembers, " +
                    $"paste your {provider} API key, then return here — it applies immediately, no restart needed.)";
 
@@ -282,7 +282,7 @@ namespace CalradiaRemembers.Services
             // consensual scene the Consensual role's, a CNC scene the CNC role's. Calls are
             // sequential, so one live-reading client is safe.
             var config = new OpenRouterConfig {
-               ApiKeyProvider = () => ApiKeyFor(ActiveRoleKind()),
+               ApiKeyProvider = () => ApiKeyFor(ActiveMainRole(), ActiveRoleKind()),
                ModelProvider = ResolveModel,
                BaseUrlProvider = () => BaseUrlFor(ActiveMainRole(), ActiveRoleKind()),
                UseSystemPromptCachingProvider = () => UseCachingFor(ActiveRoleKind()),
@@ -294,7 +294,7 @@ namespace CalradiaRemembers.Services
             };
             LlmClient = new OpenRouterClient(_httpClient, config);
 
-            if (ResolveProvider() != ProviderCustom && string.IsNullOrWhiteSpace(ApiKeyFor(DefaultKind())))
+            if (ResolveProvider() != ProviderCustom && string.IsNullOrWhiteSpace(ApiKeyFor(ServiceRole.Prose, DefaultKind())))
                ModLog.Info($"LLM stack built, but no {ResolveProvider()} API key is set yet. " +
                            "Add it in Mods → Mod Options → Calradia Remembers (applies immediately).");
             else
@@ -490,22 +490,19 @@ namespace CalradiaRemembers.Services
          => ResolveKindForRole(ActiveMainRole());
 
       /// <summary>
-      ///   Resolves a provider kind's API key. A key entered in the MCM menu wins; the provider's environment
-      ///   variable (<c>OPENROUTER_API_KEY</c> / <c>NANOGPT_API_KEY</c>) remains a fallback for developer setups
-      ///   and power users. Whitespace is treated as unset.
+      ///   Resolves a <paramref name="role" />'s API key for a provider <paramref name="kind" />. A key entered in
+      ///   the MCM menu wins; the provider's environment variable (<c>OPENROUTER_API_KEY</c> / <c>NANOGPT_API_KEY</c>)
+      ///   remains a fallback for developer setups and power users. Only the OpenAI-Compatible kind varies by role:
+      ///   a role may carry its own key override (so two local servers can be split across roles, each with its own
+      ///   authentication), falling back to the shared API Key. The aggregators (OpenRouter, NanoGPT) keep one
+      ///   account key for every role. Whitespace is treated as unset.
       /// </summary>
-      private static string ApiKeyFor(ProviderKind kind)
+      private static string ApiKeyFor(ServiceRole role, ProviderKind kind)
       {
          CrSettings s = CrSettings.Instance;
 
          if (kind == ProviderKind.OpenAiCompatible)
-         {
-            string customKey = s?.CustomApiKey?.Trim();
-
-            return string.IsNullOrWhiteSpace(customKey)
-               ? string.Empty
-               : customKey;
-         }
+            return OpenAiApiKeyPolicy.Resolve(s?.CustomApiKey, CustomApiKeyOverrideFor(role));
 
          bool nano = kind == ProviderKind.NanoGpt;
          string mcmKey = nano
@@ -570,6 +567,19 @@ namespace CalradiaRemembers.Services
          {
             case ServiceRole.Nsfw: return s?.CustomEndpointUrlNsfw;
             case ServiceRole.Interpret: return s?.CustomEndpointUrlInterpret;
+            default: return null;
+         }
+      }
+
+      /// <summary>The per-role OpenAI-Compatible API key override, or null for the Prose role (which uses the shared key).</summary>
+      private static string CustomApiKeyOverrideFor(ServiceRole role)
+      {
+         CrSettings s = CrSettings.Instance;
+
+         switch (role)
+         {
+            case ServiceRole.Nsfw: return s?.CustomApiKeyNsfw;
+            case ServiceRole.Interpret: return s?.CustomApiKeyInterpret;
             default: return null;
          }
       }
@@ -695,7 +705,7 @@ namespace CalradiaRemembers.Services
       private ILlmClient BuildInterpreterClient(ProviderKind kind, string model)
       {
          var config = new OpenRouterConfig {
-            ApiKeyProvider = () => ApiKeyFor(kind),
+            ApiKeyProvider = () => ApiKeyFor(ServiceRole.Interpret, kind),
             ModelProvider = () => model,
             BaseUrlProvider = () => BaseUrlFor(ServiceRole.Interpret, kind),
             UseSystemPromptCachingProvider = () => UseCachingFor(kind),
@@ -743,6 +753,14 @@ namespace CalradiaRemembers.Services
 
          return (kind, baseUrl, model);
       }
+
+      /// <summary>
+      ///   Debug seam (provider_routing self-test only): the API key a <paramref name="role" /> WOULD resolve to,
+      ///   with NO network call. NEVER surfaced to any player-facing command (unlike <see cref="DebugDescribeRoleRouting" />,
+      ///   which cr.provider_routing prints) so a real configured key is never echoed anywhere; the self-test that
+      ///   uses this only ever sets dummy sentinel strings, never a real key.
+      /// </summary>
+      public string DebugResolveApiKeyFor(ServiceRole role) => ApiKeyFor(role, ResolveKindForRole(role));
 
       /// <summary>
       ///   TUNE. Adult-prompt audit M13: the mod's anti-repetition rested entirely on prompt text, which is

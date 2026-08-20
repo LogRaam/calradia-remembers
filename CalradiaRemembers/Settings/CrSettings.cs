@@ -133,6 +133,18 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> CustomParameterCompatibility { get; set; } =
          new(new[] {"Auto", "Standard", "Reasoning"}, 0); // default: Auto
 
+      [SettingPropertyText("API Key (NSFW)", RequireRestart = false, Order = 5,
+         HintText = "Optional. A separate API key for the NSFW role only, so it can authenticate against a different " +
+                    "OpenAI-Compatible server than the shared one. Blank = use the API Key above. Applies immediately.")]
+      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      public string CustomApiKeyNsfw { get; set; } = "";
+
+      [SettingPropertyText("API Key (Interpret)", RequireRestart = false, Order = 6,
+         HintText = "Optional. A separate API key for the Interpret role only, so the interpreter can authenticate " +
+                    "against its own OpenAI-Compatible server. Blank = use the API Key above. Applies immediately.")]
+      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      public string CustomApiKeyInterpret { get; set; } = "";
+
       public override string DisplayName => "Calradia Remembers";
 
       [SettingPropertyBool("Enable Logging", RequireRestart = false, Order = 0,
