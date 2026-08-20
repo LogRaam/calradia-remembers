@@ -31,7 +31,7 @@ namespace CalradiaRemembers.Logic
             Strength = strength;
         }
 
-        /// <summary>Which of the five found-topics this candidate represents.</summary>
+        /// <summary>Which of the found-topics this candidate represents.</summary>
         public CompanionAudienceReason Topic { get; }
 
         /// <summary>Whether the real-world condition behind this topic is actually true right now.</summary>

@@ -50,9 +50,9 @@ namespace CalradiaRemembers.Missions
    }
 
    /// <summary>
-   ///   Scans one companion's live state against all six found-topics. A pure no-op read: never mutates
-   ///   anything, never consumes a mission report, marks a rumour reported, or marks a kindness thanked for
-   ///   (the caller does that only once an audience is actually granted, in
+   ///   Scans one companion's live state against all seven found-topics. A pure no-op read: never mutates
+   ///   anything, never consumes a mission report, marks a rumour reported, marks a kindness thanked for, or
+   ///   marks a scheme warned of (the caller does that only once an audience is actually granted, in
    ///   <see cref="CompanionAudienceTopicBehavior" />).
    /// </summary>
    public static class CompanionAudienceTopicResolver
@@ -63,9 +63,10 @@ namespace CalradiaRemembers.Missions
 
       private const int SurgeonMedicineThreshold = CompanionCounselPolicy.SurgeonMedicineThreshold;
 
-      /// <summary>Scans all six topics for <paramref name="companion" />, in enum order.</summary>
+      /// <summary>Scans all seven topics for <paramref name="companion" />, in enum order.</summary>
       public static List<CompanionAudienceTopicScan> Scan(
-         Hero companion, ISet<string> alreadyReportedRumourIds, ISet<string> usedCallbackKeys, ISet<string> thankedKeys)
+         Hero companion, ISet<string> alreadyReportedRumourIds, ISet<string> usedCallbackKeys, ISet<string> thankedKeys,
+         ISet<string> warnedKeys)
       {
          var results = new List<CompanionAudienceTopicScan> {
             ResolveMissionFollowUp(companion),
@@ -73,7 +74,8 @@ namespace CalradiaRemembers.Missions
             ResolvePracticalCounsel(),
             ResolveCallback(companion, usedCallbackKeys),
             ResolveRumourReport(companion, alreadyReportedRumourIds),
-            ResolveGratitude(companion, thankedKeys)
+            ResolveGratitude(companion, thankedKeys),
+            ResolveSchemeWarning(companion, warnedKeys)
          };
 
          return results;
@@ -346,6 +348,43 @@ namespace CalradiaRemembers.Missions
 
          return NotHeld(CompanionAudienceReason.Gratitude, "no recent, significant, not-yet-thanked-for kindness remains");
       }
+
+      #endregion
+
+      #region private: Scheme warning
+
+      private static CompanionAudienceTopicScan ResolveSchemeWarning(Hero companion, ISet<string> warnedKeys)
+      {
+         if (Hero.MainHero == null || SchemeStore.Instance?.HasSecretSchemeAgainst(Hero.MainHero) != true)
+            return NotHeld(CompanionAudienceReason.SchemeWarning, "no secret scheme against you is currently warnable");
+
+         Hero plotter = SchemeStore.Instance.GetSecretSchemerAgainst(Hero.MainHero);
+         if (plotter == null)
+            return NotHeld(CompanionAudienceReason.SchemeWarning, "the live plot could not be attributed to a plotter");
+
+         string key = SchemeWarningKey(plotter, Hero.MainHero);
+         if (warnedKeys != null && warnedKeys.Contains(key))
+            return NotHeld(CompanionAudienceReason.SchemeWarning, "already warned of this exact plot");
+
+         int happiness = CompanionHappinessService.Get(companion);
+         if (!CompanionSchemeWarningPolicy.Holds(happiness))
+            return NotHeld(CompanionAudienceReason.SchemeWarning, "not content enough in the player's service to risk carrying this warning");
+
+         return new CompanionAudienceTopicScan {
+            Topic = CompanionAudienceReason.SchemeWarning, Holds = true,
+            Strength = CompanionSchemeWarningPolicy.Strength,
+            Detail = $"word that {plotter.Name} is moving against you",
+            Key = key
+         };
+      }
+
+      /// <summary>
+      ///   The composite identity used to remember a scheme already spent as a SchemeWarning: Scheme itself
+      ///   carries no id of its own (see WorldEvents.Scheme), and a plotter/target pair is unique among active
+      ///   schemes (SchemeStore.HasActiveBetween), so it is a stable enough identity for spend-once bookkeeping.
+      /// </summary>
+      public static string SchemeWarningKey(Hero plotter, Hero target)
+         => $"{plotter?.StringId}:{target?.StringId}";
 
       #endregion
 

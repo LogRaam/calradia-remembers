@@ -887,11 +887,14 @@ STATUS (2026-08-20): most of this is now SHIPPED. Beyond Grievance/Retirement, `
 SecretAffection (v1.30.3), MissionFollowUp, CompanionConflict, PracticalCounsel, Callback, and RumourReport, all
 driven by `CompanionAudienceTopicResolver` + the pure `CompanionAudienceTopicPolicy` behind ONE global cooldown,
 fired on entering a settlement, refusal costing nothing (`CompanionAudienceTopicBehavior`). THREE gaps from the
-original wish remain, being built in this order (Gabriel 2026-08-20, Sonnet test-first): (1) Gratitude, a purely
-warm thanks for a specific kindness (reads the Appreciations ledger, no executor) BUILDING; (2) Concern/warning,
-troubled by something the player DID or a scheme against them (ties to stance/schemes); (3) Ambition/request, the
-companion asks for something concrete (a mission, promotion, gold, fief, blessing to marry, council seat, handing
-off to the quest/join/grant paths). The candidate list below is the original design record.
+original wish, built in this order (Gabriel 2026-08-20, Sonnet test-first): (1) Gratitude, a purely warm thanks
+for a specific kindness (reads the Appreciations ledger, no executor) BUILT, untested in game; (2) Concern/warning
+had two halves: the SchemeWarning half (a loyal companion warns of a secret plot against the player, sourced from
+SchemeStore, and granting the audience calls TargetHeeds so the warning has teeth) is BUILT, untested in game; the
+MORAL-concern half (troubled by a deed the player DID) is DEFERRED, no clean data source (would need a classified
+player-deed feed plus the companion's Honour/Mercy traits); (3) Ambition/request, the companion asks for something
+concrete (a mission, promotion, gold, fief, blessing to marry, council seat, handing off to the quest/join/grant
+paths) NEXT. The candidate list below is the original design record.
 
 DESIGN: append new values to `CompanionAudienceReason` (append-only, save-ordinal stable), each with its own
 opening cue + prompt framing (mirror the captive-intent pattern: one distinct opener and PURPOSE block per

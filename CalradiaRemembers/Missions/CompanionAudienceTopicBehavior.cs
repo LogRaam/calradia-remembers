@@ -12,6 +12,13 @@
 // anything twice, so no second random roll was added on top of it.
 // 20/08/2026: added the sixth found-topic, GRATITUDE (a content companion thanking the player for a specific
 // Appreciation), spend-once on the appreciation's own Id, exactly like RumourReport spends on a WorldEvent Id.
+// 20/08/2026 follow-up: added the seventh found-topic, SCHEME WARNING (a loyal companion warning the player of
+// a secret plot against them, SchemeStore's own ledger). Granting it calls SchemeStore.TargetHeeds(MainHero)
+// exactly ONCE, the FIRST caller of that method with the player as the target (every existing caller warns an
+// NPC other than the player: the scheme_heed action and cr.scheme_warn both warn a named NPC, and the friendly
+// stance Warning letter only NAMES the schemer without ever calling TargetHeeds), so there is no double-fire
+// risk. Spend-once on the plotter/target StringId pair (CompanionAudienceTopicResolver.SchemeWarningKey),
+// exactly like Gratitude spends on the appreciation's own Id.
 
 #region
 
@@ -23,6 +30,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -50,12 +58,13 @@ namespace CalradiaRemembers.Missions
       private int _lastAskedDay = NeverAsked;
 
       // Composite keys ("companionId:gameDay:type") of NotableEvents already spent as a Callback, WorldEvent
-      // ids already spent as a RumourReport, and Appreciation ids already spent as a Gratitude, all marked
-      // ONLY once an audience is actually GRANTED (never merely offered), so a refused popup leaves the topic
-      // free to resurface.
+      // ids already spent as a RumourReport, Appreciation ids already spent as a Gratitude, and plotter/target
+      // StringId pairs already spent as a SchemeWarning, all marked ONLY once an audience is actually GRANTED
+      // (never merely offered), so a refused popup leaves the topic free to resurface.
       private HashSet<string> _reportedRumourIds = new();
       private HashSet<string> _thankedKeys = new();
       private HashSet<string> _usedCallbackKeys = new();
+      private HashSet<string> _warnedKeys = new();
 
       // The offer currently on the table (between RequestAudience and the player's answer), so GrantAudience
       // knows exactly what was promised without re-scanning (live state could have shifted in the interim).
@@ -78,7 +87,7 @@ namespace CalradiaRemembers.Missions
       public void RunTick() => TryOfferAudience();
 
       /// <summary>
-      ///   Diagnostic dump for cr.audience_topics: every companion currently in the party, each of the five
+      ///   Diagnostic dump for cr.audience_topics: every companion currently in the party, each of the seven
       ///   topics scanned, with why it did or didn't qualify. Mutates nothing.
       /// </summary>
       public string DescribeRoster()
@@ -95,12 +104,12 @@ namespace CalradiaRemembers.Missions
          return sb.ToString().TrimEnd();
       }
 
-      /// <summary>Diagnostic dump for one companion: each of the five topics, why it did or didn't qualify.</summary>
+      /// <summary>Diagnostic dump for one companion: each of the seven topics, why it did or didn't qualify.</summary>
       public string DescribeScan(Hero companion)
       {
          if (companion == null) return "No companion found.";
 
-         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys);
+         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys);
          CompanionAudienceReason chosen = SelectFrom(scans);
 
          var sb = new StringBuilder();
@@ -129,7 +138,8 @@ namespace CalradiaRemembers.Missions
                   LastAskedDay = _lastAskedDay,
                   ReportedRumourIds = new List<string>(_reportedRumourIds),
                   UsedCallbackKeys = new List<string>(_usedCallbackKeys),
-                  ThankedKeys = new List<string>(_thankedKeys)
+                  ThankedKeys = new List<string>(_thankedKeys),
+                  WarnedKeys = new List<string>(_warnedKeys)
                };
                bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(snapshot, Formatting.None));
             }
@@ -160,6 +170,9 @@ namespace CalradiaRemembers.Missions
                _reportedRumourIds = new HashSet<string>(state?.ReportedRumourIds ?? new List<string>());
                _usedCallbackKeys = new HashSet<string>(state?.UsedCallbackKeys ?? new List<string>());
                _thankedKeys = new HashSet<string>(state?.ThankedKeys ?? new List<string>());
+               // Additive, save-safe key (absent in older saves): WarnedKeys deserializes to null, and the
+               // ?? below degrades it to an empty ledger, same as every field here on an old save.
+               _warnedKeys = new HashSet<string>(state?.WarnedKeys ?? new List<string>());
             }
             catch (Exception ex)
             {
@@ -168,6 +181,7 @@ namespace CalradiaRemembers.Missions
                _reportedRumourIds = new HashSet<string>();
                _usedCallbackKeys = new HashSet<string>();
                _thankedKeys = new HashSet<string>();
+               _warnedKeys = new HashSet<string>();
             }
          }
       }
@@ -198,7 +212,7 @@ namespace CalradiaRemembers.Missions
       {
          if (companion == null) return "No companion found.";
 
-         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys);
+         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys);
          CompanionAudienceTopicScan scan = scans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Gratitude);
 
          if (scan is not {Holds: true})
@@ -214,6 +228,37 @@ namespace CalradiaRemembers.Missions
          ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s Gratitude audience opened (forced).");
 
          return $"{companion.Name} asks for a private word (Gratitude, strength {scan.Strength}).";
+      }
+
+      /// <summary>
+      ///   cr.audience scheme_warning test path: force-fires the SCHEME WARNING topic for one NAMED companion
+      ///   specifically (unlike <see cref="TryForceFireBest" />, which fires the roster's single strongest topic
+      ///   of ANY reason), bypassing the global cooldown. Opens the SAME real audience a granted popup would,
+      ///   spends the key AND heeds the warning (<see cref="SchemeStore.TargetHeeds" />) on open, exactly like a
+      ///   real grant, so re-running immediately reports nothing left to warn of. Returns why nothing fired when
+      ///   this companion currently has no qualifying scheme to warn of.
+      /// </summary>
+      public string TryForceFireSchemeWarning(Hero companion)
+      {
+         if (companion == null) return "No companion found.";
+
+         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys);
+         CompanionAudienceTopicScan scan = scans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.SchemeWarning);
+
+         if (scan is not {Holds: true})
+            return $"{companion.Name} has no plot currently worth a scheme-warning audience ({scan?.WhyNot ?? "no qualifying scheme"}).";
+
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(companion.StringId);
+         if (profile == null) return "No profile found for that companion.";
+
+         if (!string.IsNullOrEmpty(scan.Key)) _warnedKeys.Add(scan.Key);
+         SchemeStore.Instance?.TargetHeeds(Hero.MainHero);
+
+         bool landed = companion.GovernorOf != null || companion.PartyBelongedTo?.LeaderHero == companion;
+         ChatManager.OpenForCompanionAudience(companion, profile, CompanionAudienceReason.SchemeWarning, landed, scan.Detail);
+         ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s SchemeWarning audience opened (forced).");
+
+         return $"{companion.Name} asks for a private word (SchemeWarning, strength {scan.Strength}).";
       }
 
       #region private
@@ -237,7 +282,7 @@ namespace CalradiaRemembers.Missions
          // always wins regardless of iteration order the engine happens to hand back Hero.AllAliveHeroes in.
          foreach (Hero h in Companions().OrderBy(h => h.StringId, StringComparer.Ordinal))
          {
-            List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(h, _reportedRumourIds, _usedCallbackKeys, _thankedKeys);
+            List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(h, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys);
             CompanionAudienceReason topic = SelectFrom(scans);
 
             if (topic == CompanionAudienceReason.None) continue;
@@ -268,6 +313,14 @@ namespace CalradiaRemembers.Missions
          if (topic == CompanionAudienceReason.RumourReport && !string.IsNullOrEmpty(key)) _reportedRumourIds.Add(key);
          if (topic == CompanionAudienceReason.Callback && !string.IsNullOrEmpty(key)) _usedCallbackKeys.Add(key);
          if (topic == CompanionAudienceReason.Gratitude && !string.IsNullOrEmpty(key)) _thankedKeys.Add(key);
+
+         // SchemeWarning's audience IS the heed: this is the only place TargetHeeds(MainHero) is ever called
+         // (see the class header), so it must fire exactly once, here, on a real grant, never on a mere offer.
+         if (topic == CompanionAudienceReason.SchemeWarning)
+         {
+            if (!string.IsNullOrEmpty(key)) _warnedKeys.Add(key);
+            SchemeStore.Instance?.TargetHeeds(Hero.MainHero);
+         }
 
          ChatManager.OpenForCompanionAudience(companion, profile, topic, false, detail);
          ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s {topic} audience opened.");
@@ -352,6 +405,7 @@ namespace CalradiaRemembers.Missions
          public List<string> ReportedRumourIds { get; set; }
          public List<string> ThankedKeys { get; set; }
          public List<string> UsedCallbackKeys { get; set; }
+         public List<string> WarnedKeys { get; set; }
       }
 
       #endregion

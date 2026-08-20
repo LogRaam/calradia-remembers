@@ -1257,8 +1257,8 @@ namespace CalradiaRemembers.Chat
          IsSendEnabled = false;
 
          // The companion opens (they asked for this word). A synthetic cue, never shown or logged as a player
-         // line. The found-topic reasons (Mission..RumourReport) carry the SPECIFIC thing the mod found in
-         // topicDetail: the model voices a fact the mod chose, never a generic invitation to talk.
+         // line. The found-topic reasons (Mission..RumourReport, SchemeWarning) carry the SPECIFIC thing the mod
+         // found in topicDetail: the model voices a fact the mod chose, never a generic invitation to talk.
          string opener = reason switch {
             CompanionAudienceReason.Retirement =>
                "[You asked the player for a private word. Open the conversation yourself: voice, in your own way, that " +
@@ -1283,6 +1283,12 @@ namespace CalradiaRemembers.Chat
             CompanionAudienceReason.RumourReport =>
                "[You asked the player for a private word. Open the conversation yourself: you have word of the world " +
                $"to bring the player, in your own voice: {topicDetail}]",
+            CompanionAudienceReason.SchemeWarning =>
+               "[You asked the player for a private word. Open the conversation yourself: warn them urgently and " +
+               $"protectively, in your own voice, of a secret plot against them that you have learned of: {topicDetail}]",
+            CompanionAudienceReason.Gratitude =>
+               "[You asked the player for a private word. Open the conversation yourself: thank them warmly, in your " +
+               $"own voice, for a specific kindness they showed you that you have carried with you since: {topicDetail}]",
             _ =>
                "[You asked the player for a private word. Open the conversation yourself: raise what has been troubling " +
                "you in their service, in your own voice.]"
