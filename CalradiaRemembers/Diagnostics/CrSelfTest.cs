@@ -128,6 +128,15 @@ namespace CalradiaRemembers.Diagnostics
       /// <summary>Below CompanionHappiness.LeaveThreshold (Disgruntled), well outside the Content/Devoted gate (mirrors GratitudeTestSourHappiness).</summary>
       private const int SchemeWarningTestSourHappiness = 10;
 
+      // ── Companion audience: AMBITION found-topic (2026-08-20 follow-up 2). Drives the REAL resolver against a ──
+      // ── real companion already riding in the main party (Command holds trivially for them), never a mock. ──────
+
+      /// <summary>Inside CompanionHappiness's Content band, so the happiness gate clears (mirrors GratitudeTestContentHappiness).</summary>
+      private const int AmbitionTestContentHappiness = 70;
+
+      /// <summary>Below CompanionHappiness.LeaveThreshold (Disgruntled), well outside the Content/Devoted gate (mirrors GratitudeTestSourHappiness).</summary>
+      private const int AmbitionTestSourHappiness = 10;
+
       /// <summary>Days back the FIRST occurrence is dated, so the second one lands on a different day and is a genuine repeat rather than a same-day duplicate.</summary>
       private const int AppreciationRepeatDaysBack = 5;
 
@@ -166,6 +175,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
          new SelfTest("companion_gratitude", Severity.Light, "New sixth found-topic (design brief 2026-08-20): a content companion thanking the player for a specific kindness, purely warm, never a request/bargain. Seeds a real Appreciation via the real TryPlant gate on a content companion, drives the REAL CompanionAudienceTopicResolver.Scan, and asserts it HOLDS with the seeded detail; asserts the SAME appreciation's own key, once marked spent, WITHHOLDS it (spend-once); and asserts an otherwise-identical but unhappy (Disgruntled) companion never holds it either (the happiness gate). Restores the companion's original happiness afterwards; does not remove the seeded appreciation (mirrors appreciation_flow/appreciation_repeat, which have no removal API to call)", TestCompanionGratitude),
          new SelfTest("companion_scheme_warning", Severity.Light, "New seventh found-topic (design brief 2026-08-20 follow-up): a loyal companion warning the player of a secret plot against them, purely a warning, never a request/bargain, and never a live LLM call. Seeds a real Scheme against Hero.MainHero via the real ForcePlot launch path on a content companion, drives the REAL CompanionAudienceTopicResolver.Scan, and asserts it HOLDS with the plotter named in the detail; asserts the SAME plot's own key, once marked spent, WITHHOLDS it (spend-once); and asserts an otherwise-identical but unhappy (Disgruntled) companion never holds it either (the happiness gate). Restores the companion's original happiness AND removes the seeded scheme from the live ledger afterwards (unlike an appreciation, a live scheme carries real feud/rumour machinery, so none may survive this test)", TestCompanionSchemeWarning),
+         new SelfTest("companion_ambition", Severity.Light, "New eighth found-topic (design brief 2026-08-20 follow-up 2): a content, ambitious companion voicing ONE of four bound ambitions, each resolved by an EXISTING action verb, so a granted ambition executes nothing itself, unlike Gratitude/SchemeWarning. Drives the REAL CompanionAudienceTopicResolver.Scan against a real companion already riding in the main party (made comfortably Content), and asserts it HOLDS with a non-empty detail (the Command ambition holds trivially for any main-party companion, so no extra engine-state seeding is needed); asserts the SAME companion, asked again within CompanionAmbitionPolicy.CooldownDays, WITHHOLDS it (the per-companion cooldown); and asserts the identical companion, made Disgruntled, never holds one either (the happiness gate). Restores the companion's original happiness afterwards", TestCompanionAmbition),
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
          new SelfTest("letter_memory", Severity.Light, "Player report (Desporion): a marriage proposal 'agreed on the terms' over three letters was denied face to face because letters left only a generic 'Received a letter (Reason)' memory, never their substance. Pure half: LetterMemoryPolicy.ShouldRemember excludes the two re-ping reasons (AwaitingReply, QuestUpdate) and includes MarriageProposal; BaseMemory is first-person and reflects direction. Real-path half: drives the REAL LetterMemoryFinalizer.RecordLetterMemory (LetterPopupManager.MarkReceived's own seam) with a ShouldRemember=false reason (QuestUpdate), so the run can never fall through to the async LLM summarizer (Lane C, kept out of cr.testall), and asserts the base event actually lands on profile.Events. Removes the event it added", TestLetterMemory),
          new SelfTest("world_conditions", Severity.Light, "Mechanical: the engine reads the weekly world-conditions feeder depends on still work against the live game (a renamed field or a changed model signature would silently swallow to 0 inside the feeder's own guards, recording nothing forever). Reads GetScoreOfDeclaringWar in both directions between two live kingdoms and a live town's FoodStocks/FoodChange/Prosperity DIRECTLY, asserts each is finite, then runs the real RunScan and asserts both scanners ran. Skips when the world has fewer than two kingdoms or no town", TestWorldConditions),
@@ -8068,7 +8078,7 @@ namespace CalradiaRemembers.Diagnostics
             if (t.Skip(!planted, "appreciation refused (anti-noise guardrail or a full, stronger house)")) return t.Line();
 
             List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(
-               subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>());
+               subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new Dictionary<string, int>());
             CompanionAudienceTopicScan scan = scans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Gratitude);
 
             t.Expect("freshKindnessOnAContentCompanionHoldsAGratitudeTopic", scan is {Holds: true}, true);
@@ -8079,7 +8089,7 @@ namespace CalradiaRemembers.Diagnostics
 
                var thanked = new HashSet<string> {scan.Key};
                List<CompanionAudienceTopicScan> rescanned = CompanionAudienceTopicResolver.Scan(
-                  subject, new HashSet<string>(), new HashSet<string>(), thanked, new HashSet<string>());
+                  subject, new HashSet<string>(), new HashSet<string>(), thanked, new HashSet<string>(), new Dictionary<string, int>());
                CompanionAudienceTopicScan spentScan = rescanned.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Gratitude);
 
                t.Expect("aSpentKeyWithholdsTheSameKindness", spentScan is {Holds: false}, true);
@@ -8089,7 +8099,7 @@ namespace CalradiaRemembers.Diagnostics
             // refuse it now.
             CompanionHappinessService.Set(subject, GratitudeTestSourHappiness);
             List<CompanionAudienceTopicScan> unhappyScans = CompanionAudienceTopicResolver.Scan(
-               subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>());
+               subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new Dictionary<string, int>());
             CompanionAudienceTopicScan unhappyScan = unhappyScans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Gratitude);
 
             t.Expect("anUnhappyCompanionIsNeverHandedAThankYou", unhappyScan is {Holds: false}, true);
@@ -8153,7 +8163,7 @@ namespace CalradiaRemembers.Diagnostics
                    "ForcePlot did not produce a warnable scheme against the player")) return t.Line();
 
             List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(
-               subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>());
+               subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new Dictionary<string, int>());
             CompanionAudienceTopicScan scan = scans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.SchemeWarning);
 
             t.Expect("aLivePlotOnAContentCompanionHoldsASchemeWarningTopic", scan is {Holds: true}, true);
@@ -8165,7 +8175,7 @@ namespace CalradiaRemembers.Diagnostics
 
                var warned = new HashSet<string> {scan.Key};
                List<CompanionAudienceTopicScan> rescanned = CompanionAudienceTopicResolver.Scan(
-                  subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), warned);
+                  subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), warned, new Dictionary<string, int>());
                CompanionAudienceTopicScan spentScan = rescanned.FirstOrDefault(s => s.Topic == CompanionAudienceReason.SchemeWarning);
 
                t.Expect("aSpentKeyWithholdsTheSamePlot", spentScan is {Holds: false}, true);
@@ -8176,7 +8186,7 @@ namespace CalradiaRemembers.Diagnostics
             // the player).
             CompanionHappinessService.Set(subject, SchemeWarningTestSourHappiness);
             List<CompanionAudienceTopicScan> unhappyScans = CompanionAudienceTopicResolver.Scan(
-               subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>());
+               subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new Dictionary<string, int>());
             CompanionAudienceTopicScan unhappyScan = unhappyScans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.SchemeWarning);
 
             t.Expect("aDisaffectedCompanionIsNeverHandedTheWarning", unhappyScan is {Holds: false}, true);
@@ -8189,6 +8199,75 @@ namespace CalradiaRemembers.Diagnostics
             // feud/rumour machinery). SchemeStore exposes no removal API, so this drops OUR OWN seeded scheme
             // directly from the underlying list Active already hands back (never anyone else's live scheme).
             if (seeded != null && SchemeStore.Instance?.Active is List<Scheme> liveSchemes) liveSchemes.Remove(seeded);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   MECHANICAL (no LLM): the eighth found-topic, AMBITION (design brief 2026-08-20 follow-up 2): a
+      ///   content, ambitious companion voicing ONE of four bound ambitions, each resolved by an EXISTING action
+      ///   verb, so granting the audience never executes anything itself (unlike Gratitude/SchemeWarning, the
+      ///   deed is the PLAYER's, through the normal action pipeline). Drives the REAL
+      ///   <see cref="CompanionAudienceTopicResolver.Scan" /> (never a mock) against a real companion already
+      ///   travelling in the party, made comfortably Content: since every companion the audience system ever
+      ///   scans already rides in the player's own main party (CompanionAudienceTopicBehavior.Companions), the
+      ///   Command ambition ("no field party of their own") holds trivially for them, so this needs no extra
+      ///   engine-state seeding to prove the two mechanical rules genuinely at risk of drifting from
+      ///   CompanionAmbitionPolicy: the happiness gate and the per-companion cooldown. Asserts: a fresh, content
+      ///   companion HOLDS an ambition with a non-empty detail; the SAME companion, asked again within
+      ///   CompanionAmbitionPolicy.CooldownDays, WITHHOLDS it (the per-companion cooldown, distinct from the
+      ///   spend-once topics' own bookkeeping); and the identical companion, made Disgruntled, never holds one
+      ///   either (the happiness gate). Restores the companion's original happiness in a finally.
+      /// </summary>
+      private static string TestCompanionAmbition(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("companion_ambition");
+
+         Hero subject = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner && h.PartyBelongedTo == MobileParty.MainParty);
+
+         if (t.Skip(subject == null, "no living companion currently riding in the main party to drive the resolver against")) return t.Line();
+
+         GetOrCreate(behavior, subject);
+         int originalHappiness = CompanionHappinessService.Get(subject);
+
+         try
+         {
+            CompanionHappinessService.Set(subject, AmbitionTestContentHappiness);
+
+            List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(
+               subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new Dictionary<string, int>());
+            CompanionAudienceTopicScan scan = scans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Ambition);
+
+            t.Expect("aContentCompanionRidingInTheMainPartyHoldsAnAmbitionTopic", scan is {Holds: true}, true);
+
+            if (scan is {Holds: true})
+            {
+               t.Note($"{subject.Name}: ambition strength {scan.Strength}, detail \"{scan.Detail}\"");
+               t.Expect("theDetailIsNotEmpty", string.IsNullOrWhiteSpace(scan.Detail), false);
+
+               var askedToday = new Dictionary<string, int> {[subject.StringId] = (int) CampaignTime.Now.ToDays};
+               List<CompanionAudienceTopicScan> rescanned = CompanionAudienceTopicResolver.Scan(
+                  subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), askedToday);
+               CompanionAudienceTopicScan cooldownScan = rescanned.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Ambition);
+
+               t.Expect("anAskWithinTheCooldownWithholdsTheSameAmbition", cooldownScan is {Holds: false}, true);
+            }
+
+            // Identical facts, cooldown clear, but the companion has soured: the happiness gate alone must
+            // refuse it now (design brief: an ambitious demand from a miserable companion is a grievance, not
+            // an ambition, Grievance already covers that path).
+            CompanionHappinessService.Set(subject, AmbitionTestSourHappiness);
+            List<CompanionAudienceTopicScan> unhappyScans = CompanionAudienceTopicResolver.Scan(
+               subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new Dictionary<string, int>());
+            CompanionAudienceTopicScan unhappyScan = unhappyScans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Ambition);
+
+            t.Expect("aDisgruntledCompanionIsNeverHandedAnAmbition", unhappyScan is {Holds: false}, true);
+         }
+         finally
+         {
+            CompanionHappinessService.Set(subject, originalHappiness);
          }
 
          return t.Line();

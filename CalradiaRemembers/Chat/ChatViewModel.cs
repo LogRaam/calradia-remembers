@@ -1289,6 +1289,9 @@ namespace CalradiaRemembers.Chat
             CompanionAudienceReason.Gratitude =>
                "[You asked the player for a private word. Open the conversation yourself: thank them warmly, in your " +
                $"own voice, for a specific kindness they showed you that you have carried with you since: {topicDetail}]",
+            CompanionAudienceReason.Ambition =>
+               "[You asked the player for a private word. Open the conversation yourself: voice, respectfully and in " +
+               $"your own voice, an ambition of your own that has been on your mind: {topicDetail}]",
             _ =>
                "[You asked the player for a private word. Open the conversation yourself: raise what has been troubling " +
                "you in their service, in your own voice.]"

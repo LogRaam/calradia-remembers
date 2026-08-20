@@ -893,8 +893,14 @@ had two halves: the SchemeWarning half (a loyal companion warns of a secret plot
 SchemeStore, and granting the audience calls TargetHeeds so the warning has teeth) is BUILT, untested in game; the
 MORAL-concern half (troubled by a deed the player DID) is DEFERRED, no clean data source (would need a classified
 player-deed feed plus the companion's Honour/Mercy traits); (3) Ambition/request, the companion asks for something
-concrete (a mission, promotion, gold, fief, blessing to marry, council seat, handing off to the quest/join/grant
-paths) NEXT. The candidate list below is the original design record.
+concrete, BUILT, untested in game, bound to FOUR asks each resolved by an existing verb: a command to lead
+(dispatch_mission), a party post (assign_party_role), a fief to govern (appoint_governor, NOT grant_fief, which
+unconditionally refuses a same-clan recipient, so it could never grant a companion a fief and would be an empty
+promise), and the player's blessing to wed one of the player's own unwed clan kin (arrange_marriage self-authorized).
+Gold and a council seat were left out (no clean player-to-companion verb / the Council is dormant). All computed
+from live eligibility (pure CompanionAmbitionPolicy, priority Fief>Marriage>Post>Command), gated on happiness and a
+per-companion cooldown; the grant fires the existing verb through the normal pipeline, no new executor. The candidate
+list below is the original design record. ALL THREE remaining reasons are now built (untested in game).
 
 DESIGN: append new values to `CompanionAudienceReason` (append-only, save-ordinal stable), each with its own
 opening cue + prompt framing (mirror the captive-intent pattern: one distinct opener and PURPOSE block per

@@ -16,12 +16,14 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
+using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 
 #endregion
@@ -50,10 +52,10 @@ namespace CalradiaRemembers.Missions
    }
 
    /// <summary>
-   ///   Scans one companion's live state against all seven found-topics. A pure no-op read: never mutates
-   ///   anything, never consumes a mission report, marks a rumour reported, marks a kindness thanked for, or
-   ///   marks a scheme warned of (the caller does that only once an audience is actually granted, in
-   ///   <see cref="CompanionAudienceTopicBehavior" />).
+   ///   Scans one companion's live state against all eight found-topics. A pure no-op read: never mutates
+   ///   anything, never consumes a mission report, marks a rumour reported, marks a kindness thanked for,
+   ///   marks a scheme warned of, or stamps an ambition asked (the caller does that only once an audience is
+   ///   actually granted, in <see cref="CompanionAudienceTopicBehavior" />).
    /// </summary>
    public static class CompanionAudienceTopicResolver
    {
@@ -63,10 +65,15 @@ namespace CalradiaRemembers.Missions
 
       private const int SurgeonMedicineThreshold = CompanionCounselPolicy.SurgeonMedicineThreshold;
 
-      /// <summary>Scans all seven topics for <paramref name="companion" />, in enum order.</summary>
+      // Ambition's own party-role fit bar: mirrors SurgeonMedicineThreshold exactly (100, "a genuinely trained
+      // level, not a dabbler's handful of points"), reused for the OTHER three roles too so the bar for "worth
+      // promoting into a post" reads the same regardless of which skill it is measured on.
+      private const int PartyRoleQualifiedSkillThreshold = SurgeonMedicineThreshold;
+
+      /// <summary>Scans all eight topics for <paramref name="companion" />, in enum order.</summary>
       public static List<CompanionAudienceTopicScan> Scan(
          Hero companion, ISet<string> alreadyReportedRumourIds, ISet<string> usedCallbackKeys, ISet<string> thankedKeys,
-         ISet<string> warnedKeys)
+         ISet<string> warnedKeys, IDictionary<string, int> ambitionAskedDays)
       {
          var results = new List<CompanionAudienceTopicScan> {
             ResolveMissionFollowUp(companion),
@@ -75,7 +82,8 @@ namespace CalradiaRemembers.Missions
             ResolveCallback(companion, usedCallbackKeys),
             ResolveRumourReport(companion, alreadyReportedRumourIds),
             ResolveGratitude(companion, thankedKeys),
-            ResolveSchemeWarning(companion, warnedKeys)
+            ResolveSchemeWarning(companion, warnedKeys),
+            ResolveAmbition(companion, ambitionAskedDays)
          };
 
          return results;
@@ -385,6 +393,146 @@ namespace CalradiaRemembers.Missions
       /// </summary>
       public static string SchemeWarningKey(Hero plotter, Hero target)
          => $"{plotter?.StringId}:{target?.StringId}";
+
+      #endregion
+
+      #region private: Ambition
+
+      /// <summary>
+      ///   Gathers the seven engine facts <see cref="CompanionAmbitionPolicy" /> needs and lets it choose which
+      ///   (if any) of the four bound ambitions this companion voices today. <see cref="CompanionAmbitionFacts.IsLandless" />
+      ///   folds in "a fief could actually be granted right now" (the player still leads their clan AND holds a
+      ///   vacant governable fief), and <see cref="CompanionAmbitionFacts.HoldsPartyRole" /> folds in "no role
+      ///   currently fits their skills" (<see cref="FindFittingPartyRole" />): neither auxiliary fact has its own
+      ///   slot in the pure policy's signature, so each rides the closest matching boolean, documented on the
+      ///   facts class itself.
+      /// </summary>
+      private static CompanionAudienceTopicScan ResolveAmbition(Hero companion, IDictionary<string, int> ambitionAskedDays)
+      {
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(companion?.StringId);
+
+         if (profile == null)
+            return NotHeld(CompanionAudienceReason.Ambition, "no profile to read this companion's standing from");
+
+         var today = (int) CampaignTime.Now.ToDays;
+         int daysSinceLastAsked = ambitionAskedDays != null && ambitionAskedDays.TryGetValue(companion.StringId, out int lastAsked)
+            ? today - lastAsked
+            : int.MaxValue / 2; // never asked before: comfortably past any cooldown
+
+         bool hasFieldPartyOfOwn = companion.PartyBelongedTo?.LeaderHero == companion
+                                    || CompanionMissionBehavior.Instance?.IsAway(companion.StringId) == true;
+
+         (string roleKey, string roleLabel) = FindFittingPartyRole(companion);
+         bool holdsPartyRole = HoldsAnyPartyRole(companion) || roleKey == null;
+
+         bool playerLeadsOwnClan = Clan.PlayerClan?.Leader == Hero.MainHero;
+         bool isLanded = companion.GovernorOf != null || companion.PartyBelongedTo?.LeaderHero == companion;
+         bool isLandless = !isLanded && playerLeadsOwnClan && HasVacantGovernableFief();
+         bool isHighStanding = profile.ReputationWithPlayer >= GovernorAppointmentPolicy.StandingFloor;
+
+         Hero match = FindMarriageMatch(companion);
+
+         var facts = new CompanionAmbitionFacts {
+            HasFieldPartyOfOwn = hasFieldPartyOfOwn,
+            HoldsPartyRole = holdsPartyRole,
+            IsLandless = isLandless,
+            IsHighStanding = isHighStanding,
+            IsUnmarriedWithMatch = match != null,
+            Happiness = CompanionHappinessService.Get(companion),
+            DaysSinceLastAsked = daysSinceLastAsked
+         };
+
+         (CompanionAmbition ambition, int strength) = CompanionAmbitionPolicy.Select(facts);
+
+         if (ambition == CompanionAmbition.None)
+            return NotHeld(CompanionAudienceReason.Ambition, "no ambition of their own currently fits this companion's state");
+
+         return new CompanionAudienceTopicScan {
+            Topic = CompanionAudienceReason.Ambition, Holds = true, Strength = strength, Detail = DescribeAmbition(ambition, roleLabel, match)
+         };
+      }
+
+      private static string DescribeAmbition(CompanionAmbition ambition, string fittingRoleLabel, Hero match)
+      {
+         switch (ambition)
+         {
+            case CompanionAmbition.Command: return "a command of your own to lead";
+            case CompanionAmbition.Post:
+               return string.IsNullOrEmpty(fittingRoleLabel) ? "a post in the party" : $"the {fittingRoleLabel}'s post in the party";
+            case CompanionAmbition.Fief: return "a fief of your own to govern in your name";
+            case CompanionAmbition.Marriage: return match != null ? $"your blessing to wed {match.Name}" : "your blessing to wed";
+            default: return null;
+         }
+      }
+
+      /// <summary>Whether this companion currently serves as ANY of the party's four roles (the engine's own EffectiveX properties).</summary>
+      private static bool HoldsAnyPartyRole(Hero companion)
+      {
+         MobileParty party = MobileParty.MainParty;
+
+         return party != null && (party.EffectiveScout == companion || party.EffectiveEngineer == companion
+                                   || party.EffectiveQuartermaster == companion || party.EffectiveSurgeon == companion);
+      }
+
+      /// <summary>
+      ///   The single party role this companion is best skilled for (scout/Scouting, engineer/Engineering,
+      ///   quartermaster/Steward, surgeon/Medicine), or a null key/label when none of the four skills clears
+      ///   <see cref="PartyRoleQualifiedSkillThreshold" />. assign_party_role's own bridge (CourtActionResolver.
+      ///   TryAssignPartyRole) applies no skill gate of its own ("instant, no cost, no trust gate"), so THIS is
+      ///   the only place a party-role promotion is judged plausible before it is ever voiced.
+      /// </summary>
+      private static (string Key, string Label) FindFittingPartyRole(Hero companion)
+      {
+         var candidates = new[] {
+            (Key: "scout", Label: "scout", Skill: companion.GetSkillValue(DefaultSkills.Scouting)),
+            (Key: "engineer", Label: "engineer", Skill: companion.GetSkillValue(DefaultSkills.Engineering)),
+            (Key: "quartermaster", Label: "quartermaster", Skill: companion.GetSkillValue(DefaultSkills.Steward)),
+            (Key: "surgeon", Label: "surgeon", Skill: companion.GetSkillValue(DefaultSkills.Medicine))
+         };
+
+         (string Key, string Label, int Skill) best = candidates.OrderByDescending(c => c.Skill).First();
+
+         return best.Skill >= PartyRoleQualifiedSkillThreshold ? (best.Key, best.Label) : (null, null);
+      }
+
+      /// <summary>
+      ///   Whether the player's own clan currently holds a town or castle with no governor seated, the SAME
+      ///   fief-matching CourtActionResolver.TryAppointGovernor re-checks at commit. Fief's own bound verb is
+      ///   appoint_governor (not grant_fief, which the catalog restricts to a recipient of a SEPARATE clan, and
+      ///   every companion this audience ever scans is, by construction, of the player's OWN clan): see this
+      ///   file's ResolveAmbition header remark and the delivery report for the full reasoning.
+      /// </summary>
+      private static bool HasVacantGovernableFief()
+         => Settlement.All != null && Settlement.All.Any(s =>
+            (s.IsTown || s.IsCastle) && s.OwnerClan == Clan.PlayerClan && s.Town?.Governor == null);
+
+      /// <summary>
+      ///   The first plausible unwed match for this companion among the PLAYER's own clan kin (deterministic
+      ///   StringId order), engine-suitable per <see cref="Campaign.Models" />.MarriageModel and
+      ///   <see cref="MarriageGuardPolicy" />, or null when none qualify. This is deliberately narrow (the
+      ///   player's OWN kin only): arrange_marriage's "a" parameter must resolve to one of the player's own
+      ///   unwed clan members (CourtActionResolver.TryArrangeMarriage), and the companion self-authorizes their
+      ///   OWN hand (b == authorizer), the one shape of arrange_marriage that can ever apply to a same-clan
+      ///   companion. See this file's ResolveAmbition header remark and the delivery report for the full reasoning.
+      /// </summary>
+      private static Hero FindMarriageMatch(Hero companion)
+      {
+         if (companion.Spouse != null || companion.Age < MarriageEligibility.MinMarriageAge) return null;
+         if (Clan.PlayerClan?.Heroes == null) return null;
+
+         foreach (Hero candidate in Clan.PlayerClan.Heroes
+                     .Where(h => h != null && h != companion && h != Hero.MainHero)
+                     .OrderBy(h => h.StringId, StringComparer.Ordinal))
+         {
+            if (candidate is not {IsAlive: true} || candidate.Spouse != null || candidate.Age < MarriageEligibility.MinMarriageAge) continue;
+            if (Campaign.Current?.Models?.MarriageModel?.IsCoupleSuitableForMarriage(candidate, companion) != true) continue;
+            if (!MarriageGuardPolicy.MarriageAllowed(candidate.IsPrisoner, companion.IsPrisoner, false)) continue;
+
+            return candidate;
+         }
+
+         return null;
+      }
 
       #endregion
 

@@ -75,16 +75,19 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.audience [retire|grievance|lover|gratitude|scheme_warning] [name]
+      ///   cr.audience [retire|grievance|lover|gratitude|scheme_warning|ambition] [name]
       ///   Opens a companion AUDIENCE conversation directly (skips the popup): the companion speaks first, voicing
       ///   a war-weary retirement (default), a grievance, (lover/affection) confiding they wish to become your
-      ///   discreet secret lover, (gratitude/thanks) thanking you for a specific kindness, or (scheme_warning/warn)
-      ///   warning you of a secret plot against you. For a retirement, grant it in your own words and the companion
-      ///   emits `retire`; for a lover audience, welcome it and they emit `take_as_secret_lover` (needs adult
-      ///   content on + a bonded, orientation-compatible companion). The gratitude and scheme_warning options are
-      ///   FOUND-TOPICS (unlike the other three): they delegate to the real resolver/spend-once bookkeeping via
-      ///   CompanionAudienceTopicBehavior.TryForceFireGratitude / TryForceFireSchemeWarning and report honestly
-      ///   when this companion currently has no qualifying kindness/plot to raise.
+      ///   discreet secret lover, (gratitude/thanks) thanking you for a specific kindness, (scheme_warning/warn)
+      ///   warning you of a secret plot against you, or (ambition) voicing one of their four bound ambitions. For
+      ///   a retirement, grant it in your own words and the companion emits `retire`; for a lover audience, welcome
+      ///   it and they emit `take_as_secret_lover` (needs adult content on + a bonded, orientation-compatible
+      ///   companion). The gratitude, scheme_warning, and ambition options are FOUND-TOPICS (unlike the other
+      ///   three): they delegate to the real resolver/bookkeeping via CompanionAudienceTopicBehavior.
+      ///   TryForceFireGratitude / TryForceFireSchemeWarning / TryForceFireAmbition and report honestly when this
+      ///   companion currently has no qualifying kindness/plot/ambition to raise. For a granted ambition, the
+      ///   FITTING existing action (dispatch_mission/assign_party_role/appoint_governor/arrange_marriage) fires
+      ///   through the normal pipeline, exactly as it would in any other conversation.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("audience", "cr")]
       public static string OpenAudience(List<string> args)
@@ -95,6 +98,7 @@ namespace CalradiaRemembers
          var reason = CompanionAudienceReason.Retirement;
          var forceGratitude = false;
          var forceSchemeWarning = false;
+         var forceAmbition = false;
          var nameTokens = new List<string>();
          foreach (string arg in args ?? new List<string>())
             if (arg.Equals("grievance", StringComparison.OrdinalIgnoreCase)) reason = CompanionAudienceReason.Grievance;
@@ -102,6 +106,7 @@ namespace CalradiaRemembers
             else if (arg.Equals("lover", StringComparison.OrdinalIgnoreCase) || arg.Equals("affection", StringComparison.OrdinalIgnoreCase) || arg.Equals("secret", StringComparison.OrdinalIgnoreCase)) reason = CompanionAudienceReason.SecretAffection;
             else if (arg.Equals("gratitude", StringComparison.OrdinalIgnoreCase) || arg.Equals("thanks", StringComparison.OrdinalIgnoreCase)) forceGratitude = true;
             else if (arg.Equals("scheme_warning", StringComparison.OrdinalIgnoreCase) || arg.Equals("scheme", StringComparison.OrdinalIgnoreCase) || arg.Equals("warn", StringComparison.OrdinalIgnoreCase)) forceSchemeWarning = true;
+            else if (arg.Equals("ambition", StringComparison.OrdinalIgnoreCase) || arg.Equals("ambitions", StringComparison.OrdinalIgnoreCase)) forceAmbition = true;
             else nameTokens.Add(arg);
 
          Hero hero = ResolveHero(nameTokens);
@@ -119,6 +124,13 @@ namespace CalradiaRemembers
             if (CompanionAudienceTopicBehavior.Instance == null) return "Found-topic audience system is not active.";
 
             return CompanionAudienceTopicBehavior.Instance.TryForceFireSchemeWarning(hero);
+         }
+
+         if (forceAmbition)
+         {
+            if (CompanionAudienceTopicBehavior.Instance == null) return "Found-topic audience system is not active.";
+
+            return CompanionAudienceTopicBehavior.Instance.TryForceFireAmbition(hero);
          }
 
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
@@ -463,9 +475,10 @@ namespace CalradiaRemembers
       /// <summary>
       ///   cr.audience_topics [name]
       ///   Found-topic companion audiences (player feedback, Nexus): with no name, lists every companion
-      ///   travelling with you and, for each, which of the seven topics (mission follow-up / companion conflict /
-      ///   practical counsel / callback / rumour report / gratitude / scheme warning) currently qualifies and why,
-      ///   plus the global cooldown state. With a name, shows that one companion's scan only. Diagnostic only, mutates nothing.
+      ///   travelling with you and, for each, which of the eight topics (mission follow-up / companion conflict /
+      ///   practical counsel / callback / rumour report / gratitude / scheme warning / ambition) currently
+      ///   qualifies and why, plus the global cooldown state. With a name, shows that one companion's scan only.
+      ///   Diagnostic only, mutates nothing.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("audience_topics", "cr")]
       public static string ShowAudienceTopics(List<string> args)

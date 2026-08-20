@@ -19,6 +19,13 @@
 // stance Warning letter only NAMES the schemer without ever calling TargetHeeds), so there is no double-fire
 // risk. Spend-once on the plotter/target StringId pair (CompanionAudienceTopicResolver.SchemeWarningKey),
 // exactly like Gratitude spends on the appreciation's own Id.
+// 20/08/2026 follow-up 2: added the eighth found-topic, AMBITION (a content, ambitious companion voicing ONE of
+// FOUR concrete ambitions, each already bound to an existing action verb, so granting the audience resolves
+// NOTHING mechanically by itself, unlike Gratitude/SchemeWarning: the deed is the PLAYER's, through the normal
+// action pipeline, once granted in the conversation). Unlike the spend-once topics above, an ambition is not a
+// one-shot fact to consume: the SAME underlying condition (landless+high-standing, no party role, etc.) can
+// still be true after a refusal, so this is throttled by TIME instead, a per-companion "last asked" day
+// (_ambitionAskedDays), stamped ONLY on a real grant, exactly like the spend-once keys are only marked on grant.
 
 #region
 
@@ -66,6 +73,11 @@ namespace CalradiaRemembers.Missions
       private HashSet<string> _usedCallbackKeys = new();
       private HashSet<string> _warnedKeys = new();
 
+      // companionId -> the game-day their Ambition topic was last GRANTED (never merely offered), throttling
+      // how often the SAME companion may voice a fresh ambition (CompanionAmbitionPolicy.CooldownDays), distinct
+      // from the spend-once sets above: an ambition is not a one-shot fact, so it is throttled by time instead.
+      private Dictionary<string, int> _ambitionAskedDays = new();
+
       // The offer currently on the table (between RequestAudience and the player's answer), so GrantAudience
       // knows exactly what was promised without re-scanning (live state could have shifted in the interim).
       private string _pendingCompanionId;
@@ -87,7 +99,7 @@ namespace CalradiaRemembers.Missions
       public void RunTick() => TryOfferAudience();
 
       /// <summary>
-      ///   Diagnostic dump for cr.audience_topics: every companion currently in the party, each of the seven
+      ///   Diagnostic dump for cr.audience_topics: every companion currently in the party, each of the eight
       ///   topics scanned, with why it did or didn't qualify. Mutates nothing.
       /// </summary>
       public string DescribeRoster()
@@ -104,12 +116,12 @@ namespace CalradiaRemembers.Missions
          return sb.ToString().TrimEnd();
       }
 
-      /// <summary>Diagnostic dump for one companion: each of the seven topics, why it did or didn't qualify.</summary>
+      /// <summary>Diagnostic dump for one companion: each of the eight topics, why it did or didn't qualify.</summary>
       public string DescribeScan(Hero companion)
       {
          if (companion == null) return "No companion found.";
 
-         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys);
+         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys, _ambitionAskedDays);
          CompanionAudienceReason chosen = SelectFrom(scans);
 
          var sb = new StringBuilder();
@@ -139,7 +151,8 @@ namespace CalradiaRemembers.Missions
                   ReportedRumourIds = new List<string>(_reportedRumourIds),
                   UsedCallbackKeys = new List<string>(_usedCallbackKeys),
                   ThankedKeys = new List<string>(_thankedKeys),
-                  WarnedKeys = new List<string>(_warnedKeys)
+                  WarnedKeys = new List<string>(_warnedKeys),
+                  AmbitionAskedDays = new Dictionary<string, int>(_ambitionAskedDays)
                };
                bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(snapshot, Formatting.None));
             }
@@ -173,6 +186,9 @@ namespace CalradiaRemembers.Missions
                // Additive, save-safe key (absent in older saves): WarnedKeys deserializes to null, and the
                // ?? below degrades it to an empty ledger, same as every field here on an old save.
                _warnedKeys = new HashSet<string>(state?.WarnedKeys ?? new List<string>());
+               // Additive, save-safe key (absent in older saves): AmbitionAskedDays deserializes to null, and
+               // the ?? below degrades it to an empty map, same as every field here on an old save.
+               _ambitionAskedDays = new Dictionary<string, int>(state?.AmbitionAskedDays ?? new Dictionary<string, int>());
             }
             catch (Exception ex)
             {
@@ -182,6 +198,7 @@ namespace CalradiaRemembers.Missions
                _usedCallbackKeys = new HashSet<string>();
                _thankedKeys = new HashSet<string>();
                _warnedKeys = new HashSet<string>();
+               _ambitionAskedDays = new Dictionary<string, int>();
             }
          }
       }
@@ -212,7 +229,7 @@ namespace CalradiaRemembers.Missions
       {
          if (companion == null) return "No companion found.";
 
-         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys);
+         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys, _ambitionAskedDays);
          CompanionAudienceTopicScan scan = scans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Gratitude);
 
          if (scan is not {Holds: true})
@@ -242,7 +259,7 @@ namespace CalradiaRemembers.Missions
       {
          if (companion == null) return "No companion found.";
 
-         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys);
+         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys, _ambitionAskedDays);
          CompanionAudienceTopicScan scan = scans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.SchemeWarning);
 
          if (scan is not {Holds: true})
@@ -259,6 +276,37 @@ namespace CalradiaRemembers.Missions
          ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s SchemeWarning audience opened (forced).");
 
          return $"{companion.Name} asks for a private word (SchemeWarning, strength {scan.Strength}).";
+      }
+
+      /// <summary>
+      ///   cr.audience ambition test path: force-fires the AMBITION topic for one NAMED companion specifically
+      ///   (unlike <see cref="TryForceFireBest" />, which fires the roster's single strongest topic of ANY
+      ///   reason), bypassing the global cooldown (but NOT the per-companion ambition cooldown, which is the
+      ///   thing under test). Opens the SAME real audience a granted popup would and stamps the SAME per-
+      ///   companion "last asked" day a real grant would, exactly like a real grant, so re-running immediately
+      ///   reports the cooldown withholding it. Returns why nothing fired when this companion currently has no
+      ///   ambition of their own worth voicing.
+      /// </summary>
+      public string TryForceFireAmbition(Hero companion)
+      {
+         if (companion == null) return "No companion found.";
+
+         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys, _ambitionAskedDays);
+         CompanionAudienceTopicScan scan = scans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Ambition);
+
+         if (scan is not {Holds: true})
+            return $"{companion.Name} has no ambition of their own currently worth an audience ({scan?.WhyNot ?? "no qualifying ambition"}).";
+
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(companion.StringId);
+         if (profile == null) return "No profile found for that companion.";
+
+         _ambitionAskedDays[companion.StringId] = Today;
+
+         bool landed = companion.GovernorOf != null || companion.PartyBelongedTo?.LeaderHero == companion;
+         ChatManager.OpenForCompanionAudience(companion, profile, CompanionAudienceReason.Ambition, landed, scan.Detail);
+         ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s Ambition audience opened (forced).");
+
+         return $"{companion.Name} asks for a private word (Ambition, strength {scan.Strength}): {scan.Detail}.";
       }
 
       #region private
@@ -282,7 +330,7 @@ namespace CalradiaRemembers.Missions
          // always wins regardless of iteration order the engine happens to hand back Hero.AllAliveHeroes in.
          foreach (Hero h in Companions().OrderBy(h => h.StringId, StringComparer.Ordinal))
          {
-            List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(h, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys);
+            List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(h, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys, _ambitionAskedDays);
             CompanionAudienceReason topic = SelectFrom(scans);
 
             if (topic == CompanionAudienceReason.None) continue;
@@ -321,6 +369,10 @@ namespace CalradiaRemembers.Missions
             if (!string.IsNullOrEmpty(key)) _warnedKeys.Add(key);
             SchemeStore.Instance?.TargetHeeds(Hero.MainHero);
          }
+
+         // Ambition is not spend-once: the per-companion cooldown clock starts here, on a real grant, exactly
+         // like the spend-once keys above are only ever marked on a real grant, never a mere offer.
+         if (topic == CompanionAudienceReason.Ambition) _ambitionAskedDays[companion.StringId] = Today;
 
          ChatManager.OpenForCompanionAudience(companion, profile, topic, false, detail);
          ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s {topic} audience opened.");
@@ -406,6 +458,7 @@ namespace CalradiaRemembers.Missions
          public List<string> ThankedKeys { get; set; }
          public List<string> UsedCallbackKeys { get; set; }
          public List<string> WarnedKeys { get; set; }
+         public Dictionary<string, int> AmbitionAskedDays { get; set; }
       }
 
       #endregion
