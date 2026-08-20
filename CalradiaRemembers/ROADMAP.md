@@ -883,6 +883,16 @@ Today a companion only asks to speak with the player when they are UNHAPPY: `Com
 Gabriel wants companions to feel alive: they should also seek the player out for POSITIVE and varied reasons, so
 an audience is not always bad news.
 
+STATUS (2026-08-20): most of this is now SHIPPED. Beyond Grievance/Retirement, `CompanionAudienceReason` carries
+SecretAffection (v1.30.3), MissionFollowUp, CompanionConflict, PracticalCounsel, Callback, and RumourReport, all
+driven by `CompanionAudienceTopicResolver` + the pure `CompanionAudienceTopicPolicy` behind ONE global cooldown,
+fired on entering a settlement, refusal costing nothing (`CompanionAudienceTopicBehavior`). THREE gaps from the
+original wish remain, being built in this order (Gabriel 2026-08-20, Sonnet test-first): (1) Gratitude, a purely
+warm thanks for a specific kindness (reads the Appreciations ledger, no executor) BUILDING; (2) Concern/warning,
+troubled by something the player DID or a scheme against them (ties to stance/schemes); (3) Ambition/request, the
+companion asks for something concrete (a mission, promotion, gold, fief, blessing to marry, council seat, handing
+off to the quest/join/grant paths). The candidate list below is the original design record.
+
 DESIGN: append new values to `CompanionAudienceReason` (append-only, save-ordinal stable), each with its own
 opening cue + prompt framing (mirror the captive-intent pattern: one distinct opener and PURPOSE block per
 reason). Candidate reasons:

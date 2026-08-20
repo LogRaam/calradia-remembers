@@ -75,12 +75,15 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.audience [retire|grievance|lover] [name]
+      ///   cr.audience [retire|grievance|lover|gratitude] [name]
       ///   Opens a companion AUDIENCE conversation directly (skips the popup): the companion speaks first, voicing
-      ///   a war-weary retirement (default), a grievance, or (lover/affection) confiding they wish to become your
-      ///   discreet secret lover. For a retirement, grant it in your own words and the companion emits `retire`; for
-      ///   a lover audience, welcome it and they emit `take_as_secret_lover` (needs adult content on + a bonded,
-      ///   orientation-compatible companion).
+      ///   a war-weary retirement (default), a grievance, (lover/affection) confiding they wish to become your
+      ///   discreet secret lover, or (gratitude/thanks) thanking you for a specific kindness. For a retirement,
+      ///   grant it in your own words and the companion emits `retire`; for a lover audience, welcome it and they
+      ///   emit `take_as_secret_lover` (needs adult content on + a bonded, orientation-compatible companion). The
+      ///   gratitude option is a FOUND-TOPIC (unlike the other three): it delegates to the real resolver/spend-once
+      ///   bookkeeping via CompanionAudienceTopicBehavior.TryForceFireGratitude and reports honestly when this
+      ///   companion currently has no qualifying kindness to thank you for.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("audience", "cr")]
       public static string OpenAudience(List<string> args)
@@ -89,15 +92,24 @@ namespace CalradiaRemembers
          if (behavior.LlmServices is not {IsAvailable: true}) return "LLM services not available. Set your OpenRouter API key first.";
 
          var reason = CompanionAudienceReason.Retirement;
+         var forceGratitude = false;
          var nameTokens = new List<string>();
          foreach (string arg in args ?? new List<string>())
             if (arg.Equals("grievance", StringComparison.OrdinalIgnoreCase)) reason = CompanionAudienceReason.Grievance;
             else if (arg.Equals("retire", StringComparison.OrdinalIgnoreCase) || arg.Equals("retirement", StringComparison.OrdinalIgnoreCase)) reason = CompanionAudienceReason.Retirement;
             else if (arg.Equals("lover", StringComparison.OrdinalIgnoreCase) || arg.Equals("affection", StringComparison.OrdinalIgnoreCase) || arg.Equals("secret", StringComparison.OrdinalIgnoreCase)) reason = CompanionAudienceReason.SecretAffection;
+            else if (arg.Equals("gratitude", StringComparison.OrdinalIgnoreCase) || arg.Equals("thanks", StringComparison.OrdinalIgnoreCase)) forceGratitude = true;
             else nameTokens.Add(arg);
 
          Hero hero = ResolveHero(nameTokens);
          if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         if (forceGratitude)
+         {
+            if (CompanionAudienceTopicBehavior.Instance == null) return "Found-topic audience system is not active.";
+
+            return CompanionAudienceTopicBehavior.Instance.TryForceFireGratitude(hero);
+         }
 
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
          bool landed = hero.GovernorOf != null || hero.PartyBelongedTo?.LeaderHero == hero;
@@ -441,9 +453,9 @@ namespace CalradiaRemembers
       /// <summary>
       ///   cr.audience_topics [name]
       ///   Found-topic companion audiences (player feedback, Nexus): with no name, lists every companion
-      ///   travelling with you and, for each, which of the five topics (mission follow-up / companion conflict /
-      ///   practical counsel / callback / rumour report) currently qualifies and why, plus the global cooldown
-      ///   state. With a name, shows that one companion's scan only. Diagnostic only, mutates nothing.
+      ///   travelling with you and, for each, which of the six topics (mission follow-up / companion conflict /
+      ///   practical counsel / callback / rumour report / gratitude) currently qualifies and why, plus the global
+      ///   cooldown state. With a name, shows that one companion's scan only. Diagnostic only, mutates nothing.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("audience_topics", "cr")]
       public static string ShowAudienceTopics(List<string> args)

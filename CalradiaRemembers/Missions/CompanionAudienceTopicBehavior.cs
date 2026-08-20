@@ -1,6 +1,6 @@
 // Code written by Gabriel Mailhot, 22/07/2026.
 // Player feedback (Nexus): a popup offering a private word with a companion travelling in the party, refusal
-// costing nothing ("please dont trigger a grudge at the first refusal"). Drives the five found-topics
+// costing nothing ("please dont trigger a grudge at the first refusal"). Drives the six found-topics
 // (CompanionAudienceTopicResolver / CalradiaRemembers.Logic's pure policies) behind ONE shared, GLOBAL
 // cooldown across the whole roster (CompanionAudienceTopicPolicy.GlobalCooldownDays), never a per-companion
 // timer, which would still produce a popup every few days from someone in an eight-companion party.
@@ -10,6 +10,8 @@
 // private word, and it teaches the player a rhythm ("reaching a settlement" rather than a random timer). The
 // global cooldown is still the only gate: it already keeps repeated visits inside the window from offering
 // anything twice, so no second random roll was added on top of it.
+// 20/08/2026: added the sixth found-topic, GRATITUDE (a content companion thanking the player for a specific
+// Appreciation), spend-once on the appreciation's own Id, exactly like RumourReport spends on a WorldEvent Id.
 
 #region
 
@@ -47,10 +49,12 @@ namespace CalradiaRemembers.Missions
 
       private int _lastAskedDay = NeverAsked;
 
-      // Composite keys ("companionId:gameDay:type") of NotableEvents already spent as a Callback, and
-      // WorldEvent ids already spent as a RumourReport, both marked ONLY once an audience is actually
-      // GRANTED (never merely offered), so a refused popup leaves the topic free to resurface.
+      // Composite keys ("companionId:gameDay:type") of NotableEvents already spent as a Callback, WorldEvent
+      // ids already spent as a RumourReport, and Appreciation ids already spent as a Gratitude, all marked
+      // ONLY once an audience is actually GRANTED (never merely offered), so a refused popup leaves the topic
+      // free to resurface.
       private HashSet<string> _reportedRumourIds = new();
+      private HashSet<string> _thankedKeys = new();
       private HashSet<string> _usedCallbackKeys = new();
 
       // The offer currently on the table (between RequestAudience and the player's answer), so GrantAudience
@@ -96,7 +100,7 @@ namespace CalradiaRemembers.Missions
       {
          if (companion == null) return "No companion found.";
 
-         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys);
+         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys);
          CompanionAudienceReason chosen = SelectFrom(scans);
 
          var sb = new StringBuilder();
@@ -124,7 +128,8 @@ namespace CalradiaRemembers.Missions
                var snapshot = new SavedState {
                   LastAskedDay = _lastAskedDay,
                   ReportedRumourIds = new List<string>(_reportedRumourIds),
-                  UsedCallbackKeys = new List<string>(_usedCallbackKeys)
+                  UsedCallbackKeys = new List<string>(_usedCallbackKeys),
+                  ThankedKeys = new List<string>(_thankedKeys)
                };
                bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(snapshot, Formatting.None));
             }
@@ -154,6 +159,7 @@ namespace CalradiaRemembers.Missions
                _lastAskedDay = state?.LastAskedDay ?? NeverAsked;
                _reportedRumourIds = new HashSet<string>(state?.ReportedRumourIds ?? new List<string>());
                _usedCallbackKeys = new HashSet<string>(state?.UsedCallbackKeys ?? new List<string>());
+               _thankedKeys = new HashSet<string>(state?.ThankedKeys ?? new List<string>());
             }
             catch (Exception ex)
             {
@@ -161,6 +167,7 @@ namespace CalradiaRemembers.Missions
                _lastAskedDay = NeverAsked;
                _reportedRumourIds = new HashSet<string>();
                _usedCallbackKeys = new HashSet<string>();
+               _thankedKeys = new HashSet<string>();
             }
          }
       }
@@ -178,6 +185,35 @@ namespace CalradiaRemembers.Missions
          RequestAudience(found.Value.Companion, found.Value.Scan);
 
          return $"{found.Value.Companion.Name} asks for a private word ({found.Value.Scan.Topic}, strength {found.Value.Scan.Strength}).";
+      }
+
+      /// <summary>
+      ///   cr.audience gratitude test path: force-fires the GRATITUDE topic for one NAMED companion specifically
+      ///   (unlike <see cref="TryForceFireBest" />, which fires the roster's single strongest topic of ANY
+      ///   reason), bypassing the global cooldown. Opens the SAME real audience a granted popup would and spends
+      ///   the key on open, exactly like a real grant, so re-running immediately reports nothing left to thank
+      ///   them for. Returns why nothing fired when this companion currently has no qualifying kindness.
+      /// </summary>
+      public string TryForceFireGratitude(Hero companion)
+      {
+         if (companion == null) return "No companion found.";
+
+         List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(companion, _reportedRumourIds, _usedCallbackKeys, _thankedKeys);
+         CompanionAudienceTopicScan scan = scans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Gratitude);
+
+         if (scan is not {Holds: true})
+            return $"{companion.Name} has no kindness currently worth a gratitude audience ({scan?.WhyNot ?? "no qualifying appreciation"}).";
+
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(companion.StringId);
+         if (profile == null) return "No profile found for that companion.";
+
+         if (!string.IsNullOrEmpty(scan.Key)) _thankedKeys.Add(scan.Key);
+
+         bool landed = companion.GovernorOf != null || companion.PartyBelongedTo?.LeaderHero == companion;
+         ChatManager.OpenForCompanionAudience(companion, profile, CompanionAudienceReason.Gratitude, landed, scan.Detail);
+         ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s Gratitude audience opened (forced).");
+
+         return $"{companion.Name} asks for a private word (Gratitude, strength {scan.Strength}).";
       }
 
       #region private
@@ -201,7 +237,7 @@ namespace CalradiaRemembers.Missions
          // always wins regardless of iteration order the engine happens to hand back Hero.AllAliveHeroes in.
          foreach (Hero h in Companions().OrderBy(h => h.StringId, StringComparer.Ordinal))
          {
-            List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(h, _reportedRumourIds, _usedCallbackKeys);
+            List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(h, _reportedRumourIds, _usedCallbackKeys, _thankedKeys);
             CompanionAudienceReason topic = SelectFrom(scans);
 
             if (topic == CompanionAudienceReason.None) continue;
@@ -231,6 +267,7 @@ namespace CalradiaRemembers.Missions
          // leave them free to resurface (see the class header).
          if (topic == CompanionAudienceReason.RumourReport && !string.IsNullOrEmpty(key)) _reportedRumourIds.Add(key);
          if (topic == CompanionAudienceReason.Callback && !string.IsNullOrEmpty(key)) _usedCallbackKeys.Add(key);
+         if (topic == CompanionAudienceReason.Gratitude && !string.IsNullOrEmpty(key)) _thankedKeys.Add(key);
 
          ChatManager.OpenForCompanionAudience(companion, profile, topic, false, detail);
          ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s {topic} audience opened.");
@@ -313,6 +350,7 @@ namespace CalradiaRemembers.Missions
       {
          public int LastAskedDay { get; set; }
          public List<string> ReportedRumourIds { get; set; }
+         public List<string> ThankedKeys { get; set; }
          public List<string> UsedCallbackKeys { get; set; }
       }
 

@@ -102,6 +102,22 @@ namespace CalradiaRemembers.Diagnostics
       /// <summary>The cause text this test plants under, distinct from every other self-test's, so the twin-merge assertions can only ever see its own record.</summary>
       private const string AppreciationRepeatCause = "[SELFTEST] A kindness done more than once.";
 
+      // ── Companion audience: GRATITUDE found-topic (2026-08-20). Seeds a real Appreciation via the real ──
+      // ── TryPlant gate, then drives the REAL resolver (CompanionAudienceTopicResolver.Scan), never a mock, ──
+      // ── so a change to the pure gate/strength policy or the live wiring both surface here. ──────────────
+
+      /// <summary>The cause text this test plants under, distinct from every other self-test's own appreciation cause.</summary>
+      private const string GratitudeTestCause = "[SELFTEST] A kindness worth thanking for.";
+
+      /// <summary>Comfortably above CompanionGratitudePolicy.MinEffectiveMagnitude, planted TODAY so no decay applies.</summary>
+      private const int GratitudeTestMagnitude = 70;
+
+      /// <summary>Inside CompanionHappiness's Content band, so the happiness gate clears.</summary>
+      private const int GratitudeTestContentHappiness = 70;
+
+      /// <summary>Below CompanionHappiness.LeaveThreshold (Disgruntled), well outside the Content/Devoted gate.</summary>
+      private const int GratitudeTestSourHappiness = 10;
+
       /// <summary>Days back the FIRST occurrence is dated, so the second one lands on a different day and is a genuine repeat rather than a same-day duplicate.</summary>
       private const int AppreciationRepeatDaysBack = 5;
 
@@ -138,6 +154,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("presence", Severity.Light, "Mechanical: a companion riding in your party is told they travel at your side and is NEVER told how long since they last saw you, even with a 60-day-stale memory (the 'crew acts abandoned between two ports' report); a lord genuinely away STILL hears the time apart. BORROWS a companion into your party if none is riding along, and puts them back", TestPresence),
          new SelfTest("presence_gate", Severity.Light, "Mechanical: the ONE behaviour v1.30.14 changed, guarded across the WHOLE living roster with no preconditions. The letter system's facade and the single presence authority must give the same answer for every hero alive (before this, letters asked a wide question and jealousy a party-only one), and beside/away must be exact opposites. If they ever disagree again, the systems have drifted apart and this fires", TestPresenceGate),
          new SelfTest("contentment", Severity.Light, "Mechanical: sour a companion to 20, run the REAL weekly tick, assert they CLIMB instead of sliding toward the door (the rebalance's core guarantee: idleness alone can never carry anyone out); plus a companion governing a town is not idle (the reported governor bug). Restores their happiness afterwards", TestContentment),
+         new SelfTest("companion_gratitude", Severity.Light, "New sixth found-topic (design brief 2026-08-20): a content companion thanking the player for a specific kindness, purely warm, never a request/bargain. Seeds a real Appreciation via the real TryPlant gate on a content companion, drives the REAL CompanionAudienceTopicResolver.Scan, and asserts it HOLDS with the seeded detail; asserts the SAME appreciation's own key, once marked spent, WITHHOLDS it (spend-once); and asserts an otherwise-identical but unhappy (Disgruntled) companion never holds it either (the happiness gate). Restores the companion's original happiness afterwards; does not remove the seeded appreciation (mirrors appreciation_flow/appreciation_repeat, which have no removal API to call)", TestCompanionGratitude),
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
          new SelfTest("letter_memory", Severity.Light, "Player report (Desporion): a marriage proposal 'agreed on the terms' over three letters was denied face to face because letters left only a generic 'Received a letter (Reason)' memory, never their substance. Pure half: LetterMemoryPolicy.ShouldRemember excludes the two re-ping reasons (AwaitingReply, QuestUpdate) and includes MarriageProposal; BaseMemory is first-person and reflects direction. Real-path half: drives the REAL LetterMemoryFinalizer.RecordLetterMemory (LetterPopupManager.MarkReceived's own seam) with a ShouldRemember=false reason (QuestUpdate), so the run can never fall through to the async LLM summarizer (Lane C, kept out of cr.testall), and asserts the base event actually lands on profile.Events. Removes the event it added", TestLetterMemory),
          new SelfTest("world_conditions", Severity.Light, "Mechanical: the engine reads the weekly world-conditions feeder depends on still work against the live game (a renamed field or a changed model signature would silently swallow to 0 inside the feeder's own guards, recording nothing forever). Reads GetScoreOfDeclaringWar in both directions between two live kingdoms and a live town's FoodStocks/FoodChange/Prosperity DIRECTLY, asserts each is finite, then runs the real RunScan and asserts both scanners ran. Skips when the world has fewer than two kingdoms or no town", TestWorldConditions),
@@ -7992,6 +8009,84 @@ namespace CalradiaRemembers.Diagnostics
 
          // Leave them where their clan's standing places them, rather than artificially soured.
          CompanionHappinessService.Set(subject, baseline);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   MECHANICAL (no LLM): the sixth found-topic, GRATITUDE (design brief 2026-08-20): a content companion
+      ///   thanking the player for a specific kindness, purely warm, never a request/bargain. Seeds a real
+      ///   Appreciation via the real <see cref="AppreciationBehavior.TryPlant" /> gate on a companion made
+      ///   comfortably Content, then drives the REAL <see cref="CompanionAudienceTopicResolver.Scan" /> (never a
+      ///   mock), asserting: the fresh kindness HOLDS with the seeded detail carried through; the SAME
+      ///   appreciation's own key, once passed back in as already-thanked, WITHHOLDS it (the spend-once rule); and
+      ///   the identical kindness, on the same companion made Disgruntled, never holds either (the design brief's
+      ///   "a thank-you from an unhappy companion is wrong"). Restores the companion's original happiness in a
+      ///   finally; does not remove the seeded appreciation itself (AppreciationBehavior exposes no removal API,
+      ///   mirroring appreciation_flow/appreciation_repeat, which leave their own seeded appreciations in place too).
+      /// </summary>
+      private static string TestCompanionGratitude(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("companion_gratitude");
+
+         if (t.Abort(AppreciationBehavior.Instance == null, "AppreciationBehavior not active")) return t.Line();
+
+         Hero subject = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner);
+
+         if (t.Skip(subject == null, "no living companion to seed a kindness on")) return t.Line();
+
+         GetOrCreate(behavior, subject);
+
+         Appreciation Mine() => AppreciationBehavior.Instance.AppreciationsFor(subject.StringId)
+            .FirstOrDefault(a => a.Source == AppreciationSource.RansomedOrFreed
+                              && string.Equals(a.CauseSummary, GratitudeTestCause, StringComparison.OrdinalIgnoreCase));
+
+         if (t.Skip(Mine() != null, "this test's kindness is already on the ledger from an earlier run (reload to re-test)")) return t.Line();
+
+         int originalHappiness = CompanionHappinessService.Get(subject);
+         var today = (int) CampaignTime.Now.ToDays;
+
+         try
+         {
+            CompanionHappinessService.Set(subject, GratitudeTestContentHappiness);
+
+            bool planted = AppreciationBehavior.Instance.TryPlant(subject, Hero.MainHero, AppreciationSource.RansomedOrFreed,
+               GratitudeTestCause, GratitudeTestMagnitude, true, today);
+
+            if (t.Skip(!planted, "appreciation refused (anti-noise guardrail or a full, stronger house)")) return t.Line();
+
+            List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(
+               subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>());
+            CompanionAudienceTopicScan scan = scans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Gratitude);
+
+            t.Expect("freshKindnessOnAContentCompanionHoldsAGratitudeTopic", scan is {Holds: true}, true);
+
+            if (scan is {Holds: true})
+            {
+               t.Note($"{subject.Name}: gratitude strength {scan.Strength}, detail \"{scan.Detail}\"");
+
+               var thanked = new HashSet<string> {scan.Key};
+               List<CompanionAudienceTopicScan> rescanned = CompanionAudienceTopicResolver.Scan(
+                  subject, new HashSet<string>(), new HashSet<string>(), thanked);
+               CompanionAudienceTopicScan spentScan = rescanned.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Gratitude);
+
+               t.Expect("aSpentKeyWithholdsTheSameKindness", spentScan is {Holds: false}, true);
+            }
+
+            // The identical kindness, unspent, but the companion has soured: the happiness gate alone must
+            // refuse it now.
+            CompanionHappinessService.Set(subject, GratitudeTestSourHappiness);
+            List<CompanionAudienceTopicScan> unhappyScans = CompanionAudienceTopicResolver.Scan(
+               subject, new HashSet<string>(), new HashSet<string>(), new HashSet<string>());
+            CompanionAudienceTopicScan unhappyScan = unhappyScans.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Gratitude);
+
+            t.Expect("anUnhappyCompanionIsNeverHandedAThankYou", unhappyScan is {Holds: false}, true);
+         }
+         finally
+         {
+            CompanionHappinessService.Set(subject, originalHappiness);
+         }
 
          return t.Line();
       }

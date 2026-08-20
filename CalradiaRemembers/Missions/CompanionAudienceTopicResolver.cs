@@ -11,9 +11,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
@@ -48,9 +50,10 @@ namespace CalradiaRemembers.Missions
    }
 
    /// <summary>
-   ///   Scans one companion's live state against all five found-topics. A pure no-op read: never mutates
-   ///   anything, never consumes a mission report or marks a rumour reported (the caller does that only once
-   ///   an audience is actually granted, in <see cref="CompanionAudienceTopicBehavior" />).
+   ///   Scans one companion's live state against all six found-topics. A pure no-op read: never mutates
+   ///   anything, never consumes a mission report, marks a rumour reported, or marks a kindness thanked for
+   ///   (the caller does that only once an audience is actually granted, in
+   ///   <see cref="CompanionAudienceTopicBehavior" />).
    /// </summary>
    public static class CompanionAudienceTopicResolver
    {
@@ -60,16 +63,17 @@ namespace CalradiaRemembers.Missions
 
       private const int SurgeonMedicineThreshold = CompanionCounselPolicy.SurgeonMedicineThreshold;
 
-      /// <summary>Scans all five topics for <paramref name="companion" />, in enum order.</summary>
+      /// <summary>Scans all six topics for <paramref name="companion" />, in enum order.</summary>
       public static List<CompanionAudienceTopicScan> Scan(
-         Hero companion, ISet<string> alreadyReportedRumourIds, ISet<string> usedCallbackKeys)
+         Hero companion, ISet<string> alreadyReportedRumourIds, ISet<string> usedCallbackKeys, ISet<string> thankedKeys)
       {
          var results = new List<CompanionAudienceTopicScan> {
             ResolveMissionFollowUp(companion),
             ResolveCompanionConflict(companion),
             ResolvePracticalCounsel(),
             ResolveCallback(companion, usedCallbackKeys),
-            ResolveRumourReport(companion, alreadyReportedRumourIds)
+            ResolveRumourReport(companion, alreadyReportedRumourIds),
+            ResolveGratitude(companion, thankedKeys)
          };
 
          return results;
@@ -101,7 +105,9 @@ namespace CalradiaRemembers.Missions
             return NotHeld(CompanionAudienceReason.CompanionConflict, "holds no grudge at all");
 
          var today = (int) CampaignTime.Now.ToDays;
-         TraitFacts traits = GrudgeBridge.BuildTraitFacts(companion);
+         // Fully qualified: CalradiaRemembers.Logic.Grudges and CalradiaRemembers.Logic.Appreciations (needed
+         // below, for ResolveGratitude) each declare their own TraitFacts.
+         CalradiaRemembers.Logic.Grudges.TraitFacts traits = GrudgeBridge.BuildTraitFacts(companion);
 
          Grudge best = null;
          var bestMagnitude = 0;
@@ -294,6 +300,51 @@ namespace CalradiaRemembers.Missions
          }
 
          return NotHeld(CompanionAudienceReason.RumourReport, "no un-reported rumour this companion could plausibly have heard");
+      }
+
+      #endregion
+
+      #region private: Gratitude
+
+      private static CompanionAudienceTopicScan ResolveGratitude(Hero companion, ISet<string> thankedKeys)
+      {
+         int happiness = CompanionHappinessService.Get(companion);
+
+         var today = (int) CampaignTime.Now.ToDays;
+         IReadOnlyList<Appreciation> live = AppreciationBehavior.Instance?.LiveAppreciationsFor(companion, today)
+            ?? Array.Empty<Appreciation>();
+
+         if (live.Count == 0)
+            return NotHeld(CompanionAudienceReason.Gratitude, "holds no live appreciation of the player at all");
+
+         // Fully qualified: CalradiaRemembers.Logic.Grudges and CalradiaRemembers.Logic.Appreciations each
+         // declare their own TraitFacts (the mirrored design AppreciationPolicy's header describes), and this
+         // file already uses the Grudges one unqualified above (ResolveCompanionConflict).
+         CalradiaRemembers.Logic.Appreciations.TraitFacts traits = AppreciationBridge.BuildTraitFacts(companion);
+
+         // Already ranked strongest-first by AppreciationBehavior.LiveAppreciationsFor, so the first one that
+         // clears the pure gate below is also the strongest qualifying kindness, mirroring RumourReport's
+         // already-sorted iterate-then-take-first shape (Callback needs its own manual best-tracking only
+         // because its source list is NOT pre-sorted).
+         foreach (Appreciation a in live)
+         {
+            if (a == null || string.IsNullOrEmpty(a.Id)) continue;
+            if (thankedKeys != null && thankedKeys.Contains(a.Id)) continue;
+
+            int effectiveMagnitude = AppreciationPolicy.EffectiveMagnitude(a, today, traits);
+            int daysAgo = today - a.EventDay;
+
+            if (!CompanionGratitudePolicy.Holds(effectiveMagnitude, daysAgo, happiness)) continue;
+
+            return new CompanionAudienceTopicScan {
+               Topic = CompanionAudienceReason.Gratitude, Holds = true,
+               Strength = CompanionGratitudePolicy.Strength(effectiveMagnitude),
+               Detail = string.IsNullOrWhiteSpace(a.CauseSummary) ? "a kindness you showed me" : a.CauseSummary,
+               Key = a.Id
+            };
+         }
+
+         return NotHeld(CompanionAudienceReason.Gratitude, "no recent, significant, not-yet-thanked-for kindness remains");
       }
 
       #endregion
