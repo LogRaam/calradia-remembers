@@ -9,6 +9,7 @@
 #region
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,7 +35,7 @@ namespace CalradiaRemembers.Diagnostics
       ///   scoreboard log. The scored comparison is the SDK's pure code; this only supplies the live client and
       ///   writes the result where the user can read and diff it across interpreter models.
       /// </summary>
-      public static string Run(NpcMemoryCampaignBehavior behavior, int passes = 1)
+      public static string Run(NpcMemoryCampaignBehavior behavior, int passes = 1, bool focusOnly = false)
       {
          if (behavior == null) return "Calradia Remembers behavior not active. Start a campaign first.";
          if (behavior.LlmServices is not {IsAvailable: true})
@@ -45,10 +46,14 @@ namespace CalradiaRemembers.Diagnostics
          ILlmClient interpreter = behavior.LlmServices.InterpreterClient;
          string model = behavior.LlmServices.ResolveInterpreterModel() ?? "unknown";
 
+         // Focus = the cheap iteration slice (curated failing/flaky cases + canaries); full = the whole corpus,
+         // the pre-release gate. Focus cuts the token bill ~85% but is blind to the cases it omits.
+         IReadOnlyList<ActionBenchCase> cases = focusOnly ? ActionBenchCatalog.Focus : ActionBenchCatalog.All;
+
          ActionBenchReport report;
          try
          {
-            report = Task.Run(() => ActionBenchRunner.RunAsync(interpreter, ActionBenchCatalog.All, passes)).GetAwaiter().GetResult();
+            report = Task.Run(() => ActionBenchRunner.RunAsync(interpreter, cases, passes)).GetAwaiter().GetResult();
          }
          catch (Exception ex)
          {
@@ -58,9 +63,9 @@ namespace CalradiaRemembers.Diagnostics
          var sb = new StringBuilder();
          sb.AppendLine();
          sb.AppendLine("========================================================================");
-         sb.AppendLine($"  cr.action_bench run - {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+         sb.AppendLine($"  cr.action_bench run - {DateTime.Now:yyyy-MM-dd HH:mm:ss}{(focusOnly ? "  [FOCUS SLICE - not the full corpus]" : "")}");
          sb.AppendLine($"  Interpreter model: {model}");
-         sb.AppendLine($"  Cases: {ActionBenchCatalog.All.Count}, passes each: {passes} (static prose read by the interpreter, then scored)");
+         sb.AppendLine($"  Cases: {cases.Count}, passes each: {passes} (static prose read by the interpreter, then scored)");
          sb.AppendLine("========================================================================");
          sb.Append(report.Format());
 

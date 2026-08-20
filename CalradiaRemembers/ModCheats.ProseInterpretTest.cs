@@ -315,8 +315,8 @@ namespace CalradiaRemembers
          {
             var request = new LlmRequest {
                SystemPrompt = prompt,
-               Messages = new[] {new LlmMessage(MessageRole.User, "Output the tags now.")},
-               Parameters = new LlmParameters {MaxTokens = 600, Creativity = 0.2f}
+               Messages = new[] {new LlmMessage(MessageRole.User, ActionInterpreterPromptBuilder.FinalInstruction)},
+               Parameters = new LlmParameters {MaxTokens = 900, Creativity = 0.2f}
             };
 
             int budgetSeconds = Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) + 5;
