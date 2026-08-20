@@ -2,6 +2,30 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.1.0.. 2026-08-20
+
+Some requested features, and a big sharpening of how the mod reads what actually happens in a scene. Your saves
+from 2.0.0 carry over untouched.
+
+### New
+- **A switch to steer which model writes the scene, back by request.** Turn on "Manual Roleplay/NSFW switch in
+  chat" in the mod options and a small switch appears in the chat window: you choose whether your everyday Roleplay
+  model or the model you use for explicit content writes the current scene. The automatic fallback to the explicit
+  model still applies either way; this simply lets you nudge it by hand, the way older versions did. Off by default.
+- **Point each model role at its own server.** If you run more than one local model, the explicit model and the
+  action reader can each have their own endpoint address now, so you can split the roles across different machines.
+- **A "?" button in the chat window** opens a short guide to what each control does.
+
+### Improved
+- **Actions are read far more accurately, across different models.** The pass that reads each turn now checks every
+  action against the actual words of the scene before recording it, so it stops logging things that were only
+  offered, refused, or promised; it keeps the direction straight (who paid whom, who freed whom, who holds whom);
+  and it no longer loses a real deed, an execution, a divorce, casting a companion out, sending an escort home,
+  just because the scene also comes to a close.
+- **Letters are now signed.** Each letter closes with the name of whoever wrote it, so you always know who it is from.
+- **Battles read truer in memory.** A siege is remembered as a siege rather than "an open battle near" the town, and
+  a victory you won as part of an army is remembered as a shared one.
+
 ## v2.0.0.. 2026-08-16
 
 A new two-model roleplay engine, and the largest pass yet on how intimate and captive scenes read. Your saves
