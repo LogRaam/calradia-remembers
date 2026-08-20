@@ -550,12 +550,13 @@ namespace CalradiaRemembers.Chat
       public bool IsMemoryToggleVisible => _npcHero != null && !_isMemoryPanelOpen;
 
       /// <summary>
-      ///   Phase 2 removed the manual model-mode toggle: model routing is now automatic (Standard content-routes
-      ///   captivity to the NSFW model; Enhanced always writes on PROSE with the NSFW model as a fallback). The
-      ///   property remains, always false, so the XML binding stays valid and the button never shows.
+      ///   The restored manual PROSE/NSFW switch (a player asked for it back, 2026-08-20). Shown only when the MCM
+      ///   gate "Manual PROSE/NSFW switch in chat" is on; OFF by default, so most players never see it and routing
+      ///   stays automatic (Standard content-routes captivity to NSFW; Enhanced writes on PROSE with NSFW fallback).
+      ///   When shown, clicking it forces prose onto the NSFW model; the hard-failure fallback still applies on top.
       /// </summary>
       [DataSourceProperty]
-      public bool IsModelModeToggleVisible => false;
+      public bool IsModelModeToggleVisible => ModSettings.ShowManualModelToggle;
 
       /// <summary>Inverse of <see cref="IsScenePaused" /> — drives the normal InputBox + SendButton.</summary>
       [DataSourceProperty]
@@ -828,7 +829,7 @@ namespace CalradiaRemembers.Chat
       ///   built from that. Labelled "Mode: NSFW" it read as a content switch, so a player at Mature clicked
       ///   it, got the same chaste writing the Mature prompt asks for, and concluded the button was broken.
       /// </summary>
-      public string ModelModeText => ""; // Phase 2: the manual toggle is gone; the label is unused (button hidden).
+      public string ModelModeText => LlmServices.ManualNsfwProse ? "Model: NSFW" : "Model: Roleplay";
 
       public Action OnCloseRequested { get; set; }
 
@@ -1980,10 +1981,17 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Phase 2 removed the manual model-mode toggle (routing is automatic now). The command remains as a
-      ///   no-op so the XML button binding stays valid; the button itself is hidden (IsModelModeToggleVisible).
+      ///   Flips the restored manual PROSE-source switch (prose=Roleplay ⇄ prose=NSFW). A runtime session flag on
+      ///   <see cref="LlmServices" />, read live by the model/provider resolution, so the next reply routes to the
+      ///   chosen model with no rebuild. Refreshes the button label. Only reachable while the MCM gate shows the
+      ///   button (<see cref="IsModelModeToggleVisible" />).
       /// </summary>
-      public void ExecuteToggleModelMode() { }
+      public void ExecuteToggleModelMode()
+      {
+         LlmServices.ManualNsfwProse = !LlmServices.ManualNsfwProse;
+         OnPropertyChanged(nameof(ModelModeText));
+         ModLog.Info($"[chat] manual PROSE source flipped to {(LlmServices.ManualNsfwProse ? "NSFW" : "Roleplay")} model.");
+      }
 
       /// <summary>
       ///   Player chose "Try something" during a captive scene pause. Restores the normal

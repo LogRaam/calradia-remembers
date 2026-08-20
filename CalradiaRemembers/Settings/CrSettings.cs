@@ -208,6 +208,13 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> ChatCompositionModeSetting { get; set; } =
          new(new[] {ChatCompositionModePolicy.StandardLabel, ChatCompositionModePolicy.EnhancedLabel}, 1); // default: Enhanced
 
+      [SettingPropertyBool("Manual Roleplay/NSFW switch in chat", RequireRestart = false, Order = 2,
+         HintText = "Shows a small switch in the chat window to choose which model writes the scene: the Roleplay " +
+                    "model, or the NSFW model directly. The automatic fallback to the NSFW model still applies either " +
+                    "way. OFF by default; turn ON if you prefer to steer the model manually like the old system.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public bool ShowManualModelToggle { get; set; } = false;
+
       // Phase 2: consensual scenes are now "chat" (the PROSE model), so this separate consensual model and its
       // provider are no longer shown in MCM or read anywhere. Kept as plain (un-attributed) properties, still named
       // NsfwModel for its legacy save-identity, so an old stored value loads without orphaning.

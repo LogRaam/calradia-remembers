@@ -28,7 +28,20 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_standard_mode_and_a_captivity_scene_WHEN_choosing_the_main_role_THEN_it_uses_nsfw()
         {
-            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Standard, SceneContentKind.Cnc)
+            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Standard, SceneContentKind.Cnc, false)
+                .Should().Be(ServiceRole.Nsfw);
+        }
+
+        // The restored manual toggle (a player asked for it back, 2026-08-20): when the player flips prose=NSFW, the
+        // main call must use the NSFW model in EITHER mode, winning over content routing - that is the whole point of
+        // a manual steer. If it did not win over Enhanced's prose-always rule, the toggle would do nothing in the
+        // default mode.
+        [Test]
+        public void GIVEN_the_manual_prose_nsfw_toggle_WHEN_choosing_the_main_role_THEN_it_forces_nsfw_in_either_mode()
+        {
+            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Enhanced, SceneContentKind.Ordinary, true)
+                .Should().Be(ServiceRole.Nsfw);
+            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Standard, SceneContentKind.Ordinary, true)
                 .Should().Be(ServiceRole.Nsfw);
         }
 
@@ -37,9 +50,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_standard_mode_and_a_non_captivity_scene_WHEN_choosing_the_main_role_THEN_it_uses_prose()
         {
-            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Standard, SceneContentKind.ConsensualIntimate)
+            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Standard, SceneContentKind.ConsensualIntimate, false)
                 .Should().Be(ServiceRole.Prose);
-            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Standard, SceneContentKind.Ordinary)
+            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Standard, SceneContentKind.Ordinary, false)
                 .Should().Be(ServiceRole.Prose);
         }
 
@@ -49,9 +62,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_enhanced_mode_WHEN_choosing_the_main_role_THEN_it_always_uses_prose_even_for_captivity()
         {
-            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Enhanced, SceneContentKind.Cnc)
+            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Enhanced, SceneContentKind.Cnc, false)
                 .Should().Be(ServiceRole.Prose);
-            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Enhanced, SceneContentKind.Ordinary)
+            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Enhanced, SceneContentKind.Ordinary, false)
                 .Should().Be(ServiceRole.Prose);
         }
 

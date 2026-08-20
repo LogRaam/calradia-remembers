@@ -177,12 +177,25 @@ namespace CalradiaRemembers.Services
       public static SceneContentKind ActiveSceneKind { get; set; } = SceneContentKind.Ordinary;
 
       /// <summary>
-      ///   The model role the MAIN chat call uses this turn: the composition mode + the active scene kind. In
-      ///   Standard, a captivity scene routes to the NSFW model; in Enhanced (and every non-captivity scene) it is
-      ///   the PROSE model. The interpreter and the fallback are reached through their own paths, not this.
+      ///   The player's restored manual PROSE-source toggle: when true, the main call is forced onto the NSFW model
+      ///   (prose=NSFW). A RUNTIME session flag (not persisted to the save), flipped by the in-chat switch, default
+      ///   false. Only honoured while <see cref="Settings.ModSettings.ShowManualModelToggle" /> is on (the MCM gate
+      ///   that shows the switch), so a hidden switch can never leave prose stuck on NSFW. The hard-failure fallback
+      ///   still applies on top; when prose is already NSFW it is simply moot.
+      /// </summary>
+      public static bool ManualNsfwProse { get; set; }
+
+      /// <summary>True when the manual toggle is both exposed (MCM gate on) AND flipped to prose=NSFW.</summary>
+      public static bool ManualNsfwProseActive => ModSettings.ShowManualModelToggle && ManualNsfwProse;
+
+      /// <summary>
+      ///   The model role the MAIN chat call uses this turn: the manual prose=NSFW toggle first, then the composition
+      ///   mode + the active scene kind. In Standard, a captivity scene routes to the NSFW model; in Enhanced (and
+      ///   every non-captivity scene) it is the PROSE model. The interpreter and the fallback are reached through
+      ///   their own paths, not this.
       /// </summary>
       private static ServiceRole ActiveMainRole()
-         => ModelModePolicy.ActiveMainRole(ModSettings.ChatCompositionMode, ActiveSceneKind);
+         => ModelModePolicy.ActiveMainRole(ModSettings.ChatCompositionMode, ActiveSceneKind, ManualNsfwProseActive);
 
       /// <summary>
       ///   The model id the current mode resolves to, read live (same value every request sees via

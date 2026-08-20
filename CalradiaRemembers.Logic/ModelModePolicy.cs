@@ -42,14 +42,18 @@ namespace CalradiaRemembers.Logic
     public static class ModelModePolicy
     {
         /// <summary>
-        ///   The role the MAIN chat call uses this turn. STANDARD routes by content: a captivity (Cnc) scene uses
-        ///   the NSFW model, everything else (ordinary and consensual-intimate "chat") uses the PROSE model.
-        ///   ENHANCED always writes on the PROSE model (the NSFW model is reached only as the fallback, and the
-        ///   INTERPRET model only through the separate interpreter call), so a captivity scene still opens on PROSE
-        ///   and its variety - including a soft-dodge into non-explicit content - is preserved.
+        ///   The role the MAIN chat call uses this turn. When <paramref name="forceNsfwProse" /> is set (the player's
+        ///   restored manual in-chat toggle, flipped to prose=NSFW), the main call ALWAYS uses the NSFW model, in
+        ///   either composition mode - it wins over content routing so the player can deliberately steer a scene onto
+        ///   the NSFW model. Otherwise: STANDARD routes by content (a captivity (Cnc) scene uses the NSFW model,
+        ///   everything else uses the PROSE model); ENHANCED always writes on the PROSE model (the NSFW model is
+        ///   reached only as the fallback, the INTERPRET model only through the separate interpreter call), so a
+        ///   captivity scene still opens on PROSE and its variety - including a soft-dodge - is preserved.
         /// </summary>
-        public static ServiceRole ActiveMainRole(ChatCompositionMode mode, SceneContentKind kind)
-            => mode == ChatCompositionMode.Standard && kind == SceneContentKind.Cnc ? ServiceRole.Nsfw : ServiceRole.Prose;
+        public static ServiceRole ActiveMainRole(ChatCompositionMode mode, SceneContentKind kind, bool forceNsfwProse)
+            => forceNsfwProse ? ServiceRole.Nsfw
+             : mode == ChatCompositionMode.Standard && kind == SceneContentKind.Cnc ? ServiceRole.Nsfw
+             : ServiceRole.Prose;
 
         /// <summary>
         ///   The model id a role resolves to. Nsfw and Interpret fall back to the PROSE model when the player left

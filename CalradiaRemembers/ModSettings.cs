@@ -273,6 +273,12 @@ namespace CalradiaRemembers
       public static bool LeanPrompt => CrSettings.Instance?.LeanPrompt ?? false;
 
       /// <summary>
+      ///   Whether the chat window shows the manual PROSE/NSFW model switch (the MCM gate for the restored manual
+      ///   toggle). OFF by default; when on, the in-chat switch lets the player force prose onto the NSFW model.
+      /// </summary>
+      public static bool ShowManualModelToggle => CrSettings.Instance?.ShowManualModelToggle ?? false;
+
+      /// <summary>
       ///   Whether characters may compress their own old memories (folding superseded events into a background
       ///   outline) to keep the prompt from growing without bound over a long campaign. ON by default, and
       ///   deliberately switchable: a third-party mod that injects and curates memories itself (the extension
