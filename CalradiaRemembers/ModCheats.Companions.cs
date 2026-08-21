@@ -203,6 +203,52 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.teach_info [name]
+      ///   Shows the NPC's own value in every skill worth teaching (>= TeachSkillPolicy.TeacherSkillFloor),
+      ///   and their per-NPC cooldown state against the player (LastTaughtHour vs now). Mirrors the exact
+      ///   eligibility TeachSkillPolicy.CanTeach and ExecuteTeachSkill use, so this is a live preview of
+      ///   whether teach_skill would currently be taught (EncounterContext.TeachableSkills) and honoured.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("teach_info", "cr")]
+      public static string TeachInfo(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         Hero hero = ResolveHero(args);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         var sb = new StringBuilder();
+         sb.AppendLine($"{hero.Name}:");
+
+         var teachable = new List<string>();
+         foreach (TaleWorlds.Core.SkillObject skill in TaleWorlds.CampaignSystem.Extensions.Skills.All)
+         {
+            if (skill == null) continue;
+            int value = hero.GetSkillValue(skill);
+            string label = skill.Name?.ToString() ?? skill.StringId;
+            bool canTeach = TeachSkillPolicy.CanTeach(value);
+            if (canTeach) teachable.Add(label);
+            sb.AppendLine($"  {label,-14}: {value,3}{(canTeach ? "  (can teach)" : "")}");
+         }
+
+         NpcProfile profile = behavior.Store.Get(hero.StringId);
+         double? lastTaught = profile?.LastTaughtHour;
+         double now = CampaignTime.Now.ToHours;
+         bool onCooldown = lastTaught.HasValue && now - lastTaught.Value < TeachSkillPolicy.CooldownHours;
+
+         sb.AppendLine(teachable.Count > 0
+            ? $"  -> teachable now: {string.Join(", ", teachable)}"
+            : "  -> nothing taught right now (no skill reaches the floor)");
+         sb.AppendLine(lastTaught.HasValue
+            ? $"  Last taught: {now - lastTaught.Value:F1}h ago ({(onCooldown ? $"on cooldown, {TeachSkillPolicy.CooldownHours - (now - lastTaught.Value):F1}h left" : "cooldown clear")})"
+            : "  Last taught: never (no cooldown pending)");
+
+         return sb.ToString();
+      }
+
+      /// <summary>
       ///   cr.journey_recall
       ///   Recalls EVERY away companion immediately — the conversation/console path (abandon the errand and
       ///   rejoin the party now). The safety net for the AI-Influence bug: a real homecoming, never a promise.

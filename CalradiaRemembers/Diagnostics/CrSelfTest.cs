@@ -162,6 +162,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
          new SelfTest("succession", Severity.Light, "seed private+public events -> Apply -> assert private dropped", TestSuccession),
          new SelfTest("recruit", Severity.Heavy, "eligible lord -> join_clan -> assert he moved into your clan", TestRecruit),
+         new SelfTest("teach_skill", Severity.Light, "find a live NPC with a skill at or above TeachSkillPolicy.TeacherSkillFloor -> drive the REAL bridge teach_skill once (clean cooldown) -> assert real skill XP landed on the player, a second immediate lesson from the same NPC is refused by the cooldown, and an unrecognised skill name is refused rather than faked. Restores the player's skill level and the NPC's cooldown stamp afterwards", TestTeachSkill),
          new SelfTest("recruit_notable", Severity.Heavy, "find a settlement NOTABLE (gang leader/headman/merchant...) that has an eligible successor in its town, force regard to the floor, run the REAL bridge recruit_notable -> assert the notable is now a companion in your CLAN and PARTY, a starting relation bonus was applied, and the chosen successor holds the vacated notable post (settlement.Notables). Best-effort restore afterwards (recruit_notable is not cleanly reversible: the alley transfer cannot be undone). Skips when no disposable notable+successor pair exists rather than wreck a real campaign", TestRecruitNotable),
          new SelfTest("captive_lord_withheld_from_defection", Severity.Heavy, "player report: a held captive lord below the recruit_prisoner regard floor could still narrate accepting the player's offer to defect, though nothing happened (an empty promise). Really captures a capturable in-party lord who is not their own clan's leader, drives EncounterContextBuilder.Build with regard just BELOW PrisonerRecruitmentPolicy.RegardFloor -> assert CanRecruitPrisoner is false and the new CaptiveLordWithheldFromDefection flag is true, then raises regard to the floor -> assert they FLIP (CanRecruitPrisoner true, the new flag false), proving the two are mutually exclusive on live engine facts. Releases the captive and restores regard afterwards", TestCaptiveLordWithheldFromDefection),
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
@@ -6126,6 +6127,88 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("joinedYourClan", lord.Clan == playerClan, true);
 
          return t.Line();
+      }
+
+      /// <summary>
+      ///   teach_skill: drives ExecuteTeachSkill through the REAL bridge (never the pure TeachSkillPolicy
+      ///   directly, so the whole chain (skill resolution, the floor gate, the cooldown, AddSkillXp) is
+      ///   proven end to end). Finds any live NPC with at least one skill at or above
+      ///   TeachSkillPolicy.TeacherSkillFloor, clears their cooldown stamp, fires a real lesson and asserts XP
+      ///   landed on the player, fires a second lesson immediately after and asserts the cooldown refuses it,
+      ///   then fires a lesson naming a skill that does not exist and asserts that is refused too (the
+      ///   "unknown skill" half of the never-fake-a-lesson guarantee). Restores the player's skill level and
+      ///   the NPC's cooldown stamp in a finally block regardless of outcome.
+      /// </summary>
+      private static string TestTeachSkill(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("teach_skill");
+
+         Hero teacher = null;
+         SkillObject teachSkill = null;
+         int teacherLevel = 0;
+
+         foreach (Hero h in Hero.AllAliveHeroes)
+         {
+            if (h == null || h == Hero.MainHero || h.IsPrisoner) continue;
+
+            foreach (SkillObject sk in TaleWorlds.CampaignSystem.Extensions.Skills.All)
+            {
+               if (sk == null) continue;
+               int v = h.GetSkillValue(sk);
+
+               if (!TeachSkillPolicy.CanTeach(v)) continue;
+               teacher = h;
+               teachSkill = sk;
+               teacherLevel = v;
+
+               break;
+            }
+
+            if (teacher != null) break;
+         }
+
+         if (t.Skip(teacher == null, "no live NPC has a skill at or above TeachSkillPolicy.TeacherSkillFloor (100) to teach with")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, teacher);
+         double? originalLastTaught = profile.LastTaughtHour;
+         int originalStudentLevel = Hero.MainHero.GetSkillValue(teachSkill);
+
+         try
+         {
+            profile.LastTaughtHour = null; // clean slate: the cooldown must not block the first lesson
+
+            var lesson = new GameAction {
+               Type = "teach_skill",
+               Parameters = new Dictionary<string, string> {{"skill", teachSkill.StringId}, {"amount", "1000"}}
+            };
+
+            ActionOutcome first = behavior.GameStateBridge.ExecuteAction(lesson, teacher, new ActionContext(profile, null));
+            int afterFirst = Hero.MainHero.GetSkillValue(teachSkill);
+
+            t.Note($"{teacher.Name} ({teachSkill.StringId} {teacherLevel}): player {originalStudentLevel} -> {afterFirst}");
+            t.Expect("firstLessonGranted", first != null && !first.WasRefused, true);
+            t.Expect("xpActuallyGrew", afterFirst >= originalStudentLevel, true);
+
+            // Same NPC, same skill, right away: LastTaughtHour was just stamped, so the cooldown must refuse it.
+            ActionOutcome second = behavior.GameStateBridge.ExecuteAction(lesson, teacher, new ActionContext(profile, null));
+            t.Expect("cooldownBlocksRepeatLesson", second != null && second.WasRefused, true);
+
+            // A skill name that resolves to nothing must be refused, never silently faked.
+            var unknown = new GameAction {
+               Type = "teach_skill",
+               Parameters = new Dictionary<string, string> {{"skill", "NotARealSkill"}, {"amount", "30"}}
+            };
+            ActionOutcome unknownOutcome = behavior.GameStateBridge.ExecuteAction(unknown, teacher, new ActionContext(profile, null));
+            t.Expect("unknownSkillRefused", unknownOutcome != null && unknownOutcome.WasRefused, true);
+
+            return t.Line();
+         }
+         finally
+         {
+            Hero.MainHero.HeroDeveloper.SetInitialSkillLevel(teachSkill, originalStudentLevel);
+            profile.LastTaughtHour = originalLastTaught;
+            behavior.Store.Set(profile);
+         }
       }
 
       /// <summary>

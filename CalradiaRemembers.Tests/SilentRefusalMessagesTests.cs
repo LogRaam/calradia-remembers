@@ -156,5 +156,18 @@ namespace CalradiaRemembers.Tests
          message.Should().EndWith(")");
          message.Should().Contain("Derthert");
       }
+
+      // STAKE: the teach_skill mirror of GiveItemNoneNamed: a blank or missing skill parameter used to be
+      // the kind of branch that returned null elsewhere, silently telling neither the player nor the model
+      // that no lesson (and no XP) actually happened.
+      [Test]
+      public void GIVEN_teach_skill_named_no_skill_at_all_WHEN_building_the_message_THEN_it_is_a_parenthetical_in_character_note()
+      {
+         string message = SilentRefusalMessages.TeachSkillNoSkillNamed();
+
+         message.Should().NotBeNullOrEmpty();
+         message.Should().StartWith("(");
+         message.Should().EndWith(")");
+      }
    }
 }

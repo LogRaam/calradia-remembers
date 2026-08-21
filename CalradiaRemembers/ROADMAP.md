@@ -53,7 +53,7 @@ so it is not only remembered but executed. Ties into the "letters carry actions"
 
 ---
 
-## WISHED (player-session finding, 2026-08-15): an NPC can TEACH the player a skill, and it grants real skill XP
+## BUILT, untested in game (player-session finding 2026-08-15, built 2026-08-20 Sonnet test-first): an NPC can TEACH the player a skill, and it grants real skill XP
 
 In a bench run an NPC spontaneously offered to teach the player:
 > [EVENT] Other: I offered to teach Arwa basic swordsmanship once she recovers her strength, and promised to

@@ -132,5 +132,11 @@ namespace CalradiaRemembers.Logic
         {
             return $"({npcName} has not pressed you to end the marriage.)";
         }
+
+        /// <summary>The prompt's teach_skill named no skill at all (a blank or missing skill parameter).</summary>
+        public static string TeachSkillNoSkillNamed()
+        {
+            return "(No skill was named, so no lesson was given.)";
+        }
     }
 }

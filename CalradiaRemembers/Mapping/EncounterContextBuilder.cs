@@ -37,6 +37,7 @@ using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
@@ -445,6 +446,10 @@ namespace CalradiaRemembers.Mapping
             // The negative teaching's gate: see the shared computation just above the initializer.
             CaptiveLordWithheldFromDefection = captiveLordWithheldFromDefection,
             CanRecruitNotable = ResolveCanRecruitNotable(hero, profile),
+            // teach_skill: the conditional-teaching contract, same shape as CompanionAskingPrice/CanRecruitNotable
+            // just above (see ResolveTeachableSkills below): taught exactly when the NPC genuinely has mastery
+            // to teach, per CalradiaRemembers.Logic.TeachSkillPolicy.CanTeach.
+            TeachableSkills = ResolveTeachableSkills(hero),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
             // One-shot and consumed on read, so ONLY resolve it on a real LLM turn, never on the dead
@@ -1615,6 +1620,32 @@ namespace CalradiaRemembers.Mapping
                hero.Clan == Clan.PlayerClan, profile?.ReputationWithPlayer ?? 0, hasSuccessor);
          }
          catch { return false; }
+      }
+
+      /// <summary>
+      ///   teach_skill: the skills this NPC has genuine mastery in right now, one display name per skill whose
+      ///   live value clears TeachSkillPolicy.CanTeach's floor. Null when the hero is missing/dead or knows
+      ///   nothing worth teaching, so AppendTeachSkill skips the section entirely rather than teaching an empty
+      ///   list. Scans every DefaultSkills entry via TaleWorlds.CampaignSystem.Extensions.Skills.All, the same
+      ///   live source ExecuteTeachSkill re-validates the LLM's named skill against.
+      /// </summary>
+      private static IReadOnlyList<string> ResolveTeachableSkills(Hero hero)
+      {
+         try
+         {
+            if (hero == null || !hero.IsAlive) return null;
+
+            var teachable = new List<string>();
+            foreach (SkillObject skill in Skills.All)
+            {
+               if (skill == null) continue;
+               if (TeachSkillPolicy.CanTeach(hero.GetSkillValue(skill)))
+                  teachable.Add(skill.Name?.ToString() ?? skill.StringId);
+            }
+
+            return teachable.Count > 0 ? teachable : null;
+         }
+         catch { return null; }
       }
 
       /// <summary>True when A.2 already granted the family's blessing for this NPC.</summary>

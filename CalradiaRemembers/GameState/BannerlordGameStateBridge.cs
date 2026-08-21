@@ -34,6 +34,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Encounters;
+using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -225,7 +226,7 @@ namespace CalradiaRemembers.GameState
          "gather_news", "reassure_companion", "recall_companion", "follow_me", "dismiss_escort", "ride_with_me",
          "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
          "release_prisoner", "buy_prisoner", "sell_prisoner", "end_marriage", "make_amends", "pledge_against",
-         "accept_divorce", "decline_divorce", "end_own_marriage",
+         "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill",
          // ChatViewModel chat-flow controls: real LLM-emittable actions, never dispatched by the switch below.
          "witness_leaves", "request_privacy", "retire"
       };
@@ -358,6 +359,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteDeclineDivorce(npcHero);
             case "end_own_marriage":
                return ExecuteEndOwnMarriage(npcHero);
+            case "teach_skill":
+               return ExecuteTeachSkill(action, npcHero, context);
             default:
                // Safety net: an unknown / hallucinated verb must SURFACE a refusal (player line + transcript
                // OOC note), never vanish as a silent null, or the model's invented deed goes uncorrected.
@@ -4488,6 +4491,99 @@ namespace CalradiaRemembers.GameState
          // 2.1: report the delta ACTUALLY applied (after gate + clamp), so the StoryLog and the affront rumor
          // read the real change rather than the raw proposal.
          return new ActionOutcome(message, delta > 0, appliedRelationDelta: after - before);
+      }
+
+      /// <summary>
+      ///   teach_skill: an NPC genuinely skilled themselves instructs the player, granting real, bounded skill
+      ///   XP. Closes the roadmap's empty-promise class: an NPC could already OFFER a lesson in prose with no
+      ///   executor behind it, so nothing ever landed on the character sheet. Re-validates everything the
+      ///   prompt only proposed ("the prompt is advice, the bridge is law"): the named skill must resolve to a
+      ///   real <see cref="SkillObject" />, the NPC's own live value in it must clear
+      ///   <see cref="TeachSkillPolicy.CanTeach" />, and the granted amount is decided by
+      ///   <see cref="TeachSkillPolicy.GrantedXp" /> from the NPC's own mastery and their per-NPC cooldown
+      ///   (<see cref="NpcProfile.LastTaughtHour" />), never trusted from the LLM's proposed amount.
+      /// </summary>
+      private static ActionOutcome ExecuteTeachSkill(GameAction action, Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero?.HeroDeveloper == null || context?.Profile == null) return null;
+
+            action.Parameters.TryGetValue("skill", out string skillName);
+            if (string.IsNullOrWhiteSpace(skillName))
+               return ActionOutcome.Refused(SilentRefusalMessages.TeachSkillNoSkillNamed());
+
+            SkillObject skill = FindSkillByName(skillName);
+            if (skill == null)
+               return ActionOutcome.Refused($"(You know no skill called '{skillName}' to teach.)");
+
+            string skillLabel = skill.Name?.ToString() ?? skill.StringId;
+            int teacherLevel = npcHero.GetSkillValue(skill);
+
+            if (!TeachSkillPolicy.CanTeach(teacherLevel))
+               return ActionOutcome.Refused($"({npcHero.Name} is no master of {skillLabel}, and has nothing worth teaching there.)");
+
+            // "Advisory" per the catalog: the LLM may omit amount, or write anything at all. Absent a parsed
+            // figure, request comfortably above every possible ceiling (MaxCeiling) so the teacher's OWN
+            // mastery, not a missing parameter, decides the real grant.
+            if (!TryGetInt(action.Parameters, "amount", out int requested) || requested <= 0)
+               requested = 1000;
+
+            int granted = TeachSkillPolicy.GrantedXp(
+               teacherLevel, requested, context.Profile.LastTaughtHour, CampaignTime.Now.ToHours);
+
+            if (granted <= 0)
+               return ActionOutcome.Refused($"({npcHero.Name} has taught you a lesson too recently to teach another now.)");
+
+            Hero.MainHero.HeroDeveloper.AddSkillXp(skill, granted, false); // predictable: not further discounted by focus factor
+            context.Profile.LastTaughtHour = CampaignTime.Now.ToHours;
+
+            string message = $"{npcHero.Name} teaches you {skillLabel}. (+{granted} XP)";
+            MBInformationManager.AddQuickInformation(new TextObject(message), 0, npcHero.CharacterObject);
+            ModLog.Info($"[ACTION] teach_skill: {npcHero.Name} taught {skillLabel} to the player (+{granted} XP, teacher level {teacherLevel}, requested {requested}).");
+
+            return new ActionOutcome(message, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] teach_skill failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Resolves a skill named freely by the LLM against the game's own live skill roster
+      ///   (<see cref="Skills.All" />), tolerant of spacing/case/punctuation (e.g. "One-Handed", "one handed"
+      ///   and "OneHanded" all resolve to the same <see cref="SkillObject" />) and of the one vanilla display-vs-
+      ///   StringId mismatch (Crafting's own display name is "Smithing"), matching against BOTH the skill's
+      ///   display name and its StringId. Null when nothing matches.
+      /// </summary>
+      private static SkillObject FindSkillByName(string name)
+      {
+         if (string.IsNullOrWhiteSpace(name)) return null;
+
+         string normalized = NormalizeSkillToken(name);
+         foreach (SkillObject skill in Skills.All)
+         {
+            if (skill == null) continue;
+            if (NormalizeSkillToken(skill.StringId) == normalized) return skill;
+            if (NormalizeSkillToken(skill.Name?.ToString()) == normalized) return skill;
+         }
+
+         return null;
+      }
+
+      /// <summary>Lowercases and strips everything but letters/digits, so "One-Handed" and "One Handed" compare equal.</summary>
+      private static string NormalizeSkillToken(string value)
+      {
+         if (string.IsNullOrEmpty(value)) return "";
+
+         var sb = new System.Text.StringBuilder(value.Length);
+         foreach (char c in value)
+            if (char.IsLetterOrDigit(c)) sb.Append(char.ToLowerInvariant(c));
+
+         return sb.ToString();
       }
 
       /// <summary>
