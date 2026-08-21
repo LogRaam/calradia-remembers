@@ -179,7 +179,7 @@ guard that a WILLING spouse keeps the exemption untouched). `cr.marry_info` now 
 on offer and the resentment a forced one would plant. NOT play-tested; the grudge plant itself is engine glue
 (same TryPlant seam every other source uses).
 
-## PARTLY BUILDING (Nexus 2026-07-23; scoped + started 2026-08-21): choose WHO comes with you, including your own PRISONERS
+## BUILT, untested in game (Nexus 2026-07-23; scoped + built 2026-08-21): choose WHO comes with you, including your own PRISONERS
 
 Two players, one thread, and Gabriel answered "it's now on the roadmap".
 
@@ -232,9 +232,15 @@ INC 1 = companion AGENCY in the group captor scene (the reward scene) BUILT 2026
 (`EncounterContext.CompanionActingOnCaptive` set when the addressed speaker is a companion witness in a captor
 scene; `PromptBuilder.AppendCompanionActingOnCaptive` grants them the agency to act + describe via [NARRATION],
 AdultLevel-gated, out of the lean prompt, and suppresses the prisoner-POV `AppendPlayerCaptorSceneRules` on that
-turn so the companion is not told "you are bound"); INC 2 = bring other prisoners as coerced participants (the
-picker + the coerced model + its framing) NEXT; the nerethi party-screen entry-point convenience is deferred (a UI
-change, the RP ships first).
+turn so the companion is not told "you are bound"); INC 2 = bring other prisoners as coerced participants BUILT
+2026-08-21, untested in game (`WitnessEntry.IsBroughtCaptive`; `WitnessResolver.ShowBroughtCaptivePickerIfNeeded`
+offers the lord prisoners the player holds; `PromptBuilder.AppendBroughtCaptives` + `AppendBroughtCaptiveTurn`
+frame them as coerced leverage, never a free witness, never a threat, never an actor on the subject; the
+"outnumbered" tally counts only non-brought witnesses as captors). REACHABILITY FIX (same day): a captor scene
+opened with no witnesses, so BOTH pickers are now wired into the captor-scene entry (`NemesisPrisonerDialogFlow`
++ the `cr.captor_scene` harness), companions first then prisoners, which is what finally makes INC 1 reachable in
+game. NOT play-tested yet (open a captor scene on a held nemesis, bring a companion and/or a second lord prisoner,
+address each). The nerethi party-screen entry-point convenience is still deferred (a UI change, the RP ships first).
 
 ## WISHED (Gabriel 2026-08-21): a prisoner who tries to flee triggers the unarmed combat scene
 
