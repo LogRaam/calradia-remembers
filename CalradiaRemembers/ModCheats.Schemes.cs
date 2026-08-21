@@ -40,9 +40,11 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.intercept [name]
+      ///   cr.intercept [grudge|appreciationowed|territorialpatrol|heardofdeed] [name]
       ///   Forces the named lord (with a party on the map) to ride out and intercept the player,
-      ///   bypassing the eligibility roll — to test the pursuit without waiting for the daily tick.
+      ///   bypassing the eligibility roll, to test the pursuit without waiting for the daily tick. The
+      ///   trigger defaults to HeardOfDeed when omitted (the original behaviour); for grudge/appreciationowed,
+      ///   the lord's REAL grievance/kindness against the player is used when one exists on file.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("intercept", "cr")]
       public static string ForceIntercept(List<string> args)
@@ -51,19 +53,27 @@ namespace CalradiaRemembers
 
          if (behavior == null) return "Interception system is not active.";
 
-         Hero lord = ResolveHero(args);
+         var trigger = InterceptionTrigger.HeardOfDeed;
+         var nameTokens = new List<string>();
+         foreach (string arg in args ?? new List<string>())
+            if (Enum.TryParse(arg, true, out InterceptionTrigger parsed) && parsed != InterceptionTrigger.None) trigger = parsed;
+            else nameTokens.Add(arg);
+
+         Hero lord = ResolveHero(nameTokens);
 
          if (lord == null) return "No NPC found. Pass a name fragment or start a conversation first.";
 
-         return behavior.DebugForceIntercept(lord);
+         return behavior.DebugForceIntercept(lord, trigger);
       }
 
       /// <summary>
-      ///   cr.fief_audience [name]
+      ///   cr.fief_audience [grudge|appreciationowed|heardofdeed] [name]
       ///   Forces the fief-audience "may I have a word" popup for the named partyless NPC standing in a
       ///   settlement (ladies, notables, a garrisoned lord with no field party), the settlement-entry
       ///   counterpart to cr.intercept, bypassing the pacing roll and the per-NPC cooldown to test the
-      ///   Accept/Decline popup without waiting for a real entry.
+      ///   Accept/Decline popup without waiting for a real entry. The trigger defaults to HeardOfDeed when
+      ///   omitted; territorialpatrol is road-only (FiefAudiencePolicy.IsFiefValid) and is never fief-valid
+      ///   however it is forced.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("fief_audience", "cr")]
       public static string ForceFiefAudience(List<string> args)
@@ -72,9 +82,15 @@ namespace CalradiaRemembers
 
          if (behavior == null) return "Fief-audience system is not active.";
 
-         Hero npc = ResolveHero(args);
+         var trigger = InterceptionTrigger.HeardOfDeed;
+         var nameTokens = new List<string>();
+         foreach (string arg in args ?? new List<string>())
+            if (Enum.TryParse(arg, true, out InterceptionTrigger parsed) && parsed != InterceptionTrigger.None) trigger = parsed;
+            else nameTokens.Add(arg);
 
-         return behavior.DebugForceOffer(npc);
+         Hero npc = ResolveHero(nameTokens);
+
+         return behavior.DebugForceOffer(npc, trigger);
       }
 
       /// <summary>

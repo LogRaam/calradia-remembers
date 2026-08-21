@@ -15,7 +15,20 @@ namespace CalradiaRemembers.Logic
         TerritorialPatrol,
 
         /// <summary>A lord who has heard of a recent deed of the player's rides out to react while it is fresh.</summary>
-        HeardOfDeed
+        HeardOfDeed,
+
+        /// <summary>
+        ///   A lord who holds a live, unresolved, significant grudge against the player comes to air it: a
+        ///   wrong pressed while it still stings. Appended at the end of the enum (frozen ordinals).
+        /// </summary>
+        Grudge,
+
+        /// <summary>
+        ///   A lord who holds a significant, recent appreciation of the player comes to acknowledge or thank
+        ///   them for it. The gentlest of the four: a warm word, never a request or a bargain. Appended at
+        ///   the end of the enum (frozen ordinals).
+        /// </summary>
+        AppreciationOwed
     }
 
     /// <summary>The facts a single candidate lord's interception decision rests on — engine-gathered, pure to reason over.</summary>
@@ -38,6 +51,22 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>This lord has plausibly heard of a recent deed of the player's (from the rumour store).</summary>
         public bool HeardRecentPlayerDeed { get; set; }
+
+        /// <summary>
+        ///   This lord holds a live (unresolved), significant-magnitude grudge against the PLAYER specifically
+        ///   (a grudge against someone else never sets this). Callers gate on
+        ///   <see cref="InterceptionPolicy.MinGrudgeMagnitudeForInterception" /> before setting this, so a
+        ///   trivial or already-mended grievance never reaches the pure decision.
+        /// </summary>
+        public bool HoldsLiveGrudgeAgainstPlayer { get; set; }
+
+        /// <summary>
+        ///   This lord holds a significant, recent appreciation felt toward the PLAYER specifically (an
+        ///   appreciation toward someone else never sets this). Callers gate on
+        ///   <see cref="InterceptionPolicy.MinAppreciationMagnitudeForInterception" /> before setting this, so
+        ///   a merely-formed kindness never reaches the pure decision.
+        /// </summary>
+        public bool HoldsSignificantAppreciation { get; set; }
     }
 
     /// <summary>
@@ -59,6 +88,18 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>Inside this distance the encounter is imminent — the pursuer keeps pressing whatever the speeds.</summary>
         public const float AbandonMinDistance = 5f;
+
+        /// <summary>
+        ///   The floor a grudge's live effective magnitude (GrudgePolicy.EffectiveMagnitude) must clear before
+        ///   it is worth a whole face-to-face confrontation, mirroring CompanionGratitudePolicy.MinEffectiveMagnitude
+        ///   (40, "well above the bare formation floor... only a genuinely meaningful [grievance] pulls the
+        ///   player aside, not every slight that barely registered"). Fact-gathering (InterceptionBehavior)
+        ///   applies this before ever setting InterceptionFacts.HoldsLiveGrudgeAgainstPlayer.
+        /// </summary>
+        public const int MinGrudgeMagnitudeForInterception = 40;
+
+        /// <summary>The same "worth a whole audience" floor, mirrored for a felt kindness. See <see cref="MinGrudgeMagnitudeForInterception" />.</summary>
+        public const int MinAppreciationMagnitudeForInterception = 40;
 
         /// <summary>
         ///   Whether a forced meeting can physically happen right now. A land party cannot ride out to a
@@ -92,7 +133,15 @@ namespace CalradiaRemembers.Logic
             return pursuerSpeed > 0f && playerSpeed >= pursuerSpeed * OutrunSpeedRatio;
         }
 
-        /// <summary>The reason this lord would intercept the player now, or <see cref="InterceptionTrigger.None"/>.</summary>
+        /// <summary>
+        ///   The reason this lord would intercept the player now, or <see cref="InterceptionTrigger.None"/>.
+        ///   Priority, after the guards: <see cref="InterceptionTrigger.TerritorialPatrol"/> (a hostile
+        ///   realm defending its own land outranks everything else) &gt;
+        ///   <see cref="InterceptionTrigger.Grudge"/> (a wrong pressed) &gt;
+        ///   <see cref="InterceptionTrigger.HeardOfDeed"/> (fresh news) &gt;
+        ///   <see cref="InterceptionTrigger.AppreciationOwed"/> (a warm acknowledgement, the least urgent of
+        ///   the four: nothing is lost by a kindness waiting one more day to be voiced).
+        /// </summary>
         public static InterceptionTrigger Choose(InterceptionFacts f)
         {
             if (f == null) return InterceptionTrigger.None;
@@ -101,8 +150,14 @@ namespace CalradiaRemembers.Logic
             if (f.FactionHostileToPlayer && f.PlayerInOwnTerritory && f.PlayerNotoriety >= NotorietyThreshold)
                 return InterceptionTrigger.TerritorialPatrol;
 
+            if (f.HoldsLiveGrudgeAgainstPlayer)
+                return InterceptionTrigger.Grudge;
+
             if (f.HeardRecentPlayerDeed)
                 return InterceptionTrigger.HeardOfDeed;
+
+            if (f.HoldsSignificantAppreciation)
+                return InterceptionTrigger.AppreciationOwed;
 
             return InterceptionTrigger.None;
         }

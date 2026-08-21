@@ -21,10 +21,11 @@ namespace CalradiaRemembers.Logic
     /// <summary>One partyless hero standing in the settlement who qualifies for a fief audience, and why.</summary>
     public sealed class FiefAudienceCandidate
     {
-        public FiefAudienceCandidate(string heroId, InterceptionTrigger trigger)
+        public FiefAudienceCandidate(string heroId, InterceptionTrigger trigger, string detail = null)
         {
             HeroId = heroId;
             Trigger = trigger;
+            Detail = detail;
         }
 
         /// <summary>The candidate's StringId.</summary>
@@ -32,6 +33,14 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>The fief-valid reason this candidate qualifies. Never <see cref="InterceptionTrigger.None" /> in a returned candidate.</summary>
         public InterceptionTrigger Trigger { get; }
+
+        /// <summary>
+        ///   The specific grievance or kindness this candidate's <see cref="Trigger" /> would voice
+        ///   (<see cref="InterceptionTrigger.Grudge" />/<see cref="InterceptionTrigger.AppreciationOwed" />
+        ///   only, a cause summary from the underlying ledger entry). Null for every trigger that carries no
+        ///   such specific detail (<see cref="InterceptionTrigger.HeardOfDeed" /> today).
+        /// </summary>
+        public string Detail { get; }
     }
 
     /// <summary>
@@ -50,9 +59,15 @@ namespace CalradiaRemembers.Logic
         ///   notorious traveller crossing their land") -- a fief-bound NPC standing beside the player is not
         ///   intercepting a crossing, so that trigger stays road-only. <see cref="InterceptionTrigger.HeardOfDeed" />
         ///   ("a lord who has heard of a recent deed... rides out to react while it is fresh") reads just as
-        ///   well from someone who simply asks for a word where they already stand.
+        ///   well from someone who simply asks for a word where they already stand. So do
+        ///   <see cref="InterceptionTrigger.Grudge" /> and <see cref="InterceptionTrigger.AppreciationOwed" />:
+        ///   a grievance or a felt kindness is place-independent, unlike a claim about crossing a border, so
+        ///   both are just as believable voiced by someone who never moved.
         /// </summary>
-        public static bool IsFiefValid(InterceptionTrigger trigger) => trigger == InterceptionTrigger.HeardOfDeed;
+        public static bool IsFiefValid(InterceptionTrigger trigger)
+            => trigger == InterceptionTrigger.HeardOfDeed
+               || trigger == InterceptionTrigger.Grudge
+               || trigger == InterceptionTrigger.AppreciationOwed;
 
         /// <summary>The trigger <see cref="InterceptionPolicy.Choose" /> would pick for these facts, narrowed to the fief-valid subset, or None.</summary>
         public static InterceptionTrigger ChooseFiefValid(InterceptionFacts facts)

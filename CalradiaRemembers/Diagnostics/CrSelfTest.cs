@@ -150,6 +150,17 @@ namespace CalradiaRemembers.Diagnostics
       /// </summary>
       private const int GrudgeResolveTestMagnitude = 80;
 
+      // ── Interception/fief-audience: the Grudge/AppreciationOwed proactive channels (2026-08-20). ──
+      // ── Comfortably above InterceptionPolicy.MinGrudgeMagnitudeForInterception/MinAppreciationMagnitudeForInterception ──
+      // ── (40), so decay and any lingering test data from an earlier run in the same session cannot ──
+      // ── mask the significance gate the fact-gathering itself applies. ──────────────────────────────
+
+      /// <summary>Comfortably above InterceptionPolicy.MinGrudgeMagnitudeForInterception, planted TODAY so no decay applies.</summary>
+      private const int InterceptionGrudgeTestMagnitude = 70;
+
+      /// <summary>Comfortably above InterceptionPolicy.MinAppreciationMagnitudeForInterception, planted TODAY so no decay applies.</summary>
+      private const int InterceptionAppreciationTestMagnitude = 70;
+
       /// <summary>Mechanical (non-LLM) tests get this flat wall-clock budget, plenty for in-memory state checks.</summary>
       private const int MechanicalBudgetSeconds = 20;
 
@@ -178,6 +189,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("companion_scheme_warning", Severity.Light, "New seventh found-topic (design brief 2026-08-20 follow-up): a loyal companion warning the player of a secret plot against them, purely a warning, never a request/bargain, and never a live LLM call. Seeds a real Scheme against Hero.MainHero via the real ForcePlot launch path on a content companion, drives the REAL CompanionAudienceTopicResolver.Scan, and asserts it HOLDS with the plotter named in the detail; asserts the SAME plot's own key, once marked spent, WITHHOLDS it (spend-once); and asserts an otherwise-identical but unhappy (Disgruntled) companion never holds it either (the happiness gate). Restores the companion's original happiness AND removes the seeded scheme from the live ledger afterwards (unlike an appreciation, a live scheme carries real feud/rumour machinery, so none may survive this test)", TestCompanionSchemeWarning),
          new SelfTest("companion_ambition", Severity.Light, "New eighth found-topic (design brief 2026-08-20 follow-up 2): a content, ambitious companion voicing ONE of four bound ambitions, each resolved by an EXISTING action verb, so a granted ambition executes nothing itself, unlike Gratitude/SchemeWarning. Drives the REAL CompanionAudienceTopicResolver.Scan against a real companion already riding in the main party (made comfortably Content), and asserts it HOLDS with a non-empty detail (the Command ambition holds trivially for any main-party companion, so no extra engine-state seeding is needed); asserts the SAME companion, asked again within CompanionAmbitionPolicy.CooldownDays, WITHHOLDS it (the per-companion cooldown); and asserts the identical companion, made Disgruntled, never holds one either (the happiness gate). Restores the companion's original happiness afterwards", TestCompanionAmbition),
          new SelfTest("fief_audience", Severity.Light, "Player wish (Fakade, roadmap): road-only InterceptionBehavior needs a field party to move, so anyone without one (ladies, notables, a garrisoned lord standing around in a fief) never got a turn. Finds a real partyless hero standing in a live settlement; asserts the pure gate (FiefAudiencePolicy.ChooseFiefValid) raises nothing for a no-reason fact set; seeds a fresh, high-reach, player-involving WorldEvent so the SAME live fact HeardRecentPlayerDeed the road path reads is real, not fabricated; drives the REAL candidate scan (FiefAudienceBehavior.DebugScanAndStamp, never the live UI inquiry, never an LLM call) and asserts it offers that NPC with a fief-valid trigger; then asserts the SAME NPC asked again is WITHHELD by the per-NPC cooldown the offer itself just stamped. Removes the seeded WorldEvent and clears the stamped cooldown afterwards", TestFiefAudience),
+         new SelfTest("interception_grudge_appreciation", Severity.Light, "Two new proactive channels for the mod's two signature event-anchored affect ledgers (design brief 2026-08-20): a lord who holds a live, significant grudge against the PLAYER rides out/asks for a word to air it (Grudge), and one who holds a significant, recent appreciation of the player does likewise to acknowledge it (AppreciationOwed), on BOTH the road (InterceptionBehavior) and the fief-audience channel (FiefAudienceBehavior), since both reuse the SAME InterceptionPolicy.Choose. Seeds a real Grudge (TryPlant) on a clean-slate lord and asserts InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer finds it (false before planting), the pure InterceptionPolicy.Choose surfaces Grudge, and Grudge is fief-valid; does the same for a real Appreciation and AppreciationOwed; then asserts the priority pin (Grudge outranks AppreciationOwed when both hold on the same facts, mirroring InterceptionPolicyTests). Removes the seeded grudge afterwards (mirrors appreciation_flow/companion_gratitude: no removal API exists for an appreciation, so it is left, exactly like every other appreciation-seeding self-test)", TestInterceptionGrudgeAppreciation),
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
          new SelfTest("letter_memory", Severity.Light, "Player report (Desporion): a marriage proposal 'agreed on the terms' over three letters was denied face to face because letters left only a generic 'Received a letter (Reason)' memory, never their substance. Pure half: LetterMemoryPolicy.ShouldRemember excludes the two re-ping reasons (AwaitingReply, QuestUpdate) and includes MarriageProposal; BaseMemory is first-person and reflects direction. Real-path half: drives the REAL LetterMemoryFinalizer.RecordLetterMemory (LetterPopupManager.MarkReceived's own seam) with a ShouldRemember=false reason (QuestUpdate), so the run can never fall through to the async LLM summarizer (Lane C, kept out of cr.testall), and asserts the base event actually lands on profile.Events. Removes the event it added", TestLetterMemory),
          new SelfTest("world_conditions", Severity.Light, "Mechanical: the engine reads the weekly world-conditions feeder depends on still work against the live game (a renamed field or a changed model signature would silently swallow to 0 inside the feeder's own guards, recording nothing forever). Reads GetScoreOfDeclaringWar in both directions between two live kingdoms and a live town's FoodStocks/FoodChange/Prosperity DIRECTLY, asserts each is finite, then runs the real RunScan and asserts both scanners ran. Skips when the world has fewer than two kingdoms or no town", TestWorldConditions),
@@ -8445,6 +8457,85 @@ namespace CalradiaRemembers.Diagnostics
             if (!string.IsNullOrEmpty(seeded.Id)) WorldEventStore.Instance?.Remove(seeded.Id);
             fiefBehavior.DebugClearCooldown(candidate.StringId);
          }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The two new signature-ledger channels (2026-08-20): a lord who holds a live, significant grudge
+      ///   against the PLAYER, or a significant, recent appreciation of them, now seeks the player out exactly
+      ///   like TerritorialPatrol/HeardOfDeed already did. Drives the REAL fact-gathering
+      ///   (InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer/HoldsSignificantAppreciation, shared by BOTH the
+      ///   road and fief-audience channels) against real seeded Grudge/Appreciation ledger entries, then the
+      ///   pure InterceptionPolicy.Choose/FiefAudiencePolicy.IsFiefValid, no live LLM call anywhere.
+      /// </summary>
+      private static string TestInterceptionGrudgeAppreciation(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("interception_grudge_appreciation");
+
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+         if (t.Abort(AppreciationBehavior.Instance == null, "AppreciationBehavior not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+
+         // Two distinct, clean-slate lords (no live grudge/appreciation against the player yet), so the two
+         // fact-gathering reads below are unambiguous regardless of what an earlier self-test in the same
+         // session may already have planted on some other NPC.
+         bool CleanSlate(Hero h)
+            => h != Hero.MainHero && h.IsLord && h.IsAlive
+               && !InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer(h, today, out _)
+               && !InterceptionBehavior.HoldsSignificantAppreciation(h, today, out _);
+
+         Hero grudgeHolder = Hero.AllAliveHeroes.FirstOrDefault(CleanSlate);
+
+         if (t.Skip(grudgeHolder == null, "no lord free of a live grudge/appreciation against the player already (every candidate touched by an earlier test)")) return t.Line();
+
+         Hero appreciationHolder = Hero.AllAliveHeroes.FirstOrDefault(h => h != grudgeHolder && CleanSlate(h));
+
+         if (t.Skip(appreciationHolder == null, "no second clean-slate lord available")) return t.Line();
+
+         // ── Grudge channel: a live, significant grudge against the PLAYER surfaces the new trigger ──
+         t.Expect("noGrudgeYetReadsFalse", InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer(grudgeHolder, today, out _), false);
+
+         bool grudgePlanted = GrudgeBehavior.Instance.TryPlant(grudgeHolder, Hero.MainHero, GrudgeSource.FailedQuest,
+            "[SELFTEST] the player left a task to them unfinished.", InterceptionGrudgeTestMagnitude, true, today);
+
+         try
+         {
+            if (t.Skip(!grudgePlanted, "grudge refused (anti-noise guardrail or a full, stronger house)")) return t.Line();
+
+            bool holdsGrudge = InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer(grudgeHolder, today, out string grudgeCause);
+            t.Expect("aLiveSignificantGrudgeIsFound", holdsGrudge, true);
+            t.Expect("theGrudgeCauseSurvivesForTheOpener", string.IsNullOrEmpty(grudgeCause), false);
+            t.Expect("thePureChoiceSurfacesGrudge",
+               InterceptionPolicy.Choose(new InterceptionFacts {HoldsLiveGrudgeAgainstPlayer = holdsGrudge}), InterceptionTrigger.Grudge);
+            t.Expect("grudgeIsFiefValid", FiefAudiencePolicy.IsFiefValid(InterceptionTrigger.Grudge), true);
+         }
+         finally
+         {
+            GrudgeBehavior.Instance.ClearGrudgesFor(grudgeHolder.StringId);
+         }
+
+         // ── AppreciationOwed channel: a significant, recent appreciation of the PLAYER surfaces the new trigger ──
+         t.Expect("noAppreciationYetReadsFalse", InterceptionBehavior.HoldsSignificantAppreciation(appreciationHolder, today, out _), false);
+
+         bool appreciationPlanted = AppreciationBehavior.Instance.TryPlant(appreciationHolder, Hero.MainHero, AppreciationSource.QuestDoneForThem,
+            "[SELFTEST] the player did what they promised.", InterceptionAppreciationTestMagnitude, true, today);
+
+         if (t.Skip(!appreciationPlanted, "appreciation refused (anti-noise guardrail or a full, stronger house)")) return t.Line();
+
+         bool holdsAppreciation = InterceptionBehavior.HoldsSignificantAppreciation(appreciationHolder, today, out string appreciationCause);
+         t.Expect("aSignificantAppreciationIsFound", holdsAppreciation, true);
+         t.Expect("theAppreciationCauseSurvivesForTheOpener", string.IsNullOrEmpty(appreciationCause), false);
+         t.Expect("thePureChoiceSurfacesAppreciationOwed",
+            InterceptionPolicy.Choose(new InterceptionFacts {HoldsSignificantAppreciation = holdsAppreciation}), InterceptionTrigger.AppreciationOwed);
+         t.Expect("appreciationOwedIsFiefValid", FiefAudiencePolicy.IsFiefValid(InterceptionTrigger.AppreciationOwed), true);
+
+         // ── Priority pin (mirrors InterceptionPolicyTests): a wrong pressed outranks a warm acknowledgement ──
+         t.Expect("grudgeOutranksAppreciationWhenBothHold",
+            InterceptionPolicy.Choose(new InterceptionFacts {HoldsLiveGrudgeAgainstPlayer = true, HoldsSignificantAppreciation = true}),
+            InterceptionTrigger.Grudge);
 
          return t.Line();
       }

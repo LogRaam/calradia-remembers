@@ -249,6 +249,81 @@ namespace CalradiaRemembers.Tests
                            .Should().Be(InterceptionTrigger.None);
       }
 
+      // ── Grudge / AppreciationOwed (the two signature affect ledgers get a proactive face-to-face channel) ──
+
+      // The baseline positive case: a live, unresolved, significant grudge against the player is a full
+      // trigger on its own, no hostility/territory/notoriety needed - mirrors HeardOfDeed's own "news alone
+      // is a full trigger" shape.
+      [Test]
+      public void GIVEN_a_lord_who_holds_a_live_grudge_against_the_player_WHEN_choosing_THEN_they_come_to_air_it()
+      {
+         InterceptionPolicy.Choose(Facts(holdsGrudge: true)).Should().Be(InterceptionTrigger.Grudge);
+      }
+
+      // The mirror positive case for the warm ledger: a significant, recent appreciation is likewise a full
+      // trigger on its own.
+      [Test]
+      public void GIVEN_a_lord_who_holds_a_significant_appreciation_of_the_player_WHEN_choosing_THEN_they_come_to_acknowledge_it()
+      {
+         InterceptionPolicy.Choose(Facts(holdsAppreciation: true)).Should().Be(InterceptionTrigger.AppreciationOwed);
+      }
+
+      // Priority pin 1/3: TerritorialPatrol (a hostile realm defending its own land) outranks a grudge - a
+      // lord already riding out to challenge a border-crosser does not additionally need a personal grievance
+      // to justify the meeting, and the two reasons must never silently swap which one colours the opener.
+      [Test]
+      public void GIVEN_both_a_territorial_challenge_and_a_live_grudge_WHEN_choosing_THEN_the_patrol_still_takes_priority()
+      {
+         InterceptionPolicy.Choose(Facts(true, true, 90, holdsGrudge: true))
+                           .Should().Be(InterceptionTrigger.TerritorialPatrol);
+      }
+
+      // Priority pin 2/3: a grudge (a wrong pressed) outranks merely reacting to fresh news of an unrelated
+      // deed - the design brief's own ordering ("Grudge - a wrong pressed" above "HeardOfDeed - fresh news").
+      [Test]
+      public void GIVEN_both_a_live_grudge_and_recent_news_WHEN_choosing_THEN_the_grudge_takes_priority()
+      {
+         InterceptionPolicy.Choose(Facts(heardDeed: true, holdsGrudge: true))
+                           .Should().Be(InterceptionTrigger.Grudge);
+      }
+
+      // Priority pin 3/3: fresh news outranks a standing appreciation - AppreciationOwed is deliberately the
+      // LEAST urgent of the four (design brief: "nothing is lost by a kindness waiting one more day"), so it
+      // must never pre-empt a lord reacting to something that just happened.
+      [Test]
+      public void GIVEN_both_recent_news_and_a_significant_appreciation_WHEN_choosing_THEN_the_news_takes_priority()
+      {
+         InterceptionPolicy.Choose(Facts(heardDeed: true, holdsAppreciation: true))
+                           .Should().Be(InterceptionTrigger.HeardOfDeed);
+      }
+
+      // The full stack, all four positive facts at once: the SAME guards and priority order must hold
+      // together, not just pairwise - TerritorialPatrol wins over everything, exactly as the class doc says.
+      [Test]
+      public void GIVEN_every_trigger_fact_at_once_WHEN_choosing_THEN_the_full_priority_order_holds()
+      {
+         InterceptionPolicy.Choose(Facts(true, true, 90, true, holdsGrudge: true, holdsAppreciation: true))
+                           .Should().Be(InterceptionTrigger.TerritorialPatrol);
+      }
+
+      // The cooldown and single-pursuer guards gate the two new triggers exactly as they gate the older
+      // ones - a live grudge, however strong, must never override "this lord already intercepted you
+      // recently" or "someone else is already coming", or the two new channels would reopen the harassment
+      // risk the guards exist to prevent.
+      [Test]
+      public void GIVEN_a_live_grudge_but_the_lord_is_on_cooldown_WHEN_choosing_THEN_nothing_fires()
+      {
+         InterceptionPolicy.Choose(Facts(onCooldown: true, holdsGrudge: true))
+                           .Should().Be(InterceptionTrigger.None);
+      }
+
+      [Test]
+      public void GIVEN_a_significant_appreciation_but_another_pursuer_is_active_WHEN_choosing_THEN_nothing_fires()
+      {
+         InterceptionPolicy.Choose(Facts(anotherActive: true, holdsAppreciation: true))
+                           .Should().Be(InterceptionTrigger.None);
+      }
+
       #region private
 
       private static InterceptionFacts Facts(
@@ -257,14 +332,18 @@ namespace CalradiaRemembers.Tests
          int notoriety = 0,
          bool heardDeed = false,
          bool onCooldown = false,
-         bool anotherActive = false)
+         bool anotherActive = false,
+         bool holdsGrudge = false,
+         bool holdsAppreciation = false)
          => new() {
             FactionHostileToPlayer = hostile,
             PlayerInOwnTerritory = inTerritory,
             PlayerNotoriety = notoriety,
             HeardRecentPlayerDeed = heardDeed,
             OnCooldown = onCooldown,
-            AnotherPursuerActive = anotherActive
+            AnotherPursuerActive = anotherActive,
+            HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
+            HoldsSignificantAppreciation = holdsAppreciation
          };
 
       #endregion

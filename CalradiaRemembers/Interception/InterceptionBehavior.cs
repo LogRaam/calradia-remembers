@@ -5,10 +5,14 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Appreciations;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
@@ -63,6 +67,12 @@ namespace CalradiaRemembers.Interception
       private int _activePursuerSince = -1;
       private InterceptionTrigger _activePursuerTrigger = InterceptionTrigger.None;
 
+      // The specific grievance/kindness a Grudge/AppreciationOwed pursuit is ABOUT (the Grudge/Appreciation's
+      // own CauseSummary), so ConsumeInterceptionReason and ChatViewModel.ActivateInterceptionOpener can name
+      // the actual matter rather than a generic "a grudge" / "a kindness". Null for every other trigger, and
+      // for a Grudge/AppreciationOwed candidate whose underlying ledger entry carried no cause text.
+      private string _activePursuerDetail;
+
       // True when the active slot above was stashed by FiefAudienceBehavior (StashFiefAudienceReason) rather
       // than a real road pursuit (BeginPursuit): ConsumeInterceptionReason reads this to pick "you rode out"
       // wording versus "you simply asked for a word where you already stood" -- same one-shot slot, different
@@ -94,20 +104,44 @@ namespace CalradiaRemembers.Interception
 
          InterceptionTrigger trigger = _activePursuerTrigger;
          bool isFiefAudience = _activePursuerIsFiefAudience;
+         string detail = _activePursuerDetail;
          _activePursuerId = null;
          _activePursuerSince = -1;
          _activePursuerTrigger = InterceptionTrigger.None;
          _activePursuerIsFiefAudience = false;
+         _activePursuerDetail = null;
          _meetingOpened = false;
          _lastPursuitDistance = -1f;
 
          // A fief audience never rode anywhere -- the NPC was already standing where the player walked in and
-         // simply asked for a word. Only HeardOfDeed is ever stashed this way (FiefAudiencePolicy.IsFiefValid),
-         // so no further switch on trigger is needed here.
+         // simply asked for a word. HeardOfDeed, Grudge, and AppreciationOwed are all stashed this way
+         // (FiefAudiencePolicy.IsFiefValid); only TerritorialPatrol never is (road-only).
          if (isFiefAudience)
+         {
+            if (trigger == InterceptionTrigger.Grudge)
+               return "It is YOU who sought this meeting: a grievance you hold against the player has been " +
+                      "weighing on you, and rather than let it fester you simply asked them for a private word " +
+                      $"where you already stood. Open by airing it plainly, in your own voice.{DetailClause(detail)}";
+
+            if (trigger == InterceptionTrigger.AppreciationOwed)
+               return "It is YOU who sought this meeting: a kindness the player showed you has stayed with you, " +
+                      "and rather than let it go unspoken you simply asked them for a private word where you " +
+                      $"already stood. Open by acknowledging it warmly, in your own voice.{DetailClause(detail)}";
+
             return "It is YOU who sought this meeting: word of the player's recent deeds reached you, and rather " +
                    "than ride out you simply asked them for a private word where you already stood. Open by " +
                    "raising what you heard, be it admiration, alarm, or a reckoning.";
+         }
+
+         if (trigger == InterceptionTrigger.Grudge)
+            return "It is YOU who sought this meeting: a grievance you hold against the player has been weighing " +
+                   "on you, and you rode out to confront them with it while it was still raw. Open by airing it " +
+                   $"plainly, in your own voice.{DetailClause(detail)}";
+
+         if (trigger == InterceptionTrigger.AppreciationOwed)
+            return "It is YOU who sought this meeting: a kindness the player showed you has stayed with you, and " +
+                   "you rode out to seek them and acknowledge it. Open by acknowledging it warmly, in your own " +
+                   $"voice.{DetailClause(detail)}";
 
          return trigger == InterceptionTrigger.TerritorialPatrol
             ? "It is YOU who sought this meeting: you rode out to challenge the player for crossing your realm's " +
@@ -115,6 +149,22 @@ namespace CalradiaRemembers.Interception
             : "It is YOU who sought this meeting: word of the player's recent deeds reached you and you rode out to " +
               "see them while it was fresh. Open by raising what you heard — be it admiration, alarm, or a reckoning.";
       }
+
+      /// <summary>
+      ///   Formats the specific grievance/kindness (a Grudge/Appreciation's own CauseSummary) as a trailing
+      ///   sentence for a Grudge/AppreciationOwed directive, or an empty string when no detail survived (a
+      ///   forced test trigger, or a ledger entry with no cause text): the directive still reads fine without it.
+      /// </summary>
+      private static string DetailClause(string detail)
+         => string.IsNullOrWhiteSpace(detail) ? "" : $" The matter: {detail}.";
+
+      /// <summary>
+      ///   The same specific grievance/kindness as <see cref="DetailClause" />, but as a MID-sentence
+      ///   parenthetical rather than a trailing full sentence (TryWriteMissedMeetingLetter's own context
+      ///   text continues past it with "but the chase came to nothing...").
+      /// </summary>
+      private static string InlineDetail(string detail)
+         => string.IsNullOrWhiteSpace(detail) ? "" : $" ({detail})";
 
       /// <summary>
       ///   True while the one-shot interception slot (<see cref="ConsumeInterceptionReason" />) is already
@@ -133,32 +183,84 @@ namespace CalradiaRemembers.Interception
       public bool ActivePursuitIsFiefAudience => _activePursuerIsFiefAudience;
 
       /// <summary>
+      ///   Peeks (without consuming) the CURRENTLY active slot's trigger, for the SAME reason as
+      ///   <see cref="ActivePursuitIsFiefAudience" />: ChatViewModel.ActivateInterceptionOpener needs it to pick
+      ///   its own opener cue's framing (a grudge confronted, a kindness acknowledged, or the generic cue)
+      ///   before <see cref="ConsumeInterceptionReason" /> ever runs and clears it.
+      /// </summary>
+      public InterceptionTrigger ActivePursuitTrigger => _activePursuerTrigger;
+
+      /// <summary>
+      ///   Peeks (without consuming) the CURRENTLY active slot's specific grievance/kindness summary
+      ///   (<see cref="InterceptionTrigger.Grudge" />/<see cref="InterceptionTrigger.AppreciationOwed" /> only;
+      ///   null for every other trigger), for the same reason as <see cref="ActivePursuitTrigger" />.
+      /// </summary>
+      public string ActivePursuitDetail => _activePursuerDetail;
+
+      /// <summary>
       ///   Stashes a one-shot interception directive for <paramref name="npc" /> via the SAME
       ///   <see cref="ConsumeInterceptionReason" /> slot a road pursuit uses, so a fief audience's opener
       ///   survives to the first LLM turn without a second, diverging plumbing. Unlike <see cref="BeginPursuit" />,
       ///   this never engages a party (a fief-audience NPC has none) and never touches the road pursuit's own
       ///   cooldown map: FiefAudienceBehavior owns its own gate and only calls this once
-      ///   <see cref="HasActivePursuer" /> is already false.
+      ///   <see cref="HasActivePursuer" /> is already false. <paramref name="detail" /> carries the specific
+      ///   grievance/kindness for a Grudge/AppreciationOwed trigger (see <see cref="_activePursuerDetail" />);
+      ///   ignored for every other trigger.
       /// </summary>
-      public void StashFiefAudienceReason(Hero npc, InterceptionTrigger trigger)
+      public void StashFiefAudienceReason(Hero npc, InterceptionTrigger trigger, string detail = null)
       {
          if (npc == null || trigger == InterceptionTrigger.None) return;
 
          _activePursuerId = npc.StringId;
          _activePursuerTrigger = trigger;
          _activePursuerIsFiefAudience = true;
+         _activePursuerDetail = detail;
          _activePursuerSince = (int) CampaignTime.Now.ToDays;
          _meetingOpened = true; // there is no party to force a meeting for; nothing for OnTick to do
          _lastPursuitDistance = -1f;
       }
 
-      /// <summary>Forces the named lord to ride out and intercept the player (console testing).</summary>
-      public string DebugForceIntercept(Hero lord)
+      /// <summary>
+      ///   Forces the named lord to ride out and intercept the player (console testing), with <paramref name="trigger" />
+      ///   defaulting to <see cref="InterceptionTrigger.HeardOfDeed" /> (the original cr.intercept behaviour,
+      ///   unchanged for a caller who passes none). For <see cref="InterceptionTrigger.Grudge" />/
+      ///   <see cref="InterceptionTrigger.AppreciationOwed" />, <see cref="ForcedDetailFor" /> pulls the lord's
+      ///   REAL grievance/kindness against the player when one exists, so the forced test still reads as the
+      ///   genuine feature rather than a placeholder line.
+      /// </summary>
+      public string DebugForceIntercept(Hero lord, InterceptionTrigger trigger = InterceptionTrigger.HeardOfDeed)
       {
          if (lord?.PartyBelongedTo == null || MobileParty.MainParty == null) return $"{lord?.Name?.ToString() ?? "That hero"} has no party on the map to ride out.";
-         BeginPursuit(lord, InterceptionTrigger.HeardOfDeed, (int) CampaignTime.Now.ToDays);
 
-         return $"{lord.Name} now rides to intercept you.";
+         var today = (int) CampaignTime.Now.ToDays;
+         BeginPursuit(lord, trigger, today, ForcedDetailFor(lord, trigger, today));
+
+         return $"{lord.Name} now rides to intercept you ({trigger}).";
+      }
+
+      /// <summary>
+      ///   The detail text a FORCED (console) Grudge/AppreciationOwed trigger should carry: the lord's REAL
+      ///   live grievance/kindness against the player when <see cref="HoldsLiveGrudgeAgainstPlayer" />/
+      ///   <see cref="HoldsSignificantAppreciation" /> actually finds one (so testing exercises the genuine
+      ///   detail plumbing), or an honestly-labelled placeholder when none exists (a lord with no real grudge
+      ///   forced to voice one should not silently read as though he had one). Null for every other trigger.
+      ///   Shared by <see cref="DebugForceIntercept" /> and FiefAudienceBehavior.DebugForceOffer.
+      /// </summary>
+      internal static string ForcedDetailFor(Hero npc, InterceptionTrigger trigger, int today)
+      {
+         switch (trigger)
+         {
+            case InterceptionTrigger.Grudge:
+               return HoldsLiveGrudgeAgainstPlayer(npc, today, out string grudgeCause)
+                  ? grudgeCause
+                  : "a grievance against you (forced for testing, no real grudge on file)";
+            case InterceptionTrigger.AppreciationOwed:
+               return HoldsSignificantAppreciation(npc, today, out string appreciationCause)
+                  ? appreciationCause
+                  : "a kindness you showed them (forced for testing, no real appreciation on file)";
+            default:
+               return null;
+         }
       }
 
       /// <summary>
@@ -357,6 +459,93 @@ namespace CalradiaRemembers.Interception
          catch { return false; }
       }
 
+      /// <summary>
+      ///   Internal (not private) so FiefAudienceBehavior can reuse the SAME "does this NPC hold a live,
+      ///   unresolved, significant-magnitude grudge against the PLAYER" fact-building the road interception
+      ///   uses, rather than a diverging copy. Mirrors CompanionAudienceTopicResolver.ResolveCompanionConflict's
+      ///   own grudge read, but the target here is always the PLAYER rather than a fellow party member, and the
+      ///   magnitude is gated on InterceptionPolicy.MinGrudgeMagnitudeForInterception (well above the bare
+      ///   GrudgePolicy formation floor) so only a genuinely meaningful grievance pulls a lord aside for a
+      ///   whole confrontation. Returns the winning grudge's CauseSummary via <paramref name="cause" /> so the
+      ///   opener can name the specific matter.
+      /// </summary>
+      internal static bool HoldsLiveGrudgeAgainstPlayer(Hero lord, int today, out string cause)
+      {
+         cause = null;
+
+         try
+         {
+            if (lord == null || Hero.MainHero == null) return false;
+
+            IReadOnlyList<Grudge> grudges = GrudgeBehavior.Instance?.GrudgesFor(lord.StringId);
+            if (grudges == null || grudges.Count == 0) return false;
+
+            var traits = GrudgeBridge.BuildTraitFacts(lord);
+
+            Grudge best = null;
+            var bestMagnitude = 0;
+
+            foreach (Grudge g in grudges)
+            {
+               if (g == null || g.IsResolved || g.TargetId != Hero.MainHero.StringId) continue;
+
+               int magnitude = GrudgePolicy.EffectiveMagnitude(g, today, traits);
+               if (magnitude <= bestMagnitude) continue;
+
+               best = g;
+               bestMagnitude = magnitude;
+            }
+
+            if (best == null || bestMagnitude < InterceptionPolicy.MinGrudgeMagnitudeForInterception) return false;
+
+            cause = best.CauseSummary;
+
+            return true;
+         }
+         catch { return false; }
+      }
+
+      /// <summary>
+      ///   Internal (not private), the mirror of <see cref="HoldsLiveGrudgeAgainstPlayer" /> for the warm
+      ///   ledger: "does this NPC hold a significant, recent appreciation of the PLAYER". Mirrors
+      ///   CompanionAudienceTopicResolver.ResolveGratitude's own "already sorted, take first" shape (
+      ///   AppreciationBehavior.LiveAppreciationsFor is already ranked strongest-first), but that method reads
+      ///   every kindness the holder feels toward ANY target, so this filters to the ones felt toward the
+      ///   PLAYER specifically before taking the first, gated on
+      ///   InterceptionPolicy.MinAppreciationMagnitudeForInterception (mirrors CompanionGratitudePolicy's own
+      ///   "worth a whole audience" floor). Returns the winning appreciation's CauseSummary via
+      ///   <paramref name="cause" /> so the opener can name the specific kindness.
+      /// </summary>
+      internal static bool HoldsSignificantAppreciation(Hero lord, int today, out string cause)
+      {
+         cause = null;
+
+         try
+         {
+            if (lord == null || Hero.MainHero == null) return false;
+
+            IReadOnlyList<Appreciation> live = AppreciationBehavior.Instance?.LiveAppreciationsFor(lord, today);
+            if (live == null || live.Count == 0) return false;
+
+            var traits = AppreciationBridge.BuildTraitFacts(lord);
+
+            foreach (Appreciation a in live)
+            {
+               if (a == null || a.TargetId != Hero.MainHero.StringId) continue;
+
+               int magnitude = AppreciationPolicy.EffectiveMagnitude(a, today, traits);
+               if (magnitude < InterceptionPolicy.MinAppreciationMagnitudeForInterception) continue;
+
+               cause = a.CauseSummary;
+
+               return true;
+            }
+
+            return false;
+         }
+         catch { return false; }
+      }
+
       private static bool IsHostileToPlayer(Hero lord)
       {
          try
@@ -392,7 +581,7 @@ namespace CalradiaRemembers.Interception
          catch { return null; }
       }
 
-      private void BeginPursuit(Hero lord, InterceptionTrigger trigger, int today)
+      private void BeginPursuit(Hero lord, InterceptionTrigger trigger, int today, string detail = null)
       {
          // Last line of defense against the army-encounter crash: never engage a party the player is already
          // with (a subordinate army member, a shared army, or an attached party).
@@ -401,14 +590,18 @@ namespace CalradiaRemembers.Interception
          lord.PartyBelongedTo.SetMoveEngageParty(MobileParty.MainParty, MobileParty.NavigationType.Default);
          _activePursuerId = lord.StringId;
          _activePursuerTrigger = trigger;
+         _activePursuerDetail = detail;
          _activePursuerSince = today;
          _meetingOpened = false;
          _lastPursuitDistance = -1f;
          _cooldown[lord.StringId] = today;
 
-         string line = trigger == InterceptionTrigger.TerritorialPatrol
-            ? $"{lord.Name} rides out to challenge you for crossing their lands."
-            : $"{lord.Name} rides toward you, having heard of your recent deeds.";
+         string line = trigger switch {
+            InterceptionTrigger.TerritorialPatrol => $"{lord.Name} rides out to challenge you for crossing their lands.",
+            InterceptionTrigger.Grudge => $"{lord.Name} rides toward you, a grievance weighing on their mind.",
+            InterceptionTrigger.AppreciationOwed => $"{lord.Name} rides toward you, wishing to speak of a kindness you showed them.",
+            _ => $"{lord.Name} rides toward you, having heard of your recent deeds."
+         };
          try { MBInformationManager.AddQuickInformation(new TextObject(line)); }
          catch
          {
@@ -557,6 +750,7 @@ namespace CalradiaRemembers.Interception
          }
 
          InterceptionTrigger trigger = _activePursuerTrigger; // read before the fields below are cleared
+         string detail = _activePursuerDetail;                // ditto
          AbandonReason reason = DetermineAbandonReason(atSea, invalid, today - _activePursuerSince);
 
          ModLog.Info($"[INTERCEPT] {pursuer?.Name} stands down ({reason}, distance {distance:0.0}, " +
@@ -568,7 +762,7 @@ namespace CalradiaRemembers.Interception
          // situation (sea, army, death): mirrors the assembly's ambassador fallback (narration covers the
          // gap instead of a broken feature) rather than papering over a pursuit that could never have
          // succeeded regardless.
-         if (reason is AbandonReason.GaveUp or AbandonReason.LostTrail) TryWriteMissedMeetingLetter(pursuer, trigger, today);
+         if (reason is AbandonReason.GaveUp or AbandonReason.LostTrail) TryWriteMissedMeetingLetter(pursuer, trigger, detail, today);
 
          // End the engage on any abandoned chase too, so a lord who timed out or was outrun stops bearing on the
          // player instead of trailing them indefinitely, and RESUMES his own plans rather than standing in the
@@ -578,6 +772,7 @@ namespace CalradiaRemembers.Interception
          _activePursuerId = null;
          _activePursuerSince = -1;
          _activePursuerTrigger = InterceptionTrigger.None;
+         _activePursuerDetail = null;
          _meetingOpened = false;
          _lastPursuitDistance = -1f;
       }
@@ -639,7 +834,7 @@ namespace CalradiaRemembers.Interception
       ///   skipped; the LLM pipeline itself (checked inside <see cref="LetterGenerationService.QueueInitialLetter" />)
       ///   is the rest of "can actually deliver". Called at most once per abandoned chase.
       /// </summary>
-      private static void TryWriteMissedMeetingLetter(Hero pursuer, InterceptionTrigger trigger, int today)
+      private static void TryWriteMissedMeetingLetter(Hero pursuer, InterceptionTrigger trigger, string detail, int today)
       {
          try
          {
@@ -649,9 +844,16 @@ namespace CalradiaRemembers.Interception
 
             if (profile == null || behavior.LlmServices?.ChatService == null) return;
 
-            string context = trigger == InterceptionTrigger.TerritorialPatrol
-               ? "You rode out to challenge the player for crossing your realm's lands, wary and territorial, but the chase came to nothing before you could face them."
-               : "You rode out because word of the player's recent deeds reached you and you meant to speak with them about it, but the chase came to nothing before you could catch them.";
+            string context = trigger switch {
+               InterceptionTrigger.TerritorialPatrol =>
+                  "You rode out to challenge the player for crossing your realm's lands, wary and territorial, but the chase came to nothing before you could face them.",
+               InterceptionTrigger.Grudge =>
+                  $"You rode out to confront the player over a grievance you hold against them{InlineDetail(detail)}, but the chase came to nothing before you could catch them.",
+               InterceptionTrigger.AppreciationOwed =>
+                  $"You rode out to seek the player and acknowledge a kindness they showed you{InlineDetail(detail)}, but the chase came to nothing before you could catch them.",
+               _ =>
+                  "You rode out because word of the player's recent deeds reached you and you meant to speak with them about it, but the chase came to nothing before you could catch them."
+            };
 
             LetterGenerationService.QueueInitialLetter(
                profile, pursuer, LetterReason.InterceptionMissed, context, behavior.LlmServices, store, today);
@@ -687,20 +889,31 @@ namespace CalradiaRemembers.Interception
 
             scanned++;
 
+            bool holdsGrudge = HoldsLiveGrudgeAgainstPlayer(lord, today, out string grudgeCause);
+            bool holdsAppreciation = HoldsSignificantAppreciation(lord, today, out string appreciationCause);
+
             var facts = new InterceptionFacts {
                OnCooldown = _cooldown.TryGetValue(lord.StringId, out int last) && today - last < CooldownDays,
                AnotherPursuerActive = _activePursuerId != null,
                PlayerInOwnTerritory = territory != null && territory == lord.MapFaction,
                FactionHostileToPlayer = IsHostileToPlayer(lord),
                PlayerNotoriety = notoriety,
-               HeardRecentPlayerDeed = HeardRecentPlayerDeed(lord, today)
+               HeardRecentPlayerDeed = HeardRecentPlayerDeed(lord, today),
+               HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
+               HoldsSignificantAppreciation = holdsAppreciation
             };
 
             InterceptionTrigger trigger = InterceptionPolicy.Choose(facts);
 
             if (trigger == InterceptionTrigger.None) continue;
 
-            BeginPursuit(lord, trigger, today);
+            string detail = trigger switch {
+               InterceptionTrigger.Grudge => grudgeCause,
+               InterceptionTrigger.AppreciationOwed => appreciationCause,
+               _ => null
+            };
+
+            BeginPursuit(lord, trigger, today, detail);
 
             return; // one interception started per day
          }

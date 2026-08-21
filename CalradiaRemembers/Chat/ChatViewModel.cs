@@ -1309,9 +1309,10 @@ namespace CalradiaRemembers.Chat
       ///   why they sought the player out. The interception directive in the system prompt
       ///   (EncounterContext.InterceptionReason, resolved on this turn's build) shapes what they open with; this
       ///   cue is a SEPARATE string and must not contradict it, so it reads InterceptionBehavior.ActivePursuitIsFiefAudience
-      ///   (a peek, not a consume: ConsumeInterceptionReason itself runs later, inside this turn's context build)
-      ///   to pick the right framing. A plain live conversation otherwise (full memory + actions), mirroring the
-      ///   companion-audience opener.
+      ///   /ActivePursuitTrigger/ActivePursuitDetail (peeks, not consumes: ConsumeInterceptionReason itself runs
+      ///   later, inside this turn's context build) to pick the right framing, naming the specific grievance or
+      ///   kindness for a Grudge/AppreciationOwed trigger. A plain live conversation otherwise (full memory +
+      ///   actions), mirroring the companion-audience opener.
       /// </summary>
       public void ActivateInterceptionOpener()
       {
@@ -1330,17 +1331,48 @@ namespace CalradiaRemembers.Chat
          IsSendEnabled = false;
 
          // The NPC opens. A synthetic cue, never shown or logged as a player line; the THIS MEETING directive
-         // carries the actual reason (territorial challenge, word of a fresh deed, or, for a fief audience,
-         // the same news, raised where they already stood rather than ridden out for).
+         // carries the actual reason (territorial challenge, a grievance to air, word of a fresh deed, a
+         // kindness to acknowledge, or, for a fief audience, the same reason raised where they already stood
+         // rather than ridden out for).
          bool isFiefAudience = InterceptionBehavior.Instance?.ActivePursuitIsFiefAudience == true;
-         string opener = isFiefAudience
-            ? "[You asked the player for a private word where you already stood. Open the conversation YOURSELF, " +
-              "in your own voice, on the footing described above. Do not wait for them to speak first.]"
-            : "[You rode out and stopped the player on the road. Open the conversation YOURSELF, " +
-              "in your own voice, on the footing described above. Do not wait for them to speak first.]";
+         InterceptionTrigger trigger = InterceptionBehavior.Instance?.ActivePursuitTrigger ?? InterceptionTrigger.None;
+         string detail = InterceptionBehavior.Instance?.ActivePursuitDetail;
+
+         string opener = BuildInterceptionOpenerCue(isFiefAudience, trigger, detail);
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, speaker, placeholder, true);
       }
+
+      /// <summary>
+      ///   The opener cue text for <see cref="ActivateInterceptionOpener" />, per trigger: a grudge is
+      ///   confronted (in the NPC's own voice, never a forced fight, road interception opens a conversation
+      ///   not combat), a kindness is acknowledged warmly, and every other trigger keeps the older generic cue
+      ///   (the THIS MEETING directive built by InterceptionBehavior/FiefAudienceBehavior already carries its
+      ///   specific footing).
+      /// </summary>
+      private static string BuildInterceptionOpenerCue(bool isFiefAudience, InterceptionTrigger trigger, string detail)
+      {
+         string stood = isFiefAudience
+            ? "[You asked the player for a private word where you already stood. "
+            : "[You rode out and stopped the player on the road. ";
+
+         switch (trigger)
+         {
+            case InterceptionTrigger.Grudge:
+               return stood + "Open the conversation YOURSELF: confront them, in your own voice, over a " +
+                      $"grievance you hold against them{InterceptionDetailSuffix(detail)}. Do not wait for them to speak first.]";
+            case InterceptionTrigger.AppreciationOwed:
+               return stood + "Open the conversation YOURSELF: warmly acknowledge, in your own voice, a " +
+                      $"kindness they showed you{InterceptionDetailSuffix(detail)}. Do not wait for them to speak first.]";
+            default:
+               return stood + "Open the conversation YOURSELF, in your own voice, on the footing described " +
+                      "above. Do not wait for them to speak first.]";
+         }
+      }
+
+      /// <summary>The specific grievance/kindness as a trailing clause for <see cref="BuildInterceptionOpenerCue" />, or empty when none survived.</summary>
+      private static string InterceptionDetailSuffix(string detail)
+         => string.IsNullOrWhiteSpace(detail) ? "" : $": {detail}";
 
       /// <summary>Adds a single witness to the session. Used by the console command for testing.</summary>
       public void AddWitness(WitnessEntry entry)

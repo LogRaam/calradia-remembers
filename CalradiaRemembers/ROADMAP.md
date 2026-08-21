@@ -1218,10 +1218,11 @@ the player a face for these fields; it does not need new fields to be worth buil
 
 SCOPE NOTE (v1): reuses `InterceptionPolicy.Choose`, which today only produces `HeardOfDeed` (and the road-only
 `TerritorialPatrol`), so a fief audience currently fires when a partyless NPC present in the settlement has heard of
-a recent player deed and wants a word. The other reasons this section imagined (a grudge, a kindness owed, a
-pending letter's subject, an outstanding quest, a stance verdict) are NOT yet interception triggers; adding them to
-`InterceptionPolicy` is the natural follow-up and would enrich BOTH the road interception and the fief audience at
-once. Accept/Decline inquiry (never forced), rides the "Lords Approaching You" pacing + a per-NPC cooldown, and
+a recent player deed and wants a word. Two more reasons were then ADDED to `InterceptionPolicy` (2026-08-20), enriching BOTH
+the road interception and the fief audience at once: a live significant GRUDGE against the player (Grudge, comes to
+air it) and a significant recent APPRECIATION (AppreciationOwed, comes to acknowledge it), the mod's two signature
+affect ledgers. STILL deferred as interception triggers (they already have their own channels, so adding them would
+double it): an outstanding quest (the journal), a pending letter's subject and a stance verdict (the letter channel). Accept/Decline inquiry (never forced), rides the "Lords Approaching You" pacing + a per-NPC cooldown, and
 yields to a companion audience so at most one popup fires per settlement entry. Untested-in-game risk: the chat-open
 path (`OpenChatForInterceptingHero` with no live vanilla conversation) is only unit-covered at the gate, not the
 engine open.

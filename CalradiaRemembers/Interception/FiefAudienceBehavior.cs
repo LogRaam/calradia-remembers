@@ -51,6 +51,7 @@ namespace CalradiaRemembers.Interception
 
       private string _pendingHeroId;
       private InterceptionTrigger _pendingTrigger = InterceptionTrigger.None;
+      private string _pendingDetail;
 
       public FiefAudienceBehavior()
       {
@@ -156,21 +157,27 @@ namespace CalradiaRemembers.Interception
          Hero npc = Hero.FindFirst(h => h != null && h.StringId == best.HeroId);
          if (npc == null) return false;
 
-         RequestAudience(npc, best.Trigger);
+         RequestAudience(npc, best.Trigger, best.Detail);
 
          return true;
       }
 
-      /// <summary>Forces the fief-audience popup for the named partyless NPC (console testing), bypassing the pacing roll and the per-NPC cooldown, mirroring InterceptionBehavior.DebugForceIntercept.</summary>
-      public string DebugForceOffer(Hero npc)
+      /// <summary>
+      ///   Forces the fief-audience popup for the named partyless NPC (console testing), bypassing the pacing
+      ///   roll and the per-NPC cooldown, mirroring InterceptionBehavior.DebugForceIntercept.
+      ///   <paramref name="trigger" /> defaults to <see cref="InterceptionTrigger.HeardOfDeed" /> (the original
+      ///   cr.fief_audience behaviour). For Grudge/AppreciationOwed, <see cref="InterceptionBehavior.ForcedDetailFor" />
+      ///   pulls the NPC's REAL grievance/kindness against the player when one exists.
+      /// </summary>
+      public string DebugForceOffer(Hero npc, InterceptionTrigger trigger = InterceptionTrigger.HeardOfDeed)
       {
          if (npc == null) return "No NPC found. Pass a name fragment or start a conversation first.";
          if (npc.PartyBelongedTo != null) return $"{npc.Name} has a field party of their own -- use cr.intercept instead of a fief audience.";
          if (npc.CurrentSettlement == null) return $"{npc.Name} is not standing in any settlement right now.";
 
-         RequestAudience(npc, InterceptionTrigger.HeardOfDeed);
+         RequestAudience(npc, trigger, InterceptionBehavior.ForcedDetailFor(npc, trigger, Today));
 
-         return $"{npc.Name} asks for a word (HeardOfDeed, forced).";
+         return $"{npc.Name} asks for a word ({trigger}, forced).";
       }
 
       #region private
@@ -188,24 +195,36 @@ namespace CalradiaRemembers.Interception
          {
             int lastOffered = _lastOfferedDay.TryGetValue(h.StringId, out int last) ? last : FiefAudiencePolicy.NeverOffered;
 
+            bool holdsGrudge = InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer(h, today, out string grudgeCause);
+            bool holdsAppreciation = InterceptionBehavior.HoldsSignificantAppreciation(h, today, out string appreciationCause);
+
             var facts = new InterceptionFacts {
                OnCooldown = FiefAudiencePolicy.IsOnCooldown(lastOffered, today, ModSettings.LordsApproaching),
                AnotherPursuerActive = false, // already refused above (InterceptionBehavior.HasActivePursuer)
                PlayerInOwnTerritory = false, // TerritorialPatrol never applies in a fief (see FiefAudiencePolicy)
                FactionHostileToPlayer = false,
                PlayerNotoriety = 0,
-               HeardRecentPlayerDeed = InterceptionBehavior.HeardRecentPlayerDeed(h, today)
+               HeardRecentPlayerDeed = InterceptionBehavior.HeardRecentPlayerDeed(h, today),
+               HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
+               HoldsSignificantAppreciation = holdsAppreciation
             };
 
             InterceptionTrigger trigger = FiefAudiencePolicy.ChooseFiefValid(facts);
-            if (trigger != InterceptionTrigger.None)
-               candidates.Add(new FiefAudienceCandidate(h.StringId, trigger));
+            if (trigger == InterceptionTrigger.None) continue;
+
+            string detail = trigger switch {
+               InterceptionTrigger.Grudge => grudgeCause,
+               InterceptionTrigger.AppreciationOwed => appreciationCause,
+               _ => null
+            };
+
+            candidates.Add(new FiefAudienceCandidate(h.StringId, trigger, detail));
          }
 
          return FiefAudiencePolicy.SelectCandidate(candidates);
       }
 
-      private void RequestAudience(Hero npc, InterceptionTrigger trigger)
+      private void RequestAudience(Hero npc, InterceptionTrigger trigger, string detail = null)
       {
          // The cooldown starts the moment the popup is raised, whether or not the player answers it -- the same
          // "never silently, but never spammed either" rule CompanionAudienceTopicBehavior's own global cooldown
@@ -213,6 +232,7 @@ namespace CalradiaRemembers.Interception
          _lastOfferedDay[npc.StringId] = Today;
          _pendingHeroId = npc.StringId;
          _pendingTrigger = trigger;
+         _pendingDetail = detail;
 
          var title = new TextObject($"{npc.Name} asks for a word");
          var body = new TextObject($"{npc.Name}, standing here, catches your eye and seems to want a private word with you.");
@@ -229,13 +249,15 @@ namespace CalradiaRemembers.Interception
       {
          string heroId = _pendingHeroId;
          InterceptionTrigger trigger = _pendingTrigger;
+         string detail = _pendingDetail;
          _pendingHeroId = null;
          _pendingTrigger = InterceptionTrigger.None;
+         _pendingDetail = null;
 
          Hero npc = heroId != null ? Hero.FindFirst(h => h != null && h.StringId == heroId) : null;
          if (npc == null) return;
 
-         InterceptionBehavior.Instance?.StashFiefAudienceReason(npc, trigger);
+         InterceptionBehavior.Instance?.StashFiefAudienceReason(npc, trigger, detail);
          NpcMemoryCampaignBehavior.Instance?.DialogFlow?.OpenChatForInterceptingHero(npc);
          ModLog.Info($"[FIEF_AUDIENCE] {npc.Name}'s audience opened ({trigger}).");
       }

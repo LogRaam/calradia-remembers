@@ -63,6 +63,27 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_nothing_applies_WHEN_narrowed_to_fief_THEN_the_answer_is_none()
          => FiefAudiencePolicy.ChooseFiefValid(new InterceptionFacts()).Should().Be(InterceptionTrigger.None);
 
+      // A grievance is place-independent (this file's own IsFiefValid doc): a partyless NPC standing in a
+      // fief has just as much standing to confront the player over a live grudge as a lord who rode out
+      // would, so it must survive the narrowing intact, exactly like HeardOfDeed does.
+      [Test]
+      public void GIVEN_facts_that_would_choose_Grudge_WHEN_narrowed_to_fief_THEN_it_survives()
+      {
+         InterceptionPolicy.Choose(GrudgeFacts()).Should().Be(InterceptionTrigger.Grudge); // sanity: the road trigger still fires
+         FiefAudiencePolicy.IsFiefValid(InterceptionTrigger.Grudge).Should().BeTrue();
+         FiefAudiencePolicy.ChooseFiefValid(GrudgeFacts()).Should().Be(InterceptionTrigger.Grudge);
+      }
+
+      // The mirror case for the warm ledger: a felt kindness is just as place-independent as a grievance, so
+      // AppreciationOwed must also survive the narrowing.
+      [Test]
+      public void GIVEN_facts_that_would_choose_AppreciationOwed_WHEN_narrowed_to_fief_THEN_it_survives()
+      {
+         InterceptionPolicy.Choose(AppreciationFacts()).Should().Be(InterceptionTrigger.AppreciationOwed); // sanity
+         FiefAudiencePolicy.IsFiefValid(InterceptionTrigger.AppreciationOwed).Should().BeTrue();
+         FiefAudiencePolicy.ChooseFiefValid(AppreciationFacts()).Should().Be(InterceptionTrigger.AppreciationOwed);
+      }
+
       // ── IsOnCooldown ──────────────────────────────────────────────────────────
 
       // A candidate never offered before must never read as on cooldown, or nobody standing in a fief could
@@ -150,6 +171,20 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_null_candidate_list_WHEN_selecting_THEN_it_is_a_safe_null()
          => FiefAudiencePolicy.SelectCandidate(null).Should().BeNull();
 
+      // ── FiefAudienceCandidate.Detail ──────────────────────────────────────────
+
+      // SelectCandidate's tie-break reads HeroId only; Detail must ride along untouched on the winner so the
+      // caller (FiefAudienceBehavior) can still voice the specific grievance/kindness the candidate carried.
+      [Test]
+      public void GIVEN_a_winning_candidate_with_a_detail_WHEN_selecting_THEN_the_detail_survives()
+      {
+         var candidates = new List<FiefAudienceCandidate> {
+            new FiefAudienceCandidate("lord_a", InterceptionTrigger.Grudge, "you delivered me to my enemy")
+         };
+
+         FiefAudiencePolicy.SelectCandidate(candidates)?.Detail.Should().Be("you delivered me to my enemy");
+      }
+
       #region private
 
       private static InterceptionFacts TerritorialFacts()
@@ -161,6 +196,12 @@ namespace CalradiaRemembers.Tests
 
       private static InterceptionFacts HeardOfDeedFacts()
          => new() {HeardRecentPlayerDeed = true};
+
+      private static InterceptionFacts GrudgeFacts()
+         => new() {HoldsLiveGrudgeAgainstPlayer = true};
+
+      private static InterceptionFacts AppreciationFacts()
+         => new() {HoldsSignificantAppreciation = true};
 
       #endregion
    }
