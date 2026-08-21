@@ -703,6 +703,11 @@ namespace CalradiaRemembers.Chat
                BuildContextWitnesses(speaker), _privacyRequestPending,
                isCollectiveCaptiveScene: IsCaptiveEncounter && _captiveEncounterIsCollective,
                isCaptorScene: _captorScene,
+               // Bring-participants-to-a-captor-scene, increment 1: this turn's speaker is a brought companion
+               // the player has addressed or handed the prisoner to, inside this captor scene (see
+               // IsCompanionActingOnCaptiveTurn). False on every other turn (the prisoner's own, an ordinary
+               // conversation, or a witness outside a captor scene), so nothing here changes for them.
+               companionActingOnCaptive: IsCompanionActingOnCaptiveTurn(speaker),
                // Force the captivity status: Captive when the player is the NPC's captive, NpcIsCaptive when this
                // is a player-as-captor scene (robust for the console test path too, where it isn't truly set).
                playerStatusOverride: IsCaptiveEncounter

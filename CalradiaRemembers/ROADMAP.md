@@ -179,7 +179,7 @@ guard that a WILLING spouse keeps the exemption untouched). `cr.marry_info` now 
 on offer and the resentment a forced one would plant. NOT play-tested; the grudge plant itself is engine glue
 (same TryPlant seam every other source uses).
 
-## WISHED (Nexus, 2026-07-23): choose WHO comes with you, including your own PRISONERS
+## PARTLY BUILDING (Nexus 2026-07-23; scoped + started 2026-08-21): choose WHO comes with you, including your own PRISONERS
 
 Two players, one thread, and Gabriel answered "it's now on the roadmap".
 
@@ -218,6 +218,32 @@ convenient to be able to choose who's with me even when starting from the party 
 - Watch the power balance: `AppendPowerBalance` and the captor-scene framing both read the room. Adding a
   second captive changes who is outnumbered, and the existing captive scenes must not start describing the
   player's own prisoners as a threat to him.
+
+RATIFIED + SCOPED (Gabriel 2026-08-21): this lives ENTIRELY in the captor/captive SCENE, never a free-lord
+conversation (there a held prisoner is bargaining LEVERAGE the player may cite, never a brought participant, and
+that leverage half is a separate later concern). In a captor scene, participants have DISTINCT roles: (a) the
+subject prisoner; (b) brought COMPANIONS are ACTIVE AGENTS, not passive witnesses: the player can direct or REWARD
+a companion to act on the prisoner (interrogate, judge, torture, or take/abuse the captive as a reward), and the
+companion must have the WILL to ACT this beat and DESCRIBE what they do, not merely comment; (c) brought OTHER
+PRISONERS are COERCED subjects (leverage against the main one, the Ascyron-pressures-Lucon case), their own framing,
+NOT the free-witness reaction machinery. Registers: interrogation, judgment, blackmail, torture, aggression, and
+rewarding a companion. NO new leverage/Tribunal mechanic (those stay separate). Increments (Sonnet test-first):
+INC 1 = companion AGENCY in the group captor scene (the reward scene) BUILT 2026-08-21, untested in game
+(`EncounterContext.CompanionActingOnCaptive` set when the addressed speaker is a companion witness in a captor
+scene; `PromptBuilder.AppendCompanionActingOnCaptive` grants them the agency to act + describe via [NARRATION],
+AdultLevel-gated, out of the lean prompt, and suppresses the prisoner-POV `AppendPlayerCaptorSceneRules` on that
+turn so the companion is not told "you are bound"); INC 2 = bring other prisoners as coerced participants (the
+picker + the coerced model + its framing) NEXT; the nerethi party-screen entry-point convenience is deferred (a UI
+change, the RP ships first).
+
+## WISHED (Gabriel 2026-08-21): a prisoner who tries to flee triggers the unarmed combat scene
+
+In a captor/captive scene a prisoner may attempt to bolt. Rather than a text-only "you failed to hold them", it
+could drop into the real UNARMED combat scene (the player, or the scene, physically stops them), reusing the duel /
+`MissionFightHandler.StartCustomFight` machinery the DUELS pillar already owns (and the captive-ambush 3D fight).
+A brief, weaponless struggle: subdue the fleeing captive, or let them slip away. Ties the escape beat to a real
+mechanic instead of prose. Design it against the captive-escape pillar and the duels-from-chat plumbing so it is
+not built twice.
 
 ## BUILT (player report, Nexus 2026-07-23): logging wrote NOTHING when the Logs folder did not exist
 
