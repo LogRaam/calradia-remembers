@@ -63,6 +63,12 @@ namespace CalradiaRemembers.Interception
       private int _activePursuerSince = -1;
       private InterceptionTrigger _activePursuerTrigger = InterceptionTrigger.None;
 
+      // True when the active slot above was stashed by FiefAudienceBehavior (StashFiefAudienceReason) rather
+      // than a real road pursuit (BeginPursuit): ConsumeInterceptionReason reads this to pick "you rode out"
+      // wording versus "you simply asked for a word where you already stood" -- same one-shot slot, different
+      // framing for the two ways an NPC can come to want a word with the player.
+      private bool _activePursuerIsFiefAudience;
+
       // The pursuer's distance to the player as of the LAST daily check, or -1f while no baseline exists yet
       // (the day the pursuit began). Lets ReleaseStalePursuit tell a player actively closing the gap (riding
       // toward the meeting, as the bug report described) from one who is genuinely being outrun or stalled.
@@ -87,17 +93,63 @@ namespace CalradiaRemembers.Interception
          if (npc == null || _activePursuerId == null || npc.StringId != _activePursuerId) return null;
 
          InterceptionTrigger trigger = _activePursuerTrigger;
+         bool isFiefAudience = _activePursuerIsFiefAudience;
          _activePursuerId = null;
          _activePursuerSince = -1;
          _activePursuerTrigger = InterceptionTrigger.None;
+         _activePursuerIsFiefAudience = false;
          _meetingOpened = false;
          _lastPursuitDistance = -1f;
+
+         // A fief audience never rode anywhere -- the NPC was already standing where the player walked in and
+         // simply asked for a word. Only HeardOfDeed is ever stashed this way (FiefAudiencePolicy.IsFiefValid),
+         // so no further switch on trigger is needed here.
+         if (isFiefAudience)
+            return "It is YOU who sought this meeting: word of the player's recent deeds reached you, and rather " +
+                   "than ride out you simply asked them for a private word where you already stood. Open by " +
+                   "raising what you heard, be it admiration, alarm, or a reckoning.";
 
          return trigger == InterceptionTrigger.TerritorialPatrol
             ? "It is YOU who sought this meeting: you rode out to challenge the player for crossing your realm's " +
               "lands. Open on that footing — demand their business here, wary and territorial — rather than waiting on them."
             : "It is YOU who sought this meeting: word of the player's recent deeds reached you and you rode out to " +
               "see them while it was fresh. Open by raising what you heard — be it admiration, alarm, or a reckoning.";
+      }
+
+      /// <summary>
+      ///   True while the one-shot interception slot (<see cref="ConsumeInterceptionReason" />) is already
+      ///   claimed, by a real road pursuit or a stashed fief audience. FiefAudienceBehavior checks this before
+      ///   offering, so the two ways an NPC can want a word with the player never collide over the same slot.
+      /// </summary>
+      public bool HasActivePursuer => _activePursuerId != null;
+
+      /// <summary>
+      ///   Peeks (without consuming) whether the CURRENTLY active slot is a stashed fief audience rather than a
+      ///   road pursuit. ChatViewModel.ActivateInterceptionOpener reads this, synchronously, before
+      ///   ConsumeInterceptionReason ever runs, to pick its own opener cue's framing ("on the road" versus
+      ///   "where you already stood"), since that cue is a separate string from the one ConsumeInterceptionReason
+      ///   returns and must not contradict it.
+      /// </summary>
+      public bool ActivePursuitIsFiefAudience => _activePursuerIsFiefAudience;
+
+      /// <summary>
+      ///   Stashes a one-shot interception directive for <paramref name="npc" /> via the SAME
+      ///   <see cref="ConsumeInterceptionReason" /> slot a road pursuit uses, so a fief audience's opener
+      ///   survives to the first LLM turn without a second, diverging plumbing. Unlike <see cref="BeginPursuit" />,
+      ///   this never engages a party (a fief-audience NPC has none) and never touches the road pursuit's own
+      ///   cooldown map: FiefAudienceBehavior owns its own gate and only calls this once
+      ///   <see cref="HasActivePursuer" /> is already false.
+      /// </summary>
+      public void StashFiefAudienceReason(Hero npc, InterceptionTrigger trigger)
+      {
+         if (npc == null || trigger == InterceptionTrigger.None) return;
+
+         _activePursuerId = npc.StringId;
+         _activePursuerTrigger = trigger;
+         _activePursuerIsFiefAudience = true;
+         _activePursuerSince = (int) CampaignTime.Now.ToDays;
+         _meetingOpened = true; // there is no party to force a meeting for; nothing for OnTick to do
+         _lastPursuitDistance = -1f;
       }
 
       /// <summary>Forces the named lord to ride out and intercept the player (console testing).</summary>
@@ -284,7 +336,11 @@ namespace CalradiaRemembers.Interception
             ? null
             : Hero.FindFirst(h => h.StringId == id);
 
-      private static bool HeardRecentPlayerDeed(Hero lord, int today)
+      /// <summary>
+      ///   Internal (not private) so FiefAudienceBehavior can reuse the SAME "has this NPC plausibly heard of a
+      ///   recent deed" fact-building the road interception uses, rather than a diverging copy.
+      /// </summary>
+      internal static bool HeardRecentPlayerDeed(Hero lord, int today)
       {
          try
          {

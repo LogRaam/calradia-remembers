@@ -1214,7 +1214,18 @@ STATUS: the DATA side landed first. `conviction` (2026-07-13) is authored today 
 true, and therefore what they pursue, as opposed to `backstory` which only colours their voice. The editor gives
 the player a face for these fields; it does not need new fields to be worth building.
 
-## WISHED (player request, Fakade 2026-07-13): an AUDIENCE in a fief, from NPCs who have no party
+## BUILT, untested in game (player request, Fakade 2026-07-13; built 2026-08-20 Sonnet test-first): an AUDIENCE in a fief, from NPCs who have no party
+
+SCOPE NOTE (v1): reuses `InterceptionPolicy.Choose`, which today only produces `HeardOfDeed` (and the road-only
+`TerritorialPatrol`), so a fief audience currently fires when a partyless NPC present in the settlement has heard of
+a recent player deed and wants a word. The other reasons this section imagined (a grudge, a kindness owed, a
+pending letter's subject, an outstanding quest, a stance verdict) are NOT yet interception triggers; adding them to
+`InterceptionPolicy` is the natural follow-up and would enrich BOTH the road interception and the fief audience at
+once. Accept/Decline inquiry (never forced), rides the "Lords Approaching You" pacing + a per-NPC cooldown, and
+yields to a companion audience so at most one popup fires per settlement entry. Untested-in-game risk: the chat-open
+path (`OpenChatForInterceptingHero` with no live vanilla conversation) is only unit-covered at the gate, not the
+engine open.
+
 
 > *"Is it possible for this to happen with NPCs that do not have a party? If I enter a fief, an NPC may want a
 > word with me. Maybe get an option box where the player can choose to accept or decline the interaction? I don't

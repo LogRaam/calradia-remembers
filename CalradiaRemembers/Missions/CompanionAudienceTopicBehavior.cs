@@ -36,6 +36,7 @@ using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
@@ -393,28 +394,37 @@ namespace CalradiaRemembers.Missions
       ///   not pull the player aside mid-march, but a settlement is a natural pause for a private word.
       ///   SettlementEntered fires for EVERY party entering EVERY settlement, so this filters to the player's
       ///   own party first (the firehose filter used elsewhere in the mod, e.g. TownAmbushBehavior).
+      ///   COORDINATION with FiefAudienceBehavior (fief lords/ladies/notables with no field party asking for a
+      ///   word): at most ONE audience popup may appear per entry, so the fief pass only runs when a companion
+      ///   audience was NOT itself raised this entry (see FiefAudienceBehavior's own class header).
       /// </summary>
       private void OnSettlementEntered(MobileParty party, Settlement settlement, Hero hero)
       {
          if (party != MobileParty.MainParty || settlement == null) return;
 
-         TryOfferAudience();
+         if (TryOfferAudience()) return; // one popup per entry: a companion audience already claimed it
+
+         FiefAudienceBehavior.Instance?.TryOfferOnSettlementEntry();
       }
 
       /// <summary>
       ///   The shared offer logic behind both the real trigger (OnSettlementEntered) and the console test
       ///   path (RunTick): gated by contentment + the GLOBAL cooldown only, no second random roll on top,
       ///   the cooldown already keeps repeated settlement visits inside its window from offering anything twice.
+      ///   Returns true only when a popup was actually raised, so OnSettlementEntered knows whether the
+      ///   fief-audience pass may still run this same entry.
       /// </summary>
-      private void TryOfferAudience()
+      private bool TryOfferAudience()
       {
-         if (!ModSettings.CompanionContentment) return;
-         if (InCooldown()) return;
+         if (!ModSettings.CompanionContentment) return false;
+         if (InCooldown()) return false;
 
          (Hero Companion, CompanionAudienceTopicScan Scan)? found = FindBestAcrossRoster();
-         if (found == null) return; // silence is the default: nothing worth saying was found anywhere in the roster
+         if (found == null) return false; // silence is the default: nothing worth saying was found anywhere in the roster
 
          RequestAudience(found.Value.Companion, found.Value.Scan);
+
+         return true;
       }
 
       private void RequestAudience(Hero h, CompanionAudienceTopicScan scan)

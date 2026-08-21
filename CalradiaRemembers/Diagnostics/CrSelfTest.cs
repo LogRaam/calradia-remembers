@@ -177,6 +177,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("companion_gratitude", Severity.Light, "New sixth found-topic (design brief 2026-08-20): a content companion thanking the player for a specific kindness, purely warm, never a request/bargain. Seeds a real Appreciation via the real TryPlant gate on a content companion, drives the REAL CompanionAudienceTopicResolver.Scan, and asserts it HOLDS with the seeded detail; asserts the SAME appreciation's own key, once marked spent, WITHHOLDS it (spend-once); and asserts an otherwise-identical but unhappy (Disgruntled) companion never holds it either (the happiness gate). Restores the companion's original happiness afterwards; does not remove the seeded appreciation (mirrors appreciation_flow/appreciation_repeat, which have no removal API to call)", TestCompanionGratitude),
          new SelfTest("companion_scheme_warning", Severity.Light, "New seventh found-topic (design brief 2026-08-20 follow-up): a loyal companion warning the player of a secret plot against them, purely a warning, never a request/bargain, and never a live LLM call. Seeds a real Scheme against Hero.MainHero via the real ForcePlot launch path on a content companion, drives the REAL CompanionAudienceTopicResolver.Scan, and asserts it HOLDS with the plotter named in the detail; asserts the SAME plot's own key, once marked spent, WITHHOLDS it (spend-once); and asserts an otherwise-identical but unhappy (Disgruntled) companion never holds it either (the happiness gate). Restores the companion's original happiness AND removes the seeded scheme from the live ledger afterwards (unlike an appreciation, a live scheme carries real feud/rumour machinery, so none may survive this test)", TestCompanionSchemeWarning),
          new SelfTest("companion_ambition", Severity.Light, "New eighth found-topic (design brief 2026-08-20 follow-up 2): a content, ambitious companion voicing ONE of four bound ambitions, each resolved by an EXISTING action verb, so a granted ambition executes nothing itself, unlike Gratitude/SchemeWarning. Drives the REAL CompanionAudienceTopicResolver.Scan against a real companion already riding in the main party (made comfortably Content), and asserts it HOLDS with a non-empty detail (the Command ambition holds trivially for any main-party companion, so no extra engine-state seeding is needed); asserts the SAME companion, asked again within CompanionAmbitionPolicy.CooldownDays, WITHHOLDS it (the per-companion cooldown); and asserts the identical companion, made Disgruntled, never holds one either (the happiness gate). Restores the companion's original happiness afterwards", TestCompanionAmbition),
+         new SelfTest("fief_audience", Severity.Light, "Player wish (Fakade, roadmap): road-only InterceptionBehavior needs a field party to move, so anyone without one (ladies, notables, a garrisoned lord standing around in a fief) never got a turn. Finds a real partyless hero standing in a live settlement; asserts the pure gate (FiefAudiencePolicy.ChooseFiefValid) raises nothing for a no-reason fact set; seeds a fresh, high-reach, player-involving WorldEvent so the SAME live fact HeardRecentPlayerDeed the road path reads is real, not fabricated; drives the REAL candidate scan (FiefAudienceBehavior.DebugScanAndStamp, never the live UI inquiry, never an LLM call) and asserts it offers that NPC with a fief-valid trigger; then asserts the SAME NPC asked again is WITHHELD by the per-NPC cooldown the offer itself just stamped. Removes the seeded WorldEvent and clears the stamped cooldown afterwards", TestFiefAudience),
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
          new SelfTest("letter_memory", Severity.Light, "Player report (Desporion): a marriage proposal 'agreed on the terms' over three letters was denied face to face because letters left only a generic 'Received a letter (Reason)' memory, never their substance. Pure half: LetterMemoryPolicy.ShouldRemember excludes the two re-ping reasons (AwaitingReply, QuestUpdate) and includes MarriageProposal; BaseMemory is first-person and reflects direction. Real-path half: drives the REAL LetterMemoryFinalizer.RecordLetterMemory (LetterPopupManager.MarkReceived's own seam) with a ShouldRemember=false reason (QuestUpdate), so the run can never fall through to the async LLM summarizer (Lane C, kept out of cr.testall), and asserts the base event actually lands on profile.Events. Removes the event it added", TestLetterMemory),
          new SelfTest("world_conditions", Severity.Light, "Mechanical: the engine reads the weekly world-conditions feeder depends on still work against the live game (a renamed field or a changed model signature would silently swallow to 0 inside the feeder's own guards, recording nothing forever). Reads GetScoreOfDeclaringWar in both directions between two live kingdoms and a live town's FoodStocks/FoodChange/Prosperity DIRECTLY, asserts each is finite, then runs the real RunScan and asserts both scanners ran. Skips when the world has fewer than two kingdoms or no town", TestWorldConditions),
@@ -8381,6 +8382,68 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             CompanionHappinessService.Set(subject, originalHappiness);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   MECHANICAL (no LLM, no live UI inquiry): the fief-audience pillar (player wish, Fakade) end to end.
+      ///   Road-only InterceptionBehavior needs a field party to move, so anyone without one never got a turn;
+      ///   this proves the settlement-entry replacement path fires on a REAL live fact (a fresh, high-reach,
+      ///   player-involving WorldEvent, exactly what InterceptionBehavior.HeardRecentPlayerDeed itself reads for
+      ///   the road path) rather than a fabricated one, and that the per-NPC cooldown the offer starts actually
+      ///   withholds a second offer for the SAME NPC. Requires a real partyless hero standing in some settlement
+      ///   right now (a lord garrisoned in his fief, a lady, a notable); MANUAL when none exists this session.
+      /// </summary>
+      private static string TestFiefAudience(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("fief_audience");
+
+         FiefAudienceBehavior fiefBehavior = FiefAudienceBehavior.Instance;
+         if (t.Skip(fiefBehavior == null, "Fief-audience system is not active")) return t.Line();
+
+         Hero candidate = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != null && h != Hero.MainHero && h.IsAlive && !h.IsPrisoner
+            && h.PartyBelongedTo == null && h.CurrentSettlement != null);
+
+         if (t.Skip(candidate == null, "no partyless hero is standing in any settlement right now to drive the scan against"))
+            return t.Line();
+
+         Settlement settlement = candidate.CurrentSettlement;
+
+         // The pure gate, driven with the one live fact explicitly false: an NPC who has heard nothing must
+         // raise nothing, the same rule SelectBestCandidate itself enforces via FiefAudiencePolicy.ChooseFiefValid.
+         t.Expect("aNoReasonNpcRaisesNothing",
+            FiefAudiencePolicy.ChooseFiefValid(new InterceptionFacts {HeardRecentPlayerDeed = false}),
+            InterceptionTrigger.None);
+
+         // Seed the ONE live fact HeardRecentPlayerDeed reads (WorldEventStore.GetKnownEvents, awareness-gated):
+         // a fresh (today), maximum-reach, player-involving event, so the scan below finds a REAL reason rather
+         // than a mocked one: magnitude 100 clears RumorAwareness.Threshold (50) with zero geo/faction bonus,
+         // so this is deterministic wherever the candidate happens to stand.
+         var seeded = new WorldEvent {
+            Type = WorldEventType.PlayerFeat,
+            Summary = "[SELFTEST] a deed worth hearing of",
+            Magnitude = 100,
+            InvolvesPlayer = true
+         };
+         WorldEventStore.Instance?.Record(seeded);
+
+         try
+         {
+            FiefAudienceCandidate first = fiefBehavior.DebugScanAndStamp(settlement);
+            t.Expect("aPartylessNpcWithALiveReasonIsOffered", first?.HeroId, candidate.StringId);
+            t.Expect("theOfferedTriggerIsFiefValid", first != null && FiefAudiencePolicy.IsFiefValid(first.Trigger), true);
+
+            FiefAudienceCandidate second = fiefBehavior.DebugScanAndStamp(settlement);
+            bool sameNpcWithheld = second == null || second.HeroId != candidate.StringId;
+            t.Expect("thePerNpcCooldownWithholdsASecondOfferForTheSameNpc", sameNpcWithheld, true);
+         }
+         finally
+         {
+            if (!string.IsNullOrEmpty(seeded.Id)) WorldEventStore.Instance?.Remove(seeded.Id);
+            fiefBehavior.DebugClearCooldown(candidate.StringId);
          }
 
          return t.Line();

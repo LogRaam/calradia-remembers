@@ -11,6 +11,7 @@ using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.GUI;
+using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Grudges;
@@ -1302,11 +1303,15 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Opens the interception meeting with the lord speaking FIRST. A lord who rode out to stop the player
-      ///   does not wait to be addressed: this fires an NPC-led opening turn so he raises why he sought them out.
-      ///   The interception directive in the system prompt (EncounterContext.InterceptionReason, resolved on this
-      ///   turn's build) shapes what he opens with. A plain live conversation otherwise (full memory + actions),
-      ///   mirroring the companion-audience opener.
+      ///   Opens the interception meeting with the NPC speaking FIRST: a lord who rode out to stop the player on
+      ///   the road, OR (FiefAudienceBehavior) a partyless NPC who simply asked for a word where they already
+      ///   stood. Either way they do not wait to be addressed: this fires an NPC-led opening turn so they raise
+      ///   why they sought the player out. The interception directive in the system prompt
+      ///   (EncounterContext.InterceptionReason, resolved on this turn's build) shapes what they open with; this
+      ///   cue is a SEPARATE string and must not contradict it, so it reads InterceptionBehavior.ActivePursuitIsFiefAudience
+      ///   (a peek, not a consume: ConsumeInterceptionReason itself runs later, inside this turn's context build)
+      ///   to pick the right framing. A plain live conversation otherwise (full memory + actions), mirroring the
+      ///   companion-audience opener.
       /// </summary>
       public void ActivateInterceptionOpener()
       {
@@ -1324,10 +1329,15 @@ namespace CalradiaRemembers.Chat
          _messages.Add(placeholder);
          IsSendEnabled = false;
 
-         // The lord opens. A synthetic cue, never shown or logged as a player line; the THIS MEETING directive
-         // carries the actual reason he rode out (territorial challenge, or word of a fresh deed).
-         const string opener = "[You rode out and stopped the player on the road. Open the conversation YOURSELF, " +
-                               "in your own voice, on the footing described above. Do not wait for them to speak first.]";
+         // The NPC opens. A synthetic cue, never shown or logged as a player line; the THIS MEETING directive
+         // carries the actual reason (territorial challenge, word of a fresh deed, or, for a fief audience,
+         // the same news, raised where they already stood rather than ridden out for).
+         bool isFiefAudience = InterceptionBehavior.Instance?.ActivePursuitIsFiefAudience == true;
+         string opener = isFiefAudience
+            ? "[You asked the player for a private word where you already stood. Open the conversation YOURSELF, " +
+              "in your own voice, on the footing described above. Do not wait for them to speak first.]"
+            : "[You rode out and stopped the player on the road. Open the conversation YOURSELF, " +
+              "in your own voice, on the footing described above. Do not wait for them to speak first.]";
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, speaker, placeholder, true);
       }

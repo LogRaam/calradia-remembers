@@ -59,6 +59,25 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.fief_audience [name]
+      ///   Forces the fief-audience "may I have a word" popup for the named partyless NPC standing in a
+      ///   settlement (ladies, notables, a garrisoned lord with no field party), the settlement-entry
+      ///   counterpart to cr.intercept, bypassing the pacing roll and the per-NPC cooldown to test the
+      ///   Accept/Decline popup without waiting for a real entry.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("fief_audience", "cr")]
+      public static string ForceFiefAudience(List<string> args)
+      {
+         var behavior = FiefAudienceBehavior.Instance;
+
+         if (behavior == null) return "Fief-audience system is not active.";
+
+         Hero npc = ResolveHero(args);
+
+         return behavior.DebugForceOffer(npc);
+      }
+
+      /// <summary>
       ///   cr.scheme [name]
       ///   Force-plots a scheme: the named hero (or the current conversation NPC) plots against their
       ///   most-hated rival lord. Use cr.scheme_advance to step it, cr.schemes to watch.

@@ -376,7 +376,10 @@ namespace CalradiaRemembers.Dialogue
       ///   Opens the ordinary CR conversation chat for <paramref name="hero" /> PROGRAMMATICALLY (no player menu
       ///   click), so a forced meeting (a lord who rode out to intercept the player) cannot be dodged by backing
       ///   out of the vanilla menu. Called from the staged-conversation opener while the map conversation with the
-      ///   lord is live, so <see cref="Hero.OneToOneConversationHero" /> is that lord. Picks a relation-appropriate
+      ///   lord is live, so <see cref="Hero.OneToOneConversationHero" /> is that lord, but also called directly
+      ///   for a fief audience (FiefAudienceBehavior), which has no vanilla conversation at all: <paramref name="hero" />
+      ///   is threaded through to <see cref="OnPlayerSelectedChat" /> explicitly rather than trusting the live
+      ///   <see cref="Hero.OneToOneConversationHero" />, which is null in that path. Picks a relation-appropriate
       ///   greeting and drops any line the staging captured (there is no real vanilla exchange to carry over).
       /// </summary>
       public void OpenChatForInterceptingHero(Hero hero)
@@ -398,13 +401,18 @@ namespace CalradiaRemembers.Dialogue
             // No canned greeting: the lord opens with an LLM-generated line via the NPC-led opener below, so he
             // does not both greet blandly AND then raise why he rode out.
             _pendingGreeting = null;
-            OnPlayerSelectedChat();
+            OnPlayerSelectedChat(target);
             ChatManager.ActiveViewModel?.ActivateInterceptionOpener();
          }
          catch (Exception ex) { ModLog.Error($"[INTERCEPT] OpenChatForInterceptingHero failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
-      private void OnPlayerSelectedChat()
+      /// <summary>
+      ///   <paramref name="heroOverride" /> lets a caller with no live vanilla conversation (a fief audience,
+      ///   opened straight from a settlement-entry inquiry) name the target explicitly; every ordinary caller
+      ///   passes null and keeps reading the live <see cref="Hero.OneToOneConversationHero" />, unchanged.
+      /// </summary>
+      private void OnPlayerSelectedChat(Hero heroOverride = null)
       {
          ModLog.Info("=== OnPlayerSelectedChat STARTED ===");
          try
@@ -418,7 +426,7 @@ namespace CalradiaRemembers.Dialogue
                return;
             }
 
-            var hero = Hero.OneToOneConversationHero;
+            var hero = heroOverride ?? Hero.OneToOneConversationHero;
             ModLog.Info($"Hero.OneToOneConversationHero = {hero?.Name}");
             if (hero == null)
             {

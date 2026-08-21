@@ -241,6 +241,12 @@ namespace CalradiaRemembers
          // an old callback / a rumour), never a mood-only check-in. One shared cooldown across the whole
          // roster. Registered after CompanionMissionBehavior/GrudgeBehavior/WorldEventStore (it reads all three).
          campaignStarter.AddBehavior(new CompanionAudienceTopicBehavior());
+         // Fief audiences (player wish, Fakade): the road-only InterceptionBehavior above needs a field party to
+         // move, so anyone without one (ladies, notables, a garrisoned lord standing around in a fief) never got
+         // a turn. On settlement entry, offers an Accept/Decline word with the strongest fief-valid partyless NPC
+         // standing there. CompanionAudienceTopicBehavior.OnSettlementEntered drives this (see that file) so at
+         // most one audience popup -- companion or fief -- appears per entry; registered after it for that reason.
+         campaignStarter.AddBehavior(new FiefAudienceBehavior());
          // War-weariness: wounds and captures accrue a toll on each companion (a SEPARATE axis from happiness);
          // rest eases it; a spent veteran asks for an honorable retirement — a landless one leaves, a landed one
          // (governor / party-leader) steps back from the field but stays in the clan. Pure model in Logic.
