@@ -32,21 +32,30 @@ using TaleWorlds.Library;
 namespace CalradiaRemembers.Nemesis
 {
     /// <summary>
-    ///   Registers the player line that lets the player open a PLAYER-AS-CAPTOR scene against a
-    ///   tracked nemesis they currently hold prisoner, from the ordinary party-screen "Talk" conversation
-    ///   (the same <c>hero_main_options</c> hub <see cref="CalradiaRemembers.Dialogue.LlmDialogFlow" />
-    ///   already uses for every other hero). Shown ONLY when the conversation partner is the nemesis
-    ///   <see cref="NemesisBehavior.PlayerHeldNemesisPrisoner" /> currently returns; its consequence opens
+    ///   Registers the player lines that let the player open a PLAYER-AS-CAPTOR scene against a hero they
+    ///   currently hold prisoner, from the ordinary party-screen "Talk" conversation (the same
+    ///   <c>hero_main_options</c> hub <see cref="CalradiaRemembers.Dialogue.LlmDialogFlow" /> already uses
+    ///   for every other hero). TWO mutually-exclusive lines share one consequence: a distinct, charged
+    ///   line when the partner is the tracked nemesis (<see cref="NemesisBehavior.PlayerHeldNemesisPrisoner" />),
+    ///   and a plainer captor line for any OTHER hero prisoner the player holds, so every captive can be
+    ///   subjected to the scene, not only a nemesis (Gabriel 2026-08-21). The consequence opens
     ///   <see cref="ChatManager.OpenForCaptorScene" /> directly (never <see cref="CaptiveSceneStager" />)
-    ///   because this line only ever fires from WITHIN an already-live conversation scene the player
+    ///   because these lines only ever fire from WITHIN an already-live conversation scene the player
     ///   started themselves, so riding it is the VRAM-safe choice.
     /// </summary>
     public static class NemesisPrisonerDialogFlow
     {
-        // The player's own line opening the captor scene. Deliberately distinct from LlmDialogFlow's
-        // neutral "A word with you." so the player can tell the two apart: this one is the confrontation.
+        // The player's own line opening the captor scene against the tracked NEMESIS. Deliberately distinct
+        // from both LlmDialogFlow's neutral "A word with you." and the generic captor line below, so the
+        // player can tell them apart: this one names the hunt now ended in chains.
         private const string OpenCaptorSceneOptionText =
             "The hunt between us is over, for now. Let us speak, now that you are the one in chains.";
+
+        // The generic captor line, shown for any OTHER hero prisoner the player holds (not the nemesis, who
+        // gets the charged line above). Still unmistakably a captor's opening, distinct from the neutral
+        // "A word with you." so the player chooses the confrontation deliberately.
+        private const string OpenCaptorSceneGenericOptionText =
+            "You are mine now, and these chains are yours. Let us have a word, you and I.";
 
         /// <summary>
         ///   Adds the player line to the <c>hero_main_options</c> hub, the same hub reached whether the
@@ -67,6 +76,15 @@ namespace CalradiaRemembers.Nemesis
                 CanOpenCaptorScene,
                 OpenCaptorScene,
                 116); // above LlmDialogFlow's ordinary "A word with you." (110), so it stands out first
+
+            starter.AddPlayerLine(
+                "calradia_remembers_prisoner_captor_scene",
+                "hero_main_options",
+                "cr_nemesis_captor_scene_dummy_token",
+                OpenCaptorSceneGenericOptionText,
+                CanOpenCaptorSceneForAnyPrisoner,
+                OpenCaptorScene,
+                115); // just below the nemesis line; the two conditions are mutually exclusive, so only one ever shows
         }
 
         #region private
@@ -84,22 +102,45 @@ namespace CalradiaRemembers.Nemesis
         }
 
         /// <summary>
-        ///   Opens the captor scene against the held nemesis, mirroring
+        ///   True when the conversation partner is any hero prisoner the player currently holds, EXCEPT the
+        ///   tracked nemesis (who gets the charged line via <see cref="CanOpenCaptorScene" /> instead, so the
+        ///   two lines never both show). "Held by the player" is the same test the captive-chat path uses
+        ///   (<c>IsPrisoner</c> + <c>PartyBelongedToAsPrisoner.LeaderHero == Hero.MainHero</c>). The player
+        ///   must not themselves be a captive: a captor scene is the player-as-captor direction.
+        /// </summary>
+        private static bool CanOpenCaptorSceneForAnyPrisoner()
+        {
+            if (Hero.MainHero?.IsPrisoner == true) return false;
+
+            Hero convoHero = Hero.OneToOneConversationHero;
+            if (convoHero is not {IsPrisoner: true}) return false;
+            if (convoHero.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero) return false;
+
+            return NemesisBehavior.Instance?.PlayerHeldNemesisPrisoner() != convoHero;
+        }
+
+        /// <summary>
+        ///   Opens the captor scene against the hero prisoner the player is talking to (the nemesis for the
+        ///   charged line, any other held prisoner for the generic one), mirroring
         ///   <see cref="CalradiaRemembers.Dialogue.LlmDialogFlow" />'s profile-loading shape but for the
         ///   captor-scene entry (<see cref="ChatManager.OpenForCaptorScene" />, never
         ///   <see cref="CaptiveSceneStager" />: this consequence runs from WITHIN the live conversation the
         ///   party-screen Talk already started, so opening directly rides that scene instead of starting a
-        ///   second one). Default intent Interrogation; the player's own words in chat, not a menu, decide
-        ///   whether it stays a conversation or turns to torture or execution.
+        ///   second one). Re-validates the partner is still a prisoner the player holds (the bridge is law,
+        ///   in case they were freed between the line showing and being picked). Default intent Interrogation;
+        ///   the player's own words in chat, not a menu, decide whether it stays a conversation or turns to
+        ///   torture or execution.
         /// </summary>
         private static void OpenCaptorScene()
         {
             try
             {
-                Hero nemesisHero = NemesisBehavior.Instance?.PlayerHeldNemesisPrisoner();
-                if (nemesisHero == null)
+                Hero prisonerHero = Hero.OneToOneConversationHero;
+                bool heldByPlayer = prisonerHero is {IsPrisoner: true}
+                                    && prisonerHero.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+                if (!heldByPlayer)
                 {
-                    ModLog.Info("[NEMESIS] captor scene aborted, he is no longer the player's tracked prisoner.");
+                    ModLog.Info("[NEMESIS] captor scene aborted, the partner is no longer a prisoner the player holds.");
 
                     return;
                 }
@@ -115,9 +156,9 @@ namespace CalradiaRemembers.Nemesis
                     return;
                 }
 
-                NpcProfile profile = behavior.Store?.Get(nemesisHero.StringId) ?? HeroProfileMapper.FromHero(nemesisHero);
+                NpcProfile profile = behavior.Store?.Get(prisonerHero.StringId) ?? HeroProfileMapper.FromHero(prisonerHero);
 
-                ChatManager.OpenForCaptorScene(nemesisHero, profile, CaptiveSceneIntent.Interrogation);
+                ChatManager.OpenForCaptorScene(prisonerHero, profile, CaptiveSceneIntent.Interrogation);
 
                 // Bring-participants-to-a-captor-scene. A captor scene opens with no witnesses of its own, so
                 // both pickers are wired here, each a no-op when there is nobody to bring, each queued after
@@ -130,8 +171,8 @@ namespace CalradiaRemembers.Nemesis
                 ChatViewModel opened = ChatManager.ActiveViewModel;
                 if (opened != null)
                 {
-                    WitnessResolver.ShowCompanionPickerIfNeeded(nemesisHero, opened.AddWitness);
-                    WitnessResolver.ShowBroughtCaptivePickerIfNeeded(nemesisHero, opened.AddWitness);
+                    WitnessResolver.ShowCompanionPickerIfNeeded(prisonerHero, opened.AddWitness);
+                    WitnessResolver.ShowBroughtCaptivePickerIfNeeded(prisonerHero, opened.AddWitness);
                 }
             }
             catch (Exception ex)
