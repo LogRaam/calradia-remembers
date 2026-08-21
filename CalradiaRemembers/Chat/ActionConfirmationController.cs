@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
@@ -146,9 +147,27 @@ namespace CalradiaRemembers.Chat
          int amount = 0;
          if (action.Parameters != null
              && (action.Parameters.TryGetValue("amount", out string a) || action.Parameters.TryGetValue("price", out a)))
-            int.TryParse(a, out amount);
+            amount = ParseCoinAmount(a);
 
          return amount;
+      }
+
+      /// <summary>
+      ///   Parses a coin amount tolerantly. A model (a small local one especially) may write "10,000", "10 000",
+      ///   or "10000 denars"; a bare int.TryParse rejects the first two outright and reads a partial, wrong value
+      ///   from the third (player report: giving 10,000 registered as a far smaller sum). Keep only the digit run,
+      ///   so "10,000 denars" and "10 000" both parse to 10000. A leading minus is dropped: a transfer amount is
+      ///   always non-negative here.
+      /// </summary>
+      private static int ParseCoinAmount(string raw)
+      {
+         if (string.IsNullOrWhiteSpace(raw)) return 0;
+
+         var digits = new StringBuilder(raw.Length);
+         foreach (char c in raw)
+            if (char.IsDigit(c)) digits.Append(c);
+
+         return digits.Length > 0 && int.TryParse(digits.ToString(), out int parsed) ? parsed : 0;
       }
 
       /// <summary>Executes a confirmed action through the bridge and reports it, exactly as the inline path would have.</summary>
