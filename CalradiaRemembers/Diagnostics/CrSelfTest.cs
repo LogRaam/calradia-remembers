@@ -8273,7 +8273,11 @@ namespace CalradiaRemembers.Diagnostics
                   subject, new HashSet<string>(), new HashSet<string>(), thanked, new HashSet<string>(), new Dictionary<string, int>());
                CompanionAudienceTopicScan spentScan = rescanned.FirstOrDefault(s => s.Topic == CompanionAudienceReason.Gratitude);
 
-               t.Expect("aSpentKeyWithholdsTheSameKindness", spentScan is {Holds: false}, true);
+               // Spend-once is per KINDNESS: this specific appreciation must not resurface. A DIFFERENT
+               // qualifying kindness the companion also holds legitimately may, so assert the spent key is
+               // gone, not that no gratitude topic holds at all (a live companion can hold several).
+               bool sameKindnessStillOffered = spentScan is {Holds: true} && spentScan.Key == scan.Key;
+               t.Expect("aSpentKeyWithholdsTheSameKindness", !sameKindnessStillOffered, true);
             }
 
             // The identical kindness, unspent, but the companion has soured: the happiness gate alone must
@@ -8499,13 +8503,20 @@ namespace CalradiaRemembers.Diagnostics
 
          try
          {
+            // The seeded event makes at least `candidate` eligible, but the scan picks the STRONGEST partyless
+            // NPC with any live reason, and the enriched triggers (grudge/appreciation/nemesis bounty) mean a
+            // busy settlement may hold a stronger one. So assert an offer IS raised to some fief-valid partyless
+            // NPC, not that it is exactly the seeded lord, and test the cooldown against whoever was actually
+            // offered.
             FiefAudienceCandidate first = fiefBehavior.DebugScanAndStamp(settlement);
-            t.Expect("aPartylessNpcWithALiveReasonIsOffered", first?.HeroId, candidate.StringId);
+            t.Expect("aPartylessNpcWithALiveReasonIsOffered", first != null && !string.IsNullOrEmpty(first.HeroId), true);
             t.Expect("theOfferedTriggerIsFiefValid", first != null && FiefAudiencePolicy.IsFiefValid(first.Trigger), true);
 
             FiefAudienceCandidate second = fiefBehavior.DebugScanAndStamp(settlement);
-            bool sameNpcWithheld = second == null || second.HeroId != candidate.StringId;
+            bool sameNpcWithheld = first == null || second == null || second.HeroId != first.HeroId;
             t.Expect("thePerNpcCooldownWithholdsASecondOfferForTheSameNpc", sameNpcWithheld, true);
+
+            if (first != null && !string.IsNullOrEmpty(first.HeroId)) fiefBehavior.DebugClearCooldown(first.HeroId);
          }
          finally
          {
