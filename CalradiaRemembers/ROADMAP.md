@@ -1225,7 +1225,18 @@ him, and today has no surface for it. Two converging pieces (they solve each oth
    SuperGraham's gap in-fiction ("here is a nemesis plaguing my region, go end him"). Pairs with the
    captive-escape memory (a nemesis you escaped remembers it).
 
-## WISHED (Gabriel 2026-07-10): an ESCORTED courier option at the tavernkeeper
+## BUILT + SHIPPED (design diverged from the sketch below): an ESCORTED courier option at the tavernkeeper
+
+STATUS: DONE, differently and more cleanly than the 5-cavalry-skirmish sketch below. Driven by a sharper player
+report (2026-08-05: far letters lost almost every time), `TaverneLetterBehavior` now offers a per-CORRESPONDENT
+armed escort (a one-off premium `EscortCostPolicy.EscortPremium` scaled by map distance, `NpcProfile.EscortedChannel`),
+and an escorted thread rides INTERCEPTION-IMMUNE (`CourierService.ScanForWaylayers` never rolls a band against it)
+under a larger mounted guard (`TravelingParty.HeavyEscortSize`), replies inheriting the escort for free. Committed
+`0f04a47`, shipped (CHANGELOG "Send letters under armed escort"). NOTE: this immunity design is effectively
+pay-for-guaranteed-delivery, which the original 2026-07-10 ruling below called "too gamey"; the punishing real
+interception rate overtook that ruling. If the "wins a real skirmish instead of being immune" flavour is still
+wanted (5 cavalry that actually FIGHT and usually win, rather than never being attacked), that is a separate,
+larger change. Original sketch kept below for that option.
 
 Player report (enivicivokke, and others): couriers still get intercepted too often for some players, worse with
 mods like Better Bandits Plus. Gabriel's ruling: NOT a "pay for guaranteed delivery" option (too gamey). Instead,
