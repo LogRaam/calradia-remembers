@@ -2,6 +2,25 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.1.2.. 2026-08-21
+
+Characters who come to you, a lesson that sticks, and a nemesis you can finally track. Your saves from 2.1.1
+carry over untouched.
+
+### New
+- **Characters seek you out for more reasons.** A lord who holds a real grudge against you may ride out, or ask
+  for a word in a fief, to air it; one who owes you a kindness may seek you out to acknowledge it. And a character
+  standing in a settlement with **no field party** of their own (a lady, a notable, a garrisoned lord) can now ask
+  for a private word too, where before only a lord who could ride out on the road ever got a turn. Always an
+  accept/decline, never forced, declining costs nothing, and rate-limited so a busy town never opens a queue.
+- **A lesson leaves a mark.** When a character genuinely skilled in something gives you a real lesson in
+  conversation, it grants actual **skill XP** on your character sheet, bounded so it is a nudge not a shortcut, and
+  one teacher cannot be farmed.
+- **Your nemesis is no longer a ghost.** A nemesis you have already tangled with now carries a record on his
+  **encyclopedia page** (who he is, the region he ranges, your shared history: the times you met, your escape, your
+  victories). And a lord whose lands he plagues may seek you out to name him and tell you where he operates,
+  pointing you to the bounty to see him gone, so a nemesis you swore to hunt can actually be found.
+
 ## v2.1.1.. 2026-08-20
 
 More life from your companions, and letters that are remembered. Your saves from 2.1.0 carry over untouched.

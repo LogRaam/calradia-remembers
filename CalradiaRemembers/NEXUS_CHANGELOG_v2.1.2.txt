@@ -1,0 +1,8 @@
+Version 2.1.2
+
+Characters who come to you, a lesson that sticks, and a nemesis you can finally track. Your saves from 2.1.1 carry over untouched.
+
+New
+- Characters seek you out for more reasons now. A lord who holds a real grudge against you may ride out, or ask for a word in a fief, to air it; a lord who owes you a kindness may seek you out to acknowledge it. And a character standing in a settlement with no field party of their own, a lady, a notable, a garrisoned lord, can now ask for a private word too, where before only a lord who could ride out on the road ever got a turn. It is always an accept or decline, never a forced conversation, declining costs you nothing, and it is rate-limited so a busy town never opens a queue of them.
+- A lesson now leaves a mark on your character sheet. When a character who is genuinely skilled in something gives you a real lesson in conversation, it grants actual skill XP, bounded so a lesson is a nudge and never a shortcut, and a single teacher cannot be asked over and over.
+- Your nemesis is no longer a ghost. A nemesis you have already tangled with now carries a record on his encyclopedia page: who he is, the region he ranges, and your shared history with him (the times you met, your escape, your victories). And a lord whose lands he plagues may seek you out to name him and tell you where he operates, pointing you to the bounty to see him gone, so a nemesis you swore to hunt can actually be found.
