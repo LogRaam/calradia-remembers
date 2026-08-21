@@ -269,6 +269,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("nemesis_hunt", Severity.Heavy, "active hunt (map-presence): seed a latent nemesis of a live bandit band's culture -> force NemesisBehavior.TryMaterializeInto -> assert a nemesis Hero materialized INTO that band (joined its roster), so a battle the player starts can put the hunt's target in front of him; cleanup detaches him and marks the identity dead", TestNemesisHunt),
          new SelfTest("nemesis_bounty_capture", Severity.Light, "mint a nemesis anchored to a real lord's own region -> assert NemesisBountyDialogFlow's gate finds him eligible -> IssueNemesisBounty (real reward math) -> real TakePrisonerAction on him -> assert QuestDeedTracker's widened CapturePrisoner hook stamps the NemesisBounty quest satisfied", TestNemesisBountyCapture),
          new SelfTest("nemesis_bounty_execute", Severity.Light, "mint a nemesis anchored to a real lord's own region -> IssueNemesisBounty -> capture then execute him via the real execute_prisoner bridge action -> assert the widened HeroKilledEvent hook stamps the NemesisBounty quest AND NemesisResolutionBehavior resolves the identity, both off the same event", TestNemesisBountyExecute),
+         new SelfTest("nemesis_dossier", Severity.Light, "encyclopedia discoverability (player report SuperGraham339): mint a nemesis (TimesEncountered stays 0, latent) -> assert NemesisDossierFactory.BuildFor hides him -> bump TimesEncountered/RecaptureCount + plant a NotableEvent on his profile -> assert the SAME factory (the mixin's own source) now renders his identity, counters, and the planted history sentence. PLANTS a test nemesis (reload after)", TestNemesisDossier),
          new SelfTest("declare_war", Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it", TestDeclareWar),
          new SelfTest("scenario", Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals", TestScenario),
          new SelfTest("llm_dialogue", Severity.Light, "LLM: a plain greeting -> log the reply (relevance judged from the log)", TestLlmDialogue, true),
@@ -5356,6 +5357,59 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("differentRegionMintsDistinctHero", h3 != h1, true);
 
          t.Note($"minted nemesis {h1.Name}: profile registered, reused in-region, distinct across regions. Plants test nemeses (reload after the sweep).");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Encyclopedia discoverability piece (player report SuperGraham339): captured/tortured by a nemesis,
+      ///   escaped, killed the party, ran into him again, then "tried to look him up in the encyclopedia but
+      ///   didn't see any mention." Drives NemesisDossierFactory.BuildFor directly, the exact same call
+      ///   EncyclopediaHeroPageNemesisMixin and cr.nemesis [name] make, so this proves the mixin's own gate
+      ///   and wording without touching the (untestable) UIExtenderEx view model. First asserts a freshly
+      ///   MINTED nemesis (TimesEncountered still 0, since MintCaptorFor never bumps it) stays HIDDEN (the
+      ///   "hidden until materialised" design the whole pillar was ratified around), then bumps the counters
+      ///   and plants a NotableEvent on his profile to assert the dossier renders his identity, the shared
+      ///   history counters, AND the planted history sentence once he is a real ENCOUNTERED nemesis.
+      /// </summary>
+      private static string TestNemesisDossier(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_dossier");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero hero, NemesisIdentity nem) = MintSelfTestNemesis("selftest_nemesis_dossier", today);
+
+         if (t.Abort(hero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
+
+         // Latent: MintCaptorFor (unlike a real capture/materialize) never bumps TimesEncountered, so the
+         // dossier must stay hidden right after minting; leaking a latent nemesis here would spoil the
+         // late-reveal beat the whole pillar exists to deliver.
+         nem.TimesEncountered = 0;
+         NemesisDossierText hidden = NemesisDossierFactory.BuildFor(hero);
+         t.Expect("latentHasNoDossier", hidden.HasDossier, false);
+
+         // Encountered: the exact player report (captured, escaped, met again), so once TimesEncountered
+         // rises the dossier must show his identity and the shared history (counters + planted event).
+         nem.TimesEncountered = 2;
+         nem.RecaptureCount = 1;
+
+         NpcProfile profile = behavior.Store?.Get(hero.StringId);
+         if (profile != null)
+         {
+            profile.Events.Add(new NotableEvent(today - 5, NotableEventType.Conflict,
+               "selftest: slipped his grasp and escaped his hold."));
+            behavior.Store.Set(profile);
+         }
+
+         NemesisDossierText dossier = NemesisDossierFactory.BuildFor(hero);
+         t.Expect("encounteredHasDossier", dossier.HasDossier, true);
+         t.Expect("labelIsNemesisHeader", dossier.Label, "Nemesis:");
+         t.Expect("itemsNameHero", dossier.Items != null && dossier.Items.Contains(nem.Name), true);
+         t.Expect("itemsShowHistorySentence", dossier.Items != null && dossier.Items.Contains("slipped his grasp"), true);
+
+         t.Note($"{nem.Name} {nem.Epithet}: hidden while latent, dossier shown once encountered. Plants a test nemesis (reload after).");
 
          return t.Line();
       }

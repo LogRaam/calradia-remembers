@@ -757,10 +757,13 @@ namespace CalradiaRemembers
          => MutateKink(args, false, "cr.remove_kink <kink> [name]");
 
       /// <summary>
-      ///   cr.nemesis
-      ///   Lists the persistent nemesis roster (name, band, region, alive, recaptures, bound Hero) and whether
-      ///   the player is currently a nemesis's captive. Dev diagnostic for validating the Nemesis pillar in
-      ///   game: capture by a bandit party should mint/reuse a nemesis and bind a real Hero to him.
+      ///   cr.nemesis [name]
+      ///   No args: lists the persistent nemesis roster (name, band, region, alive, recaptures, bound Hero) and
+      ///   whether the player is currently a nemesis's captive. Dev diagnostic for validating the Nemesis pillar
+      ///   in game: capture by a bandit party should mint/reuse a nemesis and bind a real Hero to him.
+      ///   With a name fragment: also previews the encyclopedia dossier that hero's page would render, via the
+      ///   exact same NemesisDossierFactory.BuildFor the real page calls (discoverability piece, player report
+      ///   SuperGraham339), printing "(hidden: not yet encountered)" when the gate would hide it.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("nemesis", "cr")]
       public static string ShowNemesisRoster(List<string> args)
@@ -778,10 +781,21 @@ namespace CalradiaRemembers
             ? "YES — the player is currently held by a nemesis."
             : "no";
 
-         return (lines.Count == 0
+         string roster = (lines.Count == 0
                    ? "No nemesis on record yet."
                    : string.Join("\n", lines)) +
                 $"\nPlayer held by a nemesis: {held}";
+
+         if (args is not {Count: > 0}) return roster;
+
+         Hero target = ResolveHero(args);
+         if (target == null) return roster + "\n\nNo hero matches that name for a dossier preview.";
+
+         NemesisDossierText dossier = NemesisDossierFactory.BuildFor(target);
+
+         return roster + (dossier.HasDossier
+            ? $"\n\nDossier preview for {target.Name}:\n{dossier.Label}\n{dossier.Items}"
+            : $"\n\nDossier preview for {target.Name}: (hidden: not yet encountered)");
       }
 
       #region private

@@ -1147,7 +1147,13 @@ prefab name is chosen at window-open (`ChatManager.SkinPrefab`, applies next con
   "Background" heading is currently rendered text, not baked art. Then: a player-facing SKIN PICKER (MCM
   dropdown or an in-chat button) once the skin is validated, and a 3rd skin.
 
-## WISHED (player feedback SuperGraham339 2026-07-20 + Gabriel): nemesis discoverability + lord bounties
+## PARTLY BUILDING (player feedback SuperGraham339 2026-07-20 + Gabriel): nemesis discoverability + lord bounties
+
+STATUS 2026-08-20: piece 1 (an ENCOUNTERED nemesis gets an encyclopedia dossier section, hidden until met) BUILT,
+untested in game (Sonnet test-first; pure NemesisDossierBuilder + a mixin mirroring the Grievances one, gated on
+NemesisBehavior.GetByHero.TimesEncountered > 0; XML RENDERING is unverified, needs a dotnet build + game restart +
+Gabriel checking a captured-then-escaped nemesis's encyclopedia page). Piece 2 (proactive/discoverable lord bounty,
+and the tavern rumour layer "Coll raids near X") still OPEN.
 
 Player report (SuperGraham339, Nexus): captured and tortured by the nemesis "Coll the Unbroken", escaped,
 killed the party, later ran into Coll AGAIN in another looter party = "an incredible moment" (the pillar's
