@@ -20,16 +20,16 @@ namespace CalradiaRemembers
    public static partial class ModCheats
    {
       /// <summary>
-      ///   cr.testall [llmBudgetSeconds]
-      ///   Runs every registered end-to-end self-test EXCEPT the irreversible ones (declaring war,
-      ///   sealing one-shot scenarios) and prints a [SELFTEST] summary. Each test exercises the real
-      ///   service/bridge pipeline and logs PASS/FAIL/MANUAL under its own wall-clock budget; mechanical
-      ///   tests run first (fast, free), then the LLM ones. The irreversible tests are held back so a
-      ///   routine sweep never mutates the live campaign that way (and never poisons the conversation
-      ///   tests); run them explicitly via cr.test &lt;name&gt;, or cr.test full on a throwaway save.
-      ///   The optional numeric argument overrides the per-LLM-test budget in seconds for this run only
-      ///   (e.g. cr.testall 180 for a slow local model).
-      ///   WARNING: even the safe sweep mutates relations/quests/clans, copy your save or reload when done.
+      ///   cr.testall
+      ///   Runs the MECHANICAL/logic self-tests (fast, free, deterministic) EXCEPT the irreversible ones,
+      ///   and prints a [SELFTEST] summary. Each test exercises the real service/bridge pipeline and logs
+      ///   PASS/FAIL/MANUAL. The real-LLM roleplay/conversation tests are NO LONGER run here (they are slow,
+      ///   cost tokens, and flaky on a slow/over-reasoning model); the dedicated tools own that ground now:
+      ///   cr.rp_bench (scene quality), cr.action_bench (the interpreter), cr.test chat (the chat smoke set).
+      ///   The irreversible tests (declaring war, sealing one-shot scenarios) are held back so a routine
+      ///   sweep never mutates the live campaign that way; run them via cr.test &lt;name&gt;, or cr.test full
+      ///   on a throwaway save. WARNING: even this sweep mutates relations/quests/clans, copy your save or
+      ///   reload when done.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("testall", "cr")]
       public static string RunAllSelfTests(List<string> args)

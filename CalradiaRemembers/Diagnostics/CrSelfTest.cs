@@ -385,17 +385,18 @@ namespace CalradiaRemembers.Diagnostics
       // ── Public API (cr.testall / cr.test) ─────────────────────────────────
 
       /// <summary>
-      ///   The routine sweep (cr.testall): every test EXCEPT the irreversible ones (declaring war,
-      ///   sealing a one-shot scenario). Those mutate the LIVE campaign in ways only a reload undoes —
-      ///   and, running before the conversation tests, they poison every reply that follows (an actual
-      ///   war declaration had all six NPCs harping on "your house declared war"). So they are opt-in,
-      ///   one at a time, via <c>cr.test &lt;name&gt;</c> — or <c>cr.test full</c> on a throwaway save.
-      ///   <paramref name="llmBudgetSeconds" /> overrides the per-LLM-test wall-clock budget (see
-      ///   <see cref="BudgetSecondsFor" />) for this run only, e.g. a slow local model needs more than
-      ///   the default cap. Mechanical (non-LLM) tests run first, so a wiring failure surfaces in seconds.
+      ///   The routine sweep (cr.testall): every MECHANICAL test EXCEPT the irreversible ones. The real-LLM
+      ///   roleplay/conversation tests (CallsLlm) are NOT run here any more: they are slow, cost tokens, and
+      ///   are flaky on a slow or over-reasoning model, and the dedicated real-LLM tools now own that ground
+      ///   (cr.rp_bench for scene quality, cr.action_bench for the interpreter, cr.test chat for the chat smoke
+      ///   set). So cr.testall is the FAST, FREE, deterministic logic sweep. The irreversible tests (declaring
+      ///   war, sealing a one-shot scenario) are also held back: they mutate the LIVE campaign in ways only a
+      ///   reload undoes, so run them opt-in via <c>cr.test &lt;name&gt;</c>, or <c>cr.test full</c> on a
+      ///   throwaway save. <paramref name="llmBudgetSeconds" /> is kept for signature stability but is moot
+      ///   now that no LLM test runs here.
       /// </summary>
       public static string RunAll(NpcMemoryCampaignBehavior behavior, int? llmBudgetSeconds = null)
-         => RunGroup(Tests.Where(t => t.Severity != Severity.Irreversible), behavior,
+         => RunGroup(Tests.Where(t => t.Severity != Severity.Irreversible && !t.CallsLlm), behavior,
             true, llmBudgetSeconds);
 
       /// <summary>
