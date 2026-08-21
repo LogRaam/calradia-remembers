@@ -239,8 +239,12 @@ frame them as coerced leverage, never a free witness, never a threat, never an a
 "outnumbered" tally counts only non-brought witnesses as captors). REACHABILITY FIX (same day): a captor scene
 opened with no witnesses, so BOTH pickers are now wired into the captor-scene entry (`NemesisPrisonerDialogFlow`
 + the `cr.captor_scene` harness), companions first then prisoners, which is what finally makes INC 1 reachable in
-game. NOT play-tested yet (open a captor scene on a held nemesis, bring a companion and/or a second lord prisoner,
-address each). The nerethi party-screen entry-point convenience is still deferred (a UI change, the RP ships first).
+game. ENTRY BROADENED (same day, Gabriel's call): the captor scene was gated to the tracked nemesis, so an
+ordinary prisoner could never be subjected; a second party-screen "Talk" line now opens it for ANY hero prisoner
+the player holds, with its own plainer captor opener distinct from the nemesis line (mutually exclusive
+conditions, shared consequence in `NemesisPrisonerDialogFlow`). This also delivers most of nerethi's ask (pick
+your company from the party screen without the dungeon-cell walk). NOT play-tested yet (hold a lord prisoner,
+party screen -> Talk -> the captor line -> bring a companion and/or another lord prisoner, address each).
 
 ## WISHED (Gabriel 2026-08-21): a prisoner who tries to flee triggers the unarmed combat scene
 
