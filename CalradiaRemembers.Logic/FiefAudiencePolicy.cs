@@ -62,12 +62,15 @@ namespace CalradiaRemembers.Logic
         ///   well from someone who simply asks for a word where they already stand. So do
         ///   <see cref="InterceptionTrigger.Grudge" /> and <see cref="InterceptionTrigger.AppreciationOwed" />:
         ///   a grievance or a felt kindness is place-independent, unlike a claim about crossing a border, so
-        ///   both are just as believable voiced by someone who never moved.
+        ///   both are just as believable voiced by someone who never moved. <see cref="InterceptionTrigger.NemesisBounty" />
+        ///   is the same: a lord raising a nemesis plaguing his region is just as plausible standing in his
+        ///   own fief as riding out to say it.
         /// </summary>
         public static bool IsFiefValid(InterceptionTrigger trigger)
             => trigger == InterceptionTrigger.HeardOfDeed
                || trigger == InterceptionTrigger.Grudge
-               || trigger == InterceptionTrigger.AppreciationOwed;
+               || trigger == InterceptionTrigger.AppreciationOwed
+               || trigger == InterceptionTrigger.NemesisBounty;
 
         /// <summary>The trigger <see cref="InterceptionPolicy.Choose" /> would pick for these facts, narrowed to the fief-valid subset, or None.</summary>
         public static InterceptionTrigger ChooseFiefValid(InterceptionFacts facts)

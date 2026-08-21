@@ -40,11 +40,12 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.intercept [grudge|appreciationowed|territorialpatrol|heardofdeed] [name]
+      ///   cr.intercept [grudge|appreciationowed|nemesisbounty|territorialpatrol|heardofdeed] [name]
       ///   Forces the named lord (with a party on the map) to ride out and intercept the player,
       ///   bypassing the eligibility roll, to test the pursuit without waiting for the daily tick. The
-      ///   trigger defaults to HeardOfDeed when omitted (the original behaviour); for grudge/appreciationowed,
-      ///   the lord's REAL grievance/kindness against the player is used when one exists on file.
+      ///   trigger defaults to HeardOfDeed when omitted (the original behaviour); for grudge/appreciationowed/
+      ///   nemesisbounty, the lord's REAL grievance/kindness/eligible nemesis against the player is used when
+      ///   one exists on file.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("intercept", "cr")]
       public static string ForceIntercept(List<string> args)
@@ -67,7 +68,7 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.fief_audience [grudge|appreciationowed|heardofdeed] [name]
+      ///   cr.fief_audience [grudge|appreciationowed|nemesisbounty|heardofdeed] [name]
       ///   Forces the fief-audience "may I have a word" popup for the named partyless NPC standing in a
       ///   settlement (ladies, notables, a garrisoned lord with no field party), the settlement-entry
       ///   counterpart to cr.intercept, bypassing the pacing roll and the per-NPC cooldown to test the

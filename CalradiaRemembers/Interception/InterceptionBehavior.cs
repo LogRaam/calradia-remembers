@@ -13,6 +13,7 @@ using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
@@ -114,8 +115,8 @@ namespace CalradiaRemembers.Interception
          _lastPursuitDistance = -1f;
 
          // A fief audience never rode anywhere -- the NPC was already standing where the player walked in and
-         // simply asked for a word. HeardOfDeed, Grudge, and AppreciationOwed are all stashed this way
-         // (FiefAudiencePolicy.IsFiefValid); only TerritorialPatrol never is (road-only).
+         // simply asked for a word. HeardOfDeed, Grudge, AppreciationOwed, and NemesisBounty are all stashed
+         // this way (FiefAudiencePolicy.IsFiefValid); only TerritorialPatrol never is (road-only).
          if (isFiefAudience)
          {
             if (trigger == InterceptionTrigger.Grudge)
@@ -127,6 +128,13 @@ namespace CalradiaRemembers.Interception
                return "It is YOU who sought this meeting: a kindness the player showed you has stayed with you, " +
                       "and rather than let it go unspoken you simply asked them for a private word where you " +
                       $"already stood. Open by acknowledging it warmly, in your own voice.{DetailClause(detail)}";
+
+            if (trigger == InterceptionTrigger.NemesisBounty)
+               return "It is YOU who sought this meeting: a nemesis preys on your region still, and rather than " +
+                      "wait for the player to ask you simply drew them aside where you already stood. Open by " +
+                      $"naming him and where he operates, urgent but not a call to arms here and now.{DetailClause(detail)} " +
+                      "Point them to the bounty you would pay, but do not settle it in this exchange -- that is " +
+                      "raised and taken up the ordinary way, not here.";
 
             return "It is YOU who sought this meeting: word of the player's recent deeds reached you, and rather " +
                    "than ride out you simply asked them for a private word where you already stood. Open by " +
@@ -142,6 +150,12 @@ namespace CalradiaRemembers.Interception
             return "It is YOU who sought this meeting: a kindness the player showed you has stayed with you, and " +
                    "you rode out to seek them and acknowledge it. Open by acknowledging it warmly, in your own " +
                    $"voice.{DetailClause(detail)}";
+
+         if (trigger == InterceptionTrigger.NemesisBounty)
+            return "It is YOU who sought this meeting: a nemesis preys on your region still, and you rode out to " +
+                   "find the player and raise it in person. Open by naming him and where he operates, urgent but " +
+                   $"not a call to arms here and now.{DetailClause(detail)} Point them to the bounty you would " +
+                   "pay, but do not settle it in this exchange -- that is raised and taken up the ordinary way, not here.";
 
          return trigger == InterceptionTrigger.TerritorialPatrol
             ? "It is YOU who sought this meeting: you rode out to challenge the player for crossing your realm's " +
@@ -258,6 +272,10 @@ namespace CalradiaRemembers.Interception
                return HoldsSignificantAppreciation(npc, today, out string appreciationCause)
                   ? appreciationCause
                   : "a kindness you showed them (forced for testing, no real appreciation on file)";
+            case InterceptionTrigger.NemesisBounty:
+               return HasNemesisBountyToOffer(npc, out string nemesisDetail)
+                  ? nemesisDetail
+                  : "a nemesis plaguing your region (forced for testing, no real eligible nemesis on file)";
             default:
                return null;
          }
@@ -546,6 +564,33 @@ namespace CalradiaRemembers.Interception
          catch { return false; }
       }
 
+      /// <summary>
+      ///   Internal (not private) so FiefAudienceBehavior can reuse the SAME "does this lord have an eligible
+      ///   nemesis bounty to raise" fact-building the road interception uses. Reuses
+      ///   <see cref="NemesisBountyDialogFlow.FindEligibleNemesisFor" /> outright rather than re-deriving the
+      ///   eligibility gate, so this trigger and the scripted <c>hero_main_options</c> bounty offer it
+      ///   announces can never disagree about who is eligible. <paramref name="detail" /> names the nemesis and
+      ///   resolves his region the SAME way the encyclopedia dossier does
+      ///   (<see cref="NemesisDossierFactory.ResolveRegionDisplay" />), so the opener can name where he operates.
+      /// </summary>
+      internal static bool HasNemesisBountyToOffer(Hero lord, out string detail)
+      {
+         detail = null;
+
+         try
+         {
+            NemesisIdentity nem = NemesisBountyDialogFlow.FindEligibleNemesisFor(lord);
+            if (nem == null) return false;
+
+            string displayName = $"{nem.Name} {nem.Epithet}";
+            string region = NemesisDossierFactory.ResolveRegionDisplay(nem.RegionId);
+            detail = string.IsNullOrEmpty(region) ? displayName : $"{displayName}, who preys on {region}";
+
+            return true;
+         }
+         catch { return false; }
+      }
+
       private static bool IsHostileToPlayer(Hero lord)
       {
          try
@@ -600,6 +645,7 @@ namespace CalradiaRemembers.Interception
             InterceptionTrigger.TerritorialPatrol => $"{lord.Name} rides out to challenge you for crossing their lands.",
             InterceptionTrigger.Grudge => $"{lord.Name} rides toward you, a grievance weighing on their mind.",
             InterceptionTrigger.AppreciationOwed => $"{lord.Name} rides toward you, wishing to speak of a kindness you showed them.",
+            InterceptionTrigger.NemesisBounty => $"{lord.Name} rides toward you, wishing to speak of a nemesis plaguing their region.",
             _ => $"{lord.Name} rides toward you, having heard of your recent deeds."
          };
          try { MBInformationManager.AddQuickInformation(new TextObject(line)); }
@@ -851,6 +897,8 @@ namespace CalradiaRemembers.Interception
                   $"You rode out to confront the player over a grievance you hold against them{InlineDetail(detail)}, but the chase came to nothing before you could catch them.",
                InterceptionTrigger.AppreciationOwed =>
                   $"You rode out to seek the player and acknowledge a kindness they showed you{InlineDetail(detail)}, but the chase came to nothing before you could catch them.",
+               InterceptionTrigger.NemesisBounty =>
+                  $"You rode out to find the player and warn them of a nemesis plaguing your region{InlineDetail(detail)}, but the chase came to nothing before you could catch them.",
                _ =>
                   "You rode out because word of the player's recent deeds reached you and you meant to speak with them about it, but the chase came to nothing before you could catch them."
             };
@@ -891,6 +939,7 @@ namespace CalradiaRemembers.Interception
 
             bool holdsGrudge = HoldsLiveGrudgeAgainstPlayer(lord, today, out string grudgeCause);
             bool holdsAppreciation = HoldsSignificantAppreciation(lord, today, out string appreciationCause);
+            bool hasNemesisBounty = HasNemesisBountyToOffer(lord, out string nemesisDetail);
 
             var facts = new InterceptionFacts {
                OnCooldown = _cooldown.TryGetValue(lord.StringId, out int last) && today - last < CooldownDays,
@@ -900,7 +949,8 @@ namespace CalradiaRemembers.Interception
                PlayerNotoriety = notoriety,
                HeardRecentPlayerDeed = HeardRecentPlayerDeed(lord, today),
                HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
-               HoldsSignificantAppreciation = holdsAppreciation
+               HoldsSignificantAppreciation = holdsAppreciation,
+               HasNemesisBountyToOffer = hasNemesisBounty
             };
 
             InterceptionTrigger trigger = InterceptionPolicy.Choose(facts);
@@ -910,6 +960,7 @@ namespace CalradiaRemembers.Interception
             string detail = trigger switch {
                InterceptionTrigger.Grudge => grudgeCause,
                InterceptionTrigger.AppreciationOwed => appreciationCause,
+               InterceptionTrigger.NemesisBounty => nemesisDetail,
                _ => null
             };
 

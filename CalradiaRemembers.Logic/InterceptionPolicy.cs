@@ -28,7 +28,16 @@ namespace CalradiaRemembers.Logic
         ///   them for it. The gentlest of the four: a warm word, never a request or a bargain. Appended at
         ///   the end of the enum (frozen ordinals).
         /// </summary>
-        AppreciationOwed
+        AppreciationOwed,
+
+        /// <summary>
+        ///   A lord whose region is plagued by a nemesis he is eligible to put a bounty on (the SAME gate
+        ///   <c>NemesisBountyDialogFlow.FindEligibleNemesisFor</c> checks before the scripted
+        ///   <c>hero_main_options</c> offer) seeks the player out to name the nemesis and where he operates,
+        ///   pointing them to the bounty. Announcement only: accepting the bounty itself stays entirely at
+        ///   that existing scripted line, never here. Appended at the end of the enum (frozen ordinals).
+        /// </summary>
+        NemesisBounty
     }
 
     /// <summary>The facts a single candidate lord's interception decision rests on — engine-gathered, pure to reason over.</summary>
@@ -67,6 +76,14 @@ namespace CalradiaRemembers.Logic
         ///   a merely-formed kindness never reaches the pure decision.
         /// </summary>
         public bool HoldsSignificantAppreciation { get; set; }
+
+        /// <summary>
+        ///   This lord has a nemesis eligible to be bountied in his own region (the SAME gate
+        ///   <c>NemesisBountyDialogFlow.FindEligibleNemesisFor</c> checks) and has not yet raised it with the
+        ///   player. Reusing that gate rather than re-deriving eligibility keeps this trigger and the scripted
+        ///   bounty offer it announces from ever disagreeing about who is eligible.
+        /// </summary>
+        public bool HasNemesisBountyToOffer { get; set; }
     }
 
     /// <summary>
@@ -138,9 +155,11 @@ namespace CalradiaRemembers.Logic
         ///   Priority, after the guards: <see cref="InterceptionTrigger.TerritorialPatrol"/> (a hostile
         ///   realm defending its own land outranks everything else) &gt;
         ///   <see cref="InterceptionTrigger.Grudge"/> (a wrong pressed) &gt;
-        ///   <see cref="InterceptionTrigger.HeardOfDeed"/> (fresh news) &gt;
+        ///   <see cref="InterceptionTrigger.NemesisBounty"/> (a lord asking for the player's help against a
+        ///   real, named threat still outranks generic news, but a personal grudge against the PLAYER comes
+        ///   first) &gt; <see cref="InterceptionTrigger.HeardOfDeed"/> (fresh news) &gt;
         ///   <see cref="InterceptionTrigger.AppreciationOwed"/> (a warm acknowledgement, the least urgent of
-        ///   the four: nothing is lost by a kindness waiting one more day to be voiced).
+        ///   the five: nothing is lost by a kindness waiting one more day to be voiced).
         /// </summary>
         public static InterceptionTrigger Choose(InterceptionFacts f)
         {
@@ -152,6 +171,9 @@ namespace CalradiaRemembers.Logic
 
             if (f.HoldsLiveGrudgeAgainstPlayer)
                 return InterceptionTrigger.Grudge;
+
+            if (f.HasNemesisBountyToOffer)
+                return InterceptionTrigger.NemesisBounty;
 
             if (f.HeardRecentPlayerDeed)
                 return InterceptionTrigger.HeardOfDeed;

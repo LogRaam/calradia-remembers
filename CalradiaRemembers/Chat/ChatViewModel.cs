@@ -1346,7 +1346,8 @@ namespace CalradiaRemembers.Chat
       /// <summary>
       ///   The opener cue text for <see cref="ActivateInterceptionOpener" />, per trigger: a grudge is
       ///   confronted (in the NPC's own voice, never a forced fight, road interception opens a conversation
-      ///   not combat), a kindness is acknowledged warmly, and every other trigger keeps the older generic cue
+      ///   not combat), a kindness is acknowledged warmly, a nemesis bounty is announced (naming him and
+      ///   where he operates, never settled here), and every other trigger keeps the older generic cue
       ///   (the THIS MEETING directive built by InterceptionBehavior/FiefAudienceBehavior already carries its
       ///   specific footing).
       /// </summary>
@@ -1364,6 +1365,11 @@ namespace CalradiaRemembers.Chat
             case InterceptionTrigger.AppreciationOwed:
                return stood + "Open the conversation YOURSELF: warmly acknowledge, in your own voice, a " +
                       $"kindness they showed you{InterceptionDetailSuffix(detail)}. Do not wait for them to speak first.]";
+            case InterceptionTrigger.NemesisBounty:
+               return stood + "Open the conversation YOURSELF: name a nemesis preying on your region and where " +
+                      $"he operates{InterceptionDetailSuffix(detail)}, urgent but not a call to arms. Point them " +
+                      "to the bounty you would pay, but do not settle it here, that is taken up the ordinary " +
+                      "way. Do not wait for them to speak first.]";
             default:
                return stood + "Open the conversation YOURSELF, in your own voice, on the footing described " +
                       "above. Do not wait for them to speak first.]";

@@ -324,6 +324,72 @@ namespace CalradiaRemembers.Tests
                            .Should().Be(InterceptionTrigger.None);
       }
 
+      // ── NemesisBounty (a lord whose region is plagued by a nemesis seeks the player out to name him and ──
+      // ── where he operates, discoverability for the existing scripted hero_main_options bounty offer) ────
+
+      // The baseline positive case: a lord eligible to bounty a nemesis in his own region is a full trigger
+      // on its own, mirroring HeardOfDeed/Grudge/AppreciationOwed's own "the fact alone is enough" shape.
+      [Test]
+      public void GIVEN_a_lord_with_an_eligible_nemesis_bounty_to_offer_WHEN_choosing_THEN_they_come_to_announce_it()
+      {
+         InterceptionPolicy.Choose(Facts(hasNemesisBounty: true)).Should().Be(InterceptionTrigger.NemesisBounty);
+      }
+
+      // Priority pin: TerritorialPatrol (a hostile realm defending its own land) outranks a nemesis bounty
+      // exactly as it outranks Grudge/HeardOfDeed/AppreciationOwed above -- the territorial challenge is
+      // ALWAYS the most urgent reason a lord meets the player, whatever else is also true of him.
+      [Test]
+      public void GIVEN_both_a_territorial_challenge_and_a_nemesis_bounty_WHEN_choosing_THEN_the_patrol_still_takes_priority()
+      {
+         InterceptionPolicy.Choose(Facts(true, true, 90, hasNemesisBounty: true))
+                           .Should().Be(InterceptionTrigger.TerritorialPatrol);
+      }
+
+      // Priority pin: a live grudge against the PLAYER specifically outranks a nemesis bounty -- the design
+      // brief's own ordering ("a personal grudge still comes first"), since a wrong pressed against the
+      // player is more pressing than a threat to the lord's own lands.
+      [Test]
+      public void GIVEN_both_a_live_grudge_and_a_nemesis_bounty_WHEN_choosing_THEN_the_grudge_takes_priority()
+      {
+         InterceptionPolicy.Choose(Facts(holdsGrudge: true, hasNemesisBounty: true))
+                           .Should().Be(InterceptionTrigger.Grudge);
+      }
+
+      // Priority pin: a nemesis bounty outranks merely reacting to unrelated fresh news -- a lord asking for
+      // the player's help against a real, named threat outranks generic news of the player's own deeds.
+      [Test]
+      public void GIVEN_both_a_nemesis_bounty_and_recent_news_WHEN_choosing_THEN_the_nemesis_bounty_takes_priority()
+      {
+         InterceptionPolicy.Choose(Facts(heardDeed: true, hasNemesisBounty: true))
+                           .Should().Be(InterceptionTrigger.NemesisBounty);
+      }
+
+      // Priority pin: a nemesis bounty outranks a standing appreciation -- AppreciationOwed stays the LEAST
+      // urgent trigger of the five, so it must never pre-empt a lord raising a real threat to his region.
+      [Test]
+      public void GIVEN_both_a_nemesis_bounty_and_a_significant_appreciation_WHEN_choosing_THEN_the_nemesis_bounty_takes_priority()
+      {
+         InterceptionPolicy.Choose(Facts(hasNemesisBounty: true, holdsAppreciation: true))
+                           .Should().Be(InterceptionTrigger.NemesisBounty);
+      }
+
+      // The cooldown and single-pursuer guards gate NemesisBounty exactly as they gate every other trigger --
+      // a lord with a real nemesis to report must never override "this lord already sought you out recently"
+      // or "someone else is already coming".
+      [Test]
+      public void GIVEN_an_eligible_nemesis_bounty_but_the_lord_is_on_cooldown_WHEN_choosing_THEN_nothing_fires()
+      {
+         InterceptionPolicy.Choose(Facts(onCooldown: true, hasNemesisBounty: true))
+                           .Should().Be(InterceptionTrigger.None);
+      }
+
+      [Test]
+      public void GIVEN_an_eligible_nemesis_bounty_but_another_pursuer_is_active_WHEN_choosing_THEN_nothing_fires()
+      {
+         InterceptionPolicy.Choose(Facts(anotherActive: true, hasNemesisBounty: true))
+                           .Should().Be(InterceptionTrigger.None);
+      }
+
       #region private
 
       private static InterceptionFacts Facts(
@@ -334,7 +400,8 @@ namespace CalradiaRemembers.Tests
          bool onCooldown = false,
          bool anotherActive = false,
          bool holdsGrudge = false,
-         bool holdsAppreciation = false)
+         bool holdsAppreciation = false,
+         bool hasNemesisBounty = false)
          => new() {
             FactionHostileToPlayer = hostile,
             PlayerInOwnTerritory = inTerritory,
@@ -343,7 +410,8 @@ namespace CalradiaRemembers.Tests
             OnCooldown = onCooldown,
             AnotherPursuerActive = anotherActive,
             HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
-            HoldsSignificantAppreciation = holdsAppreciation
+            HoldsSignificantAppreciation = holdsAppreciation,
+            HasNemesisBountyToOffer = hasNemesisBounty
          };
 
       #endregion

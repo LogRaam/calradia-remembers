@@ -1152,8 +1152,17 @@ prefab name is chosen at window-open (`ChatManager.SkinPrefab`, applies next con
 STATUS 2026-08-20: piece 1 (an ENCOUNTERED nemesis gets an encyclopedia dossier section, hidden until met) BUILT,
 untested in game (Sonnet test-first; pure NemesisDossierBuilder + a mixin mirroring the Grievances one, gated on
 NemesisBehavior.GetByHero.TimesEncountered > 0; XML RENDERING is unverified, needs a dotnet build + game restart +
-Gabriel checking a captured-then-escaped nemesis's encyclopedia page). Piece 2 (proactive/discoverable lord bounty,
-and the tavern rumour layer "Coll raids near X") still OPEN.
+Gabriel checking a captured-then-escaped nemesis's encyclopedia page). Piece 2's PROACTIVE/DISCOVERABLE half BUILT,
+untested in game (Sonnet test-first, mirrors the Grudge/AppreciationOwed interception triggers just added): a new
+`InterceptionTrigger.NemesisBounty` (priority TerritorialPatrol > Grudge > NemesisBounty > HeardOfDeed >
+AppreciationOwed) fires on BOTH the road (`InterceptionBehavior`) and the fief-audience channel
+(`FiefAudienceBehavior`), reusing `NemesisBountyDialogFlow.FindEligibleNemesisFor` outright (never a re-derived
+gate) so the announcement and the scripted `hero_main_options` offer can never disagree about who is eligible; the
+opener names the nemesis and his region (resolved the same way the encyclopedia dossier does,
+`NemesisDossierFactory.ResolveRegionDisplay`, now `internal`) and explicitly points the player to the existing
+bounty without settling it in the announcement itself, so the acceptance/reward machinery is not duplicated. This
+closes the "Coll raids near X" tavern-rumour wish in-fiction (the lord tells the player directly); a standalone
+tavern-keeper rumour variant remains an optional minor follow-up, not required.
 
 Player report (SuperGraham339, Nexus): captured and tortured by the nemesis "Coll the Unbroken", escaped,
 killed the party, later ran into Coll AGAIN in another looter party = "an incredible moment" (the pillar's
@@ -1168,14 +1177,17 @@ him, and today has no surface for it. Two converging pieces (they solve each oth
    his culture + region, and your shared history (captures, torture, your escape, your victories). Plus the
    rumour layer already flagged OPEN in the nemesis pillar (a tavern / lord hint "Coll raids near X").
 
-2. **Lord bounties to clear a nemesis (Gabriel 2026-07-20).** Lords who want a nemesis GONE from their kingdom
-   post a bounty for a bounty-hunter (the player) to capture or kill him. This EXPANDS the EXISTING system, do
-   NOT duplicate it: `NemesisBountyDialogFlow` + pure `NemesisBountyPolicy` (region eligibility) +
-   `NemesisBountyRewardPolicy` (reward math), shipped v1.25.0, offered at `hero_main_options` when the lord you
-   talk to has a nemesis in his region. The expansion = make it PROACTIVE / DISCOVERABLE: a lord seeks the
-   player out, or the bounty is surfaced so the player learns WHERE a nemesis operates. The bounty then doubles
-   as the discoverability signal AND the hunt reward, closing SuperGraham's gap in-fiction ("here is a nemesis
-   plaguing my region, go end him"). Pairs with the captive-escape memory (a nemesis you escaped remembers it).
+2. **Lord bounties to clear a nemesis (Gabriel 2026-07-20). PROACTIVE half BUILT 2026-08-20, see STATUS above.**
+   Lords who want a nemesis GONE from their kingdom post a bounty for a bounty-hunter (the player) to capture or
+   kill him. This EXPANDS the EXISTING system, does NOT duplicate it: `NemesisBountyDialogFlow` + pure
+   `NemesisBountyPolicy` (region eligibility) + `NemesisBountyRewardPolicy` (reward math), shipped v1.25.0,
+   offered at `hero_main_options` when the lord you talk to has a nemesis in his region, still the ONLY place the
+   bounty is accepted/paid. The expansion = made it PROACTIVE / DISCOVERABLE via `InterceptionTrigger.NemesisBounty`:
+   a lord seeks the player out (road interception or a fief audience) and the meeting names the nemesis and his
+   region, so the player learns WHERE he operates, then is pointed to the existing bounty rather than a duplicate
+   accept/reward path. The bounty then doubles as the discoverability signal AND the hunt reward, closing
+   SuperGraham's gap in-fiction ("here is a nemesis plaguing my region, go end him"). Pairs with the
+   captive-escape memory (a nemesis you escaped remembers it).
 
 ## WISHED (Gabriel 2026-07-10): an ESCORTED courier option at the tavernkeeper
 

@@ -197,6 +197,7 @@ namespace CalradiaRemembers.Interception
 
             bool holdsGrudge = InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer(h, today, out string grudgeCause);
             bool holdsAppreciation = InterceptionBehavior.HoldsSignificantAppreciation(h, today, out string appreciationCause);
+            bool hasNemesisBounty = InterceptionBehavior.HasNemesisBountyToOffer(h, out string nemesisDetail);
 
             var facts = new InterceptionFacts {
                OnCooldown = FiefAudiencePolicy.IsOnCooldown(lastOffered, today, ModSettings.LordsApproaching),
@@ -206,7 +207,8 @@ namespace CalradiaRemembers.Interception
                PlayerNotoriety = 0,
                HeardRecentPlayerDeed = InterceptionBehavior.HeardRecentPlayerDeed(h, today),
                HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
-               HoldsSignificantAppreciation = holdsAppreciation
+               HoldsSignificantAppreciation = holdsAppreciation,
+               HasNemesisBountyToOffer = hasNemesisBounty
             };
 
             InterceptionTrigger trigger = FiefAudiencePolicy.ChooseFiefValid(facts);
@@ -215,6 +217,7 @@ namespace CalradiaRemembers.Interception
             string detail = trigger switch {
                InterceptionTrigger.Grudge => grudgeCause,
                InterceptionTrigger.AppreciationOwed => appreciationCause,
+               InterceptionTrigger.NemesisBounty => nemesisDetail,
                _ => null
             };
 

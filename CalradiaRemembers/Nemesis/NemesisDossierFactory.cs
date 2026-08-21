@@ -79,9 +79,11 @@ namespace CalradiaRemembers.Nemesis
         /// <summary>
         ///   A real settlement's display name when RegionId resolves to one, "the wilds" for that documented
         ///   fallback, or a humanized raw key otherwise (mirrors NemesisBehavior.ResolveRegionSettlement's own
-        ///   tolerance of a culture/"wilds" anchor that is not a real place).
+        ///   tolerance of a culture/"wilds" anchor that is not a real place). Internal (not private) so
+        ///   InterceptionBehavior.HasNemesisBountyToOffer can resolve the SAME region display for its opener
+        ///   detail, rather than a second, diverging read of the same RegionId.
         /// </summary>
-        private static string ResolveRegionDisplay(string regionId)
+        internal static string ResolveRegionDisplay(string regionId)
         {
             if (string.IsNullOrEmpty(regionId)) return null;
             if (regionId == "wilds") return "the wilds";

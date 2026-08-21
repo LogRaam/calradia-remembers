@@ -84,6 +84,16 @@ namespace CalradiaRemembers.Tests
          FiefAudiencePolicy.ChooseFiefValid(AppreciationFacts()).Should().Be(InterceptionTrigger.AppreciationOwed);
       }
 
+      // A lord raising a nemesis plaguing his region is just as plausible standing in his own fief as riding
+      // out to say it (IsFiefValid's own doc), so NemesisBounty must survive the narrowing intact too.
+      [Test]
+      public void GIVEN_facts_that_would_choose_NemesisBounty_WHEN_narrowed_to_fief_THEN_it_survives()
+      {
+         InterceptionPolicy.Choose(NemesisBountyFacts()).Should().Be(InterceptionTrigger.NemesisBounty); // sanity
+         FiefAudiencePolicy.IsFiefValid(InterceptionTrigger.NemesisBounty).Should().BeTrue();
+         FiefAudiencePolicy.ChooseFiefValid(NemesisBountyFacts()).Should().Be(InterceptionTrigger.NemesisBounty);
+      }
+
       // ── IsOnCooldown ──────────────────────────────────────────────────────────
 
       // A candidate never offered before must never read as on cooldown, or nobody standing in a fief could
@@ -202,6 +212,9 @@ namespace CalradiaRemembers.Tests
 
       private static InterceptionFacts AppreciationFacts()
          => new() {HoldsSignificantAppreciation = true};
+
+      private static InterceptionFacts NemesisBountyFacts()
+         => new() {HasNemesisBountyToOffer = true};
 
       #endregion
    }

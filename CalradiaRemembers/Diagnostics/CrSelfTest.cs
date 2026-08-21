@@ -190,6 +190,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("companion_ambition", Severity.Light, "New eighth found-topic (design brief 2026-08-20 follow-up 2): a content, ambitious companion voicing ONE of four bound ambitions, each resolved by an EXISTING action verb, so a granted ambition executes nothing itself, unlike Gratitude/SchemeWarning. Drives the REAL CompanionAudienceTopicResolver.Scan against a real companion already riding in the main party (made comfortably Content), and asserts it HOLDS with a non-empty detail (the Command ambition holds trivially for any main-party companion, so no extra engine-state seeding is needed); asserts the SAME companion, asked again within CompanionAmbitionPolicy.CooldownDays, WITHHOLDS it (the per-companion cooldown); and asserts the identical companion, made Disgruntled, never holds one either (the happiness gate). Restores the companion's original happiness afterwards", TestCompanionAmbition),
          new SelfTest("fief_audience", Severity.Light, "Player wish (Fakade, roadmap): road-only InterceptionBehavior needs a field party to move, so anyone without one (ladies, notables, a garrisoned lord standing around in a fief) never got a turn. Finds a real partyless hero standing in a live settlement; asserts the pure gate (FiefAudiencePolicy.ChooseFiefValid) raises nothing for a no-reason fact set; seeds a fresh, high-reach, player-involving WorldEvent so the SAME live fact HeardRecentPlayerDeed the road path reads is real, not fabricated; drives the REAL candidate scan (FiefAudienceBehavior.DebugScanAndStamp, never the live UI inquiry, never an LLM call) and asserts it offers that NPC with a fief-valid trigger; then asserts the SAME NPC asked again is WITHHELD by the per-NPC cooldown the offer itself just stamped. Removes the seeded WorldEvent and clears the stamped cooldown afterwards", TestFiefAudience),
          new SelfTest("interception_grudge_appreciation", Severity.Light, "Two new proactive channels for the mod's two signature event-anchored affect ledgers (design brief 2026-08-20): a lord who holds a live, significant grudge against the PLAYER rides out/asks for a word to air it (Grudge), and one who holds a significant, recent appreciation of the player does likewise to acknowledge it (AppreciationOwed), on BOTH the road (InterceptionBehavior) and the fief-audience channel (FiefAudienceBehavior), since both reuse the SAME InterceptionPolicy.Choose. Seeds a real Grudge (TryPlant) on a clean-slate lord and asserts InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer finds it (false before planting), the pure InterceptionPolicy.Choose surfaces Grudge, and Grudge is fief-valid; does the same for a real Appreciation and AppreciationOwed; then asserts the priority pin (Grudge outranks AppreciationOwed when both hold on the same facts, mirroring InterceptionPolicyTests). Removes the seeded grudge afterwards (mirrors appreciation_flow/companion_gratitude: no removal API exists for an appreciation, so it is left, exactly like every other appreciation-seeding self-test)", TestInterceptionGrudgeAppreciation),
+         new SelfTest("interception_nemesis_bounty", Severity.Light, "A third proactive channel, the announcement/discoverability layer on top of the EXISTING scripted hero_main_options nemesis bounty offer (roadmap piece 2, player wish, subsumes the 'tavern rumour: Coll raids near X' wish since the lord tells the player directly): a lord whose region is plagued by a nemesis he is eligible to bounty seeks the player out to name him and where he operates, never settling the bounty itself in this channel. Mints a nemesis anchored to a REAL lord's own region (MintBountyEligibleNemesis) and asserts InterceptionBehavior.HasNemesisBountyToOffer reuses the SAME NemesisBountyDialogFlow.FindEligibleNemesisFor gate the scripted offer uses (never a re-derived one), that the Detail names the nemesis, that the pure InterceptionPolicy.Choose surfaces NemesisBounty, that it is fief-valid, and the priority pin (a live grudge against the PLAYER still outranks it, mirroring InterceptionPolicyTests). Marks the minted identity dead afterwards", TestInterceptionNemesisBounty),
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
          new SelfTest("letter_memory", Severity.Light, "Player report (Desporion): a marriage proposal 'agreed on the terms' over three letters was denied face to face because letters left only a generic 'Received a letter (Reason)' memory, never their substance. Pure half: LetterMemoryPolicy.ShouldRemember excludes the two re-ping reasons (AwaitingReply, QuestUpdate) and includes MarriageProposal; BaseMemory is first-person and reflects direction. Real-path half: drives the REAL LetterMemoryFinalizer.RecordLetterMemory (LetterPopupManager.MarkReceived's own seam) with a ShouldRemember=false reason (QuestUpdate), so the run can never fall through to the async LLM summarizer (Lane C, kept out of cr.testall), and asserts the base event actually lands on profile.Events. Removes the event it added", TestLetterMemory),
          new SelfTest("world_conditions", Severity.Light, "Mechanical: the engine reads the weekly world-conditions feeder depends on still work against the live game (a renamed field or a changed model signature would silently swallow to 0 inside the feeder's own guards, recording nothing forever). Reads GetScoreOfDeclaringWar in both directions between two live kingdoms and a live town's FoodStocks/FoodChange/Prosperity DIRECTLY, asserts each is finite, then runs the real RunScan and asserts both scanners ran. Skips when the world has fewer than two kingdoms or no town", TestWorldConditions),
@@ -8590,6 +8591,61 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("grudgeOutranksAppreciationWhenBothHold",
             InterceptionPolicy.Choose(new InterceptionFacts {HoldsLiveGrudgeAgainstPlayer = true, HoldsSignificantAppreciation = true}),
             InterceptionTrigger.Grudge);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The third proactive channel (2026-08-20, roadmap piece 2 "nemesis discoverability + lord bounties"):
+      ///   a lord whose region is plagued by a nemesis he is eligible to bounty seeks the player out to name
+      ///   him and where he operates, the ANNOUNCEMENT/discoverability layer on top of the existing scripted
+      ///   hero_main_options bounty offer (subsumes the "tavern rumour: Coll raids near X" wish, since the lord
+      ///   tells the player directly). Mints a nemesis anchored to a REAL lord's own region
+      ///   (<see cref="MintBountyEligibleNemesis" />, the same helper nemesis_bounty_capture/execute use), so
+      ///   InterceptionBehavior.HasNemesisBountyToOffer drives the SAME NemesisBountyDialogFlow.FindEligibleNemesisFor
+      ///   gate the scripted offer uses (never a re-derived one), then the pure InterceptionPolicy.Choose/
+      ///   FiefAudiencePolicy.IsFiefValid, no live LLM call anywhere. Never issues the bounty itself (that stays
+      ///   the scripted line's job, not this proactive channel's): only the announcement is under test. Marks
+      ///   the minted identity dead afterwards (mirrors nemesis_hunt's cleanup).
+      /// </summary>
+      private static string TestInterceptionNemesisBounty(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("interception_nemesis_bounty");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today);
+
+         if (t.Skip(giver == null, "no lord with a resolvable region available to hold the bounty")) return t.Line();
+         if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
+
+         try
+         {
+            // The SAME gate the scripted hero_main_options offer itself checks (FindEligibleNemesisFor) -
+            // proves the region-anchored mint is genuinely eligible before the fact-gathering below is judged.
+            t.Expect("theScriptedOfferGateFindsHimEligible", NemesisBountyDialogFlow.FindEligibleNemesisFor(giver) == nem, true);
+
+            bool hasBounty = InterceptionBehavior.HasNemesisBountyToOffer(giver, out string detail);
+            t.Expect("theProactiveFactReusesTheSameGate", hasBounty, true);
+            t.Expect("theDetailSurvivesForTheOpener", string.IsNullOrEmpty(detail), false);
+            t.Expect("theDetailNamesTheNemesis", detail != null && detail.Contains(nem.Name), true);
+
+            t.Expect("thePureChoiceSurfacesNemesisBounty",
+               InterceptionPolicy.Choose(new InterceptionFacts {HasNemesisBountyToOffer = hasBounty}), InterceptionTrigger.NemesisBounty);
+            t.Expect("nemesisBountyIsFiefValid", FiefAudiencePolicy.IsFiefValid(InterceptionTrigger.NemesisBounty), true);
+
+            // ── Priority pin (mirrors InterceptionPolicyTests): a live grudge against the PLAYER still ──
+            // ── outranks a nemesis bounty - a personal wrong pressed comes before a threat to the lord's ──
+            // ── own lands (design brief: "a personal grudge still comes first"). ──────────────────────────
+            t.Expect("grudgeOutranksNemesisBountyWhenBothHold",
+               InterceptionPolicy.Choose(new InterceptionFacts {HoldsLiveGrudgeAgainstPlayer = true, HasNemesisBountyToOffer = true}),
+               InterceptionTrigger.Grudge);
+         }
+         finally
+         {
+            nem.IsAlive = false; // isolate this test's minted identity from any later run in the same session
+         }
 
          return t.Line();
       }
