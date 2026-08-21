@@ -293,6 +293,7 @@ namespace CalradiaRemembers.Behaviors
          // matches a living, unresolved, not-already-bountied nemesis) offers to pay for his capture or
          // death, reached from the same hero_main_options hub. Console: cr.nemesis_bounty / cr.nemesis_bounty_complete.
          SafeRun.Step("OnSessionLaunched.NemesisBountyDialogFlow.Register", () => NemesisBountyDialogFlow.Register(campaignGameStarter));
+         SafeRun.Step("OnSessionLaunched.NemesisTavernRumorDialogFlow.Register", () => NemesisTavernRumorDialogFlow.Register(campaignGameStarter));
          ModLog.Info("Dialog flow registered.");
 
          SafeRun.Step("OnSessionLaunched.DialogueRecorder.Subscribe", DialogueRecorder.Subscribe);

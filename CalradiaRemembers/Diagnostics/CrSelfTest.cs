@@ -271,6 +271,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("nemesis_bounty_capture", Severity.Light, "mint a nemesis anchored to a real lord's own region -> assert NemesisBountyDialogFlow's gate finds him eligible -> IssueNemesisBounty (real reward math) -> real TakePrisonerAction on him -> assert QuestDeedTracker's widened CapturePrisoner hook stamps the NemesisBounty quest satisfied", TestNemesisBountyCapture),
          new SelfTest("nemesis_bounty_execute", Severity.Light, "mint a nemesis anchored to a real lord's own region -> IssueNemesisBounty -> capture then execute him via the real execute_prisoner bridge action -> assert the widened HeroKilledEvent hook stamps the NemesisBounty quest AND NemesisResolutionBehavior resolves the identity, both off the same event", TestNemesisBountyExecute),
          new SelfTest("nemesis_dossier", Severity.Light, "encyclopedia discoverability (player report SuperGraham339): mint a nemesis (TimesEncountered stays 0, latent) -> assert NemesisDossierFactory.BuildFor hides him -> bump TimesEncountered/RecaptureCount + plant a NotableEvent on his profile -> assert the SAME factory (the mixin's own source) now renders his identity, counters, and the planted history sentence. PLANTS a test nemesis (reload after)", TestNemesisDossier),
+         new SelfTest("nemesis_tavern_rumor", Severity.Light, "tavern-keeper rumour discoverability (ROADMAP follow-up): mint a nemesis anchored to a real tavern keeper's own region and mark him ENCOUNTERED -> assert NemesisTavernRumorDialogFlow.FindRumorNemesisFor's gate finds him eligible, and that it hides him again while latent (TimesEncountered 0) and once TURNED -> assert NemesisRumorLine.Compose names him and his region without stating a reward figure. PLANTS a test nemesis (reload after)", TestNemesisTavernRumor),
          new SelfTest("declare_war", Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it", TestDeclareWar),
          new SelfTest("scenario", Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals", TestScenario),
          new SelfTest("llm_dialogue", Severity.Light, "LLM: a plain greeting -> log the reply (relevance judged from the log)", TestLlmDialogue, true),
@@ -797,6 +798,36 @@ namespace CalradiaRemembers.Diagnostics
          if (nem != null) nem.IsAlive = true; // isolate from a stale resolved run earlier in the same session
 
          return (giver, nemesisHero, nem);
+      }
+
+      /// <summary>
+      ///   Mints a nemesis anchored to a real tavern keeper's own region (home settlement, else current
+      ///   settlement, else culture), mirroring <see cref="MintBountyEligibleNemesis" /> but for a keeper
+      ///   giver instead of a lord, so the tavern-rumour gate genuinely matches instead of being simulated.
+      ///   Returns (null, null, null) when no tavern keeper has a resolvable region.
+      /// </summary>
+      private static (Hero Keeper, Hero NemesisHero, NemesisIdentity Identity) MintRumorEligibleNemesis(int today)
+      {
+         Hero keeper = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsAlive && h.Occupation == Occupation.Tavernkeeper);
+
+         if (keeper == null) return (null, null, null);
+
+         string regionId = keeper.HomeSettlement?.StringId ?? keeper.CurrentSettlement?.StringId ?? keeper.Culture?.StringId;
+
+         if (string.IsNullOrEmpty(regionId)) return (keeper, null, null);
+
+         Hero nemesisHero = NemesisBehavior.Instance?.MintCaptorFor("looters", regionId, today, true);
+
+         if (nemesisHero == null) return (keeper, null, null);
+
+         NemesisIdentity nem = NemesisBehavior.Instance.GetByHero(nemesisHero.StringId);
+         if (nem != null)
+         {
+            nem.IsAlive = true; // isolate from a stale resolved run earlier in the same session
+            nem.TimesEncountered = 1; // the discoverability gate: a rumour only exists once the player has met him
+         }
+
+         return (keeper, nemesisHero, nem);
       }
 
       // ── Nemesis pillar increment 2: resolution (R1 kill in battle / R2 execute) ────────────────────
@@ -5412,6 +5443,53 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("itemsShowHistorySentence", dossier.Items != null && dossier.Items.Contains("slipped his grasp"), true);
 
          t.Note($"{nem.Name} {nem.Epithet}: hidden while latent, dossier shown once encountered. Plants a test nemesis (reload after).");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Tavern-keeper rumour discoverability (ROADMAP follow-up to nemesis discoverability, v2.1.2): a
+      ///   nemesis anchored to a real tavern keeper's own region, once ENCOUNTERED, must make
+      ///   NemesisTavernRumorDialogFlow's gate (FindRumorNemesisFor, the exact function the "tavernkeeper_talk"
+      ///   player line's condition calls) find him eligible; a LATENT nemesis (TimesEncountered 0) or a TURNED
+      ///   one must both stay hidden, exactly like the encyclopedia dossier and the lord bounty gate. Then
+      ///   NemesisRumorLine.Compose (the pure sentence the keeper's reply line substitutes in) must name him
+      ///   and his region while never stating a reward figure, since this pillar is discoverability only and
+      ///   NemesisBountyDialogFlow alone owns issuing/settling a bounty.
+      /// </summary>
+      private static string TestNemesisTavernRumor(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("nemesis_tavern_rumor");
+
+         if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         (Hero keeper, Hero nemesisHero, NemesisIdentity nem) = MintRumorEligibleNemesis(today);
+
+         if (t.Skip(keeper == null, "no tavern keeper hero with a resolvable region available in this campaign")) return t.Line();
+         if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
+
+         t.Expect("eligibleWhenEncountered", NemesisTavernRumorDialogFlow.FindRumorNemesisFor(keeper) == nem, true);
+
+         // Latent (never met): the discoverability gate itself must refuse, or a rumour would spoil the
+         // late-reveal beat the whole pillar exists to deliver.
+         nem.TimesEncountered = 0;
+         t.Expect("hiddenWhileLatent", NemesisTavernRumorDialogFlow.FindRumorNemesisFor(keeper) == null, true);
+         nem.TimesEncountered = 1;
+
+         // Turned (spared into the player's service, audit M3's rule): no longer a foe, so no bounty-pointing
+         // rumour should name him either.
+         nem.TurnedDay = today;
+         t.Expect("hiddenOnceTurned", NemesisTavernRumorDialogFlow.FindRumorNemesisFor(keeper) == null, true);
+         nem.TurnedDay = null;
+
+         string displayName = $"{nem.Name} {nem.Epithet}";
+         string regionDisplay = NemesisDossierFactory.ResolveRegionDisplay(nem.RegionId);
+         string line = NemesisRumorLine.Compose(displayName, regionDisplay);
+
+         t.Expect("lineNamesTheNemesis", line.Contains(nem.Name), true);
+         t.Expect("lineStatesNoRewardFigure", line.Any(char.IsDigit), false);
+         t.Note($"{keeper.Name} on {nem.Name} {nem.Epithet}: \"{line}\". Plants a test nemesis (reload after).");
 
          return t.Line();
       }
