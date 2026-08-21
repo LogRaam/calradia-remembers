@@ -21,6 +21,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Mapping;
+using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
@@ -117,6 +118,14 @@ namespace CalradiaRemembers.Nemesis
                 NpcProfile profile = behavior.Store?.Get(nemesisHero.StringId) ?? HeroProfileMapper.FromHero(nemesisHero);
 
                 ChatManager.OpenForCaptorScene(nemesisHero, profile, CaptiveSceneIntent.Interrogation);
+
+                // Bring-participants-to-a-captor-scene, increment 2: offer the player any OTHER lord prisoners
+                // they currently hold, so one can be brought in as leverage against this one ("use Ascyron to
+                // pressure Lucon"). Fires after the chat opens, exactly like the ordinary companion picker
+                // (WitnessResolver.ShowCompanionPickerIfNeeded), and is a no-op when the player holds no other
+                // lord prisoner.
+                ChatViewModel opened = ChatManager.ActiveViewModel;
+                if (opened != null) WitnessResolver.ShowBroughtCaptivePickerIfNeeded(nemesisHero, opened.AddWitness);
             }
             catch (Exception ex)
             {

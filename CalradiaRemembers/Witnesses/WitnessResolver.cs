@@ -325,6 +325,113 @@ namespace CalradiaRemembers.Witnesses
          }
       }
 
+      /// <summary>
+      ///   Bring-participants-to-a-captor-scene, increment 2 (2026-08-21): shows a picker offering the OTHER
+      ///   lord prisoners the player currently holds (excluding <paramref name="subjectHero" />, the scene's own
+      ///   captive), so the player can bring one along as leverage against the other ("use Ascyron to pressure
+      ///   Lucon"). Mirrors <see cref="ShowCompanionPickerIfNeeded" />'s shape exactly (same async
+      ///   <c>MBInformationManager.ShowMultiSelectionInquiry</c>, same "onX joins" callback contract, same
+      ///   fail-soft try/catch), but draws from the prisoner roster instead of the party roster, and marks each
+      ///   picked hero <see cref="WitnessEntry.IsBroughtCaptive" /> instead of <see cref="WitnessEntry.IsPlayerCompanion" />
+      ///   so the prompt (PromptBuilder.AppendBroughtCaptives) frames them as coerced leverage, never a free
+      ///   witness and never an acting captor. A prisoner facing their OWN captor has nobody else to bring, so
+      ///   this only ever fires from the PLAYER-as-captor direction, never the victim-encounter one.
+      /// </summary>
+      public static void ShowBroughtCaptivePickerIfNeeded(Hero subjectHero, Action<WitnessEntry> onCaptiveBrought)
+      {
+         if (onCaptiveBrought == null) return;
+         try
+         {
+            List<Hero> otherPrisoners = GetOtherHeldLordPrisoners(subjectHero);
+            if (otherPrisoners.Count == 0)
+            {
+               ModLog.Info("[WitnessResolver] Brought-captive picker skipped, no other lord prisoners held.");
+
+               return;
+            }
+
+            var elements = new List<InquiryElement>();
+            foreach (Hero h in otherPrisoners)
+               elements.Add(new InquiryElement(h.StringId, h.Name.ToString(), null));
+
+            ModLog.Info($"[WitnessResolver] Brought-captive picker opening ({otherPrisoners.Count} option(s)).");
+
+            MBInformationManager.ShowMultiSelectionInquiry(
+               new MultiSelectionInquiryData(
+                  "Bring Another Prisoner?",
+                  "You may bring up to two of your other prisoners into this scene, to use one against the other.",
+                  elements,
+                  true, // isExitShown (Exit = leave them in the cells)
+                  0, MaxCompanions,
+                  "Bring", "Leave them",
+                  selected =>
+                  {
+                     int count = selected?.Count ?? 0;
+                     ModLog.Info($"[WitnessResolver] Brought-captive picker confirmed with {count} selection(s).");
+
+                     if (selected == null) return;
+                     foreach (InquiryElement element in selected)
+                     {
+                        var id = element.Identifier as string;
+
+                        if (string.IsNullOrEmpty(id)) continue;
+
+                        Hero captive = otherPrisoners.FirstOrDefault(h => h.StringId == id);
+
+                        if (captive == null) continue;
+
+                        onCaptiveBrought(new WitnessEntry {
+                           Name = captive.Name.ToString(),
+                           RelationToNpc = "another of the player's prisoners",
+                           IsBroughtCaptive = true,
+                           HeroStringId = captive.StringId
+                        });
+                        ModLog.Info($"[WitnessResolver] Brought captive joined: {captive.Name}.");
+                     }
+                  },
+                  null),
+               false,
+               true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[WitnessResolver] ShowBroughtCaptivePickerIfNeeded failed: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   The lord prisoners currently held in the player's own party, excluding <paramref name="subjectHero" />
+      ///   (the scene's own captive, never offered as leverage against themselves). Mirrors the lord-only filter
+      ///   <c>EncounterContextBuilder.ResolveHeldLordPrisoners</c> already applies for the prisoner-bargain
+      ///   teaching: a wanderer or notable prisoner is not the kind of leverage a "use one lord against another"
+      ///   scene is about.
+      /// </summary>
+      private static List<Hero> GetOtherHeldLordPrisoners(Hero subjectHero)
+      {
+         var result = new List<Hero>();
+         try
+         {
+            IEnumerable<TroopRosterElement> roster = MobileParty.MainParty?.PrisonRoster?.GetTroopRoster();
+            if (roster == null) return result;
+
+            foreach (TroopRosterElement element in roster)
+            {
+               Hero h = element.Character?.HeroObject;
+
+               if (h is not {IsLord: true, IsHumanPlayerCharacter: false}) continue;
+               if (subjectHero != null && h.StringId == subjectHero.StringId) continue;
+
+               result.Add(h);
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[WitnessResolver] GetOtherHeldLordPrisoners failed: {ex.Message}");
+         }
+
+         return result;
+      }
+
       #region private
 
       // ── Private ───────────────────────────────────────────────────────────

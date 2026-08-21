@@ -163,16 +163,33 @@ namespace CalradiaRemembers.Chat
       ///   companion the player has addressed or handed the prisoner to (the sticky addressed-speaker routing
       ///   already resolved in <paramref name="speaker" />), inside a player-as-captor scene. Feeds
       ///   <see cref="NpcMemoryService.Core.Models.EncounterContext.CompanionActingOnCaptive" />. Excludes the
-      ///   main NPC (the prisoner's own turn already has its own framing, <c>AppendPlayerCaptorSceneRules</c>)
-      ///   and the bound companion-victim entry (present as the VICTIM, not as one of the captors): only a real
-      ///   <see cref="WitnessEntry.IsPlayerCompanion" /> qualifies.
+      ///   main NPC (the prisoner's own turn already has its own framing, <c>AppendPlayerCaptorSceneRules</c>),
+      ///   the bound companion-victim entry (present as the VICTIM, not as one of the captors), and (increment 2)
+      ///   any <see cref="WitnessEntry.IsBroughtCaptive" /> entry: a brought captive is never an acting captor,
+      ///   even if the player addresses them, so only a real <see cref="WitnessEntry.IsPlayerCompanion" />
+      ///   qualifies.
       /// </summary>
       private bool IsCompanionActingOnCaptiveTurn(ChatSpeaker speaker)
       {
          if (!_captorScene || speaker.IsMain || speaker.Hero == null) return false;
 
          return _witnesses.Any(w =>
-            w.HeroStringId == speaker.Hero.StringId && w.IsPlayerCompanion && !w.IsCaptiveVictim);
+            w.HeroStringId == speaker.Hero.StringId && w.IsPlayerCompanion && !w.IsCaptiveVictim && !w.IsBroughtCaptive);
+      }
+
+      /// <summary>
+      ///   Bring-participants-to-a-captor-scene, increment 2 (2026-08-21): the mirror of
+      ///   <see cref="IsCompanionActingOnCaptiveTurn" /> for a BROUGHT CAPTIVE, another of the player's own
+      ///   prisoners brought into the scene as leverage (<see cref="WitnessEntry.IsBroughtCaptive" />). True when
+      ///   the player has just addressed that captive, inside a player-as-captor scene. Feeds
+      ///   <see cref="NpcMemoryService.Core.Models.EncounterContext.IsBroughtCaptiveTurn" />, which drives the
+      ///   coerced-captive framing rather than the acting-companion or free-witness teachings.
+      /// </summary>
+      private bool IsBroughtCaptiveTurn(ChatSpeaker speaker)
+      {
+         if (!_captorScene || speaker.IsMain || speaker.Hero == null) return false;
+
+         return _witnesses.Any(w => w.HeroStringId == speaker.Hero.StringId && w.IsBroughtCaptive);
       }
 
       /// <summary>Diagnostics (cr.roundtable): the names currently in the room, in display order.</summary>

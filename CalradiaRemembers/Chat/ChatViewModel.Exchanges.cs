@@ -708,6 +708,10 @@ namespace CalradiaRemembers.Chat
                // IsCompanionActingOnCaptiveTurn). False on every other turn (the prisoner's own, an ordinary
                // conversation, or a witness outside a captor scene), so nothing here changes for them.
                companionActingOnCaptive: IsCompanionActingOnCaptiveTurn(speaker),
+               // Bring-participants-to-a-captor-scene, increment 2: the mirror case, this turn's speaker is a
+               // BROUGHT CAPTIVE (another of the player's own prisoners) the player has addressed, inside this
+               // captor scene (see IsBroughtCaptiveTurn). Mutually exclusive with the flag above by construction.
+               isBroughtCaptiveTurn: IsBroughtCaptiveTurn(speaker),
                // Force the captivity status: Captive when the player is the NPC's captive, NpcIsCaptive when this
                // is a player-as-captor scene (robust for the console test path too, where it isn't truly set).
                playerStatusOverride: IsCaptiveEncounter
