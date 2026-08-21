@@ -185,11 +185,16 @@ namespace CalradiaRemembers
          NpcProfile profile = behavior.Store?.Get(npc.StringId) ?? HeroProfileMapper.FromHero(npc);
          ChatManager.OpenForCaptorScene(npc, profile, intent);
 
-         // Bring-participants-to-a-captor-scene, increment 2: offer any OTHER lord prisoners the player holds
-         // as leverage, exactly like the real in-game entry point (NemesisPrisonerDialogFlow). No-op when the
-         // player holds no other lord prisoner (cr.capture <name> a second lord first, to test this).
+         // Bring-participants-to-a-captor-scene, both pickers, exactly like the real in-game entry point
+         // (NemesisPrisonerDialogFlow): companions first (increment 1, one can be handed the prisoner to act),
+         // other lord prisoners second (increment 2, one as coerced leverage). Each a no-op when there is
+         // nobody to bring (cr.capture <name> a second lord, or have a companion in party, to test each).
          ChatViewModel opened = ChatManager.ActiveViewModel;
-         if (opened != null) WitnessResolver.ShowBroughtCaptivePickerIfNeeded(npc, opened.AddWitness);
+         if (opened != null)
+         {
+            WitnessResolver.ShowCompanionPickerIfNeeded(npc, opened.AddWitness);
+            WitnessResolver.ShowBroughtCaptivePickerIfNeeded(npc, opened.AddWitness);
+         }
 
          string warn = ModSettings.AdultContentLevel != AdultContentLevel.Hardcore
             ? " (NOTE: set Adult Content Level to Hardcore in MCM for the explicit CNC layer.)"

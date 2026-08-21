@@ -119,13 +119,20 @@ namespace CalradiaRemembers.Nemesis
 
                 ChatManager.OpenForCaptorScene(nemesisHero, profile, CaptiveSceneIntent.Interrogation);
 
-                // Bring-participants-to-a-captor-scene, increment 2: offer the player any OTHER lord prisoners
-                // they currently hold, so one can be brought in as leverage against this one ("use Ascyron to
-                // pressure Lucon"). Fires after the chat opens, exactly like the ordinary companion picker
-                // (WitnessResolver.ShowCompanionPickerIfNeeded), and is a no-op when the player holds no other
-                // lord prisoner.
+                // Bring-participants-to-a-captor-scene. A captor scene opens with no witnesses of its own, so
+                // both pickers are wired here, each a no-op when there is nobody to bring, each queued after
+                // the chat opens exactly like an ordinary conversation's companion picker.
+                //   Increment 1: offer the player's own companions, so one can be brought in and handed the
+                //   prisoner to act (the reward scene, PromptBuilder.AppendCompanionActingOnCaptive).
+                //   Increment 2: offer any OTHER lord prisoner the player holds, so one can be brought in as
+                //   coerced leverage against this one ("use Ascyron to pressure Lucon").
+                // Companions first (they act), prisoners second (they are the leverage).
                 ChatViewModel opened = ChatManager.ActiveViewModel;
-                if (opened != null) WitnessResolver.ShowBroughtCaptivePickerIfNeeded(nemesisHero, opened.AddWitness);
+                if (opened != null)
+                {
+                    WitnessResolver.ShowCompanionPickerIfNeeded(nemesisHero, opened.AddWitness);
+                    WitnessResolver.ShowBroughtCaptivePickerIfNeeded(nemesisHero, opened.AddWitness);
+                }
             }
             catch (Exception ex)
             {
