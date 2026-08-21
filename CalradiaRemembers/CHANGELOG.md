@@ -2,6 +2,23 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.1.3.. 2026-08-21
+
+Choose who is in the room when you confront a prisoner. Your saves from 2.1.2 carry over untouched.
+
+### New
+- **Any prisoner you hold can be confronted, not only your nemesis.** Talking to a captured lord from the party
+  screen now lets you open a private confrontation with them, with its own captor's line; before, only a tracked
+  nemesis could be brought to that scene.
+- **Bring a companion into the confrontation.** You can hand the prisoner to one of your own companions, who will
+  then act on their own initiative rather than only stand and watch, in their own voice and manner.
+- **Bring another of your prisoners as leverage.** A second captive you hold can be brought in, coerced and in
+  chains, so you can use one against the other. They are present under duress, never a free voice in the room and
+  never a threat to you.
+
+These are part of the mod's mature captor and captive scenes; the explicit layer follows your Adult Content
+setting, and none of it appears at the lowest setting.
+
 ## v2.1.2.. 2026-08-21
 
 Characters who come to you, a lesson that sticks, and a nemesis you can finally track. Your saves from 2.1.1
