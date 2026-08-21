@@ -756,6 +756,25 @@ namespace CalradiaRemembers.Interception
       {
          if (_activePursuerId == null) return;
 
+         // A fief audience never RODE anywhere: the NPC was standing in the settlement and asked for a word,
+         // and its reason is meant to be consumed by the conversation (ConsumeInterceptionReason). If one is
+         // still stashed by the time a daily release runs, the conversation did not consume it, so clear it
+         // SILENTLY: a partyless notable never pursued the player, so it must never produce a road-style
+         // "lost track of pursuing you" notification or a missed-meeting letter (player report: a village
+         // noble the player had just spoken to still sent that notice hours later).
+         if (_activePursuerIsFiefAudience)
+         {
+            _activePursuerId = null;
+            _activePursuerSince = -1;
+            _activePursuerTrigger = InterceptionTrigger.None;
+            _activePursuerIsFiefAudience = false;
+            _activePursuerDetail = null;
+            _meetingOpened = false;
+            _lastPursuitDistance = -1f;
+
+            return;
+         }
+
          Hero pursuer = FindHero(_activePursuerId);
          MobileParty pursuerParty = pursuer?.PartyBelongedTo;
          MobileParty main = MobileParty.MainParty;

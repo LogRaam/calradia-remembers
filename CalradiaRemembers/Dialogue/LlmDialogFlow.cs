@@ -452,6 +452,17 @@ namespace CalradiaRemembers.Dialogue
 
             if (vm != null)
             {
+               // Make this path authoritative about WHO the NPC is. GenerateChatWindow only knows the live
+               // vanilla Hero.OneToOneConversationHero, which is null for an opening we staged ourselves without a
+               // vanilla conversation (a fief audience: the notable was simply standing there). Left null, the
+               // main speaker carries a null Hero, so the portrait never renders (player report) AND the
+               // per-turn ConsumeInterceptionReason(null) never fires, so the "you sought this meeting" directive
+               // is lost (the NPC asks "what brings you" though THEY asked for the word) and the stashed
+               // interception slot is never cleared (the daily pursuit-release later reports "lost track" of an
+               // NPC the player already spoke to). Setting the resolved hero here fixes all three at once, and is
+               // idempotent for an ordinary Talk where hero == the conversation hero already set.
+               vm.SetNpcHero(hero);
+
                SeedCapturedVanillaLinesIntoChat(vm, behavior);
                // Show both scores in the header from the first frame.
                vm.SetRelationSummary(
