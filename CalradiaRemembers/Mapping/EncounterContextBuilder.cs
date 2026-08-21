@@ -594,6 +594,14 @@ namespace CalradiaRemembers.Mapping
 
             Hero owner = ownerClan?.Leader;
 
+            // The PLAYER holds this settlement. Naming the owner by name below would tell the NPC the town
+            // "belongs to <PlayerName>" without their ever connecting that name to the person in front of them,
+            // so a notable or garrisoned lord in the player's OWN town asked "what brings you here?" as if to a
+            // stranger (player report). Say plainly that their interlocutor is this place's lord.
+            if (owner != null && owner == Hero.MainHero)
+               return $"You are in {s.Name}, which the player before you holds: they are its lord, and you " +
+                      "dwell here under their rule. Address them as the holder of this place, not a passing stranger.";
+
             if (owner != null && owner != hero)
                return $"You are in {s.Name}, which belongs to {owner.Name}" +
                       (ownerClan.Name != null
