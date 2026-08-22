@@ -610,7 +610,7 @@
                 <ButtonWidget Id="ModelModeButton"
                               WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                              MarginLeft="348" MarginBottom="170"
+                              MarginLeft="258" MarginBottom="170"
                               IsVisible="@IsModelModeToggleVisible"
                               DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
                               Command.Click="ExecuteToggleModelMode">
@@ -621,20 +621,19 @@
                                 Brush.TextHorizontalAlignment="Left" Text="@ModelModeText" />
                   </Children>
                 </ButtonWidget>
-                <!-- Options (fifth tile, the gear): opens the game menu. Was a plain "Options" text label; now a
-                     hit-box over the page-art gear tile. POSITIONING AID: child painted opaque red (#FF3030FF);
-                     once it sits over the tile, set Color to "#FFFFFF00" (transparent). Nudge margins to match. -->
+                <!-- Options (fifth tile, the gear): opens the game menu. Transparent hit-box over the page-art
+                     gear tile (positioned in game at 218/174). -->
                 <ButtonWidget Id="OptionsButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                               SuggestedWidth="32" SuggestedHeight="32"
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                              MarginLeft="214" MarginBottom="174"
+                              MarginLeft="218" MarginBottom="174"
                               IsVisible="@IsGameMenuButtonVisible"
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteOpenGameMenu">
                   <Children>
                     <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FF3030FF" IsDisabled="true" />
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
                   </Children>
                 </ButtonWidget>
 
