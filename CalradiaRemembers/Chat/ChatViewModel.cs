@@ -2629,6 +2629,12 @@ namespace CalradiaRemembers.Chat
          // would sit ON TOP of whatever screen just took focus (report: it overlapped the encyclopedia). Close
          // it when the chat yields, so the player reopens it with a left-click when they return to the chat.
          if (off && _isPortraitPanelOpen) IsPortraitPanelOpen = false;
+
+         // The Memories panel is likewise positioned outside the sliding ChatPanel, so if the chat yields while
+         // it is open (alt-tab pause menu, the encyclopedia, a popup) it would be left orphaned on screen, over
+         // the conversation, swallowing clicks (player report: alt-tab away and back left only Memories up and
+         // nothing clickable). Close it on the same yield; the player reopens it when they return.
+         if (off && _isMemoryPanelOpen) IsMemoryPanelOpen = false;
       }
 
       /// <summary>Replaces the full witness list (called by WitnessResolver at session open).</summary>
