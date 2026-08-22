@@ -905,53 +905,46 @@
          only, what this NPC remembers of the player (the shared history cr.memory prints). Rebuilt from the
          persisted profile each time it opens; oldest first, read top-down like a journal. Editing is a later step
          (for now it mirrors, it does not mutate). -->
+    <!-- Illuminated-parchment restyle (cr_memories.jpg): the art bakes the "MEMORIES" title, the left icon
+         border, the right scrollbar rail, and the bottom green Close plaque, so this is now the parchment image
+         plus an overlaid text column + scrollbar + close hit-box. Panel size is sized to the art's ~1013x1500
+         aspect (520 wide -> 770 tall, first pass); TODO tune SuggestedWidth/SuggestedHeight/PositionXOffset in
+         game against the real anchoring. -->
     <Widget Id="MemoryPanel"
             WidthSizePolicy="Fixed"
-            HeightSizePolicy="StretchToParent"
+            HeightSizePolicy="Fixed"
             SuggestedWidth="520"
+            SuggestedHeight="770"
             HorizontalAlignment="Right"
             VerticalAlignment="Center"
-            MarginTop="100"
-            MarginBottom="100"
             PositionXOffset="-750"
-            IsVisible="@IsMemoryPanelOpen"
-            Sprite="BlankWhiteSquare_9"
-            Color="#1a1612F2">
+            IsVisible="@IsMemoryPanelOpen">
       <Children>
 
-        <Widget Id="MemoryPanelDecorativeFrame"
-                WidthSizePolicy="StretchToParent"
-                HeightSizePolicy="StretchToParent"
-                Sprite="frame_9"
-                ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
-                AlphaFactor="0.4"
-                IsDisabled="true" />
+        <!-- Parchment background. CorrectRedBlue=true: JPGs in this engine read with red/blue swapped, same fix
+             as the Manuscript skin's LeftPageBg/ChatLeftPanelPath widget. -->
+        <CrRuntimeImageWidget Id="MemoryBackground"
+                              WidthSizePolicy="StretchToParent"
+                              HeightSizePolicy="StretchToParent"
+                              ImagePath="@MemoryBackgroundPath"
+                              CorrectRedBlue="true"
+                              IsDisabled="true" />
 
-        <TextWidget Id="MemoryTitle"
-                    WidthSizePolicy="StretchToParent"
-                    HeightSizePolicy="Fixed"
-                    SuggestedHeight="40"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Top"
-                    MarginTop="24"
-                    Brush="Default"
-                    Brush.FontSize="24"
-                    Brush.FontColor="#c8a878FF"
-                    Brush.TextHorizontalAlignment="Center"
-                    Text="@MemoryPanelTitle"
-                    IsDisabled="true" />
+        <!-- MemoryTitle removed: "MEMORIES" is baked into the parchment art; a second title would double it
+             (same reasoning as the Manuscript left-page "Background" heading note). -->
 
+        <!-- Text column over the parchment's right ~two-thirds (the left third is the painted icon border, left
+             clear). TODO tune all four margins in game: MarginLeft clears the left border, MarginTop sits below
+             the baked title, MarginBottom sits above the baked Close plaque, MarginRight leaves room for the
+             painted scrollbar rail. -->
         <Widget Id="MemoryListArea"
                 WidthSizePolicy="StretchToParent"
                 HeightSizePolicy="StretchToParent"
                 VerticalAlignment="Top"
-                MarginTop="78"
-                MarginBottom="94"
-                MarginLeft="24"
-                MarginRight="24"
-                Sprite="BlankWhiteSquare_9"
-                Color="#0d0a08DD"
-                AlphaFactor="0.4">
+                MarginTop="130"
+                MarginBottom="110"
+                MarginLeft="190"
+                MarginRight="45">
           <Children>
             <MemoryScrollablePanel Id="MemoryScrollPanel"
                                    WidthSizePolicy="StretchToParent"
@@ -985,27 +978,72 @@
                                    MarginRight="4"
                                    StackLayout.LayoutMethod="VerticalTopToBottom">
                           <Children>
-                            <AutoHideRichTextWidget Id="MemoryMeta"
-                                                    WidthSizePolicy="StretchToParent"
-                                                    HeightSizePolicy="CoverChildren"
-                                                    HorizontalAlignment="Left"
-                                                    Brush="Default"
-                                                    Brush.FontSize="14"
-                                                    Brush.FontColor="#9a8a78FF"
-                                                    Brush.TextHorizontalAlignment="Left"
-                                                    Text="@Meta"
-                                                    IsDisabled="true" />
+                            <!-- Meta row: muted date, then (only when a real action was recorded) a small dot
+                                 and the blue action tag, reading "Day 91215 (today)  .  Collaboration". -->
+                            <ListPanel Id="MemoryMetaRow"
+                                       WidthSizePolicy="CoverChildren"
+                                       HeightSizePolicy="CoverChildren"
+                                       HorizontalAlignment="Left"
+                                       StackLayout.LayoutMethod="HorizontalLeftToRight">
+                              <Children>
+                                <TextWidget Id="MemoryMeta"
+                                            WidthSizePolicy="CoverChildren"
+                                            HeightSizePolicy="CoverChildren"
+                                            HorizontalAlignment="Left"
+                                            Brush="Default"
+                                            Brush.FontSize="14"
+                                            Brush.FontColor="#6b5a45FF"
+                                            Brush.TextHorizontalAlignment="Left"
+                                            Text="@Meta"
+                                            IsDisabled="true" />
+                                <TextWidget Id="MemoryMetaSeparator"
+                                            WidthSizePolicy="CoverChildren"
+                                            HeightSizePolicy="CoverChildren"
+                                            HorizontalAlignment="Left"
+                                            MarginLeft="6"
+                                            MarginRight="6"
+                                            Brush="Default"
+                                            Brush.FontSize="14"
+                                            Brush.FontColor="#6b5a45FF"
+                                            Brush.TextHorizontalAlignment="Left"
+                                            Text="."
+                                            IsVisible="@HasActionLabel"
+                                            IsDisabled="true" />
+                                <AutoHideRichTextWidget Id="MemoryActionLabel"
+                                                        WidthSizePolicy="CoverChildren"
+                                                        HeightSizePolicy="CoverChildren"
+                                                        HorizontalAlignment="Left"
+                                                        Brush="Default"
+                                                        Brush.FontSize="14"
+                                                        Brush.FontColor="#3f62a0FF"
+                                                        Brush.TextHorizontalAlignment="Left"
+                                                        Text="@ActionLabel"
+                                                        IsDisabled="true" />
+                              </Children>
+                            </ListPanel>
                             <RichTextWidget Id="MemorySummary"
                                             WidthSizePolicy="StretchToParent"
                                             HeightSizePolicy="CoverChildren"
                                             HorizontalAlignment="Left"
-                                            MarginTop="2"
+                                            MarginTop="4"
                                             Brush="Default"
-                                            Brush.FontSize="19"
-                                            Brush.FontColor="#e8d8b8FF"
+                                            Brush.FontSize="18"
+                                            Brush.FontColor="#2e2418FF"
                                             Brush.TextHorizontalAlignment="Left"
                                             Text="@Summary"
                                             IsDisabled="true" />
+                            <!-- Ornamental divider below each entry. Height/width first pass; TODO tune against
+                                 the real separator art proportions. -->
+                            <CrRuntimeImageWidget Id="MemorySeparator"
+                                                  WidthSizePolicy="StretchToParent"
+                                                  HeightSizePolicy="Fixed"
+                                                  SuggestedHeight="16"
+                                                  HorizontalAlignment="Center"
+                                                  MarginTop="10"
+                                                  MarginBottom="4"
+                                                  ImagePath="@MemorySeparatorPath"
+                                                  CorrectRedBlue="false"
+                                                  IsDisabled="true" />
                           </Children>
                         </ListPanel>
                       </ItemTemplate>
@@ -1015,6 +1053,7 @@
               </Children>
             </MemoryScrollablePanel>
 
+            <!-- TODO tune: should overlay the painted scrollbar rail baked into the parchment's right edge. -->
             <Standard.VerticalScrollbar Id="MemoryScrollbar"
                                         HeightSizePolicy="StretchToParent"
                                         HorizontalAlignment="Right"
@@ -1022,26 +1061,25 @@
           </Children>
         </Widget>
 
+        <!-- Transparent hit-box over the parchment's baked bottom green Close plaque. TODO tune
+             SuggestedWidth/SuggestedHeight/MarginBottom against the real plaque art. -->
         <ButtonWidget Id="MemoryCloseButton"
                       WidthSizePolicy="Fixed"
                       HeightSizePolicy="Fixed"
-                      SuggestedWidth="440"
-                      SuggestedHeight="56"
+                      SuggestedWidth="220"
+                      SuggestedHeight="60"
                       HorizontalAlignment="Center"
                       VerticalAlignment="Bottom"
-                      MarginBottom="22"
+                      MarginBottom="30"
                       DoNotPassEventsToChildren="true"
-                      Brush="ButtonBrush1"
                       UpdateChildrenStates="true"
-                      Command.Click="ExecuteCloseMemoryPanel">
+                      Command.Click="ExecuteToggleMemoryPanel">
           <Children>
-            <TextWidget WidthSizePolicy="StretchToParent"
-                        HeightSizePolicy="StretchToParent"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Brush="Popup.Button.Text"
-                        Brush.FontSize="20"
-                        Text="Close" />
+            <Widget WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="StretchToParent"
+                    Sprite="BlankWhiteSquare_9"
+                    Color="#FFFFFF00"
+                    IsDisabled="true" />
           </Children>
         </ButtonWidget>
 

@@ -727,6 +727,16 @@ namespace CalradiaRemembers.Chat
       public string ChatRightPanelPath => System.IO.Path.Combine(
          TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_chat_right.jpg");
 
+      /// <summary>Memories panel art: full path to the illuminated parchment background (JPG, needs CorrectRedBlue).</summary>
+      [DataSourceProperty]
+      public string MemoryBackgroundPath => System.IO.Path.Combine(
+         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_memories.jpg");
+
+      /// <summary>Memories panel art: full path to the ornamental entry separator (transparent PNG, no CorrectRedBlue).</summary>
+      [DataSourceProperty]
+      public string MemorySeparatorPath => System.IO.Path.Combine(
+         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_memories_separator.png");
+
       /// <summary>Label naming the style currently in force, so the player reads the live voice at a glance.</summary>
       [DataSourceProperty]
       public string StyleButtonText
@@ -2968,8 +2978,10 @@ namespace CalradiaRemembers.Chat
             foreach (NotableEvent e in profile.Events)
             {
                string meta = MemoryDayFormatter.Describe(e.gameDay, today);
-               if (e.type != NotableEventType.Other) meta += $"   ·   {e.type}";
-               _memories.Add(new MemoryEntryViewModel(meta, e.summary));
+               // The event type is shown as a SEPARATE blue tag (an emitted deed or interaction reads at a
+               // glance), not appended to the muted date; a plain remark (Other) carries no tag.
+               string actionLabel = e.type != NotableEventType.Other ? e.type.ToString() : "";
+               _memories.Add(new MemoryEntryViewModel(meta, e.summary, actionLabel));
             }
          }
          catch (Exception ex)

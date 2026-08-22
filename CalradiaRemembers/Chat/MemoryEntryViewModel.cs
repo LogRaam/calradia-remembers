@@ -17,11 +17,13 @@ namespace CalradiaRemembers.Chat
     public sealed class MemoryEntryViewModel : ViewModel
     {
         private string _meta;
+        private string _actionLabel;
         private string _summary;
 
-        public MemoryEntryViewModel(string meta, string summary)
+        public MemoryEntryViewModel(string meta, string summary, string actionLabel = null)
         {
             _meta = meta ?? "";
+            _actionLabel = actionLabel ?? "";
             _summary = summary ?? "";
         }
 
@@ -36,6 +38,28 @@ namespace CalradiaRemembers.Chat
                 OnPropertyChangedWithValue(value);
             }
         }
+
+        /// <summary>
+        ///   The event's type shown as a coloured tag beside the date (e.g. "Collaboration") when a real deed or
+        ///   interaction was recorded, empty for a plain remark. Rendered in blue by the panel, apart from the
+        ///   muted date, so a memory that carries an emitted action reads at a glance.
+        /// </summary>
+        [DataSourceProperty]
+        public string ActionLabel
+        {
+            get => _actionLabel;
+            set
+            {
+                if (_actionLabel == value) return;
+                _actionLabel = value;
+                OnPropertyChangedWithValue(value);
+                OnPropertyChanged(nameof(HasActionLabel));
+            }
+        }
+
+        /// <summary>True when this memory carries a coloured action tag, so the panel shows the blue label only then.</summary>
+        [DataSourceProperty]
+        public bool HasActionLabel => !string.IsNullOrEmpty(_actionLabel);
 
         [DataSourceProperty]
         public string Summary
