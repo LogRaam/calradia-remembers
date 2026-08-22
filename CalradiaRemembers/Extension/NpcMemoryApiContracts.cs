@@ -103,6 +103,58 @@ namespace CalradiaRemembers
       public string Text { get; }
    }
 
+   /// <summary>
+   ///   One line as it is DISPLAYED in a conversation, delivered in real time by <see cref="CrConversation.LineSpoken" />.
+   ///   This is the surface a text-to-speech (or subtitle, or lip-sync) addon reads: the text is already the clean,
+   ///   player-visible words (CR's control tags stripped), attributed to a speaker with enough to pick a voice
+   ///   (<see cref="IsFemale" />, <see cref="CultureId" />, and the stable <see cref="SpeakerId" /> as a per-hero
+   ///   voice key). Player-authored lines and out-of-character notes arrive with <see cref="IsPlayer" /> true, so a
+   ///   voice-over addon can skip them with a single check.
+   /// </summary>
+   public sealed class CrSpeechLine
+   {
+      public CrSpeechLine(string conversationId, string speakerId, string speakerName, bool isPlayer,
+                          bool isNarration, bool isWitness, bool isFemale, string cultureId, string text)
+      {
+         ConversationId = conversationId;
+         SpeakerId = speakerId;
+         SpeakerName = speakerName;
+         IsPlayer = isPlayer;
+         IsNarration = isNarration;
+         IsWitness = isWitness;
+         IsFemale = isFemale;
+         CultureId = cultureId;
+         Text = text;
+      }
+
+      /// <summary>The main NPC's hero StringId, identifying which conversation this line belongs to (null if unknown).</summary>
+      public string ConversationId { get; }
+
+      /// <summary>The speaker's hero StringId, or null for narration and non-hero (synthetic) speakers. A stable per-voice key.</summary>
+      public string SpeakerId { get; }
+
+      /// <summary>The speaker's display name (for logging/subtitles; prefer <see cref="SpeakerId" /> for identity).</summary>
+      public string SpeakerName { get; }
+
+      /// <summary>True when this line is the player's own, or an out-of-character note; a voice-over addon typically skips these.</summary>
+      public bool IsPlayer { get; }
+
+      /// <summary>True when this line is scene narration (no single speaker) rather than a spoken line.</summary>
+      public bool IsNarration { get; }
+
+      /// <summary>True when the speaker is a witness or companion in the scene, not the main conversation NPC.</summary>
+      public bool IsWitness { get; }
+
+      /// <summary>Best-effort: true when the speaker hero is female, to pick a voice. False for narration/unknown.</summary>
+      public bool IsFemale { get; }
+
+      /// <summary>The speaker hero's culture StringId (for accent/voice selection), or null for narration/unknown.</summary>
+      public string CultureId { get; }
+
+      /// <summary>The clean, player-visible words to voice (CR's control tags already stripped).</summary>
+      public string Text { get; }
+   }
+
    /// <summary>The identity of a conversation as it OPENS, delivered by <see cref="CrConversation.Started" />.</summary>
    public sealed class CrConversationInfo
    {

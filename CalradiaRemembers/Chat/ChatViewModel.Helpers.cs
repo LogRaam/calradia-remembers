@@ -526,7 +526,38 @@ namespace CalradiaRemembers.Chat
       // ── Sprint 15B helpers ────────────────────────────────────────────────
 
       private void RecordTranscript(bool isPlayer, string name, string heroId, string text, bool isNarration = false)
-         => _transcript.Record(isPlayer, name, heroId, text, isNarration);
+      {
+         _transcript.Record(isPlayer, name, heroId, text, isNarration);
+         RaiseSpeechLine(isPlayer, name, heroId, text, isNarration);
+      }
+
+      /// <summary>
+      ///   Extension Surface (TTS/subtitle addons): mirror each displayed line out through
+      ///   <see cref="CrConversation.LineSpoken" /> the moment it is committed, attributed and voice-selectable.
+      ///   Every displayed spoken line and narration funnels through <see cref="RecordTranscript" />, so this is
+      ///   the one place to raise it. The only extra emissions are the player's own line and rare out-of-character
+      ///   notes, both flagged IsPlayer, which a voice-over addon skips with a single check. Fail-soft.
+      /// </summary>
+      private void RaiseSpeechLine(bool isPlayer, string name, string heroId, string text, bool isNarration)
+      {
+         try
+         {
+            Hero speaker = isPlayer
+               ? Hero.MainHero
+               : !string.IsNullOrEmpty(heroId) ? Hero.FindFirst(h => h != null && h.StringId == heroId) : null;
+
+            bool isWitness = !isPlayer && !isNarration
+                             && !string.IsNullOrEmpty(heroId) && heroId != _npcHero?.StringId;
+
+            CrConversation.RaiseLineSpoken(new CrSpeechLine(
+               _npcHero?.StringId, heroId, name, isPlayer, isNarration, isWitness,
+               speaker?.IsFemale ?? false, speaker?.Culture?.StringId, text));
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SPEECH EVENT] raise failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
 
       /// <summary>
       ///   A brigand captor learns the player's name only if the prisoner gives it up (a brigand has no

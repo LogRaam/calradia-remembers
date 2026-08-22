@@ -30,6 +30,15 @@ namespace CalradiaRemembers
       /// </summary>
       public static event Action<CrConversationLog> Ended;
 
+      /// <summary>
+      ///   Fired in REAL TIME each time a line is displayed in a conversation (an NPC line, a witness line, scene
+      ///   narration, or the player's own), carrying the clean words and enough speaker detail to pick a voice.
+      ///   This is the surface a text-to-speech / subtitle / lip-sync addon reads. Player-authored lines and
+      ///   out-of-character notes arrive with <see cref="CrSpeechLine.IsPlayer" /> true, so a voice-over can skip
+      ///   them; use <see cref="Ended" /> to stop or flush playback when the conversation closes.
+      /// </summary>
+      public static event Action<CrSpeechLine> LineSpoken;
+
       // Raised by CR (internal). A caller only subscribes; it never raises.
       internal static void RaiseStarted(string npcId, int gameDay)
       {
@@ -43,6 +52,13 @@ namespace CalradiaRemembers
          if (string.IsNullOrWhiteSpace(npcId)) return;
 
          Invoke(Ended, new CrConversationLog(npcId, CurrentSaveId(), gameDay, lines ?? new List<CrTranscriptLine>()));
+      }
+
+      internal static void RaiseLineSpoken(CrSpeechLine line)
+      {
+         if (line == null || string.IsNullOrWhiteSpace(line.Text)) return;
+
+         Invoke(LineSpoken, line);
       }
 
       /// <summary>The loaded campaign's stable unique id, or null when no campaign is loaded.</summary>
