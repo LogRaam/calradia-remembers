@@ -620,18 +620,20 @@
                                 Brush.TextHorizontalAlignment="Left" Text="@ModelModeText" />
                   </Children>
                 </ButtonWidget>
+                <!-- Options (fifth tile, the gear): opens the game menu. Was a plain "Options" text label; now a
+                     hit-box over the page-art gear tile. POSITIONING AID: child painted opaque red (#FF3030FF);
+                     once it sits over the tile, set Color to "#FFFFFF00" (transparent). Nudge margins to match. -->
                 <ButtonWidget Id="OptionsButton"
-                              WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="32" SuggestedHeight="32"
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                              MarginLeft="348" MarginBottom="170"
+                              MarginLeft="214" MarginBottom="174"
                               IsVisible="@IsGameMenuButtonVisible"
-                              DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteOpenGameMenu">
                   <Children>
-                    <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
-                                HorizontalAlignment="Left" VerticalAlignment="Center"
-                                Brush="Default" Brush.FontSize="12" Brush.FontColor="#8a8072FF"
-                                Brush.TextHorizontalAlignment="Left" Text="Options" />
+                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Sprite="BlankWhiteSquare_9" Color="#FF3030FF" IsDisabled="true" />
                   </Children>
                 </ButtonWidget>
 
