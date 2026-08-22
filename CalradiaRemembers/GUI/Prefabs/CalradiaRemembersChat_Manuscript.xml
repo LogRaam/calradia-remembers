@@ -589,9 +589,7 @@
                 </ButtonWidget>
 
                 <!-- Action menu (third tile): the manual action-injection button, painted into the page art beside
-                     the purse and quill. Outlined hit-box only. Nudge MarginLeft/MarginBottom to sit over the tile.
-                     POSITIONING AID: the child is painted opaque red (#FF3030FF) so the hit-box is visible while
-                     placing it. Once it sits over the tile, set Color back to "#FFFFFF00" (fully transparent). -->
+                     the purse and quill. Transparent hit-box over the tile (positioned in game at 174/174). -->
                 <ButtonWidget Id="ActionMenuButton"
                               WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                               SuggestedWidth="32" SuggestedHeight="32"
@@ -602,7 +600,7 @@
                               Command.Click="ExecuteOpenActionMenu">
                   <Children>
                     <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FF3030FF" IsDisabled="true" />
+                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
                   </Children>
                 </ButtonWidget>
 
