@@ -120,8 +120,8 @@ namespace CalradiaRemembers.Tests
 
       private static WitnessReactionDecision Decide(string emitted,
                                                     string text,
-                                                    IReadOnlyList<string> present = null,
-                                                    IReadOnlyDictionary<string, string> lastLines = null)
+                                                    IReadOnlyList<string> present = null!,
+                                                    IReadOnlyDictionary<string, string> lastLines = null!)
          => WitnessReactionGate.Decide(emitted, text, "Derthert",
             present ?? new[] {"Olaf", "Alympia"}, lastLines);
 

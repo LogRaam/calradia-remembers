@@ -33,7 +33,7 @@ namespace CalradiaRemembers.Tests.Escort
             };
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<EscortRecord> restored = JsonConvert.DeserializeObject<List<EscortRecord>>(json);
+            List<EscortRecord> restored = JsonConvert.DeserializeObject<List<EscortRecord>>(json)!;
 
             restored.Should().HaveCount(1);
             restored[0].LordId.Should().Be("hero_derthert");
@@ -48,7 +48,7 @@ namespace CalradiaRemembers.Tests.Escort
             var original = new List<EscortRecord>();
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<EscortRecord> restored = JsonConvert.DeserializeObject<List<EscortRecord>>(json);
+            List<EscortRecord> restored = JsonConvert.DeserializeObject<List<EscortRecord>>(json)!;
 
             restored.Should().NotBeNull();
             restored.Should().BeEmpty();

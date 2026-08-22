@@ -32,7 +32,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             };
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<CouncilPact> restored = JsonConvert.DeserializeObject<List<CouncilPact>>(json);
+            List<CouncilPact> restored = JsonConvert.DeserializeObject<List<CouncilPact>>(json)!;
 
             restored.Should().HaveCount(1);
             restored[0].FactionAId.Should().Be("kingdom_player_realm");
@@ -49,7 +49,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             var original = new List<CouncilPact>();
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<CouncilPact> restored = JsonConvert.DeserializeObject<List<CouncilPact>>(json);
+            List<CouncilPact> restored = JsonConvert.DeserializeObject<List<CouncilPact>>(json)!;
 
             restored.Should().NotBeNull();
             restored.Should().BeEmpty();

@@ -75,7 +75,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_null_or_empty_entry_WHEN_composing_THEN_it_is_skipped_without_wasting_a_cap_slot()
         {
             var entries = new List<QuestMenuEntry> {
-                null,
+                null!,
                 new("", null, null, "no type token"),
                 new("attack_lord", "target_hero", "Caladog", "an enemy of your realm rides these lands")
             };

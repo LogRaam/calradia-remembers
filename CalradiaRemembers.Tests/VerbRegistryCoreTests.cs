@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Tests
          private readonly string _teaching;
          private readonly string _executeResult;
 
-         public FakeVerb(string name, bool eligible, string teaching, string executeResult = null)
+         public FakeVerb(string name, bool eligible, string teaching, string executeResult = null!)
          {
             Name = name;
             _eligible = eligible;

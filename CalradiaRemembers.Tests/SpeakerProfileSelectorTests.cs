@@ -51,7 +51,7 @@ namespace CalradiaRemembers.Tests
             // The reported bug: a captor scene was fed the last companion chatted with. A heroless (bandit) captor
             // must use the captive-encounter profile, never the stale last-conversation profile.
             SpeakerProfileSelector.Select<string>(
-                null,
+                null!,
                 false, Audience,
                 true, Captive,
                 false, Captor,
@@ -65,7 +65,7 @@ namespace CalradiaRemembers.Tests
         public void Given_a_heroless_captor_scene_When_selecting_Then_the_captor_scene_profile_is_used()
         {
             SpeakerProfileSelector.Select<string>(
-                null,
+                null!,
                 false, Audience,
                 false, Captive,
                 true, Captor,
@@ -79,7 +79,7 @@ namespace CalradiaRemembers.Tests
         public void Given_an_audience_When_selecting_Then_the_audience_profile_outranks_the_other_modes()
         {
             SpeakerProfileSelector.Select<string>(
-                null,
+                null!,
                 true, Audience,
                 true, Captive,
                 true, Captor,
@@ -93,7 +93,7 @@ namespace CalradiaRemembers.Tests
         public void Given_an_ordinary_conversation_with_no_hero_profile_yet_When_selecting_Then_the_last_conversation_profile_is_the_final_fallback()
         {
             SpeakerProfileSelector.Select<string>(
-                null,
+                null!,
                 false, Audience,
                 false, Captive,
                 false, Captor,

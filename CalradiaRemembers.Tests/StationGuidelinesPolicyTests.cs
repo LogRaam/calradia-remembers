@@ -21,7 +21,7 @@ namespace CalradiaRemembers.Tests
     public class StationGuidelinesPolicyTests
     {
         private static string Lookup(Dictionary<string, string> files, string key)
-            => files.TryGetValue(key, out string text) ? text : "";
+            => files.TryGetValue(key, out string? text) ? text : "";
 
         [Test]
         public void GIVEN_a_gang_leader_WHEN_resolving_the_station_THEN_the_street_register_applies()

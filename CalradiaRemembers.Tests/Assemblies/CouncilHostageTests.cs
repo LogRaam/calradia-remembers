@@ -36,7 +36,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             };
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<CouncilHostage> restored = JsonConvert.DeserializeObject<List<CouncilHostage>>(json);
+            List<CouncilHostage> restored = JsonConvert.DeserializeObject<List<CouncilHostage>>(json)!;
 
             restored.Should().HaveCount(1);
             restored[0].HostageId.Should().Be("hero_boyar_sevin");
@@ -54,7 +54,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             var original = new List<CouncilHostage>();
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<CouncilHostage> restored = JsonConvert.DeserializeObject<List<CouncilHostage>>(json);
+            List<CouncilHostage> restored = JsonConvert.DeserializeObject<List<CouncilHostage>>(json)!;
 
             restored.Should().NotBeNull();
             restored.Should().BeEmpty();

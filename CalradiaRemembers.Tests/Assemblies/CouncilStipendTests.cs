@@ -33,7 +33,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             };
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<CouncilStipend> restored = JsonConvert.DeserializeObject<List<CouncilStipend>>(json);
+            List<CouncilStipend> restored = JsonConvert.DeserializeObject<List<CouncilStipend>>(json)!;
 
             restored.Should().HaveCount(1);
             restored[0].PayeeId.Should().Be("hero_ira");
@@ -50,7 +50,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             var original = new List<CouncilStipend>();
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<CouncilStipend> restored = JsonConvert.DeserializeObject<List<CouncilStipend>>(json);
+            List<CouncilStipend> restored = JsonConvert.DeserializeObject<List<CouncilStipend>>(json)!;
 
             restored.Should().NotBeNull();
             restored.Should().BeEmpty();

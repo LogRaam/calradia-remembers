@@ -32,7 +32,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             };
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<CouncilTribute> restored = JsonConvert.DeserializeObject<List<CouncilTribute>>(json);
+            List<CouncilTribute> restored = JsonConvert.DeserializeObject<List<CouncilTribute>>(json)!;
 
             restored.Should().HaveCount(1);
             restored[0].PayerHeroId.Should().Be("hero_boyar_sevin");
@@ -49,7 +49,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             var original = new List<CouncilTribute>();
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<CouncilTribute> restored = JsonConvert.DeserializeObject<List<CouncilTribute>>(json);
+            List<CouncilTribute> restored = JsonConvert.DeserializeObject<List<CouncilTribute>>(json)!;
 
             restored.Should().NotBeNull();
             restored.Should().BeEmpty();

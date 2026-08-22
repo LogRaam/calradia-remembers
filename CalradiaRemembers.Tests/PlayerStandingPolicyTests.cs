@@ -173,7 +173,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_no_oath_binds_them_WHEN_describing_THEN_no_standing_is_claimed()
       {
-         string note = Describe(new PlayerStandingFacts(), null);
+         string note = Describe(new PlayerStandingFacts(), null!);
 
          note.Should().NotContain("vassal");
          note.Should().NotContain("liege");

@@ -33,7 +33,7 @@ namespace CalradiaRemembers.Tests
             string anchorSummary = "Spoke with X.",
             string transcript = "Player: Hi\nX: Hello.",
             string playerName = "Player",
-            string replyLanguage = null,
+            string replyLanguage = null!,
             int enqueuedDay = 10,
             int attempts = 0)
         {
@@ -181,7 +181,7 @@ namespace CalradiaRemembers.Tests
                 anchorSummary: "Spoke with X.",
                 transcript: "Player: Hi\nX: Hello there.",
                 playerName: "Aria",
-                replyLanguage: null,
+                replyLanguage: null!,
                 enqueuedDay: 9,
                 attempts: 1);
             queue.Enqueue(job);
@@ -225,11 +225,11 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_garbage_corrupt_input_WHEN_deserializing_THEN_it_does_not_throw_and_yields_an_empty_queue()
         {
-            ConversationSummaryQueue queue = null;
+            ConversationSummaryQueue? queue = null;
             Action act = () => queue = ConversationSummaryQueue.Deserialize("{not valid json at all!!");
 
             act.Should().NotThrow();
-            queue.Count.Should().Be(0);
+            queue!.Count.Should().Be(0);
         }
     }
 }

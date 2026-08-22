@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             };
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<CouncilTroopDelivery> restored = JsonConvert.DeserializeObject<List<CouncilTroopDelivery>>(json);
+            List<CouncilTroopDelivery> restored = JsonConvert.DeserializeObject<List<CouncilTroopDelivery>>(json)!;
 
             restored.Should().HaveCount(1);
             restored[0].Id.Should().Be("delivery_1");
@@ -63,7 +63,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             };
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<CouncilTroopDelivery> restored = JsonConvert.DeserializeObject<List<CouncilTroopDelivery>>(json);
+            List<CouncilTroopDelivery> restored = JsonConvert.DeserializeObject<List<CouncilTroopDelivery>>(json)!;
 
             restored[0].EscortLeaderId.Should().BeNull();
             restored[0].PartyId.Should().BeNull();
@@ -78,7 +78,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             var original = new List<CouncilTroopDelivery>();
 
             string json = JsonConvert.SerializeObject(original, Formatting.None);
-            List<CouncilTroopDelivery> restored = JsonConvert.DeserializeObject<List<CouncilTroopDelivery>>(json);
+            List<CouncilTroopDelivery> restored = JsonConvert.DeserializeObject<List<CouncilTroopDelivery>>(json)!;
 
             restored.Should().NotBeNull();
             restored.Should().BeEmpty();
