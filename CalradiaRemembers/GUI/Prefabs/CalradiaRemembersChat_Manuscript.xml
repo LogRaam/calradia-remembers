@@ -788,7 +788,7 @@
               <Children>
                 <ComposeScrollablePanel Id="ComposeScrollPanel"
                                         WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                        MarginRight="28" AutoHideScrollBars="true"
+                                        MarginRight="32" AutoHideScrollBars="true"
                                         ClipRect="ComposeClipRect"
                                         InnerPanel="ComposeClipRect\ComposePreview"
                                         VerticalScrollbar="..\ComposeScrollbar\Scrollbar">
@@ -853,11 +853,11 @@
                  room for the painted scrollbar rail. -->
             <Widget Id="MemoryListArea"
                     WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                    VerticalAlignment="Top" MarginTop="130" MarginBottom="110" MarginLeft="140" MarginRight="45">
+                    VerticalAlignment="Top" MarginTop="130" MarginBottom="45" MarginLeft="140" MarginRight="22">
               <Children>
                 <MemoryScrollablePanel Id="MemoryScrollPanel"
                                        WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                       MarginRight="28" AutoHideScrollBars="true"
+                                       MarginRight="32" AutoHideScrollBars="true"
                                        ClipRect="MemoryClipRect"
                                        InnerPanel="MemoryClipRect\MemoryList"
                                        VerticalScrollbar="..\MemoryScrollbar\Scrollbar">
@@ -874,7 +874,7 @@
                           <ItemTemplate>
                             <ListPanel Id="MemoryRow"
                                        WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                                       HorizontalAlignment="Left" MarginTop="10" MarginBottom="6"
+                                       HorizontalAlignment="Left" MarginTop="10" MarginBottom="0"
                                        MarginLeft="4" MarginRight="4"
                                        StackLayout.LayoutMethod="VerticalTopToBottom">
                               <Children>
@@ -927,7 +927,7 @@
                 <!-- TODO tune: should overlay the painted scrollbar rail baked into the parchment's right edge. -->
                 <Standard.VerticalScrollbar Id="MemoryScrollbar"
                                             HeightSizePolicy="StretchToParent"
-                                            HorizontalAlignment="Right" MarginRight="4" />
+                                            HorizontalAlignment="Right" MarginRight="0" />
               </Children>
             </Widget>
             <!-- Transparent hit-box over the parchment's baked bottom green Close plaque. TODO tune
