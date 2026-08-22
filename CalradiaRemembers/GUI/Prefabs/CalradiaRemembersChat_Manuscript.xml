@@ -834,7 +834,7 @@
              ~1013x1500 aspect (520 wide -> 770 tall, first pass); TODO tune Suggested Width/Height in game. -->
         <Widget Id="MemoryPanel"
                 WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                SuggestedWidth="520" SuggestedHeight="770"
+                SuggestedWidth="536" SuggestedHeight="770"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
                 IsVisible="@IsMemoryPanelOpen">
           <Children>
@@ -853,7 +853,7 @@
                  room for the painted scrollbar rail. -->
             <Widget Id="MemoryListArea"
                     WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                    VerticalAlignment="Top" MarginTop="130" MarginBottom="110" MarginLeft="190" MarginRight="45">
+                    VerticalAlignment="Top" MarginTop="130" MarginBottom="110" MarginLeft="140" MarginRight="45">
               <Children>
                 <MemoryScrollablePanel Id="MemoryScrollPanel"
                                        WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
@@ -888,25 +888,25 @@
                                     <TextWidget Id="MemoryMeta"
                                                 WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
                                                 HorizontalAlignment="Left"
-                                                Brush="Default" Brush.FontSize="14" Brush.FontColor="#6b5a45FF"
+                                                Brush="CR.Letter.Body.Plain" Brush.FontSize="14" Brush.FontColor="#6b5a45FF"
                                                 Brush.TextHorizontalAlignment="Left" Text="@Meta" IsDisabled="true" />
                                     <TextWidget Id="MemoryMetaSeparator"
                                                 WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
                                                 HorizontalAlignment="Left" MarginLeft="6" MarginRight="6"
-                                                Brush="Default" Brush.FontSize="14" Brush.FontColor="#6b5a45FF"
+                                                Brush="CR.Letter.Body.Plain" Brush.FontSize="14" Brush.FontColor="#6b5a45FF"
                                                 Brush.TextHorizontalAlignment="Left" Text="."
                                                 IsVisible="@HasActionLabel" IsDisabled="true" />
                                     <AutoHideRichTextWidget Id="MemoryActionLabel"
                                                             WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
                                                             HorizontalAlignment="Left"
-                                                            Brush="Default" Brush.FontSize="14" Brush.FontColor="#3f62a0FF"
+                                                            Brush="CR.Letter.Body.Plain" Brush.FontSize="14" Brush.FontColor="#3f62a0FF"
                                                             Brush.TextHorizontalAlignment="Left" Text="@ActionLabel" IsDisabled="true" />
                                   </Children>
                                 </ListPanel>
                                 <RichTextWidget Id="MemorySummary"
                                                 WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
                                                 HorizontalAlignment="Left" MarginTop="4"
-                                                Brush="Default" Brush.FontSize="18" Brush.FontColor="#2e2418FF"
+                                                Brush="CR.Letter.Body.Plain" Brush.FontSize="18" Brush.FontColor="#2e2418FF"
                                                 Brush.TextHorizontalAlignment="Left" Text="@Summary" IsDisabled="true" />
                                 <!-- Ornamental divider below each entry. Height/width first pass; TODO tune
                                      against the real separator art proportions. -->
