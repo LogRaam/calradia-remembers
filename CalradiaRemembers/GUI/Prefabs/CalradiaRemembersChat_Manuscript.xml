@@ -853,7 +853,7 @@
                  room for the painted scrollbar rail. -->
             <Widget Id="MemoryListArea"
                     WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                    VerticalAlignment="Top" MarginTop="130" MarginBottom="45" MarginLeft="140" MarginRight="22">
+                    VerticalAlignment="Top" MarginTop="130" MarginBottom="43" MarginLeft="140" MarginRight="22">
               <Children>
                 <MemoryScrollablePanel Id="MemoryScrollPanel"
                                        WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
@@ -914,7 +914,7 @@
                                                       WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
                                                       SuggestedHeight="16" HorizontalAlignment="Center"
                                                       MarginTop="10" MarginBottom="4"
-                                                      ImagePath="@MemorySeparatorPath" CorrectRedBlue="false"
+                                                      ImagePath="@SeparatorPath" CorrectRedBlue="false"
                                                       IsDisabled="true" />
                               </Children>
                             </ListPanel>

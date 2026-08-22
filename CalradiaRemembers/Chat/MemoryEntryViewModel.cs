@@ -61,6 +61,16 @@ namespace CalradiaRemembers.Chat
         [DataSourceProperty]
         public bool HasActionLabel => !string.IsNullOrEmpty(_actionLabel);
 
+        /// <summary>
+        ///   Full path to the ornamental divider PNG shown under each entry. It lives HERE, not on the parent
+        ///   ChatViewModel, because an ItemTemplate binds against the ROW's data source (this view-model): a
+        ///   binding to a ChatViewModel property from inside the template resolves to nothing, so the separator
+        ///   never appeared (each row needs its own path property to bind).
+        /// </summary>
+        [DataSourceProperty]
+        public string SeparatorPath => System.IO.Path.Combine(
+            TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_memories_separator.png");
+
         [DataSourceProperty]
         public string Summary
         {

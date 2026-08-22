@@ -1041,7 +1041,7 @@
                                                   HorizontalAlignment="Center"
                                                   MarginTop="10"
                                                   MarginBottom="4"
-                                                  ImagePath="@MemorySeparatorPath"
+                                                  ImagePath="@SeparatorPath"
                                                   CorrectRedBlue="false"
                                                   IsDisabled="true" />
                           </Children>
