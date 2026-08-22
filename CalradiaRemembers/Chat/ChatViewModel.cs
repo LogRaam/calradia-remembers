@@ -32,7 +32,7 @@ using TaleWorlds.Localization;
 
 namespace CalradiaRemembers.Chat
 {
-   public sealed partial class ChatViewModel : ViewModel, IRoundTableHost, IActionConfirmationHost, IOfferHost
+   public sealed partial class ChatViewModel : ViewModel, IRoundTableHost, IActionConfirmationHost, IOfferHost, IManualActionMenuHost
    {
       // Externalized scene STRUCTURE: a director walks an explicit stage machine (Intro → Initiate
       // → Intensify → Climax → Conclude, plus collective sub-acts) and feeds the model ONE named
@@ -113,6 +113,13 @@ namespace CalradiaRemembers.Chat
       // in its own controller so it no longer threads through the shared ChatViewModel partials (mirroring the
       // round-table extraction); the controller drives this view model through the IActionConfirmationHost seam.
       private readonly ActionConfirmationController _confirmation = new ActionConfirmationController();
+
+      // ── Manual action-injection menu (the third icon, beside the purse and quill) ──────────────────────────
+      // Lets the player EMIT AN ACTION BY HAND against the conversation NPC, for when the Action Interpreter
+      // missed a deed or is turned off entirely. Lives in its own controller mirroring the offer/confirmation
+      // extractions above; it drives this view model through the IManualActionMenuHost seam and routes any
+      // confirmable pick (take_gold, join_party, free_prisoner) through the SAME _confirmation controller.
+      private readonly ManualActionMenuController _actionMenu = new ManualActionMenuController();
 
       // Last reaction text shown per witness (canonical name → text). Used to drop a witness's
       // verbatim-repeated line: weaker models copy their own [WITNESS_REACTION] turn after turn,
@@ -1644,21 +1651,12 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   The manual action-injection tile (third icon). Opens a menu of actions the player can emit by hand,
-      ///   for when the interpreter missed one, or is turned off entirely. PLACEHOLDER: confirms the click is
-      ///   wired while the button is being positioned; the real possible-actions menu and its bridge injection
-      ///   land in the next increment.
+      ///   The manual action-injection tile (third icon). Opens a menu of the actions POSSIBLE RIGHT NOW
+      ///   against the conversation NPC, for when the Action Interpreter missed one or is turned off entirely.
+      ///   Injected deterministically through the same bridge an LLM-proposed action would use (see
+      ///   <see cref="ManualActionMenuController" />), never through the LLM.
       /// </summary>
-      public void ExecuteOpenActionMenu()
-      {
-         if (_mode != ChatMode.Conversation || _conversationEnded) return;
-
-         ModLog.Info("[ACTION_MENU] opened (placeholder).");
-         InformationManager.ShowInquiry(new InquiryData(
-            "Actions",
-            "The manual action menu will list the actions you can take right now. (Placeholder while the button is being positioned.)",
-            true, false, "OK", null, null, null), true);
-      }
+      public void ExecuteOpenActionMenu() => _actionMenu.Execute(this, _confirmation);
 
       /// <summary>
       ///   The "&lt;" button: opens the left REVIEW panel — a wrapped, read-only view of what you have typed

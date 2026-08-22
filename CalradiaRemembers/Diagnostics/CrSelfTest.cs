@@ -25,6 +25,7 @@ using CalradiaRemembers.Items;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Duels;
@@ -313,7 +314,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_companion_continue", Severity.Light, "LLM: a COMPANION-VICTIM scene OPENER + Continue beats -> assert the victim is voiced (own lines), correctly gendered, and beats don't repeat", TestChatCompanionContinue, true, 4),
          new SelfTest("chat_captive_variety", Severity.Light, "LLM (T6): two scenes with the SAME captor + one with a DIFFERENT captor (fresh writing lens each) -> score cross-scene phrase reuse; logs the ratio + worst offenders, rejects only a gross echo regression", TestChatCaptiveVariety, true, 9),
          new SelfTest("conv_summary_queue", Severity.Light, "LLM: seed a base 'Spoke with X.' event + a job whose transcript states a PLAN, run the queue worker -> assert the event is ENRICHED by value match (a promised plan reaches durable memory, not lost)", TestConvSummaryQueueJob, true, 1),
-         new SelfTest("letter_font", Severity.Light, "player report: Russian letters rendered Galahad's broken per-glyph fallback (no Cyrillic glyphs). Mechanical: LetterFontPolicy prefers the plain font for the game's own Russian language id and keeps the decorative Galahad look for English; then forces LetterViewModel's language seam (LetterFontResolver.LanguageIdProvider, no real language switch) and asserts the VM's BodyBrush/HeadingBrush/InputBrush bindings actually pick the plain sibling brushes for Russian and the Galahad ones for English, proving the wiring end to end and not just the pure policy. Restores the seam", TestLetterFont)
+         new SelfTest("letter_font", Severity.Light, "player report: Russian letters rendered Galahad's broken per-glyph fallback (no Cyrillic glyphs). Mechanical: LetterFontPolicy prefers the plain font for the game's own Russian language id and keeps the decorative Galahad look for English; then forces LetterViewModel's language seam (LetterFontResolver.LanguageIdProvider, no real language switch) and asserts the VM's BodyBrush/HeadingBrush/InputBrush bindings actually pick the plain sibling brushes for Russian and the Galahad ones for English, proving the wiring end to end and not just the pure policy. Restores the seam", TestLetterFont),
+         new SelfTest("manual_action_menu", Severity.Light, "Mechanical: drives the REAL ManualActionAvailability gate (the manual action-injection menu) against seeded facts -> a held-and-eligible prisoner exposes execute/free/recruit together, a held-but-ineligible one keeps execute/free and withholds recruit (PrisonerRecruitmentPolicy's own regard/clan-leader gate), and an otherwise-empty (non-ruler) snapshot shows no governance entry but keeps take_gold, the always-on baseline. Pure logic against a plain facts struct, nothing to clean up", TestManualActionMenu)
       };
 
       /// <summary>The configured budget for the running test, in seconds, for the "timed out after Ns (budget Ns)" message.</summary>
@@ -7238,6 +7240,41 @@ namespace CalradiaRemembers.Diagnostics
          {
             LetterFontResolver.LanguageIdProvider = priorProvider;
          }
+
+         return t.Line();
+      }
+
+      // Manual action-injection menu (2026-08-21): the pure ManualActionAvailability gate deciding which
+      // catalog entries the menu offers for a given snapshot of facts. Mechanical and engine-free by
+      // construction (no Hero, no bridge call), so this drives it directly against seeded facts rather than
+      // through a live conversation; the exhaustive per-gate coverage lives in
+      // ManualActionAvailabilityTests (CalradiaRemembers.Tests), this is the cr.testall smoke line proving the
+      // wiring the task brief itself named: a held prisoner exposes execute/free/recruit, and a non-ruler
+      // hides grant_fief while keeping the always-on take_gold baseline.
+      private static string TestManualActionMenu(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("manual_action_menu");
+
+         var heldEligible = new ManualActionFacts {NpcIsPlayerPrisoner = true, CanRecruitPrisoner = true};
+         IReadOnlyList<ManualActionEntry> heldEligibleAvailable = ManualActionAvailability.GetAvailable(heldEligible);
+         t.Expect("heldEligibleExecute", heldEligibleAvailable.Contains(ManualActionCatalog.ExecutePrisoner), true);
+         t.Expect("heldEligibleFree", heldEligibleAvailable.Contains(ManualActionCatalog.FreePrisoner), true);
+         t.Expect("heldEligibleRecruit", heldEligibleAvailable.Contains(ManualActionCatalog.RecruitPrisoner), true);
+
+         // Held but not (yet) eligible to turn: execute/free stand on custody alone, recruit needs its own
+         // regard/clan-leader gate on top (PrisonerRecruitmentPolicy), guarding against the empty-promise
+         // class of bug: a menu entry the bridge would only ever refuse.
+         var heldIneligible = new ManualActionFacts {NpcIsPlayerPrisoner = true, CanRecruitPrisoner = false};
+         IReadOnlyList<ManualActionEntry> heldIneligibleAvailable = ManualActionAvailability.GetAvailable(heldIneligible);
+         t.Expect("heldIneligibleExecute", heldIneligibleAvailable.Contains(ManualActionCatalog.ExecutePrisoner), true);
+         t.Expect("heldIneligibleFree", heldIneligibleAvailable.Contains(ManualActionCatalog.FreePrisoner), true);
+         t.Expect("heldIneligibleRecruit", heldIneligibleAvailable.Contains(ManualActionCatalog.RecruitPrisoner), false);
+
+         var nonRuler = new ManualActionFacts();
+         IReadOnlyList<ManualActionEntry> nonRulerAvailable = ManualActionAvailability.GetAvailable(nonRuler);
+         t.Expect("nonRulerNoGrantFief", nonRulerAvailable.Contains(ManualActionCatalog.GrantFief), false);
+         t.Expect("nonRulerNoRecruitPrisoner", nonRulerAvailable.Contains(ManualActionCatalog.RecruitPrisoner), false);
+         t.Expect("nonRulerStillHasTakeGold", nonRulerAvailable.Contains(ManualActionCatalog.TakeGold), true);
 
          return t.Line();
       }

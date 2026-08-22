@@ -2171,6 +2171,19 @@ namespace CalradiaRemembers.Chat
 
       #endregion
 
+      #region IManualActionMenuHost
+
+      /// <summary>The current conversation partner (the target of any manually-injected action).</summary>
+      Hero IManualActionMenuHost.Npc => _npcHero;
+
+      /// <summary>This NPC's stored profile, when one exists yet.</summary>
+      NpcProfile IManualActionMenuHost.Profile => NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile;
+
+      /// <summary>True while the menu may be opened: a plain live conversation that has not yet ended (mirrors IsActionMenuVisible).</summary>
+      bool IManualActionMenuHost.CanOpenActionMenu => _mode == ChatMode.Conversation && !_conversationEnded;
+
+      #endregion
+
       // ── Running-transcript compression (Gabriel 2026-07-30) ────────────────
 
       private const int ConversationCompressTimeoutSeconds = 60;
