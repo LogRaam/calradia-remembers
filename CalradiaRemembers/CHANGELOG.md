@@ -2,6 +2,32 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.1.4.. 2026-08-22
+
+A model switch in the chat, actions you can take by hand, and a redesigned Memories page.
+Your saves from 2.1.3 carry over untouched.
+
+### New
+- **A model switch in the chat window.** It cycles Enhanced (two models for the best result, a writer plus an
+  action reader), Roleplay (one lighter model), and NSFW (the explicit model). Roleplay and NSFW are a single
+  call, lighter on local setups.
+- **An Actions button.** Emit an action by hand (give gold, free a prisoner, appoint a governor, and so on) when
+  you want to be explicit, or when the character missed what you meant.
+- **A redesigned Memories page**, on illuminated parchment. Each entry that carried a real deed (coin changing
+  hands, regard rising or falling, someone recruited, a fief granted) is marked in blue, so the turning points in
+  your history with a character stand out.
+- **A tavern keeper may point you to a nemesis** you have already met who ranges nearby, naming him and his region.
+
+### Fixed
+- **Characters who ask for a word inside a settlement** now show their portrait, open the conversation knowing it
+  was THEY who sought you out, and no longer send a "lost track of you" notice hours after you have already spoken.
+- **A noble or notable in a town you hold** now knows you are its lord, instead of asking what brings you to their city.
+- **Giving a character a large sum of gold** now registers the full amount.
+
+### For mod authors
+- **A new voicing surface.** An addon can subscribe to each line as it is spoken (speaker, text, voice hints) to
+  add text-to-speech, subtitles, or lip-sync. See the how-to in the module's Extension folder.
+
 ## v2.1.3.. 2026-08-21
 
 Choose who is in the room when you confront a prisoner. Your saves from 2.1.2 carry over untouched.
