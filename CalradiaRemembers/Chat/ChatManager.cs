@@ -329,6 +329,37 @@ namespace CalradiaRemembers.Chat
          ModLog.Info($"[VRAM] open (baseline) | {VramProbe.Describe()}");
       }
 
+      /// <summary>
+      ///   Dev hot-reload (cr.reload_ui): re-reads any changed prefab XML from the DEPLOYED module folder
+      ///   (WidgetFactory.CheckForUpdates compares each live prefab's file write-time and reloads it), then, if
+      ///   the chat is open, rebuilds its widget tree in place by releasing and reloading the movie against the
+      ///   SAME view-model, so the conversation, its history, and the panel state all survive. Lets a UI author
+      ///   iterate on the chat/memories prefabs without quitting the game. Edit the file under the game's own
+      ///   Modules/CalradiaRemembers/GUI/Prefabs (a dotnet build overwrites it from source), not the repo copy.
+      /// </summary>
+      public static void ReloadActiveMovie()
+      {
+         try
+         {
+            UIResourceManager.WidgetFactory?.CheckForUpdates();
+
+            if (_activeLayer == null || _activeMovieId == null || ActiveViewModel == null)
+            {
+               ModLog.Info("[RELOAD_UI] prefabs re-read; no chat open to rebuild (reopen it to see changes).");
+
+               return;
+            }
+
+            _activeLayer.ReleaseMovie(_activeMovieId);
+            _activeMovieId = _activeLayer.LoadMovie(ActiveSkin, ActiveViewModel);
+            ModLog.Info($"[RELOAD_UI] reloaded prefabs and rebuilt the '{ActiveSkin}' movie in place.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[RELOAD_UI] failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
       // ── Public API ────────────────────────────────────────────────────────
 
       /// <summary>

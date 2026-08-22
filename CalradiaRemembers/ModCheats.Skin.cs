@@ -50,5 +50,22 @@ namespace CalradiaRemembers
                       "Usage: cr.skin [classic|manuscript|default].";
          }
       }
+
+      /// <summary>
+      ///   cr.reload_ui
+      ///   Dev hot-reload for the chat/memories prefabs: re-reads any changed prefab XML from the DEPLOYED
+      ///   module folder and, if the chat is open, rebuilds its widget tree in place (same conversation, same
+      ///   history). Edit the file under the game's own Modules\CalradiaRemembers\GUI\Prefabs (NOT the repo
+      ///   copy; a dotnet build would overwrite it), then run this to see the change without restarting.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("reload_ui", "cr")]
+      public static string ReloadUi(List<string> args)
+      {
+         ChatManager.ReloadActiveMovie();
+
+         return ChatManager.IsOpen
+            ? "Prefabs re-read and the open chat rebuilt in place."
+            : "Prefabs re-read. Open a chat to see the changes.";
+      }
    }
 }
