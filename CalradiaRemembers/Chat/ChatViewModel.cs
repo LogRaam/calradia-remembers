@@ -578,6 +578,14 @@ namespace CalradiaRemembers.Chat
       public bool IsOfferItemVisible => _mode == ChatMode.Conversation && !_conversationEnded;
 
       /// <summary>
+      ///   True in plain Conversation mode while the exchange is still open: shows the manual action-injection
+      ///   tile (the third icon, beside the purse and quill). The player opens it to inject a possible action
+      ///   the interpreter missed, or to drive an action directly with the interpreter turned off.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsActionMenuVisible => _mode == ChatMode.Conversation && !_conversationEnded;
+
+      /// <summary>
       ///   Raises every binding that reads <see cref="_conversationEnded" /> (a plain field, not a property, so
       ///   no setter does this automatically). Called at every site that locks the conversation, right after
       ///   setting the field to true, so the "Offer item" button AND the chat input (Fix A, duel-arming dead
@@ -586,6 +594,7 @@ namespace CalradiaRemembers.Chat
       private void NotifyConversationEndedChanged()
       {
          OnPropertyChanged(nameof(IsOfferItemVisible));
+         OnPropertyChanged(nameof(IsActionMenuVisible));
          OnPropertyChanged(nameof(IsChatInputVisible));
          OnPropertyChanged(nameof(IsComposeToggleVisible));
       }
@@ -1004,6 +1013,7 @@ namespace CalradiaRemembers.Chat
       {
          _mode = ChatMode.CaptiveEncounter;
          OnPropertyChanged(nameof(IsOfferItemVisible));
+         OnPropertyChanged(nameof(IsActionMenuVisible));
 
          // A structurally-explicit scene: open on the NSFW model (falls back to the roleplay model when none
          // is configured). The player can still flip it back. Audit M10/M11: "captive" is not "sexual", and
@@ -1631,6 +1641,23 @@ namespace CalradiaRemembers.Chat
       public void ExecuteOfferItem()
       {
          _offer.Execute(this);
+      }
+
+      /// <summary>
+      ///   The manual action-injection tile (third icon). Opens a menu of actions the player can emit by hand,
+      ///   for when the interpreter missed one, or is turned off entirely. PLACEHOLDER: confirms the click is
+      ///   wired while the button is being positioned; the real possible-actions menu and its bridge injection
+      ///   land in the next increment.
+      /// </summary>
+      public void ExecuteOpenActionMenu()
+      {
+         if (_mode != ChatMode.Conversation || _conversationEnded) return;
+
+         ModLog.Info("[ACTION_MENU] opened (placeholder).");
+         InformationManager.ShowInquiry(new InquiryData(
+            "Actions",
+            "The manual action menu will list the actions you can take right now. (Placeholder while the button is being positioned.)",
+            true, false, "OK", null, null, null), true);
       }
 
       /// <summary>

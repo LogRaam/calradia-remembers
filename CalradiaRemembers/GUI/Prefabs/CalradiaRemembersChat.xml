@@ -453,6 +453,33 @@
           </Children>
         </ButtonWidget>
 
+        <!-- Manual action-injection button: opens the menu of actions the player can emit by hand (a missed
+             action, or driving one with the interpreter off). Sits in the invisible Give-Gold slot. -->
+        <ButtonWidget Id="ActionMenuButton"
+                      WidthSizePolicy="Fixed"
+                      HeightSizePolicy="Fixed"
+                      SuggestedWidth="80"
+                      SuggestedHeight="56"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Bottom"
+                      PositionXOffset="80"
+                      PositionYOffset="-165"
+                      IsVisible="@IsActionMenuVisible"
+                      DoNotPassEventsToChildren="true"
+                      Brush="ButtonBrush1"
+                      UpdateChildrenStates="true"
+                      Command.Click="ExecuteOpenActionMenu">
+          <Children>
+            <TextWidget WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Brush="Popup.Button.Text"
+                        Brush.FontSize="16"
+                        Text="Action" />
+          </Children>
+        </ButtonWidget>
+
         <!-- Model toggle (roleplay/NSFW): small, discreet plain text in the bottom-left corner (no button
              chrome), below the Options label. Visible only when an NSFW model is configured (nothing to toggle
              otherwise). It switches WHICH MODEL AND PROVIDER serve the request, never the content level: that
