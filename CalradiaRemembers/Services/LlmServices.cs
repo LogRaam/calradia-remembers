@@ -167,35 +167,53 @@ namespace CalradiaRemembers.Services
       public string ModelId => ResolveModel();
 
       /// <summary>
-      ///   Which of the two configured models requests currently resolve to (roleplay or NSFW).
-      ///   DELIBERATE LIFECYCLE: the mode is SET at conversation activation and NOT reset on chat close.
-      ///   FinalizeCaptiveSceneMemory launches an async LLM summary of the explicit transcript via Task.Run
-      ///   that executes after teardown; it must still resolve the NSFW model (a prudish roleplay model could
-      ///   refuse and lose the memory). Background calls between conversations therefore inherit the last
-      ///   mode, which is the safe direction; an ordinary conversation open sets Roleplay, so it self-corrects.
+      ///   The content kind of the scene currently active (set by the captive/captor activators, read back for the
+      ///   cr.model diagnostic and the story log). No longer drives model-role selection since the three-state
+      ///   in-chat switch (<see cref="ActiveModelMode" />) replaced content-kind auto-routing (21/08/2026): whether
+      ///   a captivity scene reaches the NSFW model is now the player's explicit choice, not this value. The async
+      ///   captive-scene summary (FinalizeCaptiveSceneMemory, launched via Task.Run after teardown) inherits
+      ///   whichever role <see cref="ActiveModelMode" /> held when the scene closed (also not reset on chat close),
+      ///   so the model that wrote the scene is the one that summarizes it.
       /// </summary>
       public static SceneContentKind ActiveSceneKind { get; set; } = SceneContentKind.Ordinary;
 
       /// <summary>
-      ///   The player's restored manual PROSE-source toggle: when true, the main call is forced onto the NSFW model
-      ///   (prose=NSFW). A RUNTIME session flag (not persisted to the save), flipped by the in-chat switch, default
-      ///   false. Only honoured while <see cref="Settings.ModSettings.ShowManualModelToggle" /> is on (the MCM gate
-      ///   that shows the switch), so a hidden switch can never leave prose stuck on NSFW. The hard-failure fallback
-      ///   still applies on top; when prose is already NSFW it is simply moot.
+      ///   The THREE-STATE in-chat model switch (Enhanced/Roleplay/NSFW, 21/08/2026, replaces the old binary
+      ///   ManualNsfwProse toggle and its MCM visibility gate - the switch is now ALWAYS shown in chat). A RUNTIME
+      ///   session flag (not persisted to the save), cycled by the in-chat button. Lazily seeded, on first read of
+      ///   a session, from the MCM "Chat Composition" dropdown (Enhanced -> Enhanced, Standard -> Roleplay) so a
+      ///   fresh session starts where the player last configured it; once the player cycles the switch, that
+      ///   explicit choice sticks for the rest of the session (mirrors the old toggle's "not reset on chat close"
+      ///   lifecycle) and no longer re-reads the MCM dropdown.
       /// </summary>
-      public static bool ManualNsfwProse { get; set; }
+      public static ManualModelMode ActiveModelMode
+      {
+         get => _activeModelMode ?? SeedModelModeFromSettings();
+         set => _activeModelMode = value;
+      }
 
-      /// <summary>True when the manual toggle is both exposed (MCM gate on) AND flipped to prose=NSFW.</summary>
-      public static bool ManualNsfwProseActive => ModSettings.ShowManualModelToggle && ManualNsfwProse;
+      private static ManualModelMode? _activeModelMode;
+
+      private static ManualModelMode SeedModelModeFromSettings()
+         => ModSettings.ChatCompositionMode == ChatCompositionMode.Enhanced ? ManualModelMode.Enhanced : ManualModelMode.Roleplay;
 
       /// <summary>
-      ///   The model role the MAIN chat call uses this turn: the manual prose=NSFW toggle first, then the composition
-      ///   mode + the active scene kind. In Standard, a captivity scene routes to the NSFW model; in Enhanced (and
-      ///   every non-captivity scene) it is the PROSE model. The interpreter and the fallback are reached through
-      ///   their own paths, not this.
+      ///   The composition the CURRENT in-chat state resolves to. The single source of truth for whether the
+      ///   interpreter call and the hard-failure fallback run this turn (only Enhanced uses either) - callers
+      ///   outside this class (the chat exchange loop, the cr.model diagnostic) read this instead of the raw MCM
+      ///   "Chat Composition" dropdown, so the in-chat switch - not the MCM default - is authoritative once a
+      ///   session has started.
       /// </summary>
-      private static ServiceRole ActiveMainRole()
-         => ModelModePolicy.ActiveMainRole(ModSettings.ChatCompositionMode, ActiveSceneKind, ManualNsfwProseActive);
+      public static ChatCompositionMode ActiveComposition => ModelModePolicy.CompositionFor(ActiveModelMode);
+
+      /// <summary>
+      ///   The model role the MAIN chat call uses this turn: purely a function of the three-state switch
+      ///   (<see cref="ActiveModelMode" />) - NSFW writes every scene on the NSFW model, Enhanced and Roleplay both
+      ///   write on PROSE. Content-kind-based auto-routing (a captivity scene forcing NSFW in Standard) is retired:
+      ///   the player now picks NSFW explicitly. The interpreter and the fallback are reached through their own
+      ///   paths, not this.
+      /// </summary>
+      private static ServiceRole ActiveMainRole() => ModelModePolicy.MainRoleFor(ActiveModelMode);
 
       /// <summary>
       ///   The model id the current mode resolves to, read live (same value every request sees via

@@ -605,11 +605,12 @@
                   </Children>
                 </ButtonWidget>
 
-                <!-- Model toggle + Options: discreet text, lower-left, above the icon row. -->
+                <!-- Model toggle (Enhanced/Roleplay/NSFW, always visible): discreet text where the old "Options"
+                     TEXT label sat, now that Options is the page-art gear tile at 214 (below). -->
                 <ButtonWidget Id="ModelModeButton"
                               WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                              MarginLeft="200" MarginBottom="170"
+                              MarginLeft="348" MarginBottom="170"
                               IsVisible="@IsModelModeToggleVisible"
                               DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
                               Command.Click="ExecuteToggleModelMode">

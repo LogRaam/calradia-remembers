@@ -208,15 +208,17 @@ namespace CalradiaRemembers
 
       /// <summary>
       ///   cr.model
-      ///   Reports the composition mode (Standard/Enhanced), the active scene kind, and the model each role resolves
-      ///   to (PROSE / NSFW / INTERPRET). Reads settings only; no campaign required. Phase 2 removed the manual
-      ///   toggle: routing is automatic (Standard content-routes captivity to NSFW; Enhanced always writes on PROSE
-      ///   with the NSFW model as a hard-failure fallback).
+      ///   Reports the three-state in-chat switch (Enhanced/Roleplay/NSFW), the composition and main role it
+      ///   resolves to, and the model each role resolves to (PROSE / NSFW / INTERPRET). Reads live state only; no
+      ///   campaign required. The three-state switch (21/08/2026) is now the SOLE routing authority: content-kind
+      ///   auto-routing is retired, so ActiveSceneKind no longer decides anything here - it is reported purely as
+      ///   the scene the chat window is currently in.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("model", "cr")]
       public static string ModelModeInfo(List<string> args)
       {
-         ChatCompositionMode mode = ModSettings.ChatCompositionMode;
+         ManualModelMode manualMode = LlmServices.ActiveModelMode;
+         ChatCompositionMode composition = LlmServices.ActiveComposition;
          SceneContentKind kind = LlmServices.ActiveSceneKind;
          LlmServices llm = NpcMemoryCampaignBehavior.Instance?.LlmServices;
 
@@ -224,11 +226,12 @@ namespace CalradiaRemembers
          string nsfw = llm != null ? llm.DebugDescribeRoleRouting(ServiceRole.Nsfw).model : "";
          string interp = llm != null ? llm.DebugDescribeRoleRouting(ServiceRole.Interpret).model : "";
 
-         string modeLine = mode == ChatCompositionMode.Standard
-            ? "one integrated call - PROSE for chat, NSFW for captivity, no interpret, no fallback"
+         string modeLine = composition == ChatCompositionMode.Standard
+            ? "one integrated call, no interpret, no fallback"
             : "PROSE writes, INTERPRET tags, NSFW is the hard-failure fallback";
 
-         return $"Composition = {mode} ({modeLine}). Active scene kind = {kind}. " +
+         return $"In-chat switch = {ModelModePolicy.DisplayName(manualMode)}. Composition = {composition} ({modeLine}). " +
+                $"Active scene kind (diagnostic only) = {kind}. " +
                 $"Models: PROSE '{prose}', NSFW '{nsfw}', INTERPRET '{interp}'.";
       }
 

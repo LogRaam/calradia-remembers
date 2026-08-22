@@ -1,14 +1,17 @@
 // Code written by Gabriel Mailhot, 16/08/2026.
 // Documents the Phase 2 model routing: three configured models (PROSE / NSFW / INTERPRET) and two composition
 // modes (STANDARD = one integrated call routed by content, ENHANCED = PROSE writes + INTERPRET tags + NSFW
-// hard-failure fallback). STANDARD sends a captivity (Cnc) scene to the NSFW model and everything else to PROSE;
-// ENHANCED always writes on PROSE so a captivity scene keeps its variety (a soft-dodge is left as-is, since the
-// NSFW model is reached only as a HARD-failure fallback, never as a content route).
+// hard-failure fallback).
 //
-// WHY IT MATTERS: get ActiveMainRole wrong and either an ordinary chat burns the explicit model, or a captivity
-// scene in Standard opens on a tamer PROSE model that refuses. A wrong blank-fallback sends an empty model id to
-// the API. UsesInterpreter/UsesHardFailureFallback decide whether the second (interpret) call and the fallback
-// run at all - the whole cost difference between the two modes.
+// WHY IT MATTERS: a wrong blank-fallback sends an empty model id to the API. UsesInterpreter/UsesHardFailureFallback
+// decide whether the second (interpret) call and the fallback run at all - the whole cost difference between the
+// two modes.
+//
+// THREE-STATE IN-CHAT SWITCH (21/08/2026): MainRoleFor/CompositionFor/Cycle back the Enhanced/Roleplay/NSFW switch
+// that replaced the old binary manual toggle and its content-kind auto-routing (ActiveMainRole(mode, kind, force)
+// is gone). Get MainRoleFor wrong and either Roleplay silently burns the explicit model the player did NOT pick, or
+// NSFW silently writes on prose and the player's deliberate choice is ignored. Get Cycle wrong and the button gets
+// the player stuck on two states, or skips one entirely.
 
 #region
 
@@ -23,49 +26,61 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class ModelModePolicyTests
     {
-        // Standard's whole point: a captivity scene is where explicit content lives, so it must open on the NSFW
-        // model. Route it to PROSE and the cheap mode loses its one reason to have an NSFW model at all.
+        // The whole point of picking NSFW explicitly: it must win, unconditionally - there is no scene kind left to
+        // check (content-kind auto-routing is retired), so a wrong mapping here silently sends the player's
+        // deliberate NSFW choice to the PROSE model instead.
         [Test]
-        public void GIVEN_standard_mode_and_a_captivity_scene_WHEN_choosing_the_main_role_THEN_it_uses_nsfw()
+        public void GIVEN_nsfw_state_WHEN_resolving_the_main_role_THEN_it_uses_nsfw()
         {
-            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Standard, SceneContentKind.Cnc, false)
-                .Should().Be(ServiceRole.Nsfw);
+            ModelModePolicy.MainRoleFor(ManualModelMode.Nsfw).Should().Be(ServiceRole.Nsfw);
         }
 
-        // The restored manual toggle (a player asked for it back, 2026-08-20): when the player flips prose=NSFW, the
-        // main call must use the NSFW model in EITHER mode, winning over content routing - that is the whole point of
-        // a manual steer. If it did not win over Enhanced's prose-always rule, the toggle would do nothing in the
-        // default mode.
+        // Roleplay's whole point (2026-08-21 redesign): a captivity scene no longer auto-routes to NSFW just
+        // because composition is Standard - the player must pick NSFW explicitly. If Roleplay resolved Nsfw here,
+        // the "no NSFW routing" guarantee the mod author asked for would be silently broken.
         [Test]
-        public void GIVEN_the_manual_prose_nsfw_toggle_WHEN_choosing_the_main_role_THEN_it_forces_nsfw_in_either_mode()
+        public void GIVEN_roleplay_state_WHEN_resolving_the_main_role_THEN_it_uses_prose()
         {
-            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Enhanced, SceneContentKind.Ordinary, true)
-                .Should().Be(ServiceRole.Nsfw);
-            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Standard, SceneContentKind.Ordinary, true)
-                .Should().Be(ServiceRole.Nsfw);
+            ModelModePolicy.MainRoleFor(ManualModelMode.Roleplay).Should().Be(ServiceRole.Prose);
         }
 
-        // Consensual intimacy is "chat", not a captivity event (Gabriel's rule): in Standard it stays on the PROSE
-        // model, so only true CNC/captive scenes spend the NSFW model.
+        // Enhanced preserves the PROSE model's variety on every scene; the NSFW model is reached only as the
+        // hard-failure fallback (UsesHardFailureFallback), never as the main call.
         [Test]
-        public void GIVEN_standard_mode_and_a_non_captivity_scene_WHEN_choosing_the_main_role_THEN_it_uses_prose()
+        public void GIVEN_enhanced_state_WHEN_resolving_the_main_role_THEN_it_uses_prose()
         {
-            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Standard, SceneContentKind.ConsensualIntimate, false)
-                .Should().Be(ServiceRole.Prose);
-            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Standard, SceneContentKind.Ordinary, false)
-                .Should().Be(ServiceRole.Prose);
+            ModelModePolicy.MainRoleFor(ManualModelMode.Enhanced).Should().Be(ServiceRole.Prose);
         }
 
-        // Enhanced preserves the PROSE model's variety on EVERY scene, captivity included: the NSFW model is a
-        // hard-failure fallback, never a content route. A captivity scene routed to NSFW here would erase the
-        // soft-dodge diversity Gabriel wants (2026-08-16).
+        // Only Enhanced pays for the interpreter + fallback pipeline; Roleplay and NSFW are both the cheap single
+        // call, since their main role is already fixed by the switch itself - Standard's own content-routing
+        // (now dead code path-wise) never gets a chance to fire.
         [Test]
-        public void GIVEN_enhanced_mode_WHEN_choosing_the_main_role_THEN_it_always_uses_prose_even_for_captivity()
+        public void GIVEN_a_manual_state_WHEN_resolving_composition_THEN_only_enhanced_yields_enhanced_composition()
         {
-            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Enhanced, SceneContentKind.Cnc, false)
-                .Should().Be(ServiceRole.Prose);
-            ModelModePolicy.ActiveMainRole(ChatCompositionMode.Enhanced, SceneContentKind.Ordinary, false)
-                .Should().Be(ServiceRole.Prose);
+            ModelModePolicy.CompositionFor(ManualModelMode.Enhanced).Should().Be(ChatCompositionMode.Enhanced);
+            ModelModePolicy.CompositionFor(ManualModelMode.Roleplay).Should().Be(ChatCompositionMode.Standard);
+            ModelModePolicy.CompositionFor(ManualModelMode.Nsfw).Should().Be(ChatCompositionMode.Standard);
+        }
+
+        // The in-chat button text must name the model actually in effect, not a generic "Mode" label (the same
+        // M12 lesson that renamed the old binary toggle's text) - a mislabeled button reads as broken to the player.
+        [Test]
+        public void GIVEN_each_manual_state_WHEN_asking_its_display_name_THEN_it_names_the_model()
+        {
+            ModelModePolicy.DisplayName(ManualModelMode.Enhanced).Should().Be("Enhanced");
+            ModelModePolicy.DisplayName(ManualModelMode.Roleplay).Should().Be("Roleplay");
+            ModelModePolicy.DisplayName(ManualModelMode.Nsfw).Should().Be("NSFW");
+        }
+
+        // The button cycles one direction; if the wrap breaks, clicking past NSFW would either throw, freeze on
+        // NSFW, or skip Roleplay entirely - any of which strands the player unable to reach Enhanced again.
+        [Test]
+        public void GIVEN_the_manual_state_WHEN_cycling_THEN_it_advances_enhanced_roleplay_nsfw_and_wraps()
+        {
+            ModelModePolicy.Cycle(ManualModelMode.Enhanced).Should().Be(ManualModelMode.Roleplay);
+            ModelModePolicy.Cycle(ManualModelMode.Roleplay).Should().Be(ManualModelMode.Nsfw);
+            ModelModePolicy.Cycle(ManualModelMode.Nsfw).Should().Be(ManualModelMode.Enhanced);
         }
 
         // Each role resolves to its own configured id; the NSFW/Interpret slots fall back to the PROSE model when

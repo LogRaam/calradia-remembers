@@ -213,19 +213,15 @@ namespace CalradiaRemembers.Settings
       public string NanoGptApiKey { get; set; } = "";
 
       [SettingPropertyDropdown("Chat Composition", RequireRestart = false, Order = 1,
-         HintText = "Enhanced (default): the PROSE model writes, the INTERPRET model tags, the NSFW model is a " +
-                    "hard-failure fallback - richest, but more tokens and slower. Standard: one integrated call, " +
-                    "the PROSE model for chat and the NSFW model for captivity - cheapest and fastest.")]
+         HintText = "The DEFAULT for the in-chat Enhanced/Roleplay/NSFW switch (always visible above the chat " +
+                    "input): Enhanced (default) seeds the switch on Enhanced - the PROSE model writes, the " +
+                    "INTERPRET model tags, the NSFW model is a hard-failure fallback - richest, but more tokens " +
+                    "and slower. Standard seeds it on Roleplay - one integrated call on the PROSE model, no " +
+                    "interpret, no fallback - cheapest and fastest. Cycling the in-chat switch overrides this for " +
+                    "the rest of the session; this dropdown only sets where a fresh session starts.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public Dropdown<string> ChatCompositionModeSetting { get; set; } =
          new(new[] {ChatCompositionModePolicy.StandardLabel, ChatCompositionModePolicy.EnhancedLabel}, 1); // default: Enhanced
-
-      [SettingPropertyBool("Manual Roleplay/NSFW switch in chat", RequireRestart = false, Order = 2,
-         HintText = "Shows a small switch in the chat window to choose which model writes the scene: the Roleplay " +
-                    "model, or the NSFW model directly. The automatic fallback to the NSFW model still applies either " +
-                    "way. OFF by default; turn ON if you prefer to steer the model manually like the old system.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
-      public bool ShowManualModelToggle { get; set; } = false;
 
       // Phase 2: consensual scenes are now "chat" (the PROSE model), so this separate consensual model and its
       // provider are no longer shown in MCM or read anywhere. Kept as plain (un-attributed) properties, still named

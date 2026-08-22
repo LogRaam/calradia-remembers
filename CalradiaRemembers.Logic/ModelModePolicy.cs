@@ -10,21 +10,32 @@
 // The old per-scene ModelMode (Roleplay/ConsensualIntimate/Cnc), the DefaultForScene routing and the manual
 // in-chat toggle are gone: content routing is now the binary "is this a captivity scene", and only in Standard.
 // Pure and unit-tested so selection and fallback rules stay protected; MCM fields and live resolution are host glue.
+//
+// THREE-STATE IN-CHAT SWITCH (21/08/2026): the binary manual toggle (prose=Roleplay / prose=NSFW) is replaced by
+// a THREE-STATE switch the player cycles in chat: Enhanced / Roleplay / NSFW (ManualModelMode). It is now the SOLE
+// authority for both the main role AND the composition mode - content-kind-based auto-routing (Standard + a
+// captivity scene forcing NSFW) is retired: Roleplay always writes on PROSE, even for a captivity scene, so a
+// player who wants the NSFW model must choose it explicitly. MainRoleFor/CompositionFor are the two projections;
+// Cycle defines the fixed order the button advances through.
 
 using System;
 
 namespace CalradiaRemembers.Logic
 {
-    /// <summary>The kind of scene that is opening. The host computes it; only Cnc (captivity) routes specially.</summary>
+    /// <summary>
+    ///   The kind of scene that is opening. The host computes and tracks it (<see cref="ServiceRole" /> selection
+    ///   no longer reads it since the three-state in-chat switch replaced content-kind auto-routing); kept as a
+    ///   diagnostic/log value describing what content is active.
+    /// </summary>
     public enum SceneContentKind
     {
         /// <summary>An ordinary, non-explicit scene.</summary>
         Ordinary,
 
-        /// <summary>An intimate scene between willing partners (treated as chat: PROSE model in Standard).</summary>
+        /// <summary>An intimate scene between willing partners.</summary>
         ConsensualIntimate,
 
-        /// <summary>A captive / captor / companion-victim scene (the only kind routed to NSFW in Standard).</summary>
+        /// <summary>A captive / captor / companion-victim scene.</summary>
         Cnc
     }
 
@@ -38,23 +49,26 @@ namespace CalradiaRemembers.Logic
         Enhanced
     }
 
+    /// <summary>
+    ///   The three-state in-chat model switch (21/08/2026, replaces the old binary manual toggle). The player
+    ///   cycles through these with one button; each is a fixed (main role, composition) pair - see
+    ///   <see cref="ModelModePolicy.MainRoleFor" />/<see cref="ModelModePolicy.CompositionFor" />.
+    /// </summary>
+    public enum ManualModelMode
+    {
+        /// <summary>PROSE writes, INTERPRET tags, NSFW is the hard-failure fallback. Two calls. The default.</summary>
+        Enhanced,
+
+        /// <summary>PROSE writes, even for a captivity scene (no NSFW routing). One call, no interpreter, no fallback.</summary>
+        Roleplay,
+
+        /// <summary>NSFW writes every scene. One call, no interpreter, no fallback.</summary>
+        Nsfw
+    }
+
     /// <summary>Decides which model a scene's main call uses, and which id/effort/pin each role resolves to.</summary>
     public static class ModelModePolicy
     {
-        /// <summary>
-        ///   The role the MAIN chat call uses this turn. When <paramref name="forceNsfwProse" /> is set (the player's
-        ///   restored manual in-chat toggle, flipped to prose=NSFW), the main call ALWAYS uses the NSFW model, in
-        ///   either composition mode - it wins over content routing so the player can deliberately steer a scene onto
-        ///   the NSFW model. Otherwise: STANDARD routes by content (a captivity (Cnc) scene uses the NSFW model,
-        ///   everything else uses the PROSE model); ENHANCED always writes on the PROSE model (the NSFW model is
-        ///   reached only as the fallback, the INTERPRET model only through the separate interpreter call), so a
-        ///   captivity scene still opens on PROSE and its variety - including a soft-dodge - is preserved.
-        /// </summary>
-        public static ServiceRole ActiveMainRole(ChatCompositionMode mode, SceneContentKind kind, bool forceNsfwProse)
-            => forceNsfwProse ? ServiceRole.Nsfw
-             : mode == ChatCompositionMode.Standard && kind == SceneContentKind.Cnc ? ServiceRole.Nsfw
-             : ServiceRole.Prose;
-
         /// <summary>
         ///   The model id a role resolves to. Nsfw and Interpret fall back to the PROSE model when the player left
         ///   them blank (blank or whitespace counts as not configured), so a single-model config still works.
@@ -71,6 +85,33 @@ namespace CalradiaRemembers.Logic
                     return proseModel;
             }
         }
+
+        /// <summary>
+        ///   The role the in-chat three-state switch selects: NSFW writes every scene on the NSFW model; Enhanced
+        ///   and Roleplay both write on PROSE (Enhanced because the interpreter/fallback still reach NSFW only on
+        ///   a hard failure; Roleplay because content-kind auto-routing is retired - a captivity scene stays on
+        ///   PROSE unless the player explicitly picks NSFW).
+        /// </summary>
+        public static ServiceRole MainRoleFor(ManualModelMode mode) => mode == ManualModelMode.Nsfw ? ServiceRole.Nsfw : ServiceRole.Prose;
+
+        /// <summary>
+        ///   The composition the in-chat three-state switch selects: only Enhanced runs the full PROSE + INTERPRET
+        ///   + hard-failure-fallback pipeline; Roleplay and NSFW both run the cheap single integrated call (their
+        ///   main role already fixes which model writes it, so Standard's own content-routing never triggers).
+        /// </summary>
+        public static ChatCompositionMode CompositionFor(ManualModelMode mode) => mode == ManualModelMode.Enhanced ? ChatCompositionMode.Enhanced : ChatCompositionMode.Standard;
+
+        /// <summary>The in-chat button label for a state ("Model: Enhanced" / "Model: Roleplay" / "Model: NSFW").</summary>
+        public static string DisplayName(ManualModelMode mode)
+            => mode == ManualModelMode.Enhanced ? "Enhanced"
+             : mode == ManualModelMode.Roleplay ? "Roleplay"
+             : "NSFW";
+
+        /// <summary>The fixed order the in-chat button advances through, wrapping from NSFW back to Enhanced.</summary>
+        public static ManualModelMode Cycle(ManualModelMode mode)
+            => mode == ManualModelMode.Enhanced ? ManualModelMode.Roleplay
+             : mode == ManualModelMode.Roleplay ? ManualModelMode.Nsfw
+             : ManualModelMode.Enhanced;
 
         /// <summary>ENHANCED runs the separate interpreter call; STANDARD self-tags in its one integrated call.</summary>
         public static bool UsesInterpreter(ChatCompositionMode mode) => mode == ChatCompositionMode.Enhanced;

@@ -933,7 +933,9 @@ namespace CalradiaRemembers.Chat
             // Computed here (not just at the interpret call site) because the PROSE call itself needs it: only
             // an eligible turn is issued with allowTruncationRetry:false (fail fast instead of the SDK's own
             // slow double-budget retry), so the mod's own fallback can take over immediately.
-            bool proseInterpretEligible = ModSettings.ChatCompositionMode == ChatCompositionMode.Enhanced
+            // Composition reads the THREE-STATE in-chat switch (LlmServices.ActiveComposition), not the raw MCM
+            // "Chat Composition" dropdown: only that switch decides, live, whether this turn is Enhanced.
+            bool proseInterpretEligible = LlmServices.ActiveComposition == ChatCompositionMode.Enhanced
                                           && speaker.IsMain && !suppressPlayerLine
                                           && !IsCaptiveEncounter && !_captorScene && _councilScope == null;
             bool usedProseFallback = false;

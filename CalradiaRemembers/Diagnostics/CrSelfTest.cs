@@ -207,7 +207,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
-         new SelfTest("manual_model_toggle", Severity.Light, "Restored manual PROSE/NSFW switch: a player asked the old manual steer back. Drives the pure ModelModePolicy (the toggle forces the NSFW role in BOTH composition modes) then the live LlmServices.ActiveModelId: gate ON + flag ON resolves the NSFW model, flag OFF returns to PROSE, and gate OFF (the MCM switch hidden) IGNORES the flag so a hidden switch can never leave prose stuck on NSFW. Snapshots and restores the flag, the MCM gate, the NSFW model field, and the scene kind", TestManualModelToggle),
+         new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
          new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
@@ -7576,13 +7576,15 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
-      ///   manual_model_toggle (restored manual PROSE/NSFW switch, 2026-08-20): a player asked for the old manual
-      ///   steer back. The engine binding is thin but real: the in-chat switch flips <see cref="LlmServices.ManualNsfwProse" />,
-      ///   which must (a) force the MAIN call onto the NSFW model in EITHER composition mode, and (b) be IGNORED unless
-      ///   the MCM gate <see cref="ModSettings.ShowManualModelToggle" /> is on, so a hidden switch can never leave prose
-      ///   stuck on NSFW. If the gate check regressed, turning the feature off in MCM would not actually un-force the
-      ///   model. Drives the pure policy, then the live LlmServices.ActiveModelId. Snapshots and restores the flag, the
-      ///   gate, the NSFW model field, and the scene kind.
+      ///   manual_model_toggle (three-state in-chat switch, 2026-08-21): replaces the old binary manual toggle
+      ///   (prose=Roleplay / prose=NSFW) with Enhanced/Roleplay/NSFW, cycled by
+      ///   <see cref="ChatViewModel.ExecuteToggleModelMode" />. Drives the pure <see cref="ModelModePolicy" /> mapping
+      ///   each state defines (MainRoleFor/CompositionFor) and the fixed Cycle order, then the live
+      ///   <see cref="LlmServices.ActiveModelId" />/<see cref="LlmServices.ActiveComposition" /> to prove the engine
+      ///   binding: setting <see cref="LlmServices.ActiveModelMode" /> to Nsfw must resolve the configured NSFW model
+      ///   with NO MCM gate to pass (the old ShowManualModelToggle gate is retired - the switch is always live), while
+      ///   Roleplay/Enhanced resolve the PROSE model, and only Enhanced yields Enhanced composition. Snapshots and
+      ///   restores the NSFW model field and the active mode.
       /// </summary>
       private static string TestManualModelToggle(NpcMemoryCampaignBehavior behavior)
       {
@@ -7591,44 +7593,49 @@ namespace CalradiaRemembers.Diagnostics
          LlmServices llm = behavior?.LlmServices;
          if (t.Skip(llm == null, "LLM services not initialized")) return t.Line();
 
-         // Pure policy: the toggle must win over BOTH modes' content routing.
-         t.Expect("forceWinsInEnhanced", ModelModePolicy.ActiveMainRole(ChatCompositionMode.Enhanced, SceneContentKind.Ordinary, true), ServiceRole.Nsfw);
-         t.Expect("forceWinsInStandard", ModelModePolicy.ActiveMainRole(ChatCompositionMode.Standard, SceneContentKind.Ordinary, true), ServiceRole.Nsfw);
-         t.Expect("noForceUsesProse", ModelModePolicy.ActiveMainRole(ChatCompositionMode.Enhanced, SceneContentKind.Ordinary, false), ServiceRole.Prose);
+         // Pure policy: each state's fixed (main role, composition) pair is the whole design of the switch.
+         t.Expect("enhancedUsesProse", ModelModePolicy.MainRoleFor(ManualModelMode.Enhanced), ServiceRole.Prose);
+         t.Expect("roleplayUsesProse", ModelModePolicy.MainRoleFor(ManualModelMode.Roleplay), ServiceRole.Prose);
+         t.Expect("nsfwUsesNsfw", ModelModePolicy.MainRoleFor(ManualModelMode.Nsfw), ServiceRole.Nsfw);
+         t.Expect("enhancedComposition", ModelModePolicy.CompositionFor(ManualModelMode.Enhanced), ChatCompositionMode.Enhanced);
+         t.Expect("roleplayComposition", ModelModePolicy.CompositionFor(ManualModelMode.Roleplay), ChatCompositionMode.Standard);
+         t.Expect("nsfwComposition", ModelModePolicy.CompositionFor(ManualModelMode.Nsfw), ChatCompositionMode.Standard);
+
+         // The button must cycle through all three states in order and wrap, or the player gets stuck.
+         t.Expect("cycleEnhancedToRoleplay", ModelModePolicy.Cycle(ManualModelMode.Enhanced), ManualModelMode.Roleplay);
+         t.Expect("cycleRoleplayToNsfw", ModelModePolicy.Cycle(ManualModelMode.Roleplay), ManualModelMode.Nsfw);
+         t.Expect("cycleNsfwWrapsToEnhanced", ModelModePolicy.Cycle(ManualModelMode.Nsfw), ManualModelMode.Enhanced);
 
          CrSettings s = CrSettings.Instance;
-         if (t.Skip(s == null, "MCM settings unavailable, cannot drive the gate")) return t.Line();
+         if (t.Skip(s == null, "MCM settings unavailable")) return t.Line();
 
          const string sentinel = "cr-selftest/nsfw-sentinel-model";
          string priorNsfw = s.CncModel;
-         bool priorGate = s.ShowManualModelToggle;
-         bool priorFlag = LlmServices.ManualNsfwProse;
-         SceneContentKind priorKind = LlmServices.ActiveSceneKind;
+         ManualModelMode priorMode = LlmServices.ActiveModelMode;
          try
          {
             s.CncModel = sentinel;
-            LlmServices.ActiveSceneKind = SceneContentKind.Ordinary; // an ordinary scene, so only the toggle can route to NSFW
 
-            // Gate ON + flag ON: the live main-call model must resolve to the NSFW model.
-            s.ShowManualModelToggle = true;
-            LlmServices.ManualNsfwProse = true;
-            t.Expect("gateOnFlagOnForcesNsfwModel", LlmServices.ActiveModelId, sentinel);
+            // NSFW state: the live main-call model must resolve to the configured NSFW model, no gate to pass.
+            LlmServices.ActiveModelMode = ManualModelMode.Nsfw;
+            t.Expect("nsfwStateResolvesNsfwModel", LlmServices.ActiveModelId, sentinel);
+            t.Expect("nsfwStateIsStandardComposition", LlmServices.ActiveComposition, ChatCompositionMode.Standard);
 
-            // Gate ON + flag OFF: back to the PROSE model (not the sentinel).
-            LlmServices.ManualNsfwProse = false;
-            t.Expect("gateOnFlagOffUsesProseModel", LlmServices.ActiveModelId != sentinel, true);
+            // Roleplay state: back to the PROSE model (not the sentinel), still Standard composition - no
+            // NSFW auto-routing even though a captivity scene could be active (content-kind routing is retired).
+            LlmServices.ActiveModelMode = ManualModelMode.Roleplay;
+            t.Expect("roleplayStateUsesProseModel", LlmServices.ActiveModelId != sentinel, true);
+            t.Expect("roleplayStateIsStandardComposition", LlmServices.ActiveComposition, ChatCompositionMode.Standard);
 
-            // Gate OFF + flag ON: the hidden switch must be IGNORED, so still the PROSE model.
-            s.ShowManualModelToggle = false;
-            LlmServices.ManualNsfwProse = true;
-            t.Expect("gateOffIgnoresTheFlag", LlmServices.ActiveModelId != sentinel, true);
+            // Enhanced state: PROSE model, but Enhanced composition (the interpreter + hard-failure-fallback pipeline).
+            LlmServices.ActiveModelMode = ManualModelMode.Enhanced;
+            t.Expect("enhancedStateUsesProseModel", LlmServices.ActiveModelId != sentinel, true);
+            t.Expect("enhancedStateIsEnhancedComposition", LlmServices.ActiveComposition, ChatCompositionMode.Enhanced);
          }
          finally
          {
             s.CncModel = priorNsfw;
-            s.ShowManualModelToggle = priorGate;
-            LlmServices.ManualNsfwProse = priorFlag;
-            LlmServices.ActiveSceneKind = priorKind;
+            LlmServices.ActiveModelMode = priorMode;
          }
 
          return t.Line();

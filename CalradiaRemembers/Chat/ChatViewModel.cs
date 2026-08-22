@@ -379,7 +379,8 @@ namespace CalradiaRemembers.Chat
          _messages.ListChanged += OnMessagesListChanged;
 
          // Every chat opens as an ordinary scene; the captive/captor activators set the scene kind to Cnc when
-         // the scene is sexual, which (in Standard composition) routes it to the NSFW model.
+         // the scene is sexual. Diagnostic/log value only now: which model writes the scene is the player's own
+         // choice on the three-state in-chat switch (LlmServices.ActiveModelMode), not this content kind.
          LlmServices.ActiveSceneKind = SceneContentKind.Ordinary;
 
          RefreshStyleUi(); // the header's style button: hidden unless armed, labelled with the live voice
@@ -558,13 +559,13 @@ namespace CalradiaRemembers.Chat
       public bool IsMemoryToggleVisible => _npcHero != null && !_isMemoryPanelOpen;
 
       /// <summary>
-      ///   The restored manual PROSE/NSFW switch (a player asked for it back, 2026-08-20). Shown only when the MCM
-      ///   gate "Manual PROSE/NSFW switch in chat" is on; OFF by default, so most players never see it and routing
-      ///   stays automatic (Standard content-routes captivity to NSFW; Enhanced writes on PROSE with NSFW fallback).
-      ///   When shown, clicking it forces prose onto the NSFW model; the hard-failure fallback still applies on top.
+      ///   The Enhanced/Roleplay/NSFW in-chat model switch (three-state, 21/08/2026 - replaces the old binary
+      ///   manual toggle and its MCM visibility gate). ALWAYS shown above the chat input, no MCM opt-in: the player
+      ///   cycles it with <see cref="ExecuteToggleModelMode" /> to pick exactly which model and composition write
+      ///   the scene, including a captivity scene (Roleplay no longer auto-routes those to NSFW).
       /// </summary>
       [DataSourceProperty]
-      public bool IsModelModeToggleVisible => ModSettings.ShowManualModelToggle;
+      public bool IsModelModeToggleVisible => true;
 
       /// <summary>Inverse of <see cref="IsScenePaused" /> — drives the normal InputBox + SendButton.</summary>
       [DataSourceProperty]
@@ -836,17 +837,15 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   The in-chat mode button label: which of the two configured models requests currently use.
-      ///   Clicking the button flips it (see <see cref="ExecuteToggleModelMode" />).
-      /// </summary>
-      [DataSourceProperty]
-      /// <summary>
-      ///   Adult-prompt audit M12: says MODEL, not "Mode". The button only ever switched which model and
+      ///   The in-chat mode button label: names the model role the three-state switch (<see cref="LlmServices.ActiveModelMode" />)
+      ///   currently resolves to. Clicking the button cycles it (see <see cref="ExecuteToggleModelMode" />).
+      ///   Adult-prompt audit M12: says MODEL, not "Mode". The button only ever switches which model and
       ///   provider serve the request; the content level stays whatever Mod Options says, and the prompt is
       ///   built from that. Labelled "Mode: NSFW" it read as a content switch, so a player at Mature clicked
       ///   it, got the same chaste writing the Mature prompt asks for, and concluded the button was broken.
       /// </summary>
-      public string ModelModeText => LlmServices.ManualNsfwProse ? "Model: NSFW" : "Model: Roleplay";
+      [DataSourceProperty]
+      public string ModelModeText => $"Model: {ModelModePolicy.DisplayName(LlmServices.ActiveModelMode)}";
 
       public Action OnCloseRequested { get; set; }
 
@@ -1022,13 +1021,9 @@ namespace CalradiaRemembers.Chat
          OnPropertyChanged(nameof(IsOfferItemVisible));
          OnPropertyChanged(nameof(IsActionMenuVisible));
 
-         // A structurally-explicit scene: open on the NSFW model (falls back to the roleplay model when none
-         // is configured). The player can still flip it back. Audit M10/M11: "captive" is not "sexual", and
-         // the adult dial has the last word, so a ransom, an intimidation, or any scene at all with adult
-         // content Off is no longer served by the specialised erotic model behind the player's back.
-         // A captive/captor scene is CNC by construction; a sexual intent routes it to the CNC model, a
-         // non-sexual one stays ordinary (roleplay). NEXT INCREMENT: finer scene->mode routing (auto-detecting
-         // a ConsensualIntimate case, splitting Cnc detection) replaces this structural true->Cnc mapping.
+         // Audit M10/M11: "captive" is not "sexual", so a ransom or an intimidation stays ordinary; a sexual intent
+         // is CNC. Diagnostic/log value only now (three-state switch replaced content-kind auto-routing, 2026-08-21):
+         // which model actually writes the scene is the player's own choice on LlmServices.ActiveModelMode.
          LlmServices.ActiveSceneKind =
             CaptiveSceneIntentRules.IsSexual(intent) ? SceneContentKind.Cnc : SceneContentKind.Ordinary;
          OnPropertyChanged(nameof(ModelModeText));
@@ -1111,13 +1106,9 @@ namespace CalradiaRemembers.Chat
       {
          _mode = ChatMode.Conversation;
 
-         // A structurally-explicit scene: open on the NSFW model (falls back to the roleplay model when none
-         // is configured). The player can still flip it back. Audit M10/M11: "captive" is not "sexual", and
-         // the adult dial has the last word, so a ransom, an intimidation, or any scene at all with adult
-         // content Off is no longer served by the specialised erotic model behind the player's back.
-         // A player-as-captor scene is CNC by construction; a sexual intent routes it to the CNC model, a
-         // non-sexual one stays ordinary (roleplay). NEXT INCREMENT: finer scene->mode routing (auto-detecting
-         // a ConsensualIntimate case, splitting Cnc detection) replaces this structural true->Cnc mapping.
+         // Audit M10/M11: "captive" is not "sexual", so a ransom or an intimidation stays ordinary; a sexual intent
+         // is CNC. Diagnostic/log value only now (three-state switch replaced content-kind auto-routing, 2026-08-21):
+         // which model actually writes the scene is the player's own choice on LlmServices.ActiveModelMode.
          LlmServices.ActiveSceneKind =
             CaptiveSceneIntentRules.IsSexual(intent) ? SceneContentKind.Cnc : SceneContentKind.Ordinary;
          OnPropertyChanged(nameof(ModelModeText));
@@ -1830,6 +1821,10 @@ namespace CalradiaRemembers.Chat
        + "- Actions: emit an action by hand (give gold, free a prisoner, appoint a governor, and so on) when you "
        + "want to be explicit, or the character missed what you meant.\n"
        + "- Request Private: ask the character to clear any onlookers so you can speak alone.\n"
+       + "- The gear: game options. The Model label beside it cycles how replies are written: Enhanced uses two "
+       + "models for the best result (a writer plus a separate action reader), Roleplay uses one lighter model, and "
+       + "NSFW uses the explicit model. Roleplay and NSFW are a single call with no action reader, so use Actions to "
+       + "emit an action by hand in those modes.\n"
        + "- Leave / End: close the conversation.\n\n"
        + "In a captive or paced scene: Continue advances the moment, Try something lets you act in your own "
        + "words, and Please continue nudges a stalled scene forward.\n\n"
@@ -2066,16 +2061,17 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Flips the restored manual PROSE-source switch (prose=Roleplay ⇄ prose=NSFW). A runtime session flag on
-      ///   <see cref="LlmServices" />, read live by the model/provider resolution, so the next reply routes to the
-      ///   chosen model with no rebuild. Refreshes the button label. Only reachable while the MCM gate shows the
-      ///   button (<see cref="IsModelModeToggleVisible" />).
+      ///   Cycles the three-state in-chat switch (Enhanced -> Roleplay -> NSFW -> Enhanced). A runtime session flag
+      ///   on <see cref="LlmServices" />, read live by the model/provider/composition resolution, so the next reply
+      ///   routes to the chosen model with no service rebuild (the routing lambdas built in
+      ///   <see cref="LlmServices.Initialize" /> read <see cref="LlmServices.ActiveModelMode" /> per request).
+      ///   Refreshes the button label. Always reachable - the switch is no longer behind an MCM gate.
       /// </summary>
       public void ExecuteToggleModelMode()
       {
-         LlmServices.ManualNsfwProse = !LlmServices.ManualNsfwProse;
+         LlmServices.ActiveModelMode = ModelModePolicy.Cycle(LlmServices.ActiveModelMode);
          OnPropertyChanged(nameof(ModelModeText));
-         ModLog.Info($"[chat] manual PROSE source flipped to {(LlmServices.ManualNsfwProse ? "NSFW" : "Roleplay")} model.");
+         ModLog.Info($"[chat] in-chat model switch cycled to {ModelModePolicy.DisplayName(LlmServices.ActiveModelMode)}.");
       }
 
       /// <summary>

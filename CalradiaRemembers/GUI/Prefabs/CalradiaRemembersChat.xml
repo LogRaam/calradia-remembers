@@ -480,11 +480,11 @@
           </Children>
         </ButtonWidget>
 
-        <!-- Model toggle (roleplay/NSFW): small, discreet plain text in the bottom-left corner (no button
-             chrome), below the Options label. Visible only when an NSFW model is configured (nothing to toggle
-             otherwise). It switches WHICH MODEL AND PROVIDER serve the request, never the content level: that
-             stays whatever Mod Options says, and the prompt is built from it (adult-prompt audit M12, which is
-             why the label reads "Model:" and not "Mode:"). -->
+        <!-- Model toggle (Enhanced/Roleplay/NSFW, three-state, 2026-08-21): small, discreet plain text in the
+             bottom-left corner (no button chrome), below the Options label. ALWAYS visible. It switches WHICH
+             MODEL, PROVIDER AND COMPOSITION serve the request, never the content level: that stays whatever Mod
+             Options says, and the prompt is built from it (adult-prompt audit M12, which is why the label reads
+             "Model:" and not "Mode:"). -->
         <ButtonWidget Id="ModelModeButton"
                       WidthSizePolicy="CoverChildren"
                       HeightSizePolicy="CoverChildren"
