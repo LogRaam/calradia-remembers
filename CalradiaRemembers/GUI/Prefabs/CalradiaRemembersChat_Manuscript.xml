@@ -283,22 +283,8 @@
                             Brush.TextHorizontalAlignment="Center"
                             Text="@TitleText"
                             IsDisabled="true" />
-                <!-- Help: a small "?" that opens a popup explaining the window, so the buttons need no per-button
-                     tooltips (which get repetitive). Top-right corner, always available. -->
-                <ButtonWidget Id="HelpButton"
-                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                              SuggestedWidth="34" SuggestedHeight="34"
-                              HorizontalAlignment="Right" VerticalAlignment="Top"
-                              MarginTop="58" MarginRight="70"
-                              DoNotPassEventsToChildren="true"
-                              Brush="ButtonBrush1"
-                              Command.Click="ExecuteShowHelp">
-                  <Children>
-                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                Brush="Popup.Button.Text" Brush.FontSize="20"
-                                Brush.TextHorizontalAlignment="Center" Text="?" IsDisabled="true" />
-                  </Children>
-                </ButtonWidget>
+                <!-- Help moved to the leftmost page-art tile in the bottom icon row (HelpIconButton); the old
+                     top-right "?" is gone on this skin. -->
                 <TextWidget Id="WitnessesTextWidget"
                             WidthSizePolicy="StretchToParent"
                             HeightSizePolicy="Fixed"
@@ -601,6 +587,22 @@
                   <Children>
                     <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                             Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
+                  </Children>
+                </ButtonWidget>
+
+                <!-- Help (leftmost tile): the page-art help icon, replacing the old top-right "?" on this skin.
+                     POSITIONING AID: child painted opaque red (#FF3030FF); once it sits over the tile, set Color
+                     to "#FFFFFF00" (transparent). Nudge MarginLeft/MarginBottom to match. -->
+                <ButtonWidget Id="HelpIconButton"
+                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="32" SuggestedHeight="32"
+                              HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                              MarginLeft="54" MarginBottom="174"
+                              DoNotPassEventsToChildren="true"
+                              Command.Click="ExecuteShowHelp">
+                  <Children>
+                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Sprite="BlankWhiteSquare_9" Color="#FF3030FF" IsDisabled="true" />
                   </Children>
                 </ButtonWidget>
 
