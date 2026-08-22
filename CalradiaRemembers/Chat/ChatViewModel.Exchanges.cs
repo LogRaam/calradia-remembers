@@ -1231,12 +1231,21 @@ namespace CalradiaRemembers.Chat
                ModLog.Info($"[DISCOVERY] dropped a player-subject entry from {profile.Name}: key=\"{responseForMutator.Discovery.Key}\" description=\"{responseForMutator.Discovery.Description}\"");
             }
 
+            // Memories panel action tag: remember the [EVENT] memory this turn creates (if any), so a
+            // mechanical deed the bridge actually applies below can be stamped onto it (ActionMemoryLabel),
+            // and the journal highlights a real turning point in blue rather than the LLM's narrative type.
+            int eventsBeforeApply = profile.Events.Count;
+
             ProfileMutator.Apply(profile, responseForMutator, gameDay,
                romanticContentEnabled: ModSettings.AdultContentLevel != AdultContentLevel.Off,
                orientationCompatible: orientationCompatible,
                applyReputation: false, // C2: [REPUTATION] is disabled in the mod; never apply a block the model emitted unprompted.
                intimacyPermitted: behavior.GameStateBridge.PermitsIntimacyWith(_npcHero, profile),
                playerName: playerName);
+
+            NotableEvent turnEvent = profile.Events.Count > eventsBeforeApply
+               ? profile.Events[profile.Events.Count - 1]
+               : null;
 
             // Stance: the LLM's spoken nudges to trust/respect/fear — capped hard and rate-limited
             // (words only colour; deeds prove). Persisted by the Store.Set below after actions run.
@@ -1490,6 +1499,18 @@ namespace CalradiaRemembers.Chat
                   {
                      try { RecordTranscript(true, "You", Hero.MainHero?.StringId, refusalNote); }
                      catch (Exception ex) { ModLog.Error($"[ACTION] refusal note failed: {ex.GetType().Name}: {ex.Message}"); }
+                  }
+
+                  // Memories panel: stamp this executed deed onto the turn's memory (if one was recorded), so the
+                  // journal marks a REAL mechanical consequence in blue. Only actions the bridge actually applied
+                  // (not refused, not an invented verb) earn a tag; the relation verbs colour by direction.
+                  if (turnEvent != null && outcome != null && !outcome.WasRefused && !outcome.WasUnknownVerb)
+                  {
+                     string deedTag = ActionMemoryLabel.Describe(action.Type, outcome.IsPositive);
+                     if (!string.IsNullOrEmpty(deedTag))
+                        turnEvent.ActionTag = string.IsNullOrEmpty(turnEvent.ActionTag)
+                           ? deedTag
+                           : $"{turnEvent.ActionTag}, {deedTag}";
                   }
 
                   // execute_prisoner (Nemesis pillar, R2): the prisoner is dead, so the scene locks

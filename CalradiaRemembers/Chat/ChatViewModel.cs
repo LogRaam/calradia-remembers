@@ -2984,9 +2984,11 @@ namespace CalradiaRemembers.Chat
             foreach (NotableEvent e in profile.Events)
             {
                string meta = MemoryDayFormatter.Describe(e.gameDay, today);
-               // The event type is shown as a SEPARATE blue tag (an emitted deed or interaction reads at a
-               // glance), not appended to the muted date; a plain remark (Other) carries no tag.
-               string actionLabel = e.type != NotableEventType.Other ? e.type.ToString() : "";
+               // The blue tag names the REAL mechanical deed the bridge executed with this memory ("Gave gold",
+               // "Regard rose", "Joined your party"...), set at turn time on NotableEvent.ActionTag. A memory with
+               // no emitted action carries no tag, so the blue marks a verifiable turning point, not the LLM's
+               // narrative classification of the exchange.
+               string actionLabel = e.ActionTag ?? "";
                _memories.Add(new MemoryEntryViewModel(meta, e.summary, actionLabel));
             }
          }
