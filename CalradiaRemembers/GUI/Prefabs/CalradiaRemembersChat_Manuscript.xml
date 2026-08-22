@@ -853,7 +853,7 @@
                  room for the painted scrollbar rail. -->
             <Widget Id="MemoryListArea"
                     WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                    VerticalAlignment="Top" MarginTop="130" MarginBottom="43" MarginLeft="140" MarginRight="22">
+                    VerticalAlignment="Top" MarginTop="130" MarginBottom="58" MarginLeft="140" MarginRight="22">
               <Children>
                 <MemoryScrollablePanel Id="MemoryScrollPanel"
                                        WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
@@ -913,7 +913,7 @@
                                 <CrRuntimeImageWidget Id="MemorySeparator"
                                                       WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
                                                       SuggestedHeight="16" HorizontalAlignment="Center"
-                                                      MarginTop="10" MarginBottom="4"
+                                                      MarginTop="10" MarginBottom="4" MarginLeft="10" MarginRight="10"
                                                       ImagePath="@SeparatorPath" CorrectRedBlue="false"
                                                       IsDisabled="true" />
                               </Children>
@@ -934,8 +934,8 @@
                  SuggestedWidth/SuggestedHeight/MarginBottom against the real plaque art. -->
             <ButtonWidget Id="MemoryCloseButton"
                           WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                          SuggestedWidth="220" SuggestedHeight="60"
-                          HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="30"
+                          SuggestedWidth="245" SuggestedHeight="30"
+                          HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="17"
                           DoNotPassEventsToChildren="true"
                           UpdateChildrenStates="true" Command.Click="ExecuteToggleMemoryPanel">
               <Children>
