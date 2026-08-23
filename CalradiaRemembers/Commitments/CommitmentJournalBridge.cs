@@ -122,32 +122,33 @@ namespace CalradiaRemembers.Commitments
         }
 
         /// <summary>
-        ///   Anti-stuck pass. Runs at every session launch (wired by
-        ///   <see cref="CalradiaRemembers.Behaviors.NpcMemoryCampaignBehavior.OnSessionLaunched" />). Closes
-        ///   any live <see cref="CommitmentQuest" /> whose commitment Id is no longer Active in
-        ///   <see cref="CommitmentBehavior" /> (already resolved on an earlier session where the mirror
-        ///   failed to close for some other reason, or the promisor vanished before it could).
+        ///   2026-08-22: an NPC's vow is no longer a player quest (no journal entry, no deadline, no
+        ///   relation effect). Runs at every session launch (wired by
+        ///   <see cref="CalradiaRemembers.Behaviors.NpcMemoryCampaignBehavior.OnSessionLaunched" />) and
+        ///   closes EVERY <see cref="CommitmentQuest" /> mirror carried over from an older save
+        ///   NEUTRALLY: a cancel banner, never the fail banner the old breach path raised, so a legacy
+        ///   save never greets the player with "quest failed" for a vow that was never theirs. Then it
+        ///   hands off to <see cref="CommitmentBehavior.RetireAllSilently" /> to drain the tracked list
+        ///   into plain memories. A fresh campaign has no mirrors and nothing to drain.
         /// </summary>
         public static void ReconcileOnSessionLaunch()
         {
-            if (Campaign.Current?.QuestManager == null) return;
-            CommitmentBehavior behavior = CommitmentBehavior.Instance;
-            if (behavior == null) return;
-
-            var closed = 0;
-            foreach (CommitmentQuest q in Campaign.Current.QuestManager.Quests
-                                                   .OfType<CommitmentQuest>()
-                                                   .ToList()) // snapshot, we may mutate during iteration
+            if (Campaign.Current?.QuestManager != null)
             {
-                if (behavior.Active.Any(c => c.Id == q.CommitmentId)) continue;
+                var closed = 0;
+                foreach (CommitmentQuest q in Campaign.Current.QuestManager.Quests
+                                                       .OfType<CommitmentQuest>()
+                                                       .ToList()) // snapshot, we mutate during iteration
+                {
+                    q.CloseNeutral("This vow now lives in memory, not the quest log.");
+                    closed++;
+                }
 
-                ModLog.Info($"[COMMITMENT-JOURNAL] closing stale mirror '{q.StringId}' at session launch, pledge no longer active.");
-                q.CloseBreached("The pledge is no longer tracked.");
-                closed++;
+                if (closed > 0)
+                    ModLog.Info($"[COMMITMENT-JOURNAL] closed {closed} legacy pledge mirror(s) neutrally at session launch (vows are memories now).");
             }
 
-            if (closed > 0)
-                ModLog.Info($"[COMMITMENT-JOURNAL] reconciled {closed} stale mirror(s) at session launch.");
+            CommitmentBehavior.Instance?.RetireAllSilently();
         }
 
         #region private

@@ -73,38 +73,67 @@ namespace CalradiaRemembers.Commitments
          => !string.IsNullOrEmpty(promisorId) && _active.Any(c => c.PromisorId == promisorId && c.State == CommitmentState.Active);
 
       /// <summary>
-      ///   Records a new pledge, deadline computed by <see cref="CommitmentPolicy" /> from today. The
-      ///   caller (the bridge, re-validating every guard) has already launched the underlying scheme.
-      ///   Opens the vanilla quest-journal mirror when a live promisor Hero can be resolved
-      ///   (<see cref="Commitments.CommitmentJournalBridge" /> is itself defensive, so a missing/invalid
-      ///   promisor never blocks the pledge from being recorded).
-      ///   <paramref name="kind" /> defaults to MoveAgainst (pledge_against's own flagship kind, unchanged
-      ///   for its existing caller, <see cref="GameState.CourtActionResolver.LaunchPledge" />).
-      ///   <paramref name="promisedAmount" /> is R7-light's own PayGold payload (the denars still owed);
-      ///   <paramref name="witnessIds" /> are the OTHER seats present when a swear_oath was struck at a
-      ///   council table (null for a private pledge, e.g. pledge_against's own 1:1 or council path, which
-      ///   never carries witnesses onto the commitment itself).
+      ///   2026-08-22: an NPC's vow is NOT a player quest. It is no longer tracked with a deadline, a
+      ///   quest-journal mirror, or any relation consequence (no reward for keeping it, no penalty for
+      ///   breaking it, no grudge): the mod simply REMEMBERS that the vow was made. This records the vow
+      ///   as a memory on the promisor's profile and does nothing else. MoveAgainst is the one kind whose
+      ///   own caller (<see cref="GameState.CourtActionResolver.LaunchPledge" />) already writes its
+      ///   memory and launches the real scheme, so this writes a memory only for the swear_oath kinds
+      ///   (PayGold/KeepPeace/Protect). The signature is unchanged so both callers compile untouched;
+      ///   <paramref name="witnessIds" /> is accepted for compatibility and ignored (who witnessed a vow
+      ///   no longer matters mechanically). Returns null: there is no tracked commitment to hand back.
       /// </summary>
       public TrackedCommitment Create(string promisorId, string targetId, int issuedDay,
          CommitmentKind kind = CommitmentKind.MoveAgainst, int? promisedAmount = null, List<string> witnessIds = null)
       {
-         var commitment = new TrackedCommitment {
-            Id = Guid.NewGuid().ToString("N"),
-            PromisorId = promisorId,
-            TargetId = targetId,
-            Kind = kind,
-            IssuedDay = issuedDay,
-            DeadlineDay = CommitmentPolicy.ComputeDeadline(issuedDay),
-            State = CommitmentState.Active,
-            PromisedAmount = promisedAmount,
-            WitnessIds = witnessIds
-         };
-         _active.Add(commitment);
-         ModLog.Info($"[COMMITMENT] pledged: promisor={promisorId} target={targetId} kind={kind} deadline day {commitment.DeadlineDay}.");
+         if (kind == CommitmentKind.MoveAgainst) return null; // its memory + scheme are owned by LaunchPledge
 
-         CommitmentJournalBridge.OpenMirror(commitment, FindHero(promisorId));
+         RecordVowMemory(promisorId, targetId, kind, promisedAmount, issuedDay);
 
-         return commitment;
+         return null;
+      }
+
+      /// <summary>
+      ///   Writes a just-sworn vow as a plain memory on the promisor's profile (2026-08-22: a vow is
+      ///   remembered, never tracked). Reuses the kind-aware opening line the old journal mirror used, so
+      ///   the wording ("swore to pay you 200 denars", "swore to stand at your side in battle") is
+      ///   unchanged, only its home (a memory, not a quest) is.
+      /// </summary>
+      private static void RecordVowMemory(string promisorId, string targetId, CommitmentKind kind, int? promisedAmount, int day)
+      {
+         BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+         NpcProfile profile = store?.Get(promisorId);
+         if (profile == null) return;
+
+         string promisorName = FindHero(promisorId)?.Name?.ToString();
+         string targetName = kind == CommitmentKind.KeepPeace ? FindFactionById(targetId)?.Name?.ToString() : null;
+         string vowLine = CommitmentJournalText.BuildOpenedLine(kind, promisorName, targetName, promisedAmount);
+
+         profile.Events.Add(new NotableEvent(day, NotableEventType.Agreement, vowLine));
+         store.Set(profile);
+         ModLog.Info($"[COMMITMENT] vow remembered (not tracked): promisor={promisorId} kind={kind}.");
+      }
+
+      /// <summary>
+      ///   2026-08-22 save migration. An NPC's vow is no longer a tracked quest, so at session launch this
+      ///   drains EVERY commitment carried over from an older save with NO consequence: no fulfill, no
+      ///   breach, no relation change, no grudge, no fail banner. A legacy swear_oath vow (which never
+      ///   left a memory under the old tracking model) is turned into the memory it should always have
+      ///   been; MoveAgainst is skipped (its memory was written at LaunchPledge time). The journal mirrors
+      ///   themselves are closed neutrally by <see cref="CommitmentJournalBridge.ReconcileOnSessionLaunch" />,
+      ///   which calls this. A fresh campaign has nothing to drain.
+      /// </summary>
+      public void RetireAllSilently()
+      {
+         if (_active.Count == 0) return;
+
+         int drained = _active.Count;
+         foreach (TrackedCommitment c in _active)
+            if (c.Kind != CommitmentKind.MoveAgainst)
+               RecordVowMemory(c.PromisorId, c.TargetId, c.Kind, c.PromisedAmount, c.IssuedDay);
+
+         _active.Clear();
+         ModLog.Info($"[COMMITMENT] retired {drained} legacy pledge(s) silently at session launch (vows are memories now, no consequence).");
       }
 
       /// <summary>Runs one breach-sweep pass immediately (console/self-test only) — mirrors <see cref="WorldEvents.SchemeStore.DebugAdvance" />.</summary>

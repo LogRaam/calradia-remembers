@@ -231,8 +231,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("rp_spend_influence", Severity.Light, "needy lord's clan -> spend_influence -> assert clan influence moved + marker + appreciation planted + cooldown refuses repeat", TestRpSpendInfluence),
          new SelfTest("rp_sway", Severity.Light, "NPC + 3rd hero -> sway_opinion(against) -> assert relation dropped + marker + world event + cooldown refuses repeat", TestRpSway),
          new SelfTest("rp_release", Severity.Heavy, "seed 3rd-party captive on a lord's party -> release_prisoner -> assert freed + relation bump", TestRpRelease),
-         new SelfTest("commitment_fulfilled", Severity.Light, "seed a real pledge -> OnSchemeResolved(true) -> assert no longer active + reputation bonus + world event + journal mirror closed", TestCommitmentFulfilled),
-         new SelfTest("commitment_breached", Severity.Light, "seed a real pledge, force it overdue -> breach sweep -> assert no longer active + reputation penalty + world event", TestCommitmentBreached),
+         new SelfTest("commitment_is_memory_only", Severity.Light, "fire a real pledge_against -> assert the vow is REMEMBERED but not tracked as a quest: no ledger entry, no journal mirror, no relation change (2026-08-22: an NPC's vow is not a player quest)", TestCommitmentIsMemoryOnly),
          new SelfTest("divorce_process", Severity.Heavy, "married couple -> end_marriage -> force endDay -> tick -> assert dissolved + exSpouses + no one clanless + scandal + relation hits", TestDivorceProcess),
          new SelfTest("spouse_divorce", Severity.Heavy, "marry the player (test spouse) -> force demand -> accept_divorce -> assert dissolved + flag cleared; second test spouse -> force demand -> decline_divorce -> assert refusal grudge planted", TestSpouseDivorceDemand),
          new SelfTest("player_divorce", Severity.Heavy, "marry the player (test spouse, happy) -> end_own_marriage -> assert dissolved + a Divorce grudge on the player; second test spouse (miserable) -> end_own_marriage -> assert dissolved + NO grudge", TestPlayerDivorce),
@@ -1262,13 +1261,13 @@ namespace CalradiaRemembers.Diagnostics
             : null;
       }
 
-      // ── RP with teeth, increment 2: TrackedCommitment (pledge_against) fulfilled / breached ──────
+      // ── RP with teeth, increment 2: pledge_against (2026-08-22: a vow is a memory, not a quest) ──────
 
       /// <summary>
       ///   Seeds a real pledge_against through the SAME bridge dispatch a conversation uses (not a
-      ///   reimplementation), so the underlying scheme is genuinely launched and the journal mirror
-      ///   genuinely opened. Shared by <see cref="TestCommitmentFulfilled" /> and
-      ///   <see cref="TestCommitmentBreached" />; the two verify opposite endings.
+      ///   reimplementation), so the underlying scheme is genuinely launched and the vow is genuinely
+      ///   recorded. Used by <see cref="TestCommitmentIsMemoryOnly" />, which asserts the vow leaves a
+      ///   memory but no tracked commitment, no journal mirror, and no relation change.
       /// </summary>
       private static bool SeedPledgeEligible(NpcMemoryCampaignBehavior behavior, NpcProfile profile, Hero npc, Hero target)
       {
@@ -3070,12 +3069,18 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
-      private static string TestCommitmentBreached(NpcMemoryCampaignBehavior behavior)
+      /// <summary>
+      ///   2026-08-22: an NPC's vow is REMEMBERED, never tracked as a player quest. Firing the real
+      ///   pledge_against action must (a) leave nothing in the commitment ledger, (b) open no
+      ///   quest-journal mirror, (c) append a memory of the vow, and (d) move the player-regard not at all
+      ///   (a vow now carries neither reward nor penalty). Guards the v2.1.4 player report: governor
+      ///   companions "failed" pledges they never had a chance to keep, and lost regard for it.
+      /// </summary>
+      private static string TestCommitmentIsMemoryOnly(NpcMemoryCampaignBehavior behavior)
       {
-         var t = new TestRun("commitment_breached");
+         var t = new TestRun("commitment_is_memory_only");
 
          if (t.Abort(CommitmentBehavior.Instance == null, "CommitmentBehavior not active")) return t.Line();
-         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
 
          (Hero npc, Hero target)? pair = ResolveSwayPair();
 
@@ -3086,79 +3091,24 @@ namespace CalradiaRemembers.Diagnostics
          ArrangeCleanNpc(behavior, profile, npc, target);
 
          var commitments = CommitmentBehavior.Instance;
+         NpcProfile beforeProfile = behavior.Store.Get(npc.StringId);
+         int repBefore = beforeProfile.ReputationWithPlayer;
+         int memoriesBefore = beforeProfile.Events.Count;
+         QuestManager qm = Campaign.Current?.QuestManager;
+         int mirrorsBefore = qm?.Quests.OfType<CommitmentQuest>().Count(q => q.PromisorId == npc.StringId) ?? 0;
+
          bool seeded = SeedPledgeEligible(behavior, profile, npc, target);
 
          if (t.Abort(!seeded, "pledge_against seed failed (wiring bug, not a judgment call)")) return t.Line();
 
-         TrackedCommitment live = commitments.Active.FirstOrDefault(c => c.PromisorId == npc.StringId && c.TargetId == target.StringId);
-
-         if (t.Abort(live == null, "seeded pledge not found in Active list")) return t.Line();
-         live.DeadlineDay = behavior.GameStateBridge.GetCurrentGameDay() - 1; // force overdue, deterministic — no waiting on a real day tick
-
-         NpcProfile afterPledge = behavior.Store.Get(npc.StringId);
-         int repBefore = afterPledge.ReputationWithPlayer;
-         int eventsBefore = WorldEventStore.Instance.Count;
-         QuestManager qm = Campaign.Current?.QuestManager;
-         string commitmentId = live.Id;
-
-         commitments.DebugRunBreachSweep();
-
          NpcProfile after = behavior.Store.Get(npc.StringId);
-         bool stillActive = commitments.HasActive(npc.StringId);
-         int repAfter = after.ReputationWithPlayer;
-         int eventsAfter = WorldEventStore.Instance.Count;
-         bool mirrorGone = qm == null || qm.Quests.OfType<CommitmentQuest>().All(q => q.CommitmentId != commitmentId);
+         int mirrorsAfter = qm?.Quests.OfType<CommitmentQuest>().Count(q => q.PromisorId == npc.StringId) ?? 0;
 
-         t.Note($"{npc.Name} -> {target.Name}: reputation {repBefore}->{repAfter}, worldEvents {eventsBefore}->{eventsAfter}");
-         t.Expect("pledgeNoLongerActive", stillActive, false);
-         t.Expect("reputationFell", repAfter - repBefore, CommitmentPolicy.BreachedRelationPenalty);
-         t.Expect("worldEventRecorded", eventsAfter > eventsBefore, true);
-         t.Expect("journalMirrorClosed", mirrorGone, true);
-
-         return t.Line();
-      }
-
-      private static string TestCommitmentFulfilled(NpcMemoryCampaignBehavior behavior)
-      {
-         var t = new TestRun("commitment_fulfilled");
-
-         if (t.Abort(CommitmentBehavior.Instance == null, "CommitmentBehavior not active")) return t.Line();
-         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
-
-         (Hero npc, Hero target)? pair = ResolveSwayPair();
-
-         if (t.Skip(pair == null, "need an NPC + a distinct kin-safe lord to pledge against")) return t.Line();
-         (Hero npc, Hero target) = pair.Value;
-
-         NpcProfile profile = GetOrCreate(behavior, npc);
-         ArrangeCleanNpc(behavior, profile, npc, target);
-
-         var commitments = CommitmentBehavior.Instance;
-         bool seeded = SeedPledgeEligible(behavior, profile, npc, target);
-
-         if (t.Abort(!seeded, "pledge_against seed failed (wiring bug, not a judgment call)")) return t.Line();
-
-         NpcProfile afterPledge = behavior.Store.Get(npc.StringId);
-         int repBefore = afterPledge.ReputationWithPlayer;
-         int eventsBefore = WorldEventStore.Instance.Count;
-         QuestManager qm = Campaign.Current?.QuestManager;
-         string commitmentId = commitments.Active.FirstOrDefault(c => c.PromisorId == npc.StringId && c.TargetId == target.StringId)?.Id;
-
-         if (t.Abort(commitmentId == null, "seeded pledge not found in Active list")) return t.Line();
-
-         commitments.OnSchemeResolved(npc.StringId, target.StringId, true);
-
-         NpcProfile after = behavior.Store.Get(npc.StringId);
-         bool stillActive = commitments.HasActive(npc.StringId);
-         int repAfter = after.ReputationWithPlayer;
-         int eventsAfter = WorldEventStore.Instance.Count;
-         bool mirrorGone = qm == null || qm.Quests.OfType<CommitmentQuest>().All(q => q.CommitmentId != commitmentId);
-
-         t.Note($"{npc.Name} -> {target.Name}: reputation {repBefore}->{repAfter}, worldEvents {eventsBefore}->{eventsAfter}");
-         t.Expect("pledgeNoLongerActive", stillActive, false);
-         t.Expect("reputationRose", repAfter - repBefore, CommitmentPolicy.FulfilledRelationBonus);
-         t.Expect("worldEventRecorded", eventsAfter > eventsBefore, true);
-         t.Expect("journalMirrorClosed", mirrorGone, true);
+         t.Note($"{npc.Name} vowed against {target.Name}: regard {repBefore}->{after.ReputationWithPlayer}, memories {memoriesBefore}->{after.Events.Count}, mirrors {mirrorsBefore}->{mirrorsAfter}");
+         t.Expect("notTracked", commitments.HasActive(npc.StringId), false);
+         t.Expect("noJournalMirror", mirrorsAfter, mirrorsBefore);
+         t.Expect("memoryRecorded", after.Events.Count > memoriesBefore, true);
+         t.Expect("regardUnchanged", after.ReputationWithPlayer, repBefore);
 
          return t.Line();
       }
