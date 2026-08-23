@@ -1087,19 +1087,22 @@ namespace CalradiaRemembers.Chat
 
             _messages.Remove(placeholder); // drop the "weighs your words" tile; the parsed scene replaces it
 
-            if (!string.IsNullOrWhiteSpace(parsed.SceneNarration))
-               AppendNarration(parsed.SceneNarration);
-
+            // Walk the contributions in the model's own order: a scene beat is a narrator hand-off/reaction
+            // (no speaker), everything else is a member's turn under their own bubble. This is what gives the
+            // flowing "camera": Ajin speaks, a beat turns the floor to Hophtalamos, he speaks, a beat shows
+            // Sophia startle, she speaks.
             var rendered = 0;
             foreach (CouncilContribution c in parsed.Contributions)
             {
                if (c == null || string.IsNullOrWhiteSpace(c.Text)) continue;
-               RenderCouncilContribution(c.SpeakerName, c.Text);
+
+               if (c.IsScene) AppendNarration(c.Text);
+               else RenderCouncilContribution(c.SpeakerName, c.Text);
                rendered++;
             }
 
-            // A reply with no scene and no voice must not leave the turn blank and silent.
-            if (rendered == 0 && string.IsNullOrWhiteSpace(parsed.SceneNarration))
+            // A reply with nothing at all must not leave the turn blank and silent.
+            if (rendered == 0)
                AppendNarration("(The council exchanges glances, but no one speaks.)");
 
             ApplyCouncilRelationShifts(parsed.RelationShifts, behavior); // live regard, actor-attributed
@@ -1134,6 +1137,7 @@ namespace CalradiaRemembers.Chat
 
             roster.Add(new CouncilMemberInput {
                Name = names[i],
+               IsFemale = hero?.IsFemale ?? false,
                PersonaLine = p?.Personality ?? p?.Trait,
                RegardTowardPlayer = p?.ReputationWithPlayer ?? 0,
                Culture = hero?.Culture?.StringId
