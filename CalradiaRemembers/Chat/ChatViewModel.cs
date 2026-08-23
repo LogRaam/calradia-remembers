@@ -1162,9 +1162,10 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       /// <summary>
       ///   Opens a COUNCIL over an already-seated roster: the player leads and every turn from here on fires
-      ///   ONE narrator call (see <see cref="ExecuteSendCouncilMessage" />/<see cref="RunLlmExchangeAsync" />'s
-      ///   <c>isCouncilNarratorTurn</c> branch): the LLM describes the scene and gives the floor to whichever
-      ///   seated member(s) are genuinely moved to speak, never one presiding leader. The in-window "Voices"
+      ///   ONE group-scene call through the council's own pipeline (see <see cref="ExecuteSendCouncilMessage" />
+      ///   / <see cref="RunCouncilTurnAsync" />): the LLM describes the scene and every seated member speaks a
+      ///   full turn, never one presiding leader, and the chat's own prompt path no longer knows the council
+      ///   exists. The in-window "Voices"
       ///   toggle (<see cref="_councilVoiceMode" />) is superseded for a real council by this narrator model: it
       ///   stays visible (Gabriel iterates on it in-game) but <see cref="ExecuteSendMessage" /> no longer
       ///   branches on it. Carried as SESSION state, so closing the window ends council mode and a later
@@ -1212,10 +1213,10 @@ namespace CalradiaRemembers.Chat
          _messages.Add(placeholder);
          IsSendEnabled = false;
 
-         // The table opens itself, narrator-style: nobody presides, so the opening turn describes the gathering
-         // settling in rather than having the anchor personally welcome everyone. A synthetic cue, never shown
-         // or logged as a player line; isCouncilNarratorTurn (armed automatically once _councilScope is set,
-         // see RunLlmExchangeAsync) frames this exactly like every later council turn.
+         // The table opens itself: nobody presides, so the opening turn describes the gathering settling in
+         // rather than having the anchor personally welcome everyone. A synthetic scene-setting cue, never shown
+         // or logged as a player line; it rides the SAME one-call group-scene pipeline (RunCouncilTurnAsync,
+         // isOpener) as every later turn, carried as OpeningCue so the model reads it as a stage direction.
          string opener = scope switch {
             CouncilScope.Assembly =>
                "[The player has convened an ASSEMBLY: lords, kin, companions, and envoys speaking for those who could " +
@@ -1251,8 +1252,7 @@ namespace CalradiaRemembers.Chat
                "them need speak yet.]"
          };
 
-         MarkOpenerPending();
-         _ = RunLlmExchangeAsync(opener, speaker, placeholder, true);
+         _ = RunCouncilTurnAsync(opener, placeholder, isOpener: true);
       }
 
       public void ActivateCompanionAudience(NpcProfile profile, CompanionAudienceReason reason, bool landed, string topicDetail = null)
@@ -2001,13 +2001,11 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   A real council's player turn: ONE narrator call, always backed by the anchor's profile (never
-      ///   retargeted the way an ordinary conversation pivots to an addressed witness, see
-      ///   <see cref="ResolveAddressedSpeaker" />). Address detection here only flags WHO must be guaranteed a
-      ///   reply this turn (<see cref="ResolveAddressedCouncilMemberName" />); it never changes whose profile
-      ///   fires the call. Mirrors the shape of the ordinary branch in <see cref="ExecuteSendMessage" /> (player
-      ///   line display, engagement-panel mirror, per-turn counters), minus the per-witness/per-member branches
-      ///   that no longer apply to a council.
+      ///   A real council's player turn: ONE group-scene call through the council's own pipeline
+      ///   (<see cref="RunCouncilTurnAsync" />), where every seated member speaks a full turn, not the chat's
+      ///   anchor + [WITNESS_REACTION] model. Mirrors the shape of the ordinary branch in
+      ///   <see cref="ExecuteSendMessage" /> (player line display, engagement-panel mirror, per-turn counters),
+      ///   minus the per-witness/per-member branches that no longer apply to a council.
       /// </summary>
       private void ExecuteSendCouncilMessage(string text)
       {
@@ -2031,24 +2029,6 @@ namespace CalradiaRemembers.Chat
          ApplyCouncilSceneImage(placeholder);
          _messages.Add(placeholder);
          _ = RunCouncilTurnAsync(text, placeholder);
-      }
-
-      /// <summary>
-      ///   Reuses the Sprint 15B address detector to find whom the player addressed BY NAME this council turn,
-      ///   without any of its ordinary side effects (it never retargets the call, never touches
-      ///   <see cref="_currentSpeakerHeroId" />): council routing always stays on the anchor. Returns the
-      ///   anchor's OWN name when the player addressed them directly (so the prompt's "your own [DIALOGUE]"
-      ///   wording resolves correctly), a seated member's name when a witness was addressed, or null when
-      ///   nobody in particular was.
-      /// </summary>
-      private string ResolveAddressedCouncilMemberName(string text)
-      {
-         string detectedId = DetectAddressedParticipant(text);
-
-         if (detectedId == null) return null;
-         if (detectedId == _npcHero?.StringId) return MainSpeaker()?.Name;
-
-         return _witnesses.FirstOrDefault(w => w.HeroStringId == detectedId)?.Name;
       }
 
       /// <summary>

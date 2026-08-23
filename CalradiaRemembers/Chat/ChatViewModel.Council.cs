@@ -1027,7 +1027,7 @@ namespace CalradiaRemembers.Chat
       ///   contribution as its own bubble (no privileged anchor). Live regard shifts apply on the spot; commitments
       ///   are recorded as resolutions and settled only at the lift. Replaces the old chat-borne council turn.
       /// </summary>
-      private async Task RunCouncilTurnAsync(string playerMessage, ChatMessageViewModel placeholder)
+      private async Task RunCouncilTurnAsync(string playerMessage, ChatMessageViewModel placeholder, bool isOpener = false)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
          try
@@ -1035,23 +1035,26 @@ namespace CalradiaRemembers.Chat
             if (behavior?.LlmServices?.LlmClient == null || _councilScope == null)
             {
                ReplacePlaceholder(placeholder, "(The council cannot convene just now.)", MainSpeaker());
-               RestoreInputAfterFailedTurn(playerMessage);
+               RestoreInputAfterFailedTurn(playerMessage, suppressPlayerLine: isOpener);
 
                return;
             }
 
-            CouncilPromptInput input = BuildCouncilPromptInput(playerMessage);
+            CouncilPromptInput input = BuildCouncilPromptInput(playerMessage, isOpener);
             if (input.Roster.Count == 0)
             {
                ReplacePlaceholder(placeholder, "(No one is seated at this council.)", MainSpeaker());
-               RestoreInputAfterFailedTurn(playerMessage);
+               RestoreInputAfterFailedTurn(playerMessage, suppressPlayerLine: isOpener);
 
                return;
             }
 
+            // The opener is a synthetic scene-setting cue, carried in the prompt as OpeningCue (a stage
+            // direction), never as words the player spoke; the table opens on its own this turn, so the user
+            // message is a neutral nudge rather than the cue itself.
             var request = new LlmRequest {
                SystemPrompt = CouncilPromptBuilder.Build(input),
-               Messages = new[] {new LlmMessage(MessageRole.User, playerMessage)},
+               Messages = new[] {new LlmMessage(MessageRole.User, isOpener ? "(The council convenes; open the sitting.)" : playerMessage)},
                // A multi-speaker scene needs headroom for every member's full turn plus the resolution blocks;
                // council prose runs warm like an ordinary scene, not the interpreter's cold extraction.
                Parameters = new LlmParameters {MaxTokens = 1500, Creativity = 0.8f}
@@ -1077,7 +1080,7 @@ namespace CalradiaRemembers.Chat
             {
                ModLog.Error($"[COUNCIL] turn failed: {error}");
                ReplacePlaceholder(placeholder, "(The council falls silent; no counsel comes.)", MainSpeaker());
-               RestoreInputAfterFailedTurn(playerMessage);
+               RestoreInputAfterFailedTurn(playerMessage, suppressPlayerLine: isOpener);
 
                return;
             }
@@ -1108,6 +1111,12 @@ namespace CalradiaRemembers.Chat
             ApplyCouncilRelationShifts(parsed.RelationShifts, behavior); // live regard, actor-attributed
             ProcessCouncilResolutions(parsed.Resolutions);              // commitments, settled at the lift
 
+            // Now that THIS turn's lines are committed to the transcript, re-read the standing engagements so the
+            // panel reflects a decision the SAME turn it was made (player report: a pledge showed in the chat while
+            // the Engagements panel still read "No decisions yet"). The in-flight guard in
+            // KickCouncilEngagementExtraction dedupes against the start-of-turn read in ExecuteSendCouncilMessage.
+            KickCouncilEngagementExtraction();
+
             ChatManager.ScrollToBottom();
          }
          catch (Exception ex)
@@ -1122,8 +1131,13 @@ namespace CalradiaRemembers.Chat
          }
       }
 
-      /// <summary>Builds the council prompt input from the seated roster, world state, transcript, and offered kinds.</summary>
-      private CouncilPromptInput BuildCouncilPromptInput(string playerMessage)
+      /// <summary>
+      ///   Builds the council prompt input from the seated roster, world state, transcript, and offered kinds.
+      ///   On the sitting's OPENING turn (<paramref name="isOpener" />) the message is a scene-setting stage
+      ///   direction, so it rides in as <see cref="CouncilPromptInput.OpeningCue" /> and the player line is left
+      ///   empty (the table opens on its own); on every later turn it is the player's own spoken line.
+      /// </summary>
+      private CouncilPromptInput BuildCouncilPromptInput(string playerMessage, bool isOpener = false)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
          (List<string> names, List<string> heroIds) = SeatedMembers();
@@ -1148,7 +1162,8 @@ namespace CalradiaRemembers.Chat
 
          return new CouncilPromptInput {
             Roster = roster,
-            PlayerLine = playerMessage,
+            PlayerLine = isOpener ? string.Empty : playerMessage,
+            OpeningCue = isOpener ? playerMessage : null,
             PlayerName = Hero.MainHero?.Name?.ToString(),
             Day = bridge?.GetCurrentGameDay(),
             Season = bridge?.GetSeasonName(),

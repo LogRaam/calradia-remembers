@@ -649,8 +649,7 @@ namespace CalradiaRemembers.Chat
       private async Task RunLlmExchangeAsync(string playerMessage,
                                              ChatSpeaker speaker,
                                              ChatMessageViewModel placeholder,
-                                             bool suppressPlayerLine = false,
-                                             string addressedCouncilMemberName = null)
+                                             bool suppressPlayerLine = false)
       {
          try
          {
@@ -744,106 +743,12 @@ namespace CalradiaRemembers.Chat
                // the turn counter: a captor's opening turn carries suppressPlayerLine and so never
                // increments it, which asked for the opening narration twice in every captive scene.
                isConversationOpening: ConsumeOpeningNarration(),
-               // Assembly spike: when armed by cr.council_test, a normal player turn takes the OLD whole-table
-               // framing, so that single call yields the anchor's reply + a [WITNESS_REACTION] per present
-               // member. A real council carries this for its WHOLE session (_councilScope), but additionally
-               // narrows to the NARRATOR framing below: the spike deliberately keeps validating the older
-               // whole-table model it was built to test, not the reshape.
-               isRoundTableTurn: RoundTableController.CouncilTurnsForced || _councilScope != null,
-               // Council narrator model (2026-08-02): a REAL council (never the console spike above) fires the
-               // narrator framing instead of "you lead, they react" (see EncounterContext.IsCouncilNarratorTurn).
-               isCouncilNarratorTurn: _councilScope != null,
-               addressedCouncilMemberName: addressedCouncilMemberName,
-               // Council resolution offering: computed ONLY for a REAL council (_councilScope set), never for the
-               // console whole-table spike or an ordinary 1:1 turn, so appoint_governor/assign_party_role/
-               // rejoin_party/dispatch_mission/grant_stipend can never be taught outside a real, eligible council.
-               // _councilParticipants is already the roster CouncilRosterResolver seated (available members
-               // only), so any filled seat satisfies TargetAvailable; TargetInPlayerParty is the narrower
-               // AnySeatedMemberInPlayerParty check assign_party_role needs, and dispatch_mission REUSES this
-               // same fact rather than growing its own (ResolutionCatalog's DispatchOnMission entry documents
-               // why: being in the main party already excludes an away companion in the normal case, and the
-               // narrow reconciliation-window edge case is caught at CouncilLift.SettleDispatchMission instead);
-               // TargetOutOfPlayerParty is the symmetric inverse, AnySeatedCompanionOutOfPlayerParty, rejoin_party
-               // alone needs (bug d); PlayerCanAffordStipend is the fifth executor's own fact, grant_stipend,
-               // proving only the cheapest possible tranche is affordable (the real proposed amount is unknown at
-               // offer time, re-checked at the lift); PlayerCanDeclareWar is the WarCouncil's own fact, declare_war,
-               // the first FACTION-CENTRIC kind (proving the player leads a faction with a valid war target,
-               // never which faction the LLM will actually name); PlayerCanMakePeace is its symmetric
-               // counterpart, the Parley's own fact, make_peace (proving the player leads a faction at war with
-               // the specific enemy this parley was convened against); AnySeatedMemberHasGold is Partie 1's own
-               // fact, give_gold (bringing the existing 1:1 resource verbs to the council): at least one seated
-               // member in ClanLords/WarCouncil (the only scopes ResolutionCatalog grants it) holds gold of
-               // their own, the mirror image of grant_stipend's money direction. AnySeatedMemberCanGrantInfluence
-               // is Partie 1's other own fact, give_influence: at least one seated ALLY (WarCouncil only, the
-               // one scope ResolutionCatalog grants it) has a clan that could currently spare influence to the
-               // player's clan under the reused 1:1 give_influence gates; unlike give_gold this carries no
-               // LLM-chosen amount, the lift computes it fresh. AnySeatedVassalOwnsFief is Partie 2's own fact,
-               // revoke_fief (COUNCIL_ACTIONS.md): at least one seated WarCouncil vassal's own clan currently
-               // owns a town or castle that could be stripped back to the crown; grant_fief's own sovereignty
-               // and giveable-fief facts need no roster and are read directly inside ResolutionOfferingResolver.
-               // AnySeatedCompanionExpellable is Partie 8's own fact, expel_from_clan (COUNCIL_ACTIONS.md's
-               // Kimi review): at least one seated companion is currently expellable (player leads their own
-               // clan, live companion, not the player's own spouse); Companions-scope only, see ExpulsionPolicy.
-               // AnySeatedMemberCanPledgeAgainst is Partie 1's schemes kind's own fact, pledge_against
-               // (COUNCIL_ACTIONS.md's schemes block, REUSING the existing 1:1 pledge_against system end to
-               // end): at least one seated LORD in ClanLords/Family (the only scopes ResolutionCatalog grants
-               // it) holds no pledge already outstanding; an approximation, the genuine rival is re-resolved by
-               // name only at the lift. AnySeatedAllyHasMarriageableKin is Partie 1's own marriage-as-currency
-               // fact, arrange_marriage (COUNCIL_ACTIONS.md, "juste arrange_mariage qui est valide"): WarCouncil
-               // only, the player's own clan holds an unwed kin AND at least one seated ally's own house offers
-               // one too; an approximation, the exact pairing and every hard gate are re-validated at the lift.
-               // AnySeatedTributePayerAvailable is Partie 8's own fact, tribute (COUNCIL_ACTIONS.md's Kimi
-               // review): Parley-only, the seated counterpart is alive and leads a clan distinct from the
-               // player's own; the real proposed amount and the payer's live affordability are both re-checked
-               // at the lift and at every daily tick regardless. AnySeatedPrisonerAvailableToRelease rounds out
-               // the Parley toolkit, release_prisoner (2026-08-04): Parley-only, the player holds a hero
-               // prisoner of the SAME faction the parley was convened against; the named captive is re-resolved
-               // and re-checked against that same faction at the lift regardless. AnySeatedMemberCanLendTroops
-               // is Partie 1's own fact, lend_troops (COUNCIL_ACTIONS.md, Gabriel's own CONDITIONS, the
-               // highest-detail item in the spec): ClanLords/WarCouncil only, at least one seated lord currently
-               // leads a party with troops to spare and is not at war with the player; the real tier split is
-               // computed fresh at the lift from the donor's LIVE roster regardless (CouncilLift.SettleLendTroops).
-               // AnySeatedMemberCanSwearOath is R7-light's own fact, swear_oath (COUNCIL_ACTIONS.md's Partie 8):
-               // ClanLords/Family/WarCouncil, at least one seated member with no commitment already outstanding
-               // plausibly qualifies for one of the three whitelisted oath kinds (pay_gold/keep_peace/protect);
-               // which kind fits the swearer named is re-validated at the lift regardless (CouncilLift.SettleSwearOath).
-               // AnySeatedHostageEligibleRelativeAvailable is Kimi's "v1 invite d'honneur" own fact, give_hostage
-               // (COUNCIL_ACTIONS.md's Partie 8): Parley-only, the seated enemy leader has at least one eligible
-               // relative (spouse, child, or sibling; never a minor, clan chief, or sole heir) to give as a
-               // hostage of good faith; the named relative is re-resolved against that same eligible pool at the
-               // lift regardless (CouncilLift.SettleGiveHostage, bridge is law). AnySeatedLordCanReceiveTroops is
-               // give_troops' own fact, the RECIPROCAL of lend_troops (COUNCIL_ACTIONS.md's give_troops):
-               // ClanLords/WarCouncil only, at least one seated lord currently leads a party with room and is
-               // not at war with the player, AND the PLAYER's own party fields enough healthy troops that
-               // CouncilTroopLoanPolicy.ComputeLoan would yield more than zero; the real tier split, and which
-               // seated lord ends up chosen, are both computed fresh at the lift from LIVE state regardless
-               // (CouncilLift.SettleGiveTroops). AnySeatedPactPartnerAvailable rounds out the Parley toolkit with
-               // a FIFTH concession, non_aggression_pact (COUNCIL_ACTIONS.md's Partie 8): Parley-only, mirroring
-               // AnySeatedTributePayerAvailable's own loose gate (a seated counterpart leads a clan distinct from
-               // the player's own), plus a "not already under pact" check this kind adds; the real faction pair
-               // is re-resolved and re-checked at the lift regardless (CouncilLift.SettleNonAggressionPact).
-               // AnySeatedMemberCanSponsorWard is Kimi's design's own MINIMAL v1 fact, sponsor_ward
-               // (COUNCIL_ACTIONS.md's Partie 8): ClanLords/Family only, at least one seated member is alive/free
-               // AND the player's own clan currently has at least one eligible young companion
-               // (WardCandidateResolver.AnyEligibleWard); the named companion is re-resolved and re-checked
-               // against that same pool at the lift regardless (CouncilLift.SettleSponsorWard, bridge is law).
-               // AnySeatedLordHasGiveableItem is Partie 1's give_item own fact (COUNCIL_ACTIONS.md's give_item,
-               // "cadeau d'objet... comme un pot de vin", the REVERSE of the 1:1 give_item action, player's party
-               // -> NPC): ClanLords/WarCouncil only (mirroring AnySeatedMemberHasGold's/AnySeatedMemberCanLendTroops'
-               // own two scopes), at least one seated lord currently leads their own party whose ItemRoster
-               // carries a real (non-quest) item; the named item is resolved and re-checked fresh against the
-               // giver's LIVE roster at the lift regardless (CouncilLift.SettleGiveItem, bridge is law).
-               // AnySeatedMemberCanSupportClaimant is Partie 8's LAST own fact, support_claimant
-               // (COUNCIL_ACTIONS.md's Kimi review, the riskiest catalogue kind, Kimi's own flagged spike over a
-               // live KingdomDecision/Election hook): WarCouncil only, mirroring AnySeatedMemberCanGrantInfluence's
-               // own single-scope entry, at least one seated vassal's own clan (a genuine OTHER clan of the
-               // player's OWN kingdom) could currently spare influence to back the player's own political
-               // standing; the real amount is computed fresh at the lift by the SAME reused CourtActionPolicy.InfluenceGrant
-               // (CouncilLift.SettleSupportClaimant, the SAFE v1 that reuses give_influence's own machinery end
-               // to end rather than the risky live-vote-injection spike).
-               councilOfferedResolutionKinds: _councilScope != null
-                  ? ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath(), AnySeatedHostageEligibleRelativeAvailable(), AnySeatedLordCanReceiveTroops(), AnySeatedPactPartnerAvailable(), AnySeatedMemberCanSponsorWard(), AnySeatedLordHasGiveableItem(), AnySeatedMemberCanSupportClaimant())
-                  : null,
+               // The only council flag the chat prompt path still carries: the cr.council_test spike's whole-table
+               // framing (RoundTableController.CouncilTurnsForced), so that single call yields the anchor's reply
+               // plus a [WITNESS_REACTION] per present member. The REAL council (2026-08-22, Council Increment 4)
+               // runs entirely through its own one-call group-scene pipeline (RunCouncilTurnAsync), never this
+               // path, so the narrator / addressed-member / resolution-offering flags it once set are gone.
+               isRoundTableTurn: RoundTableController.CouncilTurnsForced,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic
                // scene cue has no attempt to judge.
@@ -937,7 +842,7 @@ namespace CalradiaRemembers.Chat
             // "Chat Composition" dropdown: only that switch decides, live, whether this turn is Enhanced.
             bool proseInterpretEligible = LlmServices.ActiveComposition == ChatCompositionMode.Enhanced
                                           && speaker.IsMain && !suppressPlayerLine
-                                          && !IsCaptiveEncounter && !_captorScene && _councilScope == null;
+                                          && !IsCaptiveEncounter && !_captorScene;
             bool usedProseFallback = false;
 
             NpcChatResult result;
@@ -1080,11 +985,8 @@ namespace CalradiaRemembers.Chat
                AppendNarration(response.Narration, placeholder);
 
             // Render the turn: dialogue bubble, or a narration-only turn (no empty bubble), or
-            // a "(silence...)" fallback. npcLine is empty for a narration-only turn. A real council
-            // (allowSilentSpeaker) also drops the placeholder cleanly when the anchor stayed silent this turn
-            // and other seated members carried it via [WITNESS_REACTION] instead: the anchor is not privileged
-            // and must not surface a "(silence...)" bubble under their own name for choosing not to speak.
-            npcLine = RenderNpcTurn(placeholder, speaker, response, allowSilentSpeaker: _councilScope != null);
+            // a "(silence...)" fallback. npcLine is empty for a narration-only turn.
+            npcLine = RenderNpcTurn(placeholder, speaker, response, allowSilentSpeaker: false);
             if (IsCaptiveEncounter) _captiveBeatCount++;
 
             // Commit this turn to the attributed transcript — player first, then the
@@ -1138,21 +1040,6 @@ namespace CalradiaRemembers.Chat
                   IsCaptiveEncounter, _conversationEnded)
                   ? new List<(string name, string heroId, string text)>()
                   : CollectWitnessReactions(response);
-
-            // Council narrator model: the ratified exception, a member addressed BY NAME must at least
-            // respond this turn. The prompt teaches it, but a weak model can still ignore the directive, so a
-            // minimal, deterministic line backstops the guarantee when nobody voiced that member this turn (the
-            // anchor speaking for themselves does not need one; their own [DIALOGUE] already covers it).
-            if (_councilScope != null && !string.IsNullOrEmpty(addressedCouncilMemberName)
-                && !string.Equals(addressedCouncilMemberName, speaker.Name, StringComparison.OrdinalIgnoreCase)
-                && !witnessReactions.Exists(w => string.Equals(w.name, addressedCouncilMemberName, StringComparison.OrdinalIgnoreCase)))
-            {
-               string fallbackHeroId = _witnesses.FirstOrDefault(w =>
-                  string.Equals(w.Name, addressedCouncilMemberName, StringComparison.OrdinalIgnoreCase))?.HeroStringId;
-               witnessReactions.Add((addressedCouncilMemberName, fallbackHeroId,
-                  "*inclines their head toward you, answering the point directly, if briefly.*"));
-               ModLog.Info($"[COUNCIL] {addressedCouncilMemberName} was addressed directly but gave no line this turn; a fallback line was added.");
-            }
 
             foreach (var (wn, _, wt) in witnessReactions)
             {
@@ -1350,11 +1237,9 @@ namespace CalradiaRemembers.Chat
                var relationChangedThisTurn = false;
                var worstAppliedRelation = 0; // 2.1: the steepest regard change actually applied this turn, for the affront rumor.
                // v1.34.2 log-only execution audit (Pattern 1, observability): the set of action types this
-               // ordinary turn actually taught, so an [ACTION] that runs yet was never taught can be LOGGED
-               // (never refused, no control-flow change). Only for a real 1:1 turn: a council turn teaches
-               // through the [RESOLUTION] offering instead, a different set, so it is out of scope here. Null
-               // when unavailable (council, or a mapping fault), which disables the audit entirely for the turn.
-               ISet<string> taughtThisTurn = _councilScope == null ? TryBuildTaughtActionSet(context) : null;
+               // turn actually taught, so an [ACTION] that runs yet was never taught can be LOGGED (never
+               // refused, no control-flow change). Null on a mapping fault, which disables the audit for the turn.
+               ISet<string> taughtThisTurn = TryBuildTaughtActionSet(context);
                foreach (GameAction action in response.Actions)
                {
                   // request_privacy, end_conversation and witness_leaves are
@@ -1385,20 +1270,6 @@ namespace CalradiaRemembers.Chat
                   // turn, leave a trace so hallucinated / untaught executions are visible for a future enforcing
                   // pass. Purely observational: it does not skip, refuse, or reorder anything.
                   AuditActionTaught(action, taughtThisTurn, profile);
-
-                  // Council: deeds are NOT sealed at the table (ratified 2026-07-24). Only PERCEPTION runs on
-                  // the spot here (change_relation): a lord you anger IS angrier at once, and that shift must
-                  // colour how he weighs every request for the rest of the sitting. World transfers and
-                  // commitments (gold, troops, prisoners, marriage, schemes, missions) are promises, recorded
-                  // through the [RESOLUTION] channel and carried out only when the council rises. Dropping them
-                  // here is what makes the prompt's "nothing is sealed at this table" TRUE in code (the bridge
-                  // is law), closing the guard gap the audit found (whole-table dispatch had none).
-                  if (_councilScope != null && !CouncilResolutionPolicy.ExecutesImmediatelyAtCouncil(action.Type))
-                  {
-                     ModLog.Info($"[COUNCIL] '{action.Type}' is not sealed at the table; deferred (only perception applies live; deeds belong to [RESOLUTION]).");
-
-                     continue;
-                  }
 
                   if (hasJoinParty &&
                       string.Equals(action.Type, "take_gold",
@@ -1699,11 +1570,6 @@ namespace CalradiaRemembers.Chat
 
             behavior.Store.Set(profile);
 
-            // ── Council resolutions: record or withdraw what the table decided this turn ──
-            // A no-op outside a council (ProcessCouncilResolutions itself gates on _councilScope), settled
-            // only at the lift (ChatManager.Close -> FinalizeCouncilResolutions), never here.
-            ProcessCouncilResolutions(response);
-
             // Mark any delivered player letters read now that the NPC has responded.
             PlayerLetterService.MarkLettersRead(profile, behavior.Store);
 
@@ -1731,11 +1597,7 @@ namespace CalradiaRemembers.Chat
             // up to 3 extra captor turns per player message — walls of text, the player rarely
             // getting to reply, and the Continue/Try-something pause never reached. Captive scenes
             // use the continuation pause below instead.
-            // NOT at a real council either (council narrator model): the whole table already spoke this ONE
-            // narrator call (the anchor's [DIALOGUE] plus every other member's [WITNESS_REACTION]), so firing
-            // an extra auto-reply here would be a second LLM call per player turn, exactly what "one narrator
-            // call per player turn" rules out.
-            if (witnessReactions.Count > 0 && speaker.IsMain && !IsCaptiveEncounter && _councilScope == null
+            if (witnessReactions.Count > 0 && speaker.IsMain && !IsCaptiveEncounter
                 && _witnessExchangesThisRound < WitnessExchangeCap && !_conversationEnded)
             {
                _witnessExchangesThisRound++;
@@ -1860,13 +1722,6 @@ namespace CalradiaRemembers.Chat
                // (PromptNext drops them instead if the conversation just ended).
                if (_confirmation.HasPending && !_confirmation.IsAwaiting) _confirmation.PromptNext(this);
             }
-
-            // Bespoke council window (Inc 1): now that THIS council turn's lines are committed to the transcript,
-            // re-read the standing engagements so the panel reflects a decision the SAME turn it was made, not one
-            // turn later (player report: pledges appeared in the chat but the Engagements panel still read "No
-            // decisions yet"). The in-flight guard in KickCouncilEngagementExtraction dedupes the start-of-turn read.
-            if (_councilScope != null)
-               KickCouncilEngagementExtraction();
          }
       }
 

@@ -121,9 +121,6 @@ namespace CalradiaRemembers.Mapping
          bool audienceRetirementIsLanded = false,
          bool resolveInterception = true,
          bool isRoundTableTurn = false,
-         bool isCouncilNarratorTurn = false,
-         string addressedCouncilMemberName = null,
-         IReadOnlyList<string> councilOfferedResolutionKinds = null,
          bool? playerAttemptSucceeds = null)
       {
          int daysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge);
@@ -318,17 +315,12 @@ namespace CalradiaRemembers.Mapping
             IsWitnessExchangeTurn = isWitnessExchangeTurn,
             IsConversationOpening = isConversationOpening,
             IsLastWitnessExchange = isLastWitnessExchange,
+            // IsRoundTableTurn is the one council flag the chat prompt path still carries: it is armed ONLY by the
+            // cr.council_test spike (RoundTableController.CouncilTurnsForced). The REAL council (2026-08-22,
+            // Council Increment 4) runs entirely through its own one-call group-scene pipeline
+            // (ChatViewModel.RunCouncilTurnAsync / CouncilPromptBuilder), so this path no longer knows it exists:
+            // the narrator/addressed/offering flags it once set are gone.
             IsRoundTableTurn = isRoundTableTurn,
-            // Council narrator model (2026-08-02): a real, player-led council's own flag, ALONGSIDE
-            // IsRoundTableTurn above (kept true so every other council rule sharing that block still applies).
-            // See EncounterContext.IsCouncilNarratorTurn for the full rationale.
-            IsCouncilNarratorTurn = isCouncilNarratorTurn,
-            AddressedCouncilMemberName = addressedCouncilMemberName,
-            // Council resolution offering: which executable resolution kinds (beyond the universal quest) the
-            // mod has proven the lift could currently honour (see ResolutionOfferingResolver). Null on every
-            // non-council turn (every caller above this one), so PromptBuilder's fallback (teach quest alone)
-            // is exactly what every existing caller already gets.
-            CouncilOfferedResolutionKinds = councilOfferedResolutionKinds,
             // This turn's pre-drawn verdict for a captive player's physical attempt: the mod decides, the model
             // narrates (an LLM judging the struggle it is also writing always sides with its own story).
             PlayerAttemptSucceeds = playerAttemptSucceeds,
