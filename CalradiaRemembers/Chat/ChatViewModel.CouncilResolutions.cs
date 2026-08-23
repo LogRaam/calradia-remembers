@@ -35,15 +35,23 @@ namespace CalradiaRemembers.Chat
       ///   <see cref="QuestService.ApplyResponse" />, the same place an ordinary [QUEST] is recorded.
       /// </summary>
       private void ProcessCouncilResolutions(ParsedResponse response)
+         => ProcessCouncilResolutions(response?.Resolutions);
+
+      /// <summary>
+      ///   Overload taking the resolution list directly, so the new one-call council pipeline
+      ///   (<see cref="RunCouncilTurnAsync" />, whose parser already yields <see cref="ResolutionProposal" />s)
+      ///   feeds the exact same recording/withdraw/lift path as the old chat-borne [RESOLUTION] channel.
+      /// </summary>
+      private void ProcessCouncilResolutions(IReadOnlyList<ResolutionProposal> resolutions)
       {
          if (_councilScope == null) return;
-         if (response?.Resolutions == null || response.Resolutions.Count == 0) return;
+         if (resolutions == null || resolutions.Count == 0) return;
 
          (List<string> names, List<string> heroIds) = SeatedMembers();
          var behavior = NpcMemoryCampaignBehavior.Instance;
          int gameDay = behavior?.GameStateBridge?.GetCurrentGameDay() ?? 0;
 
-         foreach (ResolutionProposal proposal in response.Resolutions)
+         foreach (ResolutionProposal proposal in resolutions)
          {
             if (string.IsNullOrWhiteSpace(proposal.Type)) continue; // the parser already filters this; defensive only
 

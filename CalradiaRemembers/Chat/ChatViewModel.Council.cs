@@ -13,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.GameState;
@@ -20,6 +21,8 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
 using NpcMemoryService.Core.Compression;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Parsing;
+using NpcMemoryService.Core.Prompts;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
@@ -1013,5 +1016,236 @@ namespace CalradiaRemembers.Chat
       void IRoundTableHost.ClearActiveCouncilSpeaker() => ClearActiveCouncilSpeaker();
 
       #endregion
+
+      // ── New council pipeline (2026-08-22): a dedicated ONE-CALL group scene, decoupled from the chat's ──
+      // ── anchor + [WITNESS_REACTION] model. Every seated member speaks a real turn (CouncilPromptBuilder ──
+      // ── enforces it); the reply is parsed into per-speaker bubbles, live regard shifts, and resolutions. ──
+
+      /// <summary>
+      ///   Runs ONE council turn as a group scene: builds the dedicated council prompt from the seated roster,
+      ///   makes a single LLM call on the prose client, parses the multi-speaker reply, and renders each member's
+      ///   contribution as its own bubble (no privileged anchor). Live regard shifts apply on the spot; commitments
+      ///   are recorded as resolutions and settled only at the lift. Replaces the old chat-borne council turn.
+      /// </summary>
+      private async Task RunCouncilTurnAsync(string playerMessage, ChatMessageViewModel placeholder)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+         try
+         {
+            if (behavior?.LlmServices?.LlmClient == null || _councilScope == null)
+            {
+               ReplacePlaceholder(placeholder, "(The council cannot convene just now.)", MainSpeaker());
+               RestoreInputAfterFailedTurn(playerMessage);
+
+               return;
+            }
+
+            CouncilPromptInput input = BuildCouncilPromptInput(playerMessage);
+            if (input.Roster.Count == 0)
+            {
+               ReplacePlaceholder(placeholder, "(No one is seated at this council.)", MainSpeaker());
+               RestoreInputAfterFailedTurn(playerMessage);
+
+               return;
+            }
+
+            var request = new LlmRequest {
+               SystemPrompt = CouncilPromptBuilder.Build(input),
+               Messages = new[] {new LlmMessage(MessageRole.User, playerMessage)},
+               // A multi-speaker scene needs headroom for every member's full turn plus the resolution blocks;
+               // council prose runs warm like an ordinary scene, not the interpreter's cold extraction.
+               Parameters = new LlmParameters {MaxTokens = 1500, Creativity = 0.8f}
+            };
+
+            string raw = null;
+            string error = null;
+            int budgetSeconds = Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) + 10;
+            using (var cts = new CancellationTokenSource())
+            {
+               cts.CancelAfter(TimeSpan.FromSeconds(budgetSeconds));
+               try
+               {
+                  LlmResponse resp = await Task.Run(() => behavior.LlmServices.LlmClient.CompleteAsync(request, cts.Token))
+                                               .ConfigureAwait(false);
+                  if (resp is {IsSuccess: true}) raw = resp.Content;
+                  else error = resp?.ErrorMessage ?? "no result";
+               }
+               catch (Exception ex) { error = $"{ex.GetType().Name}: {ex.Message}"; }
+            }
+
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+               ModLog.Error($"[COUNCIL] turn failed: {error}");
+               ReplacePlaceholder(placeholder, "(The council falls silent; no counsel comes.)", MainSpeaker());
+               RestoreInputAfterFailedTurn(playerMessage);
+
+               return;
+            }
+
+            (List<string> names, _) = SeatedMembers();
+            CouncilParsedResponse parsed = new CouncilResponseParser().Parse(raw, names);
+
+            _messages.Remove(placeholder); // drop the "weighs your words" tile; the parsed scene replaces it
+
+            if (!string.IsNullOrWhiteSpace(parsed.SceneNarration))
+               AppendNarration(parsed.SceneNarration);
+
+            var rendered = 0;
+            foreach (CouncilContribution c in parsed.Contributions)
+            {
+               if (c == null || string.IsNullOrWhiteSpace(c.Text)) continue;
+               RenderCouncilContribution(c.SpeakerName, c.Text);
+               rendered++;
+            }
+
+            // A reply with no scene and no voice must not leave the turn blank and silent.
+            if (rendered == 0 && string.IsNullOrWhiteSpace(parsed.SceneNarration))
+               AppendNarration("(The council exchanges glances, but no one speaks.)");
+
+            ApplyCouncilRelationShifts(parsed.RelationShifts, behavior); // live regard, actor-attributed
+            ProcessCouncilResolutions(parsed.Resolutions);              // commitments, settled at the lift
+
+            ChatManager.ScrollToBottom();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COUNCIL] RunCouncilTurnAsync failed: {ex.GetType().Name}: {ex.Message}");
+            try { ReplacePlaceholder(placeholder, "(The council falls silent.)", MainSpeaker()); }
+            catch (Exception inner) { ModLog.Error($"[COUNCIL] placeholder cleanup failed: {inner.Message}"); }
+         }
+         finally
+         {
+            IsSendEnabled = true;
+         }
+      }
+
+      /// <summary>Builds the council prompt input from the seated roster, world state, transcript, and offered kinds.</summary>
+      private CouncilPromptInput BuildCouncilPromptInput(string playerMessage)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+         (List<string> names, List<string> heroIds) = SeatedMembers();
+
+         var roster = new List<CouncilMemberInput>();
+         for (var i = 0; i < names.Count; i++)
+         {
+            string heroId = heroIds[i];
+            Hero hero = string.IsNullOrEmpty(heroId) ? null : Hero.FindFirst(h => h.StringId == heroId);
+            NpcProfile p = string.IsNullOrEmpty(heroId) ? null : behavior?.Store?.Get(heroId);
+
+            roster.Add(new CouncilMemberInput {
+               Name = names[i],
+               PersonaLine = p?.Personality ?? p?.Trait,
+               RegardTowardPlayer = p?.ReputationWithPlayer ?? 0,
+               Culture = hero?.Culture?.StringId
+            });
+         }
+
+         IGameStateBridge bridge = behavior?.GameStateBridge;
+
+         return new CouncilPromptInput {
+            Roster = roster,
+            PlayerLine = playerMessage,
+            PlayerName = Hero.MainHero?.Name?.ToString(),
+            Day = bridge?.GetCurrentGameDay(),
+            Season = bridge?.GetSeasonName(),
+            Place = Hero.MainHero?.CurrentSettlement?.Name?.ToString(),
+            TranscriptSoFar = CouncilTranscriptLines(),
+            OfferedResolutionKinds = CurrentOfferedResolutionKinds()
+         };
+      }
+
+      /// <summary>The recent conversation as Discord-style "Name: line" strings (the player is "You"), bounded to the last several turns to keep the prompt lean.</summary>
+      private IReadOnlyList<string> CouncilTranscriptLines()
+      {
+         const int maxLines = 24;
+         var lines = new List<string>();
+         foreach (var l in _transcript.Lines)
+         {
+            if (l == null || string.IsNullOrWhiteSpace(l.Text)) continue;
+            string who = l.IsNarration ? "(scene)" : l.IsPlayer ? "You" : l.SpeakerName ?? "Someone";
+            lines.Add($"{who}: {l.Text}");
+         }
+
+         return lines.Count > maxLines ? lines.GetRange(lines.Count - maxLines, maxLines) : lines;
+      }
+
+      /// <summary>The [RESOLUTION] kinds offerable at this council right now (same gate the old chat-flag path used).</summary>
+      private IReadOnlyList<string> CurrentOfferedResolutionKinds()
+      {
+         if (_councilScope == null) return new List<string>();
+
+         return ResolutionOfferingResolver.OfferedKindKeys(_councilScope.Value, _councilParticipants.Count > 0, AnySeatedMemberInPlayerParty(), AnySeatedCompanionOutOfPlayerParty(), PlayerCanAffordStipend(), PlayerCanDeclareWar(), PlayerCanMakePeace(), AnySeatedMemberHasGold(), AnySeatedMemberCanGrantInfluence(), AnySeatedVassalOwnsFief(), AnySeatedCompanionExpellable(), AnySeatedMemberCanPledgeAgainst(), AnySeatedAllyHasMarriageableKin(), AnySeatedTributePayerAvailable(), AnySeatedPrisonerAvailableToRelease(), AnySeatedMemberCanLendTroops(), AnySeatedMemberCanSwearOath(), AnySeatedHostageEligibleRelativeAvailable(), AnySeatedLordCanReceiveTroops(), AnySeatedPactPartnerAvailable(), AnySeatedMemberCanSponsorWard(), AnySeatedLordHasGiveableItem(), AnySeatedMemberCanSupportClaimant());
+      }
+
+      /// <summary>Renders one seated member's contribution as its own bubble (all seats equal; no anchor privilege).</summary>
+      private void RenderCouncilContribution(string speakerName, string text)
+      {
+         ChatSpeaker anchor = MainSpeaker();
+         if (anchor?.Hero != null && CouncilNameMatches(anchor.Name, speakerName))
+         {
+            _messages.Add(MakeSpeakerMessage(anchor, text));
+            RecordTranscript(false, anchor.Name, anchor.Hero.StringId, text);
+            StoryLog.WriteNpcLine(anchor.Name, text);
+
+            return;
+         }
+
+         // Every other seat renders through the existing per-speaker path (resolves its portrait/colour, records
+         // the transcript, and mirrors out CrConversation.LineSpoken for TTS).
+         AppendWitnessReaction(speakerName, text, recordTranscript: true);
+      }
+
+      /// <summary>Tolerant seat-name match (trim, case-insensitive, first-word / substring), mirroring the parser's own resolution.</summary>
+      private static bool CouncilNameMatches(string seatName, string spoken)
+      {
+         if (string.IsNullOrWhiteSpace(seatName) || string.IsNullOrWhiteSpace(spoken)) return false;
+
+         string a = seatName.Trim();
+         string b = spoken.Trim();
+         if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase)) return true;
+
+         string aFirst = a.Split(' ')[0];
+         string bFirst = b.Split(' ')[0];
+
+         return string.Equals(aFirst, bFirst, StringComparison.OrdinalIgnoreCase)
+                || a.IndexOf(b, StringComparison.OrdinalIgnoreCase) >= 0
+                || b.IndexOf(a, StringComparison.OrdinalIgnoreCase) >= 0;
+      }
+
+      /// <summary>Applies the actor-attributed regard shifts a council turn produced: the only immediate effect at the table (deeds wait for the lift).</summary>
+      private void ApplyCouncilRelationShifts(IReadOnlyList<CouncilRelationShift> shifts, NpcMemoryCampaignBehavior behavior)
+      {
+         if (shifts == null || shifts.Count == 0 || behavior?.GameStateBridge == null) return;
+
+         (List<string> names, List<string> heroIds) = SeatedMembers();
+         foreach (CouncilRelationShift s in shifts)
+         {
+            if (s == null || s.Delta == 0) continue;
+
+            int idx = CouncilActorPolicy.ResolveActor(s.Actor, names);
+            if (idx < 0 || string.IsNullOrEmpty(heroIds[idx])) continue;
+
+            string heroId = heroIds[idx];
+            Hero hero = Hero.FindFirst(h => h.StringId == heroId);
+            NpcProfile profile = behavior.Store?.Get(heroId);
+            if (hero == null || profile == null) continue;
+
+            var action = new GameAction {
+               Type = "change_relation",
+               Parameters = new Dictionary<string, string> {["delta"] = s.Delta.ToString()}
+            };
+
+            try
+            {
+               behavior.GameStateBridge.ExecuteAction(action, hero, new ActionContext(profile, null));
+               behavior.Store?.Set(profile);
+            }
+            catch (Exception ex)
+            {
+               ModLog.Error($"[COUNCIL] regard shift for {names[idx]} failed: {ex.GetType().Name}: {ex.Message}");
+            }
+         }
+      }
+
    }
 }

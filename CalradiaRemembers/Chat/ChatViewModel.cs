@@ -2011,8 +2011,6 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private void ExecuteSendCouncilMessage(string text)
       {
-         string addressedName = ResolveAddressedCouncilMemberName(text);
-
          // Bespoke council window (Inc 1): before this new turn, mirror what the table has settled so far into
          // the Engagements panel. Reads the previous, fully-settled turn (this send's lines are not committed to
          // the transcript until the call runs), so the panel stays one turn behind but never mid-turn.
@@ -2025,11 +2023,14 @@ namespace CalradiaRemembers.Chat
          _witnessExchangesThisRound = 0;
          _sceneContinuations = 0;
 
+         // The council is its own pipeline now: ONE group-scene call where every seated member speaks a full turn,
+         // not the chat's anchor + [WITNESS_REACTION] model. The placeholder still shows the situational scene
+         // image (no single member presides) until the parsed scene replaces it.
          ChatSpeaker anchor = MainSpeaker();
          ChatMessageViewModel placeholder = MakeSpeakerMessage(anchor, CouncilPlaceholderText);
-         ApplyCouncilSceneImage(placeholder); // scene image while the council weighs this turn, instead of the anchor's own portrait
+         ApplyCouncilSceneImage(placeholder);
          _messages.Add(placeholder);
-         _ = RunLlmExchangeAsync(text, anchor, placeholder, false, addressedName);
+         _ = RunCouncilTurnAsync(text, placeholder);
       }
 
       /// <summary>
