@@ -2,6 +2,19 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.1.5.. 2026-08-22
+
+A companion's vow is theirs to keep, not a quest you can fail. Your saves from 2.1.4 carry over untouched.
+
+### Fixed
+- **A character's pledge is no longer your quest.** When a companion or lord vowed something to you (to fight at
+  your side, to pay you a sum, to keep a peace), the mod wrongly turned it into an entry in YOUR quest journal that
+  could close as "failed", and then cost you their regard and planted a grudge, even when there was never a chance
+  to honor it (a companion who governs a fief, for instance, can never ride into battle beside you). A vow is the
+  character's own word, not a task for you. It is now simply remembered: it appears in their Memories, carries no
+  deadline, opens no quest, and never moves your relationship on its own. Old pledges from an earlier save are
+  quietly retired with no penalty.
+
 ## v2.1.4.. 2026-08-22
 
 A model switch in the chat, actions you can take by hand, and a redesigned Memories page.
